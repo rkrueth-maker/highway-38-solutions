@@ -77,3 +77,6 @@ def test_web_dashboard_smoke_loads_index(monkeypatch):
     assert response.status_code == 200
     page = response.get_data(as_text=True)
     assert "ForgeIQ" in page or "Control Center" in page
+    assert "Launch Control" in page
+    assert "First-Run Checklist" in page
+    assert "Apply Staged Changes" in page

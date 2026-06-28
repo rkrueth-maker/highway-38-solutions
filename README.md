@@ -63,6 +63,15 @@ ForgeIQ has evolved from standalone scripts into a modular Shopify operations ap
 - Use `Approve (Stage)` or bulk stage actions first.
 - Use `Apply Approved (Write to Shopify)` only after reviewing the staged queue.
 
+## Launch Dashboard Workflow
+1. Start dashboard with `python app.py`
+2. Confirm Shopify Connection Status
+3. Review Products Needing Attention
+4. Stage one product first
+5. Click Apply Approved to Shopify
+6. Confirm the product in Shopify admin
+7. Use bulk staging only after one-product test succeeds
+
 ## Module Catalog
 - `1` SEO Audit: audits products and writes a CSV report.
 - `2` Update Image Alt Text: previews/applies missing image alt text.

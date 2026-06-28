@@ -53,281 +53,177 @@ TEMPLATE = """
   <title>ForgeIQ Control Center</title>
   <style>
     :root {
-      --bg: #0b1220;
-      --panel: #111a2b;
-      --panel-2: #172238;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #e5eefc;
-      --muted: #9fb1cf;
-      --accent: #7dd3fc;
-      --accent-2: #f59e0b;
-      --success: #34d399;
+      --bg: #071a25;
+      --panel: #0f2433;
+      --panel-soft: #163346;
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #ebf6ff;
+      --muted: #b9d0de;
+      --accent: #22d3ee;
+      --safe: #34d399;
+      --warn: #fbbf24;
       --danger: #fb7185;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      --write: #ff7a59;
+      --shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
     }
-
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 30%),
-        radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 24%),
-        linear-gradient(180deg, #08101d 0%, #0b1220 100%);
-      overflow-x: hidden;
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 34%),
+        radial-gradient(circle at top right, rgba(255, 122, 89, 0.14), transparent 28%),
+        linear-gradient(180deg, #07131d 0%, #0a1a27 100%);
     }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.24), transparent 90%);
-    }
-
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-
-    .shell { max-width: 1600px; margin: 0 auto; padding: 24px; }
-    .hero {
-      display: grid;
-      grid-template-columns: 1.6fr 1fr;
-      gap: 16px;
-      align-items: stretch;
-      margin-bottom: 18px;
-    }
-    .hero-card, .panel {
-      background: linear-gradient(180deg, rgba(17, 26, 43, 0.96), rgba(12, 18, 31, 0.96));
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      box-shadow: var(--shadow);
-    }
-    .hero-card {
-      padding: 26px;
-      position: relative;
-      overflow: hidden;
-      border-color: rgba(125, 211, 252, 0.18);
-    }
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      right: -80px;
-      top: -80px;
-      width: 220px;
-      height: 220px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(125, 211, 252, 0.18), transparent 68%);
-      animation: floatGlow 8s ease-in-out infinite;
-    }
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: clamp(2.2rem, 2.8vw, 3.3rem);
-      line-height: 0.98;
-      letter-spacing: -0.04em;
-    }
-    .hero p { margin: 0; color: var(--muted); max-width: 68ch; line-height: 1.5; }
-    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-    .status-strip {
-      margin-top: 18px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      color: #dbeafe;
-      font-size: 0.95rem;
-    }
-    .status-strip span {
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(125, 211, 252, 0.09);
-      border: 1px solid rgba(125, 211, 252, 0.14);
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text);
-      font-size: 0.92rem;
-      backdrop-filter: blur(12px);
-    }
-    .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 20px;
-    }
-    .action-card {
-      background: rgba(255, 255, 255, 0.03);
+    .shell { max-width: 1420px; margin: 0 auto; padding: 20px; }
+    .panel {
+      margin-top: 14px;
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 14px;
-    }
-    .action-card h3 { margin: 0 0 8px; font-size: 1rem; }
-    .action-card p { margin: 0 0 12px; color: var(--muted); font-size: 0.95rem; line-height: 1.4; }
-
-    .grid-6, .grid-4, .grid-3 { display: grid; gap: 14px; margin: 16px 0; }
-    .grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .metric {
-      padding: 16px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(23, 34, 56, 0.94), rgba(16, 25, 42, 0.94));
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(15, 36, 51, 0.98), rgba(10, 25, 37, 0.98));
       box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
+      padding: 16px;
     }
-    .metric .label { color: var(--muted); font-size: 0.86rem; text-transform: uppercase; letter-spacing: 0.08em; }
-    .metric .value { font-size: 2rem; font-weight: 700; margin-top: 8px; }
-    .metric .sub { color: var(--muted); font-size: 0.92rem; margin-top: 6px; }
-
-    .section { margin-top: 18px; }
-    .section h2 { margin: 0 0 10px; font-size: 1.2rem; }
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 14px;
-      margin-bottom: 10px;
-    }
-    .section-head p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 66ch;
-    }
-    .panel { padding: 18px; }
-
-    .chart-row { display: grid; grid-template-columns: 160px 1fr 88px; gap: 12px; align-items: center; margin: 12px 0; }
-    .chart-label { color: var(--muted); font-size: 0.92rem; }
-    .bar-track {
-      height: 14px;
-      background: rgba(255, 255, 255, 0.06);
+    .panel h2 { margin: 0 0 8px; font-size: 1.25rem; }
+    .muted { color: var(--muted); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 5px 10px;
+      font-size: 0.82rem;
+      margin-right: 8px;
+      margin-bottom: 8px;
     }
-    .bar-fill {
-      height: 100%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    }
-    .chart-value { text-align: right; font-variant-numeric: tabular-nums; }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td {
-      padding: 12px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      text-align: left;
-      vertical-align: top;
-    }
-    th { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
-    tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
-
     .tag {
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      padding: 4px 10px;
+      padding: 3px 10px;
       font-size: 0.8rem;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
     }
-    .tag.success { color: var(--success); }
-    .tag.warn { color: #fbbf24; }
+    .tag.success { color: var(--safe); }
+    .tag.warn { color: var(--warn); }
     .tag.danger { color: var(--danger); }
-
-    .actions form { display: inline; }
-    .preserve-scroll { display: inline; }
     .btn {
       appearance: none;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-right: 6px;
-      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 9px 12px;
       color: var(--text);
-      cursor: pointer;
+      background: rgba(255, 255, 255, 0.05);
       font-weight: 600;
-      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      cursor: pointer;
+      margin-right: 6px;
+      margin-bottom: 8px;
     }
-    .btn:hover { transform: translateY(-1px); border-color: rgba(125, 211, 252, 0.4); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2); text-decoration: none; }
-    .btn.primary { background: linear-gradient(90deg, var(--accent), #60a5fa); color: #06101c; border: 0; }
-    .btn.danger { background: rgba(251, 113, 133, 0.14); color: #fecdd3; }
-    .btn.good { background: rgba(52, 211, 153, 0.14); color: #a7f3d0; }
-
-    .card-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .mini-card {
-      padding: 14px;
-      border-radius: 16px;
+    .btn:hover { border-color: rgba(34, 211, 238, 0.46); text-decoration: none; }
+    .btn.good { background: rgba(52, 211, 153, 0.16); color: #b7f7dc; }
+    .btn.danger { background: rgba(251, 113, 133, 0.18); color: #ffd1d9; }
+    .btn-write {
+      border: 1px solid rgba(255, 122, 89, 0.6);
+      background: linear-gradient(90deg, rgba(255, 122, 89, 0.88), rgba(251, 146, 60, 0.9));
+      color: #120c07;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .btn-write[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.24);
+    }
+    .banner {
+      margin: 14px 0;
+      padding: 14px 16px;
+      border-radius: 14px;
       border: 1px solid var(--border);
+    }
+    .banner.success { border-color: rgba(52, 211, 153, 0.45); background: rgba(52, 211, 153, 0.14); }
+    .banner.warn { border-color: rgba(251, 191, 36, 0.45); background: rgba(251, 191, 36, 0.14); }
+    .banner h3 { margin: 0 0 6px; }
+    .banner p { margin: 0; }
+    .preserve-scroll { display: inline; }
+    .top-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px;
       background: rgba(255, 255, 255, 0.03);
     }
-    .mini-card h3 { margin: 0 0 8px; font-size: 1rem; }
-    .mini-card p, .mini-card li, .muted { color: var(--muted); }
-    .stack { display: grid; gap: 10px; }
-    .quick-prompts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 12px;
+    .stat .k { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat .v { margin-top: 6px; font-size: 1.15rem; font-weight: 700; }
+    .list { margin: 0; padding-left: 18px; }
+    .list li { margin-bottom: 8px; }
+    .check-ok { color: var(--safe); }
+    .check-miss { color: var(--warn); }
+    .apply-card {
+      position: sticky;
+      top: 8px;
+      z-index: 3;
+      border: 1px solid rgba(255, 122, 89, 0.58);
+      background: linear-gradient(180deg, rgba(95, 34, 25, 0.45), rgba(17, 40, 57, 0.96));
     }
-    .quick-prompts .pill {
-      cursor: pointer;
-      border-style: dashed;
-      background: rgba(125, 211, 252, 0.07);
+    .apply-count {
+      display: inline-block;
+      font-size: 1.9rem;
+      font-weight: 800;
+      margin: 4px 0 10px;
+      color: #ffd6c8;
+    }
+    .two-col { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    .chart-row { display: grid; grid-template-columns: 150px 1fr 74px; gap: 10px; align-items: center; margin: 9px 0; }
+    .bar-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22d3ee, #38bdf8); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: left;
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .file-list { display: grid; gap: 8px; }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
     }
     pre {
       margin: 0;
-      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 11px;
       white-space: pre-wrap;
-      background: rgba(0, 0, 0, 0.24);
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
       color: #dbeafe;
       font-size: 0.9rem;
-      line-height: 1.5;
-      overflow-x: auto;
+      line-height: 1.45;
     }
-    .two-col { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
-    .file-list { display: grid; gap: 8px; }
-    .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255, 255, 255, 0.03); }
-    .file-item span { color: var(--muted); }
-    .banner {
-      margin: 16px 0;
-      padding: 14px 16px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-    }
-    .banner.success { border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
-    .banner.warn { border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.12); }
-    .banner h3 { margin: 0 0 6px; font-size: 1rem; }
-    .banner p { margin: 0; color: var(--text); }
-    @keyframes floatGlow {
-      0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
-      50% { transform: translate3d(-16px, 10px, 0) scale(1.05); opacity: 1; }
-    }
-
-    @media (max-width: 1200px) {
-      .hero, .two-col, .grid-6 { grid-template-columns: 1fr; }
-      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 1160px) {
+      .top-grid, .two-col { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .apply-card { position: static; }
       .chart-row { grid-template-columns: 1fr; }
-      .chart-value { text-align: left; }
     }
     @media (max-width: 720px) {
-      .grid-4, .grid-3 { grid-template-columns: 1fr; }
-      .actions-grid { grid-template-columns: 1fr; }
-      .shell { padding: 14px; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .shell { padding: 12px; }
     }
   </style>
 </head>
@@ -339,236 +235,110 @@ TEMPLATE = """
       <p>{{ apply_feedback.message }}</p>
     </div>
     {% endif %}
-    <div class="hero">
-      <div class="hero-card">
-        <div class="pill">ForgeIQ OS</div>
-        <h1>Shopify operating system for content, analytics, and automation.</h1>
-        <p>
-          This browser dashboard replaces the old text menu with a control center for store health,
-          recommendations, approvals, analytics, drafts, scheduled work, logs, and generated reports.
-        </p>
-        <div class="status-strip">
-          <span>Browser-first workflow</span>
-          <span>AI agent ready</span>
-          <span>Automation + intelligence live</span>
-        </div>
-        <div class="hero-meta">
-          <span class="pill">Generated {{ dashboard.generated_at }}</span>
-          <span class="pill">{% if live_refresh %}Live refresh on{% else %}Live refresh off{% endif %}</span>
-          <span class="pill">Approved {{ approvals.approved|length }}</span>
-          <span class="pill">Rejected {{ approvals.rejected|length }}</span>
-          <span class="pill">Jobs {{ scheduled_tasks|length }}</span>
-          <span class="pill">Reports {{ report_files|length }}</span>
+
+    {% set staged_count = approvals.approved|length %}
+    {% set rejected_count = approvals.rejected|length %}
+    {% set connected_ok = shopify_connection.connected_label == 'Connected' %}
+    {% set product_count_ok = dashboard.shopify.product_count > 0 %}
+    {% set write_ok = shopify_connection.write_permissions_label == 'Available' %}
+    {% set pending_review_ok = pending_agent_review is not none %}
+    {% set ready_to_apply = staged_count > 0 and connected_ok and write_ok %}
+
+    <div class="panel">
+      <h2>Launch Control</h2>
+      <p class="muted">Connection, safety checks, staged approvals, and apply readiness in one view.</p>
+      <div>
+        <span class="badge">{% if connected_ok %}Connected{% else %}Not connected{% endif %}</span>
+        <span class="badge">{% if connected_ok %}Safe to stage{% else %}Needs attention{% endif %}</span>
+        <span class="badge">{% if ready_to_apply %}Ready to apply{% else %}Needs attention{% endif %}</span>
+        <span class="badge">{% if pending_review_ok %}Needs attention{% else %}Safe to stage{% endif %}</span>
+        <span class="badge">{% if live_refresh %}Live refresh on{% else %}Live refresh off{% endif %}</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="k">Shopify Connection</div><div class="v">{{ shopify_connection.connected_label }}</div></div>
+        <div class="stat"><div class="k">Product Count</div><div class="v">{{ dashboard.shopify.product_count }}</div></div>
+        <div class="stat"><div class="k">Staged Approvals</div><div class="v">{{ staged_count }}</div></div>
+        <div class="stat"><div class="k">Rejected</div><div class="v">{{ rejected_count }}</div></div>
+        <div class="stat"><div class="k">Pending Agent Review</div><div class="v">{% if pending_review_ok %}Needs attention{% else %}Safe to stage{% endif %}</div></div>
+        <div class="stat"><div class="k">Last Generated</div><div class="v">{{ dashboard.generated_at }}</div></div>
+        <div class="stat"><div class="k">Write Permissions</div><div class="v">{{ shopify_connection.write_permissions_label }}</div></div>
+        <div class="stat">
+          <div class="k">Quick Actions</div>
+          <div class="v">
+            <a class="btn" href="{{ url_for('index') }}">Refresh Dashboard</a>
+            <a class="btn" href="{{ url_for('index') }}?live=1">Live Mode</a>
+          </div>
         </div>
       </div>
+    </div>
+
+    <div class="top-grid">
       <div class="panel">
-        <div class="actions-grid">
-          <div class="action-card">
-            <h3>Refresh content</h3>
-            <p>Regenerate recent blog drafts and Pinterest queue items.</p>
-            <form method="post" action="{{ url_for('refresh_content') }}">
-              <button class="btn primary" type="submit">Refresh drafts</button>
-            </form>
-          </div>
-          <div class="action-card">
-            <h3>Run orchestrator</h3>
-            <p>Regenerate intelligence summaries, actions, and forecasts.</p>
-            <form method="post" action="{{ url_for('refresh_orchestrator') }}">
-              <button class="btn primary" type="submit">Refresh AI</button>
-            </form>
-          </div>
-          <div class="action-card">
-            <h3>Approval mode</h3>
-            <p>Approve and bulk approve only stage products. Use Apply Approved to write changes to Shopify.</p>
-            <button class="btn good" type="button">Safe staged approvals</button>
-          </div>
-          <div class="action-card">
-            <h3>Open reports</h3>
-            <p>Jump straight to reports, logs, and generated artifacts below.</p>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <a class="btn" href="#reports">Jump to reports</a>
-              <a class="btn" href="#logs">Jump to logs</a>
-              {% if report_files %}
-                <a class="btn primary" href="{{ url_for('view_report_document', filename=report_files[0].name) }}">Open latest report</a>
-              {% endif %}
-            </div>
-          </div>
-          <div class="action-card">
-            <h3>Live refresh</h3>
-            <p>Keep the dashboard on a 45-second refresh cycle for fresh store data.</p>
-            <form method="get" action="{{ url_for('index') }}">
-              <input type="hidden" name="live" value="1" />
-              <button class="btn" type="submit">Enable live mode</button>
-            </form>
-            <form method="get" action="{{ url_for('index') }}">
-              <button class="btn" type="submit">Disable live mode</button>
-            </form>
-          </div>
-        </div>
+        <h2>First-Run Checklist</h2>
+        <ul class="list">
+          <li class="{% if connected_ok %}check-ok{% else %}check-miss{% endif %}">Shopify connection verified</li>
+          <li class="{% if product_count_ok %}check-ok{% else %}check-miss{% endif %}">Product count loaded</li>
+          <li class="{% if write_ok %}check-ok{% else %}check-miss{% endif %}">Write permission detected</li>
+          <li class="{% if pending_review_ok %}check-ok{% else %}check-miss{% endif %}">Review at least one recommendation</li>
+          <li class="{% if staged_count > 0 %}check-ok{% else %}check-miss{% endif %}">Stage one product</li>
+          <li class="{% if ready_to_apply %}check-ok{% else %}check-miss{% endif %}">Apply Approved only after review</li>
+          <li class="check-miss">Confirm Shopify admin changed correctly</li>
+          <li class="check-miss">Run tests locally</li>
+        </ul>
       </div>
-    </div>
 
-    <div class="section panel">
-      <div class="section-head">
-        <div>
-          <h2>AI Agent</h2>
-          <p>Use natural language to turn store signals into actions, priorities, and content workflows.</p>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="mini-card" style="background: linear-gradient(180deg, rgba(125, 211, 252, 0.08), rgba(255, 255, 255, 0.03));">
-          <h3>Ask ForgeIQ</h3>
-          <p>Use plain English to optimize products, generate content, fix alt tags, or ask for priorities.</p>
-          <form method="post" action="{{ url_for('agent') }}">
-            <textarea name="prompt" rows="4" style="width:100%; padding:12px; border-radius:14px; border:1px solid var(--border); background: rgba(0,0,0,0.24); color: var(--text);" placeholder="Optimize products under SEO score 85."></textarea>
-            <div style="margin-top: 10px; display:flex; gap:10px; flex-wrap:wrap;">
-              <button class="btn primary" type="submit">Run agent</button>
-              <a class="btn" href="{{ url_for('index') }}?live=1">Use live mode</a>
-            </div>
-          </form>
-          <div class="quick-prompts">
-            <div class="pill">Optimize products under SEO score 85.</div>
-            <div class="pill">Fix every missing alt tag.</div>
-            <div class="pill">Generate blog posts for all garage storage products.</div>
-            <div class="pill">What should I do to make another sale today?</div>
-          </div>
-        </div>
-        <div class="mini-card" style="background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.03));">
-          <h3>Recent agent runs</h3>
-          {% if pending_agent_review %}
-          <div class="mini-card" style="margin-bottom: 12px; border-style: dashed;">
-            <h3>Pending review</h3>
-            <p>{{ pending_agent_review.summary }}</p>
-            <div class="muted">{{ pending_agent_review.prompt }}</div>
-            <div class="stack" style="margin-top: 10px;">
-              {% for item in pending_agent_review.details[:4] %}
-                <div>• {{ item }}</div>
-              {% endfor %}
-            </div>
-            <div style="margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap;">
-              <form class="preserve-scroll" method="post" action="{{ url_for('apply_agent_review') }}">
-                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-                <button class="btn good" type="submit">Apply review</button>
-              </form>
-              <form class="preserve-scroll" method="post" action="{{ url_for('discard_agent_review') }}">
-                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-                <button class="btn danger" type="submit">Discard</button>
-              </form>
-            </div>
-          </div>
-          {% endif %}
-          <div class="stack">
-            {% for entry in agent_history[:5] %}
-              <div>
-                <strong>{{ entry.prompt }}</strong><br />
-                <span class="muted">{{ entry.timestamp }} • {{ entry.intent }} • {{ entry.status }}</span>
-                <pre>{{ entry.summary }}</pre>
-              </div>
-            {% else %}
-              <div class="muted">No agent commands yet.</div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-6">
-      <div class="metric"><div class="label">Store Health</div><div class="value">{{ dashboard.health.store_health_score }}</div><div class="sub">Composite operating score</div></div>
-      <div class="metric"><div class="label">Products</div><div class="value">{{ dashboard.shopify.product_count }}</div><div class="sub">Catalog items tracked</div></div>
-      <div class="metric"><div class="label">SEO Avg</div><div class="value">{{ dashboard.shopify.average_seo_score }}</div><div class="sub">Average product score</div></div>
-      <div class="metric"><div class="label">CTR</div><div class="value">{{ (dashboard.search_console.ctr * 100) | round(1) }}%</div><div class="sub">Search performance</div></div>
-      <div class="metric"><div class="label">Orders</div><div class="value">{{ dashboard.shopify_native.orders_last_50 }}</div><div class="sub">Last 50 orders</div></div>
-      <div class="metric"><div class="label">Revenue</div><div class="value">{{ dashboard.shopify_native.estimated_revenue_last_50 }}</div><div class="sub">{{ dashboard.shopify_native.currency }}</div></div>
-    </div>
-
-    <div class="section panel">
-      <div class="section-head">
-        <div>
-          <h2>Shopify Connection Status</h2>
-          <p>Read-only live connection check before staging or applying optimization changes.</p>
-        </div>
-      </div>
-      <div class="grid-4">
-        <div class="mini-card">
-          <h3>Connection</h3>
-          <p><span class="tag {{ shopify_connection.connected_class }}">{{ shopify_connection.connected_label }}</span></p>
-          <p class="muted">{{ shopify_connection.message }}</p>
-        </div>
-        <div class="mini-card">
-          <h3>Store</h3>
-          <p>{{ shopify_connection.store_name }}</p>
-          <p class="muted">Product count: {{ shopify_connection.product_count }}</p>
-        </div>
-        <div class="mini-card">
-          <h3>Write permissions</h3>
-          <p><span class="tag {{ shopify_connection.write_permissions_class }}">{{ shopify_connection.write_permissions_label }}</span></p>
-          <p class="muted">{{ shopify_connection.write_permissions_message }}</p>
-        </div>
-        <div class="mini-card">
-          <h3>Order analytics scope</h3>
-          <p><span class="tag {{ shopify_connection.order_scope_class }}">{{ shopify_connection.order_scope_label }}</span></p>
-          <p class="muted">{{ shopify_connection.order_scope_message }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="section panel">
-      <h2>Analytics charts</h2>
-      <div class="chart-row">
-        <div class="chart-label">Store health</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ dashboard.health.store_health_score }}%;"></div></div>
-        <div class="chart-value">{{ dashboard.health.store_health_score }}</div>
-      </div>
-      <div class="chart-row">
-        <div class="chart-label">Average SEO</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ dashboard.shopify.average_seo_score }}%;"></div></div>
-        <div class="chart-value">{{ dashboard.shopify.average_seo_score }}</div>
-      </div>
-      <div class="chart-row">
-        <div class="chart-label">Search CTR</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ (dashboard.search_console.ctr * 100) | round(0) }}%;"></div></div>
-        <div class="chart-value">{{ (dashboard.search_console.ctr * 100) | round(1) }}%</div>
-      </div>
-      <div class="chart-row">
-        <div class="chart-label">GA sessions</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ [dashboard.google_analytics.sessions, 100] | min }}%;"></div></div>
-        <div class="chart-value">{{ dashboard.google_analytics.sessions }}</div>
-      </div>
-      <div class="chart-row">
-        <div class="chart-label">GA users</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ [dashboard.google_analytics.users, 100] | min }}%;"></div></div>
-        <div class="chart-value">{{ dashboard.google_analytics.users }}</div>
-      </div>
-      <div class="chart-row">
-        <div class="chart-label">Orders</div>
-        <div class="bar-track"><div class="bar-fill" style="width: {{ [dashboard.shopify_native.orders_last_50 * 2, 100] | min }}%;"></div></div>
-        <div class="chart-value">{{ dashboard.shopify_native.orders_last_50 }}</div>
-      </div>
-    </div>
-
-    <div class="section panel">
-      <div class="section-head">
-        <div>
-          <h2>Products needing attention</h2>
-          <p>Approve marks products for update. No Shopify writes happen until Apply Approved is used.</p>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
-            <input type="hidden" name="count" value="3" />
+      <div class="panel apply-card">
+        <h2>Apply Staged Changes</h2>
+        <p class="muted">This action writes directly to Shopify. Only staged products are applied.</p>
+        <div class="apply-count">{{ staged_count }}</div>
+        <div class="muted">Staged products: {{ staged_count }}</div>
+        <div style="margin-top: 10px;">
+          <form class="preserve-scroll" method="post" action="{{ url_for('apply_approved') }}">
             <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn good" type="submit">Stage Top 3</button>
-          </form>
-          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
-            <input type="hidden" name="count" value="5" />
-            <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn good" type="submit">Stage Top 5</button>
-          </form>
-          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
-            <input type="hidden" name="count" value="all" />
-            <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn primary" type="submit">Stage All Visible</button>
+            <button class="btn btn-write" type="submit" {% if staged_count == 0 %}disabled{% endif %}>Apply Approved to Shopify</button>
           </form>
         </div>
+        {% if staged_count == 0 %}
+        <p class="muted">No staged products yet. Stage at least one product to enable apply.</p>
+        {% else %}
+        <p class="muted">Only staged products are applied.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Shopify Connection Status</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="k">Connection</div>
+          <div class="v"><span class="tag {{ shopify_connection.connected_class }}">{{ shopify_connection.connected_label }}</span></div>
+          <div class="muted">{{ shopify_connection.message }}</div>
+        </div>
+        <div class="stat"><div class="k">Store</div><div class="v">{{ shopify_connection.store_name }}</div><div class="muted">Product count: {{ shopify_connection.product_count }}</div></div>
+        <div class="stat"><div class="k">Write Permissions</div><div class="v"><span class="tag {{ shopify_connection.write_permissions_class }}">{{ shopify_connection.write_permissions_label }}</span></div><div class="muted">{{ shopify_connection.write_permissions_message }}</div></div>
+        <div class="stat"><div class="k">Order Analytics Scope</div><div class="v"><span class="tag {{ shopify_connection.order_scope_class }}">{{ shopify_connection.order_scope_label }}</span></div><div class="muted">{{ shopify_connection.order_scope_message }}</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Products Needing Attention</h2>
+      <p class="muted">Stage and reject actions only update the staged queue. They never write to Shopify.</p>
+      <div>
+        <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+          <input type="hidden" name="count" value="3" />
+          <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+          <button class="btn good" type="submit">Stage Top 3</button>
+        </form>
+        <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+          <input type="hidden" name="count" value="5" />
+          <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+          <button class="btn good" type="submit">Stage Top 5</button>
+        </form>
+        <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+          <input type="hidden" name="count" value="all" />
+          <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+          <button class="btn" type="submit">Stage All Visible</button>
+        </form>
       </div>
       <table>
         <thead>
@@ -577,7 +347,7 @@ TEMPLATE = """
             <th>Priority</th>
             <th>Confidence</th>
             <th>Needs Update</th>
-            <th>Approval</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -589,13 +359,11 @@ TEMPLATE = """
             </td>
             <td><span class="tag warn">{{ rec.priority }}</span></td>
             <td><span class="tag success">{{ rec.confidence }}</span></td>
+            <td>title={{ rec.needs_title }}, description={{ rec.needs_description }}, tags={{ rec.needs_tags }}, alt={{ rec.alt_recommendations|length }}</td>
             <td>
-              title={{ rec.needs_title }}, description={{ rec.needs_description }}, tags={{ rec.needs_tags }}, alt={{ rec.alt_recommendations|length }}
-            </td>
-            <td class="actions">
               <form class="preserve-scroll" method="post" action="{{ url_for('approve', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-                <button class="btn good" type="submit">Approve (Stage)</button>
+                <button class="btn good" type="submit">Stage</button>
               </form>
               <form class="preserve-scroll" method="post" action="{{ url_for('reject', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
@@ -603,280 +371,194 @@ TEMPLATE = """
               </form>
             </td>
           </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="muted">No products currently need attention.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <div class="section two-col">
-      <div class="panel">
-        <h2>AI recommendations</h2>
-        <div class="card-grid">
-          <div class="mini-card">
-            <h3>Trends</h3>
-            <p>{{ trends.trend_note }}</p>
-            <p class="muted">Priority change: {{ trends.priority_change }}</p>
+    <div class="panel">
+      <h2>AI Agent</h2>
+      <div class="two-col">
+        <div>
+          <p class="muted">Use plain language prompts for SEO, content, and priority guidance.</p>
+          <form method="post" action="{{ url_for('agent') }}">
+            <textarea name="prompt" rows="4" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text);" placeholder="Optimize products under SEO score 85."></textarea>
+            <div style="margin-top: 10px;">
+              <button class="btn" type="submit">Run Agent</button>
+            </div>
+          </form>
+          {% if pending_agent_review %}
+          <div class="panel" style="margin-top: 10px;">
+            <h3 style="margin:0 0 8px;">Pending Review</h3>
+            <p>{{ pending_agent_review.summary }}</p>
+            <div class="muted">{{ pending_agent_review.prompt }}</div>
+            <div style="margin-top: 10px;">
+              <form class="preserve-scroll" method="post" action="{{ url_for('apply_agent_review') }}">
+                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+                <button class="btn good" type="submit">Apply Review</button>
+              </form>
+              <form class="preserve-scroll" method="post" action="{{ url_for('discard_agent_review') }}">
+                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+                <button class="btn danger" type="submit">Discard</button>
+              </form>
+            </div>
           </div>
-          <div class="mini-card">
-            <h3>Forecast</h3>
-            <p>Baseline: {{ forecast.baseline_health_score }}</p>
-            <p>30-day projection: {{ forecast.projected_health_score_30d }}</p>
-          </div>
-          <div class="mini-card">
-            <h3>Campaigns</h3>
-            {% if campaigns %}
-              <ul>
-                {% for campaign in campaigns %}
-                  <li>{{ campaign.title }} - {{ campaign.campaign }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No campaigns generated yet.</p>
-            {% endif %}
-          </div>
-          <div class="mini-card">
-            <h3>Inventory</h3>
-            {% if inventory_recommendations %}
-              <ul>
-                {% for item in inventory_recommendations %}
-                  <li>{{ item.title }} - {{ item.action }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No inventory signals detected.</p>
-            {% endif %}
-          </div>
+          {% endif %}
         </div>
-        <div class="mini-card" style="margin-top: 12px;">
-          <h3>Planned actions</h3>
-          <div class="stack">
-            {% for action in planned_actions %}
-              <div>• {{ action }}</div>
-            {% endfor %}
-          </div>
+        <div>
+          <h3 style="margin:0 0 8px;">Recent Agent Runs</h3>
+          {% for entry in agent_history[:5] %}
+            <div style="margin-bottom: 10px;">
+              <strong>{{ entry.prompt }}</strong><br />
+              <span class="muted">{{ entry.timestamp }} - {{ entry.intent }} - {{ entry.status }}</span>
+              <pre style="margin-top: 6px;">{{ entry.summary }}</pre>
+            </div>
+          {% else %}
+            <div class="muted">No agent commands yet.</div>
+          {% endfor %}
         </div>
-        <div class="mini-card" style="margin-top: 12px;">
-          <h3>Recent orchestrator runs</h3>
-          <div class="stack">
-            {% for run in orchestrator_runs %}
-              <div>
-                <strong>{{ run.timestamp }}</strong><br />
-                <span class="muted">{{ run.planned_actions|length }} planned actions, {{ run.top_recommendations|length }} recommendations</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Analytics Summary</h2>
+      <div class="stats-grid">
+        <div class="stat"><div class="k">Store Health</div><div class="v">{{ dashboard.health.store_health_score }}</div></div>
+        <div class="stat"><div class="k">SEO Average</div><div class="v">{{ dashboard.shopify.average_seo_score }}</div></div>
+        <div class="stat"><div class="k">Orders Last 50</div><div class="v">{{ dashboard.shopify_native.orders_last_50 }}</div></div>
+        <div class="stat"><div class="k">Estimated Revenue</div><div class="v">{{ dashboard.shopify_native.estimated_revenue_last_50 }} {{ dashboard.shopify_native.currency }}</div></div>
+      </div>
+      {% for chart in charts %}
+      <div class="chart-row">
+        <div class="muted">{{ chart.label }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ chart.width }}%;"></div></div>
+        <div>{{ chart.value }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="panel" id="reports">
+      <h2>Reports / Logs / Scheduled Tasks</h2>
+      <div class="two-col">
+        <div>
+          <h3 style="margin:0 0 8px;">Scheduled Tasks</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Cadence</th>
+                <th>Last Run</th>
+                <th>Next Run</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in scheduled_tasks %}
+              <tr>
+                <td>{{ job.name }}</td>
+                <td>{{ job.interval }}</td>
+                <td>{{ job.last_run or 'Never' }}</td>
+                <td>{{ job.next_run or 'Not scheduled' }}</td>
+                <td><span class="tag {{ job.status_class }}">{{ job.status }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="muted">No scheduled tasks configured.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <h3 style="margin:16px 0 8px;">Reports</h3>
+          <div class="file-list">
+            {% for file in report_files %}
+              <div class="file-item">
+                <a href="{{ url_for('view_report_document', filename=file.name) }}">{{ file.name }}</a>
+                <span>{{ file.modified }} | {{ file.size_kb }} KB</span>
               </div>
             {% else %}
-              <div class="muted">No orchestrator runs recorded yet.</div>
+              <div class="muted">No reports found yet.</div>
             {% endfor %}
           </div>
         </div>
-      </div>
-      <div class="panel">
-        <h2>Workflow actions</h2>
-        <div class="stack">
-          <div class="mini-card">
-            <h3>Approvals</h3>
-            <p>{{ approvals.approved|length }} approved (staged), {{ approvals.rejected|length }} rejected.</p>
-              <form class="preserve-scroll" method="post" action="{{ url_for('apply_approved') }}">
-                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-              <button class="btn primary" type="submit">Apply Approved (Write to Shopify)</button>
-            </form>
+        <div id="logs">
+          <h3 style="margin:0 0 8px;">Logs</h3>
+          <div class="file-list">
+            {% for file in log_files %}
+              <div class="file-item">
+                <a href="{{ url_for('view_log_document', filename=file.name) }}">{{ file.name }}</a>
+                <span>{{ file.modified }}</span>
+              </div>
+            {% else %}
+              <div class="muted">No log files found.</div>
+            {% endfor %}
           </div>
-          <div class="mini-card">
-            <h3>Content engine</h3>
-            <p>Refresh recent blog drafts and Pinterest queue entries.</p>
-              <form class="preserve-scroll" method="post" action="{{ url_for('refresh_content') }}">
-                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-              <button class="btn primary" type="submit">Refresh content drafts</button>
-            </form>
-          </div>
-          <div class="mini-card">
-            <h3>AI orchestrator</h3>
-            <p>Rebuild the daily summary and action plan.</p>
-              <form class="preserve-scroll" method="post" action="{{ url_for('refresh_orchestrator') }}">
-                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-              <button class="btn primary" type="submit">Refresh orchestrator</button>
-            </form>
-          </div>
+          <h3 style="margin:16px 0 8px;">Latest Log Tail</h3>
+          <pre>{{ latest_log_tail }}</pre>
         </div>
       </div>
     </div>
 
-    <div class="section panel">
-      <h2>Competitive Intelligence</h2>
-      <div class="grid-4">
-        <div class="metric"><div class="label">Price gaps</div><div class="value">{{ competitive_intelligence.summary.price_gap_count }}</div><div class="sub">Competitor price checks</div></div>
-        <div class="metric"><div class="label">Trend signals</div><div class="value">{{ competitive_intelligence.summary.trend_count }}</div><div class="sub">Search volume movement</div></div>
-        <div class="metric"><div class="label">Keyword gaps</div><div class="value">{{ competitive_intelligence.summary.keyword_gap_count }}</div><div class="sub">Ranking opportunities</div></div>
-        <div class="metric"><div class="label">Margin alerts</div><div class="value">{{ competitive_intelligence.summary.margin_count }}</div><div class="sub">Profitability watch list</div></div>
+    <div class="panel">
+      <h2>Content Drafts</h2>
+      <div>
+        <form class="preserve-scroll" method="post" action="{{ url_for('refresh_content') }}">
+          <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+          <button class="btn" type="submit">Refresh Dashboard</button>
+        </form>
+        <form class="preserve-scroll" method="post" action="{{ url_for('refresh_orchestrator') }}">
+          <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+          <button class="btn" type="submit">Refresh Orchestrator</button>
+        </form>
       </div>
       <div class="two-col">
-        <div class="card-grid">
-          <div class="mini-card">
-            <h3>Price monitoring</h3>
-            {% if competitive_intelligence.price_signals %}
-              <ul>
-                {% for item in competitive_intelligence.price_signals[:4] %}
-                  <li>{{ item.product }} vs {{ item.competitor }}: gap {{ item.price_gap }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No competitor price data configured yet.</p>
-            {% endif %}
-          </div>
-          <div class="mini-card">
-            <h3>Trend analysis</h3>
-            {% if competitive_intelligence.trend_signals %}
-              <ul>
-                {% for item in competitive_intelligence.trend_signals[:4] %}
-                  <li>{{ item.keyword }}: {{ item.change }} ({{ item.pct_change }}%)</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No trend export configured yet.</p>
-            {% endif %}
-          </div>
-        </div>
-        <div class="card-grid">
-          <div class="mini-card">
-            <h3>Keyword gaps</h3>
-            {% if competitive_intelligence.keyword_gaps %}
-              <ul>
-                {% for item in competitive_intelligence.keyword_gaps[:4] %}
-                  <li>{{ item.keyword }}: our {{ item.our_rank or 'n/a' }} vs competitor {{ item.competitor_rank or 'n/a' }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No keyword gap export configured yet.</p>
-            {% endif %}
-          </div>
-          <div class="mini-card">
-            <h3>Suggested additions</h3>
-            {% if competitive_intelligence.product_additions %}
-              <ul>
-                {% for item in competitive_intelligence.product_additions[:4] %}
-                  <li>{{ item.suggested_product }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No product additions suggested yet.</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="mini-card" style="margin-top: 12px;">
-        <h3>Forecast</h3>
-        <p>Projected revenue lift: {{ competitive_intelligence.forecast.projected_revenue_lift }} | Confidence: {{ competitive_intelligence.forecast.confidence }}</p>
-        {% if 'forgeiq_competitive_intelligence.md' in report_file_names %}
-        <p class="muted">Report file: <a href="{{ url_for('view_report_document', filename='forgeiq_competitive_intelligence.md') }}">forgeiq_competitive_intelligence.md</a></p>
-        {% else %}
-        <p class="muted">Report file will appear after competitive intelligence runs.</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="section two-col">
-      <div class="panel">
-        <h2>Recent blog drafts</h2>
-        <div class="card-grid">
+        <div>
+          <h3 style="margin:8px 0;">Blog Drafts</h3>
           {% for draft in blog_drafts %}
-            <div class="mini-card">
-              <h3>{{ draft.title }}</h3>
-              <pre>{{ draft.excerpt }}</pre>
+            <div class="panel" style="margin-top: 8px;">
+              <strong>{{ draft.title }}</strong>
+              <pre style="margin-top: 6px;">{{ draft.excerpt }}</pre>
             </div>
           {% else %}
-            <div class="mini-card"><p>No blog drafts found. Refresh content drafts to generate them.</p></div>
+            <p class="muted">No blog drafts found.</p>
           {% endfor %}
         </div>
-      </div>
-      <div class="panel">
-        <h2>Pinterest queue</h2>
-        <div class="card-grid">
+        <div>
+          <h3 style="margin:8px 0;">Pinterest Queue</h3>
           {% for pin in pinterest_queue %}
-            <div class="mini-card">
-              <h3>{{ pin.title }}</h3>
-              <pre>{{ pin.excerpt }}</pre>
+            <div class="panel" style="margin-top: 8px;">
+              <strong>{{ pin.title }}</strong>
+              <pre style="margin-top: 6px;">{{ pin.excerpt }}</pre>
             </div>
           {% else %}
-            <div class="mini-card"><p>No Pinterest queue items found. Refresh content drafts to generate them.</p></div>
+            <p class="muted">No Pinterest queue items found.</p>
           {% endfor %}
         </div>
       </div>
     </div>
 
-    <div class="section two-col">
-      <div class="panel">
-        <h2>Scheduled tasks</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Job</th>
-              <th>Cadence</th>
-              <th>Last run</th>
-              <th>Next run</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for job in scheduled_tasks %}
-            <tr>
-              <td>{{ job.name }}</td>
-              <td>{{ job.interval }}</td>
-              <td>{{ job.last_run or 'Never' }}</td>
-              <td>{{ job.next_run or 'Not scheduled' }}</td>
-              <td><span class="tag {{ job.status_class }}">{{ job.status }}</span></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="panel">
+      <h2>Competitive Intelligence</h2>
+      <div class="stats-grid">
+        <div class="stat"><div class="k">Price Gaps</div><div class="v">{{ competitive_intelligence.summary.price_gap_count }}</div></div>
+        <div class="stat"><div class="k">Trend Signals</div><div class="v">{{ competitive_intelligence.summary.trend_count }}</div></div>
+        <div class="stat"><div class="k">Keyword Gaps</div><div class="v">{{ competitive_intelligence.summary.keyword_gap_count }}</div></div>
+        <div class="stat"><div class="k">Margin Alerts</div><div class="v">{{ competitive_intelligence.summary.margin_count }}</div></div>
       </div>
-      <div class="panel" id="logs">
-        <h2>Logs</h2>
-        <div class="stack">
-          <div class="mini-card">
-            <h3>Recent log files</h3>
-            <div class="file-list">
-              {% for file in log_files %}
-                <div class="file-item">
-                  <a href="{{ url_for('view_log_document', filename=file.name) }}">{{ file.name }}</a>
-                  <span>{{ file.modified }}</span>
-                </div>
-              {% else %}
-                <div class="muted">No log files found.</div>
-              {% endfor %}
-            </div>
-          </div>
-          <div class="mini-card">
-            <h3>Latest log tail</h3>
-            <pre>{{ latest_log_tail }}</pre>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section panel" id="reports">
-      <h2>Reports</h2>
-      <div class="file-list">
-        {% for file in report_files %}
-          <div class="file-item">
-            <a href="{{ url_for('view_report_document', filename=file.name) }}">{{ file.name }}</a>
-            <span>{{ file.modified }} • {{ file.size_kb }} KB</span>
-          </div>
-        {% else %}
-          <div class="muted">No reports found yet.</div>
-        {% endfor %}
-      </div>
+      <p class="muted" style="margin-top:10px;">Projected revenue lift: {{ competitive_intelligence.forecast.projected_revenue_lift }} | Confidence: {{ competitive_intelligence.forecast.confidence }}</p>
     </div>
   </div>
   <script>
     (function () {
       const url = new URL(window.location.href);
       const scrollY = Number(url.searchParams.get("scroll_y") || 0);
-
       if (scrollY > 0) {
         window.scrollTo(0, scrollY);
         url.searchParams.delete("scroll_y");
         window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + (url.hash || ""));
       }
-
       document.querySelectorAll("form.preserve-scroll").forEach((form) => {
         form.addEventListener("submit", () => {
           const input = form.querySelector("input.scroll-y");
