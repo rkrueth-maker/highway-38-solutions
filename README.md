@@ -34,6 +34,21 @@ ForgeIQ has evolved from standalone scripts into a modular Shopify operations ap
 - Persist a setting:
   - `python app.py --setting SHOPIFY_API_VERSION 2026-07`
 
+## Testing
+- Run tests locally:
+	- `python -m pytest -q`
+- Start the dashboard locally:
+	- `python app.py`
+
+## Continuous Integration
+- GitHub Actions workflow: `.github/workflows/tests.yml`
+- Workflow name: `ForgeIQ Tests`
+- Triggers:
+	- push to `main`
+	- pull_request to `main`
+- CI job uses Python `3.11`, installs `requirements.txt`, then runs:
+	- `python -m pytest -q`
+
 ## Module Catalog
 - `1` SEO Audit: audits products and writes a CSV report.
 - `2` Update Image Alt Text: previews/applies missing image alt text.
