@@ -1,9 +1,13 @@
 import csv
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+from urllib.parse import quote
+
+import requests
 
 from settings import settings
+from shopify.client import client
 from shopify.product_optimizer import fetch_products, score_product
 
 DASHBOARD_MD_FILE = os.path.join("reports", "forgeiq_analytics_dashboard.md")
@@ -50,7 +54,107 @@ def gather_shopify_metrics():
     }
 
 
+def gather_shopify_analytics_native():
+        query = """
+        query getRecentOrders {
+            orders(first: 50, sortKey: CREATED_AT, reverse: true) {
+                edges {
+                    node {
+                        id
+                        createdAt
+                        totalPriceSet {
+                            shopMoney {
+                                amount
+                                currencyCode
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        try:
+            data = client.graphql(query)
+        except RuntimeError as exc:
+            message = str(exc)
+            if "ACCESS_DENIED" in message or "Access denied" in message:
+                return {
+                    "source": "native_scope_missing",
+                    "orders_last_50": 0,
+                    "estimated_revenue_last_50": 0.0,
+                    "currency": "USD",
+                    "error": message,
+                }
+            raise
+        orders = [edge["node"] for edge in data.get("orders", {}).get("edges", [])]
+
+        revenue = 0.0
+        currency = "USD"
+        for order in orders:
+                money = ((order.get("totalPriceSet") or {}).get("shopMoney") or {})
+                revenue += _safe_float(money.get("amount"))
+                currency = money.get("currencyCode") or currency
+
+        return {
+            "source": "native",
+                "orders_last_50": len(orders),
+                "estimated_revenue_last_50": round(revenue, 2),
+                "currency": currency,
+        }
+
+
+def gather_google_analytics_metrics_native():
+        property_id = settings.get("GA4_PROPERTY_ID", "")
+        token = settings.get("GA4_BEARER_TOKEN", "")
+        if not property_id or not token:
+                return None
+
+        url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+        payload = {
+                "dateRanges": [{"startDate": "30daysAgo", "endDate": "today"}],
+                "metrics": [{"name": "sessions"}, {"name": "activeUsers"}, {"name": "conversions"}],
+        }
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        if response.status_code >= 400:
+                return {
+                        "source": "native_error",
+                        "sessions": 0,
+                        "users": 0,
+                        "conversions": 0,
+                        "error": f"HTTP {response.status_code}",
+                }
+
+        data = response.json()
+        rows = data.get("rows") or []
+        if not rows:
+                return {
+                        "source": "native",
+                        "sessions": 0,
+                        "users": 0,
+                        "conversions": 0,
+                }
+
+        values = rows[0].get("metricValues") or []
+        sessions = _safe_float(values[0].get("value") if len(values) > 0 else 0)
+        users = _safe_float(values[1].get("value") if len(values) > 1 else 0)
+        conversions = _safe_float(values[2].get("value") if len(values) > 2 else 0)
+
+        return {
+                "source": "native",
+                "sessions": int(sessions),
+                "users": int(users),
+                "conversions": round(conversions, 2),
+        }
+
+
 def gather_google_analytics_metrics():
+    native = gather_google_analytics_metrics_native()
+    if native:
+        return native
+
     rows = _read_csv_rows(settings.get("GA_EXPORT_CSV", ""))
     if not rows:
         return {
@@ -75,6 +179,10 @@ def gather_google_analytics_metrics():
 
 
 def gather_search_console_metrics():
+    native = gather_search_console_metrics_native()
+    if native:
+        return native
+
     rows = _read_csv_rows(settings.get("GSC_EXPORT_CSV", ""))
     if not rows:
         return {
@@ -105,13 +213,57 @@ def gather_search_console_metrics():
     }
 
 
+def gather_search_console_metrics_native():
+    site_url = settings.get("GSC_SITE_URL", "")
+    token = settings.get("GSC_BEARER_TOKEN", "")
+    if not site_url or not token:
+        return None
+
+    encoded_site_url = quote(site_url, safe="")
+    url = f"https://searchconsole.googleapis.com/webmasters/v3/sites/{encoded_site_url}/searchAnalytics/query"
+    payload = {"startDate": "2026-05-29", "endDate": "2026-06-28", "rowLimit": 1}
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
+    if response.status_code >= 400:
+        return {
+            "source": "native_error",
+            "clicks": 0,
+            "impressions": 0,
+            "ctr": 0,
+            "average_position": 0,
+            "error": f"HTTP {response.status_code}",
+        }
+
+    data = response.json()
+    rows = data.get("rows") or []
+    if not rows:
+        return {
+            "source": "native",
+            "clicks": 0,
+            "impressions": 0,
+            "ctr": 0,
+            "average_position": 0,
+        }
+
+    row = rows[0]
+    return {
+        "source": "native",
+        "clicks": int(_safe_float(row.get("clicks"))),
+        "impressions": int(_safe_float(row.get("impressions"))),
+        "ctr": round(_safe_float(row.get("ctr")), 4),
+        "average_position": round(_safe_float(row.get("position")), 2),
+    }
+
+
 def build_dashboard_data():
     shopify = gather_shopify_metrics()
+    shopify_native = gather_shopify_analytics_native()
     ga = gather_google_analytics_metrics()
     gsc = gather_search_console_metrics()
 
     health = {
-        "store_health_score": round((shopify["average_seo_score"] * 0.6) + ((1 - gsc["ctr"]) * 40), 2),
+        "store_health_score": round((shopify["average_seo_score"] * 0.6) + (gsc["ctr"] * 40), 2),
         "seo_performance": {
             "average_product_score": shopify["average_seo_score"],
             "search_ctr": gsc["ctr"],
@@ -125,8 +277,9 @@ def build_dashboard_data():
     }
 
     return {
-        "generated_at": f"{datetime.utcnow().isoformat()}Z",
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "shopify": shopify,
+        "shopify_native": shopify_native,
         "google_analytics": ga,
         "search_console": gsc,
         "health": health,
@@ -148,6 +301,8 @@ def write_dashboard(data):
         f"- Average SEO score: {data['shopify']['average_seo_score']}",
         f"- Products missing meta descriptions: {data['shopify']['products_missing_meta']}",
         f"- Images missing alt text: {data['shopify']['images_missing_alt']}",
+        f"- Orders (last 50): {data['shopify_native']['orders_last_50']}",
+        f"- Estimated revenue (last 50): {data['shopify_native']['estimated_revenue_last_50']} {data['shopify_native']['currency']}",
         "",
         "## Google Analytics",
         f"- Source: {data['google_analytics']['source']}",

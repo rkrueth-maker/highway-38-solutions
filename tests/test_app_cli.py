@@ -45,3 +45,24 @@ def test_main_updates_setting_from_cli(monkeypatch):
     assert updated["key"] == "SHOPIFY_API_VERSION"
     assert updated["value"] == "2026-07"
     assert "Updated SHOPIFY_API_VERSION." in stream.getvalue()
+
+
+def test_handle_settings_masks_sensitive_values(monkeypatch):
+    monkeypatch.setattr(
+        app.settings,
+        "_settings",
+        {
+            "SHOPIFY_STORE": "example.myshopify.com",
+            "SHOPIFY_ADMIN_TOKEN": "shpat_secret_value",
+            "CONTENT_TONE_DEFAULT": "balanced",
+        },
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt="": "")
+
+    stream = io.StringIO()
+    with redirect_stdout(stream):
+        app.handle_settings()
+
+    output = stream.getvalue()
+    assert "SHOPIFY_ADMIN_TOKEN = <masked:" in output
+    assert "SHOPIFY_STORE = example.myshopify.com" in output

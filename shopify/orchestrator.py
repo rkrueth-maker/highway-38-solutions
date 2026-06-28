@@ -32,7 +32,78 @@ def prioritize_recommendations(recommendations, limit=10):
     return ordered[:limit]
 
 
-def plan_actions(top_recommendations, dashboard):
+def analyze_trends(state, dashboard):
+    runs = state.get("runs", [])
+    if len(runs) < 2:
+        return {
+            "trend_note": "Insufficient history for trend comparison",
+            "priority_change": 0,
+        }
+
+    previous = runs[-1]
+    current_priority_avg = sum(r.get("priority", 0) for r in previous.get("top_recommendations", []))
+    current_priority_avg /= max(1, len(previous.get("top_recommendations", [])))
+
+    latest_health = dashboard["health"]["store_health_score"]
+    trend_note = "Store health improving" if latest_health >= 70 else "Store health needs attention"
+    return {
+        "trend_note": trend_note,
+        "priority_change": round(current_priority_avg, 2),
+    }
+
+
+def detect_product_opportunities(recommendations):
+    opportunities = []
+    for rec in recommendations:
+        if rec.get("priority", 0) >= 85 and rec.get("confidence", 0) >= 0.7:
+            opportunities.append(
+                {
+                    "title": rec.get("current_title") or "Untitled",
+                    "type": "SEO uplift opportunity",
+                    "reason": "High-priority and high-confidence recommendation",
+                }
+            )
+    return opportunities[:10]
+
+
+def detect_inventory_recommendations(products):
+    recommendations = []
+    for product in products:
+        title = product.get("title") or "Untitled"
+        inventory = product.get("totalInventory")
+        if inventory is None:
+            continue
+        if inventory <= 2:
+            recommendations.append({"title": title, "action": "Low stock warning: prioritize restock messaging"})
+        elif inventory >= 100:
+            recommendations.append({"title": title, "action": "High stock: prioritize campaign promotion"})
+    return recommendations[:10]
+
+
+def plan_marketing_campaigns(opportunities):
+    campaigns = []
+    for item in opportunities[:5]:
+        campaigns.append(
+            {
+                "title": item["title"],
+                "campaign": "7-day product spotlight campaign",
+                "channels": ["blog", "facebook", "pinterest", "email"],
+            }
+        )
+    return campaigns
+
+
+def forecast_performance(dashboard, top_recommendations):
+    baseline = dashboard["health"]["store_health_score"]
+    expected_lift = min(15, len(top_recommendations) * 1.2)
+    return {
+        "baseline_health_score": baseline,
+        "projected_health_score_30d": round(min(100, baseline + expected_lift), 2),
+        "assumption": "Top recommendations are approved and applied within 30 days",
+    }
+
+
+def plan_actions(top_recommendations, dashboard, inventory_recommendations=None):
     actions = []
     if top_recommendations:
         actions.append("Review and approve high-priority optimizer recommendations")
@@ -44,11 +115,13 @@ def plan_actions(top_recommendations, dashboard):
         actions.append("Configure GA_EXPORT_CSV for richer analytics signal ingestion")
     if dashboard["search_console"]["source"] == "unconfigured":
         actions.append("Configure GSC_EXPORT_CSV for search performance insights")
+    if inventory_recommendations:
+        actions.append("Address inventory-aware recommendations for low/high stock products")
     actions.append("Generate content engine drafts for high-priority products")
     return actions
 
 
-def generate_daily_summary(top_recommendations, actions, dashboard):
+def generate_daily_summary(top_recommendations, actions, dashboard, trends, opportunities, inventory, campaigns, forecast):
     lines = [
         "# ForgeIQ Orchestrator Daily Summary",
         f"Generated: {datetime.utcnow().isoformat()}Z",
@@ -57,6 +130,7 @@ def generate_daily_summary(top_recommendations, actions, dashboard):
         f"- Store health score: {dashboard['health']['store_health_score']}",
         f"- Product count: {dashboard['shopify']['product_count']}",
         f"- Average SEO score: {dashboard['shopify']['average_seo_score']}",
+        f"- Trend: {trends['trend_note']}",
         "",
         "## Priority Recommendations",
     ]
@@ -74,6 +148,33 @@ def generate_daily_summary(top_recommendations, actions, dashboard):
     for action in actions:
         lines.append(f"- {action}")
 
+    lines.extend(["", "## Product Opportunities"])
+    if not opportunities:
+        lines.append("- No major opportunities detected.")
+    else:
+        for item in opportunities:
+            lines.append(f"- {item['title']}: {item['reason']}")
+
+    lines.extend(["", "## Inventory-Aware Recommendations"])
+    if not inventory:
+        lines.append("- No inventory-specific actions detected.")
+    else:
+        for item in inventory:
+            lines.append(f"- {item['title']}: {item['action']}")
+
+    lines.extend(["", "## Campaign Plan"])
+    if not campaigns:
+        lines.append("- No campaigns generated.")
+    else:
+        for campaign in campaigns:
+            channels = ", ".join(campaign["channels"])
+            lines.append(f"- {campaign['title']}: {campaign['campaign']} ({channels})")
+
+    lines.extend(["", "## Forecast"])
+    lines.append(f"- Baseline health score: {forecast['baseline_health_score']}")
+    lines.append(f"- Projected 30-day health score: {forecast['projected_health_score_30d']}")
+    lines.append(f"- Assumption: {forecast['assumption']}")
+
     os.makedirs("reports", exist_ok=True)
     with open(SUMMARY_FILE, "w", encoding="utf-8") as handle:
         handle.write("\n".join(lines) + "\n")
@@ -89,10 +190,25 @@ def run():
     dashboard = build_dashboard_data()
     _content_file, content_count = generate_preview(channels=["blog", "facebook"], tone="balanced")
 
-    actions = plan_actions(top_recommendations, dashboard)
-    summary_file = generate_daily_summary(top_recommendations, actions, dashboard)
-
     state = _load_state()
+    trends = analyze_trends(state, dashboard)
+    opportunities = detect_product_opportunities(recommendations)
+    inventory_recommendations = detect_inventory_recommendations(products)
+    campaigns = plan_marketing_campaigns(opportunities)
+    forecast = forecast_performance(dashboard, top_recommendations)
+
+    actions = plan_actions(top_recommendations, dashboard, inventory_recommendations)
+    summary_file = generate_daily_summary(
+        top_recommendations,
+        actions,
+        dashboard,
+        trends,
+        opportunities,
+        inventory_recommendations,
+        campaigns,
+        forecast,
+    )
+
     run_record = {
         "timestamp": f"{datetime.utcnow().isoformat()}Z",
         "top_recommendations": [
@@ -104,6 +220,11 @@ def run():
             for rec in top_recommendations
         ],
         "planned_actions": actions,
+        "trends": trends,
+        "opportunities": opportunities,
+        "inventory_recommendations": inventory_recommendations,
+        "campaigns": campaigns,
+        "forecast": forecast,
         "content_items_generated": content_count,
     }
     state["runs"].append(run_record)

@@ -1,35 +1,28 @@
 import argparse
-import os
 import sys
 
 from logger import get_logger
 from modules import get_module, get_module_menu
 from settings import settings
+from shopify.web_dashboard import run as dashboard_run
 
 logger = get_logger()
 
 
-def print_banner():
-    print("\n=========================")
-    print("      ForgeIQ OS")
-    print("=========================")
-    for key, name, description in get_module_menu():
-        print(f"{key}. {name} - {description}")
-    print("s. Settings")
-    print("q. Quit")
-
-
-def pause():
-    if not sys.stdin.isatty():
-        print("")
-        return
-    input("\nPress Enter to return to the menu...")
+def _mask_setting_value(key, value):
+    normalized = key.upper()
+    if any(token in normalized for token in {"TOKEN", "SECRET", "PASSWORD", "KEY"}):
+        if not value:
+            return ""
+        return f"<masked:{len(str(value))}>"
+    return value
 
 
 def handle_settings():
     print("\nCurrent settings:")
     for key in sorted(settings._settings):
-        print(f"- {key} = {settings._settings[key]}")
+        masked_value = _mask_setting_value(key, settings._settings[key])
+        print(f"- {key} = {masked_value}")
 
     print("\nType a setting name to update it, or press Enter to cancel.")
     choice = input("Setting name: ").strip()
@@ -85,18 +78,7 @@ def main():
         run_choice(args.option)
         return
 
-    while True:
-        print_banner()
-        choice = input("Select option: ").strip().lower()
-        if choice in {"q", "quit", "exit"}:
-            print("Goodbye.")
-            return
-        print("")
-        try:
-            run_choice(choice)
-        except Exception as exc:
-            print(f"Error: {exc}")
-        pause()
+    dashboard_run()
 
 
 if __name__ == "__main__":

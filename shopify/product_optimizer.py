@@ -28,6 +28,7 @@ def fetch_products():
             title
             vendor
             productType
+                        totalInventory
             tags
             seo {
               title

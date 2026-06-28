@@ -31,6 +31,21 @@ class SettingsManager:
             "GA_EXPORT_CSV": os.getenv("GA_EXPORT_CSV", "").strip(),
             "GSC_EXPORT_CSV": os.getenv("GSC_EXPORT_CSV", "").strip(),
             "BULK_APPROVAL_PRESET": os.getenv("BULK_APPROVAL_PRESET", "manual").strip(),
+            "GA4_PROPERTY_ID": os.getenv("GA4_PROPERTY_ID", "").strip(),
+            "GA4_BEARER_TOKEN": os.getenv("GA4_BEARER_TOKEN", "").strip(),
+            "GSC_SITE_URL": os.getenv("GSC_SITE_URL", "").strip(),
+            "GSC_BEARER_TOKEN": os.getenv("GSC_BEARER_TOKEN", "").strip(),
+            "SCHEDULE_SEO_AUDIT_CRON": os.getenv("SCHEDULE_SEO_AUDIT_CRON", "daily").strip(),
+            "SCHEDULE_CONTENT_CRON": os.getenv("SCHEDULE_CONTENT_CRON", "weekly").strip(),
+            "SCHEDULE_ANALYTICS_CRON": os.getenv("SCHEDULE_ANALYTICS_CRON", "daily").strip(),
+            "SCHEDULE_ORCHESTRATOR_CRON": os.getenv("SCHEDULE_ORCHESTRATOR_CRON", "daily").strip(),
+            "SCHEDULE_MORNING_AUTOMATION_CRON": os.getenv("SCHEDULE_MORNING_AUTOMATION_CRON", "daily").strip(),
+            "SCHEDULE_EVENING_AUTOMATION_CRON": os.getenv("SCHEDULE_EVENING_AUTOMATION_CRON", "daily").strip(),
+            "SCHEDULE_COMPETITIVE_INTEL_CRON": os.getenv("SCHEDULE_COMPETITIVE_INTEL_CRON", "daily").strip(),
+            "COMPETITOR_PRICE_CSV": os.getenv("COMPETITOR_PRICE_CSV", "").strip(),
+            "SEARCH_VOLUME_CSV": os.getenv("SEARCH_VOLUME_CSV", "").strip(),
+            "KEYWORD_GAP_CSV": os.getenv("KEYWORD_GAP_CSV", "").strip(),
+            "MARGIN_ANALYSIS_CSV": os.getenv("MARGIN_ANALYSIS_CSV", "").strip(),
         }
 
     def get(self, key, default=None):
