@@ -360,8 +360,8 @@ TEMPLATE = """
           </div>
           <div class="action-card">
             <h3>Approval mode</h3>
-            <p>Single-step flow enabled. Clicking Approve now writes updates immediately.</p>
-            <button class="btn good" type="button">One-click apply active</button>
+            <p>Approve and bulk approve only stage products. Use Apply Approved to write changes to Shopify.</p>
+            <button class="btn good" type="button">Safe staged approvals</button>
           </div>
           <div class="action-card">
             <h3>Open reports</h3>
@@ -500,23 +500,23 @@ TEMPLATE = """
       <div class="section-head">
         <div>
           <h2>Products needing attention</h2>
-          <p>Use quick approvals to apply top recommendations in one click.</p>
+          <p>Approve marks products for update. No Shopify writes happen until Apply Approved is used.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
             <input type="hidden" name="count" value="3" />
             <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn good" type="submit">Approve Top 3</button>
+            <button class="btn good" type="submit">Stage Top 3</button>
           </form>
           <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
             <input type="hidden" name="count" value="5" />
             <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn good" type="submit">Approve Top 5</button>
+            <button class="btn good" type="submit">Stage Top 5</button>
           </form>
           <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
             <input type="hidden" name="count" value="all" />
             <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-            <button class="btn primary" type="submit">Approve All Visible</button>
+            <button class="btn primary" type="submit">Stage All Visible</button>
           </form>
         </div>
       </div>
@@ -545,7 +545,7 @@ TEMPLATE = """
             <td class="actions">
               <form class="preserve-scroll" method="post" action="{{ url_for('approve', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-                <button class="btn good" type="submit">Approve & Apply</button>
+                <button class="btn good" type="submit">Approve (Stage)</button>
               </form>
               <form class="preserve-scroll" method="post" action="{{ url_for('reject', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
@@ -624,10 +624,10 @@ TEMPLATE = """
         <div class="stack">
           <div class="mini-card">
             <h3>Approvals</h3>
-            <p>{{ approvals.approved|length }} approved, {{ approvals.rejected|length }} rejected.</p>
+            <p>{{ approvals.approved|length }} approved (staged), {{ approvals.rejected|length }} rejected.</p>
               <form class="preserve-scroll" method="post" action="{{ url_for('apply_approved') }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-              <button class="btn primary" type="submit">Apply approved</button>
+              <button class="btn primary" type="submit">Apply Approved (Write to Shopify)</button>
             </form>
           </div>
           <div class="mini-card">
@@ -1605,11 +1605,6 @@ def create_app():
         state["rejected"] = [pid for pid in state["rejected"] if pid != product_id]
         _save_approvals(state)
 
-        queue, _, _ = _build_attention_queue()
-        selected = [rec for rec in queue if rec.get("product_id") == product_id]
-        if selected:
-            apply_recommendations(selected)
-
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y))
 
@@ -1643,9 +1638,6 @@ def create_app():
                 state["approved"].append(product_id)
         state["rejected"] = [pid for pid in state["rejected"] if pid not in selected_ids]
         _save_approvals(state)
-
-        if selected:
-            apply_recommendations(selected)
 
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y))

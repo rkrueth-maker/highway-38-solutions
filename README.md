@@ -23,7 +23,7 @@ ForgeIQ has evolved from standalone scripts into a modular Shopify operations ap
 - Centralized settings management with persistent updates.
 - Shared Shopify GraphQL and REST client path for all active modules.
 - Automatic plugin discovery and registry-backed module routing.
-- Per-product approval workflow in Product Intelligence apply phase.
+- Staged dashboard approval workflow: Approve marks products, Apply Approved writes updates.
 - Regression test coverage for setup, CLI, and optimizer behaviors.
 
 ## Application Entry Points
@@ -37,7 +37,7 @@ ForgeIQ has evolved from standalone scripts into a modular Shopify operations ap
 ## Module Catalog
 - `1` SEO Audit: audits products and writes a CSV report.
 - `2` Update Image Alt Text: previews/applies missing image alt text.
-- `3` Optimize Product SEO: analyzes products, scores SEO health, writes report, supports per-product approve/reject apply.
+- `3` Optimize Product SEO: analyzes products, scores SEO health, writes report, supports staged approve/reject plus explicit Apply Approved.
 - `4` Create Shopify Collections: creates/updates collections and assignments.
 - `5` Generate Blog Post: placeholder, validates connection.
 - `6` Content Engine Preview: generates phase 2 content seeds and writes a markdown preview.

@@ -71,7 +71,7 @@ def test_web_dashboard_approve_reject_flow(monkeypatch):
     response = client.post("/approve/gid://shopify/Product/1")
     assert response.status_code == 302
     assert "gid://shopify/Product/1" in state["approved"]
-    assert applied and applied[0]["product_id"] == "gid://shopify/Product/1"
+    assert applied == []
 
     response = client.post("/reject/gid://shopify/Product/1")
     assert response.status_code == 302
@@ -104,7 +104,7 @@ def test_web_dashboard_document_view_routes(monkeypatch, tmp_path):
     assert "Log: app.log" in log_response.get_data(as_text=True)
 
 
-def test_web_dashboard_bulk_approve_applies_top_n(monkeypatch):
+def test_web_dashboard_bulk_approve_stages_top_n(monkeypatch):
     import shopify.web_dashboard as wd
 
     queue = [
@@ -127,7 +127,30 @@ def test_web_dashboard_bulk_approve_applies_top_n(monkeypatch):
     assert response.status_code == 302
     assert state["approved"] == ["gid://shopify/Product/1", "gid://shopify/Product/2"]
     assert "gid://shopify/Product/2" not in state["rejected"]
-    assert [item["product_id"] for item in applied] == ["gid://shopify/Product/1", "gid://shopify/Product/2"]
+    assert applied == []
+
+
+def test_web_dashboard_apply_approved_applies_only_approved(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    queue = [
+        {"product_id": "gid://shopify/Product/1", "current_title": "A"},
+        {"product_id": "gid://shopify/Product/2", "current_title": "B"},
+        {"product_id": "gid://shopify/Product/3", "current_title": "C"},
+    ]
+    state = {"approved": ["gid://shopify/Product/1", "gid://shopify/Product/3"], "rejected": []}
+    applied = []
+
+    monkeypatch.setattr(wd, "_build_attention_queue", lambda: (queue, [], queue))
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "apply_recommendations", lambda selected: applied.extend(selected) or {"updated_products": len(selected), "updated_alt_images": 0, "failures": 0})
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/apply-approved")
+    assert response.status_code == 302
+    assert [item["product_id"] for item in applied] == ["gid://shopify/Product/1", "gid://shopify/Product/3"]
 
 
 def test_web_dashboard_live_refresh_mode(monkeypatch):
