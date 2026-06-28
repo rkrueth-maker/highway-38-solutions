@@ -1,4 +1,5 @@
 import json
+import html
 import os
 import re
 import threading
@@ -248,12 +249,15 @@ TEMPLATE = """
       appearance: none;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 9px 12px;
+      padding: 10px 14px;
       margin-right: 6px;
       background: rgba(255, 255, 255, 0.04);
       color: var(--text);
       cursor: pointer;
+      font-weight: 600;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
     }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(125, 211, 252, 0.4); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2); text-decoration: none; }
     .btn.primary { background: linear-gradient(90deg, var(--accent), #60a5fa); color: #06101c; border: 0; }
     .btn.danger { background: rgba(251, 113, 133, 0.14); color: #fecdd3; }
     .btn.good { background: rgba(52, 211, 153, 0.14); color: #a7f3d0; }
@@ -355,11 +359,9 @@ TEMPLATE = """
             </form>
           </div>
           <div class="action-card">
-            <h3>Apply approvals</h3>
-            <p>Push all approved optimization actions in one click.</p>
-            <form method="post" action="{{ url_for('apply_approved') }}">
-              <button class="btn good" type="submit">Apply approved</button>
-            </form>
+            <h3>Approval mode</h3>
+            <p>Single-step flow enabled. Clicking Approve now writes updates immediately.</p>
+            <button class="btn good" type="button">One-click apply active</button>
           </div>
           <div class="action-card">
             <h3>Open reports</h3>
@@ -368,7 +370,7 @@ TEMPLATE = """
               <a class="btn" href="#reports">Jump to reports</a>
               <a class="btn" href="#logs">Jump to logs</a>
               {% if report_files %}
-                <a class="btn primary" href="{{ url_for('download_report', filename=report_files[0].name) }}">Open latest report</a>
+                <a class="btn primary" href="{{ url_for('view_report_document', filename=report_files[0].name) }}">Open latest report</a>
               {% endif %}
             </div>
           </div>
@@ -495,7 +497,29 @@ TEMPLATE = """
     </div>
 
     <div class="section panel">
-      <h2>Products needing attention</h2>
+      <div class="section-head">
+        <div>
+          <h2>Products needing attention</h2>
+          <p>Use quick approvals to apply top recommendations in one click.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+            <input type="hidden" name="count" value="3" />
+            <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+            <button class="btn good" type="submit">Approve Top 3</button>
+          </form>
+          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+            <input type="hidden" name="count" value="5" />
+            <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+            <button class="btn good" type="submit">Approve Top 5</button>
+          </form>
+          <form class="preserve-scroll" method="post" action="{{ url_for('approve_bulk') }}">
+            <input type="hidden" name="count" value="all" />
+            <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+            <button class="btn primary" type="submit">Approve All Visible</button>
+          </form>
+        </div>
+      </div>
       <table>
         <thead>
           <tr>
@@ -521,7 +545,7 @@ TEMPLATE = """
             <td class="actions">
               <form class="preserve-scroll" method="post" action="{{ url_for('approve', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
-                <button class="btn good" type="submit">Approve</button>
+                <button class="btn good" type="submit">Approve & Apply</button>
               </form>
               <form class="preserve-scroll" method="post" action="{{ url_for('reject', product_id=rec.product_id) }}">
                 <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
@@ -692,7 +716,7 @@ TEMPLATE = """
         <h3>Forecast</h3>
         <p>Projected revenue lift: {{ competitive_intelligence.forecast.projected_revenue_lift }} | Confidence: {{ competitive_intelligence.forecast.confidence }}</p>
         {% if 'forgeiq_competitive_intelligence.md' in report_file_names %}
-        <p class="muted">Report file: <a href="{{ url_for('download_report', filename='forgeiq_competitive_intelligence.md') }}">forgeiq_competitive_intelligence.md</a></p>
+        <p class="muted">Report file: <a href="{{ url_for('view_report_document', filename='forgeiq_competitive_intelligence.md') }}">forgeiq_competitive_intelligence.md</a></p>
         {% else %}
         <p class="muted">Report file will appear after competitive intelligence runs.</p>
         {% endif %}
@@ -762,7 +786,7 @@ TEMPLATE = """
             <div class="file-list">
               {% for file in log_files %}
                 <div class="file-item">
-                  <a href="{{ url_for('download_log', filename=file.name) }}">{{ file.name }}</a>
+                  <a href="{{ url_for('view_log_document', filename=file.name) }}">{{ file.name }}</a>
                   <span>{{ file.modified }}</span>
                 </div>
               {% else %}
@@ -783,7 +807,7 @@ TEMPLATE = """
       <div class="file-list">
         {% for file in report_files %}
           <div class="file-item">
-            <a href="{{ url_for('download_report', filename=file.name) }}">{{ file.name }}</a>
+            <a href="{{ url_for('view_report_document', filename=file.name) }}">{{ file.name }}</a>
             <span>{{ file.modified }} • {{ file.size_kb }} KB</span>
           </div>
         {% else %}
@@ -813,6 +837,90 @@ TEMPLATE = """
       });
     })();
   </script>
+</body>
+</html>
+"""
+
+
+DOCUMENT_TEMPLATE = """
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    body {
+      margin: 0;
+      background: #eceff3;
+      color: #1f2937;
+      font-family: "Merriweather", Georgia, "Times New Roman", serif;
+    }
+    .doc-shell {
+      max-width: 980px;
+      margin: 28px auto;
+      background: #ffffff;
+      border: 1px solid #d4d9e1;
+      box-shadow: 0 18px 42px rgba(22, 30, 46, 0.14);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .doc-head {
+      padding: 18px 22px;
+      border-bottom: 1px solid #e5e7eb;
+      background: linear-gradient(180deg, #fafbfc, #f2f4f7);
+    }
+    .doc-head h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      letter-spacing: -0.01em;
+    }
+    .doc-head p {
+      margin: 8px 0 0;
+      color: #4b5563;
+      font-size: 0.92rem;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    }
+    .doc-body {
+      padding: 26px 30px 34px;
+      white-space: pre-wrap;
+      line-height: 1.66;
+      font-size: 1.02rem;
+    }
+    .doc-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    }
+    .doc-actions a {
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #cdd5e0;
+      color: #0f172a;
+      background: #f8fafc;
+    }
+    @media (max-width: 720px) {
+      .doc-shell { margin: 0; border-radius: 0; }
+      .doc-body { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-shell">
+    <div class="doc-head">
+      <h1>{{ title }}</h1>
+      <p>{{ subtitle }}</p>
+      <div class="doc-actions">
+        <a href="{{ back_url }}">Back to dashboard</a>
+        <a href="{{ raw_url }}">Open raw file</a>
+      </div>
+    </div>
+    <div class="doc-body">{{ content }}</div>
+  </div>
 </body>
 </html>
 """
@@ -1222,6 +1330,27 @@ def _list_files(directory, limit=8):
     return items[:limit]
 
 
+def _safe_file_path(directory, filename):
+    base = os.path.realpath(directory)
+    target = os.path.realpath(os.path.join(directory, filename))
+    if not target.startswith(base + os.sep) and target != base:
+        return None
+    if not os.path.isfile(target):
+        return None
+    return target
+
+
+def _render_document_view(title, subtitle, content, back_url, raw_url):
+    return render_template_string(
+        DOCUMENT_TEMPLATE,
+        title=title,
+        subtitle=subtitle,
+        content=content,
+        back_url=back_url,
+        raw_url=raw_url,
+    )
+
+
 def _extract_sections(text, prefix, limit=4):
     sections = []
     current = None
@@ -1475,6 +1604,12 @@ def create_app():
             state["approved"].append(product_id)
         state["rejected"] = [pid for pid in state["rejected"] if pid != product_id]
         _save_approvals(state)
+
+        queue, _, _ = _build_attention_queue()
+        selected = [rec for rec in queue if rec.get("product_id") == product_id]
+        if selected:
+            apply_recommendations(selected)
+
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y))
 
@@ -1485,6 +1620,33 @@ def create_app():
             state["rejected"].append(product_id)
         state["approved"] = [pid for pid in state["approved"] if pid != product_id]
         _save_approvals(state)
+        scroll_y = request.form.get("scroll_y", "0")
+        return redirect(url_for("index", scroll_y=scroll_y))
+
+    @app.post("/approve-bulk")
+    def approve_bulk():
+        queue, _, _ = _build_attention_queue()
+        count_raw = (request.form.get("count") or "5").strip().lower()
+        if count_raw == "all":
+            selected = queue
+        else:
+            try:
+                count = max(1, int(count_raw))
+            except ValueError:
+                count = 5
+            selected = queue[:count]
+
+        state = _load_approvals()
+        selected_ids = list(dict.fromkeys(rec.get("product_id") for rec in selected if rec.get("product_id")))
+        for product_id in selected_ids:
+            if product_id not in state["approved"]:
+                state["approved"].append(product_id)
+        state["rejected"] = [pid for pid in state["rejected"] if pid not in selected_ids]
+        _save_approvals(state)
+
+        if selected:
+            apply_recommendations(selected)
+
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y))
 
@@ -1523,15 +1685,15 @@ def create_app():
 
     @app.post("/agent/discard-review")
     def discard_agent_review():
-      _clear_agent_review()
-      _agent_prompt_summary(
-        "Discard pending agent review",
-        "Pending agent review discarded.",
-        details=[],
-        intent="discard_review",
-      )
-      scroll_y = request.form.get("scroll_y", "0")
-      return redirect(url_for("index", scroll_y=scroll_y))
+        _clear_agent_review()
+        _agent_prompt_summary(
+            "Discard pending agent review",
+            "Pending agent review discarded.",
+            details=[],
+            intent="discard_review",
+        )
+        scroll_y = request.form.get("scroll_y", "0")
+        return redirect(url_for("index", scroll_y=scroll_y))
 
     @app.post("/refresh-orchestrator")
     def refresh_orchestrator():
@@ -1541,15 +1703,43 @@ def create_app():
 
     @app.get("/reports/<path:filename>")
     def download_report(filename):
-        if not os.path.exists(os.path.join(REPORTS_DIR, filename)):
+        if not _safe_file_path(REPORTS_DIR, filename):
             abort(404)
         return send_from_directory(REPORTS_DIR, filename, as_attachment=False)
 
     @app.get("/logs/<path:filename>")
     def download_log(filename):
-        if not os.path.exists(os.path.join(LOGS_DIR, filename)):
+        if not _safe_file_path(LOGS_DIR, filename):
             abort(404)
         return send_from_directory(LOGS_DIR, filename, as_attachment=False)
+
+    @app.get("/documents/report/<path:filename>")
+    def view_report_document(filename):
+        path = _safe_file_path(REPORTS_DIR, filename)
+        if not path:
+            abort(404)
+        content = _read_text(path)
+        return _render_document_view(
+            title=f"Report: {filename}",
+            subtitle=f"Rendered from {html.escape(filename)}",
+            content=content,
+            back_url=url_for("index") + "#reports",
+            raw_url=url_for("download_report", filename=filename),
+        )
+
+    @app.get("/documents/log/<path:filename>")
+    def view_log_document(filename):
+        path = _safe_file_path(LOGS_DIR, filename)
+        if not path:
+            abort(404)
+        content = _read_text(path)
+        return _render_document_view(
+            title=f"Log: {filename}",
+            subtitle=f"Rendered from {html.escape(filename)}",
+            content=content,
+            back_url=url_for("index") + "#logs",
+            raw_url=url_for("download_log", filename=filename),
+        )
 
     return app
 
