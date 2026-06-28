@@ -17,6 +17,7 @@ from shopify.product_optimizer import (
     choose_recommendations_for_apply,
     choose_recommendations_with_presets,
     filter_recommendations_by_preset,
+    update_product_metadata,
     run,
     score_product,
     stage_recommendations,
@@ -190,3 +191,26 @@ def test_run_stages_instead_of_applying(monkeypatch, tmp_path):
     assert "Staging approved changes for 1 products" in output
     assert "Use the web dashboard and click 'Apply Approved (Write to Shopify)'" in output
     assert approval_file.exists()
+
+
+def test_update_product_metadata_applies_tag_only_recommendation(monkeypatch):
+    graphql_calls = []
+    tag_calls = []
+
+    monkeypatch.setattr("shopify.product_optimizer.client.graphql", lambda query, variables=None: graphql_calls.append((query, variables)) or {"productUpdate": {"userErrors": []}})
+    monkeypatch.setattr("shopify.product_optimizer.client.put_product_tags", lambda product_id, tags: tag_calls.append((product_id, tags)) or {"id": product_id, "tags": tags})
+
+    update_product_metadata(
+        {
+            "product_id": "gid://shopify/Product/1",
+            "suggested_title": "Same title",
+            "suggested_description": "Same description",
+            "suggested_tags": ["alpha", "beta"],
+            "needs_title": False,
+            "needs_description": False,
+            "needs_tags": True,
+        }
+    )
+
+    assert graphql_calls == []
+    assert tag_calls == [("gid://shopify/Product/1", ["alpha", "beta"])]

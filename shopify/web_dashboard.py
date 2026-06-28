@@ -301,6 +301,17 @@ TEMPLATE = """
     .file-list { display: grid; gap: 8px; }
     .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255, 255, 255, 0.03); }
     .file-item span { color: var(--muted); }
+    .banner {
+      margin: 16px 0;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .banner.success { border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
+    .banner.warn { border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.12); }
+    .banner h3 { margin: 0 0 6px; font-size: 1rem; }
+    .banner p { margin: 0; color: var(--text); }
     @keyframes floatGlow {
       0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
       50% { transform: translate3d(-16px, 10px, 0) scale(1.05); opacity: 1; }
@@ -322,6 +333,12 @@ TEMPLATE = """
 </head>
 <body>
   <div class="shell">
+    {% if apply_feedback %}
+    <div class="banner {{ apply_feedback.banner_class }}">
+      <h3>{{ apply_feedback.title }}</h3>
+      <p>{{ apply_feedback.message }}</p>
+    </div>
+    {% endif %}
     <div class="hero">
       <div class="hero-card">
         <div class="pill">ForgeIQ OS</div>
@@ -1368,6 +1385,35 @@ def _render_document_view(title, subtitle, content, back_url, raw_url):
     )
 
 
+def _build_apply_feedback(args):
+    status = (args.get("apply_status") or "").strip().lower()
+    if not status:
+        return None
+
+    updated_products = int(args.get("updated_products") or 0)
+    updated_alt_images = int(args.get("updated_alt_images") or 0)
+    failures = int(args.get("failures") or 0)
+    applied_count = int(args.get("applied_count") or 0)
+
+    if status == "success":
+        banner_class = "success" if failures == 0 else "warn"
+        title = "Apply Approved complete"
+        message = (
+            f"Processed {applied_count} staged product(s). "
+            f"Updated products: {updated_products}. Updated alt texts: {updated_alt_images}. Failures: {failures}."
+        )
+        return {"banner_class": banner_class, "title": title, "message": message}
+
+    if status == "empty":
+        return {
+            "banner_class": "warn",
+            "title": "No approved changes to apply",
+            "message": "Stage one or more products first, then use Apply Approved to write changes to Shopify.",
+        }
+
+    return None
+
+
 def _extract_sections(text, prefix, limit=4):
     sections = []
     current = None
@@ -1685,6 +1731,7 @@ def create_app():
         refresh_content = request.args.get("refresh_content") in {"1", "true", "yes"}
         live_refresh = request.args.get("live") in {"1", "true", "yes"}
         context = build_dashboard_context(refresh_content=refresh_content, live_refresh=live_refresh)
+        context["apply_feedback"] = _build_apply_feedback(request.args)
         return render_template_string(TEMPLATE, **context)
 
     @app.post("/approve/<path:product_id>")
@@ -1733,9 +1780,21 @@ def create_app():
         state = _load_approvals()
         selected = [rec for rec in queue if rec.get("product_id") in set(state.get("approved", []))]
         if selected:
-            apply_recommendations(selected)
+            result = apply_recommendations(selected)
+            scroll_y = request.form.get("scroll_y", "0")
+            return redirect(
+                url_for(
+                    "index",
+                    scroll_y=scroll_y,
+                    apply_status="success",
+                    applied_count=len(selected),
+                    updated_products=result["updated_products"],
+                    updated_alt_images=result["updated_alt_images"],
+                    failures=result["failures"],
+                )
+            )
         scroll_y = request.form.get("scroll_y", "0")
-        return redirect(url_for("index", scroll_y=scroll_y))
+        return redirect(url_for("index", scroll_y=scroll_y, apply_status="empty"))
 
     @app.post("/refresh-content")
     def refresh_content():

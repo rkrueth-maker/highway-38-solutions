@@ -343,29 +343,29 @@ def update_product_metadata(recommendation):
     if seo_payload:
         input_payload["seo"] = seo_payload
 
-        if len(input_payload) > 1 or seo_payload:
-                mutation = """
-                mutation productUpdate($input: ProductInput!) {
-                    productUpdate(input: $input) {
-                        product {
-                            id
-                            title
-                        }
-                        userErrors {
-                            field
-                            message
-                        }
-                    }
+    if len(input_payload) > 1 or seo_payload:
+        mutation = """
+        mutation productUpdate($input: ProductInput!) {
+            productUpdate(input: $input) {
+                product {
+                    id
+                    title
                 }
-                """
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+        """
 
-                data = client.graphql(mutation, {"input": input_payload})
-                errors = data["productUpdate"].get("userErrors") or []
-                if errors:
-                        raise RuntimeError(f"Product update failed: {errors}")
+        data = client.graphql(mutation, {"input": input_payload})
+        errors = data["productUpdate"].get("userErrors") or []
+        if errors:
+            raise RuntimeError(f"Product update failed: {errors}")
 
-        if recommendation["needs_tags"]:
-                client.put_product_tags(recommendation["product_id"], recommendation["suggested_tags"])
+    if recommendation["needs_tags"]:
+        client.put_product_tags(recommendation["product_id"], recommendation["suggested_tags"])
 
 
 def apply_recommendations(recommendations):
