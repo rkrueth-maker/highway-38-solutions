@@ -1,4 +1,5 @@
 from modules.base import BaseModule
+from shopify.product_optimizer import run as optimizer_run
 
 
 class OptimizerModule(BaseModule):
@@ -7,4 +8,4 @@ class OptimizerModule(BaseModule):
     description = "Optimize product SEO fields and metadata."
 
     def run(self):
-        print("Product optimizer is not implemented yet.")
+        optimizer_run()
