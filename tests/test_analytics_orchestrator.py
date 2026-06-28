@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -43,3 +44,65 @@ def test_search_console_metrics_unconfigured(monkeypatch):
 
     assert data["source"] == "unconfigured"
     assert data["clicks"] == 0
+
+
+def test_google_analytics_metrics_native(monkeypatch):
+    from settings import settings
+
+    def fake_get(key, default=None):
+        mapping = {
+            "GA4_PROPERTY_ID": "123456",
+            "GA4_BEARER_TOKEN": "token",
+            "GA_EXPORT_CSV": "",
+        }
+        return mapping.get(key, default)
+
+    def fake_post(url, headers=None, json=None, timeout=30):
+        return SimpleNamespace(
+            status_code=200,
+            json=lambda: {"rows": [{"metricValues": [{"value": "100"}, {"value": "80"}, {"value": "5"}]}]},
+        )
+
+    monkeypatch.setattr(settings, "get", fake_get)
+    monkeypatch.setattr("shopify.analytics_dashboard.requests.post", fake_post)
+
+    data = gather_google_analytics_metrics()
+    assert data["source"] == "native"
+    assert data["sessions"] == 100
+
+
+def test_search_console_metrics_native(monkeypatch):
+    from settings import settings
+
+    def fake_get(key, default=None):
+        mapping = {
+            "GSC_SITE_URL": "sc-domain:example.com",
+            "GSC_BEARER_TOKEN": "token",
+            "GSC_EXPORT_CSV": "",
+        }
+        return mapping.get(key, default)
+
+    def fake_post(url, headers=None, json=None, timeout=30):
+        return SimpleNamespace(
+            status_code=200,
+            json=lambda: {"rows": [{"clicks": 10, "impressions": 100, "ctr": 0.1, "position": 12.5}]},
+        )
+
+    monkeypatch.setattr(settings, "get", fake_get)
+    monkeypatch.setattr("shopify.analytics_dashboard.requests.post", fake_post)
+
+    data = gather_search_console_metrics()
+    assert data["source"] == "native"
+    assert data["clicks"] == 10
+
+
+def test_shopify_native_metrics_scope_denied(monkeypatch):
+    from shopify.analytics_dashboard import gather_shopify_analytics_native
+
+    def fake_graphql(_query):
+        raise RuntimeError("GraphQL errors: [{'message': 'Access denied for orders field.', 'extensions': {'code': 'ACCESS_DENIED'}}]")
+
+    monkeypatch.setattr("shopify.analytics_dashboard.client.graphql", fake_graphql)
+    data = gather_shopify_analytics_native()
+    assert data["source"] == "native_scope_missing"
+    assert data["orders_last_50"] == 0

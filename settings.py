@@ -31,6 +31,14 @@ class SettingsManager:
             "GA_EXPORT_CSV": os.getenv("GA_EXPORT_CSV", "").strip(),
             "GSC_EXPORT_CSV": os.getenv("GSC_EXPORT_CSV", "").strip(),
             "BULK_APPROVAL_PRESET": os.getenv("BULK_APPROVAL_PRESET", "manual").strip(),
+            "GA4_PROPERTY_ID": os.getenv("GA4_PROPERTY_ID", "").strip(),
+            "GA4_BEARER_TOKEN": os.getenv("GA4_BEARER_TOKEN", "").strip(),
+            "GSC_SITE_URL": os.getenv("GSC_SITE_URL", "").strip(),
+            "GSC_BEARER_TOKEN": os.getenv("GSC_BEARER_TOKEN", "").strip(),
+            "SCHEDULE_SEO_AUDIT_CRON": os.getenv("SCHEDULE_SEO_AUDIT_CRON", "daily").strip(),
+            "SCHEDULE_CONTENT_CRON": os.getenv("SCHEDULE_CONTENT_CRON", "weekly").strip(),
+            "SCHEDULE_ANALYTICS_CRON": os.getenv("SCHEDULE_ANALYTICS_CRON", "daily").strip(),
+            "SCHEDULE_ORCHESTRATOR_CRON": os.getenv("SCHEDULE_ORCHESTRATOR_CRON", "daily").strip(),
         }
 
     def get(self, key, default=None):
