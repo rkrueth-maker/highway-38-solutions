@@ -20,6 +20,7 @@ from shopify.product_optimizer import (
     run,
     score_product,
     stage_recommendations,
+    suggest_tags,
     suggest_description,
     suggest_title,
 )
@@ -71,6 +72,14 @@ def test_suggestions_generate_seo_friendly_values():
 
     assert "Garage Storage" in title
     assert 90 <= len(description) <= 155
+
+
+def test_suggest_tags_strips_shopify_incompatible_commas_from_tokens():
+    product = _sample_product(title="HSC86-4A Terminal Crimping Tool Set with 1,200-Piece Terminal Assortment")
+    tags = suggest_tags(product)
+
+    assert "1,200-Piece" not in tags
+    assert any(tag == "1200-Piece" for tag in tags)
 
 
 def test_analyze_products_returns_recommendations_for_weak_products():

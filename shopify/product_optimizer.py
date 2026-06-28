@@ -1,6 +1,7 @@
 import argparse
 import csv
 import os
+import re
 import sys
 import time
 from statistics import mean
@@ -213,7 +214,7 @@ def suggest_tags(product):
 
     product_type = (product.get("productType") or "").strip()
     vendor = (product.get("vendor") or "").strip()
-    title_words = [word.strip(",.-").lower() for word in (product.get("title") or "").split()]
+    title_words = [re.sub(r"[^a-z0-9&+-]", "", word.lower()) for word in (product.get("title") or "").split()]
     candidate_words = [w for w in title_words if len(w) >= 4 and w not in {"with", "from", "for", "your", "shop"}]
 
     if product_type:
@@ -332,8 +333,6 @@ def update_product_metadata(recommendation):
     input_payload = {"id": recommendation["product_id"]}
     if recommendation["needs_title"]:
         input_payload["title"] = recommendation["suggested_title"]
-    if recommendation["needs_tags"]:
-        input_payload["tags"] = recommendation["suggested_tags"]
 
     seo_payload = {}
     if recommendation["needs_title"]:
@@ -344,25 +343,29 @@ def update_product_metadata(recommendation):
     if seo_payload:
         input_payload["seo"] = seo_payload
 
-    mutation = """
-    mutation productUpdate($input: ProductInput!) {
-      productUpdate(input: $input) {
-        product {
-          id
-          title
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-    """
+        if len(input_payload) > 1 or seo_payload:
+                mutation = """
+                mutation productUpdate($input: ProductInput!) {
+                    productUpdate(input: $input) {
+                        product {
+                            id
+                            title
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
+                """
 
-    data = client.graphql(mutation, {"input": input_payload})
-    errors = data["productUpdate"].get("userErrors") or []
-    if errors:
-        raise RuntimeError(f"Product update failed: {errors}")
+                data = client.graphql(mutation, {"input": input_payload})
+                errors = data["productUpdate"].get("userErrors") or []
+                if errors:
+                        raise RuntimeError(f"Product update failed: {errors}")
+
+        if recommendation["needs_tags"]:
+                client.put_product_tags(recommendation["product_id"], recommendation["suggested_tags"])
 
 
 def apply_recommendations(recommendations):

@@ -74,5 +74,20 @@ class ShopifyClient:
             raise RuntimeError(f"Image update failed, unexpected response: {response.text}")
         return updated
 
+    def put_product_tags(self, product_id, tags):
+        rest_product_id = parse_gid(product_id)
+        url = f"{get_rest_base_url()}/products/{rest_product_id}.json"
+        payload = {"product": {"id": int(rest_product_id), "tags": ", ".join(tags)}}
+        headers = get_headers()
+        logger.debug("Shopify REST PUT request to %s", url)
+        response = requests.put(url, headers=headers, json=payload, timeout=30)
+        if response.status_code >= 400:
+            raise RuntimeError(f"Product tag update failed HTTP {response.status_code}: {response.text}")
+        data = response.json()
+        updated = data.get("product")
+        if not updated:
+            raise RuntimeError(f"Product tag update failed, unexpected response: {response.text}")
+        return updated
+
 
 client = ShopifyClient()
