@@ -78,7 +78,7 @@ def main():
         run_choice(args.option)
         return
 
-    dashboard_run()
+    dashboard_run(host="0.0.0.0")
 
 
 if __name__ == "__main__":

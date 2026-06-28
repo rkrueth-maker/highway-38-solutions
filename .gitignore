@@ -67,6 +67,14 @@ web_modules/
 
 # dotenv environment variable files
 .env
+
+# Python cache artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Generated runtime outputs
+reports/
 .env.*
 !.env.example
 

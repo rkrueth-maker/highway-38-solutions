@@ -1,0 +1,19 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "385fe9b1f8cb7708422f8370e34f1d8c"
+name = "FO"
+application_url = "https://fictional-space-potato-9669wpq67p49f7jv5-5000.app.github.dev"
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_content,read_inventory,read_products,write_content,write_inventory,write_products"
+
+[auth]
+redirect_urls = [ "https://fictional-space-potato-9669wpq67p49f7jv5-5000.app.github.dev/callback" ]
