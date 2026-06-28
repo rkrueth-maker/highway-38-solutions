@@ -29,8 +29,10 @@ from shopify.product_optimizer import analyze_products, apply_recommendations, f
 from shopify.scheduler import _load_state as load_scheduler_state
 from shopify.scheduler import get_job_definitions
 
-APPROVAL_STATE_FILE = os.path.join("reports", "forgeiq_web_approvals.json")
-REPORTS_DIR = os.path.join("reports")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPORTS_DIR = str(PROJECT_ROOT / "reports")
+LOGS_DIR = str((PROJECT_ROOT / LOG_DIR).resolve()) if not os.path.isabs(LOG_DIR) else LOG_DIR
+APPROVAL_STATE_FILE = os.path.join(REPORTS_DIR, "forgeiq_web_approvals.json")
 AGENT_HISTORY_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_history.json")
 AGENT_REPORT_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_response.md")
 AGENT_REVIEW_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_review.json")
@@ -362,6 +364,13 @@ TEMPLATE = """
           <div class="action-card">
             <h3>Open reports</h3>
             <p>Jump straight to reports, logs, and generated artifacts below.</p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="btn" href="#reports">Jump to reports</a>
+              <a class="btn" href="#logs">Jump to logs</a>
+              {% if report_files %}
+                <a class="btn primary" href="{{ url_for('download_report', filename=report_files[0].name) }}">Open latest report</a>
+              {% endif %}
+            </div>
           </div>
           <div class="action-card">
             <h3>Live refresh</h3>
@@ -682,7 +691,11 @@ TEMPLATE = """
       <div class="mini-card" style="margin-top: 12px;">
         <h3>Forecast</h3>
         <p>Projected revenue lift: {{ competitive_intelligence.forecast.projected_revenue_lift }} | Confidence: {{ competitive_intelligence.forecast.confidence }}</p>
+        {% if 'forgeiq_competitive_intelligence.md' in report_file_names %}
         <p class="muted">Report file: <a href="{{ url_for('download_report', filename='forgeiq_competitive_intelligence.md') }}">forgeiq_competitive_intelligence.md</a></p>
+        {% else %}
+        <p class="muted">Report file will appear after competitive intelligence runs.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -741,7 +754,7 @@ TEMPLATE = """
           </tbody>
         </table>
       </div>
-      <div class="panel">
+      <div class="panel" id="logs">
         <h2>Logs</h2>
         <div class="stack">
           <div class="mini-card">
@@ -765,7 +778,7 @@ TEMPLATE = """
       </div>
     </div>
 
-    <div class="section panel">
+    <div class="section panel" id="reports">
       <h2>Reports</h2>
       <div class="file-list">
         {% for file in report_files %}
@@ -1403,7 +1416,8 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
     pinterest_queue = _extract_sections(content_text, "Pinterest")
     scheduled_tasks = _build_scheduler_rows()
     report_files = _list_files(REPORTS_DIR, limit=12)
-    log_files = _list_files(LOG_DIR, limit=5)
+    report_file_names = {item["name"] for item in report_files}
+    log_files = _list_files(LOGS_DIR, limit=5)
     latest_log_path = log_files[0]["path"] if log_files else None
     approvals = _load_approvals()
     agent_history = _load_agent_history()
@@ -1433,6 +1447,7 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
         "pinterest_queue": pinterest_queue,
         "scheduled_tasks": scheduled_tasks,
         "report_files": report_files,
+        "report_file_names": report_file_names,
         "log_files": log_files,
         "latest_log_tail": _tail_lines(latest_log_path) if latest_log_path else "No log content available.",
         "approvals": approvals,
@@ -1532,9 +1547,9 @@ def create_app():
 
     @app.get("/logs/<path:filename>")
     def download_log(filename):
-        if not os.path.exists(os.path.join(LOG_DIR, filename)):
+        if not os.path.exists(os.path.join(LOGS_DIR, filename)):
             abort(404)
-        return send_from_directory(LOG_DIR, filename, as_attachment=False)
+        return send_from_directory(LOGS_DIR, filename, as_attachment=False)
 
     return app
 
