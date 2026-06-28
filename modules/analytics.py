@@ -11,7 +11,7 @@ class AnalyticsDashboardModule(BaseModule):
     def run(self):
         print("\nAnalytics actions:")
         print("1. Generate unified analytics report")
-        print("2. Launch web dashboard")
+        print("2. Launch web dashboard (starts local Flask server)")
 
         try:
             choice = (input("Choose action [1]: ").strip() or "1")

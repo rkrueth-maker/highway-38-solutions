@@ -39,6 +39,13 @@ class SettingsManager:
             "SCHEDULE_CONTENT_CRON": os.getenv("SCHEDULE_CONTENT_CRON", "weekly").strip(),
             "SCHEDULE_ANALYTICS_CRON": os.getenv("SCHEDULE_ANALYTICS_CRON", "daily").strip(),
             "SCHEDULE_ORCHESTRATOR_CRON": os.getenv("SCHEDULE_ORCHESTRATOR_CRON", "daily").strip(),
+            "SCHEDULE_MORNING_AUTOMATION_CRON": os.getenv("SCHEDULE_MORNING_AUTOMATION_CRON", "daily").strip(),
+            "SCHEDULE_EVENING_AUTOMATION_CRON": os.getenv("SCHEDULE_EVENING_AUTOMATION_CRON", "daily").strip(),
+            "SCHEDULE_COMPETITIVE_INTEL_CRON": os.getenv("SCHEDULE_COMPETITIVE_INTEL_CRON", "daily").strip(),
+            "COMPETITOR_PRICE_CSV": os.getenv("COMPETITOR_PRICE_CSV", "").strip(),
+            "SEARCH_VOLUME_CSV": os.getenv("SEARCH_VOLUME_CSV", "").strip(),
+            "KEYWORD_GAP_CSV": os.getenv("KEYWORD_GAP_CSV", "").strip(),
+            "MARGIN_ANALYSIS_CSV": os.getenv("MARGIN_ANALYSIS_CSV", "").strip(),
         }
 
     def get(self, key, default=None):

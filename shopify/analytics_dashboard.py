@@ -1,7 +1,7 @@
 import csv
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import requests
@@ -263,7 +263,7 @@ def build_dashboard_data():
     gsc = gather_search_console_metrics()
 
     health = {
-        "store_health_score": round((shopify["average_seo_score"] * 0.6) + ((1 - gsc["ctr"]) * 40), 2),
+        "store_health_score": round((shopify["average_seo_score"] * 0.6) + (gsc["ctr"] * 40), 2),
         "seo_performance": {
             "average_product_score": shopify["average_seo_score"],
             "search_ctr": gsc["ctr"],
@@ -277,7 +277,7 @@ def build_dashboard_data():
     }
 
     return {
-        "generated_at": f"{datetime.utcnow().isoformat()}Z",
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "shopify": shopify,
         "shopify_native": shopify_native,
         "google_analytics": ga,

@@ -11,6 +11,7 @@ os.environ.setdefault("SHOPIFY_STORE", "example.myshopify.com")
 os.environ.setdefault("SHOPIFY_ADMIN_TOKEN", "test-token")
 
 from shopify.analytics_dashboard import gather_google_analytics_metrics, gather_search_console_metrics
+from shopify.analytics_dashboard import build_dashboard_data
 from shopify.orchestrator import prioritize_recommendations
 
 
@@ -44,6 +45,49 @@ def test_search_console_metrics_unconfigured(monkeypatch):
 
     assert data["source"] == "unconfigured"
     assert data["clicks"] == 0
+
+
+def test_dashboard_health_score_improves_with_higher_ctr(monkeypatch):
+    from shopify import analytics_dashboard
+
+    monkeypatch.setattr(analytics_dashboard, "gather_shopify_metrics", lambda: {
+        "product_count": 1,
+        "average_seo_score": 80,
+        "products_missing_meta": 0,
+        "images_missing_alt": 0,
+    })
+    monkeypatch.setattr(analytics_dashboard, "gather_shopify_analytics_native", lambda: {
+        "source": "native",
+        "orders_last_50": 0,
+        "estimated_revenue_last_50": 0,
+        "currency": "USD",
+    })
+    monkeypatch.setattr(analytics_dashboard, "gather_google_analytics_metrics", lambda: {
+        "source": "csv",
+        "sessions": 10,
+        "users": 5,
+        "conversions": 1,
+    })
+
+    monkeypatch.setattr(analytics_dashboard, "gather_search_console_metrics", lambda: {
+        "source": "csv",
+        "clicks": 10,
+        "impressions": 100,
+        "ctr": 0.05,
+        "average_position": 12,
+    })
+    low_ctr_score = build_dashboard_data()["health"]["store_health_score"]
+
+    monkeypatch.setattr(analytics_dashboard, "gather_search_console_metrics", lambda: {
+        "source": "csv",
+        "clicks": 30,
+        "impressions": 100,
+        "ctr": 0.3,
+        "average_position": 12,
+    })
+    high_ctr_score = build_dashboard_data()["health"]["store_health_score"]
+
+    assert high_ctr_score > low_ctr_score
 
 
 def test_google_analytics_metrics_native(monkeypatch):

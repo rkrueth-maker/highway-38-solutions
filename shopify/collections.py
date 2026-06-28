@@ -36,12 +36,6 @@ COLLECTIONS = {
         ],
     },
 }
-
-
-def graphql_wrap(query, variables=None):
-    return graphql(query, variables)
-
-
 def find_collection_by_title(title):
     query = """
     query findCollections($query: String!) {

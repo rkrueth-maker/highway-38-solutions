@@ -73,3 +73,33 @@ def test_web_dashboard_approve_reject_flow(monkeypatch):
     response = client.post("/reject/gid://shopify/Product/1")
     assert response.status_code == 302
     assert "gid://shopify/Product/1" in state["rejected"]
+
+
+def test_web_dashboard_live_refresh_mode(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    monkeypatch.setattr(wd, "_build_queue", lambda: [])
+    monkeypatch.setattr(wd, "build_dashboard_data", lambda: {
+        "generated_at": "2026-06-28T00:00:00Z",
+        "health": {"store_health_score": 80},
+        "shopify": {"product_count": 1, "average_seo_score": 80},
+        "search_console": {"ctr": 0.1, "clicks": 10},
+        "google_analytics": {"sessions": 10, "users": 5},
+        "shopify_native": {"orders_last_50": 1, "estimated_revenue_last_50": 0, "currency": "USD"},
+    })
+    monkeypatch.setattr(wd, "load_orchestrator_state", lambda: {"runs": []})
+    monkeypatch.setattr(wd, "get_job_definitions", lambda: {})
+    monkeypatch.setattr(wd, "load_scheduler_state", lambda: {"jobs": {}})
+
+    state = {"approved": [], "rejected": []}
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda data: state.update(data))
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.get("/?live=1")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert '<meta http-equiv="refresh" content="45" />' in html
+    assert "Live refresh on" in html
