@@ -88,11 +88,53 @@ ROLLOUT_PHASES = [
   },
 ]
 
+ROLLOUT_NEXT_ACTIONS = {
+    "phase2_stage_top3": "Use Stage Top 3 only after one-product safety is complete.",
+    "phase2_review_each": "Review each staged product before any approve/apply action.",
+    "phase2_apply_approved": "Run Apply Approved to write only reviewed staged products.",
+    "phase2_zero_failures": "Confirm the apply banner reports zero failures.",
+    "phase2_verify_shopify": "Manually verify all 3 product updates in Shopify admin.",
+    "phase3_title_clean": "Clean and simplify the product title.",
+    "phase3_description_clean": "Remove unclear copy and tighten the description.",
+    "phase3_price_correct": "Verify sale price and compare-at values.",
+    "phase3_images_loaded": "Confirm all images load correctly.",
+    "phase3_category_collection": "Fix category and collection mapping.",
+    "phase3_shipping_visible": "Ensure shipping details are visible.",
+    "phase3_mobile_clean": "Check mobile layout and readability.",
+    "phase3_no_supplier_noise": "Remove supplier placeholders from customer-facing text.",
+    "phase3_compare_at_clean": "Correct invalid compare-at pricing.",
+    "phase4_facebook_posts": "Publish the first Facebook rollout post.",
+    "phase4_pinterest_posts": "Publish the first Pinterest rollout post.",
+    "phase4_instagram_later": "Queue Instagram after initial channel signal is collected.",
+    "phase4_uneven_distribution": "Concentrate traffic on one lead product.",
+    "phase4_primary_72h": "Set one primary product for the next 72-hour test window.",
+    "phase5_visits_no_carts": "Improve page value proposition, price, or offer.",
+    "phase5_carts_no_checkout": "Reduce checkout friction and improve trust signals.",
+    "phase5_checkout_no_sale": "Audit shipping, payment path, and abandonment leaks.",
+    "phase5_sale_scale": "Increase budget and channel coverage for the winning product.",
+    "phase5_no_visits": "Adjust creative angle and distribution targeting.",
+}
+
+SAFETY_CHECKS = [
+    ("safety_tests_passed", "Tests passed"),
+    ("safety_dashboard_verified", "Local dashboard verified"),
+    ("safety_shopify_connection_confirmed", "Shopify connection confirmed"),
+    ("safety_one_low_risk_staged", "One low-risk product staged"),
+    ("safety_apply_approved_completed", "Apply Approved completed"),
+    ("safety_zero_failures_confirmed", "Zero failures confirmed"),
+    ("safety_shopify_admin_verified", "Product verified in Shopify admin"),
+]
+
+SAFETY_CHECK_LABELS = {item_key: label for item_key, label in SAFETY_CHECKS}
+SAFETY_REQUIRED_KEYS = {item_key for item_key, _ in SAFETY_CHECKS}
+
 ROLLOUT_ITEM_KEYS = {
   item_key
   for phase in ROLLOUT_PHASES
   for item_key, _ in phase["items"]
 }
+
+ALL_CHECK_KEYS = ROLLOUT_ITEM_KEYS | SAFETY_REQUIRED_KEYS
 
 
 TEMPLATE = """
@@ -290,6 +332,20 @@ TEMPLATE = """
     </div>
     {% endif %}
 
+    {% if stage_feedback %}
+    <div class="banner {{ stage_feedback.banner_class }}">
+      <h3>{{ stage_feedback.title }}</h3>
+      <p>{{ stage_feedback.message }}</p>
+      {% if stage_feedback.missing_items %}
+      <ul class="list" style="margin-top: 8px;">
+        {% for item in stage_feedback.missing_items %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
+
     {% set staged_count = approvals.approved|length %}
     {% set rejected_count = approvals.rejected|length %}
     {% set reviewed_recommendations_ok = approvals.reviewed_recommendations or staged_count > 0 or rejected_count > 0 %}
@@ -348,6 +404,20 @@ TEMPLATE = """
           <li class="check-miss">Confirm Shopify admin changed correctly</li>
           <li class="check-miss">Run tests locally</li>
         </ul>
+        <h3 style="margin:14px 0 8px;">One-Product Safety Gate</h3>
+        <ul class="list">
+          {% for item in safety_gate.checklist %}
+          <li class="{% if item.checked %}check-ok{% else %}check-miss{% endif %}">
+            {{ item.label }}
+            <form class="preserve-scroll" method="post" action="{{ url_for('rollout_check') }}">
+              <input type="hidden" name="item_key" value="{{ item.key }}" />
+              <input type="hidden" name="checked" value="{% if item.checked %}0{% else %}1{% endif %}" />
+              <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+              <button class="btn {% if item.checked %}danger{% else %}good{% endif %}" type="submit">{% if item.checked %}Undo{% else %}Mark done{% endif %}</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
 
       <div class="panel apply-card">
@@ -390,6 +460,7 @@ TEMPLATE = """
         <h3 style="margin:0 0 8px;">Next Unchecked Item</h3>
         {% if rollout_progress.next_item %}
         <p style="margin:0;"><strong>{{ rollout_progress.next_item.phase_title }}</strong>: {{ rollout_progress.next_item.label }}</p>
+        <p class="muted" style="margin:6px 0 0;">Recommended next action: {{ rollout_progress.next_item.recommended_action }}</p>
         {% else %}
         <p class="muted" style="margin:0;">All rollout checklist items are complete.</p>
         {% endif %}
@@ -1236,6 +1307,21 @@ def _build_apply_feedback(args):
     return None
 
 
+def _build_stage_feedback(args):
+    status = (args.get("stage_status") or "").strip().lower()
+    if status != "locked":
+        return None
+
+    missing_raw = (args.get("missing") or "").strip()
+    missing_items = [item for item in missing_raw.split("|") if item]
+    return {
+        "banner_class": "warn",
+        "title": "Stage Top 3 is locked until the one-product safety test is complete.",
+        "message": "Complete the missing prerequisites before using Stage Top 3.",
+        "missing_items": missing_items,
+    }
+
+
 def _extract_sections(text, prefix, limit=4):
     sections = []
     current = None
@@ -1502,6 +1588,7 @@ def _build_rollout_progress(approvals):
                     "phase_title": phase["title"],
                     "key": item_key,
                     "label": label,
+                "recommended_action": ROLLOUT_NEXT_ACTIONS.get(item_key, "Complete this checklist item."),
                 }
             phase_items.append({"key": item_key, "label": label, "checked": is_checked})
 
@@ -1528,6 +1615,24 @@ def _build_rollout_progress(approvals):
         "right": right,
         "phase_stats": phase_stats,
         "next_item": next_item,
+    }
+
+
+def _build_safety_gate(approvals):
+    checks = dict((approvals or {}).get("rollout_checks") or {})
+    items = []
+    missing_labels = []
+
+    for item_key, label in SAFETY_CHECKS:
+      checked = bool(checks.get(item_key, False))
+      items.append({"key": item_key, "label": label, "checked": checked})
+      if not checked:
+        missing_labels.append(label)
+
+    return {
+      "checklist": items,
+      "missing_labels": missing_labels,
+      "complete": len(missing_labels) == 0,
     }
 
 
@@ -1565,10 +1670,10 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
         "approved": [product_id for product_id in approvals.get("approved", []) if product_id in queue_ids],
         "rejected": [product_id for product_id in approvals.get("rejected", []) if product_id in queue_ids],
         "reviewed_recommendations": bool(approvals.get("reviewed_recommendations", False)),
-      "rollout_checks": {
-        item_key: bool((approvals.get("rollout_checks") or {}).get(item_key, False))
-        for item_key in ROLLOUT_ITEM_KEYS
-      },
+        "rollout_checks": {
+            item_key: bool((approvals.get("rollout_checks") or {}).get(item_key, False))
+            for item_key in ALL_CHECK_KEYS
+        },
     }
     if normalized_approvals != approvals:
         _save_approvals(normalized_approvals)
@@ -1606,6 +1711,7 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
         "latest_log_tail": _tail_lines(latest_log_path) if latest_log_path else "No log content available.",
         "approvals": approvals,
         "rollout_progress": _build_rollout_progress(approvals),
+        "safety_gate": _build_safety_gate(approvals),
         "agent_history": agent_history,
         "pending_agent_review": pending_agent_review,
         "orchestrator_runs": list(reversed(orchestrator_state.get("runs", [])))[:10],
@@ -1642,7 +1748,16 @@ def create_app():
                 "next_item": None,
             },
         )
+        context.setdefault(
+            "safety_gate",
+            {
+            "checklist": [],
+                "missing_labels": [],
+                "complete": False,
+            },
+        )
         context["apply_feedback"] = _build_apply_feedback(request.args)
+        context["stage_feedback"] = _build_stage_feedback(request.args)
         return render_template_string(TEMPLATE, **context)
 
     @app.post("/approve/<path:product_id>")
@@ -1652,6 +1767,9 @@ def create_app():
             state["approved"].append(product_id)
         state["rejected"] = [pid for pid in state["rejected"] if pid != product_id]
         state["reviewed_recommendations"] = True
+        rollout_checks = dict(state.get("rollout_checks") or {})
+        rollout_checks["safety_one_low_risk_staged"] = True
+        state["rollout_checks"] = rollout_checks
         _save_approvals(state)
 
         scroll_y = request.form.get("scroll_y", "0")
@@ -1672,6 +1790,15 @@ def create_app():
     def approve_bulk():
         queue, _, _ = _build_attention_queue()
         count_raw = (request.form.get("count") or "5").strip().lower()
+        state = _load_approvals()
+
+        if count_raw == "3":
+            safety_gate = _build_safety_gate(state)
+            if not safety_gate["complete"]:
+                scroll_y = request.form.get("scroll_y", "0")
+                missing = "|".join(safety_gate["missing_labels"])
+                return redirect(url_for("index", scroll_y=scroll_y, stage_status="locked", missing=missing))
+
         if count_raw == "all":
             selected = queue
         else:
@@ -1695,13 +1822,17 @@ def create_app():
         selected = [rec for rec in queue if rec.get("product_id") in approved_ids]
         if selected:
             result = apply_recommendations(selected)
+            rollout_checks = dict(state.get("rollout_checks") or {})
+            rollout_checks["safety_apply_approved_completed"] = True
+            if int(result.get("failures") or 0) == 0:
+                rollout_checks["safety_zero_failures_confirmed"] = True
             # Clear staged approvals after attempting write so the UI reflects the completed apply cycle.
             _save_approvals(
                 {
                     "approved": [],
                     "rejected": state.get("rejected", []),
                     "reviewed_recommendations": True,
-                "rollout_checks": state.get("rollout_checks", {}),
+                    "rollout_checks": rollout_checks,
                 }
             )
             scroll_y = request.form.get("scroll_y", "0")
@@ -1722,7 +1853,7 @@ def create_app():
                     "approved": [],
                     "rejected": state.get("rejected", []),
                     "reviewed_recommendations": bool(state.get("reviewed_recommendations", False)),
-                "rollout_checks": state.get("rollout_checks", {}),
+                  "rollout_checks": state.get("rollout_checks", {}),
                 }
             )
             scroll_y = request.form.get("scroll_y", "0")
@@ -1733,7 +1864,7 @@ def create_app():
     @app.post("/rollout/check")
     def rollout_check():
         item_key = (request.form.get("item_key") or "").strip()
-        if item_key not in ROLLOUT_ITEM_KEYS:
+        if item_key not in ALL_CHECK_KEYS:
             abort(400)
 
         checked_raw = (request.form.get("checked") or "").strip().lower()

@@ -233,6 +233,180 @@ def test_web_dashboard_rollout_check_rejects_unknown_key(monkeypatch):
     assert response.status_code == 400
 
 
+def test_rollout_progress_counts_and_next_action():
+    import shopify.web_dashboard as wd
+
+    approvals = {
+        "rollout_checks": {
+            "phase2_stage_top3": True,
+            "phase2_review_each": True,
+            "phase3_title_clean": True,
+        }
+    }
+
+    progress = wd._build_rollout_progress(approvals)
+
+    assert progress["total"] == 24
+    assert progress["completed"] == 3
+
+    phase2 = next(item for item in progress["phase_stats"] if item["title"] == "Phase 2: Stage Top 3")
+    phase3 = next(item for item in progress["phase_stats"] if item["title"] == "Phase 3: Product Page QA (Each Top 3)")
+    assert phase2["completed"] == 2 and phase2["total"] == 5
+    assert phase3["completed"] == 1 and phase3["total"] == 9
+
+    assert progress["next_item"]["key"] == "phase2_apply_approved"
+    assert "Apply Approved" in progress["next_item"]["recommended_action"]
+
+
+def test_rollout_next_unchecked_updates_after_toggle(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    state = {
+        "approved": [],
+        "rejected": [],
+        "reviewed_recommendations": False,
+        "rollout_checks": {},
+    }
+
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda new_state: state.update(new_state))
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    before = wd._build_rollout_progress(state)["next_item"]["key"]
+    assert before == "phase2_stage_top3"
+
+    response = client.post("/rollout/check", data={"item_key": "phase2_stage_top3", "checked": "1"})
+    assert response.status_code == 302
+
+    after = wd._build_rollout_progress(state)["next_item"]["key"]
+    assert after == "phase2_review_each"
+
+
+def test_stage_top3_blocked_when_safety_prerequisites_missing(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    queue = [
+        {"product_id": "gid://shopify/Product/1", "current_title": "A"},
+        {"product_id": "gid://shopify/Product/2", "current_title": "B"},
+        {"product_id": "gid://shopify/Product/3", "current_title": "C"},
+    ]
+    state = {"approved": [], "rejected": [], "rollout_checks": {}}
+    staged_ids = []
+
+    monkeypatch.setattr(wd, "_build_attention_queue", lambda: (queue, [], queue))
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "stage_approved_product_ids", lambda product_ids: staged_ids.extend(product_ids) or state)
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/approve-bulk", data={"count": "3"})
+    assert response.status_code == 302
+    assert "stage_status=locked" in response.location
+    assert "Tests+passed" in response.location
+    assert staged_ids == []
+
+
+def test_stage_top3_lock_message_displays_missing_items(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    monkeypatch.setattr(wd, "build_dashboard_context", lambda refresh_content=False, live_refresh=False: {
+        "dashboard": {
+            "generated_at": "2026-06-28T00:00:00Z",
+            "health": {"store_health_score": 80},
+            "shopify": {"product_count": 1, "average_seo_score": 80, "products_missing_meta": 0, "images_missing_alt": 0},
+            "search_console": {"ctr": 0.1, "clicks": 10, "impressions": 100, "average_position": 12, "source": "csv"},
+            "google_analytics": {"sessions": 10, "users": 5, "conversions": 1, "source": "csv"},
+            "shopify_native": {"orders_last_50": 1, "estimated_revenue_last_50": 0, "currency": "USD", "source": "native"},
+        },
+        "shopify_connection": {
+            "connected_label": "Connected",
+            "connected_class": "success",
+            "message": "Read-only Shopify connection verified successfully.",
+            "store_name": "ForgeIQ Supply",
+            "product_count": 1,
+            "write_permissions_label": "Available",
+            "write_permissions_class": "success",
+            "write_permissions_message": "Product write scope detected.",
+            "order_scope_label": "Available",
+            "order_scope_class": "success",
+            "order_scope_message": "Order analytics query succeeded.",
+        },
+        "live_refresh": live_refresh,
+        "attention_queue": [],
+        "trends": {"trend_note": "ok", "priority_change": 0},
+        "opportunities": [],
+        "inventory_recommendations": [],
+        "campaigns": [],
+        "forecast": {"baseline_health_score": 80, "projected_health_score_30d": 82, "assumption": "x"},
+        "planned_actions": [],
+        "competitive_intelligence": {"summary": {"price_gap_count": 0, "trend_count": 0, "keyword_gap_count": 0, "margin_count": 0}, "price_signals": [], "trend_signals": [], "keyword_gaps": [], "product_additions": [], "forecast": {"projected_revenue_lift": 0, "confidence": "low"}},
+        "blog_drafts": [],
+        "pinterest_queue": [],
+        "scheduled_tasks": [],
+        "report_files": [],
+        "report_file_names": set(),
+        "log_files": [],
+        "latest_log_tail": "",
+        "approvals": {"approved": [], "rejected": [], "rollout_checks": {}},
+        "rollout_progress": {"completed": 0, "total": 24, "left": [], "right": [], "phase_stats": [], "next_item": None},
+        "safety_gate": {"checklist": [], "missing_labels": [], "complete": False},
+        "agent_history": [],
+        "pending_agent_review": None,
+        "orchestrator_runs": [],
+        "charts": [],
+    })
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.get("/?stage_status=locked&missing=Tests+passed|Local+dashboard+verified")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Stage Top 3 is locked until the one-product safety test is complete." in html
+    assert "Tests passed" in html
+    assert "Local dashboard verified" in html
+
+
+def test_stage_top3_allowed_after_safety_prerequisites_complete(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    queue = [
+        {"product_id": "gid://shopify/Product/1", "current_title": "A"},
+        {"product_id": "gid://shopify/Product/2", "current_title": "B"},
+        {"product_id": "gid://shopify/Product/3", "current_title": "C"},
+    ]
+    state = {
+        "approved": [],
+        "rejected": [],
+        "rollout_checks": {item_key: True for item_key in wd.SAFETY_REQUIRED_KEYS},
+    }
+    staged_ids = []
+
+    monkeypatch.setattr(wd, "_build_attention_queue", lambda: (queue, [], queue))
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+
+    def fake_stage(product_ids):
+        staged_ids.extend(product_ids)
+        return state
+
+    monkeypatch.setattr(wd, "stage_approved_product_ids", fake_stage)
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/approve-bulk", data={"count": "3"})
+    assert response.status_code == 302
+    assert "stage_status=locked" not in response.location
+    assert staged_ids == [
+        "gid://shopify/Product/1",
+        "gid://shopify/Product/2",
+        "gid://shopify/Product/3",
+    ]
+
+
 def test_web_dashboard_apply_approved_feedback_banner(monkeypatch):
     import shopify.web_dashboard as wd
 
