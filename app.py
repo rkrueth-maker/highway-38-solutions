@@ -4,7 +4,6 @@ import sys
 from logger import get_logger
 from modules import get_module, get_module_menu
 from settings import settings
-from shopify.web_dashboard import run as dashboard_run
 
 logger = get_logger()
 
@@ -77,6 +76,16 @@ def main():
     if args.option:
         run_choice(args.option)
         return
+
+    try:
+        from shopify.web_dashboard import run as dashboard_run
+    except ModuleNotFoundError as exc:
+        missing = getattr(exc, "name", "")
+        if missing == "flask":
+            print("Missing dependency: Flask is required to run the dashboard.")
+            print("Install dependencies with: python -m pip install -r requirements.txt")
+            sys.exit(1)
+        raise
 
     dashboard_run(host="0.0.0.0")
 

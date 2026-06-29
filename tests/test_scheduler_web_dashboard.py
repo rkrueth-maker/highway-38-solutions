@@ -71,6 +71,7 @@ def test_web_dashboard_approve_reject_flow(monkeypatch):
     response = client.post("/approve/gid://shopify/Product/1")
     assert response.status_code == 302
     assert "gid://shopify/Product/1" in state["approved"]
+    assert state.get("reviewed_recommendations") is True
     assert applied == []
 
     response = client.post("/reject/gid://shopify/Product/1")
@@ -144,11 +145,17 @@ def test_web_dashboard_apply_approved_applies_only_approved(monkeypatch):
         {"product_id": "gid://shopify/Product/2", "current_title": "B"},
         {"product_id": "gid://shopify/Product/3", "current_title": "C"},
     ]
-    state = {"approved": ["gid://shopify/Product/1", "gid://shopify/Product/3"], "rejected": []}
+    state = {
+        "approved": ["gid://shopify/Product/1", "gid://shopify/Product/3"],
+        "rejected": [],
+        "rollout_checks": {"phase2_stage_top3": True},
+    }
     applied = []
+    saved_states = []
 
     monkeypatch.setattr(wd, "_build_attention_queue", lambda: (queue, [], queue))
     monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda new_state: saved_states.append(new_state))
     monkeypatch.setattr(wd, "apply_recommendations", lambda selected: applied.extend(selected) or {"updated_products": len(selected), "updated_alt_images": 0, "failures": 0})
 
     app = wd.create_app()
@@ -158,6 +165,72 @@ def test_web_dashboard_apply_approved_applies_only_approved(monkeypatch):
     assert response.status_code == 302
     assert "apply_status=success" in response.location
     assert [item["product_id"] for item in applied] == ["gid://shopify/Product/1", "gid://shopify/Product/3"]
+    assert saved_states[-1]["approved"] == []
+    assert saved_states[-1]["rollout_checks"]["phase2_stage_top3"] is True
+
+
+def test_web_dashboard_apply_approved_clears_stale_approvals(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    queue = [{"product_id": "gid://shopify/Product/1", "current_title": "A"}]
+    state = {
+        "approved": ["gid://shopify/Product/9", "gid://shopify/Product/10"],
+        "rejected": [],
+        "rollout_checks": {"phase2_stage_top3": True},
+    }
+    saved_states = []
+    applied = []
+
+    monkeypatch.setattr(wd, "_build_attention_queue", lambda: (queue, [], queue))
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda new_state: saved_states.append(new_state))
+    monkeypatch.setattr(wd, "apply_recommendations", lambda selected: applied.extend(selected) or {"updated_products": len(selected), "updated_alt_images": 0, "failures": 0})
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/apply-approved")
+    assert response.status_code == 302
+    assert "apply_status=stale" in response.location
+    assert "stale_count=2" in response.location
+    assert saved_states[-1]["approved"] == []
+    assert saved_states[-1]["rollout_checks"]["phase2_stage_top3"] is True
+    assert applied == []
+
+
+def test_web_dashboard_rollout_check_toggle(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    state = {"approved": [], "rejected": [], "reviewed_recommendations": False, "rollout_checks": {}}
+
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda new_state: state.update(new_state))
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/rollout/check", data={"item_key": "phase2_stage_top3", "checked": "1"})
+    assert response.status_code == 302
+    assert state["rollout_checks"]["phase2_stage_top3"] is True
+
+    response = client.post("/rollout/check", data={"item_key": "phase2_stage_top3", "checked": "0"})
+    assert response.status_code == 302
+    assert state["rollout_checks"]["phase2_stage_top3"] is False
+
+
+def test_web_dashboard_rollout_check_rejects_unknown_key(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    state = {"approved": [], "rejected": [], "reviewed_recommendations": False, "rollout_checks": {}}
+
+    monkeypatch.setattr(wd, "_load_approvals", lambda: state)
+    monkeypatch.setattr(wd, "_save_approvals", lambda new_state: state.update(new_state))
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.post("/rollout/check", data={"item_key": "not-real", "checked": "1"})
+    assert response.status_code == 400
 
 
 def test_web_dashboard_apply_approved_feedback_banner(monkeypatch):
@@ -219,6 +292,65 @@ def test_web_dashboard_apply_approved_feedback_banner(monkeypatch):
     assert "Processed 1 staged product(s). Updated products: 1." in html
 
 
+def test_web_dashboard_apply_stale_feedback_banner(monkeypatch):
+    import shopify.web_dashboard as wd
+
+    monkeypatch.setattr(wd, "build_dashboard_context", lambda refresh_content=False, live_refresh=False: {
+        "dashboard": {
+            "generated_at": "2026-06-28T00:00:00Z",
+            "health": {"store_health_score": 80},
+            "shopify": {"product_count": 1, "average_seo_score": 80, "products_missing_meta": 0, "images_missing_alt": 0},
+            "search_console": {"ctr": 0.1, "clicks": 10, "impressions": 100, "average_position": 12, "source": "csv"},
+            "google_analytics": {"sessions": 10, "users": 5, "conversions": 1, "source": "csv"},
+            "shopify_native": {"orders_last_50": 1, "estimated_revenue_last_50": 0, "currency": "USD", "source": "native"},
+        },
+        "shopify_connection": {
+            "connected_label": "Connected",
+            "connected_class": "success",
+            "message": "Read-only Shopify connection verified successfully.",
+            "store_name": "ForgeIQ Supply",
+            "product_count": 1,
+            "write_permissions_label": "Available",
+            "write_permissions_class": "success",
+            "write_permissions_message": "Product write scope detected.",
+            "order_scope_label": "Available",
+            "order_scope_class": "success",
+            "order_scope_message": "Order analytics query succeeded.",
+        },
+        "live_refresh": live_refresh,
+        "attention_queue": [],
+        "trends": {"trend_note": "ok", "priority_change": 0},
+        "opportunities": [],
+        "inventory_recommendations": [],
+        "campaigns": [],
+        "forecast": {"baseline_health_score": 80, "projected_health_score_30d": 82, "assumption": "x"},
+        "planned_actions": [],
+        "competitive_intelligence": {"summary": {"price_gap_count": 0, "trend_count": 0, "keyword_gap_count": 0, "margin_count": 0}, "price_signals": [], "trend_signals": [], "keyword_gaps": [], "product_additions": [], "forecast": {"projected_revenue_lift": 0, "confidence": "low"}},
+        "blog_drafts": [],
+        "pinterest_queue": [],
+        "scheduled_tasks": [],
+        "report_files": [],
+        "report_file_names": set(),
+        "log_files": [],
+        "latest_log_tail": "",
+        "approvals": {"approved": [], "rejected": []},
+        "agent_history": [],
+        "pending_agent_review": None,
+        "orchestrator_runs": [],
+        "charts": [],
+    })
+
+    app = wd.create_app()
+    client = app.test_client()
+
+    response = client.get("/?apply_status=stale&stale_count=2")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Cleared stale staged approvals" in html
+    assert "Removed 2 staged product(s) that are no longer in the attention queue." in html
+
+
 def test_web_dashboard_launch_sections_and_apply_visibility(monkeypatch):
     import shopify.web_dashboard as wd
 
@@ -260,7 +392,7 @@ def test_web_dashboard_launch_sections_and_apply_visibility(monkeypatch):
         "report_file_names": set(),
         "log_files": [],
         "latest_log_tail": "",
-        "approvals": {"approved": ["gid://shopify/Product/1", "gid://shopify/Product/2"], "rejected": ["gid://shopify/Product/3"]},
+        "approvals": {"approved": ["gid://shopify/Product/1", "gid://shopify/Product/2"], "rejected": ["gid://shopify/Product/3"], "reviewed_recommendations": True},
         "agent_history": [],
         "pending_agent_review": {"summary": "review", "prompt": "optimize", "details": []},
         "orchestrator_runs": [],
@@ -276,6 +408,10 @@ def test_web_dashboard_launch_sections_and_apply_visibility(monkeypatch):
     assert "Launch Control" in html
     assert "First-Run Checklist" in html
     assert "Apply Staged Changes" in html
+    assert "Rollout Summary" in html
+    assert "Next Unchecked Item" in html
+    assert "Review at least one recommendation" in html
+    assert "completed at least once" in html
     assert "Staged products: 2" in html
     assert html.count("Apply Approved to Shopify") == 1
 

@@ -2,12 +2,13 @@ import json
 import html
 import os
 import re
+import socket
 import threading
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, abort, redirect, render_template_string, request, send_from_directory, url_for
+from flask import Flask, abort, jsonify, redirect, render_template_string, request, send_from_directory, url_for
 
 from logger import LOG_DIR
 from settings import settings
@@ -39,6 +40,59 @@ LOGS_DIR = str((PROJECT_ROOT / LOG_DIR).resolve()) if not os.path.isabs(LOG_DIR)
 AGENT_HISTORY_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_history.json")
 AGENT_REPORT_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_response.md")
 AGENT_REVIEW_FILE = os.path.join(REPORTS_DIR, "forgeiq_agent_review.json")
+
+ROLLOUT_PHASES = [
+  {
+    "title": "Phase 2: Stage Top 3",
+    "items": [
+      ("phase2_stage_top3", "Stage Top 3 products"),
+      ("phase2_review_each", "Review each product before approving"),
+      ("phase2_apply_approved", "Apply approved products to Shopify"),
+      ("phase2_zero_failures", "Confirm zero failures in apply feedback"),
+      ("phase2_verify_shopify", "Manually verify all 3 products in Shopify admin"),
+    ],
+  },
+  {
+    "title": "Phase 3: Product Page QA (Each Top 3)",
+    "items": [
+      ("phase3_title_clean", "Title clean"),
+      ("phase3_description_clean", "Description clean"),
+      ("phase3_price_correct", "Price correct"),
+      ("phase3_images_loaded", "Images loaded"),
+      ("phase3_category_collection", "Category or collection correct"),
+      ("phase3_shipping_visible", "Shipping visible"),
+      ("phase3_mobile_clean", "Mobile view clean"),
+      ("phase3_no_supplier_noise", "No weird supplier names"),
+      ("phase3_compare_at_clean", "No bad compare-at price"),
+    ],
+  },
+  {
+    "title": "Phase 4: Traffic Rollout",
+    "items": [
+      ("phase4_facebook_posts", "Schedule Facebook posts"),
+      ("phase4_pinterest_posts", "Schedule Pinterest posts"),
+      ("phase4_instagram_later", "Queue Instagram for later"),
+      ("phase4_uneven_distribution", "Do not push all products equally"),
+      ("phase4_primary_72h", "Pick one main product per 72-hour test window"),
+    ],
+  },
+  {
+    "title": "Phase 5: Decision Rule",
+    "items": [
+      ("phase5_visits_no_carts", "Visits but no carts: improve product page, price, or offer"),
+      ("phase5_carts_no_checkout", "Carts but no checkout: improve trust, shipping clarity, and checkout confidence"),
+      ("phase5_checkout_no_sale", "Checkout but no sale: inspect shipping cost, payment path, and abandoned checkout"),
+      ("phase5_sale_scale", "Sale: scale that product"),
+      ("phase5_no_visits", "No visits: revise traffic angle and posting approach"),
+    ],
+  },
+]
+
+ROLLOUT_ITEM_KEYS = {
+  item_key
+  for phase in ROLLOUT_PHASES
+  for item_key, _ in phase["items"]
+}
 
 
 TEMPLATE = """
@@ -238,11 +292,14 @@ TEMPLATE = """
 
     {% set staged_count = approvals.approved|length %}
     {% set rejected_count = approvals.rejected|length %}
+    {% set reviewed_recommendations_ok = approvals.reviewed_recommendations or staged_count > 0 or rejected_count > 0 %}
     {% set connected_ok = shopify_connection.connected_label == 'Connected' %}
     {% set product_count_ok = dashboard.shopify.product_count > 0 %}
     {% set write_ok = shopify_connection.write_permissions_label == 'Available' %}
     {% set pending_review_ok = pending_agent_review is not none %}
     {% set ready_to_apply = staged_count > 0 and connected_ok and write_ok %}
+    {% set rollout_completed = rollout_progress.completed if rollout_progress is defined else 0 %}
+    {% set rollout_total = rollout_progress.total if rollout_progress is defined else 0 %}
 
     <div class="panel">
       <h2>Launch Control</h2>
@@ -253,6 +310,7 @@ TEMPLATE = """
         <span class="badge">{% if ready_to_apply %}Ready to apply{% else %}Needs attention{% endif %}</span>
         <span class="badge">{% if pending_review_ok %}Needs attention{% else %}Safe to stage{% endif %}</span>
         <span class="badge">{% if live_refresh %}Live refresh on{% else %}Live refresh off{% endif %}</span>
+        <span class="badge">Rollout {{ rollout_completed }}/{{ rollout_total }}</span>
       </div>
       <div class="stats-grid">
         <div class="stat"><div class="k">Shopify Connection</div><div class="v">{{ shopify_connection.connected_label }}</div></div>
@@ -279,7 +337,12 @@ TEMPLATE = """
           <li class="{% if connected_ok %}check-ok{% else %}check-miss{% endif %}">Shopify connection verified</li>
           <li class="{% if product_count_ok %}check-ok{% else %}check-miss{% endif %}">Product count loaded</li>
           <li class="{% if write_ok %}check-ok{% else %}check-miss{% endif %}">Write permission detected</li>
-          <li class="{% if pending_review_ok %}check-ok{% else %}check-miss{% endif %}">Review at least one recommendation</li>
+          <li class="{% if reviewed_recommendations_ok %}check-ok{% else %}check-miss{% endif %}">
+            Review at least one recommendation
+            {% if approvals.reviewed_recommendations %}
+            <span class="muted">(completed at least once)</span>
+            {% endif %}
+          </li>
           <li class="{% if staged_count > 0 %}check-ok{% else %}check-miss{% endif %}">Stage one product</li>
           <li class="{% if ready_to_apply %}check-ok{% else %}check-miss{% endif %}">Apply Approved only after review</li>
           <li class="check-miss">Confirm Shopify admin changed correctly</li>
@@ -303,6 +366,75 @@ TEMPLATE = """
         {% else %}
         <p class="muted">Only staged products are applied.</p>
         {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Controlled Rollout (Phases 2-5)</h2>
+      <p class="muted">Run this only after one-product safety checks pass and the Shopify admin change is verified.</p>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="k">Rollout Summary</div>
+          <div class="v">{{ rollout_progress.completed }}/{{ rollout_progress.total }}</div>
+          <div class="muted">Completed checklist items</div>
+        </div>
+        {% for phase in rollout_progress.phase_stats %}
+        <div class="stat">
+          <div class="k">{{ phase.title }}</div>
+          <div class="v">{{ phase.percent }}%</div>
+          <div class="muted">{{ phase.completed }}/{{ phase.total }} complete</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="panel" style="margin-top:10px;">
+        <h3 style="margin:0 0 8px;">Next Unchecked Item</h3>
+        {% if rollout_progress.next_item %}
+        <p style="margin:0;"><strong>{{ rollout_progress.next_item.phase_title }}</strong>: {{ rollout_progress.next_item.label }}</p>
+        {% else %}
+        <p class="muted" style="margin:0;">All rollout checklist items are complete.</p>
+        {% endif %}
+      </div>
+      <div class="two-col">
+        <div>
+          {% for phase in rollout_progress.left %}
+          <h3 style="margin:{% if loop.first %}0{% else %}16px{% endif %} 0 8px;">{{ phase.title }}</h3>
+          <ul class="list">
+            {% for item in phase.checklist %}
+            <li class="{% if item.checked %}check-ok{% else %}check-miss{% endif %}">
+              {{ item.label }}
+              <form class="preserve-scroll" method="post" action="{{ url_for('rollout_check') }}">
+                <input type="hidden" name="item_key" value="{{ item.key }}" />
+                <input type="hidden" name="checked" value="{% if item.checked %}0{% else %}1{% endif %}" />
+                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+                <button class="btn {% if item.checked %}danger{% else %}good{% endif %}" type="submit">{% if item.checked %}Undo{% else %}Mark done{% endif %}</button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endfor %}
+        </div>
+
+        <div>
+          {% for phase in rollout_progress.right %}
+          <h3 style="margin:{% if loop.first %}0{% else %}16px{% endif %} 0 8px;">{{ phase.title }}</h3>
+          <ul class="list">
+            {% for item in phase.checklist %}
+            <li class="{% if item.checked %}check-ok{% else %}check-miss{% endif %}">
+              {{ item.label }}
+              <form class="preserve-scroll" method="post" action="{{ url_for('rollout_check') }}">
+                <input type="hidden" name="item_key" value="{{ item.key }}" />
+                <input type="hidden" name="checked" value="{% if item.checked %}0{% else %}1{% endif %}" />
+                <input type="hidden" name="scroll_y" class="scroll-y" value="0" />
+                <button class="btn {% if item.checked %}danger{% else %}good{% endif %}" type="submit">{% if item.checked %}Undo{% else %}Mark done{% endif %}</button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endfor %}
+
+          <h3 style="margin:16px 0 8px;">Immediate Next Command</h3>
+          <pre>Stage Top 3</pre>
+        </div>
       </div>
     </div>
 
@@ -1093,6 +1225,14 @@ def _build_apply_feedback(args):
             "message": "Stage one or more products first, then use Apply Approved to write changes to Shopify.",
         }
 
+    if status == "stale":
+      stale_count = int(args.get("stale_count") or 0)
+      return {
+        "banner_class": "warn",
+        "title": "Cleared stale staged approvals",
+        "message": f"Removed {stale_count} staged product(s) that are no longer in the attention queue.",
+      }
+
     return None
 
 
@@ -1337,6 +1477,60 @@ def _normalize_dashboard_data(dashboard):
     return dashboard
 
 
+def _build_rollout_progress(approvals):
+    checks = dict((approvals or {}).get("rollout_checks") or {})
+    completed = 0
+    total = 0
+    left = []
+    right = []
+    phase_stats = []
+    next_item = None
+
+    for index, phase in enumerate(ROLLOUT_PHASES):
+        phase_items = []
+        phase_completed = 0
+        phase_total = 0
+        for item_key, label in phase["items"]:
+            is_checked = bool(checks.get(item_key, False))
+            total += 1
+            phase_total += 1
+            if is_checked:
+                completed += 1
+                phase_completed += 1
+            if not is_checked and next_item is None:
+                next_item = {
+                    "phase_title": phase["title"],
+                    "key": item_key,
+                    "label": label,
+                }
+            phase_items.append({"key": item_key, "label": label, "checked": is_checked})
+
+        phase_payload = {"title": phase["title"], "checklist": phase_items}
+        if index < 2:
+            left.append(phase_payload)
+        else:
+            right.append(phase_payload)
+
+        phase_percent = int(round((phase_completed / phase_total) * 100)) if phase_total else 0
+        phase_stats.append(
+            {
+                "title": phase["title"],
+                "completed": phase_completed,
+                "total": phase_total,
+                "percent": phase_percent,
+            }
+        )
+
+    return {
+        "completed": completed,
+        "total": total,
+        "left": left,
+        "right": right,
+        "phase_stats": phase_stats,
+        "next_item": next_item,
+    }
+
+
 def build_dashboard_context(refresh_content=False, live_refresh=False):
     dashboard = _normalize_dashboard_data(_safe_dashboard_data())
     shopify_connection = _safe_shopify_connection_status(dashboard)
@@ -1366,6 +1560,19 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
     log_files = _list_files(LOGS_DIR, limit=5)
     latest_log_path = log_files[0]["path"] if log_files else None
     approvals = _load_approvals()
+    queue_ids = {item.get("product_id") for item in attention_queue if item.get("product_id")}
+    normalized_approvals = {
+        "approved": [product_id for product_id in approvals.get("approved", []) if product_id in queue_ids],
+        "rejected": [product_id for product_id in approvals.get("rejected", []) if product_id in queue_ids],
+        "reviewed_recommendations": bool(approvals.get("reviewed_recommendations", False)),
+      "rollout_checks": {
+        item_key: bool((approvals.get("rollout_checks") or {}).get(item_key, False))
+        for item_key in ROLLOUT_ITEM_KEYS
+      },
+    }
+    if normalized_approvals != approvals:
+        _save_approvals(normalized_approvals)
+        approvals = normalized_approvals
     agent_history = _load_agent_history()
     pending_agent_review = _load_agent_review()
 
@@ -1398,6 +1605,7 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
         "log_files": log_files,
         "latest_log_tail": _tail_lines(latest_log_path) if latest_log_path else "No log content available.",
         "approvals": approvals,
+        "rollout_progress": _build_rollout_progress(approvals),
         "agent_history": agent_history,
         "pending_agent_review": pending_agent_review,
         "orchestrator_runs": list(reversed(orchestrator_state.get("runs", [])))[:10],
@@ -1408,11 +1616,32 @@ def build_dashboard_context(refresh_content=False, live_refresh=False):
 def create_app():
     app = Flask(__name__)
 
+    @app.get("/health")
+    def health():
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "forgeiq-web-dashboard",
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
     @app.get("/")
     def index():
         refresh_content = request.args.get("refresh_content") in {"1", "true", "yes"}
         live_refresh = request.args.get("live") in {"1", "true", "yes"}
         context = build_dashboard_context(refresh_content=refresh_content, live_refresh=live_refresh)
+        context.setdefault(
+            "rollout_progress",
+            {
+                "completed": 0,
+                "total": 0,
+                "left": [],
+                "right": [],
+                "phase_stats": [],
+                "next_item": None,
+            },
+        )
         context["apply_feedback"] = _build_apply_feedback(request.args)
         return render_template_string(TEMPLATE, **context)
 
@@ -1422,6 +1651,7 @@ def create_app():
         if product_id not in state["approved"]:
             state["approved"].append(product_id)
         state["rejected"] = [pid for pid in state["rejected"] if pid != product_id]
+        state["reviewed_recommendations"] = True
         _save_approvals(state)
 
         scroll_y = request.form.get("scroll_y", "0")
@@ -1433,6 +1663,7 @@ def create_app():
         if product_id not in state["rejected"]:
             state["rejected"].append(product_id)
         state["approved"] = [pid for pid in state["approved"] if pid != product_id]
+        state["reviewed_recommendations"] = True
         _save_approvals(state)
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y))
@@ -1460,9 +1691,19 @@ def create_app():
     def apply_approved():
         queue, _, _ = _build_attention_queue()
         state = _load_approvals()
-        selected = [rec for rec in queue if rec.get("product_id") in set(state.get("approved", []))]
+        approved_ids = set(state.get("approved", []))
+        selected = [rec for rec in queue if rec.get("product_id") in approved_ids]
         if selected:
             result = apply_recommendations(selected)
+            # Clear staged approvals after attempting write so the UI reflects the completed apply cycle.
+            _save_approvals(
+                {
+                    "approved": [],
+                    "rejected": state.get("rejected", []),
+                    "reviewed_recommendations": True,
+                "rollout_checks": state.get("rollout_checks", {}),
+                }
+            )
             scroll_y = request.form.get("scroll_y", "0")
             return redirect(
                 url_for(
@@ -1475,8 +1716,37 @@ def create_app():
                     failures=result["failures"],
                 )
             )
+        if approved_ids:
+            _save_approvals(
+                {
+                    "approved": [],
+                    "rejected": state.get("rejected", []),
+                    "reviewed_recommendations": bool(state.get("reviewed_recommendations", False)),
+                "rollout_checks": state.get("rollout_checks", {}),
+                }
+            )
+            scroll_y = request.form.get("scroll_y", "0")
+            return redirect(url_for("index", scroll_y=scroll_y, apply_status="stale", stale_count=len(approved_ids)))
         scroll_y = request.form.get("scroll_y", "0")
         return redirect(url_for("index", scroll_y=scroll_y, apply_status="empty"))
+
+    @app.post("/rollout/check")
+    def rollout_check():
+        item_key = (request.form.get("item_key") or "").strip()
+        if item_key not in ROLLOUT_ITEM_KEYS:
+            abort(400)
+
+        checked_raw = (request.form.get("checked") or "").strip().lower()
+        is_checked = checked_raw in {"1", "true", "yes", "on"}
+
+        state = _load_approvals()
+        rollout_checks = dict(state.get("rollout_checks") or {})
+        rollout_checks[item_key] = is_checked
+        state["rollout_checks"] = rollout_checks
+        _save_approvals(state)
+
+        scroll_y = request.form.get("scroll_y", "0")
+        return redirect(url_for("index", scroll_y=scroll_y))
 
     @app.post("/refresh-content")
     def refresh_content():
@@ -1564,10 +1834,23 @@ def create_app():
 
 def run(host="127.0.0.1", port=5050, open_browser=True):
     app = create_app()
-    url = f"http://{host}:{port}"
+    browser_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
+    url = f"http://{browser_host}:{port}"
+    health_url = f"{url}/health"
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.2)
+        if sock.connect_ex((browser_host, port)) == 0:
+            raise RuntimeError(
+                f"Port {port} is already in use on {browser_host}. "
+                f"Stop the existing process or run on a different port."
+            )
+
     if open_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     print(f"Starting ForgeIQ web dashboard at {url}")
+    print(f"Health check endpoint: {health_url}")
+    print(f"Local check: curl -s {health_url}")
     app.run(host=host, port=port, debug=False, use_reloader=False)
 
 
