@@ -1,5 +1,5 @@
 # RangeRivet Works
-Practical tools, plans, and systems for garages, shops, and small businesses.
+Practical tools, plans, and systems for garages, shops, homes, and small businesses.
 
 **Live site:** https://rkrueth-maker.github.io/ForgeIQ/
 
