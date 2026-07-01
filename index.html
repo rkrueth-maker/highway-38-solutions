@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RangeRivet Works | Practical tools, plans, and systems</title>
+  <meta name="description" content="RangeRivet Works provides practical tools, plans, job tracking setup, AI workflow setup, and shop process improvement for garages, shops, contractors, and small businesses." />
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --panel: #fffaf0;
+      --ink: #211b16;
+      --muted: #63564a;
+      --dark: #1b1a17;
+      --dark-2: #2b2924;
+      --accent: #b35c1e;
+      --accent-2: #d48a3a;
+      --line: #d7c7b3;
+      --soft: #efe2cf;
+      --white: #ffffff;
+      --shadow: 0 18px 50px rgba(33, 27, 22, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+
+    a { color: inherit; }
+
+    .topbar {
+      background: var(--dark);
+      color: var(--white);
+      padding: 14px 22px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 4px 18px rgba(0,0,0,.18);
+    }
+
+    .nav {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .navlinks {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: .92rem;
+      color: #f3dcc4;
+    }
+
+    .navlinks a {
+      text-decoration: none;
+      opacity: .95;
+    }
+
+    .navlinks a:hover { color: var(--accent-2); }
+
+    .hero {
+      background:
+        linear-gradient(120deg, rgba(27,26,23,.94), rgba(47,39,31,.86)),
+        radial-gradient(circle at top left, rgba(211, 119, 41, .4), transparent 34%);
+      color: var(--white);
+      padding: 76px 22px 64px;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 34px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      color: var(--accent-2);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: .78rem;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: clamp(2.25rem, 6vw, 4.7rem);
+      line-height: .97;
+      margin: 0 0 18px;
+      max-width: 760px;
+    }
+
+    .hero p {
+      color: #f5e7d7;
+      font-size: 1.14rem;
+      max-width: 760px;
+      margin: 0 0 24px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 800;
+      border: 1px solid transparent;
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn.primary {
+      background: var(--accent-2);
+      color: #1b120b;
+    }
+
+    .btn.secondary {
+      background: transparent;
+      color: var(--white);
+      border-color: rgba(255,255,255,.36);
+    }
+
+    .hero-card {
+      background: rgba(255,250,240,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card h2 {
+      margin-top: 0;
+      font-size: 1.25rem;
+    }
+
+    .hero-card ul {
+      padding-left: 20px;
+      margin-bottom: 0;
+      color: #f5e7d7;
+    }
+
+    section { padding: 56px 22px; }
+
+    .section-head {
+      max-width: 760px;
+      margin-bottom: 28px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.05;
+      margin: 0 0 10px;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.04rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(33,27,22,.07);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+    }
+
+    .card p { color: var(--muted); margin: 0 0 12px; }
+
+    .price {
+      display: inline-block;
+      background: var(--soft);
+      color: var(--ink);
+      font-weight: 800;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 19px;
+      color: var(--muted);
+    }
+
+    .band {
+      background: var(--dark-2);
+      color: var(--white);
+    }
+
+    .band .section-head p,
+    .band .card p,
+    .band .card ul { color: #ecdcc8; }
+
+    .band .card {
+      background: rgba(255,250,240,.07);
+      border-color: rgba(255,255,255,.16);
+    }
+
+    .band .price {
+      background: rgba(212,138,58,.18);
+      color: #ffd4a6;
+    }
+
+    .steps {
+      counter-reset: step;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .step {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      position: relative;
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .step h3 { margin: 0 0 6px; }
+    .step p { margin: 0; color: var(--muted); }
+
+    .request {
+      background: linear-gradient(180deg, var(--soft), var(--bg));
+    }
+
+    .request-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .mock-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--muted);
+    }
+
+    .note {
+      background: #fff3df;
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: var(--muted);
+    }
+
+    footer {
+      background: var(--dark);
+      color: #e9d7c2;
+      padding: 26px 22px;
+      font-size: .95rem;
+    }
+
+    footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 860px) {
+      .hero-grid,
+      .grid,
+      .grid.two,
+      .steps,
+      .request-box {
+        grid-template-columns: 1fr;
+      }
+
+      .nav { align-items: flex-start; flex-direction: column; }
+      .hero { padding-top: 52px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav" aria-label="Main navigation">
+      <div class="brand">RangeRivet Works</div>
+      <div class="navlinks">
+        <a href="#products">Products</a>
+        <a href="#plans">Plans</a>
+        <a href="#tracking">Job Tracking</a>
+        <a href="#ai">AI Setup</a>
+        <a href="#request">Request Help</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Garage • Shop • Contractor • Small Business</div>
+          <h1>Practical tools, plans, and systems for garages, shops, and small businesses.</h1>
+          <p>RangeRivet Works helps homeowners, garages, small shops, contractors, and side businesses organize spaces, plan projects, find useful shop products, and set up simple systems for tracking jobs, photos, quotes, receipts, invoices, workflows, and repeat business tasks.</p>
+          <div class="actions">
+            <a class="btn primary" href="#request">Send Photos / Request Help</a>
+            <a class="btn secondary" href="#plans">Plan a Project</a>
+            <a class="btn secondary" href="#tracking">Organize Jobs</a>
+            <a class="btn secondary" href="#ai">Use AI to Save Time</a>
+          </div>
+        </div>
+        <aside class="hero-card">
+          <h2>What can you send?</h2>
+          <ul>
+            <li>Garage or shop photos</li>
+            <li>Rough sketches and measurements</li>
+            <li>Job notes, quotes, or receipts</li>
+            <li>Equipment quotes before you buy</li>
+            <li>Repeated paperwork or AI workflow problems</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section id="products">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Shop Products</h2>
+          <p>Garage, shop, storage, workbench, tool, and mechanic-focused products. The product store can support the planning services with useful items, templates, and checklists.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>Garage & Workshop Products</h3>
+            <p>Product direction for tool organization, storage, workbench, and small shop problem-solving items.</p>
+            <ul>
+              <li>Tool and storage products</li>
+              <li>Workbench accessories</li>
+              <li>Garage and mechanic-focused items</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Digital Templates</h3>
+            <p>Simple downloadable tools that support the service side.</p>
+            <ul>
+              <li>Job tracker template</li>
+              <li>Planning checklists</li>
+              <li>Quote and equipment review checklists</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="plans" class="band">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Plans & Layout Help</h2>
+          <p>Photo-based planning before you build, buy, reorganize, or spend money.</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h3>Garage / Shop Layout Review</h3>
+            <div class="price">$75–$150</div>
+            <p>For homeowners, garage owners, mechanics, hobby shops, and small shops.</p>
+            <ul>
+              <li>Photo or sketch review</li>
+              <li>Placement suggestions</li>
+              <li>Storage, workbench, safety, and access notes</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Project Plan + Material List</h3>
+            <div class="price">$150–$300</div>
+            <p>For shelves, workbenches, garage upgrades, shed/utility projects, and small builds.</p>
+            <ul>
+              <li>Build order</li>
+              <li>Material and tool list</li>
+              <li>Cost-saving notes and checklist</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Small Shop Workflow Cleanup</h3>
+            <div class="price">$250–$500</div>
+            <p>For shops that need a cleaner process before buying more equipment or software.</p>
+            <ul>
+              <li>Bottleneck list</li>
+              <li>Storage and handling ideas</li>
+              <li>Before-you-spend-money improvement plan</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tracking">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Job Tracking Setup</h2>
+          <p>For small businesses that need customers, jobs, photos, receipts, quotes, invoices, and job status in one simple system.</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h3>Job Tracker Template</h3>
+            <div class="price">$49–$99</div>
+            <p>A Google Sheet / Drive-based starter system.</p>
+            <ul>
+              <li>Customers and jobs</li>
+              <li>Photos and materials</li>
+              <li>Quotes, invoices, and status</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Job Tracker Setup</h3>
+            <div class="price">$150–$300</div>
+            <p>Customized tracker setup for a specific business.</p>
+            <ul>
+              <li>Business-specific categories</li>
+              <li>Simple status flow</li>
+              <li>Drive folder organization</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Job Tracking Cleanup</h3>
+            <div class="price">$300–$750</div>
+            <p>Clean up scattered job information and turn it into a usable system.</p>
+            <ul>
+              <li>Sort job notes and photos</li>
+              <li>Track receipts and invoices</li>
+              <li>Create cleaner customer/job records</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ai" class="band">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>AI Workflow Setup</h2>
+          <p>Simple AI help for repeat business tasks. AI drafts; the owner reviews before anything is sent or used.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>Simple AI Workflow Setup</h3>
+            <div class="price">$150–$500</div>
+            <p>Reusable prompts and workflows for paperwork, customer messages, and job summaries.</p>
+            <ul>
+              <li>Customer reply templates</li>
+              <li>Quote and invoice wording</li>
+              <li>Job summary prompts</li>
+              <li>Product description prompts</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Practical Owner-Review Rules</h3>
+            <p>AI should save time without making final decisions for the business.</p>
+            <ul>
+              <li>Draft first, review before sending</li>
+              <li>Keep legal, financial, and safety decisions human-reviewed</li>
+              <li>Use repeatable prompt templates instead of guessing every time</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="process">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Shop Process Improvement</h2>
+          <p>Premium add-on services for shops and businesses that need help reviewing equipment decisions, workflow, automation opportunities, machine/process tracking, or CNC/fabrication flow.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>Equipment Quote Review</h3>
+            <div class="price">$100–$500</div>
+            <p>Before buying machines, racks, storage, lifts, compressors, or automation, get practical questions and concerns listed.</p>
+          </div>
+          <div class="card">
+            <h3>Automation Opportunity Review</h3>
+            <div class="price">$250–$750+</div>
+            <p>Find simple process or automation opportunities before spending big money.</p>
+          </div>
+          <div class="card">
+            <h3>Machine / Process Monitoring Review</h3>
+            <div class="price">$200–$600</div>
+            <p>Decide what to track, where time is being lost, and what to improve first.</p>
+          </div>
+          <div class="card">
+            <h3>CNC & Fabrication Workflow Review</h3>
+            <div class="price">$300–$1,000+</div>
+            <p>Review material flow, setup/changeover, tooling organization, fixture/jig ideas, and error reduction.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <h2>How It Works</h2>
+          <p>Start simple. Send what you have. Get a practical next step.</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <h3>Send details</h3>
+            <p>Photos, measurements, sketches, quote files, or job-tracking problems.</p>
+          </div>
+          <div class="step">
+            <h3>Review</h3>
+            <p>RangeRivet Works reviews the situation and picks the best starting point.</p>
+          </div>
+          <div class="step">
+            <h3>Plan</h3>
+            <p>You get a layout plan, tracker setup, checklist, review, or workflow draft.</p>
+          </div>
+          <div class="step">
+            <h3>Improve</h3>
+            <p>Use the plan to organize the space, job, quote, workflow, or shop process.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="request" class="request">
+      <div class="wrap">
+        <div class="request-box">
+          <div>
+            <div class="section-head">
+              <h2>Request Help</h2>
+              <p>For now, use this page as the public draft. A working form or email link can be connected after the brand name and contact email are verified.</p>
+            </div>
+            <div class="note">
+              Best first step: send photos, measurements, sketches, job notes, quotes, receipts, or a short description of what is messy or confusing. RangeRivet Works can recommend the right starting package.
+            </div>
+          </div>
+          <div class="mock-form" aria-label="Request form preview">
+            <div class="field">Name</div>
+            <div class="field">Email</div>
+            <div class="field">What do you need help with?</div>
+            <div class="field">Photos / measurements / notes</div>
+            <div class="field">Budget or urgency</div>
+            <a class="btn primary" href="mailto:rangerevitworks@example.com?subject=RangeRivet%20Works%20Request">Email request placeholder</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>RangeRivet Works</strong> — Practical tools, plans, and systems.</div>
+      <div>Working brand draft. Name, email, domain, and LLC filing still need final verification.</div>
+    </div>
+  </footer>
+</body>
+</html>
