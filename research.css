@@ -1,43 +1,73 @@
 .research-section {
   background:
     radial-gradient(circle at top left, rgba(211, 111, 53, .12), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(85, 120, 95, .10), transparent 32%),
     #fffaf3;
+}
+
+.hero::before {
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent);
+  content: "";
+  height: 1px;
+  left: 8%;
+  opacity: .85;
+  position: absolute;
+  right: 8%;
+  top: 1.4rem;
 }
 
 .hero-positioning {
   align-items: center;
-  background: rgba(255, 255, 255, .9);
-  border: 1px solid rgba(255, 255, 255, .8);
-  border-radius: 20px;
-  box-shadow: 0 14px 40px rgba(34, 27, 20, .09);
-  display: flex;
-  gap: .7rem;
-  margin: 1.2rem auto 0;
-  max-width: 920px;
-  padding: .9rem 1.05rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .97), rgba(255, 248, 239, .93));
+  border: 1px solid rgba(255, 255, 255, .86);
+  border-left: 7px solid var(--accent);
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .18);
+  color: #171717;
+  display: grid;
+  gap: .35rem 1rem;
+  grid-template-columns: auto 1fr;
+  margin: 1.45rem auto 0;
+  max-width: 980px;
+  padding: 1.05rem 1.18rem;
+  position: relative;
+  text-align: left;
+}
+
+.hero-positioning::before {
+  align-items: center;
+  background: #241f1a;
+  border-radius: 999px;
+  color: #fff;
+  content: "1";
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 950;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
 }
 
 .hero-positioning strong {
   color: #171717;
-  flex: 0 0 auto;
-  font-size: 0;
+  display: block;
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
   font-weight: 950;
-}
-
-.hero-positioning strong::before {
-  content: "Organized first.";
-  font-size: 1rem;
+  letter-spacing: -.035em;
+  line-height: 1.05;
 }
 
 .hero-positioning span {
   color: var(--muted);
-  font-size: 0;
-  line-height: 1.4;
+  display: block;
+  font-size: clamp(.94rem, 1.5vw, 1.03rem);
+  line-height: 1.42;
 }
 
-.hero-positioning span::before {
-  content: "ForgeIQ cleans up the mess first. Then you choose the level: document, spreadsheet, form, dashboard, simple system, or app later if it actually makes sense.";
-  font-size: .96rem;
+.hero .buttons {
+  margin-top: 1.35rem;
 }
 
 .start-grid,
@@ -63,10 +93,10 @@
 .case-list div,
 .static-product-grid a {
   background: #fffefb;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  box-shadow: 0 10px 30px rgba(34, 27, 20, .06);
-  padding: 1rem;
+  border: 1px solid rgba(222, 210, 194, .95);
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(34, 27, 20, .07);
+  padding: 1.05rem;
 }
 
 .start-card,
@@ -75,16 +105,37 @@
   display: flex;
   flex-direction: column;
   min-height: 240px;
+  overflow: hidden;
+  position: relative;
   text-decoration: none;
   transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.start-card::after,
+.static-product-grid a::after {
+  background: linear-gradient(90deg, var(--accent), rgba(200, 95, 40, .18));
+  bottom: 0;
+  content: "";
+  height: 4px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(.24);
+  transform-origin: left;
+  transition: transform .15s ease;
 }
 
 .start-card:hover,
 .research-grid a:hover,
 .static-product-grid a:hover {
-  border-color: var(--accent);
-  box-shadow: 0 16px 42px rgba(34, 27, 20, .1);
-  transform: translateY(-3px);
+  border-color: rgba(200, 95, 40, .72);
+  box-shadow: 0 18px 46px rgba(34, 27, 20, .12);
+  transform: translateY(-4px);
+}
+
+.start-card:hover::after,
+.static-product-grid a:hover::after {
+  transform: scaleX(1);
 }
 
 .start-card:focus-visible,
@@ -98,10 +149,14 @@
 
 .start-card-dark {
   background:
-    radial-gradient(circle at top right, rgba(211, 111, 53, .28), transparent 42%),
-    #241f1a;
-  border-color: #241f1a;
+    radial-gradient(circle at top right, rgba(211, 111, 53, .30), transparent 42%),
+    linear-gradient(135deg, #241f1a, #141210);
+  border-color: rgba(255, 255, 255, .08);
   color: #fff;
+}
+
+.start-card-dark::after {
+  background: linear-gradient(90deg, #f3a26b, rgba(243, 162, 107, .15));
 }
 
 .start-card-dark span,
@@ -161,6 +216,7 @@
 .start-card em,
 .static-product-grid em {
   background: #fff0e5;
+  border: 1px solid rgba(200, 95, 40, .12);
   border-radius: 14px;
   color: var(--accent-dark);
   display: block;
@@ -314,12 +370,23 @@
   }
 
   .hero-positioning {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: start;
+    grid-template-columns: auto 1fr;
   }
 }
 
 @media (max-width: 640px) {
+  .hero::before {
+    left: 1rem;
+    right: 1rem;
+  }
+
+  .hero-positioning {
+    border-left-width: 5px;
+    gap: .5rem .75rem;
+    padding: .95rem;
+  }
+
   .proof-strip,
   .mockup-grid,
   .static-product-grid {
