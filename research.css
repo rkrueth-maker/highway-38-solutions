@@ -6,15 +6,15 @@
 
 .hero-positioning {
   align-items: center;
-  background: rgba(255, 255, 255, .88);
-  border: 1px solid rgba(255, 255, 255, .75);
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(255, 255, 255, .8);
   border-radius: 20px;
-  box-shadow: 0 12px 35px rgba(34, 27, 20, .08);
+  box-shadow: 0 14px 40px rgba(34, 27, 20, .09);
   display: flex;
   gap: .7rem;
   margin: 1.2rem auto 0;
   max-width: 920px;
-  padding: .85rem 1rem;
+  padding: .9rem 1.05rem;
 }
 
 .hero-positioning strong {
@@ -64,18 +64,30 @@
   flex-direction: column;
   min-height: 240px;
   text-decoration: none;
-  transition: .15s;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 
 .start-card:hover,
 .research-grid a:hover,
 .static-product-grid a:hover {
   border-color: var(--accent);
+  box-shadow: 0 16px 42px rgba(34, 27, 20, .1);
   transform: translateY(-3px);
 }
 
+.start-card:focus-visible,
+.research-grid a:focus-visible,
+.static-product-grid a:focus-visible,
+.lane-card:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid rgba(211, 111, 53, .45);
+  outline-offset: 4px;
+}
+
 .start-card-dark {
-  background: #241f1a;
+  background:
+    radial-gradient(circle at top right, rgba(211, 111, 53, .28), transparent 42%),
+    #241f1a;
   border-color: #241f1a;
   color: #fff;
 }
@@ -167,7 +179,7 @@
   display: block;
   min-height: 190px;
   text-decoration: none;
-  transition: .15s;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 
 .research-grid--depth a,
@@ -214,6 +226,7 @@
   background:
     linear-gradient(180deg, #fffefb, #f7efe6);
   min-height: 170px;
+  padding-bottom: 3.2rem;
   position: relative;
 }
 
