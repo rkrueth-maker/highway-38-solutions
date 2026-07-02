@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northwoods Problem Solvers — Sample Work</title>
+  <meta name="description" content="Proof-of-concept samples showing project cleanup snapshots, contractor trackers, websites, forms, quote sheets, and planning examples." />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--black:#111;--dark:#1c1c1e;--cream:#faf8f4;--light:#f4f2ee;--accent:#c8622a;--green:#4a7c59;--line:#e2ddd5;--text:#1c1c1e;--radius:14px;--max:1120px}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--cream);color:var(--text);line-height:1.6}
+    nav{background:rgba(28,28,30,.98);color:#fff;min-height:62px;padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:100;border-bottom:4px solid var(--accent)}
+    .logo{color:#fff;text-decoration:none;font-weight:900}.logo span{color:var(--accent)}
+    .navlinks{display:flex;gap:1rem;list-style:none;font-size:.88rem}.navlinks a{color:#ddd;text-decoration:none;font-weight:700}@media(max-width:760px){.navlinks{display:none}}
+    .hero{background:linear-gradient(135deg,#151515,#2b2b2d 70%,#1b1b1c);color:#fff;text-align:center;padding:5rem 1.5rem}
+    .hero h1{font-size:clamp(2rem,6vw,4rem);line-height:1.05;letter-spacing:-.04em;max-width:950px;margin:0 auto 1rem}
+    .hero p{max-width:780px;margin:0 auto 1.5rem;color:#d5d5d5;font-size:1.08rem}
+    .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:900;padding:.85rem 1.15rem;border-radius:var(--radius)}
+    .section{padding:4rem 1.5rem}.section-alt{background:var(--light)}.container{max-width:var(--max);margin:0 auto}
+    .section-header{text-align:center;max-width:840px;margin:0 auto 2.2rem}.badge{display:inline-block;background:#e8e4dc;color:var(--accent);font-size:.7rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;padding:.28rem .68rem;border-radius:999px;margin-bottom:.75rem}.section-header h2{font-size:clamp(1.45rem,3vw,2.25rem);line-height:1.15;margin-bottom:.65rem;letter-spacing:-.03em}.section-header p{color:#555}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:1.35rem;box-shadow:0 10px 30px rgba(28,28,30,.055)}.card h3{font-size:1.05rem;margin-bottom:.45rem}.card p,.card li{font-size:.92rem;color:#555}.card ul{padding-left:1.1rem;margin-top:.5rem}.price{color:var(--accent);font-weight:900;display:block;margin:.25rem 0 .5rem}
+    .sample{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1.5rem;margin-bottom:1.2rem;box-shadow:0 15px 40px rgba(28,28,30,.06)}.sample h3{font-size:1.35rem;margin-bottom:.35rem}.sample p{color:#555;margin-bottom:.8rem}.sample-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}@media(max-width:820px){.sample-grid{grid-template-columns:1fr}}
+    .box{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:1rem}.box h4{margin-bottom:.4rem;color:#222}.box ul{padding-left:1.1rem}.box li{font-size:.92rem;color:#555;margin-bottom:.25rem}
+    table{width:100%;border-collapse:collapse;background:#fff;font-size:.9rem}th,td{border:1px solid var(--line);padding:.65rem;text-align:left;vertical-align:top}th{background:#f0ebe3;color:#333;font-weight:900}.note{background:#fff7ec;border-left:5px solid var(--accent);padding:1rem;border-radius:var(--radius);color:#4a4038;font-size:.93rem;margin-top:1rem}
+    footer{background:var(--black);color:#aaa;text-align:center;padding:2.2rem 1.5rem;font-size:.86rem}footer strong{color:#ddd}
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="logo" href="index.html"><span>Northwoods</span> Problem Solvers</a>
+    <ul class="navlinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="#samples">Samples</a></li>
+      <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSfVpB7zVAh-F59413ImSK4cECntqSNJjv58ipVZcdejp9ur-g/viewform" target="_blank" rel="noopener">Start Request</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <h1>Sample Work / Proof of Concept</h1>
+    <p>These fake examples show what a customer could receive: clean summaries, trackers, webpages, forms, quote sheets, and practical next steps. No real customer data is used.</p>
+    <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfVpB7zVAh-F59413ImSK4cECntqSNJjv58ipVZcdejp9ur-g/viewform" target="_blank" rel="noopener">Start a Request</a>
+  </section>
+
+  <section class="section" id="samples">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge">Proof of Concept</span>
+        <h2>What the work can look like</h2>
+        <p>These examples are intentionally simple. The goal is to show clear output, not overbuild a complicated system before a customer asks for it.</p>
+      </div>
+
+      <div class="sample">
+        <h3>1. Project Cleanup Snapshot Sample</h3>
+        <p><strong>Example customer:</strong> Pine Ridge Property Help has messy notes about a garage cleanup, camera placement, and a small landing page idea.</p>
+        <div class="sample-grid">
+          <div class="box"><h4>Customer Sends</h4><ul><li>6 garage photos</li><li>Rough 24' x 28' measurement</li><li>List of tools and storage issues</li><li>Notes from text messages</li><li>Goal: make the garage usable and explain services online</li></ul></div>
+          <div class="box"><h4>Northwoods Delivers</h4><ul><li>Plain-English problem summary</li><li>Missing measurements and photo list</li><li>Risk check: electrical, trip hazards, weather exposure</li><li>Simple phase plan: clear, measure, layout, quote, build</li><li>Next-step checklist the owner can act on</li></ul></div>
+        </div>
+      </div>
+
+      <div class="sample">
+        <h3>2. Contractor Job Tracker Demo</h3>
+        <p>A simple tracker for local service businesses that need one place for customers, jobs, quotes, invoices, photos, and follow-ups.</p>
+        <table>
+          <thead><tr><th>Customer</th><th>Service</th><th>Status</th><th>Quote</th><th>Invoice</th><th>Next Action</th></tr></thead>
+          <tbody>
+            <tr><td>Demo Customer A</td><td>Garage cleanup</td><td>Quote needed</td><td>$450 draft</td><td>Not sent</td><td>Ask for photos and preferred date</td></tr>
+            <tr><td>Demo Customer B</td><td>Lawn / seasonal service</td><td>Scheduled</td><td>$120/month</td><td>Open</td><td>Send reminder Friday</td></tr>
+            <tr><td>Demo Customer C</td><td>Driveway / route service</td><td>Active</td><td>Seasonal</td><td>Paid</td><td>Update route note and renewal date</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Snow plowing can fit here as one service type, but the tracker is built for contractors and local service businesses in general.</div>
+      </div>
+
+      <div class="sample">
+        <h3>3. Website / Landing Page Sample</h3>
+        <p>A rough business idea can become a clean one-page site with a clear offer, sections, and request button.</p>
+        <div class="grid">
+          <div class="card"><h3>Hero</h3><p><strong>Pine Ridge Property Help</strong><br>Small property jobs, garage cleanup, seasonal help, and project planning made simple.</p></div>
+          <div class="card"><h3>Service Cards</h3><p>Garage cleanup, seasonal service, camera placement, small project planning, quote request form.</p></div>
+          <div class="card"><h3>Call to Action</h3><p>“Send photos and notes. Get a clear next step.”</p></div>
+        </div>
+      </div>
+
+      <div class="sample">
+        <h3>4. Google Form + Tracker Demo</h3>
+        <p>The form collects details. The tracker turns them into work that can be reviewed, quoted, followed up, or archived.</p>
+        <div class="sample-grid">
+          <div class="box"><h4>Form Fields</h4><ul><li>Name and contact method</li><li>Service needed</li><li>Photos / links</li><li>Budget range</li><li>Deadline or timing</li><li>What outcome they want</li></ul></div>
+          <div class="box"><h4>Tracker Columns</h4><ul><li>Status</li><li>Priority</li><li>Quoted price</li><li>Follow-up date</li><li>Next action</li><li>Internal notes</li></ul></div>
+        </div>
+      </div>
+
+      <div class="sample">
+        <h3>5. Quote / Estimate Sheet Sample</h3>
+        <p>A simple estimate sheet can help small businesses stop guessing and quote the same way every time.</p>
+        <table>
+          <thead><tr><th>Line Item</th><th>Qty</th><th>Cost</th><th>Markup / Rate</th><th>Customer Price</th></tr></thead>
+          <tbody>
+            <tr><td>Materials</td><td>1</td><td>$180</td><td>20%</td><td>$216</td></tr>
+            <tr><td>Labor</td><td>5 hrs</td><td>-</td><td>$55/hr</td><td>$275</td></tr>
+            <tr><td>Trip / setup</td><td>1</td><td>-</td><td>Flat</td><td>$45</td></tr>
+            <tr><td><strong>Total</strong></td><td></td><td></td><td></td><td><strong>$536</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sample">
+        <h3>6. Garage / Yard / Sprinkler Planning Sample</h3>
+        <p>Photos, satellite screenshots, rough dimensions, and goals can be organized into a practical owner-ready planning packet.</p>
+        <div class="grid">
+          <div class="card"><h3>Inputs</h3><p>Photos, satellite screenshot, rough measurements, water source location, driveway, trees, fence, tools, goals.</p></div>
+          <div class="card"><h3>Output</h3><p>Layout concept, missing measurements, risk notes, suggested zones or work areas, next-step checklist.</p></div>
+          <div class="card"><h3>Boundary</h3><p>Planning only. Licensed work, permits, inspections, pressure/flow verification, and code compliance must be handled by the proper professional.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge">Start Small</span>
+        <h2>Use samples to sell the first real job</h2>
+        <p>The first goal is not a huge product line. The first goal is one real request, one clean deliverable, and one customer who understands the value.</p>
+        <p style="margin-top:1rem"><a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfVpB7zVAh-F59413ImSK4cECntqSNJjv58ipVZcdejp9ur-g/viewform" target="_blank" rel="noopener">Start a Request</a></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <strong>Northwoods Problem Solvers</strong>
+    <div>Sample work uses fake data and proof-of-concept layouts only.</div>
+  </footer>
+</body>
+</html>
