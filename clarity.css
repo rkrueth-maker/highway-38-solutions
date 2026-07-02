@@ -88,7 +88,8 @@
 
 .position-card,
 .trust-grid div,
-.ladder div {
+.ladder div,
+.ladder-stage {
   background: #fffefb;
   border: 1px solid var(--line);
   border-radius: 22px;
@@ -152,6 +153,80 @@
   color: var(--muted);
   display: block;
   font-size: .92rem;
+}
+
+.ladder-detail {
+  display: grid;
+  gap: 1rem;
+  position: relative;
+}
+
+.ladder-stage {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 1rem;
+  padding: clamp(1rem, 2.4vw, 1.4rem);
+  position: relative;
+}
+
+.ladder-stage:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 60px;
+  bottom: -1rem;
+  width: 4px;
+  height: 1rem;
+  background: var(--accent);
+  opacity: .65;
+}
+
+.stage-number {
+  align-self: start;
+  background: #241f1a;
+  border-radius: 18px;
+  color: #fff;
+  font-weight: 950;
+  padding: .8rem;
+  text-align: center;
+}
+
+.stage-copy h3 {
+  font-size: clamp(1.35rem, 2.8vw, 2.05rem);
+  letter-spacing: -.04em;
+  line-height: 1.08;
+  margin-bottom: .45rem;
+}
+
+.stage-copy p {
+  color: var(--muted);
+  margin-bottom: .9rem;
+}
+
+.stage-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.stage-products a {
+  background: #fff0e5;
+  border: 1px solid #f0c7a9;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: .86rem;
+  font-weight: 950;
+  padding: .45rem .7rem;
+  text-decoration: none;
+}
+
+.stage-products a:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.final-stage {
+  border-color: #c8ac92;
+  box-shadow: var(--shadow);
 }
 
 .trust-grid {
@@ -247,5 +322,17 @@
 @media (max-width: 760px) {
   .simple-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ladder-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .ladder-stage:not(:last-child)::after {
+    left: 50%;
+  }
+
+  .stage-number {
+    text-align: left;
   }
 }
