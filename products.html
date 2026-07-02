@@ -6,6 +6,7 @@
   <title>Product Library | Northwoods Problem Solvers</title>
   <meta name="description" content="Full Northwoods Problem Solvers product library: action snapshots, business launch products, trackers, quote sheets, planning packs, AI setup, dashboards, and local service operating systems.">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="clarity.css">
 </head>
 <body>
 <a class="skip" href="#catalog">Skip to product catalog</a>
@@ -26,28 +27,32 @@
 
 <header class="hero product-hero" id="top">
   <span class="eyebrow">Product Library</span>
-  <h1>Choose the finished product by the problem you need solved.</h1>
-  <p class="hero-lead">Each card opens a full example walkthrough showing the customer problem, what to send, what Northwoods builds, the process, the finished-output example, and when to scale up.</p>
+  <h1>What do you want back from the mess?</h1>
+  <p class="hero-lead">Pick the finished thing you need: a plan, website, tracker, quote sheet, file organizer, layout, camera plan, AI setup, or connected business dashboard.</p>
+  <div class="core-statement compact-core" aria-label="How to use the product library">
+    <strong>How to use this page</strong>
+    <span>Click a product card. It opens a full example showing what you send, what gets built, and what finished looks like.</span>
+  </div>
   <div class="buttons">
-    <a class="btn" href="#catalog">Browse All Products</a>
-    <a class="btn btn-outline" href="./#top">Back to Home</a>
+    <a class="btn" href="#quick">Help Me Pick</a>
+    <a class="btn btn-outline" href="#catalog">Browse All Products</a>
   </div>
 </header>
 
 <main>
-<section class="section section-alt quick-pick" aria-label="Choose a product category">
+<section class="section section-alt quick-pick" id="quick" aria-label="Choose a product category">
   <div class="container">
     <div class="section-title">
       <span class="badge">Start here</span>
-      <h2>Not sure what to pick?</h2>
-      <p>Choose the problem closest to what is in front of you.</p>
+      <h2>Choose the closest problem.</h2>
+      <p>You do not need to know the product name. Start with what feels broken or messy.</p>
     </div>
-    <div class="quick-grid">
-      <a href="#starter"><strong>I have a messy project or idea</strong><span>Start with cleanup products.</span></a>
-      <a href="#business"><strong>I need a clearer business offer</strong><span>Use business setup products.</span></a>
-      <a href="#systems"><strong>I need to track jobs or quotes</strong><span>Use tracker and tool products.</span></a>
-      <a href="#planning"><strong>I need a layout or practical plan</strong><span>Use planning products.</span></a>
-      <a href="#service-os"><strong>I need the pieces connected</strong><span>Use the Local Service Business OS.</span></a>
+    <div class="quick-grid big-pick-grid">
+      <a href="#starter"><small>Messy project</small><strong>I have photos, notes, or ideas and need a clear next-step plan.</strong><span>Good starting point: Project Action Snapshot.</span></a>
+      <a href="#business"><small>Business offer</small><strong>I need my service cleaned up so customers understand what I sell.</strong><span>Good starting point: Business Offer Snapshot or Service Menu Builder.</span></a>
+      <a href="#systems"><small>Jobs + quotes</small><strong>I need to track requests, customers, quotes, files, or follow-ups.</strong><span>Good starting point: Request Form & Tracker or Contractor Job Tracker.</span></a>
+      <a href="#planning"><small>Layout + setup</small><strong>I need a practical layout, setup plan, or shop workflow improvement.</strong><span>Good starting point: Garage & Shop Layout Review.</span></a>
+      <a href="#service-os"><small>Connect everything</small><strong>I need the page, form, tracker, quote sheet, and follow-up system tied together.</strong><span>Good starting point: Local Service Business OS.</span></a>
     </div>
   </div>
 </section>
@@ -56,8 +61,8 @@
   <div class="container">
     <div class="section-title">
       <span class="badge">Full catalog</span>
-      <h2>21 practical products with full walkthroughs.</h2>
-      <p>Click any product card to jump to its full example on this page.</p>
+      <h2>Click a product to see the full example.</h2>
+      <p>Each card shows the outcome, price range, and what it is best for. The full walkthrough is lower on this same page.</p>
     </div>
     <div class="catalog" id="catalogGrid"></div>
     <noscript><p class="noscript">Please enable JavaScript to view the full product catalog and worked examples.</p></noscript>
@@ -76,7 +81,8 @@
 </section>
 </main>
 
-<footer><strong>Northwoods Problem Solvers</strong><span>Productized cleanup, planning, pages, trackers, forms, tools, and owner systems.</span></footer>
+<footer><strong>Northwoods Problem Solvers</strong><span>Pick a problem. Send the mess. Get the finished product.</span></footer>
 <script src="site.js"></script>
+<script src="clarity.js"></script>
 </body>
 </html>
