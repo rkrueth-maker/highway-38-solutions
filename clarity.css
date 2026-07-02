@@ -19,7 +19,8 @@
 
 .simple-grid span,
 .clarity-cards small,
-.big-pick-grid small {
+.big-pick-grid small,
+.lane-card small {
   display: block;
   color: #f3a26b;
   font-size: .72rem;
@@ -34,6 +35,55 @@
   color: #f6efe7;
   font-size: .96rem;
   line-height: 1.35;
+}
+
+.two-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.1rem;
+}
+
+.lane-card {
+  display: block;
+  min-height: 260px;
+  background: #fffefb;
+  border: 2px solid #d7bea7;
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  padding: clamp(1.2rem, 2.5vw, 1.6rem);
+  text-decoration: none;
+  transition: .15s;
+}
+
+.lane-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+}
+
+.lane-card strong {
+  display: block;
+  color: #171717;
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+  margin-bottom: .75rem;
+}
+
+.lane-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lane-card em {
+  display: block;
+  background: #241f1a;
+  border-radius: 14px;
+  color: #fff;
+  font-style: normal;
+  font-weight: 900;
+  padding: .75rem .85rem;
 }
 
 .clarity-cards a,
@@ -93,6 +143,12 @@
 
 .product-card span:not(.card-price) {
   font-size: .93rem;
+}
+
+@media (max-width: 860px) {
+  .two-lane-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
