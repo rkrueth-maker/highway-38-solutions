@@ -1,4 +1,5 @@
 const HIGHWAY38_FORM_LINK = "https://docs.google.com/forms/d/e/1FAIpQLScTWaK40mNNaf1ek3w4gC3VYwvpNT9fnXlHodKeOZl7lPfCyQ/viewform";
+const HIGHWAY38_BACKEND_LINK = "backend-system.html#backend";
 
 function addCardClarity() {
   if (typeof products === "undefined") return;
@@ -87,6 +88,13 @@ function addProofBuildLinks() {
     navLinks.insertBefore(li, cta || null);
   }
 
+  if (navLinks && !navLinks.querySelector('a[href*="backend-system.html"]')) {
+    const li = document.createElement("li");
+    li.innerHTML = '<a href="backend-system.html#backend">Backend</a>';
+    const cta = navLinks.querySelector(".nav-cta")?.closest("li");
+    navLinks.insertBefore(li, cta || null);
+  }
+
   const heroButtons = document.querySelector(".hero .buttons");
   if (heroButtons && !heroButtons.querySelector('a[href*="proof-builds.html"]')) {
     const proof = document.createElement("a");
@@ -95,6 +103,14 @@ function addProofBuildLinks() {
     proof.textContent = "See Full Proof Builds";
     const secondary = heroButtons.querySelector(".tertiary-link");
     heroButtons.insertBefore(proof, secondary || null);
+  }
+
+  if (heroButtons && !heroButtons.querySelector('a[href*="backend-system.html"]')) {
+    const backend = document.createElement("a");
+    backend.className = "tertiary-link";
+    backend.href = HIGHWAY38_BACKEND_LINK;
+    backend.textContent = "See the Backend System";
+    heroButtons.appendChild(backend);
   }
 }
 
@@ -109,15 +125,15 @@ function addVisualSweepBanner() {
   banner.innerHTML = `
     <div class="container">
       <div class="section-title">
-        <span class="badge">Proof builds added</span>
-        <h2>Complete beginning-to-end example projects.</h2>
-        <p>Every core product now has a proof build showing messy input, sorting work, visual before/after mockups, final deliverables, timeline, price logic, add-ons, and upgrade path.</p>
+        <span class="badge">Proof builds and backend added</span>
+        <h2>Complete beginning-to-end example projects plus prepared fulfillment sheets.</h2>
+        <p>Every core product now has a proof build and the backend has a lead tracker, basic layout builder, product build sheets, tool library, QA handoff, and SOPs.</p>
       </div>
       <div class="case-grid">
-        <a class="case-card" href="proof-builds.html#problem-snapshot"><small>Problem Snapshot</small><h3>Messy photos to first clear action.</h3><p>See the rough input, sorted facts, risk notes, missing information, and final snapshot.</p></a>
         <a class="case-card" href="proof-builds.html#project-packet"><small>Project Packet</small><h3>Garage idea to build packet.</h3><p>See the sketch, layout proof, material phases, build order, and owner checklist.</p></a>
         <a class="case-card" href="proof-builds.html#business-cleanup"><small>Business Cleanup</small><h3>Texts to quote/deposit system.</h3><p>See customer messages become statuses, quote sheet, deposit path, and follow-up routine.</p></a>
-        <a class="case-card" href="proof-builds.html#custom-build"><small>Custom Work</small><h3>Repeated work to custom dashboard.</h3><p>See a vague custom request become scoped input, calculator, tracker, status board, and handoff.</p></a>
+        <a class="case-card" href="backend-system.html#sheet-preview"><small>Backend Sheet</small><h3>Basic Layout Builder is ready.</h3><p>See the prepared worksheet for photos, dimensions, zones, deliverables, and QA.</p></a>
+        <a class="case-card" href="backend-system.html#comparison"><small>Comparison</small><h3>Borrow the trust pieces.</h3><p>Visual proof, structured intake, prepared templates, status tracking, and clear handoff.</p></a>
       </div>
     </div>`;
 
