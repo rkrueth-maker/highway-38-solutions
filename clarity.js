@@ -73,9 +73,7 @@ function addLaunchNavigation() {
     ["ai-workflow.html#main", "AI Workflow"],
     ["sample-library.html#main", "Samples"],
     ["faq.html#main", "FAQ"],
-    ["about.html#main", "About"],
-    ["test-plan.html#main", "Test Plan"],
-    ["launch-plan.html#main", "Launch Plan"]
+    ["about.html#main", "About"]
   ];
   links.forEach(([href, label]) => {
     if (!navLinks.querySelector(`a[href*="${href.split('#')[0]}"]`)) {
@@ -112,7 +110,7 @@ function addLaunchFooterLinks() {
   const footer = document.querySelector("footer");
   if (!footer || footer.querySelector('a[href="privacy.html"]')) return;
   const span = document.createElement("span");
-  span.innerHTML = '<a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="pricing.html#main">Pricing</a> · <a href="sample-library.html#main">Samples</a> · <a href="faq.html#main">FAQ</a>';
+  span.innerHTML = '<a href="pricing.html#main">Pricing</a> · <a href="sample-library.html#main">Samples</a> · <a href="faq.html#main">FAQ</a> · <a href="about.html#main">About</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>';
   footer.appendChild(span);
 }
 
@@ -126,20 +124,14 @@ function addGlobalPolishStyles() {
     .nav-toggle{display:none;border:1px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.08);color:inherit;padding:.65rem .8rem;font-weight:800}
     .hamburger{display:inline-block;width:1.15rem;height:.85rem;position:relative;margin-right:.35rem;vertical-align:-.1rem}.hamburger:before,.hamburger:after,.hamburger span{content:"";position:absolute;left:0;right:0;height:2px;background:currentColor;border-radius:2px}.hamburger:before{top:0}.hamburger span{top:50%;transform:translateY(-50%)}.hamburger:after{bottom:0}
     footer a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+    @media(min-width:821px){.navlinks{flex-wrap:wrap}.navlinks a{white-space:nowrap}}
     @media(max-width:820px){nav{align-items:center}.nav-toggle{display:inline-flex;align-items:center}.navlinks{display:none;position:absolute;top:100%;left:1rem;right:1rem;z-index:30;background:rgba(15,23,42,.98);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:1rem;box-shadow:0 18px 55px rgba(0,0,0,.35)}.navlinks.is-open{display:grid;gap:.5rem}.navlinks li{width:100%}.navlinks a{display:block;padding:.75rem .85rem;border-radius:12px}.navlinks .nav-cta{display:block;text-align:center}.buttons a{width:100%;text-align:center}}
   `;
   document.head.appendChild(style);
 }
 
 function addLaunchReadinessBanner() {
-  if (document.querySelector(".launch-readiness-banner")) return;
-  const main = document.querySelector("main");
-  if (!main || location.pathname.includes("launch-plan") || location.pathname.includes("test-plan")) return;
-  const banner = document.createElement("section");
-  banner.className = "section launch-readiness-banner";
-  banner.innerHTML = `<div class="container"><div class="section-title"><span class="badge">Launch-ready path</span><h2>Ready to test before public launch.</h2><p>Use the launch checklist and test plan to run one normal package, one Shop / CNC concept request, and one AI workflow request end-to-end before sharing the final URL.</p></div><div class="buttons"><a class="btn btn-outline" href="test-plan.html#main">Open Test Plan</a><a class="btn btn-outline" href="launch-plan.html#main">Open Launch Checklist</a></div></div>`;
-  const firstSection = main.querySelector("section");
-  main.insertBefore(banner, firstSection ? firstSection.nextSibling : null);
+  return;
 }
 
 function bootClarity() {
