@@ -1,4 +1,4 @@
-const FORM = "https://docs.google.com/forms/d/e/1FAIpQLSck8bwu6Z-DP_n8woApJXv1XezWxp3_a1nZsu_PusER25N2DA/viewform?usp=dialog";
+const FORM = "https://docs.google.com/forms/d/e/1FAIpQLScTWaK40mNNaf1ek3w4gC3VYwvpNT9fnXlHodKeOZl7lPfCyQ/viewform";
 
 const products = [
   {
