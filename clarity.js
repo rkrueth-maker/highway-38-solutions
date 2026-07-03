@@ -3,22 +3,15 @@ const HIGHWAY38_BACKEND_LINK = "backend-system.html#backend";
 
 function addCardClarity() {
   if (typeof products === "undefined") return;
-
   const cards = document.querySelectorAll(".product-card");
   cards.forEach((card, index) => {
     const product = products[index];
     if (!product || card.querySelector(".card-best")) return;
-
     const bestFor = document.createElement("div");
     bestFor.className = "card-best";
     bestFor.innerHTML = `<b>Best for:</b> ${product.best || "messy details that need a clear finished output"}`;
-
     const action = card.querySelector("em");
-    if (action) {
-      card.insertBefore(bestFor, action);
-    } else {
-      card.appendChild(bestFor);
-    }
+    if (action) card.insertBefore(bestFor, action); else card.appendChild(bestFor);
   });
 }
 
@@ -45,28 +38,18 @@ function applyHighway38Brand() {
     [/GarageOS/g, "Highway 38 Solutions"],
     [/WrenchIQ/g, "Highway 38 Solutions"]
   ];
-
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const nodes = [];
   while (walker.nextNode()) nodes.push(walker.currentNode);
-
   nodes.forEach((node) => {
     let text = node.nodeValue;
-    replacements.forEach(([pattern, value]) => {
-      text = text.replace(pattern, value);
-    });
+    replacements.forEach(([pattern, value]) => { text = text.replace(pattern, value); });
     node.nodeValue = text;
   });
-
-  replacements.forEach(([pattern, value]) => {
-    document.title = document.title.replace(pattern, value);
-  });
-
+  replacements.forEach(([pattern, value]) => { document.title = document.title.replace(pattern, value); });
   document.querySelectorAll('meta[content]').forEach((meta) => {
     let content = meta.getAttribute('content');
-    replacements.forEach(([pattern, value]) => {
-      content = content.replace(pattern, value);
-    });
+    replacements.forEach(([pattern, value]) => { content = content.replace(pattern, value); });
     meta.setAttribute('content', content);
   });
 }
@@ -79,78 +62,91 @@ function repairRequestLinks() {
   });
 }
 
-function addProofBuildLinks() {
+function addLaunchNavigation() {
   const navLinks = document.querySelector(".navlinks");
-  if (navLinks && !navLinks.querySelector('a[href*="proof-builds.html"]')) {
-    const li = document.createElement("li");
-    li.innerHTML = '<a href="proof-builds.html#proof-builds">Proof Builds</a>';
-    const cta = navLinks.querySelector(".nav-cta")?.closest("li");
-    navLinks.insertBefore(li, cta || null);
-  }
-
-  if (navLinks && !navLinks.querySelector('a[href*="backend-system.html"]')) {
-    const li = document.createElement("li");
-    li.innerHTML = '<a href="backend-system.html#backend">Backend</a>';
-    const cta = navLinks.querySelector(".nav-cta")?.closest("li");
-    navLinks.insertBefore(li, cta || null);
-  }
-
-  const heroButtons = document.querySelector(".hero .buttons");
-  if (heroButtons && !heroButtons.querySelector('a[href*="proof-builds.html"]')) {
-    const proof = document.createElement("a");
-    proof.className = "btn btn-outline";
-    proof.href = "proof-builds.html#proof-builds";
-    proof.textContent = "See Full Proof Builds";
-    const secondary = heroButtons.querySelector(".tertiary-link");
-    heroButtons.insertBefore(proof, secondary || null);
-  }
-
-  if (heroButtons && !heroButtons.querySelector('a[href*="backend-system.html"]')) {
-    const backend = document.createElement("a");
-    backend.className = "tertiary-link";
-    backend.href = HIGHWAY38_BACKEND_LINK;
-    backend.textContent = "See the Backend System";
-    heroButtons.appendChild(backend);
-  }
+  if (!navLinks) return;
+  const beforeCta = navLinks.querySelector(".nav-cta")?.closest("li");
+  const links = [
+    ["packages.html#packages", "Packages"],
+    ["shop-automation.html#main", "Shop / CNC"],
+    ["examples.html#examples", "Examples"],
+    ["test-plan.html#main", "Test Plan"],
+    ["launch-plan.html#main", "Launch Plan"]
+  ];
+  links.forEach(([href, label]) => {
+    if (!navLinks.querySelector(`a[href*="${href.split('#')[0]}"]`)) {
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="${href}">${label}</a>`;
+      navLinks.insertBefore(li, beforeCta || null);
+    }
+  });
 }
 
-function addVisualSweepBanner() {
-  if (document.querySelector(".proof-sweep-banner")) return;
+function addMobileNavSupport() {
+  const nav = document.querySelector("nav");
+  const navLinks = document.querySelector(".navlinks");
+  if (!nav || !navLinks || document.querySelector(".nav-toggle")) return;
+  navLinks.id = navLinks.id || "site-menu";
+  const button = document.createElement("button");
+  button.className = "nav-toggle";
+  button.type = "button";
+  button.setAttribute("aria-controls", navLinks.id);
+  button.setAttribute("aria-expanded", "false");
+  button.innerHTML = '<span class="hamburger" aria-hidden="true"><span></span></span>Menu';
+  nav.insertBefore(button, navLinks);
+  button.addEventListener("click", () => {
+    const open = navLinks.classList.toggle("is-open");
+    button.setAttribute("aria-expanded", String(open));
+  });
+  navLinks.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
+    navLinks.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+  }));
+}
 
+function addLaunchFooterLinks() {
+  const footer = document.querySelector("footer");
+  if (!footer || footer.querySelector('a[href="privacy.html"]')) return;
+  const span = document.createElement("span");
+  span.innerHTML = '<a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="launch-plan.html#main">Launch Plan</a> · <a href="test-plan.html#main">Test Plan</a>';
+  footer.appendChild(span);
+}
+
+function addGlobalPolishStyles() {
+  if (document.querySelector("#highway38-launch-polish")) return;
+  const style = document.createElement("style");
+  style.id = "highway38-launch-polish";
+  style.textContent = `
+    .skip{position:absolute;left:-999px;top:0;background:#fff;color:#0f172a;padding:.75rem 1rem;z-index:9999;border-radius:0 0 .5rem 0}.skip:focus{left:0}
+    a:focus-visible,button:focus-visible,.btn:focus-visible,.nav-cta:focus-visible,.tertiary-link:focus-visible{outline:3px solid #fbbf24;outline-offset:4px;border-radius:10px}
+    .nav-toggle{display:none;border:1px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.08);color:inherit;padding:.65rem .8rem;font-weight:800}
+    .hamburger{display:inline-block;width:1.15rem;height:.85rem;position:relative;margin-right:.35rem;vertical-align:-.1rem}.hamburger:before,.hamburger:after,.hamburger span{content:"";position:absolute;left:0;right:0;height:2px;background:currentColor;border-radius:2px}.hamburger:before{top:0}.hamburger span{top:50%;transform:translateY(-50%)}.hamburger:after{bottom:0}
+    footer a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+    @media(max-width:820px){nav{align-items:center}.nav-toggle{display:inline-flex;align-items:center}.navlinks{display:none;position:absolute;top:100%;left:1rem;right:1rem;z-index:30;background:rgba(15,23,42,.98);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:1rem;box-shadow:0 18px 55px rgba(0,0,0,.35)}.navlinks.is-open{display:grid;gap:.5rem}.navlinks li{width:100%}.navlinks a{display:block;padding:.75rem .85rem;border-radius:12px}.navlinks .nav-cta{display:block;text-align:center}.buttons a{width:100%;text-align:center}}
+  `;
+  document.head.appendChild(style);
+}
+
+function addLaunchReadinessBanner() {
+  if (document.querySelector(".launch-readiness-banner")) return;
   const main = document.querySelector("main");
-  if (!main) return;
-
+  if (!main || location.pathname.includes("launch-plan") || location.pathname.includes("test-plan")) return;
   const banner = document.createElement("section");
-  banner.className = "section proof-sweep-banner";
-  banner.innerHTML = `
-    <div class="container">
-      <div class="section-title">
-        <span class="badge">Proof builds and backend added</span>
-        <h2>Complete beginning-to-end example projects plus prepared fulfillment sheets.</h2>
-        <p>Every core product now has a proof build and the backend has a lead tracker, basic layout builder, product build sheets, tool library, QA handoff, and SOPs.</p>
-      </div>
-      <div class="case-grid">
-        <a class="case-card" href="proof-builds.html#project-packet"><small>Project Packet</small><h3>Garage idea to build packet.</h3><p>See the sketch, layout proof, material phases, build order, and owner checklist.</p></a>
-        <a class="case-card" href="proof-builds.html#business-cleanup"><small>Business Cleanup</small><h3>Texts to quote/deposit system.</h3><p>See customer messages become statuses, quote sheet, deposit path, and follow-up routine.</p></a>
-        <a class="case-card" href="backend-system.html#sheet-preview"><small>Backend Sheet</small><h3>Basic Layout Builder is ready.</h3><p>See the prepared worksheet for photos, dimensions, zones, deliverables, and QA.</p></a>
-        <a class="case-card" href="backend-system.html#comparison"><small>Comparison</small><h3>Borrow the trust pieces.</h3><p>Visual proof, structured intake, prepared templates, status tracking, and clear handoff.</p></a>
-      </div>
-    </div>`;
-
+  banner.className = "section launch-readiness-banner";
+  banner.innerHTML = `<div class="container"><div class="section-title"><span class="badge">Launch-ready path</span><h2>Ready to test before public launch.</h2><p>Use the launch checklist and test plan to run one normal package and one Shop / CNC concept request end-to-end before sharing the final URL.</p></div><div class="buttons"><a class="btn btn-outline" href="test-plan.html#main">Open Test Plan</a><a class="btn btn-outline" href="launch-plan.html#main">Open Launch Checklist</a></div></div>`;
   const firstSection = main.querySelector("section");
   main.insertBefore(banner, firstSection ? firstSection.nextSibling : null);
 }
 
 function bootClarity() {
+  addGlobalPolishStyles();
   applyHighway38Brand();
   repairRequestLinks();
-  addProofBuildLinks();
-  addVisualSweepBanner();
+  addLaunchNavigation();
+  addMobileNavSupport();
+  addLaunchFooterLinks();
+  addLaunchReadinessBanner();
   addCardClarity();
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", bootClarity);
-} else {
-  bootClarity();
-}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootClarity); else bootClarity();
