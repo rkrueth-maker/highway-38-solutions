@@ -35,6 +35,8 @@ function applyHighway38Brand() {
     [/ForgeIQ product card/g, "Highway 38 Solutions product card"],
     [/ForgeIQ/g, "Highway 38 Solutions"],
     [/Industrial Logic Solutions/g, "Highway 38 Solutions"],
+    [/RangeRivet Works/g, "Highway 38 Solutions"],
+    [/RangeRivet/g, "Highway 38 Solutions"],
     [/GarageOS/g, "Highway 38 Solutions"],
     [/WrenchIQ/g, "Highway 38 Solutions"]
   ];
