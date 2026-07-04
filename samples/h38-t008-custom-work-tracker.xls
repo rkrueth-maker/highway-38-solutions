@@ -1,1 +1,25 @@
-<html><head><meta charset="utf-8"><title>H38-T008 Custom Work Tracker</title></head><body><table border="1"><tr><th colspan="8">Highway 38 Solutions - Custom Work Tracker Sample</th></tr><tr><th>Job ID</th><th>Job type</th><th>Size</th><th>Material group</th><th>Labor hours</th><th>Options</th><th>Quote range</th><th>Notes</th></tr><tr><td>Q-001</td><td>Small build</td><td>Small</td><td>Basic</td><td>2</td><td>None</td><td>Low</td><td>Starter row</td></tr><tr><td>Q-002</td><td>Storage build</td><td>Medium</td><td>Standard</td><td>5</td><td>Delivery</td><td>Medium</td><td>Needs photos</td></tr><tr><td>Q-003</td><td>Shop setup</td><td>Large</td><td>Heavy</td><td>10</td><td>Install help</td><td>High</td><td>Needs site notes</td></tr><tr><td>Q-004</td><td>Digital setup</td><td>Small</td><td>Digital</td><td>4</td><td>Template pack</td><td>Medium</td><td>Form fields needed</td></tr></table></body></html>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>H38-T008 Custom Work Tracker</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:11pt;margin:14px;background:#fff;color:#111827}
+  table{border-collapse:collapse;width:1280px;table-layout:fixed}
+  th,td{border:1px solid #b7c3d0;padding:8px 10px;vertical-align:top;white-space:normal;word-wrap:break-word;line-height:1.35;mso-number-format:"\@"}
+  th{background:#dbeafe;font-weight:700;color:#0f172a}.title{background:#1f2937;color:#fff;font-size:16pt;text-align:left;padding:12px}.sub{background:#f8fafc;color:#475569;font-style:italic}.narrow{text-align:center}.money{text-align:right}
+</style>
+</head>
+<body>
+<table>
+<colgroup><col style="width:90px"><col style="width:175px"><col style="width:105px"><col style="width:160px"><col style="width:120px"><col style="width:190px"><col style="width:145px"><col style="width:295px"></colgroup>
+<tr><th class="title" colspan="8">Highway 38 Solutions - H38-T008 Custom Work Tracker Sample</th></tr>
+<tr><td class="sub" colspan="8">Use this tracker to prove a version-one internal tool before building anything bigger.</td></tr>
+<tr><th>Job ID</th><th>Job Type</th><th>Size</th><th>Material Group</th><th>Labor Hours</th><th>Options</th><th>Quote Range</th><th>Notes</th></tr>
+<tr><td class="narrow">Q-001</td><td>Small build</td><td class="narrow">Small</td><td>Basic</td><td class="narrow">2</td><td>None</td><td class="narrow">Low</td><td>Starter row.</td></tr>
+<tr><td class="narrow">Q-002</td><td>Storage build</td><td class="narrow">Medium</td><td>Standard</td><td class="narrow">5</td><td>Delivery</td><td class="narrow">Medium</td><td>Needs photos.</td></tr>
+<tr><td class="narrow">Q-003</td><td>Shop setup</td><td class="narrow">Large</td><td>Heavy</td><td class="narrow">10</td><td>Install help</td><td class="narrow">High</td><td>Needs site notes.</td></tr>
+<tr><td class="narrow">Q-004</td><td>Digital setup</td><td class="narrow">Small</td><td>Digital</td><td class="narrow">4</td><td>Template pack</td><td class="narrow">Medium</td><td>Form fields needed.</td></tr>
+</table>
+</body>
+</html>
