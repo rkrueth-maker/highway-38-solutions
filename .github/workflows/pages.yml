@@ -33,19 +33,27 @@ jobs:
           rm -rf _site
           mkdir -p _site
           rsync -av --delete \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='tests/' \
-            --exclude='reports/' \
-            --exclude='logs/' \
-            --exclude='scripts/' \
-            --exclude='shopify/' \
-            --exclude='modules/' \
-            --exclude='*.py' \
-            --exclude='requirements.txt' \
-            --exclude='*.toml' \
-            --exclude='*.code-workspace' \
-            --exclude='*.md' \
+            --include='*/' \
+            --include='*.html' \
+            --include='*.css' \
+            --include='*.js' \
+            --include='*.json' \
+            --include='*.xml' \
+            --include='*.txt' \
+            --include='*.ico' \
+            --include='*.png' \
+            --include='*.jpg' \
+            --include='*.jpeg' \
+            --include='*.gif' \
+            --include='*.webp' \
+            --include='*.svg' \
+            --include='*.woff' \
+            --include='*.woff2' \
+            --include='*.ttf' \
+            --include='*.eot' \
+            --include='*.pdf' \
+            --include='*.csv' \
+            --exclude='*' \
             ./ _site/
 
       - name: Upload current root site
