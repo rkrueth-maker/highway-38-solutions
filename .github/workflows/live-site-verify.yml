@@ -84,7 +84,7 @@ jobs:
           check_text "Pricing clarity" '$79 intro / $99 normal'
           check_text "Featured service" "Messy Details In → Finished Document Out"
           check_text "Clarity card" "Start here: Problem Snapshot"
-          check_text "Under-250 section" "Under-$250 draft-ready products"
+          check_text "Under-250 section" 'Under-$250 draft-ready products'
           check_text "Product automation guardrail" "Draft prepared automatically. Final output requires Rick approval before delivery."
           check_text "Approval gate" "Rick Review Required / Owner Approval Required"
           check_text "AI example label" "AI-generated example / not customer work"
