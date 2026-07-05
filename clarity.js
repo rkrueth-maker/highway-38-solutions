@@ -34,7 +34,7 @@ function addLaunchFooterLinks() {
   const footer = document.querySelector("footer");
   if (!footer || footer.querySelector('a[href="privacy.html"]')) return;
   const span = document.createElement("span");
-  span.innerHTML = '<a href="./#top">Home</a> · <a href="pricing.html#main">Pricing</a> · <a href="sample-library.html#main">Samples</a> · <a href="faq.html#main">FAQ</a> · <a href="about.html#main">About</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>';
+  span.innerHTML = '<a href="./#top">Home</a> · <a href="pricing.html#main">Pricing</a> · <a href="sample-library-now.html#main">Samples</a> · <a href="faq.html#main">FAQ</a> · <a href="about.html#main">About</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>';
   footer.appendChild(span);
 }
 
