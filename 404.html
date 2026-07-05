@@ -1,1 +1,71 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=/highway-38-solutions/packages.html#packages"><title>Opening Highway 38 Solutions</title><script>(function(){var p=location.pathname.toLowerCase(),h=location.hash||'',base='/highway-38-solutions',target=base+'/packages.html';if(!h){if(p.includes('cnc')||p.includes('automation')||p.includes('robot')||p.includes('vision')||p.includes('fixture')||p.includes('jig')||p.includes('press-brake')||p.includes('shear')){target=base+'/shop-automation.html';h='#packages'}else if(p.includes('quote')||p.includes('deposit')||p.includes('dashboard')||p.includes('customer')||p.includes('tracker')||p.includes('service-operating'))h='#business-cleanup';else if(p.includes('website')||p.includes('form')||p.includes('digital'))h='#digital-setup';else if(p.includes('garage')||p.includes('camera')||p.includes('sprinkler')||p.includes('irrigation')||p.includes('layout')||p.includes('project'))h='#project-packet';else if(p.includes('shop')||p.includes('bay')||p.includes('workflow'))h='#shop-flow';else if(p.includes('cleanup')||p.includes('receipt')||p.includes('photo')||p.includes('file'))h='#cleanup-rescue';else if(p.includes('custom')||p.includes('tool')||p.includes('app'))h='#custom-work';else h='#packages'}location.replace(target+h)})();</script></head><body><p>Opening <a href="/highway-38-solutions/packages.html#packages">Highway 38 Solutions package library</a>.</p></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Opening Highway 38 Solutions</title>
+	<script>
+		(function () {
+			var p = location.pathname.toLowerCase();
+			var h = location.hash || "";
+			var pathParts = location.pathname.split("/").filter(Boolean);
+			var base = pathParts.length > 0 ? "/" + pathParts[0] : "";
+			var target = base + "/packages.html";
+
+			if (!h) {
+				if (
+					p.includes("cnc") ||
+					p.includes("automation") ||
+					p.includes("robot") ||
+					p.includes("vision") ||
+					p.includes("fixture") ||
+					p.includes("jig") ||
+					p.includes("press-brake") ||
+					p.includes("shear")
+				) {
+					target = base + "/shop-automation.html";
+					h = "#packages";
+				} else if (
+					p.includes("quote") ||
+					p.includes("deposit") ||
+					p.includes("dashboard") ||
+					p.includes("customer") ||
+					p.includes("tracker") ||
+					p.includes("service-operating")
+				) {
+					h = "#business-cleanup";
+				} else if (p.includes("website") || p.includes("form") || p.includes("digital")) {
+					h = "#digital-setup";
+				} else if (
+					p.includes("garage") ||
+					p.includes("camera") ||
+					p.includes("sprinkler") ||
+					p.includes("irrigation") ||
+					p.includes("layout") ||
+					p.includes("project")
+				) {
+					h = "#project-packet";
+				} else if (p.includes("shop") || p.includes("bay") || p.includes("workflow")) {
+					h = "#shop-flow";
+				} else if (
+					p.includes("cleanup") ||
+					p.includes("receipt") ||
+					p.includes("photo") ||
+					p.includes("file")
+				) {
+					h = "#cleanup-rescue";
+				} else if (p.includes("custom") || p.includes("tool") || p.includes("app")) {
+					h = "#custom-work";
+				} else {
+					h = "#packages";
+				}
+			}
+
+			location.replace(target + h);
+		})();
+	</script>
+</head>
+<body>
+	<p>Opening <a href="packages.html#packages">Highway 38 Solutions package library</a>.</p>
+</body>
+</html>
