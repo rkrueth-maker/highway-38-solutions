@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">Sample Garage Bay finished deliverable visual</title>
+  <desc id="desc">A staged deliverable render showing messy garage input, measurement callouts, and a CAD-style layout with storage options.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf8"/><stop offset="1" stop-color="#f4efe7"/></linearGradient>
+    <linearGradient id="dark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#172033"/><stop offset="1" stop-color="#0b1220"/></linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.18"/></filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#e5e7eb" stroke-width="1"/></pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker>
+  </defs>
+  <rect width="1400" height="820" rx="34" fill="url(#paper)"/>
+  <rect x="34" y="28" width="1332" height="76" rx="22" fill="#06152b"/>
+  <text x="64" y="74" font-family="Arial, sans-serif" font-size="30" font-weight="800" fill="#fff">Sample Garage Bay — Finished Deliverable Flow</text>
+  <text x="1000" y="74" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#ffedd5">Sample output — not customer work</text>
+
+  <g filter="url(#shadow)">
+    <rect x="44" y="132" width="404" height="500" rx="24" fill="#ffffff" stroke="#d8c7b6"/>
+    <rect x="64" y="152" width="364" height="38" rx="12" fill="#fee2e2"/>
+    <text x="84" y="177" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#991b1b">1. MESSY GARAGE INPUT</text>
+    <rect x="70" y="214" width="352" height="250" rx="18" fill="url(#dark)"/>
+    <rect x="90" y="330" width="78" height="78" rx="8" fill="#c08457"/><rect x="180" y="296" width="92" height="112" rx="8" fill="#8b5e34"/><rect x="284" y="342" width="90" height="66" rx="8" fill="#a16207"/>
+    <rect x="92" y="236" width="62" height="70" rx="8" fill="#64748b"/><rect x="170" y="244" width="86" height="44" rx="8" fill="#475569"/><rect x="284" y="236" width="96" height="86" rx="10" fill="#334155"/>
+    <rect x="96" y="422" width="280" height="10" rx="5" fill="#ef4444"/>
+    <circle cx="112" cy="390" r="14" fill="#facc15"/><circle cx="330" cy="385" r="16" fill="#facc15"/>
+    <path d="M112 390L82 494" stroke="#f97316" stroke-width="4" marker-end="url(#arrow)"/><path d="M330 385L392 494" stroke="#f97316" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="70" y="486" width="352" height="118" rx="16" fill="#fff7ed" stroke="#fed7aa"/>
+    <text x="92" y="518" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#7c2d12">Observed problems</text>
+    <text x="92" y="548" font-family="Arial, sans-serif" font-size="15" fill="#111827">• Boxes blocking vehicle lane</text>
+    <text x="92" y="574" font-family="Arial, sans-serif" font-size="15" fill="#111827">• Tools and parts mixed together</text>
+    <text x="92" y="600" font-family="Arial, sans-serif" font-size="15" fill="#111827">• No storage plan before buying shelves</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="498" y="132" width="404" height="500" rx="24" fill="#ffffff" stroke="#d8c7b6"/>
+    <rect x="518" y="152" width="364" height="38" rx="12" fill="#dbeafe"/>
+    <text x="538" y="177" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#1e3a8a">2. MEASUREMENTS + CONSTRAINTS</text>
+    <rect x="542" y="222" width="312" height="250" rx="18" fill="#f8fafc" stroke="#cbd5e1"/>
+    <line x1="572" y1="260" x2="824" y2="260" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="655" y="246" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#1e40af">28'-0&quot; wall</text>
+    <line x1="572" y1="290" x2="572" y2="440" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="586" y="366" font-family="Arial, sans-serif" font-size="17" font-weight="800" fill="#1e40af">22'-0&quot;</text>
+    <rect x="620" y="318" width="92" height="76" rx="8" fill="#dbeafe" stroke="#0284c7" stroke-width="3"/><text x="636" y="360" font-family="Arial, sans-serif" font-size="14" font-weight="800" fill="#075985">Vehicle</text>
+    <rect x="738" y="318" width="72" height="76" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/><text x="751" y="360" font-family="Arial, sans-serif" font-size="14" font-weight="800" fill="#14532d">Tools</text>
+    <circle cx="820" cy="305" r="8" fill="#ef4444"/><text x="610" y="498" font-family="Arial, sans-serif" font-size="15" fill="#111827">Confirm door track, outlets, ceiling height,</text>
+    <text x="610" y="524" font-family="Arial, sans-serif" font-size="15" fill="#111827">vehicle clearance, and storage depth.</text>
+    <rect x="542" y="548" width="312" height="56" rx="14" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="562" y="582" font-family="Arial, sans-serif" font-size="16" font-weight="800" fill="#14532d">Result: ready for layout draft</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="952" y="132" width="404" height="500" rx="24" fill="#ffffff" stroke="#d8c7b6"/>
+    <rect x="972" y="152" width="364" height="38" rx="12" fill="#dcfce7"/>
+    <text x="992" y="177" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#14532d">3. CAD LAYOUT + STORAGE OPTIONS</text>
+    <rect x="982" y="218" width="344" height="270" rx="14" fill="url(#grid)" stroke="#cbd5e1"/>
+    <rect x="1016" y="254" width="136" height="116" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/><text x="1032" y="312" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#075985">Vehicle lane</text>
+    <rect x="1178" y="254" width="82" height="76" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/><text x="1192" y="294" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#14532d">Tool wall</text>
+    <rect x="1178" y="350" width="82" height="70" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="3"/><text x="1192" y="390" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#7c2d12">Sort table</text>
+    <rect x="1276" y="254" width="34" height="166" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="1288" y="438" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#4c1d95" transform="rotate(-90 1288 438)">Storage</text>
+    <line x1="1016" y1="448" x2="1310" y2="448" stroke="#0f172a" stroke-width="4"/>
+    <text x="1095" y="474" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#0f172a">Storage option A/B/C shown before final approval</text>
+    <rect x="982" y="514" width="344" height="90" rx="16" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="1004" y="544" font-family="Arial, sans-serif" font-size="16" font-weight="800" fill="#111827">Finished deliverable includes:</text>
+    <text x="1004" y="572" font-family="Arial, sans-serif" font-size="14" fill="#111827">✓ CAD-style zones  ✓ measurements needed  ✓ storage options</text>
+    <text x="1004" y="596" font-family="Arial, sans-serif" font-size="14" fill="#111827">✓ next steps  ✓ Rick/owner approval gate</text>
+  </g>
+
+  <rect x="44" y="668" width="1312" height="86" rx="22" fill="#06152b"/>
+  <text x="76" y="704" font-family="Arial, sans-serif" font-size="20" font-weight="800" fill="#ffffff">Flow shown on every finished example:</text>
+  <text x="76" y="735" font-family="Arial, sans-serif" font-size="17" fill="#dbeafe">messy garage pictures in → measurement constraints captured → CAD-style layout with storage options out → Rick Review Required / Owner Approval Required</text>
+</svg>
