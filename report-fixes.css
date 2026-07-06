@@ -1,4 +1,4 @@
-/* Report-driven conversion, scanability, and SEO-support polish */
+/* Report-driven conversion, scanability, and final proof polish */
 .primary-cta {
   box-shadow: 0 16px 34px rgba(200, 95, 40, .34);
   transform: translateY(-1px);
@@ -22,7 +22,6 @@
   color: #fff;
 }
 
-/* Fix the hero area that felt off visually */
 .home-hero,
 .product-hero {
   padding-top: clamp(6.2rem, 10vw, 8.8rem);
@@ -45,34 +44,13 @@
   padding: 1.05rem 1.2rem !important;
 }
 
-.hero-positioning::before {
-  grid-area: icon;
-  margin-top: .05rem;
-}
-
-.hero-positioning strong {
-  grid-area: title;
-  margin: 0 0 .25rem !important;
-  text-align: left !important;
-}
-
-.hero-positioning span {
-  grid-area: copy;
-  text-align: left !important;
-}
-
-.hero .buttons {
-  gap: .7rem;
-  margin-top: 1.25rem;
-}
-
-.hero h1 {
-  max-width: 900px;
-}
-
-.hero-lead {
-  max-width: 820px;
-}
+.hero-positioning::before { grid-area: icon; margin-top: .05rem; }
+.hero-positioning strong { grid-area: title; margin: 0 0 .25rem !important; text-align: left !important; }
+.hero-positioning span { grid-area: copy; text-align: left !important; }
+.hero .buttons { gap: .7rem; margin-top: 1.25rem; }
+.hero h1 { max-width: 900px; }
+.hero-lead { max-width: 820px; }
+.version-stamp { display: block; margin-top: .4rem; opacity: .75; }
 
 .quick-jump {
   display: flex;
@@ -82,7 +60,6 @@
   margin: 0 auto 1.5rem;
   max-width: 980px;
 }
-
 .quick-jump a {
   background: #fffefb;
   border: 1px solid rgba(222, 210, 194, .95);
@@ -94,24 +71,12 @@
   padding: .58rem .78rem;
   text-decoration: none;
 }
-
-.quick-jump a:hover {
-  border-color: rgba(200, 95, 40, .68);
-  box-shadow: 0 12px 24px rgba(34, 27, 20, .09);
-  transform: translateY(-1px);
-}
+.quick-jump a:hover { border-color: rgba(200, 95, 40, .68); box-shadow: 0 12px 24px rgba(34, 27, 20, .09); transform: translateY(-1px); }
 
 .custom-work-panel,
 .faq-panel,
-.case-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.custom-work-panel {
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
-}
-
+.case-grid { display: grid; gap: 1rem; }
+.custom-work-panel { grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr); }
 .custom-work-main,
 .custom-work-side,
 .faq-card,
@@ -123,119 +88,32 @@
   box-shadow: 0 12px 32px rgba(34, 27, 20, .07);
   padding: clamp(1rem, 2vw, 1.25rem);
 }
-
-.custom-work-main {
-  background:
-    radial-gradient(circle at top right, rgba(200, 95, 40, .12), transparent 38%),
-    #fffefb;
-}
-
+.custom-work-main { background: radial-gradient(circle at top right, rgba(200, 95, 40, .12), transparent 38%), #fffefb; }
 .custom-work-main h2,
 .custom-work-side h3,
 .faq-card h3,
 .case-card h3,
-.static-group h3 {
-  letter-spacing: -.035em;
-  line-height: 1.08;
-  margin-bottom: .55rem;
-}
-
+.static-group h3 { letter-spacing: -.035em; line-height: 1.08; margin-bottom: .55rem; }
 .custom-work-main p,
 .custom-work-side p,
 .faq-card p,
 .case-card p,
-.static-group p {
-  color: var(--muted);
-}
-
-.scope-list {
-  display: grid;
-  gap: .65rem;
-  margin-top: 1rem;
-}
-
-.scope-list div {
-  background: #fff6ec;
-  border: 1px solid rgba(200, 95, 40, .14);
-  border-radius: 16px;
-  padding: .75rem;
-}
-
-.scope-list strong {
-  display: block;
-  margin-bottom: .2rem;
-}
-
-.case-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.desk-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.desk-card {
-  color: inherit;
-  min-height: 250px;
-  overflow: hidden;
-  position: relative;
-  text-decoration: none;
-  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
-}
-
-.desk-card::after {
-  background: linear-gradient(90deg, rgba(200, 95, 40, .78), rgba(85, 120, 95, .22));
-  bottom: 0;
-  content: "";
-  height: 5px;
-  left: 0;
-  position: absolute;
-  right: 0;
-}
-
-.desk-card:hover {
-  border-color: rgba(200, 95, 40, .62);
-  box-shadow: 0 18px 44px rgba(34, 27, 20, .12);
-  transform: translateY(-4px);
-}
-
-.desk-card h3 {
-  color: #171717;
-}
-
+.static-group p { color: var(--muted); }
+.scope-list { display: grid; gap: .65rem; margin-top: 1rem; }
+.scope-list div { background: #fff6ec; border: 1px solid rgba(200, 95, 40, .14); border-radius: 16px; padding: .75rem; }
+.scope-list strong { display: block; margin-bottom: .2rem; }
+.case-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.desk-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.desk-card { color: inherit; min-height: 250px; overflow: hidden; position: relative; text-decoration: none; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.desk-card::after { background: linear-gradient(90deg, rgba(200, 95, 40, .78), rgba(85, 120, 95, .22)); bottom: 0; content: ""; height: 5px; left: 0; position: absolute; right: 0; }
+.desk-card:hover { border-color: rgba(200, 95, 40, .62); box-shadow: 0 18px 44px rgba(34, 27, 20, .12); transform: translateY(-4px); }
+.desk-card h3 { color: #171717; }
 .case-card small,
-.static-group small {
-  color: var(--accent-dark);
-  display: block;
-  font-size: .72rem;
-  font-weight: 950;
-  letter-spacing: .09em;
-  margin-bottom: .45rem;
-  text-transform: uppercase;
-}
+.static-group small { color: var(--accent-dark); display: block; font-size: .72rem; font-weight: 950; letter-spacing: .09em; margin-bottom: .45rem; text-transform: uppercase; }
+.faq-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.static-index-groups { display: grid; gap: 1.25rem; }
+.static-group .static-product-grid { margin-top: .8rem; }
 
-.faq-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.static-index-groups {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.static-group .static-product-grid {
-  margin-top: .8rem;
-}
-
-.version-stamp {
-  display: block;
-  margin-top: .4rem;
-  opacity: .75;
-}
-
-/* Compact staged-demo safety badges */
 .sample-card > .safe-labels,
 .sample-block > .safe-labels,
 .case-card > .safe-labels {
@@ -248,7 +126,6 @@
   margin: 0 0 .55rem !important;
   max-width: 100% !important;
 }
-
 .sample-card > .safe-labels span,
 .sample-block > .safe-labels span,
 .case-card > .safe-labels span {
@@ -271,93 +148,48 @@
   white-space: nowrap !important;
   width: auto !important;
 }
-
 .sample-card > .sample-preview,
 .sample-block .mock-screen,
-.case-card .mock-screen {
-  margin-top: .15rem !important;
-}
+.case-card .mock-screen { margin-top: .15rem !important; }
 
-/* Final investor proof split: use the approved proof board as seven individual product visuals. */
+/* Final investor visual: every product example shows the clean flow Rick asked for. */
 .deliverable-section .deliverable-canvas::before {
-  background-image: url("assets/approved-investor-proof-dashboard.png?v=split-7-products");
+  background-color: #fff;
+  background-image: url("assets/final-sample-garage-flow-render.svg?v=garage-cad-flow");
+  background-position: center;
   background-repeat: no-repeat;
-  background-size: 300% auto;
+  background-size: contain;
   border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .10);
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .12);
   content: "";
   display: block;
-  height: clamp(210px, 28vw, 340px);
+  height: clamp(330px, 36vw, 560px);
   margin: 1rem 1rem .75rem;
 }
-
-#problem-snapshot-run .deliverable-canvas::before { background-position: 0% 0%; }
-#basic-layout-run .deliverable-canvas::before { background-position: 50% 0%; }
-#shop-flow-run .deliverable-canvas::before { background-position: 100% 0%; }
-#project-packet-run .deliverable-canvas::before { background-position: 0% 50%; }
-#business-cleanup-run .deliverable-canvas::before { background-position: 50% 50%; }
-#cleanup-rescue-run .deliverable-canvas::before { background-position: 100% 50%; }
-#workflow-opportunity-run .deliverable-canvas::before { background-position: 0% 100%; }
 
 .deliverable-section .deliverable-canvas::after {
   background: #fff4ea;
   border: 1px solid rgba(200, 95, 40, .20);
   border-radius: 999px;
   color: #8a3a18;
-  content: "Split from approved proof board — sample output, not customer work";
+  content: "Rendered flow: messy garage photo input → measurements → CAD layout with storage options";
   display: inline-flex;
-  font-size: .7rem;
+  font-size: .72rem;
   font-weight: 900;
   margin: 0 1rem 1rem;
-  padding: .32rem .6rem;
+  padding: .35rem .65rem;
 }
 
-@media (max-width: 1180px) {
-  .desk-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
-  .custom-work-panel,
-  .case-grid,
-  .faq-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
+@media (max-width: 1180px) { .desk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .custom-work-panel, .case-grid, .faq-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
   .home-hero,
-  .product-hero {
-    padding-top: 5.6rem;
-  }
-
-  .hero-positioning {
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "icon"
-      "title"
-      "copy" !important;
-    max-width: 100% !important;
-  }
-
-  .quick-jump {
-    justify-content: flex-start;
-  }
-
+  .product-hero { padding-top: 5.6rem; }
+  .hero-positioning { grid-template-columns: 1fr !important; grid-template-areas: "icon" "title" "copy" !important; max-width: 100% !important; }
+  .quick-jump { justify-content: flex-start; }
   .quick-jump a,
-  .desk-card {
-    width: 100%;
-  }
-
-  .tertiary-link {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .deliverable-section .deliverable-canvas::before {
-    background-size: 320% auto;
-    height: 220px;
-  }
+  .desk-card { width: 100%; }
+  .tertiary-link { justify-content: center; width: 100%; }
+  .deliverable-section .deliverable-canvas::before { height: 300px; }
 }
