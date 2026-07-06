@@ -27,19 +27,50 @@ BAD_PATHS = [
     "products.html#static-index",
 ]
 
+STALE_PUBLIC_TEXT = [
+    "Shop / CNC Concept",
+    "Digital Setup",
+    "Custom Work Build",
+    "AI Workflow",
+]
+
+STALE_PUBLIC_LINKS = [
+    "sample-workbooks.html#project-packet",
+    "sample-workbooks.html#shop-flow",
+    "sample-workbooks.html#business-cleanup",
+    "sample-workbooks.html#cleanup-rescue",
+    "sample-workbooks.html#ai-workflow",
+    "sample-workbooks.html#custom-work",
+    "sample-workbooks.html#digital-setup",
+    "sample-workbooks.html#shop-cnc",
+]
+
+LOCKED_PRODUCTS = [
+    "Problem Snapshot",
+    "Basic Layout Snapshot",
+    "Shop Flow Review",
+    "Project Packet Lite",
+    "Business Cleanup Starter",
+    "Cleanup Rescue Pack",
+    "Workflow Opportunity Snapshot",
+]
+
 SKIP_DIRS = {".git", "node_modules", "docs", "tests", "shopify", "__pycache__"}
 PUBLIC_EXTS = {".html", ".js", ".css"}
 
 issues = []
+
 
 def should_scan(path: Path) -> bool:
     if path.suffix.lower() not in PUBLIC_EXTS:
         return False
     return not any(part in SKIP_DIRS for part in path.parts)
 
+
 def line_no(text: str, needle: str) -> int:
     idx = text.find(needle)
     return text[:idx].count("\n") + 1 if idx >= 0 else 0
+
 
 files = [p for p in ROOT.rglob("*") if p.is_file() and should_scan(p)]
 
@@ -63,6 +94,14 @@ for path in files:
     for bad_path in BAD_PATHS:
         if bad_path in text:
             issues.append(f"{rel}:{line_no(text,bad_path)} old/broken path reference: {bad_path}")
+
+    for stale_text in STALE_PUBLIC_TEXT:
+        if stale_text in text:
+            issues.append(f"{rel}:{line_no(text,stale_text)} stale removed catalog text: {stale_text}")
+
+    for stale_link in STALE_PUBLIC_LINKS:
+        if stale_link in text:
+            issues.append(f"{rel}:{line_no(text,stale_link)} stale sample-workbook anchor: {stale_link}")
 
     # Check local href/src file targets and anchors.
     for attr, raw in re.findall(r'(href|src)=["\']([^"\']+)["\']', text):
@@ -94,6 +133,15 @@ for path in files:
             if not re.search(rf'id=["\']{re.escape(anchor)}["\']|name=["\']{re.escape(anchor)}["\']', target_text):
                 issues.append(f"{rel}:{line_no(text,raw)} target file exists but anchor missing: {raw}")
 
+examples_path = ROOT / "examples.html"
+if examples_path.exists():
+    examples_text = examples_path.read_text(errors="ignore")
+    for product in LOCKED_PRODUCTS:
+        if product not in examples_text:
+            issues.append(f"examples.html: missing locked catalog product: {product}")
+else:
+    issues.append("examples.html: missing file")
+
 if issues:
     print("VERIFY FAILED")
     print("=" * 60)
@@ -104,3 +152,4 @@ if issues:
 print("VERIFY PASSED")
 print(f"Checked {len(files)} public files.")
 print("Live form:", GOOD_FORM)
+print("Locked catalog:", ", ".join(LOCKED_PRODUCTS))
