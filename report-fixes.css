@@ -152,7 +152,7 @@
 .sample-block .mock-screen,
 .case-card .mock-screen { margin-top: .15rem !important; }
 
-/* Final investor visual: every product example shows the clean flow Rick asked for. */
+/* Legacy deliverable canvas support. */
 .deliverable-section .deliverable-canvas::before {
   background-color: #fff;
   background-image: url("assets/final-sample-garage-flow-render.svg?v=garage-cad-flow");
@@ -167,7 +167,6 @@
   height: clamp(330px, 36vw, 560px);
   margin: 1rem 1rem .75rem;
 }
-
 .deliverable-section .deliverable-canvas::after {
   background: #fff4ea;
   border: 1px solid rgba(200, 95, 40, .20);
@@ -181,6 +180,46 @@
   padding: .35rem .65rem;
 }
 
+/* Repeatable demo-product page: product-specific finished output visuals. */
+.demo-output .visual-frame > img.flow-render {
+  display: none !important;
+}
+
+.demo-output .visual-frame::before {
+  background-color: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  border: 1px solid #cbd5e1;
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .12);
+  content: "";
+  display: block;
+  height: clamp(330px, 36vw, 560px);
+  margin-bottom: .75rem;
+}
+
+#problem-snapshot-output .visual-frame::before { background-image: url("assets/demo-problem-snapshot-output.svg?v=product-visuals"); }
+#basic-layout-output .visual-frame::before { background-image: url("assets/demo-basic-layout-output.svg?v=product-visuals"); }
+#shop-flow-output .visual-frame::before { background-image: url("assets/demo-shop-flow-output.svg?v=product-visuals"); }
+#project-packet-output .visual-frame::before { background-image: url("assets/demo-project-packet-output.svg?v=product-visuals"); }
+#business-cleanup-output .visual-frame::before { background-image: url("assets/demo-business-cleanup-output.svg?v=product-visuals"); }
+#cleanup-rescue-output .visual-frame::before { background-image: url("assets/demo-cleanup-rescue-output.svg?v=product-visuals"); }
+#workflow-opportunity-output .visual-frame::before { background-image: url("assets/demo-workflow-opportunity-output.svg?v=product-visuals"); }
+
+.demo-output .visual-frame::after {
+  background: #fff4ea;
+  border: 1px solid rgba(200, 95, 40, .20);
+  border-radius: 999px;
+  color: #8a3a18;
+  content: "Finished draft visual — Sample output, not customer work";
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 900;
+  margin-bottom: .75rem;
+  padding: .35rem .65rem;
+}
+
 @media (max-width: 1180px) { .desk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .custom-work-panel, .case-grid, .faq-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
@@ -191,5 +230,6 @@
   .quick-jump a,
   .desk-card { width: 100%; }
   .tertiary-link { justify-content: center; width: 100%; }
-  .deliverable-section .deliverable-canvas::before { height: 300px; }
+  .deliverable-section .deliverable-canvas::before,
+  .demo-output .visual-frame::before { height: 300px; }
 }
