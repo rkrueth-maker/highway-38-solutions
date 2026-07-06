@@ -152,6 +152,25 @@
 .sample-block .mock-screen,
 .case-card .mock-screen { margin-top: .15rem !important; }
 
+/* Demo system overview visual from chat review. */
+.proof-card .dashboard-card img[src*="approved-investor-proof-dashboard"] {
+  display: none !important;
+}
+.proof-card .dashboard-card::before {
+  background-color: #020617;
+  background-image: url("assets/h38-demo-overview-v1.svg?v=chat-review-v1");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  border: 1px solid #1e3a8a;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .18);
+  content: "";
+  display: block;
+  min-height: clamp(360px, 52vw, 760px);
+  width: 100%;
+}
+
 /* Legacy deliverable canvas support. */
 .deliverable-section .deliverable-canvas::before {
   background-color: #fff;
@@ -232,4 +251,5 @@
   .tertiary-link { justify-content: center; width: 100%; }
   .deliverable-section .deliverable-canvas::before,
   .demo-output .visual-frame::before { height: 300px; }
+  .proof-card .dashboard-card::before { min-height: 260px; }
 }
