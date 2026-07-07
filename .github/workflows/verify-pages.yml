@@ -1,0 +1,61 @@
+name: Verify Version 5 live page
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Highway 38 site to GitHub Pages
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-v5-live:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    env:
+      VERIFY_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html?v=v5-ladder-final
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Wait for GitHub Pages propagation
+        run: sleep 60
+
+      - name: Run live page verification script
+        run: node scripts/verify-live-page.js
+
+      - name: Add verification summary
+        if: always()
+        run: |
+          echo "## Version 5 live page verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**URL tested:** $VERIFY_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Required strings checked:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version 5 package ladder add-on" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version 5 package ladder" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \$500 Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \$1,000 Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \$1,500 Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \$2,000 Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \$2,500 Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Legal / approval notice" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Rick Review Required / Owner Approval Required" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Forbidden strings checked (must NOT appear):**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- automatically sends customer emails" >> "$GITHUB_STEP_SUMMARY"
+          echo "- automatically approves quotes" >> "$GITHUB_STEP_SUMMARY"
+          echo "- payment requested automatically" >> "$GITHUB_STEP_SUMMARY"
+          echo "- final delivery without Rick approval" >> "$GITHUB_STEP_SUMMARY"
+          echo "- fully autonomous real-customer automation" >> "$GITHUB_STEP_SUMMARY"

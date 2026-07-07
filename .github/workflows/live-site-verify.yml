@@ -21,6 +21,7 @@ jobs:
       SITE_URL: https://rkrueth-maker.github.io/highway-38-solutions/index.html
       SAMPLE_LIBRARY_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-library.html
       SAMPLE_RESULTS_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-workbooks.html
+      SAMPLE_LIBRARY_NOW_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html?v=v5-ladder-final
       FORM_URL: https://docs.google.com/forms/d/e/1FAIpQLScTWaK40mNNaf1ek3w4gC3VYwvpNT9fnXlHodKeOZl7lPfCyQ/viewform
 
     steps:
