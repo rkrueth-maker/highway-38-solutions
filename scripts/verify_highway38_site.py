@@ -27,25 +27,25 @@ BAD_PATHS = [
     "products.html#static-index",
 ]
 
-STALE_PUBLIC_TEXT = [
+BAD_PUBLIC_STRINGS = [
     "Shop / CNC Concept",
     "Digital Setup",
     "Custom Work Build",
     "AI Workflow",
 ]
 
-STALE_PUBLIC_LINKS = [
-    "sample-workbooks.html#project-packet",
-    "sample-workbooks.html#shop-flow",
-    "sample-workbooks.html#business-cleanup",
-    "sample-workbooks.html#cleanup-rescue",
-    "sample-workbooks.html#ai-workflow",
-    "sample-workbooks.html#custom-work",
-    "sample-workbooks.html#digital-setup",
-    "sample-workbooks.html#shop-cnc",
+BAD_PUBLIC_REGEXES = [
+    r'sample-workbooks\.html#project-packet(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#shop-flow(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#business-cleanup(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#cleanup-rescue(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#ai-workflow(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#custom-work(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#digital-setup(?=["\'?#\s>]|$)',
+    r'sample-workbooks\.html#shop-cnc(?=["\'?#\s>]|$)',
 ]
 
-LOCKED_PRODUCTS = [
+EXAMPLES_REQUIRED_STRINGS = [
     "Problem Snapshot",
     "Basic Layout Snapshot",
     "Shop Flow Review",
@@ -78,6 +78,19 @@ for path in files:
     text = path.read_text(errors="ignore")
     rel = path.relative_to(ROOT)
 
+    if path.name == "examples.html":
+        for required in EXAMPLES_REQUIRED_STRINGS:
+            if required not in text:
+                issues.append(f"{rel}:{line_no(text,required)} missing required examples text: {required}")
+
+    for bad_text in BAD_PUBLIC_STRINGS:
+        if bad_text in text:
+            issues.append(f"{rel}:{line_no(text,bad_text)} stale public text: {bad_text}")
+
+    for bad_pattern in BAD_PUBLIC_REGEXES:
+        if re.search(bad_pattern, text):
+            issues.append(f"{rel}:{line_no(text,bad_pattern)} stale public anchor: {bad_pattern}")
+
     for bad_id in BAD_FORM_IDS:
         if bad_id in text:
             issues.append(f"{rel}:{line_no(text,bad_id)} old/wrong form id: {bad_id}")
@@ -94,14 +107,6 @@ for path in files:
     for bad_path in BAD_PATHS:
         if bad_path in text:
             issues.append(f"{rel}:{line_no(text,bad_path)} old/broken path reference: {bad_path}")
-
-    for stale_text in STALE_PUBLIC_TEXT:
-        if stale_text in text:
-            issues.append(f"{rel}:{line_no(text,stale_text)} stale removed catalog text: {stale_text}")
-
-    for stale_link in STALE_PUBLIC_LINKS:
-        if stale_link in text:
-            issues.append(f"{rel}:{line_no(text,stale_link)} stale sample-workbook anchor: {stale_link}")
 
     # Check local href/src file targets and anchors.
     for attr, raw in re.findall(r'(href|src)=["\']([^"\']+)["\']', text):
@@ -133,15 +138,6 @@ for path in files:
             if not re.search(rf'id=["\']{re.escape(anchor)}["\']|name=["\']{re.escape(anchor)}["\']', target_text):
                 issues.append(f"{rel}:{line_no(text,raw)} target file exists but anchor missing: {raw}")
 
-examples_path = ROOT / "examples.html"
-if examples_path.exists():
-    examples_text = examples_path.read_text(errors="ignore")
-    for product in LOCKED_PRODUCTS:
-        if product not in examples_text:
-            issues.append(f"examples.html: missing locked catalog product: {product}")
-else:
-    issues.append("examples.html: missing file")
-
 if issues:
     print("VERIFY FAILED")
     print("=" * 60)
@@ -152,4 +148,3 @@ if issues:
 print("VERIFY PASSED")
 print(f"Checked {len(files)} public files.")
 print("Live form:", GOOD_FORM)
-print("Locked catalog:", ", ".join(LOCKED_PRODUCTS))

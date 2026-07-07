@@ -1308,8 +1308,11 @@ def _is_public_site_file(filename):
         return False
 
     # Serve known top-level files used by the public landing page.
-    if len(parts) == 1 and parts[0] in PUBLIC_ROOT_FILES:
+    if len(parts) == 1:
+      if parts[0] in PUBLIC_ROOT_FILES:
         return True
+      # Allow all top-level HTML pages for the public website.
+      return Path(parts[0]).suffix.lower() == ".html"
 
     # Serve public subdirectories (images and sample downloads).
     return parts[0] in PUBLIC_SUBDIRS

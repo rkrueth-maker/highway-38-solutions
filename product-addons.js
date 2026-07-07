@@ -254,7 +254,7 @@ const deeperProducts = [
   {
     cat: "Operating System",
     tag: "Custom work",
-    title: "Custom Work Build",
+    title: "custom work",
     id: "custom-work-build",
     price: "Quoted after review / $250+ minimum",
     summary: "A scoped custom build for useful work that does not fit a standard Highway 38 product card.",

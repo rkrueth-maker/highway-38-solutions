@@ -15,7 +15,7 @@ const products = [
     steps: [["Review", "Read and group the messy details."], ["Sort", "Separate known facts from missing information."], ["Plan", "Pick the first useful move."], ["Deliver", "Send the written snapshot."]],
     out: [["Area", "Problem", "Next"], ["Project", "Unclear first step", "Send snapshot"], ["Info", "Missing measurements", "Request details"]],
     done: "The customer knows what to do next.",
-    scale: "Project Packet, Shop Flow Review, or Custom Work Build."
+    scale: "Project Packet, Shop Flow Review, or custom work."
   },
   {
     cat: "Project",
@@ -31,7 +31,7 @@ const products = [
     steps: [["Scope", "Define the finish line."], ["Break down", "Split work into phases."], ["List", "Group materials and decisions."], ["Deliver", "Send project packet."]],
     out: [["Phase", "Task", "Decision"], ["1", "Measure", "Final size"], ["2", "Buy", "Budget"], ["3", "Build", "Location"]],
     done: "The customer can buy materials and start in the right order.",
-    scale: "Shop Flow Review or Custom Work Build."
+    scale: "Shop Flow Review or custom work."
   },
   {
     cat: "Shop",
@@ -63,12 +63,12 @@ const products = [
     steps: [["Offer", "Clarify services."], ["Intake", "Build form questions."], ["Track", "Create statuses."], ["Reply", "Deliver templates."]],
     out: [["Piece", "Use", "Next"], ["Form", "Capture requests", "Review"], ["Tracker", "See status", "Follow up"]],
     done: "The owner can take requests and see what needs attention.",
-    scale: "Local Service Operating System or Custom Work Build."
+    scale: "Local Service Operating System or custom work."
   },
   {
     cat: "Digital",
-    tag: "Digital Setup Packet",
-    title: "Digital Setup Packet",
+    tag: "digital setup packet",
+    title: "digital setup packet",
     id: "website-landing-page",
     price: "$250-$750",
     summary: "Website outline, page copy, AI prompts, form layout, and basic automation plan.",
@@ -79,12 +79,12 @@ const products = [
     steps: [["Clarify", "Pick the offer."], ["Structure", "Build page sections."], ["Write", "Draft copy."], ["Connect", "Add request path."]],
     out: [["Section", "Purpose", "Action"], ["Hero", "Explain offer", "Start request"], ["Services", "Show choices", "Pick package"]],
     done: "The customer has a clear online setup path.",
-    scale: "Business Cleanup Packet or Custom Work Build."
+    scale: "Business Cleanup Packet or custom work."
   },
   {
     cat: "Custom",
-    tag: "Custom Work Build",
-    title: "Custom Work Build",
+    tag: "custom work",
+    title: "custom work",
     id: "custom-work-build",
     price: "Quoted / $250+ minimum",
     summary: "Scoped custom tracker, dashboard, packet, form, page, layout, calculator, checklist, or simple system.",

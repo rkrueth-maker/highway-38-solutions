@@ -446,6 +446,16 @@ nav {
   font-weight: 950;
 }
 
+.product-proof-card,
+.proof-intro,
+.example-card {
+  scroll-margin-top: 92px;
+}
+
+html {
+  scroll-padding-top: 92px;
+}
+
 .product {
   scroll-margin-top: 92px;
   border-radius: 28px;
