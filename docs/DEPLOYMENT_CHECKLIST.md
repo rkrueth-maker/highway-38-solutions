@@ -25,7 +25,7 @@ Use this checklist every time you launch or update the live site.
   - No "payment requested automatically"
   - No "final delivery without Rick approval"
   - No "fully autonomous real-customer automation"
-- [ ] Local verification script passes: `python scripts/verify_highway38_site.py`
+- [ ] Local verification script passes: `node scripts/verify-live-page.js`
 
 ---
 
