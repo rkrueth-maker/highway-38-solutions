@@ -48,6 +48,11 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Marker string that must appear in the candidate page and helps detect already-live deploys",
     )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Allow dirty working trees and local divergence checks (useful for explicit diagnostics)",
+    )
     parser.add_argument("--skip-fetch", action="store_true", help="Skip git fetch origin")
     return parser.parse_args()
 
@@ -74,7 +79,7 @@ def main() -> int:
         if not page_path.exists():
             return verdict("BLOCKED", "LOCAL", details + [f"Missing local page: {args.page}"], 1)
 
-        if any(line and not line.startswith("##") for line in status.splitlines()):
+        if not args.allow_dirty and any(line and not line.startswith("##") for line in status.splitlines()):
             return verdict(
                 "BLOCKED",
                 "LOCAL",
@@ -82,7 +87,7 @@ def main() -> int:
                 1,
             )
 
-        if merge_base != origin_main_full:
+        if not args.allow_dirty and merge_base != origin_main_full:
             return verdict(
                 "BLOCKED",
                 "LOCAL+ORIGIN_MAIN",
