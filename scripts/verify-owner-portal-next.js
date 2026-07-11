@@ -55,7 +55,9 @@ function verifyDeployScript(file,mode){
   const deploy=fs.readFileSync(file,'utf8');
   const bash=cp.spawnSync('bash',['-n',file],{encoding:'utf8'});
   check(mode+' deploy script syntax',bash.status===0,bash.stderr||bash.stdout);
-  check(mode+' creates standalone webapp',/clasp create --type webapp/.test(deploy));
+  check(mode+' creates standalone Apps Script project',/clasp create --type standalone/.test(deploy));
+  check(mode+' rejects invalid webapp container type',!/clasp create --type webapp/.test(deploy));
+  check(mode+' validates clasp project settings',deploy.includes('if [[ ! -f .clasp.json ]]'));
   check(mode+' pushes source',/clasp push --force/.test(deploy));
   check(mode+' creates owner-only deployment',/clasp deploy/.test(deploy));
   check(mode+' runs environment status',deploy.includes('clasp run h38PortalEnvironmentStatus'));

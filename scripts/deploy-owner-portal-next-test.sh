@@ -26,7 +26,15 @@ node "${WORK_ROOT}/repo/scripts/verify-owner-portal-next.js"
 
 mkdir -p "${PROJECT_DIR}"
 cd "${PROJECT_DIR}"
-clasp create --type webapp --title "${TITLE}" --rootDir .
+clasp create --type standalone --title "${TITLE}" --rootDir .
+
+if [[ ! -f .clasp.json ]]; then
+  echo "STOP — clasp did not create .clasp.json. No project source or deployment was created."
+  exit 1
+fi
+
+echo "Apps Script project created:"
+cat .clasp.json
 
 rm -f Code.js
 cp "${SOURCE_DIR}"/*.js .
