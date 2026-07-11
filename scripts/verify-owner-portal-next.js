@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 'use strict';
-const fs=require('fs');const path=require('path');const vm=require('vm');
-const root=path.resolve(__dirname,'../apps-script/core-engine/owner-portal-next');
+const fs=require('fs');const path=require('path');const vm=require('vm');const cp=require('child_process');
+const repo=path.resolve(__dirname,'..');
+const root=path.join(repo,'apps-script/core-engine/owner-portal-next');
+const deployScript=path.join(repo,'scripts/deploy-owner-portal-next-test.sh');
+const runbook=path.join(root,'RUNTIME_TEST_RUNBOOK.md');
 const required=['appsscript.json','Portal_Config.js','Portal_Environment.js','Portal_Repository.js','Portal_Catalog.js','Portal_Services.js','Portal_Actions.js','Portal_Adapters.js','Portal_LogApi.js','Portal_SelfTest.js','Portal_TestFixtures.js','Portal_Index.html','README.md'];
 const failures=[];const pass=[];
 function check(name,condition,detail=''){if(condition)pass.push({name,detail});else failures.push({name,detail});}
 required.forEach(f=>check('file '+f,fs.existsSync(path.join(root,f))));
+check('runtime deploy script exists',fs.existsSync(deployScript));
+check('runtime runbook exists',fs.existsSync(runbook));
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'appsscript.json'),'utf8'));
 check('manifest timezone',manifest.timeZone==='America/Chicago',manifest.timeZone);
-check('manifest owner-only',manifest.webapp&&manifest.webapp.access==='MYSELF',manifest.webapp&&manifest.webapp.access);
+check('manifest webapp owner-only',manifest.webapp&&manifest.webapp.access==='MYSELF',manifest.webapp&&manifest.webapp.access);
+check('manifest execution api owner-only',manifest.executionApi&&manifest.executionApi.access==='MYSELF',manifest.executionApi&&manifest.executionApi.access);
 const jsFiles=required.filter(f=>f.endsWith('.js'));
 const all=jsFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 check('15 product IDs',(all.match(/H38-P\d{3}/g)||[]).filter((v,i,a)=>a.indexOf(v)===i).length===15);
@@ -37,4 +43,17 @@ const duplicates=names.filter((n,i,a)=>a.indexOf(n)!==i).filter((n,i,a)=>a.index
 check('zero duplicate server functions',duplicates.length===0,duplicates.join(','));
 const dangerous=['GmailApp.sendEmail','MailApp.sendEmail','UrlFetchApp.fetch','ScriptApp.newTrigger'];
 check('no dangerous external-action patterns',dangerous.every(p=>!all.includes(p)),dangerous.filter(p=>all.includes(p)).join(','));
+if(fs.existsSync(deployScript)){
+  const deploy=fs.readFileSync(deployScript,'utf8');
+  const bash=cp.spawnSync('bash',['-n',deployScript],{encoding:'utf8'});
+  check('runtime deploy script syntax',bash.status===0,bash.stderr||bash.stdout);
+  check('runtime requires test spreadsheet env',deploy.includes('H38_TEST_SPREADSHEET_ID'));
+  check('runtime creates standalone webapp',/clasp create --type webapp/.test(deploy));
+  check('runtime pushes candidate source',/clasp push --force/.test(deploy));
+  check('runtime creates test deployment',/clasp deploy/.test(deploy));
+  check('runtime configures exact TEST gate',deploy.includes('CONFIGURE NON-DEPLOYED TEST ENVIRONMENT'));
+  check('runtime runs environment status',deploy.includes('clasp run h38PortalEnvironmentStatus'));
+  check('runtime runs self-test',deploy.includes('clasp run h38PortalSelfTest'));
+  check('runtime excludes live spreadsheet id',!deploy.includes('1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo'));
+}
 const result={status:failures.length?'FAIL':'PASS',passed:pass.length,failed:failures.length,serverFiles:jsFiles.length,namedFunctions:names.length,duplicateFunctions:duplicates,failures};console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);
