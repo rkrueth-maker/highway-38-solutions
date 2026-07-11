@@ -8,21 +8,25 @@
 - test mode on and live external actions off
 - no trigger creation or raw card-data patterns
 - selected-record document lock
-- Proof Log and Error Log writers
+- Proof Log and Error Log writers and owner-only readers
 - Catalog Mismatch Hold
 - full module inventory
 - server and browser JavaScript parse checks
-- mobile viewport, responsive CSS, global search, and task workspace markers
+- mobile viewport and responsive CSS
+- global search and selected-task workspace
+- controlled internal record creation controls
 
 ## Automated result
 
 - Status: **PASS**
-- Checks passed: **37**
+- Checks passed: **41**
 - Checks failed: **0**
-- Apps Script JavaScript files: **8**
-- Named function declarations: **59**
-- Duplicate function declarations: **0**
+- Apps Script JavaScript files: **9**
+- Named server function declarations: **61**
+- Duplicate server function declarations: **0**
 - Dangerous external-action patterns: **0**
+
+The final source-equivalent candidate suite was rerun after adding the public Proof/Error readers and internal record-creation controls.
 
 ## Manual copied-environment tests still required
 
