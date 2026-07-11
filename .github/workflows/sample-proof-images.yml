@@ -50,19 +50,14 @@ jobs:
             > raster-proof-artifacts/raster-proof-report.txt
 
           "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --virtual-time-budget=5000 --window-size=1440,1200 \
-            --screenshot=raster-proof-artifacts/problem-snapshot-raster.png \
-            'http://127.0.0.1:8000/sample-library-now.html#sample-problem-snapshot'
+            --virtual-time-budget=5000 --window-size=1440,3400 \
+            --screenshot=raster-proof-artifacts/all-raster-proofs.png \
+            'http://127.0.0.1:8000/tests/fixtures/raster-proof-review.html'
 
           "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --virtual-time-budget=5000 --window-size=1440,1200 \
-            --screenshot=raster-proof-artifacts/digital-workflow-raster.png \
-            'http://127.0.0.1:8000/sample-library-now.html#sample-digital-workflow-build'
-
-          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --virtual-time-budget=5000 --window-size=390,844 \
-            --screenshot=raster-proof-artifacts/mobile-raster.png \
-            'http://127.0.0.1:8000/sample-library-now.html#sample-shop-flow-review'
+            --virtual-time-budget=5000 --window-size=390,7000 \
+            --screenshot=raster-proof-artifacts/mobile-raster-proofs.png \
+            'http://127.0.0.1:8000/tests/fixtures/raster-proof-review.html'
 
       - name: Upload raster proof report and screenshots
         if: always()
