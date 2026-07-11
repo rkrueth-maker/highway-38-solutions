@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check catalog-data.js
           node --check commercial.js
+          node --check sample-print.js
           node --check scripts/verify-commercial-system.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
