@@ -2,65 +2,100 @@
 
 ## Runtime architecture
 
-The Owner Review Portal is a container-bound Apps Script project with a private Web App, a spreadsheet menu, selected-row actions, and a separately versioned Apps Script library identified as `H38OSLIB`.
+The system spans three Apps Script dependency layers:
 
-The bound project is now exported under `apps-script/core-engine/owner-review-portal/`. The separate library source is not included in a bound-project `clasp pull` and requires its own export.
+1. the container-bound Owner Review Portal project;
+2. `H38OSLIB`, pinned to immutable version 1;
+3. nested `H38OwnerLib`, pinned by the version-1 manifest to version 9.
 
-## Automated export audit
+The complete bound project and a checksum-verifiable exact archive of H38OSLIB version 1 are now in GitHub. `H38OwnerLib` version 9 remains live-only.
 
-The 2026-07-11 export contained nine files. Automated checks produced these results:
+## Bound-project audit
 
-- Runtime file inventory: PASS — 8 code/UI files plus `appsscript.json`.
-- JavaScript syntax: PASS for all seven server `.js` files and `Code.js`.
-- Web App browser-script syntax: PASS.
-- Manifest JSON syntax: PASS.
-- Duplicate server function declarations: PASS — zero duplicates.
-- Menu function references: PASS — 20 of 20 menu items resolve to declared bound-project functions.
-- Menu builders: PASS — one `onOpen` and one `buildOwnerPortalMenu`.
-- Wrapper-to-library references: PASS structurally — `H38OS_executeApprovedSelectedRow` and `H38OS_updateDashboard` are the two referenced library functions.
-- Web App entry point: PASS — `doGet` renders `H38_WebApp_Index`.
-- Manifest Web App restriction: PASS — execute as deploying user, access `MYSELF`.
-- Trigger scan: PASS — no trigger creation, deletion, or enablement code found.
-- Secret scan: PASS — no API keys, OAuth tokens, passwords, private keys, or session credentials found.
-- Private customer-data scan: PASS — no customer records, customer emails, phone numbers, Gmail customer message IDs, or private job-folder links found.
-- Exact source consistency: PASS for the nine exported files, confirmed by Git blob hashes.
+The nine-file bound export passed:
 
-## Approved-send implementation
+- JavaScript and browser-script syntax
+- manifest JSON
+- zero duplicate server function declarations
+- 20 of 20 menu references resolved
+- one active menu builder
+- Web App `doGet` entry
+- private Web App access setting
+- no trigger-creation code
+- no secrets or private customer records
+- exact Git blob consistency
 
-`h38OwnerApprovedSendSelectedDraft` was preserved byte-for-byte. It remains selected-row only, restricted to `Email Approval Queue`, and requires:
+The strict bound-project function `h38OwnerApprovedSendSelectedDraft` remains selected-row only and requires exact Rick approval, `Send Allowed = Yes`, no prior send, lock, or proof, a valid Gmail draft, and a matching recipient.
 
-- `Rick Decision = APPROVE SEND`
-- `Send Allowed = Yes`
-- no prior sent time
-- no active duplicate/send lock
-- no prior `PROOF-SENT` proof ID
-- a Gmail draft recipient matching the queue recipient
+## H38OSLIB version-1 archive
 
-The function writes Proof Log on success and Error Log when blocked. No email was sent during the export or audit.
+The version-specific Apps Script API export produced ten files, including `H38_OS_Library_Core.js`. The original ZIP is preserved losslessly as ordered base64 parts and reconstructed by `apps-script/core-engine/h38oslib/version-1-archive/reconstruct.sh`.
 
-## Web App safety behavior
+Archive integrity:
 
-The Web App routes only one explicit queue row at a time under a document lock. Each action route requires the exact approval status and decision, then applies the duplicate lock. Output, social, and website routes prepare drafts or handoffs rather than performing final delivery, social publication, or website deployment.
+- original size: 45,581 bytes
+- SHA-256: `acaf97d9f2aeaf3a78e435c88cb7cd700d5255322cf365e8d89c842399db705c`
+- entries: 10
 
-The existing deployment URL was not changed and no new deployment was created.
+Automated source results:
 
-## Preserved deprecated behavior
+- JavaScript syntax: PASS for all nine JavaScript files
+- manifest JSON: PASS
+- `H38OS_executeApprovedSelectedRow` definition: PASS
+- `H38OS_updateDashboard` definition: PASS
+- trigger-creation scan: PASS
+- secret scan: PASS
+- private customer-data scan: PASS
+- named function declarations: 230
+- duplicated function names: 6
+- `onOpen` declarations: 4
+- menu references: 42
+- unresolved menu targets: 1
+- manifest timezone: `America/Chicago`
 
-`h38MenuV6ProcessSelectedIntakeRow` and `h38MenuV6SyncLatestFormResponse` remain HOLD-only stubs. Other `h38MenuV6*` functions remain compatibility wrappers. Missing dynamic targets display HOLD rather than silently performing a different action.
+## Immutable-version rule
 
-## Confirmed configuration conflicts not altered in the exact export
+Version 1 is already pinned and cannot be edited in place. Confirmed conflicts were documented rather than silently altered. Any correction requires cleaned candidate source, regression tests, a new Apps Script library version, an intentional bound-manifest update, and verification before live execution.
 
-The live manifest uses `America/New_York`, while `H38_WEBAPP_CONFIG.TIMEZONE` uses `Etc/GMT`. The operating timezone for this system is `America/Chicago`. This is a confirmed configuration inconsistency, but the exported files were committed exactly as pulled so GitHub and the bound live project remain comparable. Correcting the timezone requires a synchronized source change and clasp push; it must not be changed in only one location.
+No new library version or deployment was created during this export.
 
-The private Web App server has a separate `executeEmail_` route in addition to the menu's `h38OwnerApprovedSendSelectedDraft` path. Both require owner approval and duplicate locks. The menu path additionally performs an explicit draft-recipient comparison. This parity difference is documented and was not changed during a source-export-only operation.
+## Core execution safety and parity
 
-## Separate library blocker
+`H38_OS_Library_Core.js` performs one-row routing under a document lock, validates owner approval, checks required fields and duplicate signals, and writes proof or error records.
 
-The manifest pins this dependency:
+Confirmed email-path differences:
 
-- Symbol: `H38OSLIB`
-- Version: `1`
-- Development mode: `false`
-- Library ID: recorded in `appsscript.json`
+- the library core does not require `Send Allowed = Yes`;
+- the library core does not compare the Gmail draft recipient with the selected queue-row recipient.
 
-`H38_OS_Library_Core` remains inside that separate library project. Until that project is pulled and committed, GitHub is the complete source of truth for the bound Owner Review Portal project but not yet for the full multi-project runtime.
+The bound-project `h38OwnerApprovedSendSelectedDraft` remains the stricter preferred email action. The immutable library was not modified.
+
+## Historical duplicate findings
+
+Version 1 duplicates:
+
+- `h38OwnerApprovedSendSelectedDraft`
+- `onOpen`
+- `h38OwnerRouteSelectedNewRequest`
+- `h38OwnerApproveSelectedWebsiteItem`
+- `h38OwnerApprovedSendSelectedFollowUp`
+- `h38OwnerApproveSelectedSocialItem`
+
+The historical menu target `runOwnerReviewRouterForSelectedRow` is unresolved.
+
+## Configuration findings
+
+- bound manifest timezone: `America/New_York`
+- bound Web App configuration timezone: `Etc/GMT`
+- H38OSLIB version-1 timezone: `America/Chicago`
+- intended operating timezone: `America/Chicago`
+
+The inconsistency remains documented and unchanged because a partial GitHub-only edit would break source parity.
+
+## Remaining transitive dependency
+
+The H38OSLIB version-1 manifest pins `H38OwnerLib` version 9. Until version 9 is exported, GitHub is authoritative for the complete bound project and the exact H38OSLIB version used by it, but not every transitive runtime dependency.
+
+## Safety actions not performed
+
+No email was sent. No trigger was enabled. No payment was requested. No final work was delivered. No website or social content was published. No Web App deployment or Apps Script library version was created.

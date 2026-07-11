@@ -1,38 +1,52 @@
 # Highway 38 Operating System — Menu Map
 
+## Active bound-project menu
+
 Current menu label: `H38 Owner Portal`.
 
-The pulled bound project contains one `onOpen` function and one `buildOwnerPortalMenu` function. Every menu item references a function declared in the pulled project.
+The bound project contains one active `onOpen` and one `buildOwnerPortalMenu`. Every one of its 20 menu items resolves to a declared bound-project function.
 
 | Menu group | Menu item | Menu function | Routed target | Classification |
 |---|---|---|---|---|
 | Dashboard | Refresh Owner Dashboard | `h38MenuV6RefreshOwnerDashboard` | `h38RefreshOwnerDashboard` | Current wrapper |
 | Intake | Process Selected Intake Row | `h38MenuV6ProcessSelectedIntakeRow` | HOLD alert only | Deprecated HOLD stub |
 | Intake | Sync Latest Form Response | `h38MenuV6SyncLatestFormResponse` | HOLD alert only | Deprecated HOLD stub |
-| Owner Review | Show Safe Next Action For Selected Row | `h38MenuV6ShowSafeAction` | `h38OwnerActionRouterShowSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Owner Review | Approve Selected Row | `h38MenuV6ApproveSelectedRow` | `approveSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Owner Review | Hold Selected Row | `h38MenuV6HoldSelectedRow` | `holdSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Owner Review | Revise Selected Row | `h38MenuV6ReviseSelectedRow` | `reviseSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Owner Review | Reject Selected Row | `h38MenuV6RejectSelectedRow` | `rejectSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Email | Create Gmail Draft From Selected Row | `h38MenuV6CreateGmailDraftFromSelectedRow` | `h38CreateGmailDraftFromSelectedRow` | Compatibility dispatch; HOLD when absent |
-| Email | Send Approved Gmail Draft | `h38MenuV6SendApprovedGmailDraft` | `h38OwnerApprovedSendSelectedDraft` | Current owner-approved send path |
-| Quote | Prepare Quote Email Draft | `h38MenuV6PrepareQuoteEmailDraft` | `h38PrepareQuoteEmailDraft` | Compatibility dispatch; HOLD when absent |
-| Quote | Mark Quote Ready For Review | `h38MenuV6MarkQuoteReadyForReview` | `h38MarkQuoteReadyForReview` | Compatibility dispatch; HOLD when absent |
-| Follow-Up | Create Follow-Up Draft | `h38MenuV6CreateFollowUpDraft` | `h38CreateFollowUpDraft` | Compatibility dispatch; HOLD when absent |
-| Follow-Up | Mark Follow-Up Complete | `h38MenuV6MarkFollowUpComplete` | `h38MarkFollowUpComplete` | Compatibility dispatch; HOLD when absent |
-| Proof / Error | Write Manual Proof Note | `h38MenuV6WriteManualProofNote` | `h38WriteManualProofNote` | Compatibility dispatch; HOLD when absent |
-| Proof / Error | Send Selected Row To Error Log | `h38MenuV6SendSelectedRowToErrorLog` | `h38SendSelectedRowToErrorLog` | Compatibility dispatch; HOLD when absent |
-| Tools | Check Customer Replies V2 | `h38MenuV6CheckCustomerRepliesV2` | `h38CheckCustomerRepliesV2` | Compatibility dispatch; HOLD when absent |
-| Tools | Menu Safety Status | `h38MenuV6SafetyStatus` | Local safety alert | Current diagnostic |
-| Tools | Run System Self Verification | `h38RunSystemSelfVerification` | Local verification routine | Current diagnostic |
-| Execution | Execution Safety Status | `h38ExecutionSafetyStatus` | Local safety alert | Current diagnostic |
+| Owner Review | Show Safe Next Action | `h38MenuV6ShowSafeAction` | dynamic target | Compatibility dispatch; HOLD when absent |
+| Owner Review | Approve/Hold/Revise/Reject | corresponding `h38MenuV6*` wrapper | dynamic target | Compatibility dispatch; HOLD when absent |
+| Email | Send Approved Gmail Draft | `h38MenuV6SendApprovedGmailDraft` | `h38OwnerApprovedSendSelectedDraft` | Current strict send path |
+| Tools | Run System Self Verification | `h38RunSystemSelfVerification` | local verification | Current diagnostic |
 | Execution | Execute Approved Selected Row | `h38ExecuteApprovedSelectedRow` | `H38OSLIB.H38OS_executeApprovedSelectedRow` | Current library wrapper |
 
-## Reference checks
+Bound menu results:
 
-- Menu items found: 20.
-- Missing menu function references: 0.
-- Active menu builders: 1.
-- Duplicate menu builders: 0.
-- The compatibility dispatcher must continue to show HOLD when its dynamic target is missing.
-- The two Intake functions remain HOLD-only and deprecated.
+- menu items: 20
+- missing references: 0
+- active menu builders: 1
+- duplicate menu builders: 0
+
+## H38OSLIB version-1 historical menu source
+
+The complete immutable archive contains historical menu/router files in addition to the active bound-project menu.
+
+Automated results:
+
+- menu references: 42
+- `onOpen` declarations: 4
+- duplicated function names: 6
+- unresolved menu targets: 1
+
+Unresolved target:
+
+- `runOwnerReviewRouterForSelectedRow`
+
+The historical version-1 menu sources were archived exactly and were not rewritten. They are compatibility/history source, not the preferred menu implementation for a new installation.
+
+## Migration rule
+
+A future cleanup must:
+
+1. create a new library version;
+2. retain the bound-project menu as the sole active menu builder;
+3. remove or rename duplicates only after regression testing;
+4. keep missing targets HOLD-only;
+5. intentionally update the bound manifest only after validation.

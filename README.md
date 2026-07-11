@@ -1,14 +1,15 @@
 # Highway 38 Solutions
 
-This repository contains the Highway 38 Solutions public website, exported Core Engine source, and consolidated operator/developer/transfer documentation.
+This repository contains the Highway 38 Solutions public website, exported Core Engine source, and consolidated operator, developer, and transfer documentation.
 
-## Source-of-truth split
+## Source-of-truth layers
 
 ### Reusable Core Engine
 
 - Owner Review Portal queue and status model
 - owner-approval and selected-row execution rules
 - complete bound Owner Review Portal Apps Script export
+- exact immutable H38OSLIB version-1 archive
 - Gmail draft/send controls
 - Proof Log and Error Log requirements
 - installation, maintenance, recovery, and transfer documentation
@@ -59,7 +60,12 @@ This repository contains the Highway 38 Solutions public website, exported Core 
 
 ## Apps Script source scope
 
-GitHub is authoritative for the complete exported bound Owner Review Portal project under `apps-script/core-engine/owner-review-portal/`. The separately versioned `H38OSLIB` library project remains authoritative for `H38_OS_Library_Core` until that library is independently pulled and committed.
+GitHub is authoritative for:
+
+- the complete bound Owner Review Portal project under `apps-script/core-engine/owner-review-portal/`;
+- the complete checksum-verifiable immutable H38OSLIB version-1 archive under `apps-script/core-engine/h38oslib/version-1-archive/`.
+
+Selected H38OSLIB files are expanded under `apps-script/core-engine/h38oslib/version-1/` for inspection. The nested `H38OwnerLib` version-9 dependency remains live-only until separately exported.
 
 ## Approval rule
 
@@ -67,4 +73,4 @@ Customer-facing email sends, quote approvals, payment requests, social or websit
 
 ## Cleanup rule
 
-Do not create numbered system versions or additional phases for routine cleanup. Historical ForgeIQ, RangeRivet Works, Shopify-prototype, test, and superseded materials are archive/history only.
+Do not create numbered operating-system phases for routine cleanup. Historical ForgeIQ, RangeRivet Works, Shopify prototypes, tests, and superseded materials are archive/history only.

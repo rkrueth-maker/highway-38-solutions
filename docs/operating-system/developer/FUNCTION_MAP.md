@@ -2,70 +2,69 @@
 
 ## Export scope
 
-This map covers the nine-file live Owner Review Portal bound Apps Script export pulled on 2026-07-11 and stored under `apps-script/core-engine/owner-review-portal/`.
+This map covers:
 
-## Owner-approved send path
+- the complete nine-file bound Owner Review Portal export under `apps-script/core-engine/owner-review-portal/`;
+- the complete checksum-verifiable immutable H38OSLIB version-1 archive under `apps-script/core-engine/h38oslib/version-1-archive/`.
+
+Selected H38OSLIB files are expanded under `h38oslib/version-1/`; the reconstructed archive is authoritative for the whole version.
+
+## Preferred owner-approved email send
 
 | Function | File | Role | Status |
 |---|---|---|---|
-| `h38OwnerApprovedSendSelectedDraft` | `H38OwnerApprovedEmailSend.js` | Sends the selected existing Gmail draft only after exact owner approval and duplicate checks | Current; preserved byte-for-byte |
-| `h38BuildRowObject_` | `H38OwnerApprovedEmailSend.js` | Builds a header/value object | Private helper |
-| `h38GetFirst_` | `H38OwnerApprovedEmailSend.js` | Reads the first populated accepted header alias | Private helper |
-| `h38ExtractDraftId_` | `H38OwnerApprovedEmailSend.js` | Extracts a Gmail draft ID | Private helper |
-| `h38CreateEmailProofId_` | `H38OwnerApprovedEmailSend.js` | Creates the send proof ID | Private helper |
-| `h38SetIfHeaderExists_` | `H38OwnerApprovedEmailSend.js` | Writes a value only when the target header exists | Private helper |
-| `h38WriteProofLog_` | `H38OwnerApprovedEmailSend.js` | Appends the approved-send proof row | Private helper |
-| `h38WriteErrorLog_` | `H38OwnerApprovedEmailSend.js` | Appends the blocked-send error row | Private helper |
+| `h38OwnerApprovedSendSelectedDraft` | `owner-review-portal/H38OwnerApprovedEmailSend.js` | Sends one selected existing Gmail draft after exact owner approval, `Send Allowed = Yes`, recipient match, and duplicate checks | Current preferred path; preserved byte-for-byte |
+| `h38BuildRowObject_` | same | Builds a header/value object | Private helper |
+| `h38GetFirst_` | same | Reads accepted header aliases | Private helper |
+| `h38ExtractDraftId_` | same | Extracts a Gmail draft ID | Private helper |
+| `h38CreateEmailProofId_` | same | Creates the send proof ID | Private helper |
+| `h38SetIfHeaderExists_` | same | Writes only when a target header exists | Private helper |
+| `h38WriteProofLog_` / `h38WriteErrorLog_` | same | Writes send proof or blocked-send error | Private audit helpers |
 
 ## Bound library wrappers
 
 | Function | File | Library target | Status |
 |---|---|---|---|
-| `h38ExecuteApprovedSelectedRow` | `H38_OS_Bound_Wrappers.js` | `H38OSLIB.H38OS_executeApprovedSelectedRow` | Current bound wrapper |
-| `h38ExecutionSafetyStatus` | `H38_OS_Bound_Wrappers.js` | Local safety alert | Current diagnostic |
-| `h38RefreshOwnerDashboard` | `H38_OS_Dashboard_Wrapper.js` | `H38OSLIB.H38OS_updateDashboard`, with local fallback | Current wrapper |
+| `h38ExecuteApprovedSelectedRow` | `owner-review-portal/H38_OS_Bound_Wrappers.js` | `H38OSLIB.H38OS_executeApprovedSelectedRow` | Current bound wrapper |
+| `h38ExecutionSafetyStatus` | same | Local safety alert | Current diagnostic |
+| `h38RefreshOwnerDashboard` | `owner-review-portal/H38_OS_Dashboard_Wrapper.js` | `H38OSLIB.H38OS_updateDashboard`, with local fallback | Current wrapper |
+
+## H38OSLIB core exports
+
+The archived `H38_OS_Library_Core.js` defines:
+
+| Function | Role | Status |
+|---|---|---|
+| `H38OS_executeApprovedSelectedRow` | Public selected-row execution export | Exact immutable version-1 source |
+| `H38OS_updateDashboard` | Public dashboard refresh export | Exact immutable version-1 source |
+| `executeApprovedSelectedRow` | Routes one selected queue row under a document lock | Internal core |
+| `executeEmail` | Sends an approved existing Gmail draft | Internal legacy route; parity gaps documented |
+| `executeQuote` / `executeFollowUp` | Executes approved draft routes | Internal legacy routes |
+| `executeOutput` / `executeSocial` / `executeWebsite` | Prepares or routes non-email actions | Internal legacy routes |
+| `validateApproval` | Checks allowed owner decisions/statuses | Internal safety gate |
+| `duplicateLock` | Blocks sent, completed, or proof-logged rows | Internal safety gate |
+| `writeExecutionProof` | Writes Proof Log | Internal audit function |
+| `writeExecutionError` / `blockError_` | Writes Error Log and blocks execution | Internal audit/safety functions |
 
 ## Menu and compatibility functions
 
-`H38_OS_Menu_Restore.js` contains the single active `onOpen` and `buildOwnerPortalMenu` implementation. All `h38MenuV6*` names are compatibility wrappers retained for the live menu.
-
-The following wrappers are current: `h38MenuV6RefreshOwnerDashboard`, `h38MenuV6ShowSafeAction`, `h38MenuV6ApproveSelectedRow`, `h38MenuV6HoldSelectedRow`, `h38MenuV6ReviseSelectedRow`, `h38MenuV6RejectSelectedRow`, `h38MenuV6CreateGmailDraftFromSelectedRow`, `h38MenuV6SendApprovedGmailDraft`, `h38MenuV6PrepareQuoteEmailDraft`, `h38MenuV6MarkQuoteReadyForReview`, `h38MenuV6CreateFollowUpDraft`, `h38MenuV6MarkFollowUpComplete`, `h38MenuV6WriteManualProofNote`, `h38MenuV6SendSelectedRowToErrorLog`, `h38MenuV6CheckCustomerRepliesV2`, and `h38MenuV6SafetyStatus`.
-
-The following remain deprecated HOLD-only stubs and must not be converted into active processing without a separate tested change:
+The bound project has one active `onOpen`, one active `buildOwnerPortalMenu`, and 20 of 20 menu references resolved. Its two deprecated HOLD-only stubs remain:
 
 - `h38MenuV6ProcessSelectedIntakeRow`
 - `h38MenuV6SyncLatestFormResponse`
 
-`h38MenuV6Call_` intentionally displays HOLD when its dynamic target is unavailable.
+The immutable library archive contains historical router/menu source with four `onOpen` declarations, six duplicated function names, and one unresolved target: `runOwnerReviewRouterForSelectedRow`. These were archived unchanged.
 
-## Self-verification
+## Self-verification and Web App
 
 | Function | File | Role |
 |---|---|---|
-| `h38RunSystemSelfVerification` | `H38_OS_Self_Verification.js` | Writes the non-customer-facing System Verification tab and checks wrapper, library-object, queue, proof, and error dependencies |
-| `verifySetup` | `Code.js` | Logs the draft-only connection message |
+| `h38RunSystemSelfVerification` | `owner-review-portal/H38_OS_Self_Verification.js` | Verifies wrapper, library object, queue, proof, and error dependencies |
+| `verifySetup` | `owner-review-portal/Code.js` | Logs the draft-only connection message |
+| `doGet` | `owner-review-portal/H38_WebApp_Code.js` | Renders the existing private Web App |
+| `h38WebAppBootstrap` | same | Returns portal configuration and dashboard data |
+| `h38WebAppExecuteRow` | same | Routes one explicitly selected approved row |
 
-## Web App server entry functions
+## Nested library dependency
 
-| Function | Role |
-|---|---|
-| `doGet` | Renders `H38_WebApp_Index` for the existing private Web App deployment |
-| `h38WebAppBootstrap` | Returns access, dashboard, queue, summary, and safety data |
-| `h38WebAppGetQueue` | Reads an allowed queue, limited to the configured recent-row count |
-| `h38WebAppRefreshDashboard` | Refreshes dashboard data |
-| `h38WebAppApproveRow` | Records the exact decision and allow value for one selected row |
-| `h38WebAppHoldRow` | Returns one selected row to HOLD |
-| `h38WebAppExecuteRow` | Routes one selected approved row under a document lock |
-| `h38WebAppGetProofLog` | Reads filtered Proof Log rows |
-| `h38WebAppGetErrorLog` | Reads filtered Error Log rows |
-| `h38WebAppSafetyStatus` | Returns the private portal safety state |
-
-The server's internal execution routes are `executeEmail_`, `executeQuote_`, `executeFollowUp_`, `executeOutput_`, `executeSocial_`, and `executeWebsite_`. Each route calls `validateApproval_` and `duplicateLock_` before its action.
-
-## Duplicate-function result
-
-The automated scan found **zero duplicate function declarations across the nine pulled runtime files**. Client-side functions inside `H38_WebApp_Index.html` are a separate browser scope and do not collide with Apps Script server functions.
-
-## Separate library dependency
-
-The bound project manifest references library symbol `H38OSLIB`, pinned to version `1` with development mode disabled. The separate library project's source, including `H38_OS_Library_Core`, is not contained in this bound-project export and remains the only code-export blocker.
+H38OSLIB version 1 references `H38OwnerLib` version 9. Historical wrappers call that library for new-request routing and quote, follow-up, website, and social approval actions. Version 9 remains the only unexported transitive Apps Script dependency.

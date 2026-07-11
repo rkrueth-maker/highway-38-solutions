@@ -1,0 +1,14 @@
+{
+  "timeZone": "America/Chicago",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "H38OwnerLib",
+        "libraryId": "1UZXVnzzEwulI08H14XE5XUE61knrWtq6AVNVhbEleQ30PCmNICvDdcow",
+        "version": "9"
+      }
+    ]
+  }
+}
