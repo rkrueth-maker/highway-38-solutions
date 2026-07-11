@@ -1,0 +1,58 @@
+.sample-visual {
+  margin: 1rem 0;
+}
+
+.sample-visual[data-proof-asset="raster"] > svg {
+  display: none !important;
+}
+
+.proof-raster {
+  margin: 0;
+}
+
+.proof-raster-frame {
+  background: #f6f2ec;
+  border: 1px solid rgba(24, 37, 43, .16);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(24, 37, 43, .14);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.proof-raster-frame--image {
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proof-raster-frame img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.proof-raster figcaption {
+  color: #5c6870;
+  font-size: .82rem;
+  line-height: 1.45;
+  margin-top: .55rem;
+}
+
+@media (max-width: 620px) {
+  .proof-raster-frame {
+    border-radius: 14px;
+  }
+
+  .proof-raster figcaption {
+    font-size: .76rem;
+  }
+}
+
+@media print {
+  .proof-raster-frame {
+    box-shadow: none;
+  }
+}
