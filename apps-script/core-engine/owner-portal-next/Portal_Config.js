@@ -1,12 +1,13 @@
 /**
- * Highway 38 Owner Portal Next — candidate configuration.
+ * Highway 38 Owner Portal Next — release-candidate configuration.
  * NON-DEPLOYED. No trigger creation. No live external action is enabled by default.
  */
 var H38_PORTAL_NEXT = Object.freeze({
   APP_NAME: 'Highway 38 Owner Portal',
-  RELEASE: 'candidate-2026-07-11',
+  RELEASE: 'rc-2026-07-11-full-test',
   TIMEZONE: 'America/Chicago',
-  SPREADSHEET_ID: '1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo',
+  SPREADSHEET_ID: PropertiesService.getScriptProperties().getProperty('H38_PORTAL_SPREADSHEET_ID') || '',
+  ENVIRONMENT: PropertiesService.getScriptProperties().getProperty('H38_PORTAL_ENVIRONMENT') || 'UNCONFIGURED',
   OWNER_EMAILS: ['rkrueth@gmail.com', 'highway38solutions@gmail.com'],
   TEST_MODE: true,
   LIVE_EXTERNAL_ACTIONS_ENABLED: false,
