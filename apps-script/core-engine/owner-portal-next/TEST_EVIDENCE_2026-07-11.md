@@ -63,6 +63,10 @@ Financial assertions:
 
 The original candidate contained the live spreadsheet ID in source configuration. Before release testing, this was removed and replaced with an explicit Script Properties environment gate. The release candidate now requires the exact confirmation `CONFIGURE NON-DEPLOYED TEST ENVIRONMENT` and accepts only a TEST environment through that configuration function.
 
+## CI gate
+
+This evidence update is submitted through a pull request so the repository's `Owner Portal Next Verify` workflow runs against the final source, manifest, interface, environment gate, approval controls, and safety defaults before merge.
+
 ## Result
 
 - copied-environment recorded tests: **21 PASS / 0 FAIL**
