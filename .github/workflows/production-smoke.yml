@@ -13,6 +13,18 @@ on:
       - 'catalog-data.js'
       - 'commercial.js'
       - 'commercial.css'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-smoke.yml'
+      - 'docs/commercial-system/production-smoke-request.md'
+      - 'index.html'
+      - 'products.html'
+      - 'sample-library-now.html'
+      - 'start-request.html'
+      - 'catalog-data.js'
+      - 'commercial.js'
+      - 'commercial.css'
 
 permissions:
   contents: read
