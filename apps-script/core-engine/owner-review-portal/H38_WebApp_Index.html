@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --card:#1f2937; --line:#334155; --text:#e5e7eb; --muted:#94a3b8; --ok:#16a34a; --hold:#f59e0b; --bad:#dc2626; --blue:#2563eb; }
+    body { margin:0; font-family:Arial, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:18px; border-bottom:1px solid var(--line); background:#020617; position:sticky; top:0; z-index:2; }
+    h1 { margin:0; font-size:20px; }
+    .sub { color:var(--muted); font-size:12px; margin-top:6px; }
+    main { padding:16px; max-width:1400px; margin:0 auto; }
+    .status { padding:12px; border-radius:10px; margin:12px 0; border:1px solid var(--line); background:var(--panel); }
+    .status.pass { border-color:var(--ok); }
+    .status.hold { border-color:var(--hold); }
+    .status.fail { border-color:var(--bad); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+    .card b { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .card span { font-size:22px; font-weight:bold; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+    button { border:0; border-radius:8px; padding:9px 11px; font-weight:700; cursor:pointer; background:#334155; color:var(--text); }
+    button:hover { filter:brightness(1.15); }
+    button.primary { background:var(--blue); }
+    button.pass { background:var(--ok); }
+    button.hold { background:var(--hold); color:#111827; }
+    button.bad { background:var(--bad); }
+    button.small { padding:6px 8px; font-size:12px; margin:2px; }
+    .tablewrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:#020617; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { border-bottom:1px solid #1e293b; padding:8px; text-align:left; vertical-align:top; min-width:120px; }
+    th { position:sticky; top:0; background:#111827; color:#cbd5e1; z-index:1; }
+    td.rownum, th.rownum { min-width:54px; color:#a5b4fc; font-weight:bold; }
+    .actions { min-width:250px; }
+    .muted { color:var(--muted); }
+    .log { white-space:pre-wrap; background:#020617; border:1px solid var(--line); padding:12px; border-radius:10px; min-height:40px; }
+    .pill { display:inline-block; padding:3px 7px; border-radius:999px; font-size:11px; border:1px solid var(--line); color:#cbd5e1; margin:2px; }
+    .warn { color:#fde68a; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Highway 38 Owner Review Portal</h1>
+  <div class="sub" id="authLine">Loading secure owner session…</div>
+</header>
+<main>
+  <div id="accessBox" class="status hold">Loading…</div>
+
+  <section>
+    <div class="tabs">
+      <button class="primary" onclick="refreshAll()">Refresh Portal</button>
+      <button onclick="refreshDashboard()">Refresh Dashboard</button>
+      <button onclick="loadQueue('Proof Log')">Proof Log</button>
+      <button onclick="loadQueue('Error Log')">Error Log</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dashboard</h2>
+    <div id="dashboard" class="grid"></div>
+  </section>
+
+  <section>
+    <h2>Queues</h2>
+    <div id="queueTabs" class="tabs"></div>
+    <h3 id="queueTitle">Select a queue</h3>
+    <div id="queueTable" class="tablewrap"></div>
+  </section>
+
+  <section>
+    <h2>Action Log</h2>
+    <div id="actionLog" class="log muted">No action yet.</div>
+  </section>
+</main>
+
+<script>
+let BOOT = null;
+let CURRENT_QUEUE = null;
+const ACTION_SHEETS = ['Email Approval Queue','Quote Approval Queue','Follow-Up Queue','Output Queue','Social Approval Queue','Website Approval Queue'];
+
+function log(msg, kind) {
+  const el = document.getElementById('actionLog');
+  el.className = 'log ' + (kind || '');
+  el.textContent = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
+}
+
+function fail(err) {
+  log('HOLD / ERROR\n' + (err && err.message ? err.message : err), 'warn');
+}
+
+function refreshAll() {
+  log('Refreshing portal…');
+  google.script.run.withSuccessHandler(renderBootstrap).withFailureHandler(fail).h38WebAppBootstrap();
+}
+
+function renderBootstrap(data) {
+  BOOT = data;
+  document.getElementById('authLine').textContent = 'Active user: ' + data.auth.activeUser + ' | Effective user: ' + data.auth.effectiveUser + ' | ' + data.timestamp;
+  const access = document.getElementById('accessBox');
+  access.className = data.auth.allowed ? 'status pass' : 'status hold';
+  access.innerHTML = data.auth.allowed
+    ? '<b>PASS — Rick-only owner session allowed.</b><br><span class="muted">Selected-row only. No triggers. No bulk. No payment. No final delivery. No auto-publish.</span>'
+    : '<b>HOLD — Access not allowed.</b><br><span class="muted">This portal is Rick-only. Deploy Web App as Only myself / Rick-only.</span>';
+  renderDashboard(data.dashboard);
+  renderQueueTabs(data.queues);
+  log('Portal refreshed.');
+}
+
+function renderDashboard(rows) {
+  const el = document.getElementById('dashboard');
+  if (!rows || rows.length < 2) { el.innerHTML = '<div class="card">No dashboard data.</div>'; return; }
+  el.innerHTML = rows.slice(1).map(r => `
+    <div class="card">
+      <b>${escapeHtml(r[0] || '')}</b>
+      <span>${escapeHtml(r[1] || '')}</span>
+      <div class="muted">${escapeHtml(r[2] || '')}</div>
+      <div class="muted">${escapeHtml(r[5] || '')}</div>
+    </div>`).join('');
+}
+
+function renderQueueTabs(queues) {
+  const el = document.getElementById('queueTabs');
+  el.innerHTML = queues.filter(q => q !== 'Dashboard').map(q => `<button onclick="loadQueue('${escapeAttr(q)}')">${escapeHtml(q)}</button>`).join('');
+}
+
+function refreshDashboard() {
+  google.script.run.withSuccessHandler(res => { log(res); renderDashboard(res.dashboard); }).withFailureHandler(fail).h38WebAppRefreshDashboard();
+}
+
+function loadQueue(sheetName) {
+  CURRENT_QUEUE = sheetName;
+  document.getElementById('queueTitle').textContent = sheetName;
+  document.getElementById('queueTable').innerHTML = '<div class="card">Loading ' + escapeHtml(sheetName) + '…</div>';
+  google.script.run.withSuccessHandler(renderQueue).withFailureHandler(fail).h38WebAppGetQueue(sheetName);
+}
+
+function renderQueue(data) {
+  const headers = data.headers || [];
+  const rows = data.rows || [];
+  const actionable = ACTION_SHEETS.includes(data.sheetName);
+  let html = '<table><thead><tr><th class="rownum">Row</th>';
+  if (actionable) html += '<th class="actions">Actions</th>';
+  html += headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr><td class="rownum">' + r.rowNumber + '</td>';
+    if (actionable) {
+      html += `<td class="actions">
+        <button class="small pass" onclick="approveRow('${escapeAttr(data.sheetName)}',${r.rowNumber})">Approve</button>
+        <button class="small hold" onclick="holdRow('${escapeAttr(data.sheetName)}',${r.rowNumber})">Hold</button>
+        <button class="small primary" onclick="executeRow('${escapeAttr(data.sheetName)}',${r.rowNumber})">Execute</button>
+      </td>`;
+    }
+    html += r.values.map(v => '<td>' + linkify(escapeHtml(v || '')) + '</td>').join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('queueTable').innerHTML = html;
+}
+
+function approveRow(sheetName, rowNumber) {
+  if (!confirm('Approve row ' + rowNumber + ' in ' + sheetName + '?')) return;
+  google.script.run.withSuccessHandler(res => { log(res); loadQueue(sheetName); refreshAll(); }).withFailureHandler(fail).h38WebAppApproveRow(sheetName, rowNumber);
+}
+
+function holdRow(sheetName, rowNumber) {
+  if (!confirm('Hold row ' + rowNumber + ' in ' + sheetName + '?')) return;
+  google.script.run.withSuccessHandler(res => { log(res); loadQueue(sheetName); refreshAll(); }).withFailureHandler(fail).h38WebAppHoldRow(sheetName, rowNumber);
+}
+
+function executeRow(sheetName, rowNumber) {
+  if (!confirm('Execute selected row only?\n\nSheet: ' + sheetName + '\nRow: ' + rowNumber + '\n\nNo bulk action will run.')) return;
+  google.script.run.withSuccessHandler(res => { log(res, res.status === 'PASS' ? '' : 'warn'); loadQueue(sheetName); refreshAll(); }).withFailureHandler(fail).h38WebAppExecuteRow(sheetName, rowNumber);
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escapeAttr(s) { return String(s).replace(/'/g, '&#39;'); }
+function linkify(s) { return s.replace(/(https:\/\/[^\s<]+)/g, '<a style="color:#93c5fd" href="$1" target="_blank">link</a>'); }
+
+refreshAll();
+</script>
+</body>
+</html>

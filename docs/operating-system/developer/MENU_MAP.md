@@ -2,34 +2,37 @@
 
 Current menu label: `H38 Owner Portal`.
 
-| Menu group | Menu item | Compatibility wrapper | Target function | Classification |
+The pulled bound project contains one `onOpen` function and one `buildOwnerPortalMenu` function. Every menu item references a function declared in the pulled project.
+
+| Menu group | Menu item | Menu function | Routed target | Classification |
 |---|---|---|---|---|
-| Dashboard | Refresh Owner Dashboard | `h38MenuV6RefreshOwnerDashboard` | `h38RefreshOwnerDashboard` | Current, live-only target |
-| Intake | Process Selected Intake Row | `h38MenuV6ProcessSelectedIntakeRow` | HOLD alert only | Deprecated stub |
-| Intake | Sync Latest Form Response | `h38MenuV6SyncLatestFormResponse` | HOLD alert only | Deprecated stub |
-| Owner Review | Show Safe Next Action For Selected Row | `h38MenuV6ShowSafeAction` | `h38OwnerActionRouterShowSelectedRow` | Current, live-only target |
-| Owner Review | Approve Selected Row | `h38MenuV6ApproveSelectedRow` | `approveSelectedRow` | Current, live-only target |
-| Owner Review | Hold Selected Row | `h38MenuV6HoldSelectedRow` | `holdSelectedRow` | Current, live-only target |
-| Owner Review | Revise Selected Row | `h38MenuV6ReviseSelectedRow` | `reviseSelectedRow` | Current, live-only target |
-| Owner Review | Reject Selected Row | `h38MenuV6RejectSelectedRow` | `rejectSelectedRow` | Current, live-only target |
-| Email | Create Gmail Draft From Selected Row | `h38MenuV6CreateGmailDraftFromSelectedRow` | `h38CreateGmailDraftFromSelectedRow` | Current, live-only target |
-| Email | Send Approved Gmail Draft | `h38MenuV6SendApprovedGmailDraft` | `h38OwnerApprovedSendSelectedDraft` | Current, GitHub-controlled target |
-| Quote | Prepare Quote Email Draft | `h38MenuV6PrepareQuoteEmailDraft` | `h38PrepareQuoteEmailDraft` | Current, live-only target |
-| Quote | Mark Quote Ready For Review | `h38MenuV6MarkQuoteReadyForReview` | `h38MarkQuoteReadyForReview` | Current, live-only target |
-| Follow-Up | Create Follow-Up Draft | `h38MenuV6CreateFollowUpDraft` | `h38CreateFollowUpDraft` | Current, live-only target |
-| Follow-Up | Mark Follow-Up Complete | `h38MenuV6MarkFollowUpComplete` | `h38MarkFollowUpComplete` | Current, live-only target |
-| Proof / Error | Write Manual Proof Note | `h38MenuV6WriteManualProofNote` | `h38WriteManualProofNote` | Current, live-only target |
-| Proof / Error | Send Selected Row To Error Log | `h38MenuV6SendSelectedRowToErrorLog` | `h38SendSelectedRowToErrorLog` | Current, live-only target |
-| Tools | Refresh Dashboard Counts | `h38MenuV6RefreshOwnerDashboard` | `h38RefreshOwnerDashboard` | Duplicate menu exposure by design |
-| Tools | Check Customer Replies V2 | `h38MenuV6CheckCustomerRepliesV2` | `h38CheckCustomerRepliesV2` | Current compatibility path |
-| Tools | Menu Safety Status | `h38MenuV6SafetyStatus` | Local alert | Current diagnostic |
-| Tools | Run Launch Function Audit | `h38MenuV6RunLaunchAudit` | `h38LaunchModeFunctionAudit` | Compatibility name |
-| Tools | Launch Safety Status | `h38MenuV6LaunchSafetyStatus` | `h38LaunchModeSafetyStatus` | Compatibility name |
+| Dashboard | Refresh Owner Dashboard | `h38MenuV6RefreshOwnerDashboard` | `h38RefreshOwnerDashboard` | Current wrapper |
+| Intake | Process Selected Intake Row | `h38MenuV6ProcessSelectedIntakeRow` | HOLD alert only | Deprecated HOLD stub |
+| Intake | Sync Latest Form Response | `h38MenuV6SyncLatestFormResponse` | HOLD alert only | Deprecated HOLD stub |
+| Owner Review | Show Safe Next Action For Selected Row | `h38MenuV6ShowSafeAction` | `h38OwnerActionRouterShowSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Owner Review | Approve Selected Row | `h38MenuV6ApproveSelectedRow` | `approveSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Owner Review | Hold Selected Row | `h38MenuV6HoldSelectedRow` | `holdSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Owner Review | Revise Selected Row | `h38MenuV6ReviseSelectedRow` | `reviseSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Owner Review | Reject Selected Row | `h38MenuV6RejectSelectedRow` | `rejectSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Email | Create Gmail Draft From Selected Row | `h38MenuV6CreateGmailDraftFromSelectedRow` | `h38CreateGmailDraftFromSelectedRow` | Compatibility dispatch; HOLD when absent |
+| Email | Send Approved Gmail Draft | `h38MenuV6SendApprovedGmailDraft` | `h38OwnerApprovedSendSelectedDraft` | Current owner-approved send path |
+| Quote | Prepare Quote Email Draft | `h38MenuV6PrepareQuoteEmailDraft` | `h38PrepareQuoteEmailDraft` | Compatibility dispatch; HOLD when absent |
+| Quote | Mark Quote Ready For Review | `h38MenuV6MarkQuoteReadyForReview` | `h38MarkQuoteReadyForReview` | Compatibility dispatch; HOLD when absent |
+| Follow-Up | Create Follow-Up Draft | `h38MenuV6CreateFollowUpDraft` | `h38CreateFollowUpDraft` | Compatibility dispatch; HOLD when absent |
+| Follow-Up | Mark Follow-Up Complete | `h38MenuV6MarkFollowUpComplete` | `h38MarkFollowUpComplete` | Compatibility dispatch; HOLD when absent |
+| Proof / Error | Write Manual Proof Note | `h38MenuV6WriteManualProofNote` | `h38WriteManualProofNote` | Compatibility dispatch; HOLD when absent |
+| Proof / Error | Send Selected Row To Error Log | `h38MenuV6SendSelectedRowToErrorLog` | `h38SendSelectedRowToErrorLog` | Compatibility dispatch; HOLD when absent |
+| Tools | Check Customer Replies V2 | `h38MenuV6CheckCustomerRepliesV2` | `h38CheckCustomerRepliesV2` | Compatibility dispatch; HOLD when absent |
+| Tools | Menu Safety Status | `h38MenuV6SafetyStatus` | Local safety alert | Current diagnostic |
+| Tools | Run System Self Verification | `h38RunSystemSelfVerification` | Local verification routine | Current diagnostic |
+| Execution | Execution Safety Status | `h38ExecutionSafetyStatus` | Local safety alert | Current diagnostic |
+| Execution | Execute Approved Selected Row | `h38ExecuteApprovedSelectedRow` | `H38OSLIB.H38OS_executeApprovedSelectedRow` | Current library wrapper |
 
-## Broken-reference rule
+## Reference checks
 
-The compatibility dispatcher must show a HOLD message when a target is missing. A missing target must never silently perform another action.
-
-## Productized menu target
-
-A future customer installation should expose versionless wrappers while retaining deprecated aliases temporarily. Renaming the live working menu is not part of cleanup until the full bound project has been exported, compared, and safety-tested.
+- Menu items found: 20.
+- Missing menu function references: 0.
+- Active menu builders: 1.
+- Duplicate menu builders: 0.
+- The compatibility dispatcher must continue to show HOLD when its dynamic target is missing.
+- The two Intake functions remain HOLD-only and deprecated.

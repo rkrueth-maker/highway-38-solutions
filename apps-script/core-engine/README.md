@@ -1,59 +1,50 @@
 # Highway 38 Core Engine Apps Script
 
-This folder contains the transferable Owner Review Portal Apps Script support files. It replaces numbered-version folder naming.
+This folder contains the exported Owner Review Portal bound project, reusable Core Engine modules, and deployment documentation.
 
-## Target Apps Script project
+## Bound project source
 
-Script ID:
+The exact live bound-project export is stored at:
+
+```text
+apps-script/core-engine/owner-review-portal/
+```
+
+Target Apps Script project ID:
 
 ```text
 13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o
 ```
 
-Target system:
+The export contains the manifest, complete menu source, bound wrappers, dashboard wrapper, self-verification, Web App server and UI, and the owner-approved selected-row send implementation.
 
-```text
-Owner Review Portal — Rick Approval Dashboard
-```
+## Separate library dependency
 
-## Apply the approved-email-send module
-
-From the repository root in Windows PowerShell:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\apps-script\core-engine\scripts\apply-email-send-fix.ps1
-```
-
-The helper checks Node.js and clasp, clones or reuses the Apps Script project, copies the selected-row send module, and runs `clasp push`.
+The bound manifest references library symbol `H38OSLIB`, pinned to version `1` with development mode disabled. The separate library project contains `H38_OS_Library_Core` and must be exported independently before GitHub is the complete multi-project source of truth.
 
 ## Safety rules
 
-The module:
+- selected-row execution only
+- exact Rick approval required
+- duplicate locks required
+- no triggers
+- no bulk processing
+- no payment requests
+- no automatic final delivery
+- no automatic social publishing
+- no automatic website deployment
 
-- runs only on the selected row in `Email Approval Queue`
-- requires `Rick Decision = APPROVE SEND`
-- requires `Send Allowed = Yes`
-- blocks duplicates and previously sent rows
-- sends only an existing Gmail draft
-- writes Proof Log on success
-- writes Error Log when blocked
-- does not send quotes
-- does not request payment
-- does not publish social posts
-- does not deploy website changes
-- does not deliver final work
-- does not create triggers
+## Existing deployment
 
-## Manual commands
+The current private Web App deployment URL is retained. Exporting source does not require a new deployment.
+
+## Clasp workflow
+
+From the existing Cloud Shell bound-project directory:
 
 ```bash
-npm install -g @google/clasp
-clasp login
-clasp clone 13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o --rootDir h38-owner-portal-apps-script
-cp apps-script/core-engine/H38OwnerApprovedEmailSend.gs h38-owner-portal-apps-script/H38OwnerApprovedEmailSend.gs
-cd h38-owner-portal-apps-script
-clasp push
+cd ~/h38-owner-portal-real
+clasp pull
 ```
 
-After push, refresh the Owner Review Portal spreadsheet and use the owner-approved selected-row action only after the approval fields are satisfied.
+Do not run `clasp push` from a directory containing both the exact exported `H38OwnerApprovedEmailSend.js` and the older root-level `.gs` mirror.

@@ -2,73 +2,65 @@
 
 ## Runtime architecture
 
-The current system spans multiple Google and GitHub resources:
+The Owner Review Portal is a container-bound Apps Script project with a private Web App, a spreadsheet menu, selected-row actions, and a separately versioned Apps Script library identified as `H38OSLIB`.
 
-- Google Form intake
-- Intake Responses spreadsheet (`Form Responses 5`)
-- Owner Review Portal spreadsheet
-- container-bound Apps Script project
-- Apps Script library identifier `H38OSLIB`
-- private Owner Portal Web App
-- Gmail draft/send path
-- Drive job folders and documents
-- GitHub Pages public website
-- GitHub Core Engine source and documentation
+The bound project is now exported under `apps-script/core-engine/owner-review-portal/`. The separate library source is not included in a bound-project `clasp pull` and requires its own export.
 
-## Confirmed live Apps Script components
+## Automated export audit
 
-Known from current menu/reference code, system verification, error stacks, and the synced GitHub module:
+The 2026-07-11 export contained nine files. Automated checks produced these results:
 
-- `H38OwnerApprovedEmailSend.gs`
-- `H38_OS_Library_Core.gs`
-- `H38_OS_Bound_Wrappers.gs`
-- Owner Portal menu/bound-menu file
-- Web App server file containing `doGet`
-- one or more Web App HTML files
-- Apps Script manifest (`appsscript.json`)
+- Runtime file inventory: PASS — 8 code/UI files plus `appsscript.json`.
+- JavaScript syntax: PASS for all seven server `.js` files and `Code.js`.
+- Web App browser-script syntax: PASS.
+- Manifest JSON syntax: PASS.
+- Duplicate server function declarations: PASS — zero duplicates.
+- Menu function references: PASS — 20 of 20 menu items resolve to declared bound-project functions.
+- Menu builders: PASS — one `onOpen` and one `buildOwnerPortalMenu`.
+- Wrapper-to-library references: PASS structurally — `H38OS_executeApprovedSelectedRow` and `H38OS_updateDashboard` are the two referenced library functions.
+- Web App entry point: PASS — `doGet` renders `H38_WebApp_Index`.
+- Manifest Web App restriction: PASS — execute as deploying user, access `MYSELF`.
+- Trigger scan: PASS — no trigger creation, deletion, or enablement code found.
+- Secret scan: PASS — no API keys, OAuth tokens, passwords, private keys, or session credentials found.
+- Private customer-data scan: PASS — no customer records, customer emails, phone numbers, Gmail customer message IDs, or private job-folder links found.
+- Exact source consistency: PASS for the nine exported files, confirmed by Git blob hashes.
 
-Only exported files in GitHub are code-source-controlled. Files not yet exported are live-only dependencies and must not be deleted or rewritten from inference.
+## Approved-send implementation
 
-## Core safety model
+`h38OwnerApprovedSendSelectedDraft` was preserved byte-for-byte. It remains selected-row only, restricted to `Email Approval Queue`, and requires:
 
-- Selected-row execution only.
-- Default state is blocked.
-- External action requires exact Rick decision and queue allow field.
-- Duplicate locks use sent time, proof ID, locked status, and/or explicit lock fields.
-- Important approved actions create Proof Log records.
-- Unsafe, failed, missing, or uncertain actions create Error Log records.
-- No trigger, bulk processing, payment, final delivery, social publishing, or website deployment is implicit.
+- `Rick Decision = APPROVE SEND`
+- `Send Allowed = Yes`
+- no prior sent time
+- no active duplicate/send lock
+- no prior `PROOF-SENT` proof ID
+- a Gmail draft recipient matching the queue recipient
 
-## Known cleanup findings
+The function writes Proof Log on success and Error Log when blocked. No email was sent during the export or audit.
 
-- Historical `h38MenuV6*` wrappers are compatibility names, not the preferred productized naming convention.
-- `h38MenuV6ProcessSelectedIntakeRow` and `h38MenuV6SyncLatestFormResponse` are HOLD stubs and should remain deprecated until a tested replacement exists.
-- The standalone approved-send module uses generic helper names that could conflict with larger live projects; avoid adding another helper with the same name.
-- The active sheet header is `Gmail Draft Reference`; older code also searched abbreviated forms. New implementations must support the canonical header.
-- Proof Log and Error Log writes must match the current 16-column and 14-column schemas exactly.
-- Historical test proof/error records may contain old names or shifted values. They belong in archive tabs and are not templates for new writes.
+## Web App safety behavior
 
-## Public/private boundary
+The Web App routes only one explicit queue row at a time under a document lock. Each action route requires the exact approval status and decision, then applies the duplicate lock. Output, social, and website routes prepare drafts or handoffs rather than performing final delivery, social publication, or website deployment.
 
-Public repository and website may contain:
+The existing deployment URL was not changed and no new deployment was created.
 
-- public brand copy
-- sample/hypothetical assets
-- public form link
-- documented Owner Portal link as expressly retained by the owner
-- non-secret IDs needed for deployment documentation
+## Preserved deprecated behavior
 
-They must not contain:
+`h38MenuV6ProcessSelectedIntakeRow` and `h38MenuV6SyncLatestFormResponse` remain HOLD-only stubs. Other `h38MenuV6*` functions remain compatibility wrappers. Missing dynamic targets display HOLD rather than silently performing a different action.
 
-- customer intake data
-- customer emails, phone numbers, or private files
-- Gmail draft/message identifiers tied to customer work
-- API secrets, OAuth secrets, access tokens, passwords, private keys, or session cookies
-- private Drive job-folder links
+## Confirmed configuration conflicts not altered in the exact export
 
-## Source-of-truth rule
+The live manifest uses `America/New_York`, while `H38_WEBAPP_CONFIG.TIMEZONE` uses `Etc/GMT`. The operating timezone for this system is `America/Chicago`. This is a confirmed configuration inconsistency, but the exported files were committed exactly as pulled so GitHub and the bound live project remain comparable. Correcting the timezone requires a synchronized source change and clasp push; it must not be changed in only one location.
 
-- GitHub is authoritative for files actually exported and committed.
-- The live Apps Script project remains authoritative for unexported runtime files.
-- The Owner Review Portal spreadsheet is authoritative for queue schemas and status controls.
-- The Drive Source-of-Truth Index is authoritative for navigation and ownership.
+The private Web App server has a separate `executeEmail_` route in addition to the menu's `h38OwnerApprovedSendSelectedDraft` path. Both require owner approval and duplicate locks. The menu path additionally performs an explicit draft-recipient comparison. This parity difference is documented and was not changed during a source-export-only operation.
+
+## Separate library blocker
+
+The manifest pins this dependency:
+
+- Symbol: `H38OSLIB`
+- Version: `1`
+- Development mode: `false`
+- Library ID: recorded in `appsscript.json`
+
+`H38_OS_Library_Core` remains inside that separate library project. Until that project is pulled and committed, GitHub is the complete source of truth for the bound Owner Review Portal project but not yet for the full multi-project runtime.

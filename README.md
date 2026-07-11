@@ -8,7 +8,7 @@ This repository contains the Highway 38 Solutions public website, exported Core 
 
 - Owner Review Portal queue and status model
 - owner-approval and selected-row execution rules
-- exported Apps Script modules
+- complete bound Owner Review Portal Apps Script export
 - Gmail draft/send controls
 - Proof Log and Error Log requirements
 - installation, maintenance, recovery, and transfer documentation
@@ -59,7 +59,7 @@ This repository contains the Highway 38 Solutions public website, exported Core 
 
 ## Apps Script source scope
 
-GitHub is authoritative for files actually exported and committed. The live Apps Script project remains authoritative for runtime files not yet exported, including the library, bound wrappers, complete menu source, Web App server/UI files, and manifest. Do not delete or replace live-only files based on inferred documentation.
+GitHub is authoritative for the complete exported bound Owner Review Portal project under `apps-script/core-engine/owner-review-portal/`. The separately versioned `H38OSLIB` library project remains authoritative for `H38_OS_Library_Core` until that library is independently pulled and committed.
 
 ## Approval rule
 

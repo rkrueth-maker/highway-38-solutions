@@ -1,43 +1,38 @@
 # Highway 38 Operating System — File Map
 
-## GitHub-controlled files
+## Complete bound Owner Review Portal export
+
+The live bound project was pulled with clasp on 2026-07-11 and is stored byte-for-byte under `apps-script/core-engine/owner-review-portal/`.
 
 | Path | Purpose | Status |
 |---|---|---|
-| `apps-script/core-engine/H38OwnerApprovedEmailSend.gs` | Owner-approved selected-row Gmail draft send module | Current exported source |
-| `apps-script/core-engine/README.md` | Core Engine Apps Script scope and deployment notes | Current |
-| `apps-script/core-engine/scripts/apply-email-send-fix.ps1` | Windows clasp helper for approved-send module | Current |
-| `apps-script/CLASP_SETUP.md` | General clasp setup and safety instructions | Current |
-| `docs/operating-system/operator/*` | Operator queue, status, and maintenance documentation | Current |
-| `docs/operating-system/developer/*` | Technical, function, menu, file, installation, and recovery documentation | Current |
-| `docs/operating-system/transfer/*` | Transfer, packaging, configuration, and checklist documentation | Current |
-| `index.html`, `packages.html`, `pricing.html`, `faq.html`, `sample-library-now.html` | Current public website pages | Current public Business Pack |
-| `ARCHIVE_NOTICE.md` | Legacy-name and historical-code boundary | Current archive notice |
+| `apps-script/core-engine/owner-review-portal/appsscript.json` | Runtime, Web App access, and pinned library dependency | Exact live export |
+| `apps-script/core-engine/owner-review-portal/Code.js` | Connection/setup logger | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_OS_Bound_Wrappers.js` | Selected-row library wrapper and execution safety status | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_OS_Dashboard_Wrapper.js` | Library dashboard wrapper with safe local fallback | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_OS_Menu_Restore.js` | Complete menu builder, compatibility wrappers, and HOLD stubs | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_OS_Self_Verification.js` | Bound-project self-verification routine | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_WebApp_Code.js` | Private Web App server and selected-row routes | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38_WebApp_Index.html` | Private Web App browser UI | Exact live export |
+| `apps-script/core-engine/owner-review-portal/H38OwnerApprovedEmailSend.js` | Approved selected-row Gmail draft send implementation | Exact live export |
 
-## Confirmed live-only Apps Script files
+## Existing compatibility mirror
 
-These names are known from runtime stacks or current architecture but are not yet fully exported to GitHub:
+`apps-script/core-engine/H38OwnerApprovedEmailSend.gs` is the pre-export maintained mirror used by the older deployment helper. Its Git blob is identical to the pulled `H38OwnerApprovedEmailSend.js`. Do not push both copies into the same Apps Script project.
 
-| File | Purpose | Transfer status |
-|---|---|---|
-| `H38_OS_Library_Core.gs` | Core selected-row router, approval validation, duplicate lock, proof/error behavior | Live-only; export required |
-| `H38_OS_Bound_Wrappers.gs` | Spreadsheet-bound wrappers into the library | Live-only; export required |
-| Owner Portal menu file | Builds `H38 Owner Portal` menu and compatibility wrappers | Reference copy exists in Drive; source export required |
-| Web App server `.gs` file | `doGet` and private Owner Portal Web App server logic | Live-only; export required |
-| Web App `.html` files | Private Owner Portal user interface | Live-only; export required |
-| `appsscript.json` | Scopes, runtime, and project settings | Live-only; export required |
+## Separate library project
 
-## Drive-controlled documentation
+The manifest references `H38OSLIB` at library version `1`, development mode disabled. The separate library source, including `H38_OS_Library_Core`, is not part of the bound-project pull and still requires its own clasp export before GitHub is the complete multi-project code source of truth.
 
-- Highway 38 Operating System — Source of Truth Index
-- Highway 38 Operating System — Operations Manual — LOCKED
-- Highway 38 Operating System — SOP Index
-- Owner Portal Menu Code — Reference Copy (deprecated reference until source export)
+## Documentation
 
-## Archive classification
+| Path | Purpose |
+|---|---|
+| `docs/operating-system/developer/FUNCTION_MAP.md` | Runtime function and dependency map |
+| `docs/operating-system/developer/MENU_MAP.md` | Exact bound menu and routing map |
+| `docs/operating-system/developer/FILE_MAP.md` | Source-control ownership and export inventory |
+| `docs/operating-system/developer/TECHNICAL_APPENDIX.md` | Architecture, automated audit results, and remaining conflicts |
 
-Legacy Shopify/ForgeIQ code, old brand material, development-session notes, test outputs, superseded forms, and old job folders are historical or experimental. They are not Core Engine source unless explicitly listed above.
+## Public/private boundary
 
-## Naming rule
-
-Do not add numbered system-version folders or files. Use stable functional names and record revision dates in Git history, document metadata, or notes.
+The export contains owner configuration emails, the Owner Review Portal spreadsheet ID, and the Apps Script library ID. The automated scan found no API secrets, OAuth tokens, passwords, private keys, session cookies, Gmail customer draft/message IDs, customer emails, customer phone numbers, or private customer records.
