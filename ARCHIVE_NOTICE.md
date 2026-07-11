@@ -1,16 +1,12 @@
 # Archive Notice
 
-The current public brand is:
+The current public brand is **Highway 38 Solutions**.
 
-# Highway 38 Solutions
+Primary message: **Big problems. Clear plans.**
 
-## Big problems. Clear plans.
+Secondary message: **Messy details in. Finished product out.**
 
-Secondary line:
-
-**Messy details in. Finished product out.**
-
-Old names are archived and should not be used in public-facing copy:
+The following names are historical only and must not be used in current public-facing copy:
 
 - ForgeIQ
 - Northwoods Problem Solvers
@@ -21,9 +17,12 @@ Old names are archived and should not be used in public-facing copy:
 - WrenchIQ
 - RangeRivet Works
 
-Important historical material has been pulled into:
+Historical Shopify prototypes, old dashboards, prior brand documents, test files, session notes, and superseded implementation records may remain in Git history or clearly labeled archive material. They are not current source-of-truth components.
 
+Current navigation belongs in:
+
+- `README.md`
 - `docs/CURRENT_HIGHWAY_38_SOLUTIONS.md`
-- `docs/ARCHIVE_LEGACY_BRANDS.md`
+- the Google Drive document `Highway 38 Operating System — Source of Truth Index`
 
-The GitHub Pages URL may still contain `/ForgeIQ/` because the repository path controls the published URL. That path is technical only and not the public brand.
+The current GitHub Pages path is `/highway-38-solutions/`. Any older references to `/ForgeIQ/`, numbered versions, or development phases are obsolete cleanup leftovers.
