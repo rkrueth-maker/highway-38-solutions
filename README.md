@@ -10,6 +10,7 @@ This repository contains the Highway 38 Solutions public website, exported Core 
 - owner-approval and selected-row execution rules
 - complete bound Owner Review Portal Apps Script export
 - exact immutable H38OSLIB version-1 archive
+- exact immutable H38OwnerLib version-9 archive
 - Gmail draft/send controls
 - Proof Log and Error Log requirements
 - installation, maintenance, recovery, and transfer documentation
@@ -60,12 +61,13 @@ This repository contains the Highway 38 Solutions public website, exported Core 
 
 ## Apps Script source scope
 
-GitHub is authoritative for:
+GitHub is authoritative for the complete three-layer Apps Script runtime source:
 
-- the complete bound Owner Review Portal project under `apps-script/core-engine/owner-review-portal/`;
-- the complete checksum-verifiable immutable H38OSLIB version-1 archive under `apps-script/core-engine/h38oslib/version-1-archive/`.
+- bound Owner Review Portal project: `apps-script/core-engine/owner-review-portal/`
+- immutable H38OSLIB version 1: `apps-script/core-engine/h38oslib/version-1-archive/`
+- immutable H38OwnerLib version 9: `apps-script/core-engine/h38ownerlib/version-9-archive/`
 
-Selected H38OSLIB files are expanded under `apps-script/core-engine/h38oslib/version-1/` for inspection. The nested `H38OwnerLib` version-9 dependency remains live-only until separately exported.
+Selected inspection files are stored beside the archives; each reconstructable archive is authoritative. The source-export chain has no remaining unexported Apps Script dependency.
 
 ## Approval rule
 

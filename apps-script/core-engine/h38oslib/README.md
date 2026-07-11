@@ -12,19 +12,19 @@ The bound Owner Review Portal manifest pins:
 
 ## Source locations
 
-The complete immutable ten-file version-1 export is preserved losslessly under:
+Complete immutable version-1 export:
 
 ```text
 apps-script/core-engine/h38oslib/version-1-archive/
 ```
 
-Selected high-value files are also expanded under:
+Selected expanded source:
 
 ```text
 apps-script/core-engine/h38oslib/version-1/
 ```
 
-The complete archive, not the expanded subset, is the authoritative snapshot of version 1.
+The complete archive is authoritative.
 
 ## Public core exports
 
@@ -37,16 +37,21 @@ These are called by the bound-project wrappers.
 
 ## Nested dependency
 
-Version 1 itself references another Apps Script library:
+Version 1 references:
 
 - symbol: `H38OwnerLib`
 - version: `9`
-- library ID: recorded in the archived manifest
 
-That transitive library remains live-only until version 9 is exported separately.
+That exact immutable dependency is now archived under:
+
+```text
+apps-script/core-engine/h38ownerlib/
+```
+
+Its manifest contains no further Apps Script libraries, so the dependency chain is complete.
 
 ## Immutable-version rule
 
-Do not edit archived version-1 source and represent it as the deployed version. Any correction requires a cleaned candidate, regression testing, a new Apps Script library version, and an intentional bound-manifest update.
+Do not edit archived version-1 source and represent it as deployed version 1. Any correction requires a cleaned candidate, regression testing, a new Apps Script library version, and an intentional bound-manifest update.
 
-No source was pushed to Apps Script and no deployment or trigger was changed during this archive operation.
+No source was pushed to Apps Script and no deployment or trigger was changed during the archive operations.
