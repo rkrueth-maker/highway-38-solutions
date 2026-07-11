@@ -11,7 +11,7 @@
 }
 
 .proof-raster-frame {
-  background: #111827;
+  background: #f6f2ec;
   border: 1px solid rgba(24, 37, 43, .16);
   border-radius: 18px;
   box-shadow: 0 18px 42px rgba(24, 37, 43, .14);
@@ -20,8 +20,18 @@
   width: 100%;
 }
 
+.proof-raster-frame--image {
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .proof-raster-frame img {
   display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .proof-raster figcaption {
@@ -29,80 +39,6 @@
   font-size: .82rem;
   line-height: 1.45;
   margin-top: .55rem;
-}
-
-/* Direct raster crops from the approved 1536 × 1024 proof board.
-   These reproduce the reviewed panels without SVG wrappers. */
-.proof-raster-frame.panel-1 { aspect-ratio: 724 / 316; }
-.proof-raster-frame.panel-1 img { height: auto; left: -4.42%; max-width: none; position: absolute; top: -38.61%; width: 212.15%; }
-
-.proof-raster-frame.panel-2 { aspect-ratio: 706 / 316; }
-.proof-raster-frame.panel-2 img { height: auto; left: -108.50%; max-width: none; position: absolute; top: -38.61%; width: 217.56%; }
-
-.proof-raster-frame.panel-3 { aspect-ratio: 556 / 268; }
-.proof-raster-frame.panel-3 img { height: auto; left: -5.76%; max-width: none; position: absolute; top: -166.04%; width: 276.26%; }
-
-.proof-raster-frame.panel-4 { aspect-ratio: 410 / 268; }
-.proof-raster-frame.panel-4 img { height: auto; left: -143.90%; max-width: none; position: absolute; top: -166.04%; width: 374.63%; }
-
-.proof-raster-frame.panel-5 { aspect-ratio: 470 / 268; }
-.proof-raster-frame.panel-5 img { height: auto; left: -213.19%; max-width: none; position: absolute; top: -166.04%; width: 326.81%; }
-
-.proof-raster-frame.panel-6 { aspect-ratio: 720 / 257; }
-.proof-raster-frame.panel-6 img { height: auto; left: -4.44%; max-width: none; position: absolute; top: -280.54%; width: 213.33%; }
-
-.proof-raster-frame.panel-7 { aspect-ratio: 718 / 257; }
-.proof-raster-frame.panel-7 img { height: auto; left: -105.01%; max-width: none; position: absolute; top: -280.54%; width: 213.93%; }
-
-.proof-raster-frame--photo {
-  aspect-ratio: 16 / 9;
-}
-
-.proof-raster-frame--photo img {
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
-
-.workflow-screen .proof-raster-frame--photo {
-  background: #020617;
-}
-
-.workflow-screen .proof-raster-frame--photo img {
-  object-fit: contain;
-  object-position: center;
-}
-
-.cleanup-photo .proof-raster-frame--photo img {
-  object-position: 45% center;
-}
-
-.automation-1 .proof-raster-frame--photo img { object-position: 18% center; }
-.automation-2 .proof-raster-frame--photo img { object-position: 32% center; }
-.automation-3 .proof-raster-frame--photo img { object-position: 47% center; }
-.automation-4 .proof-raster-frame--photo img { object-position: 61% center; }
-.automation-5 .proof-raster-frame--photo img { object-position: 75% center; }
-.automation-6 .proof-raster-frame--photo img { object-position: 88% center; }
-
-.proof-raster-frame--photo::after {
-  background: linear-gradient(180deg, transparent 48%, rgba(4, 13, 18, .88) 100%);
-  content: "";
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-.proof-raster-label {
-  bottom: .8rem;
-  color: #fff;
-  font-size: clamp(.82rem, 2vw, 1rem);
-  font-weight: 850;
-  left: .9rem;
-  letter-spacing: .01em;
-  position: absolute;
-  right: .9rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, .7);
-  z-index: 1;
 }
 
 @media (max-width: 620px) {
