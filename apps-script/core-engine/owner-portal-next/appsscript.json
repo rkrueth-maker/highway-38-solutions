@@ -2,6 +2,9 @@
   "timeZone": "America/Chicago",
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
+  "executionApi": {
+    "access": "MYSELF"
+  },
   "webapp": {
     "executeAs": "USER_DEPLOYING",
     "access": "MYSELF"
