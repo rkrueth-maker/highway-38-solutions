@@ -18,6 +18,9 @@ jobs:
       - name: JavaScript syntax
         run: node --check sample-raster-images.js
 
+      - name: Install image review dependency
+        run: python3 -m pip install --quiet Pillow
+
       - name: Verify product proof files
         shell: bash
         run: |
@@ -77,17 +80,63 @@ jobs:
             "$raster_count" "$product_image_count" "$generated_count" "$reviewed_count" "$placeholder_count" \
             > raster-proof-artifacts/raster-proof-report.txt
 
-          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --virtual-time-budget=5000 --window-size=1440,3400 \
-            --screenshot=raster-proof-artifacts/all-raster-proofs.png \
-            'http://127.0.0.1:8000/tests/fixtures/raster-proof-review.html'
+      - name: Build exact-pixel contact sheets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont, ImageStat
 
-          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-            --virtual-time-budget=5000 --window-size=390,7000 \
-            --screenshot=raster-proof-artifacts/mobile-raster-proofs.png \
-            'http://127.0.0.1:8000/tests/fixtures/raster-proof-review.html'
+          items = [
+              ('H38-P001', 'Problem Snapshot', Path('assets/rick-review-problem-snapshot-v1.png')),
+              ('H38-P002', 'Basic Layout Snapshot', Path('assets/rick-review-basic-layout-v1.png')),
+              ('H38-P003', 'Project Planning Packet', Path('assets/rick-review-project-packet-v1.png')),
+              ('H38-P004', 'Shop Flow Review', Path('assets/rick-review-shop-flow-v1.png')),
+              ('H38-P005', 'Business Workflow Starter', Path('assets/rick-review-business-cleanup-v1.png')),
+              ('H38-P006', 'Cleanup Rescue Plan', Path('assets/rick-review-cleanup-rescue-v1.png')),
+              ('H38-P007', 'Workflow Opportunity Snapshot', Path('assets/rick-review-workflow-opportunity-v1.png')),
+              ('H38-P008', 'Digital Workflow Build', Path('assets/product-proof/digital-workflow-build.png')),
+              ('H38-P009', 'Cleanup Implementation', Path('assets/product-proof/cleanup-implementation.png')),
+              ('H38-P010', 'Automation Opportunity Snapshot', Path('assets/product-proof/automation-opportunity-snapshot.png')),
+              ('H38-P011', 'Shop Bottleneck and ROI Audit', Path('assets/product-proof/shop-bottleneck-roi-audit.png')),
+              ('H38-P012', 'Automation Vendor Quote Pack', Path('assets/product-proof/automation-vendor-quote-pack.png')),
+              ('H38-P013', 'Fixture/Jig Concept Review', Path('assets/product-proof/fixture-jig-concept-review.png')),
+              ('H38-P014', 'Vision/Inspection Concept Review', Path('assets/product-proof/vision-inspection-concept-review.png')),
+              ('H38-P015', 'Robot Tending Concept Pack', Path('assets/product-proof/robot-tending-concept-pack.png')),
+          ]
 
-      - name: Upload raster proof report and screenshots
+          out = Path('raster-proof-artifacts')
+          out.mkdir(exist_ok=True)
+          font = ImageFont.load_default()
+
+          def contact_sheet(columns: int, cell_w: int, cell_h: int, path: Path):
+              rows = (len(items) + columns - 1) // columns
+              canvas = Image.new('RGB', (columns * cell_w, rows * cell_h), '#ece6dc')
+              draw = ImageDraw.Draw(canvas)
+              for i, (pid, title, source) in enumerate(items):
+                  x = (i % columns) * cell_w
+                  y = (i // columns) * cell_h
+                  draw.rounded_rectangle((x + 10, y + 10, x + cell_w - 10, y + cell_h - 10), 18, fill='white', outline='#d7cec2', width=2)
+                  draw.text((x + 24, y + 22), f'{pid}  {title}', font=font, fill='#17242a')
+                  image = Image.open(source).convert('RGB')
+                  # Fail on images that are effectively one flat color.
+                  stat = ImageStat.Stat(image.resize((80, 50)))
+                  if max(stat.var) < 8:
+                      raise SystemExit(f'Image appears visually blank: {source}')
+                  box = (x + 24, y + 48, x + cell_w - 24, y + cell_h - 24)
+                  max_w = box[2] - box[0]
+                  max_h = box[3] - box[1]
+                  image.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+                  px = box[0] + (max_w - image.width) // 2
+                  py = box[1] + (max_h - image.height) // 2
+                  canvas.paste(image, (px, py))
+              canvas.save(path, optimize=True)
+
+          contact_sheet(3, 520, 390, out / 'all-product-proof-pngs.png')
+          contact_sheet(1, 760, 520, out / 'mobile-product-proof-pngs.png')
+          PY
+
+      - name: Upload raster proof report and contact sheets
         if: always()
         uses: actions/upload-artifact@v4
         with:
