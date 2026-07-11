@@ -102,7 +102,7 @@ function h38PortalWorkspace(taskId) {
   var task = h38PortalTaskProjection_({taskId:taskId})[0];
   if (!task) throw new Error('Task not found: ' + taskId);
   var installed = h38PortalInstalledStatus_();
-  var out={task:task,customer:null,job:null,quote:null,invoices:[],payments:[],expenses:[],communications:[],social:[],advertising:[],website:[],proof:[],errors:[],availableActions:h38PortalAvailableActions_(task)};
+  var out={task:task,customer:null,job:null,quotes:[],invoices:[],payments:[],expenses:[],communications:[],social:[],advertising:[],website:[],proof:[],errors:[],availableActions:h38PortalAvailableActions_(task)};
   if(installed.installed){
     if(task.customerId) out.customer=h38PortalGet('customers',task.customerId);
     if(task.jobId){
