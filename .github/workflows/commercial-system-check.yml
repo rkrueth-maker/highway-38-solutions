@@ -11,13 +11,18 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      SHOPIFY_STORE: example.myshopify.com
+      SHOPIFY_ADMIN_TOKEN: test-token
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
+
       - name: JavaScript syntax checks
         run: |
           node --check catalog-data.js
@@ -25,5 +30,55 @@ jobs:
           node --check scripts/verify-commercial-system.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
-      - name: Commercial catalog and public-site verification
-        run: node scripts/verify-commercial-system.js
+
+      - name: Run commercial verification and capture report
+        id: commercial
+        shell: bash
+        run: |
+          set +e
+          node scripts/verify-commercial-system.js > commercial-verification-report.txt 2>&1
+          code=$?
+          cat commercial-verification-report.txt
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload commercial verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commercial-verification-report
+          path: commercial-verification-report.txt
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run existing repository tests and capture report
+        id: pytest
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q > pytest-report.txt 2>&1
+          code=$?
+          cat pytest-report.txt
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload existing test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: pytest-report.txt
+
+      - name: Enforce green verification
+        shell: bash
+        run: |
+          test "${{ steps.commercial.outputs.exit_code }}" = "0"
+          test "${{ steps.pytest.outputs.exit_code }}" = "0"
