@@ -1,0 +1,72 @@
+name: Raster Sample Proof Check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-raster-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: JavaScript syntax
+        run: node --check sample-raster-images.js
+
+      - name: Start local site
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 > /tmp/h38-raster-server.log 2>&1 &
+          echo $! > /tmp/h38-raster-server.pid
+          sleep 2
+
+      - name: Verify rendered raster proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          mkdir -p raster-proof-artifacts
+          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=5000 --dump-dom \
+            http://127.0.0.1:8000/sample-library-now.html \
+            > raster-proof-artifacts/rendered-samples.html
+
+          raster_count="$(grep -o 'class=\"proof-raster' raster-proof-artifacts/rendered-samples.html | wc -l | tr -d ' ')"
+          board_count="$(grep -o 'h38-investor-demo-approved.png' raster-proof-artifacts/rendered-samples.html | wc -l | tr -d ' ')"
+          photo_count="$(grep -o 'h38-demo-overview-chat-photo-v2.jpg' raster-proof-artifacts/rendered-samples.html | wc -l | tr -d ' ')"
+          placeholder_count="$(grep -o '<svg viewBox=\"0 0 760 260\"' raster-proof-artifacts/rendered-samples.html | wc -l | tr -d ' ')"
+
+          test "$raster_count" = "15"
+          test "$board_count" = "7"
+          test "$photo_count" = "8"
+          test "$placeholder_count" = "0"
+
+          printf 'Raster samples: %s\nApproved proof-board crops: %s\nPhoto/dashboard proofs: %s\nVisible placeholder SVGs: %s\n' \
+            "$raster_count" "$board_count" "$photo_count" "$placeholder_count" \
+            > raster-proof-artifacts/raster-proof-report.txt
+
+          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=5000 --window-size=1440,1200 \
+            --screenshot=raster-proof-artifacts/problem-snapshot-raster.png \
+            'http://127.0.0.1:8000/sample-library-now.html#sample-problem-snapshot'
+
+          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=5000 --window-size=1440,1200 \
+            --screenshot=raster-proof-artifacts/digital-workflow-raster.png \
+            'http://127.0.0.1:8000/sample-library-now.html#sample-digital-workflow-build'
+
+          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=5000 --window-size=390,844 \
+            --screenshot=raster-proof-artifacts/mobile-raster.png \
+            'http://127.0.0.1:8000/sample-library-now.html#sample-shop-flow-review'
+
+      - name: Upload raster proof report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raster-sample-proof
+          path: raster-proof-artifacts
