@@ -1,0 +1,55 @@
+name: Customer Portal Activation Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'launch-control/activation/**'
+      - 'core-engine/customer-portal/**'
+      - 'scripts/verify-customer-portal-activation.js'
+      - '.github/workflows/customer-portal-activation-gate.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'launch-control/activation/**'
+      - 'core-engine/customer-portal/**'
+      - 'scripts/verify-customer-portal-activation.js'
+      - '.github/workflows/customer-portal-activation-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activation-gate:
+    runs-on: ubuntu-latest
+    env:
+      H38_CUSTOMER_PORTAL_IDP_ISSUER: ${{ secrets.H38_CUSTOMER_PORTAL_IDP_ISSUER }}
+      H38_CUSTOMER_PORTAL_IDP_JWKS_URL: ${{ secrets.H38_CUSTOMER_PORTAL_IDP_JWKS_URL }}
+      H38_CUSTOMER_PORTAL_SERVER_BASE_URL: ${{ secrets.H38_CUSTOMER_PORTAL_SERVER_BASE_URL }}
+      H38_CUSTOMER_PORTAL_HEALTH_URL: ${{ secrets.H38_CUSTOMER_PORTAL_HEALTH_URL }}
+      H38_CUSTOMER_PORTAL_STORAGE_PROVIDER: ${{ secrets.H38_CUSTOMER_PORTAL_STORAGE_PROVIDER }}
+      H38_CUSTOMER_PORTAL_STORAGE_PRIVATE_NAMESPACE: ${{ secrets.H38_CUSTOMER_PORTAL_STORAGE_PRIVATE_NAMESPACE }}
+      H38_CUSTOMER_PORTAL_MALWARE_SCANNER: ${{ secrets.H38_CUSTOMER_PORTAL_MALWARE_SCANNER }}
+      H38_CUSTOMER_PORTAL_PAYMENT_PROVIDER: ${{ secrets.H38_CUSTOMER_PORTAL_PAYMENT_PROVIDER }}
+      H38_CUSTOMER_PORTAL_PAYMENT_HOST: ${{ secrets.H38_CUSTOMER_PORTAL_PAYMENT_HOST }}
+      H38_CUSTOMER_PORTAL_SESSION_SECRET: ${{ secrets.H38_CUSTOMER_PORTAL_SESSION_SECRET }}
+      H38_CUSTOMER_PORTAL_ROLLBACK_REF: ${{ secrets.H38_CUSTOMER_PORTAL_ROLLBACK_REF }}
+      H38_CUSTOMER_PORTAL_RUNTIME_DEPLOYMENT_ID: ${{ secrets.H38_CUSTOMER_PORTAL_RUNTIME_DEPLOYMENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify owner approval, fail-closed defaults, and provider readiness
+        run: node scripts/verify-customer-portal-activation.js
+      - name: Upload activation gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-portal-activation-gate-${{ github.run_id }}
+          path: launch-control/evidence/customer-portal-activation-gate.json
+          if-no-files-found: error
+          retention-days: 90
