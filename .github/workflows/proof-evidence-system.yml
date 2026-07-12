@@ -1,0 +1,56 @@
+name: Proof Evidence System Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'proof-system/**'
+      - 'proof.html'
+      - 'proof.js'
+      - 'proof-data.js'
+      - 'free-tools.html'
+      - 'downloads/**'
+      - 'launch-control/public-proof-manifest.json'
+      - 'scripts/process-private-proof-evidence.js'
+      - 'scripts/verify-proof-evidence-system.js'
+      - '.github/workflows/proof-evidence-system.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'proof-system/**'
+      - 'proof.html'
+      - 'proof.js'
+      - 'proof-data.js'
+      - 'free-tools.html'
+      - 'downloads/**'
+      - 'launch-control/public-proof-manifest.json'
+      - 'scripts/process-private-proof-evidence.js'
+      - 'scripts/verify-proof-evidence-system.js'
+      - '.github/workflows/proof-evidence-system.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify PST preservation, private indexing, public proof, photos, calculators, and downloads
+        run: node scripts/verify-proof-evidence-system.js
+      - name: Upload proof-system evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof-evidence-system-${{ github.run_id }}
+          path: |
+            launch-control/evidence/proof-evidence-system-verification.json
+            launch-control/evidence/proof-evidence-synthetic-pipeline.json
+          if-no-files-found: error
+          retention-days: 90
