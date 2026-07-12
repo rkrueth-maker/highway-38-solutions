@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "module": {
+    "id": "revenue-operations-core",
+    "version": "1.0.0",
+    "environment": "production",
+    "status": "CONTROLLED_NOT_CONNECTED"
+  },
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtectionRequired": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "providerReferenceRequiredForExternalResults": true,
+    "externalActionsEnabled": false
+  },
+  "workflows": {
+    "quoteSend": false,
+    "invoiceSend": false,
+    "paymentRequest": false,
+    "paymentProcessing": false,
+    "receiptSend": false,
+    "creditRefund": false,
+    "finalDelivery": false,
+    "customerFollowUp": false,
+    "socialPublishing": false,
+    "advertisingLaunch": false,
+    "websiteDeployment": false,
+    "accountingApiSync": false
+  },
+  "payments": {
+    "providerHostedOnly": true,
+    "rawCardDataAllowed": false,
+    "supportedBillingStages": ["deposit", "progress", "final", "subscription"],
+    "supportedTransactionTypes": ["payment", "credit", "refund"],
+    "allowedUrlSchemes": ["https:"],
+    "approvedProviders": []
+  },
+  "contracts": {
+    "supportedStatuses": ["DRAFT", "OWNER_REVIEW", "ACTIVE", "PAUSED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"],
+    "supportedCadences": ["one-time", "monthly", "quarterly", "annual"],
+    "renewalNoticeDays": 30,
+    "usageOverageRequiresApproval": true
+  },
+  "communications": {
+    "channels": ["email", "portal", "sms-draft", "phone-log"],
+    "outboundSendEnabled": false,
+    "draftOnly": true
+  },
+  "publishing": {
+    "socialPlatforms": ["facebook", "instagram", "linkedin", "google-business-profile", "youtube"],
+    "websiteDeploymentEnabled": false,
+    "socialPublishingEnabled": false,
+    "advertisingSpendEnabled": false
+  },
+  "accounting": {
+    "currency": "USD",
+    "providerNeutralCsv": true,
+    "apiSyncEnabled": false,
+    "recognizedTransactionTypes": ["invoice", "payment", "expense", "credit", "refund"],
+    "recognizedRevenueClasses": ["product", "bundle", "add-on", "contract", "subscription"]
+  },
+  "privateFields": [
+    "providerCredentials",
+    "paymentCredentials",
+    "rawCardData",
+    "internalNotes",
+    "internalCostsPrivate",
+    "ownerApprovalSecret",
+    "otherCustomers"
+  ]
+}
