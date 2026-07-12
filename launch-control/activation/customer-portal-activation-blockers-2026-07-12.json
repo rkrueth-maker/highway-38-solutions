@@ -2,49 +2,72 @@
   "activationId": "H38-CUSTOMER-PORTAL-ACTIVATION-2026-07-12",
   "status": "HOLD",
   "ownerApprovalRecorded": true,
+  "codeControlledReadiness": {
+    "securityCore": "PASS",
+    "runtimeContract": "PASS",
+    "runtimeConfigurationTemplate": "PASS_FAIL_CLOSED",
+    "activationVerifier": "PASS_SYNTHETIC_ONLY",
+    "productionProvidersConnected": false,
+    "productionIsolationVerified": false,
+    "activationClaimAllowed": false
+  },
   "blockers": [
     {
       "id": "IDP",
-      "status": "MISSING",
-      "required": "Production identity provider, issuer/JWKS or equivalent validation configuration, and credentials"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Production identity provider, issuer/JWKS or equivalent validation configuration, and credentials",
+      "repositoryConnectionPoint": "core-engine/customer-portal/config/customer-portal.runtime.example.json"
     },
     {
       "id": "SERVER_RUNTIME",
-      "status": "MISSING",
-      "required": "Authorized server runtime capable of protecting session secrets and private provider credentials"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Authorized HTTPS server runtime capable of protecting session secrets and private provider credentials",
+      "repositoryConnectionPoint": "core-engine/customer-portal/runtime/customer-portal-runtime-contract.js"
     },
     {
       "id": "PRIVATE_STORAGE",
-      "status": "MISSING",
-      "required": "Deny-public private object storage with tenant/customer namespaces and signed-download support"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Deny-public private object storage with tenant/customer namespaces and signed-download support",
+      "repositoryConnectionPoint": "core-engine/customer-portal/config/customer-portal.runtime.example.json"
     },
     {
       "id": "MALWARE_SCANNING",
-      "status": "MISSING",
-      "required": "Upload quarantine and malware scanning provider/workflow"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Upload quarantine and malware scanning provider/workflow",
+      "repositoryConnectionPoint": "core-engine/customer-portal/config/customer-portal.runtime.example.json"
     },
     {
       "id": "HOSTED_PAYMENTS",
-      "status": "MISSING",
-      "required": "Rick selects and connects Stripe, Square, or PayPal provider-hosted payment flow"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Rick selects and connects Stripe, Square, or PayPal provider-hosted payment flow",
+      "repositoryConnectionPoint": "core-engine/customer-portal/config/customer-portal.runtime.example.json"
     },
     {
       "id": "DOMAIN_SESSION_SECURITY",
-      "status": "MISSING",
-      "required": "Production domain, secure cookie, CSRF, CSP, rate limiting, monitoring, and audit retention configuration"
+      "status": "MISSING_EXTERNAL_CONFIGURATION",
+      "required": "Production domain, Secure and HttpOnly cookies, CSRF, CSP, rate limiting, monitoring, and audit retention configuration",
+      "repositoryConnectionPoint": "core-engine/customer-portal/runtime/customer-portal-runtime-contract.js"
+    },
+    {
+      "id": "SESSION_SECRET",
+      "status": "MISSING_RUNTIME_SECRET",
+      "required": "A session secret of at least 32 bytes supplied through H38_CUSTOMER_PORTAL_SESSION_SECRET outside the repository",
+      "repositoryConnectionPoint": "core-engine/customer-portal/config/customer-portal.runtime.example.json"
+    },
+    {
+      "id": "DEPLOYMENT_ROLLBACK",
+      "status": "MISSING_RUNTIME_EVIDENCE",
+      "required": "Runtime deployment ID, rollback reference, health result, and tested restore procedure",
+      "repositoryConnectionPoint": "scripts/verify-customer-portal-runtime.js"
     },
     {
       "id": "PRODUCTION_ISOLATION_TESTS",
-      "status": "MISSING",
-      "required": "Cross-tenant, cross-customer, guessed-ID, direct-link, expired-session, upload, download, and mobile tests in the selected production stack"
-    },
-    {
-      "id": "ROLLBACK",
-      "status": "MISSING",
-      "required": "Runtime-specific rollback point and tested restore procedure"
+      "status": "PENDING_SELECTED_RUNTIME",
+      "required": "Cross-tenant, cross-customer, guessed-ID, direct-link, expired-session, upload, download, and mobile tests in the selected production stack",
+      "repositoryConnectionPoint": "scripts/verify-customer-portal-runtime.js"
     }
   ],
   "externalActionsOccurred": false,
   "activationClaimAllowed": false,
-  "nextExecutableStep": "Select the production provider/runtime stack and supply credentials outside the repository."
+  "nextExecutableStep": "Select the production provider/runtime stack, create repository-external credentials and secrets, populate the authorized runtime configuration, deploy with a rollback point, and run the activation gate plus live isolation tests."
 }
