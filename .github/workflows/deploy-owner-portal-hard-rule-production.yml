@@ -1,0 +1,184 @@
+name: Deploy Owner Portal Hard Rule Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-owner-portal-hard-rule-production.yml'
+      - 'launch-control/deployment-requests/owner-portal-hard-rule-2026-07-12.json'
+      - 'apps-script/core-engine/owner-portal-next/**'
+  workflow_dispatch:
+
+concurrency:
+  group: owner-portal-production-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      H38_BOUND_SCRIPT_ID: 13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o
+      H38_EXISTING_DEPLOYMENT_ID: AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg
+      H38_PRODUCTION_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
+      H38_RELEASE_MARKER: production-2026-07-12-hard-rule-owner-portal
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      CLASP_AUTH_JSON: ${{ secrets.CLASP_AUTH_JSON }}
+      CLASP_AUTH_JSON_B64: ${{ secrets.CLASP_AUTH_JSON_B64 }}
+      CLASPRC: ${{ secrets.CLASPRC }}
+    steps:
+      - name: Check out exact main source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install clasp
+        run: npm install --global @google/clasp
+
+      - name: Verify merged Owner Portal source
+        run: |
+          node scripts/verify-owner-portal-next.js
+          node scripts/verify-owner-portal-hard-rule.js
+          grep -F "${H38_RELEASE_MARKER}" apps-script/core-engine/owner-portal-next/Portal_Config.js
+
+      - name: Load encrypted clasp credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then
+            printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then
+            printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then
+            printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then
+            printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then
+            printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then
+            printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON}" ]]; then
+            printf '%s' "${CLASP_AUTH_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON_B64}" ]]; then
+            printf '%s' "${CLASP_AUTH_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC}" ]]; then
+            printf '%s' "${CLASPRC}" > "$HOME/.clasprc.json"
+          else
+            echo 'DEPLOYMENT BLOCKED — no encrypted clasp credential is configured in repository Actions secrets.'
+            exit 78
+          fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded and JSON-valid.');"
+
+      - name: Back up existing bound Apps Script project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deployment-work/backup deployment-work/project deployment-work/evidence
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > deployment-work/backup/.clasp.json
+          (
+            cd deployment-work/backup
+            clasp pull
+          )
+          tar -czf deployment-work/evidence/bound-project-backup.tar.gz -C deployment-work/backup .
+          sha256sum deployment-work/evidence/bound-project-backup.tar.gz | tee deployment-work/evidence/bound-project-backup.sha256
+
+      - name: Assemble exact bound-project source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE=apps-script/core-engine/owner-portal-next
+          PROJECT=deployment-work/project
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > "$PROJECT/.clasp.json"
+          cp "$SOURCE"/*.js "$PROJECT/"
+          cp "$SOURCE"/*.html "$PROJECT/"
+          cp "$SOURCE/appsscript.json" "$PROJECT/"
+          grep -F "$H38_RELEASE_MARKER" "$PROJECT/Portal_Config.js"
+
+      - name: Confirm existing deployment and push source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd deployment-work/project
+          clasp list-deployments | tee ../evidence/deployments-before.txt
+          grep -F "$H38_EXISTING_DEPLOYMENT_ID" ../evidence/deployments-before.txt
+          clasp push --force | tee ../evidence/clasp-push.txt
+
+      - name: Update existing private Web App deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd deployment-work/project
+          if clasp update-deployment --help >/dev/null 2>&1; then
+            clasp update-deployment "$H38_EXISTING_DEPLOYMENT_ID" --description "Highway 38 hard-rule Owner Portal ${GITHUB_SHA}"
+          else
+            clasp deploy -i "$H38_EXISTING_DEPLOYMENT_ID" -d "Highway 38 hard-rule Owner Portal ${GITHUB_SHA}"
+          fi
+          clasp list-deployments | tee ../evidence/deployments-after.txt
+          grep -F "$H38_EXISTING_DEPLOYMENT_ID" ../evidence/deployments-after.txt
+
+      - name: Record deployment evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          BACKUP_SHA="$(cut -d' ' -f1 deployment-work/evidence/bound-project-backup.sha256)"
+          WEB_APP_URL="https://script.google.com/macros/s/${H38_EXISTING_DEPLOYMENT_ID}/exec"
+          cat > deployment-work/evidence/owner-portal-production-deployment.json <<JSON
+          {
+            "status": "DEPLOYED_PENDING_POST_DEPLOYMENT_TEST_AND_VERIFICATION",
+            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "sourceCommit": "${GITHUB_SHA}",
+            "releaseMarker": "${H38_RELEASE_MARKER}",
+            "boundScriptId": "${H38_BOUND_SCRIPT_ID}",
+            "existingDeploymentId": "${H38_EXISTING_DEPLOYMENT_ID}",
+            "webAppUrl": "${WEB_APP_URL}",
+            "productionSpreadsheetId": "${H38_PRODUCTION_SPREADSHEET_ID}",
+            "backupSha256": "${BACKUP_SHA}",
+            "createdNewProject": false,
+            "createdSecondDeployment": false,
+            "externalActionsEnabled": false,
+            "externalActionsOccurred": false,
+            "remainingAcceptance": [
+              "Run non-destructive Owner Portal self-test",
+              "Verify desktop operating surfaces",
+              "Verify mobile operating surfaces",
+              "Record post-deployment acceptance and screenshots"
+            ]
+          }
+          JSON
+          cat deployment-work/evidence/owner-portal-production-deployment.json
+
+      - name: Upload deployment and rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-portal-production-deployment-${{ github.run_id }}
+          path: deployment-work/evidence/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Record successful deployment on control issues
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          URL="https://script.google.com/macros/s/${H38_EXISTING_DEPLOYMENT_ID}/exec"
+          BODY="Owner Portal hard-rule source deployed to the existing private Apps Script Web App from commit ${GITHUB_SHA}. Existing deployment ID was updated in place; no new project or second deployment was created. Release marker: ${H38_RELEASE_MARKER}. External actions remain disabled. Runtime testing and desktop/mobile verification are the next acceptance step. URL: ${URL}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 33 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"

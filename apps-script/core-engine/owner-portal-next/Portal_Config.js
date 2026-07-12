@@ -8,7 +8,7 @@ var H38_PORTAL_ENVIRONMENT = String(
 
 var H38_PORTAL_NEXT = Object.freeze({
   APP_NAME: 'Highway 38 Business Operating System',
-  RELEASE: 'production-2026-07-11-integrated-business-os',
+  RELEASE: 'production-2026-07-12-hard-rule-owner-portal',
   TIMEZONE: 'America/Chicago',
   SPREADSHEET_ID: PropertiesService.getScriptProperties().getProperty('H38_PORTAL_SPREADSHEET_ID') || '',
   ENVIRONMENT: H38_PORTAL_ENVIRONMENT,

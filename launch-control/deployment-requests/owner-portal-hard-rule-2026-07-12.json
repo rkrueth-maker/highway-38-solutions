@@ -1,0 +1,11 @@
+{
+  "requestId": "OWNER-PORTAL-HARD-RULE-DEPLOY-2026-07-12",
+  "requestedAt": "2026-07-12T20:55:00Z",
+  "sourceRelease": "production-2026-07-12-hard-rule-owner-portal",
+  "targetMode": "UPDATE_EXISTING_BOUND_PROJECT_AND_EXISTING_PRIVATE_DEPLOYMENT",
+  "createNewProject": false,
+  "createSecondDeployment": false,
+  "externalActionsEnabled": false,
+  "testAfterDeployment": true,
+  "status": "AUTHORIZED_FOR_CONTROLLED_DEPLOYMENT"
+}
