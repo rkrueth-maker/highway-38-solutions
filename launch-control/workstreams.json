@@ -1,0 +1,42 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "masterIssue": 31,
+  "workstreams": {
+    "32": {
+      "name": "Brand, website, services, tools, and customer path",
+      "status": "IN_PROGRESS",
+      "implemented": ["privacy-first customer workspace", "project brief export", "service and sample navigation path"],
+      "acceptance": ["brand consistency scan", "mobile regression", "all service links verified", "customer path smoke test", "live URL", "rollback point"]
+    },
+    "33": {
+      "name": "Owner Portal, customer portal, and operating workflows",
+      "status": "IN_PROGRESS",
+      "implemented": ["production integrated Owner Portal", "unified selected-task workspace", "customer preparation workspace"],
+      "acceptance": ["Owner Portal production self-test PASS", "customer workspace functional test", "workflow SOP validation by 03", "external functions remain locked until release"]
+    },
+    "34": {
+      "name": "Proof, PST extraction, photos, calculators, and downloads",
+      "status": "IN_PROGRESS",
+      "implemented": ["public-private data hard rule", "privacy and secret CI scan"],
+      "acceptance": ["asset-level public-safe classification", "PST extraction evidence remains private", "photo redaction review", "calculator tests", "download link checks"]
+    },
+    "35": {
+      "name": "Business Concept Builder and transferable Business OS",
+      "status": "IN_PROGRESS",
+      "implemented": ["local-first Business Concept Builder", "Markdown export", "portable JSON export", "unit-economics calculator"],
+      "acceptance": ["mobile and desktop smoke tests", "export validation", "transferable schema review", "live URL", "rollback point"]
+    },
+    "36": {
+      "name": "Payments, contracts, social, communications, and accounting",
+      "status": "IN_PROGRESS",
+      "implemented": ["manual payment records", "communications review records", "social and advertising planning records", "provider-neutral accounting CSV"],
+      "acceptance": ["provider decision and credentials documented", "contract review status", "send/publish/spend gates tested", "accounting reconciliation sample", "external owner release remains explicit"]
+    },
+    "37": {
+      "name": "Integration, hard-rule QA, deployment, and final acceptance",
+      "status": "IN_PROGRESS",
+      "implemented": ["machine-readable launch manifest", "rollback register", "deployment evidence register", "blocker register", "hard-rule CI verifier"],
+      "acceptance": ["all workstream evidence linked", "privacy scan PASS", "all production writes have rollback", "live URLs verified", "exact blockers listed", "Issue #31 final acceptance record"]
+    }
+  }
+}
