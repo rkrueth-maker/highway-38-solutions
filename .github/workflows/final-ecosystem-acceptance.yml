@@ -10,7 +10,7 @@ on:
       - 'final-acceptance.html'
       - 'ecosystem-status.html'
       - 'sitemap.xml'
-      - 'scripts/verify-final-ecosystem-acceptance.js'
+      - 'scripts/verify-final-ecosystem-acceptance-v2.js'
       - '.github/workflows/final-ecosystem-acceptance.yml'
       - 'core-engine/**'
       - 'proof-system/**'
@@ -23,7 +23,7 @@ on:
       - 'final-acceptance.html'
       - 'ecosystem-status.html'
       - 'sitemap.xml'
-      - 'scripts/verify-final-ecosystem-acceptance.js'
+      - 'scripts/verify-final-ecosystem-acceptance-v2.js'
       - '.github/workflows/final-ecosystem-acceptance.yml'
       - 'core-engine/**'
       - 'proof-system/**'
@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: '24'
       - name: Verify all workstreams, component decisions, blockers, privacy, rollback, and integrated tests
-        run: node scripts/verify-final-ecosystem-acceptance.js
+        run: node scripts/verify-final-ecosystem-acceptance-v2.js
       - name: Upload final acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
