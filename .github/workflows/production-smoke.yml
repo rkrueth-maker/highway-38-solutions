@@ -8,11 +8,14 @@ on:
       - '.github/workflows/production-smoke.yml'
       - 'index.html'
       - 'products.html'
+      - 'product.html'
       - 'sample-library-now.html'
       - 'start-request.html'
       - 'catalog-data.js'
       - 'commercial.js'
       - 'commercial.css'
+      - 'catalog-navigation.js'
+      - 'product-detail.js'
   pull_request:
     branches: [main]
     paths:
@@ -20,17 +23,39 @@ on:
       - 'docs/commercial-system/production-smoke-request.md'
       - 'index.html'
       - 'products.html'
+      - 'product.html'
       - 'sample-library-now.html'
       - 'start-request.html'
       - 'catalog-data.js'
       - 'commercial.js'
       - 'commercial.css'
+      - 'catalog-navigation.js'
+      - 'product-detail.js'
 
 permissions:
   contents: read
 
 jobs:
+  pull-request-source-smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify proposed public source markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Big problems.' index.html
+          grep -Fq 'Choose a result without scrolling through one long product wall.' products.html
+          grep -Fq 'data-product-detail-single' product.html
+          grep -Fq 'Hypothetical examples' sample-library-now.html
+          grep -Fq 'What would you like to have when this is finished?' start-request.html
+          grep -Fq 'data-owner-link="true"' sample-library-now.html
+          grep -Fq 'product_detail_view' product-detail.js
+          echo 'Pull-request public source smoke check passed.'
+
   production-smoke:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Verify deployed GitHub Pages site
@@ -52,8 +77,9 @@ jobs:
             return 1
           }
           fetch_until_ready '' 'Big problems.' /tmp/home.html
-          fetch_until_ready 'products.html' 'One controlled catalog' /tmp/products.html
+          fetch_until_ready 'products.html' 'Choose a result without scrolling through one long product wall.' /tmp/products.html
+          fetch_until_ready 'product.html?id=H38-P001' 'data-product-detail-single' /tmp/product.html
           fetch_until_ready 'sample-library-now.html' 'Hypothetical examples' /tmp/samples.html
           fetch_until_ready 'start-request.html' 'What would you like to have when this is finished?' /tmp/request.html
-          grep -Fq 'owner-portal.html' /tmp/samples.html
+          grep -Fq 'data-owner-link="true"' /tmp/samples.html
           echo 'Production GitHub Pages smoke check passed.'
