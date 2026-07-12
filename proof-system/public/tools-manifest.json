@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "release": "highway-38-tools-1.0.0",
+  "privacy": "Browser-only inputs. No customer, employer, vendor, part, or production source data is embedded or transmitted.",
+  "tools": [
+    {
+      "id": "H38-TOOL-001",
+      "name": "Machining Quick Calculator",
+      "version": "1.0.0",
+      "formulaId": "machining-rpm-feed-v1",
+      "assumptions": ["Inputs are positive", "RPM uses 3.82 × SFM ÷ diameter", "Feed uses RPM × teeth × chip load"],
+      "disclaimer": "Starting estimate only. Confirm toolmaker, material, machine, workholding, coolant, and safety limits.",
+      "analyticsEvent": "tool_calculate:machining",
+      "relatedProduct": "H38-P010"
+    },
+    {
+      "id": "H38-TOOL-002",
+      "name": "Automation Payback Estimator",
+      "version": "1.0.0",
+      "formulaId": "simple-payback-v1",
+      "assumptions": ["Hours saved represent usable value", "Loaded hourly value and operating weeks are estimates", "Simple payback excludes financing and tax"],
+      "disclaimer": "Validate uptime, labor redeployment, scrap, maintenance, financing, tax, and implementation risk.",
+      "analyticsEvent": "tool_calculate:payback",
+      "relatedProduct": "H38-P010"
+    },
+    {
+      "id": "H38-TOOL-003",
+      "name": "Shop Bottleneck Cost Calculator",
+      "version": "1.0.0",
+      "formulaId": "bottleneck-time-cost-v1",
+      "assumptions": ["Lost minutes recur on entered working days", "Loaded hourly cost applies to every affected person"],
+      "disclaimer": "Time cost only; excludes sales, quality, delay, and downstream effects.",
+      "analyticsEvent": "tool_calculate:bottleneck",
+      "relatedProduct": "H38-P004"
+    },
+    {
+      "id": "H38-TOOL-004",
+      "name": "Bar-Feed Production Calculator",
+      "version": "1.0.0",
+      "formulaId": "bar-feed-capacity-v1",
+      "assumptions": ["Usable length equals bar length less remnant", "Each part consumes part length plus cutoff allowance", "Run output applies entered efficiency"],
+      "disclaimer": "Verify end loss, cutoff, restart loss, inspection, tool life, and unattended-run rules.",
+      "analyticsEvent": "tool_calculate:barfeed",
+      "relatedProduct": "H38-P010"
+    },
+    {
+      "id": "H38-TOOL-005",
+      "name": "Press-Feed Capacity Worksheet",
+      "version": "1.0.0",
+      "formulaId": "press-feed-capacity-v1",
+      "assumptions": ["One theoretical part per stroke", "Efficiency is applied to scheduled strokes", "Strip use equals good strokes × pitch"],
+      "disclaimer": "Validate die, feeder, stock, press rating, setup, scrap, guarding, and controls.",
+      "analyticsEvent": "tool_calculate:pressfeed",
+      "relatedProduct": "H38-P011"
+    },
+    {
+      "id": "H38-TOOL-006",
+      "name": "Vendor Quote Completeness Checklist",
+      "version": "1.0.0",
+      "formulaId": "quote-completeness-score-v1",
+      "assumptions": ["Eleven review categories are equally weighted", "Checked means present, not correct"],
+      "disclaimer": "Completeness does not confirm technical correctness, safety, capacity, or supplier capability.",
+      "analyticsEvent": "tool_calculate:quote",
+      "relatedProduct": "H38-P010"
+    },
+    {
+      "id": "H38-TOOL-007",
+      "name": "Shop Flow Scorecard",
+      "version": "1.0.0",
+      "formulaId": "normalized-score-v1",
+      "assumptions": ["Eight categories are rated from 1 to 5", "Scores are self-reported and equally weighted"],
+      "disclaimer": "Self-assessment only; not a safety or readiness certification.",
+      "analyticsEvent": "tool_calculate:shop-flow",
+      "relatedProduct": "H38-P004"
+    },
+    {
+      "id": "H38-TOOL-008",
+      "name": "Robot-Tending Readiness Score",
+      "version": "1.0.0",
+      "formulaId": "normalized-score-v1",
+      "assumptions": ["Ten categories are rated from 1 to 5", "Scores are screening inputs, not engineering validation"],
+      "disclaimer": "Self-assessment only; not a safety, guarding, integration, or production-readiness certification.",
+      "analyticsEvent": "tool_calculate:robot",
+      "relatedProduct": "H38-P015"
+    }
+  ],
+  "downloads": [
+    {
+      "id": "H38-DL-001",
+      "name": "Vendor Quote Completeness CSV",
+      "version": "1.0.0",
+      "file": "downloads/h38-vendor-quote-completeness.csv",
+      "readme": "downloads/README.md",
+      "disclaimer": "Checklist only; technical, commercial, supplier, and safety validation remain the user's responsibility.",
+      "relatedProduct": "H38-P010"
+    },
+    {
+      "id": "H38-DL-002",
+      "name": "Project Scope Builder CSV",
+      "version": "1.0.0",
+      "file": "downloads/h38-project-scope-builder.csv",
+      "readme": "downloads/README.md",
+      "disclaimer": "Planning aid only; field verification and licensed work remain outside scope.",
+      "relatedProduct": "H38-P003"
+    },
+    {
+      "id": "H38-DL-003",
+      "name": "Photo Privacy Review CSV",
+      "version": "1.0.0",
+      "file": "downloads/h38-photo-privacy-review.csv",
+      "readme": "downloads/README.md",
+      "disclaimer": "A completed checklist does not replace owner permission, privacy review, or legal advice.",
+      "relatedProduct": "H38-P006"
+    }
+  ]
+}
