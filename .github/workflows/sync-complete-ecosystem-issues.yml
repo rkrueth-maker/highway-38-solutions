@@ -1,0 +1,99 @@
+name: Sync Complete Ecosystem Issue Evidence
+
+on:
+  push:
+    branches:
+      - complete-ecosystem-live-launch-2026-07-11
+    paths:
+      - '.github/workflows/sync-complete-ecosystem-issues.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BASE: https://rkrueth-maker.github.io/highway-38-solutions
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: complete-ecosystem-live-launch-2026-07-11
+      - name: Resolve deployment evidence
+        id: evidence
+        run: |
+          MERGE_SHA="$(gh api repos/${REPO}/pulls/39 --jq '.merge_commit_sha')"
+          echo "merge_sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Update master control issue
+        run: |
+          cat > /tmp/master.md <<'EOF'
+          <!-- h38-complete-ecosystem-deployment-2026-07-11 -->
+          ## Verified continuous-integration delivery
+
+          **Overall ecosystem status: IN PROGRESS — not represented as complete.**
+
+          Verified public components from PR #39 are live:
+
+          - [Ecosystem hub](https://rkrueth-maker.github.io/highway-38-solutions/ecosystem-status.html)
+          - [Customer workspace](https://rkrueth-maker.github.io/highway-38-solutions/customer-portal.html)
+          - [Business Concept Builder](https://rkrueth-maker.github.io/highway-38-solutions/business-concept-builder.html)
+          - [Planning Tool Center](https://rkrueth-maker.github.io/highway-38-solutions/tool-center.html)
+          - [Public-safe Proof Center](https://rkrueth-maker.github.io/highway-38-solutions/proof-center.html)
+          - [Homepage integrated customer path](https://rkrueth-maker.github.io/highway-38-solutions/)
+
+          Evidence and controls added:
+
+          - hard-rule launch manifest and six-workstream acceptance matrix
+          - rollback register and pre-launch baseline `3bd325f`
+          - deployment evidence and exact blocker registers
+          - privacy/secret scan and public-tool functional verifier
+          - public-safe proof manifest
+          - payments, communications, social, advertising, contracts, and accounting integration matrix
+
+          External customer email, payment processing, social publishing, advertising spend, and final delivery remain **LOCKED**. Missing credentials remain explicit blockers and have not been used to remove features from scope.
+
+          Private Clow, CSC, PST, customer, vendor, employee, address, family, and unapproved-photo source information remains excluded from public artifacts.
+          EOF
+          printf '\nDeployment merge commit: `%s`\n\nEvidence: `launch-control/deployments/public-ecosystem-live-2026-07-11.json`\n' '${{ steps.evidence.outputs.merge_sha }}' >> /tmp/master.md
+          gh issue comment 31 --repo "$REPO" --body-file /tmp/master.md
+      - name: Update workstream 32
+        run: |
+          gh issue comment 32 --repo "$REPO" --body $'## Continuous integration update\n\n**Status: IN PROGRESS with verified live delivery.**\n\nLive: homepage customer-path integration, ecosystem hub, customer workspace, planning tools, proof center, service/sample navigation.\n\nRemaining acceptance: complete brand consistency scan, full service-link regression, mobile visual QA across legacy pages, and final Issue #31 roll-up.'
+      - name: Update workstream 33
+        run: |
+          gh issue comment 33 --repo "$REPO" --body $'## Continuous integration update\n\n**Status: IN PROGRESS.**\n\nOwner Portal production release remains self-test PASS with selected-record controls and external actions disabled. The public customer workspace is live for local preparation/export only.\n\nExact remaining blockers: secure customer authentication, private file storage, job-status synchronization, payment links, and approved outbound messaging workflows.'
+      - name: Update workstream 34
+        run: |
+          gh issue comment 34 --repo "$REPO" --body $'## Continuous integration update\n\n**Status: IN PROGRESS with verified live delivery.**\n\nLive: calculator/download Tool Center, public-safe Proof Center, and manifest-enforced public asset list.\n\nPrivate PST extraction, Clow/CSC source material, customer/vendor/employee/address/family data, and unapproved photos remain private. Remaining work requires asset-by-asset classification, redaction evidence, calculator edge-case review, and download inventory reconciliation.'
+      - name: Update workstream 35
+        run: |
+          gh issue comment 35 --repo "$REPO" --body $'## Continuous integration update\n\n**Status: IN PROGRESS with verified live delivery.**\n\nThe Business Concept Builder is live with local save, unit economics, Markdown export, portable JSON export, validation planning, workflow design, and risk controls.\n\nRemaining transferable Business OS scope: Core Engine/Business Pack packaging, installer verification, licensing decisions, white-label configuration, multi-business configuration, and release acceptance.'
+      - name: Update workstream 36
+        run: |
+          gh issue comment 36 --repo "$REPO" --body $'## Continuous integration update\n\n**Status: IN PROGRESS / controlled blockers.**\n\nReady internally: manual payment records, communications review records, social/advertising planning records, provider-neutral accounting CSV, integration matrix, and internal project-terms draft.\n\nLocked or blocked: live email sends, merchant processing/payment requests, social publishing, advertising spend, accounting API sync, and customer contract use. Exact credentials, provider decisions, tests, legal/business review, and owner releases remain required.'
+      - name: Update workstream 37
+        run: |
+          cat > /tmp/integration.md <<'EOF'
+          ## Integration and deployment record
+
+          **Verified portion: PASS and live. Entire ecosystem: IN PROGRESS.**
+
+          - Source PR: #39
+          - Pre-launch rollback commit: `3bd325f`
+          - Deployment evidence: `launch-control/deployments/public-ecosystem-live-2026-07-11.json`
+          - Hard-rule verifier: `scripts/verify-complete-ecosystem-launch.js`
+          - Public-tool verifier: `scripts/verify-public-ecosystem-tools.js`
+          - Production URLs: ecosystem hub, customer workspace, Business Concept Builder, Tool Center, Proof Center, and integrated homepage
+          - External actions: locked
+          - Public-private scan: enforced in CI
+
+          Final acceptance remains blocked until all workstream evidence, credentials/holds, live URLs, rollback points, and unresolved items are reconciled in #31.
+          EOF
+          printf '\nMerge commit: `%s`\n' '${{ steps.evidence.outputs.merge_sha }}' >> /tmp/integration.md
+          gh issue comment 37 --repo "$REPO" --body-file /tmp/integration.md
