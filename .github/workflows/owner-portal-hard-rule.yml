@@ -1,0 +1,48 @@
+name: Owner Portal Hard Rule Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'scripts/verify-owner-portal-next.js'
+      - 'scripts/verify-owner-portal-hard-rule.js'
+      - '.github/workflows/owner-portal-hard-rule.yml'
+      - 'launch-control/activation/owner-portal-hard-rule-deployment-2026-07-12.json'
+      - 'docs/operating-system/OWNER_PORTAL_HARD_RULE_ACCEPTANCE.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'scripts/verify-owner-portal-next.js'
+      - 'scripts/verify-owner-portal-hard-rule.js'
+      - '.github/workflows/owner-portal-hard-rule.yml'
+      - 'launch-control/activation/owner-portal-hard-rule-deployment-2026-07-12.json'
+      - 'docs/operating-system/OWNER_PORTAL_HARD_RULE_ACCEPTANCE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify proven Owner Portal architecture
+        run: node scripts/verify-owner-portal-next.js
+      - name: Verify hard-rule Owner Portal experience
+        run: node scripts/verify-owner-portal-hard-rule.js
+      - name: Upload Owner Portal hard-rule evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-portal-hard-rule-${{ github.run_id }}
+          path: launch-control/evidence/owner-portal-hard-rule-verification.json
+          if-no-files-found: error
+          retention-days: 90
