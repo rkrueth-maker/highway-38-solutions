@@ -1,0 +1,45 @@
+name: Integrate Ecosystem Navigation
+
+on:
+  push:
+    branches:
+      - complete-ecosystem-live-launch-2026-07-11
+    paths:
+      - 'scripts/integrate-ecosystem-navigation.js'
+      - '.github/workflows/integrate-ecosystem-navigation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: complete-ecosystem-live-launch-2026-07-11
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Record rollback source
+        run: git rev-parse HEAD > launch-control/evidence/navigation-integration-parent-sha.txt
+      - name: Integrate website navigation and homepage path
+        run: node scripts/integrate-ecosystem-navigation.js
+      - name: Verify public tools
+        run: node scripts/verify-public-ecosystem-tools.js
+      - name: Verify hard rules
+        run: node scripts/verify-complete-ecosystem-launch.js
+      - name: Commit verified integration
+        run: |
+          if git diff --quiet; then
+            echo 'No integration changes required.'
+            exit 0
+          fi
+          git config user.name 'highway-38-launch-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add index.html launch-control/evidence
+          git commit -m 'Integrate verified ecosystem customer path'
+          git push origin HEAD:complete-ecosystem-live-launch-2026-07-11
