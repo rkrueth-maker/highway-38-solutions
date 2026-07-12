@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       H38_BOUND_SCRIPT_ID: 13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-
+      H38_API_EXECUTABLE_DEPLOYMENT_ID: AKfycbzn2IS_eJABKFvSH93q-ubV4guFHFC_0D6dgaGrb7Gr
       H38_EXISTING_DEPLOYMENT_ID: AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg
       H38_APPROVED_RELEASE: production-2026-07-12-hard-rule-owner-portal
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
@@ -47,18 +48,42 @@ jobs:
           printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > acceptance-evidence/project/.clasp.json
           (cd acceptance-evidence/project && clasp list-deployments) | tee acceptance-evidence/deployments-current.txt
           grep -F "$H38_EXISTING_DEPLOYMENT_ID @13" acceptance-evidence/deployments-current.txt
+          grep -F "$H38_API_EXECUTABLE_DEPLOYMENT_ID @HEAD" acceptance-evidence/deployments-current.txt
           COUNT="$(awk '/^Found [0-9]+ deployments\./ {print $2; exit}' acceptance-evidence/deployments-current.txt)"
           test "$COUNT" = "6"
 
-      - name: Run owner-only release correction and self-test with structured output
+      - name: Call owner-only Apps Script Execution API directly
         shell: bash
         run: |
           set -euo pipefail
-          (
-            cd acceptance-evidence/project
-            clasp --json run-function h38PortalApplyReleaseReadinessFix
-          ) > acceptance-evidence/clasp-run-function.json
-          cat acceptance-evidence/clasp-run-function.json
+          CLIENT_ID="$(jq -r '.tokens.default.client_id // .client_id // empty' "$HOME/.clasprc.json")"
+          CLIENT_SECRET="$(jq -r '.tokens.default.client_secret // .client_secret // empty' "$HOME/.clasprc.json")"
+          REFRESH_TOKEN="$(jq -r '.tokens.default.refresh_token // .refresh_token // empty' "$HOME/.clasprc.json")"
+          test -n "$CLIENT_ID" && test -n "$CLIENT_SECRET" && test -n "$REFRESH_TOKEN"
+
+          TOKEN_RESPONSE="$(curl --silent --show-error \
+            --data-urlencode "client_id=$CLIENT_ID" \
+            --data-urlencode "client_secret=$CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$REFRESH_TOKEN" \
+            --data-urlencode 'grant_type=refresh_token' \
+            https://oauth2.googleapis.com/token)"
+          ACCESS_TOKEN="$(printf '%s' "$TOKEN_RESPONSE" | jq -r '.access_token // empty')"
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            printf '%s' "$TOKEN_RESPONSE" | jq '{error,error_description}' > acceptance-evidence/token-error.json
+            echo 'Unable to refresh the encrypted OAuth credential.'
+            exit 1
+          fi
+          echo "::add-mask::$ACCESS_TOKEN"
+
+          HTTP_STATUS="$(curl --silent --show-error \
+            --output acceptance-evidence/scripts-run-response.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $ACCESS_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data '{"function":"h38PortalApplyReleaseReadinessFix","parameters":[],"devMode":true}' \
+            "https://script.googleapis.com/v1/scripts/${H38_API_EXECUTABLE_DEPLOYMENT_ID}:run")"
+          printf '%s\n' "$HTTP_STATUS" > acceptance-evidence/scripts-run-http-status.txt
+          cat acceptance-evidence/scripts-run-response.json
 
       - name: Enforce acceptance criteria
         shell: bash
@@ -66,9 +91,11 @@ jobs:
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
-          const payload=JSON.parse(fs.readFileSync('acceptance-evidence/clasp-run-function.json','utf8'));
+          const status=Number(fs.readFileSync('acceptance-evidence/scripts-run-http-status.txt','utf8').trim());
+          const payload=JSON.parse(fs.readFileSync('acceptance-evidence/scripts-run-response.json','utf8'));
+          if(status<200||status>=300) throw new Error('Apps Script API HTTP '+status+': '+JSON.stringify(payload));
           if(payload.error) throw new Error('Apps Script execution error: '+JSON.stringify(payload.error));
-          const result=payload.response;
+          const result=payload.response&&payload.response.result;
           if(!result) throw new Error('Apps Script execution returned no result.');
           fs.writeFileSync('acceptance-evidence/owner-portal-release-readiness-acceptance.json',JSON.stringify(result,null,2)+'\n');
           const failed=[];
