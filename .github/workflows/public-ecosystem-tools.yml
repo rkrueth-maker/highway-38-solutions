@@ -1,0 +1,49 @@
+name: Public Ecosystem Tools Smoke Test
+
+on:
+  push:
+    branches:
+      - complete-ecosystem-live-launch-2026-07-11
+      - main
+    paths:
+      - 'ecosystem-status.html'
+      - 'customer-portal.html'
+      - 'business-concept-builder.html'
+      - 'tool-center.html'
+      - 'proof-center.html'
+      - 'launch-control/public-proof-manifest.json'
+      - 'scripts/verify-public-ecosystem-tools.js'
+      - '.github/workflows/public-ecosystem-tools.yml'
+  pull_request:
+    paths:
+      - 'ecosystem-status.html'
+      - 'customer-portal.html'
+      - 'business-concept-builder.html'
+      - 'tool-center.html'
+      - 'proof-center.html'
+      - 'launch-control/public-proof-manifest.json'
+      - 'scripts/verify-public-ecosystem-tools.js'
+      - '.github/workflows/public-ecosystem-tools.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify public tools and local links
+        run: node scripts/verify-public-ecosystem-tools.js
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-ecosystem-tools-evidence
+          path: launch-control/evidence/public-ecosystem-tools.json
+          if-no-files-found: error
+          retention-days: 90
