@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Private local evidence discovery only. Matches are never public automatically.",
+  "groups": [
+    {
+      "id": "cad-cam",
+      "terms": ["FeatureCAM", "CADKEY", "CKD", "KeyCreator", "Kubotek", "Mastercam", "CAD", "CAM", "post processor", "tool library", "macro", "API"],
+      "targetExtensions": [".ckd", ".dwg", ".dxf", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".nc", ".tap"]
+    },
+    {
+      "id": "cnc-machining",
+      "terms": ["CNC", "Doosan", "lathe", "mill", "bar feed", "bar feeder", "toolroom", "program", "setup", "cycle time", "feeds and speeds"],
+      "targetExtensions": [".nc", ".tap", ".txt", ".pdf", ".jpg", ".jpeg", ".png", ".mp4", ".mov"]
+    },
+    {
+      "id": "automation",
+      "terms": ["robot", "robot tending", "blanking feeder", "press", "automation", "vision", "sensor", "conveyor", "pneumatic", "fixture", "gripper", "ROI"],
+      "targetExtensions": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".dwg", ".dxf", ".jpg", ".jpeg", ".png", ".mp4", ".mov"]
+    },
+    {
+      "id": "commercial",
+      "terms": ["quote", "proposal", "estimate", "ROI", "payback", "vendor", "purchase", "project"],
+      "targetExtensions": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv"]
+    },
+    {
+      "id": "former-employer-discovery",
+      "terms": ["Clow", "CSC"],
+      "targetExtensions": ["*"],
+      "privacyRule": "Matches are private source locators only. Never publish names, raw messages, attachments, pricing, drawings, programs, production data, or plant details from these matches."
+    },
+    {
+      "id": "residential-projects",
+      "terms": ["Breezy Point", "Pine River", "fireplace", "lake house", "kitchen", "garage", "remodel", "landscape", "concrete"],
+      "targetExtensions": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov"],
+      "privacyRule": "Addresses, family, customers, contractors, plates, mail, and location metadata require removal or rejection before public use."
+    }
+  ],
+  "outputFields": [
+    "evidenceId",
+    "sourceHash",
+    "folder",
+    "messageDate",
+    "subjectDigest",
+    "senderDomainClass",
+    "attachmentNameDigest",
+    "attachmentExtension",
+    "matchedGroups",
+    "contextSummaryPrivate",
+    "corroborationStatus",
+    "privacyStatus",
+    "publicCaseStudyId"
+  ],
+  "prohibitedOutputs": [
+    "raw message body",
+    "raw email address",
+    "raw attachment content",
+    "private address",
+    "customer or vendor identity",
+    "proprietary drawing or program",
+    "payment credential",
+    "authentication credential"
+  ]
+}
