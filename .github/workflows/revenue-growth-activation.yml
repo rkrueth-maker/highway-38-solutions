@@ -1,0 +1,45 @@
+name: Revenue Growth Activation Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'scripts/verify-revenue-growth-activation.js'
+      - '.github/workflows/revenue-growth-activation.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'scripts/verify-revenue-growth-activation.js'
+      - '.github/workflows/revenue-growth-activation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify providers, billing, contracts, social, accounting, website control, and exact blockers
+        run: node scripts/verify-revenue-growth-activation.js
+      - name: Upload revenue and growth evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: revenue-growth-activation-${{ github.run_id }}
+          path: |
+            launch-control/evidence/revenue-growth-activation-verification.json
+            launch-control/evidence/revenue-growth-provider-sandbox.json
+            launch-control/evidence/social-content-calendar-30-day.json
+            launch-control/evidence/revenue-growth-accounting.json
+            launch-control/evidence/revenue-growth-integration-health.json
+          if-no-files-found: error
+          retention-days: 90
