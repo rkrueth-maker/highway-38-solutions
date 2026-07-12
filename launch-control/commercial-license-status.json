@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "release": "commercial-license-control-plane-2026-07-12",
+  "issue": 59,
+  "parentIssue": 31,
+  "blockerId": "COMMERCIAL-LICENSE-001",
+  "status": "INFRASTRUCTURE_READY_PRODUCTION_ACTIVATION_BLOCKED",
+  "implemented": [
+    "Ed25519 canonical license signing and verification",
+    "public-key keyring and rotation",
+    "tenant tier release-channel module feature add-on seat and date entitlements",
+    "tamper expiration suspension and revocation enforcement",
+    "owner-review revocation drafts",
+    "provider-neutral billing and subscription records",
+    "success failure duplicate timeout and uncertain provider outcomes",
+    "Proof Log and Error Log records",
+    "support plans contracts included usage and overage drafts",
+    "hash-chained audit integrity",
+    "CLI and automated verification"
+  ],
+  "productionBlockers": [
+    {
+      "id": "COMMERCIAL-KEY-CUSTODY-001",
+      "item": "Production signing-key custody, rotation, recovery, and access review",
+      "status": "BLOCKED_EXTERNAL_INFRASTRUCTURE",
+      "exactNextStep": "Create the production Ed25519 key in an approved HSM or secret manager and publish only its public key and key ID to the verifier keyring."
+    },
+    {
+      "id": "COMMERCIAL-ENTITLEMENT-RUNTIME-001",
+      "item": "Authorized entitlement runtime, revocation distribution, health, backup, audit, and rollback",
+      "status": "BLOCKED_RUNTIME_SELECTION",
+      "exactNextStep": "Select and deploy a private entitlement runtime, connect the public keyring and active revocation list, and pass denial, recovery, and rollback tests."
+    },
+    {
+      "id": "COMMERCIAL-BILLING-PROVIDER-001",
+      "item": "Billing provider account, credentials, hosted-payment flow, signed webhook, and reconciliation",
+      "status": "BLOCKED_PROVIDER_ACCOUNT",
+      "exactNextStep": "Approve a provider account, store credentials privately, and pass selected-record success, failure, duplicate, timeout, and uncertain-result tests."
+    },
+    {
+      "id": "COMMERCIAL-SUPPORT-OPERATIONS-001",
+      "item": "Support staffing, service hours, escalation, cancellation, and refund commitments",
+      "status": "BLOCKED_OWNER_DECISION",
+      "exactNextStep": "Approve support coverage and customer-facing terms before any commercial license is released."
+    },
+    {
+      "id": "OWNER-RELEASE-001",
+      "item": "Separate owner release for the selected customer, license, billing record, and action",
+      "status": "BLOCKED_OWNER_RELEASE",
+      "exactNextStep": "After all provider and regression gates pass, obtain explicit owner approval for the exact selected record and action."
+    }
+  ],
+  "privateKeyCommitted": false,
+  "rawCardDataAccepted": false,
+  "automaticRetry": false,
+  "bulkExecution": false,
+  "selectedRecordOnly": true,
+  "externalActionsOccurred": false
+}

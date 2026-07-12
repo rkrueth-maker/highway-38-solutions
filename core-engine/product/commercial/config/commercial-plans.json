@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "status": "OWNER_REVIEW_REQUIRED",
+  "currency": "USD",
+  "pricingStatus": "PLANNING_ONLY_NOT_PUBLIC_APPROVAL",
+  "tiers": [
+    {
+      "id": "Core",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "reports", "proof", "errors", "settings"],
+      "features": ["selected-record-workflows", "proof-log", "error-log", "csv-export", "backup-restore"],
+      "defaultTenantLimit": 1,
+      "defaultSeatLimit": 3,
+      "releaseChannels": ["stable"],
+      "monthlyPlanningAmount": 0,
+      "externalActionsEnabled": false
+    },
+    {
+      "id": "Operations",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "reports", "proof", "errors", "settings"],
+      "features": ["selected-record-workflows", "proof-log", "error-log", "csv-export", "backup-restore", "recurring-contract-records", "provider-adapter-eligibility"],
+      "defaultTenantLimit": 1,
+      "defaultSeatLimit": 5,
+      "releaseChannels": ["stable", "candidate"],
+      "monthlyPlanningAmount": 0,
+      "externalActionsEnabled": false
+    },
+    {
+      "id": "Growth",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "social", "advertising", "website", "reports", "proof", "errors", "settings"],
+      "features": ["selected-record-workflows", "proof-log", "error-log", "csv-export", "backup-restore", "recurring-contract-records", "provider-adapter-eligibility", "growth-records", "campaign-attribution"],
+      "defaultTenantLimit": 2,
+      "defaultSeatLimit": 10,
+      "releaseChannels": ["stable", "candidate"],
+      "monthlyPlanningAmount": 0,
+      "externalActionsEnabled": false
+    },
+    {
+      "id": "Control",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "social", "advertising", "website", "accounting", "reports", "proof", "errors", "settings"],
+      "features": ["selected-record-workflows", "proof-log", "error-log", "csv-export", "backup-restore", "recurring-contract-records", "provider-adapter-eligibility", "growth-records", "campaign-attribution", "multi-tenant-control", "accounting-mapping", "customer-portal-eligibility"],
+      "defaultTenantLimit": 5,
+      "defaultSeatLimit": 25,
+      "releaseChannels": ["stable", "candidate", "development"],
+      "monthlyPlanningAmount": 0,
+      "externalActionsEnabled": false
+    }
+  ],
+  "addOns": [
+    {"id": "additional-tenant", "unit": "tenant", "entitlement": "additional-tenant", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "custom-business-pack", "unit": "pack", "entitlement": "custom-business-pack", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "white-label-theme", "unit": "theme", "entitlement": "white-label-theme", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "provider-adapter-configuration", "unit": "provider", "entitlement": "provider-adapter-configuration", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "data-migration", "unit": "migration", "entitlement": "data-migration", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "customer-portal-configuration", "unit": "portal", "entitlement": "customer-portal-configuration", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "backup-recovery-service", "unit": "tenant", "entitlement": "backup-recovery-service", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "release-management", "unit": "tenant", "entitlement": "release-management", "status": "OWNER_REVIEW_REQUIRED"}
+  ],
+  "supportPlans": [
+    {"id": "Standard", "responseTargetHours": 48, "includedRequests": 2, "overageUnitPrice": 0, "availability": "business-hours", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "Managed", "responseTargetHours": 24, "includedRequests": 5, "overageUnitPrice": 0, "availability": "business-hours", "status": "OWNER_REVIEW_REQUIRED"},
+    {"id": "Priority", "responseTargetHours": 8, "includedRequests": 10, "overageUnitPrice": 0, "availability": "approved-window", "status": "OWNER_REVIEW_REQUIRED"}
+  ],
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "externalActionsEnabled": false
+  }
+}

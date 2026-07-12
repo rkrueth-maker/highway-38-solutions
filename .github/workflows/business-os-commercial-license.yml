@@ -1,0 +1,48 @@
+name: Business OS Commercial License Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core-engine/product/commercial/**'
+      - 'scripts/business-os-commercial-license.js'
+      - 'scripts/run-business-os-commercial-license-verifier.js'
+      - 'scripts/verify-business-os-commercial-license.js'
+      - 'launch-control/commercial-license-status.json'
+      - '.github/workflows/business-os-commercial-license.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'core-engine/product/commercial/**'
+      - 'scripts/business-os-commercial-license.js'
+      - 'scripts/run-business-os-commercial-license-verifier.js'
+      - 'scripts/verify-business-os-commercial-license.js'
+      - 'launch-control/commercial-license-status.json'
+      - '.github/workflows/business-os-commercial-license.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify signing, entitlements, revocation, billing, support, audit, CLI, and security controls
+        run: node scripts/run-business-os-commercial-license-verifier.js
+      - name: Upload commercial license evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-os-commercial-license-${{ github.run_id }}
+          path: |
+            launch-control/evidence/business-os-commercial-license-verification.json
+            launch-control/evidence/business-os-commercial-license-synthetic.json
+          if-no-files-found: error
+          retention-days: 90
