@@ -1,0 +1,66 @@
+name: Public Customer Path Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'services.html'
+      - 'products.html'
+      - 'product.html'
+      - 'free-tools.html'
+      - 'proof.html'
+      - 'business-os.html'
+      - 'about.html'
+      - 'resources.html'
+      - 'start-request.html'
+      - 'portal.html'
+      - 'catalog-data.js'
+      - 'commercial.js'
+      - 'commercial-public.js'
+      - 'catalog-navigation.js'
+      - 'product-detail.js'
+      - 'catalog-family.css'
+      - 'brand/**'
+      - 'favicon.svg'
+      - 'site.webmanifest'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'scripts/verify-public-customer-path.js'
+      - '.github/workflows/public-customer-path.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'products.html'
+      - 'product.html'
+      - 'catalog-navigation.js'
+      - 'product-detail.js'
+      - 'catalog-family.css'
+      - 'sitemap.xml'
+      - 'scripts/verify-public-customer-path.js'
+      - '.github/workflows/public-customer-path.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify brand, catalog, reusable details, tools, intake, links, and public safety
+        run: node scripts/verify-public-customer-path.js
+      - name: Upload public customer path evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-customer-path-${{ github.run_id }}
+          path: launch-control/evidence/public-customer-path-verification.json
+          if-no-files-found: error
+          retention-days: 90
