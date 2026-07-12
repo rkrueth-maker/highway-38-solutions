@@ -1,72 +1,76 @@
 {
   "packageId": "H38-OWNER-PORTAL-HARD-RULE-2026-07-12",
-  "status": "DEPLOYMENT_ATTEMPTED_BLOCKED_MISSING_CLASP_CREDENTIAL",
-  "sourceStatus": "MERGED_AND_VERIFIED",
-  "sourceMergeCommit": "31eec68c42d22456944d5906a7fd35de8ab52a56",
+  "status": "DEPLOYED_PENDING_POST_DEPLOYMENT_TEST_AND_VERIFICATION",
+  "sourceStatus": "MERGED_VERIFIED_AND_PUSHED",
+  "sourcePackageCommit": "31eec68c42d22456944d5906a7fd35de8ab52a56",
+  "deployedRepositoryHead": "5283bdddaf28fda414f38a43c17b89c7348b3c71",
   "deploymentControlMergeCommit": "4b876296e87f23712b2f1a083667672228daafba",
   "releaseMarker": "production-2026-07-12-hard-rule-owner-portal",
-  "deploymentAttempt": {
+  "deployedAt": "2026-07-12T21:48:17Z",
+  "deploymentRoute": "AUTHENTICATED_GOOGLE_CLOUD_SHELL_DIRECT_EXISTING_DEPLOYMENT_UPDATE",
+  "sourceVerification": {
+    "status": "PASS",
+    "passed": 102,
+    "failed": 0,
+    "serverFiles": 12,
+    "namedFunctions": 91,
+    "duplicateFunctions": []
+  },
+  "productionTarget": {
+    "boundScriptId": "13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-",
+    "existingDeploymentId": "AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg",
+    "webAppUrl": "https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec",
+    "productionSpreadsheetId": "1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo",
+    "previousVersion": 9,
+    "currentVersion": 10,
+    "deploymentDescription": "Highway 38 Integrated Business OS"
+  },
+  "rollbackEvidence": {
+    "backupCreated": true,
+    "backupPath": "/home/rkrueth/h38-integrated-business-os-20260712-214806/bound-project-backup.tar.gz",
+    "evidenceFolder": "/home/rkrueth/h38-integrated-business-os-20260712-214806",
+    "backupSha256": "faf249671b4a515486851d3c9a296db2e118b770cd33b90b8be1664a75bba379"
+  },
+  "deploymentResult": {
+    "productionWriteOccurred": true,
+    "filesPushed": 18,
+    "existingDeploymentUpdated": true,
+    "createdNewProject": false,
+    "createdSecondDeployment": false,
+    "existingBoundProjectPreserved": true,
+    "existingPrivateDeploymentPreserved": true
+  },
+  "safetyControls": {
+    "externalActionsEnabled": false,
+    "externalActionsOccurred": false,
+    "bulkExecutionEnabled": false,
+    "automaticRetryEnabled": false,
+    "ownerApprovalGatesPreserved": true
+  },
+  "githubActionsHistory": {
     "workflow": "Deploy Owner Portal Hard Rule Production",
     "runId": 29208826609,
-    "jobId": 86692912815,
-    "result": "FAIL_BEFORE_PRODUCTION_WRITE",
-    "passedSteps": [
-      "Check out exact main source",
-      "Set up Node",
-      "Install clasp",
-      "Verify merged Owner Portal source"
-    ],
-    "failedStep": "Load encrypted clasp credential",
-    "exactBlocker": "No encrypted clasp credential was configured in GitHub Actions secrets and no authenticated clasp session was available in the execution environment.",
-    "productionBackupCreated": false,
-    "productionPushOccurred": false,
-    "deploymentUpdated": false
+    "latestHostedRunnerResult": "FAIL_BEFORE_WRITE_INVALID_SCRIPT_KEY_IN_WORKFLOW_CONFIGURATION",
+    "credentialSecretConfigured": true,
+    "productionSuccessCameFrom": "Authenticated Cloud Shell using the corrected existing bound script ID"
   },
-  "existingBoundProjectPreserved": true,
-  "existingPrivateDeploymentPreserved": true,
-  "existingLiveUrl": "https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec",
-  "existingLiveVersionRemains": 9,
-  "productionWriteOccurred": false,
-  "externalActionsEnabled": false,
-  "externalActionsOccurred": false,
-  "bulkExecutionEnabled": false,
-  "automaticRetryEnabled": false,
-  "sourceAcceptance": {
-    "hardRuleVerifier": "PASS",
-    "legacyOwnerPortalVerifier": "PASS",
-    "requiredCommands": [
-      "node scripts/verify-owner-portal-hard-rule.js",
-      "node scripts/verify-owner-portal-next.js"
-    ]
-  },
-  "singleRemainingDeploymentDependency": {
-    "name": "Authenticated clasp credential",
-    "preferredRepositorySecret": "CLASPRC_JSON",
-    "acceptedSecretAliases": [
-      "CLASPRC_JSON_B64",
-      "CLASP_CREDENTIALS",
-      "CLASP_CREDENTIALS_B64",
-      "GOOGLE_CLASPRC_JSON",
-      "GOOGLE_CLASPRC_JSON_B64",
-      "CLASP_AUTH_JSON",
-      "CLASP_AUTH_JSON_B64",
-      "CLASPRC"
-    ],
-    "alternativeExecution": "Run scripts/deploy-owner-portal-next-production.sh from the previously authenticated Google Cloud Shell session with the existing project, deployment, and spreadsheet IDs.",
-    "resumeAction": "Rerun failed workflow run 29208826609 or dispatch Deploy Owner Portal Hard Rule Production after the credential is available."
-  },
+  "postDeploymentAcceptanceStatus": "PENDING",
   "postDeploymentAcceptance": [
     "Run the non-destructive Owner Portal self-test",
+    "Confirm the hard-rule release marker",
     "Verify Today, Needs Rick's Decision, Active Work, Money, Growth, Website, and System Health",
     "Verify Unified Tasks list, board, and calendar modes",
     "Verify Customer 360 and Job 360",
+    "Verify selected-task actions remain single-record and approval controlled",
     "Verify desktop and mobile layouts",
-    "Record screenshots, deployment evidence, backup digest, and rollback reference"
+    "Verify Proof Log and Error Log behavior",
+    "Verify external actions remain disabled",
+    "Retain screenshots and final acceptance evidence"
   ],
   "prohibitedClaims": [
-    "Do not call the hard-rule Owner Portal source deployed until clasp push and existing-deployment update complete",
+    "Do not claim post-deployment runtime acceptance until the self-test and desktop/mobile checks are recorded",
     "Do not claim customer portal activation",
     "Do not claim any external provider action is enabled"
   ],
-  "nextExecutableStep": "Supply the encrypted clasp credential to the controlled deployment workflow or use the authenticated Cloud Shell session, then rerun the existing-deployment-only deployment."
+  "nextExecutableStep": "Run the Owner Portal self-test and complete desktop/mobile post-deployment acceptance against version 10, then record final acceptance on Issues #33 and #31."
 }

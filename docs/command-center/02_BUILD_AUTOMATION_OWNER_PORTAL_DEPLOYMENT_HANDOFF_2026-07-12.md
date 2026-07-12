@@ -1,4 +1,4 @@
-# Command Center Handoff — Hard-Rule Owner Portal Build and Production Deployment
+# Command Center Handoff — Hard-Rule Owner Portal Production Deployment
 
 **Date:** July 12, 2026  
 **From:** 02 — Build & Automation  
@@ -9,23 +9,24 @@
 
 ## Executive status
 
-The complete hard-rule Owner Portal operating experience is built, source-verified, merged to `main`, and prepared for the existing private Apps Script Web App.
+The complete hard-rule Owner Portal operating experience is built, source-verified, merged, and deployed to the existing private Google Apps Script Web App.
 
-Production deployment was explicitly authorized and attempted after the source merge. The controlled deployment job stopped before any production write because no authenticated clasp credential was available in GitHub Actions or the current execution environment.
+The production update completed from the authenticated Google Cloud Shell session after the hosted GitHub Actions deployment path stopped before write because its workflow contained an incorrect bound script identifier.
 
-**Do not represent the hard-rule Owner Portal upgrade as deployed yet.**
+The existing deployment was updated in place from version 9 to version 10. No new Apps Script project was created, no second Web App deployment was created, and all external actions remain disabled.
 
-The existing private Owner Portal remains available at its prior version and URL. No existing production source was overwritten, no new Apps Script project was created, no second deployment was created, and no external business action occurred.
+**Production deployment is complete. Post-deployment runtime testing and desktop/mobile acceptance remain pending.**
 
 ## Completed source package
 
 PR #62 — **Complete hard-rule Owner Portal operating experience**
 
-- merge commit: `31eec68c42d22456944d5906a7fd35de8ab52a56`
-- source release package: `production-2026-07-12-hard-rule-owner-portal`
+- source merge commit: `31eec68c42d22456944d5906a7fd35de8ab52a56`
+- deployed repository head: `5283bdddaf28fda414f38a43c17b89c7348b3c71`
+- release marker: `production-2026-07-12-hard-rule-owner-portal`
 - dedicated hard-rule evidence digest: `sha256:35f8be1deace15fa559a13024b14f793879b4d0e38643d8f2b4a9d809800605e`
 
-Implemented:
+Implemented operating surfaces:
 
 - Today
 - Needs Rick's Decision
@@ -47,18 +48,17 @@ Implemented:
 - structured loading, empty, HOLD, and error states
 - responsive mobile record cards
 - SOP and help access
-- structured integration-health display
-- structured Settings and self-test output without raw JSON in normal operation
+- integration health
+- structured Settings and self-test output
 - modular allowlisted Apps Script HTML includes
 
 ## Preserved architecture and controls
 
-The build preserves the established production architecture rather than replacing it:
+The deployment preserves the established production architecture:
 
 - existing bound Apps Script project
 - existing private Web App deployment
-- Unified Tasks
-- normalized records
+- Unified Tasks and normalized records
 - selected-record execution
 - duplicate-action locks
 - catalog mismatch protection
@@ -72,133 +72,90 @@ The build preserves the established production architecture rather than replacin
 - no uncertain automatic retry
 - external actions disabled
 
-No customer email, quote or invoice send, payment request or processing, final delivery, social publication, advertising launch or spend, or website deployment was enabled by this package.
+No customer email, quote or invoice send, payment request or processing, final delivery, social publication, advertising launch or spend, or website deployment was enabled by this production update.
 
-## Verification completed before deployment attempt
+## Source verification
 
-The source package passed:
+The production script completed static source verification before touching the bound project:
 
-- Owner Portal Hard Rule Verify
-- Owner Portal Next Verify
-- Highway 38 Solutions Tests
-- Commercial System Check, including rendered-browser verification
-- Complete Ecosystem Launch Gate
-- Customer Portal Activation Gate
-- Raster Sample Proof Check
-- Post-Deploy Ecosystem Acceptance
+- status: `PASS`
+- checks passed: `102`
+- checks failed: `0`
+- server files: `12`
+- named functions: `91`
+- duplicate functions: none
 
-The dedicated workflow ran both the proven legacy architecture verifier and the new hard-rule experience verifier successfully.
+The broader repository checks had already passed before deployment, including Owner Portal hard-rule and legacy verification, ecosystem tests, commercial system checks, customer portal activation gate, raster proof checks, and post-deploy acceptance automation.
 
-## Deployment authorization and control package
+## Production deployment result
 
-PR #63 — **Deploy hard-rule Owner Portal to existing private production Web App**
+Deployment route:
 
-- merge commit: `4b876296e87f23712b2f1a083667672228daafba`
-- deployment request: `launch-control/deployment-requests/owner-portal-hard-rule-2026-07-12.json`
-- deployment workflow: `.github/workflows/deploy-owner-portal-hard-rule-production.yml`
-- release marker: `production-2026-07-12-hard-rule-owner-portal`
+`AUTHENTICATED_GOOGLE_CLOUD_SHELL_DIRECT_EXISTING_DEPLOYMENT_UPDATE`
 
-The workflow is designed to:
+Production target:
 
-1. verify the exact merged source;
-2. load an encrypted clasp credential;
-3. pull and archive the existing bound project as rollback evidence;
-4. verify the existing deployment ID exists;
-5. push only to the existing bound project;
-6. update only the existing private Web App deployment;
-7. retain deployment, backup, and rollback evidence;
-8. leave every external action disabled;
-9. record successful deployment on Issues #33 and #31.
+- bound Apps Script project ID: `13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-`
+- existing private deployment ID: `AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg`
+- production spreadsheet ID: `1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo`
+- live URL: `https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec`
 
-## Deployment attempt result
+Completed production operations:
+
+1. cloned the exact `main` repository source;
+2. passed the 102-check Owner Portal verifier;
+3. pulled the existing live bound project;
+4. created a rollback archive;
+5. calculated and recorded the backup SHA-256;
+6. confirmed the existing deployment ID among the live deployments;
+7. pushed 18 files to the existing bound project;
+8. redeployed the existing Web App deployment in place;
+9. advanced the deployment from version 9 to version 10;
+10. confirmed the same deployment ID remained present after the update.
+
+Deployment result:
+
+- previous version: `9`
+- current version: `10`
+- files pushed: `18`
+- new project created: `false`
+- second deployment created: `false`
+- external actions enabled: `false`
+- external actions occurred: `false`
+
+## Rollback evidence
+
+- backup path: `/home/rkrueth/h38-integrated-business-os-20260712-214806/bound-project-backup.tar.gz`
+- evidence folder: `/home/rkrueth/h38-integrated-business-os-20260712-214806`
+- backup SHA-256: `faf249671b4a515486851d3c9a296db2e118b770cd33b90b8be1664a75bba379`
+
+## GitHub Actions history
 
 Workflow: **Deploy Owner Portal Hard Rule Production**  
-Run ID: `29208826609`  
-Job ID: `86692912815`
+Run ID: `29208826609`
 
-Passed:
+The repository secret `CLASPRC_JSON` was successfully configured and the workflow credential step passed on attempt #3. The hosted runner then stopped during `clasp pull` because the workflow was configured with an incorrect, case-sensitive bound script identifier.
 
-- checkout of exact `main` source
-- Node setup
-- clasp installation
-- merged Owner Portal source verification
+That hosted-runner failure occurred before any production write. The authenticated Cloud Shell route then used the corrected existing bound script ID and completed the controlled deployment successfully.
 
-Stopped at:
+The GitHub Actions failure does not represent the final production state. Version 10 is now deployed through the direct authenticated route.
 
-- `Load encrypted clasp credential`
-
-Exact blocker:
-
-> No encrypted clasp credential was configured in GitHub Actions secrets, and no authenticated clasp session was available in the current execution environment.
-
-Because the credential gate failed, the workflow correctly skipped:
-
-- production `clasp pull`
-- rollback backup creation
-- production `clasp push`
-- existing deployment update
-- deployment-success record
-
-This was a safe failure before production modification.
-
-## Current production truth
-
-Existing live private Owner Portal URL:
-
-`https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec`
-
-Current production state:
-
-- existing deployment preserved
-- prior version 9 remains in place
-- hard-rule upgrade not yet pushed
-- no new project created
-- no second deployment created
-- no production backup created during the failed attempt
-- no external actions enabled or executed
-
-## Single remaining deployment dependency
-
-An authenticated clasp credential must be made available through either route below.
-
-### Controlled GitHub Actions route
-
-Add the authenticated `.clasprc.json` value as encrypted repository secret:
-
-`CLASPRC_JSON`
-
-The workflow also accepts its documented alias names. After the secret exists, rerun workflow run `29208826609` or dispatch **Deploy Owner Portal Hard Rule Production**.
-
-### Existing authenticated Cloud Shell route
-
-Run:
-
-`scripts/deploy-owner-portal-next-production.sh`
-
-from the previously authenticated Google Cloud Shell session with the existing identifiers already recorded by the system.
-
-The deployment must continue to use:
-
-- existing bound script ID: `13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o`
-- existing deployment ID: `AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg`
-- production spreadsheet ID: `1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo`
-
-## Acceptance after successful deployment
+## Post-deployment acceptance
 
 Per owner direction, testing and verification occur after the production write.
 
-Required acceptance:
+Remaining acceptance:
 
 1. run the non-destructive Owner Portal self-test;
 2. confirm the hard-rule release marker;
 3. verify Today, Needs Rick's Decision, Active Work, Money, Growth, Website, and System Health;
-4. verify Tasks list, board, and calendar modes;
+4. verify Unified Tasks list, board, and calendar modes;
 5. verify Customer 360 and Job 360;
 6. verify selected-task actions remain single-record and approval controlled;
 7. verify desktop and mobile layouts;
 8. verify Proof Log and Error Log behavior;
 9. verify external actions remain disabled;
-10. retain screenshots, backup digest, deployment record, and rollback reference.
+10. retain screenshots and final acceptance evidence.
 
 ## Command Center decision
 
@@ -206,12 +163,14 @@ Required acceptance:
 **Source verification:** PASS  
 **Merge:** COMPLETE  
 **Deployment authorization:** RECORDED  
-**Deployment attempt:** EXECUTED  
-**Production write:** BLOCKED BEFORE WRITE — MISSING AUTHENTICATED CLASP CREDENTIAL  
-**Existing production safety:** PRESERVED  
+**Rollback backup:** COMPLETE  
+**Production push:** COMPLETE  
+**Existing deployment update:** COMPLETE — VERSION 10  
+**New project or second deployment:** NONE  
 **External actions:** LOCKED  
-**Issue #33:** REMAINS OPEN until deployment and post-deployment acceptance are recorded
+**Post-deployment runtime acceptance:** PENDING  
+**Issue #33:** REMAINS OPEN until self-test and desktop/mobile acceptance are recorded
 
 ## Exact next action
 
-Provide the authenticated clasp credential to the controlled deployment workflow, or execute the existing deployment script from the authenticated Cloud Shell session. Then deploy to the existing private Web App, perform the post-deployment acceptance list, and return the final evidence to Issues #33 and #31.
+Open the existing private Owner Portal version 10, run the non-destructive self-test from Settings, complete desktop and mobile acceptance, retain the screenshots and test output, and record final acceptance on Issues #33 and #31.
