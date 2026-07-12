@@ -1,0 +1,111 @@
+name: Final Acceptance Live Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/final-acceptance-live.yml'
+      - 'final-acceptance.html'
+      - 'ecosystem-status.html'
+      - 'sitemap.xml'
+      - 'launch-control/final-acceptance-package.json'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/final-acceptance-live.yml'
+      - 'final-acceptance.html'
+      - 'ecosystem-status.html'
+      - 'sitemap.xml'
+      - 'launch-control/final-acceptance-package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source markers and sitemap
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Verified portions are live. External dependencies remain honestly on hold.' final-acceptance.html
+          grep -Fq 'final-acceptance.html' ecosystem-status.html
+          grep -Fq 'final-acceptance.html' sitemap.xml
+          node -e "const p=require('./launch-control/final-acceptance-package.json'); if(p.overallDecision!=='CONDITIONAL_GO'||p.externalActionsOccurred!==false)process.exit(1)"
+
+  live:
+    if: github.event_name != 'pull_request'
+    needs: source
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://rkrueth-maker.github.io/highway-38-solutions
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify deployed final acceptance pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p launch-control/evidence
+          : > /tmp/final-acceptance-live.tsv
+
+          check_page() {
+            local page="$1"
+            local marker="$2"
+            local url="${BASE_URL}/${page}"
+            local attempt code body
+            for attempt in $(seq 1 30); do
+              code="$(curl --location --silent --show-error --output /tmp/final-page.html --write-out '%{http_code}' "$url" || true)"
+              body="$(cat /tmp/final-page.html 2>/dev/null || true)"
+              if [[ "$code" == "200" ]] && grep -Fq "$marker" <<<"$body"; then
+                printf '%s\t%s\tPASS\n' "$url" "$code" >> /tmp/final-acceptance-live.tsv
+                return 0
+              fi
+              sleep 10
+            done
+            printf '%s\t%s\tFAIL\n' "$url" "${code:-000}" >> /tmp/final-acceptance-live.tsv
+            return 1
+          }
+
+          check_page 'final-acceptance.html' 'Verified portions are live. External dependencies remain honestly on hold.'
+          check_page 'ecosystem-status.html' 'Final Go / Hold Decision'
+          check_page 'sitemap.xml' 'final-acceptance.html'
+
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          rows=[]
+          for line in Path('/tmp/final-acceptance-live.tsv').read_text(encoding='utf-8').splitlines():
+              url,http_status,status=line.split('\t')
+              rows.append({'url':url,'httpStatus':int(http_status),'status':status})
+          passed=all(row['status']=='PASS' for row in rows)
+          evidence={
+              'release':'complete-ecosystem-acceptance-2026-07-12',
+              'status':'PASS' if passed else 'HOLD',
+              'verifiedAt':datetime.now(timezone.utc).isoformat(),
+              'sourceCommit':os.environ.get('GITHUB_SHA',''),
+              'runId':os.environ.get('GITHUB_RUN_ID',''),
+              'environment':'GitHub Pages production',
+              'urls':rows,
+              'overallDecision':'CONDITIONAL_GO',
+              'externalActionsOccurred':False
+          }
+          Path('launch-control/evidence/final-acceptance-live.json').write_text(json.dumps(evidence,indent=2)+'\n',encoding='utf-8')
+          if not passed:
+              raise SystemExit(1)
+          PY
+      - name: Upload live acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-acceptance-live-${{ github.run_id }}
+          path: launch-control/evidence/final-acceptance-live.json
+          if-no-files-found: error
+          retention-days: 90
