@@ -1,31 +1,72 @@
 {
   "packageId": "H38-OWNER-PORTAL-HARD-RULE-2026-07-12",
-  "status": "SOURCE_READY_DEPLOYMENT_HOLD",
+  "status": "DEPLOYMENT_ATTEMPTED_BLOCKED_MISSING_CLASP_CREDENTIAL",
+  "sourceStatus": "MERGED_AND_VERIFIED",
+  "sourceMergeCommit": "31eec68c42d22456944d5906a7fd35de8ab52a56",
+  "deploymentControlMergeCommit": "4b876296e87f23712b2f1a083667672228daafba",
+  "releaseMarker": "production-2026-07-12-hard-rule-owner-portal",
+  "deploymentAttempt": {
+    "workflow": "Deploy Owner Portal Hard Rule Production",
+    "runId": 29208826609,
+    "jobId": 86692912815,
+    "result": "FAIL_BEFORE_PRODUCTION_WRITE",
+    "passedSteps": [
+      "Check out exact main source",
+      "Set up Node",
+      "Install clasp",
+      "Verify merged Owner Portal source"
+    ],
+    "failedStep": "Load encrypted clasp credential",
+    "exactBlocker": "No encrypted clasp credential was configured in GitHub Actions secrets and no authenticated clasp session was available in the execution environment.",
+    "productionBackupCreated": false,
+    "productionPushOccurred": false,
+    "deploymentUpdated": false
+  },
   "existingBoundProjectPreserved": true,
   "existingPrivateDeploymentPreserved": true,
+  "existingLiveUrl": "https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec",
+  "existingLiveVersionRemains": 9,
   "productionWriteOccurred": false,
   "externalActionsEnabled": false,
+  "externalActionsOccurred": false,
   "bulkExecutionEnabled": false,
   "automaticRetryEnabled": false,
   "sourceAcceptance": {
-    "requiredVerifier": "node scripts/verify-owner-portal-hard-rule.js",
-    "requiredLegacyVerifier": "node scripts/verify-owner-portal-next.js",
-    "requiredResult": "PASS"
+    "hardRuleVerifier": "PASS",
+    "legacyOwnerPortalVerifier": "PASS",
+    "requiredCommands": [
+      "node scripts/verify-owner-portal-hard-rule.js",
+      "node scripts/verify-owner-portal-next.js"
+    ]
   },
-  "deploymentRequirements": [
-    "Rick authorizes the production source update to the existing private Owner Portal",
-    "Authorized Apps Script and clasp session is available outside the repository",
-    "Create and retain a pre-write clasp pull backup and rollback archive",
-    "Push only to the existing bound Apps Script project ID",
-    "Update only the existing private deployment ID; do not create a second deployment",
-    "Confirm Script Properties and owner-only access remain correct",
-    "Run the non-destructive self-test in the private Owner Portal",
-    "Complete desktop and mobile manual acceptance and record evidence"
+  "singleRemainingDeploymentDependency": {
+    "name": "Authenticated clasp credential",
+    "preferredRepositorySecret": "CLASPRC_JSON",
+    "acceptedSecretAliases": [
+      "CLASPRC_JSON_B64",
+      "CLASP_CREDENTIALS",
+      "CLASP_CREDENTIALS_B64",
+      "GOOGLE_CLASPRC_JSON",
+      "GOOGLE_CLASPRC_JSON_B64",
+      "CLASP_AUTH_JSON",
+      "CLASP_AUTH_JSON_B64",
+      "CLASPRC"
+    ],
+    "alternativeExecution": "Run scripts/deploy-owner-portal-next-production.sh from the previously authenticated Google Cloud Shell session with the existing project, deployment, and spreadsheet IDs.",
+    "resumeAction": "Rerun failed workflow run 29208826609 or dispatch Deploy Owner Portal Hard Rule Production after the credential is available."
+  },
+  "postDeploymentAcceptance": [
+    "Run the non-destructive Owner Portal self-test",
+    "Verify Today, Needs Rick's Decision, Active Work, Money, Growth, Website, and System Health",
+    "Verify Unified Tasks list, board, and calendar modes",
+    "Verify Customer 360 and Job 360",
+    "Verify desktop and mobile layouts",
+    "Record screenshots, deployment evidence, backup digest, and rollback reference"
   ],
   "prohibitedClaims": [
-    "Do not call the new Owner Portal experience live before the existing private deployment is updated and verified",
+    "Do not call the hard-rule Owner Portal source deployed until clasp push and existing-deployment update complete",
     "Do not claim customer portal activation",
     "Do not claim any external provider action is enabled"
   ],
-  "nextExecutableStep": "After authorized deployment access is available, create the rollback backup and update the existing private deployment using scripts/deploy-owner-portal-next-production.sh."
+  "nextExecutableStep": "Supply the encrypted clasp credential to the controlled deployment workflow or use the authenticated Cloud Shell session, then rerun the existing-deployment-only deployment."
 }
