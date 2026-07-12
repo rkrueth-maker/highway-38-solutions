@@ -12,7 +12,7 @@ Related service: H38-P010.
 
 ## Project Scope Builder CSV
 
-Use the worksheet to define the desired outcome, current problem, boundary, known dimensions or data, constraints, files, budget, timing, approvals, and open decisions. Do not enter passwords, payment information, private keys, unnecessary personal information, or proprietary records.
+Use the worksheet to define the desired outcome, current problem, boundary, known dimensions or data, constraints, files, budget, timing, approvals, and open decisions. Do not enter authentication secrets, sensitive payment details, unnecessary personal information, or proprietary records.
 
 Related service: H38-P003.
 
