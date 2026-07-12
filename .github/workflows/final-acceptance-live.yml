@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   source:
@@ -44,6 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE_URL: https://rkrueth-maker.github.io/highway-38-solutions
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
       - name: Verify deployed final acceptance pages
@@ -109,3 +112,36 @@ jobs:
           path: launch-control/evidence/final-acceptance-live.json
           if-no-files-found: error
           retention-days: 90
+      - name: Record live final acceptance on control issues
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          cat > /tmp/final-acceptance-comment.md <<EOF
+          <!-- h38-final-acceptance-live -->
+          ## Final acceptance live verification PASS
+
+          - Final acceptance page: HTTP 200 and exact release marker PASS
+          - Ecosystem status link: HTTP 200 and exact marker PASS
+          - Sitemap final-acceptance entry: HTTP 200 and exact marker PASS
+          - Source commit: \`${GITHUB_SHA}\`
+          - Evidence run: ${run_url}
+          - Overall decision: **CONDITIONAL GO**
+          - External actions: **LOCKED**
+          - Exact customer-portal, private-source, provider, and commercialization blockers remain under Issue #31
+          EOF
+
+          upsert() {
+            local issue="$1"
+            local existing
+            existing="$(gh api "repos/${REPO}/issues/${issue}/comments" --paginate --jq '.[] | select(.body | contains("<!-- h38-final-acceptance-live -->")) | .id' | tail -n 1)"
+            if [[ -n "$existing" ]]; then
+              gh api --method PATCH "repos/${REPO}/issues/comments/${existing}" -f body="$(cat /tmp/final-acceptance-comment.md)" >/dev/null
+            else
+              gh issue comment "$issue" --repo "$REPO" --body-file /tmp/final-acceptance-comment.md >/dev/null
+            fi
+          }
+
+          upsert 31
+          upsert 37
