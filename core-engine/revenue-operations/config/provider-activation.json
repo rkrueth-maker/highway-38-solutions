@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "release": "revenue-growth-activation-2.0.0",
+  "environment": "production",
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtectionRequired": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "rollbackRequired": true,
+    "externalActionsEnabled": false
+  },
+  "providers": [
+    {
+      "slot": "email",
+      "purpose": "Customer email, quote send, invoice send, receipt, delivery, and follow-up",
+      "mode": "draft-only",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "UNKNOWN",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["sendApproved", "readDeliveryStatus", "readThread", "deduplicate"],
+      "exactConnectionStep": "Choose the production email provider, create or approve the sending account/domain, add the provider credentials only in the private runtime secret store, then run the provider success, failure, duplicate, timeout, and uncertain-result tests before owner release."
+    },
+    {
+      "slot": "payments",
+      "purpose": "Provider-hosted payment links, deposits, progress/final billing, recurring billing, receipts, credits, and refunds",
+      "mode": "manual",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "UNKNOWN",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["createHostedRequest", "readStatus", "recordReceipt", "createRefund", "createCredit", "reconcile", "deduplicate"],
+      "exactConnectionStep": "Choose and approve a provider-hosted payment service, complete the provider business/account review, store test credentials privately, run hosted-link and webhook tests with no raw card data, then separately store production credentials and require owner release for each external payment action."
+    },
+    {
+      "slot": "accounting",
+      "purpose": "Chart mapping, exports, reconciliation, balances, cash view, expenses, profitability, and attribution",
+      "mode": "csv",
+      "provider": null,
+      "credentialState": "NOT_REQUIRED_FOR_CSV",
+      "accountApprovalState": "MAPPING_REQUIRED",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["exportTransactions", "mapAccounts", "reconcile", "readStatus"],
+      "exactConnectionStep": "Approve the chart-of-accounts mapping and opening-balance method; continue using the verified CSV export until an accounting provider is selected, authorized, and tested in a private sandbox."
+    },
+    {
+      "slot": "social",
+      "purpose": "Facebook, Instagram, LinkedIn, Google Business Profile, and YouTube scheduling, publishing proof, performance, and inquiry routing",
+      "mode": "internal-schedule",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "PLATFORM_ACCOUNTS_REQUIRED",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["scheduleApproved", "publishApproved", "readPublicationStatus", "readPerformance", "readInquiries", "deduplicate"],
+      "exactConnectionStep": "Confirm ownership/admin access for each approved platform account, repair or replace the scheduler connection, store credentials privately, map each account, then run one selected-record test post per platform before owner release."
+    },
+    {
+      "slot": "website",
+      "purpose": "Rollback-protected website deployment and exact deployment health",
+      "mode": "review-only",
+      "provider": "repository",
+      "credentialState": "AVAILABLE_IN_GITHUB_ONLY",
+      "accountApprovalState": "OWNER_RELEASE_REQUIRED",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["prepareChange", "validate", "deployApproved", "verifyLive", "rollback"],
+      "exactConnectionStep": "Create a rollback reference, pass repository and live acceptance checks, then obtain the owner's explicit release for the selected deployment record; never deploy a different or bulk record."
+    },
+    {
+      "slot": "customer-auth",
+      "purpose": "Secure customer portal authentication and customer-own authorization",
+      "mode": "disabled",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "INFRASTRUCTURE_REQUIRED",
+      "liveExecution": false,
+      "sandboxAvailable": true,
+      "requiredCapabilities": ["authenticate", "authorizeCustomerOwn", "revoke", "audit"],
+      "exactConnectionStep": "Select the customer authentication and private storage providers, configure a test tenant, pass cross-customer isolation and revocation tests, and obtain owner release before any customer record is exposed."
+    }
+  ],
+  "paymentSecurity": {
+    "providerHostedCardEntryRequired": true,
+    "rawCardDataAllowed": false,
+    "browserCardFieldsAllowed": false,
+    "sheetCardFieldsAllowed": false,
+    "logCardFieldsAllowed": false,
+    "repositoryCardFieldsAllowed": false,
+    "webhookSignatureVerificationRequired": true,
+    "providerReferenceRequired": true
+  },
+  "requiredExternalTestOutcomes": ["SUCCESS", "FAILURE", "DUPLICATE", "TIMEOUT", "UNCERTAIN"],
+  "externalActionsOccurred": false
+}
