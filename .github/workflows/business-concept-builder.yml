@@ -1,0 +1,49 @@
+name: Business Concept Builder Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'business-concept-builder.html'
+      - 'business-concept-builder.js'
+      - 'core-engine/product/business-concept-builder/**'
+      - 'scripts/generate-business-concept-package.js'
+      - 'scripts/verify-business-concept-builder.js'
+      - '.github/workflows/business-concept-builder.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'business-concept-builder.html'
+      - 'business-concept-builder.js'
+      - 'core-engine/product/business-concept-builder/**'
+      - 'scripts/generate-business-concept-package.js'
+      - 'scripts/verify-business-concept-builder.js'
+      - '.github/workflows/business-concept-builder.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify complete concept generation, records, Tasks, installer, security, backup, and browser controls
+        run: node scripts/verify-business-concept-builder.js
+      - name: Upload Business Concept Builder evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-concept-builder-${{ github.run_id }}
+          path: |
+            launch-control/evidence/business-concept-builder-verification.json
+            launch-control/evidence/business-concept-builder-sample-package.json
+            launch-control/evidence/business-concept-builder-created-tasks.csv
+          if-no-files-found: error
+          retention-days: 90

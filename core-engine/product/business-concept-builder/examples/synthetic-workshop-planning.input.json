@@ -1,0 +1,42 @@
+{
+  "businessName": "North Ridge Workshop Planning",
+  "idea": "Provide remote and local planning packages that help homeowners and small shops organize garages, work areas, tools, projects, and simple workflows before they spend money or start moving equipment.",
+  "ownerSkills": [
+    "garage and shop layout",
+    "workflow review",
+    "project planning",
+    "basic CAD-style diagrams",
+    "tool and material organization"
+  ],
+  "customers": [
+    "homeowners with crowded garages",
+    "small repair shops with poor workflow",
+    "property owners planning a workshop project"
+  ],
+  "serviceArea": "Regional local service plus remote digital delivery in the United States",
+  "assetsEquipment": [
+    "laptop",
+    "layout software",
+    "camera and phone",
+    "measurement tools",
+    "sample templates"
+  ],
+  "timeAvailable": "20 hours per week",
+  "hoursPerWeek": 20,
+  "launchBudget": "$2,000",
+  "monthlyRevenueGoal": 6000,
+  "contactPreference": "Mostly email and text with scheduled calls only when needed",
+  "revenueGoals": "$6,000 per month with a mix of fixed packages and bounded recurring support",
+  "businessModels": ["digital", "local", "online"],
+  "restrictions": "No permit drawings, engineering, contractor supervision, automatic customer messages, automatic payment requests, or unlimited consultation.",
+  "risks": "Incomplete measurements, unclear customer goals, privacy in customer photos, owner capacity, and customers expecting licensed design work.",
+  "currentSystems": "A basic website concept; sample layout files; email; cloud storage; and draft intake forms. No connected payment or accounting or social or customer-auth provider.",
+  "expansionIdeas": "Add downloadable planning templates; shop workflow reviews; recurring project check-ins; and a white-label planning system for other service businesses.",
+  "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
+  "primaryOutcome": "A clear garage or workshop layout and phased action plan",
+  "confirmedFacts": [
+    "Owner prefers mostly email and text",
+    "External actions require owner approval",
+    "Customer photos require privacy review"
+  ]
+}
