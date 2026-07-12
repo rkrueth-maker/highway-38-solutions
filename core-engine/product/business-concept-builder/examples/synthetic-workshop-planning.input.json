@@ -30,7 +30,7 @@
   "businessModels": ["digital", "local", "online"],
   "restrictions": "No permit drawings, engineering, contractor supervision, automatic customer messages, automatic payment requests, or unlimited consultation.",
   "risks": "Incomplete measurements, unclear customer goals, privacy in customer photos, owner capacity, and customers expecting licensed design work.",
-  "currentSystems": "A basic website concept; sample layout files; email; cloud storage; and draft intake forms. No connected payment, accounting, social, or customer-auth provider.",
+  "currentSystems": "A basic website concept; sample layout files; email; cloud storage; and draft intake forms. No connected payment or accounting or social or customer-auth provider.",
   "expansionIdeas": "Add downloadable planning templates; shop workflow reviews; recurring project check-ins; and a white-label planning system for other service businesses.",
   "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
   "primaryOutcome": "A clear garage or workshop layout and phased action plan",
