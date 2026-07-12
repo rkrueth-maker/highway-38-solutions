@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "engine": {
+    "id": "revenue-operations-core",
+    "version": "1.0.0",
+    "environment": "production",
+    "status": "CONTROLLED_NOT_CONNECTED"
+  },
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtectionRequired": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "externalActionsEnabled": false
+  },
+  "payments": {
+    "hostedProviderOnly": true,
+    "rawCardDataAllowed": false,
+    "approvedProviders": [],
+    "allowedUrlSchemes": ["https:"],
+    "paymentStates": ["DRAFT", "READY_FOR_OWNER_APPROVAL", "PROVIDER_LINK_RECORDED", "SENT", "PARTIALLY_PAID", "PAID", "FAILED", "CANCELLED", "REFUND_PENDING", "REFUNDED"]
+  },
+  "communications": {
+    "sendEnabled": false,
+    "allowedChannels": ["EMAIL", "SMS", "PORTAL"],
+    "draftStates": ["DRAFT", "NEEDS_OWNER_REVIEW", "APPROVED_NOT_SENT", "SENT", "FAILED", "CANCELLED"]
+  },
+  "social": {
+    "publishEnabled": false,
+    "allowedPlatforms": ["FACEBOOK", "INSTAGRAM", "LINKEDIN", "GOOGLE_BUSINESS_PROFILE", "YOUTUBE"],
+    "states": ["DRAFT", "NEEDS_OWNER_REVIEW", "APPROVED_NOT_PUBLISHED", "SCHEDULED_INTERNAL", "PUBLISHED", "FAILED", "CANCELLED"]
+  },
+  "website": {
+    "deployEnabled": false,
+    "states": ["DRAFT", "NEEDS_OWNER_REVIEW", "APPROVED_NOT_DEPLOYED", "DEPLOYED", "FAILED", "ROLLED_BACK", "CANCELLED"]
+  },
+  "accounting": {
+    "apiSyncEnabled": false,
+    "currency": "USD",
+    "exportFormat": "CSV",
+    "recognizedEventTypes": ["QUOTE", "INVOICE", "PAYMENT", "CREDIT", "REFUND", "EXPENSE", "CONTRACT", "AD_SPEND"]
+  },
+  "contracts": {
+    "states": ["DRAFT", "NEEDS_OWNER_REVIEW", "ACTIVE", "PAUSED", "RENEWAL_DUE", "CANCELLATION_PENDING", "CANCELLED", "EXPIRED"],
+    "billingFrequencies": ["ONE_TIME", "MONTHLY", "QUARTERLY", "ANNUAL", "MILESTONE"],
+    "usageTrackingRequired": true
+  },
+  "externalActions": {
+    "sendCustomerEmail": false,
+    "sendQuote": false,
+    "sendInvoice": false,
+    "sendPaymentRequest": false,
+    "processPayment": false,
+    "issueRefund": false,
+    "publishSocial": false,
+    "spendAdvertising": false,
+    "deployWebsite": false,
+    "deliverFinalFiles": false,
+    "syncAccountingApi": false
+  }
+}
