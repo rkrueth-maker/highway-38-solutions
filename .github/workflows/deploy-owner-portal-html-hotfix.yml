@@ -56,30 +56,70 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('clasp credential loaded.');"
 
-      - name: Back up and update existing private Owner Portal deployment
+      - name: Back up existing bound project and force deployment version advance
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x scripts/deploy-owner-portal-next-production.sh
-          ./scripts/deploy-owner-portal-next-production.sh
+          SOURCE="apps-script/core-engine/owner-portal-next"
+          WORK="deployment-work"
+          BACKUP="$WORK/backup"
+          PROJECT="$WORK/project"
+          EVIDENCE="$WORK/evidence"
+          mkdir -p "$BACKUP" "$PROJECT" "$EVIDENCE"
 
-      - name: Collect rollback and deployment evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p deployment-evidence
-          LATEST_ROOT="$(ls -dt "$HOME"/h38-integrated-business-os-* 2>/dev/null | head -n 1 || true)"
-          if [[ -n "$LATEST_ROOT" ]]; then
-            cp -a "$LATEST_ROOT"/. deployment-evidence/
-          fi
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > "$BACKUP/.clasp.json"
+          (
+            cd "$BACKUP"
+            clasp pull
+          )
+          tar -czf "$EVIDENCE/bound-project-backup.tar.gz" -C "$BACKUP" .
+          sha256sum "$EVIDENCE/bound-project-backup.tar.gz" | tee "$EVIDENCE/bound-project-backup.sha256"
+
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > "$PROJECT/.clasp.json"
+          cp "$SOURCE"/*.js "$PROJECT/"
+          cp "$SOURCE"/*.html "$PROJECT/"
+          cp "$SOURCE/appsscript.json" "$PROJECT/"
+
+          cd "$PROJECT"
+          clasp list-deployments | tee "../evidence/deployments-before.txt"
+          BEFORE_VERSION="$(awk -v id="$H38_EXISTING_DEPLOYMENT_ID" '$0 ~ id {for(i=1;i<=NF;i++){if($i ~ /^@[0-9]+$/){gsub(/^@/,"",$i);print $i;exit}}}' ../evidence/deployments-before.txt)"
+          test -n "$BEFORE_VERSION" || { echo 'Existing deployment version was not found.'; exit 1; }
+
+          clasp push --force | tee "../evidence/clasp-push.txt"
+          VERSION_OUTPUT="$(clasp create-version "Owner Portal malformed HTML hotfix ${GITHUB_SHA}" | tee ../evidence/create-version.txt)"
+          NEW_VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | grep -Eo '[0-9]+' | tail -n 1)"
+          test -n "$NEW_VERSION" || { echo 'New Apps Script version could not be parsed.'; exit 1; }
+          test "$NEW_VERSION" -gt "$BEFORE_VERSION" || { echo "Version did not advance: before=$BEFORE_VERSION new=$NEW_VERSION"; exit 1; }
+
+          clasp update-deployment "$H38_EXISTING_DEPLOYMENT_ID" --versionNumber "$NEW_VERSION" --description "Highway 38 Owner Portal HTML hotfix ${GITHUB_SHA}" | tee ../evidence/update-deployment.txt
+          clasp list-deployments | tee "../evidence/deployments-after.txt"
+          grep -F "$H38_EXISTING_DEPLOYMENT_ID @${NEW_VERSION}" ../evidence/deployments-after.txt
+
+          printf '%s\n' "$BEFORE_VERSION" > ../evidence/previous-version.txt
+          printf '%s\n' "$NEW_VERSION" > ../evidence/new-version.txt
+          cat > ../evidence/owner-portal-html-hotfix-deployment.json <<JSON
+          {
+            "status": "DEPLOYED_PENDING_RUNTIME_ACCEPTANCE",
+            "sourceCommit": "${GITHUB_SHA}",
+            "boundScriptId": "${H38_BOUND_SCRIPT_ID}",
+            "existingDeploymentId": "${H38_EXISTING_DEPLOYMENT_ID}",
+            "productionSpreadsheetId": "${H38_PRODUCTION_SPREADSHEET_ID}",
+            "previousVersion": ${BEFORE_VERSION},
+            "newVersion": ${NEW_VERSION},
+            "createdNewProject": false,
+            "createdSecondDeployment": false,
+            "externalActionsEnabled": false,
+            "externalActionsOccurred": false,
+            "runtimeAcceptancePending": true
+          }
+          JSON
 
       - name: Upload rollback and deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: owner-portal-html-hotfix-${{ github.run_id }}
-          path: deployment-evidence/
+          path: deployment-work/evidence/
           if-no-files-found: warn
           retention-days: 90
 
@@ -89,7 +129,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          VERSION="$(cat deployment-work/evidence/new-version.txt)"
           URL="https://script.google.com/macros/s/${H38_EXISTING_DEPLOYMENT_ID}/exec"
-          BODY="Owner Portal malformed-HTML hotfix deployed to the existing private Apps Script Web App from commit ${GITHUB_SHA}. Raw JavaScript fragments now use HtmlTemplate.getRawContent(), the existing deployment ID was updated in place, no new project or second deployment was created, and external actions remain disabled. Runtime acceptance remains required. URL: ${URL}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Owner Portal malformed-HTML hotfix deployed to the existing private Apps Script Web App from commit ${GITHUB_SHA}, with the existing deployment explicitly advanced to version ${VERSION}. Raw JavaScript fragments use HtmlTemplate.getRawContent(); no new project or second deployment was created; external actions remain disabled. Runtime acceptance remains required. URL: ${URL}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 33 --repo "$GITHUB_REPOSITORY" --body "$BODY"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
