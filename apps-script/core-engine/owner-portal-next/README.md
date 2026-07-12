@@ -1,44 +1,56 @@
 # Highway 38 Integrated Business Operating System
 
-Status: **OWNER-ONLY INTEGRATED PRODUCTION CANDIDATE**
+Status: **OWNER-ONLY INTEGRATED PRODUCTION CANDIDATE — HARD-RULE EXPERIENCE SOURCE READY**
 
-This folder is the technical source for the existing bound Highway 38 Owner Portal. The operating model is one integrated business system centered on the Unified Task list and the selected-record workspace.
+This folder remains the technical source for the existing bound Highway 38 Owner Portal. The proven architecture is preserved: one integrated business system centered on Unified Tasks, selected-record execution, normalized records, duplicate locks, Proof Log, Error Log, catalog controls, and rollback-protected deployment.
 
-## Integrated operating screen
+## Owner command center
 
-Every lead, customer, job, quote, invoice, payment, expense, communication, social item, advertising campaign, website change, calendar event, proof record, and error record is accessible through the central Task/Job workspace.
+The portal now contains the required owner-facing operating surfaces:
 
-The workspace includes:
+- Today;
+- Needs Rick’s Decision;
+- Active Work;
+- Money Center;
+- Growth Center;
+- Website Center;
+- System Health.
 
-- state-aware selected-task actions;
-- customer and lead context;
-- complete job scope and stage;
+These views are derived from the same controlled task, customer, job, quote, invoice, payment, expense, communication, social, advertising, website, calendar, proof, error, catalog, and integration records. They do not create a second data system.
+
+## Operating experience
+
+Implemented source behavior includes:
+
+- grouped navigation;
+- global quick create;
+- universal search;
+- owner-persistent saved views using User Properties;
+- list, board, and calendar task views;
+- Customer 360;
+- Job 360;
+- persistent selected-task action rail;
+- document, image, and video link previews;
+- state-aware next-action guidance;
+- structured status, loading, success, HOLD, error, and empty states;
+- responsive mobile record cards instead of mandatory wide tables;
+- SOP and help access;
+- structured integration health;
+- structured Settings and self-test output without raw JSON in normal operation.
+
+## Existing integrated workflows preserved
+
+- complete Task and Job workspaces;
+- lead and customer context;
 - catalog-controlled quotes and invoices;
 - manual payment tracking;
 - expenses and accounting CSV export;
 - communication review records;
 - social scheduling controls;
 - advertising planning and approval;
-- website change and merge/deployment control;
-- linked calendar records;
+- website change, merge, deployment, and rollback control records;
+- calendar records;
 - Proof Log and Error Log history.
-
-Empty linked sections return `No linked records` instead of throwing a rendering error. Approved and completed tasks no longer keep showing the original approval decision as pending.
-
-## Internal functions available
-
-- unified clickable Task list with search, status, priority, and sort controls;
-- full Job workspace;
-- internal create and edit forms without JSON prompts;
-- quote creation from the synchronized 15-product / 9-bundle catalog;
-- invoice creation from approved or accepted quotes;
-- manual payment recording and invoice balance updates;
-- expense recording with controlled categories;
-- communication-draft records and owner review tasks;
-- social post records and internal scheduling;
-- advertising plan records and internal approval;
-- website change records and internal merge approval;
-- reporting, accounting CSV, global search, proof, errors, and adapter contract tests.
 
 ## Locked safety defaults
 
@@ -48,19 +60,30 @@ Empty linked sections return `No linked records` instead of throwing a rendering
 - selected-record execution only;
 - no bulk execution;
 - no trigger creation;
-- no live email, quote, invoice, payment request, final delivery, social publication, advertising launch/spend, website merge, or deployment;
-- exact owner approval gates, duplicate-action holds, Proof Log, and Error Log.
+- no uncertain automatic retry;
+- no live email, quote send, invoice send, payment request or processing, final delivery, social publication, advertising launch or spend, website merge, or deployment;
+- owner approval, duplicate protection, Proof Log, and Error Log remain mandatory.
 
-External-action buttons are test-only gate checks until 01 – Command Center explicitly releases a separately verified live workflow.
+External-action buttons remain gate checks until 01 — Command Center separately releases a verified live workflow.
 
 ## Verification
 
-Run:
+Run both verifiers:
 
 ```bash
 node scripts/verify-owner-portal-next.js
+node scripts/verify-owner-portal-hard-rule.js
 ```
 
-Then update the existing bound project with `scripts/deploy-owner-portal-next-production.sh`, confirm the three Script Properties, open the existing private Web App, and run the non-destructive self-test from Settings.
+The hard-rule verifier tests the client syntax, server syntax, required operating surfaces, saved-view persistence, Customer 360 isolation, structured Settings, mobile cards, preview controls, external-action locks, and synthetic data-derived command-center behavior.
 
-03 – Operations & Documentation validates and locks daily procedures after technical acceptance. 01 – Command Center approves any future live external action separately.
+## Production deployment rule
+
+This source merge does not silently write to the live Apps Script project. Production remains on the existing private bound project and existing deployment until the authorized deployment procedure creates a rollback backup, pushes to the existing script ID, updates the existing deployment ID only, runs the owner-only self-test, and records manual desktop/mobile acceptance.
+
+Use:
+
+- `scripts/deploy-owner-portal-next-production.sh`;
+- `PRODUCTION_INSTALL.md`;
+- `RUNTIME_TEST_RUNBOOK.md`;
+- `docs/operating-system/OWNER_PORTAL_HARD_RULE_ACCEPTANCE.md`.
