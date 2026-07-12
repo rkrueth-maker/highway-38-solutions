@@ -1,0 +1,104 @@
+name: Run Owner Portal Release Readiness Acceptance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-owner-portal-release-readiness-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  accept:
+    runs-on: ubuntu-latest
+    env:
+      H38_BOUND_SCRIPT_ID: 13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-
+      H38_EXISTING_DEPLOYMENT_ID: AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg
+      H38_APPROVED_RELEASE: production-2026-07-12-hard-rule-owner-portal
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+    steps:
+      - name: Check out exact main source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install clasp and load encrypted credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @google/clasp
+          test -n "$CLASPRC_JSON"
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'));"
+
+      - name: Confirm existing deployment is version 13
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance-evidence/project
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > acceptance-evidence/project/.clasp.json
+          (cd acceptance-evidence/project && clasp list-deployments) | tee acceptance-evidence/deployments-current.txt
+          grep -F "$H38_EXISTING_DEPLOYMENT_ID @13" acceptance-evidence/deployments-current.txt
+          COUNT="$(awk '/^Found [0-9]+ deployments\./ {print $2; exit}' acceptance-evidence/deployments-current.txt)"
+          test "$COUNT" = "6"
+
+      - name: Run owner-only release correction and self-test with structured output
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd acceptance-evidence/project
+            clasp --json run-function h38PortalApplyReleaseReadinessFix
+          ) > acceptance-evidence/clasp-run-function.json
+          cat acceptance-evidence/clasp-run-function.json
+
+      - name: Enforce acceptance criteria
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const payload=JSON.parse(fs.readFileSync('acceptance-evidence/clasp-run-function.json','utf8'));
+          if(payload.error) throw new Error('Apps Script execution error: '+JSON.stringify(payload.error));
+          const result=payload.response;
+          if(!result) throw new Error('Apps Script execution returned no result.');
+          fs.writeFileSync('acceptance-evidence/owner-portal-release-readiness-acceptance.json',JSON.stringify(result,null,2)+'\n');
+          const failed=[];
+          if(result.status!=='PASS') failed.push('overall PASS');
+          if(!result.productionReadiness||result.productionReadiness.status!=='PASS') failed.push('production readiness PASS');
+          if(!result.selfTest||result.selfTest.status!=='PASS') failed.push('self-test PASS');
+          if(!result.releaseSettingAfter||result.releaseSettingAfter.value!=='production-2026-07-12-hard-rule-owner-portal') failed.push('release setting');
+          if(result.externalActionsOccurred!==false) failed.push('fix external actions');
+          if(!result.selfTest||result.selfTest.externalActionsOccurred!==false) failed.push('self-test external actions');
+          if(!result.productionReadiness||result.productionReadiness.liveExternalActions!==false) failed.push('readiness action lock');
+          if(failed.length) throw new Error('Acceptance HOLD: '+failed.join(', '));
+          console.log(JSON.stringify({overall:result.status,productionReadiness:result.productionReadiness.status,selfTest:result.selfTest.status,release:result.releaseSettingAfter.value,externalActionsOccurred:false}));
+          NODE
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-portal-release-readiness-acceptance-${{ github.run_id }}
+          path: acceptance-evidence/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Close Issue 33 and update Command Center after PASS
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          BODY="Owner Portal narrow release-readiness correction accepted from source commit 815c779e05ac1017294ffd9ef81b6fbf8e0840a5. Existing deployment version 13 confirmed; deployment count remains 6; version 12 is retained as rollback with SHA-256 c25e866be017429e5c07e33b01e67d82e78e0eb5dadbbff909b683f69322f4a4. Portal Settings release equals ${H38_APPROVED_RELEASE}. Overall self-test PASS; production readiness PASS; external actions occurred false. Existing project, deployment ID, production data, and all safety locks preserved. No redesign, customer-portal activation, feature expansion, or external-action activation. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 33 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          gh issue close 33 --repo "$GITHUB_REPOSITORY" --reason completed
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY Issue #33 is closed under the posted acceptance criteria."
