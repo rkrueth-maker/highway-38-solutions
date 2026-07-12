@@ -1,0 +1,23 @@
+{
+  "release": "business-concept-builder-2.0.0",
+  "status": "MERGED_VERIFIED",
+  "pullRequest": 53,
+  "mergeCommit": "67a9f03551f14b37a314d97bef9b6ea20741f585",
+  "verifiedHead": "1036258aef477874a406cac59cd7550dd06dff6d",
+  "workflowRun": 29196451945,
+  "artifactDigest": "sha256:751d475953b8f1c6645286b47bfd3dc791d535c9ba9b2e13deeddbbf5d564abd",
+  "workflowsPassed": [
+    "Business Concept Builder Verify",
+    "Complete Ecosystem Hard-Rule Verify",
+    "Complete Ecosystem Launch Gate",
+    "Post-Deploy Ecosystem Acceptance",
+    "Public Ecosystem Tools Smoke Test",
+    "Business OS Productization Verify",
+    "Highway 38 Solutions Tests",
+    "Raster Sample Proof Check",
+    "Commercial System Check"
+  ],
+  "externalActionsEnabled": false,
+  "externalActionsOccurred": false,
+  "ownerReviewRequired": true
+}
