@@ -1,0 +1,46 @@
+name: Revenue Growth Launch Readiness Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/launch-readiness/**'
+      - 'scripts/verify-revenue-growth-launch-readiness.js'
+      - '.github/workflows/revenue-growth-launch-readiness.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/launch-readiness/**'
+      - 'scripts/verify-revenue-growth-launch-readiness.js'
+      - '.github/workflows/revenue-growth-launch-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify providers, social calendar, inquiry routing, accounting, controls, and exact blockers
+        run: node scripts/verify-revenue-growth-launch-readiness.js
+      - name: Upload revenue and growth evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: revenue-growth-launch-readiness-${{ github.run_id }}
+          path: |
+            launch-control/evidence/revenue-growth-launch-readiness-verification.json
+            launch-control/evidence/revenue-growth-provider-readiness.json
+            launch-control/evidence/revenue-growth-social-calendar.json
+            launch-control/evidence/revenue-growth-publication-records.json
+            launch-control/evidence/revenue-growth-accounting-acceptance.json
+            launch-control/evidence/revenue-growth-accounting-export.csv
+          if-no-files-found: error
+          retention-days: 90
