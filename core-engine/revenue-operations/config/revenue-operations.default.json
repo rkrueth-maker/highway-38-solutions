@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "release": "revenue-operations-core-1.0.0",
+  "environment": "production",
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtectionRequired": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "externalActionsEnabled": false
+  },
+  "providers": {
+    "email": {"mode": "draft-only", "status": "NOT_CONFIGURED", "liveExecution": false},
+    "payments": {"mode": "manual", "status": "NOT_CONFIGURED", "liveExecution": false},
+    "accounting": {"mode": "csv", "status": "READY_FOR_EXPORT", "liveExecution": false},
+    "social": {"mode": "internal-schedule", "status": "NOT_CONFIGURED", "liveExecution": false},
+    "website": {"mode": "review-only", "status": "NOT_CONFIGURED", "liveExecution": false}
+  },
+  "payment": {
+    "hostedProviderOnly": true,
+    "rawCardDataAllowed": false,
+    "allowedUrlSchemes": ["https:"],
+    "approvedProviders": []
+  },
+  "currency": "USD",
+  "tax": {
+    "calculationMode": "EXTERNAL_OR_MANUAL",
+    "automaticTaxFiling": false
+  },
+  "states": {
+    "quote": ["DRAFT", "OWNER_APPROVED", "READY_TO_SEND", "SENT", "ACCEPTED", "DECLINED", "EXPIRED", "VOID"],
+    "invoice": ["DRAFT", "OWNER_APPROVED", "READY_TO_SEND", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "VOID", "REFUNDED"],
+    "paymentRequest": ["DRAFT", "OWNER_APPROVED", "READY_TO_CREATE", "CREATED", "PAID", "EXPIRED", "CANCELLED"],
+    "contract": ["DRAFT", "OWNER_APPROVED", "ACTIVE", "PAUSED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"],
+    "communication": ["DRAFT", "OWNER_APPROVED", "READY_TO_SEND", "SENT", "FAILED", "CANCELLED"],
+    "social": ["DRAFT", "OWNER_APPROVED", "READY_TO_SCHEDULE", "SCHEDULED", "PUBLISHED", "FAILED", "CANCELLED"],
+    "website": ["DRAFT", "OWNER_APPROVED", "READY_TO_DEPLOY", "DEPLOYED", "ROLLED_BACK", "FAILED", "CANCELLED"]
+  },
+  "externalActions": {
+    "sendEmail": false,
+    "sendQuote": false,
+    "sendInvoice": false,
+    "createPaymentRequest": false,
+    "processPayment": false,
+    "issueRefund": false,
+    "publishSocial": false,
+    "deployWebsite": false,
+    "finalDelivery": false
+  }
+}

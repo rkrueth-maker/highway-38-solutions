@@ -1,0 +1,42 @@
+name: Revenue Operations Core Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'scripts/verify-revenue-operations-core.js'
+      - '.github/workflows/revenue-operations-core.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'scripts/verify-revenue-operations-core.js'
+      - '.github/workflows/revenue-operations-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify revenue, contracts, communications, accounting, and provider controls
+        run: node scripts/verify-revenue-operations-core.js
+      - name: Upload revenue operations evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: revenue-operations-core-${{ github.run_id }}
+          path: |
+            launch-control/evidence/revenue-operations-core-verification.json
+            launch-control/evidence/revenue-operations-sample-package.json
+          if-no-files-found: error
+          retention-days: 90
