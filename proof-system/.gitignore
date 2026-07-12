@@ -1,0 +1,26 @@
+# Original and working PST archives
+*.pst
+*.ost
+
+# Extracted private mail and attachment content
+private-work/
+extracted/
+attachments/
+indexes/private-*
+
+# Raw and review-stage photographs
+photos/raw/
+photos/review/
+photos/hold/
+
+# Local evidence exports
+*.eml
+*.msg
+*.mbox
+*.vcf
+*.ics
+*.log
+
+# Preserve public-safe generated assets only under public/
+!public/
+!public/**
