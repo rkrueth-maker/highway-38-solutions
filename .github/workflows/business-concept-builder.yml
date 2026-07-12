@@ -9,7 +9,9 @@ on:
       - 'business-concept-builder.js'
       - 'core-engine/product/business-concept-builder/**'
       - 'scripts/generate-business-concept-package.js'
+      - 'scripts/run-business-concept-builder-verifier.js'
       - 'scripts/verify-business-concept-builder.js'
+      - 'scripts/verify-business-concept-builder-v2.js'
       - '.github/workflows/business-concept-builder.yml'
   push:
     branches:
@@ -19,7 +21,9 @@ on:
       - 'business-concept-builder.js'
       - 'core-engine/product/business-concept-builder/**'
       - 'scripts/generate-business-concept-package.js'
+      - 'scripts/run-business-concept-builder-verifier.js'
       - 'scripts/verify-business-concept-builder.js'
+      - 'scripts/verify-business-concept-builder-v2.js'
       - '.github/workflows/business-concept-builder.yml'
   workflow_dispatch:
 
@@ -35,7 +39,7 @@ jobs:
         with:
           node-version: '24'
       - name: Verify complete concept generation, records, Tasks, installer, security, backup, and browser controls
-        run: node scripts/verify-business-concept-builder.js
+        run: node scripts/run-business-concept-builder-verifier.js
       - name: Upload Business Concept Builder evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,5 +49,6 @@ jobs:
             launch-control/evidence/business-concept-builder-verification.json
             launch-control/evidence/business-concept-builder-sample-package.json
             launch-control/evidence/business-concept-builder-created-tasks.csv
+            launch-control/evidence/business-concept-builder-runner.json
           if-no-files-found: error
           retention-days: 90
