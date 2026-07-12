@@ -11,7 +11,7 @@ function h38PortalSelfTest(){
     if(['TEST','PRODUCTION'].indexOf(H38_PORTAL_NEXT.ENVIRONMENT)<0)throw new Error('Unsupported environment: '+H38_PORTAL_NEXT.ENVIRONMENT);
     return {environment:H38_PORTAL_NEXT.ENVIRONMENT,testMode:H38_PORTAL_NEXT.TEST_MODE};
   });
-  check('Integrated release',function(){if(H38_PORTAL_NEXT.RELEASE.indexOf('integrated-business-os')<0)throw new Error('Integrated release identifier missing');return H38_PORTAL_NEXT.RELEASE;});
+  check('Approved production release',function(){var expected='production-2026-07-12-hard-rule-owner-portal';if(H38_PORTAL_NEXT.RELEASE!==expected)throw new Error('Approved production release identifier missing');return H38_PORTAL_NEXT.RELEASE;});
   check('Portal install status',function(){var s=h38PortalInstalledStatus_();if(!s.installed)throw new Error('Missing sheets: '+s.missingSheets.join(', '));return s;});
   check('Required product IDs',function(){if(H38_PORTAL_NEXT.REQUIRED_PRODUCTS.length!==15)throw new Error('Expected 15 products');return H38_PORTAL_NEXT.REQUIRED_PRODUCTS;});
   check('Required bundle IDs',function(){if(H38_PORTAL_NEXT.REQUIRED_BUNDLES.length!==9)throw new Error('Expected 9 bundles');return H38_PORTAL_NEXT.REQUIRED_BUNDLES;});
