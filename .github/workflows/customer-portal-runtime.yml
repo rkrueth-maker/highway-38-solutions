@@ -1,0 +1,46 @@
+name: Customer Portal Runtime Contract Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core-engine/customer-portal/runtime/**'
+      - 'core-engine/customer-portal/config/customer-portal.runtime.example.json'
+      - 'scripts/verify-customer-portal-runtime.js'
+      - '.github/workflows/customer-portal-runtime.yml'
+      - 'launch-control/activation/customer-portal-activation-blockers-2026-07-12.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'core-engine/customer-portal/runtime/**'
+      - 'core-engine/customer-portal/config/customer-portal.runtime.example.json'
+      - 'scripts/verify-customer-portal-runtime.js'
+      - '.github/workflows/customer-portal-runtime.yml'
+      - 'launch-control/activation/customer-portal-activation-blockers-2026-07-12.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify fail-closed production runtime contract
+        run: node scripts/verify-customer-portal-runtime.js
+      - name: Upload customer portal runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-portal-runtime-${{ github.run_id }}
+          path: |
+            launch-control/evidence/customer-portal-runtime-verification.json
+            launch-control/evidence/customer-portal-runtime-readiness-sample.json
+          if-no-files-found: error
+          retention-days: 90
