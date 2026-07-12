@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "release": "proof-evidence-system-2026-07-12",
+  "status": "PIPELINE_READY_PRIVATE_SOURCE_BLOCKED",
+  "completed": [
+    "PST preservation and working-copy code",
+    "private extracted-evidence indexer",
+    "controlled evidence search plan",
+    "case-study registry and classification rules",
+    "photo privacy review engine",
+    "public-safe proof compiler",
+    "public proof page and case registry",
+    "eight-tool version and assumption manifest",
+    "three public CSV downloads and README",
+    "synthetic verification workflow"
+  ],
+  "blockers": [
+    {
+      "id": "BLOCK-PST-001",
+      "item": "Original backup.pst source path and hash",
+      "status": "MISSING_PRIVATE_MOUNT",
+      "exactNextStep": "Mount or copy the original backup.pst into a private local filesystem outside the repository, then run the preserve-pst command from proof-system/README.md."
+    },
+    {
+      "id": "BLOCK-PST-002",
+      "item": "Reviewed PST extraction tool and version",
+      "status": "NOT_SELECTED",
+      "exactNextStep": "Select and install a reviewed local PST extraction tool, record its name/version/command, and extract only the verified read-only working copy."
+    },
+    {
+      "id": "BLOCK-PHOTO-001",
+      "item": "Private photo source inventory",
+      "status": "MISSING_PRIVATE_MOUNT",
+      "exactNextStep": "Create a private photo manifest containing source digests and risk labels; do not commit raw or review-stage photos."
+    },
+    {
+      "id": "BLOCK-PROOF-001",
+      "item": "Corroboration for held historical case studies",
+      "status": "EVIDENCE_REVIEW_REQUIRED",
+      "exactNextStep": "Link private evidence IDs to held case-study records, document chronology and source count, then complete privacy review before changing publication status."
+    }
+  ],
+  "externalActionsOccurred": false,
+  "privateSourcePublished": false
+}
