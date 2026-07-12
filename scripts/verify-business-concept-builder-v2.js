@@ -2,7 +2,7 @@
 'use strict';
 
 const fs=require('fs');
-const os=require('os');
+const osModule=require('os');
 const path=require('path');
 const vm=require('vm');
 const childProcess=require('child_process');
@@ -126,7 +126,7 @@ function main(){
   console.log(JSON.stringify(evidence,null,2));
   process.exit(failures.length?1:0);
 
-  function osModuleTmp(){return os.tmpdir();}
+  function osModuleTmp(){return osModule.tmpdir();}
   function browserParse(source){try{const context={globalThis:{}};vm.createContext(context);vm.runInContext(source,context,{filename:'business-concept-core.js'});return Boolean(context.globalThis.BusinessConceptCore);}catch(error){failures.push({name:'browser parse error',detail:error.message});return false;}}
 }
 
