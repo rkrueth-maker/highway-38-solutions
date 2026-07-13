@@ -113,3 +113,14 @@
 - `tools.html`
 - `weekly-owner-dashboard.html`
 - `worked-examples.html`
+## Post-publication browser diagnostic
+- index.html: PASS — 68.3×30.0
+- services.html: PASS — 68.3×30.0
+- sample-library.html: PASS — 68.3×30.0
+- quote-sheet-builder.html: PASS — 68.3×30.0
+- real-proof-lab.html: PASS — 68.3×30.0
+- 404.html: FAIL — page.waitForSelector: Timeout 10000ms exceeded.
+- Call log:
+-   - waiting for locator('img.brand-logo') to be visible
+- Browser failure count: 1
+- Existing Lighthouse image-alt verification remains recorded in `PUBLIC_NAV_LOGO_2026-07-13.md`.

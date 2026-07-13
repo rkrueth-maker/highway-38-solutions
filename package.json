@@ -1,0 +1,27 @@
+{
+  "name": "highway-38-solutions",
+  "version": "1.0.0",
+  "description": "This repository contains the Highway 38 Solutions public website, exported Core Engine source, and consolidated operator, developer, and transfer documentation.",
+  "main": "brand-global.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rkrueth-maker/highway-38-solutions.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rkrueth-maker/highway-38-solutions/issues"
+  },
+  "homepage": "https://github.com/rkrueth-maker/highway-38-solutions#readme",
+  "dependencies": {
+    "playwright": "^1.54.1"
+  }
+}
