@@ -1,0 +1,115 @@
+# Logo Everywhere Publication — 2026-07-13
+
+- Header asset: third uploaded H38 swoosh
+- Public path: `assets/highway38-logo.png?v=20260713-logo3`
+- Asset validation: 164 × 72 valid PNG
+- Desktop height: 36px
+- Mobile height: 30px
+- Shared headers, legacy brand anchors, fallback bars, and footers: enabled
+- Old `brand/highway-38-mark.svg` page references: removed
+- Existing mobile-menu JavaScript: preserved
+
+## Shared-navigation pages
+- `business-concept-builder.html`
+- `business-os.html`
+- `customer-portal.html`
+- `final-acceptance.html`
+- `free-tools.html`
+- `index.html`
+- `portal.html`
+- `proof.html`
+- `resources.html`
+- `revenue-operations-status.html`
+- `services.html`
+## Legacy-brand pages upgraded
+- `about.html`
+- `launch-plan.html`
+- `pricing.html`
+- `privacy.html`
+- `proof-builds.html`
+- `quote-sheet-builder.html`
+- `real-proof-lab.html`
+- `sample-library.html`
+- `terms.html`
+- `test-plan.html`
+- `worked-examples.html`
+## Pages receiving fallback brand bar
+- `404.html`
+- `ai-workflow.html`
+- `approval-deposit-pack.html`
+- `automation-examples.html`
+- `backend-system.html`
+- `catalog.html`
+- `custom-work-build.html`
+- `customer-history-setup.html`
+- `ecosystem-status.html`
+- `examples.html`
+- `faq.html`
+- `forgeiq.html`
+- `how-it-works.html`
+- `local-service-operating-system.html`
+- `packages.html`
+- `product.html`
+- `products.html`
+- `project-action-snapshot.html`
+- `proof-center.html`
+- `request-form-lead-tracker.html`
+- `sample-library-now.html`
+- `sample-workbooks.html`
+- `shop-automation.html`
+- `solutions.html`
+- `start-request.html`
+- `tool-center.html`
+- `tools.html`
+- `weekly-owner-dashboard.html`
+## Files changed
+- `404.html`
+- `about.html`
+- `ai-workflow.html`
+- `approval-deposit-pack.html`
+- `automation-examples.html`
+- `backend-system.html`
+- `business-concept-builder.html`
+- `business-os.html`
+- `catalog.html`
+- `custom-work-build.html`
+- `customer-history-setup.html`
+- `customer-portal.html`
+- `ecosystem-status.html`
+- `examples.html`
+- `faq.html`
+- `final-acceptance.html`
+- `forgeiq.html`
+- `free-tools.html`
+- `how-it-works.html`
+- `index.html`
+- `launch-plan.html`
+- `local-service-operating-system.html`
+- `packages.html`
+- `portal.html`
+- `pricing.html`
+- `privacy.html`
+- `product.html`
+- `products.html`
+- `project-action-snapshot.html`
+- `proof-builds.html`
+- `proof-center.html`
+- `proof.html`
+- `quote-sheet-builder.html`
+- `real-proof-lab.html`
+- `request-form-lead-tracker.html`
+- `resources.html`
+- `revenue-operations-status.html`
+- `sample-library-now.html`
+- `sample-library.html`
+- `sample-workbooks.html`
+- `services.html`
+- `shop-automation.html`
+- `solutions.html`
+- `start-request.html`
+- `terms.html`
+- `test-plan.html`
+- `tool-center.html`
+- `tools.html`
+- `weekly-owner-dashboard.html`
+- `worked-examples.html`
