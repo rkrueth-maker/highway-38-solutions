@@ -4,55 +4,42 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Opening Highway 38 Solutions</title>
+	<link rel="stylesheet" href="brand-global.css?v=20260713-logo3">
+	<script defer src="brand-global.js?v=20260713-logo3"></script>
+</head>
+<body>
+	<div class="h38-global-brandbar">
+		<a class="h38-global-brandbar__link" href="index.html">
+			<img class="brand-logo" src="assets/highway38-logo.png?v=20260713-logo3" alt="Highway 38 Solutions">
+			<span class="brand-text"><span>Highway 38</span> Solutions</span>
+		</a>
+	</div>
+	<main style="max-width:760px;margin:3rem auto;padding:0 1rem">
+		<h1>Opening Highway 38 Solutions</h1>
+		<p>Taking you to the closest current page. <a href="packages.html#packages">Open the package library</a>.</p>
+	</main>
 	<script>
 		(function () {
 			var p = location.pathname.toLowerCase();
 			var h = location.hash || "";
 			var pathParts = location.pathname.split("/").filter(Boolean);
-			var base = pathParts.length > 0 ? "/" + pathParts[0] : "";
+			var first = pathParts.length ? pathParts[0] : "";
+			var base = first && first.indexOf(".") === -1 ? "/" + first : "";
 			var target = base + "/packages.html";
 
 			if (!h) {
-				if (
-					p.includes("cnc") ||
-					p.includes("automation") ||
-					p.includes("robot") ||
-					p.includes("vision") ||
-					p.includes("fixture") ||
-					p.includes("jig") ||
-					p.includes("press-brake") ||
-					p.includes("shear")
-				) {
+				if (p.includes("cnc") || p.includes("automation") || p.includes("robot") || p.includes("vision") || p.includes("fixture") || p.includes("jig") || p.includes("press-brake") || p.includes("shear")) {
 					target = base + "/shop-automation.html";
 					h = "#packages";
-				} else if (
-					p.includes("quote") ||
-					p.includes("deposit") ||
-					p.includes("dashboard") ||
-					p.includes("customer") ||
-					p.includes("tracker") ||
-					p.includes("service-operating")
-				) {
+				} else if (p.includes("quote") || p.includes("deposit") || p.includes("dashboard") || p.includes("customer") || p.includes("tracker") || p.includes("service-operating")) {
 					h = "#business-cleanup";
 				} else if (p.includes("website") || p.includes("form") || p.includes("digital")) {
 					h = "#digital-setup";
-				} else if (
-					p.includes("garage") ||
-					p.includes("camera") ||
-					p.includes("sprinkler") ||
-					p.includes("irrigation") ||
-					p.includes("layout") ||
-					p.includes("project")
-				) {
+				} else if (p.includes("garage") || p.includes("camera") || p.includes("sprinkler") || p.includes("irrigation") || p.includes("layout") || p.includes("project")) {
 					h = "#project-packet";
 				} else if (p.includes("shop") || p.includes("bay") || p.includes("workflow")) {
 					h = "#shop-flow";
-				} else if (
-					p.includes("cleanup") ||
-					p.includes("receipt") ||
-					p.includes("photo") ||
-					p.includes("file")
-				) {
+				} else if (p.includes("cleanup") || p.includes("receipt") || p.includes("photo") || p.includes("file")) {
 					h = "#cleanup-rescue";
 				} else if (p.includes("custom") || p.includes("tool") || p.includes("app")) {
 					h = "#custom-work";
@@ -61,11 +48,8 @@
 				}
 			}
 
-			location.replace(target + h);
+			setTimeout(function () { location.replace(target + h); }, 250);
 		})();
 	</script>
-<link rel="stylesheet" href="brand-global.css?v=20260713-logo3"><script defer src="brand-global.js?v=20260713-logo3"></script></head>
-<body>
-	<p>Opening <a href="packages.html#packages">Highway 38 Solutions package library</a>.</p>
 </body>
 </html>
