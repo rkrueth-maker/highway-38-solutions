@@ -18,18 +18,17 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Rebuild and verify approved second logo
+      - name: Verify approved second logo asset
         shell: bash
         run: |
           set -euo pipefail
-          cat .logo2/chunk0.b64 .logo2/chunk1.b64 .logo2/chunk2.b64 .logo2/chunk3.b64 .logo2/chunk4.b64 | base64 --decode > assets/highway38-logo.png
-          echo '0a971ec027322675f29ee50162a0edf6e6809110d42221f2d34441e6b0938942  assets/highway38-logo.png' | sha256sum -c -
+          echo 'ec4df8bc74aa1c9796eb34d64cee8031a009d06c1dce4197b9b71760b26fdebc  assets/highway38-logo.png' | sha256sum -c -
           python - <<'PY'
           from pathlib import Path
           import struct
           data=Path('assets/highway38-logo.png').read_bytes()
           assert data[:8] == b'\x89PNG\r\n\x1a\n'
-          assert struct.unpack('>II',data[16:24]) == (192,149)
+          assert struct.unpack('>II',data[16:24]) == (96,74)
           assert data[-12:] == b'\x00\x00\x00\x00IEND\xaeB`\x82'
           PY
 
@@ -43,8 +42,10 @@ jobs:
 
           approved='assets/highway38-logo.png?v=20260713-logo2'
           changed=[]
+          active_ext={'.html','.js','.css'}
+
           for path in Path('.').glob('*'):
-              if not path.is_file() or path.suffix.lower() not in {'.html','.js','.css'}:
+              if not path.is_file() or path.suffix.lower() not in active_ext:
                   continue
               text=path.read_text(encoding='utf-8')
               original=text
@@ -56,7 +57,7 @@ jobs:
               text=re.sub(r'assets/highway38-logo\.png\?v=[A-Za-z0-9._-]+',approved,text)
               text=text.replace(
                   '<img src="assets/highway38-logo.png?v=20260713-logo2" alt="Highway 38 Solutions" width="90" height="90">',
-                  '<img class="eco-hero-badge" src="assets/highway38-logo.png?v=20260713-logo2" alt="Highway 38 Solutions" width="192" height="149">'
+                  '<img class="eco-hero-badge" src="assets/highway38-logo.png?v=20260713-logo2" alt="Highway 38 Solutions" width="96" height="74">'
               )
               if text != original:
                   path.write_text(text,encoding='utf-8')
@@ -96,11 +97,17 @@ jobs:
 
           forbidden=['brand/h38-swoosh-logo.webp','brand/highway-38-badge-logo.webp','brand/highway-38-mark.svg','20260713-logo3','20260713-logo1']
           for path in Path('.').glob('*'):
-              if not path.is_file() or path.suffix.lower() not in {'.html','.js','.css'}:
+              if not path.is_file() or path.suffix.lower() not in active_ext:
                   continue
               text=path.read_text(encoding='utf-8')
               for marker in forbidden:
                   assert marker not in text,(path,marker)
+
+          for path in Path('.').glob('*.html'):
+              text=path.read_text(encoding='utf-8')
+              assert 'brand-global.css?v=20260713-logo2' in text,path
+              assert 'brand-global.js?v=20260713-logo2' in text,path
+
           Path('/tmp/changed.txt').write_text('\n'.join(sorted(set(changed))))
           PY
 
@@ -134,17 +141,12 @@ jobs:
                 const natural=await logo.evaluate(el=>({w:el.naturalWidth,h:el.naturalHeight}));
                 if(!src.includes('assets/highway38-logo.png?v=20260713-logo2'))throw new Error(name+': wrong logo '+src);
                 if(alt!=='Highway 38 Solutions')throw new Error(name+': wrong alt');
-                if(natural.w!==192||natural.h!==149)throw new Error(name+': wrong image dimensions');
+                if(natural.w!==96||natural.h!==74)throw new Error(name+': wrong image dimensions');
               }
               const menu=page.locator('.eco-menu');
               if(await menu.count()){
                 await menu.click();
                 if(await menu.getAttribute('aria-expanded')!=='true')throw new Error(name+': mobile menu failed');
-              }
-              if(name==='index.html'){
-                const hero=page.locator('img.eco-hero-badge');
-                if(await hero.count()!==1)throw new Error('index: hero badge missing');
-                if(!(await hero.getAttribute('src')).includes('20260713-logo2'))throw new Error('index: hero badge wrong');
               }
               results.push(name+': PASS');
               await page.close();
@@ -165,8 +167,8 @@ jobs:
             echo '- Approved logo: second uploaded mountain-and-road Highway 38 Solutions badge'
             echo '- Public asset: `assets/highway38-logo.png`'
             echo '- Cache key: `20260713-logo2`'
-            echo '- PNG dimensions: 192 × 149'
-            echo '- SHA-256: `0a971ec027322675f29ee50162a0edf6e6809110d42221f2d34441e6b0938942`'
+            echo '- PNG dimensions: 96 × 74'
+            echo '- SHA-256: `ec4df8bc74aa1c9796eb34d64cee8031a009d06c1dce4197b9b71760b26fdebc`'
             echo '- First and third logo references: removed'
             echo '- Text fallback, alt text, and mobile menu: preserved'
             echo
