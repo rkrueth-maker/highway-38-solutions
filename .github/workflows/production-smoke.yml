@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'Practical systems that actually work.' index.html
+          grep -Fq 'Big problems. Clear plans.' index.html
           grep -Fq 'Choose a result without scrolling through one long product wall.' products.html
           grep -Fq 'data-product-detail-single' product.html
           grep -Fq 'Hypothetical examples' sample-library-now.html
@@ -76,7 +76,7 @@ jobs:
             echo "Production check failed for $path; expected: $pattern" >&2
             return 1
           }
-          fetch_until_ready '' 'Practical systems that actually work.' /tmp/home.html
+          fetch_until_ready '' 'Big problems. Clear plans.' /tmp/home.html
           fetch_until_ready 'products.html' 'Choose a result without scrolling through one long product wall.' /tmp/products.html
           fetch_until_ready 'product.html?id=H38-P001' 'data-product-detail-single' /tmp/product.html
           fetch_until_ready 'sample-library-now.html' 'Hypothetical examples' /tmp/samples.html
