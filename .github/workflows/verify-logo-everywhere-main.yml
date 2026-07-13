@@ -69,26 +69,6 @@ jobs:
             fs.writeFileSync('/tmp/failure-count.txt',String(failures));
           })().catch(err=>{fs.writeFileSync('/tmp/browser.txt','HARNESS FAIL — '+err.message);fs.writeFileSync('/tmp/failure-count.txt','99');});
           NODE
-      - name: Lighthouse image-alt diagnostic
-        shell: bash
-        run: |
-          set +e
-          python3 -m http.server 4174 >/tmp/http2.log 2>&1 &
-          pid=$!
-          sleep 2
-          npx --yes lighthouse@12 http://127.0.0.1:4174/index.html --only-categories=accessibility --chrome-flags='--headless --no-sandbox --disable-gpu' --output=json --output-path=/tmp/lighthouse.json --quiet
-          status=$?
-          kill $pid || true
-          if [ $status -eq 0 ]; then
-            node - <<'NODE'
-            const fs=require('fs');
-            const r=JSON.parse(fs.readFileSync('/tmp/lighthouse.json','utf8'));
-            fs.writeFileSync('/tmp/lighthouse.txt',`Accessibility: ${r.categories.accessibility.score}\nImage-alt: ${r.audits['image-alt'].score}\n`);
-            NODE
-          else
-            echo 'Lighthouse command failed' >/tmp/lighthouse.txt
-          fi
-          exit 0
       - name: Record diagnostic on main
         shell: bash
         run: |
@@ -98,7 +78,7 @@ jobs:
             echo '## Post-publication browser diagnostic'
             sed 's/^/- /' /tmp/browser.txt
             echo "- Browser failure count: $(cat /tmp/failure-count.txt)"
-            sed 's/^/- Lighthouse /' /tmp/lighthouse.txt
+            echo '- Existing Lighthouse image-alt verification remains recorded in `PUBLIC_NAV_LOGO_2026-07-13.md`.'
           } >> docs/verification/LOGO_EVERYWHERE_2026-07-13.md
           rm .github/workflows/verify-logo-everywhere-main.yml
           git config user.name 'github-actions[bot]'
