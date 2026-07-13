@@ -124,3 +124,13 @@
 -   - waiting for locator('img.brand-logo') to be visible
 - Browser failure count: 1
 - Existing Lighthouse image-alt verification remains recorded in `PUBLIC_NAV_LOGO_2026-07-13.md`.
+
+## Final browser verification after 404 correction
+- index.html: PASS — 68.3×30.0
+- services.html: PASS — 68.3×30.0
+- sample-library.html: PASS — 68.3×30.0
+- quote-sheet-builder.html: PASS — 68.3×30.0
+- real-proof-lab.html: PASS — 68.3×30.0
+- 404.html: PASS — 68.3×30.0- Browser failure count: 0
+- Third-logo header and fallback text: PASS
+- Mobile menu behavior: PASS
