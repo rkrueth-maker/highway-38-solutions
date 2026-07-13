@@ -1,0 +1,178 @@
+name: Finalize Web Cleanup Main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finalize-web-cleanup-main.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify all page sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet beautifulsoup4
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          from pathlib import Path
+          from urllib.parse import urlsplit,unquote
+          import json
+
+          root=Path('.')
+          pages=sorted(root.glob('*.html'))
+          issues=[]
+          stats={'pages':len(pages),'links':0,'images':0,'scripts':0,'stylesheets':0}
+
+          def target(raw):
+              if not raw or raw.startswith(('#','mailto:','tel:','javascript:','data:')): return None
+              p=urlsplit(raw)
+              if p.scheme or p.netloc: return None
+              return unquote(p.path) or None
+
+          for page in pages:
+              text=page.read_text(encoding='utf-8')
+              soup=BeautifulSoup(text,'html.parser')
+              if not soup.html or soup.html.get('lang')!='en': issues.append([page.name,'missing lang=en'])
+              if not soup.title or not soup.title.get_text(strip=True): issues.append([page.name,'missing title'])
+              if not soup.find('meta',attrs={'name':'viewport'}): issues.append([page.name,'missing viewport'])
+              ids={}
+              for el in soup.find_all(id=True): ids[el['id']]=ids.get(el['id'],0)+1
+              for value,count in ids.items():
+                  if count>1: issues.append([page.name,f'duplicate id {value} × {count}'])
+              for img in soup.find_all('img'):
+                  stats['images']+=1
+                  if not img.has_attr('alt'): issues.append([page.name,f'missing alt: {img.get("src","")}'])
+                  t=target(img.get('src'))
+                  if t and not (root/t).exists(): issues.append([page.name,f'missing image: {t}'])
+              for script in soup.find_all('script',src=True):
+                  stats['scripts']+=1
+                  t=target(script.get('src'))
+                  if t and not (root/t).exists(): issues.append([page.name,f'missing script: {t}'])
+              for link in soup.find_all('link',href=True):
+                  if 'stylesheet' in (link.get('rel') or []): stats['stylesheets']+=1
+                  t=target(link.get('href'))
+                  if t and not (root/t).exists(): issues.append([page.name,f'missing linked asset: {t}'])
+              for a in soup.find_all('a',href=True):
+                  stats['links']+=1
+                  t=target(a.get('href'))
+                  if t:
+                      candidate=root/t
+                      if t.endswith('/'): candidate=candidate/'index.html'
+                      if not candidate.exists(): issues.append([page.name,f'broken link: {a.get("href")}'])
+                  if a.get('target')=='_blank' and not {'noopener','noreferrer'}.issubset(set(a.get('rel') or [])):
+                      issues.append([page.name,f'unsafe new-tab link: {a.get("href")}'])
+              for required in ['brand-global.css?v=20260713-cleanup1','brand-global.js?v=20260713-cleanup1']:
+                  if required not in text: issues.append([page.name,f'missing shared asset: {required}'])
+              if any(x in text for x in ['20260713-logo1','20260713-logo3','brand/h38-swoosh-logo.webp','brand/highway-38-mark.svg']):
+                  issues.append([page.name,'retired logo reference'])
+
+          Path('/tmp/source.json').write_text(json.dumps({'stats':stats,'issues':issues},indent=2))
+          print(json.dumps({'stats':stats,'issues':issues},indent=2))
+          if issues: raise SystemExit(1)
+          PY
+
+      - name: Browser-check every top-level page at mobile width
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.54.1
+          npx playwright install --with-deps chromium >/dev/null
+          python3 -m http.server 4173 >/tmp/h38-http.log 2>&1 &
+          pid=$!
+          trap 'kill $pid || true' EXIT
+          sleep 2
+          node - <<'NODE'
+          const { chromium }=require('playwright');
+          const fs=require('fs');
+          (async()=>{
+            const pages=fs.readdirSync('.').filter(x=>x.endsWith('.html')).sort();
+            const browser=await chromium.launch({headless:true});
+            const results=[];
+            for(const name of pages){
+              const page=await browser.newPage({viewport:{width:390,height:844}});
+              const consoleErrors=[];
+              const failed=[];
+              page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+              page.on('requestfailed',r=>failed.push(r.url()));
+              await page.goto('http://127.0.0.1:4173/'+name,{waitUntil:'domcontentloaded',timeout:15000});
+              await page.waitForTimeout(400);
+              const metrics=await page.evaluate(()=>({
+                title:document.title,
+                scrollWidth:document.documentElement.scrollWidth,
+                clientWidth:document.documentElement.clientWidth,
+                logos:[...document.querySelectorAll('img.brand-logo')].map(x=>({src:x.getAttribute('src'),alt:x.getAttribute('alt'),ok:x.complete&&x.naturalWidth>0}))
+              }));
+              const issues=[];
+              if(!metrics.title.trim())issues.push('empty title');
+              if(metrics.scrollWidth>metrics.clientWidth+4)issues.push(`mobile overflow ${metrics.scrollWidth}/${metrics.clientWidth}`);
+              if(!metrics.logos.length)issues.push('no brand logo');
+              metrics.logos.forEach(x=>{
+                if(!x.ok)issues.push('logo load failure');
+                if(x.alt!=='Highway 38 Solutions')issues.push('logo alt mismatch');
+                if(!x.src?.includes('assets/highway38-logo.png?v=20260713-logo2'))issues.push('logo source mismatch');
+              });
+              const menu=page.locator('.eco-menu');
+              if(await menu.count()){
+                await menu.first().click();
+                if(await menu.first().getAttribute('aria-expanded')!=='true')issues.push('mobile menu failed');
+              }
+              if(consoleErrors.length)issues.push('console error: '+consoleErrors[0]);
+              if(failed.length)issues.push('request failure: '+failed[0]);
+              results.push({page:name,status:issues.length?'FAIL':'PASS',issues});
+              await page.close();
+            }
+            await browser.close();
+            fs.writeFileSync('/tmp/browser.json',JSON.stringify(results,null,2));
+            const failures=results.filter(x=>x.status==='FAIL');
+            console.log(JSON.stringify({pages:results.length,failures},null,2));
+            if(failures.length)process.exit(1);
+          })().catch(err=>{console.error(err);process.exit(1)});
+          NODE
+
+      - name: Record final zero-failure cleanup and publish to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          source=json.loads(Path('/tmp/source.json').read_text())
+          browser=json.loads(Path('/tmp/browser.json').read_text())
+          out=['# Website Cleanup Pass — 2026-07-13','',
+               f'- Top-level pages audited: {source["stats"]["pages"]}',
+               f'- Links inspected: {source["stats"]["links"]}',
+               f'- Images inspected: {source["stats"]["images"]}',
+               f'- Script references inspected: {source["stats"]["scripts"]}',
+               f'- Stylesheet references inspected: {source["stats"]["stylesheets"]}',
+               '- Source issues: 0','- Browser/mobile failures: 0','',
+               '## Cleanup completed','',
+               '- Normalized shared CSS and JavaScript cache keys across all top-level pages.',
+               '- Removed duplicate shared asset tags where present.',
+               '- Added missing language/viewport baselines where required.',
+               '- Secured external new-tab links with `noopener noreferrer`.',
+               '- Confirmed the approved second logo and removed retired public-logo references.',
+               '- Confirmed all internal page and asset references resolve.',
+               '- Corrected the Worked Examples mobile overflow by using zero-minimum grid tracks, safe text wrapping, and a one-column mobile summary strip.',
+               '- Preserved the restored catalog-driven Sample Library and current customer paths.','',
+               '## Page-by-page browser results']
+          out += [f'- `{x["page"]}` — **PASS**' for x in browser]
+          Path('docs/verification/WEBSITE_CLEANUP_2026-07-13.md').write_text('\n'.join(out)+'\n')
+          PY
+          rm -f .github/workflows/diagnose-worked-examples-overflow.yml .github/workflows/finalize-web-cleanup-main.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Complete zero-failure website cleanup pass'
+          git push origin main
