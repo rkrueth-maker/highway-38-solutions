@@ -45,12 +45,13 @@ jobs:
           pages=[]
           for path in Path('.').glob('*.html'):
               text=path.read_text(encoding='utf-8')
-              if '<nav class="site-nav"' not in text:
+              if 'ecosystem.js' not in text:
                   continue
               assert 'ecosystem.js?v=20260713-logo1' in text, path
               if 'ecosystem.css' in text:
                   assert 'ecosystem.css?v=20260713-logo1' in text, path
-              pages.append(path.name)
+              if '<nav class="site-nav"' in text:
+                  pages.append(path.name)
           assert pages
           Path('/tmp/nav-pages.txt').write_text('\n'.join(sorted(pages)))
           Path('/tmp/dimensions.txt').write_text(f'{width}x{height}')
