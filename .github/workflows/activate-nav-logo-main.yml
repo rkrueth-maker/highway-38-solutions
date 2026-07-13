@@ -1,0 +1,58 @@
+name: Activate Public Nav Logo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-nav-logo-main.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Update public cache keys and verify logo contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          changed=[]
+          for path in Path('.').glob('*.html'):
+              text=path.read_text(encoding='utf-8')
+              updated=re.sub(r'ecosystem\.css\?v=[^"\']+', 'ecosystem.css?v=20260713-logo1', text)
+              updated=re.sub(r'ecosystem\.js\?v=[^"\']+', 'ecosystem.js?v=20260713-logo1', updated)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(str(path))
+
+          asset=Path('assets/highway38-logo.png')
+          assert asset.exists() and asset.stat().st_size > 1000
+          js=Path('ecosystem.js').read_text(encoding='utf-8')
+          css=Path('ecosystem.css').read_text(encoding='utf-8')
+          required='<img class="brand-logo" src="assets/highway38-logo.png?v=20260713-logo1" alt="Highway 38 Solutions" />'
+          assert required in js
+          assert '<span class="brand-text"><span>Highway 38</span> Solutions</span>' in js
+          assert '.eco-brand img.brand-logo' in css
+          assert 'height:36px' in css
+          assert 'height:30px' in css
+          print('Updated HTML files:', ', '.join(changed))
+          PY
+      - name: Commit public cache-bust to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/activate-nav-logo-main.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Publish Highway 38 nav logo across public pages'
+          git push origin main
