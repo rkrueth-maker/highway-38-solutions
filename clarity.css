@@ -6,8 +6,16 @@
 
 .simple-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .85rem;
+}
+
+.simple-grid > *,
+.case-grid > *,
+.proof-strip > *,
+.research-grid > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .simple-grid div {
@@ -301,4 +309,10 @@ nav .btn-outline {
   min-height: 40px;
   padding: .58rem .82rem !important;
   font-size: .9rem;
+}
+
+@media (max-width: 760px) {
+  .simple-grid {
+    grid-template-columns: 1fr;
+  }
 }
