@@ -1,12 +1,12 @@
 {
   "release": "complete-ecosystem-live-launch-2026-07-11",
   "status": "PASS",
-  "generatedAt": "2026-07-13T16:41:17.984Z",
+  "generatedAt": "2026-07-13T16:46:09.921Z",
   "passed": 128,
   "failed": 0,
-  "filesScanned": 555,
-  "publicTextFilesScanned": 408,
-  "digest": "0bc874497e4bccdb04a35c752c59620dc5259f167be42ba1dc3a1551b4895d89",
+  "filesScanned": 558,
+  "publicTextFilesScanned": 411,
+  "digest": "72a9cdf985e28d16e9ba6de0a6cd382a12c0fd6210b2e97d82d324adc828e7b9",
   "passes": [
     {
       "name": "launch manifest exists",
@@ -82,7 +82,7 @@
     },
     {
       "name": "privacy and secret scan",
-      "detail": "408 public text candidates scanned"
+      "detail": "411 public text candidates scanned"
     },
     {
       "name": "required artifact launch-control/launch-manifest.json",
