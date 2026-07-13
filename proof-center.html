@@ -3,32 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Proof & Download Center | Highway 38 Solutions</title>
-  <meta name="description" content="Browse public-safe Highway 38 examples, planning tools, and downloadable outputs without exposing private source records.">
-  <style>
-    :root{--ink:#102133;--navy:#17324d;--blue:#27648f;--sky:#eaf4fb;--paper:#fff;--line:#cbd9e5;--muted:#5c7082;--good:#176b45;--shadow:0 12px 30px rgba(16,33,51,.11)}
-    *{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#f4f8fb}.wrap{width:min(1120px,calc(100% - 30px));margin:auto}.top{background:var(--navy);color:white;padding:16px 0}.top .wrap{display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap}.top a{color:white;text-decoration:none;margin-left:14px}.hero{padding:48px 0 26px;background:linear-gradient(135deg,var(--sky),white)}h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.05;margin:0 0 14px}.hero p{max-width:800px;color:var(--muted)}.notice{border-left:5px solid var(--good);background:white;padding:14px 16px;border-radius:10px;margin-top:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:26px 0 48px}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}.card h2{margin-top:0}.tag{display:inline-block;padding:4px 9px;border-radius:999px;background:#dff4e8;color:var(--good);font-size:.78rem;font-weight:800}.btn{display:inline-flex;text-decoration:none;background:var(--navy);color:white;padding:10px 14px;border-radius:10px;font-weight:800;margin-top:10px}.muted{color:var(--muted)}.footer{padding:24px 0 42px;border-top:1px solid var(--line);color:var(--muted)}@media(max-width:720px){.grid{grid-template-columns:1fr}}
-  </style>
+  <title>Proof Library | Highway 38</title>
+  <meta name="description" content="Highway 38 public-safe proof has moved to the unified Proof Library.">
+  <meta http-equiv="refresh" content="0;url=proof.html">
+  <link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/proof.html">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="ecosystem.css?v=20260712-proof-system">
 </head>
 <body>
-<header class="top"><div class="wrap"><strong>Highway 38 Solutions · Proof & Download Center</strong><nav><a href="index.html">Home</a><a href="products.html">Services</a><a href="customer-portal.html">Customer workspace</a></nav></div></header>
-<section class="hero"><div class="wrap"><h1>See the work. Use the tools. Keep private records private.</h1><p>This center lists only purpose-built public examples and browser-only tools that have been classified as public-safe. Private source archives, PST extraction, customer records, vendor records, employee information, addresses, family information, and unapproved photos are not published here.</p><div class="notice"><strong>Hard privacy rule:</strong> an asset does not become public merely because it exists. It must be individually classified, reviewed, and entered in the public-proof manifest.</div></div></section>
-<main class="wrap"><div class="grid" id="items"><article class="card"><h2>Loading public-safe assets…</h2><p class="muted">The manifest is being checked.</p></article></div></main>
-<footer class="footer"><div class="wrap">Need a specific example or output format? Use the customer workspace to prepare the request without transmitting anything until you choose to submit.</div></footer>
-<script>
-(async()=>{
-  'use strict';
-  const root=document.getElementById('items');
-  try{
-    const response=await fetch('launch-control/public-proof-manifest.json',{cache:'no-store'});
-    if(!response.ok)throw new Error(`Manifest request failed: ${response.status}`);
-    const manifest=await response.json();
-    const items=Array.isArray(manifest.items)?manifest.items:[];
-    const safe=items.filter(x=>x.privacyStatus==='PUBLIC_SAFE');
-    root.innerHTML=safe.length?safe.map(x=>`<article class="card"><span class="tag">PUBLIC SAFE</span><h2>${escapeHtml(x.title)}</h2><p class="muted">${escapeHtml(x.type)} · ${escapeHtml(x.sourceClass)}</p><a class="btn" href="${encodeURI(x.url)}">Open</a></article>`).join(''):'<article class="card"><h2>No public-safe assets are currently released.</h2></article>';
-  }catch(error){root.innerHTML=`<article class="card"><h2>Proof manifest unavailable</h2><p class="muted">${escapeHtml(error.message||error)}</p></article>`;}
-  function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-})();
-</script>
+  <main class="eco-section">
+    <div class="eco-wrap">
+      <article class="eco-card">
+        <span class="eco-kicker">Proof Library</span>
+        <h1>Public proof now has one home.</h1>
+        <p>The older Proof &amp; Download Center has been consolidated into the current evidence-reviewed Proof Library so classifications, privacy boundaries, tools, and service paths stay synchronized.</p>
+        <a class="eco-button eco-button--primary" href="proof.html">Open the Proof Library</a>
+      </article>
+    </div>
+  </main>
 </body>
 </html>
