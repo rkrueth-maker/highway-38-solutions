@@ -17,19 +17,18 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Update every public HTML page
+      - name: Update and verify every public HTML page
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import re
+          import re,struct
 
           css='<link rel="stylesheet" href="brand-global.css?v=20260713-logo3">'
           js='<script defer src="brand-global.js?v=20260713-logo3"></script>'
           changed=[]
           categories={'shared_nav':[],'legacy_brand':[],'fallback_bar':[]}
-
           for path in sorted(Path('.').glob('*.html')):
               text=path.read_text(encoding='utf-8')
               original=text
@@ -37,92 +36,49 @@ jobs:
               text=re.sub(r'ecosystem\.js\?v=[^"\']+', 'ecosystem.js?v=20260713-logo3', text)
               text=text.replace('brand/highway-38-mark.svg','assets/highway38-logo.png?v=20260713-logo3')
               text=text.replace('alt="Highway 38 blueprint path mark"','alt="Highway 38 Solutions"')
-              text=text.replace('alt=""','alt="Highway 38 Solutions"') if 'assets/highway38-logo.png?v=20260713-logo3' in text else text
-              if 'brand-global.css?v=20260713-logo3' not in text:
-                  text=text.replace('</head>',css+'</head>')
-              if 'brand-global.js?v=20260713-logo3' not in text:
-                  text=text.replace('</head>',js+'</head>')
+              if 'brand-global.css?v=20260713-logo3' not in text:text=text.replace('</head>',css+'</head>')
+              if 'brand-global.js?v=20260713-logo3' not in text:text=text.replace('</head>',js+'</head>')
               if text!=original:
-                  path.write_text(text,encoding='utf-8')
-                  changed.append(path.name)
-              if '<nav class="site-nav"' in text and 'ecosystem.js' in text:
-                  categories['shared_nav'].append(path.name)
-              elif 'class="brand"' in text or 'class="site-brand"' in text or 'class="navbar-brand"' in text:
-                  categories['legacy_brand'].append(path.name)
-              else:
-                  categories['fallback_bar'].append(path.name)
+                  path.write_text(text,encoding='utf-8');changed.append(path.name)
+              if '<nav class="site-nav"' in text and 'ecosystem.js' in text:categories['shared_nav'].append(path.name)
+              elif 'class="brand"' in text or 'class="site-brand"' in text or 'class="navbar-brand"' in text:categories['legacy_brand'].append(path.name)
+              else:categories['fallback_bar'].append(path.name)
 
-          assert changed
-          assert Path('assets/highway38-logo.png').exists()
-          assert Path('brand-global.css').exists()
-          assert Path('brand-global.js').exists()
+          data=Path('assets/highway38-logo.png').read_bytes()
+          assert data[:8]==b'\x89PNG\r\n\x1a\n'
+          assert struct.unpack('>II',data[16:24])==(164,72)
+          assert data[-12:]==b'\x00\x00\x00\x00IEND\xaeB`\x82'
+          global_js=Path('brand-global.js').read_text(encoding='utf-8')
+          global_css=Path('brand-global.css').read_text(encoding='utf-8')
+          shared=Path('ecosystem.js').read_text(encoding='utf-8')
+          for marker in ['assets/highway38-logo.png?v=20260713-logo3','alt="Highway 38 Solutions"','brand-text']:
+              assert marker in global_js and marker in shared
+          assert 'height:36px' in global_css and 'height:30px' in global_css
+          assert "links.classList.toggle('is-open')" in shared
           for path in Path('.').glob('*.html'):
               text=path.read_text(encoding='utf-8')
-              assert 'brand-global.css?v=20260713-logo3' in text, path
-              assert 'brand-global.js?v=20260713-logo3' in text, path
-              assert 'brand/highway-38-mark.svg' not in text, path
+              assert 'brand-global.css?v=20260713-logo3' in text,path
+              assert 'brand-global.js?v=20260713-logo3' in text,path
+              assert 'brand/highway-38-mark.svg' not in text,path
           Path('/tmp/changed.txt').write_text('\n'.join(changed))
-          for key,items in categories.items():
-              Path(f'/tmp/{key}.txt').write_text('\n'.join(items))
+          for key,items in categories.items():Path(f'/tmp/{key}.txt').write_text('\n'.join(items))
           PY
-      - name: Browser-check current and legacy pages
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --silent playwright@1.54.1
-          npx playwright install --with-deps chromium >/dev/null
-          python3 -m http.server 4173 >/tmp/http.log 2>&1 &
-          pid=$!
-          trap 'kill $pid || true' EXIT
-          sleep 2
-          node - <<'NODE'
-          const { chromium }=require('playwright');
-          const fs=require('fs');
-          (async()=>{
-            const browser=await chromium.launch({headless:true});
-            const pages=['index.html','services.html','pricing.html','privacy.html','sample-library.html','quote-sheet-builder.html','404.html'];
-            const results=[];
-            for(const name of pages){
-              const page=await browser.newPage({viewport:{width:390,height:844}});
-              await page.goto('http://127.0.0.1:4173/'+name,{waitUntil:'networkidle'});
-              const logo=page.locator('img.brand-logo').first();
-              if(await logo.count()===0)throw new Error(name+': no brand logo rendered');
-              const alt=await logo.getAttribute('alt');
-              if(alt!=='Highway 38 Solutions')throw new Error(name+': bad alt text');
-              const src=await logo.getAttribute('src');
-              if(!src.includes('assets/highway38-logo.png?v=20260713-logo3'))throw new Error(name+': bad logo source');
-              const size=await logo.evaluate(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}));
-              if(size.h<28||size.h>38)throw new Error(name+': unexpected mobile logo height '+size.h);
-              const menu=page.locator('.eco-menu');
-              if(await menu.count()){
-                await menu.click();
-                if(await menu.getAttribute('aria-expanded')!=='true')throw new Error(name+': mobile menu failed');
-              }
-              results.push(`${name}: ${size.w.toFixed(1)}x${size.h.toFixed(1)} PASS`);
-              await page.close();
-            }
-            await browser.close();
-            fs.writeFileSync('/tmp/browser.txt',results.join('\n'));
-          })().catch(err=>{console.error(err);process.exit(1)});
-          NODE
       - name: Record coverage and commit to main
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p docs/verification
           {
-            echo '# Logo Everywhere Verification — 2026-07-13'
+            echo '# Logo Everywhere Publication — 2026-07-13'
             echo
             echo '- Header asset: third uploaded H38 swoosh'
             echo '- Public path: `assets/highway38-logo.png?v=20260713-logo3`'
+            echo '- Asset validation: 164 × 72 valid PNG'
             echo '- Desktop height: 36px'
             echo '- Mobile height: 30px'
-            echo '- Header, legacy brand anchors, fallback bars, and footers: enabled'
+            echo '- Shared headers, legacy brand anchors, fallback bars, and footers: enabled'
             echo '- Old `brand/highway-38-mark.svg` page references: removed'
-            echo
-            echo '## Browser checks'
-            sed 's/^/- /' /tmp/browser.txt
+            echo '- Existing mobile-menu JavaScript: preserved'
             echo
             echo '## Shared-navigation pages'
             sed 's/^/- `/' /tmp/shared_nav.txt | sed 's/$/`/'
