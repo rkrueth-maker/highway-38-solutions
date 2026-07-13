@@ -1,0 +1,109 @@
+name: Verify Public Nav Logo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-public-nav-logo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Verify asset, page coverage, accessibility markup, and mobile menu contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+
+          asset=Path('assets/highway38-logo.png')
+          data=asset.read_bytes()
+          assert data.startswith(b'\x89PNG\r\n\x1a\n')
+          width,height=struct.unpack('>II',data[16:24])
+          assert width > 0 and height > 0
+          assert data.endswith(b'\x00\x00\x00\x00IEND\xaeB`\x82')
+
+          js=Path('ecosystem.js').read_text(encoding='utf-8')
+          css=Path('ecosystem.css').read_text(encoding='utf-8')
+          assert '<img class="brand-logo" src="assets/highway38-logo.png?v=20260713-logo1" alt="Highway 38 Solutions" />' in js
+          assert '<span class="brand-text"><span>Highway 38</span> Solutions</span>' in js
+          assert "button.addEventListener('click'" in js
+          assert "links.classList.toggle('is-open')" in js
+          assert "button.setAttribute('aria-expanded'" in js
+          assert '.eco-brand img.brand-logo' in css
+          assert 'height:36px' in css and 'height:30px' in css and 'width:auto' in css
+
+          pages=[]
+          for path in Path('.').glob('*.html'):
+              text=path.read_text(encoding='utf-8')
+              if '<nav class="site-nav"' not in text:
+                  continue
+              assert 'ecosystem.js?v=20260713-logo1' in text, path
+              if 'ecosystem.css' in text:
+                  assert 'ecosystem.css?v=20260713-logo1' in text, path
+              pages.append(path.name)
+          assert pages
+          Path('/tmp/nav-pages.txt').write_text('\n'.join(sorted(pages)))
+          Path('/tmp/dimensions.txt').write_text(f'{width}x{height}')
+          PY
+      - name: Run Lighthouse accessibility audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 >/tmp/h38-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid || true' EXIT
+          sleep 2
+          npx --yes lighthouse@12 http://127.0.0.1:4173/index.html \
+            --only-categories=accessibility \
+            --chrome-flags='--headless --no-sandbox --disable-gpu' \
+            --output=json --output-path=/tmp/lighthouse.json --quiet
+          node - <<'NODE'
+          const fs=require('fs');
+          const report=JSON.parse(fs.readFileSync('/tmp/lighthouse.json','utf8'));
+          const imageAlt=report.audits['image-alt'];
+          if(!imageAlt || imageAlt.score !== 1){
+            throw new Error('Lighthouse image-alt audit did not pass');
+          }
+          const accessibility=report.categories.accessibility.score;
+          if(accessibility < 0.95){
+            throw new Error(`Accessibility score below 0.95: ${accessibility}`);
+          }
+          fs.writeFileSync('/tmp/lighthouse-summary.txt',`Accessibility score: ${accessibility}\nImage-alt score: ${imageAlt.score}\n`);
+          NODE
+      - name: Record verification and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/verification
+          {
+            echo '# Public Navigation Logo Verification — 2026-07-13'
+            echo
+            echo '- Branch: `main`'
+            echo '- Asset: `assets/highway38-logo.png`'
+            echo "- PNG dimensions: $(cat /tmp/dimensions.txt)"
+            echo '- Desktop logo height: 36px'
+            echo '- Mobile logo height: 30px'
+            echo '- Text fallback: present'
+            echo '- Mobile menu toggle contract: PASS'
+            echo '- Lighthouse image-alt audit: PASS'
+            sed 's/^/- /' /tmp/lighthouse-summary.txt
+            echo
+            echo '## Pages using the shared navigation'
+            sed 's/^/- `/' /tmp/nav-pages.txt | sed 's/$/`/'
+          } > docs/verification/PUBLIC_NAV_LOGO_2026-07-13.md
+          rm .github/workflows/verify-public-nav-logo.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Record public nav logo accessibility verification'
+          git push origin main
