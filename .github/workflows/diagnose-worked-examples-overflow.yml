@@ -1,0 +1,45 @@
+name: Diagnose Worked Examples Overflow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-worked-examples-overflow.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Find overflow elements
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.54.1
+          npx playwright install --with-deps chromium >/dev/null
+          python3 -m http.server 4173 >/tmp/http.log 2>&1 &
+          pid=$!
+          trap 'kill $pid || true' EXIT
+          sleep 2
+          node - <<'NODE'
+          const { chromium }=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:390,height:844}});
+            await page.goto('http://127.0.0.1:4173/worked-examples.html',{waitUntil:'networkidle'});
+            const report=await page.evaluate(()=>{
+              const vw=document.documentElement.clientWidth;
+              return [...document.querySelectorAll('body *')].map((el,index)=>{
+                const r=el.getBoundingClientRect();
+                const cs=getComputedStyle(el);
+                return {index,tag:el.tagName.toLowerCase(),id:el.id,cls:el.className?.toString()||'',text:(el.textContent||'').trim().replace(/\s+/g,' ').slice(0,90),left:r.left,right:r.right,width:r.width,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,display:cs.display,whiteSpace:cs.whiteSpace,position:cs.position};
+              }).filter(x=>x.right>vw+2||x.left<-2||x.scrollWidth>x.clientWidth+2).sort((a,b)=>Math.max(b.right-vw,b.scrollWidth-b.clientWidth)-Math.max(a.right-vw,a.scrollWidth-a.clientWidth)).slice(0,30);
+            });
+            console.log('OVERFLOW_REPORT='+JSON.stringify(report,null,2));
+            await browser.close();
+            if(!report.length) process.exit(2);
+          })().catch(err=>{console.error(err);process.exit(1)});
+          NODE
