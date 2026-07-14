@@ -11,7 +11,7 @@ function boRenderWebApp_() {
   return HtmlService.createTemplateFromFile('BusinessOffice_Index')
     .evaluate()
     .setTitle('Highway 38 Business Office')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
