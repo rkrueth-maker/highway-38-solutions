@@ -1,0 +1,187 @@
+/**
+ * Highway 38 Business Office — configuration and immutable safety boundaries.
+ * This project is deployed separately from the existing integrated intake project.
+ */
+
+const H38_BO = Object.freeze({
+  VERSION: '1.0.0',
+  SPREADSHEET_PROPERTY: 'H38_BUSINESS_OFFICE_SPREADSHEET_ID',
+  BUSINESS_PROPERTY: 'H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID',
+  ROOT_FOLDER_PROPERTY: 'H38_BUSINESS_OFFICE_ROOT_FOLDER_ID',
+  DOCUMENT_FOLDER_PROPERTY: 'H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID',
+  PDF_FOLDER_PROPERTY: 'H38_BUSINESS_OFFICE_PDF_FOLDER_ID',
+  EXPORT_FOLDER_PROPERTY: 'H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID',
+  BACKUP_FOLDER_PROPERTY: 'H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID',
+  DEFAULT_BUSINESS_ID: 'H38',
+  TIME_ZONE: 'America/Chicago',
+  MAX_UPLOAD_BYTES: 20 * 1024 * 1024,
+  ALLOWED_MIME_TYPES: Object.freeze([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/heic',
+    'image/heif'
+  ]),
+  CONDITIONAL_MIME_TYPES: Object.freeze(['image/heic', 'image/heif']),
+  ROLES: Object.freeze(['Owner', 'Administrator', 'Staff', 'Bookkeeper', 'Payroll', 'Viewer']),
+  EXTERNAL_ACTIONS_ENABLED: false,
+  DIRECT_PAYMENT_PROCESSING: false,
+  DIRECT_PAYROLL_FUNDING: false,
+  DIRECT_TAX_FILING: false,
+  PUBLIC_INTAKE_ENABLED: false,
+  TAX_BOUNDARY: 'Tax-preparation support only. Not tax advice, tax representation, or direct tax filing.',
+  ACCOUNTING_BOUNDARY: 'Accounting-preparation system. Not represented as certified accounting software until formally validated.'
+});
+
+const H38_BO_SHEETS = Object.freeze({
+  LISTS: 'BO Lists',
+  DASHBOARD: 'BO Dashboard',
+  REQUESTS: 'BO Requests',
+  BUSINESSES: 'BO Businesses',
+  USERS: 'BO Users',
+  ROLES: 'BO Roles',
+  PERMISSIONS: 'BO Permissions',
+  CONTACTS: 'BO Contacts',
+  CUSTOMERS: 'BO Customers',
+  VENDORS: 'BO Vendors',
+  ADDRESSES: 'BO Addresses',
+  QUOTES: 'BO Quotes',
+  QUOTE_LINES: 'BO Quote Lines',
+  WORK_ORDERS: 'BO Work Orders',
+  JOBS: 'BO Jobs',
+  JOB_LABOR: 'BO Job Labor',
+  JOB_MATERIALS: 'BO Job Materials',
+  JOB_EQUIPMENT: 'BO Job Equipment',
+  CHANGE_ORDERS: 'BO Change Orders',
+  PURCHASE_ORDERS: 'BO Purchase Orders',
+  PO_LINES: 'BO PO Lines',
+  RECEIPTS: 'BO Receipts',
+  VENDOR_BILLS: 'BO Vendor Bills',
+  BILL_LINES: 'BO Bill Lines',
+  EXPENSES: 'BO Expenses',
+  EXPENSE_LINES: 'BO Expense Lines',
+  INVOICES: 'BO Invoices',
+  INVOICE_LINES: 'BO Invoice Lines',
+  PAYMENTS: 'BO Payments',
+  TIME_ENTRIES: 'BO Time Entries',
+  EMPLOYEES: 'BO Employees',
+  PAYROLL_PERIODS: 'BO Payroll Periods',
+  PAYROLL_LINES: 'BO Payroll Lines',
+  PAYROLL_DEDUCTIONS: 'BO Payroll Deductions',
+  CONTRACTORS: 'BO Contractors',
+  W9_RECORDS: 'BO W9 Records',
+  TAX_PERIODS: 'BO Tax Periods',
+  ASSETS: 'BO Assets',
+  MILEAGE: 'BO Mileage',
+  HOME_OFFICE: 'BO Home Office',
+  DOCUMENTS: 'BO Documents',
+  OCR_FIELDS: 'BO OCR Fields',
+  OCR_CORRECTIONS: 'BO OCR Corrections',
+  CHART_OF_ACCOUNTS: 'BO Chart of Accounts',
+  JOURNAL_ENTRIES: 'BO Journal Entries',
+  JOURNAL_LINES: 'BO Journal Lines',
+  RECONCILIATIONS: 'BO Reconciliations',
+  ACCOUNTING_PERIODS: 'BO Accounting Periods',
+  APPROVALS: 'BO Approvals',
+  PROOF_LOG: 'BO Proof Log',
+  ERROR_LOG: 'BO Error Log',
+  AUDIT_LOG: 'BO Audit Log',
+  ACTIVITY: 'BO Activity',
+  SETTINGS: 'BO Settings',
+  FEATURES: 'BO Features',
+  SUBSCRIPTIONS: 'BO Subscriptions',
+  IMPORT_JOBS: 'BO Import Jobs',
+  EXPORT_JOBS: 'BO Export Jobs',
+  BACKUP_LOG: 'BO Backup Log',
+  MISSING_DOCUMENTS: 'BO Missing Documents',
+  PNL: 'BO P&L',
+  BALANCE_SHEET: 'BO Balance Sheet',
+  CASH_FLOW: 'BO Cash Flow',
+  AR_AGING: 'BO AR Aging',
+  AP_AGING: 'BO AP Aging',
+  JOB_PROFITABILITY: 'BO Job Profitability',
+  SALES_TAX_REPORT: 'BO Sales Tax Report',
+  EXPENSE_REPORT: 'BO Expense Report',
+  VENDOR_SPEND: 'BO Vendor Spend',
+  CUSTOMER_REVENUE: 'BO Customer Revenue',
+  PAYROLL_SUMMARY: 'BO Payroll Summary',
+  TAX_PREP: 'BO Tax Prep',
+  PRODUCTS: 'BO Products & Services',
+  TAX_RATES: 'BO Tax Rates',
+  SAVED_VIEWS: 'BO Saved Views',
+  NUMBER_SEQUENCES: 'BO Number Sequences',
+  PDF_TEMPLATES: 'BO PDF Templates',
+  RELEASE_NOTES: 'BO Release Notes',
+  LICENSES: 'BO Licenses',
+  MIGRATIONS: 'BO Migrations',
+  SETUP_CHECKLIST: 'BO Setup Checklist'
+});
+
+const H38_BO_MODULES = Object.freeze({
+  dashboard: H38_BO_SHEETS.DASHBOARD,
+  requests: H38_BO_SHEETS.REQUESTS,
+  customers: H38_BO_SHEETS.CUSTOMERS,
+  vendors: H38_BO_SHEETS.VENDORS,
+  contacts: H38_BO_SHEETS.CONTACTS,
+  quotes: H38_BO_SHEETS.QUOTES,
+  workOrders: H38_BO_SHEETS.WORK_ORDERS,
+  jobs: H38_BO_SHEETS.JOBS,
+  purchaseOrders: H38_BO_SHEETS.PURCHASE_ORDERS,
+  receipts: H38_BO_SHEETS.RECEIPTS,
+  vendorBills: H38_BO_SHEETS.VENDOR_BILLS,
+  expenses: H38_BO_SHEETS.EXPENSES,
+  invoices: H38_BO_SHEETS.INVOICES,
+  payments: H38_BO_SHEETS.PAYMENTS,
+  time: H38_BO_SHEETS.TIME_ENTRIES,
+  employees: H38_BO_SHEETS.EMPLOYEES,
+  payroll: H38_BO_SHEETS.PAYROLL_PERIODS,
+  contractors: H38_BO_SHEETS.CONTRACTORS,
+  tax: H38_BO_SHEETS.TAX_PERIODS,
+  documents: H38_BO_SHEETS.DOCUMENTS,
+  accounting: H38_BO_SHEETS.JOURNAL_ENTRIES,
+  approvals: H38_BO_SHEETS.APPROVALS,
+  reports: H38_BO_SHEETS.PNL,
+  setup: H38_BO_SHEETS.SETUP_CHECKLIST
+});
+
+function boGetProperties_() {
+  return PropertiesService.getScriptProperties();
+}
+
+function boGetSpreadsheet_() {
+  const id = boGetProperties_().getProperty(H38_BO.SPREADSHEET_PROPERTY);
+  if (!id) throw new Error('Missing Script Property: ' + H38_BO.SPREADSHEET_PROPERTY);
+  return SpreadsheetApp.openById(id);
+}
+
+function boGetBusinessId_() {
+  return boGetProperties_().getProperty(H38_BO.BUSINESS_PROPERTY) || H38_BO.DEFAULT_BUSINESS_ID;
+}
+
+function boGetFolderId_(propertyName) {
+  const id = boGetProperties_().getProperty(propertyName);
+  if (!id) throw new Error('Missing Script Property: ' + propertyName);
+  return id;
+}
+
+function boNow_() {
+  return Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd HH:mm:ss');
+}
+
+function boId_(prefix) {
+  return String(prefix || 'BO') + '-' + Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyyMMdd-HHmmss') + '-' + Utilities.getUuid().slice(0, 8).toUpperCase();
+}
+
+function boNormalizeText_(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function boMoney_(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) throw new Error('Invalid monetary value.');
+  return Math.round((number + Number.EPSILON) * 100) / 100;
+}
+
+function boAssert_(condition, message) {
+  if (!condition) throw new Error(message || 'Business Office validation failed.');
+}
