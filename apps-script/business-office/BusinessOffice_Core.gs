@@ -142,37 +142,7 @@ function boSaveRecord(moduleKey, recordId, values) {
 }
 
 function boGetDashboard() {
-  boRequirePermission_(H38_BO_SHEETS.DASHBOARD, 'View');
-  const spreadsheet = boGetSpreadsheet_();
-  const sourceMap = {
-    'New requests': H38_BO_SHEETS.REQUESTS,
-    'Customers needing attention': H38_BO_SHEETS.CUSTOMERS,
-    'Quotes awaiting approval': H38_BO_SHEETS.QUOTES,
-    'Quotes awaiting customer action': H38_BO_SHEETS.QUOTES,
-    'Open work orders': H38_BO_SHEETS.WORK_ORDERS,
-    'Active jobs': H38_BO_SHEETS.JOBS,
-    'Jobs awaiting invoice': H38_BO_SHEETS.JOBS,
-    'Purchases awaiting review': H38_BO_SHEETS.PURCHASE_ORDERS,
-    'Expenses awaiting approval': H38_BO_SHEETS.EXPENSES,
-    'Vendor bills due': H38_BO_SHEETS.VENDOR_BILLS,
-    'Unpaid invoices': H38_BO_SHEETS.INVOICES,
-    'Overdue invoices': H38_BO_SHEETS.INVOICES,
-    'Payments received': H38_BO_SHEETS.PAYMENTS,
-    'Prepared payroll periods': H38_BO_SHEETS.PAYROLL_PERIODS,
-    'Missing payroll information': H38_BO_SHEETS.EMPLOYEES,
-    'Missing tax documents': H38_BO_SHEETS.MISSING_DOCUMENTS,
-    'Prepared sales-tax periods': H38_BO_SHEETS.TAX_PERIODS,
-    'OCR records needing review': H38_BO_SHEETS.DOCUMENTS,
-    'Pending approval gates': H38_BO_SHEETS.APPROVALS,
-    'Current errors': H38_BO_SHEETS.ERROR_LOG,
-    'Recent activity': H38_BO_SHEETS.ACTIVITY
-  };
-  return boReadTable_(H38_BO_SHEETS.DASHBOARD, { includeVoided: true, allBusinesses: true }).map(function (row) {
-    const label = row['Business Area'] || '';
-    const sourceSheet = spreadsheet.getSheetByName(sourceMap[label] || H38_BO_SHEETS.DASHBOARD);
-    row['Open Records URL'] = sourceSheet ? spreadsheet.getUrl() + '#gid=' + sourceSheet.getSheetId() : spreadsheet.getUrl();
-    return row;
-  });
+  return boGetOwnerDashboard_();
 }
 
 function boGetSavedViews(moduleName) {
