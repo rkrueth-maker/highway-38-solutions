@@ -33,6 +33,16 @@ const H38_BO = Object.freeze({
   ACCOUNTING_BOUNDARY: 'Accounting-preparation system. Not represented as certified accounting software until formally validated.'
 });
 
+const H38_BO_DEPLOYMENT_DEFAULTS = Object.freeze({
+  H38_BUSINESS_OFFICE_SPREADSHEET_ID: '1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA',
+  H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID: 'H38',
+  H38_BUSINESS_OFFICE_ROOT_FOLDER_ID: '1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6',
+  H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID: '1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC',
+  H38_BUSINESS_OFFICE_PDF_FOLDER_ID: '11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3',
+  H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID: '1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ',
+  H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID: '1rjl_m8u1YlaXSo29m46apa9dQD1zeucs'
+});
+
 const H38_BO_SHEETS = Object.freeze({
   LISTS: 'BO Lists',
   DASHBOARD: 'BO Dashboard',
@@ -148,19 +158,23 @@ function boGetProperties_() {
   return PropertiesService.getScriptProperties();
 }
 
+function boConfiguredValue_(propertyName) {
+  return boGetProperties_().getProperty(propertyName) || H38_BO_DEPLOYMENT_DEFAULTS[propertyName] || '';
+}
+
 function boGetSpreadsheet_() {
-  const id = boGetProperties_().getProperty(H38_BO.SPREADSHEET_PROPERTY);
-  if (!id) throw new Error('Missing Script Property: ' + H38_BO.SPREADSHEET_PROPERTY);
+  const id = boConfiguredValue_(H38_BO.SPREADSHEET_PROPERTY);
+  if (!id) throw new Error('Missing Business Office spreadsheet configuration.');
   return SpreadsheetApp.openById(id);
 }
 
 function boGetBusinessId_() {
-  return boGetProperties_().getProperty(H38_BO.BUSINESS_PROPERTY) || H38_BO.DEFAULT_BUSINESS_ID;
+  return boConfiguredValue_(H38_BO.BUSINESS_PROPERTY) || H38_BO.DEFAULT_BUSINESS_ID;
 }
 
 function boGetFolderId_(propertyName) {
-  const id = boGetProperties_().getProperty(propertyName);
-  if (!id) throw new Error('Missing Script Property: ' + propertyName);
+  const id = boConfiguredValue_(propertyName);
+  if (!id) throw new Error('Missing Business Office folder configuration: ' + propertyName);
   return id;
 }
 
