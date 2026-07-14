@@ -1,0 +1,95 @@
+name: Business Office Production V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/business-office-production-v2.yml'
+      - 'scripts/deploy-business-office-production.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: highway-38-business-office-production-v2
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
+      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
+      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
+      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
+      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
+      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
+      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
+      H38_BO_BUSINESS_ID: H38
+      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify complete merged source
+        run: npm run test:business-office
+      - name: Install deployment tools
+        run: |
+          npm install --global @google/clasp@3.1.0
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+      - name: Deploy separate projects and execute complete live acceptance
+        shell: bash
+        run: bash scripts/deploy-business-office-production.sh
+      - name: Create partial metadata on failure
+        if: failure()
+        shell: bash
+        run: |
+          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-production-v2"
+          mkdir -p "$EVIDENCE"
+          cat > "$EVIDENCE/failure-metadata.json" <<JSON
+          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","externalActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false}
+          JSON
+      - name: Upload complete production evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-office-production-v2-${{ github.run_id }}
+          path: artifacts/business-office-production-v2/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record Issue 85 production PASS
+        if: success()
+        shell: bash
+        run: |
+          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-production-v2"
+          BO_SCRIPT_ID="$(cat "$EVIDENCE/business-office-script-id.txt")"
+          BO_DEPLOYMENT_ID="$(cat "$EVIDENCE/business-office-deployment-id.txt")"
+          BO_WEB_APP_URL="$(cat "$EVIDENCE/business-office-web-app-url.txt")"
+          SYNC_SCRIPT_ID="$(cat "$EVIDENCE/intake-sync-script-id.txt")"
+          SYNC_DEPLOYMENT_ID="$(cat "$EVIDENCE/intake-sync-deployment-id.txt")"
+          gh issue comment 85 --repo "$GITHUB_REPOSITORY" --body "## Business Office production acceptance PASS\n\n- Source commit: ${GITHUB_SHA}\n- Business Office Apps Script project: ${BO_SCRIPT_ID}\n- Business Office deployment: ${BO_DEPLOYMENT_ID}\n- Private logged-in web app: ${BO_WEB_APP_URL}\n- Separate intake-sync project: ${SYNC_SCRIPT_ID}\n- Intake-sync deployment: ${SYNC_DEPLOYMENT_ID}\n- Live receipt image upload and OCR review: PASS\n- Live work-order camera-path image upload and OCR review: PASS\n- Live vendor-invoice PDF upload and extraction: PASS\n- Receipt-to-expense posting: PASS\n- Nine branded Apps Script PDFs: PASS\n- Six-role permission checks: PASS\n- Approval gates and duplicate protection: PASS\n- Accounting, payroll, and tax-preparation verification: PASS\n- Proof, Error, Audit, and rollback evidence: PASS\n- Mobile and desktop deployed-render evidence: PASS\n- Customer actions, payment processing, payroll funding, tax filing, delivery, and publication: NONE\n\nEvidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
