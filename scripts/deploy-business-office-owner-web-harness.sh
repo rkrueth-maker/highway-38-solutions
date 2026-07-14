@@ -75,7 +75,7 @@ delete_deployment() {
 post_endpoint() {
   local url="$1" request_file="$2" response_file="$3"
   local status
-  status="$(curl -L -sS -o "$response_file" -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data-binary "@$request_file" "$url" || true)"
+  status="$(curl -L -sS -o "$response_file" -w '%{http_code}' -H 'Content-Type: application/json' --data-binary "@$request_file" "$url" || true)"
   printf '%s' "$status" > "${response_file}.status"
   test "$status" = "200"
 }
