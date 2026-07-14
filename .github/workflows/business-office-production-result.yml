@@ -1,0 +1,64 @@
+name: Business Office Production Result
+
+on:
+  workflow_run:
+    workflows:
+      - Business Office Production V2
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+      SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Record production PASS and close Issue 85
+        if: env.SOURCE_CONCLUSION == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${REPO}/actions/runs/${SOURCE_RUN_ID}"
+          gh issue comment 85 --repo "$REPO" --body "<!-- h38-business-office-final-pass -->
+          ## Highway 38 Business Office final production PASS
+
+          - Source commit: \`${SOURCE_SHA}\`
+          - Production workflow: ${run_url}
+          - Live deployment and acceptance workflow conclusion: **PASS**
+
+          Issue #85 is closed only because the production workflow completed successfully."
+          gh issue close 85 --repo "$REPO" --reason completed
+
+      - name: Post exact production failure to Issue 85
+        if: env.SOURCE_CONCLUSION != 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${REPO}/actions/runs/${SOURCE_RUN_ID}"
+          gh run view "$SOURCE_RUN_ID" --repo "$REPO" --log-failed > /tmp/business-office-failed.log 2>&1 || true
+          tail -n 160 /tmp/business-office-failed.log > /tmp/business-office-failed-tail.log
+          {
+            echo '<!-- h38-business-office-production-failure -->'
+            echo '## Highway 38 Business Office production HOLD'
+            echo
+            echo "- Source commit: \`${SOURCE_SHA}\`"
+            echo "- Production workflow: ${run_url}"
+            echo "- Workflow conclusion: **${SOURCE_CONCLUSION}**"
+            echo
+            echo '### Failed runner output'
+            echo '```text'
+            cat /tmp/business-office-failed-tail.log
+            echo '```'
+            echo
+            echo 'Issue #85 remains open.'
+          } > /tmp/business-office-failure-comment.md
+          gh issue comment 85 --repo "$REPO" --body-file /tmp/business-office-failure-comment.md
