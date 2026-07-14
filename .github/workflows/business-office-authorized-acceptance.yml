@@ -1,0 +1,102 @@
+name: Business Office Authorized Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/business-office-authorized-acceptance.yml'
+      - 'scripts/business-office-authorized-harness.sh'
+      - 'apps-script/business-office/**'
+      - 'apps-script/business-office-sync/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: highway-38-business-office-authorized-acceptance
+  cancel-in-progress: false
+
+jobs:
+  execute-complete-live-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
+      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
+      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
+      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
+      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
+      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
+      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
+      H38_BO_BUSINESS_ID: H38
+      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      CLASP_AUTH_JSON: ${{ secrets.CLASP_AUTH_JSON }}
+      CLASP_AUTH_JSON_B64: ${{ secrets.CLASP_AUTH_JSON_B64 }}
+      CLASPRC: ${{ secrets.CLASPRC }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify merged Business Office source
+        run: npm run test:business-office
+      - name: Install authorized deployment tools
+        run: |
+          npm install --global @google/clasp@3.1.0
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Load encrypted clasp credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON}" ]]; then printf '%s' "${CLASP_AUTH_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON_B64}" ]]; then printf '%s' "${CLASP_AUTH_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC}" ]]; then printf '%s' "${CLASPRC}" > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted clasp credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+      - name: Run authorized live acceptance and restore portal source
+        shell: bash
+        run: bash scripts/business-office-authorized-harness.sh
+      - name: Record failure boundary evidence
+        if: failure()
+        shell: bash
+        run: |
+          mkdir -p artifacts/business-office-authorized
+          cat > artifacts/business-office-authorized/failure-boundary.json <<JSON
+          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","customerActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false}
+          JSON
+      - name: Upload complete acceptance and rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-office-authorized-${{ github.run_id }}
+          path: artifacts/business-office-authorized/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record Issue 85 complete PASS
+        if: success()
+        shell: bash
+        run: |
+          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-authorized"
+          URL="$(node -e "process.stdout.write(require('./artifacts/business-office-authorized/authorized-production-result.json').businessOfficeWebAppUrl)")"
+          gh issue comment 85 --repo "$GITHUB_REPOSITORY" --body "## Highway 38 Business Office — complete production PASS\n\n- Source commit: ${GITHUB_SHA}\n- Private Business Office web app: ${URL}\n- Existing Owner Portal deployment unchanged: PASS\n- Five-minute additive intake synchronization installed: PASS\n- Repeat intake sync duplicate protection: PASS\n- Live receipt image upload and OCR review: PASS\n- Live work-order camera image upload and OCR review: PASS\n- Live vendor-invoice PDF upload and extraction: PASS\n- Approved receipt-to-expense conversion: PASS\n- Nine branded Apps Script PDFs: PASS\n- Customer, vendor, quote, work-order, job, purchasing, invoice, payment, and job-cost records: PASS\n- Six-role permission enforcement: PASS\n- Approval gates: PASS\n- Ledger reconciliation: PASS\n- Payroll preparation calculation: PASS\n- Tax-preparation calculation and boundary: PASS\n- Proof Log, Error Log, Audit Log, backup, and rollback evidence: PASS\n- Mobile and desktop rendered evidence: PASS\n- Customer email, payment processing, payroll funding, tax filing, delivery, and publication: NONE\n\nEvidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue close 85 --repo "$GITHUB_REPOSITORY" --reason completed
