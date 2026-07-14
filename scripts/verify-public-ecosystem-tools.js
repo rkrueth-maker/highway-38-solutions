@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
-const pages = ['ecosystem-status.html', 'customer-portal.html', 'business-concept-builder.html', 'tool-center.html', 'proof-center.html'];
+const pages = ['ecosystem-status.html', 'customer-portal.html', 'business-concept-builder.html', 'tool-center.html', 'proof-center.html', 'portal.html'];
 const pass = [];
 const failures = [];
 
@@ -84,6 +84,21 @@ check('customer portal discloses no records exposed', /No customer records, file
 check('customer portal has no credential or customer form', !/<form\b/i.test(customer));
 check('customer portal has safe alternate request path', /href=["']start-request\.html["']/i.test(customer));
 check('customer portal no network submit', !/(fetch\(|XMLHttpRequest|sendBeacon)/.test(customer));
+
+const ownerPortal = read('portal.html');
+const ownerLinks = [...ownerPortal.matchAll(/data-owner-app/g)].length;
+check('owner portal is noindex', /name="robots" content="noindex,nofollow"/.test(ownerPortal));
+check('owner portal has private Business Office launch', /script\.google\.com\/macros\/s\//.test(ownerPortal) && ownerLinks >= 6, String(ownerLinks));
+check('owner portal does not embed private app', !/<iframe\b/i.test(ownerPortal));
+check('owner portal does not collect credentials', !/<form\b/i.test(ownerPortal) && !/type=["']password["']/i.test(ownerPortal));
+check('owner portal exposes upload path', /PDF &amp; photo intake/.test(ownerPortal) && /Upload in Business Office/.test(ownerPortal));
+check('owner portal exposes social command center', /Social command center/.test(ownerPortal) && /Content calendar/.test(ownerPortal) && /Publishing queue/.test(ownerPortal));
+check('owner portal has approved social channel spots', ['Facebook','Instagram','LinkedIn','YouTube','Google Business Profile'].every(channel => ownerPortal.includes(channel)));
+check('owner portal includes growth controls', /Analytics &amp; attribution/.test(ownerPortal) && /Reviews &amp; reputation/.test(ownerPortal) && /Ads &amp; campaigns/.test(ownerPortal));
+check('owner portal includes management gaps', ['Communications &amp; inbox','Calendar &amp; scheduling','Website management','Files &amp; deliverables','Team &amp; access','System, backup &amp; recovery','Products &amp; fulfillment','Goals, KPIs &amp; decisions'].every(label => ownerPortal.includes(label)));
+check('owner portal preserves approval boundaries', /No auto-publish/.test(ownerPortal) && /Spend approval/.test(ownerPortal) && /Keep owner approval/.test(ownerPortal));
+const ecosystemJs = read('ecosystem.js');
+check('global Owner Login routes through portal webpage', /const ownerPortal='portal\.html'/.test(ecosystemJs));
 
 const builderHtml = read('business-concept-builder.html');
 const builderJs = read('business-concept-builder.js');
