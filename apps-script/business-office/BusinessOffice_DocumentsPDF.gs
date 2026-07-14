@@ -36,7 +36,7 @@ function boUploadDocument(payload) {
     const duplicate = boReadTable_(H38_BO_SHEETS.DOCUMENTS, { includeVoided: true }).find(function (row) {
       return row.SHA256 === hash && row['Is Voided'] !== 'Yes';
     });
-    boAssert_(!duplicate, 'Duplicate upload blocked. Existing document: ' + duplicate['Document ID']);
+    boAssert_(!duplicate, 'Duplicate upload blocked. Existing document: ' + (duplicate ? duplicate['Document ID'] : 'unknown'));
     const documentId = boId_('DOC');
     const blob = Utilities.newBlob(bytes, mimeType, documentId + '-' + safeName);
     const folder = DriveApp.getFolderById(boGetFolderId_(H38_BO.DOCUMENT_FOLDER_PROPERTY));
