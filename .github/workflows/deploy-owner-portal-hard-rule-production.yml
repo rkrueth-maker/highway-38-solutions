@@ -47,7 +47,7 @@ jobs:
           node-version: '22'
 
       - name: Install clasp
-        run: npm install --global @google/clasp
+        run: npm install --global @google/clasp@3.1.0
 
       - name: Verify merged Owner Portal source
         run: |
