@@ -73,6 +73,12 @@ jobs:
           else echo 'HOLD — no encrypted clasp credential is configured.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+      - name: Correct authorized Owner Portal project identifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o/13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-/' scripts/business-office-authorized-harness.sh
+          grep -F 'OWNER_SCRIPT_ID="13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-"' scripts/business-office-authorized-harness.sh
       - name: Run authorized live acceptance and restore portal source
         shell: bash
         run: bash scripts/business-office-authorized-harness.sh
