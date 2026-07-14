@@ -20,7 +20,29 @@ fs.writeFileSync(`${dir}/intake-sync-deployment-id.txt`,'TIME-TRIGGER-5-MINUTES'
 NODE
   fi
 }
-trap copy_evidence EXIT
+
+finish_production_run() {
+  local rc=$?
+  local target="$GITHUB_WORKSPACE/artifacts/business-office-production-v2"
+  trap - EXIT
+  copy_evidence || true
+  if [[ "$rc" -ne 0 ]]; then
+    echo "HOLD — Business Office production harness failed with exit code ${rc}."
+    while IFS= read -r status_file; do
+      printf '%s: ' "${status_file#$target/}"
+      cat "$status_file"
+      printf '\n'
+    done < <(find "$target" -maxdepth 1 -type f -name '*.status' -print | sort)
+    for response_file in "$target"/*-response.json; do
+      [[ -f "$response_file" ]] || continue
+      echo "--- ${response_file#$target/} (first 1200 bytes) ---"
+      head -c 1200 "$response_file" || true
+      printf '\n'
+    done
+  fi
+  exit "$rc"
+}
+trap finish_production_run EXIT
 
 # clasp pulls server-side .gs files as .js. Remove any previously pulled
 # BusinessOffice_* modules from each temporary project before copying the
