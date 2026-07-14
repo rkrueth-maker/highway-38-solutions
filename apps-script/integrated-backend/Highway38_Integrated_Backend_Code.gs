@@ -155,22 +155,27 @@ function h38BackendCreateRequest_(payload, fingerprint) {
   } finally { lock.releaseLock(); }
 }
 
-/** Installable Google Form response trigger. It never sends a customer message. */
+/** Installable Google Form response trigger. Supports the existing request form's current labels. */
 function h38BackendOnFormSubmit(e) {
-  var response = e && e.response, answers = {};
+  var response = e && e.response;
   if (!response) throw new Error('FORM HOLD — response event required.');
-  response.getItemResponses().forEach(function(itemResponse){ answers[itemResponse.getItem().getTitle()] = itemResponse.getResponse(); });
-  var raw = JSON.stringify(answers), fingerprint = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw)).slice(0,32);
-  var email = String(response.getRespondentEmail() || answers.Email || '');
+  var pairs = response.getItemResponses().map(function(r) {
+    return {title:String(r.getItem().getTitle() || ''), value:String(r.getResponse() || '').trim()};
+  });
+  var values = pairs.map(function(x) { return x.value; }).filter(String);
+  var name = values[0] || 'Form respondent';
+  var email = String(response.getRespondentEmail() || values.filter(function(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  })[0] || 'form-response@unknown.invalid');
+  var problem = values.slice(3).sort(function(a,b) { return b.length - a.length; })[0] || 'Google Form request received — Owner review required.';
+  var raw = JSON.stringify(pairs);
+  var fingerprint = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw)).slice(0,32);
   return h38BackendCreateRequest_({
-    idempotencyKey:'FORM-' + response.getId(), source:'approved-google-form', name:answers.Name, email:email,
-    phone:answers['Phone number — optional'], preferredContact:answers['Preferred contact method'],
-    desiredOutcome:answers['What would you like to have when this is finished?'],
-    problem:answers['What is wrong, messy, confusing, or costing time?'],
-    finishedResult:answers['What should the finished result let you do?'],
-    filesOrLinks:answers['Photos, screenshots, files, videos, or links available'],
-    details:[answers['Measurements, process data, tools, constraints, or important details'],answers['Family-specific details: describe the space/project, business workflow, digital tools/access limits, file collection, or manufacturing machine/process/part/cycle as applicable.']].filter(String).join('\n'),
-    budget:answers['Budget range'], timing:answers['Desired timing']
+    idempotencyKey:'FORM-' + response.getId(), source:'approved-google-form', name:name, email:email,
+    phone:values[2] || '', desiredOutcome:values.slice(3).join(' | ').slice(0,1000), problem:problem,
+    finishedResult:values.slice(3).join(' | ').slice(0,5000),
+    details:pairs.map(function(x) { return x.title + ': ' + x.value; }).join('\n'),
+    timing:'Owner review required'
   },fingerprint);
 }
 
@@ -321,4 +326,3 @@ function connectHighway38RequestForm() {
 function checkHighway38Backend() {
   return h38BackendActivationStatus();
 }
-
