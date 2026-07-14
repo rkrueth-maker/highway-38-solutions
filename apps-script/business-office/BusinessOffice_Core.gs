@@ -106,7 +106,7 @@ function boRejectDuplicate_(sheetName, payload, currentRecordId) {
   const duplicate = boReadTable_(sheetName, { includeVoided: true }).find(function (row) {
     return row['Duplicate Key'] === payload['Duplicate Key'] && row[key] !== currentRecordId && row.Status !== 'Voided' && row['Is Voided'] !== 'Yes';
   });
-  boAssert_(!duplicate, 'Duplicate protection blocked this record. Existing record: ' + duplicate[key]);
+  boAssert_(!duplicate, 'Duplicate protection blocked this record. Existing record: ' + (duplicate ? duplicate[key] : 'unknown'));
 }
 
 function boListRecords(moduleKey, options) {
