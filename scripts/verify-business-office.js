@@ -81,7 +81,7 @@ const configSource=read(path.join(boDir,'BusinessOffice_Config.gs'));
 const sheetNames=[...configSource.matchAll(/:\s*'BO [^']+'/g)].map(match=>match[0]);
 assert('complete workbook schema represented in source',sheetNames.length>=75,`${sheetNames.length} configured sheets`);
 
-const manifest=JSON.parse(read(path.join(boDir,'appsscript.json'))),syncManifest=JSON.parse(read(path.join(syncDir,'appsscript.json'));
+const manifest=JSON.parse(read(path.join(boDir,'appsscript.json'))),syncManifest=JSON.parse(read(path.join(syncDir,'appsscript.json')));
 assert('manifest V8 runtime',manifest.runtimeVersion==='V8');
 assert('Drive advanced service configured',manifest.dependencies&&manifest.dependencies.enabledAdvancedServices.some(service=>service.serviceId==='drive'));
 assert('required OAuth scopes',['spreadsheets','drive','documents','userinfo.email'].every(token=>manifest.oauthScopes.some(scope=>scope.includes(token))));
@@ -105,7 +105,7 @@ assert('payroll test prepared net',payrollCase.net===900,JSON.stringify(payrollC
 assert('payroll test employer tax estimate',payrollCase.employerTax===72.68,JSON.stringify(payrollCase));
 const journal=[{debit:1070,credit:0},{debit:0,credit:1000},{debit:0,credit:70}].reduce((acc,line)=>({debit:money(acc.debit+line.debit),credit:money(acc.credit+line.credit)}),{debit:0,credit:0});
 assert('double-entry test balances',journal.debit===journal.credit,JSON.stringify(journal));
-const packageJson=JSON.parse(read(path.join(root,'package.json'));
+const packageJson=JSON.parse(read(path.join(root,'package.json')));
 assert('package test script',packageJson.scripts&&packageJson.scripts['test:business-office']==='node scripts/verify-business-office.js');
 const result={status:failures.length?'HOLD':'PASS',passes:passes.length,failures};
 fs.mkdirSync(path.join(root,'artifacts','business-office'),{recursive:true});
