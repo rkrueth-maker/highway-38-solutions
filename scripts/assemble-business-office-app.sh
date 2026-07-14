@@ -46,8 +46,9 @@ html = html.replace('Highway 38 Business Office', 'Business Office')
 ui.write_text(html)
 PY
 
-PACK_COUNT="$(find "$DESTINATION" -maxdepth 1 -type f -name 'BusinessOffice_*Pack.gs' | wc -l | tr -d ' ')"
-[[ "$PACK_COUNT" = "1" ]] || { echo "HOLD — assembled source must contain exactly one business pack, found $PACK_COUNT"; exit 3; }
+[[ -f "$DESTINATION/BusinessOffice_00_Pack.gs" ]] || { echo "HOLD — generated business pack is missing"; exit 3; }
+PACK_DECLARATIONS="$(grep -R -l 'var BO_EMBEDDED_BUSINESS_PACK\|const BO_EMBEDDED_BUSINESS_PACK' "$DESTINATION"/BusinessOffice_*.gs | wc -l | tr -d ' ')"
+[[ "$PACK_DECLARATIONS" = "1" ]] || { echo "HOLD — assembled source must declare exactly one embedded business pack, found $PACK_DECLARATIONS"; exit 3; }
 grep -F 'BO_EMBEDDED_BUSINESS_PACK' "$DESTINATION/BusinessOffice_00_Pack.gs" >/dev/null
 
 if grep -F "packId:'template-business'" "$DESTINATION/BusinessOffice_00_Pack.gs" >/dev/null; then
