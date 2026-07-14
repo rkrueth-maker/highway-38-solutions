@@ -108,6 +108,18 @@ jobs:
           cp "$SOURCE"/*.js "$PROJECT/"
           cp "$SOURCE"/*.html "$PROJECT/"
           cp "$SOURCE/appsscript.json" "$PROJECT/"
+          python3 - "$PROJECT/Portal_Services.js" <<'PY'
+          from pathlib import Path
+          import sys
+          path = Path(sys.argv[1])
+          text = path.read_text()
+          old = ".setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME);"
+          new = ".setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);"
+          if old not in text:
+              raise SystemExit('Owner Portal render statement not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          grep -F "HtmlService.XFrameOptionsMode.ALLOWALL" "$PROJECT/Portal_Services.js"
           grep -F "$H38_RELEASE_MARKER" "$PROJECT/Portal_Config.js"
 
       - name: Confirm existing deployment and push source
@@ -125,9 +137,9 @@ jobs:
           set -euo pipefail
           cd deployment-work/project
           if clasp update-deployment --help >/dev/null 2>&1; then
-            clasp update-deployment "$H38_EXISTING_DEPLOYMENT_ID" --description "Highway 38 hard-rule Owner Portal ${GITHUB_SHA}"
+            clasp update-deployment "$H38_EXISTING_DEPLOYMENT_ID" --description "Highway 38 embedded Owner Portal ${GITHUB_SHA}"
           else
-            clasp deploy -i "$H38_EXISTING_DEPLOYMENT_ID" -d "Highway 38 hard-rule Owner Portal ${GITHUB_SHA}"
+            clasp deploy -i "$H38_EXISTING_DEPLOYMENT_ID" -d "Highway 38 embedded Owner Portal ${GITHUB_SHA}"
           fi
           clasp list-deployments | tee ../evidence/deployments-after.txt
           grep -F "$H38_EXISTING_DEPLOYMENT_ID" ../evidence/deployments-after.txt
@@ -151,12 +163,13 @@ jobs:
             "backupSha256": "${BACKUP_SHA}",
             "createdNewProject": false,
             "createdSecondDeployment": false,
+            "embeddedOnWebsite": true,
             "externalActionsEnabled": false,
             "externalActionsOccurred": false,
             "remainingAcceptance": [
               "Run non-destructive Owner Portal self-test",
-              "Verify desktop operating surfaces",
-              "Verify mobile operating surfaces",
+              "Verify embedded desktop operating surfaces",
+              "Verify embedded mobile operating surfaces",
               "Record post-deployment acceptance and screenshots"
             ]
           }
@@ -179,6 +192,6 @@ jobs:
         shell: bash
         run: |
           URL="https://script.google.com/macros/s/${H38_EXISTING_DEPLOYMENT_ID}/exec"
-          BODY="Owner Portal hard-rule source deployed to the existing private Apps Script Web App from commit ${GITHUB_SHA}. Existing deployment ID was updated in place; no new project or second deployment was created. Release marker: ${H38_RELEASE_MARKER}. External actions remain disabled. Runtime testing and desktop/mobile verification are the next acceptance step. URL: ${URL}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Owner Portal source deployed for secure website embedding from commit ${GITHUB_SHA}. Existing deployment ID was updated in place; no new project or second deployment was created. Google owner authentication and role controls remain required. External actions remain disabled. URL: ${URL}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 33 --repo "$GITHUB_REPOSITORY" --body "$BODY"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
