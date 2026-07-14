@@ -3,17 +3,21 @@
 function doGet() {
   return boSafeExecute_('Business Office web app', function () {
     boGetCurrentUser_();
-    return HtmlService.createTemplateFromFile('BusinessOffice_Index')
-      .evaluate()
-      .setTitle('Highway 38 Business Office')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    return boRenderWebApp_();
   }, 'System', boGetBusinessId_());
+}
+
+function boRenderWebApp_() {
+  return HtmlService.createTemplateFromFile('BusinessOffice_Index')
+    .evaluate()
+    .setTitle('Highway 38 Business Office')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function boGetRenderedWebAppHtml() {
   boGetCurrentUser_();
-  return HtmlService.createTemplateFromFile('BusinessOffice_Index').evaluate().getContent();
+  return boRenderWebApp_().getContent();
 }
 
 function boInclude_(fileName) {
