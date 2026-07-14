@@ -83,10 +83,10 @@ text=text.replace(\"const H38_BO_ACCEPTANCE_TOKEN_PROPERTY = 'H38_BUSINESS_OFFIC
 text=text.replace(\"const expected = PropertiesService.getScriptProperties().getProperty(H38_BO_ACCEPTANCE_TOKEN_PROPERTY) || '';\", \"const expected = H38_BO_ACCEPTANCE_TOKEN;\")
 acceptance.write_text(text)
 PY"""
-new_acceptance_setup = """python3 - \"$ACCEPT/BusinessOffice_Web.gs\" \"$ACCEPT/BusinessOffice_AcceptanceHarness.gs\" \"$ACCEPT/BusinessOffice_Installer.gs\" \"$ACCEPT/BusinessOffice_Auth.gs\" \"$TOKEN\" <<'PY'
+new_acceptance_setup = """python3 - \"$ACCEPT/BusinessOffice_Web.gs\" \"$ACCEPT/BusinessOffice_AcceptanceHarness.gs\" \"$ACCEPT/BusinessOffice_Installer.gs\" \"$ACCEPT/BusinessOffice_Auth.gs\" \"$ACCEPT/BusinessOffice_Sync.gs\" \"$TOKEN\" <<'PY'
 from pathlib import Path
 import sys
-web=Path(sys.argv[1]); acceptance=Path(sys.argv[2]); installer=Path(sys.argv[3]); auth=Path(sys.argv[4]); token=sys.argv[5]
+web=Path(sys.argv[1]); acceptance=Path(sys.argv[2]); installer=Path(sys.argv[3]); auth=Path(sys.argv[4]); sync=Path(sys.argv[5]); token=sys.argv[6]
 web.write_text(web.read_text().replace('function doGet() {','function boAcceptanceDoGet_() {'))
 text=acceptance.read_text()
 text=text.replace(\"const H38_BO_ACCEPTANCE_TOKEN_PROPERTY = 'H38_BUSINESS_OFFICE_ACCEPTANCE_TOKEN';\", \"const H38_BO_ACCEPTANCE_TOKEN = '\"+token+\"';\")
@@ -102,6 +102,11 @@ auth_needle=\"return boNormalizeText_(Session.getActiveUser().getEmail()).toLowe
 auth_replacement=\"return boNormalizeText_(Session.getEffectiveUser().getEmail()).toLowerCase();\"
 if auth_needle not in auth_text: raise SystemExit('Auth active-email function not found')
 auth.write_text(auth_text.replace(auth_needle,auth_replacement,1))
+sync_text=sync.read_text()
+sync_needle=\"const activeEmail = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();\"
+sync_replacement=\"const activeEmail = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase();\"
+if sync_needle not in sync_text: raise SystemExit('Sync owner identity check not found')
+sync.write_text(sync_text.replace(sync_needle,sync_replacement,1))
 PY"""
 if old_acceptance_setup not in text:
     raise SystemExit('Expected acceptance identity setup block not found')
