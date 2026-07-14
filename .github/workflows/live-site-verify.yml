@@ -104,8 +104,8 @@ jobs:
           check_text live-homepage.html "Approved homepage headline" "Big problems. Clear plans."
           check_text live-homepage.html "Problem Snapshot CTA" 'Start with a $99 Problem Snapshot'
           check_text live-homepage.html "Finished examples secondary CTA" "See Finished Examples"
-          check_text live-homepage.html "No-charge request assurance" "No charge from submitting a request"
-          check_text live-homepage.html "Personal review assurance" "personally reviewed"
+          check_text live-homepage.html "No-charge request assurance" "Submitting a request does not create a charge"
+          check_text live-homepage.html "Owner review assurance" "reviewed by Highway 38 Solutions"
           reject_text live-homepage.html "No prohibited CNC claim on homepage" "25,000+ CNC programs"
           reject_text live-homepage.html "No public personal-name attribution on homepage" "Rick Krueth"
           reject_text live-homepage.html "No obvious GitHub Pages 404 on home" "404: File not found"
