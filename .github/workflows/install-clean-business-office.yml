@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 concurrency:
@@ -119,3 +119,28 @@ jobs:
             echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } > "$RUNNER_TEMP/clean-install-hold.md"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-install-hold.md"
+      - name: Write machine-readable installation result to main
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT_FILE="$RUNNER_TEMP/latest-result.json"
+          if [[ -f artifacts/business-office-clean-deployment/deployment-result.json ]]; then
+            cp artifacts/business-office-clean-deployment/deployment-result.json "$RESULT_FILE"
+          else
+            node - "$RESULT_FILE" "$RUNNER_TEMP/clean-install.log" <<'NODE'
+          const fs=require('fs');
+          const [out,log]=process.argv.slice(2);
+          let tail='Installer step did not start.';
+          if(fs.existsSync(log)) tail=fs.readFileSync(log,'utf8').split(/\r?\n/).slice(-80).join('\n');
+          fs.writeFileSync(out,JSON.stringify({status:'HOLD',businessId:'NORTHSTAR_TEST',businessName:'North Star Test Company',mode:'standalone',highway38Modified:false,failureTail:tail,runUrl:`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`},null,2)+'\n');
+          NODE
+          fi
+          CONTENT="$(base64 -w0 "$RESULT_FILE")"
+          PATH_URL="repos/${GITHUB_REPOSITORY}/contents/launch-control/clean-install/latest-result.json"
+          SHA="$(gh api "$PATH_URL?ref=main" --jq .sha 2>/dev/null || true)"
+          if [[ -n "$SHA" ]]; then
+            gh api "$PATH_URL" -X PUT -f message='Record clean Business Office installation result' -f content="$CONTENT" -f branch=main -f sha="$SHA" >/dev/null
+          else
+            gh api "$PATH_URL" -X PUT -f message='Record clean Business Office installation result' -f content="$CONTENT" -f branch=main >/dev/null
+          fi
