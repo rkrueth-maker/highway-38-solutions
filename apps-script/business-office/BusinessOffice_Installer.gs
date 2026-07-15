@@ -1,148 +1,29 @@
-/** Highway 38 Business Office — installation, validation, backup, restore, and migration controls. */
+/** Business Office — installation, validation, backup, restore, and migration controls. */
 
-function boBootstrapInstall(config) {
-  const values = config || {};
-  const activeEmail = boNormalizeText_(Session.getActiveUser().getEmail()).toLowerCase();
-  const expectedOwner = boNormalizeText_(values.ownerEmail).toLowerCase();
-  boAssert_(activeEmail, 'A signed-in deployment owner is required.');
-  boAssert_(expectedOwner && activeEmail === expectedOwner, 'Only the expected deploying owner may bootstrap this project.');
-  const required = [
-    H38_BO.SPREADSHEET_PROPERTY,
-    H38_BO.ROOT_FOLDER_PROPERTY,
-    H38_BO.DOCUMENT_FOLDER_PROPERTY,
-    H38_BO.PDF_FOLDER_PROPERTY,
-    H38_BO.EXPORT_FOLDER_PROPERTY,
-    H38_BO.BACKUP_FOLDER_PROPERTY
-  ];
-  required.forEach(function (key) { boAssert_(values[key], 'Bootstrap value is required: ' + key); });
-  const safeValues = {};
-  required.forEach(function (key) { safeValues[key] = String(values[key]); });
-  safeValues[H38_BO.BUSINESS_PROPERTY] = values[H38_BO.BUSINESS_PROPERTY] || H38_BO.DEFAULT_BUSINESS_ID;
-  if (values.H38_BACKEND_SPREADSHEET_ID) safeValues.H38_BACKEND_SPREADSHEET_ID = String(values.H38_BACKEND_SPREADSHEET_ID);
-  boGetProperties_().setProperties(safeValues, false);
-  const validation = boValidateInstallation();
-  boAssert_(validation.valid, 'Bootstrap validation failed: ' + JSON.stringify(validation));
-  boProof_('BOOTSTRAP INSTALL', 'System', safeValues[H38_BO.BUSINESS_PROPERTY], 'PASS', JSON.stringify(validation), activeEmail);
-  return validation;
+function boInstallValue_(values,logicalName){const actual=boPackPropertyKey_(logicalName);return values[actual]||values[logicalName]||'';}
+function boApplyInstallationProperties_(values){
+  const required=[H38_BO.SPREADSHEET_PROPERTY,H38_BO.ROOT_FOLDER_PROPERTY,H38_BO.DOCUMENT_FOLDER_PROPERTY,H38_BO.PDF_FOLDER_PROPERTY,H38_BO.EXPORT_FOLDER_PROPERTY,H38_BO.BACKUP_FOLDER_PROPERTY];
+  const safe={};
+  required.forEach(function(logical){const value=boInstallValue_(values,logical);boAssert_(value,'Installation value is required: '+logical);safe[boPackPropertyKey_(logical)]=String(value);});
+  const businessId=boInstallValue_(values,H38_BO.BUSINESS_PROPERTY)||boPackValue_('business.id',H38_BO.DEFAULT_BUSINESS_ID);
+  safe[boPackPropertyKey_(H38_BO.BUSINESS_PROPERTY)]=String(businessId);
+  const backendKey=boPackPropertyKey_('backendSpreadsheetId'),backend=values[backendKey]||values.backendSpreadsheetId||values.H38_BACKEND_SPREADSHEET_ID;
+  if(backend)safe[backendKey]=String(backend);
+  if(values.businessPackJson)safe.BUSINESS_OFFICE_PACK_JSON=typeof values.businessPackJson==='string'?values.businessPackJson:JSON.stringify(values.businessPackJson);
+  if(values.installationId)safe.BUSINESS_OFFICE_INSTALLATION_ID=String(values.installationId);
+  if(Array.isArray(values.protectedResourceIds))safe.BUSINESS_OFFICE_PROTECTED_RESOURCE_IDS_JSON=JSON.stringify(values.protectedResourceIds.filter(Boolean).map(String));
+  boGetProperties_().setProperties(safe,false);BO_PACK_CACHE_=null;return safe;
 }
-
-function boInstallConfiguration(config) {
-  const owner = boRequireOwner_();
-  const values = config || {};
-  const required = [
-    H38_BO.SPREADSHEET_PROPERTY,
-    H38_BO.ROOT_FOLDER_PROPERTY,
-    H38_BO.DOCUMENT_FOLDER_PROPERTY,
-    H38_BO.PDF_FOLDER_PROPERTY,
-    H38_BO.EXPORT_FOLDER_PROPERTY,
-    H38_BO.BACKUP_FOLDER_PROPERTY
-  ];
-  const safeValues = {};
-  required.forEach(function (key) {
-    boAssert_(values[key], 'Installation value is required: ' + key);
-    safeValues[key] = String(values[key]);
-  });
-  safeValues[H38_BO.BUSINESS_PROPERTY] = values[H38_BO.BUSINESS_PROPERTY] || H38_BO.DEFAULT_BUSINESS_ID;
-  if (values.H38_BACKEND_SPREADSHEET_ID) safeValues.H38_BACKEND_SPREADSHEET_ID = String(values.H38_BACKEND_SPREADSHEET_ID);
-  boGetProperties_().setProperties(safeValues, false);
-  const validation = boValidateInstallation();
-  boProof_('INSTALL CONFIGURATION', 'System', boGetBusinessId_(), validation.valid ? 'PASS' : 'HOLD', JSON.stringify(validation), owner.Email);
-  return validation;
+function boBootstrapInstall(config){const values=config||{},activeEmail=boNormalizeText_(Session.getActiveUser().getEmail()).toLowerCase(),expectedOwner=boNormalizeText_(values.ownerEmail).toLowerCase();boAssert_(activeEmail,'A signed-in deployment owner is required.');boAssert_(expectedOwner&&activeEmail===expectedOwner,'Only the expected deploying owner may bootstrap this project.');const safe=boApplyInstallationProperties_(values),validation=boValidateInstallation();boAssert_(validation.valid,'Bootstrap validation failed: '+JSON.stringify(validation));boProof_('BOOTSTRAP INSTALL','System',boGetBusinessId_(),'PASS',JSON.stringify(validation),activeEmail);return validation;}
+function boInstallConfiguration(config){const owner=boRequireOwner_();boApplyInstallationProperties_(config||{});const validation=boValidateInstallation();boProof_('INSTALL CONFIGURATION','System',boGetBusinessId_(),validation.valid?'PASS':'HOLD',JSON.stringify(validation),owner.Email);return validation;}
+function boValidateInstallation(){
+  const pack=boGetBusinessPack_(),ss=boGetSpreadsheet_(),present=ss.getSheets().map(function(sheet){return sheet.getName();}),requiredSheets=Object.keys(H38_BO_SHEETS).map(function(key){return H38_BO_SHEETS[key];}),missingSheets=requiredSheets.filter(function(name){return present.indexOf(name)<0;});
+  const folderChecks=[H38_BO.ROOT_FOLDER_PROPERTY,H38_BO.DOCUMENT_FOLDER_PROPERTY,H38_BO.PDF_FOLDER_PROPERTY,H38_BO.EXPORT_FOLDER_PROPERTY,H38_BO.BACKUP_FOLDER_PROPERTY].map(function(logical){const id=boGetFolderId_(logical),folder=DriveApp.getFolderById(id);return{logicalName:logical,property:boPackPropertyKey_(logical),id:id,name:folder.getName()};});
+  const resourceIds=[ss.getId()].concat(folderChecks.map(function(item){return item.id;})),uniqueResourceIds=(new Set(resourceIds)).size===resourceIds.length;
+  const ledger=boValidateLedger(),settings=boReadTable_(H38_BO_SHEETS.SETTINGS,{includeVoided:true}),externalActions=settings.find(function(row){return row['Setting Key']==='live_external_actions';}),selectedOnly=settings.find(function(row){return row['Setting Key']==='selected_record_only';}),catalog=boReadTable_(H38_BO_SHEETS.PRODUCTS,{includeVoided:true}),products=catalog.filter(function(row){return row['Record Type']==='Product'&&row.Active==='Yes';}),bundles=catalog.filter(function(row){return row['Record Type']==='Bundle'&&row.Active==='Yes';}),requirements=boCatalogRequirements_(),isolation=boValidateResourceIsolation();
+  const valid=!missingSheets.length&&ledger.valid&&externalActions&&externalActions['Setting Value']==='FALSE'&&selectedOnly&&selectedOnly['Setting Value']==='TRUE'&&products.length===requirements.products&&bundles.length===requirements.bundles&&uniqueResourceIds&&isolation.valid;
+  return{valid:valid,packId:pack.packId,businessName:boBusinessName_(),businessId:boGetBusinessId_(),spreadsheetId:ss.getId(),missingSheets:missingSheets,folderChecks:folderChecks,ledger:ledger,productCount:products.length,bundleCount:bundles.length,requiredProductCount:requirements.products,requiredBundleCount:requirements.bundles,externalActionsEnabled:externalActions?externalActions['Setting Value']:'MISSING',selectedRecordOnly:selectedOnly?selectedOnly['Setting Value']:'MISSING',uniqueResourceIds:uniqueResourceIds,isolation:isolation,backendSpreadsheetIdConfigured:!!boConfiguredValue_('backendSpreadsheetId'),version:H38_BO.VERSION};
 }
-
-function boValidateInstallation() {
-  const ss = boGetSpreadsheet_();
-  const present = ss.getSheets().map(function (sheet) { return sheet.getName(); });
-  const requiredSheets = Object.keys(H38_BO_SHEETS).map(function (key) { return H38_BO_SHEETS[key]; });
-  const missingSheets = requiredSheets.filter(function (name) { return present.indexOf(name) < 0; });
-  const folderChecks = [
-    H38_BO.ROOT_FOLDER_PROPERTY,
-    H38_BO.DOCUMENT_FOLDER_PROPERTY,
-    H38_BO.PDF_FOLDER_PROPERTY,
-    H38_BO.EXPORT_FOLDER_PROPERTY,
-    H38_BO.BACKUP_FOLDER_PROPERTY
-  ].map(function (propertyName) {
-    const id = boGetFolderId_(propertyName);
-    const folder = DriveApp.getFolderById(id);
-    return { property: propertyName, id: id, name: folder.getName() };
-  });
-  const ledger = boValidateLedger();
-  const settings = boReadTable_(H38_BO_SHEETS.SETTINGS, { includeVoided: true });
-  const externalActions = settings.find(function (row) { return row['Setting Key'] === 'live_external_actions'; });
-  const selectedOnly = settings.find(function (row) { return row['Setting Key'] === 'selected_record_only'; });
-  const catalog = boReadTable_(H38_BO_SHEETS.PRODUCTS, { includeVoided: true });
-  const products = catalog.filter(function (row) { return row['Record Type'] === 'Product' && row.Active === 'Yes'; });
-  const bundles = catalog.filter(function (row) { return row['Record Type'] === 'Bundle' && row.Active === 'Yes'; });
-  const valid = !missingSheets.length && ledger.valid && externalActions && externalActions['Setting Value'] === 'FALSE' && selectedOnly && selectedOnly['Setting Value'] === 'TRUE' && products.length === 15 && bundles.length === 9;
-  return {
-    valid: valid,
-    spreadsheetId: ss.getId(),
-    missingSheets: missingSheets,
-    folderChecks: folderChecks,
-    ledger: ledger,
-    productCount: products.length,
-    bundleCount: bundles.length,
-    externalActionsEnabled: externalActions ? externalActions['Setting Value'] : 'MISSING',
-    selectedRecordOnly: selectedOnly ? selectedOnly['Setting Value'] : 'MISSING',
-    backendSpreadsheetIdConfigured: !!boGetProperties_().getProperty('H38_BACKEND_SPREADSHEET_ID'),
-    version: H38_BO.VERSION
-  };
-}
-
-function boCreateBackup(label) {
-  return boSafeExecute_('Create backup', function () {
-    const owner = boRequireOwner_();
-    const source = DriveApp.getFileById(boGetSpreadsheet_().getId());
-    const folder = DriveApp.getFolderById(boGetFolderId_(H38_BO.BACKUP_FOLDER_PROPERTY));
-    const copy = source.makeCopy('BACKUP — ' + (label || 'Business Office') + ' — ' + boNow_(), folder);
-    const log = boAppendRecord_(H38_BO_SHEETS.BACKUP_LOG, {
-      'Backup ID': boId_('BACKUP'),
-      'Backup Type': label || 'Manual',
-      'Source Spreadsheet ID': source.getId(),
-      'Backup File ID': copy.getId(),
-      Status: 'Complete',
-      'Created By': owner['User ID'],
-      Notes: 'Private Drive copy; no data deleted.'
-    }, 'Backup');
-    boProof_('CREATE BACKUP', 'System', boGetBusinessId_(), 'PASS', copy.getId(), owner.Email);
-    return { backupId: log['Backup ID'], fileId: copy.getId(), fileUrl: copy.getUrl() };
-  }, 'System', boGetBusinessId_());
-}
-
-function boPrepareRestore(backupFileId, notes) {
-  const owner = boRequireOwner_();
-  const file = DriveApp.getFileById(backupFileId);
-  boAssert_(file.getMimeType() === MimeType.GOOGLE_SHEETS, 'Restore source must be a Google Sheet backup.');
-  const migration = boAppendRecord_(H38_BO_SHEETS.MIGRATIONS, {
-    'Migration ID': boId_('RESTORE'),
-    'Source System': 'Business Office Backup',
-    'Target Version': H38_BO.VERSION,
-    Status: 'Prepared — Manual Cutover Required',
-    'Source Backup ID': backupFileId,
-    'Rows Read': 0,
-    'Rows Imported': 0,
-    'Rows Rejected': 0,
-    'Validation Result': 'No automatic destructive restore performed.',
-    'Rollback Reference': boGetSpreadsheet_().getId(),
-    'Started Time': boNow_(),
-    Notes: notes || 'Owner must review and explicitly change the Script Property after validating the backup.'
-  }, 'Restore preparation');
-  boProof_('PREPARE RESTORE', 'System', boGetBusinessId_(), 'PASS', migration['Migration ID'] + '; no cutover performed.', owner.Email);
-  return migration;
-}
-
-function boRegisterImportJob(payload) {
-  const user = boRequirePermission_('Data Import', 'Create');
-  boAssert_(payload && payload.importType && payload.sourceFileId, 'Import type and source file are required.');
-  return boAppendRecord_(H38_BO_SHEETS.IMPORT_JOBS, {
-    'Import Job ID': boId_('IMPORT'),
-    'Import Type': payload.importType,
-    'Source File ID': payload.sourceFileId,
-    'Mapping JSON': JSON.stringify(payload.mapping || {}),
-    Status: 'Prepared',
-    'Rows Read': 0,
-    'Rows Imported': 0,
-    'Rows Rejected': 0,
-    'Created By': user['User ID']
-  }, 'Import preparation');
-}
+function boCreateBackup(label){return boSafeExecute_('Create backup',function(){const owner=boRequireOwner_(),source=DriveApp.getFileById(boGetSpreadsheet_().getId()),folder=DriveApp.getFolderById(boGetFolderId_(H38_BO.BACKUP_FOLDER_PROPERTY)),copy=source.makeCopy('BACKUP — '+(label||boBusinessName_())+' — '+boNow_(),folder),log=boAppendRecord_(H38_BO_SHEETS.BACKUP_LOG,{'Backup ID':boId_('BACKUP'),'Backup Type':label||'Manual','Source Spreadsheet ID':source.getId(),'Backup File ID':copy.getId(),Status:'Complete','Created By':owner['User ID'],Notes:'Private Drive copy; no data deleted.'},'Backup');boProof_('CREATE BACKUP','System',boGetBusinessId_(),'PASS',copy.getId(),owner.Email);return{backupId:log['Backup ID'],fileId:copy.getId(),fileUrl:copy.getUrl()};},'System',boGetBusinessId_());}
+function boPrepareRestore(backupFileId,notes){const owner=boRequireOwner_(),file=DriveApp.getFileById(backupFileId);boAssert_(file.getMimeType()===MimeType.GOOGLE_SHEETS,'Restore source must be a Google Sheet backup.');const migration=boAppendRecord_(H38_BO_SHEETS.MIGRATIONS,{'Migration ID':boId_('RESTORE'),'Source System':'Business Office Backup','Target Version':H38_BO.VERSION,Status:'Prepared — Manual Cutover Required','Source Backup ID':backupFileId,'Rows Read':0,'Rows Imported':0,'Rows Rejected':0,'Validation Result':'No automatic destructive restore performed.','Rollback Reference':boGetSpreadsheet_().getId(),'Started Time':boNow_(),Notes:notes||'Owner must review and explicitly change the configured spreadsheet property after validating the backup.'},'Restore preparation');boProof_('PREPARE RESTORE','System',boGetBusinessId_(),'PASS',migration['Migration ID']+'; no cutover performed.',owner.Email);return migration;}
+function boRegisterImportJob(payload){const user=boRequirePermission_('Data Import','Create');boAssert_(payload&&payload.importType&&payload.sourceFileId,'Import type and source file are required.');return boAppendRecord_(H38_BO_SHEETS.IMPORT_JOBS,{'Import Job ID':boId_('IMPORT'),'Import Type':payload.importType,'Source File ID':payload.sourceFileId,'Mapping JSON':JSON.stringify(payload.mapping||{}),Status:'Prepared','Rows Read':0,'Rows Imported':0,'Rows Rejected':0,'Created By':user['User ID']},'Import preparation');}

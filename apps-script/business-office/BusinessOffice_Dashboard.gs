@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — calculated owner dashboard metrics. */
+/** Business Office — calculated owner dashboard metrics. */
 
 function boDashboardRows_(sheetName, includeControlledTests) {
   const rows = boReadTable_(sheetName, { includeVoided: false });
