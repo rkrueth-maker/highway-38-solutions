@@ -21,8 +21,8 @@ const payload=payloadPath&&fs.existsSync(payloadPath)?JSON.parse(fs.readFileSync
 process.stdout.write(JSON.stringify({token,action,payload}));
 NODE
   : > "$raw_file"
-  for attempt in $(seq 1 30); do
-    status="$(curl -L -sS -o "$raw_file" -w '%{http_code}' -H 'Content-Type: application/json' --data-binary "@$FIXTURES/request-${action}.json" "$ACCEPT_URL" || true)"
+  for attempt in $(seq 1 36); do
+    status="$(curl -L -sS --max-time 45 -o "$raw_file" -w '%{http_code}' -H 'Content-Type: application/json' --data-binary "@$FIXTURES/request-${action}.json" "$ACCEPT_URL" || true)"
     printf '%s' "$status" > "${raw_file}.status"
     if [[ "$status" = "200" ]] && grep -q '"ok"' "$raw_file"; then break; fi
     sleep 5
@@ -46,18 +46,44 @@ if count!=1: raise SystemExit('HOLD — v2 run_action block was not found.')
 
 text=text.replace("m.webapp={executeAs:'USER_ACCESSING',access:'ANYONE'};\nm.executionApi={access:'MYSELF'};", "m.webapp={executeAs:'USER_DEPLOYING',access:'ANYONE_ANONYMOUS'};\nm.executionApi={access:'MYSELF'};")
 
-needle='''cp "$REPO_ROOT/tests/business-office-clean-installation/BusinessOffice_NeutralProvisioning.gs" "$PROJECT/BusinessOffice_NeutralProvisioning.gs"\n'''
-insert=needle+'''cp "$PROJECT/BusinessOffice_Auth.gs" "$WORK/final-auth.gs"\ncp "$PROJECT/BusinessOffice_Installer.gs" "$WORK/final-installer.gs"\nsed -i 's/Session.getActiveUser()/Session.getEffectiveUser()/g' "$PROJECT/BusinessOffice_Auth.gs" "$PROJECT/BusinessOffice_Installer.gs"\n'''
+needle='''node "$REPO_ROOT/scripts/build-business-office-installation.js" --pack "$BUSINESS_PACK" --mode standalone --out "$PROJECT" \\
+  | tee "$EVIDENCE/build-manifest-output.json"
+'''
+insert='''if [[ -z "${CLEAN_SCRIPT_ID:-}" ]]; then
+  SCRIPT_CREATE_DIR="$WORK/script-create"
+  mkdir -p "$SCRIPT_CREATE_DIR"
+  (cd "$SCRIPT_CREATE_DIR" && clasp create-script --type standalone --title "${CLEAN_TEMPLATE_TITLE} — ${CLEAN_INSTALLATION_ID}" --rootDir . --json) > "$EVIDENCE/script-create.json"
+  export CLEAN_SCRIPT_ID="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).scriptId||'')" "$SCRIPT_CREATE_DIR/.clasp.json")"
+fi
+test -n "$CLEAN_SCRIPT_ID"
+printf '%s' "$CLEAN_SCRIPT_ID" > "$EVIDENCE/requested-apps-script-project-id.txt"
+
+'''+needle
+if needle not in text: raise SystemExit('HOLD — build marker missing.')
+text=text.replace(needle,insert,1)
+
+needle='''cp "$REPO_ROOT/tests/business-office-clean-installation/BusinessOffice_NeutralProvisioning.gs" "$PROJECT/BusinessOffice_NeutralProvisioning.gs"
+'''
+insert=needle+'''cp "$PROJECT/BusinessOffice_Auth.gs" "$WORK/final-auth.gs"
+cp "$PROJECT/BusinessOffice_Installer.gs" "$WORK/final-installer.gs"
+sed -i 's/Session.getActiveUser()/Session.getEffectiveUser()/g' "$PROJECT/BusinessOffice_Auth.gs" "$PROJECT/BusinessOffice_Installer.gs"
+'''
 if needle not in text: raise SystemExit('HOLD — acceptance copy marker missing.')
 text=text.replace(needle,insert,1)
 
-needle='''printf '%s' "$ACCEPT_DEPLOYMENT_ID" > "$EVIDENCE/acceptance-deployment-id.txt"\n'''
-insert=needle+'''ACCEPT_URL="https://script.google.com/macros/s/${ACCEPT_DEPLOYMENT_ID}/exec"\nprintf '%s' "$ACCEPT_URL" > "$EVIDENCE/acceptance-url.txt"\n'''
+needle='''printf '%s' "$ACCEPT_DEPLOYMENT_ID" > "$EVIDENCE/acceptance-deployment-id.txt"
+'''
+insert=needle+'''ACCEPT_URL="https://script.google.com/macros/s/${ACCEPT_DEPLOYMENT_ID}/exec"
+printf '%s' "$ACCEPT_URL" > "$EVIDENCE/acceptance-url.txt"
+'''
 if needle not in text: raise SystemExit('HOLD — acceptance deployment marker missing.')
 text=text.replace(needle,insert,1)
 
-needle='''cp "$WORK/final-appsscript.json" "$PROJECT/appsscript.json"\n'''
-insert=needle+'''cp "$WORK/final-auth.gs" "$PROJECT/BusinessOffice_Auth.gs"\ncp "$WORK/final-installer.gs" "$PROJECT/BusinessOffice_Installer.gs"\n'''
+needle='''cp "$WORK/final-appsscript.json" "$PROJECT/appsscript.json"
+'''
+insert=needle+'''cp "$WORK/final-auth.gs" "$PROJECT/BusinessOffice_Auth.gs"
+cp "$WORK/final-installer.gs" "$PROJECT/BusinessOffice_Installer.gs"
+'''
 if needle not in text: raise SystemExit('HOLD — final source restore marker missing.')
 text=text.replace(needle,insert,1)
 
