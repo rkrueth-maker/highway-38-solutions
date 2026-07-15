@@ -4,6 +4,8 @@ set -euo pipefail
 DESTINATION="${1:?destination directory is required}"
 PACK_SOURCE="${2:?business pack Apps Script file is required}"
 REPO_ROOT="${3:-${GITHUB_WORKSPACE:-$(cd "$(dirname "$0")/.." && pwd)}}"
+PACK_DIR="$(cd "$(dirname "$PACK_SOURCE")" && pwd)"
+PACK_BASENAME="$(basename "$PACK_SOURCE")"
 
 [[ -f "$PACK_SOURCE" ]] || { echo "HOLD — business pack not found: $PACK_SOURCE"; exit 2; }
 mkdir -p "$DESTINATION"
@@ -11,6 +13,19 @@ find "$DESTINATION" -maxdepth 1 -type f \( -name 'BusinessOffice_*' -o -name 'Bu
 cp "$REPO_ROOT"/apps-script/business-office/*.gs "$DESTINATION/"
 rm -f "$DESTINATION/BusinessOffice_00_Pack.gs" "$DESTINATION/BusinessOffice_Pack.gs"
 cp "$PACK_SOURCE" "$DESTINATION/BusinessOffice_00_Pack.gs"
+
+# A business pack may include business-specific workflows or acceptance tests.
+# Copy those beside the generated pack, but never allow them to replace a core
+# module or declare a second embedded pack.
+shopt -s nullglob
+for pack_file in "$PACK_DIR"/*.gs; do
+  [[ "$(basename "$pack_file")" = "$PACK_BASENAME" ]] && continue
+  target="$DESTINATION/$(basename "$pack_file")"
+  [[ ! -e "$target" ]] || { echo "HOLD — business pack file collides with core source: $(basename "$pack_file")"; exit 4; }
+  cp "$pack_file" "$target"
+done
+shopt -u nullglob
+
 cp "$REPO_ROOT/apps-script/business-office/BusinessOffice_Index.html" "$DESTINATION/"
 cp "$REPO_ROOT/apps-script/business-office/appsscript.json" "$DESTINATION/"
 
