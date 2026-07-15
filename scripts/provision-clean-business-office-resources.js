@@ -5,6 +5,7 @@ const fs = require('fs');
 const https = require('https');
 const pathModule = require('path');
 const querystring = require('querystring');
+const zlib = require('zlib');
 
 const outputPath = process.argv[2];
 if (!outputPath) throw new Error('Output path is required.');
@@ -13,7 +14,6 @@ const ownerEmail = String(process.env.CLEAN_OWNER_EMAIL || '').trim().toLowerCas
 const businessName = String(process.env.CLEAN_BUSINESS_NAME || 'Template Business').trim();
 const businessId = String(process.env.CLEAN_BUSINESS_ID || 'BUSINESS').trim();
 const installationId = String(process.env.CLEAN_INSTALLATION_ID || 'template-business-clean').trim();
-const templateTitle = String(process.env.CLEAN_TEMPLATE_TITLE || 'Business Office Platform — Neutral Workbook Template').trim();
 if (!ownerEmail) throw new Error('CLEAN_OWNER_EMAIL is required.');
 let phase = 'startup';
 const partial = {};
@@ -21,6 +21,20 @@ const partial = {};
 function writeEvidence(value) {
   fs.mkdirSync(pathModule.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(value, null, 2) + '\n');
+}
+
+function loadNeutralSchema() {
+  const schemaPath = pathModule.resolve(__dirname, '../business-packs/template-business/business-office.schema.json.gz.b64');
+  const encoded = fs.readFileSync(schemaPath, 'utf8').trim();
+  const schema = JSON.parse(zlib.gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8'));
+  if (!schema || !Array.isArray(schema.sheets) || schema.sheets.length !== 81) {
+    throw new Error(`Neutral schema must contain 81 sheets; found ${schema && schema.sheets ? schema.sheets.length : 0}.`);
+  }
+  const leakText = JSON.stringify(schema);
+  if (/Highway\s*38|\bH38\b|rkrueth-maker|highway-38-solutions|AKfyc/i.test(leakText)) {
+    throw new Error('Neutral schema contains Highway 38 identity or deployment data.');
+  }
+  return schema;
 }
 
 function walk(value) {
@@ -94,25 +108,79 @@ async function createFolder(token, name, parentId) {
   return google(token, 'POST', 'www.googleapis.com', '/drive/v3/files?fields=id,name,webViewLink,parents', body);
 }
 
-async function findNeutralTemplate(token) {
-  const q = `name='${templateTitle.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`;
-  const path = '/drive/v3/files?' + querystring.stringify({
-    q, fields: 'files(id,name,modifiedTime,parents)', orderBy: 'modifiedTime desc', pageSize: 20
+function patchSheet(schema, sheetName, valuesByHeader) {
+  const sheet = schema.sheets.find(item => item.name === sheetName);
+  if (!sheet || !sheet.rows || sheet.rows.length < 2) throw new Error(`Neutral schema is missing seed row for ${sheetName}.`);
+  const headers = sheet.rows[0];
+  Object.keys(valuesByHeader).forEach(header => {
+    const index = headers.indexOf(header);
+    if (index < 0) throw new Error(`${sheetName} is missing required header ${header}.`);
+    sheet.rows[1][index] = valuesByHeader[header];
   });
-  const result = await google(token, 'GET', 'www.googleapis.com', path);
-  if (!result.files || result.files.length !== 1) {
-    throw new Error(`Expected exactly one neutral workbook template named ${templateTitle}; found ${(result.files || []).length}.`);
-  }
-  return result.files[0];
 }
 
-async function copyTemplate(token, templateId, rootId) {
-  const copy = await google(token, 'POST', 'www.googleapis.com', `/drive/v3/files/${templateId}/copy?fields=id,name,webViewLink,parents`, {
-    name: `${businessName} — Business Office — ${installationId}`
+function materializeSchema(schema, resources) {
+  const now = new Date().toISOString();
+  schema.sheets.forEach(sheet => {
+    sheet.rows = (sheet.rows || []).map(row => row.map(value => {
+      if (value === '{{OWNER_EMAIL}}') return ownerEmail;
+      if (value === '{{NOW}}') return now;
+      return value;
+    }));
   });
-  const params = { addParents: rootId, fields: 'id,name,webViewLink,parents' };
-  if (copy.parents && copy.parents.length) params.removeParents = copy.parents.join(',');
-  return google(token, 'PATCH', 'www.googleapis.com', `/drive/v3/files/${copy.id}?${querystring.stringify(params)}`, {});
+  patchSheet(schema, 'BO Businesses', {
+    'Business ID': businessId,
+    'Legal Name': businessName,
+    'Public Name': businessName,
+    'Time Zone': 'Etc/UTC',
+    'Private Root Folder ID': resources.rootFolder.id,
+    'Original Documents Folder ID': resources.documentFolder.id,
+    'Generated PDF Folder ID': resources.pdfFolder.id,
+    'Export Folder ID': resources.exportFolder.id,
+    'Backup Folder ID': resources.backupFolder.id,
+    'White-Label Name': `${businessName} Business Office`,
+    'Created Time': now,
+    'Updated Time': now
+  });
+  patchSheet(schema, 'BO Users', {
+    'Business ID': businessId,
+    Email: ownerEmail,
+    'Created Time': now,
+    'Updated Time': now
+  });
+  patchSheet(schema, 'BO Migrations', {
+    'Migration ID': `MIGRATION-${installationId}`,
+    'Business ID': businessId,
+    'Source System': 'Embedded Neutral Schema',
+    Status: 'Provisioned — Acceptance Required',
+    'Validation Result': 'Separate resources created; live acceptance pending.',
+    'Started Time': now,
+    Notes: 'No customer, vendor, financial, payroll, tax, document, proof, or error data copied from another installation.'
+  });
+  return schema;
+}
+
+async function createWorkbook(token, schema, rootId) {
+  const createBody = {
+    properties: { title: `${businessName} — Business Office — ${installationId}`, timeZone: 'Etc/UTC' },
+    sheets: schema.sheets.map((sheet, index) => {
+      const maxColumns = Math.max(1, ...(sheet.rows || []).map(row => row.length));
+      return { properties: { title: sheet.name, index, gridProperties: { rowCount: Math.max(100, (sheet.rows || []).length + 25), columnCount: Math.max(26, maxColumns) } } };
+    })
+  };
+  const workbook = await google(token, 'POST', 'sheets.googleapis.com', '/v4/spreadsheets', createBody);
+  if (!workbook.spreadsheetId) throw new Error('Sheets API did not return a spreadsheetId.');
+  const metadata = await google(token, 'GET', 'www.googleapis.com', `/drive/v3/files/${workbook.spreadsheetId}?fields=id,name,parents,webViewLink`);
+  const params = { addParents: rootId, fields: 'id,name,parents,webViewLink' };
+  if (metadata.parents && metadata.parents.length) params.removeParents = metadata.parents.join(',');
+  const moved = await google(token, 'PATCH', 'www.googleapis.com', `/drive/v3/files/${workbook.spreadsheetId}?${querystring.stringify(params)}`, {});
+  const data = schema.sheets.filter(sheet => sheet.rows && sheet.rows.length).map(sheet => ({
+    range: `'${sheet.name.replace(/'/g, "''")}'!A1`, values: sheet.rows
+  }));
+  await google(token, 'POST', 'sheets.googleapis.com', `/v4/spreadsheets/${workbook.spreadsheetId}/values:batchUpdate`, {
+    valueInputOption: 'RAW', data
+  });
+  return { id: workbook.spreadsheetId, url: moved.webViewLink || workbook.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${workbook.spreadsheetId}/edit` };
 }
 
 async function verifyWorkbook(token, spreadsheetId) {
@@ -126,30 +194,6 @@ async function verifyWorkbook(token, spreadsheetId) {
   return metadata;
 }
 
-async function writeInstallationRows(token, spreadsheetId, resources) {
-  const now = new Date().toISOString();
-  const businessRow = [businessId, businessName, businessName, 'Active', 'Etc/UTC', 'USD', '', 0,
-    resources.rootFolder.id, resources.documentFolder.id, resources.pdfFolder.id,
-    resources.exportFolder.id, resources.backupFolder.id, 'USER-OWNER-001',
-    `${businessName} Business Office`, '', '#263746', '2.0.0', now, now];
-  const userRow = ['USER-OWNER-001', businessId, ownerEmail, 'Owner', 'ROLE-OWNER', 'Active',
-    'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', now, now];
-  const migrationRow = [`MIGRATION-${installationId}`, businessId, 'Neutral Workbook Template', '2.0.0',
-    'Provisioned — Acceptance Required', '', 0, 0, 0, 'Separate resources created; live acceptance pending.', '', now, '',
-    'No customer, vendor, financial, payroll, tax, document, proof, or error data copied from another installation.'];
-  await google(token, 'POST', 'sheets.googleapis.com', `/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, {
-    valueInputOption: 'RAW',
-    data: [
-      { range: "'BO Businesses'!A2:T2", values: [businessRow] },
-      { range: "'BO Users'!A2:N2", values: [userRow] },
-      { range: "'BO Migrations'!A2:N2", values: [migrationRow] }
-    ]
-  });
-  await google(token, 'POST', 'sheets.googleapis.com', `/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
-    requests: [{ updateSpreadsheetProperties: { properties: { timeZone: 'Etc/UTC' }, fields: 'timeZone' } }]
-  });
-}
-
 async function createScriptProject(token) {
   return google(token, 'POST', 'script.googleapis.com', '/v1/projects', {
     title: `${businessName} Business Office — ${installationId}`
@@ -157,11 +201,10 @@ async function createScriptProject(token) {
 }
 
 (async () => {
+  phase = 'load-neutral-schema';
+  let schema = loadNeutralSchema();
   phase = 'oauth';
   const token = await accessToken();
-  phase = 'find-neutral-template';
-  const template = await findNeutralTemplate(token);
-  partial.neutralTemplate = { id: template.id, title: templateTitle };
   phase = 'create-root-folder';
   const rootFolder = await createFolder(token, `${businessName} Business Office — ${installationId}`);
   partial.rootFolder = rootFolder;
@@ -177,23 +220,22 @@ async function createScriptProject(token) {
   phase = 'create-backup-folder';
   const backupFolder = await createFolder(token, 'Backups', rootFolder.id);
   partial.backupFolder = backupFolder;
-  phase = 'copy-neutral-workbook';
-  const workbook = await copyTemplate(token, template.id, rootFolder.id);
+  const resources = { rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder };
+  phase = 'materialize-neutral-schema';
+  schema = materializeSchema(schema, resources);
+  phase = 'create-neutral-workbook';
+  const workbook = await createWorkbook(token, schema, rootFolder.id);
   partial.spreadsheet = workbook;
   phase = 'verify-neutral-workbook';
   const workbookMetadata = await verifyWorkbook(token, workbook.id);
-  const resources = { rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder };
-  phase = 'write-installation-rows';
-  await writeInstallationRows(token, workbook.id, resources);
   phase = 'create-apps-script-project';
   const scriptProject = await createScriptProject(token);
   if (!scriptProject.scriptId) throw new Error('Apps Script project creation did not return a scriptId.');
   partial.appsScriptProject = { id: scriptProject.scriptId };
   const result = {
     status: 'PROVISIONED — ACCEPTANCE REQUIRED', installationId, businessId, businessName, ownerEmail,
-    neutralTemplate: { title: templateTitle, verifiedSheetCount: workbookMetadata.sheets.length },
-    spreadsheet: { id: workbook.id, url: workbook.webViewLink || `https://docs.google.com/spreadsheets/d/${workbook.id}/edit` },
-    rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder,
+    neutralSchema: { source: 'repository', verifiedSheetCount: workbookMetadata.sheets.length },
+    spreadsheet: workbook, rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder,
     appsScriptProject: { id: scriptProject.scriptId },
     externalActionsEnabled: false, directPaymentProcessing: false, directPayrollFunding: false,
     directTaxFiling: false, sourceBusinessDataCopied: false
@@ -204,12 +246,8 @@ async function createScriptProject(token) {
 })().catch(error => {
   const failure = {
     status: 'HOLD', phase, installationId, businessId, businessName,
-    error: error && error.message ? error.message : String(error),
-    partialResources: partial,
-    externalActionsOccurred: false,
-    paymentProcessed: false,
-    payrollFundsMoved: false,
-    taxReturnFiled: false
+    error: error && error.message ? error.message : String(error), partialResources: partial,
+    externalActionsOccurred: false, paymentProcessed: false, payrollFundsMoved: false, taxReturnFiled: false
   };
   writeEvidence(failure);
   console.error(error.stack || error.message || String(error));
