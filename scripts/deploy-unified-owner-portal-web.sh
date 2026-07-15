@@ -7,9 +7,19 @@ BACKUP="$WORK/backup"
 PROJECT="$WORK/project"
 EVIDENCE="$REPO_ROOT/artifacts/unified-owner-portal"
 H38_PACK="$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Pack.gs"
-OWNER_SCRIPT_ID="13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-"
-OWNER_DEPLOYMENT_ID="AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg"
-BUSINESS_OFFICE_DEPLOYMENT_ID="AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg"
+H38_DEPLOYMENT="$REPO_ROOT/business-packs/highway38/deployment.json"
+
+read_config() {
+  local path="$1"
+  node - "$H38_DEPLOYMENT" "$path" <<'NODE'
+const fs=require('fs');const [file,path]=process.argv.slice(2);let value=JSON.parse(fs.readFileSync(file,'utf8'));for(const key of path.split('.'))value=value?.[key];if(value==null||value==='')throw new Error(`Missing Highway 38 deployment configuration: ${path}`);process.stdout.write(String(value));
+NODE
+}
+
+OWNER_SCRIPT_ID="$(read_config appsScript.ownerPortalProjectId)"
+OWNER_DEPLOYMENT_ID="$(read_config appsScript.ownerPortalDeploymentId)"
+BUSINESS_OFFICE_DEPLOYMENT_ID="$(read_config appsScript.businessOfficeDeploymentId)"
+WEBSITE_PORTAL_URL="$(read_config website.ownerPortalUrl)"
 
 rm -rf "$WORK" "$EVIDENCE";mkdir -p "$BACKUP" "$PROJECT" "$EVIDENCE"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$BACKUP/.clasp.json"
@@ -60,6 +70,6 @@ printf '%s' "$OWNER_URL" > "$EVIDENCE/owner-portal-url.txt";printf '%s' "$BUSINE
 OWNER_STATUS="$(curl -L -sS -o "$EVIDENCE/owner-response.html" -w '%{http_code}' "$OWNER_URL" || true)";BUSINESS_STATUS="$(curl -L -sS -o "$EVIDENCE/business-response.html" -w '%{http_code}' "$BUSINESS_URL" || true)"
 printf '%s' "$OWNER_STATUS" > "$EVIDENCE/owner-http-status.txt";printf '%s' "$BUSINESS_STATUS" > "$EVIDENCE/business-http-status.txt";test "$OWNER_STATUS" != "404";test "$BUSINESS_STATUS" != "404"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
-{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","websitePortalUrl":"https://rkrueth-maker.github.io/highway-38-solutions/portal.html","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"googleAuthenticationRequired":true,"externalActionsEnabled":false,"externalActionsOccurred":false}
+{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"googleAuthenticationRequired":true,"externalActionsEnabled":false,"externalActionsOccurred":false}
 JSON
 cat "$EVIDENCE/deployment-result.json"
