@@ -10,6 +10,7 @@ FIXTURES="$WORK/fixtures"
 RESOURCES="$EVIDENCE/resources.json"
 mkdir -p "$EVIDENCE" "$PROJECT" "$FIXTURES"
 TOKEN="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
+BUSINESS_PACK="${CLEAN_BUSINESS_PACK:-template-business}"
 
 extract_value() {
   node -e "const r=require(process.argv[1]);const p=process.argv[2].split('.');let v=r;for(const k of p)v=v&&v[k];process.stdout.write(String(v||''));" "$1" "$2"
@@ -60,7 +61,7 @@ delete_deployment() {
     "https://script.googleapis.com/v1/projects/${script_id}/deployments/${deployment_id}" >/dev/null
 }
 
-node "$REPO_ROOT/scripts/build-business-office-installation.js" --pack template-business --mode standalone --out "$PROJECT" \
+node "$REPO_ROOT/scripts/build-business-office-installation.js" --pack "$BUSINESS_PACK" --mode standalone --out "$PROJECT" \
   | tee "$EVIDENCE/build-manifest-output.json"
 node "$REPO_ROOT/scripts/provision-clean-business-office-resources.js" "$RESOURCES" | tee "$EVIDENCE/provision-output.json"
 SCRIPT_ID="$(extract_value "$RESOURCES" appsScriptProject.id)"
@@ -103,7 +104,7 @@ trap 'delete_deployment "$SCRIPT_ID" "$ACCEPT_DEPLOYMENT_ID" || true' EXIT
 printf '{}\n' > "$FIXTURES/empty.json"
 
 post_action health "$FIXTURES/empty.json" "$EVIDENCE/health.response.json"
-node -e "const r=require('./artifacts/business-office-clean-installation/health.json');if(r.status!=='PASS'||r.businessName!=='Template Business'||r.businessId!=='BUSINESS'||r.externalActionsEnabled!==false||r.directPaymentProcessing!==false||r.directPayrollFunding!==false||r.directTaxFiling!==false)throw new Error(JSON.stringify(r));"
+node -e "const r=require('./artifacts/business-office-clean-installation/health.json');if(r.status!=='PASS'||r.businessName!==process.env.CLEAN_BUSINESS_NAME||r.businessId!==process.env.CLEAN_BUSINESS_ID||r.externalActionsEnabled!==false||r.directPaymentProcessing!==false||r.directPayrollFunding!==false||r.directTaxFiling!==false)throw new Error(JSON.stringify(r));"
 
 node - "$ROOT_FOLDER_ID" "$DOCUMENT_FOLDER_ID" "$PDF_FOLDER_ID" "$EXPORT_FOLDER_ID" "$BACKUP_FOLDER_ID" > "$FIXTURES/provision-workbook-payload.json" <<'NODE'
 const a=process.argv.slice(2);process.stdout.write(JSON.stringify({rootFolderId:a[0],documentFolderId:a[1],pdfFolderId:a[2],exportFolderId:a[3],backupFolderId:a[4],ownerEmail:process.env.CLEAN_OWNER_EMAIL,businessId:process.env.CLEAN_BUSINESS_ID,businessName:process.env.CLEAN_BUSINESS_NAME,installationId:process.env.CLEAN_INSTALLATION_ID}));
@@ -128,11 +129,11 @@ node -e "const r=require('./artifacts/business-office-clean-installation/render.
 
 node <<'NODE'
 const fs=require('fs'),path=require('path');const {chromium}=require('playwright');
-(async()=>{const out=process.env.RUNNER_TEMP+'/business-office-clean-installation/fixtures';const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:700,height:520}});await page.setContent('<!doctype html><html><body style="font-family:Arial;padding:30px"><h1>Template Business Receipt</h1><p>Date 2026-07-15</p><p>Neutral Office Supply</p><p>Total 21.40</p><p>Controlled clean installation acceptance</p></body></html>');const file=path.join(out,'clean-installation-receipt.pdf');await page.pdf({path:file,width:'7in',height:'6in',printBackground:true});await browser.close();const payload={document:{fileName:path.basename(file),mimeType:'application/pdf',base64Data:fs.readFileSync(file).toString('base64'),documentType:'Receipt',sourceType:'Clean Installation Acceptance',sourceId:'CLEAN-ACCEPTANCE',accessClassification:'Private Business'}};fs.writeFileSync(path.join(out,'live-payload.json'),JSON.stringify(payload));})().catch(e=>{console.error(e);process.exit(1)});
+(async()=>{const out=process.env.RUNNER_TEMP+'/business-office-clean-installation/fixtures';const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:700,height:520}});await page.setContent(`<!doctype html><html><body style="font-family:Arial;padding:30px"><h1>${process.env.CLEAN_BUSINESS_NAME} Receipt</h1><p>Date 2026-07-15</p><p>Neutral Office Supply</p><p>Total 21.40</p><p>Controlled clean installation acceptance</p></body></html>`);const file=path.join(out,'clean-installation-receipt.pdf');await page.pdf({path:file,width:'7in',height:'6in',printBackground:true});await browser.close();const payload={document:{fileName:path.basename(file),mimeType:'application/pdf',base64Data:fs.readFileSync(file).toString('base64'),documentType:'Receipt',sourceType:'Clean Installation Acceptance',sourceId:'CLEAN-ACCEPTANCE',accessClassification:'Private Business'}};fs.writeFileSync(path.join(out,'live-payload.json'),JSON.stringify(payload));})().catch(e=>{console.error(e);process.exit(1)});
 NODE
 cp "$FIXTURES/clean-installation-receipt.pdf" "$EVIDENCE/"
 post_action liveAccept "$FIXTURES/live-payload.json" "$EVIDENCE/live-acceptance.response.json"
-node -e "const r=require('./artifacts/business-office-clean-installation/live-acceptance.json');if(r.status!=='PASS'||r.businessId!=='BUSINESS'||r.businessName!=='Template Business'||!r.duplicateBlocked||!r.documentFileId||!r.pdfFileId||r.criticalErrors!==0||r.externalActionsOccurred||r.paymentProcessed||r.payrollFundsMoved||r.taxReturnFiled||r.customerMessageSent||r.deliveryOccurred)throw new Error(JSON.stringify(r));"
+node -e "const r=require('./artifacts/business-office-clean-installation/live-acceptance.json');if(r.status!=='PASS'||r.businessId!==process.env.CLEAN_BUSINESS_ID||r.businessName!==process.env.CLEAN_BUSINESS_NAME||!r.duplicateBlocked||!r.documentFileId||!r.pdfFileId||r.criticalErrors!==0||r.externalActionsOccurred||r.paymentProcessed||r.payrollFundsMoved||r.taxReturnFiled||r.customerMessageSent||r.deliveryOccurred)throw new Error(JSON.stringify(r));"
 post_action backup "$FIXTURES/empty.json" "$EVIDENCE/backup.response.json"
 node -e "const r=require('./artifacts/business-office-clean-installation/backup.json');if(!r.fileId||!r.backupId)throw new Error(JSON.stringify(r));"
 post_action validate "$FIXTURES/empty.json" "$EVIDENCE/final-validate.response.json"
