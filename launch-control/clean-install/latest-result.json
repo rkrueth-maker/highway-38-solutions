@@ -1,0 +1,9 @@
+{
+  "status": "HOLD",
+  "businessId": "NORTHSTAR_TEST",
+  "businessName": "North Star Test Company",
+  "mode": "standalone",
+  "highway38Modified": false,
+  "failureTail": "Assembled Business Office with pack /home/runner/work/highway-38-solutions/highway-38-solutions/business-packs/template-business/apps-script/BusinessOffice_Pack.gs in /home/runner/work/_temp/business-office-clean-acceptance/project\nScript function not found. Please make sure script is deployed as API executable.\n<anonymous_script>:1\n\n\nSyntaxError: Unexpected end of JSON input\n    at JSON.parse (<anonymous>)\n    at [stdin]:1:82\n    at runScriptInThisContext (node:internal/vm:219:10)\n    at node:internal/process/execution:451:12\n    at [stdin]-wrapper:6:24\n    at runScriptInContext (node:internal/process/execution:449:60)\n    at evalFunction (node:internal/process/execution:283:30)\n    at evalTypeScript (node:internal/process/execution:295:3)\n    at node:internal/main/eval_stdin:51:5\n    at Socket.<anonymous> (node:internal/process/execution:205:5)\n\nNode.js v24.18.0\n",
+  "runUrl": "https://github.com/rkrueth-maker/highway-38-solutions/actions/runs/29386783107"
+}
