@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "strategy": "neutral-drive-template-copy",
-  "templateTitle": "Business Office Platform — Neutral Workbook Template",
+  "strategy": "embedded-neutral-schema",
+  "schemaArtifact": "business-office.schema.json.gz.b64",
   "requiredSheetCount": 81,
-  "templateContainsLiveResourceIds": false,
-  "templateContainsCustomerData": false,
-  "templateContainsFinancialTransactions": false,
-  "provisioningRule": "Copy the neutral template, create fresh installation resources, replace the business and owner rows, then deploy before any user access."
+  "containsLiveResourceIds": false,
+  "containsCustomerData": false,
+  "containsFinancialTransactions": false,
+  "provisioningRule": "Create a new workbook from the embedded neutral schema, create fresh installation resources, inject the business and owner rows, then deploy before any user access."
 }
