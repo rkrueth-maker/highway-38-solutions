@@ -20,7 +20,7 @@ const payload=payloadPath&&fs.existsSync(payloadPath)?JSON.parse(fs.readFileSync
 process.stdout.write(JSON.stringify({token,action,payload}));
 NODE
   access_token="$(apps_script_access_token)"
-  status="$(curl -sS -L --location-trusted --max-time 60 -o "$raw_file" -w '%{http_code}' \
+  status="$(curl -sS -L --location-trusted --max-time 300 -o "$raw_file" -w '%{http_code}' \
     -H "Authorization: Bearer ${access_token}" \
     -H 'Content-Type: application/json' \
     --data-binary "@$FIXTURES/request-${action}.json" \
