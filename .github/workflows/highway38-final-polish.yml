@@ -1,0 +1,92 @@
+name: Highway 38 Final Polish Acceptance
+
+on:
+  push:
+    branches:
+      - highway38-final-polish
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-system-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify final polish contract
+        run: node scripts/verify-highway38-final-polish.js
+      - name: Verify Owner Portal routing
+        run: node scripts/verify-owner-portal-routing.js
+      - name: Verify commercial system
+        run: node scripts/verify-commercial-system.js
+      - name: Verify Business Office
+        run: node scripts/verify-business-office.js
+      - name: Verify Business Office separation
+        run: node scripts/verify-business-office-separation.js
+      - name: Verify integrated backend
+        run: node scripts/verify-integrated-backend.js
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: highway38-final-polish-static-${{ github.run_id }}
+          path: |
+            artifacts/final-polish/verification.json
+            artifacts/owner-portal-routing/verification.json
+            launch-control/evidence/complete-ecosystem-verification.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  desktop-mobile-browser-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run all-page desktop and mobile verification
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/final-polish
+          node scripts/verify-commercial-browser.js 2>&1 | tee artifacts/final-polish/browser-verification.txt
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: highway38-final-polish-browser-${{ github.run_id }}
+          path: artifacts/final-polish/browser-verification.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  python-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Python regression suite
+        run: python -m pytest -q

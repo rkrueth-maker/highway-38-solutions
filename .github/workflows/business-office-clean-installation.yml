@@ -26,6 +26,25 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/business-office-clean-installation.yml'
+      - 'scripts/deploy-clean-business-office-installation.sh'
+      - 'scripts/deploy-clean-business-office-installation-v2.sh'
+      - 'scripts/deploy-clean-business-office-installation-v3.sh'
+      - 'scripts/deploy-clean-business-office-installation-v4.sh'
+      - 'scripts/deploy-clean-business-office-installation-v5.sh'
+      - 'scripts/deploy-clean-business-office-installation-v6.sh'
+      - 'scripts/deploy-clean-business-office-installation-v7.sh'
+      - 'scripts/deploy-clean-business-office-installation-v8.sh'
+      - 'scripts/provision-clean-business-office-resources.js'
+      - 'scripts/build-business-office-installation.js'
+      - 'scripts/verify-business-office-isolation.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'tests/business-office-clean-installation/**'
+      - 'apps/business-office/**'
+      - 'packages/business-office-core/**'
+      - 'packages/shared-ui/**'
+      - 'business-packs/template-business/**'
   workflow_dispatch:
 
 permissions:
@@ -59,7 +78,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: separate-business-office-platform
           fetch-depth: 1
 
       - uses: actions/setup-node@v4
@@ -123,7 +141,7 @@ jobs:
           retention-days: 90
 
       - name: Report clean installation PASS to PR 94
-        if: success()
+        if: success() && github.event_name != 'pull_request'
         shell: bash
         run: |
           {
@@ -139,7 +157,7 @@ jobs:
           gh pr comment 94 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-pass.md"
 
       - name: Report clean installation HOLD to PR 94
-        if: failure()
+        if: failure() && github.event_name != 'pull_request'
         shell: bash
         run: |
           {

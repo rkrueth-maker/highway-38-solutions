@@ -68,6 +68,66 @@ text=text.replace(needle,replacement,1)
 text=text.replace('''delete_deployment "$SCRIPT_ID" "$ACCEPT_DEPLOYMENT_ID"
 trap - EXIT''','''delete_deployment "$SCRIPT_ID" "$ACCEPT_DEPLOYMENT_ID"
 rm -f "$EVIDENCE/authorization-required-url.txt"''',1)
+
+prune_needle='''(cd "$PROJECT" && clasp create-version "Clean Business Office authenticated acceptance ${SOURCE_SHA}") 2>&1 | tee "$EVIDENCE/acceptance-version.txt"'''
+prune_replacement=r'''prune_stale_deployments() {
+  local access_token inventory plan preserve_id
+  access_token="$(apps_script_access_token)"
+  inventory="$EVIDENCE/deployment-inventory-before-prune.json"
+  plan="$EVIDENCE/deployment-prune-plan.json"
+  preserve_id="${CLEAN_PRESERVE_DEPLOYMENT_ID:-AKfycbzBrvPgmRN0ov_35wkKS2Jv798kYSndGBdLbSTsoM5NtSDtFZG6R8KlBYVekOZkZHi5}"
+  curl --fail --silent --show-error \
+    -H "Authorization: Bearer ${access_token}" \
+    "https://script.googleapis.com/v1/projects/${SCRIPT_ID}/deployments?pageSize=200" > "$inventory"
+  node - "$inventory" "$preserve_id" "$plan" <<'NODE'
+const fs=require('fs');
+const [inventoryPath,preserveId,planPath]=process.argv.slice(2);
+const data=JSON.parse(fs.readFileSync(inventoryPath,'utf8'));
+const deployments=Array.isArray(data.deployments)?data.deployments:[];
+const versioned=deployments.filter(item=>Number(item.deploymentConfig&&item.deploymentConfig.versionNumber||0)>0);
+const ordered=[...versioned].sort((a,b)=>String(a.updateTime||'').localeCompare(String(b.updateTime||'')));
+const selected=[];
+const selectedIds=new Set();
+function add(item,reason){
+  if(!item||!item.deploymentId||item.deploymentId===preserveId||selectedIds.has(item.deploymentId))return;
+  selectedIds.add(item.deploymentId);
+  selected.push({deploymentId:item.deploymentId,description:String(item.deploymentConfig&&item.deploymentConfig.description||''),versionNumber:Number(item.deploymentConfig&&item.deploymentConfig.versionNumber||0),updateTime:item.updateTime||'',reason});
+}
+for(const item of ordered){
+  const description=String(item.deploymentConfig&&item.deploymentConfig.description||'');
+  if(description.startsWith('Clean Business Office authenticated acceptance '))add(item,'stale acceptance deployment');
+}
+let remaining=versioned.length-selected.length;
+for(const item of ordered){
+  if(remaining<=17)break;
+  const description=String(item.deploymentConfig&&item.deploymentConfig.description||'');
+  if(description.startsWith('North Star Test Company Business Office final ')){
+    const before=selected.length;
+    add(item,'obsolete final deployment; accepted final preserved');
+    if(selected.length>before)remaining--;
+  }
+}
+const plan={status:'INVENTORIED',preserveDeploymentId:preserveId,beforeVersionedDeploymentCount:versioned.length,targetMaximumBeforeRun:17,deleteCount:selected.length,delete:selected,retained:versioned.filter(item=>!selectedIds.has(item.deploymentId)).map(item=>({deploymentId:item.deploymentId,description:String(item.deploymentConfig&&item.deploymentConfig.description||''),versionNumber:Number(item.deploymentConfig&&item.deploymentConfig.versionNumber||0),updateTime:item.updateTime||'',preserved:item.deploymentId===preserveId}))};
+fs.writeFileSync(planPath,JSON.stringify(plan,null,2)+'\n');
+if(versioned.length-selected.length>17)throw new Error('Unable to free enough versioned deployment slots without deleting an unclassified deployment.');
+NODE
+  node - "$plan" <<'NODE' | while IFS= read -r deployment_id; do
+const plan=require(process.argv[2]);
+for(const item of plan.delete||[])console.log(item.deploymentId);
+NODE
+    [[ -n "$deployment_id" ]] || continue
+    delete_deployment "$SCRIPT_ID" "$deployment_id"
+  done
+  curl --fail --silent --show-error \
+    -H "Authorization: Bearer ${access_token}" \
+    "https://script.googleapis.com/v1/projects/${SCRIPT_ID}/deployments?pageSize=200" > "$EVIDENCE/deployment-inventory-after-prune.json"
+}
+
+prune_stale_deployments
+(cd "$PROJECT" && clasp create-version "Clean Business Office authenticated acceptance ${SOURCE_SHA}") 2>&1 | tee "$EVIDENCE/acceptance-version.txt"'''
+if prune_needle not in text: raise SystemExit('HOLD — acceptance version marker missing.')
+text=text.replace(prune_needle,prune_replacement,1)
+
 final_check=r'''if [[ "$FINAL_STATUS" = "200" ]] && grep -Eqi 'ReferenceError|TypeError|Exception:|Highway[[:space:]]*38|\bH38\b|rkrueth-maker|highway-38-solutions' "$EVIDENCE/final-http.html"; then echo 'Final clean deployment returned an error or Highway 38 leakage.' >&2; exit 1; fi'''
 final_replacement=r'''if [[ "$FINAL_STATUS" = "200" ]]; then
   if grep -Eqi 'accounts\.google\.com/(v3/)?signin|Google Accounts|identifierId' "$EVIDENCE/final-http.html"; then

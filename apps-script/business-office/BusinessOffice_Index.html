@@ -3,8 +3,10 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Office</title>
   <style>
-    :root { --navy:#243447; --blue:#52677d; --light:#eef5fb; --border:#d7e0e8; --text:#17212b; --muted:#5e6a75; --warn:#fff0bf; --bad:#ffe0e0; --good:#dff4e7; }
+    :root { --navy:#173a5e; --blue:#326a9e; --light:#eef5fb; --border:#d7e0e8; --text:#17212b; --muted:#5e6a75; --warn:#fff0bf; --bad:#ffe0e0; --good:#dff4e7; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--text); background:#f6f8fa; }
     button,input,select,textarea { font:inherit; }
@@ -14,7 +16,8 @@
     button.danger { background:#8f1d1d; color:white; }
     button:disabled { opacity:.55; cursor:not-allowed; }
     header { background:var(--navy); color:white; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; position:sticky; top:0; z-index:5; }
-    header h1 { font-size:20px; margin:0; }
+    header h1 { font-size:20px; margin:0; display:flex; align-items:center; gap:10px; }
+    .brand-logo { width:36px; height:36px; object-fit:contain; border-radius:6px; background:white; display:none; }
     .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; }
     .header-upload { background:white; color:var(--navy); border:2px solid white; white-space:nowrap; }
     .user { font-size:13px; text-align:right; }
@@ -79,7 +82,7 @@
 </head>
 <body>
 <header>
-  <h1>Business Office</h1>
+  <h1><img class="brand-logo" id="appLogo" alt=""><span id="appTitle">Business Office</span></h1>
   <div class="header-actions">
     <button class="header-upload" onclick="openUpload()">Upload PDF / Take Picture</button>
     <div class="user" id="userBox">Loading authorized account…</div>
@@ -131,6 +134,12 @@
   async function start() {
     state.bootstrap = await call('bootstrap');
     const user = state.bootstrap.context.user;
+    const branding = state.bootstrap.context.branding || {};
+    document.getElementById('appTitle').textContent = branding.businessOfficeName || 'Business Office';
+    document.documentElement.style.setProperty('--navy', branding.primaryColor || '#173a5e');
+    document.documentElement.style.setProperty('--blue', branding.secondaryColor || '#326a9e');
+    const logo = document.getElementById('appLogo');
+    if (branding.logoUrl) { logo.src = branding.logoUrl; logo.alt = branding.businessName || 'Business logo'; logo.style.display = 'block'; }
     document.getElementById('userBox').innerHTML = `<strong>${escapeHtml(user.displayName)}</strong><br>${escapeHtml(user.role)} · ${escapeHtml(user.email)}`;
     renderNav();
     renderDashboard();
@@ -176,17 +185,17 @@
     const def=state.bootstrap.definitions[state.module]; const id=row[def.primaryKey];
     const buttons=[`<button class="secondary" onclick="editSelected()">Edit selected</button>`];
     if(state.module==='requests') buttons.push(`<button class="primary" onclick="runAction('createCustomerFromRequest',{requestId:'${js(id)}'})">Create customer</button>`);
-    if(state.module==='quotes') { buttons.push(`<button class="primary" onclick="approveSelected('Quote','Send')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="runAction('quoteToJob',{quoteId:'${js(id)}'})">Convert to work order and job</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Quote','${js(id)}')">Generate PDF</button>`); }
+    if(state.module==='quotes') { buttons.push(`<button class="primary" onclick="approveSelected('Quote','Send')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="runAction('quoteToJob',{quoteId:'${js(id)}'})">Convert to work order and job</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Quote','${js(id)}')">Generate PDF</button>`); }
     if(state.module==='workOrders') buttons.push(`<button class="secondary" onclick="generatePdf('Work Order','${js(id)}')">Generate PDF</button>`);
     if(state.module==='jobs') { buttons.push(`<button class="primary" onclick="runAction('jobToInvoice',{jobId:'${js(id)}'})">Create invoice</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Job Cost Report','${js(id)}')">Generate job-cost PDF</button>`); }
-    if(state.module==='purchaseOrders') { buttons.push(`<button class="primary" onclick="approveSelected('Purchase Order','Order')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Purchase Order','${js(id)}')">Generate PDF</button>`); }
+    if(state.module==='purchaseOrders') { buttons.push(`<button class="primary" onclick="approveSelected('Purchase Order','Order')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Purchase Order','${js(id)}')">Generate PDF</button>`); }
     if(state.module==='receipts') buttons.push(`<button class="primary" onclick="runAction('receiptToExpense',{receiptId:'${js(id)}'})">Create expense</button>`);
-    if(state.module==='invoices') { buttons.push(`<button class="primary" onclick="approveSelected('Invoice','Send')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Invoice','${js(id)}')">Generate PDF</button>`); }
-    if(state.module==='payroll') { buttons.push(`<button class="primary" onclick="approveSelected('Payroll Period','Export')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Payroll Summary','${js(id)}')">Generate PDF</button>`); buttons.push(`<button class="secondary" onclick="runAction('exportPayroll',{periodId:'${js(id)}'})">Export approved CSV</button>`); }
-    if(state.module==='tax') { buttons.push(`<button class="primary" onclick="approveSelected('Tax Period','Finalize')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Tax Preparation Packet','${js(id)}')">Generate preparation PDF</button>`); buttons.push(`<button class="secondary" onclick="runAction('finalizeTax',{periodId:'${js(id)}'})">Finalize approved report</button>`); }
+    if(state.module==='invoices') { buttons.push(`<button class="primary" onclick="approveSelected('Invoice','Send')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Invoice','${js(id)}')">Generate PDF</button>`); }
+    if(state.module==='payroll') { buttons.push(`<button class="primary" onclick="approveSelected('Payroll Period','Export')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Payroll Summary','${js(id)}')">Generate PDF</button>`); buttons.push(`<button class="secondary" onclick="runAction('exportPayroll',{periodId:'${js(id)}'})">Export approved CSV</button>`); }
+    if(state.module==='tax') { buttons.push(`<button class="primary" onclick="approveSelected('Tax Period','Finalize')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="generatePdf('Tax Preparation Packet','${js(id)}')">Generate preparation PDF</button>`); buttons.push(`<button class="secondary" onclick="runAction('finalizeTax',{periodId:'${js(id)}'})">Finalize approved report</button>`); }
     if(state.module==='documents') { buttons.push(`<button class="secondary" onclick="runAction('previewDocument',{documentId:'${js(id)}'})">Open preview details</button>`); buttons.push(`<button class="secondary" onclick="runAction('extractDocument',{documentId:'${js(id)}'})">Run OCR assist</button>`); buttons.push(`<button class="primary" onclick="runAction('approveDocument',{documentId:'${js(id)}'})">Approve reviewed fields</button>`); }
-    if(state.module==='accounting') { buttons.push(`<button class="primary" onclick="approveSelected('Journal Entry','Post')">Owner decision</button>`); buttons.push(`<button class="secondary" onclick="runAction('postJournal',{entryId:'${js(id)}'})">Post approved entry</button>`); }
-    if(state.module==='approvals') buttons.push(`<button class="primary" onclick="approveQueueRow()">Record Owner decision</button>`);
+    if(state.module==='accounting') { buttons.push(`<button class="primary" onclick="approveSelected('Journal Entry','Post')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="runAction('postJournal',{entryId:'${js(id)}'})">Post approved entry</button>`); }
+    if(state.module==='approvals') buttons.push(`<button class="primary" onclick="approveQueueRow()">Record ${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`);
     if(canVoid(state.module)) buttons.push(`<button class="danger" onclick="voidSelected()">Void selected</button>`);
     host.innerHTML=`<div class="toolbar"><strong>Selected: ${escapeHtml(id)}</strong>${buttons.join('')}</div>`;
   }
