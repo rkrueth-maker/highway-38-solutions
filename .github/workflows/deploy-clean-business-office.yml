@@ -2,9 +2,10 @@ name: Deploy Clean Standalone Business Office
 
 on:
   push:
-    branches: [business-office-separation]
+    branches: [main, business-office-separation]
     paths:
       - 'launch-control/clean-install/deploy-request.json'
+      - '.github/workflows/deploy-clean-business-office.yml'
   workflow_dispatch:
 
 permissions:
