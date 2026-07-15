@@ -1,0 +1,106 @@
+name: Reconcile Business Office PR 94
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reconcile-business-office-pr94.yml'
+      - 'launch-control/business-office/reconcile-pr94.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconcile-business-office-pr94
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: separate-business-office-platform
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Merge current main into controlling branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main business-office-separation
+          if ! git merge --no-edit -X ours origin/main; then
+            echo 'Resolving remaining conflicts in favor of the controlling PR 94 architecture.'
+            git checkout --ours -- .
+            git add -A
+            git commit -m 'Merge current main into Business Office separation branch'
+          fi
+
+      - name: Consolidate branch references and North Star acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          roots=[Path('.github/workflows'),Path('scripts'),Path('launch-control'),Path('docs')]
+          for root in roots:
+              if not root.exists(): continue
+              for p in root.rglob('*'):
+                  if not p.is_file(): continue
+                  try: text=p.read_text()
+                  except UnicodeDecodeError: continue
+                  updated=text.replace('business-office-separation','separate-business-office-platform')
+                  if updated!=text: p.write_text(updated)
+
+          workflow=Path('.github/workflows/business-office-clean-installation.yml')
+          text=workflow.read_text()
+          text=text.replace('permissions:\n  contents: read','permissions:\n  contents: read\n  issues: write\n  pull-requests: write')
+          text=text.replace('CLEAN_BUSINESS_NAME: Template Business','CLEAN_BUSINESS_NAME: North Star Test Company')
+          text=text.replace('CLEAN_BUSINESS_ID: BUSINESS','CLEAN_BUSINESS_ID: NORTHSTAR_TEST')
+          text=text.replace('CLEAN_INSTALLATION_ID: template-business-${{ github.run_id }}','CLEAN_INSTALLATION_ID: north-star-test-${{ github.run_id }}')
+          text=text.replace('CLEAN_TEMPLATE_TITLE: Business Office Platform — Neutral Workbook Template','CLEAN_TEMPLATE_TITLE: North Star Test Company — Business Office')
+          if 'CLEAN_BUSINESS_PACK:' not in text:
+              text=text.replace('CLEAN_INSTALLATION_ID: north-star-test-${{ github.run_id }}','CLEAN_INSTALLATION_ID: north-star-test-${{ github.run_id }}\n      CLEAN_BUSINESS_PACK: north-star-test')
+          marker='      - name: Provision and deploy clean standalone installation\n'
+          generate="""      - name: Generate isolated North Star business pack\n        run: |\n          rm -rf business-packs/north-star-test\n          node scripts/create-new-business.js --slug north-star-test --business-name \"North Star Test Company\" --business-id NORTHSTAR_TEST --owner-email \"${CLEAN_OWNER_EMAIL}\" --time-zone America/Chicago\n\n"""
+          if 'Generate isolated North Star business pack' not in text:
+              text=text.replace(marker,generate+marker)
+          report="""\n      - name: Report clean installation PASS to PR 94\n        if: success()\n        shell: bash\n        env:\n          GH_TOKEN: ${{ github.token }}\n        run: |\n          {\n            echo '<!-- business-office-clean-installation -->'\n            echo '## Clean standalone installation — PASS'\n            echo\n            echo '```json'\n            cat artifacts/business-office-clean-installation/acceptance-result.json\n            echo '```'\n            echo\n            echo \"Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"\n          } > \"$RUNNER_TEMP/clean-pass.md\"\n          gh pr comment 94 --repo \"$GITHUB_REPOSITORY\" --body-file \"$RUNNER_TEMP/clean-pass.md\"\n\n      - name: Report clean installation HOLD to PR 94\n        if: failure()\n        shell: bash\n        env:\n          GH_TOKEN: ${{ github.token }}\n        run: |\n          {\n            echo '<!-- business-office-clean-installation -->'\n            echo '## Clean standalone installation — HOLD'\n            echo\n            if [[ -f artifacts/business-office-clean-installation/failure-metadata.json ]]; then\n              echo '```json'\n              cat artifacts/business-office-clean-installation/failure-metadata.json\n              echo '```'\n            fi\n            echo\n            echo \"Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"\n          } > \"$RUNNER_TEMP/clean-hold.md\"\n          gh pr comment 94 --repo \"$GITHUB_REPOSITORY\" --body-file \"$RUNNER_TEMP/clean-hold.md\"\n"""
+          if 'Report clean installation PASS to PR 94' not in text:
+              text += report
+          workflow.write_text(text)
+
+          installer=Path('scripts/deploy-clean-business-office-installation-v2.sh')
+          text=installer.read_text()
+          if 'BUSINESS_PACK=' not in text:
+              text=text.replace('TOKEN="$(node -e "process.stdout.write(require(\'crypto\').randomBytes(32).toString(\'hex\'))")"','TOKEN="$(node -e "process.stdout.write(require(\'crypto\').randomBytes(32).toString(\'hex\'))")"\nBUSINESS_PACK="${CLEAN_BUSINESS_PACK:-template-business}"')
+          text=text.replace('--pack template-business --mode standalone','--pack "$BUSINESS_PACK" --mode standalone')
+          text=text.replace("r.businessName!=='Template Business'||r.businessId!=='BUSINESS'","r.businessName!==process.env.CLEAN_BUSINESS_NAME||r.businessId!==process.env.CLEAN_BUSINESS_ID")
+          text=text.replace("r.businessId!=='BUSINESS'||r.businessName!=='Template Business'","r.businessId!==process.env.CLEAN_BUSINESS_ID||r.businessName!==process.env.CLEAN_BUSINESS_NAME")
+          text=text.replace('<h1>Template Business Receipt</h1>','<h1>${process.env.CLEAN_BUSINESS_NAME} Receipt</h1>')
+          installer.write_text(text)
+          PY
+
+      - name: Verify reconciled source
+        run: |
+          npm install
+          node scripts/verify-business-office-isolation.js
+          node scripts/verify-business-office-separation.js
+          npm run test:business-office
+
+      - name: Commit and push controlling branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Reconcile Business Office separation on controlling branch'
+          fi
+          git push origin HEAD:separate-business-office-platform
