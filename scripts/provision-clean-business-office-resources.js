@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const https = require('https');
+const pathModule = require('path');
 const querystring = require('querystring');
 
 const outputPath = process.argv[2];
@@ -14,6 +15,13 @@ const businessId = String(process.env.CLEAN_BUSINESS_ID || 'BUSINESS').trim();
 const installationId = String(process.env.CLEAN_INSTALLATION_ID || 'template-business-clean').trim();
 const templateTitle = String(process.env.CLEAN_TEMPLATE_TITLE || 'Business Office Platform — Neutral Workbook Template').trim();
 if (!ownerEmail) throw new Error('CLEAN_OWNER_EMAIL is required.');
+let phase = 'startup';
+const partial = {};
+
+function writeEvidence(value) {
+  fs.mkdirSync(pathModule.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(value, null, 2) + '\n');
+}
 
 function walk(value) {
   if (!value || typeof value !== 'object') return [];
@@ -69,9 +77,7 @@ async function accessToken() {
     grant_type: 'refresh_token'
   });
   const result = await request({
-    method: 'POST',
-    hostname: 'oauth2.googleapis.com',
-    path: '/token',
+    method: 'POST', hostname: 'oauth2.googleapis.com', path: '/token',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
   }, body);
   if (!result.access_token) throw new Error('OAuth token response did not contain access_token.');
@@ -91,10 +97,7 @@ async function createFolder(token, name, parentId) {
 async function findNeutralTemplate(token) {
   const q = `name='${templateTitle.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`;
   const path = '/drive/v3/files?' + querystring.stringify({
-    q,
-    fields: 'files(id,name,modifiedTime,parents)',
-    orderBy: 'modifiedTime desc',
-    pageSize: 20
+    q, fields: 'files(id,name,modifiedTime,parents)', orderBy: 'modifiedTime desc', pageSize: 20
   });
   const result = await google(token, 'GET', 'www.googleapis.com', path);
   if (!result.files || result.files.length !== 1) {
@@ -104,10 +107,12 @@ async function findNeutralTemplate(token) {
 }
 
 async function copyTemplate(token, templateId, rootId) {
-  return google(token, 'POST', 'www.googleapis.com', `/drive/v3/files/${templateId}/copy?fields=id,name,webViewLink,parents`, {
-    name: `${businessName} — Business Office — ${installationId}`,
-    parents: [rootId]
+  const copy = await google(token, 'POST', 'www.googleapis.com', `/drive/v3/files/${templateId}/copy?fields=id,name,webViewLink,parents`, {
+    name: `${businessName} — Business Office — ${installationId}`
   });
+  const params = { addParents: rootId, fields: 'id,name,webViewLink,parents' };
+  if (copy.parents && copy.parents.length) params.removeParents = copy.parents.join(',');
+  return google(token, 'PATCH', 'www.googleapis.com', `/drive/v3/files/${copy.id}?${querystring.stringify(params)}`, {});
 }
 
 async function verifyWorkbook(token, spreadsheetId) {
@@ -123,22 +128,15 @@ async function verifyWorkbook(token, spreadsheetId) {
 
 async function writeInstallationRows(token, spreadsheetId, resources) {
   const now = new Date().toISOString();
-  const businessRow = [
-    businessId, businessName, businessName, 'Active', 'Etc/UTC', 'USD', '', 0,
+  const businessRow = [businessId, businessName, businessName, 'Active', 'Etc/UTC', 'USD', '', 0,
     resources.rootFolder.id, resources.documentFolder.id, resources.pdfFolder.id,
     resources.exportFolder.id, resources.backupFolder.id, 'USER-OWNER-001',
-    `${businessName} Business Office`, '', '#263746', '2.0.0', now, now
-  ];
-  const userRow = [
-    'USER-OWNER-001', businessId, ownerEmail, 'Owner', 'ROLE-OWNER', 'Active',
-    'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', now, now
-  ];
-  const migrationRow = [
-    `MIGRATION-${installationId}`, businessId, 'Neutral Workbook Template', '2.0.0',
-    'Provisioned — Acceptance Required', '', 0, 0, 0,
-    'Separate resources created; live acceptance pending.', '', now, '',
-    'No customer, vendor, financial, payroll, tax, document, proof, or error data copied from another installation.'
-  ];
+    `${businessName} Business Office`, '', '#263746', '2.0.0', now, now];
+  const userRow = ['USER-OWNER-001', businessId, ownerEmail, 'Owner', 'ROLE-OWNER', 'Active',
+    'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', now, now];
+  const migrationRow = [`MIGRATION-${installationId}`, businessId, 'Neutral Workbook Template', '2.0.0',
+    'Provisioned — Acceptance Required', '', 0, 0, 0, 'Separate resources created; live acceptance pending.', '', now, '',
+    'No customer, vendor, financial, payroll, tax, document, proof, or error data copied from another installation.'];
   await google(token, 'POST', 'sheets.googleapis.com', `/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, {
     valueInputOption: 'RAW',
     data: [
@@ -159,43 +157,61 @@ async function createScriptProject(token) {
 }
 
 (async () => {
+  phase = 'oauth';
   const token = await accessToken();
+  phase = 'find-neutral-template';
   const template = await findNeutralTemplate(token);
+  partial.neutralTemplate = { id: template.id, title: templateTitle };
+  phase = 'create-root-folder';
   const rootFolder = await createFolder(token, `${businessName} Business Office — ${installationId}`);
+  partial.rootFolder = rootFolder;
+  phase = 'create-document-folder';
   const documentFolder = await createFolder(token, 'Original Documents', rootFolder.id);
+  partial.documentFolder = documentFolder;
+  phase = 'create-pdf-folder';
   const pdfFolder = await createFolder(token, 'Generated PDFs', rootFolder.id);
+  partial.pdfFolder = pdfFolder;
+  phase = 'create-export-folder';
   const exportFolder = await createFolder(token, 'Exports', rootFolder.id);
+  partial.exportFolder = exportFolder;
+  phase = 'create-backup-folder';
   const backupFolder = await createFolder(token, 'Backups', rootFolder.id);
+  partial.backupFolder = backupFolder;
+  phase = 'copy-neutral-workbook';
   const workbook = await copyTemplate(token, template.id, rootFolder.id);
+  partial.spreadsheet = workbook;
+  phase = 'verify-neutral-workbook';
   const workbookMetadata = await verifyWorkbook(token, workbook.id);
   const resources = { rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder };
+  phase = 'write-installation-rows';
   await writeInstallationRows(token, workbook.id, resources);
+  phase = 'create-apps-script-project';
   const scriptProject = await createScriptProject(token);
   if (!scriptProject.scriptId) throw new Error('Apps Script project creation did not return a scriptId.');
+  partial.appsScriptProject = { id: scriptProject.scriptId };
   const result = {
-    status: 'PROVISIONED — ACCEPTANCE REQUIRED',
-    installationId,
-    businessId,
-    businessName,
-    ownerEmail,
+    status: 'PROVISIONED — ACCEPTANCE REQUIRED', installationId, businessId, businessName, ownerEmail,
     neutralTemplate: { title: templateTitle, verifiedSheetCount: workbookMetadata.sheets.length },
     spreadsheet: { id: workbook.id, url: workbook.webViewLink || `https://docs.google.com/spreadsheets/d/${workbook.id}/edit` },
-    rootFolder,
-    documentFolder,
-    pdfFolder,
-    exportFolder,
-    backupFolder,
+    rootFolder, documentFolder, pdfFolder, exportFolder, backupFolder,
     appsScriptProject: { id: scriptProject.scriptId },
-    externalActionsEnabled: false,
-    directPaymentProcessing: false,
-    directPayrollFunding: false,
-    directTaxFiling: false,
-    sourceBusinessDataCopied: false
+    externalActionsEnabled: false, directPaymentProcessing: false, directPayrollFunding: false,
+    directTaxFiling: false, sourceBusinessDataCopied: false
   };
-  fs.mkdirSync(require('path').dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2) + '\n');
+  phase = 'complete';
+  writeEvidence(result);
   console.log(JSON.stringify({ status: result.status, installationId, businessId, sheetCount: workbookMetadata.sheets.length, scriptProjectCreated: true }, null, 2));
 })().catch(error => {
+  const failure = {
+    status: 'HOLD', phase, installationId, businessId, businessName,
+    error: error && error.message ? error.message : String(error),
+    partialResources: partial,
+    externalActionsOccurred: false,
+    paymentProcessed: false,
+    payrollFundsMoved: false,
+    taxReturnFiled: false
+  };
+  writeEvidence(failure);
   console.error(error.stack || error.message || String(error));
   process.exit(1);
 });
