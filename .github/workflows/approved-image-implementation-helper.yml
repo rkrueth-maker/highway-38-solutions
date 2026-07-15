@@ -1,0 +1,208 @@
+name: Approved Website Image Implementation Helper
+
+on:
+  push:
+    branches:
+      - approved-website-image-implementation
+
+permissions:
+  contents: write
+
+concurrency:
+  group: approved-website-image-implementation
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: approved-website-image-implementation
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install image tools
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Download, optimize, and place approved images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/h38-approved-images" assets/approved-website-images
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://drive.usercontent.google.com/download?id=1BoHiogcPfhszUhh1L3FAzSrSR0V59ndN&export=download&confirm=t' -o "$RUNNER_TEMP/h38-approved-images/H38_01_Homepage_Hero_Garage_Workspace.jpg"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://drive.usercontent.google.com/download?id=1rJOclbDzqwPKor-UA1wdtXZTH5-0Mos6&export=download&confirm=t' -o "$RUNNER_TEMP/h38-approved-images/H38_02_Project_Planning_Desk.jpg"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://drive.usercontent.google.com/download?id=1aPzCqO9RE40huOo60k-aKKSscU2cqDLt&export=download&confirm=t' -o "$RUNNER_TEMP/h38-approved-images/H38_03_Business_Workflow_Office.jpg"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://drive.usercontent.google.com/download?id=1NjgisuWkRUzrcxg0LJOitNlcYr6abNTS&export=download&confirm=t' -o "$RUNNER_TEMP/h38-approved-images/H38_04_Manufacturing_Automation.jpg"
+
+          python <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          source = Path(__import__('os').environ['RUNNER_TEMP']) / 'h38-approved-images'
+          target = Path('assets/approved-website-images')
+          files = {
+              'H38_01_Homepage_Hero_Garage_Workspace.jpg': 'homepage-hero-garage-workspace.jpg',
+              'H38_02_Project_Planning_Desk.jpg': 'project-planning-desk.jpg',
+              'H38_03_Business_Workflow_Office.jpg': 'business-workflow-office.jpg',
+              'H38_04_Manufacturing_Automation.jpg': 'manufacturing-automation.jpg',
+          }
+          for source_name, target_name in files.items():
+              source_path = source / source_name
+              with Image.open(source_path) as image:
+                  image.verify()
+              with Image.open(source_path) as image:
+                  if image.format != 'JPEG':
+                      raise SystemExit(f'{source_name} is not a JPEG: {image.format}')
+                  if image.size != (1600, 900):
+                      raise SystemExit(f'{source_name} has unexpected dimensions: {image.size}')
+                  image = image.convert('RGB').resize((1200, 675), Image.Resampling.LANCZOS)
+                  image.save(target / target_name, 'JPEG', quality=76, optimize=True, progressive=True, subsampling='4:2:0')
+          PY
+
+      - name: Apply approved image placements only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          version = '20260715-approved-images'
+
+          index_path = Path('index.html')
+          index = index_path.read_text()
+          index = index.replace(
+              'commercial-evolution.css?v=20260714-commercial-evolution',
+              f'commercial-evolution.css?v={version}',
+              1,
+          )
+          hero_old = '''      <aside class="commercial-hero__proof" aria-label="What customers receive">\n        <img src="assets/highway38-logo.png?v=20260713-logo2" alt="Highway 38 Solutions" width="112" height="86">'''
+          hero_new = '''      <aside class="commercial-hero__proof" aria-label="What customers receive">\n        <figure class="approved-hero-visual" data-image-classification="representative-environment">\n          <img src="assets/approved-website-images/homepage-hero-garage-workspace.jpg?v=20260715-approved-images" alt="Organized garage workshop with workbench, storage, and clear working space." width="1200" height="675" decoding="async" fetchpriority="high">\n        </figure>\n        <img src="assets/highway38-logo.png?v=20260713-logo2" alt="Highway 38 Solutions" width="112" height="86">'''
+          if hero_old not in index:
+              raise SystemExit('Homepage hero insertion point changed.')
+          index = index.replace(hero_old, hero_new, 1)
+          process_old = '''        <div class="commercial-grid commercial-grid--4 commercial-process">\n          <article class="commercial-card"><h3>1. Send the rough version</h3><p>Describe what is messy, blocked, unclear, or costing time. Share only the project information that is necessary.</p></article>\n          <article class="commercial-card"><h3>2. Confirm exact scope</h3><p>The service, deliverables, price, timing, revision allowance, exclusions, and boundaries are confirmed before work begins.</p></article>\n          <article class="commercial-card"><h3>3. Build and review</h3><p>The work is organized, checked, and reviewed by Highway 38 Solutions before anything is sent or completed.</p></article>\n          <article class="commercial-card"><h3>4. Use the finished result</h3><p>Receive a clear handoff showing the recommended next action, remaining decisions, assumptions, and unknowns.</p></article>\n        </div>'''
+          process_new = '''        <div class="approved-process-layout">\n          <figure class="approved-image-figure approved-image-figure--planning" data-image-classification="representative-environment">\n            <img src="assets/approved-website-images/project-planning-desk.jpg?v=20260715-approved-images" alt="Project layout documents, measuring tape, and planning notes arranged on a worktable." width="1200" height="675" loading="lazy" decoding="async">\n          </figure>\n          <div class="commercial-grid commercial-process approved-process-grid">\n            <article class="commercial-card"><h3>1. Send the rough version</h3><p>Describe what is messy, blocked, unclear, or costing time. Share only the project information that is necessary.</p></article>\n            <article class="commercial-card"><h3>2. Confirm exact scope</h3><p>The service, deliverables, price, timing, revision allowance, exclusions, and boundaries are confirmed before work begins.</p></article>\n            <article class="commercial-card"><h3>3. Build and review</h3><p>The work is organized, checked, and reviewed by Highway 38 Solutions before anything is sent or completed.</p></article>\n            <article class="commercial-card"><h3>4. Use the finished result</h3><p>Receive a clear handoff showing the recommended next action, remaining decisions, assumptions, and unknowns.</p></article>\n          </div>\n        </div>'''
+          if process_old not in index:
+              raise SystemExit('Homepage How It Works insertion point changed.')
+          index = index.replace(process_old, process_new, 1)
+          index_path.write_text(index)
+
+          solutions_path = Path('solutions.html')
+          solutions = solutions_path.read_text()
+          solutions = solutions.replace(
+              'commercial-evolution.css?v=20260714-commercial-evolution',
+              f'commercial-evolution.css?v={version}',
+              1,
+          )
+          digital_old = '''</p></div><div class="product-grid" data-products="implementation"></div></div></section><section class="section" id="manufacturing">'''
+          digital_new = '''</p></div><figure class="approved-image-figure approved-solution-image approved-image-figure--workflow" data-image-classification="representative-environment"><img src="assets/approved-website-images/business-workflow-office.jpg?v=20260715-approved-images" alt="Laptop on a clean work desk displaying an organized business workflow dashboard." width="1200" height="675" loading="lazy" decoding="async"></figure><div class="product-grid" data-products="implementation"></div></div></section><section class="section" id="manufacturing">'''
+          if digital_old not in solutions:
+              raise SystemExit('Digital Workflows insertion point changed.')
+          solutions = solutions.replace(digital_old, digital_new, 1)
+          manufacturing_old = '''</p></div><div class="product-grid" data-products="manufacturing"></div></div></section><section class="section alt"><div class="container"><div class="cta">'''
+          manufacturing_new = '''</p></div><figure class="approved-image-figure approved-solution-image approved-image-figure--manufacturing" data-image-classification="representative-environment"><img src="assets/approved-website-images/manufacturing-automation.jpg?v=20260715-approved-images" alt="Industrial automation cell with robotic equipment and manufacturing fixtures." width="1200" height="675" loading="lazy" decoding="async"></figure><div class="product-grid" data-products="manufacturing"></div></div></section><section class="section alt"><div class="container"><div class="cta">'''
+          if manufacturing_old not in solutions:
+              raise SystemExit('Manufacturing insertion point changed.')
+          solutions = solutions.replace(manufacturing_old, manufacturing_new, 1)
+          solutions_path.write_text(solutions)
+
+          css_path = Path('commercial-evolution.css')
+          css = css_path.read_text()
+          css_addition = '''\n.approved-hero-visual{margin:-1.35rem -1.35rem 1rem;overflow:hidden;border-radius:1.35rem 1.35rem .9rem .9rem;background:var(--h38-sage)}.approved-hero-visual img,.approved-image-figure img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}.approved-process-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:1rem;align-items:stretch}.approved-image-figure{margin:0;min-width:0;overflow:hidden;border:1px solid var(--h38-line);border-radius:1.15rem;background:#fff;box-shadow:var(--h38-shadow)}.approved-process-layout .approved-image-figure img{height:100%;min-height:360px}.approved-process-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-content:stretch}.approved-process-grid .commercial-card{min-width:0}.approved-solution-image{margin:0 0 1.25rem}.approved-solution-image img{max-height:420px}.approved-image-figure--workflow img{object-position:center}.approved-image-figure--manufacturing img{object-position:center 48%}\n'''
+          if '.approved-hero-visual{' in css:
+              raise SystemExit('Approved image CSS already exists.')
+          css = css.rstrip() + css_addition
+          css = css.replace(
+              '@media(max-width:1000px){.commercial-grid--4{grid-template-columns:repeat(2,1fr)}.commercial-hero__grid,.experience-grid{grid-template-columns:minmax(0,1fr)}}',
+              '@media(max-width:1000px){.commercial-grid--4{grid-template-columns:repeat(2,1fr)}.commercial-hero__grid,.experience-grid,.approved-process-layout{grid-template-columns:minmax(0,1fr)}.approved-process-layout .approved-image-figure img{height:auto;min-height:0}}',
+              1,
+          )
+          css = css.replace(
+              '@media(max-width:780px){.commercial-grid,.commercial-grid--4,.commercial-statbar__grid,.portal-preview{grid-template-columns:1fr}',
+              '@media(max-width:780px){.commercial-grid,.commercial-grid--4,.commercial-statbar__grid,.portal-preview,.approved-process-grid{grid-template-columns:1fr}',
+              1,
+          )
+          css_path.write_text(css)
+          PY
+
+      - name: Verify bounded image implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import re
+
+          expected = {
+              'assets/approved-website-images/homepage-hero-garage-workspace.jpg': ('index.html', 'Organized garage workshop with workbench, storage, and clear working space.', False),
+              'assets/approved-website-images/project-planning-desk.jpg': ('index.html', 'Project layout documents, measuring tape, and planning notes arranged on a worktable.', True),
+              'assets/approved-website-images/business-workflow-office.jpg': ('solutions.html', 'Laptop on a clean work desk displaying an organized business workflow dashboard.', True),
+              'assets/approved-website-images/manufacturing-automation.jpg': ('solutions.html', 'Industrial automation cell with robotic equipment and manufacturing fixtures.', True),
+          }
+          for image_path, (page_path, alt, lazy) in expected.items():
+              path = Path(image_path)
+              if not path.exists():
+                  raise SystemExit(f'Missing image: {image_path}')
+              with Image.open(path) as image:
+                  if image.format != 'JPEG' or image.size != (1200, 675):
+                      raise SystemExit(f'Unexpected optimized image: {image_path} {image.format} {image.size}')
+              page = Path(page_path).read_text()
+              if image_path not in page or f'alt="{alt}"' not in page:
+                  raise SystemExit(f'Missing reference or alt text: {image_path}')
+              tag = next((tag for tag in re.findall(r'<img\b[^>]+>', page) if image_path in tag), '')
+              if not tag:
+                  raise SystemExit(f'Missing image tag: {image_path}')
+              if lazy and 'loading="lazy"' not in tag:
+                  raise SystemExit(f'Below-fold image is not lazy loaded: {image_path}')
+              if not lazy and 'loading="lazy"' in tag:
+                  raise SystemExit(f'Hero image must not be lazy loaded: {image_path}')
+              if 'width="1200"' not in tag or 'height="675"' not in tag:
+                  raise SystemExit(f'Missing dimensions: {image_path}')
+          combined = Path('index.html').read_text() + Path('solutions.html').read_text()
+          for image_path in expected:
+              start = combined.find(image_path)
+              context = combined[max(0, start - 300):start + 500].lower()
+              if 'customer proof' in context or 'completed highway 38 project' in context or 'before-and-after' in context:
+                  raise SystemExit(f'Representative image is presented as proof: {image_path}')
+          if 'data-image-classification="representative-environment"' not in combined:
+              raise SystemExit('Representative classification marker missing.')
+          PY
+          node scripts/verify-commercial-system.js
+          node scripts/verify-highway38-final-polish.js
+          git diff --check
+
+      - name: Commit only approved image implementation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .approved-image-implementation-anchor .github/workflows/approved-image-implementation-helper.yml
+          python <<'PY'
+          import subprocess
+          expected = {
+              'assets/approved-website-images/homepage-hero-garage-workspace.jpg',
+              'assets/approved-website-images/project-planning-desk.jpg',
+              'assets/approved-website-images/business-workflow-office.jpg',
+              'assets/approved-website-images/manufacturing-automation.jpg',
+              'commercial-evolution.css',
+              'index.html',
+              'solutions.html',
+          }
+          actual = set(subprocess.check_output(['git', 'diff', '--name-only', 'origin/main...HEAD'], text=True).splitlines())
+          actual.update(subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], text=True).splitlines())
+          actual.discard('.approved-image-implementation-anchor')
+          actual.discard('.github/workflows/approved-image-implementation-helper.yml')
+          if actual != expected:
+              raise SystemExit(f'Unexpected implementation scope: {sorted(actual)}')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html solutions.html commercial-evolution.css assets/approved-website-images .approved-image-implementation-anchor .github/workflows/approved-image-implementation-helper.yml
+          git commit -m 'Implement approved Highway 38 website images'
+          git push origin HEAD:approved-website-image-implementation
