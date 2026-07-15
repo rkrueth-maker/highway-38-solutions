@@ -96,7 +96,7 @@ jobs:
 
       - name: Provision and deploy clean standalone installation
         shell: bash
-        run: bash scripts/deploy-clean-business-office-installation-v3.sh
+        run: bash scripts/deploy-clean-business-office-installation-v2.sh
 
       - name: Record safe failure metadata
         if: failure()
