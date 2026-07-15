@@ -21,12 +21,18 @@ jobs:
         with:
           node-version: '24'
       - name: Apply deterministic neutralization
-        run: node scripts/neutralize-business-office-core.js
-      - name: Verify transformed core
+        shell: bash
         run: |
+          set -o pipefail
+          mkdir -p artifacts/business-office-neutralization
+          node scripts/neutralize-business-office-core.js 2>&1 | tee artifacts/business-office-neutralization/transform-output.txt
+      - name: Verify transformed core
+        shell: bash
+        run: |
+          set -o pipefail
           npm install
-          npm run test:business-office
-          npm run test:business-office-separation
+          npm run test:business-office 2>&1 | tee artifacts/business-office-neutralization/verification-output.txt
+          npm run test:business-office-separation 2>&1 | tee artifacts/business-office-neutralization/separation-output.txt
       - name: Commit transformed source
         shell: bash
         run: |
@@ -40,3 +46,11 @@ jobs:
             git commit -m 'Neutralize reusable Business Office core'
             git push origin HEAD:business-office-separation
           fi
+      - name: Upload neutralization evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-office-neutralization-${{ github.run_id }}
+          path: artifacts/business-office-neutralization/
+          if-no-files-found: error
+          retention-days: 90
