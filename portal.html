@@ -86,19 +86,25 @@
       const tabs=[...document.querySelectorAll('.owner-tab')];
       const panels={operations:document.getElementById('panel-operations'),office:document.getElementById('panel-office')};
       const message=document.getElementById('frame-message');
-      function activate(name,source){
+      const hashToPanel={operations:'operations','business-office':'office',office:'office',upload:'office'};
+      const panelToHash={operations:'operations',office:'business-office'};
+      function requestedPanel(){return hashToPanel[location.hash.replace(/^#/,'').toLowerCase()]||'';}
+      function activate(name,source,updateUrl=true){
         Object.entries(panels).forEach(([key,panel])=>panel.classList.toggle('is-active',key===name));
         tabs.forEach(tab=>tab.setAttribute('aria-selected',String(tab.dataset.panel===name && (source?tab===source:tab.id===`tab-${name==='operations'?'operations':'office'}`))));
         localStorage.setItem('h38OwnerPortalPanel',name);
+        if(updateUrl)history.replaceState(null,'',`#${panelToHash[name]}`);
         message.style.display='block';
         message.textContent=name==='operations'?'Live Operations & Social workspace':'Live Business Office & Upload workspace';
         setTimeout(()=>{message.style.display='none';},1800);
       }
-      tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.panel,tab)));
-      document.querySelectorAll('.owner-area').forEach(button=>button.addEventListener('click',()=>activate(button.dataset.panel)));
+      tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.panel,tab,true)));
+      document.querySelectorAll('.owner-area').forEach(button=>button.addEventListener('click',()=>activate(button.dataset.panel,null,true)));
       document.querySelectorAll('.owner-frame').forEach(frame=>frame.addEventListener('load',()=>{message.textContent='Secure workspace loaded';setTimeout(()=>{message.style.display='none';},1200);}));
+      window.addEventListener('hashchange',()=>{const requested=requestedPanel();if(requested)activate(requested,null,false);});
+      const requested=requestedPanel();
       const saved=localStorage.getItem('h38OwnerPortalPanel');
-      if(saved&&panels[saved])activate(saved);
+      if(requested)activate(requested,null,false);else if(saved&&panels[saved])activate(saved,null,false);else activate('operations',null,false);
     })();
   </script>
 </body>
