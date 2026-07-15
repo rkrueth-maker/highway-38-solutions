@@ -31,10 +31,17 @@ function server(){return http.createServer((req,res)=>{
       await context.route('https://script.google.com/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><html><body>Authorized Google workspace requires sign-in.</body></html>'}));
       for(const file of pages){
         const page=await context.newPage();const errors=[];const failedAssets=[];
+        const source=fs.readFileSync(path.join(root,file),'utf8');
+        const intentionalRedirect=/<meta[^>]+http-equiv=["']refresh["']/i.test(source)||/location\.(?:replace|assign)\s*\(/.test(source);
         page.on('pageerror',error=>errors.push(`pageerror: ${error.message}`));
         page.on('console',message=>{if(message.type()==='error')errors.push(`console: ${message.text()}`);});
         page.on('response',response=>{if(response.url().startsWith(base)&&response.status()>=400&&response.request().resourceType()!=='document')failedAssets.push(`${response.status()} ${response.url()}`);});
-        page.on('requestfailed',request=>{if(request.url().startsWith(base))failedAssets.push(`${request.failure()?.errorText||'failed'} ${request.url()}`);});
+        page.on('requestfailed',request=>{
+          if(!request.url().startsWith(base))return;
+          const errorText=request.failure()?.errorText||'failed';
+          if(intentionalRedirect&&errorText==='net::ERR_ABORTED')return;
+          failedAssets.push(`${errorText} ${request.url()}`);
+        });
         const response=await page.goto(`${base}/${file}`,{waitUntil:'networkidle',timeout:20000});
         if(!response||response.status()>=400)fail(`${viewport.name} ${file} loads`,response?String(response.status()):'no response');
         const overflow=await page.evaluate(()=>{
