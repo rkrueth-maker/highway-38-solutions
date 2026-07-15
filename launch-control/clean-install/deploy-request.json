@@ -1,5 +1,5 @@
 {
-  "requestId": "NORTHSTAR_TEST-20260714-CLEAN-01",
+  "requestId": "NORTHSTAR_TEST-20260714-CLEAN-02",
   "workstream": "Business Office separation clean standalone acceptance",
   "businessId": "NORTHSTAR_TEST",
   "businessName": "North Star Test Company",
@@ -10,5 +10,7 @@
   "directPaymentProcessing": false,
   "directPayrollFunding": false,
   "directTaxFiling": false,
-  "status": "AUTHORIZED_FOR_CLEAN_ACCEPTANCE"
+  "status": "AUTHORIZED_FOR_CLEAN_ACCEPTANCE",
+  "sourceVerification": "PASS",
+  "onePackAssembly": "PASS"
 }
