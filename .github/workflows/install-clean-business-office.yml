@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: business-office-separation
+          ref: separate-business-office-platform
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
