@@ -1,33 +1,36 @@
-name: Highway 38 Business Office
+name: Highway 38 Business Office Source Verification
 
 on:
   pull_request:
     branches: [main]
     paths:
       - 'apps-script/business-office/**'
-      - 'apps-script/integrated-backend/**'
-      - 'docs/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'business-packs/highway38/**'
+      - 'business-packs/template-business/**'
+      - 'scripts/assemble-business-office-app.sh'
       - 'scripts/verify-business-office.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'scripts/verify-business-office-clean-install.js'
       - 'package.json'
       - '.github/workflows/business-office.yml'
   push:
-    branches: [main]
+    branches: [main, business-office-separation]
     paths:
       - 'apps-script/business-office/**'
-      - 'apps-script/integrated-backend/**'
-      - 'docs/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'business-packs/highway38/**'
+      - 'business-packs/template-business/**'
+      - 'scripts/assemble-business-office-app.sh'
       - 'scripts/verify-business-office.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'scripts/verify-business-office-clean-install.js'
       - 'package.json'
       - '.github/workflows/business-office.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
-
-concurrency:
-  group: highway-38-business-office-production
-  cancel-in-progress: false
 
 jobs:
   verify-business-office:
@@ -37,206 +40,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify complete Business Office source
+      - name: Install dependencies
+        run: npm install
+      - name: Verify reusable Business Office core and Highway 38 pack
         run: npm run test:business-office
+      - name: Verify separation and clean-install plan
+        run: npm run test:business-office-separation
+      - name: Verify one-pack assembly for Highway 38 and neutral template
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/business-office-source/highway38 artifacts/business-office-source/template
+          bash scripts/assemble-business-office-app.sh artifacts/business-office-source/highway38 business-packs/highway38/apps-script/BusinessOffice_Pack.gs "$GITHUB_WORKSPACE"
+          bash scripts/assemble-business-office-app.sh artifacts/business-office-source/template business-packs/template-business/apps-script/BusinessOffice_Pack.gs "$GITHUB_WORKSPACE"
+          grep -F "packId:'highway38'" artifacts/business-office-source/highway38/BusinessOffice_00_Pack.gs
+          grep -F "packId:'template-business'" artifacts/business-office-source/template/BusinessOffice_00_Pack.gs
+          test -e artifacts/business-office-source/highway38/BusinessOffice_Highway38Acceptance.gs
+          test ! -e artifacts/business-office-source/template/BusinessOffice_Highway38Acceptance.gs
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: business-office-verification-${{ github.run_id }}
-          path: artifacts/business-office/verification.json
+          name: business-office-source-verification-${{ github.run_id }}
+          path: |
+            artifacts/business-office/
+            artifacts/business-office-separation/
+            artifacts/business-office-clean-install/
+            artifacts/business-office-source/
           if-no-files-found: error
           retention-days: 90
 
-  deploy-and-live-acceptance:
-    if: github.event_name != 'pull_request'
-    needs: verify-business-office
-    runs-on: ubuntu-latest
-    env:
-      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
-      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
-      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
-      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
-      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
-      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
-      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
-      H38_BO_BUSINESS_ID: H38
-      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Install clasp and Playwright
-        run: |
-          npm install --global @google/clasp@3.1.0
-          npm install
-          npx playwright install --with-deps chromium
-      - name: Load encrypted clasp credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'HOLD — no encrypted clasp credential configured.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('clasp credential loaded');"
-      - name: Create private Business Office Apps Script project and deploy
-        shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT="$RUNNER_TEMP/h38-business-office"
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          mkdir -p "$PROJECT" "$EVIDENCE"
-          cp apps-script/business-office/*.gs "$PROJECT/"
-          cp apps-script/business-office/*.html "$PROJECT/"
-          cp apps-script/business-office/appsscript.json "$PROJECT/"
-          cp apps-script/integrated-backend/H38_Business_Office_Bridge.gs "$PROJECT/"
-          cd "$PROJECT"
-          clasp create-script --type webapp --title "Highway 38 Business Office" --rootDir . | tee "$EVIDENCE/create-script.txt"
-          SCRIPT_ID="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('.clasp.json','utf8')).scriptId)")"
-          test -n "$SCRIPT_ID"
-          printf '%s' "$SCRIPT_ID" > "$EVIDENCE/script-id.txt"
-          clasp push --force | tee "$EVIDENCE/clasp-push.txt"
-          clasp create-version "Highway 38 Business Office ${GITHUB_SHA}" | tee "$EVIDENCE/create-version.txt"
-          clasp create-deployment --description "Highway 38 Business Office ${GITHUB_SHA}" | tee "$EVIDENCE/create-deployment.txt"
-          clasp list-deployments | tee "$EVIDENCE/deployments.txt"
-          DEPLOYMENT_ID="$(grep -Eo 'AKfy[[:alnum:]_-]+' "$EVIDENCE/create-deployment.txt" "$EVIDENCE/deployments.txt" | head -n 1 | sed 's/.*://')"
-          test -n "$DEPLOYMENT_ID"
-          printf '%s' "$DEPLOYMENT_ID" > "$EVIDENCE/deployment-id.txt"
-          printf 'https://script.google.com/macros/s/%s/exec' "$DEPLOYMENT_ID" > "$EVIDENCE/web-app-url.txt"
-      - name: Bootstrap live configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT="$RUNNER_TEMP/h38-business-office"
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          PARAMS="$(node - <<'NODE'
-          const cfg={
-            ownerEmail:process.env.H38_BO_OWNER_EMAIL,
-            H38_BUSINESS_OFFICE_SPREADSHEET_ID:process.env.H38_BO_SPREADSHEET_ID,
-            H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID:process.env.H38_BO_BUSINESS_ID,
-            H38_BUSINESS_OFFICE_ROOT_FOLDER_ID:process.env.H38_BO_ROOT_FOLDER_ID,
-            H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID:process.env.H38_BO_DOCUMENT_FOLDER_ID,
-            H38_BUSINESS_OFFICE_PDF_FOLDER_ID:process.env.H38_BO_PDF_FOLDER_ID,
-            H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID:process.env.H38_BO_EXPORT_FOLDER_ID,
-            H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID:process.env.H38_BO_BACKUP_FOLDER_ID,
-            H38_BACKEND_SPREADSHEET_ID:process.env.H38_BACKEND_SPREADSHEET_ID
-          };
-          process.stdout.write(JSON.stringify([cfg]));
-          NODE
-          )"
-          (cd "$PROJECT" && clasp run-function boBootstrapInstall --params "$PARAMS") | tee "$EVIDENCE/bootstrap-output.txt"
-      - name: Execute live receipt, camera-path, OCR, PDF, role, and approval acceptance
-        shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT="$RUNNER_TEMP/h38-business-office"
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          TRIGGER_PARAMS='[{"confirmation":"INSTALL BUSINESS OFFICE REQUEST SYNC"}]'
-          (cd "$PROJECT" && clasp run-function h38BusinessOfficeInstallSyncTrigger --params "$TRIGGER_PARAMS") | tee "$EVIDENCE/intake-trigger-output.txt"
-          (cd "$PROJECT" && clasp run-function boRunLiveAcceptance --nondev) | tee "$EVIDENCE/live-acceptance-output.txt"
-          node <<'NODE'
-          const fs=require('fs');
-          const raw=fs.readFileSync('artifacts/business-office-live/live-acceptance-output.txt','utf8');
-          const start=raw.indexOf('{'); const end=raw.lastIndexOf('}');
-          if(start<0||end<start) throw new Error('No structured live acceptance result returned.');
-          const result=JSON.parse(raw.slice(start,end+1));
-          fs.writeFileSync('artifacts/business-office-live/live-acceptance-result.json',JSON.stringify(result,null,2)+'\n');
-          const required=['receipt','workOrderPhoto','vendorInvoicePdf','intakeSync','generatedPdfs','roleMatrix','ledger','selfTest'];
-          const failed=[];
-          if(result.status!=='PASS') failed.push('overall status');
-          for(const key of required) if(!result[key]) failed.push(key);
-          if(!Array.isArray(result.generatedPdfs)||result.generatedPdfs.length!==9) failed.push('nine PDFs');
-          if(result.externalActionsOccurred!==false||result.directPaymentProcessed!==false||result.payrollFundsMoved!==false||result.taxReturnFiled!==false) failed.push('external boundary');
-          if(failed.length) throw new Error('LIVE ACCEPTANCE HOLD: '+failed.join(', '));
-          console.log('LIVE ACCEPTANCE PASS');
-          NODE
-      - name: Verify deployed web-app access boundary and responsive source
-        shell: bash
-        run: |
-          set -euo pipefail
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          URL="$(cat "$EVIDENCE/web-app-url.txt")"
-          STATUS="$(curl -L -sS -o "$EVIDENCE/web-app-response.html" -w '%{http_code}' "$URL" || true)"
-          printf '%s' "$STATUS" > "$EVIDENCE/web-app-http-status.txt"
-          test "$STATUS" != "404"
-          grep -F 'capture="environment"' apps-script/business-office/BusinessOffice_Index.html
-          grep -F '@media (max-width:800px)' apps-script/business-office/BusinessOffice_Index.html
-          PROJECT="$RUNNER_TEMP/h38-business-office"
-          (cd "$PROJECT" && clasp run-function boGetRenderedWebAppHtml --nondev) > "$EVIDENCE/rendered-html-output.txt"
-          node <<'NODE'
-          const fs=require('fs');
-          const raw=fs.readFileSync('artifacts/business-office-live/rendered-html-output.txt','utf8').trim();
-          const start=raw.indexOf('"'); const end=raw.lastIndexOf('"');
-          if(start<0||end<=start) throw new Error('No rendered HTML string returned by deployed Apps Script.');
-          const html=JSON.parse(raw.slice(start,end+1));
-          if(!html.includes('Highway 38 Business Office')||!html.includes('capture="environment"')) throw new Error('Rendered web app is missing required UI markers.');
-          fs.writeFileSync('artifacts/business-office-live/deployed-rendered-web-app.html',html);
-          NODE
-          node - <<'NODE'
-          const {chromium}=require('playwright');
-          const fs=require('fs');
-          (async()=>{
-            const html=fs.readFileSync('artifacts/business-office-live/deployed-rendered-web-app.html','utf8');
-            const browser=await chromium.launch({headless:true});
-            for(const [name,width,height] of [['deployed-rendered-desktop',1440,1000],['deployed-rendered-mobile',390,844]]){
-              const page=await browser.newPage({viewport:{width,height}});
-              await page.setContent(html,{waitUntil:'domcontentloaded'});
-              await page.screenshot({path:`artifacts/business-office-live/${name}.png`,fullPage:true});
-            }
-            await browser.close();
-          })().catch(e=>{console.error(e);process.exit(1)});
-          NODE
-      - name: Record deployment metadata and evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          mkdir -p "$EVIDENCE"
-          SCRIPT_ID="$(cat "$EVIDENCE/script-id.txt" 2>/dev/null || true)"
-          DEPLOYMENT_ID="$(cat "$EVIDENCE/deployment-id.txt" 2>/dev/null || true)"
-          WEB_APP_URL="$(cat "$EVIDENCE/web-app-url.txt" 2>/dev/null || true)"
-          cat > "$EVIDENCE/deployment.json" <<JSON
-          {
-            "status": "${{ job.status }}",
-            "sourceCommit": "${GITHUB_SHA}",
-            "scriptId": "${SCRIPT_ID}",
-            "deploymentId": "${DEPLOYMENT_ID}",
-            "webAppUrl": "${WEB_APP_URL}",
-            "spreadsheetId": "${H38_BO_SPREADSHEET_ID}",
-            "externalActionsEnabled": false,
-            "externalActionsOccurred": false,
-            "createdSeparateProject": true
-          }
-          JSON
-      - name: Upload live deployment and rollback evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: business-office-live-${{ github.run_id }}
-          path: artifacts/business-office-live/
-          if-no-files-found: error
-          retention-days: 90
-      - name: Record Issue 85 result
-        if: success()
-        shell: bash
-        run: |
-          EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-live"
-          URL="$(cat "$EVIDENCE/web-app-url.txt")"
-          SCRIPT_ID="$(cat "$EVIDENCE/script-id.txt")"
-          DEPLOYMENT_ID="$(cat "$EVIDENCE/deployment-id.txt")"
-          gh issue comment 85 --repo "$GITHUB_REPOSITORY" --body "Business Office live deployment and acceptance PASS from commit ${GITHUB_SHA}. Separate Apps Script project: ${SCRIPT_ID}. Deployment: ${DEPLOYMENT_ID}. Private logged-in web app: ${URL}. Live receipt image upload, camera-path work-order image upload, OCR extraction and human-review path, vendor-invoice PDF extraction, additive intake synchronization with duplicate protection, nine Apps Script PDF generations, deployed rendered mobile/desktop UI evidence, role matrix, approval gates, ledger reconciliation, payroll and tax boundaries all passed. No customer message, payment processing, payroll funding, tax filing, delivery, or publication occurred. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+# Production deployment is intentionally not performed here. The only supported
+# Highway 38 deployment path is Business Office Production V2, which updates the
+# existing configured installation and records full rollback/live evidence.

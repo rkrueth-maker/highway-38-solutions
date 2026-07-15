@@ -1,0 +1,14 @@
+{
+  "requestId": "NORTHSTAR_TEST-20260715-INSTALL-06",
+  "target": "isolated-clean-standalone-business-office",
+  "sourceBranch": "business-office-separation",
+  "businessId": "NORTHSTAR_TEST",
+  "businessName": "North Star Test Company",
+  "authorized": true,
+  "modifyHighway38": false,
+  "externalActionsEnabled": false,
+  "directPaymentProcessing": false,
+  "directPayrollFunding": false,
+  "directTaxFiling": false,
+  "retry": 6
+}

@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — connected customer, quote, job, purchasing, and invoice workflows. */
+/** Business Office — connected customer, quote, job, purchasing, and invoice workflows. */
 
 function boCreateCustomerFromRequest(requestId) {
   return boSafeExecute_('Create customer from request', function () {
@@ -60,7 +60,7 @@ function boCreateQuote(payload) {
       'Project Title': payload.projectTitle || 'Customer project',
       'Revision Number': 1,
       'Revision Status': 'Current',
-      'Quote Date': payload.quoteDate || Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd'),
+      'Quote Date': payload.quoteDate || Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd'),
       'Expiration Date': payload.expirationDate || '',
       Status: 'Draft',
       'Approval Status': 'Owner Approval Required',
@@ -253,7 +253,7 @@ function boCreateInvoiceFromJob(jobId) {
       'Customer ID': job['Customer ID'],
       'Job ID': jobId,
       'Quote ID': job['Quote ID'],
-      'Invoice Date': Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd'),
+      'Invoice Date': Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd'),
       'Due Date': '',
       'Payment Terms': 'Net 15',
       Status: 'Draft',
@@ -356,7 +356,7 @@ function boRecordPayment(payload) {
       'Invoice ID': invoice['Invoice ID'],
       'Customer ID': invoice['Customer ID'],
       'Job ID': invoice['Job ID'],
-      'Payment Date': payload.paymentDate || Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd'),
+      'Payment Date': payload.paymentDate || Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd'),
       Amount: amount,
       'Payment Method': payload.paymentMethod || 'Other',
       'Transaction Reference': payload.transactionReference || '',

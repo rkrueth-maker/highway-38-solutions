@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "packId": "highway38",
+  "businessId": "H38",
+  "ownerEmail": "rkrueth@gmail.com",
+  "resources": {
+    "businessOfficeSpreadsheetId": "1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA",
+    "rootFolderId": "1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6",
+    "documentFolderId": "1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC",
+    "pdfFolderId": "11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3",
+    "exportFolderId": "1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ",
+    "backupFolderId": "1rjl_m8u1YlaXSo29m46apa9dQD1zeucs",
+    "backendSpreadsheetId": "1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo"
+  },
+  "appsScript": {
+    "ownerPortalProjectId": "13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-",
+    "ownerPortalDeploymentId": "AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg",
+    "businessOfficeDeploymentId": "AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg"
+  },
+  "website": {
+    "publicUrl": "https://rkrueth-maker.github.io/highway-38-solutions/",
+    "ownerPortalUrl": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html"
+  },
+  "controls": {
+    "updateExistingProjectOnly": true,
+    "createNewProject": false,
+    "createNewProductionDeployment": false,
+    "externalActionsEnabled": false
+  }
+}

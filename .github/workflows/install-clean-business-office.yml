@@ -1,0 +1,146 @@
+name: Install Clean Standalone Business Office
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-clean-business-office.yml'
+      - 'launch-control/clean-install/install-now.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: clean-business-office-installation
+  cancel-in-progress: false
+
+jobs:
+  install-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      BO_CONFIG_DOC_TITLE: BO-BOOTSTRAP-NORTHSTAR-20260714-8F4D2C
+      BO_PROJECT_TITLE: North Star Test Company Business Office
+      BO_SCRIPT_ID: 1w6x2THxN-QjMi8G5ItTjejM6blVJuvPQRy_G-FVQcdrW5u3R-ZrnfVti
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: business-office-separation
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify separation source
+        run: |
+          npm install
+          npm run test:business-office
+          npm run test:business-office-separation
+      - name: Install deployment tools
+        run: |
+          npm install --global @google/clasp@3.1.0
+          npx playwright install --with-deps chromium
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+      - name: Install and accept isolated standalone Business Office
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/deploy-business-office-clean-acceptance.sh 2>&1 | tee "$RUNNER_TEMP/clean-install.log"
+      - name: Upload installation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-business-office-installation-${{ github.run_id }}
+          path: |
+            artifacts/business-office/
+            artifacts/business-office-separation/
+            artifacts/business-office-clean-install/
+            artifacts/business-office-clean-deployment/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record installation PASS
+        if: success()
+        shell: bash
+        run: |
+          FINAL_URL="$(cat artifacts/business-office-clean-deployment/business-office-web-app-url.txt)"
+          cat > "$RUNNER_TEMP/clean-install-pass.md" <<EOF
+          <!-- clean-business-office-installation -->
+          ## Clean standalone Business Office installed — PASS
+
+          - Business: North Star Test Company
+          - Business ID: NORTHSTAR_TEST
+          - Mode: standalone
+          - Separate Apps Script project: yes
+          - Separate deployment: yes
+          - Highway 38 modified: no
+          - External actions: disabled
+          - Direct payment movement: disabled
+          - Payroll funding: disabled
+          - Direct tax filing: disabled
+          - Live URL: ${FINAL_URL}?app=business-office
+          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-install-pass.md"
+      - name: Record installation HOLD with failure detail
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo '<!-- clean-business-office-installation -->'
+            echo '## Clean standalone Business Office installation — HOLD'
+            echo
+            echo 'The isolated installation did not pass. Highway 38 was not modified.'
+            echo
+            echo '### Installer output'
+            echo '```text'
+            if [[ -f "$RUNNER_TEMP/clean-install.log" ]]; then tail -n 80 "$RUNNER_TEMP/clean-install.log"; else echo 'Installer step did not start; inspect the workflow setup steps.'; fi
+            echo '```'
+            echo
+            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > "$RUNNER_TEMP/clean-install-hold.md"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-install-hold.md"
+      - name: Write machine-readable installation result to main
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT_FILE="$RUNNER_TEMP/latest-result.json"
+          if [[ -f artifacts/business-office-clean-deployment/deployment-result.json ]]; then
+            cp artifacts/business-office-clean-deployment/deployment-result.json "$RESULT_FILE"
+          else
+            node - "$RESULT_FILE" "$RUNNER_TEMP/clean-install.log" <<'NODE'
+          const fs=require('fs');
+          const [out,log]=process.argv.slice(2);
+          let tail='Installer step did not start.';
+          if(fs.existsSync(log)) tail=fs.readFileSync(log,'utf8').split(/\r?\n/).slice(-80).join('\n');
+          fs.writeFileSync(out,JSON.stringify({status:'HOLD',businessId:'NORTHSTAR_TEST',businessName:'North Star Test Company',mode:'standalone',highway38Modified:false,failureTail:tail,runUrl:`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`},null,2)+'\n');
+          NODE
+          fi
+          CONTENT="$(base64 -w0 "$RESULT_FILE")"
+          PATH_URL="repos/${GITHUB_REPOSITORY}/contents/launch-control/clean-install/latest-result.json"
+          SHA="$(gh api "$PATH_URL?ref=main" --jq .sha 2>/dev/null || true)"
+          if [[ -n "$SHA" ]]; then
+            gh api "$PATH_URL" -X PUT -f message='Record clean Business Office installation result' -f content="$CONTENT" -f branch=main -f sha="$SHA" >/dev/null
+          else
+            gh api "$PATH_URL" -X PUT -f message='Record clean Business Office installation result' -f content="$CONTENT" -f branch=main >/dev/null
+          fi

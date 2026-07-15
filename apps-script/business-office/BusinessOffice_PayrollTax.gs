@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — payroll preparation and tax preparation support. */
+/** Business Office — payroll preparation and tax preparation support. */
 
 function boCalculatePayrollLine_(input) {
   const regularHours = Number(input.regularHours || 0);

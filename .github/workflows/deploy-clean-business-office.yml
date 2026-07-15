@@ -1,0 +1,74 @@
+name: Deploy Clean Standalone Business Office
+
+on:
+  push:
+    branches: [main, business-office-separation]
+    paths:
+      - 'launch-control/clean-install/deploy-request.json'
+      - '.github/workflows/deploy-clean-business-office.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: business-office-clean-standalone
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-accept:
+    runs-on: ubuntu-latest
+    env:
+      BO_CONFIG_DOC_TITLE: BO-BOOTSTRAP-NORTHSTAR-20260714-8F4D2C
+      BO_PROJECT_TITLE: North Star Test Company Business Office
+      BO_SCRIPT_ID: 1w6x2THxN-QjMi8G5ItTjejM6blVJuvPQRy_G-FVQcdrW5u3R-ZrnfVti
+      BO_ACCEPTANCE_DEPLOYMENT_ID: AKfycbxVOmBWy_xRpZeQ7fv5pMZNFdOED1lOGrY75Ww_dAtXsgkxDm4uilPbAGV3EOF15LzK
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify source and separation
+        run: |
+          npm install
+          npm run test:business-office
+          npm run test:business-office-separation
+      - name: Install tested deployment and browser tools
+        run: |
+          npm install --global @google/clasp@3.1.0
+          npx playwright install --with-deps chromium
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+      - name: Reuse separate project, bootstrap, accept, and publish isolated standalone Business Office
+        shell: bash
+        run: bash scripts/deploy-business-office-clean-acceptance.sh
+      - name: Upload clean deployment and rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-standalone-business-office-${{ github.run_id }}
+          path: |
+            artifacts/business-office/
+            artifacts/business-office-separation/
+            artifacts/business-office-clean-install/
+            artifacts/business-office-clean-deployment/
+          if-no-files-found: error
+          retention-days: 90

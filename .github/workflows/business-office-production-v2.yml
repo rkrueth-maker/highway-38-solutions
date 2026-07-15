@@ -7,8 +7,15 @@ on:
       - '.github/workflows/business-office-production-v2.yml'
       - 'scripts/deploy-business-office-production.sh'
       - 'scripts/deploy-business-office-owner-web-harness.sh'
+      - 'scripts/assemble-business-office-app.sh'
+      - 'scripts/load-highway38-deployment-config.js'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
+      - 'business-packs/highway38/**'
+      - 'business-packs/template-business/**'
+      - 'scripts/verify-business-office.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'scripts/verify-business-office-clean-install.js'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
@@ -25,15 +32,6 @@ jobs:
   deploy-and-verify:
     runs-on: ubuntu-latest
     env:
-      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
-      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
-      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
-      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
-      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
-      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
-      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
-      H38_BO_BUSINESS_ID: H38
-      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
       CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
@@ -46,12 +44,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify complete merged source
-        run: npm run test:business-office
+      - name: Install dependencies
+        run: npm install
+      - name: Load configured Highway 38 installation references
+        run: node scripts/load-highway38-deployment-config.js
+      - name: Verify reusable core, Highway 38 pack, and clean-install isolation
+        run: |
+          npm run test:business-office
+          npm run test:business-office-separation
+          mkdir -p artifacts/business-office-production-source
+          bash scripts/assemble-business-office-app.sh artifacts/business-office-production-source business-packs/highway38/apps-script/BusinessOffice_Pack.gs "$GITHUB_WORKSPACE"
+          grep -F "packId:'highway38'" artifacts/business-office-production-source/BusinessOffice_00_Pack.gs
+          grep -F 'function boRunLiveAcceptance' artifacts/business-office-production-source/BusinessOffice_Highway38Acceptance.gs
       - name: Install deployment tools
         run: |
           npm install --global @google/clasp@3.1.0
-          npm install
           npx playwright install --with-deps chromium
       - name: Load encrypted Google credential
         shell: bash
@@ -67,7 +74,7 @@ jobs:
           else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
-      - name: Deploy separate projects and execute complete live acceptance
+      - name: Update configured Highway 38 installation and execute complete live acceptance
         shell: bash
         run: bash scripts/deploy-business-office-production.sh
       - name: Create partial metadata on failure
@@ -77,14 +84,19 @@ jobs:
           EVIDENCE="$GITHUB_WORKSPACE/artifacts/business-office-production-v2"
           mkdir -p "$EVIDENCE"
           cat > "$EVIDENCE/failure-metadata.json" <<JSON
-          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","externalActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false}
+          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","externalActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false}
           JSON
       - name: Upload complete production evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: business-office-production-v2-${{ github.run_id }}
-          path: artifacts/business-office-production-v2/
+          path: |
+            artifacts/business-office-production-v2/
+            artifacts/business-office-production-source/
+            artifacts/business-office/
+            artifacts/business-office-separation/
+            artifacts/business-office-clean-install/
           if-no-files-found: error
           retention-days: 90
       - name: Record Issue 85 production PASS
@@ -102,6 +114,8 @@ jobs:
           ## Business Office production acceptance PASS
 
           - Source commit: ${GITHUB_SHA}
+          - Business pack: highway38
+          - Deployment configuration: business-packs/highway38/deployment.json
           - Business Office Apps Script project: ${BO_SCRIPT_ID}
           - Business Office deployment: ${BO_DEPLOYMENT_ID}
           - Private logged-in web app: ${BO_WEB_APP_URL}

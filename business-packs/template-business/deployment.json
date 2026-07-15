@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "packId": "template-business",
+  "businessId": "NEWBUSINESS",
+  "ownerEmail": "",
+  "resources": {
+    "businessOfficeSpreadsheetId": "",
+    "rootFolderId": "",
+    "documentFolderId": "",
+    "pdfFolderId": "",
+    "exportFolderId": "",
+    "backupFolderId": "",
+    "backendSpreadsheetId": ""
+  },
+  "appsScript": {
+    "ownerPortalProjectId": "",
+    "ownerPortalDeploymentId": "",
+    "businessOfficeDeploymentId": ""
+  },
+  "website": {
+    "publicUrl": "",
+    "ownerPortalUrl": ""
+  },
+  "controls": {
+    "updateExistingProjectOnly": false,
+    "createNewProject": true,
+    "createNewProductionDeployment": true,
+    "externalActionsEnabled": false
+  }
+}

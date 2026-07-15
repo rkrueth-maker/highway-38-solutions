@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://highway38solutions.com/schemas/business-office-pack-v1.json",
+  "title": "Business Office Business Pack",
+  "type": "object",
+  "required": ["schemaVersion", "packId", "business", "branding", "contacts", "urls", "modules", "roles", "workflow", "boundaries", "catalog", "tax", "documents", "numbering", "storage", "deployment", "isolation"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "packId": {"type": "string", "minLength": 2},
+    "business": {"type": "object", "required": ["id", "publicName", "timeZone"], "properties": {"id": {"type": "string"}, "legalName": {"type": "string"}, "publicName": {"type": "string"}, "timeZone": {"type": "string"}}},
+    "branding": {"type": "object", "required": ["primaryColor", "secondaryColor", "accentColor"], "properties": {"logoUrl": {"type": "string"}, "primaryColor": {"type": "string"}, "secondaryColor": {"type": "string"}, "accentColor": {"type": "string"}}},
+    "contacts": {"type": "object"},
+    "urls": {"type": "object"},
+    "modules": {"type": "object"},
+    "roles": {"type": "object", "required": ["names"]},
+    "workflow": {"type": "object", "required": ["selectedRecordOnly", "externalActionsEnabled", "approvalNotice"]},
+    "boundaries": {"type": "object", "required": ["directPaymentProcessing", "directPayrollFunding", "directTaxFiling", "tax", "accounting"]},
+    "catalog": {"type": "object", "required": ["mode", "requiredProductCount", "requiredBundleCount"]},
+    "tax": {"type": "object"},
+    "documents": {"type": "object"},
+    "numbering": {"type": "object"},
+    "storage": {"type": "object", "required": ["propertyKeys"]},
+    "deployment": {"type": "object", "required": ["mode"]},
+    "isolation": {"type": "object", "required": ["requireDedicatedStorage", "requireDedicatedDeployment", "namespace"]}
+  },
+  "additionalProperties": true
+}

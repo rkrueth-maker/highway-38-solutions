@@ -1,0 +1,14 @@
+{
+  "requestId": "BUSINESS-OFFICE-PR94-RECONCILE-20260715-01",
+  "authority": "01 Command Center",
+  "controllingBranch": "separate-business-office-platform",
+  "baseBranch": "main",
+  "legacyBranch": "business-office-separation",
+  "mergePolicy": "preserve PR 94 architecture on conflicts; include non-conflicting current-main changes",
+  "cleanInstallation": {
+    "businessName": "North Star Test Company",
+    "businessId": "NORTHSTAR_TEST",
+    "mode": "standalone"
+  },
+  "authorized": true
+}

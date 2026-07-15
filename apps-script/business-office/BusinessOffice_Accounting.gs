@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — double-entry preparation, posting, periods, corrections, voids, and reports. */
+/** Business Office — double-entry preparation, posting, periods, corrections, voids, and reports. */
 
 function boCalculateEntryTotals_(lines) {
   const totals = (lines || []).reduce(function (acc, line) {
@@ -25,7 +25,7 @@ function boPrepareJournalEntry(payload) {
     const entry = boAppendRecord_(H38_BO_SHEETS.JOURNAL_ENTRIES, {
       'Journal Entry ID': entryId,
       'Entry Number': entryNumber,
-      'Entry Date': payload.entryDate || Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd'),
+      'Entry Date': payload.entryDate || Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd'),
       'Source Type': payload.sourceType || 'Manual',
       'Source ID': payload.sourceId || '',
       Description: payload.description || '',
@@ -187,11 +187,11 @@ function boReverseJournalEntry(entryId, reason) {
       };
     });
     const reversal = boPrepareJournalEntry({
-      entryDate: Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd'),
+      entryDate: Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd'),
       sourceType: 'Reversal',
       sourceId: entryId,
       description: 'Reverse ' + entry['Entry Number'] + ': ' + boNormalizeText_(reason),
-      accountingPeriodId: boResolveAccountingPeriod_(Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy-MM-dd')),
+      accountingPeriodId: boResolveAccountingPeriod_(Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy-MM-dd')),
       lines: lines
     });
     boUpdateRecord_(H38_BO_SHEETS.JOURNAL_ENTRIES, entryId, { 'Reversal Entry ID': reversal['Journal Entry ID'] }, 'Journal reversal');

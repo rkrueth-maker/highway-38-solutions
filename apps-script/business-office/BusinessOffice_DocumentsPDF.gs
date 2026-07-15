@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — private document storage, OCR-assisted review, and branded PDF generation. */
+/** Business Office — private document storage, OCR-assisted review, and branded PDF generation. */
 
 function boSanitizeFilename_(name) {
   const sanitized = boNormalizeText_(name)
@@ -41,7 +41,7 @@ function boUploadDocument(payload) {
     const blob = Utilities.newBlob(bytes, mimeType, documentId + '-' + safeName);
     const folder = DriveApp.getFolderById(boGetFolderId_(H38_BO.DOCUMENT_FOLDER_PROPERTY));
     const file = folder.createFile(blob);
-    file.setDescription('Private Highway 38 Business Office original. Document ID: ' + documentId);
+    file.setDescription('Private ' + boBusinessOfficeTitle_() + ' original. Document ID: ' + documentId);
     const conditional = H38_BO.CONDITIONAL_MIME_TYPES.indexOf(mimeType) >= 0;
     const document = boAppendRecord_(H38_BO_SHEETS.DOCUMENTS, {
       'Document ID': documentId,
@@ -304,11 +304,11 @@ function boGeneratePdf(documentType, recordId) {
     const doc = DocumentApp.create(documentType + '-' + recordId + '-' + boNow_().replace(/[: ]/g, '-'));
     const body = doc.getBody();
     body.setMarginTop(36).setMarginBottom(36).setMarginLeft(42).setMarginRight(42);
-    const title = body.appendParagraph(source.businessName || 'Highway 38 Solutions');
+    const title = body.appendParagraph(source.businessName || boBusinessName_());
     title.setHeading(DocumentApp.ParagraphHeading.HEADING1).setBold(true);
     body.appendParagraph(documentType).setHeading(DocumentApp.ParagraphHeading.HEADING2);
     body.appendParagraph('Document ID: ' + recordId);
-    body.appendParagraph('Generated: ' + boNow_() + ' CT');
+    body.appendParagraph('Generated: ' + boNow_() + ' ' + boTimeZone_());
     body.appendParagraph('Status: ' + (source.status || 'Prepared'));
     body.appendHorizontalRule();
     source.sections.forEach(function (section) {
@@ -326,9 +326,9 @@ function boGeneratePdf(documentType, recordId) {
     body.appendHorizontalRule();
     body.appendParagraph('Approval state: ' + (source.approvalStatus || 'Owner Approval Required'));
     body.appendParagraph('Supporting-document references: ' + (source.supportingDocuments || 'None listed'));
-    body.appendParagraph(documentType === 'Tax Preparation Packet' ? H38_BO.TAX_BOUNDARY : H38_BO.ACCOUNTING_BOUNDARY).setItalic(true);
+    body.appendParagraph(documentType === 'Tax Preparation Packet' ? boTaxBoundary_() : boAccountingBoundary_()).setItalic(true);
     const footer = doc.addFooter();
-    footer.appendParagraph('Highway 38 Business Office · Private preparation document').setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    footer.appendParagraph(boDocumentFooterLabel_()).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
     doc.saveAndClose();
     const sourceFile = DriveApp.getFileById(doc.getId());
     const pdfBlob = sourceFile.getAs(MimeType.PDF).setName(documentType.replace(/\s+/g, '-') + '-' + recordId + '.pdf');
@@ -365,7 +365,7 @@ function boGetPdfSource_(documentType, recordId) {
     return [key, record[key]];
   });
   return {
-    businessName: business['Public Name'] || business['Legal Name'] || 'Highway 38 Solutions',
+    businessName: business['Public Name'] || business['Legal Name'] || boBusinessName_(),
     status: record.Status || record['Posting Status'] || record['Review Status'] || 'Prepared',
     approvalStatus: record['Approval Status'] || record['Owner Approval Status'] || 'Owner Approval Required',
     supportingDocuments: record['Attachment Document ID'] || record['Document ID'] || record['Supporting Document IDs'] || 'None listed',

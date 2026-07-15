@@ -1,0 +1,103 @@
+name: Reconcile Business Office PR 94
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reconcile-business-office-pr94.yml'
+      - 'launch-control/business-office/reconcile-pr94.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconcile-business-office-pr94
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: separate-business-office-platform
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Merge current main into controlling branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          ORIGINAL_HEAD="$(git rev-parse HEAD)"
+          printf '%s' "$ORIGINAL_HEAD" > "$RUNNER_TEMP/original-feature-head.txt"
+          git fetch origin main business-office-separation
+          if ! git merge --no-edit -X ours origin/main; then
+            echo 'Resolving remaining conflicts in favor of the controlling PR 94 architecture.'
+            git checkout --ours -- .
+            git add -A
+            git commit -m 'Merge current main into Business Office separation branch'
+          fi
+          git checkout "$ORIGINAL_HEAD" -- .github/workflows
+
+      - name: Consolidate non-workflow branch references
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for root in [Path('scripts'),Path('launch-control'),Path('docs')]:
+              if not root.exists(): continue
+              for p in root.rglob('*'):
+                  if not p.is_file(): continue
+                  try: text=p.read_text()
+                  except UnicodeDecodeError: continue
+                  updated=text.replace('business-office-separation','separate-business-office-platform')
+                  if updated!=text: p.write_text(updated)
+          PY
+
+      - name: Verify reconciled source
+        run: |
+          npm install
+          node scripts/verify-business-office-isolation.js
+          node scripts/verify-business-office-separation.js
+          npm run test:business-office
+
+      - name: Commit and push controlling branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Reconcile Business Office separation on controlling branch'
+          fi
+          git push origin HEAD:separate-business-office-platform
+
+      - name: Record reconciliation result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+          node - "$RUNNER_TEMP/reconcile-result.json" "$JOB_STATUS" "$HEAD_SHA" <<'NODE'
+          const fs=require('fs');
+          const [out,status,head]=process.argv.slice(2);
+          fs.writeFileSync(out,JSON.stringify({status:status==='success'?'PASS':'HOLD',controllingBranch:'separate-business-office-platform',headSha:head||'',runUrl:`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,highway38DeploymentModified:false},null,2)+'\n');
+          NODE
+          CONTENT="$(base64 -w0 "$RUNNER_TEMP/reconcile-result.json")"
+          API_PATH="repos/${GITHUB_REPOSITORY}/contents/launch-control/business-office/reconcile-result.json"
+          CURRENT_SHA="$(gh api "$API_PATH?ref=main" --jq .sha 2>/dev/null || true)"
+          if [[ -n "$CURRENT_SHA" ]]; then
+            gh api "$API_PATH" -X PUT -f message='Record PR 94 reconciliation result' -f content="$CONTENT" -f branch=main -f sha="$CURRENT_SHA" >/dev/null
+          else
+            gh api "$API_PATH" -X PUT -f message='Record PR 94 reconciliation result' -f content="$CONTENT" -f branch=main >/dev/null
+          fi

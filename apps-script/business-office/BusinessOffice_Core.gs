@@ -1,4 +1,4 @@
-/** Highway 38 Business Office — table engine, search, audit, proof, error, and safe CRUD. */
+/** Business Office — table engine, search, audit, proof, error, and safe CRUD. */
 
 function boGetSheet_(sheetName) {
   const sheet = boGetSpreadsheet_().getSheetByName(sheetName);
@@ -159,7 +159,7 @@ function boGetNextNumber_(recordType) {
     const rows = boReadTable_(H38_BO_SHEETS.NUMBER_SEQUENCES, { includeVoided: true });
     const sequence = rows.find(function (row) { return row['Record Type'] === recordType && row.Status === 'Active'; });
     boAssert_(sequence, 'No active number sequence for ' + recordType + '.');
-    const year = Utilities.formatDate(new Date(), H38_BO.TIME_ZONE, 'yyyy');
+    const year = Utilities.formatDate(new Date(), boTimeZone_(), 'yyyy');
     const next = Number(sequence['Next Number'] || 1);
     const padding = Number(sequence.Padding || 4);
     const number = sequence.Prefix + '-' + year + '-' + String(next).padStart(padding, '0');
