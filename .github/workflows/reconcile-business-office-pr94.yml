@@ -35,6 +35,8 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          ORIGINAL_HEAD="$(git rev-parse HEAD)"
+          printf '%s' "$ORIGINAL_HEAD" > "$RUNNER_TEMP/original-feature-head.txt"
           git fetch origin main business-office-separation
           if ! git merge --no-edit -X ours origin/main; then
             echo 'Resolving remaining conflicts in favor of the controlling PR 94 architecture.'
@@ -42,15 +44,15 @@ jobs:
             git add -A
             git commit -m 'Merge current main into Business Office separation branch'
           fi
+          git checkout "$ORIGINAL_HEAD" -- .github/workflows
 
-      - name: Consolidate branch references and North Star acceptance
+      - name: Consolidate non-workflow branch references
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          roots=[Path('.github/workflows'),Path('scripts'),Path('launch-control'),Path('docs')]
-          for root in roots:
+          for root in [Path('scripts'),Path('launch-control'),Path('docs')]:
               if not root.exists(): continue
               for p in root.rglob('*'):
                   if not p.is_file(): continue
@@ -58,79 +60,6 @@ jobs:
                   except UnicodeDecodeError: continue
                   updated=text.replace('business-office-separation','separate-business-office-platform')
                   if updated!=text: p.write_text(updated)
-
-          run_expr='${'+'{ github.run_id }}'
-          token_expr='${'+'{ github.token }}'
-          workflow=Path('.github/workflows/business-office-clean-installation.yml')
-          text=workflow.read_text()
-          text=text.replace('permissions:\n  contents: read','permissions:\n  contents: read\n  issues: write\n  pull-requests: write')
-          text=text.replace('CLEAN_BUSINESS_NAME: Template Business','CLEAN_BUSINESS_NAME: North Star Test Company')
-          text=text.replace('CLEAN_BUSINESS_ID: BUSINESS','CLEAN_BUSINESS_ID: NORTHSTAR_TEST')
-          text=text.replace('CLEAN_INSTALLATION_ID: template-business-'+run_expr,'CLEAN_INSTALLATION_ID: north-star-test-'+run_expr)
-          text=text.replace('CLEAN_TEMPLATE_TITLE: Business Office Platform — Neutral Workbook Template','CLEAN_TEMPLATE_TITLE: North Star Test Company — Business Office')
-          if 'CLEAN_BUSINESS_PACK:' not in text:
-              text=text.replace('CLEAN_INSTALLATION_ID: north-star-test-'+run_expr,'CLEAN_INSTALLATION_ID: north-star-test-'+run_expr+'\n      CLEAN_BUSINESS_PACK: north-star-test')
-          marker='      - name: Provision and deploy clean standalone installation\n'
-          generate="""      - name: Generate isolated North Star business pack
-        run: |
-          rm -rf business-packs/north-star-test
-          node scripts/create-new-business.js --slug north-star-test --business-name "North Star Test Company" --business-id NORTHSTAR_TEST --owner-email "${CLEAN_OWNER_EMAIL}" --time-zone America/Chicago
-
-"""
-          if 'Generate isolated North Star business pack' not in text:
-              text=text.replace(marker,generate+marker)
-          report="""
-      - name: Report clean installation PASS to PR 94
-        if: success()
-        shell: bash
-        env:
-          GH_TOKEN: __TOKEN_EXPR__
-        run: |
-          {
-            echo '<!-- business-office-clean-installation -->'
-            echo '## Clean standalone installation — PASS'
-            echo
-            echo '```json'
-            cat artifacts/business-office-clean-installation/acceptance-result.json
-            echo '```'
-            echo
-            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          } > "$RUNNER_TEMP/clean-pass.md"
-          gh pr comment 94 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-pass.md"
-
-      - name: Report clean installation HOLD to PR 94
-        if: failure()
-        shell: bash
-        env:
-          GH_TOKEN: __TOKEN_EXPR__
-        run: |
-          {
-            echo '<!-- business-office-clean-installation -->'
-            echo '## Clean standalone installation — HOLD'
-            echo
-            if [[ -f artifacts/business-office-clean-installation/failure-metadata.json ]]; then
-              echo '```json'
-              cat artifacts/business-office-clean-installation/failure-metadata.json
-              echo '```'
-            fi
-            echo
-            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          } > "$RUNNER_TEMP/clean-hold.md"
-          gh pr comment 94 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/clean-hold.md"
-""".replace('__TOKEN_EXPR__',token_expr)
-          if 'Report clean installation PASS to PR 94' not in text:
-              text += report
-          workflow.write_text(text)
-
-          installer=Path('scripts/deploy-clean-business-office-installation-v2.sh')
-          text=installer.read_text()
-          if 'BUSINESS_PACK=' not in text:
-              text=text.replace('TOKEN="$(node -e "process.stdout.write(require(\'crypto\').randomBytes(32).toString(\'hex\'))")"','TOKEN="$(node -e "process.stdout.write(require(\'crypto\').randomBytes(32).toString(\'hex\'))")"\nBUSINESS_PACK="${CLEAN_BUSINESS_PACK:-template-business}"')
-          text=text.replace('--pack template-business --mode standalone','--pack "$BUSINESS_PACK" --mode standalone')
-          text=text.replace("r.businessName!=='Template Business'||r.businessId!=='BUSINESS'","r.businessName!==process.env.CLEAN_BUSINESS_NAME||r.businessId!==process.env.CLEAN_BUSINESS_ID")
-          text=text.replace("r.businessId!=='BUSINESS'||r.businessName!=='Template Business'","r.businessId!==process.env.CLEAN_BUSINESS_ID||r.businessName!==process.env.CLEAN_BUSINESS_NAME")
-          text=text.replace('<h1>Template Business Receipt</h1>','<h1>${process.env.CLEAN_BUSINESS_NAME} Receipt</h1>')
-          installer.write_text(text)
           PY
 
       - name: Verify reconciled source
