@@ -1,0 +1,132 @@
+name: Publish Remaining Approved Website Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.remaining-image-publish-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'Trigger remaining approved image publication'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download nine approved images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/approved-website-images
+          curl --fail --location --retry 3 'https://at.adobe.com/wbnKT79NDqpTWwUX' -o assets/approved-website-images/h38-05-organized-tool-wall-workbench.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/yRBhCzgD6PGohfbc' -o assets/approved-website-images/h38-06-garage-layout-zones.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/DiZ6TD5YhiyLOOeK' -o assets/approved-website-images/h38-07-storage-organization-system.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/yGD8dSpRUKo9Sx0P' -o assets/approved-website-images/h38-08-request-process-checklist.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/jP4eOieUag2RdLaC' -o assets/approved-website-images/h38-09-clean-working-shop-floor.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/QxDYYvvVBr6mDk9A' -o assets/approved-website-images/h38-10-project-planning-documents.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/9vhi3iofuWIaq4nq' -o assets/approved-website-images/h38-11-exterior-shop-building.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/Kplbjc1OTqSlOtZP' -o assets/approved-website-images/h38-12-cnc-machining-closeup.jpg
+          curl --fail --location --retry 3 'https://at.adobe.com/OCUq4LWprmOk0aGb' -o assets/approved-website-images/h38-13-digital-organization-file-system.jpg
+
+      - name: Install representative image placements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          js=Path('brand-global.js')
+          text=js.read_text()
+          old="  function run(){ensureHeader();ensureFooter();routeLegacyOwnerLinks();}"
+          if old not in text:
+              raise SystemExit('brand-global.js insertion anchor missing')
+          block=r'''  const IMAGE_VERSION='20260715-remaining-approved';
+          function representativeFigure(spec){
+            const figure=document.createElement('figure');
+            figure.className='h38-representative-image';
+            figure.dataset.h38RepresentativeImage=spec.id;
+            const img=document.createElement('img');
+            img.src='assets/approved-website-images/'+spec.file+'?v='+IMAGE_VERSION;
+            img.alt=spec.alt;
+            img.width=1440;
+            img.height=632;
+            img.loading='lazy';
+            img.decoding='async';
+            const caption=document.createElement('figcaption');
+            caption.textContent='Representative image — '+spec.caption;
+            figure.append(img,caption);
+            return figure;
+          }
+          function addRepresentativeImage(selector,spec,position){
+            if(document.querySelector('[data-h38-representative-image="'+spec.id+'"]'))return;
+            const target=document.querySelector(selector);
+            if(!target)return;
+            const figure=representativeFigure(spec);
+            if(position==='afterbegin')target.insertBefore(figure,target.firstChild);
+            else if(position==='beforeend')target.appendChild(figure);
+            else if(position==='before')target.parentNode.insertBefore(figure,target);
+            else target.parentNode.insertBefore(figure,target.nextSibling);
+          }
+          function addApprovedRepresentativeImages(){
+            const page=document.body.dataset.page||'';
+            if(page==='solutions'){
+              addRepresentativeImage('#space-project .section-head',{id:'h38-06',file:'h38-06-garage-layout-zones.jpg',alt:'Garage and workshop with clearly defined vehicle, equipment, and work zones.',caption:'garage and workshop planning zones.'},'after');
+              addRepresentativeImage('#shop-business .section-head',{id:'h38-05',file:'h38-05-organized-tool-wall-workbench.jpg',alt:'Organized tool wall and workbench with clearly arranged hand tools and storage.',caption:'shop organization and workspace efficiency.'},'after');
+              addRepresentativeImage('#shop-business .cta',{id:'h38-07',file:'h38-07-storage-organization-system.jpg',alt:'Organized storage system with labeled bins, shelving, and central workbench.',caption:'storage, cleanup, and organization systems.'},'before');
+              addRepresentativeImage('#digital .section-head',{id:'h38-13',file:'h38-13-digital-organization-file-system.jpg',alt:'Organized digital file system displayed beside structured physical folders.',caption:'digital workflow, file cleanup, and business organization.'},'after');
+              addRepresentativeImage('#manufacturing .section-head',{id:'h38-12',file:'h38-12-cnc-machining-closeup.jpg',alt:'CNC machining operation cutting a metal workpiece in a secured fixture.',caption:'CNC, fixture, and manufacturing planning context.'},'after');
+            }
+            if(page==='products'){
+              addRepresentativeImage('#plans .section-head',{id:'h38-10',file:'h38-10-project-planning-documents.jpg',alt:'Project planning documents, measurements, calculator, and notes arranged on a desk.',caption:'project planning, layout, and decision-packet work.'},'after');
+            }
+            if(page==='about'){
+              addRepresentativeImage('.command-center-placement .commercial-wrap>h2',{id:'h38-09',file:'h38-09-clean-working-shop-floor.jpg',alt:'Clean working shop floor with workbenches, tool storage, and equipment.',caption:'practical shop-floor work environment.'},'after');
+              addRepresentativeImage('.commercial-section--cream .commercial-heading',{id:'h38-11',file:'h38-11-exterior-shop-building.jpg',alt:'Practical detached shop building with two overhead doors in a wooded setting.',caption:'representative business and shop environment.'},'after');
+            }
+            if(page==='start'){
+              addRepresentativeImage('.start-request-section .container',{id:'h38-08',file:'h38-08-request-process-checklist.jpg',alt:'Project request checklist with measuring tape, notes, and pen on a work surface.',caption:'the project request and information-gathering process.'},'afterbegin');
+            }
+          }
+          function run(){ensureHeader();ensureFooter();routeLegacyOwnerLinks();addApprovedRepresentativeImages();}'''
+          js.write_text(text.replace(old,block))
+          css=Path('brand-global.css')
+          css.write_text(css.read_text()+"\n.h38-representative-image{margin:1.25rem 0 1.75rem;overflow:hidden;border:1px solid rgba(20,43,60,.16);border-radius:18px;background:#fff;box-shadow:0 16px 38px rgba(12,28,44,.14)}.h38-representative-image img{display:block;width:100%;height:auto;aspect-ratio:1440/632;object-fit:cover;background:#e8edf0}.h38-representative-image figcaption{padding:.65rem .85rem;color:#41525e;font-size:.82rem;line-height:1.4}.start-request-section .h38-representative-image{margin-top:0}.command-center-placement .h38-representative-image{margin-bottom:1.25rem}@media(max-width:620px){.h38-representative-image{margin:1rem 0 1.35rem;border-radius:14px}.h38-representative-image figcaption{font-size:.76rem;padding:.55rem .7rem}}\n")
+          PY
+
+      - name: Validate assets and bounded website changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in assets/approved-website-images/h38-{05,06,07,08,09,10,11,12,13}-*.jpg; do
+            test -s "$file"
+            file "$file" | grep -qi 'JPEG image data'
+          done
+          node --check brand-global.js
+          grep -q 'Representative image' brand-global.js
+          grep -q 'h38-13-digital-organization-file-system.jpg' brand-global.js
+          if [ -f scripts/verify-highway38-final-polish.js ]; then node scripts/verify-highway38-final-polish.js; fi
+          changed=$(git status --short | awk '{print $2}')
+          while IFS= read -r path; do
+            case "$path" in
+              brand-global.js|brand-global.css|assets/approved-website-images/*|.github/workflows/publish-remaining-approved-images.yml|.remaining-image-publish-trigger) ;;
+              '') ;;
+              *) echo "Unexpected changed file: $path"; exit 1;;
+            esac
+          done <<< "$changed"
+
+      - name: Commit completed image implementation and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Highway 38 Build Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add brand-global.js brand-global.css assets/approved-website-images
+          git rm -f .github/workflows/publish-remaining-approved-images.yml .remaining-image-publish-trigger
+          git commit -m 'Add nine remaining approved website images'
+          git push origin main
