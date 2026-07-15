@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "passes": [
+    {
+      "name": "neutral core contains no Highway 38 identity",
+      "detail": ""
+    },
+    {
+      "name": "neutral core contains no H38 identifiers",
+      "detail": ""
+    },
+    {
+      "name": "neutral core contains no live resource IDs",
+      "detail": ""
+    },
+    {
+      "name": "Highway 38 pack carries Highway 38 identity",
+      "detail": ""
+    },
+    {
+      "name": "Highway 38 pack uses property references rather than embedded resource IDs",
+      "detail": ""
+    },
+    {
+      "name": "template pack is neutral",
+      "detail": ""
+    },
+    {
+      "name": "template pack has empty catalog",
+      "detail": ""
+    },
+    {
+      "name": "template pack retains safety boundaries",
+      "detail": ""
+    },
+    {
+      "name": "highway38 combined bundle generated",
+      "detail": ""
+    },
+    {
+      "name": "template-business standalone bundle generated",
+      "detail": ""
+    },
+    {
+      "name": "clean bundle has no Highway 38 leakage",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

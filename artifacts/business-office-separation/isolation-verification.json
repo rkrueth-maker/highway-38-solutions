@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "packs": [
+    "highway38",
+    "template-business"
+  ],
+  "passes": [
+    {
+      "name": "at least Highway 38 and template packs exist",
+      "detail": "2"
+    },
+    {
+      "name": "installation IDs are unique",
+      "detail": "highway38-production, template-business"
+    },
+    {
+      "name": "business IDs are unique",
+      "detail": "H38, BUSINESS"
+    },
+    {
+      "name": "highway38 uses property-key resource isolation",
+      "detail": ""
+    },
+    {
+      "name": "highway38 contains no embedded Google resource IDs",
+      "detail": ""
+    },
+    {
+      "name": "highway38 keeps direct payment disabled",
+      "detail": ""
+    },
+    {
+      "name": "template-business uses property-key resource isolation",
+      "detail": ""
+    },
+    {
+      "name": "template-business contains no embedded Google resource IDs",
+      "detail": ""
+    },
+    {
+      "name": "template-business keeps direct payment disabled",
+      "detail": ""
+    },
+    {
+      "name": "template-business contains no Highway 38 leakage",
+      "detail": ""
+    },
+    {
+      "name": "Highway 38 and template use different primary resource property namespaces",
+      "detail": ""
+    },
+    {
+      "name": "template has no Highway 38 resource property keys",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,23 @@
+{
+  "installationId": "template-business",
+  "businessId": "BUSINESS",
+  "businessName": "Template Business",
+  "mode": "standalone",
+  "generatedAt": "2026-07-15T02:19:46.646Z",
+  "sourceFiles": [
+    "packages/business-office-core/apps-script/BusinessOffice_Config.gs",
+    "packages/business-office-core/apps-script/BusinessOffice_Core.gs",
+    "packages/business-office-core/apps-script/BusinessOffice_Dashboard.gs",
+    "packages/business-office-core/apps-script/BusinessOffice_Workflows.gs",
+    "packages/authentication/apps-script/BusinessOffice_Auth.gs",
+    "packages/document-intake/apps-script/BusinessOffice_DocumentsPDF.gs",
+    "packages/accounting/apps-script/BusinessOffice_Accounting.gs",
+    "packages/payroll-preparation/apps-script/BusinessOffice_PayrollTax.gs",
+    "packages/shared-ui/BusinessOffice_Index.html",
+    "apps/business-office/BusinessOffice_Web.gs",
+    "apps/business-office/BusinessOffice_Installer.gs",
+    "apps/business-office/BusinessOffice_Test.gs",
+    "apps/business-office/appsscript.json"
+  ],
+  "configurationHash": "9db7304394deebbc05dc62c901115e5e9680462aabf5f9474a5655cf5be01ae5"
+}

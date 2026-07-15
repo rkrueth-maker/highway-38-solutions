@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "installationId": "template-business",
+  "business": {
+    "id": "BUSINESS",
+    "legalName": "Template Business",
+    "publicName": "Template Business"
+  },
+  "branding": {
+    "businessName": "Template Business",
+    "businessOfficeName": "Business Office",
+    "logoPath": "",
+    "logoUrl": "",
+    "primaryColor": "#263746",
+    "secondaryColor": "#5b7285",
+    "documentFooter": "Business Office \u00b7 Private preparation document",
+    "originalFileDescription": "Private Business Office original."
+  },
+  "contact": {
+    "ownerEmailProperty": "BO_OWNER_EMAIL",
+    "publicEmail": "",
+    "phone": "",
+    "address": ""
+  },
+  "regional": {
+    "timeZone": "Etc/UTC",
+    "currency": "USD",
+    "locale": "en-US"
+  },
+  "resources": {
+    "propertyKeys": {
+      "BO_SPREADSHEET_ID": "BO_SPREADSHEET_ID",
+      "BO_DEFAULT_BUSINESS_ID": "BO_DEFAULT_BUSINESS_ID",
+      "BO_ROOT_FOLDER_ID": "BO_ROOT_FOLDER_ID",
+      "BO_DOCUMENT_FOLDER_ID": "BO_DOCUMENT_FOLDER_ID",
+      "BO_PDF_FOLDER_ID": "BO_PDF_FOLDER_ID",
+      "BO_EXPORT_FOLDER_ID": "BO_EXPORT_FOLDER_ID",
+      "BO_BACKUP_FOLDER_ID": "BO_BACKUP_FOLDER_ID",
+      "BO_INTAKE_SOURCE_SPREADSHEET_ID": "BO_INTAKE_SOURCE_SPREADSHEET_ID"
+    }
+  },
+  "website": {
+    "publicUrl": "",
+    "ownerPortalUrl": ""
+  },
+  "catalog": {
+    "mode": "empty",
+    "source": "BO Products & Services"
+  },
+  "validation": {
+    "enforceCatalogCounts": true,
+    "expectedProductCount": 0,
+    "expectedBundleCount": 0
+  },
+  "approvalLanguage": {
+    "required": "Approval Required",
+    "ownerRequired": "Owner authorization is required.",
+    "dashboardReview": "Review is required before customer action.",
+    "decisionButton": "Record decision"
+  },
+  "tax": {
+    "mode": "preparation-only",
+    "directFiling": false
+  },
+  "modules": {
+    "requests": true,
+    "customers": true,
+    "vendors": true,
+    "quotes": true,
+    "workOrders": true,
+    "jobs": true,
+    "purchasing": true,
+    "invoices": true,
+    "payments": true,
+    "expenses": true,
+    "documents": true,
+    "ocr": true,
+    "accounting": true,
+    "payroll": true,
+    "tax": true,
+    "reports": true
+  },
+  "templates": {
+    "quote": "default",
+    "workOrder": "default",
+    "invoice": "default",
+    "expense": "default",
+    "payroll": "default",
+    "taxPreparation": "default"
+  },
+  "defaults": {
+    "chartOfAccounts": "standard-small-business",
+    "documentTypes": [
+      "Receipt",
+      "Vendor Invoice",
+      "Purchase Order",
+      "Quote",
+      "Estimate",
+      "Work Order",
+      "Customer Request",
+      "Delivery Ticket",
+      "Statement",
+      "Contract",
+      "Timecard",
+      "W-9",
+      "Tax Document",
+      "Equipment Record",
+      "Mileage Record",
+      "Other"
+    ],
+    "roles": [
+      "Owner",
+      "Administrator",
+      "Staff",
+      "Bookkeeper",
+      "Payroll",
+      "Viewer"
+    ]
+  }
+}
