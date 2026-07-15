@@ -1,0 +1,110 @@
+name: Approved Website Image Text Runner
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: approved-website-image-text-runner
+  cancel-in-progress: false
+
+jobs:
+  apply-text-placements:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: approved-website-image-implementation
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Apply reviewed placement patch
+        id: patch
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pip install --disable-pip-version-check pyyaml
+          python <<'PY' 2>&1 | tee "$RUNNER_TEMP/approved-image-text.log"
+          import os
+          import subprocess
+          from pathlib import Path
+          import yaml
+
+          workflow = yaml.safe_load(Path('.github/workflows/approved-image-implementation-helper.yml').read_text())
+          step = next((item for item in workflow['jobs']['implement']['steps'] if item.get('name') == 'Apply approved image placements only'), None)
+          if not step or 'run' not in step:
+              raise SystemExit('Reviewed placement step is missing.')
+          subprocess.run(step['run'], shell=True, executable='/bin/bash', check=True, env=os.environ)
+          PY
+
+          rm -f .approved-image-implementation-anchor .github/workflows/approved-image-implementation-helper.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html solutions.html commercial-evolution.css .approved-image-implementation-anchor .github/workflows/approved-image-implementation-helper.yml
+          git commit -m 'Place approved Highway 38 website image references'
+          git push origin HEAD:approved-website-image-implementation
+          git rev-parse HEAD > "$RUNNER_TEMP/approved-image-branch-sha.txt"
+
+      - name: Report branch result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/approved-image-text-report.md"
+          if [[ "${{ steps.patch.outcome }}" == "success" ]]; then
+            SHA="$(cat "$RUNNER_TEMP/approved-image-branch-sha.txt")"
+            {
+              echo '## Approved image placement text patch PASS'
+              echo
+              echo "Branch commit: \`${SHA}\`"
+              echo
+              echo 'The approved HTML/CSS placements were applied. Binary image assets are being added separately from the verified Drive files.'
+            } > "$REPORT"
+          else
+            {
+              echo '## Approved image placement text patch HOLD'
+              echo
+              echo '```text'
+              tail -c 50000 "$RUNNER_TEMP/approved-image-text.log" || true
+              echo
+              echo '```'
+            } > "$REPORT"
+          fi
+          gh issue comment 100 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
+
+      - name: Remove temporary runner from main
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git worktree add "$RUNNER_TEMP/h38-main-cleanup" origin/main
+          cd "$RUNNER_TEMP/h38-main-cleanup"
+          git checkout -B main origin/main
+          rm -f .github/workflows/approved-image-text-runner.yml
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/approved-image-text-runner.yml
+          git commit -m 'Remove approved image text runner'
+          git push origin HEAD:main
+
+      - name: Preserve failure conclusion
+        if: steps.patch.outcome == 'failure'
+        run: exit 1
