@@ -60,8 +60,20 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run commercial and browser suite
-        run: npm run test:commercial
+      - name: Run all-page desktop and mobile verification
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/final-polish
+          node scripts/verify-commercial-browser.js 2>&1 | tee artifacts/final-polish/browser-verification.txt
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: highway38-final-polish-browser-${{ github.run_id }}
+          path: artifacts/final-polish/browser-verification.txt
+          if-no-files-found: error
+          retention-days: 90
 
   python-regression:
     runs-on: ubuntu-latest
