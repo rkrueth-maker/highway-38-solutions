@@ -1,9 +1,10 @@
 {
-  "requestId": "BUSINESS-OFFICE-CORE-NEUTRALIZATION-20260714-03",
+  "requestId": "BUSINESS-OFFICE-CORE-NEUTRALIZATION-20260714-04",
   "branch": "business-office-separation",
   "authorized": true,
   "scope": "Remove live Highway 38 identity and resource assumptions from reusable Business Office source",
   "liveDeploymentIncluded": false,
   "diagnosticCapture": true,
-  "leakLocationCapture": true
+  "leakLocationCapture": true,
+  "generalizedPdfLeakageCheck": true
 }
