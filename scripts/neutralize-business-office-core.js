@@ -41,12 +41,20 @@ update('apps-script/business-office/BusinessOffice_DocumentsPDF.gs', text => {
   return text;
 });
 
-update('apps-script/business-office/BusinessOffice_PlatformAcceptance.gs', text => replaceRequired(
-  text,
-  "const terms = input.forbiddenTerms || ['Highway 38 Solutions', '1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA', '1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC', '11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3'];",
-  "const terms = input.forbiddenTerms || boPackValue_('isolation.forbiddenTerms', []);",
-  'platform leakage terms'
-));
+update('apps-script/business-office/BusinessOffice_PlatformAcceptance.gs', text => {
+  text = replaceRequired(
+    text,
+    "const terms = input.forbiddenTerms || ['Highway 38 Solutions', '1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA', '1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC', '11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3'];",
+    "const terms = input.forbiddenTerms || boPackValue_('isolation.forbiddenTerms', []);",
+    'platform leakage terms'
+  );
+  return replaceRequired(
+    text,
+    "if (boBusinessName_() !== 'Highway 38 Solutions') boAssert_(text.indexOf('Highway 38 Solutions') < 0, item[0] + ' PDF leaked Highway 38 identity.');",
+    "(input.forbiddenTerms || boPackValue_('isolation.forbiddenTerms', [])).forEach(function (term) { boAssert_(text.indexOf(String(term)) < 0, item[0] + ' PDF leaked a protected identity or resource marker.'); });",
+    'platform PDF leakage check'
+  );
+});
 
 update('apps-script/business-office/BusinessOffice_Provisioning.gs', text => replaceRequired(
   text,
