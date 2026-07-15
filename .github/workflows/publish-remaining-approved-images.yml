@@ -1,0 +1,96 @@
+name: Publish Remaining Approved Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.remaining-approved-images-trigger'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-remaining-approved-images
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Download exact approved source images
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/h38-approved assets/approved-website-images
+          curl -L --fail --retry 3 -o /tmp/h38-approved/05.jpg 'https://at.adobe.com/HxYyQcFLvHXGTLoF'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/06.jpg 'https://at.adobe.com/hMu4h2p3ZmccXpJb'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/07.jpg 'https://at.adobe.com/7zrjaLIQ2QcTo2UJ'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/08.jpg 'https://at.adobe.com/t9lcrxzAraQk70e1'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/09.jpg 'https://at.adobe.com/P3ZUod3vcgLTgU36'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/10.jpg 'https://at.adobe.com/arckfmvwM6ArgAx8'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/11.jpg 'https://at.adobe.com/fftNIZIxAPve1rGK'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/12.jpg 'https://at.adobe.com/x56Sc2hb6DmyB1D9'
+          curl -L --fail --retry 3 -o /tmp/h38-approved/13.jpg 'https://at.adobe.com/2vY5escQYw20zJzs'
+      - name: Optimize images and apply approved placements
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src=Path('/tmp/h38-approved')
+          out=Path('assets/approved-website-images')
+          names={
+            '05':'05-organized-tool-wall-workbench.jpg',
+            '06':'06-garage-layout-zones.jpg',
+            '07':'07-storage-organization-system.jpg',
+            '08':'08-request-process-checklist.jpg',
+            '09':'09-clean-working-shop-floor.jpg',
+            '10':'10-project-planning-documents.jpg',
+            '11':'11-exterior-shop-building.jpg',
+            '12':'12-cnc-machining-closeup.jpg',
+            '13':'13-digital-organization-file-system.jpg',
+          }
+          for key,name in names.items():
+              im=Image.open(src/f'{key}.jpg').convert('RGB')
+              w,h=im.size
+              if w>1200:
+                  im=im.resize((1200,round(h*1200/w)),Image.Resampling.LANCZOS)
+              im.save(out/name,'JPEG',quality=84,optimize=True,progressive=True)
+          PY
+          echo 'KGZ1bmN0aW9uKCl7CiAgJ3VzZSBzdHJpY3QnOwogIGNvbnN0IExPR089J2Fzc2V0cy9oaWdod2F5MzgtbG9nby5wbmc/dj0yMDI2MDcxMy1sb2dvMic7CiAgY29uc3QgSU1BR0VfQkFTRT0nYXNzZXRzL2FwcHJvdmVkLXdlYnNpdGUtaW1hZ2VzLyc7CiAgY29uc3QgSU1BR0VfVkVSU0lPTj0nP3Y9MjAyNjA3MTUtcmVtYWluaW5nLWFwcHJvdmVkJzsKICBjb25zdCBicmFuZFRleHQ9KCk9Pic8c3BhbiBjbGFzcz0iYnJhbmQtdGV4dCI+PHNwYW4+SGlnaHdheSAzODwvc3Bhbj4gU29sdXRpb25zPC9zcGFuPic7CiAgY29uc3QgbG9nbz0oKT0+e2NvbnN0IGltZz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdpbWcnKTtpbWcuY2xhc3NOYW1lPSdicmFuZC1sb2dvJztpbWcuc3JjPUxPR087aW1nLmFsdD0nSGlnaHdheSAzOCBTb2x1dGlvbnMnO3JldHVybiBpbWc7fTsKICBmdW5jdGlvbiB3cmFwVGV4dChlbCl7CiAgICBpZihlbC5xdWVyeVNlbGVjdG9yKCcuYnJhbmQtdGV4dCcpKXJldHVybjsKICAgIGNvbnN0IG5vZGVzPVsuLi5lbC5jaGlsZE5vZGVzXS5maWx0ZXIobm9kZT0+IShub2RlLm5vZGVUeXBlPT09MSYmbm9kZS5jbGFzc0xpc3QuY29udGFpbnMoJ2JyYW5kLWxvZ28nKSkpOwogICAgY29uc3Qgd3JhcHBlcj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdzcGFuJyk7d3JhcHBlci5jbGFzc05hbWU9J2JyYW5kLXRleHQnOwogICAgbm9kZXMuZm9yRWFjaChub2RlPT53cmFwcGVyLmFwcGVuZENoaWxkKG5vZGUpKTsKICAgIGlmKCF3cmFwcGVyLnRleHRDb250ZW50LnRyaW0oKSl3cmFwcGVyLmlubmVySFRNTD0nPHNwYW4+SGlnaHdheSAzODwvc3Bhbj4gU29sdXRpb25zJzsKICAgIGVsLmFwcGVuZENoaWxkKHdyYXBwZXIpOwogIH0KICBmdW5jdGlvbiBlbmhhbmNlKGVsKXsKICAgIGlmKCFlbHx8ZWwucXVlcnlTZWxlY3RvcignLmJyYW5kLWxvZ28nKSlyZXR1cm4gZmFsc2U7CiAgICBjb25zdCB0ZXh0PShlbC50ZXh0Q29udGVudHx8JycpLnJlcGxhY2UoL1xzKy9nLCcgJykudHJpbSgpOwogICAgaWYoIS9oaWdod2F5XHMqMzgvaS50ZXN0KHRleHQpJiYhZWwubWF0Y2hlcygnLmJyYW5kLC5zaXRlLWJyYW5kLC5uYXZiYXItYnJhbmQsLmxvZ28nKSlyZXR1cm4gZmFsc2U7CiAgICBlbC5jbGFzc0xpc3QuYWRkKCdoMzgtYnJhbmQtbG9ja3VwJyk7CiAgICBlbC5pbnNlcnRCZWZvcmUobG9nbygpLGVsLmZpcnN0Q2hpbGQpOwogICAgd3JhcFRleHQoZWwpOwogICAgcmV0dXJuIHRydWU7CiAgfQogIGZ1bmN0aW9uIGVuc3VyZUhlYWRlcigpewogICAgY29uc3QgY2FuZGlkYXRlcz1kb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCdhLmJyYW5kLGEuc2l0ZS1icmFuZCxhLm5hdmJhci1icmFuZCxhLmxvZ28sLmJyYW5kIGEsLnNpdGUtYnJhbmQgYSwuZWNvLWJyYW5kJyk7CiAgICBsZXQgZm91bmQ9ZmFsc2U7Y2FuZGlkYXRlcy5mb3JFYWNoKGVsPT57aWYoZW5oYW5jZShlbCkpZm91bmQ9dHJ1ZTtlbHNlIGlmKGVsLnF1ZXJ5U2VsZWN0b3IoJy5icmFuZC1sb2dvJykpZm91bmQ9dHJ1ZTt9KTsKICAgIGlmKGZvdW5kKXJldHVybjsKICAgIGNvbnN0IG5hdj1kb2N1bWVudC5xdWVyeVNlbGVjdG9yKCduYXYnKTsKICAgIGlmKG5hdil7Y29uc3QgbGluaz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdhJyk7bGluay5ocmVmPSdpbmRleC5odG1sJztsaW5rLmNsYXNzTmFtZT0naDM4LWdsb2JhbC1icmFuZGJhcl9fbGluayc7bGluay5hcHBlbmRDaGlsZChsb2dvKCkpO2xpbmsuaW5zZXJ0QWRqYWNlbnRIVE1MKCdiZWZvcmVlbmQnLGJyYW5kVGV4dCgpKTtuYXYuaW5zZXJ0QmVmb3JlKGxpbmssbmF2LmZpcnN0Q2hpbGQpO3JldHVybjt9CiAgICBjb25zdCBoZWFkZXI9ZG9jdW1lbnQucXVlcnlTZWxlY3RvcignaGVhZGVyJyk7CiAgICBpZihoZWFkZXIpe2NvbnN0IGJhcj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtiYXIuY2xhc3NOYW1lPSdoMzgtZ2xvYmFsLWJyYW5kYmFyJztiYXIuaW5uZXJIVE1MPSc8YSBjbGFzcz0iaDM4LWdsb2JhbC1icmFuZGJhcl9fbGluayIgaHJlZj0iaW5kZXguaHRtbCI+PGltZyBjbGFzcz0iYnJhbmQtbG9nbyIgc3JjPSInK0xPR08rJyIgYWx0PSJIaWdod2F5IDM4IFNvbHV0aW9ucyIgLz4nK2JyYW5kVGV4dCgpKyc8L2E+JztoZWFkZXIuaW5zZXJ0QmVmb3JlKGJhcixoZWFkZXIuZmlyc3RDaGlsZCk7cmV0dXJuO30KICAgIGNvbnN0IGJhcj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtiYXIuY2xhc3NOYW1lPSdoMzgtZ2xvYmFsLWJyYW5kYmFyJztiYXIuaW5uZXJIVE1MPSc8YSBjbGFzcz0iaDM4LWdsb2JhbC1icmFuZGJhcl9fbGluayIgaHJlZj0iaW5kZXguaHRtbCI+PGltZyBjbGFzcz0iYnJhbmQtbG9nbyIgc3JjPSInK0xPR08rJyIgYWx0PSJIaWdod2F5IDM4IFNvbHV0aW9ucyIgLz4nK2JyYW5kVGV4dCgpKyc8L2E+Jztkb2N1bWVudC5ib2R5Lmluc2VydEJlZm9yZShiYXIsZG9jdW1lbnQuYm9keS5maXJzdENoaWxkKTsKICB9CiAgZnVuY3Rpb24gZW5zdXJlRm9vdGVyKCl7CiAgICBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCdmb290ZXInKS5mb3JFYWNoKGZvb3Rlcj0+ewogICAgICBpZihmb290ZXIucXVlcnlTZWxlY3RvcignLmJyYW5kLWxvZ28nKSlyZXR1cm47CiAgICAgIGNvbnN0IHdyYXA9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnZGl2Jyk7d3JhcC5jbGFzc05hbWU9J2gzOC1sZWdhY3ktZm9vdGVyLWJyYW5kJzt3cmFwLmlubmVySFRNTD0nPGEgY2xhc3M9ImgzOC1mb290ZXItYnJhbmQiIGhyZWY9ImluZGV4Lmh0bWwiPjxpbWcgY2xhc3M9ImJyYW5kLWxvZ28iIHNyYz0iJytMT0dPKyciIGFsdD0iSGlnaHdheSAzOCBTb2x1dGlvbnMiIC8+JyticmFuZFRleHQoKSsnPC9hPic7CiAgICAgIGZvb3Rlci5pbnNlcnRCZWZvcmUod3JhcCxmb290ZXIuZmlyc3RDaGlsZCk7CiAgICB9KTsKICB9CiAgZnVuY3Rpb24gcm91dGVMZWdhY3lPd25lckxpbmtzKCl7CiAgICBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCdhW2hyZWYqPSJzY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy8iXScpLmZvckVhY2gobGluaz0+ewogICAgICBpZihsaW5rLmhhc0F0dHJpYnV0ZSgnZGF0YS1vd25lci1hcHAnKSlyZXR1cm47CiAgICAgIGNvbnN0IGxhYmVsPShsaW5rLnRleHRDb250ZW50fHwnJykucmVwbGFjZSgvXHMrL2csJyAnKS50cmltKCk7CiAgICAgIGlmKCEvb3duZXJccysocG9ydGFsfGxvZ2luKS9pLnRlc3QobGFiZWwpKXJldHVybjsKICAgICAgbGluay5ocmVmPSdwb3J0YWwuaHRtbCc7CiAgICAgIGxpbmsucmVtb3ZlQXR0cmlidXRlKCd0YXJnZXQnKTsKICAgICAgbGluay5yZW1vdmVBdHRyaWJ1dGUoJ3JlbCcpOwogICAgfSk7CiAgfQogIGZ1bmN0aW9uIHJlcHJlc2VudGF0aXZlRmlndXJlKGZpbGUsYWx0LGNhcHRpb24pewogICAgY29uc3QgZmlndXJlPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2ZpZ3VyZScpO2ZpZ3VyZS5jbGFzc05hbWU9J2gzOC1yZXByZXNlbnRhdGl2ZS1pbWFnZSc7CiAgICBjb25zdCBpbWc9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnaW1nJyk7aW1nLnNyYz1JTUFHRV9CQVNFK2ZpbGUrSU1BR0VfVkVSU0lPTjtpbWcuYWx0PWFsdDtpbWcud2lkdGg9MTIwMDtpbWcuaGVpZ2h0PTUyNztpbWcubG9hZGluZz0nbGF6eSc7aW1nLmRlY29kaW5nPSdhc3luYyc7CiAgICBjb25zdCBmaWdjYXB0aW9uPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2ZpZ2NhcHRpb24nKTtmaWdjYXB0aW9uLnRleHRDb250ZW50PWNhcHRpb24rJyDCtyBSZXByZXNlbnRhdGl2ZSBpbWFnZXJ5LCBub3QgY3VzdG9tZXIgcHJvb2YuJzsKICAgIGZpZ3VyZS5hcHBlbmQoaW1nLGZpZ2NhcHRpb24pO3JldHVybiBmaWd1cmU7CiAgfQogIGZ1bmN0aW9uIGFkZFJlcHJlc2VudGF0aXZlR3JvdXAodGFyZ2V0LGl0ZW1zLHBvc2l0aW9uPSdhZnRlcmJlZ2luJyl7CiAgICBpZighdGFyZ2V0fHx0YXJnZXQucXVlcnlTZWxlY3RvcignLmgzOC1hcHByb3ZlZC1pbWFnZS1ncm91cCcpKXJldHVybjsKICAgIGNvbnN0IGdyb3VwPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpO2dyb3VwLmNsYXNzTmFtZT0naDM4LWFwcHJvdmVkLWltYWdlLWdyb3VwJztncm91cC5zZXRBdHRyaWJ1dGUoJ2FyaWEtbGFiZWwnLCdSZXByZXNlbnRhdGl2ZSBIaWdod2F5IDM4IGltYWdlcnknKTsKICAgIGl0ZW1zLmZvckVhY2goaXRlbT0+Z3JvdXAuYXBwZW5kQ2hpbGQocmVwcmVzZW50YXRpdmVGaWd1cmUoaXRlbS5maWxlLGl0ZW0uYWx0LGl0ZW0uY2FwdGlvbikpKTsKICAgIHRhcmdldC5pbnNlcnRBZGphY2VudEVsZW1lbnQocG9zaXRpb24sZ3JvdXApOwogIH0KICBmdW5jdGlvbiBwbGFjZUFwcHJvdmVkSW1hZ2VzKCl7CiAgICBjb25zdCBwYWdlPWRvY3VtZW50LmJvZHkuZGF0YXNldC5wYWdlfHwnJzsKICAgIGlmKHBhZ2U9PT0nc29sdXRpb25zJyl7CiAgICAgIGFkZFJlcHJlc2VudGF0aXZlR3JvdXAoZG9jdW1lbnQucXVlcnlTZWxlY3RvcignI3NwYWNlLXByb2plY3QgLmNvbnRhaW5lcicpLFsKICAgICAgICB7ZmlsZTonMDYtZ2FyYWdlLWxheW91dC16b25lcy5qcGcnLGFsdDonR2FyYWdlIGFuZCB3b3Jrc2hvcCB3aXRoIGNsZWFybHkgZGVmaW5lZCB2ZWhpY2xlLCBlcXVpcG1lbnQsIGFuZCB3b3JrIHpvbmVzLicsY2FwdGlvbjonR2FyYWdlIGFuZCBzaG9wIGxheW91dCBwbGFubmluZyd9CiAgICAgIF0pOwogICAgICBhZGRSZXByZXNlbnRhdGl2ZUdyb3VwKGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoJyNzaG9wLWJ1c2luZXNzIC5jb250YWluZXInKSxbCiAgICAgICAge2ZpbGU6JzA1LW9yZ2FuaXplZC10b29sLXdhbGwtd29ya2JlbmNoLmpwZycsYWx0OidPcmdhbml6ZWQgdG9vbCB3YWxsIGFuZCB3b3JrYmVuY2ggd2l0aCBjbGVhcmx5IGFycmFuZ2VkIGhhbmQgdG9vbHMgYW5kIHN0b3JhZ2UuJyxjYXB0aW9uOidTaG9wIG9yZ2FuaXphdGlvbiBhbmQgd29ya3NwYWNlIGVmZmljaWVuY3knfSwKICAgICAgICB7ZmlsZTonMDctc3RvcmFnZS1vcmdhbml6YXRpb24tc3lzdGVtLmpwZycsYWx0OidPcmdhbml6ZWQgc3RvcmFnZSBzeXN0ZW0gd2l0aCBsYWJlbGVkIGJpbnMsIHNoZWx2aW5nLCBhbmQgY2VudHJhbCB3b3JrYmVuY2guJyxjYXB0aW9uOidTdG9yYWdlLCBjbGVhbnVwLCBhbmQgb3JnYW5pemF0aW9uJ30KICAgICAgXSk7CiAgICAgIGFkZFJlcHJlc2VudGF0aXZlR3JvdXAoZG9jdW1lbnQucXVlcnlTZWxlY3RvcignI2RpZ2l0YWwgLmNvbnRhaW5lcicpLFsKICAgICAgICB7ZmlsZTonMTMtZGlnaXRhbC1vcmdhbml6YXRpb24tZmlsZS1zeXN0ZW0uanBnJyxhbHQ6J09yZ2FuaXplZCBkaWdpdGFsIGZpbGUgc3lzdGVtIGRpc3BsYXllZCBiZXNpZGUgc3RydWN0dXJlZCBwaHlzaWNhbCBmb2xkZXJzLicsY2FwdGlvbjonRGlnaXRhbCB3b3JrZmxvdyBhbmQgZmlsZSBvcmdhbml6YXRpb24nfQogICAgICBdKTsKICAgICAgYWRkUmVwcmVzZW50YXRpdmVHcm91cChkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcjbWFudWZhY3R1cmluZyAuY29udGFpbmVyJyksWwogICAgICAgIHtmaWxlOicxMi1jbmMtbWFjaGluaW5nLWNsb3NldXAuanBnJyxhbHQ6J0NOQyBtYWNoaW5pbmcgb3BlcmF0aW9uIGN1dHRpbmcgYSBtZXRhbCB3b3JrcGllY2UgaW4gYSBzZWN1cmVkIGZpeHR1cmUuJyxjYXB0aW9uOidDTkMgYW5kIG1hbnVmYWN0dXJpbmcgcGxhbm5pbmcnfQogICAgICBdKTsKICAgIH0KICAgIGlmKHBhZ2U9PT0nc3RhcnQnKXsKICAgICAgYWRkUmVwcmVzZW50YXRpdmVHcm91cChkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcuc3RhcnQtcmVxdWVzdC1zZWN0aW9uIC5jb250YWluZXInKSxbCiAgICAgICAge2ZpbGU6JzA4LXJlcXVlc3QtcHJvY2Vzcy1jaGVja2xpc3QuanBnJyxhbHQ6J1Byb2plY3QgcmVxdWVzdCBjaGVja2xpc3Qgd2l0aCBtZWFzdXJpbmcgdGFwZSwgbm90ZXMsIGFuZCBwZW4gb24gYSB3b3JrIHN1cmZhY2UuJyxjYXB0aW9uOidSZXF1ZXN0IHByZXBhcmF0aW9uIGFuZCByZXZpZXcnfQogICAgICBdKTsKICAgIH0KICAgIGlmKHBhZ2U9PT0nYWJvdXQnKXsKICAgICAgYWRkUmVwcmVzZW50YXRpdmVHcm91cChkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCdtYWluIC5jb21tZXJjaWFsLXNlY3Rpb24gLmNvbW1lcmNpYWwtd3JhcCcpLFsKICAgICAgICB7ZmlsZTonMDktY2xlYW4td29ya2luZy1zaG9wLWZsb29yLmpwZycsYWx0OidDbGVhbiB3b3JraW5nIHNob3AgZmxvb3Igd2l0aCB3b3JrYmVuY2hlcywgdG9vbCBzdG9yYWdlLCBhbmQgZXF1aXBtZW50LicsY2FwdGlvbjonUHJhY3RpY2FsIHdvcmtpbmcgZW52aXJvbm1lbnQnfSwKICAgICAgICB7ZmlsZTonMTEtZXh0ZXJpb3Itc2hvcC1idWlsZGluZy5qcGcnLGFsdDonUHJhY3RpY2FsIGRldGFjaGVkIHNob3AgYnVpbGRpbmcgd2l0aCB0d28gb3ZlcmhlYWQgZG9vcnMgaW4gYSB3b29kZWQgc2V0dGluZy4nLGNhcHRpb246J1JlcHJlc2VudGF0aXZlIGJ1c2luZXNzIGVudmlyb25tZW50J30KICAgICAgXSk7CiAgICB9CiAgICBpZihwYWdlPT09J3Byb2R1Y3RzJyl7CiAgICAgIGFkZFJlcHJlc2VudGF0aXZlR3JvdXAoZG9jdW1lbnQucXVlcnlTZWxlY3RvcignI3BsYW5zIC5jb250YWluZXInKSxbCiAgICAgICAge2ZpbGU6JzEwLXByb2plY3QtcGxhbm5pbmctZG9jdW1lbnRzLmpwZycsYWx0OidQcm9qZWN0IHBsYW5uaW5nIGRvY3VtZW50cywgbWVhc3VyZW1lbnRzLCBjYWxjdWxhdG9yLCBhbmQgbm90ZXMgYXJyYW5nZWQgb24gYSBkZXNrLicsY2FwdGlvbjonUHJvamVjdCBwbGFubmluZyBhbmQgZGVjaXNpb24gcGFja2V0cyd9CiAgICAgIF0pOwogICAgfQogIH0KICBmdW5jdGlvbiBydW4oKXtlbnN1cmVIZWFkZXIoKTtlbnN1cmVGb290ZXIoKTtyb3V0ZUxlZ2FjeU93bmVyTGlua3MoKTtwbGFjZUFwcHJvdmVkSW1hZ2VzKCk7fQogIGlmKGRvY3VtZW50LnJlYWR5U3RhdGU9PT0nbG9hZGluZycpZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcscnVuLHtvbmNlOnRydWV9KTtlbHNlIHJ1bigpOwp9KSgpOwo=' | base64 -d > brand-global.js
+          echo 'LmgzOC1icmFuZC1sb2NrdXAsLmgzOC1mb290ZXItYnJhbmQsLmgzOC1nbG9iYWwtYnJhbmRiYXJfX2xpbmt7ZGlzcGxheTppbmxpbmUtZmxleDthbGlnbi1pdGVtczpjZW50ZXI7Z2FwOi42NXJlbTtjb2xvcjppbmhlcml0O3RleHQtZGVjb3JhdGlvbjpub25lO2ZvbnQtd2VpZ2h0OjgwMDtsaW5lLWhlaWdodDoxLjF9LmgzOC1icmFuZC1sb2NrdXAgLmJyYW5kLWxvZ28sLmgzOC1mb290ZXItYnJhbmQgLmJyYW5kLWxvZ28sLmgzOC1nbG9iYWwtYnJhbmRiYXJfX2xpbmsgLmJyYW5kLWxvZ297ZGlzcGxheTpibG9jaztoZWlnaHQ6MzZweDt3aWR0aDphdXRvO21heC13aWR0aDo4OHB4O29iamVjdC1maXQ6Y29udGFpbjtmbGV4OjAgMCBhdXRvfS5oMzgtYnJhbmQtbG9ja3VwIC5icmFuZC10ZXh0LC5oMzgtZm9vdGVyLWJyYW5kIC5icmFuZC10ZXh0LC5oMzgtZ2xvYmFsLWJyYW5kYmFyX19saW5rIC5icmFuZC10ZXh0e2Rpc3BsYXk6aW5saW5lLWZsZXg7YWxpZ24taXRlbXM6YmFzZWxpbmU7Z2FwOi4yNWVtO3doaXRlLXNwYWNlOm5vd3JhcH0uaDM4LWJyYW5kLWxvY2t1cCAuYnJhbmQtdGV4dD5zcGFuLC5oMzgtZm9vdGVyLWJyYW5kIC5icmFuZC10ZXh0PnNwYW4sLmgzOC1nbG9iYWwtYnJhbmRiYXJfX2xpbmsgLmJyYW5kLXRleHQ+c3Bhbntmb250LXdlaWdodDo5MDB9LmgzOC1mb290ZXItYnJhbmR7bWFyZ2luOjAgMCAxcmVtfS5oMzgtZ2xvYmFsLWJyYW5kYmFye2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7bWluLWhlaWdodDo1OHB4O3BhZGRpbmc6LjZyZW0gMXJlbTtiYWNrZ3JvdW5kOiMwZjI3MzQ7Y29sb3I6I2ZmZjtib3JkZXItYm90dG9tOjFweCBzb2xpZCByZ2JhKDI1NSwyNTUsMjU1LC4xMik7cG9zaXRpb246cmVsYXRpdmU7ei1pbmRleDoyMH0uaDM4LWdsb2JhbC1icmFuZGJhcl9fbGlua3ttYXgtd2lkdGg6MTE4MHB4O21hcmdpbjowIGF1dG87d2lkdGg6MTAwJX0uaDM4LWxlZ2FjeS1mb290ZXItYnJhbmR7ZGlzcGxheTpmbGV4O2p1c3RpZnktY29udGVudDpmbGV4LXN0YXJ0O21hcmdpbi1ib3R0b206MXJlbX0uaDM4LWFwcHJvdmVkLWltYWdlLWdyb3Vwe2Rpc3BsYXk6Z3JpZDtncmlkLXRlbXBsYXRlLWNvbHVtbnM6cmVwZWF0KGF1dG8tZml0LG1pbm1heCgyNDBweCwxZnIpKTtnYXA6MXJlbTttYXJnaW46MCAwIDJyZW19LmgzOC1yZXByZXNlbnRhdGl2ZS1pbWFnZXttYXJnaW46MDtvdmVyZmxvdzpoaWRkZW47Ym9yZGVyLXJhZGl1czoxOHB4O2JhY2tncm91bmQ6I2ZmZjtib3gtc2hhZG93OjAgMTRweCAzNnB4IHJnYmEoMTIsMjgsNDQsLjE1KX0uaDM4LXJlcHJlc2VudGF0aXZlLWltYWdlIGltZ3tkaXNwbGF5OmJsb2NrO3dpZHRoOjEwMCU7aGVpZ2h0OmF1dG87YXNwZWN0LXJhdGlvOjEyMDAvNTI3O29iamVjdC1maXQ6Y292ZXJ9LmgzOC1yZXByZXNlbnRhdGl2ZS1pbWFnZSBmaWdjYXB0aW9ue3BhZGRpbmc6LjdyZW0gLjg1cmVtO2ZvbnQtc2l6ZTouODJyZW07bGluZS1oZWlnaHQ6MS4zNTtjb2xvcjojMzM0YjVjfS5oMzgtc2l0ZVtkYXRhLXBhZ2U9InN0YXJ0Il0gLmgzOC1hcHByb3ZlZC1pbWFnZS1ncm91cHttYXJnaW4tYm90dG9tOjEuMjVyZW19QG1lZGlhKG1heC13aWR0aDo2MjBweCl7LmgzOC1icmFuZC1sb2NrdXAgLmJyYW5kLWxvZ28sLmgzOC1mb290ZXItYnJhbmQgLmJyYW5kLWxvZ28sLmgzOC1nbG9iYWwtYnJhbmRiYXJfX2xpbmsgLmJyYW5kLWxvZ297aGVpZ2h0OjMwcHg7d2lkdGg6YXV0bzttYXgtd2lkdGg6NzRweH0uaDM4LWJyYW5kLWxvY2t1cCAuYnJhbmQtdGV4dCwuaDM4LWZvb3Rlci1icmFuZCAuYnJhbmQtdGV4dCwuaDM4LWdsb2JhbC1icmFuZGJhcl9fbGluayAuYnJhbmQtdGV4dHtmb250LXNpemU6LjlyZW19LmgzOC1hcHByb3ZlZC1pbWFnZS1ncm91cHtncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyO2dhcDouOHJlbTttYXJnaW4tYm90dG9tOjEuNHJlbX0uaDM4LXJlcHJlc2VudGF0aXZlLWltYWdle2JvcmRlci1yYWRpdXM6MTRweH0uaDM4LXJlcHJlc2VudGF0aXZlLWltYWdlIGZpZ2NhcHRpb257Zm9udC1zaXplOi43NnJlbX19Cg==' | base64 -d > brand-global.css
+      - name: Validate image-only implementation
+        run: |
+          set -euo pipefail
+          node --check brand-global.js
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          expected=[
+            '05-organized-tool-wall-workbench.jpg','06-garage-layout-zones.jpg','07-storage-organization-system.jpg',
+            '08-request-process-checklist.jpg','09-clean-working-shop-floor.jpg','10-project-planning-documents.jpg',
+            '11-exterior-shop-building.jpg','12-cnc-machining-closeup.jpg','13-digital-organization-file-system.jpg']
+          js=Path('brand-global.js').read_text()
+          for name in expected:
+              p=Path('assets/approved-website-images')/name
+              assert p.exists() and p.stat().st_size>25000, name
+              im=Image.open(p); assert im.size==(1200,527), (name,im.size)
+              assert name in js, name
+          assert js.count('Representative imagery, not customer proof.')==1
+          assert 'loading=\'lazy\'' in js
+          print('approved image validation: PASS')
+          PY
+          node scripts/verify-highway38-final-polish.js
+      - name: Commit directly to main and remove one-time publisher
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/workflows/publish-remaining-approved-images.yml .remaining-approved-images-trigger
+          git add assets/approved-website-images brand-global.js brand-global.css
+          git commit -m 'Publish nine remaining approved website images'
+          git push origin HEAD:main
