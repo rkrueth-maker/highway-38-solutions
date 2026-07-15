@@ -31,17 +31,25 @@ NODE
     echo "HOLD — one-time Google authorization is required at ${ACCEPT_URL}" >&2
     return 78
   fi
-  test "$status" = "200"
-  node - "$raw_file" "$result_file" <<'NODE'
-const fs=require('fs');
-const [raw,result]=process.argv.slice(2);
-const text=fs.readFileSync(raw,'utf8').trim();
-const first=text.indexOf('{'),last=text.lastIndexOf('}');
-if(first<0||last<first)throw new Error(`Authenticated web execution returned no JSON: ${text.slice(0,400)}`);
-const response=JSON.parse(text.slice(first,last+1));
-if(response.ok!==true)throw new Error(response.error||'Authenticated web execution returned HOLD.');
-fs.writeFileSync(result,JSON.stringify(response.result,null,2)+'\n');
-NODE
+  if [[ "$status" != "200" ]]; then
+    echo "HOLD — authenticated web execution returned HTTP ${status} for ${action}." >&2
+    return 79
+  fi
+  python3 - "$raw_file" "$result_file" <<'PYRESP'
+import json,sys
+raw,result=sys.argv[1:3]
+text=open(raw,encoding='utf-8-sig').read().strip()
+first=text.find('{'); last=text.rfind('}')
+if first < 0 or last < first:
+    raise SystemExit('Authenticated web execution returned no JSON: '+text[:400])
+response=json.loads(text[first:last+1])
+if response.get('ok') is not True:
+    raise SystemExit(str(response.get('error') or 'Authenticated web execution returned HOLD.'))
+with open(result,'w',encoding='utf-8') as out:
+    json.dump(response.get('result'),out,indent=2)
+    out.write('\n')
+PYRESP
+  test -s "$result_file"
 }
 
 '''
