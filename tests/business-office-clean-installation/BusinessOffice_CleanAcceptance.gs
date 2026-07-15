@@ -127,6 +127,16 @@ function boRunCleanLiveAcceptance_(payload) {
     duplicateBlocked = /Duplicate upload blocked/i.test(duplicateError.message || String(duplicateError));
   }
   boAssert_(duplicateBlocked, 'Duplicate-upload protection did not block the repeated file.');
+  boReadTable_(BO_SHEETS.ERROR_LOG, { includeVoided: true }).filter(function (row) {
+    return row.Status !== 'Resolved' && /Duplicate upload blocked/i.test(String(row.Message || ''));
+  }).forEach(function (row) {
+    boUpdateRecord_(BO_SHEETS.ERROR_LOG, row['Error ID'], {
+      Status: 'Resolved',
+      'Resolved By': owner.Email,
+      'Resolved Time': boNow_(),
+      Notes: 'Expected duplicate-protection acceptance result; original upload preserved and duplicate rejected.'
+    }, 'Clean-install duplicate-protection acceptance');
+  });
 
   const pdf = boGeneratePdf('Quote', quote['Quote ID']);
   const html = boGetRenderedWebAppHtml();
