@@ -82,7 +82,7 @@ function boRunPlatformAcceptance(payload) {
   });
 
   run('No protected business identity or resource leakage', function () {
-    const terms = input.forbiddenTerms || ['Highway 38 Solutions', '1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA', '1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC', '11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3'];
+    const terms = input.forbiddenTerms || boPackValue_('isolation.forbiddenTerms', []);
     const hits = boScanInstallationForForbiddenTerms_(terms);
     boAssert_(!hits.length, 'Protected business leakage found: ' + JSON.stringify(hits));
     return 'No protected identity or resource ID found in the selected workbook';
@@ -279,7 +279,7 @@ function boRunPlatformAcceptance(payload) {
       const file = boGeneratePdf(item[0], item[1]);
       const text = extractPdfText(file.fileId);
       boAssert_(text.indexOf(boBusinessName_()) >= 0, item[0] + ' PDF is missing selected business identity.');
-      if (boBusinessName_() !== 'Highway 38 Solutions') boAssert_(text.indexOf('Highway 38 Solutions') < 0, item[0] + ' PDF leaked Highway 38 identity.');
+      (input.forbiddenTerms || boPackValue_('isolation.forbiddenTerms', [])).forEach(function (term) { boAssert_(text.indexOf(String(term)) < 0, item[0] + ' PDF leaked a protected identity or resource marker.'); });
       return { documentType: item[0], fileId: file.fileId, fileUrl: file.fileUrl, identityVerified: true };
     });
     evidence.created.pdfFiles = files;

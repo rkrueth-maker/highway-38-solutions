@@ -4,9 +4,9 @@ function doGet(){return boSafeExecute_('Business Office web app',function(){boGe
 function boRenderWebApp_(){
   const title=boBusinessOfficeTitle_(),branding=boBranding_();
   let html=HtmlService.createTemplateFromFile('BusinessOffice_Index').evaluate().getContent();
-  html=html.replace('Highway 38 Business Office',title)
-    .replace('--navy:#173a5e','--navy:'+branding.primaryColor)
-    .replace('--blue:#326a9e','--blue:'+branding.secondaryColor)
+  html=html.replace('Business Office',title)
+    .replace('--navy:#243447','--navy:'+branding.primaryColor)
+    .replace('--blue:#52677d','--blue:'+branding.secondaryColor)
     .replace('<div class="notice"><strong>Controlled business system:</strong> customer sending, delivery, financial posting, payroll export, and tax report finalization require explicit approval. This system does not move money, fund payroll, file returns, or provide tax advice.</div>','<div class="notice"><strong>Controlled business system:</strong> '+boApprovalNotice_()+' This system does not move money, fund payroll, file returns, or provide tax advice.</div>');
   return HtmlService.createHtmlOutput(html).setTitle(title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');
 }
