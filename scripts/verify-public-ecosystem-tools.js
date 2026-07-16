@@ -67,25 +67,29 @@ const customer = read('customer-portal.html');
 const customerConfig = read('customer-portal-config.js');
 const customerClient = read('customer-portal-supabase.js');
 const customerMigration = read('supabase/migrations/20260716_customer_portal.sql');
-check('customer portal truthfully remains fail closed',
-  /enabled:\s*false/.test(customerConfig) &&
-  /Supabase connection prepared/.test(customer) &&
-  /remains fail-closed/.test(customer)
+const customerActivation = read('supabase/migrations/20260716_customer_portal_invite_activation.sql');
+check('customer portal production Supabase configuration is active',
+  /enabled:\s*true/.test(customerConfig) &&
+  /jqukmwtsgcsaruucnqja\.supabase\.co/.test(customerConfig) &&
+  /sb_publishable_[A-Za-z0-9_-]{20,}/.test(customerConfig) &&
+  !/REPLACE_WITH|YOUR_PROJECT/.test(customerConfig)
 );
-check('customer portal exposes no records while unconfigured',
+check('customer portal exposes no records when secure configuration fails',
   /if \(!configured\(\)\)/.test(customerClient) &&
   /No customer data is exposed/.test(customerClient) &&
-  /REPLACE_WITH_SUPABASE_PUBLISHABLE_KEY/.test(customerConfig)
+  /temporarily unavailable/.test(customer)
 );
-check('customer portal login is Supabase magic-link only',
+check('customer portal supports password and existing-user magic-link login',
   /type="email"/.test(customer) &&
-  !/type=["']password["']/i.test(customer) &&
+  /type="password"/.test(customer) &&
+  /signInWithPassword/.test(customerClient) &&
   /signInWithOtp/.test(customerClient) &&
   /shouldCreateUser:\s*false/.test(customerClient)
 );
-check('customer portal RLS and private storage are required',
+check('customer portal RLS, invited-account linking, and private storage are required',
   /enable row level security/i.test(customerMigration) &&
   /customer_portal_customer_id/.test(customerMigration) &&
+  /link_invited_customer_account/.test(customerActivation) &&
   /createSignedUrl/.test(customerClient) &&
   /public, file_size_limit/.test(customerMigration)
 );
@@ -94,6 +98,10 @@ check('customer portal has no raw card form or automatic outbound action',
   !/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(customer + customerClient) &&
   /No automatic text or email is sent/.test(customer) &&
   !/sendBeacon|XMLHttpRequest/.test(customerClient)
+);
+check('customer portal browser bundle contains no secret key',
+  !/service(?:_|-)?role(?:Key)?\s*[:=]\s*['"][^'"]+/i.test(customer + customerConfig + customerClient) &&
+  !/sb_secret_[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{50,}/i.test(customer + customerConfig + customerClient)
 );
 
 const ownerPortal = read('portal.html');

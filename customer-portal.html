@@ -10,11 +10,11 @@
   <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution">
   <link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1">
   <style>
-    body{background:#eef2f5}.customer-shell{max-width:1180px;margin:0 auto;padding:2rem 1rem 4rem}.customer-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.25rem}.customer-head h1{margin:.25rem 0}.portal-notice{padding:1rem;border:1px solid #bac4ce;border-radius:12px;background:#fff;margin:0 0 1rem}.portal-notice.ok{border-color:#5b8c72}.portal-notice.bad{border-color:#aa5b5b}.portal-notice.hold{border-color:#b58b44}.portal-panel{background:#fff;border:1px solid #d6dde3;border-radius:16px;padding:1.25rem;box-shadow:0 12px 30px rgba(20,35,50,.08)}.portal-panel code{overflow-wrap:anywhere;word-break:break-word}.portal-login{max-width:560px;margin:2rem auto}.portal-login label{display:grid;gap:.4rem}.portal-login input,.portal-message textarea{width:100%;padding:.8rem;border:1px solid #aab5bf;border-radius:8px}.portal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-bottom:1rem}.portal-metric{background:#0f2740;color:#fff;border-radius:14px;padding:1rem}.portal-metric strong{display:block;font-size:1.7rem}.portal-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}.portal-stack{display:grid;gap:1rem}.portal-section h2{margin-top:0}.portal-list{display:grid;gap:.75rem}.portal-item{display:grid;gap:.65rem;padding:1rem;border:1px solid #dbe2e8;border-radius:12px}.portal-item>div{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}.portal-item span{display:block;color:#526170}.portal-pill{display:inline-block;padding:.2rem .55rem;border-radius:999px;background:#e7eef4;color:#17314b!important}.portal-item progress{width:100%}.portal-empty{color:#657382}.portal-message{display:grid;gap:.75rem}.portal-actions{display:flex;gap:.6rem;flex-wrap:wrap}.portal-config-list{margin:1rem 0;padding-left:1.25rem}.portal-config-list li{margin:.45rem 0}@media(max-width:800px){.portal-grid,.portal-metrics{grid-template-columns:1fr}.customer-head{display:block}.customer-head .portal-actions{margin-top:1rem}}
+    body{background:#eef2f5}.customer-shell{max-width:1180px;margin:0 auto;padding:2rem 1rem 4rem}.customer-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.25rem}.customer-head h1{margin:.25rem 0}.portal-notice{padding:1rem;border:1px solid #bac4ce;border-radius:12px;background:#fff;margin:0 0 1rem}.portal-notice.ok{border-color:#5b8c72}.portal-notice.bad{border-color:#aa5b5b}.portal-notice.hold{border-color:#b58b44}.portal-panel{background:#fff;border:1px solid #d6dde3;border-radius:16px;padding:1.25rem;box-shadow:0 12px 30px rgba(20,35,50,.08)}.portal-panel code{overflow-wrap:anywhere;word-break:break-word}.portal-login{max-width:560px;margin:2rem auto}.portal-login label{display:grid;gap:.4rem}.portal-login input,.portal-message textarea{width:100%;padding:.8rem;border:1px solid #aab5bf;border-radius:8px}.portal-login form{display:grid;gap:.9rem}.portal-help{margin:.25rem 0 0;color:#526170}.portal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-bottom:1rem}.portal-metric{background:#0f2740;color:#fff;border-radius:14px;padding:1rem}.portal-metric strong{display:block;font-size:1.7rem}.portal-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}.portal-stack{display:grid;gap:1rem}.portal-section h2{margin-top:0}.portal-list{display:grid;gap:.75rem}.portal-item{display:grid;gap:.65rem;padding:1rem;border:1px solid #dbe2e8;border-radius:12px}.portal-item>div{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}.portal-item span{display:block;color:#526170}.portal-pill{display:inline-block;padding:.2rem .55rem;border-radius:999px;background:#e7eef4;color:#17314b!important}.portal-item progress{width:100%}.portal-empty{color:#657382}.portal-message{display:grid;gap:.75rem}.portal-actions{display:flex;gap:.6rem;flex-wrap:wrap}.portal-config-list{margin:1rem 0;padding-left:1.25rem}.portal-config-list li{margin:.45rem 0}@media(max-width:800px){.portal-grid,.portal-metrics{grid-template-columns:1fr}.customer-head{display:block}.customer-head .portal-actions{margin-top:1rem}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="customer-portal-config.js?v=20260716-supabase" defer></script>
-  <script src="customer-portal-supabase.js?v=20260716-supabase" defer></script>
+  <script src="customer-portal-config.js?v=20260716-activated" defer></script>
+  <script src="customer-portal-supabase.js?v=20260716-activated" defer></script>
   <script defer src="brand-global.js?v=20260713-cleanup1"></script>
 </head>
 <body data-page="customer">
@@ -28,24 +28,22 @@
     <div id="portalNotice" class="portal-notice">Checking secure portal configuration…</div>
 
     <section id="portal-hold" class="portal-panel" hidden>
-      <h2>Supabase connection prepared</h2>
-      <p>The portal code, database migration, authentication flow, private-storage policies, and customer-isolation checks are installed in the repository. It remains fail-closed until the Supabase project values are added.</p>
-      <ol class="portal-config-list">
-        <li>Create or select the Highway 38 Supabase project.</li>
-        <li>Run <code>supabase/migrations/20260716_customer_portal.sql</code>.</li>
-        <li>Add the GitHub Pages portal URL to Supabase Auth redirect URLs.</li>
-        <li>Put only the project URL and publishable key in <code>customer-portal-config.js</code>.</li>
-        <li>Connect each invited Auth user to one active <code>customer_accounts</code> row.</li>
-      </ol>
-      <p><strong>Never add a service_role key to GitHub Pages.</strong></p>
+      <h2>Customer Portal temporarily unavailable</h2>
+      <p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p>
+      <p><strong>Highway 38 must verify the Supabase project, publishable key, authentication settings, and Row Level Security before access resumes.</strong></p>
     </section>
 
     <section id="portal-login" class="portal-panel portal-login" hidden>
       <h2>Sign in securely</h2>
-      <p>Use the email address connected to your Highway 38 customer account. Supabase sends a one-time magic link; no password is stored on this page.</p>
+      <p>Use the email address and password connected to your Highway 38 customer account. A one-time email link is also available.</p>
       <form id="loginForm">
         <label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label>
-        <button class="btn btn-primary" type="submit">Email secure sign-in link</button>
+        <label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password"></label>
+        <div class="portal-actions">
+          <button class="btn btn-primary" type="submit">Sign in</button>
+          <button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button>
+        </div>
+        <p class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p>
       </form>
     </section>
 

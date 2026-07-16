@@ -19,6 +19,7 @@ const required = [
   'customer-portal-config.js',
   'customer-portal-supabase.js',
   'supabase/migrations/20260716_customer_portal.sql',
+  'supabase/migrations/20260716_customer_portal_invite_activation.sql',
   'core-engine/customer-portal/config/customer-portal.supabase.example.json',
   'core-engine/customer-portal/SUPABASE_SETUP.md',
   'apps-script/core-engine/owner-portal-next/Portal_Unified.js'
@@ -34,7 +35,9 @@ for (const file of ['customer-portal-config.js','customer-portal-supabase.js','a
 const html = exists('customer-portal.html') ? read('customer-portal.html') : '';
 const config = exists('customer-portal-config.js') ? read('customer-portal-config.js') : '';
 const client = exists('customer-portal-supabase.js') ? read('customer-portal-supabase.js') : '';
-const sql = exists('supabase/migrations/20260716_customer_portal.sql') ? read('supabase/migrations/20260716_customer_portal.sql') : '';
+const baseSql = exists('supabase/migrations/20260716_customer_portal.sql') ? read('supabase/migrations/20260716_customer_portal.sql') : '';
+const activationSql = exists('supabase/migrations/20260716_customer_portal_invite_activation.sql') ? read('supabase/migrations/20260716_customer_portal_invite_activation.sql') : '';
+const sql = baseSql + '\n' + activationSql;
 const portal = exists('apps-script/core-engine/owner-portal-next/Portal_Unified.js') ? read('apps-script/core-engine/owner-portal-next/Portal_Unified.js') : '';
 
 check('Tasks and Messaging have separate navigation groups',
@@ -53,14 +56,19 @@ check('customer portal loads Supabase v2 client',
   html.includes('customer-portal-config.js') &&
   html.includes('customer-portal-supabase.js')
 );
-check('repository defaults remain fail closed',
-  /enabled:\s*false/.test(config) &&
-  /REPLACE_WITH_SUPABASE_PUBLISHABLE_KEY/.test(config)
+check('production Supabase configuration is enabled',
+  /enabled:\s*true/.test(config) &&
+  /https:\/\/jqukmwtsgcsaruucnqja\.supabase\.co/.test(config) &&
+  /sb_publishable_[A-Za-z0-9_-]{20,}/.test(config) &&
+  /https:\/\/rkrueth-maker\.github\.io\/highway-38-solutions\/customer-portal\.html/.test(config) &&
+  !/REPLACE_WITH|YOUR_PROJECT/.test(config)
 );
 check('browser code contains no service-role assignment',
   !/service(?:_|-)?role(?:Key)?\s*[:=]\s*['"][^'"]+/i.test(client + config + html)
 );
-check('magic-link login does not auto-create users',
+check('password and existing-user magic-link authentication are available',
+  /type="password"/.test(html) &&
+  client.includes('signInWithPassword') &&
   client.includes('signInWithOtp') &&
   client.includes('shouldCreateUser: false')
 );
@@ -86,6 +94,12 @@ check('RLS maps auth user to one active customer',
   sql.includes('customer_portal_customer_id') &&
   sql.includes('auth_user_id = (select auth.uid())') &&
   sql.includes("status = 'active'")
+);
+check('pre-invited Auth users link automatically without public function access',
+  activationSql.includes('private.link_invited_customer_account') &&
+  activationSql.includes('after insert or update of email on auth.users') &&
+  activationSql.includes("ca.status = 'invited'") &&
+  activationSql.includes('revoke all on function private.link_invited_customer_account() from authenticated')
 );
 check('private storage bucket and signed URLs',
   sql.includes("'customer-portal'") &&
@@ -113,14 +127,14 @@ const evidence = {
   controls: {
     tasksSeparatedFromMessaging: true,
     provider: 'supabase',
-    auth: 'magic_link_existing_users_only',
+    auth: 'password_and_magic_link_existing_users_only',
     rowLevelSecurity: true,
     privateStorage: true,
     signedDownloads: true,
     selectedQuoteApproval: true,
     automaticCustomerMessaging: false,
     rawCardData: false,
-    repositoryDefaultEnabled: false
+    productionEnabled: true
   },
   passes,
   failures,
