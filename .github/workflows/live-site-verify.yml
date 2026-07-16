@@ -113,15 +113,15 @@ jobs:
           reject_text live-homepage.html "No public personal-name attribution on homepage" "Rick Krueth"
           reject_text live-homepage.html "No obvious GitHub Pages 404 on home" "404: File not found"
 
-          check_text live-products.html "Approved product discovery headline" "Choose the smallest service that produces the result you need."
-          check_text live-products.html "Approved catalog count" "15 products. 9 recommended bundles."
+          check_text live-products.html "Approved product discovery headline" "Choose the smallest service that produces a useful result."
+          check_text live-products.html "Approved catalog count" "15 fixed-price services. 9 approved bundles. 4 scoped systems."
           check_text live-products.html "All-products rendering target" 'data-products="plans"'
           check_text live-products.html "Bundle rendering target" "data-bundles"
           reject_text live-products.html "No prohibited CNC claim on products" "25,000+ CNC programs"
           reject_text live-products.html "No obvious GitHub Pages 404 on products" "404: File not found"
 
-          check_text live-sample-library.html "Sample Library current headline" "See the finished work before you choose a service."
-          check_text live-sample-library.html "Fifteen-sample path" "Browse 15 samples"
+          check_text live-sample-library.html "Sample Library current headline" "See the kind of finished result before choosing a service."
+          check_text live-sample-library.html "Fifteen-sample path" "15 existing service demonstrations"
           check_text live-sample-library.html "Hypothetical proof classification" "Hypothetical examples"
           check_text live-sample-library.html "Owner Portal control" 'data-owner-link="true"'
           check_text live-sample-library.html "Owner Portal link" "Owner Portal"

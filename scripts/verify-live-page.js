@@ -19,14 +19,13 @@ const VERIFY_URL =
 const CATALOG_URL = new URL('catalog-data.js', VERIFY_URL).toString();
 
 const REQUIRED_STRINGS = [
-  'See the finished work before you choose a service.',
-  'Browse 15 samples',
+  'See the kind of finished result before choosing a service.',
+  '15 existing service demonstrations',
   'Hypothetical examples',
   'data-owner-link="true"',
   'data-samples="all"',
   'Owner Portal',
-  'Customer sends',
-  'Customer receives',
+  'What you send. What Highway 38 delivers.',
   'Approved outcome bundles',
   'data-bundles',
 ];
