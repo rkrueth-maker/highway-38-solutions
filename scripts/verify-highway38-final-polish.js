@@ -17,6 +17,8 @@ const portal = read('portal.html');
 const portalIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalUnified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
 const portalShell = read('apps-script/core-engine/owner-portal-next/Portal_UX_Client_Shell.html');
+const portalBusinessServer = read('apps-script/core-engine/owner-portal-next/Portal_Business.js');
+const portalBusinessClient = read('apps-script/core-engine/owner-portal-next/Portal_Business_Client.html');
 const samples = read('sample-library-now.html');
 const products = read('products.html');
 const brand = read('brand-global.js');
@@ -52,8 +54,12 @@ check('Sample Library Owner Portal link is clean', samples.includes('href="porta
 check('Owner Portal is an automatic gateway to one secure app', /location\.replace\(target\)/.test(portal) && /Opening Highway 38 Business System/.test(portal));
 check('Owner Portal contains no obsolete six-button workspace row', !/owner-area-strip|Tasks &amp; Decisions|Quotes, Money &amp; Reports/.test(portal));
 check('Owner Portal contains no public private-app iframe', !/<iframe\b/i.test(portal));
-check('secure app contains one embedded Business Office workspace', /id="businessWorkspace"/.test(portalIndex) && /id="businessFrame"/.test(portalIndex));
+check('secure app contains no nested Business Office iframe', !/<iframe\b|businessWorkspace|businessFrame/.test(portalIndex));
+check('secure app includes native Business Office client and styles', /Portal_Business_Client/.test(portalIndex) && /Portal_Business_Styles/.test(portalIndex));
 check('secure app navigation is package controlled', /h38PortalUnifiedBootstrap/.test(portalUnified) && /H38_UNIFIED/.test(portalShell));
+check('secure app declares native Business Office rendering', /nativeBusinessOffice:\s*true/.test(portalUnified));
+check('Business Office links render directly in the main app', /return renderBusinessModule\(module/.test(portalShell) && /function renderBusinessModule/.test(portalBusinessClient));
+check('native Business Office supports list open edit save and upload', ['h38PortalBusinessModule','h38PortalBusinessWorkspace','h38PortalBusinessSave','h38PortalBusinessUpload'].every(name => portalBusinessServer.includes(`function ${name}`)) && ['openBusinessRecord','openBusinessRecordForm','openBusinessUpload'].every(name => portalBusinessClient.includes(`function ${name}`)));
 check('Business Office modules are enforced server-side', /boGuardApiRequest_\(action,args\)/.test(businessWeb) && /MODULE NOT INCLUDED/.test(businessGate));
 check('Owner Portal contains no spreadsheet destination', !/docs\.google\.com\/spreadsheets/i.test(portal));
 check('legacy Owner links are rewritten to portal.html', brand.includes("link.href='portal.html'") && brand.includes("link.removeAttribute('target')"));
@@ -82,15 +88,7 @@ check('custom-domain actions remain approval gated', /Do not change DNS[\s\S]*wi
 check('legacy portal is explicitly preserved', /No component is approved for deletion/i.test(legacyPlan));
 check('legacy technical source remains present', exists('apps-script/core-engine/owner-portal-next/RUNTIME_TEST_RUNBOOK.md'));
 
-const result = {
-  status: failures.length ? 'HOLD' : 'PASS',
-  sourceCommit: process.env.GITHUB_SHA || '',
-  passed: passes.length,
-  failed: failures.length,
-  passes,
-  failures
-};
-
+const result = { status: failures.length ? 'HOLD' : 'PASS', sourceCommit: process.env.GITHUB_SHA || '', passed: passes.length, failed: failures.length, passes, failures };
 const outputDir = path.join(root, 'artifacts', 'final-polish');
 fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(path.join(outputDir, 'verification.json'), JSON.stringify(result, null, 2) + '\n');
