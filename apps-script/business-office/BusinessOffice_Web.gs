@@ -1,6 +1,6 @@
 /** Business Office — private role-aware web application API. */
 
-function doGet(){return boSafeExecute_('Business Office web app',function(){boGetCurrentUser_();return boRenderWebApp_();},'System',boGetBusinessId_());}
+function doGet() { return boSafeExecute_('Business Office web app',function(){boGetCurrentUser_();return boRenderWebApp_();},'System',boGetBusinessId_()); }
 
 function boRenderWebApp_(){
   const title=boBusinessOfficeTitle_(),branding=boBranding_();
