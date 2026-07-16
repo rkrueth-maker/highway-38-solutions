@@ -15,6 +15,7 @@ const templatePackPath = path.join(root, 'business-packs', 'template-business', 
 const requiredFiles = [
   'BusinessOffice_BusinessPack.gs','BusinessOffice_Config.gs','BusinessOffice_Auth.gs','BusinessOffice_Core.gs','BusinessOffice_Workflows.gs',
   'BusinessOffice_Accounting.gs','BusinessOffice_PayrollTax.gs','BusinessOffice_DocumentsPDF.gs',
+  'BusinessOffice_TaskMessaging_10_Core.gs','BusinessOffice_TaskMessaging_20_SMS.gs','BusinessOffice_TaskMessaging_30_Web.gs',
   'BusinessOffice_Installer.gs','BusinessOffice_Provisioning.gs','BusinessOffice_Web.gs','BusinessOffice_Test.gs','BusinessOffice_PlatformAcceptance.gs',
   'BusinessOffice_Index.html','appsscript.json','README.md'
 ];
@@ -49,7 +50,7 @@ const syncSource=read(path.join(syncDir,'BusinessOffice_Sync.gs'));
 const h38Acceptance=fs.existsSync(h38AcceptancePath)?read(h38AcceptancePath):'';
 const h38Pack=JSON.parse(read(h38PackPath));
 const templatePack=JSON.parse(read(templatePackPath));
-const requiredFunctions=['boGetBusinessPack_','boPackPropertyKey_','boGetCurrentUser_','boRequirePermission_','boListRecords','boSaveRecord','boCreateCustomerFromRequest','boCreateQuote','boReviseQuote','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob','boMatchVendorBillToPurchaseOrder','boConvertReceiptToExpense','boRecordPayment','boPrepareJournalEntry','boPostJournalEntry','boReverseJournalEntry','boLockAccountingPeriod','boPreparePayrollPeriod','boExportPayrollProviderCsv','boPrepareSalesTaxPeriod','boFinalizeTaxPreparationReport','boUploadDocument','boExtractDocument','boReviewOcrField','boApproveDocument','boGeneratePdf','boCreateBackup','boPrepareRestore','boValidateInstallation','boValidateResourceIsolation','boProvisionIsolatedBusiness','boRunSelfTest','boRunPlatformAcceptance','doGet','boApi'];
+const requiredFunctions=['boGetBusinessPack_','boPackPropertyKey_','boGetCurrentUser_','boRequirePermission_','boListRecords','boSaveRecord','boCreateCustomerFromRequest','boCreateQuote','boReviseQuote','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob','boMatchVendorBillToPurchaseOrder','boConvertReceiptToExpense','boRecordPayment','boPrepareJournalEntry','boPostJournalEntry','boReverseJournalEntry','boLockAccountingPeriod','boPreparePayrollPeriod','boExportPayrollProviderCsv','boPrepareSalesTaxPeriod','boFinalizeTaxPreparationReport','boUploadDocument','boExtractDocument','boReviewOcrField','boApproveDocument','boGeneratePdf','boCreateBackup','boPrepareRestore','boValidateInstallation','boValidateResourceIsolation','boProvisionIsolatedBusiness','boRunSelfTest','boRunPlatformAcceptance','h38PortalTaskMessagingSave','h38PortalTaskTransition','h38PortalMessagingDecision','h38PortalMessagingSend','doGet','boApi'];
 for(const fn of requiredFunctions) assert(`function ${fn}`,new RegExp(`function\\s+${fn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*\\(`).test(allSource));
 assert('Highway 38 live acceptance is outside reusable core',!allSource.includes('function boRunLiveAcceptance(')&&/function\s+boRunLiveAcceptance\s*\(/.test(h38Acceptance));
 
@@ -83,6 +84,8 @@ assert('payroll export gate',allSource.includes("'Export Allowed'] === 'Yes'"));
 assert('tax finalization gate',allSource.includes("'Finalization Allowed'] === 'Yes'"));
 assert('quote send gate',allSource.includes("'Send Allowed'"));
 assert('role set complete',['Owner','Administrator','Staff','Bookkeeper','Payroll','Viewer'].every(role=>h38Pack.roles.names.includes(role)&&templatePack.roles.names.includes(role)));
+assert('task messaging package enabled',h38Pack.modules.assignedTasks===true&&h38Pack.modules.messaging===true&&h38Pack.modules.smsConsent===true&&h38Pack.modules.messageTemplates===true);
+assert('task messaging external release locked',h38Pack.messaging&&h38Pack.messaging.externalActionsEnabled===false&&h38Pack.messaging.inboundSyncEnabled===false);
 
 const configSource=read(path.join(boDir,'BusinessOffice_Config.gs'));
 const sheetNames=[...configSource.matchAll(/:\s*'BO [^']+'/g)].map(match=>match[0]);
@@ -113,7 +116,8 @@ assert('payroll test employer tax estimate',payrollCase.employerTax===72.68,JSON
 const journal=[{debit:1070,credit:0},{debit:0,credit:1000},{debit:0,credit:70}].reduce((acc,line)=>({debit:money(acc.debit+line.debit),credit:money(acc.credit+line.credit)}),{debit:0,credit:0});
 assert('double-entry test balances',journal.debit===journal.credit,JSON.stringify(journal));
 const packageJson=JSON.parse(read(path.join(root,'package.json')));
-assert('package test script',packageJson.scripts&&packageJson.scripts['test:business-office']==='node scripts/verify-business-office.js');
+const businessTest=packageJson.scripts&&packageJson.scripts['test:business-office']||'';
+assert('package test script',businessTest.includes('node scripts/verify-business-office.js')&&businessTest.includes('node scripts/verify-task-messaging.js')&&businessTest.includes('node scripts/verify-task-messaging-hardening.js'));
 const result={status:failures.length?'HOLD':'PASS',passes:passes.length,failures};
 fs.mkdirSync(path.join(root,'artifacts','business-office'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','business-office','verification.json'),JSON.stringify(result,null,2)+'\n');
