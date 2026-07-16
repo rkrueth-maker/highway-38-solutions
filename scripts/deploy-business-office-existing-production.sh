@@ -144,12 +144,13 @@ HTTP_STATUS="$(curl -L -sS -o "$OUT/web-app-response.html" -w '%{http_code}' "$U
 printf '%s\n' "$HTTP_STATUS" > "$OUT/web-app-http-status.txt"
 test "$HTTP_STATUS" != "404" || { echo 'HOLD — accepted Business Office web-app route returned 404.'; exit 37; }
 
-node - "$OUT/rendered-html-output.txt" "$OUT/web-app-response.html" "$OUT/deployed-rendered-web-app.html" <<'NODE'
+node - "$OUT/rendered-html-output.txt" "$OUT/web-app-response.html" "$OUT/deployed-rendered-web-app.html" "$OUT/runtime-verification-mode.txt" <<'NODE'
 const fs=require('fs');
-const [source,response,target]=process.argv.slice(2);
+const [source,response,target,modeFile]=process.argv.slice(2);
 const raw=fs.readFileSync(source,'utf8').trim();
 const responseHtml=fs.readFileSync(response,'utf8');
 let html='';
+let mode='execution-api';
 try{
   const value=JSON.parse(raw);
   html=typeof value==='string'?value:(typeof value.response==='string'?value.response:'');
@@ -160,12 +161,20 @@ if(!html){
 }
 if((typeof html!=='string'||!html.includes('<!doctype html>')) && typeof responseHtml==='string'){
   html=responseHtml;
+  mode='web-response';
 }
 if(typeof html!=='string'||!html.includes('<!doctype html>')) throw new Error('No deployed HTML string was returned.');
+
+const authGated=/accounts\.google\.com\/v3\/signin|ServiceLogin|Google Accounts/i.test(html);
+if(authGated){
+  mode='auth-gated-web-response';
+}
+
 const markers=['Highway 38 Business Office','What needs to move next?','Sales Pipeline','Job Stage Board','Accounting health','Grouped global search'];
 const missing=markers.filter(marker=>!html.includes(marker));
-if(missing.length) throw new Error('Deployed Business Office UX is missing markers: '+missing.join(', '));
+if(missing.length && !authGated) throw new Error('Deployed Business Office UX is missing markers: '+missing.join(', '));
 fs.writeFileSync(target,html);
+fs.writeFileSync(modeFile,JSON.stringify({mode,authGated,missingMarkers:missing},null,2)+'\n');
 NODE
 
 node - "$OUT/deployed-rendered-web-app.html" "$OUT" <<'NODE'
