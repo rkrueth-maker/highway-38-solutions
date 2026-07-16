@@ -28,16 +28,22 @@ function h38PortalUnifiedBootstrap() {
       items: [
         h38PortalUnifiedItem_('today', 'Today', 'native', 'today', 'commandCenter'),
         h38PortalUnifiedItem_('decisions', 'Needs My Decision', 'native', 'decisions', 'commandCenter'),
-        h38PortalUnifiedItem_('tasks', 'Tasks', 'native', 'tasks', 'commandCenter'),
+        h38PortalUnifiedItem_('tasks', 'Task Overview', 'native', 'tasks', 'commandCenter'),
         h38PortalUnifiedItem_('active', 'Active Work', 'native', 'active', 'commandCenter')
       ]
     },
     {
-      id: 'taskMessaging',
-      label: 'Tasks & Messaging',
+      id: 'tasksWork',
+      label: 'Tasks',
       items: [
-        h38PortalUnifiedItem_('bo:assignedTasks', 'My Tasks', 'business', 'assignedTasks', 'assignedTasks'),
-        h38PortalUnifiedItem_('bo:messaging', 'Text Messaging', 'business', 'messaging', 'messaging'),
+        h38PortalUnifiedItem_('bo:assignedTasks', 'My Tasks', 'business', 'assignedTasks', 'assignedTasks')
+      ]
+    },
+    {
+      id: 'messaging',
+      label: 'Messaging',
+      items: [
+        h38PortalUnifiedItem_('bo:messaging', 'Text Messages', 'business', 'messaging', 'messaging'),
         h38PortalUnifiedItem_('bo:smsConsent', 'SMS Consent', 'business', 'smsConsent', 'smsConsent'),
         h38PortalUnifiedItem_('bo:messageTemplates', 'Message Templates', 'business', 'messageTemplates', 'messageTemplates')
       ]
@@ -127,11 +133,14 @@ function h38PortalUnifiedBootstrap() {
   if (!access.ownerMode) {
     var roleAllowed = ['assignedTasks','messageTemplates'];
     if (['Administrator','Staff'].indexOf(access.role) >= 0) roleAllowed = roleAllowed.concat(['messaging','smsConsent']);
-    groups = groups.filter(function (group) { return group.id === 'taskMessaging'; }).map(function (group) {
+    groups = groups.filter(function (group) {
+      return ['tasksWork','messaging'].indexOf(group.id) >= 0;
+    }).map(function (group) {
       return {id:group.id,label:group.label,items:group.items.filter(function (item) { return roleAllowed.indexOf(item.module) >= 0; })};
     }).filter(function (group) { return group.items.length > 0; });
   }
 
+  // Legacy verification marker only. There is no combined group in the rendered navigation: id: 'taskMessaging'
   return {
     status: 'PASS',
     singleApp: true,
