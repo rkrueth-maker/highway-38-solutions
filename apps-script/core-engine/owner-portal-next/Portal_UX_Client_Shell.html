@@ -64,21 +64,12 @@ function renderSavedViews(){
 }
 function uxShowNativeWorkspace(){
   document.body.classList.remove('h38-business-module');
-  var workspace=document.getElementById('businessWorkspace');
-  if(workspace)workspace.classList.remove('is-active');
   var view=document.getElementById('view');
   if(view)view.style.display='';
 }
-function uxShowBusinessModule(module){
-  if(!H38_UNIFIED||!H38_UNIFIED.businessOfficeUrl)throw new Error('Unified Business Office route is not configured.');
-  document.body.classList.add('h38-business-module');
-  var workspace=document.getElementById('businessWorkspace');
-  var frame=document.getElementById('businessFrame');
-  workspace.classList.add('is-active');
-  var target=H38_UNIFIED.businessOfficeUrl+'#module='+encodeURIComponent(module);
-  if(frame.dataset.module!==module){frame.dataset.module=module;frame.src=target;}
-  else if(frame.contentWindow)frame.contentWindow.postMessage({type:'h38-open-business-module',module:module},'*');
-  history.replaceState(null,'','#module='+encodeURIComponent(module));
+async function uxShowBusinessModule(module){
+  uxShowNativeWorkspace();
+  return renderBusinessModule(module,BO_NATIVE&&BO_NATIVE.module===module?BO_NATIVE.query:'');
 }
 function uxNormalizeModule(module){
   var redirects={money:'bo:invoices',quotes:'bo:quotes',invoices:'bo:invoices',payments:'bo:payments',expenses:'bo:expenses',customers:'bo:customers',jobs:'bo:jobs',reports:'bo:reports',documents:'bo:documents',upload:'bo:documents','business-office':'bo:requests'};
@@ -107,7 +98,7 @@ async function refresh(){
 async function show(module){
   module=uxNormalizeModule(module);
   CURRENT=module;renderNav();document.getElementById('side').classList.remove('open');
-  if(String(module).indexOf('bo:')===0){uxShowBusinessModule(String(module).slice(3));return;}
+  if(String(module).indexOf('bo:')===0)return uxShowBusinessModule(String(module).slice(3));
   uxShowNativeWorkspace();
   history.replaceState(null,'','#module='+encodeURIComponent(module));
   var view=document.getElementById('view');view.innerHTML='<div class="card">Loading selected operating surface…</div>';
