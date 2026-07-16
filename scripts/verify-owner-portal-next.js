@@ -7,7 +7,7 @@ const testDeployScript=path.join(repo,'scripts/deploy-owner-portal-next-test.sh'
 const productionDeployScript=path.join(repo,'scripts/deploy-owner-portal-next-production.sh');
 const testRunbook=path.join(root,'RUNTIME_TEST_RUNBOOK.md');
 const productionRunbook=path.join(root,'PRODUCTION_INSTALL.md');
-const required=['appsscript.json','Portal_Config.js','Portal_Environment.js','Portal_Production.js','Portal_Repository.js','Portal_Catalog.js','Portal_Services.js','Portal_Actions.js','Portal_Adapters.js','Portal_LogApi.js','Portal_SelfTest.js','Portal_TestFixtures.js','Portal_Experience.js','Portal_Unified.js','Portal_Index.html','Portal_Experience_Styles.html','Portal_Experience_Client_Core.html','Portal_Experience_Client_Views.html','Portal_Experience_Client_Workspace.html','README.md'];
+const required=['appsscript.json','Portal_Config.js','Portal_Environment.js','Portal_Production.js','Portal_Repository.js','Portal_Catalog.js','Portal_Services.js','Portal_Actions.js','Portal_Adapters.js','Portal_LogApi.js','Portal_SelfTest.js','Portal_TestFixtures.js','Portal_Experience.js','Portal_Unified.js','Portal_Business.js','Portal_Index.html','Portal_Experience_Styles.html','Portal_UX_Styles.html','Portal_Business_Styles.html','Portal_Experience_Client_Core.html','Portal_Experience_Client_Views.html','Portal_Experience_Client_Workspace.html','Portal_UX_Client_Shell.html','Portal_Business_Client.html','Portal_UX_Client_Tasks.html','Portal_UX_Client_Workspace.html','Portal_UX_Client_Forms.html','Portal_UX_Client_Boot.html','README.md'];
 const failures=[];const pass=[];
 function check(name,condition,detail=''){if(condition)pass.push({name,detail});else failures.push({name,detail});}
 required.forEach(f=>check('file '+f,fs.existsSync(path.join(root,f))));
@@ -24,8 +24,8 @@ const all=jsFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 const production=fs.readFileSync(path.join(root,'Portal_Production.js'),'utf8');
 const selfTest=fs.readFileSync(path.join(root,'Portal_SelfTest.js'),'utf8');
 const shell=fs.readFileSync(path.join(root,'Portal_Index.html'),'utf8');
-const styles=fs.readFileSync(path.join(root,'Portal_Experience_Styles.html'),'utf8');
-const clientFiles=['Portal_Experience_Client_Core.html','Portal_Experience_Client_Views.html','Portal_Experience_Client_Workspace.html'];
+const styles=['Portal_Experience_Styles.html','Portal_UX_Styles.html','Portal_Business_Styles.html'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
+const clientFiles=['Portal_Experience_Client_Core.html','Portal_Experience_Client_Views.html','Portal_Experience_Client_Workspace.html','Portal_UX_Client_Shell.html','Portal_Business_Client.html','Portal_UX_Client_Tasks.html','Portal_UX_Client_Workspace.html','Portal_UX_Client_Forms.html','Portal_UX_Client_Boot.html'];
 const client=clientFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 const html=shell+'\n'+styles+'\n'+client;
 check('approved release identifier',all.includes("RELEASE: 'production-2026-07-12-hard-rule-owner-portal'"));
@@ -50,7 +50,12 @@ check('error reader',/function h38PortalErrorLog/.test(all));
 check('catalog mismatch hold',/CATALOG MISMATCH HOLD/.test(all));
 check('all modules',['dashboard','tasks','leads','customers','jobs','quotes','invoices','payments','expenses','communications','social','advertising','website','calendar','products','reports','proof','errors','settings'].every(x=>all.includes("'"+x+"'")));
 check('unified package manifest endpoint',/function h38PortalUnifiedBootstrap\(\)/.test(all)&&/singleApp:\s*true/.test(all));
-check('unified package manifest includes Business Office route',/businessOfficeUrl/.test(all)&&/app=business-office&embedded=1/.test(all));
+check('unified package manifest declares native Business Office',/nativeBusinessOffice:\s*true/.test(all)&&/businessDefinitions/.test(all));
+check('native Business Office server endpoints',['h38PortalBusinessModule','h38PortalBusinessWorkspace','h38PortalBusinessSave','h38PortalBusinessUpload'].every(name=>all.includes('function '+name)));
+check('secure shell has no nested Business Office iframe',!/<iframe\b|businessWorkspace|businessFrame/.test(shell));
+check('native Business Office client included',/Portal_Business_Client/.test(shell)&&/function renderBusinessModule/.test(client));
+check('native Business Office supports direct module switching',/return renderBusinessModule\(module/.test(client)&&/history\.replaceState/.test(client));
+check('native Business Office supports table cards details forms and upload',['boNativeRenderTable','openBusinessRecord','openBusinessRecordForm','openBusinessUpload'].every(name=>client.includes('function '+name)));
 check('environment property key',/H38_PORTAL_SPREADSHEET_ID/.test(all));
 check('test environment confirmation',/CONFIGURE NON-DEPLOYED TEST ENVIRONMENT/.test(all));
 check('no hard-coded live spreadsheet id in Apps Script source',!all.includes('1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo'));
@@ -68,8 +73,8 @@ check('expense workflow',/function h38PortalRecordExpense/.test(all));
 check('social scheduling workflow',/function h38PortalInternalScheduleSocial_/.test(all));
 check('advertising approval workflow',/function h38PortalInternalAdvertisingApproval_/.test(all));
 check('website approval workflow',/function h38PortalInternalWebsiteApproval_/.test(all));
-check('internal form controls',/openCreate/.test(html)&&/submitRecord/.test(html));
-check('workspace tabs',/renderWorkspaceSection/.test(html)&&/communications/.test(html)&&/advertising/.test(html)&&/website/.test(html));
+check('internal form controls',/openCreate/.test(html)&&/submitRecord/.test(html)&&/submitBusinessRecord/.test(html));
+check('workspace tabs',/renderWorkspaceSection/.test(html)&&/communications/.test(html)&&/advertising/.test(html)&&/website/.test(html)&&/boNativeWorkspaceTab/.test(html));
 check('task filters',/filterTasks/.test(html)&&/taskStatus/.test(html)&&/taskPriority/.test(html));
 check('no JSON prompt create UX',!/Paste JSON fields/.test(html));
 check('external lock visible',/External actions locked/.test(html));
@@ -78,7 +83,7 @@ check('saved views',/h38PortalSaveView/.test(all)&&/saveCurrentView/.test(html))
 check('list board calendar views',/setTaskView\('list'\)/.test(html)&&/setTaskView\('board'\)/.test(html)&&/setTaskView\('calendar'\)/.test(html));
 check('persistent action rail',/Selected-task action rail/.test(html));
 check('preview support',/renderPreview/.test(html));
-check('mobile record cards',/data-label/.test(html)&&/@media\(max-width:800px\)/.test(styles));
+check('mobile record cards',/data-label/.test(html)&&/@media\(max-width:800px\)/.test(styles)&&/bo-native-card-list/.test(styles));
 check('no raw JSON in normal Settings',!/<pre>/.test(html)&&!/esc\(JSON\.stringify/.test(html));
 for(const f of jsFiles){try{new vm.Script(fs.readFileSync(path.join(root,f),'utf8'),{filename:f});pass.push({name:'syntax '+f});}catch(e){failures.push({name:'syntax '+f,detail:e.message});}}
 try{new vm.Script(client,{filename:'Portal_Experience_Client.js'});pass.push({name:'syntax assembled Owner Portal client'});}catch(e){failures.push({name:'syntax assembled Owner Portal client',detail:e.message});}
