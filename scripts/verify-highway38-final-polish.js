@@ -44,12 +44,13 @@ check('Sample Library contains all product samples', samples.includes('data-samp
 check('Sample Library contains bundle proof', samples.includes('data-bundles'));
 check('Sample Library Owner Portal link is clean', samples.includes('href="portal.html">Owner Portal'));
 
-check('Owner Portal has stable Operations URL', portal.includes("panelToHash={operations:'operations',office:'business-office'}"));
+check('Owner Portal has stable workspace hashes', portal.includes("panelToHash={operations:'operations',office:'business-office',upload:'upload'}"));
 check('Owner Portal reads requested workspace hash', portal.includes('function requestedPanel()'));
 check('Owner Portal has Operations and Social workspace', portal.includes('Operations &amp; Social'));
 check('Owner Portal has Business Office workspace', portal.includes('>Business Office</button>'));
 check('Owner Portal has upload route', portal.includes('Upload PDF / Take Picture'));
-check('Owner Portal embeds only Apps Script workspaces', [...portal.matchAll(/<iframe\b[^>]*src="([^"]+)"/g)].every(match => match[1].startsWith('https://script.google.com/macros/s/')));
+check('Owner Portal avoids blocked private Google iframes', !/<iframe\b/i.test(portal));
+check('Owner Portal launches only accepted Apps Script workspaces', [...portal.matchAll(/<a\b[^>]*href="(https:\/\/script\.google\.com\/macros\/s\/[^"]+)"/g)].length >= 6);
 check('Owner Portal contains no spreadsheet destination', !/docs\.google\.com\/spreadsheets/i.test(portal));
 check('legacy Owner links are rewritten to portal.html', brand.includes("link.href='portal.html'") && brand.includes("link.removeAttribute('target')"));
 check('Owner Portal preserves approval boundary', portal.includes('remain owner-approval gated'));
