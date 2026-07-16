@@ -7,9 +7,9 @@
  */
 window.H38_CUSTOMER_PORTAL_SUPABASE = Object.freeze({
   enabled: false,
-  url: 'https://YOUR_PROJECT.supabase.co',
-  publishableKey: 'REPLACE_WITH_SUPABASE_PUBLISHABLE_KEY',
-  redirectUrl: '',
+  url: 'https://jqukmwtsgcsaruucnqja.supabase.co',
+  publishableKey: 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1',
+  redirectUrl: 'https://rkrueth-maker.github.io/highway-38-solutions/customer-portal.html',
   storageBucket: 'customer-portal',
   maxUploadBytes: 26214400,
   allowedMimeTypes: [
