@@ -14,6 +14,9 @@ on:
       - 'brand-global.js'
       - 'scripts/verify-public-ecosystem-tools.js'
       - 'scripts/verify-owner-portal-routing.js'
+      - 'scripts/verify-owner-portal-next.js'
+      - 'scripts/verify-owner-portal-hard-rule.js'
+      - 'scripts/verify-business-office.js'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
@@ -48,14 +51,23 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Verify website and unified private application
-        run: |
-          npm install
-          node scripts/verify-public-ecosystem-tools.js
-          node scripts/verify-owner-portal-routing.js
-          node scripts/verify-owner-portal-next.js
-          node scripts/verify-owner-portal-hard-rule.js
-          npm run test:business-office
+      - name: Install repository dependencies
+        run: npm install
+
+      - name: Verify public ecosystem tools
+        run: node scripts/verify-public-ecosystem-tools.js
+
+      - name: Verify unified Owner Portal routing
+        run: node scripts/verify-owner-portal-routing.js
+
+      - name: Verify Owner Portal application
+        run: node scripts/verify-owner-portal-next.js
+
+      - name: Verify Owner Portal hard rules
+        run: node scripts/verify-owner-portal-hard-rule.js
+
+      - name: Verify Business Office and package controls
+        run: npm run test:business-office
 
       - name: Install tested Apps Script deployment tool
         run: npm install --global @google/clasp@3.1.0
@@ -87,7 +99,8 @@ jobs:
           path: |
             artifacts/unified-owner-portal/
             artifacts/owner-portal-routing/
-          if-no-files-found: error
+            artifacts/business-office/
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Record live unified application deployment
