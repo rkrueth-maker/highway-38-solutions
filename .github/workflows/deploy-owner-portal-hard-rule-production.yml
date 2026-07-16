@@ -10,6 +10,11 @@ on:
       - '.github/workflows/business-office-production-repair.yml'
       - 'scripts/deploy-unified-owner-portal-web.sh'
       - 'portal.html'
+      - 'customer-portal.html'
+      - 'customer-portal-config.js'
+      - 'customer-portal-supabase.js'
+      - 'supabase/**'
+      - 'core-engine/customer-portal/**'
       - 'ecosystem.js'
       - 'brand-global.js'
       - 'scripts/verify-public-ecosystem-tools.js'
@@ -19,6 +24,7 @@ on:
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-photo-first-record-creation.js'
       - 'scripts/verify-task-messaging.js'
+      - 'scripts/verify-customer-portal-supabase.js'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
@@ -77,6 +83,9 @@ jobs:
       - name: Verify task assignment and messaging controls
         run: node scripts/verify-task-messaging.js
 
+      - name: Verify separated Tasks and Supabase Customer Portal
+        run: node scripts/verify-customer-portal-supabase.js
+
       - name: Install tested Apps Script deployment tool
         run: npm install --global @google/clasp@3.1.0
 
@@ -110,6 +119,7 @@ jobs:
             artifacts/business-office/
             artifacts/photo-first-record-creation/
             artifacts/task-messaging/
+            launch-control/evidence/customer-portal-supabase-verification.json
           if-no-files-found: warn
           retention-days: 90
 
@@ -125,11 +135,14 @@ jobs:
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
           - Owner experience: one authenticated application and one navigation system
           - Command Center and Business Office modules: live inside the unified application
+          - Tasks and Messaging navigation: separate operating areas
           - Secure multi-user task assignment: PASS
           - My Tasks and Owner all-tasks controls: PASS
           - Provider-neutral SMS preparation, consent, approval, history, STOP suppression, and reply import: PASS
           - Paid provider sending: remains locked until credentials, A2P approval, package release, and Script Property release are all configured
           - Bulk messaging and automatic SMS triggers: disabled
+          - Supabase Customer Portal code, RLS migration, private-storage policies, and acceptance checks: PASS
+          - Supabase production activation: remains HOLD until the project URL, publishable key, redirect allowlist, migration, customer mapping, and isolation acceptance are completed
           - New record button: PASS
           - Every creatable Business Office module offers Start with photo or PDF or Start blank
           - Uploaded originals are preserved and linked when the new record is saved
