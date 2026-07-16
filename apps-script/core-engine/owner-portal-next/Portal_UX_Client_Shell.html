@@ -1,0 +1,121 @@
+var H38_UX=null,UX_TASK_PRESET='',UX_SEARCH_GROUPS=null;
+
+function uxRows(value){return Array.isArray(value)?value:[];}
+function uxText(value){return String(value==null?'':value);}
+function uxOpenTaskKey(task){return task.taskId||task.id||'';}
+function uxMoney(value){return money(value||0);}
+function uxClass(status){
+  var text=uxText(status);
+  if(/approved|paid|complete|published|active|available|ready|pass/i.test(text))return 'green';
+  if(/blocked|failed|error|overdue|rejected/i.test(text))return 'red';
+  if(/hold|waiting|review|required|pending|revision/i.test(text))return 'amber';
+  if(/draft|new|open|progress/i.test(text))return 'blue';
+  return 'gray';
+}
+function statusPill(status){
+  var text=uxText(status)||'—';
+  return '<span class="pill '+uxClass(text)+'">'+esc(text)+'</span>';
+}
+function uxToggleNavGroup(id){
+  var group=document.getElementById('nav-group-'+id);
+  if(!group)return;
+  var open=!group.classList.contains('open');
+  group.classList.toggle('open',open);
+  var toggle=group.querySelector('.nav-group-toggle');
+  if(toggle)toggle.setAttribute('aria-expanded',String(open));
+  localStorage.setItem('h38NavGroup:'+id,open?'open':'closed');
+}
+function renderNav(){
+  var groups=[
+    ['work','Work',['today','tasks','decisions','active','calendar']],
+    ['customers','Customers and Jobs',['leads','customers','jobs','communications']],
+    ['money','Money',['money','quotes','invoices','payments','expenses']],
+    ['growth','Growth',['websiteCenter','social','advertising']],
+    ['control','Control',['products','reports','proof','errors','systemHealth','settings','help']]
+  ];
+  var modules=uxRows(BOOT&&BOOT.modules);
+  document.getElementById('nav').innerHTML=groups.map(function(group){
+    var id=group[0],label=group[1],items=group[2].filter(function(module){return VIRTUAL_MODULES.includes(module)||modules.includes(module);});
+    var saved=localStorage.getItem('h38NavGroup:'+id);
+    var contains=items.includes(CURRENT);
+    var open=saved==='open'||saved===null&&contains||contains;
+    return '<div class="nav-group '+(open?'open':'')+'" id="nav-group-'+id+'"><button class="nav-group-toggle" aria-expanded="'+open+'" onclick="uxToggleNavGroup(\''+id+'\')"><span>'+esc(label)+'</span><span aria-hidden="true">'+(open?'−':'+')+'</span></button><div class="nav-group-items">'+items.map(function(module){return '<button class="'+(module===CURRENT?'active':'')+'" onclick="show(\''+module+'\')">'+esc(TITLES[module]||module)+'</button>';}).join('')+'</div></div>';
+  }).join('');
+}
+function renderSavedViews(){
+  var select=document.getElementById('savedViews');
+  var builtins=uxRows(H38_UX&&H38_UX.builtInViews).map(function(view){return '<option value="builtin:'+attr(view.id)+'">'+esc(view.name)+'</option>';}).join('');
+  var custom=uxRows(SAVED_VIEWS).map(function(view){return '<option value="'+attr(view.id)+'">'+esc(view.name)+'</option>';}).join('');
+  select.innerHTML='<option value="">Saved views…</option><optgroup label="Built-in">'+builtins+'</optgroup><optgroup label="My saved views">'+custom+'</optgroup>';
+}
+async function refresh(){
+  try{
+    var results=await Promise.all([
+      call('h38PortalBootstrap'),
+      call('h38PortalClientSchema'),
+      call('h38PortalUxControlCenter'),
+      call('h38PortalSavedViews')
+    ]);
+    BOOT=results[0];SCHEMA=results[1];EXPERIENCE=results[2];SAVED_VIEWS=uxRows(results[3]);H38_UX=EXPERIENCE.ux||{};
+    document.getElementById('release').textContent=BOOT.release+' · Workflow UX';
+    renderNav();renderQuickCreate();renderSavedViews();
+    notice('<b>Owner verified.</b> External actions remain <b>LOCKED</b>. Work from one selected record at a time.','ok');
+    await show(CURRENT);
+  }catch(error){ownerSafeFailure(error,'The Owner Portal could not load the daily workspace.');}
+}
+async function show(module){
+  CURRENT=module;renderNav();document.getElementById('side').classList.remove('open');
+  var view=document.getElementById('view');view.innerHTML='<div class="card">Loading selected operating surface…</div>';
+  try{
+    if(module==='today'||module==='dashboard')return renderDashboard();
+    if(module==='decisions')return renderTaskSurface('Needs my approval',EXPERIENCE.views.decisions.tasks,'Approve, revise, hold, or reject one selected record.');
+    if(module==='active')return renderTaskSurface('Active work',EXPERIENCE.views.activeWork.tasks,'Open work with a current stage and next action.');
+    if(module==='money')return renderMoney(EXPERIENCE.views.money);
+    if(module==='growth')return renderGrowth(EXPERIENCE.views.growth);
+    if(module==='websiteCenter')return renderWebsiteCenter(EXPERIENCE.views.website);
+    if(module==='systemHealth')return renderSystemHealth(EXPERIENCE.views.systemHealth);
+    if(module==='help')return renderHelp(await call('h38PortalHelpCenter'));
+    if(module==='tasks')return renderTasks(await call('h38PortalTasks',[{}]));
+    if(module==='reports')return renderReports(await call('h38PortalReports'));
+    if(module==='settings')return renderSettings();
+    if(module==='proof')return renderRecords('Proof Log',await call('h38PortalProofLog',['']),null);
+    if(module==='errors')return renderRecords('Error Log',await call('h38PortalErrorLog',['']),null);
+    var entity=module==='products'?'catalog':module;
+    return renderRecords(TITLES[module]||module,await call('h38PortalList',[entity,{}]),entity);
+  }catch(error){ownerSafeFailure(error,'This workspace opened without all related data. The selected record is safe; review the Error Log for technical details.');}
+}
+function uxMetric(label,value,detail,action,currency){
+  return '<button class="ux-metric" onclick="'+action+'"><b>'+esc(label)+'</b><strong>'+(currency?uxMoney(value):esc(value))+'</strong><small>'+esc(detail)+'</small></button>';
+}
+function renderDashboard(){
+  var ux=H38_UX||{},m=ux.metrics||{};
+  var approval=uxRows(ux.approvalQueue);
+  var due=uxRows(ux.dueToday).concat(uxRows(ux.overdue)).slice(0,12);
+  var activity=uxRows(ux.recentActivity).slice(0,12);
+  document.getElementById('view').innerHTML=
+    '<div class="ux-page-head"><div><div class="ux-eyebrow">Owner decision and control center</div><h1>What needs attention now?</h1><div class="muted">Reviews, deadlines, money, blocked work, proof, and errors—without hunting through every table.</div></div><button class="btn primary" onclick="show(\'decisions\')">Review '+esc(m.needsReview||0)+' decisions</button></div>'+ 
+    '<div class="ux-metrics">'+
+      uxMetric('Needs review',m.needsReview||0,'Owner decisions waiting',"show('decisions')")+
+      uxMetric('Due today',m.dueToday||0,'Open work due today',"openUxPreset('due-today')")+
+      uxMetric('Overdue',m.overdue||0,'Past-due open work',"openUxPreset('overdue')")+
+      uxMetric('Blocked',m.blocked||0,'Holds, errors, or missing data',"openUxPreset('blocked')")+
+      uxMetric('Cash expected',m.cashExpected||0,'Outstanding invoice balance',"show('money')",true)+
+      uxMetric('Unpaid invoices',m.unpaidInvoices||0,(m.overdueInvoices||0)+' overdue',"show('invoices')")+
+    '</div>'+ 
+    '<div class="ux-dashboard-grid"><div class="ux-stack">'+
+      uxDashboardApproval(approval)+
+      '<section class="ux-section"><div class="ux-section-head"><h2>Today and overdue</h2><button class="btn" onclick="show(\'tasks\')">All work</button></div>'+uxTaskList(due,'No work is due or overdue.')+'</section>'+ 
+      '<section class="ux-section"><div class="ux-section-head"><h2>Recent activity</h2><span class="muted">Most recently changed records</span></div>'+uxActivity(activity)+'</section>'+ 
+    '</div><div class="ux-stack">'+
+      '<section class="ux-section"><h2>Financial snapshot</h2><div class="ux-financial-grid">'+
+        uxFinancial('Paid this month',m.paidThisMonth||0,true)+uxFinancial('Outstanding',m.cashExpected||0,true)+
+        uxFinancial('Expenses this month',m.expensesThisMonth||0,true)+uxFinancial('Active jobs',m.activeJobs||0,false)+
+      '</div><div class="toolbar"><button class="btn" onclick="show(\'money\')">Open Money Center</button><button class="btn" onclick="show(\'reports\')">Reports</button></div></section>'+ 
+      '<section class="ux-section"><h2>Exceptions</h2><div class="ux-list">'+
+        uxException('No next action',m.noNextAction||0,"openUxPreset('no-next-action')")+
+        uxException('Waiting on customer',m.waitingCustomer||0,"openUxPreset('waiting-customer')")+
+        uxException('Open errors',m.openErrors||0,"show('errors')")+
+      '</div></section>'+ 
+      '<section class="ux-section"><h2>System health</h2><p>'+statusPill(BOOT&&BOOT.installed&&BOOT.installed.installed?'Installed':'Hold')+' '+statusPill(BOOT&&BOOT.catalog&&BOOT.catalog.status||'Hold')+'</p><p class="muted">Customer sends, payments, publishing, ad spend, delivery, merge, and deployment remain approval gated.</p><button class="btn" onclick="show(\'systemHealth\')">Review system health</button></section>'+ 
+    '</div></div>';
+}
