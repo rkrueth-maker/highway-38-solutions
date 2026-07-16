@@ -54,7 +54,7 @@ check('unified package manifest declares native Business Office',/nativeBusiness
 check('native Business Office server endpoints',['h38PortalBusinessModule','h38PortalBusinessWorkspace','h38PortalBusinessSave','h38PortalBusinessUpload'].every(name=>all.includes('function '+name)));
 check('secure shell has no nested Business Office iframe',!/<iframe\b|businessWorkspace|businessFrame/.test(shell));
 check('native Business Office client included',/Portal_Business_Client/.test(shell)&&/function renderBusinessModule/.test(client));
-check('native Business Office supports direct module switching',/return renderBusinessModule\(module/.test(client)&&/history\.replaceState/.test(client));
+check('native Business Office supports guarded direct module switching',/await\s+(?:uxInvokeBusinessModule|renderBusinessModule)\(module/.test(client)&&/typeof renderBusinessModule!==['"]function['"]/.test(client)&&/uxWorkspaceHasContent/.test(client)&&/uxRenderWorkspaceFailure/.test(client)&&/history\.replaceState/.test(client));
 check('native Business Office supports table cards details forms and upload',['boNativeRenderTable','openBusinessRecord','openBusinessRecordForm','openBusinessUpload'].every(name=>client.includes('function '+name)));
 check('environment property key',/H38_PORTAL_SPREADSHEET_ID/.test(all));
 check('test environment confirmation',/CONFIGURE NON-DEPLOYED TEST ENVIRONMENT/.test(all));
