@@ -2,7 +2,7 @@
   'use strict';
   const LOGO='assets/highway38-logo.png?v=20260713-logo2';
   const IMAGE_BASE='assets/approved-website-images/';
-  const IMAGE_VERSION='?v=20260715-remaining-approved';
+  const IMAGE_VERSION='?v=20260715-all-approved-v2';
   const brandText=()=>'<span class="brand-text"><span>Highway 38</span> Solutions</span>';
   const logo=()=>{const img=document.createElement('img');img.className='brand-logo';img.src=LOGO;img.alt='Highway 38 Solutions';return img;};
   function wrapText(el){
@@ -50,8 +50,8 @@
     });
   }
   function representativeFigure(file,alt,caption){
-    const figure=document.createElement('figure');figure.className='h38-representative-image';
-    const img=document.createElement('img');img.src=IMAGE_BASE+file+IMAGE_VERSION;img.alt=alt;img.width=1200;img.height=527;img.loading='lazy';img.decoding='async';
+    const figure=document.createElement('figure');figure.className='h38-representative-image';figure.dataset.imageClassification='representative-environment';
+    const img=document.createElement('img');img.src=IMAGE_BASE+file+IMAGE_VERSION;img.alt=alt;img.width=1200;img.height=675;img.loading='lazy';img.decoding='async';
     const figcaption=document.createElement('figcaption');figcaption.textContent=caption+' · Representative imagery, not customer proof.';
     figure.append(img,figcaption);return figure;
   }
@@ -63,20 +63,13 @@
   }
   function placeApprovedImages(){
     const page=document.body.dataset.page||'';
-    if(page==='solutions'){
-      addRepresentativeGroup(document.querySelector('#space-project .container'),[
-        {file:'06-garage-layout-zones.jpg',alt:'Garage and workshop with clearly defined vehicle, equipment, and work zones.',caption:'Garage and shop layout planning'}
-      ]);
-      addRepresentativeGroup(document.querySelector('#shop-business .container'),[
-        {file:'05-organized-tool-wall-workbench.jpg',alt:'Organized tool wall and workbench with clearly arranged hand tools and storage.',caption:'Shop organization and workspace efficiency'},
-        {file:'07-storage-organization-system.jpg',alt:'Organized storage system with labeled bins, shelving, and central workbench.',caption:'Storage, cleanup, and organization'}
-      ]);
-      addRepresentativeGroup(document.querySelector('#digital .container'),[
+    if(page==='products'&&document.querySelector('#space-project')){
+      addRepresentativeGroup(document.querySelector('#digital .exp-wrap'),[
         {file:'13-digital-organization-file-system.jpg',alt:'Organized digital file system displayed beside structured physical folders.',caption:'Digital workflow and file organization'}
-      ]);
-      addRepresentativeGroup(document.querySelector('#manufacturing .container'),[
+      ],'beforeend');
+      addRepresentativeGroup(document.querySelector('#manufacturing .exp-wrap'),[
         {file:'12-cnc-machining-closeup.jpg',alt:'CNC machining operation cutting a metal workpiece in a secured fixture.',caption:'CNC and manufacturing planning'}
-      ]);
+      ],'beforeend');
     }
     if(page==='start'){
       addRepresentativeGroup(document.querySelector('.start-request-section .container'),[
@@ -84,12 +77,12 @@
       ]);
     }
     if(page==='about'){
-      addRepresentativeGroup(document.querySelector('main .commercial-section .commercial-wrap'),[
+      addRepresentativeGroup(document.querySelector('main .command-center-placement .commercial-wrap'),[
         {file:'09-clean-working-shop-floor.jpg',alt:'Clean working shop floor with workbenches, tool storage, and equipment.',caption:'Practical working environment'},
         {file:'11-exterior-shop-building.jpg',alt:'Practical detached shop building with two overhead doors in a wooded setting.',caption:'Representative business environment'}
       ]);
     }
-    if(page==='products'){
+    if(page==='products'&&document.querySelector('#plans .container')){
       addRepresentativeGroup(document.querySelector('#plans .container'),[
         {file:'10-project-planning-documents.jpg',alt:'Project planning documents, measurements, calculator, and notes arranged on a desk.',caption:'Project planning and decision packets'}
       ]);
