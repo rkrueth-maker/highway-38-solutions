@@ -1,0 +1,54 @@
+name: Diagnose Business Office Existing Deployment
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  issues: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: 2961ec03d335c5d928f90de414f8a489795a321c
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture latest issue record and deployment run
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/business-office-deploy-diagnosis
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/85/comments?per_page=100" > artifacts/business-office-deploy-diagnosis/comments-pages.json
+          node <<'NODE'
+          const fs=require('fs');
+          const raw=fs.readFileSync('artifacts/business-office-deploy-diagnosis/comments-pages.json','utf8').trim();
+          const arrays=[];
+          for(const line of raw.split(/\n(?=\[)/)){try{const value=JSON.parse(line);if(Array.isArray(value))arrays.push(...value)}catch{}}
+          fs.writeFileSync('artifacts/business-office-deploy-diagnosis/latest-comment.json',JSON.stringify(arrays[arrays.length-1]||null,null,2));
+          NODE
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${TARGET_SHA}&per_page=100" > artifacts/business-office-deploy-diagnosis/runs.json
+          RUN_ID="$(node - <<'NODE'
+          const fs=require('fs');const v=JSON.parse(fs.readFileSync('artifacts/business-office-deploy-diagnosis/runs.json','utf8'));
+          const run=(v.workflow_runs||[]).filter(x=>x.name==='Highway 38 Business Office').sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+          if(!run)process.exit(2);process.stdout.write(String(run.id));
+          NODE
+          )"
+          printf '%s\n' "$RUN_ID" > artifacts/business-office-deploy-diagnosis/run-id.txt
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" > artifacts/business-office-deploy-diagnosis/run.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs?per_page=100" > artifacts/business-office-deploy-diagnosis/jobs.json
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log > artifacts/business-office-deploy-diagnosis/run.log || true
+          tail -n 240 artifacts/business-office-deploy-diagnosis/run.log > artifacts/business-office-deploy-diagnosis/run-tail.log || true
+          cat artifacts/business-office-deploy-diagnosis/latest-comment.json
+          cat artifacts/business-office-deploy-diagnosis/run.json
+          cat artifacts/business-office-deploy-diagnosis/run-tail.log
+      - name: Upload diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-office-existing-deploy-diagnosis
+          path: artifacts/business-office-deploy-diagnosis/
+          retention-days: 7
