@@ -18,6 +18,7 @@ on:
       - 'scripts/verify-owner-portal-hard-rule.js'
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-photo-first-record-creation.js'
+      - 'scripts/verify-task-messaging.js'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
@@ -73,6 +74,9 @@ jobs:
       - name: Verify New record and photo-first creation
         run: node scripts/verify-photo-first-record-creation.js
 
+      - name: Verify task assignment and messaging controls
+        run: node scripts/verify-task-messaging.js
+
       - name: Install tested Apps Script deployment tool
         run: npm install --global @google/clasp@3.1.0
 
@@ -105,6 +109,7 @@ jobs:
             artifacts/owner-portal-routing/
             artifacts/business-office/
             artifacts/photo-first-record-creation/
+            artifacts/task-messaging/
           if-no-files-found: warn
           retention-days: 90
 
@@ -120,6 +125,11 @@ jobs:
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
           - Owner experience: one authenticated application and one navigation system
           - Command Center and Business Office modules: live inside the unified application
+          - Secure multi-user task assignment: PASS
+          - My Tasks and Owner all-tasks controls: PASS
+          - Provider-neutral SMS preparation, consent, approval, history, STOP suppression, and reply import: PASS
+          - Paid provider sending: remains locked until credentials, A2P approval, package release, and Script Property release are all configured
+          - Bulk messaging and automatic SMS triggers: disabled
           - New record button: PASS
           - Every creatable Business Office module offers Start with photo or PDF or Start blank
           - Uploaded originals are preserved and linked when the new record is saved
@@ -133,7 +143,7 @@ jobs:
           - New project or deployment: none
           - Automatic production deployer: this unified workflow only
           - Legacy Business Office workflows: manual diagnostics only
-          - Google owner authentication and role controls: preserved
+          - Google user authentication and role controls: preserved
           - External actions: disabled and approval gated
 
           Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
