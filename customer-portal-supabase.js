@@ -32,17 +32,21 @@
 
   function safeError(error) {
     console.error(error);
-    notice('<b>Portal hold:</b> ' + esc(error && error.message ? error.message : error), 'bad');
+    notice('<b>Secure portal notice:</b> ' + esc(error && error.message ? error.message : error), 'bad');
   }
 
   function currentRedirectUrl() {
     return config.redirectUrl || (location.origin + location.pathname);
   }
 
+  function loginEmail() {
+    return String(byId('portalEmail').value || '').trim().toLowerCase();
+  }
+
   function initClient() {
     if (!configured()) {
       setView('hold');
-      notice('<b>Supabase connection is prepared but not enabled.</b> Add the project URL and publishable key, apply the SQL migration, then set <code>enabled: true</code>. No customer data is exposed.', 'hold');
+      notice('<b>Customer Portal is temporarily unavailable.</b> Secure configuration validation failed. No customer data is exposed.', 'hold');
       return null;
     }
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -61,9 +65,21 @@
     return state.client;
   }
 
-  async function sendMagicLink(event) {
+  async function signInWithPassword(event) {
     event.preventDefault();
-    const email = String(byId('portalEmail').value || '').trim().toLowerCase();
+    const email = loginEmail();
+    const password = String(byId('portalPassword').value || '');
+    if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
+    if (!password) return notice('Enter your customer portal password or request a secure email link.', 'bad');
+    notice('Signing in securely…', '');
+    const { data, error } = await state.client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    byId('portalPassword').value = '';
+    if (data && data.session) await applySession(data.session);
+  }
+
+  async function sendMagicLink() {
+    const email = loginEmail();
     if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
     const { error } = await state.client.auth.signInWithOtp({
       email,
@@ -187,6 +203,7 @@
   }
 
   async function refreshDashboard() {
+    if (!state.account) return;
     notice('Loading your customer records…', '');
     const [jobs, quotes, invoices, files] = await Promise.all([
       queryOwn('customer_jobs', 'id,job_number,title,status,next_action,due_date,progress_percent', 'updated_at'),
@@ -207,18 +224,20 @@
   async function applySession(session) {
     state.session = session;
     if (!session) {
+      state.account = null;
       setView('login');
       return;
     }
-    setView('app');
     await loadAccount();
+    setView('app');
     await refreshDashboard();
   }
 
   async function boot() {
     try {
       if (!initClient()) return;
-      byId('loginForm').addEventListener('submit', event => sendMagicLink(event).catch(safeError));
+      byId('loginForm').addEventListener('submit', event => signInWithPassword(event).catch(safeError));
+      byId('magicLinkButton').addEventListener('click', () => sendMagicLink().catch(safeError));
       byId('signOutButton').addEventListener('click', () => signOut().catch(safeError));
       byId('refreshPortal').addEventListener('click', () => refreshDashboard().catch(safeError));
       byId('messageForm').addEventListener('submit', event => submitMessage(event).catch(safeError));
