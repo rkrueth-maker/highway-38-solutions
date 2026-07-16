@@ -1,3 +1,76 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Customer Portal — Coming Soon | Highway 38 Solutions</title><meta name="description" content="Future Highway 38 customer portal status for dashboards, quotes, active projects, downloads, invoices, payments, and secure portal login."><meta name="robots" content="noindex,nofollow"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution"><link rel="stylesheet" href="ecosystem.css?v=20260713-cleanup1"><link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1"><link rel="stylesheet" href="commercial-evolution.css?v=20260714-commercial-evolution"><script defer src="catalog-data.js?v=20260711"></script><script defer src="ecosystem-data.js?v=20260711"></script><script defer src="ecosystem.js?v=20260714-commercial-evolution"></script><script defer src="brand-global.js?v=20260713-cleanup1"></script><script defer src="commercial-evolution.js?v=20260714-commercial-evolution"></script></head>
-<body data-page="customer"><a class="skip-link" href="#main">Skip to main content</a><nav class="site-nav" aria-label="Main navigation"></nav><main id="main"><section class="commercial-section commercial-section--navy"><div class="commercial-wrap"><div class="commercial-heading"><span class="coming-soon">Coming Soon · Not activated</span><h1>One secure workspace for customer projects.</h1><p><strong>Customer portal authentication is not connected.</strong> The architecture is being prepared for dashboards, reviewed quotes, active projects, downloads, invoices, provider-hosted payments, and messages. No customer records, files, quotes, invoices, payments, deliverables, or communications are exposed.</p></div><div class="portal-preview"><div><strong>Customer Dashboard</strong><span>Status, milestones, and next action</span></div><div><strong>Quotes</strong><span>Reviewed scope and approval state</span></div><div><strong>Active Projects</strong><span>Progress and owner decisions</span></div><div><strong>Downloads</strong><span>Finished deliverables and revisions</span></div><div><strong>Invoices & Payments</strong><span>Provider-hosted payment path only</span></div><div><strong>Portal Login</strong><span>Enabled only after security verification</span></div></div></div></section><section class="commercial-section"><div class="commercial-wrap"><div class="commercial-heading"><span class="badge">Activation gate</span><h2>Security and isolation come before convenience.</h2></div><div class="commercial-grid"><article class="commercial-card"><h3>Identity</h3><p>Select and configure a production identity provider with secure sessions, CSRF protection, rate limiting, and revocation.</p></article><article class="commercial-card"><h3>Customer isolation</h3><p>Map each identity to exactly one tenant and customer record; pass cross-customer and guessed-ID tests.</p></article><article class="commercial-card"><h3>Private storage</h3><p>Use deny-public storage, quarantined uploads, malware scanning, scoped downloads, monitoring, and audit retention.</p></article><article class="commercial-card"><h3>Payments</h3><p>Use an approved provider-hosted flow. Raw card data must never enter Highway 38 pages, sheets, logs, or repositories.</p></article><article class="commercial-card"><h3>Verification</h3><p>Pass mobile, desktop, session, upload, download, expiration, direct-link, and rollback tests.</p></article><article class="commercial-card"><h3>Owner release</h3><p>Owner approval remains required before enabling the production customer-portal feature flag.</p></article></div><div class="commercial-cta" style="margin-top:1.5rem"><div><h2>Need to start now?</h2><p>The existing owner-reviewed request path remains available without portal access.</p></div><a class="btn btn-primary" href="start-request.html">Start a Project</a></div></div></section></main><footer class="site-footer"></footer></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Customer Portal | Highway 38 Solutions</title>
+  <meta name="description" content="Secure Highway 38 customer portal for projects, quotes, invoices, private downloads, and customer messages.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution">
+  <link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1">
+  <style>
+    body{background:#eef2f5}.customer-shell{max-width:1180px;margin:0 auto;padding:2rem 1rem 4rem}.customer-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.25rem}.customer-head h1{margin:.25rem 0}.portal-notice{padding:1rem;border:1px solid #bac4ce;border-radius:12px;background:#fff;margin:0 0 1rem}.portal-notice.ok{border-color:#5b8c72}.portal-notice.bad{border-color:#aa5b5b}.portal-notice.hold{border-color:#b58b44}.portal-panel{background:#fff;border:1px solid #d6dde3;border-radius:16px;padding:1.25rem;box-shadow:0 12px 30px rgba(20,35,50,.08)}.portal-panel code{overflow-wrap:anywhere;word-break:break-word}.portal-login{max-width:560px;margin:2rem auto}.portal-login label{display:grid;gap:.4rem}.portal-login input,.portal-message textarea{width:100%;padding:.8rem;border:1px solid #aab5bf;border-radius:8px}.portal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-bottom:1rem}.portal-metric{background:#0f2740;color:#fff;border-radius:14px;padding:1rem}.portal-metric strong{display:block;font-size:1.7rem}.portal-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}.portal-stack{display:grid;gap:1rem}.portal-section h2{margin-top:0}.portal-list{display:grid;gap:.75rem}.portal-item{display:grid;gap:.65rem;padding:1rem;border:1px solid #dbe2e8;border-radius:12px}.portal-item>div{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}.portal-item span{display:block;color:#526170}.portal-pill{display:inline-block;padding:.2rem .55rem;border-radius:999px;background:#e7eef4;color:#17314b!important}.portal-item progress{width:100%}.portal-empty{color:#657382}.portal-message{display:grid;gap:.75rem}.portal-actions{display:flex;gap:.6rem;flex-wrap:wrap}.portal-config-list{margin:1rem 0;padding-left:1.25rem}.portal-config-list li{margin:.45rem 0}@media(max-width:800px){.portal-grid,.portal-metrics{grid-template-columns:1fr}.customer-head{display:block}.customer-head .portal-actions{margin-top:1rem}}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="customer-portal-config.js?v=20260716-supabase" defer></script>
+  <script src="customer-portal-supabase.js?v=20260716-supabase" defer></script>
+  <script defer src="brand-global.js?v=20260713-cleanup1"></script>
+</head>
+<body data-page="customer">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <nav class="site-nav" aria-label="Main navigation"></nav>
+  <main id="main" class="customer-shell">
+    <header class="customer-head">
+      <div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>Projects, selected quotes, invoices, private files, and messages in one customer-only workspace.</p></div>
+      <div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div>
+    </header>
+    <div id="portalNotice" class="portal-notice">Checking secure portal configuration…</div>
+
+    <section id="portal-hold" class="portal-panel" hidden>
+      <h2>Supabase connection prepared</h2>
+      <p>The portal code, database migration, authentication flow, private-storage policies, and customer-isolation checks are installed in the repository. It remains fail-closed until the Supabase project values are added.</p>
+      <ol class="portal-config-list">
+        <li>Create or select the Highway 38 Supabase project.</li>
+        <li>Run <code>supabase/migrations/20260716_customer_portal.sql</code>.</li>
+        <li>Add the GitHub Pages portal URL to Supabase Auth redirect URLs.</li>
+        <li>Put only the project URL and publishable key in <code>customer-portal-config.js</code>.</li>
+        <li>Connect each invited Auth user to one active <code>customer_accounts</code> row.</li>
+      </ol>
+      <p><strong>Never add a service_role key to GitHub Pages.</strong></p>
+    </section>
+
+    <section id="portal-login" class="portal-panel portal-login" hidden>
+      <h2>Sign in securely</h2>
+      <p>Use the email address connected to your Highway 38 customer account. Supabase sends a one-time magic link; no password is stored on this page.</p>
+      <form id="loginForm">
+        <label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label>
+        <button class="btn btn-primary" type="submit">Email secure sign-in link</button>
+      </form>
+    </section>
+
+    <section id="portal-app" hidden>
+      <div class="customer-head">
+        <div><h2>Welcome, <span id="customerName">Customer</span></h2><p id="customerCode"></p></div>
+      </div>
+      <div class="portal-metrics">
+        <div class="portal-metric"><span>Active projects</span><strong id="metricJobs">0</strong></div>
+        <div class="portal-metric"><span>Quotes needing review</span><strong id="metricQuotes">0</strong></div>
+        <div class="portal-metric"><span>Outstanding balance</span><strong id="metricBalance">$0.00</strong></div>
+      </div>
+      <div class="portal-grid">
+        <div class="portal-stack">
+          <section class="portal-panel portal-section"><h2>Projects</h2><div id="jobsList" class="portal-list"></div></section>
+          <section class="portal-panel portal-section"><h2>Quotes</h2><div id="quotesList" class="portal-list"></div></section>
+        </div>
+        <div class="portal-stack">
+          <section class="portal-panel portal-section"><h2>Invoices</h2><div id="invoicesList" class="portal-list"></div></section>
+          <section class="portal-panel portal-section"><h2>Private downloads</h2><div id="filesList" class="portal-list"></div></section>
+          <section class="portal-panel portal-section"><h2>Send Highway 38 a message</h2><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Record message for review</button></form><p>No automatic text or email is sent from this form.</p></section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer"></footer>
+</body>
+</html>

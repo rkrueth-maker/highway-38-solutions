@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "provider": "supabase",
+  "activationMode": "HOLD",
+  "publicConfigurationFile": "customer-portal-config.js",
+  "migration": "supabase/migrations/20260716_customer_portal.sql",
+  "auth": {
+    "method": "email_magic_link",
+    "shouldCreateUser": false,
+    "sessionPersistence": true,
+    "redirectUrlMustBeAllowlisted": true
+  },
+  "database": {
+    "rowLevelSecurity": true,
+    "customerMappingTable": "public.customer_accounts",
+    "customerMappingColumn": "auth_user_id",
+    "serviceRoleAllowedInBrowser": false
+  },
+  "storage": {
+    "bucket": "customer-portal",
+    "public": false,
+    "signedDownloadSeconds": 120,
+    "customerPathPrefix": "{customer_id}/"
+  },
+  "externalActions": {
+    "automaticEmail": false,
+    "automaticSms": false,
+    "paymentProcessing": false,
+    "automaticDelivery": false
+  }
+}

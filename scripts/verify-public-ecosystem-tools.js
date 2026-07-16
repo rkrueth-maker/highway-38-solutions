@@ -64,11 +64,37 @@ for (const rel of pages) {
 }
 
 const customer = read('customer-portal.html');
-check('customer portal truthfully not activated', /Not activated/i.test(customer));
-check('customer portal discloses no records exposed', /No customer records, files, quotes, invoices, payments, deliverables, or communications are exposed/i.test(customer));
-check('customer portal has no credential or customer form', !/<form\b/i.test(customer));
+const customerConfig = read('customer-portal-config.js');
+const customerClient = read('customer-portal-supabase.js');
+const customerMigration = read('supabase/migrations/20260716_customer_portal.sql');
+check('customer portal truthfully remains fail closed',
+  /enabled:\s*false/.test(customerConfig) &&
+  /Supabase connection prepared/.test(customer) &&
+  /remains fail-closed/.test(customer)
+);
+check('customer portal exposes no records while unconfigured',
+  /if \(!configured\(\)\)/.test(customerClient) &&
+  /No customer data is exposed/.test(customerClient) &&
+  /REPLACE_WITH_SUPABASE_PUBLISHABLE_KEY/.test(customerConfig)
+);
+check('customer portal login is Supabase magic-link only',
+  /type="email"/.test(customer) &&
+  !/type=["']password["']/i.test(customer) &&
+  /signInWithOtp/.test(customerClient) &&
+  /shouldCreateUser:\s*false/.test(customerClient)
+);
+check('customer portal RLS and private storage are required',
+  /enable row level security/i.test(customerMigration) &&
+  /customer_portal_customer_id/.test(customerMigration) &&
+  /createSignedUrl/.test(customerClient) &&
+  /public, file_size_limit/.test(customerMigration)
+);
 check('customer portal has safe alternate request path', /href=["']start-request\.html["']/i.test(customer));
-check('customer portal no network submit', !/(fetch\(|XMLHttpRequest|sendBeacon)/.test(customer));
+check('customer portal has no raw card form or automatic outbound action',
+  !/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(customer + customerClient) &&
+  /No automatic text or email is sent/.test(customer) &&
+  !/sendBeacon|XMLHttpRequest/.test(customerClient)
+);
 
 const ownerPortal = read('portal.html');
 const ownerIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
@@ -87,7 +113,7 @@ check('secure app contains no nested Business Office iframe', !/<iframe\b|busine
 check('secure app includes native Business Office client and styles', /Portal_Business_Client/.test(ownerIndex) && /Portal_Business_Styles/.test(ownerIndex));
 check('secure app uses package-controlled grouped navigation', /function h38PortalUnifiedBootstrap\(\)/.test(ownerUnified) && /groups:\s*groups/.test(ownerUnified) && /H38_UNIFIED/.test(ownerShell));
 check('secure app declares native Business Office rendering', /nativeBusinessOffice:\s*true/.test(ownerUnified));
-check('secure app includes command sales work money people documents growth and control', ['command','sales','work','money','people','documents','growth','control'].every(id => ownerUnified.includes(`id: '${id}'`)));
+check('secure app includes command tasks messaging sales work money people documents growth and control', ['command','tasksWork','messaging','sales','work','money','people','documents','growth','control'].every(id => ownerUnified.includes(`id: '${id}'`)));
 check('Business Office modules render directly in the secure app', /renderBusinessModule/.test(ownerShell) && /function renderBusinessModule/.test(ownerBusinessClient));
 check('Business Office server adapter supports list save open and upload', ['h38PortalBusinessModule','h38PortalBusinessSave','h38PortalBusinessWorkspace','h38PortalBusinessUpload'].every(name => ownerBusinessServer.includes(`function ${name}`)));
 check('Documents and OCR exposes upload and camera path inside secure app', /Upload PDF \/ Take Picture/.test(ownerBusinessClient) && /capture="environment"/.test(ownerBusinessClient));

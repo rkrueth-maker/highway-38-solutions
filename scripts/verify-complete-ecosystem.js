@@ -7,7 +7,7 @@ const check=(name,condition,detail='')=>condition?passes.push({name,detail}):fai
 const exists=file=>fs.existsSync(path.join(root,file));
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const required=[
-  'index.html','services.html','free-tools.html','free-tools.js','tool-formulas.js','proof.html','proof.js','business-os.html','business-concept-builder.html','business-concept-builder.js','resources.html','portal.html','customer-portal.html','ecosystem.css','ecosystem-data.js','ecosystem.js','favicon.svg','forgeiq.html','tools.html','sitemap.xml','robots.txt','site.webmanifest',
+  'index.html','services.html','free-tools.html','free-tools.js','tool-formulas.js','proof.html','proof.js','business-os.html','business-concept-builder.html','business-concept-builder.js','resources.html','portal.html','customer-portal.html','customer-portal-config.js','customer-portal-supabase.js','supabase/migrations/20260716_customer_portal.sql','ecosystem.css','ecosystem-data.js','ecosystem.js','favicon.svg','forgeiq.html','tools.html','sitemap.xml','robots.txt','site.webmanifest',
   'brand/highway-38-mark.svg','brand/highway-38-solutions.svg','brand/highway-38-tools.svg','brand/highway-38-business-os.svg','brand/highway-38-supply-co.svg','brand/BRAND_SYSTEM.md',
   'business-os/configuration-schema.json','business-os/installer-manifest.json','business-os/README.md','customer-portal/SECURITY_MODEL.md','social/30-day-content-bank.json','docs/launch/PROVIDER_CONNECTION_STATUS_2026-07-11.md','docs/launch/EXECUTION_LEDGER_2026-07-11.md'
 ];
@@ -43,14 +43,21 @@ try{
   assert.strictEqual(formulas.score([3,3,3,3]).percent,60);
   check('formula regression set',true);
 }catch(error){check('formula regression set',false,error.message);}
-const publicFiles=['index.html','services.html','free-tools.html','proof.html','business-os.html','business-concept-builder.html','resources.html','portal.html','customer-portal.html','ecosystem-data.js','ecosystem.js','free-tools.js','proof.js','business-concept-builder.js'];
+const publicFiles=['index.html','services.html','free-tools.html','proof.html','business-os.html','business-concept-builder.html','resources.html','portal.html','customer-portal.html','customer-portal-config.js','customer-portal-supabase.js','ecosystem-data.js','ecosystem.js','free-tools.js','proof.js','business-concept-builder.js'];
 const publicText=publicFiles.map(file=>read(file)).join('\n');
 check('no public LLC claim',!/Highway 38[^\n<]{0,30}\bLLC\b/i.test(publicText));
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
 check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(publicText));
 check('no fake testimonials or reviews',!/customer testimonial|five-star review|★★★★★/i.test(publicText));
 check('customer portal noindex',/noindex,nofollow/.test(read('customer-portal.html')));
-check('customer portal truthful blocked state',/Not activated/.test(read('customer-portal.html'))&&/authentication is not connected/i.test(read('customer-portal.html')));
+const customerPortal=read('customer-portal.html'),customerConfig=read('customer-portal-config.js'),customerClient=read('customer-portal-supabase.js'),customerSql=read('supabase/migrations/20260716_customer_portal.sql');
+check('customer portal truthful fail-closed Supabase state',
+  /enabled:\s*false/.test(customerConfig)&&
+  /Supabase connection prepared/.test(customerPortal)&&
+  /if \(!configured\(\)\)/.test(customerClient)&&
+  /enable row level security/i.test(customerSql)&&
+  /REPLACE_WITH_SUPABASE_PUBLISHABLE_KEY/.test(customerConfig)
+);
 check('ForgeIQ redirect',/location\.replace\('free-tools\.html'/.test(read('forgeiq.html')));
 check('analytics event queue',/h38AnalyticsQueue/.test(read('ecosystem.js'))&&/tool_calculate/.test(read('free-tools.js')));
 const social=JSON.parse(read('social/30-day-content-bank.json'));

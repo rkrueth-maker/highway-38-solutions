@@ -68,7 +68,9 @@ const claims = verifySession({ token, secret, config, now: now + 60_000 });
 check('valid signed session verifies', claims.tenantKey === 'tenant-one' && claims.customerId === 'CUST-001');
 check('session permissions are bounded', claims.permissions.length === permissions.length);
 
-const tampered = token.slice(0, -1) + (token.endsWith('A') ? 'B' : 'A');
+const tamperedParts = token.split('.');
+tamperedParts[1] = (tamperedParts[1].startsWith('A') ? 'B' : 'A') + tamperedParts[1].slice(1);
+const tampered = tamperedParts.join('.');
 expectThrow('tampered session rejected', () => verifySession({ token: tampered, secret, config, now }), 'signature');
 expectThrow('expired session rejected', () => verifySession({ token, secret, config, now: now + (config.security.sessionTtlSeconds + config.security.clockSkewSeconds + 60) * 1000 }), 'expired');
 expectThrow('revoked session rejected', () => verifySession({ token, secret, config, now, revokedSessionIds: new Set(['SESSION-001']) }), 'revoked');
