@@ -24,9 +24,11 @@ jobs:
         run: |
           set -euo pipefail
           test -f .h38-payload/part05
+          cp .github/workflows/deploy-owner-portal-hard-rule-production.yml /tmp/deploy-owner-portal-hard-rule-production.yml
           cat .h38-payload/part00 .h38-payload/part01 .h38-payload/part02 .h38-payload/part03 .h38-payload/part04 .h38-payload/part05 | base64 --decode > /tmp/h38-task-messaging.tgz
           echo '7a582eef381e478e5783b12e96efea554416430613dcaf4a618dc902cdbbc128  /tmp/h38-task-messaging.tgz' | sha256sum --check --strict
           tar -xzf /tmp/h38-task-messaging.tgz -C .
+          cp /tmp/deploy-owner-portal-hard-rule-production.yml .github/workflows/deploy-owner-portal-hard-rule-production.yml
           rm -rf .h38-payload
           rm -f .github/workflows/apply-task-messaging-payload.yml
 
