@@ -7,13 +7,11 @@
 .command-center-placement .command-center-gallery{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
 .command-center-gallery figure:has(img[src*="cc-43.webp"]),
 .command-center-gallery figure:has(img[src*="cc-44.webp"]){display:none}
-.h38-site[data-page="home"] .commercial-hero__proof::before,
-.h38-site[data-page="home"] .commercial-process::before,
 .h38-site[data-page="about"] .command-center-placement .commercial-wrap::before,
 .h38-site[data-page="solutions"] .command-center-placement .container::before{content:"";display:block;width:100%;aspect-ratio:16/9;min-height:220px;border-radius:18px;background-repeat:no-repeat;background-size:cover;background-position:center;box-shadow:0 18px 45px rgba(12,28,44,.18)}
-.h38-site[data-page="home"] .commercial-hero__proof::before{margin:0 0 1rem;background-image:url("assets/approved-website-images/homepage-hero-garage-workspace.webp?v=20260715-all-approved")}
-.h38-site[data-page="home"] .commercial-process::before{grid-column:1/-1;margin:0 0 .25rem;background-image:url("assets/approved-website-images/project-planning-desk.webp?v=20260715-all-approved")}
 .h38-site[data-page="about"] .command-center-placement .commercial-wrap::before{margin:0 0 1.5rem;background-image:url("assets/approved-website-images/business-workflow-office.webp?v=20260715-all-approved")}
 .h38-site[data-page="solutions"] .command-center-placement .container::before{margin:0 0 1.5rem;background-image:url("assets/approved-website-images/manufacturing-automation.webp?v=20260715-all-approved")}
-@media(max-width:700px){.h38-site[data-page="home"] .commercial-hero__proof::before,.h38-site[data-page="home"] .commercial-process::before,.h38-site[data-page="about"] .command-center-placement .commercial-wrap::before,.h38-site[data-page="solutions"] .command-center-placement .container::before{min-height:180px;border-radius:14px}}
+.h38-site[data-page="home"] .commercial-hero__proof::before,
+.h38-site[data-page="home"] .commercial-process::before{content:none!important;display:none!important;background-image:none!important}
+@media(max-width:700px){.h38-site[data-page="about"] .command-center-placement .commercial-wrap::before,.h38-site[data-page="solutions"] .command-center-placement .container::before{min-height:180px;border-radius:14px}}
 @media(max-width:560px){.command-center-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}.command-center-gallery figcaption{font-size:.72rem;padding:.5rem}}
