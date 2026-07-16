@@ -34,7 +34,7 @@ check('homepage has dominant $99 entry CTA', index.includes('href="start-request
 check('homepage has finished examples secondary CTA', index.includes('href="sample-library-now.html">See Finished Examples'));
 check('homepage explains no charge on request', index.includes('Submitting a request does not create a charge.'));
 check('homepage explains remote service', /completed remotely/i.test(index));
-check('unsupported quantitative CNC claim removed', !/(?:thousands of CNC jobs|programmed thousands)/i.test(index));
+check('prohibited quantitative CNC claim removed', !/(?:25,000\+|25,000\s+(?:CNC\s+)?programs?)/i.test(index));
 check('homepage contains no personal owner attribution', !/Rick\s+Krueth/i.test(index));
 
 check('catalog contains 15 products', catalog && catalog.products.length === 15, catalog ? String(catalog.products.length) : 'missing catalog');
