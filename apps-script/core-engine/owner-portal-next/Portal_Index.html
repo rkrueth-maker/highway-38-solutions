@@ -3,15 +3,31 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Highway 38 Business System</title>
   <style><?!= h38PortalRawInclude_('Portal_Experience_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_UX_Styles'); ?></style>
+  <style>
+    .unified-business-workspace{display:none;min-height:calc(100vh - 78px);background:#f6f8fa;border-radius:12px;overflow:hidden;border:1px solid #d7e0e8}
+    .unified-business-workspace.is-active{display:block}
+    .unified-business-frame{display:block;width:100%;height:calc(100vh - 82px);min-height:760px;border:0;background:#f6f8fa}
+    body.h38-business-module #view{display:none}
+    body.h38-business-module .content{padding:0}
+    body.h38-business-module #notice{display:none}
+    body.h38-business-module .top #quickCreate,
+    body.h38-business-module .top #savedViews,
+    body.h38-business-module .top button[onclick="runQuickCreate()"],
+    body.h38-business-module .top button[onclick="globalSearch()"],
+    body.h38-business-module .top #search{display:none}
+    .unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}
+    @media(max-width:800px){.unified-business-frame{height:calc(100vh - 62px);min-height:680px}.unified-business-workspace{min-height:calc(100vh - 62px)}}
+  </style>
 </head>
 <body>
 <div class="app">
-  <aside class="side" id="side"><div class="brand">Highway 38<small id="release">Business Operating System</small></div><nav class="nav" id="nav"></nav></aside>
+  <aside class="side" id="side"><div class="brand">Highway 38<small id="release">Business Operating System</small><span class="unified-package" id="packageName">Complete Business System</span></div><nav class="nav" id="nav"></nav></aside>
   <main>
-    <div class="top"><button class="btn mobile" onclick="toggleMenu()">☰</button><input id="search" aria-label="Search all Owner Portal records" placeholder="Search customers, jobs, invoices, files, and tasks" onkeydown="if(event.key==='Enter')globalSearch()"><button class="btn" onclick="globalSearch()">Search</button><select id="quickCreate" aria-label="Quick create"><option value="">Quick create…</option></select><button class="btn primary" onclick="runQuickCreate()">Create</button><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views…</option></select><button class="btn" onclick="refresh()">Refresh</button></div>
-    <div class="content"><div id="notice" class="notice hold">Loading secure owner session…</div><div id="view"></div></div>
+    <div class="top" id="ownerTopbar"><button class="btn mobile" onclick="toggleMenu()">☰</button><input id="search" aria-label="Search all Owner Portal records" placeholder="Search customers, jobs, invoices, files, and tasks" onkeydown="if(event.key==='Enter')globalSearch()"><button class="btn" onclick="globalSearch()">Search</button><select id="quickCreate" aria-label="Quick create"><option value="">Quick create…</option></select><button class="btn primary" onclick="runQuickCreate()">Create</button><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views…</option></select><button class="btn" onclick="refresh()">Refresh</button></div>
+    <div class="content"><div id="notice" class="notice hold">Loading secure owner session…</div><div id="view"></div><section id="businessWorkspace" class="unified-business-workspace" aria-label="Business Office workspace"><iframe id="businessFrame" class="unified-business-frame" title="Highway 38 unified Business Office module" allow="camera; microphone; clipboard-read; clipboard-write; fullscreen"></iframe></section></div>
   </main>
 </div>
 <div class="drawer" id="drawer" onclick="if(event.target===this)closeDrawer()"><div class="drawer-panel"><div class="toolbar"><button class="btn" onclick="closeDrawer()">Close</button><button class="btn" id="editFocusBtn" style="display:none" onclick="editFocusedRecord()">Edit focused record</button></div><div id="drawerBody"></div></div></div>
