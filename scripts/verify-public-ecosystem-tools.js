@@ -86,18 +86,22 @@ check('customer portal has safe alternate request path', /href=["']start-request
 check('customer portal no network submit', !/(fetch\(|XMLHttpRequest|sendBeacon)/.test(customer));
 
 const ownerPortal = read('portal.html');
-const embeddedApps = [...ownerPortal.matchAll(/<iframe\b/gi)].length;
+const ownerIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
+const ownerUnified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
+const ownerShell = read('apps-script/core-engine/owner-portal-next/Portal_UX_Client_Shell.html');
+const businessUnified = read('apps-script/business-office/BusinessOffice_Unified_Client.html');
 check('owner portal is noindex', /name="robots" content="noindex,nofollow"/.test(ownerPortal));
-check('owner portal is a live embedded workspace', embeddedApps === 2, String(embeddedApps));
-check('owner portal embeds private Owner Operations', /AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/.test(ownerPortal));
-check('owner portal embeds private Business Office', /app=business-office/.test(ownerPortal) && /Business Office/.test(ownerPortal));
+check('owner portal is a single automatic secure gateway', /Opening Highway 38 Business System/.test(ownerPortal) && /location\.replace\(target\)/.test(ownerPortal));
+check('owner portal targets accepted private Owner application', /AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/.test(ownerPortal));
+check('owner portal contains no obsolete public iframe', !/<iframe\b/i.test(ownerPortal));
+check('owner portal contains no obsolete six-button workspace row', !/owner-area-strip|Tasks &amp; Decisions|Quotes, Money &amp; Reports/.test(ownerPortal));
 check('owner portal does not collect credentials', !/<form\b/i.test(ownerPortal) && !/type=["']password["']/i.test(ownerPortal));
-check('owner portal exposes upload and camera path', /Upload PDF \/ Take Picture/.test(ownerPortal) && /Documents &amp; OCR/.test(ownerPortal));
-check('owner portal exposes operations and social', /Operations &amp; Social/.test(ownerPortal) && /Social &amp; Advertising/.test(ownerPortal));
-check('owner portal includes website and growth', /Website &amp; Growth/.test(ownerPortal));
-check('owner portal includes customers jobs money and reports', ['Customers &amp; Jobs','Quotes, Money &amp; Reports','Documents &amp; OCR'].every(label => ownerPortal.includes(label)));
-check('owner portal preserves approval boundaries', /Customer sends, social publishing, advertising spend, financial posting, payroll export, tax finalization, delivery/.test(ownerPortal));
-check('owner portal supports embedded camera permission', /allow="camera; microphone; clipboard-read; clipboard-write; fullscreen"/.test(ownerPortal));
+check('owner portal preserves upload and Business Office deep links', /upload:'documents'/.test(ownerPortal) && /'business-office':'requests'/.test(ownerPortal));
+check('secure app contains one embedded Business Office workspace', /id="businessWorkspace"/.test(ownerIndex) && /id="businessFrame"/.test(ownerIndex));
+check('secure app uses package-controlled grouped navigation', /function h38PortalUnifiedBootstrap\(\)/.test(ownerUnified) && /groups:\s*groups/.test(ownerUnified) && /H38_UNIFIED/.test(ownerShell));
+check('secure app includes command sales work money people documents growth and control', ['command','sales','work','money','people','documents','growth','control'].every(id => ownerUnified.includes(`id: '${id}'`)));
+check('Documents and OCR exposes upload and camera path inside secure app', /Upload PDF \/ Take Picture/.test(businessUnified) && /camera/.test(businessUnified));
+check('owner portal preserves approval boundaries', /Customer sends, publishing, advertising spend, financial posting, payroll export, tax finalization, delivery/.test(ownerPortal));
 const ecosystemJs = read('ecosystem.js');
 check('global Owner Login routes through portal webpage', /const ownerPortal='portal\.html'/.test(ecosystemJs));
 
