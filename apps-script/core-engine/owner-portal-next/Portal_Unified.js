@@ -17,9 +17,10 @@ function h38PortalUnifiedItem_(key, label, type, moduleKey, gate) {
 }
 
 function h38PortalUnifiedBootstrap() {
-  h38PortalAssertOwner_();
+  var access = h38PortalRequireUnifiedUser_();
+  if (access.ownerMode && typeof h38TmEnsureSchema_ === 'function') h38TmEnsureSchema_();
   var serviceUrl = ScriptApp.getService().getUrl();
-  var definitions = typeof boGetModuleDefinitions_ === 'function' ? boGetModuleDefinitions_() : {};
+  var definitions = typeof h38PortalBusinessDefinitions_ === 'function' ? h38PortalBusinessDefinitions_() : (typeof boGetModuleDefinitions_ === 'function' ? boGetModuleDefinitions_() : {});
   var groups = [
     {
       id: 'command',
@@ -29,6 +30,16 @@ function h38PortalUnifiedBootstrap() {
         h38PortalUnifiedItem_('decisions', 'Needs My Decision', 'native', 'decisions', 'commandCenter'),
         h38PortalUnifiedItem_('tasks', 'Tasks', 'native', 'tasks', 'commandCenter'),
         h38PortalUnifiedItem_('active', 'Active Work', 'native', 'active', 'commandCenter')
+      ]
+    },
+    {
+      id: 'taskMessaging',
+      label: 'Tasks & Messaging',
+      items: [
+        h38PortalUnifiedItem_('bo:assignedTasks', 'My Tasks', 'business', 'assignedTasks', 'assignedTasks'),
+        h38PortalUnifiedItem_('bo:messaging', 'Text Messaging', 'business', 'messaging', 'messaging'),
+        h38PortalUnifiedItem_('bo:smsConsent', 'SMS Consent', 'business', 'smsConsent', 'smsConsent'),
+        h38PortalUnifiedItem_('bo:messageTemplates', 'Message Templates', 'business', 'messageTemplates', 'messageTemplates')
       ]
     },
     {
@@ -113,6 +124,14 @@ function h38PortalUnifiedBootstrap() {
     };
   }).filter(function (group) { return group.items.length > 0; });
 
+  if (!access.ownerMode) {
+    var roleAllowed = ['assignedTasks','messageTemplates'];
+    if (['Administrator','Staff'].indexOf(access.role) >= 0) roleAllowed = roleAllowed.concat(['messaging','smsConsent']);
+    groups = groups.filter(function (group) { return group.id === 'taskMessaging'; }).map(function (group) {
+      return {id:group.id,label:group.label,items:group.items.filter(function (item) { return roleAllowed.indexOf(item.module) >= 0; })};
+    }).filter(function (group) { return group.items.length > 0; });
+  }
+
   return {
     status: 'PASS',
     singleApp: true,
@@ -124,6 +143,9 @@ function h38PortalUnifiedBootstrap() {
     businessDefinitions: definitions,
     groups: groups,
     externalActionsEnabled: false,
-    ownerApprovalRequired: true
+    ownerApprovalRequired: true,
+    ownerMode: access.ownerMode,
+    user: {id:access.user['User ID'],email:access.user.Email,displayName:access.user['Display Name'],role:access.role},
+    defaultModule: access.ownerMode ? 'today' : 'bo:assignedTasks'
   };
 }
