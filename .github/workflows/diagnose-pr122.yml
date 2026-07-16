@@ -1,0 +1,49 @@
+name: Diagnose PR 122
+
+on:
+  push:
+    branches: [agent/separate-tasks-supabase-customer-portal]
+    paths:
+      - '.github/workflows/diagnose-pr122.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/separate-tasks-supabase-customer-portal
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run focused failing suites
+        shell: bash
+        run: |
+          set +e
+          mkdir -p .h38-diagnostics
+          : > .h38-diagnostics/pr122.txt
+          for command in \
+            'node scripts/verify-business-office.js' \
+            'node scripts/verify-task-messaging.js' \
+            'node scripts/verify-task-messaging-hardening.js' \
+            'node scripts/verify-customer-portal-supabase.js' \
+            'node scripts/verify-public-ecosystem-tools.js' \
+            'node scripts/verify-complete-ecosystem.js' \
+            'node scripts/verify-final-ecosystem-acceptance-v2.js'; do
+            echo "===== $command =====" | tee -a .h38-diagnostics/pr122.txt
+            bash -lc "$command" >> .h38-diagnostics/pr122.txt 2>&1
+            echo "EXIT=$?" | tee -a .h38-diagnostics/pr122.txt
+          done
+          grep -E '^(FAIL|RESULT:|EXIT=)|failure|HOLD|missing|Customer Portal' .h38-diagnostics/pr122.txt > .h38-diagnostics/pr122-summary.txt || true
+      - name: Commit diagnostic output
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .h38-diagnostics/pr122.txt .h38-diagnostics/pr122-summary.txt
+          git commit -m 'Record PR 122 diagnostic output'
+          git push origin HEAD:agent/separate-tasks-supabase-customer-portal
