@@ -1,0 +1,118 @@
+function openCreate(entity,context,record){
+  context=context||{};record=record||null;
+  if(!SCHEMA.tables[entity]){notice('Form unavailable for '+esc(entity),'hold');return;}
+  FORM_STATE={entity:entity,context:context,record:record};
+  var spec=SCHEMA.tables[entity],isEdit=!!record;
+  document.getElementById('formTitle').textContent=(isEdit?'Edit ':'Add internal ')+entityLabel(entity);
+  document.getElementById('formHelp').textContent='Required fields are marked. Save creates or updates one internal record only; customer sends, charges, publishing, delivery, merge, and deployment remain locked.';
+  var exclude=['Created Time','Updated Time','Proof Log ID','Sent Time','Published Time','Deployment Time','Source Row','Last Update'];
+  document.getElementById('formFields').innerHTML=spec.headers.filter(function(header){return !exclude.includes(header);}).map(function(header){return formField(entity,header,record?record[header]:prefill(header,context));}).join('');
+  document.getElementById('formModal').classList.add('open');
+}
+function uxRequired(entity,header){
+  var required={
+    tasks:['Task Title','Status','Priority'],
+    leads:['Name','Status'],
+    customers:['Name','Customer Status'],
+    jobs:['Customer ID','Product / Bundle ID','Job Stage'],
+    quotes:['Job ID','Product / Bundle ID'],
+    invoices:['Job ID','Due Date'],
+    payments:['Invoice ID','Payment Date','Amount'],
+    expenses:['Date','Description','Category','Amount'],
+    communications:['Channel','Direction','Status'],
+    social:['Platform','Status'],
+    advertising:['Platform','Status'],
+    website:['Page','Requested Change','Status'],
+    calendar:['Title','Start Time','Status']
+  };
+  return (required[entity]||[]).includes(header);
+}
+function uxHelp(header){
+  var help={
+    'Approval Status':'Owner review state. This field does not execute an external action.',
+    'Product / Bundle ID':'Choose from the controlled catalog.',
+    'Next Recommended Action':'One specific action that moves the record forward.',
+    'Blocking Issue':'State the exact missing data, hold, or failure.',
+    'Customer ID':'Select or enter the linked customer record ID.',
+    'Job ID':'Select or enter the linked job record ID.'
+  };
+  return help[header]||'';
+}
+function formField(entity,header,value){
+  var id='f_'+btoa(unescape(encodeURIComponent(header))).replace(/=/g,'');
+  var wide=/Notes|Scope|Caption|Copy|Requested Change|Before State|Proposed State|Deliverables|Missing Information|Test Results|Rollback|Description|Address|Exclusions|Optional Extras|Next Recommended Action|Blocking Issue/i.test(header);
+  var type=/Email/i.test(header)?'email':/Phone/i.test(header)?'tel':/Date$| Date$/.test(header)?'date':/Time$/.test(header)?'datetime-local':/Amount|Price|Total|Balance|Revenue|Spend|Budget|Tax|Fees|Discount|Revisions Used|Allowance/i.test(header)?'number':'text';
+  var statusKey=entity==='tasks'?'task':entity==='jobs'?'job':entity==='communications'?'communication':entity==='expenses'?'expense':entity.replace(/s$/,'');
+  var options=null;
+  if(header==='Status'&&SCHEMA.statuses[statusKey])options=SCHEMA.statuses[statusKey];
+  if(header==='Job Stage')options=SCHEMA.statuses.job;
+  if(header==='Customer Status')options=SCHEMA.statuses.customer;
+  if(header==='Accounting Status')options=SCHEMA.statuses.expense;
+  if(header==='Priority')options=['Urgent','High','Normal','Low'];
+  if(header==='Category'&&entity==='expenses')options=SCHEMA.expenseCategories;
+  if(header==='Product / Bundle ID')options=uxRows(SCHEMA.catalog).map(function(item){return {value:item.id,label:item.id+' — '+item.name+' — '+money(item.price)};});
+  var required=uxRequired(entity,header),requiredAttr=required?' required':'';
+  var control;
+  if(options){
+    control='<select id="'+id+'" data-header="'+attr(header)+'"'+requiredAttr+'><option value="">— Select —</option>'+options.map(function(option){var val=typeof option==='string'?option:option.value,lab=typeof option==='string'?option:option.label;return '<option value="'+attr(val)+'" '+(String(value||'')===String(val)?'selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>';
+  }else if(wide)control='<textarea id="'+id+'" data-header="'+attr(header)+'"'+requiredAttr+'>'+esc(value||'')+'</textarea>';
+  else control='<input id="'+id+'" data-header="'+attr(header)+'" type="'+type+'" '+(type==='number'?'step="0.01"':'')+requiredAttr+' value="'+attr(value||'')+'">';
+  return '<label class="'+(wide?'wide':'')+'"><span>'+esc(header)+(required?' <span class="required-mark" aria-label="required">*</span>':'')+'</span>'+control+(uxHelp(header)?'<small class="field-help">'+esc(uxHelp(header))+'</small>':'')+'</label>';
+}
+async function submitRecord(event){
+  event.preventDefault();
+  var state=FORM_STATE;if(!state)return;
+  var form=document.getElementById('recordForm');
+  if(!form.reportValidity())return;
+  var data={};
+  document.querySelectorAll('#formFields [data-header]').forEach(function(element){data[element.dataset.header]=element.value;});
+  if(state.record){var id=SCHEMA.tables[state.entity].id;data[id]=state.record[id];}
+  try{
+    var result;
+    if(!state.record&&state.entity==='quotes')result=await call('h38PortalCreateQuoteFromCatalog',[data]);
+    else if(!state.record&&state.entity==='invoices')result=await call('h38PortalCreateInvoiceFromQuote',[data]);
+    else if(!state.record&&state.entity==='payments')result=await call('h38PortalRecordPayment',[data]);
+    else if(!state.record&&state.entity==='expenses')result=await call('h38PortalRecordExpense',[data]);
+    else if(!state.record&&state.entity==='communications')result=await call('h38PortalCreateCommunicationDraft',[data]);
+    else result=await call('h38PortalSaveBusinessRecord',[state.entity,data,{createTask:!state.record}]);
+    notice('Internal record saved. No external action occurred.','ok');closeForm();
+    EXPERIENCE=await call('h38PortalUxControlCenter');H38_UX=EXPERIENCE.ux||{};
+    if(ACTIVE_WORKSPACE&&ACTIVE_WORKSPACE.task&&ACTIVE_WORKSPACE.task.taskId)ACTIVE_WORKSPACE=await call('h38PortalUxWorkspace',[ACTIVE_WORKSPACE.task.taskId]);
+    if(ACTIVE_WORKSPACE)renderWorkspace();else await show(CURRENT==='search'?'today':CURRENT);
+  }catch(error){ownerSafeFailure(error,'The record was not saved. Review the required fields and Error Log.');}
+}
+async function globalSearch(){
+  var query=document.getElementById('search').value.trim();if(!query)return;
+  try{
+    var result=await call('h38PortalUxGroupedSearch',[query]);
+    UX_SEARCH_GROUPS=uxRows(result.groups);CURRENT='search';renderNav();
+    document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="breadcrumbs"><button onclick="show(\'today\')">Home</button><span>›</span><span>Search</span></div><h1>Search results</h1><div class="muted">'+esc(result.total||0)+' matching records grouped by type</div></div></div>'+(
+      UX_SEARCH_GROUPS.length?UX_SEARCH_GROUPS.map(function(group){return '<section class="ux-search-group"><h2>'+esc(group.label)+' <span class="pill gray">'+uxRows(group.results).length+'</span></h2><div class="ux-search-results">'+uxRows(group.results).map(function(item){return '<button class="ux-search-result" onclick="openEntity(\''+attr(item.entity)+'\',\''+attr(item.id)+'\')"><b>'+esc(item.title||item.id)+'</b><small>'+esc(item.id)+' · '+esc(item.entity)+'</small></button>';}).join('')+'</div></section>';}).join(''):'<div class="empty"><div><strong>No matches found.</strong>Search by customer, job, invoice, task, file, or record ID.</div></div>'
+    );
+  }catch(error){ownerSafeFailure(error,'Search could not load all matching records.');}
+}
+async function applySavedView(id){
+  if(!id)return;
+  if(id.indexOf('builtin:')===0){var preset=id.split(':')[1];if(preset==='needs-review')return show('decisions');return openUxPreset(preset);}
+  var saved=SAVED_VIEWS.find(function(view){return view.id===id;});if(!saved)return;
+  await show(saved.module);
+  if(saved.module==='tasks'){
+    var filters=saved.filters||{};
+    if(document.getElementById('taskFilter'))document.getElementById('taskFilter').value=filters.query||'';
+    if(document.getElementById('taskStatus'))document.getElementById('taskStatus').value=filters.status||'';
+    if(document.getElementById('taskPriority'))document.getElementById('taskPriority').value=filters.priority||'';
+    if(document.getElementById('taskSort'))document.getElementById('taskSort').value=filters.sort||'default';
+    TASK_VIEW_MODE=filters.viewMode||'list';UX_TASK_PRESET='';renderTasks(ALL_TASKS);
+  }
+}
+function ownerSafeFailure(error,message){
+  var detail=uxText(error&&error.message||error);
+  notice('<b>HOLD:</b> '+esc(message),'bad');
+  var view=document.getElementById('view');
+  if(view)view.innerHTML='<div class="owner-safe-error"><h2>Related information could not be loaded.</h2><p>'+esc(message)+'</p><p>The selected record has not been changed. Refresh this view or open the Error Log for technical details.</p><div class="toolbar"><button class="btn" onclick="refresh()">Refresh</button><button class="btn" onclick="show(\'errors\')">Open Error Log</button></div><code>'+esc(detail)+'</code></div>';
+}
+document.addEventListener('keydown',function(event){
+  if(event.key==='Escape'){if(document.getElementById('formModal').classList.contains('open'))closeForm();else if(document.getElementById('drawer').classList.contains('open'))closeDrawer();else document.getElementById('side').classList.remove('open');}
+  if(event.key==='/'&&!/input|textarea|select/i.test(document.activeElement.tagName)){event.preventDefault();document.getElementById('search').focus();}
+});
+setTimeout(function(){refresh();},0);
