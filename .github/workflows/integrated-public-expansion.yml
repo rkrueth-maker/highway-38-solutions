@@ -1,0 +1,51 @@
+name: Integrated Public Expansion Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'products.html'
+      - 'solutions.html'
+      - 'business-systems.html'
+      - 'sample-library-now.html'
+      - 'free-tools.html'
+      - 'start-request.html'
+      - 'service-guides.html'
+      - 'case-study-template.html'
+      - 'business-systems-data.js'
+      - 'public-expansion.js'
+      - 'public-expansion.css'
+      - 'tool-downloads.js'
+      - 'scripts/verify-public-expansion.js'
+      - 'package.json'
+      - '.github/workflows/integrated-public-expansion.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  commercial-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify JavaScript syntax
+        run: |
+          node --check business-systems-data.js
+          node --check public-expansion.js
+          node --check tool-downloads.js
+          node --check scripts/verify-public-expansion.js
+      - name: Run full commercial regression
+        run: npm test
