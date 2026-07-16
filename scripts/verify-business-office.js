@@ -12,6 +12,8 @@ const h38PackDir = path.join(root, 'business-packs', 'highway38');
 const h38PackPath = path.join(h38PackDir, 'business-pack.json');
 const h38AcceptancePath = path.join(h38PackDir, 'apps-script', 'BusinessOffice_Highway38Acceptance.gs');
 const templatePackPath = path.join(root, 'business-packs', 'template-business', 'business-pack.json');
+const cleanDeployWorkflowPath = path.join(root, '.github', 'workflows', 'deploy-clean-business-office.yml');
+const cleanAcceptanceDeployPath = path.join(root, 'scripts', 'deploy-business-office-clean-acceptance.sh');
 const requiredFiles = [
   'BusinessOffice_BusinessPack.gs','BusinessOffice_Config.gs','BusinessOffice_Auth.gs','BusinessOffice_Core.gs','BusinessOffice_Workflows.gs',
   'BusinessOffice_Accounting.gs','BusinessOffice_PayrollTax.gs','BusinessOffice_DocumentsPDF.gs',
@@ -38,6 +40,8 @@ assert('Highway 38-specific acceptance exists in Highway 38 pack',fs.existsSync(
 assert('template business pack exists',fs.existsSync(templatePackPath));
 assert('separate intake sync source',fs.existsSync(path.join(syncDir,'BusinessOffice_Sync.gs')));
 assert('separate intake sync manifest',fs.existsSync(path.join(syncDir,'appsscript.json')));
+assert('clean standalone deploy workflow exists',fs.existsSync(cleanDeployWorkflowPath));
+assert('clean standalone acceptance deploy script exists',fs.existsSync(cleanAcceptanceDeployPath));
 
 for(const dir of [boDir,syncDir]){
   for(const file of fs.readdirSync(dir).filter(name=>name.endsWith('.gs'))) syntaxCheck(path.join(dir,file),`${dir===syncDir?'sync ':''}${file}`);
@@ -49,6 +53,8 @@ const syncSource=read(path.join(syncDir,'BusinessOffice_Sync.gs'));
 const h38Acceptance=fs.existsSync(h38AcceptancePath)?read(h38AcceptancePath):'';
 const h38Pack=JSON.parse(read(h38PackPath));
 const templatePack=JSON.parse(read(templatePackPath));
+const cleanDeployWorkflow=read(cleanDeployWorkflowPath);
+const cleanAcceptanceDeploy=read(cleanAcceptanceDeployPath);
 const requiredFunctions=['boGetBusinessPack_','boPackPropertyKey_','boGetCurrentUser_','boRequirePermission_','boListRecords','boSaveRecord','boCreateCustomerFromRequest','boCreateQuote','boReviseQuote','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob','boMatchVendorBillToPurchaseOrder','boConvertReceiptToExpense','boRecordPayment','boPrepareJournalEntry','boPostJournalEntry','boReverseJournalEntry','boLockAccountingPeriod','boPreparePayrollPeriod','boExportPayrollProviderCsv','boPrepareSalesTaxPeriod','boFinalizeTaxPreparationReport','boUploadDocument','boExtractDocument','boReviewOcrField','boApproveDocument','boGeneratePdf','boCreateBackup','boPrepareRestore','boValidateInstallation','boValidateResourceIsolation','boProvisionIsolatedBusiness','boRunSelfTest','boRunPlatformAcceptance','doGet','boApi'];
 for(const fn of requiredFunctions) assert(`function ${fn}`,new RegExp(`function\\s+${fn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*\\(`).test(allSource));
 assert('Highway 38 live acceptance is outside reusable core',!allSource.includes('function boRunLiveAcceptance(')&&/function\s+boRunLiveAcceptance\s*\(/.test(h38Acceptance));
@@ -62,6 +68,7 @@ assert('source-preserving intake sync',syncSource.includes('h38BusinessOfficeSyn
 assert('sync bootstrap',syncSource.includes('h38BusinessOfficeBootstrapSync')&&syncSource.includes('H38_BACKEND_SPREADSHEET_ID'));
 assert('sync trigger installer',syncSource.includes('h38BusinessOfficeInstallSyncTrigger')&&syncSource.includes('everyMinutes(5)'));
 assert('sync deployed acceptance',syncSource.includes('h38BusinessOfficeSyncAcceptance'));
+assert('clean standalone acceptance creates fresh acceptance deployment',!cleanDeployWorkflow.includes('BO_ACCEPTANCE_DEPLOYMENT_ID')&&!cleanAcceptanceDeploy.includes('BO_ACCEPTANCE_DEPLOYMENT_ID')&&cleanAcceptanceDeploy.includes("publish_deployment \"$ACCEPT_VERSION\" 'Business Office Clean Acceptance' acceptance"));
 assert('intake bridge idempotency',syncSource.includes('DUPLICATE_PREVENTED'));
 assert('intake survives mirror failure',syncSource.includes("return { status: 'HOLD'"));
 

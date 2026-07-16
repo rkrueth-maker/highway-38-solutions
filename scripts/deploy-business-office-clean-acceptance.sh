@@ -11,7 +11,6 @@ CONFIG_TITLE="${BO_CONFIG_DOC_TITLE:?BO_CONFIG_DOC_TITLE is required}"
 PACK_SOURCE="${BO_PACK_PATH:-$ROOT/business-packs/template-business/apps-script/BusinessOffice_Pack.gs}"
 PROJECT_TITLE="${BO_PROJECT_TITLE:-Business Office Clean Installation}"
 EXISTING_SCRIPT_ID="${BO_SCRIPT_ID:-}"
-EXISTING_ACCEPTANCE_DEPLOYMENT_ID="${BO_ACCEPTANCE_DEPLOYMENT_ID:-}"
 EXISTING_FINAL_DEPLOYMENT_ID="${BO_FINAL_DEPLOYMENT_ID:-}"
 
 rm -rf "$WORK" "$OUT"
@@ -89,7 +88,7 @@ printf '%s' "$APP_ID" > "$OUT/business-office-script-id.txt"
 if [[ "$APP_ID" = "13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-" ]]; then echo 'HOLD — standalone project reused Highway 38 script ID'; exit 21; fi
 
 ACCEPT_VERSION="$(create_version 'Business Office Clean Acceptance' acceptance)"
-publish_deployment "$ACCEPT_VERSION" 'Business Office Clean Acceptance' acceptance "$EXISTING_ACCEPTANCE_DEPLOYMENT_ID"
+publish_deployment "$ACCEPT_VERSION" 'Business Office Clean Acceptance' acceptance
 ACCEPT_ID="$(cat "$OUT/acceptance-deployment-id.txt")"
 
 printf '[]' > "$OUT/no-params.json"

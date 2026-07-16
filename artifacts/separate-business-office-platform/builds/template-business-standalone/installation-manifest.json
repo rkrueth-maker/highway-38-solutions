@@ -3,7 +3,7 @@
   "businessId": "BUSINESS",
   "businessName": "Template Business",
   "mode": "standalone",
-  "generatedAt": "2026-07-15T04:03:55.423Z",
+  "generatedAt": "2026-07-16T17:24:27.451Z",
   "sourceFiles": [
     "packages/business-office-core/apps-script/BusinessOffice_Config.gs",
     "packages/business-office-core/apps-script/BusinessOffice_Core.gs",

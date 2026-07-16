@@ -2,6 +2,11 @@
 const BO_BUSINESS_PACK = Object.freeze({
   "schemaVersion": 1,
   "installationId": "highway38-production",
+  "package": {
+    "id": "complete-business-system",
+    "name": "Complete Business System",
+    "singleApp": true
+  },
   "business": {
     "id": "H38",
     "legalName": "Highway 38 Solutions",
@@ -9,9 +14,9 @@ const BO_BUSINESS_PACK = Object.freeze({
   },
   "branding": {
     "businessName": "Highway 38 Solutions",
-    "businessOfficeName": "Highway 38 Business Office",
+    "businessOfficeName": "Highway 38 Business System",
     "logoPath": "assets/highway38-logo.png",
-    "logoUrl": "",
+    "logoUrl": "https://rkrueth-maker.github.io/highway-38-solutions/assets/highway38-logo.png?v=20260713-logo2",
     "primaryColor": "#173a5e",
     "secondaryColor": "#326a9e",
     "documentFooter": "Highway 38 Business Office · Private preparation document",
@@ -64,22 +69,34 @@ const BO_BUSINESS_PACK = Object.freeze({
     "directFiling": false
   },
   "modules": {
+    "commandCenter": true,
+    "website": true,
+    "growth": true,
+    "social": true,
+    "advertising": true,
     "requests": true,
     "customers": true,
     "vendors": true,
     "quotes": true,
     "workOrders": true,
     "jobs": true,
-    "purchasing": true,
+    "purchaseOrders": true,
+    "vendorBills": true,
+    "receipts": true,
+    "expenses": true,
     "invoices": true,
     "payments": true,
-    "expenses": true,
-    "documents": true,
-    "ocr": true,
-    "accounting": true,
+    "time": true,
+    "employees": true,
     "payroll": true,
+    "contractors": true,
     "tax": true,
-    "reports": true
+    "documents": true,
+    "accounting": true,
+    "reports": true,
+    "approvals": true,
+    "backups": true,
+    "setup": true
   },
   "templates": {
     "quote": "default",
