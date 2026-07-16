@@ -84,9 +84,12 @@ check(
     /Task and message access is limited server-side/.test(client),
 );
 check(
-  'non-owner navigation is restricted to task messaging group',
+  'non-owner navigation keeps Tasks and Messaging separate',
   /if \(!access\.ownerMode\)/.test(unified) &&
-    /group\.id === 'taskMessaging'/.test(unified) &&
+    /id: 'tasksWork'[\s\S]*label: 'Tasks'/.test(unified) &&
+    /id: 'messaging'[\s\S]*label: 'Messaging'/.test(unified) &&
+    /\['tasksWork','messaging'\]\.indexOf\(group\.id\) >= 0/.test(unified) &&
+    !/label: 'Tasks & Messaging'/.test(unified) &&
     /defaultModule: access\.ownerMode \? 'today' : 'bo:assignedTasks'/.test(unified),
 );
 check(
