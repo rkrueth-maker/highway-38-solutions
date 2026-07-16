@@ -88,6 +88,87 @@ function h38TmDefinitions_() {
     },
   };
 }
+
+function h38TmStorageKeyForModule_(moduleKey) {
+  return {
+    assignedTasks: "TASKS",
+    messaging: "MESSAGES",
+    smsConsent: "CONSENT",
+    messageTemplates: "TEMPLATES",
+  }[String(moduleKey || "")] || "";
+}
+
+function h38TmEffectiveWebRecord_(moduleKey, recordId, values, user) {
+  var key = h38TmStorageKeyForModule_(moduleKey);
+  boAssert_(key, "Unsupported task or messaging module.");
+  var before = recordId ? h38TmFind_(key, recordId) : null;
+  if (before && moduleKey === "assignedTasks")
+    h38TmRequireTaskAccess_(before, user, false);
+  if (before && moduleKey === "messaging")
+    h38TmRequireMessageAccess_(before, user, false);
+  return Object.assign({}, before || {}, values || {});
+}
+
+function h38TmRequireLinkedTaskReferenceAccess_(record, user) {
+  if (
+    boNormalizeText_(record["Linked Record Type"]) !== "Task" ||
+    !boNormalizeText_(record["Linked Record ID"])
+  )
+    return true;
+  var linkedTask = h38TmFind_("TASKS", record["Linked Record ID"]);
+  h38TmRequireTaskAccess_(linkedTask, user, false);
+  return true;
+}
+
+function h38TmRequireDocumentedConsent_(phone) {
+  var consent = h38TmConsentForPhone_(phone);
+  boAssert_(
+    consent && consent["Consent Status"] === "Consented",
+    "Documented SMS consent is required.",
+  );
+  ["Consent Scope", "Consent Source", "Consent Date", "Consent Evidence"].forEach(
+    function (field) {
+      boAssert_(
+        boNormalizeText_(consent[field]),
+        "Documented SMS consent is incomplete: " + field + " is required.",
+      );
+    },
+  );
+  return consent;
+}
+
+function h38TmValidateWebSave_(moduleKey, recordId, values) {
+  var user = boGetCurrentUser_();
+  boAssertModuleEnabled_(moduleKey);
+  h38TmRequireModule_(moduleKey, recordId ? "Edit" : "Create");
+  var effective = h38TmEffectiveWebRecord_(
+    moduleKey,
+    recordId,
+    values || {},
+    user,
+  );
+  if (moduleKey === "assignedTasks" || moduleKey === "messaging")
+    h38TmRequireLinkedTaskReferenceAccess_(effective, user);
+  if (
+    moduleKey === "smsConsent" &&
+    boNormalizeText_(effective["Consent Status"]) === "Consented"
+  ) {
+    boAssert_(
+      boNormalizeText_(effective["Phone Number"]),
+      "The consented mobile number is required.",
+    );
+    ["Consent Scope", "Consent Source", "Consent Evidence"].forEach(
+      function (field) {
+        boAssert_(
+          boNormalizeText_(effective[field]),
+          field + " is required before consent can be marked Consented.",
+        );
+      },
+    );
+  }
+  return effective;
+}
+
 function h38TmModule_(moduleKey, options) {
   var user = boGetCurrentUser_(),
     defs = h38TmDefinitions_(),
@@ -199,35 +280,62 @@ function h38PortalTaskMessagingWorkspace(moduleKey, recordId) {
   return h38TmWorkspace_(moduleKey, recordId);
 }
 function h38PortalTaskMessagingSave(moduleKey, recordId, values) {
+  h38TmValidateWebSave_(moduleKey, recordId || "", values || {});
   return h38TmSave_(moduleKey, recordId || "", values || {});
 }
 function h38PortalTaskTransition(taskId, status, notes) {
+  boAssertModuleEnabled_("assignedTasks");
+  h38TmRequireModule_("assignedTasks", "Edit");
   return h38TmTransitionTask_(taskId, status, notes || "");
 }
 function h38PortalMessagingDecision(messageId, decision, notes) {
+  var user = boGetCurrentUser_();
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
+  var message = h38TmFind_("MESSAGES", messageId);
+  h38TmRequireMessageAccess_(message, user, false);
+  if (boNormalizeText_(decision) === "Approve")
+    h38TmRequireDocumentedConsent_(message["Normalized Phone"]);
   return h38TmApproveMessage_(messageId, decision, notes || "");
 }
 function h38PortalMessagingSend(messageId) {
+  var user = boGetCurrentUser_();
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
+  var message = h38TmFind_("MESSAGES", messageId);
+  h38TmRequireMessageAccess_(message, user, false);
+  h38TmRequireDocumentedConsent_(message["Normalized Phone"]);
   return h38TmSendMessage_(messageId);
 }
 function h38PortalMessagingSyncInbound() {
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
   return h38TmSyncInbound_();
 }
 function h38PortalMessagingSyncStatus(messageId) {
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
   return h38TmSyncMessageStatus_(messageId);
 }
 function h38PortalMessagingConvertReplyToTask(messageId, values) {
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
   return h38TmConvertReplyToTask_(messageId, values || {});
 }
 function h38PortalMessagingProviderStatus() {
-  boGetCurrentUser_();
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "View");
   return h38TmProviderStatus_();
 }
 function h38PortalMessagingSubmitReview(messageId, notes) {
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "Edit");
   return h38TmSubmitMessageForReview_(messageId, notes || "");
 }
 function h38PortalMessagingUsage() {
   var user = boGetCurrentUser_();
+  boAssertModuleEnabled_("messaging");
+  h38TmRequireModule_("messaging", "View");
   boAssert_(
     h38TmManageAll_(user),
     "Owner or Administrator access is required.",
@@ -235,8 +343,10 @@ function h38PortalMessagingUsage() {
   return h38TmUsageSummary_();
 }
 function h38PortalTaskMessagingAssignees() {
-  var user = boGetCurrentUser_(),
-    manage = h38TmManageAll_(user),
+  var user = boGetCurrentUser_();
+  boAssertModuleEnabled_("assignedTasks");
+  h38TmRequireModule_("assignedTasks", "View");
+  var manage = h38TmManageAll_(user),
     role = h38TmUserRole_(user),
     users = boReadTable_(H38_BO_SHEETS.USERS, { includeVoided: true })
       .filter(function (row) {
