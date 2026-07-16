@@ -390,19 +390,34 @@ function h38TmProviderSend_(message) {
   });
 }
 function h38TmRecordUsage_(message, direction) {
+  direction = direction || message.Direction;
   var body = message["Message Body"] || "",
-    segments = Math.max(1, Math.ceil(body.length / 160));
-  return h38TmAppend_("USAGE", {
-    "Message ID": message["Message ID"],
-    Provider: message.Provider || "twilio",
-    Direction: direction || message.Direction,
-    Segments: segments,
-    "Provider Price": message["Provider Price"] || "",
-    "Provider Price Unit": message["Provider Price Unit"] || "",
-    "Carrier Fee Estimate": "",
-    "Recorded Time": h38TmNow_(),
-    Notes: "Provider-reported price may arrive after delivery sync.",
-  });
+    segments = Math.max(1, Math.ceil(body.length / 160)),
+    existing = h38TmRead_("USAGE", { includeVoided: true }).find(
+      function (row) {
+        return (
+          row["Message ID"] === message["Message ID"] &&
+          row.Direction === direction
+        );
+      },
+    ),
+    values = {
+      "Message ID": message["Message ID"],
+      Provider: message.Provider || "twilio",
+      Direction: direction,
+      Segments: segments,
+      "Provider Price": message["Provider Price"] || "",
+      "Provider Price Unit": message["Provider Price Unit"] || "",
+      "Carrier Fee Estimate": existing
+        ? existing["Carrier Fee Estimate"] || ""
+        : "",
+      "Recorded Time": h38TmNow_(),
+      Notes:
+        "One usage row is maintained per message and direction; provider price may arrive after delivery sync.",
+    };
+  return existing
+    ? h38TmUpdate_("USAGE", existing["Usage ID"], values)
+    : h38TmAppend_("USAGE", values);
 }
 function h38TmSendMessage_(messageId) {
   var owner = boRequireOwner_();
