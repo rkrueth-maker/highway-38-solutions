@@ -19,6 +19,7 @@ function h38PortalRawInclude_(fileName) {
     'Portal_UX_Client_Shell',
     'Portal_Business_Client',
     'Portal_Business_Create_Client',
+    'Portal_TaskMessaging_Client',
     'Portal_UX_Client_Tasks',
     'Portal_UX_Client_Workspace',
     'Portal_UX_Client_Forms',
