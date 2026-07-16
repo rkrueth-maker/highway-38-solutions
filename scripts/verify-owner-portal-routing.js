@@ -17,6 +17,8 @@ const brand = read('brand-global.js');
 const portalIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const unifiedServer = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
 const unifiedShell = read('apps-script/core-engine/owner-portal-next/Portal_UX_Client_Shell.html');
+const nativeBusinessServer = read('apps-script/core-engine/owner-portal-next/Portal_Business.js');
+const nativeBusinessClient = read('apps-script/core-engine/owner-portal-next/Portal_Business_Client.html');
 const businessUi = read('apps-script/business-office/BusinessOffice_Index.html');
 const businessCore = read('apps-script/business-office/BusinessOffice_Core.gs');
 const businessWeb = read('apps-script/business-office/BusinessOffice_Web.gs');
@@ -33,15 +35,21 @@ assert('public portal contains no private application iframe', !/<iframe\b/i.tes
 assert('public portal preserves upload and business-office deep links', /upload:'documents'/.test(portal) && /'business-office':'requests'/.test(portal));
 assert('portal contains no spreadsheet destination', !/docs\.google\.com\/spreadsheets/i.test(portal));
 
-assert('secure app contains one unified Business Office workspace', /id="businessWorkspace"/.test(portalIndex) && /id="businessFrame"/.test(portalIndex));
+assert('secure app contains no nested Business Office iframe', !/businessWorkspace|businessFrame|<iframe\b/i.test(portalIndex));
+assert('secure app includes native Business Office styles and client', /Portal_Business_Styles/.test(portalIndex) && /Portal_Business_Client/.test(portalIndex));
 assert('secure app uses one package-controlled manifest', /function h38PortalUnifiedBootstrap\(\)/.test(unifiedServer) && /packageName/.test(unifiedServer));
+assert('unified manifest declares native Business Office rendering', /nativeBusinessOffice:\s*true/.test(unifiedServer) && /businessDefinitions/.test(unifiedServer));
 assert('unified manifest covers command, sales, work, money, people, documents, growth, and control', ['command','sales','work','money','people','documents','growth','control'].every(id => unifiedServer.includes(`id: '${id}'`)));
 assert('unified shell renders package groups instead of separate applications', /H38_UNIFIED/.test(unifiedShell) && /uxShowBusinessModule/.test(unifiedShell));
-assert('unified shell opens Business Office modules inside the secure app', /h38-open-business-module/.test(unifiedShell) && /businessOfficeUrl/.test(unifiedShell));
+assert('unified shell routes Business Office links to direct native rendering', /return renderBusinessModule\(module/.test(unifiedShell) && !/frame\.src|postMessage\(\{type:'h38-open-business-module'/.test(unifiedShell));
+assert('native Business Office server adapter lists saves opens and uploads records', ['h38PortalBusinessModule','h38PortalBusinessSave','h38PortalBusinessWorkspace','h38PortalBusinessUpload'].every(name => nativeBusinessServer.includes(`function ${name}`)));
+assert('native Business Office client renders tables cards details forms and upload', ['boNativeRenderTable','openBusinessRecord','openBusinessRecordForm','openBusinessUpload'].every(name => nativeBusinessClient.includes(`function ${name}`)));
+assert('native Business Office client supports direct back-and-forth module switching', /renderBusinessModule/.test(nativeBusinessClient) && /history\.replaceState/.test(nativeBusinessClient));
 
 assert('Business Office package modules are enforced server-side', /boGuardApiRequest_\(action,args\)/.test(businessWeb) && /MODULE NOT INCLUDED/.test(businessGate));
-assert('Business Office supports embedded unified routing', /BusinessOffice_Unified_Client/.test(businessWeb) && /h38-embedded-business-office/.test(businessUnified));
-assert('Documents and OCR keep upload inside the unified app', /Upload PDF \/ Take Picture/.test(businessUnified));
+assert('native adapter enforces package modules before list save workspace and upload', /boAssertModuleEnabled_\(moduleKey\)/.test(nativeBusinessServer) && /boAssertModuleEnabled_\('documents'\)/.test(nativeBusinessServer));
+assert('Business Office compatibility route remains available without controlling unified navigation', /BusinessOffice_Unified_Client/.test(businessWeb) && /h38-embedded-business-office/.test(businessUnified));
+assert('Documents and OCR keep upload inside the unified app', /Upload PDF \/ Take Picture/.test(nativeBusinessClient) && /capture="environment"/.test(nativeBusinessClient));
 assert('complete package explicitly enables command and Business Office modules', /package:Object\.freeze\(\{id:'complete-business-system'/.test(pack) && /commandCenter:true/.test(pack) && /documents:true/.test(pack));
 
 assert('legacy Owner Login links are routed to portal.html', /link\.href='portal\.html'/.test(brand));
@@ -76,7 +84,7 @@ assert('public static pages contain no direct spreadsheet links', sheetLinks.len
 const result = {
   status: failures.length ? 'HOLD' : 'PASS',
   sourceCommit: process.env.GITHUB_SHA || '',
-  inspected: { rootHtmlFiles: rootHtmlFiles.length, ownerLinks: ownerLinks.length, publicPrivateFrames: (portal.match(/<iframe\b/g) || []).length, unifiedApp: true },
+  inspected: { rootHtmlFiles: rootHtmlFiles.length, ownerLinks: ownerLinks.length, publicPrivateFrames: (portal.match(/<iframe\b/g) || []).length, secureNestedFrames: (portalIndex.match(/<iframe\b/g) || []).length, unifiedApp: true, nativeBusinessOffice: true },
   passes,
   failures
 };
