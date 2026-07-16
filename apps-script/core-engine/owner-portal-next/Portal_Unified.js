@@ -19,7 +19,7 @@ function h38PortalUnifiedItem_(key, label, type, moduleKey, gate) {
 function h38PortalUnifiedBootstrap() {
   h38PortalAssertOwner_();
   var serviceUrl = ScriptApp.getService().getUrl();
-  var businessOfficeUrl = serviceUrl + (serviceUrl.indexOf('?') >= 0 ? '&' : '?') + 'app=business-office&embedded=1';
+  var definitions = typeof boGetModuleDefinitions_ === 'function' ? boGetModuleDefinitions_() : {};
   var groups = [
     {
       id: 'command',
@@ -116,10 +116,12 @@ function h38PortalUnifiedBootstrap() {
   return {
     status: 'PASS',
     singleApp: true,
+    nativeBusinessOffice: true,
     packageId: typeof boPackValue_ === 'function' ? boPackValue_('package.id', boPackValue_('packId', 'highway38')) : 'highway38',
     packageName: typeof boPackValue_ === 'function' ? boPackValue_('package.name', 'Complete Business System') : 'Complete Business System',
     serviceUrl: serviceUrl,
-    businessOfficeUrl: businessOfficeUrl,
+    compatibilityBusinessOfficeUrl: serviceUrl + (serviceUrl.indexOf('?') >= 0 ? '&' : '?') + 'app=business-office',
+    businessDefinitions: definitions,
     groups: groups,
     externalActionsEnabled: false,
     ownerApprovalRequired: true
