@@ -17,6 +17,7 @@ on:
       - 'scripts/verify-owner-portal-next.js'
       - 'scripts/verify-owner-portal-hard-rule.js'
       - 'scripts/verify-business-office.js'
+      - 'scripts/verify-photo-first-record-creation.js'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
@@ -69,6 +70,9 @@ jobs:
       - name: Verify Business Office and package controls
         run: npm run test:business-office
 
+      - name: Verify New record and photo-first creation
+        run: node scripts/verify-photo-first-record-creation.js
+
       - name: Install tested Apps Script deployment tool
         run: npm install --global @google/clasp@3.1.0
 
@@ -100,6 +104,7 @@ jobs:
             artifacts/unified-owner-portal/
             artifacts/owner-portal-routing/
             artifacts/business-office/
+            artifacts/photo-first-record-creation/
           if-no-files-found: warn
           retention-days: 90
 
@@ -115,6 +120,9 @@ jobs:
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
           - Owner experience: one authenticated application and one navigation system
           - Command Center and Business Office modules: live inside the unified application
+          - New record button: PASS
+          - Every creatable Business Office module offers Start with photo or PDF or Start blank
+          - Uploaded originals are preserved and linked when the new record is saved
           - Documents, OCR, PDF upload, and camera capture: available under Documents / OCR
           - Package-controlled module manifest: PASS
           - Server-side Business Office module enforcement: PASS
