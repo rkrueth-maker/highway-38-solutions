@@ -1,0 +1,71 @@
+async function openTask(id){
+  try{ACTIVE_WORKSPACE=await call('h38PortalUxWorkspace',[id]);ACTIVE_TAB='summary';renderWorkspace();}
+  catch(error){ownerSafeFailure(error,'This task opened without all related data. The task itself is safe, but one or more linked records could not be loaded.');}
+}
+async function openJob(id){
+  try{ACTIVE_WORKSPACE=await call('h38PortalUxJobWorkspace',[id]);ACTIVE_TAB='summary';renderWorkspace();}
+  catch(error){ownerSafeFailure(error,'This job workspace could not load all related records.');}
+}
+async function openCustomer(id){
+  try{ACTIVE_WORKSPACE=await call('h38PortalUxCustomerWorkspace',[id]);ACTIVE_TAB='summary';renderWorkspace();}
+  catch(error){ownerSafeFailure(error,'This customer workspace could not load all related records.');}
+}
+async function openEntity(entity,id){
+  if(entity==='customers')return openCustomer(id);
+  if(entity==='jobs')return openJob(id);
+  try{ACTIVE_WORKSPACE=await call('h38PortalUxRecordWorkspace',[entity,id]);ACTIVE_TAB='summary';renderWorkspace();}
+  catch(error){ownerSafeFailure(error,'This record opened without all related information.');}
+}
+function renderWorkspace(){
+  var workspace=ACTIVE_WORKSPACE||{},task=workspace.task||{},focus=workspace.focus||null;
+  var editableFocus=(focus&&uxRows(SCHEMA.editable).includes(focus.entity))||(task._entity==='tasks'&&workspace.sourceRecord);
+  document.getElementById('editFocusBtn').style.display=editableFocus?'inline-block':'none';
+  var title=task.title||(focus&&focus.id)||'Workspace';
+  var question=task.approvalRequirement||(/review|required|approval/i.test([task.status,task.approvalStatus].join(' '))?'What decision is needed for this selected record?':'What must happen next to move this record forward?');
+  var recommendation=task.nextAction||'Review the summary, related records, files, history, proof, and errors before choosing an action.';
+  var actions=uxRows(workspace.availableActions).map(function(action){
+    var cls=action.external?'hold ux-action-external':'ok';
+    return '<button class="btn '+cls+'" '+(action.enabled===false?'disabled':'')+' onclick="taskAction(\''+attr(task.taskId)+'\',\''+attr(action.action)+'\')">'+esc(action.action.replaceAll('_',' '))+(action.testOnly?' · TEST ONLY':'')+'</button>';
+  }).join('');
+  var tabs=[['summary','Summary'],['related','Related records'],['files','Files'],['history','History'],['proof','Proof and errors']];
+  document.getElementById('drawerBody').innerHTML=
+    '<div class="ux-drawer-head"><div class="breadcrumbs"><button onclick="closeDrawer()">Current view</button><span>›</span><span>'+esc(workspace.uxKind||'Record')+'</span><span>›</span><span>'+esc(task.taskId||(focus&&focus.id)||'')+'</span></div><div class="workspace-head"><div><div class="ux-eyebrow">Guided review workspace</div><h2>'+esc(title)+'</h2><div class="muted">'+esc([task.customer||task.customerId,task.jobId,task.catalogId].filter(Boolean).join(' · '))+'</div><div class="toolbar">'+statusPill(task.status)+' '+statusPill(task.approvalStatus)+' '+statusPill(task.priority)+'</div></div><div><span class="pill amber">External actions locked</span></div></div><div class="ux-decision-box"><strong>'+esc(question)+'</strong>'+esc(recommendation)+'</div><div class="tabs">'+tabs.map(function(tab){return '<button class="tab '+(ACTIVE_TAB===tab[0]?'active':'')+'" onclick="setWorkspaceTab(\''+tab[0]+'\')">'+esc(tab[1])+'</button>';}).join('')+'</div></div>'+ 
+    '<div class="ux-drawer-content"><div id="workspaceSection"></div><div class="ux-sticky-actions"><div class="toolbar"><b>Selected record only:</b>'+(actions||'<span class="muted">No pending decision actions.</span>')+'<button class="btn" onclick="editFocusedRecord()">Edit internal record</button><button class="btn" onclick="closeDrawer()">Close</button></div></div></div>';
+  document.getElementById('drawer').classList.add('open');
+  renderWorkspaceSection();
+}
+function setWorkspaceTab(tab){ACTIVE_TAB=tab;renderWorkspace();}
+function renderWorkspaceSection(){
+  var workspace=ACTIVE_WORKSPACE||{},target=document.getElementById('workspaceSection');
+  if(!target)return;
+  if(ACTIVE_TAB==='summary'){
+    var summary=workspace.summary||{};
+    target.innerHTML='<section class="section"><h3>At a glance</h3>'+metricCards(Object.entries(summary).map(function(entry){return {label:humanize(entry[0]),value:entry[1],currency:/balance|payments|expenses|revenue|cost|profit/i.test(entry[0]),detail:''};}))+'</section><section class="section"><h3>Focused record</h3>'+recordFields((workspace.focus&&workspace.focus.record)||workspace.sourceRecord||workspace.job||workspace.customer||workspace.task)+'</section>';
+    return;
+  }
+  if(ACTIVE_TAB==='related'){target.innerHTML=uxRelatedRecords(workspace);return;}
+  if(ACTIVE_TAB==='files'){target.innerHTML='<section class="section"><h3>Files and previews</h3>'+renderPreview(workspace)+'</section>';return;}
+  if(ACTIVE_TAB==='history'){target.innerHTML='<section class="section"><h3>Activity timeline</h3>'+uxActivity(uxRows(workspace.timeline))+'</section>';return;}
+  target.innerHTML='<div class="ux-related-grid"><section class="ux-related-card"><h3>Proof <span>'+uxRows(workspace.proof).length+'</span></h3>'+workspaceRecords('proof',uxRows(workspace.proof))+'</section><section class="ux-related-card"><h3>Errors <span>'+uxRows(workspace.errors).length+'</span></h3>'+workspaceRecords('errors',uxRows(workspace.errors))+'</section></div>';
+}
+function uxRelatedRecords(workspace){
+  var groups=[
+    ['relatedTasks','Tasks','tasks'],['customer','Customer','customers'],['job','Job','jobs'],
+    ['quotes','Quotes','quotes'],['invoices','Invoices','invoices'],['payments','Payments','payments'],
+    ['expenses','Expenses','expenses'],['communications','Communications','communications']
+  ];
+  return '<div class="ux-related-grid">'+groups.map(function(group){
+    var value=workspace[group[0]],rows=Array.isArray(value)?value:(value?[value]:[]);
+    return '<section class="ux-related-card"><h3>'+esc(group[1])+' <span>'+rows.length+'</span></h3>'+(
+      rows.length?workspaceRecords(group[2],rows):'<div class="empty"><div><strong>No linked '+esc(group[1].toLowerCase())+'.</strong>Create or link the record from this workspace when needed.</div></div>'
+    )+'</section>';
+  }).join('')+'</div>';
+}
+function metricCards(items){
+  items=uxRows(items);
+  return '<div class="grid">'+items.map(function(card){return '<div class="card metric"><b>'+esc(card.label)+'</b><strong>'+(card.currency?money(card.value):esc(card.value))+'</strong><div class="muted">'+esc(card.detail||'')+'</div></div>';}).join('')+'</div>';
+}
+function renderMoney(data){
+  data=data||{};var s=data.summary||{},m=H38_UX&&H38_UX.metrics||{};
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="breadcrumbs"><button onclick="show(\'today\')">Home</button><span>›</span><span>Money</span></div><h1>Money Center</h1><div class="muted">Cash received, expected cash, overdue invoices, and expenses without opening every transaction table.</div></div></div><div class="ux-metrics">'+uxMetric('Cash expected',m.cashExpected||s.cashExpected||0,'Outstanding invoice balances',"show('invoices')",true)+uxMetric('Paid this month',m.paidThisMonth||0,'Recorded payments this month',"show('payments')",true)+uxMetric('Expenses this month',m.expensesThisMonth||0,'Recorded expenses this month',"show('expenses')",true)+uxMetric('Overdue invoices',m.overdueInvoices||0,'Past due and unpaid',"show('invoices')")+'</div><h2>Outstanding invoices</h2>'+recordTable(uxRows(data.invoices),'invoices');
+}

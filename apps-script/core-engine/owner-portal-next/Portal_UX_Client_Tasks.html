@@ -1,0 +1,110 @@
+function uxDashboardApproval(rows){
+  return '<section class="ux-section"><div class="ux-section-head"><h2>Owner approval queue</h2><button class="btn primary" onclick="show(\'decisions\')">Open queue</button></div>'+(
+    rows.length?'<div class="ux-list">'+rows.slice(0,8).map(function(item){
+      var action=item.type==='Task'?"openTask('"+attr(item.id)+"')":"openEntity('"+item.type.toLowerCase()+"s','"+attr(item.id)+"')";
+      return '<div class="ux-list-item"><div><b>'+esc(item.title||item.id)+'</b><p>'+esc(item.customer||'')+' '+esc(item.jobId||'')+'</p><div>'+statusPill(item.status)+' '+statusPill(item.approvalStatus)+'</div></div><button class="btn primary" onclick="'+action+'">Review</button></div>';
+    }).join('')+'</div>':'<div class="empty"><div><strong>No owner decisions are waiting.</strong>Approval items will appear here when a selected record requires review.</div></div>'
+  )+'</section>';
+}
+function uxTaskList(rows,emptyText){
+  if(!rows.length)return '<div class="empty"><div><strong>'+esc(emptyText)+'</strong>Open work remains available in My Tasks.</div></div>';
+  return '<div class="ux-list">'+rows.map(function(task){
+    return '<div class="ux-list-item"><div><b>'+esc(task.title)+'</b><p>'+esc(task.customer||task.customerId||'')+' · '+esc(task.jobId||'')+' · '+esc(task.dueDate||'No due date')+'</p><div>'+statusPill(task.status)+' '+statusPill(task.priority)+'</div></div><button class="btn" onclick="openTask(\''+attr(task.taskId)+'\')">Review</button></div>';
+  }).join('')+'</div>';
+}
+function uxActivity(rows){
+  if(!rows.length)return '<div class="empty"><div><strong>No recent activity is available.</strong>Updates will appear as records are created and reviewed.</div></div>';
+  return '<div class="ux-timeline">'+rows.map(function(item){return '<div class="ux-event"><time>'+esc(item.date||'Time not recorded')+'</time><p><b>'+esc(item.type)+'</b> · '+esc(item.title||item.id)+'</p><div>'+statusPill(item.status)+'</div></div>';}).join('')+'</div>';
+}
+function uxFinancial(label,value,currency){return '<div class="ux-financial"><b>'+esc(label)+'</b><strong>'+(currency?uxMoney(value):esc(value))+'</strong></div>';}
+function uxException(label,value,action){return '<div class="ux-list-item"><div><b>'+esc(label)+'</b><p>'+esc(value)+' record'+(Number(value)===1?'':'s')+'</p></div><button class="btn" onclick="'+action+'">Open</button></div>';}
+function taskFlags(task){
+  var flags=[];
+  if(/review|required|approval/i.test([task.status,task.approvalStatus,task.approvalRequirement].join(' ')))flags.push('<span class="pill review">Owner review</span>');
+  if(task.dueDate&&EXPERIENCE&&task.dueDate<EXPERIENCE.today&&!terminal(task.status))flags.push('<span class="pill overdue">Overdue</span>');
+  if(/block|hold|error|missing/i.test([task.status,task.blockingIssue].join(' ')))flags.push('<span class="pill blocked">Blocked</span>');
+  return '<div class="task-flags">'+flags.join('')+'</div>';
+}
+function taskTable(rows){
+  rows=uxRows(rows);
+  if(!rows.length)return '<div class="empty"><div><strong>No tasks match this view.</strong>Try another saved view or create an internal task.</div></div>';
+  var heads=['Priority','Task','Related record','Status','Due','Next action','Action'];
+  return '<div class="tablewrap"><table><thead><tr>'+heads.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(task){
+    return '<tr tabindex="0" onkeydown="if(event.key===\'Enter\')openTask(\''+attr(task.taskId)+'\')">'+
+      tableCell('Priority',statusPill(task.priority))+
+      tableCell('Task','<div class="task-title-cell"><b>'+esc(task.title)+'</b><div class="muted small">'+esc(task.taskId)+' · '+esc(task.type)+'</div>'+taskFlags(task)+'</div>')+
+      tableCell('Related record',esc(task.customer||task.customerId||'')+'<div class="muted small">'+esc(task.jobId||'')+'</div>')+
+      tableCell('Status',statusPill(task.status)+'<div class="muted small">'+esc(task.approvalStatus||'')+'</div>')+
+      tableCell('Due',esc(task.dueDate||'—'))+
+      tableCell('Next action',esc(task.nextAction||'No next action recorded'))+
+      tableCell('Action','<button class="btn primary task-open" onclick="event.stopPropagation();openTask(\''+attr(task.taskId)+'\')">Review</button>')+
+    '</tr>';
+  }).join('')+'</tbody></table></div>';
+}
+function renderTaskSurface(title,rows,description){
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="breadcrumbs"><button onclick="show(\'today\')">Home</button><span>›</span><span>'+esc(title)+'</span></div><h1>'+esc(title)+'</h1><div class="muted">'+esc(description)+'</div></div><button class="btn" onclick="show(\'tasks\')">Open all tasks</button></div>'+taskTable(rows);
+}
+function openUxPreset(id){UX_TASK_PRESET=id;show('tasks');}
+function renderTasks(rows){
+  ALL_TASKS=uxRows(rows);
+  var presets=uxRows(H38_UX&&H38_UX.builtInViews);
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="breadcrumbs"><button onclick="show(\'today\')">Home</button><span>›</span><span>My Tasks</span></div><h1>My Tasks</h1><div class="muted">List, board, and calendar views with visible Review controls and selected-record execution.</div></div><button class="btn primary" onclick="openCreate(\'tasks\')">Add internal task</button></div>'+ 
+    '<div class="ux-view-presets">'+presets.map(function(view){return '<button class="btn '+(UX_TASK_PRESET===view.id?'active':'')+'" onclick="UX_TASK_PRESET=\''+attr(view.id)+'\';filterTasks()">'+esc(view.name)+'</button>';}).join('')+'<button class="btn" onclick="UX_TASK_PRESET=\'\';filterTasks()">All tasks</button></div>'+ 
+    '<div class="toolbar"><input class="grow" id="taskFilter" placeholder="Filter task, customer, job, next action, or source" oninput="filterTasks()"><select id="taskStatus" onchange="filterTasks()"><option value="">All statuses</option>'+uxRows(SCHEMA.statuses.task).map(function(s){return '<option>'+esc(s)+'</option>';}).join('')+'</select><select id="taskPriority" onchange="filterTasks()"><option value="">All priorities</option><option>Urgent</option><option>High</option><option>Normal</option><option>Low</option></select><select id="taskSort" onchange="filterTasks()"><option value="default">Priority / due</option><option value="updated">Recently updated</option><option value="due">Due date</option></select><button class="btn '+(TASK_VIEW_MODE==='list'?'primary':'')+'" onclick="setTaskView(\'list\')">List</button><button class="btn '+(TASK_VIEW_MODE==='board'?'primary':'')+'" onclick="setTaskView(\'board\')">Board</button><button class="btn '+(TASK_VIEW_MODE==='calendar'?'primary':'')+'" onclick="setTaskView(\'calendar\')">Calendar</button><button class="btn" onclick="saveCurrentView()">Save view</button></div><div id="taskRows"></div>';
+  filterTasks();
+}
+function filterTasks(){
+  var q=(document.getElementById('taskFilter')&&document.getElementById('taskFilter').value||'').toLowerCase();
+  var status=document.getElementById('taskStatus')&&document.getElementById('taskStatus').value||'';
+  var priority=document.getElementById('taskPriority')&&document.getElementById('taskPriority').value||'';
+  var sort=document.getElementById('taskSort')&&document.getElementById('taskSort').value||'default';
+  var today=EXPERIENCE&&EXPERIENCE.today||'';
+  var rows=ALL_TASKS.filter(function(task){
+    if(q&&!JSON.stringify(task).toLowerCase().includes(q))return false;
+    if(status&&task.status!==status)return false;
+    if(priority&&task.priority!==priority)return false;
+    if(UX_TASK_PRESET==='due-today'&&task.dueDate!==today)return false;
+    if(UX_TASK_PRESET==='overdue'&&!(task.dueDate&&task.dueDate<today&&!terminal(task.status)))return false;
+    if(UX_TASK_PRESET==='waiting-customer'&&!/waiting on customer|customer response|customer information|awaiting customer/i.test([task.status,task.nextAction,task.blockingIssue].join(' ')))return false;
+    if(UX_TASK_PRESET==='blocked'&&!/block|hold|error|failed|missing/i.test([task.status,task.blockingIssue,task.nextAction].join(' ')))return false;
+    if(UX_TASK_PRESET==='no-next-action'&&uxText(task.nextAction).trim())return false;
+    if(UX_TASK_PRESET==='high-priority'&&!/urgent|high/i.test(task.priority||''))return false;
+    return true;
+  });
+  if(UX_TASK_PRESET==='recently-updated')sort='updated';
+  if(sort==='updated')rows.sort(function(a,b){return uxText(b.lastUpdate).localeCompare(uxText(a.lastUpdate));});
+  if(sort==='due')rows.sort(function(a,b){return uxText(a.dueDate||'9999').localeCompare(uxText(b.dueDate||'9999'));});
+  var host=document.getElementById('taskRows');
+  if(host)host.innerHTML=TASK_VIEW_MODE==='board'?taskBoard(rows):TASK_VIEW_MODE==='calendar'?taskCalendar(rows):taskTable(rows);
+  document.querySelectorAll('.ux-view-presets button').forEach(function(button){button.classList.toggle('active',UX_TASK_PRESET&&button.textContent===((H38_UX.builtInViews||[]).find(function(v){return v.id===UX_TASK_PRESET;})||{}).name);});
+}
+function renderRecords(title,rows,entity){
+  ALL_ROWS=uxRows(rows);
+  var canCreate=entity&&uxRows(SCHEMA.creatable).includes(entity);
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="breadcrumbs"><button onclick="show(\'today\')">Home</button><span>›</span><span>'+esc(title)+'</span></div><h1>'+esc(title)+'</h1><div class="muted">'+ALL_ROWS.length+' record'+(ALL_ROWS.length===1?'':'s')+'</div></div>'+(canCreate?'<button class="btn primary" onclick="openCreate(\''+entity+'\')">Add internal '+esc(entityLabel(entity))+'</button>':'')+'</div><div class="toolbar"><input class="grow" id="recordFilter" placeholder="Search this view" oninput="filterRecordRows(\''+(entity||'')+'\')"></div><div id="recordRows"></div>';
+  filterRecordRows(entity||'');
+}
+function recordTable(rows,entity){
+  rows=uxRows(rows);
+  if(!rows.length)return uxEmptyState(entity);
+  var spec=SCHEMA.tables[entity],keys=(LIST_COLUMNS[entity]||spec.headers.slice(0,8)).filter(function(key){return spec.headers.includes(key);});
+  return '<div class="tablewrap"><table><thead><tr>'+keys.map(function(key){return '<th>'+esc(key)+'</th>';}).join('')+'<th>Action</th></tr></thead><tbody>'+rows.map(function(row){
+    var id=row[spec.id];
+    return '<tr tabindex="0" onkeydown="if(event.key===\'Enter\')openEntity(\''+entity+'\',\''+attr(id)+'\')">'+keys.map(function(key){return tableCell(key,formatCell(key,row[key]));}).join('')+tableCell('Action','<button class="btn task-open" onclick="event.stopPropagation();openEntity(\''+entity+'\',\''+attr(id)+'\')">Open</button>')+'</tr>';
+  }).join('')+'</tbody></table></div>';
+}
+function uxEmptyState(entity){
+  var copy={
+    invoices:['No invoices have been created yet.','Create an invoice from an approved quote or an active job.'],
+    quotes:['No quotes match this view.','Create a quote from a customer request or job workspace.'],
+    jobs:['No jobs match this view.','Convert an accepted quote or create an internal job record.'],
+    customers:['No customers match this view.','Create a customer from a reviewed request or add one internally.'],
+    payments:['No payments match this view.','Record a payment only after confirming the invoice and transaction reference.'],
+    expenses:['No expenses match this view.','Add an approved-category expense and attach its receipt when available.'],
+    communications:['No communications match this view.','Create an internal draft record; customer sending remains approval gated.'],
+    errors:['No open errors match this view.','System failures and missing-data holds will appear here.'],
+    proof:['No proof records match this view.','Controlled actions create evidence records after execution.']
+  };
+  var item=copy[entity]||['No records match this view.','Adjust the search or create the first internal record.'];
+  return '<div class="empty"><div><strong>'+esc(item[0])+'</strong>'+esc(item[1])+'</div></div>';
+}

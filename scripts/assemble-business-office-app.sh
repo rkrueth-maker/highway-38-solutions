@@ -25,7 +25,7 @@ for pack_file in "$PACK_DIR"/*.gs; do
 done
 shopt -u nullglob
 
-cp "$REPO_ROOT/apps-script/business-office/BusinessOffice_Index.html" "$DESTINATION/"
+cp "$REPO_ROOT"/apps-script/business-office/BusinessOffice_*.html "$DESTINATION/"
 cp "$REPO_ROOT/apps-script/business-office/appsscript.json" "$DESTINATION/"
 
 [[ -f "$DESTINATION/BusinessOffice_00_Pack.gs" ]] || { echo "HOLD — generated business pack is missing"; exit 3; }
@@ -37,7 +37,7 @@ if grep -F "packId:'template-business'" "$DESTINATION/BusinessOffice_00_Pack.gs"
   test ! -e "$DESTINATION/BusinessOffice_Highway38Acceptance.gs"
   test ! -e "$DESTINATION/BusinessOffice_Highway38AcceptanceHarness.gs"
   ! grep -R -E 'Highway 38 Solutions|rkrueth|AKfyc|1kDDKW|1Vq8Uj|11ak4Q|1Jn2vW5|1rjl_m8u' \
-    "$DESTINATION"/BusinessOffice_*.gs "$DESTINATION/BusinessOffice_Index.html"
+    "$DESTINATION"/BusinessOffice_*.gs "$DESTINATION"/BusinessOffice_*.html
 fi
 
 printf 'Assembled Business Office with pack %s in %s\n' "$PACK_SOURCE" "$DESTINATION"
