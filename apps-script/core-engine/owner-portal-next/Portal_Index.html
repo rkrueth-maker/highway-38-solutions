@@ -8,13 +8,14 @@
   <style><?!= h38PortalRawInclude_('Portal_UX_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_Business_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_Business_Create_Styles'); ?></style>
+  <style><?!= h38PortalRawInclude_('Portal_Application_UX_Styles'); ?></style>
   <style>.unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}</style>
 </head>
 <body>
 <div class="app">
   <aside class="side" id="side"><div class="brand">Highway 38<small id="release">Business Operating System</small><span class="unified-package" id="packageName">Complete Business System</span></div><nav class="nav" id="nav"></nav></aside>
   <main>
-    <div class="top" id="ownerTopbar"><button class="btn mobile" onclick="toggleMenu()">☰</button><input id="search" aria-label="Search all Owner Portal records" placeholder="Search customers, jobs, invoices, files, and tasks" onkeydown="if(event.key==='Enter')globalSearch()"><button class="btn" onclick="globalSearch()">Search</button><select id="quickCreate" aria-label="Quick create"><option value="">Quick create…</option></select><button class="btn primary" onclick="runQuickCreate()">Create</button><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views…</option></select><button class="btn" onclick="refresh()">Refresh</button></div>
+    <div class="top" id="ownerTopbar"><button class="btn mobile" onclick="toggleMenu()">☰</button><input id="search" aria-label="Search all application records" placeholder="Search customers, jobs, invoices, files, and tasks" onkeydown="if(event.key==='Enter')globalSearch()"><button class="btn" onclick="globalSearch()">Search</button><select id="quickCreate" aria-label="Quick create"><option value="">Quick create…</option></select><button class="btn primary" onclick="runQuickCreate()">Create</button><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views…</option></select><button class="btn" onclick="refresh()">Refresh</button></div>
     <div class="content"><div id="notice" class="notice hold">Loading secure user session…</div><div id="view"></div></div>
   </main>
 </div>
@@ -32,6 +33,10 @@
 <?!= h38PortalRawInclude_('Portal_UX_Client_Workspace'); ?>
 <?!= h38PortalRawInclude_('Portal_UX_Client_Forms'); ?>
 <?!= h38PortalRawInclude_('Portal_TaskMessaging_Client'); ?>
+<?!= h38PortalRawInclude_('Portal_Application_Client_Views'); ?>
+<?!= h38PortalRawInclude_('Portal_Application_Client_Business'); ?>
+<?!= h38PortalRawInclude_('Portal_Application_Client_SafeActions'); ?>
+<?!= h38PortalRawInclude_('Portal_Application_Client_Core'); ?>
 <?!= h38PortalRawInclude_('Portal_UX_Client_Boot'); ?>
 </script>
 </body>
