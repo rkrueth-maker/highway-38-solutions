@@ -82,7 +82,14 @@ function boCatalogRequirements_() {
 
 function boModuleEnabled_(moduleKey) {
   const modules = boPackValue_('modules', {});
-  return !Object.prototype.hasOwnProperty.call(modules, moduleKey) || modules[moduleKey] !== false;
+  const packEnabled = !Object.prototype.hasOwnProperty.call(modules, moduleKey) || modules[moduleKey] !== false;
+  if (typeof h38PortalModuleOverrideEnabled_ === 'function') return h38PortalModuleOverrideEnabled_(moduleKey, packEnabled);
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty('H38_UNIFIED_MODULE_OVERRIDES_JSON');
+    const overrides = raw ? JSON.parse(raw) : {};
+    if (Object.prototype.hasOwnProperty.call(overrides, moduleKey)) return overrides[moduleKey].enabled !== false;
+  } catch (error) {}
+  return packEnabled;
 }
 
 function boRoleNames_() {
