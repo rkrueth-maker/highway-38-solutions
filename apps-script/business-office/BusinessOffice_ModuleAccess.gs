@@ -34,7 +34,9 @@ function boGuardApiRequest_(action, args) {
   if (action === 'uxWorkspace') modules.push(args.module);
   if (action === 'uxPipeline') modules.push(args.type === 'sales' ? 'quotes' : 'jobs');
   if (action === 'createCustomerFromRequest') modules.push('requests','customers');
-  if (/^(createQuote|reviseQuote)$/.test(action)) modules.push('quotes');
+  if (/^(createQuote|reviseQuote|duplicateQuote|quoteBuilderDashboard|quoteBuilderPriceBook|quoteBuilderTemplates|prepareAiQuoteDraft|quoteBuilderPackage)$/.test(action)) modules.push('quotes');
+  if (/^(quoteBuilderPriceBook)$/.test(action)) modules.push('setup');
+  if (/^(quoteBuilderTemplates)$/.test(action)) modules.push('documents');
   if (action === 'approve') modules.push('approvals', boModuleFromRecordType_(args.recordType));
   if (action === 'quoteToJob') modules.push('quotes','workOrders','jobs');
   if (action === 'jobToInvoice') modules.push('jobs','invoices');
