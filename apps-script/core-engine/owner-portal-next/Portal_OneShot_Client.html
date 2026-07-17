@@ -2,28 +2,48 @@ function h38OneShotDateLabel(){
   try{return new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric'}).format(new Date());}
   catch(error){return '';}
 }
+function h38NextUpCategory(task){
+  var text=[task.status,task.nextAction,task.blockingIssue,task.assignedTo,task.owner].join(' ');
+  if(/block|hold|error|failed|missing/i.test(text))return 'blocked';
+  if(/waiting on customer|customer response|customer information|awaiting customer/i.test(text))return 'customer';
+  if(/waiting on user|waiting on staff|waiting on admin|handoff|assigned to another|awaiting review by/i.test(text))return 'other';
+  return 'mine';
+}
+function h38NextUpGroups(rows){
+  var groups={mine:[],customer:[],other:[],blocked:[]};
+  uxRows(rows).forEach(function(task){groups[h38NextUpCategory(task)].push(task);});
+  var labels={mine:'Assigned to me',customer:'Waiting on customer',other:'Waiting on another user',blocked:'Blocked'};
+  var order=['mine','customer','other','blocked'];
+  var html=order.filter(function(key){return groups[key].length;}).map(function(key){
+    return '<div class="h38-next-group '+key+'"><div class="h38-next-group-head"><h3>'+esc(labels[key])+'</h3><span>'+esc(groups[key].length)+'</span></div>'+uxTaskList(groups[key].slice(0,3),'No work in this group.')+'</div>';
+  }).join('');
+  return html||'<div class="empty"><div><strong>Nothing needs immediate attention.</strong>Open My Work for later assignments.</div></div>';
+}
+function h38OwnerAttentionStrip(holdCount){
+  if(!holdCount)return '';
+  return '<section class="h38-owner-alert"><div><span class="ux-eyebrow">Attention</span><h2>'+esc(holdCount)+' hold'+(Number(holdCount)===1?'':'s')+' or error'+(Number(holdCount)===1?'':'s')+' need review</h2><p>Blocked work and unresolved incidents stay visible until the underlying record is corrected or released.</p></div><div class="toolbar"><button class="btn warning" onclick="openUxPreset(\'blocked\')">Open blocked work</button><button class="btn" onclick="show(\'errors\')">Error Log</button><button class="btn" onclick="show(\'systemHealth\')">System health</button></div></section>';
+}
 function renderDashboard(){
-  var ux=H38_UX||{},m=ux.metrics||{},approval=uxRows(ux.approvalQueue),dueToday=uxRows(ux.dueToday),overdue=uxRows(ux.overdue),due=dueToday.concat(overdue).slice(0,12),activity=uxRows(ux.recentActivity).slice(0,10),owner=H38_UNIFIED&&H38_UNIFIED.ownerMode;
+  var ux=H38_UX||{},m=ux.metrics||{},approval=uxRows(ux.approvalQueue),dueToday=uxRows(ux.dueToday),overdue=uxRows(ux.overdue),due=dueToday.concat(overdue).slice(0,16),activity=uxRows(ux.recentActivity).slice(0,10),owner=H38_UNIFIED&&H38_UNIFIED.ownerMode;
   var decisionCount=owner?(m.needsReview||0):(EXPERIENCE.views&&EXPERIENCE.views.activeWork&&EXPERIENCE.views.activeWork.count||0);
   var holdCount=(Number(m.blocked)||0)+(Number(m.openErrors)||0);
   var decisionButton=owner?'<button class="btn primary" onclick="show(\'approvalsCenter\')">Review '+esc(decisionCount)+' decisions</button>':'<button class="btn primary" onclick="show(\'bo:assignedTasks\')">Open my work</button>';
   document.getElementById('view').innerHTML=h38RoleBanner()+
-    '<div class="ux-page-head"><div><div class="ux-eyebrow">Today <span class="h38-today-date">'+esc(h38OneShotDateLabel())+'</span></div><h1>What needs attention now?</h1><div class="muted">Decisions, deadlines, customer waits, money, holds, and the next useful action.</div></div>'+decisionButton+'</div>'+ 
-    '<div class="ux-metrics">'+
+    '<div class="ux-page-head"><div><div class="ux-eyebrow">Today <span class="h38-today-date">'+esc(h38OneShotDateLabel())+'</span></div><h1>What needs attention now?</h1><div class="muted">Decisions, deadlines, customer waits, money, and the next useful action.</div></div>'+decisionButton+'</div>'+ 
+    h38OwnerAttentionStrip(holdCount)+
+    '<div class="ux-metrics h38-primary-metrics">'+
       h38RoleMetric(owner?'Needs decision':'My open work',decisionCount,owner?'Quotes, changes, and approvals waiting':'Assigned work still open',owner?"show('approvalsCenter')":"show('bo:assignedTasks')")+
       h38RoleMetric('Due today',m.dueToday||0,'Tasks and follow-ups due now',"openUxPreset('due-today')")+
-      h38RoleMetric('Late items',m.overdue||0,'Past-due work requiring action',"openUxPreset('overdue')")+
-      h38RoleMetric('Money in',m.cashExpected||0,'Expected from open invoices',h38AppRouteAllowed('bo:invoices')?"show('bo:invoices')":"show('today')",true)+
-      h38RoleMetric('Holds / errors',holdCount,'Blocked work and unresolved incidents',h38AppRouteAllowed('errors')?"show('errors')":"openUxPreset('blocked')")+
+      h38RoleMetric('Overdue',m.overdue||0,'Past-due work requiring action',"openUxPreset('overdue')")+
+      h38RoleMetric('Money requiring attention',m.cashExpected||0,'Expected from open invoices',h38AppRouteAllowed('bo:invoices')?"show('bo:invoices')":"show('today')",true)+
     '</div>'+ 
     '<div class="ux-dashboard-grid"><div class="ux-stack">'+
       '<div class="h38-needs-decision">'+(owner?h38DashboardApprovals(approval):'<section class="ux-section"><h2>My work</h2>'+uxTaskList(due,'No assigned work needs immediate attention.')+'</section>')+'</div>'+
     '</div><div class="ux-stack h38-next-up">'+
-      '<section class="ux-section"><div class="ux-section-head"><h2>Next up</h2><button class="btn" onclick="show(\'bo:assignedTasks\')">View all</button></div>'+uxTaskList(due.slice(0,6),'Nothing is due or overdue. Open My Work for later assignments.')+'</section>'+ 
+      '<section class="ux-section"><div class="ux-section-head"><h2>Next up</h2><button class="btn" onclick="show(\'bo:assignedTasks\')">View all</button></div>'+h38NextUpGroups(due)+'</section>'+ 
     '</div></div>'+ 
     '<div class="h38-today-lower">'+
-      '<section class="ux-section"><div class="ux-section-head"><h2>Today\'s calendar</h2><button class="btn" onclick="show(\'calendarCenter\')">View calendar</button></div>'+uxTaskList(dueToday.slice(0,4),'No dated work is due today.')+'</section>'+ 
+      '<section class="ux-section"><div class="ux-section-head"><h2>Today\'s calendar</h2><button class="btn" onclick="show(\'calendarCenter\')">View calendar</button></div>'+uxTaskList(dueToday.slice(0,5),'No dated work is due today.')+'</section>'+ 
       '<section class="ux-section"><div class="ux-section-head"><h2>Recent activity</h2><span class="muted">Latest record changes</span></div>'+uxActivity(activity)+'</section>'+ 
-      '<section class="ux-section"><h2>System health</h2><div class="h38-system-ok"><div><p><b>'+esc(H38_APP_STATUS&&H38_APP_STATUS.label||'All systems operational')+'</b></p><p class="muted">Customer sends, payments, publishing, ad spend, delivery, merge, and deployment remain approval gated.</p></div></div><div class="toolbar"><button class="btn" onclick="show(\'systemHealth\')">View system health</button><button class="btn" onclick="show(\'errors\')">Error Log</button></div></section>'+ 
-    '</div>';
+    '</div><p class="h38-control-note">Customer sends, payments, publishing, ad spend, delivery, merge, and deployment remain approval gated. System Health remains available inside Control and appears here only when attention is required.</p>';
 }

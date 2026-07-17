@@ -9,13 +9,13 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution">
   <link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1">
-  <link rel="stylesheet" href="ux-unified-public.css?v=20260717-one-shot">
+  <link rel="stylesheet" href="ux-unified-public.css?v=20260717-p0-refinement">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="customer-portal-config.js?v=20260716-activated" defer></script>
-  <script src="customer-portal-supabase.js?v=20260717-one-shot" defer></script>
+  <script src="customer-portal-supabase.js?v=20260717-p0-refinement" defer></script>
   <script defer src="brand-global.js?v=20260717-one-shot"></script>
   <script defer src="public-expansion.js?v=20260717-one-shot"></script>
-  <script defer src="customer-portal-ux.js?v=20260717-one-shot"></script>
+  <script defer src="customer-portal-ux.js?v=20260717-p0-refinement"></script>
 </head>
 <body class="h38-site h38-one-shot h38-customer-portal" data-page="customer">
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -25,7 +25,7 @@
       <div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div>
       <div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div>
     </header>
-    <div id="portalNotice" class="portal-notice">Checking secure portal configuration…</div>
+    <div id="portalNotice" class="portal-notice" aria-live="polite">Checking secure portal configuration…</div>
 
     <section id="portal-hold" class="portal-panel" hidden>
       <h2>Customer Portal temporarily unavailable</h2>
@@ -65,21 +65,35 @@
           </div>
           <div class="h38-customer-grid">
             <div class="portal-stack">
-              <section id="projects-section" class="portal-panel portal-section"><h2>Current project</h2><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section>
-              <section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><div id="quotesList" class="portal-list"></div></section>
+              <section id="projects-section" class="portal-panel portal-section"><div class="portal-section-head"><h2>Current project</h2></div><div id="projectSelectorWrap" class="h38-project-selector" hidden><label for="projectSelector"><strong>Choose project</strong><select id="projectSelector"></select></label><button id="openSelectedProject" class="btn" type="button">Show project</button></div><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section>
+              <section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><p>Open the complete review before approving any quote.</p><div id="quotesList" class="portal-list"></div></section>
             </div>
             <div class="portal-stack">
               <div class="h38-customer-subgrid">
                 <section id="files-section" class="portal-panel portal-section"><h2>Recent files</h2><div id="filesList" class="portal-list"></div></section>
                 <section id="invoices-section" class="portal-panel portal-section"><h2>Invoices</h2><div id="invoicesList" class="portal-list"></div></section>
               </div>
-              <section id="messages-section" class="portal-panel portal-section"><h2>Messages</h2><p>Ask a question about your project or request a quote change.</p><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Record message for review</button></form><p>No automatic text or email is sent from this form.</p></section>
+              <section id="messages-section" class="portal-panel portal-section"><h2>Messages</h2><p>Ask a question about the selected project or request a quote change.</p><div id="messageProjectContext" class="h38-message-project"><span>Project:</span><strong>No project selected</strong></div><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Record message for review</button></form><p>No automatic text or email is sent from this form.</p></section>
             </div>
           </div>
         </div>
       </div>
+      <nav class="h38-portal-mobile-nav" aria-label="Customer Portal mobile navigation">
+        <a class="is-active" href="#portal-home"><span aria-hidden="true">⌂</span><span>Home</span></a>
+        <a href="#projects-section"><span aria-hidden="true">▣</span><span>Projects</span></a>
+        <a href="#files-section"><span aria-hidden="true">▤</span><span>Files</span></a>
+        <a href="#messages-section"><span aria-hidden="true">○</span><span>Messages</span></a>
+        <button id="portalMoreButton" type="button" aria-expanded="false" aria-controls="portalMoreMenu"><span aria-hidden="true">•••</span><span>More</span></button>
+      </nav>
+      <div id="portalMoreMenu" class="portal-panel" hidden><a class="btn" href="#quotes-section">Quotes</a><a class="btn" href="#invoices-section">Invoices</a><button class="btn" type="button" onclick="document.getElementById('signOutButton').click()">Sign out</button></div>
     </section>
   </main>
+
+  <dialog id="quoteReviewDialog" class="h38-quote-dialog" aria-labelledby="quoteReviewTitle">
+    <div class="h38-quote-dialog__head"><div><span class="badge">Complete quote review</span><h2 id="quoteReviewTitle">Quote</h2></div><button id="closeQuoteReview" class="btn" type="button" aria-label="Close quote review">Close</button></div>
+    <div class="h38-quote-dialog__body"><dl id="quoteReviewDetails" class="h38-quote-review"></dl></div>
+    <div class="h38-quote-dialog__actions"><button id="quoteRequestChange" class="btn" type="button">Request a change</button><button id="quoteApproveConfirmed" class="btn btn-primary" type="button">Approve this reviewed quote</button></div>
+  </dialog>
   <footer class="site-footer"></footer>
 </body>
 </html>

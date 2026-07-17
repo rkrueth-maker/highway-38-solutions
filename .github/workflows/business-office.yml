@@ -53,11 +53,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify complete Business Office source and integrated UX
+      - name: Verify approved UX scan contract
+        shell: bash
         run: |
-          npm run test:business-office
-          node scripts/verify-owner-business-office-ux.js
-          node scripts/verify-business-office-existing-deployment.js
+          set -o pipefail
+          mkdir -p artifacts/ux-scan
+          node scripts/verify-one-shot-ux.js | tee artifacts/ux-scan/verification.json
+      - name: Verify Business Office source
+        run: node scripts/verify-business-office.js
+      - name: Verify Business Office runtime helpers
+        run: node scripts/verify-business-office-runtime-helpers.js
+      - name: Verify unified client routing runtime
+        run: node scripts/verify-unified-client-routing-runtime.js
+      - name: Verify task messaging
+        run: node scripts/verify-task-messaging.js
+      - name: Verify task messaging hardening
+        run: node scripts/verify-task-messaging-hardening.js
+      - name: Verify Supabase Customer Portal
+        run: node scripts/verify-customer-portal-supabase.js
+      - name: Verify complete unified application UX
+        run: node scripts/verify-unified-app-ux-complete.js
+      - name: Verify Owner and Business Office UX compatibility
+        run: node scripts/verify-owner-business-office-ux.js
+      - name: Verify accepted existing deployment contract
+        run: node scripts/verify-business-office-existing-deployment.js
       - name: Confirm automatic production authority is unified-only
         run: |
           echo 'PASS — push and pull-request runs verify only.'
@@ -68,6 +87,7 @@ jobs:
         with:
           name: business-office-verification-${{ github.run_id }}
           path: |
+            artifacts/ux-scan/verification.json
             artifacts/business-office/verification.json
             artifacts/unified-app-ux/verification.json
           if-no-files-found: warn
