@@ -74,6 +74,7 @@ function h38PortalBusinessWorkspace(moduleKey, recordId) {
   if (h38PortalTaskMessagingModule_(moduleKey)) return h38PortalTaskMessagingWorkspace(moduleKey,recordId);
   h38PortalBusinessRequirePermission_(access,moduleKey,'View');
   var workspace = boUxWorkspace_(moduleKey,recordId);
+  if (typeof h38PortalEnrichBusinessWorkspace_ === 'function') return h38PortalEnrichBusinessWorkspace_(workspace,moduleKey,recordId,access);
   workspace.readOnly = !h38PortalBusinessPermission_(access,moduleKey,'Edit');
   workspace.userRole = access.role;
   return workspace;
