@@ -131,8 +131,13 @@
       const quote=quoteById(activeQuoteId),button=byId('quoteApproveConfirmed');
       if(!quote||!quoteReviewComplete(quote)||button.disabled)return;
       button.disabled=true;button.setAttribute('aria-busy','true');
-      try{await window.H38_CUSTOMER_PORTAL?.approveQuote(quote.id,Number(button.dataset.version||quote.version||1));closeQuoteDialog();}
-      finally{button.removeAttribute('aria-busy');}
+      try{
+        const result=await window.H38_CUSTOMER_PORTAL?.approveQuote(quote.id,Number(button.dataset.version||quote.version||1));
+        if(result)closeQuoteDialog();
+      } finally {
+        button.removeAttribute('aria-busy');
+        if(byId('quoteReviewDialog')?.open)button.disabled=false;
+      }
     });
     window.addEventListener('h38:portal-data',event=>{data=event.detail||data;sync();});
     const initial=window.H38_CUSTOMER_PORTAL?.getState();if(initial){data=initial;sync();}
