@@ -2,7 +2,7 @@
   'use strict';
 
   const config = window.H38_CUSTOMER_PORTAL_SUPABASE || {};
-  const state = { client: null, session: null, account: null };
+  const state = { client: null, session: null, account: null, jobs: [], quotes: [], invoices: [], files: [], selectedJobId: null };
 
   const byId = id => document.getElementById(id);
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
@@ -53,14 +53,8 @@
       throw new Error('Supabase client library did not load.');
     }
     state.client = window.supabase.createClient(config.url, config.publishableKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      },
-      global: {
-        headers: { 'x-client-info': 'highway-38-customer-portal' }
-      }
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      global: { headers: { 'x-client-info': 'highway-38-customer-portal' } }
     });
     return state.client;
   }
@@ -83,10 +77,7 @@
     if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
     const { error } = await state.client.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: currentRedirectUrl(),
-        shouldCreateUser: false
-      }
+      options: { emailRedirectTo: currentRedirectUrl(), shouldCreateUser: false }
     });
     if (error) throw error;
     notice('<b>Check your email.</b> The secure sign-in link was requested. For privacy, the portal does not confirm whether an address is registered.', 'ok');
@@ -97,6 +88,11 @@
     if (error) throw error;
     state.session = null;
     state.account = null;
+    state.jobs = [];
+    state.quotes = [];
+    state.invoices = [];
+    state.files = [];
+    state.selectedJobId = null;
     setView('login');
     notice('Signed out.', 'ok');
   }
@@ -124,25 +120,37 @@
     return Array.isArray(data) ? data : [];
   }
 
+  function selectedJob() {
+    return state.jobs.find(row => row.id === state.selectedJobId) || null;
+  }
+
+  function selectJob(jobId) {
+    const allowed = state.jobs.some(row => row.id === jobId);
+    state.selectedJobId = allowed ? jobId : (state.jobs[0] ? state.jobs[0].id : null);
+    dispatchPortalData();
+    return selectedJob();
+  }
+
   function renderJobs(rows) {
     byId('jobsList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item">
+      <article class="portal-item" data-job-id="${esc(row.id)}">
         <div><strong>${esc(row.job_number || row.title || 'Project')}</strong><span>${esc(row.title || '')}</span></div>
         <div><span class="portal-pill">${esc(row.status || 'Open')}</span><span>${esc(row.next_action || 'No next action posted')}</span></div>
         <progress max="100" value="${Math.max(0, Math.min(100, Number(row.progress_percent || 0)))}"></progress>
+        <button class="btn" type="button" data-select-project="${esc(row.id)}">Show this project</button>
       </article>`).join('') : '<p class="portal-empty">No active projects are posted.</p>';
+    byId('jobsList').querySelectorAll('[data-select-project]').forEach(button => {
+      button.addEventListener('click', () => selectJob(button.dataset.selectProject));
+    });
   }
 
   function renderQuotes(rows) {
     byId('quotesList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item">
+      <article class="portal-item" data-quote-id="${esc(row.id)}">
         <div><strong>${esc(row.quote_number || row.title || 'Quote')}</strong><span>${esc(row.title || '')}</span></div>
         <div><strong>${money(row.amount)}</strong><span class="portal-pill">${esc(row.status || 'Draft')}</span></div>
-        ${row.status === 'presented' && !row.customer_decision ? `<button class="btn btn-primary" type="button" data-approve-quote="${esc(row.id)}" data-version="${Number(row.version || 1)}">Approve selected quote</button>` : `<span>${esc(row.customer_decision ? 'Customer decision: ' + row.customer_decision : '')}</span>`}
+        ${row.status === 'presented' && !row.customer_decision ? `<button class="btn btn-primary" type="button" data-review-quote="${esc(row.id)}">Review complete quote</button>` : `<span>${esc(row.customer_decision ? 'Customer decision: ' + row.customer_decision : '')}</span>`}
       </article>`).join('') : '<p class="portal-empty">No quotes are available.</p>';
-    byId('quotesList').querySelectorAll('[data-approve-quote]').forEach(button => {
-      button.addEventListener('click', () => approveQuote(button.dataset.approveQuote, Number(button.dataset.version)));
-    });
   }
 
   function renderInvoices(rows) {
@@ -156,7 +164,7 @@
 
   function renderFiles(rows) {
     byId('filesList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item">
+      <article class="portal-item" data-job-id="${esc(row.job_id || '')}">
         <div><strong>${esc(row.file_name || 'File')}</strong><span>${esc(row.status || '')}</span></div>
         <button class="btn" type="button" data-download-path="${esc(row.storage_path)}">Download</button>
       </article>`).join('') : '<p class="portal-empty">No customer files are available.</p>';
@@ -166,10 +174,12 @@
   }
 
   async function approveQuote(quoteId, version) {
-    if (!confirm('Approve only this selected quote? This records your decision but does not charge a card or send an automatic message.')) return;
+    const quote = state.quotes.find(row => row.id === quoteId);
+    if (!quote) throw new Error('The selected quote is not available. Refresh and try again.');
+    if (!confirm('Approve this fully reviewed quote? This records your decision but does not charge a card or begin work automatically.')) return false;
     const { data, error } = await state.client.rpc('customer_portal_approve_quote', {
       p_quote_id: quoteId,
-      p_expected_version: version
+      p_expected_version: Number(version || quote.version || 1)
     });
     if (error) throw error;
     notice('<b>Quote approval recorded.</b> Highway 38 will review the selected quote before any next action.', 'ok');
@@ -191,33 +201,53 @@
     const body = String(byId('messageBody').value || '').trim();
     if (!body) return notice('Enter a message first.', 'bad');
     if (body.length > 2000) return notice('Messages are limited to 2,000 characters.', 'bad');
+    if (state.jobs.length && !state.selectedJobId) return notice('Choose the project this message belongs to.', 'bad');
     const { error } = await state.client.from('customer_messages').insert({
       customer_id: state.account.id,
+      job_id: state.selectedJobId || null,
       body,
       direction: 'customer_to_business',
       status: 'pending_owner_review'
     });
     if (error) throw error;
     byId('messageBody').value = '';
-    notice('<b>Message recorded.</b> No automatic text or email was sent. Highway 38 will review it.', 'ok');
+    notice('<b>Message recorded for ' + esc(selectedJob()?.title || 'general account review') + '.</b> No automatic text or email was sent. Highway 38 will review it.', 'ok');
+  }
+
+  function dispatchPortalData() {
+    window.dispatchEvent(new CustomEvent('h38:portal-data', { detail: {
+      jobs: state.jobs.slice(),
+      quotes: state.quotes.slice(),
+      invoices: state.invoices.slice(),
+      files: state.files.slice(),
+      selectedJobId: state.selectedJobId
+    }}));
   }
 
   async function refreshDashboard() {
     if (!state.account) return;
     notice('Loading your customer records…', '');
     const [jobs, quotes, invoices, files] = await Promise.all([
-      queryOwn('customer_jobs', 'id,job_number,title,status,next_action,due_date,progress_percent', 'updated_at'),
-      queryOwn('customer_quotes', 'id,quote_number,title,amount,status,version,customer_decision,decision_at', 'updated_at'),
+      queryOwn('customer_jobs', 'id,job_number,title,status,next_action,due_date,expected_update_date,progress_percent', 'updated_at'),
+      queryOwn('customer_quotes', 'id,customer_id,job_id,quote_number,title,amount,status,version,customer_decision,decision_at,deliverables,timing,revision_allowance,exclusions,approval_consequence', 'updated_at'),
       queryOwn('customer_invoices', 'id,invoice_number,total,balance_due,status,due_date,hosted_payment_url', 'updated_at'),
-      queryOwn('customer_files', 'id,file_name,storage_path,status,available_to_customer', 'updated_at')
+      queryOwn('customer_files', 'id,job_id,file_name,storage_path,status,available_to_customer', 'updated_at')
     ]);
-    renderJobs(jobs);
-    renderQuotes(quotes);
-    renderInvoices(invoices);
-    renderFiles(files.filter(row => row.available_to_customer === true));
+    state.jobs = jobs;
+    state.quotes = quotes;
+    state.invoices = invoices;
+    state.files = files.filter(row => row.available_to_customer === true);
+    if (!state.jobs.some(row => row.id === state.selectedJobId)) {
+      state.selectedJobId = state.jobs.find(row => !/complete|cancel/i.test(row.status || ''))?.id || state.jobs[0]?.id || null;
+    }
+    renderJobs(state.jobs);
+    renderQuotes(state.quotes);
+    renderInvoices(state.invoices);
+    renderFiles(state.files);
     byId('metricJobs').textContent = jobs.filter(row => !/complete|cancel/i.test(row.status || '')).length;
     byId('metricQuotes').textContent = quotes.filter(row => row.status === 'presented' && !row.customer_decision).length;
     byId('metricBalance').textContent = money(invoices.reduce((sum, row) => sum + Number(row.balance_due || 0), 0));
+    dispatchPortalData();
     notice('<b>Secure portal loaded.</b> Supabase Auth and Row Level Security limit this session to the connected customer account.', 'ok');
   }
 
@@ -253,5 +283,10 @@
     }
   }
 
+  window.H38_CUSTOMER_PORTAL = {
+    approveQuote: (quoteId, version) => approveQuote(quoteId, version).catch(safeError),
+    selectJob,
+    getState: () => ({ ...state, jobs: state.jobs.slice(), quotes: state.quotes.slice(), invoices: state.invoices.slice(), files: state.files.slice() })
+  };
   document.addEventListener('DOMContentLoaded', boot);
 })();
