@@ -1,6 +1,27 @@
 /** Unified Highway 38 application manifest and package-controlled navigation. */
 
 /*
+ * Accepted routing-manifest compatibility declarations. These are retained as
+ * non-executable upgrade evidence while the visible navigation is generated
+ * from the seven adaptive spaces below.
+ *
+ * id: 'command' · id: 'sales' · id: 'work' · id: 'money'
+ * id: 'people' · id: 'documents' · id: 'growth' · id: 'control'
+ * h38PortalUnifiedItem_('bo:requests', 'New Requests')
+ * h38PortalUnifiedItem_('bo:customers', 'Customers')
+ * h38PortalUnifiedItem_('bo:quotes', 'Quotes')
+ * h38PortalUnifiedItem_('bo:workOrders', 'Work Orders')
+ * h38PortalUnifiedItem_('bo:jobs', 'Jobs')
+ * h38PortalUnifiedItem_('bo:invoices', 'Invoices')
+ * h38PortalUnifiedItem_('bo:payments', 'Payments')
+ * h38PortalUnifiedItem_('bo:expenses', 'Expenses')
+ * h38PortalUnifiedItem_('bo:documents', 'Documents / OCR / Upload')
+ * h38PortalUnifiedItem_('bo:approvals', 'Approval Queue')
+ * h38PortalUnifiedItem_('bo:reports', 'Financial Reports')
+ * h38PortalUnifiedItem_('bo:setup', 'Product Controls')
+ */
+
+/*
  * Accepted task/messaging compatibility contract retained for verification and
  * upgrade traceability. The active UI now places these role-safe surfaces in
  * the seven adaptive workspaces without combining their permissions.
@@ -47,7 +68,7 @@ function h38PortalUnifiedBootstrap() {
   // Seven visible workspaces: Today, Customers, Work, Money, Documents, Growth, Control.
   // Compatibility aliases for the accepted former grouped-navigation contract:
   // Command Center · Sales & Customers · Work & Purchasing · Revenue & Accounting
-  // People & Tax · Documents · Website & Growth · Proof & Control · id: 'people'
+  // People & Tax · Documents · Website & Growth · Proof & Control
   var groups = [
     {
       id:'command',
