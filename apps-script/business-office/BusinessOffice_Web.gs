@@ -15,7 +15,7 @@ function boRenderWebApp_(){
 
 function boGetRenderedWebAppHtml(){boGetCurrentUser_();return boRenderWebApp_().getContent();}
 function boInclude_(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
-function boBootstrap_(){const definitions=boGetModuleDefinitions_();return{context:boGetClientContext(),dashboard:boGetOwnerDashboard_(),modules:boGetModuleNavigation_(definitions),definitions:definitions,savedViews:{quotes:boGetSavedViews('Quotes'),invoices:boGetSavedViews('Invoices')}};}
+function boBootstrap_(){const definitions=boGetModuleDefinitions_();return{context:boGetClientContext(),dashboard:boGetOwnerDashboard_(),modules:boGetModuleNavigation_(definitions),definitions:definitions,savedViews:{quotes:boGetSavedViews('Quotes'),invoices:boGetSavedViews('Invoices')},quoteBuilder:boModuleEnabled_('quotes')?boQuoteBuilderPackage_():null};}
 function boGetModuleNavigation_(definitions){const navigation=[{key:'dashboard',label:'Dashboard'}];Object.keys(definitions||{}).forEach(function(key){if(boModuleEnabled_(key))navigation.push({key:key,label:definitions[key].title||key});});return navigation;}
 
 function boApi(request){
@@ -35,6 +35,12 @@ function boApi(request){
     createCustomerFromRequest:function(){return boCreateCustomerFromRequest(args.requestId);},
     createQuote:function(){return boCreateQuote(args.payload||{});},
     reviseQuote:function(){return boReviseQuote(args.quoteId,args.changes||{});},
+    duplicateQuote:function(){return boDuplicateQuote_(args.quoteId);},
+    quoteBuilderDashboard:function(){return boQuoteBuilderDashboard_();},
+    quoteBuilderPriceBook:function(){return boQuoteBuilderPriceBook_(args.options||{});},
+    quoteBuilderTemplates:function(){return boQuoteBuilderTemplates_();},
+    prepareAiQuoteDraft:function(){return boPrepareAiQuoteDraft_(args.payload||{});},
+    quoteBuilderPackage:function(){return boQuoteBuilderPackage_();},
     approve:function(){return boApproveSelectedRecord(args.recordType,args.recordId,args.approvalType,args.decision,args.notes||'');},
     quoteToJob:function(){return boConvertQuoteToWorkOrderAndJob(args.quoteId);},
     jobToInvoice:function(){return boCreateInvoiceFromJob(args.jobId);},
@@ -75,7 +81,7 @@ function boGetModuleDefinitions_(){return{
   requests:{title:'New Requests',primaryKey:'Request ID',fields:['Received Time','Source','Status','Approval Status','Name','Email','Phone','Desired Outcome','Product / Bundle ID','Next Action']},
   customers:{title:'Customers',primaryKey:'Customer ID',fields:['Customer Number','Display Name','Customer Type','Email','Phone','Payment Terms','Tax Status','Tags','Status','Attention Status','Notes']},
   vendors:{title:'Vendors',primaryKey:'Vendor ID',fields:['Vendor Number','Display Name','Vendor Type','Email','Phone','Payment Terms','Contractor Status','W-9 Status','Default Expense Account','Tags','Status']},
-  quotes:{title:'Quotes',primaryKey:'Quote ID',fields:['Quote Number','Customer ID','Project Title','Revision Number','Quote Date','Expiration Date','Status','Approval Status','Send Allowed','Customer Action','Payment Terms','Scope','Assumptions','Exclusions','Subtotal','Discount','Tax','Deposit','Total']},
+  quotes:{title:'Quotes & Proposals',primaryKey:'Quote ID',fields:['Quote Number','Customer ID','Project Title','Revision Number','Quote Date','Expiration Date','Status','Approval Status','Send Allowed','Customer Action','Payment Terms','Scope','Assumptions','Exclusions','Subtotal','Discount','Tax','Deposit','Total']},
   workOrders:{title:'Work Orders',primaryKey:'Work Order ID',fields:['Work Order Number','Quote ID','Job ID','Customer ID','Work Requested','Scope','Assigned User ID','Priority','Start Date','Due Date','Status','Approval Status','Customer Approval Status','Completion Checklist']},
   jobs:{title:'Jobs',primaryKey:'Job ID',fields:['Job Number','Customer ID','Work Order ID','Quote ID','Project Title','Status','Stage','Priority','Assigned User ID','Start Date','Due Date','Approval Status','Invoice Status','Revenue','Total Cost','Profit','Profit Margin']},
   purchaseOrders:{title:'Purchase Orders',primaryKey:'PO ID',fields:['PO Number','Vendor ID','Job ID','Order Date','Expected Date','Status','Approval Status','Ordered Status','Received Status','Subtotal','Tax','Shipping','Total','Vendor Bill Status']},
