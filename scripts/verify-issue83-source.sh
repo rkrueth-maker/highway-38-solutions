@@ -19,7 +19,7 @@ check_file_contains index.html 'href="start-request.html">Start a Request' 'Home
 check_file_contains products.html 'Choose the smallest service that produces a useful result.' 'Solutions and Pricing customer-first headline'
 check_file_contains products.html '15 fixed-price services. 9 approved bundles. 4 scoped systems.' 'Approved catalog preservation'
 check_file_contains product.html 'data-product-detail-single' 'Product detail route'
-check_file_contains sample-library-now.html 'See the finished work before you choose a service.' 'Sample Library headline'
+check_file_contains sample-library-now.html 'See the kind of finished result before choosing a service.' 'Sample Library headline'
 check_file_contains start-request.html 'What would you like to have when this is finished?' 'Request outcome prompt'
 check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
 check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
