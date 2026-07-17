@@ -2,6 +2,10 @@
 <title>Solutions and Pricing | Highway 38 Solutions</title><meta name="description" content="Compare 15 approved fixed-price Highway 38 services, nine outcome bundles, and separately scoped business-system offerings."><meta property="og:title" content="Solutions and Pricing | Highway 38 Solutions"><meta property="og:description" content="Compare planning, implementation, manufacturing, automation, and scoped business-system offerings."><meta property="og:type" content="website"><meta property="og:url" content="https://rkrueth-maker.github.io/highway-38-solutions/products.html"><link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/products.html"><link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution"><link rel="stylesheet" href="commercial-public.css?v=20260712-conversion"><link rel="stylesheet" href="catalog-family.css?v=20260712-family-catalog"><link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1"><link rel="stylesheet" href="commercial-evolution.css?v=20260714-commercial-evolution"><link rel="stylesheet" href="issue83-enhancements.css?v=20260714-issue83"><link rel="stylesheet" href="public-expansion.css?v=20260716-all-images-v2"><link rel="stylesheet" href="ux-unified-public.css?v=20260717-one-shot">
 <style>
+html{scroll-padding-top:112px}
+body[data-page="products"] main{position:relative;z-index:1;background:var(--h38-paper,#fffdfa)}
+body[data-page="products"] .hero-shell{position:relative;z-index:1;margin-top:0!important;padding-top:2rem!important}
+body[data-page="products"] .section,body[data-page="products"] .exp-section,body[data-page="products"] [id]{scroll-margin-top:112px}
 .product-grid,.bundle-grid{align-items:start}
 .product-card.h38-collapsible,.bundle-card.h38-collapsible{position:relative;padding-bottom:4.5rem;overflow:hidden;transition:box-shadow .2s ease}
 .h38-card-content{max-height:300px;overflow:hidden;position:relative;transition:max-height .28s ease}
@@ -11,7 +15,12 @@
 .h38-card-toggle{position:absolute;left:1rem;right:1rem;bottom:1rem;width:calc(100% - 2rem);min-height:46px;border:2px solid #102a43;border-radius:9px;background:#fffdfa;color:#102a43;font-weight:900;cursor:pointer}
 .h38-card-toggle:hover,.h38-card-toggle:focus-visible{background:#102a43;color:#fff;outline:3px solid rgba(223,90,19,.25);outline-offset:2px}
 .h38-collapsible.is-expanded{box-shadow:0 18px 42px rgba(16,42,67,.12)}
-@media(max-width:760px){.h38-card-content{max-height:270px}}
+[data-pricing-table]{position:relative;z-index:2;overflow-x:auto;padding-top:.5rem}
+[data-pricing-table] .table-wrap{overflow:visible!important}
+[data-pricing-table] table{min-width:920px;margin-top:.5rem}
+[data-pricing-table] thead{position:relative;z-index:3}
+[data-pricing-table] th{position:sticky;top:78px;z-index:4;background:#102a43;color:#fff}
+@media(max-width:760px){html{scroll-padding-top:86px}body[data-page="products"] .section,body[data-page="products"] .exp-section,body[data-page="products"] [id]{scroll-margin-top:86px}.h38-card-content{max-height:270px}[data-pricing-table] th{top:62px}}
 </style>
 <script defer src="catalog-data.js?v=20260711-commercial-overhaul"></script><script defer src="business-systems-data.js?v=20260717-website-image-fix"></script><script defer src="commercial.js?v=20260714-commercial-evolution"></script><script defer src="commercial-public.js?v=20260712-conversion"></script><script defer src="catalog-navigation.js?v=20260712-family-catalog"></script><script defer src="brand-global.js?v=20260716-all-images-v2"></script><script defer src="commercial-evolution.js?v=20260714-commercial-evolution"></script><script defer src="issue83-enhancements.js?v=20260714-issue83"></script><script defer src="public-expansion.js?v=20260717-one-shot"></script></head>
 <body class="h38-site h38-one-shot" data-page="products"><a class="skip-link" href="#main">Skip to main content</a><nav class="site-nav" aria-label="Main navigation"></nav>
@@ -34,7 +43,7 @@
 </main><footer class="site-footer"></footer>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
-  const apply=()=>document.querySelectorAll('.product-card:not(.h38-collapsible),.bundle-card:not(.h38-collapsible)').forEach((card,index)=>{
+  const apply=()=>document.querySelectorAll('.product-card:not(.h38-collapsible),.bundle-card:not(.h38-collapsible)').forEach(card=>{
     const content=document.createElement('div');content.className='h38-card-content';
     while(card.firstChild)content.appendChild(card.firstChild);
     const button=document.createElement('button');button.type='button';button.className='h38-card-toggle';button.setAttribute('aria-expanded','false');button.textContent='View full details';
