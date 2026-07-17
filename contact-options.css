@@ -7,7 +7,7 @@
 .h38-contact-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#fff1e8;color:#df5a13;font-size:1.35rem;font-weight:950}.h38-contact-note{margin:1rem 0 0;border-left:5px solid #df5a13;border-radius:10px;background:#fff8ee;padding:1rem;color:#33485a}.h38-contact-back{text-align:center;margin-top:1.3rem}.h38-contact-back a{font-weight:850}
 .h38-cta-contact{grid-column:1/-1;margin:.2rem 0 0;color:#d9e5e8}.h38-cta-contact a{color:#fff;font-weight:850;text-decoration:underline;text-underline-offset:3px}
 
-/* Homepage hero: clean white field and the existing approved logo at useful scale. */
+/* Homepage hero: approved badge plus a crisp readable wordmark. */
 .h38-home-hero{background:#fff!important;border-bottom:1px solid #e5ddd2!important}
 .h38-home-hero__grid{grid-template-columns:minmax(390px,.95fr) minmax(480px,1.05fr)!important;min-height:535px!important;background:#fff!important}
 .h38-home-hero__copy{padding:3rem 2.5rem 2.8rem!important;background:#fff!important}
@@ -15,9 +15,9 @@
 .h38-home-hero__copy h1{font-size:clamp(3rem,5.2vw,5.15rem)!important;line-height:.91!important;max-width:9ch!important;margin:.25rem 0 1.1rem!important}
 .h38-home-hero__copy .hero-subhead{font-size:clamp(1.2rem,1.9vw,1.68rem)!important;max-width:28ch!important}
 .h38-home-hero__copy p{font-size:1rem!important;line-height:1.52!important}
-.h38-home-hero__media{position:relative;display:flex!important;align-items:center;justify-content:center;background:#fff!important;padding:2.25rem!important;overflow:hidden!important;border-left:1px solid #eee7df!important}
-.h38-home-hero__media:after{display:none!important}
-.h38-home-hero__media:before{content:"";position:relative;z-index:1;display:block;width:min(94%,690px);height:min(78%,430px);min-height:350px;background:url("assets/highway38-logo.png?v=20260713-logo2") center/contain no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important;filter:contrast(1.08) saturate(1.08) drop-shadow(0 14px 20px rgba(16,42,67,.16))}
+.h38-home-hero__media{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:#fff!important;padding:2rem 2.25rem!important;overflow:hidden!important;border-left:1px solid #eee7df!important}
+.h38-home-hero__media:before{content:"";display:block;width:min(88%,620px);height:360px;background:url("assets/highway38-logo.png?v=20260713-logo2") center/contain no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important;filter:contrast(1.12) saturate(1.1)}
+.h38-home-hero__media:after{content:"HIGHWAY 38 SOLUTIONS";display:block!important;color:#102a43;font-size:clamp(1.2rem,2vw,1.75rem);font-weight:950;letter-spacing:.13em;line-height:1;text-align:center;text-transform:uppercase}
 .h38-home-hero__media img,.h38-home-hero__media figcaption{display:none!important}
 
 /* Button hierarchy that cannot wash out against light or dark sections. */
@@ -32,5 +32,5 @@
 .h38-one-shot .exp-section--navy .btn-secondary{background:#fffdfa!important;border-color:#fffdfa!important;color:#102a43!important}
 .h38-one-shot .exp-section--navy .btn-secondary:hover{background:#f3e7d8!important;border-color:#df5a13!important;color:#102a43!important}
 
-@media(max-width:980px){.h38-home-hero__grid{grid-template-columns:minmax(350px,1fr) minmax(390px,1fr)!important}.h38-home-hero__copy{padding:2.7rem 1.8rem!important}.h38-home-hero__copy h1{font-size:clamp(2.8rem,6vw,4.6rem)!important}.h38-home-hero__media:before{width:96%!important}}
-@media(max-width:760px){.h38-contact-shortcuts{grid-template-columns:1fr}.h38-contact-shortcuts .button-row{display:grid;grid-template-columns:1fr;width:100%}.h38-contact-grid{grid-template-columns:1fr}.h38-contact-main{padding-top:2.2rem}.h38-contact-card{min-height:0}.h38-home-hero{background:#fff!important}.h38-home-hero__grid{grid-template-columns:1fr!important;min-height:0!important}.h38-home-hero__copy{padding:2.35rem 1.25rem 2rem!important}.h38-home-hero__copy h1{font-size:clamp(2.9rem,14vw,4.35rem)!important;max-width:8.5ch!important}.h38-home-hero__media{min-height:300px;padding:1.25rem!important;border-left:0!important;border-top:1px solid #eee7df!important}.h38-home-hero__media:before{width:min(96%,520px)!important;height:270px!important;min-height:0!important}}
+@media(max-width:980px){.h38-home-hero__grid{grid-template-columns:minmax(350px,1fr) minmax(390px,1fr)!important}.h38-home-hero__copy{padding:2.7rem 1.8rem!important}.h38-home-hero__copy h1{font-size:clamp(2.8rem,6vw,4.6rem)!important}.h38-home-hero__media:before{width:94%!important;height:320px}}
+@media(max-width:760px){.h38-contact-shortcuts{grid-template-columns:1fr}.h38-contact-shortcuts .button-row{display:grid;grid-template-columns:1fr;width:100%}.h38-contact-grid{grid-template-columns:1fr}.h38-contact-main{padding-top:2.2rem}.h38-contact-card{min-height:0}.h38-home-hero{background:#fff!important}.h38-home-hero__grid{grid-template-columns:1fr!important;min-height:0!important}.h38-home-hero__copy{padding:2.35rem 1.25rem 2rem!important}.h38-home-hero__copy h1{font-size:clamp(2.9rem,14vw,4.35rem)!important;max-width:8.5ch!important}.h38-home-hero__media{min-height:300px;padding:1.25rem!important;border-left:0!important;border-top:1px solid #eee7df!important}.h38-home-hero__media:before{width:min(92%,480px)!important;height:240px!important}.h38-home-hero__media:after{font-size:1.05rem;letter-spacing:.1em}}
