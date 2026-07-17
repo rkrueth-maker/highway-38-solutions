@@ -1,0 +1,44 @@
+{
+  "name": "highway-38-quote-builder",
+  "version": "0.1.0",
+  "private": true,
+  "productName": "Highway 38 Quote Builder",
+  "subtitle": "Build professional photo-supported quotes, manage pricing, and collect customer decisions.",
+  "engine": "../../apps-script/business-office",
+  "sharedEngine": true,
+  "modules": [
+    "dashboard",
+    "customers",
+    "quotes",
+    "documents",
+    "reports",
+    "setup"
+  ],
+  "navigation": [
+    "Today",
+    "Customers",
+    "Quotes",
+    "Price Book",
+    "Templates",
+    "Files",
+    "Reports",
+    "Settings"
+  ],
+  "customerActions": [
+    "approve",
+    "decline",
+    "request_changes"
+  ],
+  "controls": {
+    "ownerApprovalBeforeRelease": true,
+    "aiMaySetFinalPrice": false,
+    "aiMaySend": false,
+    "paymentsRequired": false,
+    "automaticTaxRequired": false
+  },
+  "upgradePath": [
+    "operations",
+    "financial",
+    "complete-business-system"
+  ]
+}
