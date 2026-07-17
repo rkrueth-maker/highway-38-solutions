@@ -5,6 +5,10 @@
   const IMAGE_VERSION='?v=20260715-all-approved-v2';
   const brandText=()=>'<span class="brand-text"><span>Highway 38</span> Solutions</span>';
   const logo=()=>{const img=document.createElement('img');img.className='brand-logo';img.src=LOGO;img.alt='Highway 38 Solutions';return img;};
+  function loadHomepageVisualLock(){
+    if((document.body&&document.body.dataset.page)!=='home'||document.querySelector('link[data-h38-home-lock]'))return;
+    const link=document.createElement('link');link.rel='stylesheet';link.href='homepage-visual-lock.css?v=20260717-exact-mockup';link.dataset.h38HomeLock='true';document.head.appendChild(link);
+  }
   function wrapText(el){
     if(el.querySelector('.brand-text'))return;
     const nodes=[...el.childNodes].filter(node=>!(node.nodeType===1&&node.classList.contains('brand-logo')));
@@ -80,14 +84,14 @@
       addRepresentativeGroup(document.querySelector('main .command-center-placement .commercial-wrap'),[
         {file:'09-clean-working-shop-floor.jpg',alt:'Clean working shop floor with workbenches, tool storage, and equipment.',caption:'Practical working environment'},
         {file:'11-exterior-shop-building.jpg',alt:'Practical detached shop building with two overhead doors in a wooded setting.',caption:'Representative business environment'}
-      ]);
+      ],'beforeend');
     }
     if(page==='products'&&document.querySelector('#plans .container')){
       addRepresentativeGroup(document.querySelector('#plans .container'),[
         {file:'10-project-planning-documents.jpg',alt:'Project planning documents, measurements, calculator, and notes arranged on a desk.',caption:'Project planning and decision packets'}
-      ]);
+      ],'beforeend');
     }
   }
-  function run(){ensureHeader();ensureFooter();routeLegacyOwnerLinks();placeApprovedImages();}
+  function run(){loadHomepageVisualLock();ensureHeader();ensureFooter();routeLegacyOwnerLinks();placeApprovedImages();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
 })();
