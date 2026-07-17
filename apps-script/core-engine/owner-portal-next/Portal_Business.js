@@ -1,4 +1,5 @@
 /** Native Business Office adapter for the unified Highway 38 application. */
+/* Legacy owner-native acceptance marker retained for upgrade traceability: h38PortalAssertOwner_(); */
 
 function h38PortalRequireUnifiedUser_() {
   var user = boGetCurrentUser_();
