@@ -25,7 +25,7 @@ check('photo-first input accepts PDF and supported images',/accept=\\?"applicati
 check('photo-first input requests environment camera when available',/capture=\\?"environment/.test(createClient));
 check('uploaded original continues into the record form',/boNativeSeedFromDocument/.test(createClient)&&/__sourceDocumentId/.test(createClient));
 check('save selects linked-document server endpoint',/h38PortalBusinessSaveFromDocument/.test(createClient));
-check('server links source document to saved record',/function h38PortalBusinessSaveFromDocument/.test(server)&&/'Source ID': savedId/.test(server));
+check('server links source document to saved record',/function h38PortalBusinessSaveFromDocument/.test(server)&&/'Source ID'\s*:\s*savedId/.test(server));
 check('server writes proof for linked evidence',/LINK_SOURCE_DOCUMENT/.test(server)&&/externalActionsOccurred:false/.test(server));
 check('record creation preserves owner approval language',/Owner Review Required/.test(createClient)&&/No external action occurred/.test(createClient));
 check('creation overlay contains no browser network bypass',!/(fetch\(|XMLHttpRequest|sendBeacon)/.test(createClient));
