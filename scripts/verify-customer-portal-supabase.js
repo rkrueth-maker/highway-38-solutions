@@ -18,15 +18,17 @@ const required = [
   'customer-portal.html',
   'customer-portal-config.js',
   'customer-portal-supabase.js',
+  'customer-portal-ux.js',
   'supabase/migrations/20260716_customer_portal.sql',
   'supabase/migrations/20260716_customer_portal_invite_activation.sql',
+  'supabase/migrations/20260717_customer_portal_quote_project_ux.sql',
   'core-engine/customer-portal/config/customer-portal.supabase.example.json',
   'core-engine/customer-portal/SUPABASE_SETUP.md',
   'apps-script/core-engine/owner-portal-next/Portal_Unified.js'
 ];
 required.forEach(file => check(`file ${file}`, exists(file)));
 
-for (const file of ['customer-portal-config.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_Unified.js']) {
+for (const file of ['customer-portal-config.js','customer-portal-supabase.js','customer-portal-ux.js','apps-script/core-engine/owner-portal-next/Portal_Unified.js']) {
   if (!exists(file)) continue;
   try { new vm.Script(read(file), { filename: file }); check(`syntax ${file}`, true); }
   catch (error) { check(`syntax ${file}`, false, error.message); }
@@ -35,9 +37,11 @@ for (const file of ['customer-portal-config.js','customer-portal-supabase.js','a
 const html = exists('customer-portal.html') ? read('customer-portal.html') : '';
 const config = exists('customer-portal-config.js') ? read('customer-portal-config.js') : '';
 const client = exists('customer-portal-supabase.js') ? read('customer-portal-supabase.js') : '';
+const ux = exists('customer-portal-ux.js') ? read('customer-portal-ux.js') : '';
 const baseSql = exists('supabase/migrations/20260716_customer_portal.sql') ? read('supabase/migrations/20260716_customer_portal.sql') : '';
 const activationSql = exists('supabase/migrations/20260716_customer_portal_invite_activation.sql') ? read('supabase/migrations/20260716_customer_portal_invite_activation.sql') : '';
-const sql = baseSql + '\n' + activationSql;
+const refinementSql = exists('supabase/migrations/20260717_customer_portal_quote_project_ux.sql') ? read('supabase/migrations/20260717_customer_portal_quote_project_ux.sql') : '';
+const sql = baseSql + '\n' + activationSql + '\n' + refinementSql;
 const portal = exists('apps-script/core-engine/owner-portal-next/Portal_Unified.js') ? read('apps-script/core-engine/owner-portal-next/Portal_Unified.js') : '';
 
 check('Tasks and Messaging have separate navigation groups',
@@ -81,10 +85,33 @@ check('selected quote approval uses version-checked RPC',
   sql.includes("v_quote.status <> 'presented'") &&
   sql.includes('v_quote.customer_decision is not null')
 );
-check('customer messages remain owner-review records',
+check('quote approval requires complete review view',
+  html.includes('id="quoteReviewDialog"') &&
+  html.includes('id="quoteApproveConfirmed"') &&
+  ux.includes('openQuoteReview') &&
+  ['Deliverables','Price','Timing','Revision allowance','Exclusions','Approval consequence'].every(label => ux.includes(label)) &&
+  client.includes('data-review-quote') &&
+  !client.includes('data-approve-quote')
+);
+check('quote review fields exist in migration',
+  ['job_id','deliverables','timing','revision_allowance','exclusions','approval_consequence'].every(field => refinementSql.includes(field))
+);
+check('multiple-project selection and expected update are implemented',
+  html.includes('id="projectSelector"') &&
+  client.includes('selectedJobId') &&
+  client.includes('expected_update_date') &&
+  ux.includes('Expected update:')
+);
+check('customer messages remain project-bound owner-review records',
+  client.includes('job_id: state.selectedJobId || null') &&
   client.includes("status: 'pending_owner_review'") &&
   client.includes('No automatic text or email was sent') &&
-  sql.includes("direction = 'customer_to_business'")
+  sql.includes("direction = 'customer_to_business'") &&
+  baseSql.includes('job_id uuid references public.customer_jobs')
+);
+check('mobile customer navigation contains five approved destinations',
+  html.includes('h38-portal-mobile-nav') &&
+  ['Home','Projects','Files','Messages','More'].every(label => html.includes(`<span>${label}</span>`))
 );
 check('all customer tables enable RLS',
   ['customer_accounts','customer_jobs','customer_quotes','customer_invoices','customer_messages','customer_files','customer_portal_events']
@@ -132,6 +159,8 @@ const evidence = {
     privateStorage: true,
     signedDownloads: true,
     selectedQuoteApproval: true,
+    completeQuoteReviewRequired: true,
+    projectBoundMessages: true,
     automaticCustomerMessaging: false,
     rawCardData: false,
     productionEnabled: true
