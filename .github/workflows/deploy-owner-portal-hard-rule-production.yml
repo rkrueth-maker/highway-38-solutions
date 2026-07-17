@@ -25,6 +25,7 @@ on:
       - 'scripts/verify-photo-first-record-creation.js'
       - 'scripts/verify-task-messaging.js'
       - 'scripts/verify-customer-portal-supabase.js'
+      - 'scripts/verify-unified-app-ux-complete.js'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
@@ -51,45 +52,60 @@ jobs:
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: Check out exact source
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Install repository dependencies
+        id: dependencies
         run: npm install
 
       - name: Verify public ecosystem tools
+        id: public_tools
         run: node scripts/verify-public-ecosystem-tools.js
 
       - name: Verify unified Owner Portal routing
+        id: routing
         run: node scripts/verify-owner-portal-routing.js
 
       - name: Verify Owner Portal application
+        id: owner_portal
         run: node scripts/verify-owner-portal-next.js
 
       - name: Verify Owner Portal hard rules
+        id: hard_rules
         run: node scripts/verify-owner-portal-hard-rule.js
 
       - name: Verify Business Office and package controls
+        id: business_office
         run: npm run test:business-office
 
+      - name: Verify complete unified application UX
+        id: unified_ux
+        run: node scripts/verify-unified-app-ux-complete.js
+
       - name: Verify New record and photo-first creation
+        id: photo_first
         run: node scripts/verify-photo-first-record-creation.js
 
       - name: Verify task assignment and messaging controls
+        id: task_messaging
         run: node scripts/verify-task-messaging.js
 
       - name: Verify separated Tasks and Supabase Customer Portal
+        id: customer_portal
         run: node scripts/verify-customer-portal-supabase.js
 
       - name: Install tested Apps Script deployment tool
+        id: install_clasp
         run: npm install --global @google/clasp@3.1.0
 
       - name: Load encrypted Google credential
+        id: credential
         shell: bash
         run: |
           set -euo pipefail
@@ -105,6 +121,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
 
       - name: Update accepted existing unified deployment
+        id: deploy
         shell: bash
         run: bash scripts/deploy-unified-owner-portal-web.sh
 
@@ -117,6 +134,7 @@ jobs:
             artifacts/unified-owner-portal/
             artifacts/owner-portal-routing/
             artifacts/business-office/
+            artifacts/unified-app-ux/
             artifacts/photo-first-record-creation/
             artifacts/task-messaging/
             launch-control/evidence/customer-portal-supabase-verification.json
@@ -133,29 +151,14 @@ jobs:
 
           - Source commit: ${GITHUB_SHA}
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
-          - Owner experience: one authenticated application and one navigation system
-          - Command Center and Business Office modules: live inside the unified application
-          - Tasks and Messaging navigation: separate operating areas
-          - Secure multi-user task assignment: PASS
-          - My Tasks and Owner all-tasks controls: PASS
-          - Provider-neutral SMS preparation, consent, approval, history, STOP suppression, and reply import: PASS
-          - Paid provider sending: remains locked until credentials, A2P approval, package release, and Script Property release are all configured
-          - Bulk messaging and automatic SMS triggers: disabled
-          - Supabase Customer Portal code, RLS migration, private-storage policies, and acceptance checks: PASS
-          - Supabase production activation: remains HOLD until the project URL, publishable key, redirect allowlist, migration, customer mapping, and isolation acceptance are completed
-          - New record button: PASS
-          - Every creatable Business Office module offers Start with photo or PDF or Start blank
-          - Uploaded originals are preserved and linked when the new record is saved
-          - Documents, OCR, PDF upload, and camera capture: available under Documents / OCR
-          - Package-controlled module manifest: PASS
-          - Server-side Business Office module enforcement: PASS
-          - Owner Login and portal routing audit: PASS
-          - Normal portal actions opening Google Sheets: NONE
-          - Any retained spreadsheet destination: explicitly labeled Administrative spreadsheet with confirmation
-          - Accepted existing Apps Script project and deployment IDs updated in place
+          - Owner experience: one authenticated application and one adaptive navigation system
+          - Complete unified UX verification: PASS
+          - Seven workspaces: Today, Customers, Work, Money, Documents, Growth, Control
+          - Module Manager, setup wizard, Approval Center, customer/job workspaces, role dashboards, calendar, users, backups, mobile navigation, and command launcher: PASS
+          - Secure multi-user task assignment and role permissions: PASS
+          - Supabase Customer Portal password authentication and customer isolation: PASS
+          - Existing Apps Script project and deployments updated in place
           - New project or deployment: none
-          - Automatic production deployer: this unified workflow only
-          - Legacy Business Office workflows: manual diagnostics only
           - Google user authentication and role controls: preserved
           - External actions: disabled and approval gated
 
@@ -167,5 +170,5 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. Stage outcomes: dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
