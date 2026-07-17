@@ -6,4 +6,12 @@
 .h38-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.h38-contact-card{border:1px solid #ded7cd;border-radius:16px;background:#fffdfa;padding:1.4rem;display:flex;flex-direction:column;gap:.7rem;min-height:260px}.h38-contact-card h2{margin:0;font-size:1.55rem}.h38-contact-card p{margin:0;color:#5f6d79}.h38-contact-card ul{margin:.25rem 0 0;padding-left:1.1rem;color:#33485a}.h38-contact-card .button-row{margin-top:auto}.h38-contact-card .btn{width:100%}
 .h38-contact-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#fff1e8;color:#df5a13;font-size:1.35rem;font-weight:950}.h38-contact-note{margin:1rem 0 0;border-left:5px solid #df5a13;border-radius:10px;background:#fff8ee;padding:1rem;color:#33485a}.h38-contact-back{text-align:center;margin-top:1.3rem}.h38-contact-back a{font-weight:850}
 .h38-cta-contact{grid-column:1/-1;margin:.2rem 0 0;color:#d9e5e8}.h38-cta-contact a{color:#fff;font-weight:850;text-decoration:underline;text-underline-offset:3px}
-@media(max-width:760px){.h38-contact-shortcuts{grid-template-columns:1fr}.h38-contact-shortcuts .button-row{display:grid;grid-template-columns:1fr;width:100%}.h38-contact-grid{grid-template-columns:1fr}.h38-contact-main{padding-top:2.2rem}.h38-contact-card{min-height:0}}
+
+/* Homepage correction requested by the owner: approved logo only, no hero photograph, navy CTAs. */
+.h38-home-hero{background:#fffdfa}
+.h38-home-hero__media{background:#fffdfa url("assets/highway38-logo.png?v=20260713-logo2") center/contain no-repeat;padding:3rem}
+.h38-home-hero__media img,.h38-home-hero__media figcaption{display:none}
+.h38-one-shot .nav-links .nav-cta,.h38-one-shot .btn-primary{background:#102a43;border-color:#102a43;color:#fff;box-shadow:0 8px 18px rgba(16,42,67,.22)}
+.h38-one-shot .nav-links .nav-cta:hover,.h38-one-shot .btn-primary:hover{background:#173a5e;border-color:#173a5e}
+
+@media(max-width:760px){.h38-contact-shortcuts{grid-template-columns:1fr}.h38-contact-shortcuts .button-row{display:grid;grid-template-columns:1fr;width:100%}.h38-contact-grid{grid-template-columns:1fr}.h38-contact-main{padding-top:2.2rem}.h38-contact-card{min-height:0}.h38-home-hero__media{min-height:320px;padding:2rem}}
