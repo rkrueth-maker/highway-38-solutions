@@ -105,10 +105,11 @@ jobs:
           }
 
           check_text live-homepage.html "Approved homepage headline" "Big problems. Clear plans."
-          check_text live-homepage.html "Problem Snapshot CTA" 'Start with a $99 Problem Snapshot'
-          check_text live-homepage.html "Finished examples secondary CTA" "See Finished Examples"
-          check_text live-homepage.html "No-charge request assurance" "Submitting a request does not create a charge"
-          check_text live-homepage.html "Owner review assurance" "reviewed by Highway 38 Solutions"
+          check_text live-homepage.html "Outcome-first request CTA" "Start a Request"
+          check_text live-homepage.html "Examples secondary CTA" "See Examples"
+          check_text live-homepage.html "Approved supporting line" "Plans, workflows, and business systems built around the real problem."
+          check_text live-homepage.html "No-charge request assurance" "Submitting a request creates no charge."
+          check_text live-homepage.html "Reviewed-delivery assurance" "Reviewed before delivery"
           reject_text live-homepage.html "No prohibited CNC claim on homepage" "25,000+ CNC programs"
           reject_text live-homepage.html "No public personal-name attribution on homepage" "Rick Krueth"
           reject_text live-homepage.html "No obvious GitHub Pages 404 on home" "404: File not found"
@@ -179,14 +180,14 @@ jobs:
           ## Issue #83 LIVE_PAGES verification PASS
 
           - Homepage, Products & Pricing, Sample Library, Problem Starter, and About returned HTTP 200.
-          - Approved headline and \$99 Problem Snapshot path: PASS.
+          - Approved outcome-first homepage headline, request path, examples path, and assurances: PASS.
           - Controlled 15-product / 9-bundle presentation markers: PASS.
           - Sample proof classification and Owner Portal control: PASS.
           - Approved interim CNC wording: PASS.
           - Prohibited **25,000+ CNC programs** claim: ABSENT.
           - Public personal-name attribution: ABSENT.
           - Verification run: ${run_url}
-          - Verification source commit: \`${GITHUB_SHA}\`
+          - Verification source commit: `${GITHUB_SHA}`
 
           Final LIVE_PAGES disposition: **PASS**.
           EOF
