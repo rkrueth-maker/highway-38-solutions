@@ -60,9 +60,16 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install repository dependencies
+      - name: Install repository dependencies and local Apps Script deployment tool
         id: dependencies
-        run: npm install
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm install --no-save --package-lock=false @google/clasp@3.1.0
+          echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
+          node -e "const version=require('./node_modules/@google/clasp/package.json').version;if(version!=='3.1.0')throw new Error('Unexpected clasp version '+version);console.log('Local clasp '+version+' installed.');"
+          "$GITHUB_WORKSPACE/node_modules/.bin/clasp" --version
 
       - name: Verify public ecosystem tools
         id: public_tools
@@ -100,9 +107,13 @@ jobs:
         id: customer_portal
         run: node scripts/verify-customer-portal-supabase.js
 
-      - name: Install tested Apps Script deployment tool
+      - name: Verify local Apps Script deployment tool
         id: install_clasp
-        run: npm install --global @google/clasp@3.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$GITHUB_WORKSPACE/node_modules/.bin/clasp"
+          clasp --version
 
       - name: Load encrypted Google credential
         id: credential
