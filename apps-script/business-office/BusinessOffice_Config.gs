@@ -48,7 +48,8 @@ function boConfiguredValue_(logicalName){
 function boGetSpreadsheet_(){const id=boConfiguredValue_(H38_BO.SPREADSHEET_PROPERTY);if(!id)throw new Error('Missing Business Office spreadsheet configuration.');return SpreadsheetApp.openById(id);}
 function boGetBusinessId_(){return boConfiguredValue_(H38_BO.BUSINESS_PROPERTY)||boNormalizeText_(boPackValue_('business.id',H38_BO.DEFAULT_BUSINESS_ID));}
 function boGetFolderId_(logicalName){const id=boConfiguredValue_(logicalName);if(!id)throw new Error('Missing Business Office folder configuration: '+logicalName);return id;}
-function boTimeZone_(){return boNormalizeText_(boPackValue_('business.timeZone',boTimeZone_()))||'UTC';}
+function boTimeZone_(){return boNormalizeText_(boPackValue_('business.timeZone',H38_BO.TIME_ZONE))||'UTC';}
+function boTimezone_(){return boTimeZone_();}
 function boNow_(){return Utilities.formatDate(new Date(),boTimeZone_(),'yyyy-MM-dd HH:mm:ss');}
 function boId_(prefix){return String(prefix||'BO')+'-'+Utilities.formatDate(new Date(),boTimeZone_(),'yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().slice(0,8).toUpperCase();}
 function boNormalizeText_(value){return String(value==null?'':value).trim();}
