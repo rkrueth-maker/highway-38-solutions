@@ -7,6 +7,7 @@
   const steps=all('[data-request-step]');
   const stepButtons=all('[data-step-indicator]');
   const outcome=byId('outcome');
+  const firstContinue=steps.find(step=>Number(step.dataset.requestStep)===1)?.querySelector('[data-request-next]');
   let current=1;
 
   function notice(message){
@@ -15,6 +16,12 @@
     node.textContent=message||'';
     node.hidden=!message;
     if(message)node.focus();
+  }
+  function updateFirstContinue(){
+    if(!firstContinue)return;
+    const ready=Boolean(outcome&&outcome.value);
+    firstContinue.disabled=!ready;
+    firstContinue.setAttribute('aria-disabled',String(!ready));
   }
   function showStep(number){
     current=Math.max(1,Math.min(3,Number(number)||1));
@@ -41,6 +48,7 @@
       const input=card.querySelector('input');if(input)input.checked=selected;
       card.setAttribute('aria-checked',String(selected));
     });
+    updateFirstContinue();
   }
   function validateStep(number){
     if(number===1){
@@ -65,15 +73,17 @@
     const product=selectedText('product')||'Highway 38 will recommend the smallest useful service';
     const bundle=byId('bundle')&&byId('bundle').value?selectedText('bundle'):'No bundle selected';
     const system=byId('business-system-interest')&&byId('business-system-interest').value?selectedText('business-system-interest'):'No larger system selected';
-    host.innerHTML='<dl>'+
-      '<dt>Result needed</dt><dd>'+escapeHtml(selectedText('outcome'))+'</dd>'+
-      '<dt>Likely service</dt><dd>'+escapeHtml(product)+'</dd>'+
-      '<dt>Bundle</dt><dd>'+escapeHtml(bundle)+'</dd>'+
-      '<dt>Business system</dt><dd>'+escapeHtml(system)+'</dd>'+
-      '<dt>Current problem</dt><dd>'+escapeHtml(value('problem')||'Not entered')+'</dd>'+
-      '<dt>Finished result</dt><dd>'+escapeHtml(value('desired')||'Not entered')+'</dd>'+
-      '<dt>Contact</dt><dd>'+escapeHtml([value('name'),value('email'),value('phone')].filter(Boolean).join(' · ')||'Not entered')+'</dd>'+
-      '<dt>What happens next</dt><dd>Highway 38 reviews the request, confirms missing information, and sends the proposed scope, price, timing, revisions, assumptions, and exclusions before any work or charge begins.</dd>'+
+    const files=value('files')||'No files or links listed yet; Highway 38 will identify anything needed during review.';
+    const summary=[value('problem'),value('desired')].filter(Boolean).join('\n\n');
+    host.innerHTML='<dl>'+ 
+      '<dt>Selected outcome</dt><dd>'+escapeHtml(selectedText('outcome'))+'</dd>'+ 
+      '<dt>Customer summary</dt><dd>'+escapeHtml(summary||'Not entered')+'</dd>'+ 
+      '<dt>Files expected</dt><dd>'+escapeHtml(files)+'</dd>'+ 
+      '<dt>Contact information</dt><dd>'+escapeHtml([value('name'),value('email'),value('phone'),selectedText('contact')].filter(Boolean).join(' · ')||'Not entered')+'</dd>'+ 
+      '<dt>Likely service</dt><dd>'+escapeHtml(product)+'</dd>'+ 
+      '<dt>Bundle</dt><dd>'+escapeHtml(bundle)+'</dd>'+ 
+      '<dt>Business system</dt><dd>'+escapeHtml(system)+'</dd>'+ 
+      '<dt>What happens next</dt><dd>Open the prepared email, review it, and press Send once. Highway 38 then reviews the request and confirms missing information, scope, price, timing, revisions, assumptions, and exclusions before any work or charge begins.</dd>'+ 
       '</dl>';
   }
   function escapeHtml(text){return String(text).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
@@ -86,13 +96,14 @@
   all('[data-request-back]').forEach(button=>button.addEventListener('click',()=>showStep(current-1)));
   stepButtons.forEach(button=>button.addEventListener('click',()=>{const target=Number(button.dataset.stepIndicator);if(target<current||target===current||validateStep(current))showStep(target);}));
   form.addEventListener('input',()=>{if(current===3)updateReview();});
-  form.addEventListener('change',()=>{if(current===3)updateReview();});
+  form.addEventListener('change',()=>{updateFirstContinue();if(current===3)updateReview();});
   form.addEventListener('submit',event=>{
     if(current!==3){event.preventDefault();if(validateStep(current))showStep(current+1);return;}
     if(!validateStep(3)){event.preventDefault();return;}
     updateReview();
+    setTimeout(()=>{const route=byId('route-result');if(route){route.scrollIntoView({behavior:'smooth',block:'center'});byId('email-summary')?.focus();}},0);
   },true);
 
   const requested=location.hash.match(/step-(\d)/);showStep(requested?Number(requested[1]):1);
-  if(outcome&&outcome.value)selectChoice(outcome.value);
+  if(outcome&&outcome.value)selectChoice(outcome.value);else updateFirstContinue();
 })();
