@@ -1,6 +1,15 @@
 (function(){
   'use strict';
 
+  function loadFinalPolish(){
+    if(!document.querySelector('link[data-sample-final-polish]')){
+      const link=document.createElement('link');link.rel='stylesheet';link.href='sample-library-final-polish.css?v=20260718-camera-polish';link.dataset.sampleFinalPolish='true';document.head.appendChild(link);
+    }
+    if(!document.querySelector('script[data-sample-final-polish]')){
+      const script=document.createElement('script');script.src='sample-library-final-polish.js?v=20260718-camera-polish';script.defer=true;script.dataset.sampleFinalPolish='true';document.head.appendChild(script);
+    }
+  }
+
   function enhanceBundleCards(){
     document.querySelectorAll('[data-bundles] .bundle-card').forEach((card,index)=>{
       if(card.dataset.compactBundle==='true')return;
@@ -11,7 +20,6 @@
       const outcome=[...card.children].find(node=>node.tagName==='P'&&!node.classList.contains('bundle-ideal')&&!node.classList.contains('bundle-upgrade'));
       const issueFit=card.querySelector('.issue83-bundle-fit');
 
-      // Remove duplicated fit and upgrade paragraphs when the later fit panel already contains them.
       if(issueFit){
         card.querySelector('.bundle-ideal')?.remove();
         card.querySelector('.bundle-upgrade')?.remove();
@@ -48,6 +56,7 @@
   }
 
   function run(){
+    loadFinalPolish();
     let attempts=0;
     const timer=setInterval(()=>{
       attempts+=1;
