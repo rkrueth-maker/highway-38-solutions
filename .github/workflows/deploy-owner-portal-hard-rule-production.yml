@@ -61,6 +61,13 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Record production deployment start
+        id: start
+        shell: bash
+        run: |
+          BODY="Unified Highway 38 Business System production deployment started for commit ${GITHUB_SHA}. Existing Apps Script project and deployment IDs will be updated in place only after source, authentication, routing, approval, and remote-source checks pass. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+
       - name: Install isolated Apps Script deployment tool
         id: dependencies
         shell: bash
@@ -189,6 +196,7 @@ jobs:
           - Module Manager, setup wizard, Approval Center, customer/job workspaces, role dashboards, calendar, users, backups, mobile navigation, and command launcher: PASS
           - Secure multi-user task assignment and role permissions: PASS
           - Supabase Customer Portal password authentication and customer isolation: PASS
+          - Canonical Business Office authentication and guaranteed Portal authentication bridge: REMOTE VERIFIED
           - Existing Apps Script project and deployments updated in place
           - New project or deployment: none
           - Google user authentication and role controls: preserved
@@ -202,5 +210,5 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. Stage outcomes: dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. Stage outcomes: start=${{ steps.start.outcome }}, dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"

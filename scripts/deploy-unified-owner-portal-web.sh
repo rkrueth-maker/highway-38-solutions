@@ -74,6 +74,9 @@ node - "$PROJECT" <<'NODE'
 const fs=require('fs'),root=process.argv[2],controlled=fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_)/.test(name)),seen=new Map();for(const name of controlled){const base=name.replace(/\.(?:js|gs|html)$/i,'');if(seen.has(base))throw new Error(`Duplicate Apps Script file base name: ${base} (${seen.get(base)}, ${name})`);seen.set(base,name)}const declarationPattern=/(?:var|const|let)\s+BO_EMBEDDED_BUSINESS_PACK\s*=/;const declarations=controlled.filter(name=>name.endsWith('.gs')).filter(name=>declarationPattern.test(fs.readFileSync(`${root}/${name}`,'utf8')));if(declarations.length!==1||declarations[0]!=='BusinessOffice_00_Pack.gs')throw new Error(`Expected exactly one generated Business Office pack declaration, found ${declarations.join(', ')||'none'}`);console.log(`Unified source contains ${controlled.length} controlled portal files and one generated business pack.`);
 NODE
 
+REQUIRED_PORTAL_FILES=(
+  Portal_00_BusinessAuth.js
+)
 REQUIRED_BUSINESS_FILES=(
   BusinessOffice_00_Pack.gs
   BusinessOffice_Auth.gs
@@ -86,9 +89,11 @@ REQUIRED_BUSINESS_FILES=(
   BusinessOffice_UX.gs
   BusinessOffice_Web.gs
 )
-for required in "${REQUIRED_BUSINESS_FILES[@]}"; do
+for required in "${REQUIRED_PORTAL_FILES[@]}" "${REQUIRED_BUSINESS_FILES[@]}"; do
   test -f "$PROJECT/$required" || { echo "HOLD — required assembled source is missing: $required"; exit 5; }
 done
+grep -F "global.boGetCurrentUser_ = function" "$PROJECT/Portal_00_BusinessAuth.js" >/dev/null
+grep -F "global.boGetActiveEmail_ = function" "$PROJECT/Portal_00_BusinessAuth.js" >/dev/null
 grep -F "function boGetCurrentUser_()" "$PROJECT/BusinessOffice_Auth.gs" >/dev/null
 grep -F "function boGetActiveEmail_()" "$PROJECT/BusinessOffice_Auth.gs" >/dev/null
 grep -F "e.parameter.app === 'business-office'" "$PROJECT/Portal_Services.js" >/dev/null
@@ -98,17 +103,18 @@ grep -F "h38PortalRequireUnifiedUser_" "$PROJECT/Portal_Services.js" >/dev/null
 grep -F "packId:'highway38'" "$PROJECT/BusinessOffice_00_Pack.gs" >/dev/null
 
 (cd "$PROJECT" && clasp status) 2>&1 | tee "$EVIDENCE/clasp-status-before-push.txt"
-for required in "${REQUIRED_BUSINESS_FILES[@]}"; do
+for required in "${REQUIRED_PORTAL_FILES[@]}" "${REQUIRED_BUSINESS_FILES[@]}"; do
   grep -F "$required" "$EVIDENCE/clasp-status-before-push.txt" >/dev/null || { echo "HOLD — clasp is not tracking required source: $required"; exit 6; }
 done
 
 (cd "$PROJECT" && clasp push --force) 2>&1 | tee "$EVIDENCE/clasp-push.txt"
 
 # Pull the just-pushed remote project into a clean directory. Deployment is blocked
-# unless the server now contains the required authentication and core files.
+# unless the server now contains canonical Business Office auth and the Portal bridge.
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$REMOTE_VERIFY/.clasp.json"
 (cd "$REMOTE_VERIFY" && clasp pull) 2>&1 | tee "$EVIDENCE/remote-project-pull.txt"
 find "$REMOTE_VERIFY" -maxdepth 1 -type f -printf '%f\n' | sort | tee "$EVIDENCE/remote-source-files.txt"
+REMOTE_AUTH_BRIDGE="$(find_remote_source Portal_00_BusinessAuth)"
 REMOTE_AUTH="$(find_remote_source BusinessOffice_Auth)"
 REMOTE_CONFIG="$(find_remote_source BusinessOffice_Config)"
 REMOTE_CORE="$(find_remote_source BusinessOffice_Core)"
@@ -116,13 +122,15 @@ REMOTE_GATE="$(find_remote_source BusinessOffice_ModuleAccess)"
 REMOTE_QB_DIRECT="$(find_remote_source BusinessOffice_QuoteBuilder_Direct)"
 REMOTE_UX="$(find_remote_source BusinessOffice_UX)"
 REMOTE_WEB="$(find_remote_source BusinessOffice_Web)"
-for remote_file in "$REMOTE_AUTH" "$REMOTE_CONFIG" "$REMOTE_CORE" "$REMOTE_GATE" "$REMOTE_QB_DIRECT" "$REMOTE_UX" "$REMOTE_WEB"; do
-  test -n "$remote_file" && test -f "$remote_file" || { echo 'HOLD — required Business Office source did not reach the remote Apps Script project.'; exit 7; }
+for remote_file in "$REMOTE_AUTH_BRIDGE" "$REMOTE_AUTH" "$REMOTE_CONFIG" "$REMOTE_CORE" "$REMOTE_GATE" "$REMOTE_QB_DIRECT" "$REMOTE_UX" "$REMOTE_WEB"; do
+  test -n "$remote_file" && test -f "$remote_file" || { echo 'HOLD — required authentication or Business Office source did not reach the remote Apps Script project.'; exit 7; }
 done
+grep -F "global.boGetCurrentUser_ = function" "$REMOTE_AUTH_BRIDGE" >/dev/null
+grep -F "global.boGetActiveEmail_ = function" "$REMOTE_AUTH_BRIDGE" >/dev/null
 grep -F "function boGetCurrentUser_()" "$REMOTE_AUTH" >/dev/null
 grep -F "function boGetActiveEmail_()" "$REMOTE_AUTH" >/dev/null
 grep -F "function boRenderQuoteBuilderApp_()" "$REMOTE_QB_DIRECT" >/dev/null
-printf 'PASS — remote Apps Script source includes Business Office authentication, direct Quote Builder routing, and core modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
+printf 'PASS — remote Apps Script source includes canonical authentication, the guaranteed Portal authentication bridge, direct Quote Builder routing, and core modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
 
 (cd "$PROJECT" && clasp deploy -i "$OWNER_DEPLOYMENT_ID" -d "Highway 38 unified application ${GITHUB_SHA}" && clasp deploy -i "$BUSINESS_OFFICE_DEPLOYMENT_ID" -d "Highway 38 unified application ${GITHUB_SHA}" && clasp list-deployments) 2>&1 | tee "$EVIDENCE/deployments-after.txt"
 grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null;grep -F "$BUSINESS_OFFICE_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null
@@ -132,6 +140,6 @@ OWNER_STATUS="$(curl -L -sS -o "$EVIDENCE/owner-response.html" -w '%{http_code}'
 printf '%s' "$OWNER_STATUS" > "$EVIDENCE/owner-http-status.txt";printf '%s' "$BUSINESS_STATUS" > "$EVIDENCE/business-http-status.txt";printf '%s' "$QUOTE_BUILDER_STATUS" > "$EVIDENCE/quote-builder-http-status.txt";test "$OWNER_STATUS" != "404";test "$BUSINESS_STATUS" != "404";test "$QUOTE_BUILDER_STATUS" != "404"
 ! grep -F "ReferenceError: boGetCurrentUser_ is not defined" "$EVIDENCE/owner-response.html" "$EVIDENCE/business-response.html" "$EVIDENCE/quote-builder-response.html"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
-{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"directQuoteBuilder":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"businessOfficeAuthVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false,"taskAssignmentEnabled":true,"messagingPreparationEnabled":true,"smsProviderReleaseRequired":true}
+{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"directQuoteBuilder":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"businessOfficeAuthVerified":true,"portalAuthBridgeVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false,"taskAssignmentEnabled":true,"messagingPreparationEnabled":true,"smsProviderReleaseRequired":true}
 JSON
 cat "$EVIDENCE/deployment-result.json"
