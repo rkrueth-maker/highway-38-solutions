@@ -1,24 +1,96 @@
 /** Business Office — user, role, and permission enforcement. */
 
-function boGetActiveEmail_(){return boNormalizeText_(Session.getActiveUser().getEmail()).toLowerCase();}
+function boAuthBridge_(){
+  var root=typeof globalThis!=='undefined'?globalThis:this;
+  return root&&root.H38_PORTAL_AUTH_BRIDGE?root.H38_PORTAL_AUTH_BRIDGE:null;
+}
+function boAuthText_(value){return String(value==null?'':value).trim();}
+function boAuthAssert_(condition,message){if(!condition)throw new Error(message||'Business Office authentication failed.');}
+
+function boGetActiveEmail_(){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getActiveEmail==='function')return bridge.getActiveEmail();
+  return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();
+}
 function boGetCurrentUser_(){
-  const email=boGetActiveEmail_();
-  boAssert_(email,'A signed-in Google account is required.');
-  const user=boReadTable_(H38_BO_SHEETS.USERS,{includeVoided:true}).find(function(row){return boNormalizeText_(row.Email).toLowerCase()===email&&row.Status==='Active';});
-  boAssert_(user,'This account is not authorized for '+boBusinessOfficeTitle_()+'.');
-  boAssert_(user['Business ID']===boGetBusinessId_(),'This account is not authorized for the selected business installation.');
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getCurrentUser==='function')return bridge.getCurrentUser();
+  var email=boGetActiveEmail_();
+  boAuthAssert_(email,'A signed-in Google account is required.');
+  var user=boReadTable_(H38_BO_SHEETS.USERS,{includeVoided:true}).find(function(row){
+    return boAuthText_(row.Email).toLowerCase()===email&&row.Status==='Active';
+  });
+  boAuthAssert_(user,'This account is not authorized for '+boBusinessOfficeTitle_()+'.');
+  boAuthAssert_(boAuthText_(user['Business ID'])===boGetBusinessId_(),'This account is not authorized for the selected business installation.');
   return user;
 }
-function boGetRole_(roleId){return boReadTable_(H38_BO_SHEETS.ROLES,{includeVoided:true}).find(function(row){return row['Role ID']===roleId&&row.Active==='Yes';})||null;}
-function boGetPermissionRows_(roleId){return boReadTable_(H38_BO_SHEETS.PERMISSIONS,{includeVoided:true}).filter(function(row){return row['Role ID']===roleId;});}
-function boModuleMatchesPermission_(permissionModule,requestedModule){const granted=boNormalizeText_(permissionModule).toLowerCase(),requested=boNormalizeText_(requestedModule).toLowerCase();if(granted==='all modules')return true;return granted.split(',').some(function(part){const token=part.trim().toLowerCase();return token&&(requested.indexOf(token)>=0||token.indexOf(requested)>=0);});}
-function boHasPermission_(user,moduleName,action){const role=boGetRole_(user['Role ID']);if(!role)return false;const column=String(action||'View').replace(/^./,function(c){return c.toUpperCase();});return boGetPermissionRows_(user['Role ID']).some(function(row){return boModuleMatchesPermission_(row.Module,moduleName)&&row[column]==='Yes';});}
-function boRequirePermission_(moduleName,action){const user=boGetCurrentUser_();boAssert_(boHasPermission_(user,moduleName,action),'Your role does not allow '+action+' access to '+moduleName+'.');return user;}
-function boRequireOwner_(){const user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']);boAssert_(role&&role['Role Name']==='Owner','Owner approval is required.');return user;}
-function boCanAccessRestrictedArea_(user,area){const key={payroll:'Payroll Access',tax:'Tax Access',posting:'Posting Access',send:'Customer Send Access',export:'Export Access',users:'User Access Admin'}[String(area||'').toLowerCase()];return key?user[key]==='Yes':false;}
-function boRequireRestrictedArea_(area){const user=boGetCurrentUser_();boAssert_(boCanAccessRestrictedArea_(user,area),'Your role does not allow access to '+area+'.');return user;}
+function boGetRole_(roleId){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getRole==='function')return bridge.getRole(roleId);
+  return boReadTable_(H38_BO_SHEETS.ROLES,{includeVoided:true}).find(function(row){
+    return row['Role ID']===roleId&&row.Active==='Yes';
+  })||null;
+}
+function boGetPermissionRows_(roleId){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getPermissionRows==='function')return bridge.getPermissionRows(roleId);
+  return boReadTable_(H38_BO_SHEETS.PERMISSIONS,{includeVoided:true}).filter(function(row){
+    return row['Role ID']===roleId;
+  });
+}
+function boModuleMatchesPermission_(permissionModule,requestedModule){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.moduleMatchesPermission==='function')return bridge.moduleMatchesPermission(permissionModule,requestedModule);
+  var granted=boAuthText_(permissionModule).toLowerCase();
+  var requested=boAuthText_(requestedModule).toLowerCase();
+  if(granted==='all modules')return true;
+  return granted.split(',').some(function(part){
+    var token=boAuthText_(part).toLowerCase();
+    return token&&(requested.indexOf(token)>=0||token.indexOf(requested)>=0);
+  });
+}
+function boHasPermission_(user,moduleName,action){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.hasPermission==='function')return bridge.hasPermission(user,moduleName,action);
+  var role=boGetRole_(user['Role ID']);
+  if(!role)return false;
+  var column=String(action||'View').replace(/^./,function(character){return character.toUpperCase();});
+  return boGetPermissionRows_(user['Role ID']).some(function(row){
+    return boModuleMatchesPermission_(row.Module,moduleName)&&row[column]==='Yes';
+  });
+}
+function boRequirePermission_(moduleName,action){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.requirePermission==='function')return bridge.requirePermission(moduleName,action);
+  var user=boGetCurrentUser_();
+  boAuthAssert_(boHasPermission_(user,moduleName,action),'Your role does not allow '+action+' access to '+moduleName+'.');
+  return user;
+}
+function boRequireOwner_(){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.requireOwner==='function')return bridge.requireOwner();
+  var user=boGetCurrentUser_();
+  var role=boGetRole_(user['Role ID']);
+  boAuthAssert_(role&&role['Role Name']==='Owner','Owner approval is required.');
+  return user;
+}
+function boCanAccessRestrictedArea_(user,area){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.canAccessRestrictedArea==='function')return bridge.canAccessRestrictedArea(user,area);
+  var key={payroll:'Payroll Access',tax:'Tax Access',posting:'Posting Access',send:'Customer Send Access',export:'Export Access',users:'User Access Admin'}[String(area||'').toLowerCase()];
+  return key?user[key]==='Yes':false;
+}
+function boRequireRestrictedArea_(area){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.requireRestrictedArea==='function')return bridge.requireRestrictedArea(area);
+  var user=boGetCurrentUser_();
+  boAuthAssert_(boCanAccessRestrictedArea_(user,area),'Your role does not allow access to '+area+'.');
+  return user;
+}
 function boGetClientContext(){
-  const user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']),pack=boGetPackSnapshot_();
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getClientContext==='function')return bridge.getClientContext();
+  var user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']),pack=boGetPackSnapshot_();
   return {
     version:H38_BO.VERSION,
     businessId:boGetBusinessId_(),
