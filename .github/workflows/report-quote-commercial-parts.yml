@@ -1,0 +1,51 @@
+name: Report Commercial Package Parts
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    if: github.head_ref == 'feature/quote-builder-commercial-complete'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/quote-builder-commercial-complete
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Publish part report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE' > /tmp/report.txt
+          const fs=require('fs'),crypto=require('crypto'),dir='scripts/.quote-commercial-package';
+          const names=fs.readdirSync(dir).filter(n=>n.endsWith('.part')).sort();
+          let combined='';
+          for(const name of names){
+            const raw=fs.readFileSync(`${dir}/${name}`,'utf8');
+            const clean=raw.replace(/\s/g,'');
+            const invalid=[...clean].filter(ch=>!/^[A-Za-z0-9+/=]$/.test(ch));
+            console.log(`${name}: raw=${raw.length} clean=${clean.length} invalid=${invalid.length}${invalid.length?' chars='+JSON.stringify(invalid.slice(0,20)):''}`);
+            combined+=clean;
+          }
+          const bytes=Buffer.from(combined,'base64');
+          console.log(`combined=${combined.length}`);
+          console.log(`decoded=${bytes.length}`);
+          console.log(`hash=${crypto.createHash('sha256').update(bytes).digest('hex')}`);
+          console.log('expected=26e675cd56e2c46767c4d894f8da8c7ef6e1ec21333262b4bab074575b211d86');
+          NODE
+          {
+            echo '## Commercial package part report'
+            echo
+            echo '```text'
+            cat /tmp/report.txt
+            echo '```'
+          } > /tmp/body.md
+          gh pr comment 178 --repo "$GITHUB_REPOSITORY" --body-file /tmp/body.md
