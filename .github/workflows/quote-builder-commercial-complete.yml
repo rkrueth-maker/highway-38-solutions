@@ -1,0 +1,34 @@
+name: Quote Builder Commercial Complete
+
+on:
+  pull_request:
+    paths:
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Commercial.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Commercial_Client.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Proposal.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_Web.gs'
+      - 'apps-script/business-office/BusinessOffice_ModuleAccess.gs'
+      - 'scripts/build-unified-apps-script-shell.js'
+      - 'scripts/verify-quote-builder-commercial-complete.js'
+      - '.github/workflows/quote-builder-commercial-complete.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-commercial-quote-builder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify commercial proposal system
+        run: node scripts/verify-quote-builder-commercial-complete.js
+      - name: Verify existing Quote Builder camera and field capture
+        run: node scripts/verify-quote-camera-polish.js
+      - name: Verify direct Quote Builder performance
+        run: node scripts/verify-quote-builder-direct-performance.js
+      - name: Verify Business Office integration
+        run: node scripts/verify-quote-builder-business-office-routing.js
+      - name: Verify unified shell assembly contract
+        run: node scripts/verify-unified-app-shell.js
