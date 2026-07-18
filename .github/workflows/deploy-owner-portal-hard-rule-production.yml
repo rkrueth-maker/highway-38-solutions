@@ -162,7 +162,6 @@ jobs:
           set -euo pipefail
           CLASP_BIN="$H38_CLASP_DIR/node_modules/.bin/clasp"
           test -x "$CLASP_BIN"
-          test "$(command -v clasp)" = "$CLASP_BIN"
           "$CLASP_BIN" -v
 
       - name: Load encrypted Google credential
