@@ -116,9 +116,19 @@ jobs:
         id: hard_rules
         run: node scripts/verify-owner-portal-hard-rule.js
 
-      - name: Verify Business Office and package controls
+      - name: Verify focused Business Office, Quote Builder, and runtime controls
         id: business_office
-        run: npm run test:business-office
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-business-office.js
+          node scripts/verify-business-office-runtime-helpers.js
+          node scripts/verify-unified-client-routing-runtime.js
+          node scripts/verify-task-messaging-hardening.js
+          node scripts/verify-quote-builder-complete.js
+          node scripts/verify-quote-builder-direct-performance.js
+          node scripts/verify-quote-camera-polish.js
+          node scripts/verify-quote-builder-business-office-routing.js
 
       - name: Verify complete unified application UX
         id: unified_ux
