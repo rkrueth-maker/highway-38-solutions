@@ -1,0 +1,42 @@
+name: Apply Checksummed Quote Builder Commercial Package
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.head_ref == 'feature/quote-builder-commercial-complete'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/quote-builder-commercial-complete
+          fetch-depth: 0
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply checksummed complete package
+        run: |
+          node --check scripts/apply-quote-commercial-chunked.js
+          node scripts/apply-quote-commercial-chunked.js
+      - name: Verify commercial proposal product
+        run: node scripts/verify-quote-builder-commercial-complete.js
+      - name: Verify unified shell
+        run: node scripts/verify-unified-app-shell.js
+      - name: Verify Business Office and Quote Builder
+        run: npm run test:business-office
+      - name: Commit integrated build
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Complete commercial Quote Builder in one controlled build'
+          git push origin HEAD:feature/quote-builder-commercial-complete
