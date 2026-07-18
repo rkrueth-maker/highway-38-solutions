@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   verify-shell:
@@ -61,3 +62,40 @@ jobs:
             artifacts/quote-builder-business-office-routing/
           if-no-files-found: warn
           retention-days: 90
+
+  dispatch-production-for-shell-only-change:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify-shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Determine whether protected production deploy already triggered
+        id: routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='${{ github.event.before }}'
+          if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]]; then
+            echo 'dispatch=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "$BASE" '${{ github.sha }}' > "$RUNNER_TEMP/changed-files.txt"
+          cat "$RUNNER_TEMP/changed-files.txt"
+          if grep -Eq '^(.github/workflows/deploy-owner-portal-hard-rule-production\.yml|.github/workflows/business-office[^/]*\.yml|scripts/deploy-unified-owner-portal-web\.sh|portal\.html|customer-portal\.html|customer-portal-config\.js|customer-portal-supabase\.js|supabase/|core-engine/customer-portal/|ecosystem\.js|brand-global\.js|scripts/verify-public-ecosystem-tools\.js|scripts/verify-owner-portal-routing\.js|scripts/verify-owner-portal-next\.js|scripts/verify-owner-portal-hard-rule\.js|scripts/verify-business-office\.js|scripts/verify-photo-first-record-creation\.js|scripts/verify-task-messaging\.js|scripts/verify-customer-portal-supabase\.js|scripts/verify-customer-portal-security\.js|scripts/verify-unified-app-ux-complete\.js|apps-script/core-engine/owner-portal-next/|apps-script/business-office/|apps-script/business-office-sync/|business-packs/highway38/)' "$RUNNER_TEMP/changed-files.txt"; then
+            echo 'dispatch=false' >> "$GITHUB_OUTPUT"
+            echo 'The protected production workflow was triggered directly by this push.'
+          else
+            echo 'dispatch=true' >> "$GITHUB_OUTPUT"
+            echo 'Shell-only change requires an explicit protected production deployment dispatch.'
+          fi
+
+      - name: Dispatch protected production deployment
+        if: steps.routing.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-owner-portal-hard-rule-production.yml --ref main
