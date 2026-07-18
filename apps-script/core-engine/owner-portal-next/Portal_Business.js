@@ -1,9 +1,52 @@
 /** Native Business Office adapter for the unified Highway 38 application. */
 /* Legacy owner-native acceptance marker retained for upgrade traceability: h38PortalAssertOwner_(); */
 
+function h38PortalResolveAuthFunction_(name, directFunction) {
+  if (typeof directFunction === 'function') return directFunction;
+  var root = typeof globalThis !== 'undefined' ? globalThis : this;
+  var fallback = root && root[name];
+  boAssert_(typeof fallback === 'function','Authentication service is unavailable: ' + name + '.');
+  return fallback;
+}
+
+function h38PortalGetCurrentUser_() {
+  return h38PortalResolveAuthFunction_(
+    'boGetCurrentUser_',
+    typeof boGetCurrentUser_ === 'function' ? boGetCurrentUser_ : null
+  )();
+}
+
+function h38PortalGetRole_(roleId) {
+  return h38PortalResolveAuthFunction_(
+    'boGetRole_',
+    typeof boGetRole_ === 'function' ? boGetRole_ : null
+  )(roleId);
+}
+
+function h38PortalHasPermission_(user, moduleName, action) {
+  return h38PortalResolveAuthFunction_(
+    'boHasPermission_',
+    typeof boHasPermission_ === 'function' ? boHasPermission_ : null
+  )(user,moduleName,action);
+}
+
+function h38PortalCanAccessRestrictedArea_(user, area) {
+  return h38PortalResolveAuthFunction_(
+    'boCanAccessRestrictedArea_',
+    typeof boCanAccessRestrictedArea_ === 'function' ? boCanAccessRestrictedArea_ : null
+  )(user,area);
+}
+
+function h38PortalGetActiveEmail_() {
+  return h38PortalResolveAuthFunction_(
+    'boGetActiveEmail_',
+    typeof boGetActiveEmail_ === 'function' ? boGetActiveEmail_ : null
+  )();
+}
+
 function h38PortalRequireUnifiedUser_() {
-  var user = boGetCurrentUser_();
-  var role = boGetRole_(user['Role ID']);
+  var user = h38PortalGetCurrentUser_();
+  var role = h38PortalGetRole_(user['Role ID']);
   boAssert_(role,'The signed-in user role is not active.');
   return {user:user,role:role['Role Name'],ownerMode:role['Role Name'] === 'Owner'};
 }
@@ -26,14 +69,14 @@ function h38PortalBusinessPermission_(access, moduleKey, action) {
   var definitions = h38PortalBusinessDefinitions_();
   var definition = definitions[moduleKey] || {};
   var moduleName = definition.title || moduleKey;
-  return boHasPermission_(access.user,moduleName,action) || boHasPermission_(access.user,moduleKey,action);
+  return h38PortalHasPermission_(access.user,moduleName,action) || h38PortalHasPermission_(access.user,moduleKey,action);
 }
 
 function h38PortalBusinessRequirePermission_(access, moduleKey, action) {
   boAssert_(h38PortalBusinessPermission_(access,moduleKey,action),'Your role does not allow ' + action + ' access to ' + moduleKey + '.');
-  if (moduleKey === 'payroll') boAssert_(access.ownerMode || boCanAccessRestrictedArea_(access.user,'payroll'),'Your role does not allow payroll access.');
-  if (moduleKey === 'tax') boAssert_(access.ownerMode || boCanAccessRestrictedArea_(access.user,'tax'),'Your role does not allow tax access.');
-  if (moduleKey === 'accounting' && action !== 'View') boAssert_(access.ownerMode || boCanAccessRestrictedArea_(access.user,'posting'),'Your role does not allow accounting changes.');
+  if (moduleKey === 'payroll') boAssert_(access.ownerMode || h38PortalCanAccessRestrictedArea_(access.user,'payroll'),'Your role does not allow payroll access.');
+  if (moduleKey === 'tax') boAssert_(access.ownerMode || h38PortalCanAccessRestrictedArea_(access.user,'tax'),'Your role does not allow tax access.');
+  if (moduleKey === 'accounting' && action !== 'View') boAssert_(access.ownerMode || h38PortalCanAccessRestrictedArea_(access.user,'posting'),'Your role does not allow accounting changes.');
   return true;
 }
 
@@ -124,7 +167,7 @@ function h38PortalBusinessSaveFromDocument(moduleKey, recordId, values, document
   boUpdateRecord_(H38_BO_SHEETS.DOCUMENTS,documentId,{
     'Source Type':definition.title || moduleKey,'Source ID':savedId,'Review Status':documentRecord['Review Status'] || 'Needs Review'
   },'Link uploaded evidence to Business Office record');
-  boProof_('LINK_SOURCE_DOCUMENT',definition.title || moduleKey,savedId,'PASS','Linked source document ' + documentId + ' without external action.',boGetActiveEmail_());
+  boProof_('LINK_SOURCE_DOCUMENT',definition.title || moduleKey,savedId,'PASS','Linked source document ' + documentId + ' without external action.',h38PortalGetActiveEmail_());
 
   return {status:'PASS',module:moduleKey,record:saved,documentId:documentId,sourceLinked:true,externalActionsOccurred:false,boundary:boApprovalNotice_()};
 }
