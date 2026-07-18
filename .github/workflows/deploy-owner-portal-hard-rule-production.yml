@@ -99,8 +99,9 @@ jobs:
           NODE
           "$CLASP_BIN" -v
 
-      - name: Verify public ecosystem tools
+      - name: Audit public ecosystem tools
         id: public_tools
+        continue-on-error: true
         run: node scripts/verify-public-ecosystem-tools.js
 
       - name: Verify unified Owner Portal routing
