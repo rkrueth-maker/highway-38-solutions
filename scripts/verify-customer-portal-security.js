@@ -4,6 +4,7 @@
 const fs=require('fs');
 const path=require('path');
 const vm=require('vm');
+const childProcess=require('child_process');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const exists=file=>fs.existsSync(path.join(root,file));
@@ -115,12 +116,26 @@ check('raw payment-card collection and browser service role are absent',
   !/service(?:_|-)?role(?:Key)?\s*[:=]\s*['"][^'"]+/i.test(client+config+html)
 );
 
+const failureSummary=failures.length?failures.map(item=>item.name+(item.detail?`: ${item.detail}`:'')).join(' | '):'none';
+if(process.env.GITHUB_OUTPUT){
+  fs.appendFileSync(process.env.GITHUB_OUTPUT,`failure_summary<<H38EOF\n${failureSummary}\nH38EOF\n`);
+}
+if(failures.length && process.env.GITHUB_ACTIONS==='true' && process.env.GITHUB_REPOSITORY){
+  try{
+    const body=`Focused Customer Portal security gate failed for commit ${process.env.GITHUB_SHA||'unknown'}. Failed controls: ${failureSummary}. Run: ${process.env.GITHUB_SERVER_URL||'https://github.com'}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID||''}`;
+    childProcess.execFileSync('gh',['issue','comment','31','--repo',process.env.GITHUB_REPOSITORY,'--body',body],{stdio:'inherit'});
+  }catch(error){
+    console.error('Could not publish focused security failure details:',error.message);
+  }
+}
+
 const result={
   status:failures.length?'HOLD':'PASS',
   generatedAt:new Date().toISOString(),
   sourceCommit:process.env.GITHUB_SHA||'',
   passed:passes.length,
   failed:failures.length,
+  failureSummary,
   passes,
   failures,
   controls:{rowLevelSecurity:true,privateStorage:true,signedDownloads:true,versionCheckedQuoteApproval:true,projectBoundMessages:true,automaticCustomerMessaging:false,rawCardData:false},
