@@ -228,5 +228,21 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. Stage outcomes: start=${{ steps.start.outcome }}, dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal_snapshot=${{ steps.customer_portal_snapshot.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BLOCKER="unknown"
+          [[ "${{ steps.dependencies.outcome }}" == "success" ]] || BLOCKER="dependencies"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.routing.outcome }}" == "success" ]] || BLOCKER="routing"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.owner_portal.outcome }}" == "success" ]] || BLOCKER="owner_portal"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.hard_rules.outcome }}" == "success" ]] || BLOCKER="hard_rules"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.business_office.outcome }}" == "success" ]] || BLOCKER="business_office"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.customer_portal.outcome }}" == "success" ]] || BLOCKER="customer_portal"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.install_clasp.outcome }}" == "success" ]] || BLOCKER="install_clasp"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.credential.outcome }}" == "success" ]] || BLOCKER="credential"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.deploy.outcome }}" == "success" ]] || BLOCKER="deploy"
+          DETAIL=""
+          if [[ "$BLOCKER" == "deploy" ]]; then
+            for file in artifacts/unified-owner-portal/remote-source-verification.txt artifacts/unified-owner-portal/clasp-push.txt artifacts/unified-owner-portal/deployments-after.txt; do
+              if [[ -f "$file" ]]; then DETAIL+=" $(basename "$file"): $(tail -n 4 "$file" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')"; fi
+            done
+          fi
+          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. BLOCKER=${BLOCKER}.${DETAIL} Stage outcomes: start=${{ steps.start.outcome }}, dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal_snapshot=${{ steps.customer_portal_snapshot.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
