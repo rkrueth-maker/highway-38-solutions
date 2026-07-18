@@ -1,0 +1,59 @@
+<style>
+@media (min-width:761px){
+  .app{grid-template-columns:76px minmax(0,1fr)}
+  .nav{padding:10px;overflow:visible;align-items:start;justify-items:center;gap:8px}
+  .nav button[data-popout-nav]{position:relative;width:52px;height:52px;min-height:52px;padding:0;display:grid;place-items:center;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--text);box-shadow:none;overflow:visible}
+  .nav button[data-popout-nav]:hover,.nav button[data-popout-nav]:focus-visible{background:#eaf2fa;color:var(--navy);border-color:#c7d9ea;outline:none}
+  .nav button[data-popout-nav].active{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:0 8px 18px rgba(23,58,94,.22)}
+  .nav button[data-popout-nav] .nav-icon{display:block;font-size:22px;line-height:1;font-weight:900}
+  .nav button[data-popout-nav] .nav-text{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .nav button[data-popout-nav]::after{content:attr(data-label);position:absolute;left:62px;top:50%;z-index:1000;transform:translate(-8px,-50%);opacity:0;pointer-events:none;white-space:nowrap;background:#102a45;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:10px 13px;font-size:13px;font-weight:800;box-shadow:0 12px 28px rgba(15,39,65,.26);transition:opacity .14s ease,transform .14s ease}
+  .nav button[data-popout-nav]:hover::after,.nav button[data-popout-nav]:focus-visible::after{opacity:1;transform:translate(0,-50%)}
+  .nav .full-system{width:100%;margin-top:10px;padding-top:12px;display:grid;place-items:center}
+  main{padding-left:16px}
+}
+@media (max-width:760px){
+  .nav button[data-popout-nav]{display:inline-flex;align-items:center;gap:7px}
+  .nav button[data-popout-nav] .nav-icon{font-size:18px}
+  .nav button[data-popout-nav] .nav-text{display:inline}
+}
+</style>
+<script>
+(function(){
+  'use strict';
+  const icons={
+    'Quote Builder':'⌂',
+    'New Quote':'+',
+    'Price Book':'$',
+    'Templates':'▤',
+    'Photo / AI Draft':'✦',
+    'Documents':'▣',
+    'Full Business System':'↗'
+  };
+  function enhancePopoutNav(){
+    const host=document.getElementById('qbNav');
+    if(!host)return;
+    host.querySelectorAll('button').forEach(function(button){
+      if(button.dataset.popoutNav==='1')return;
+      const label=(button.textContent||'').trim();
+      button.dataset.popoutNav='1';
+      button.dataset.label=label;
+      button.setAttribute('aria-label',label);
+      button.removeAttribute('title');
+      button.textContent='';
+      const icon=document.createElement('span');
+      icon.className='nav-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent=icons[label]||'•';
+      const text=document.createElement('span');
+      text.className='nav-text';
+      text.textContent=label;
+      button.appendChild(icon);
+      button.appendChild(text);
+    });
+  }
+  enhancePopoutNav();
+  const host=document.getElementById('qbNav');
+  if(host)new MutationObserver(enhancePopoutNav).observe(host,{childList:true,subtree:true});
+})();
+</script>
