@@ -1,0 +1,46 @@
+name: Diagnose Quote Builder Commercial Applicator
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  diagnose:
+    if: github.head_ref == 'feature/quote-builder-commercial-complete'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/quote-builder-commercial-complete
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Capture exact applicator failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          node --check scripts/apply-quote-commercial-one-shot.js > /tmp/check.log 2>&1
+          CHECK=$?
+          node scripts/apply-quote-commercial-one-shot.js > /tmp/apply.log 2>&1
+          APPLY=$?
+          {
+            echo '## Commercial applicator diagnostic'
+            echo
+            echo "- syntax exit: $CHECK"
+            echo "- apply exit: $APPLY"
+            echo
+            echo '```text'
+            tail -80 /tmp/check.log
+            tail -80 /tmp/apply.log
+            echo '```'
+          } > /tmp/body.md
+          gh pr comment 178 --repo "$GITHUB_REPOSITORY" --body-file /tmp/body.md
+          test "$CHECK" -eq 0
+          test "$APPLY" -eq 0
