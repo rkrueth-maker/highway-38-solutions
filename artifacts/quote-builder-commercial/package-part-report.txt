@@ -1,0 +1,14 @@
+00.part: raw=4000 clean=4000 invalid=0
+01.part: raw=4000 clean=4000 invalid=0
+02.part: raw=4000 clean=4000 invalid=0
+03.part: raw=3999 clean=3999 invalid=0
+04.part: raw=4000 clean=4000 invalid=0
+05.part: raw=4000 clean=4000 invalid=0
+06.part: raw=4000 clean=4000 invalid=0
+07.part: raw=4000 clean=4000 invalid=0
+08.part: raw=4000 clean=4000 invalid=0
+09.part: raw=1804 clean=1804 invalid=0
+combined=37803
+decoded=28350
+actual=786a213b13238106b5215848c2ba92187ed18bf97b757e45fc2c94b0d2e50429
+expected=26e675cd56e2c46767c4d894f8da8c7ef6e1ec21333262b4bab074575b211d86
