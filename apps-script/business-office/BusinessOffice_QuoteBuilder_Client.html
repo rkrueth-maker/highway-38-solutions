@@ -1,0 +1,209 @@
+<style>
+.qb-shell{display:grid;gap:14px}
+.qb-hero{background:linear-gradient(135deg,var(--navy),#0f2741);color:#fff;border-radius:16px;padding:20px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start;box-shadow:var(--ux-shadow)}
+.qb-hero h2{font-size:clamp(1.8rem,4vw,2.7rem);margin:.2rem 0}.qb-hero p{max-width:760px;margin:.5rem 0;line-height:1.5;color:#e7eef5}
+.qb-hero-actions,.qb-toolbar,.qb-row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.qb-hero .secondary{background:#fff;color:var(--navy)}
+.qb-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:14px}.qb-stack{display:grid;gap:14px;align-content:start}
+.qb-panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 5px 20px rgba(23,58,94,.07)}
+.qb-panel h3{margin:.1rem 0 .8rem}.qb-metrics{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:10px}
+.qb-metric{border:1px solid var(--border);border-radius:12px;padding:14px;background:#f8fafc}.qb-metric b,.qb-metric small{display:block}.qb-metric strong{display:block;font-size:28px;color:var(--navy);margin:7px 0}
+.qb-pipeline{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:8px}.qb-stage{border:1px solid var(--border);border-radius:10px;padding:10px;background:#f7fafc}.qb-stage b,.qb-stage strong{display:block}.qb-stage strong{font-size:24px;color:var(--navy);margin-top:5px}
+.qb-table{width:100%;min-width:760px}.qb-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}.qb-table th{position:static}
+.qb-tabs{display:flex;gap:6px;flex-wrap:wrap}.qb-tabs button{background:#e7eef5;color:var(--navy)}.qb-tabs button.active{background:var(--navy);color:#fff}
+.qb-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.qb-form-grid .full{grid-column:1/-1}.qb-form-grid label{font-weight:800;font-size:13px}
+.qb-form-grid input,.qb-form-grid select,.qb-form-grid textarea{display:block;width:100%;min-height:44px;margin-top:5px;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff}.qb-form-grid textarea{min-height:95px;resize:vertical}
+.qb-lines{display:grid;gap:10px;margin-top:12px}.qb-line{display:grid;grid-template-columns:minmax(220px,2fr) 90px 90px 120px 110px 90px 100px auto;gap:7px;align-items:end;border:1px solid var(--border);border-radius:10px;padding:10px;background:#f8fafc}
+.qb-line label{font-size:11px;color:var(--muted)}.qb-line input,.qb-line select{width:100%;min-height:40px;margin-top:4px;padding:7px;border:1px solid var(--border);border-radius:7px;background:#fff}.qb-line .qb-tax{display:flex;gap:5px;align-items:center;min-height:40px}.qb-line .qb-tax input{width:auto;min-height:auto;margin:0}
+.qb-total-box{margin-left:auto;width:min(360px,100%);display:grid;gap:5px}.qb-total-row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;border-bottom:1px solid var(--border)}.qb-total-row.total{font-size:20px;font-weight:900;border-bottom:0;color:var(--navy)}
+.qb-catalog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}.qb-catalog-card{border:1px solid var(--border);border-radius:11px;padding:12px;background:#fff}.qb-catalog-card h4{margin:.1rem 0 .4rem}.qb-catalog-card p{color:var(--muted);min-height:42px}.qb-price{font-size:20px;font-weight:900;color:var(--navy)}
+.qb-boundary{background:#fff8dc;border:1px solid #e8cb70;border-radius:10px;padding:11px;line-height:1.45}.qb-success{background:var(--good);color:#15552e;border-radius:10px;padding:12px}.qb-error{background:var(--bad);color:#7a1515;border-radius:10px;padding:12px}
+.qb-ai-result pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7fafc;border:1px solid var(--border);border-radius:8px;padding:10px}
+@media(max-width:1180px){.qb-grid{grid-template-columns:1fr}.qb-line{grid-template-columns:repeat(4,minmax(110px,1fr))}.qb-line .qb-description{grid-column:1/-1}}
+@media(max-width:800px){.qb-hero{display:block}.qb-hero-actions{margin-top:14px}.qb-metrics,.qb-pipeline,.qb-form-grid{grid-template-columns:1fr}.qb-form-grid .full{grid-column:auto}.qb-line{grid-template-columns:1fr 1fr}.qb-line .qb-description{grid-column:1/-1}.qb-line .qb-remove{grid-column:1/-1}.qb-line .qb-remove button{width:100%}}
+</style>
+<script>
+(function(){
+'use strict';
+var qb={dashboard:null,customers:[],priceBook:[],templates:[],view:'dashboard',draftLines:[],aiDraft:null};
+
+function qbEnabled(){return !!(state&&state.bootstrap&&state.bootstrap.quoteBuilder)}
+function qbCustomerName(id){var row=qb.customers.find(function(c){return c['Customer ID']===id});return row?(row['Display Name']||row.Email||id):id}
+function qbDate(days){var d=new Date();d.setDate(d.getDate()+(days||0));return d.toISOString().slice(0,10)}
+function qbNum(value){var n=Number(String(value==null?'':value).replace(/[$,]/g,''));return isNaN(n)?0:n}
+function qbMoney(value){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(qbNum(value))}
+function qbButton(label,onclick,kind){return '<button type="button" class="'+(kind||'secondary')+'" onclick="'+onclick+'">'+escapeHtml(label)+'</button>'}
+function qbOwnerMessage(message,isError){if(typeof ownerMessage==='function')ownerMessage(message,!!isError);else showToast(message,!!isError)}
+function qbResetState(){state.module='quoteBuilder';state.selected=null;state.query='';state.filters={};state.savedViews=[];state.savedViewId=''}
+
+function installQuoteBuilderNav(){
+  if(!qbEnabled())return;
+  var host=document.querySelector('#bo-nav-sales .ux-nav-items');
+  if(!host||host.querySelector('[data-qb-nav]'))return;
+  var button=document.createElement('button');
+  button.type='button';button.dataset.qbNav='1';button.textContent='Quote Builder';
+  button.className=state.module==='quoteBuilder'?'active':'';
+  button.onclick=function(){openModule('quoteBuilder')};
+  var quotes=Array.prototype.find.call(host.children,function(el){return /Quotes/.test(el.textContent)});
+  host.insertBefore(button,quotes||host.firstChild);
+}
+
+function installQuoteBuilder(){
+  if(!qbEnabled()||window.__h38QuoteBuilderInstalled)return;
+  var modules=Array.isArray(state.bootstrap.modules)?state.bootstrap.modules:[];
+  if(!modules.some(function(item){return item.key==='quoteBuilder'}))modules.push({key:'quoteBuilder',label:'Quote Builder'});
+  state.bootstrap.modules=modules;
+  window.__h38QuoteBuilderInstalled=true;
+  var originalRenderNav=window.renderNav;
+  window.renderNav=function(){var result=originalRenderNav.apply(this,arguments);installQuoteBuilderNav();return result};
+  var originalOpenModule=window.openModule;
+  window.openModule=async function(module){
+    if(module==='quoteBuilder'){qbResetState();renderNav();return qbOpen('dashboard')}
+    return originalOpenModule.apply(this,arguments)
+  };
+  renderNav();
+}
+
+async function qbOpen(view){
+  qb.view=view||'dashboard';qbResetState();renderNav();
+  var host=document.getElementById('content');host.innerHTML='<div class="panel">Loading Quote Builder…</div>';
+  try{
+    if(!qb.customers.length)qb.customers=await call('list',{module:'customers',options:{limit:500}});
+    if(qb.view==='dashboard')return qbRenderDashboard(await qbLoadDashboard());
+    if(qb.view==='new')return qbRenderNewQuote();
+    if(qb.view==='priceBook')return qbRenderPriceBook(await qbLoadPriceBook());
+    if(qb.view==='templates')return qbRenderTemplates(await qbLoadTemplates());
+    if(qb.view==='ai')return qbRenderAiDraft();
+  }catch(error){host.innerHTML='<div class="qb-error"><strong>Quote Builder could not load.</strong><br>'+escapeHtml(error.message||String(error))+'</div>';qbOwnerMessage('Quote Builder could not load. No records were changed.',true)}
+}
+window.qbOpen=qbOpen;
+
+async function qbLoadDashboard(){qb.dashboard=await call('quoteBuilderDashboard');return qb.dashboard}
+async function qbLoadPriceBook(query){qb.priceBook=await call('quoteBuilderPriceBook',{options:{query:query||''}});return qb.priceBook}
+async function qbLoadTemplates(){qb.templates=await call('quoteBuilderTemplates');return qb.templates}
+
+function qbHeader(title,subtitle,actions){
+  return '<div class="qb-hero"><div><div class="ux-eyebrow" style="color:#ffb282">Highway 38 Quote Builder</div><h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(subtitle)+'</p></div><div class="qb-hero-actions">'+(actions||'')+'</div></div>'
+}
+function qbTabs(){
+  var tabs=[['dashboard','Dashboard'],['new','New Quote'],['priceBook','Price Book'],['templates','Templates'],['ai','AI Draft Assist']];
+  return '<div class="qb-tabs">'+tabs.map(function(t){return '<button type="button" class="'+(qb.view===t[0]?'active':'')+'" onclick="qbOpen(\''+t[0]+'\')">'+escapeHtml(t[1])+'</button>'}).join('')+'</div>'
+}
+
+function qbRenderDashboard(data){
+  var m=data.metrics||{},pipeline=data.pipeline||{},recent=Array.isArray(data.recent)?data.recent:[];
+  var stages=['Draft','Internal Review','Sent','Viewed','Accepted','Declined','Changes Requested'];
+  document.getElementById('content').innerHTML='<div class="qb-shell">'+
+    qbHeader('Build, review, and control every quote.','Create quotes from customers and the Price Book, stage AI-assisted drafts, generate PDFs, and preserve owner approval before anything can be released.',qbButton('New Quote','qbOpen(\'new\')','primary')+qbButton('AI Draft Assist','qbOpen(\'ai\')','secondary')+qbButton('Refresh','qbRefreshDashboard()','secondary'))+
+    qbTabs()+
+    '<div class="qb-boundary"><strong>Approval boundary:</strong> Quote Builder creates internal drafts only. It cannot send a quote, approve pricing, move money, or release customer documents without the existing owner approval controls.</div>'+
+    '<div class="qb-metrics"><div class="qb-metric"><b>Draft quotes</b><strong>'+escapeHtml(m.draftQuotes||0)+'</strong><small>Still being prepared</small></div><div class="qb-metric"><b>Needs follow-up</b><strong>'+escapeHtml(m.needsFollowUp||0)+'</strong><small>Sent, viewed, or changes requested</small></div><div class="qb-metric"><b>Open quote value</b><strong>'+qbMoney(m.openQuoteValue||0)+'</strong><small>Current active pipeline</small></div></div>'+
+    '<div class="qb-grid"><div class="qb-stack"><section class="qb-panel"><div class="ux-section-head"><h3>Recent quotes and proposals</h3><button class="secondary" onclick="openModule(\'quotes\')">Open all quote records</button></div>'+qbRecentTable(recent)+'</section></div>'+
+    '<div class="qb-stack"><section class="qb-panel"><h3>Quote pipeline</h3><div class="qb-pipeline">'+stages.map(function(stage){return '<div class="qb-stage"><b>'+escapeHtml(stage)+'</b><strong>'+escapeHtml(pipeline[stage]||0)+'</strong></div>'}).join('')+'</div></section>'+
+    '<section class="qb-panel"><h3>Fast actions</h3><div class="qb-toolbar">'+qbButton('Create Quote','qbOpen(\'new\')','primary')+qbButton('Browse Price Book','qbOpen(\'priceBook\')')+qbButton('Proposal Templates','qbOpen(\'templates\')')+qbButton('Sales Pipeline','openModule(\'salesPipeline\')')+'</div></section></div></div></div>'
+}
+window.qbRefreshDashboard=function(){qbOpen('dashboard')};
+
+function qbRecentTable(rows){
+  if(!rows.length)return '<div class="ux-empty"><strong>No quotes yet.</strong>Create the first quote from a customer and at least one line item.</div>';
+  return '<div class="qb-table-wrap"><table class="qb-table"><thead><tr><th>Quote</th><th>Customer</th><th>Project</th><th>Status</th><th>Approval</th><th>Total</th><th>Actions</th></tr></thead><tbody>'+
+    rows.map(function(row){var id=row['Quote ID']||'';return '<tr><td>'+escapeHtml(row['Quote Number']||id)+'</td><td>'+escapeHtml(qbCustomerName(row['Customer ID']))+'</td><td>'+escapeHtml(row['Project Title']||'')+'</td><td>'+escapeHtml(row.Status||'Draft')+'</td><td>'+escapeHtml(row['Approval Status']||'')+'</td><td>'+qbMoney(row.Total||0)+'</td><td><div class="qb-row-actions"><button class="secondary" onclick="openUxWorkspace(\'quotes\',\''+js(id)+'\')">Open</button><button class="secondary" onclick="qbDuplicate(\''+js(id)+'\')">Duplicate</button><button class="secondary" onclick="qbPdf(\''+js(id)+'\')">PDF</button><button class="primary" onclick="qbApprove(\''+js(id)+'\')">Approve</button><button class="secondary" onclick="qbConvert(\''+js(id)+'\')">To Job</button></div></td></tr>'}).join('')+
+    '</tbody></table></div>'
+}
+
+window.qbDuplicate=async function(id){if(!confirm('Duplicate this quote into a new internal draft?'))return;await call('duplicateQuote',{quoteId:id});qbOwnerMessage('Quote duplicated as a new draft.');qbOpen('dashboard')};
+window.qbPdf=async function(id){var result=await call('generatePdf',{documentType:'Quote',recordId:id});qbOwnerMessage('Private quote PDF created. Nothing was sent.');if(result&&result.fileUrl)window.open(result.fileUrl,'_blank')};
+window.qbApprove=async function(id){var notes=prompt('Owner approval notes:','')||'';if(!confirm('Approve this quote for customer release? This records approval but does not send it.'))return;await call('approve',{recordType:'Quote',recordId:id,approvalType:'Send',decision:'Approved',notes:notes});qbOwnerMessage('Quote approved. It was not sent.');qbOpen('dashboard')};
+window.qbConvert=async function(id){if(!confirm('Convert this approved quote to a work order and job?'))return;await call('quoteToJob',{quoteId:id});qbOwnerMessage('Work order and job created.');openModule('jobs')};
+
+function qbCustomerOptions(selected){
+  return '<option value="">Choose customer…</option>'+qb.customers.map(function(c){var id=c['Customer ID']||'';return '<option value="'+escapeHtml(id)+'" '+(selected===id?'selected':'')+'>'+escapeHtml(c['Display Name']||c.Email||id)+'</option>'}).join('')
+}
+function qbNewLine(item){
+  item=item||{};return {catalogId:item['Product / Service ID']||item.catalogId||'',description:item['Customer Description']||item.Description||item.Name||item.description||'',quantity:item.quantity||1,unit:item.Unit||item.unit||'each',rate:item['Standard Selling Price']||item.Price||item.rate||0,discount:item.discount||0,taxable:item.taxable===true||item.taxable==='Yes',taxRate:item.taxRate||0,notes:item.notes||''}
+}
+function qbEnsureLines(){if(!qb.draftLines.length)qb.draftLines=[qbNewLine()]}
+
+function qbRenderNewQuote(){
+  qbEnsureLines();
+  document.getElementById('content').innerHTML='<div class="qb-shell">'+qbHeader('Create a new quote.','Select the customer, define the scope, add Price Book or manual lines, and save an internal draft.',qbButton('Back to Dashboard','qbOpen(\'dashboard\')')+qbButton('Browse Price Book','qbOpen(\'priceBook\')'))+qbTabs()+
+  '<form id="qbQuoteForm" class="qb-panel" onsubmit="qbSaveQuote(event)"><div class="qb-form-grid">'+
+  '<label>Customer *<select id="qbCustomer" required>'+qbCustomerOptions('')+'</select></label>'+
+  '<label>Project title *<input id="qbProjectTitle" required placeholder="Example: Garage layout and workflow plan"></label>'+
+  '<label>Quote date<input id="qbQuoteDate" type="date" value="'+qbDate(0)+'"></label>'+
+  '<label>Expiration date<input id="qbExpirationDate" type="date" value="'+qbDate(30)+'"></label>'+
+  '<label>Payment terms<input id="qbPaymentTerms" value="Net 15"></label>'+
+  '<label>Deposit<input id="qbDeposit" type="number" min="0" step="0.01" value="0" oninput="qbRecalculate()"></label>'+
+  '<label class="full">Scope<textarea id="qbScope" placeholder="Work included in this quote"></textarea></label>'+
+  '<label class="full">Assumptions<textarea id="qbAssumptions" placeholder="Measurements, customer inputs, access, schedule, or other assumptions"></textarea></label>'+
+  '<label class="full">Exclusions<textarea id="qbExclusions" placeholder="Work or costs not included"></textarea></label>'+
+  '<label class="full">Customer notes<textarea id="qbCustomerNotes" placeholder="Notes intended for the proposal"></textarea></label>'+
+  '<label class="full">Internal notes<textarea id="qbInternalNotes" placeholder="Private notes that are not customer-facing"></textarea></label>'+
+  '</div><div class="ux-section-head" style="margin-top:18px"><h3>Quote lines</h3><div class="qb-toolbar"><button type="button" class="secondary" onclick="qbAddLine()">Add line</button><button type="button" class="secondary" onclick="qbOpen(\'priceBook\')">Add from Price Book</button></div></div><div id="qbLines" class="qb-lines"></div><div id="qbTotals" class="qb-total-box"></div><div class="qb-boundary" style="margin-top:14px"><strong>Internal draft only.</strong> Saving creates a quote with Owner Approval Required and Send Allowed = No.</div><div class="qb-toolbar" style="margin-top:14px"><button type="submit" class="primary">Save Draft Quote</button><button type="button" class="secondary" onclick="qbOpen(\'dashboard\')">Cancel</button></div></form></div>';
+  qbRenderLines()
+}
+
+window.qbAddLine=function(item){qb.draftLines.push(qbNewLine(item));if(qb.view!=='new')qbOpen('new');else qbRenderLines()};
+window.qbRemoveLine=function(index){if(qb.draftLines.length===1){qb.draftLines=[qbNewLine()]}else qb.draftLines.splice(index,1);qbRenderLines()};
+window.qbUpdateLine=function(index,field,value){if(field==='taxable')qb.draftLines[index][field]=!!value;else qb.draftLines[index][field]=value;qbRecalculate()};
+function qbRenderLines(){
+  var host=document.getElementById('qbLines');if(!host)return;
+  host.innerHTML=qb.draftLines.map(function(line,index){return '<div class="qb-line">'+
+    '<label class="qb-description">Description *<input value="'+escapeHtml(line.description||'')+'" oninput="qbUpdateLine('+index+',\'description\',this.value)" required></label>'+
+    '<label>Qty<input type="number" min="0" step="0.01" value="'+escapeHtml(line.quantity)+'" oninput="qbUpdateLine('+index+',\'quantity\',this.value)"></label>'+
+    '<label>Unit<input value="'+escapeHtml(line.unit||'each')+'" oninput="qbUpdateLine('+index+',\'unit\',this.value)"></label>'+
+    '<label>Rate<input type="number" min="0" step="0.01" value="'+escapeHtml(line.rate)+'" oninput="qbUpdateLine('+index+',\'rate\',this.value)"></label>'+
+    '<label>Discount<input type="number" min="0" step="0.01" value="'+escapeHtml(line.discount||0)+'" oninput="qbUpdateLine('+index+',\'discount\',this.value)"></label>'+
+    '<label>Taxable<span class="qb-tax"><input type="checkbox" '+(line.taxable?'checked':'')+' onchange="qbUpdateLine('+index+',\'taxable\',this.checked)"> Yes</span></label>'+
+    '<label>Tax rate<input type="number" min="0" step="0.001" value="'+escapeHtml(line.taxRate||0)+'" oninput="qbUpdateLine('+index+',\'taxRate\',this.value)" placeholder=".06875"></label>'+
+    '<div class="qb-remove"><button type="button" class="danger" onclick="qbRemoveLine('+index+')">Remove</button></div></div>'}).join('');
+  qbRecalculate()
+}
+window.qbRecalculate=function(){
+  var subtotal=0,tax=0;qb.draftLines.forEach(function(line){var lineSubtotal=Math.max(0,qbNum(line.quantity)*qbNum(line.rate)-qbNum(line.discount));subtotal+=lineSubtotal;if(line.taxable)tax+=lineSubtotal*qbNum(line.taxRate)});
+  var depositEl=document.getElementById('qbDeposit'),deposit=depositEl?qbNum(depositEl.value):0,total=subtotal+tax;
+  var host=document.getElementById('qbTotals');if(host)host.innerHTML='<div class="qb-total-row"><span>Subtotal</span><strong>'+qbMoney(subtotal)+'</strong></div><div class="qb-total-row"><span>Tax</span><strong>'+qbMoney(tax)+'</strong></div><div class="qb-total-row"><span>Deposit requested</span><strong>'+qbMoney(deposit)+'</strong></div><div class="qb-total-row total"><span>Quote total</span><strong>'+qbMoney(total)+'</strong></div>'
+};
+window.qbSaveQuote=async function(event){
+  event.preventDefault();
+  var customerId=document.getElementById('qbCustomer').value,projectTitle=document.getElementById('qbProjectTitle').value.trim();
+  var lines=qb.draftLines.map(function(line){return {catalogId:line.catalogId||'',description:String(line.description||'').trim(),quantity:qbNum(line.quantity),unit:line.unit||'each',rate:qbNum(line.rate),discount:qbNum(line.discount),taxable:!!line.taxable,taxRate:qbNum(line.taxRate),notes:line.notes||''}}).filter(function(line){return line.description&&line.quantity>0});
+  if(!customerId||!projectTitle||!lines.length)return qbOwnerMessage('Choose a customer, enter a project title, and include at least one line with quantity.',true);
+  var payload={customerId:customerId,projectTitle:projectTitle,quoteDate:document.getElementById('qbQuoteDate').value,expirationDate:document.getElementById('qbExpirationDate').value,paymentTerms:document.getElementById('qbPaymentTerms').value,deposit:qbNum(document.getElementById('qbDeposit').value),scope:document.getElementById('qbScope').value,assumptions:document.getElementById('qbAssumptions').value,exclusions:document.getElementById('qbExclusions').value,customerNotes:document.getElementById('qbCustomerNotes').value,internalNotes:document.getElementById('qbInternalNotes').value,lines:lines};
+  var result=await call('createQuote',{payload:payload});qb.draftLines=[];qbOwnerMessage('Draft quote '+(result['Quote Number']||'')+' created. Nothing was sent.');qbOpen('dashboard')
+};
+
+async function qbRenderPriceBook(items){
+  items=items||[];
+  document.getElementById('content').innerHTML='<div class="qb-shell">'+qbHeader('Price Book','Search approved products and services, then add an item to a new quote.',qbButton('New Quote','qbOpen(\'new\')','primary')+qbButton('Dashboard','qbOpen(\'dashboard\')'))+qbTabs()+
+  '<section class="qb-panel"><div class="qb-toolbar"><input id="qbPriceSearch" style="min-height:44px;flex:1;min-width:240px;padding:9px;border:1px solid var(--border);border-radius:8px" placeholder="Search products, services, descriptions, or categories" onkeydown="if(event.key===\'Enter\'){event.preventDefault();qbSearchPriceBook()}"><button class="secondary" onclick="qbSearchPriceBook()">Search</button><button class="secondary" onclick="qbClearPriceBook()">Clear</button></div><div class="qb-catalog-grid" style="margin-top:12px">'+
+  (items.length?items.map(function(item,index){var rate=item['Standard Selling Price']||item.Price||0;return '<article class="qb-catalog-card"><div class="ux-eyebrow">'+escapeHtml(item.Category||'Price Book')+'</div><h4>'+escapeHtml(item.Name||item['Product / Service ID']||'Item')+'</h4><p>'+escapeHtml(item['Customer Description']||item.Description||'')+'</p><div class="qb-price">'+qbMoney(rate)+' <small>/ '+escapeHtml(item.Unit||'each')+'</small></div><div class="qb-toolbar" style="margin-top:10px"><button class="primary" onclick="qbAddCatalogItem('+index+')">Add to Quote</button></div></article>'}).join(''):'<div class="ux-empty"><strong>No matching Price Book items.</strong>Adjust the search or add products and services in Setup / Product Controls.</div>')+
+  '</div></section></div>'
+}
+window.qbSearchPriceBook=async function(){var q=(document.getElementById('qbPriceSearch').value||'').trim();qbRenderPriceBook(await qbLoadPriceBook(q))};
+window.qbClearPriceBook=async function(){qbRenderPriceBook(await qbLoadPriceBook(''))};
+window.qbAddCatalogItem=function(index){var item=qb.priceBook[index];if(!item)return;qb.draftLines.push(qbNewLine(item));qbOwnerMessage('Price Book item added to the draft quote.');qbOpen('new')};
+
+async function qbRenderTemplates(items){
+  items=items||[];
+  document.getElementById('content').innerHTML='<div class="qb-shell">'+qbHeader('Proposal Templates','Review the active private PDF and proposal templates available to the shared quote engine.',qbButton('New Quote','qbOpen(\'new\')','primary')+qbButton('Dashboard','qbOpen(\'dashboard\')'))+qbTabs()+
+  '<section class="qb-panel">'+(items.length?'<div class="qb-table-wrap"><table class="qb-table"><thead><tr><th>Template</th><th>Document type</th><th>Status</th><th>Notes / reference</th></tr></thead><tbody>'+items.map(function(row){return '<tr><td>'+escapeHtml(row['Template Name']||row.Name||row['PDF Template ID']||'Template')+'</td><td>'+escapeHtml(row['Document Type']||row.Type||'Quote')+'</td><td>'+escapeHtml(row.Status||'Active')+'</td><td>'+escapeHtml(row.Notes||row['File ID']||row['Template File ID']||'')+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="ux-empty"><strong>No active proposal templates were found.</strong>Add or activate a quote template in Documents / OCR or Setup / Product Controls.</div>')+'</section></div>'
+}
+
+function qbRenderAiDraft(){
+  document.getElementById('content').innerHTML='<div class="qb-shell">'+qbHeader('AI Draft Assist','Turn field notes and referenced photos into a review-only set of Price Book matches. AI cannot invent or approve final pricing.',qbButton('New Quote','qbOpen(\'new\')','primary')+qbButton('Dashboard','qbOpen(\'dashboard\')'))+qbTabs()+
+  '<section class="qb-panel"><div class="qb-boundary"><strong>AI rule:</strong> This creates a staged internal activity only. Quantities, scope, prices, assumptions, exclusions, approval, and customer release still require human review.</div><form id="qbAiForm" class="qb-form-grid" style="margin-top:14px" onsubmit="qbPrepareAi(event)"><label>Customer *<select id="qbAiCustomer" required>'+qbCustomerOptions('')+'</select></label><label>Project title<input id="qbAiTitle" placeholder="Example: Shop airflow and layout review"></label><label class="full">Field notes *<textarea id="qbAiNotes" required placeholder="Describe the work, measurements, symptoms, desired result, materials, constraints, and anything visible in the photos."></textarea></label><label class="full">Photo or document references<textarea id="qbAiPhotos" placeholder="Optional: paste private Drive links, document IDs, or one reference per line."></textarea></label><div class="full qb-toolbar"><button type="submit" class="primary">Prepare Review Draft</button><button type="button" class="secondary" onclick="qbOpen(\'dashboard\')">Cancel</button></div></form><div id="qbAiResult" class="qb-ai-result"></div></section></div>'
+}
+window.qbPrepareAi=async function(event){
+  event.preventDefault();var refs=document.getElementById('qbAiPhotos').value.split(/\n+/).map(function(v){return v.trim()}).filter(Boolean);
+  var result=await call('prepareAiQuoteDraft',{payload:{customerId:document.getElementById('qbAiCustomer').value,projectTitle:document.getElementById('qbAiTitle').value,notes:document.getElementById('qbAiNotes').value,photos:refs}});
+  qb.aiDraft=result;var details={};try{details=JSON.parse(result.Details||'{}')}catch(e){details={raw:result.Details||''}}
+  var host=document.getElementById('qbAiResult');host.innerHTML='<div class="qb-success" style="margin-top:14px"><strong>Review draft prepared.</strong> No quote was created, approved, priced, or sent.</div><h3 style="margin-top:16px">Suggested Price Book matches</h3>'+
+  (Array.isArray(details.suggestedLines)&&details.suggestedLines.length?'<div class="qb-catalog-grid">'+details.suggestedLines.map(function(line,index){return '<article class="qb-catalog-card"><h4>'+escapeHtml(line.description||line.catalogId||'Suggested line')+'</h4><div class="qb-price">'+(line.rate!==''?qbMoney(line.rate):'Manual price required')+'</div><p>'+escapeHtml(line.priceStatus||'review_required')+'</p><button class="primary" onclick="qbUseAiLine('+index+')">Add to New Quote</button></article>'}).join('')+'</div>':'<div class="ux-empty"><strong>No Price Book match found.</strong>Add items manually or improve the field notes.</div>')+
+  '<h3 style="margin-top:16px">Review details</h3><pre>'+escapeHtml(JSON.stringify(details,null,2))+'</pre>';
+  qb.aiDraft._parsed=details;qbOwnerMessage('AI review draft staged. Nothing was sent.')
+};
+window.qbUseAiLine=function(index){var details=qb.aiDraft&&qb.aiDraft._parsed||{},line=Array.isArray(details.suggestedLines)?details.suggestedLines[index]:null;if(!line)return;qb.draftLines.push(qbNewLine(line));qbOpen('new')};
+
+var attempts=0,timer=setInterval(function(){attempts+=1;if(typeof state!=='undefined'&&state&&state.bootstrap&&typeof window.openModule==='function'&&typeof window.renderNav==='function'){clearInterval(timer);installQuoteBuilder()}else if(attempts>150)clearInterval(timer)},100)
+})();
+</script>
