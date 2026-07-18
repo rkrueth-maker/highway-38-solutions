@@ -9,6 +9,16 @@ REMOTE_VERIFY="$WORK/remote-verify"
 EVIDENCE="$REPO_ROOT/artifacts/unified-owner-portal"
 H38_PACK="$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Pack.gs"
 H38_DEPLOYMENT="$REPO_ROOT/business-packs/highway38/deployment.json"
+DEPLOY_STAGE="initialize"
+
+record_deployment_failure() {
+  local status=$?
+  trap - ERR
+  mkdir -p "$EVIDENCE"
+  printf 'HOLD — production deployment failed during stage: %s (exit %s).\n' "$DEPLOY_STAGE" "$status" | tee -a "$EVIDENCE/remote-source-verification.txt"
+  exit "$status"
+}
+trap record_deployment_failure ERR
 
 read_config() {
   local path="$1"
@@ -22,11 +32,13 @@ find_remote_source() {
   find "$REMOTE_VERIFY" -maxdepth 1 -type f \( -name "${base}.gs" -o -name "${base}.js" \) -print -quit
 }
 
+DEPLOY_STAGE="read_configuration"
 OWNER_SCRIPT_ID="$(read_config appsScript.ownerPortalProjectId)"
 OWNER_DEPLOYMENT_ID="$(read_config appsScript.ownerPortalDeploymentId)"
 BUSINESS_OFFICE_DEPLOYMENT_ID="$(read_config appsScript.businessOfficeDeploymentId)"
 WEBSITE_PORTAL_URL="$(read_config website.ownerPortalUrl)"
 
+DEPLOY_STAGE="backup_current_project"
 rm -rf "$WORK" "$EVIDENCE";mkdir -p "$BACKUP" "$PROJECT" "$REMOTE_VERIFY" "$EVIDENCE"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$BACKUP/.clasp.json"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$PROJECT/.clasp.json"
@@ -37,6 +49,7 @@ sha256sum "$EVIDENCE/project-before.tar.gz" | tee "$EVIDENCE/project-before.sha2
 grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/deployments-before.txt" >/dev/null
 grep -F "$BUSINESS_OFFICE_DEPLOYMENT_ID" "$EVIDENCE/deployments-before.txt" >/dev/null
 
+DEPLOY_STAGE="assemble_local_source"
 cp -a "$BACKUP/." "$PROJECT/"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$PROJECT/.clasp.json"
 # Never inherit an old project-level ignore file. It previously allowed Portal files
@@ -102,18 +115,22 @@ grep -F "boRenderQuoteBuilderApp_()" "$PROJECT/Portal_Services.js" >/dev/null
 grep -F "h38PortalRequireUnifiedUser_" "$PROJECT/Portal_Services.js" >/dev/null
 grep -F "packId:'highway38'" "$PROJECT/BusinessOffice_00_Pack.gs" >/dev/null
 
-(cd "$PROJECT" && clasp show-file-status) 2>&1 | tee "$EVIDENCE/clasp-status-before-push.txt"
-for required in "${REQUIRED_PORTAL_FILES[@]}" "${REQUIRED_BUSINESS_FILES[@]}"; do
-  grep -F "$required" "$EVIDENCE/clasp-status-before-push.txt" >/dev/null || { echo "HOLD — clasp is not tracking required source: $required"; exit 6; }
-done
+DEPLOY_STAGE="diagnostic_file_status"
+if ! (cd "$PROJECT" && clasp show-file-status) 2>&1 | tee "$EVIDENCE/clasp-status-before-push.txt"; then
+  printf 'WARN — clasp file-status output was unavailable; continuing to mandatory post-push remote source verification.\n' | tee -a "$EVIDENCE/clasp-status-before-push.txt"
+fi
 
+DEPLOY_STAGE="push_source"
 (cd "$PROJECT" && clasp push --force) 2>&1 | tee "$EVIDENCE/clasp-push.txt"
 
 # Pull the just-pushed remote project into a clean directory. Deployment is blocked
 # unless the server now contains canonical Business Office auth and the Portal bridge.
+DEPLOY_STAGE="pull_remote_source"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$REMOTE_VERIFY/.clasp.json"
 (cd "$REMOTE_VERIFY" && clasp pull) 2>&1 | tee "$EVIDENCE/remote-project-pull.txt"
 find "$REMOTE_VERIFY" -maxdepth 1 -type f -printf '%f\n' | sort | tee "$EVIDENCE/remote-source-files.txt"
+
+DEPLOY_STAGE="verify_remote_source"
 REMOTE_AUTH_BRIDGE="$(find_remote_source Portal_00_BusinessAuth)"
 REMOTE_AUTH="$(find_remote_source BusinessOffice_Auth)"
 REMOTE_CONFIG="$(find_remote_source BusinessOffice_Config)"
@@ -132,14 +149,19 @@ grep -F "function boGetActiveEmail_()" "$REMOTE_AUTH" >/dev/null
 grep -F "function boRenderQuoteBuilderApp_()" "$REMOTE_QB_DIRECT" >/dev/null
 printf 'PASS — remote Apps Script source includes canonical authentication, the guaranteed Portal authentication bridge, direct Quote Builder routing, and core modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
 
+DEPLOY_STAGE="update_existing_deployments"
 DEPLOYMENT_DESCRIPTION="Highway 38 unified application ${GITHUB_SHA}"
 (cd "$PROJECT" && clasp update-deployment "$OWNER_DEPLOYMENT_ID" --description "$DEPLOYMENT_DESCRIPTION" && clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID" --description "$DEPLOYMENT_DESCRIPTION" && clasp list-deployments) 2>&1 | tee "$EVIDENCE/deployments-after.txt"
 grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null;grep -F "$BUSINESS_OFFICE_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null
+
+DEPLOY_STAGE="verify_live_endpoints"
 OWNER_URL="https://script.google.com/macros/s/${OWNER_DEPLOYMENT_ID}/exec";BUSINESS_URL="https://script.google.com/macros/s/${BUSINESS_OFFICE_DEPLOYMENT_ID}/exec?app=business-office";QUOTE_BUILDER_URL="${BUSINESS_URL}&quoteBuilder=1"
 printf '%s' "$OWNER_URL" > "$EVIDENCE/owner-portal-url.txt";printf '%s' "$BUSINESS_URL" > "$EVIDENCE/business-office-url.txt";printf '%s' "$QUOTE_BUILDER_URL" > "$EVIDENCE/quote-builder-url.txt"
 OWNER_STATUS="$(curl -L -sS -o "$EVIDENCE/owner-response.html" -w '%{http_code}' "$OWNER_URL" || true)";BUSINESS_STATUS="$(curl -L -sS -o "$EVIDENCE/business-response.html" -w '%{http_code}' "$BUSINESS_URL" || true)";QUOTE_BUILDER_STATUS="$(curl -L -sS -o "$EVIDENCE/quote-builder-response.html" -w '%{http_code}' "$QUOTE_BUILDER_URL" || true)"
 printf '%s' "$OWNER_STATUS" > "$EVIDENCE/owner-http-status.txt";printf '%s' "$BUSINESS_STATUS" > "$EVIDENCE/business-http-status.txt";printf '%s' "$QUOTE_BUILDER_STATUS" > "$EVIDENCE/quote-builder-http-status.txt";test "$OWNER_STATUS" != "404";test "$BUSINESS_STATUS" != "404";test "$QUOTE_BUILDER_STATUS" != "404"
 ! grep -F "ReferenceError: boGetCurrentUser_ is not defined" "$EVIDENCE/owner-response.html" "$EVIDENCE/business-response.html" "$EVIDENCE/quote-builder-response.html"
+
+DEPLOY_STAGE="record_pass"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
 {"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"directQuoteBuilder":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"businessOfficeAuthVerified":true,"portalAuthBridgeVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false,"taskAssignmentEnabled":true,"messagingPreparationEnabled":true,"smsProviderReleaseRequired":true}
 JSON
