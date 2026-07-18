@@ -286,8 +286,8 @@
   });
   global.H38_PORTAL_AUTH_BRIDGE = api;
 
-  if (typeof global.boGetActiveEmail_ !== 'function') global.boGetActiveEmail_ = getActiveEmail;
-  if (typeof global.boGetCurrentUser_ !== 'function') global.boGetCurrentUser_ = getCurrentUser;
+  if (typeof global.boGetActiveEmail_ !== 'function') global.boGetActiveEmail_ = function(){return getActiveEmail();};
+  if (typeof global.boGetCurrentUser_ !== 'function') global.boGetCurrentUser_ = function(){return getCurrentUser();};
   if (typeof global.boGetRole_ !== 'function') global.boGetRole_ = getRole;
   if (typeof global.boGetPermissionRows_ !== 'function') global.boGetPermissionRows_ = getPermissionRows;
   if (typeof global.boModuleMatchesPermission_ !== 'function') global.boModuleMatchesPermission_ = moduleMatchesPermission;
