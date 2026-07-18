@@ -84,7 +84,7 @@ jobs:
             --ignore-scripts \
             --no-audit \
             --no-fund \
-            @google/clasp@3.1.0
+            @google/clasp@3.3.0
           CLASP_BIN="$H38_CLASP_DIR/node_modules/.bin/clasp"
           CLASP_PACKAGE="$H38_CLASP_DIR/node_modules/@google/clasp/package.json"
           test -x "$CLASP_BIN"
@@ -94,7 +94,7 @@ jobs:
           const fs=require('fs');
           const file=process.argv[2];
           const version=JSON.parse(fs.readFileSync(file,'utf8')).version;
-          if(version!=='3.1.0')throw new Error('Unexpected clasp version '+version);
+          if(version!=='3.3.0')throw new Error('Unexpected clasp version '+version);
           console.log('Isolated clasp '+version+' installed.');
           NODE
           "$CLASP_BIN" --version
