@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const need=(text,marker,label)=>{if(!text.includes(marker))throw new Error(`Missing ${label}: ${marker}`)};
+const reject=(text,marker,label)=>{if(text.includes(marker))throw new Error(`Forbidden ${label}: ${marker}`)};
+const scriptBody=text=>{const match=text.match(/<script>([\s\S]*?)<\/script>/);if(!match)throw new Error('Direct client script block missing');return match[1];};
+
+const web=read('apps-script/business-office/BusinessOffice_Web.gs');
+const direct=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Direct.gs');
+const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
+const client=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Direct_Client.html');
+const write=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Write.gs');
+const engine=read('apps-script/business-office/BusinessOffice_QuoteBuilder.gs');
+const hooks=read('apps-script/business-office/BusinessOffice_QuoteBuilder_CacheHooks.gs');
+const gate=read('apps-script/business-office/BusinessOffice_ModuleAccess.gs');
+const deploy=read('scripts/deploy-unified-owner-portal-web.sh');
+
+need(web,'if (boIsQuoteBuilderRequest_(event)) return boRenderQuoteBuilderApp_();','server direct-route detection');
+need(web,'createQuote:function(){return boCreateQuoteFast_','grouped quote create handler');
+need(web,'quoteBuilderCustomers:function()','lazy customer endpoint');
+need(web,'quoteBuilderDocuments:function()','lazy documents endpoint');
+need(web,'quoteBuilderQuoteDetails:function()','on-demand quote detail endpoint');
+need(direct,"HtmlService.createTemplateFromFile('BusinessOffice_QuoteBuilder_Index')",'minimal direct shell');
+need(direct,'CacheService.getScriptCache()','stable-data cache');
+need(direct,'CacheService.getUserCache()','user access and timing cache');
+need(direct,"console.log('H38_QUOTE_BUILDER_TIMING '",'server timing logs');
+need(direct,'sheet.getDataRange().getDisplayValues()','single snapshot read');
+need(direct,'.setValues(rows)','batch append helper');
+need(direct,"pricebook:'priceBook'",'Price Book permission alias');
+need(index,'Direct, private quoting workspace','direct shell identity');
+reject(index,'Business Dashboard','full dashboard excluded from direct shell');
+reject(index,'Accounting','accounting excluded from direct shell');
+reject(index,'Payroll','payroll excluded from direct shell');
+need(client,"state={view:'dashboard',customers:null,priceBook:null,templates:null,documents:null",'lazy client caches');
+need(client,"loadCustomers(){if(state.customers)return state.customers",'lazy customer loading');
+need(client,"loadPriceBook(query){if(!query&&state.priceBook)return state.priceBook",'lazy Price Book loading');
+need(client,"loadTemplates(){if(state.templates)return state.templates",'lazy template loading');
+need(client,"loadDocuments(){if(state.documents)return state.documents",'lazy document loading');
+reject(client,"call('bootstrap'",'full Business Office bootstrap');
+need(client,"requestAnimationFrame(()=>qbOpen('dashboard'))",'immediate shell before dashboard load');
+need(client,"call('quoteBuilderQuoteDetails'",'full quote details loaded only on open');
+need(client,"console.log('H38_QB_CLIENT_TIMING'",'client timing logs');
+need(write,'boQuoteBuilderAppendBatch_(quoteSnapshot, [quote])','single quote-header write');
+need(write,'boQuoteBuilderAppendBatch_(lineSnapshot, lineRecords)','batched quote-line write');
+need(write,"'Quote Builder grouped write: header + '",'grouped audit record');
+reject(write,'.appendRow(','row-by-row quote write');
+need(engine,"boQuoteBuilderCachePut_('dashboard'",'cached dashboard totals');
+need(engine,".map(boQuoteBuilderCompactRow_)",'compact recent quote payload');
+need(engine,"boQuoteBuilderCachePut_('priceBook'",'cached Price Book');
+need(engine,"boQuoteBuilderCachePut_('templates'",'cached templates');
+need(hooks,"boQuoteBuilderInvalidateCache_('quotes')",'quote cache invalidation');
+need(hooks,"boQuoteBuilderInvalidateCache_('products')",'Price Book cache invalidation');
+need(hooks,"boQuoteBuilderInvalidateCache_('documents')",'document cache invalidation');
+need(gate,'quoteBuilderDirectBootstrap','direct API gate');
+need(deploy,"e.parameter.quoteBuilder === '1'",'production direct router');
+need(deploy,'boRenderQuoteBuilderApp_()','production direct renderer');
+need(deploy,'BusinessOffice_QuoteBuilder_Direct.gs','direct server deployment proof');
+need(deploy,'BusinessOffice_QuoteBuilder_Index.html','direct shell deployment proof');
+need(deploy,'BusinessOffice_QuoteBuilder_Direct_Client.html','direct client deployment proof');
+need(deploy,'QUOTE_BUILDER_STATUS','live direct-route HTTP verification');
+
+new Function(scriptBody(client));
+console.log('PASS — direct Quote Builder routing, lazy loading, compact payloads, single-read snapshots, grouped writes, caches, and timing logs verified.');
