@@ -36,16 +36,19 @@ function boQuoteBuilderCachePut_(name, value, ttlSeconds) {
 
 function boQuoteBuilderInvalidateCache_(scope) {
   const map = {
-    all: ['access','dashboard','customers','priceBook','templates','documents'],
+    all: ['dashboard','customers','priceBook','templates','documents'],
     quotes: ['dashboard'],
     customers: ['customers'],
     products: ['priceBook'],
     templates: ['templates'],
-    documents: ['documents'],
-    access: ['access']
+    documents: ['documents']
   };
   const names = map[scope] || map.all;
   CacheService.getScriptCache().removeAll(names.map(boQuoteBuilderCacheKey_));
+  if (scope === 'all' || scope === 'access') {
+    const email = boGetActiveEmail_();
+    if (email) CacheService.getUserCache().remove('H38QB_ACCESS:' + email);
+  }
 }
 
 function boQuoteBuilderTiming_(stage, started, meta) {
@@ -76,11 +79,15 @@ function boQuoteBuilderAccessContext_() {
   const started = Date.now();
   const email = boGetActiveEmail_();
   boAssert_(email, 'A signed-in Google account is required.');
-  const cacheName = 'access:' + email;
-  const cached = boQuoteBuilderCacheGet_(cacheName);
-  if (cached) {
-    boQuoteBuilderTiming_('auth_cache_hit', started, { email: email });
-    return cached;
+  const accessKey = 'H38QB_ACCESS:' + email;
+  const accessCache = CacheService.getUserCache();
+  const raw = accessCache.get(accessKey);
+  if (raw) {
+    try {
+      const cached = JSON.parse(raw);
+      boQuoteBuilderTiming_('auth_cache_hit', started, { email: email });
+      return cached;
+    } catch (error) { accessCache.remove(accessKey); }
   }
   const user = boGetCurrentUser_();
   const role = boGetRole_(user['Role ID']);
@@ -121,7 +128,7 @@ function boQuoteBuilderAccessContext_() {
     }
   };
   boAssert_(context.permissions.view, 'Your role does not allow Quote Builder access.');
-  boQuoteBuilderCachePut_(cacheName, context, 300);
+  accessCache.put(accessKey, JSON.stringify(context), 300);
   boQuoteBuilderTiming_('authentication', started, { role: context.user.role });
   return context;
 }
@@ -136,7 +143,8 @@ function boQuoteBuilderDirectBootstrap_() {
 function boQuoteBuilderRequireAction_(action) {
   const context = boQuoteBuilderAccessContext_();
   const key = String(action || 'View').toLowerCase();
-  const permissionKey = key === 'view' ? 'view' : key === 'create' ? 'create' : key === 'edit' ? 'edit' : key === 'approve' ? 'approve' : key;
+  const aliases = { view:'view', create:'create', edit:'edit', approve:'approve', customers:'customers', pricebook:'priceBook', templates:'templates', documents:'documents' };
+  const permissionKey = aliases[key] || key;
   boAssert_(context.permissions[permissionKey] === true, 'Your role does not allow ' + action + ' access in Quote Builder.');
   return context;
 }
