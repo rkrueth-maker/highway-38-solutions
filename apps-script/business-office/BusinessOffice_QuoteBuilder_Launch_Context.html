@@ -26,9 +26,17 @@ function businessOfficeReturnUrl(){
 
 function patchReturnAction(){
   var button=document.querySelector('#qbNav .full-system button');
-  if(!button)return;
-  button.textContent='Business Office';
+  if(!button||button.dataset.launchReturnAction==='1')return;
+  button.dataset.launchReturnAction='1';
+  button.dataset.label='Business Office';
+  button.setAttribute('aria-label','Business Office');
   button.title='Return to the Business Office';
+  var text=button.querySelector('.nav-text');
+  if(text){
+    if(text.textContent!=='Business Office')text.textContent='Business Office';
+  }else if((button.textContent||'').trim()!=='Business Office'){
+    button.textContent='Business Office';
+  }
   button.onclick=function(){location.assign(businessOfficeReturnUrl());};
 }
 
@@ -65,7 +73,8 @@ window.qbOpen=async function(view){
   return result;
 };
 
-new MutationObserver(function(){patchReturnAction();}).observe(document.getElementById('qbNav'),{childList:true,subtree:true});
+var navHost=document.getElementById('qbNav');
+if(navHost)new MutationObserver(function(){patchReturnAction();}).observe(navHost,{childList:true,subtree:true});
 patchReturnAction();
 })();
 </script>
