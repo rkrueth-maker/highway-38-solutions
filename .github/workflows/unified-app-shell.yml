@@ -6,21 +6,38 @@ on:
       - 'apps-script/unified-shell/**'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'apps-script/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'apps/business-office/**'
+      - 'packages/**'
       - 'business-packs/highway38/**'
+      - 'scripts/assemble-business-office-app.sh'
+      - 'scripts/build-business-office-installation.js'
       - 'scripts/build-unified-apps-script-shell.js'
+      - 'scripts/verify-source-boundaries.js'
       - 'scripts/verify-unified-app-shell.js'
       - 'scripts/verify-quote-builder-direct-performance.js'
       - 'scripts/deploy-unified-owner-portal-web.sh'
       - 'package.json'
+      - '.github/workflows/deploy-owner-portal-hard-rule-production.yml'
       - '.github/workflows/unified-app-shell.yml'
   push:
     branches: [main]
     paths:
       - 'apps-script/unified-shell/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'apps-script/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'apps/business-office/**'
+      - 'packages/**'
+      - 'business-packs/highway38/**'
+      - 'scripts/assemble-business-office-app.sh'
+      - 'scripts/build-business-office-installation.js'
       - 'scripts/build-unified-apps-script-shell.js'
+      - 'scripts/verify-source-boundaries.js'
       - 'scripts/verify-unified-app-shell.js'
       - 'scripts/verify-quote-builder-direct-performance.js'
       - 'scripts/deploy-unified-owner-portal-web.sh'
+      - '.github/workflows/deploy-owner-portal-hard-rule-production.yml'
       - '.github/workflows/unified-app-shell.yml'
   workflow_dispatch:
 
@@ -40,6 +57,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+
+      - name: Verify authoritative source boundaries
+        run: node scripts/verify-source-boundaries.js
 
       - name: Verify deterministic shell assembly and routing
         run: node scripts/verify-unified-app-shell.js
@@ -62,6 +82,7 @@ jobs:
         with:
           name: unified-app-shell-${{ github.run_id }}
           path: |
+            artifacts/source-boundaries/
             artifacts/unified-shell/
             artifacts/owner-portal-routing/
             artifacts/quote-builder-business-office-routing/
