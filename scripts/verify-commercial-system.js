@@ -55,14 +55,14 @@ else {
 
 const requiredFiles = [
   'index.html','solutions.html','products.html','pricing.html','sample-library-now.html','how-it-works.html','faq.html','start-request.html','ai-workflow.html','shop-automation.html',
-  'catalog-data.js','commercial.js','commercial.css','commercial-public.js','commercial-public.css',
+  'catalog-data.js','commercial.js','commercial.css','commercial-public.js','commercial-public.css','visual-cleanup.css','visual-cleanup-secondary.css',
   'apps-script/commercial-intake/FormBuilder.gs','apps-script/commercial-intake/appsscript.json','docs/commercial-system/README.md'
 ];
 for (const file of requiredFiles) if (!exists(file)) fail(`Missing required file ${file}`);
 if (!failures.some(f => f.startsWith('Missing required file'))) pass('all required commercial files exist');
 
 const htmlFiles = fs.readdirSync(root).filter(name => name.endsWith('.html'));
-const controlledHtml = htmlFiles.filter(name => { const html = read(name); return html.includes('commercial.css') || html.includes('http-equiv="refresh"'); });
+const controlledHtml = htmlFiles.filter(name => { const html = read(name); return html.includes('commercial.css') || html.includes('http-equiv="refresh"') || name === 'index.html'; });
 for (const file of controlledHtml) {
   const html = read(file);
   const refs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map(m => m[1]);
@@ -74,13 +74,15 @@ for (const file of controlledHtml) {
 }
 if (!failures.some(f => f.includes('references missing local file'))) pass('controlled public pages have no missing local links');
 
-const canonicalPages = ['index.html','solutions.html','products.html','sample-library-now.html','how-it-works.html','faq.html','start-request.html','ai-workflow.html','shop-automation.html'];
-for (const file of canonicalPages) {
+const catalogPages = ['solutions.html','products.html','sample-library-now.html','how-it-works.html','faq.html','start-request.html','ai-workflow.html','shop-automation.html'];
+for (const file of catalogPages) {
   const html = read(file);
   if (!html.includes('catalog-data.js')) fail(`${file} is not connected to the approved catalog`);
   if (!html.includes('commercial-public.css') || !html.includes('commercial-public.js')) fail(`${file} is missing the public commercial contract layer`);
 }
-if (!failures.some(f => f.includes('approved catalog') || f.includes('public commercial contract layer'))) pass('all canonical public pages use the catalog and shared commercial contract layer');
+const homeHtml = read('index.html');
+if (!homeHtml.includes('visual-cleanup.css') || !homeHtml.includes('products.html') || !homeHtml.includes('start-request.html') || !homeHtml.includes('sample-library-now.html')) fail('index.html is missing the approved responsive visual and commercial route contract');
+if (!failures.some(f => f.includes('approved catalog') || f.includes('public commercial contract layer') || f.includes('responsive visual and commercial route contract'))) pass('all canonical public pages use the approved catalog or responsive homepage route contract');
 
 const publicJs = read('commercial-public.js');
 for (const phrase of ['You send','You receive','You pay','You wait','Revisions','Upgrade']) if (!publicJs.includes(phrase)) fail(`Commercial contract layer missing ${phrase}`);
@@ -110,7 +112,7 @@ for (const [file,target] of Object.entries(legacyRoutes)) {
 }
 if (!failures.some(f => f.includes('does not route to canonical'))) pass('legacy catalog, service, sample, and backend routes point to canonical customer pages');
 
-const activePublicFiles = [...canonicalPages,'catalog-data.js','commercial.js','commercial-public.js'];
+const activePublicFiles = ['index.html',...catalogPages,'catalog-data.js','commercial.js','commercial-public.js'];
 const activeText = activePublicFiles.map(read).join('\n');
 const forbiddenMarketing = ['$79 intro / $99 normal','under-$250','locked catalog','auto-prepared','Custom Work Build','Project Packet Lite','Business Cleanup Starter','Business System Builder','Digital Setup Builder','internal desk'];
 for (const phrase of forbiddenMarketing) if (activeText.toLowerCase().includes(phrase.toLowerCase())) fail(`Forbidden legacy or internal public phrase remains: ${phrase}`);

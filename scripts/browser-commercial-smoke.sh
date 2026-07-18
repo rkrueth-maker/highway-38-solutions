@@ -22,12 +22,24 @@ sleep 2
 
 pass() { echo "PASS: $1" | tee -a "$REPORT"; }
 fail() { echo "FAIL: $1" | tee -a "$REPORT"; exit 1; }
+count_class() {
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+name, file = sys.argv[1], sys.argv[2]
+text = open(file, encoding='utf-8').read()
+count = 0
+for value in re.findall(r'class="([^"]*)"', text):
+    if name in value.split():
+        count += 1
+print(count)
+PY
+}
 
 active_pages=(index.html solutions.html products.html pricing.html sample-library-now.html how-it-works.html faq.html start-request.html ai-workflow.html shop-automation.html)
 for page in "${active_pages[@]}"; do
   curl -fsS "http://127.0.0.1:8000/$page" -o "$OUT/source-$page" || fail "$page did not return successfully"
   grep -q '<h1' "$OUT/source-$page" || fail "$page is missing an h1"
-  grep -q 'aria-label="Main navigation"' "$OUT/source-$page" || fail "$page is missing main navigation semantics"
+  grep -Eq 'aria-label="(Main|Primary) navigation"' "$OUT/source-$page" || fail "$page is missing main navigation semantics"
   grep -q 'class="skip-link"' "$OUT/source-$page" || fail "$page is missing a skip link"
   pass "$page source and basic accessibility structure load"
 done
@@ -44,11 +56,11 @@ chrome_dump sample-library-now.html "$OUT/rendered-samples.html"
 chrome_dump start-request.html "$OUT/rendered-start-request.html"
 chrome_dump shop-automation.html "$OUT/rendered-manufacturing.html"
 
-product_count="$(grep -o 'class="detail-product"' "$OUT/rendered-products.html" | wc -l | tr -d ' ')"
-bundle_count="$(grep -o 'class="bundle-card"' "$OUT/rendered-products.html" | wc -l | tr -d ' ')"
-sample_count="$(grep -o 'class="sample-card"' "$OUT/rendered-samples.html" | wc -l | tr -d ' ')"
-sample_bundle_count="$(grep -o 'class="bundle-card"' "$OUT/rendered-samples.html" | wc -l | tr -d ' ')"
-manufacturing_count="$(grep -o 'class="product-card"' "$OUT/rendered-manufacturing.html" | wc -l | tr -d ' ')"
+product_count="$(count_class detail-product "$OUT/rendered-products.html")"
+bundle_count="$(count_class bundle-card "$OUT/rendered-products.html")"
+sample_count="$(count_class sample-card "$OUT/rendered-samples.html")"
+sample_bundle_count="$(count_class bundle-card "$OUT/rendered-samples.html")"
+manufacturing_count="$(count_class product-card "$OUT/rendered-manufacturing.html")"
 
 [[ "$product_count" == "15" ]] || fail "rendered Products page expected 15 product details and found $product_count"
 pass "rendered Products page contains 15 product details"

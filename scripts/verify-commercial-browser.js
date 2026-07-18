@@ -8,7 +8,7 @@ const {chromium}=require('playwright');
 
 const root=path.resolve(__dirname,'..');
 const pages=fs.readdirSync(root).filter(file=>file.endsWith('.html')).sort();
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.csv':'text/csv; charset=utf-8','.md':'text/plain; charset=utf-8'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.csv':'text/csv; charset=utf-8','.md':'text/plain; charset=utf-8'};
 const failures=[];
 const pass=name=>process.stdout.write(`PASS: ${name}\n`);
 const fail=(name,detail='')=>{failures.push({name,detail});process.stderr.write(`FAIL: ${name}${detail?` — ${detail}`:''}\n`);};
@@ -79,13 +79,13 @@ function server(){return http.createServer((req,res)=>{
 
     const page=await browser.newPage({viewport:{width:390,height:844}});
     await page.goto(`${base}/index.html`,{waitUntil:'networkidle'});
-    const logo=page.locator('.site-nav img.brand-logo').first();
+    const logo=page.locator('.site-header .site-brand img,.site-nav img.brand-logo').first();
     if(!await logo.count())fail('approved logo visible in primary navigation');
     else{
       const src=await logo.getAttribute('src'),alt=await logo.getAttribute('alt');
       if(!src.includes('assets/highway38-logo.png?v=20260713-logo2')||alt!=='Highway 38 Solutions')fail('approved logo contract',`${src} | ${alt}`);else pass('approved second logo, cache key, and alt text are visible');
     }
-    const menu=page.locator('.eco-menu,.nav-toggle').first();
+    const menu=page.locator('.menu-button,.eco-menu,.nav-toggle').first();
     if(await menu.count()){await menu.click();const expanded=await menu.getAttribute('aria-expanded');if(expanded!=='true')fail('mobile menu opens');else pass('mobile menu opens');}
 
     await page.goto(`${base}/products.html`,{waitUntil:'networkidle'});

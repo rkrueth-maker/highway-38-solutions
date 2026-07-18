@@ -16,8 +16,14 @@ on:
       - 'business-systems-data.js'
       - 'public-expansion.js'
       - 'public-expansion.css'
+      - 'visual-cleanup.css'
+      - 'visual-cleanup-secondary.css'
       - 'tool-downloads.js'
       - 'scripts/verify-public-expansion.js'
+      - 'scripts/verify-one-shot-ux.js'
+      - 'scripts/verify-commercial-system.js'
+      - 'scripts/verify-commercial-browser.js'
+      - 'scripts/browser-commercial-smoke.sh'
       - 'package.json'
       - '.github/workflows/integrated-public-expansion.yml'
   workflow_dispatch:
@@ -35,7 +41,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -47,5 +53,31 @@ jobs:
           node --check public-expansion.js
           node --check tool-downloads.js
           node --check scripts/verify-public-expansion.js
-      - name: Run full commercial regression
-        run: npm test
+      - name: Verify contact options
+        run: node scripts/verify-contact-options.js
+      - name: Verify one-shot UX
+        run: node scripts/verify-one-shot-ux.js
+      - name: Verify public expansion
+        run: node scripts/verify-public-expansion.js
+      - name: Verify commercial system
+        run: node scripts/verify-commercial-system.js
+      - name: Verify public customer path
+        run: node scripts/verify-public-customer-path.js
+      - name: Verify customer portal
+        run: node scripts/verify-customer-portal-supabase.js
+      - name: Verify Quote Builder complete
+        run: node scripts/verify-quote-builder-complete.js
+      - name: Verify Quote Builder performance
+        run: node scripts/verify-quote-builder-direct-performance.js
+      - name: Verify Quote Builder camera polish
+        run: node scripts/verify-quote-camera-polish.js
+      - name: Verify Quote Builder Business Office routing
+        run: node scripts/verify-quote-builder-business-office-routing.js
+      - name: Verify complete ecosystem
+        run: node scripts/verify-complete-ecosystem.js
+      - name: Verify complete ecosystem launch
+        run: node scripts/verify-complete-ecosystem-launch.js
+      - name: Verify commercial browser
+        run: node scripts/verify-commercial-browser.js
+      - name: Verify unified app UX
+        run: node scripts/verify-unified-app-ux-complete.js

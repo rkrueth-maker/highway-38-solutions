@@ -5,9 +5,9 @@
   const IMAGE_VERSION='?v=20260715-all-approved-v2';
   const brandText=()=>'<span class="brand-text"><span>Highway 38</span> Solutions</span>';
   const logo=()=>{const img=document.createElement('img');img.className='brand-logo';img.src=LOGO;img.alt='Highway 38 Solutions';return img;};
-  function loadHomepageVisualLock(){
-    if((document.body&&document.body.dataset.page)!=='home'||document.querySelector('link[data-h38-home-lock]'))return;
-    const link=document.createElement('link');link.rel='stylesheet';link.href='homepage-visual-lock.css?v=20260717-exact-mockup';link.dataset.h38HomeLock='true';document.head.appendChild(link);
+  function loadPublicVisualCleanup(){
+    if(document.querySelector('link[data-h38-visual-cleanup]'))return;
+    const link=document.createElement('link');link.rel='stylesheet';link.href='visual-cleanup-secondary.css?v=20260718-one-pass';link.dataset.h38VisualCleanup='true';document.head.appendChild(link);
   }
   function wrapText(el){
     if(el.querySelector('.brand-text'))return;
@@ -92,6 +92,6 @@
       ],'beforeend');
     }
   }
-  function run(){loadHomepageVisualLock();ensureHeader();ensureFooter();routeLegacyOwnerLinks();placeApprovedImages();}
+  function run(){loadPublicVisualCleanup();ensureHeader();ensureFooter();routeLegacyOwnerLinks();placeApprovedImages();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
 })();
