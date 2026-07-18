@@ -13,10 +13,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid rgba(50,106,158,.18);b
 .qb-camera-panel h3{margin:0 0 5px;color:var(--navy)}.qb-camera-panel p{margin:0;color:var(--muted);line-height:1.45}.qb-camera-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .qb-photo-queue{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.qb-photo-card{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:#fff}.qb-photo-card img{display:block;width:100%;height:105px;object-fit:cover;background:#dbe5ec}.qb-photo-card .qb-photo-meta{padding:8px;font-size:11px;line-height:1.35}.qb-photo-card .qb-photo-meta strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qb-photo-card .qb-photo-remove{position:absolute;right:6px;top:6px;width:32px;height:32px;min-height:32px;padding:0;border-radius:50%;background:rgba(143,29,29,.93);color:#fff}
 .qb-quote-photo-panel{margin-bottom:14px;padding:14px;border:1px solid #bdd1df;border-radius:14px;background:#f4f9fc}.qb-quote-photo-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.qb-quote-photo-head h3{margin:0}.qb-quote-photo-head p{margin:4px 0 0;color:var(--muted)}.qb-saved-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}.qb-saved-photo{border:1px solid var(--border);border-radius:11px;background:#fff;overflow:hidden}.qb-saved-photo img{display:block;width:100%;height:120px;object-fit:cover;background:#e7eef3}.qb-saved-photo div{padding:9px;font-size:12px}.qb-saved-photo a{color:var(--navy);font-weight:800}.qb-status-line{min-height:20px;margin-top:8px;font-size:12px;font-weight:800;color:var(--navy)}
-.qb-camera-dialog{width:min(760px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 28px 80px rgba(0,0,0,.35);background:#07131e;color:#fff}.qb-camera-dialog::backdrop{background:rgba(5,15,25,.78)}.qb-camera-frame{padding:16px}.qb-camera-frame video{display:block;width:100%;max-height:62vh;object-fit:contain;border-radius:12px;background:#000}.qb-camera-top,.qb-camera-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}.qb-camera-top{margin-bottom:12px}.qb-camera-top h2{margin:0;font-size:20px}.qb-camera-bottom{margin-top:12px}.qb-camera-help{font-size:12px;color:#c4d3df}.qb-camera-close{background:#263746;color:#fff}.qb-camera-shutter{min-width:150px;background:var(--qb-accent);color:#fff}
+.qb-camera-dialog{width:min(760px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 28px 80px rgba(0,0,0,.35);background:#07131e;color:#fff}.qb-camera-dialog::backdrop{background:rgba(5,15,25,.78)}.qb-camera-frame{padding:16px}.qb-camera-frame video{display:block;width:100%;max-height:62vh;min-height:260px;object-fit:contain;border-radius:12px;background:#000}.qb-camera-top,.qb-camera-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}.qb-camera-top{margin-bottom:12px}.qb-camera-top h2{margin:0;font-size:20px}.qb-camera-bottom{margin-top:12px}.qb-camera-help{font-size:12px;color:#c4d3df}.qb-camera-status{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#132535;color:#dce9f3;font-size:13px;line-height:1.4}.qb-camera-status.bad{background:#5d1d1d;color:#fff}.qb-camera-close{background:#263746;color:#fff}.qb-camera-actions-dialog{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.qb-camera-retry,.qb-camera-file{background:#263746;color:#fff}.qb-camera-shutter{min-width:150px;background:var(--qb-accent);color:#fff}.qb-camera-shutter:disabled{opacity:.45}
 .qb-mobile-capture{display:none}
 @media(max-width:950px){main{padding:16px}.qb-camera-panel{grid-template-columns:1fr}.qb-camera-actions{justify-content:flex-start}}
-@media(max-width:760px){body{padding-bottom:76px}.top{min-height:60px;padding:9px 12px}.brand h1{font-size:17px}.brand small{display:none}main{padding:10px 10px 30px}.boundary{font-size:12px}.hero{padding:18px}.hero .actions{justify-content:flex-start}.panel{padding:13px}.qb-camera-panel{padding:13px}.qb-camera-actions button{flex:1}.qb-photo-queue,.qb-saved-photos{grid-template-columns:repeat(2,minmax(0,1fr))}.qb-mobile-capture{display:block;position:fixed;left:50%;bottom:14px;z-index:35;transform:translateX(-50%);width:min(340px,calc(100vw - 28px));min-height:52px;border-radius:999px;background:linear-gradient(135deg,var(--qb-accent),#c94708);color:#fff;box-shadow:0 14px 30px rgba(65,28,8,.3)}.qb-mobile-capture:hover{transform:translateX(-50%)}.qb-camera-dialog{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}.qb-camera-frame{height:100%;display:flex;flex-direction:column}.qb-camera-frame video{flex:1;max-height:none}.qb-quote-photo-head{align-items:flex-start;flex-direction:column}.qb-quote-photo-head button{width:100%}}
+@media(max-width:760px){body{padding-bottom:76px}.top{min-height:60px;padding:9px 12px}.brand h1{font-size:17px}.brand small{display:none}main{padding:10px 10px 30px}.boundary{font-size:12px}.hero{padding:18px}.hero .actions{justify-content:flex-start}.panel{padding:13px}.qb-camera-panel{padding:13px}.qb-camera-actions button{flex:1}.qb-photo-queue,.qb-saved-photos{grid-template-columns:repeat(2,minmax(0,1fr))}.qb-mobile-capture{display:block;position:fixed;left:50%;bottom:14px;z-index:35;transform:translateX(-50%);width:min(340px,calc(100vw - 28px));min-height:52px;border-radius:999px;background:linear-gradient(135deg,var(--qb-accent),#c94708);color:#fff;box-shadow:0 14px 30px rgba(65,28,8,.3)}.qb-mobile-capture:hover{transform:translateX(-50%)}.qb-camera-dialog{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}.qb-camera-frame{height:100%;display:flex;flex-direction:column}.qb-camera-frame video{flex:1;max-height:none}.qb-camera-bottom{align-items:flex-start;flex-direction:column}.qb-camera-actions-dialog{width:100%}.qb-camera-actions-dialog button{flex:1}.qb-quote-photo-head{align-items:flex-start;flex-direction:column}.qb-quote-photo-head button{width:100%}}
 </style>
 <script>
 (function(){
@@ -37,26 +37,73 @@ const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
 
 function ensureCameraUi(){
   if(!$('qbCameraDialog')){
-    document.body.insertAdjacentHTML('beforeend','<dialog id="qbCameraDialog" class="qb-camera-dialog"><div class="qb-camera-frame"><div class="qb-camera-top"><h2>Take a quote picture</h2><button class="qb-camera-close" type="button" id="qbCameraClose">Close</button></div><video id="qbCameraVideo" autoplay playsinline muted></video><canvas id="qbCameraCanvas" hidden></canvas><div class="qb-camera-bottom"><span class="qb-camera-help">The picture stays private and is attached only to the selected quote.</span><button class="qb-camera-shutter" type="button" id="qbCameraShutter">Capture Picture</button></div></div></dialog>');
+    document.body.insertAdjacentHTML('beforeend','<dialog id="qbCameraDialog" class="qb-camera-dialog"><div class="qb-camera-frame"><div class="qb-camera-top"><h2>Take a quote picture</h2><button class="qb-camera-close" type="button" id="qbCameraClose">Close</button></div><div id="qbCameraStatus" class="qb-camera-status">Requesting camera access…</div><video id="qbCameraVideo" autoplay playsinline muted></video><canvas id="qbCameraCanvas" hidden></canvas><div class="qb-camera-bottom"><span class="qb-camera-help">Pictures remain private and attach only to the selected quote.</span><div class="qb-camera-actions-dialog"><button class="qb-camera-file" type="button" id="qbCameraFile">Choose Image</button><button class="qb-camera-retry" type="button" id="qbCameraRetry">Retry Camera</button><button class="qb-camera-shutter" type="button" id="qbCameraShutter" disabled>Capture Picture</button></div></div></div></dialog>');
     $('qbCameraClose').addEventListener('click',closeCamera);
     $('qbCameraShutter').addEventListener('click',captureFrame);
+    $('qbCameraRetry').addEventListener('click',startCameraStream);
+    $('qbCameraFile').addEventListener('click',chooseImageFile);
     $('qbCameraDialog').addEventListener('cancel',event=>{event.preventDefault();closeCamera()});
   }
   if(!fallbackInput){
     fallbackInput=document.createElement('input');fallbackInput.type='file';fallbackInput.accept='image/*';fallbackInput.setAttribute('capture','environment');fallbackInput.hidden=true;
-    fallbackInput.addEventListener('change',()=>{const files=Array.from(fallbackInput.files||[]);fallbackInput.value='';handleCapturedFiles(files)});
+    fallbackInput.addEventListener('change',()=>{const files=Array.from(fallbackInput.files||[]);fallbackInput.value='';if(files.length)handleCapturedFiles(files)});
     document.body.appendChild(fallbackInput);
   }
 }
-function stopStream(){if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null}}
+function setCameraStatus(message,bad){
+  const status=$('qbCameraStatus');
+  if(status){status.textContent=message;status.classList.toggle('bad',!!bad)}
+}
+function setCameraReady(ready){
+  const shutter=$('qbCameraShutter');
+  if(shutter)shutter.disabled=!ready;
+}
+function stopStream(){
+  if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null}
+  const video=$('qbCameraVideo');
+  if(video)video.srcObject=null;
+  setCameraReady(false);
+}
 function closeCamera(){stopStream();const dialog=$('qbCameraDialog');if(dialog&&dialog.open)dialog.close()}
+function chooseImageFile(){stopStream();const dialog=$('qbCameraDialog');if(dialog&&dialog.open)dialog.close();fallbackInput.click()}
+async function requestCameraStream(){
+  const media=navigator.mediaDevices;
+  if(!media||typeof media.getUserMedia!=='function')throw new Error('This browser did not expose camera access.');
+  const constraints=[
+    {video:{facingMode:{ideal:'environment'}},audio:false},
+    {video:true,audio:false}
+  ];
+  let lastError=null;
+  for(const constraint of constraints){
+    try{return await media.getUserMedia(constraint)}catch(error){lastError=error}
+  }
+  throw lastError||new Error('Camera access failed.');
+}
+async function startCameraStream(){
+  stopStream();
+  setCameraStatus('Requesting camera access…',false);
+  try{
+    cameraStream=await requestCameraStream();
+    const video=$('qbCameraVideo');
+    video.srcObject=cameraStream;
+    await Promise.resolve(video.play());
+    setCameraReady(true);
+    setCameraStatus('Camera ready. Frame the picture and press Capture Picture.',false);
+  }catch(error){
+    stopStream();
+    const name=error&&error.name||'';
+    const message=name==='NotAllowedError'||name==='SecurityError'
+      ?'Camera access is blocked. Allow camera access for this Apps Script page, then press Retry Camera. Choose Image remains available as a manual fallback.'
+      :'The webcam could not start. Press Retry Camera, or deliberately choose an existing image.';
+    setCameraStatus(message,true);
+    console.warn('H38_QB_CAMERA_START_FAILED',{name:name,message:error&&error.message||String(error)});
+  }
+}
 async function openCamera(target,quoteId){
   ensureCameraUi();cameraTarget=target||'draft';currentQuoteId=quoteId||currentQuoteId||'';
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){fallbackInput.click();return}
-  try{
-    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    $('qbCameraVideo').srcObject=cameraStream;$('qbCameraDialog').showModal();
-  }catch(error){stopStream();fallbackInput.click()}
+  const dialog=$('qbCameraDialog');
+  if(dialog&&!dialog.open)dialog.showModal();
+  await startCameraStream();
 }
 async function captureFrame(){
   const video=$('qbCameraVideo'),canvas=$('qbCameraCanvas');
