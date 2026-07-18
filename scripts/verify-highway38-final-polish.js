@@ -36,11 +36,14 @@ vm.createContext(context);
 vm.runInContext(read('catalog-data.js'), context, { filename: 'catalog-data.js' });
 const catalog = context.window.H38_CATALOG;
 
-check('homepage headline is approved', /<h1>Big problems\.<span>Clear plans\.<\/span><\/h1>/.test(index));
-check('homepage has dominant outcome-first request CTA', index.includes('href="start-request.html">Start a Request') && index.includes('h38-outcome-grid'));
-check('homepage has finished examples secondary CTA', index.includes('href="sample-library-now.html">See Examples'));
+check('homepage headline is approved', /<h1>\s*<span>Big problems\.<\/span>\s*<strong>Clear plans\.<\/strong>\s*<\/h1>/i.test(index));
+check('homepage has dominant outcome-first request CTA', /href="start-request\.html"[^>]*>\s*Start a Request/i.test(index) && index.includes('outcome-card'));
+check('homepage has finished examples secondary CTA', /href="sample-library-now\.html"[^>]*>\s*See Examples/i.test(index));
 check('homepage explains no charge on request', /Submitting a request creates no charge\./i.test(index));
-check('homepage explains remote service', /completed remotely/i.test(index));
+check('homepage uses real responsive navigation and sections', index.includes('class="site-header"') && index.includes('class="menu-button"') && index.includes('class="hero"'));
+check('homepage removes raster hotspot shell and swipe notice', !/class="[^"]*hotspot|approved-home__stage|Swipe horizontally/i.test(index));
+check('homepage keeps text and controls outside the approved hero image', index.includes('class="hero-copy"') && index.includes('class="hero-media"') && index.includes('assets/approved-homepage-mockup.png'));
+check('homepage includes the four approved outcome paths', (index.match(/class="outcome-card"/g) || []).length === 4);
 check('prohibited quantitative CNC claim removed', !/(?:25,000\+|25,000\s+(?:CNC\s+)?programs?)/i.test(index));
 check('homepage contains no personal owner attribution', !/Rick\s+Krueth/i.test(index));
 
