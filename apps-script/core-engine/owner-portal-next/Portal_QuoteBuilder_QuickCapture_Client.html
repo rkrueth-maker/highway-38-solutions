@@ -1,0 +1,33 @@
+(function(){
+'use strict';
+function enabled(){return window.H38_QB_ADDON_ENABLED===true&&window.H38_UNIFIED&&H38_UNIFIED.serviceUrl}
+function quickQuoteUrl(){
+  var url=new URL(H38_UNIFIED.serviceUrl);
+  url.search='';url.hash='';
+  url.searchParams.set('app','business-office');
+  url.searchParams.set('quoteBuilder','1');
+  url.searchParams.set('view','quick');
+  url.searchParams.set('from','business-office');
+  url.searchParams.set('returnUrl',location.href);
+  return url.toString();
+}
+function install(){
+  if(!enabled())return false;
+  var top=document.getElementById('ownerTopbar');
+  if(!top)return false;
+  if(document.getElementById('h38QuickQuoteButton'))return true;
+  var button=document.createElement('button');
+  button.id='h38QuickQuoteButton';
+  button.type='button';
+  button.className='btn primary';
+  button.textContent='🎙️📷 Quick Quote';
+  button.title='Open a new quote, start the camera, and capture spoken field notes';
+  button.addEventListener('click',function(){location.assign(quickQuoteUrl())});
+  var quickCreate=document.getElementById('quickCreate');
+  if(quickCreate&&quickCreate.parentNode===top)top.insertBefore(button,quickCreate);
+  else top.appendChild(button);
+  return true;
+}
+var attempts=0;var timer=setInterval(function(){attempts+=1;if(install()||attempts>120)clearInterval(timer)},50);
+new MutationObserver(function(){install()}).observe(document.documentElement,{childList:true,subtree:true});
+})();

@@ -1,0 +1,127 @@
+<style>
+.qb-field-assistant{grid-column:1/-1;margin-top:14px;padding:16px;border:2px solid #8fb4cf;border-radius:14px;background:linear-gradient(135deg,#f5fbff,#e9f4fb);box-shadow:0 8px 22px rgba(23,58,94,.08)}
+.qb-field-assistant-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.qb-field-assistant h3{margin:0;color:var(--navy)}.qb-field-assistant p{margin:5px 0 0;color:var(--muted);line-height:1.45}.qb-field-assistant-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;margin-top:13px;align-items:end}.qb-field-assistant textarea{min-height:110px}.qb-field-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.qb-field-status{margin-top:9px;min-height:20px;font-size:12px;font-weight:800;color:var(--navy)}
+.qb-voice-active{background:#8f1d1d!important;color:#fff!important;box-shadow:0 0 0 4px rgba(143,29,29,.14)}
+.qb-quick-quote-trigger{position:fixed;right:18px;bottom:18px;z-index:34;min-height:54px;border-radius:999px;padding:12px 20px;background:linear-gradient(135deg,var(--qb-accent),#c94708);color:#fff;box-shadow:0 14px 30px rgba(65,28,8,.3)}
+@media(max-width:760px){.qb-field-assistant-grid{grid-template-columns:1fr}.qb-field-actions{justify-content:flex-start}.qb-field-actions button{flex:1}.qb-quick-quote-trigger{left:14px;right:14px;bottom:14px;width:calc(100% - 28px)}body:has(#project) .qb-mobile-capture{display:none}}
+</style>
+<script>
+(function(){
+'use strict';
+let recognition=null;
+let voiceBase='';
+let installed=false;
+let quickLaunchHandled=false;
+const $=id=>document.getElementById(id);
+const call=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
+const clean=value=>String(value==null?'':value).trim();
+const toast=(message,bad)=>{const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5200)};
+
+function fieldStatus(message,bad){const node=$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
+function pictureNames(){return Array.from(document.querySelectorAll('#qbPendingPhotos .qb-photo-meta strong')).map(node=>clean(node.textContent)).filter(Boolean)}
+function recognitionConstructor(){return window.SpeechRecognition||window.webkitSpeechRecognition||null}
+function stopSpeaking(){if(recognition){try{recognition.stop()}catch(error){}recognition=null}const button=$('qbSpeakStart');if(button)button.classList.remove('qb-voice-active')}
+function startSpeaking(){
+  const Ctor=recognitionConstructor();
+  if(!Ctor){fieldStatus('Speech recognition is not available in this browser. Type the field notes instead.',true);return}
+  stopSpeaking();
+  const notes=$('qbFieldNarration');
+  voiceBase=clean(notes&&notes.value);
+  recognition=new Ctor();
+  recognition.lang='en-US';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.onstart=function(){const button=$('qbSpeakStart');if(button)button.classList.add('qb-voice-active');fieldStatus('Listening… describe the work, quantities, materials, and anything the customer requested.',false)};
+  recognition.onresult=function(event){
+    let finalText='';let interim='';
+    for(let index=event.resultIndex;index<event.results.length;index++){
+      const text=event.results[index][0]&&event.results[index][0].transcript||'';
+      if(event.results[index].isFinal)finalText+=text+' ';else interim+=text;
+    }
+    if(finalText)voiceBase=clean([voiceBase,finalText].filter(Boolean).join(' '));
+    if(notes)notes.value=clean([voiceBase,interim].filter(Boolean).join(' '));
+  };
+  recognition.onerror=function(event){fieldStatus(event.error==='not-allowed'?'Microphone access is blocked. Allow microphone access for this page, then press Start Speaking again.':'Speech recognition stopped. You can retry or type the notes.',true);stopSpeaking()};
+  recognition.onend=function(){const button=$('qbSpeakStart');if(button)button.classList.remove('qb-voice-active');recognition=null;if($('qbFieldNarration')&&clean($('qbFieldNarration').value))fieldStatus('Voice notes captured. Add pictures or build the draft.',false)};
+  try{recognition.start()}catch(error){fieldStatus('The microphone could not start. Try again or type the notes.',true);stopSpeaking()}
+}
+
+function applySuggestions(details){
+  const suggestions=Array.isArray(details.suggestedLines)?details.suggestedLines:[];
+  if(!suggestions.length)return 0;
+  suggestions.forEach(function(line){
+    window.qbAddLine({catalogId:line.catalogId||'',description:line.description||line.catalogId||'Review item',quantity:1,unit:line.unit||'each',rate:line.rate||0,discount:0,taxable:false,taxRate:0,notes:'AI-staged Price Book match; owner review required.'});
+  });
+  if(typeof window.qbRemoveLine==='function')window.qbRemoveLine(0);
+  return suggestions.length;
+}
+
+async function buildFieldDraft(){
+  stopSpeaking();
+  const customer=$('customer'),project=$('project'),scope=$('scope'),internal=$('internalNotes'),notes=$('qbFieldNarration');
+  const customerId=customer&&customer.value||'';
+  const narration=clean(notes&&notes.value);
+  const photos=pictureNames();
+  if(!customerId){fieldStatus('Choose the customer before building the draft.',true);if(customer)customer.focus();return}
+  if(!narration&&!photos.length){fieldStatus('Speak or type field notes, or take at least one picture.',true);return}
+  fieldStatus('Matching your field notes to the Price Book…',false);
+  const button=$('qbBuildFieldDraft');if(button)button.disabled=true;
+  try{
+    const staged=await call('prepareAiQuoteDraft',{payload:{customerId:customerId,projectTitle:clean(project&&project.value)||'Field quote',notes:narration,photos:photos}});
+    let details={};try{details=JSON.parse(staged&&staged.Details||'{}')}catch(error){details={}}
+    if(project&&!clean(project.value))project.value=clean(staged&&staged.Summary)||'Field quote';
+    if(scope&&narration)scope.value=clean([scope.value,narration].filter(Boolean).join('\n\n'));
+    if(internal)internal.value=clean([internal.value,'Voice/photo field capture staged for owner review.',photos.length?('Pictures queued: '+photos.join(', ')):''].filter(Boolean).join('\n'));
+    const count=applySuggestions(details);
+    fieldStatus((count?count+' Price Book match'+(count===1?'':'es')+' added. ':'No automatic Price Book match was found. ')+'Review quantities, scope, and pricing, then save the internal draft.',false);
+    toast('Field quote draft prepared. Nothing was approved or sent.');
+    const firstDescription=document.querySelector('#lines .description input');if(firstDescription)firstDescription.focus();
+  }catch(error){fieldStatus('Draft generation stopped: '+(error&&error.message||String(error)),true)}finally{if(button)button.disabled=false}
+}
+
+function assistantMarkup(){return '<section id="qbFieldAssistant" class="qb-field-assistant"><div class="qb-field-assistant-head"><div><h3>Talk + Pictures Quote</h3><p>Describe the job, take pictures, and stage Price Book matches. The result remains an internal draft until you review and save it.</p></div></div><div class="qb-field-assistant-grid"><label>Field description<textarea id="qbFieldNarration" placeholder="Example: Replace three damaged deck boards, tighten the loose railing, use treated lumber, customer wants the work completed before Friday."></textarea></label><div class="qb-field-actions"><button type="button" id="qbSpeakStart">🎙️ Start Speaking</button><button type="button" id="qbSpeakStop">Stop</button><button type="button" id="qbFieldTakePicture" class="camera-action">📷 Take Picture</button><button type="button" id="qbBuildFieldDraft" class="primary">✨ Build Draft</button></div></div><div id="qbFieldStatus" class="qb-field-status">Choose a customer, then speak and take pictures.</div></section>'}
+function injectAssistant(){
+  const form=document.querySelector('#qbContent form');
+  if(!form||!$('project')||$('qbFieldAssistant'))return;
+  const camera=$('qbQuotePhotoPanel');
+  if(camera)camera.insertAdjacentHTML('beforebegin',assistantMarkup());else{const grid=form.querySelector('.form-grid');if(grid)grid.insertAdjacentHTML('afterend',assistantMarkup());else form.prepend(document.createRange().createContextualFragment(assistantMarkup()))}
+  $('qbSpeakStart').addEventListener('click',startSpeaking);
+  $('qbSpeakStop').addEventListener('click',stopSpeaking);
+  $('qbFieldTakePicture').addEventListener('click',function(){if(typeof window.qbCameraTakeForDraft==='function')window.qbCameraTakeForDraft()});
+  $('qbBuildFieldDraft').addEventListener('click',buildFieldDraft);
+}
+function installQuickButton(){
+  if($('qbQuickQuoteTrigger'))return;
+  const button=document.createElement('button');button.id='qbQuickQuoteTrigger';button.type='button';button.className='qb-quick-quote-trigger';button.textContent='🎙️📷 Quick Quote';button.title='Open a new quote, speak the job, and take pictures';button.addEventListener('click',function(){window.qbQuickQuoteStart({camera:true})});document.body.appendChild(button);
+}
+function waitForNewQuote(){return new Promise(function(resolve,reject){let attempts=0;const timer=setInterval(function(){attempts+=1;if($('project')&&$('customer')){clearInterval(timer);resolve()}else if(attempts>120){clearInterval(timer);reject(new Error('The new quote form did not open.'))}},50)})}
+window.qbQuickQuoteStart=async function(options){
+  options=options||{};
+  stopSpeaking();
+  await window.qbOpen('new');
+  await waitForNewQuote();
+  injectAssistant();
+  $('qbFieldNarration')&&$('qbFieldNarration').focus();
+  if(options.camera!==false&&typeof window.qbCameraTakeForDraft==='function')setTimeout(function(){window.qbCameraTakeForDraft()},80);
+};
+function maybeHandleQuickLaunch(){
+  if(quickLaunchHandled)return;
+  const params=new URLSearchParams(location.search);
+  if(params.get('view')!=='quick')return;
+  quickLaunchHandled=true;
+  setTimeout(function(){window.qbQuickQuoteStart({camera:true}).catch(function(error){toast(error.message||String(error),true)})},100);
+}
+function polish(){injectAssistant();installQuickButton();maybeHandleQuickLaunch()}
+function install(){
+  if(installed||typeof window.qbOpen!=='function')return false;
+  installed=true;
+  const baseOpen=window.qbOpen;
+  window.qbOpen=async function(){const result=await baseOpen.apply(this,arguments);setTimeout(polish,0);return result};
+  new MutationObserver(function(){setTimeout(polish,0)}).observe($('qbContent'),{childList:true,subtree:true});
+  polish();
+  return true;
+}
+let attempts=0;const timer=setInterval(function(){attempts+=1;if(install()||attempts>120)clearInterval(timer)},50);
+window.addEventListener('beforeunload',stopSpeaking);
+})();
+</script>
