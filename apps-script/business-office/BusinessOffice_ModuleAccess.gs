@@ -34,10 +34,10 @@ function boGuardApiRequest_(action, args) {
   if (action === 'uxWorkspace') modules.push(args.module);
   if (action === 'uxPipeline') modules.push(args.type === 'sales' ? 'quotes' : 'jobs');
   if (action === 'createCustomerFromRequest') modules.push('requests','customers');
-  if (/^(createQuote|createQuoteFast|reviseQuote|duplicateQuote|quoteBuilderDirectBootstrap|quoteBuilderCustomers|quoteBuilderDocuments|quoteBuilderQuoteDetails|quoteBuilderPerformance|quoteBuilderDashboard|quoteBuilderPriceBook|quoteBuilderTemplates|prepareAiQuoteDraft|quoteBuilderPackage)$/.test(action)) modules.push('quotes');
+  if (/^(createQuote|createQuoteFast|reviseQuote|duplicateQuote|quoteBuilderDirectBootstrap|quoteBuilderCustomers|quoteBuilderDocuments|quoteBuilderQuoteDetails|quoteBuilderQuoteDocuments|quoteBuilderLastCreatedQuote|saveQuotePhoto|quoteBuilderPerformance|quoteBuilderDashboard|quoteBuilderPriceBook|quoteBuilderTemplates|prepareAiQuoteDraft|quoteBuilderPackage)$/.test(action)) modules.push('quotes');
   if (/^(quoteBuilderCustomers)$/.test(action)) modules.push('customers');
   if (/^(quoteBuilderPriceBook)$/.test(action)) modules.push('setup');
-  if (/^(quoteBuilderTemplates|quoteBuilderDocuments)$/.test(action)) modules.push('documents');
+  if (/^(quoteBuilderTemplates|quoteBuilderDocuments|quoteBuilderQuoteDocuments|saveQuotePhoto)$/.test(action)) modules.push('documents');
   if (action === 'approve') modules.push('approvals', boModuleFromRecordType_(args.recordType));
   if (action === 'quoteToJob') modules.push('quotes','workOrders','jobs');
   if (action === 'jobToInvoice') modules.push('jobs','invoices');
