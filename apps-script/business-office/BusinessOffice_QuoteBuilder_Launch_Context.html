@@ -1,0 +1,71 @@
+<script>
+(function(){
+'use strict';
+var params=new URLSearchParams(location.search);
+var requestedView=params.get('view')||'';
+var customerId=params.get('customerId')||'';
+var quoteId=params.get('quoteId')||'';
+var returnUrl=params.get('returnUrl')||'';
+var launchHandled=false;
+var baseOpen=window.qbOpen;
+
+function businessOfficeReturnUrl(){
+  if(returnUrl){
+    try{
+      var configured=new URL(returnUrl);
+      configured.search='';
+      configured.hash='module=today';
+      return configured.toString();
+    }catch(error){}
+  }
+  var url=new URL(location.href);
+  ['app','quoteBuilder','view','customerId','quoteId','from','returnUrl','v'].forEach(function(key){url.searchParams.delete(key);});
+  url.hash='module=today';
+  return url.toString();
+}
+
+function patchReturnAction(){
+  var button=document.querySelector('#qbNav .full-system button');
+  if(!button)return;
+  button.textContent='Business Office';
+  button.title='Return to the Business Office';
+  button.onclick=function(){location.assign(businessOfficeReturnUrl());};
+}
+
+function selectLaunchCustomer(){
+  if(!customerId)return;
+  var attempts=0;
+  var timer=setInterval(function(){
+    attempts+=1;
+    var select=document.getElementById('customer');
+    if(select){
+      select.value=customerId;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      clearInterval(timer);
+    }else if(attempts>80)clearInterval(timer);
+  },25);
+}
+
+window.qbOpen=async function(view){
+  if(!launchHandled){
+    launchHandled=true;
+    if(quoteId){
+      document.getElementById('qbContent').innerHTML='<div class="panel loading-card">Opening selected quote…</div>';
+      return new Promise(function(resolve,reject){
+        setTimeout(function(){
+          Promise.resolve(window.qbDetails(quoteId)).then(resolve,reject);
+        },100);
+      });
+    }
+    if(requestedView==='new')view='new';
+  }
+  var result=await baseOpen.call(this,view);
+  if(view==='new')selectLaunchCustomer();
+  patchReturnAction();
+  return result;
+};
+
+new MutationObserver(function(){patchReturnAction();}).observe(document.getElementById('qbNav'),{childList:true,subtree:true});
+patchReturnAction();
+})();
+</script>
