@@ -31,15 +31,15 @@ need('public-expansion.js','Owner Login','one public owner-access label');
 check('draft offers excluded from primary public navigation',!publicExpansion.includes('["services"')&&!publicExpansion.includes('["business-os"'));
 
 const home=read('index.html');
-need('index.html','h38-home-hero','homepage uses approved split hero');
+need('index.html','class="approved-home"','homepage uses the exact approved visual shell');
 need('index.html','Big problems.','homepage preserves primary promise');
 need('index.html','Clear plans.','homepage preserves primary promise completion');
 need('index.html','Plans, workflows, and business systems built around the real problem.','homepage uses approved specific supporting line');
-need('index.html','h38-outcome-grid','homepage routes by outcome');
-need('index.html','h38-trust-strip','homepage shows buying assurances');
-need('index.html','homepage-hero-garage-workspace.webp','homepage uses approved representative image');
+need('index.html','assets/approved-homepage-mockup.png','homepage uses the exact approved PNG');
+check('approved homepage keeps accessible navigation hotspots',['hs-logo','hs-home','hs-solutions','hs-examples','hs-proof','hs-about','hs-portal','hs-request-top','hs-request-hero','hs-examples-hero'].every(marker=>home.includes(marker)));
+check('approved homepage preserves the full lower page',home.includes('class="full-home-body"')&&home.includes('Solutions and pricing')&&home.includes('How it works')&&home.includes('Practical experience'));
 check('unsupported On Time On Point claim absent',!home.includes('On Time. On Point.'));
-check('representative hero image remains classified',home.includes('data-image-classification="representative-environment"')&&home.includes('Representative planning environment—not customer proof.'));
+check('representative imagery remains classified',home.includes('data-image-classification="representative-environment"')&&home.includes('Representative planning environment, not customer proof.'));
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
@@ -82,7 +82,7 @@ const raw=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js'
 check('Owner one-shot styles included',portalIndex.includes('Portal_OneShot_UX_Styles')&&raw.includes('Portal_OneShot_UX_Styles'));
 check('Owner one-shot client included',portalIndex.includes('Portal_OneShot_Client')&&raw.includes('Portal_OneShot_Client'));
 const owner=read('apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html');
-['Needs decision','Due today','Overdue','Money requiring attention','Next up',"Today\\'s calendar",'Recent activity'].forEach(marker=>check(`Owner Today marker ${marker}`,owner.includes(marker)));
+['Needs decision','Due today','Overdue','Money requiring attention','Next up',"Today\'s calendar",'Recent activity'].forEach(marker=>check(`Owner Today marker ${marker}`,owner.includes(marker)));
 check('Owner uses four primary metrics',(owner.match(/h38RoleMetric\(/g)||[]).length===4);
 check('Owner holds and errors are conditional alert',owner.includes('h38OwnerAttentionStrip')&&owner.includes("if(!holdCount)return ''"));
 check('Owner Next Up distinguishes waiting state',['Assigned to me','Waiting on customer','Waiting on another user','Blocked'].every(marker=>owner.includes(marker)));
