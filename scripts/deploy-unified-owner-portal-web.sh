@@ -53,13 +53,15 @@ cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$PROJEC
 
 python3 - "$PROJECT/Portal_Services.js" "$PROJECT/BusinessOffice_Web.gs" <<'PY'
 from pathlib import Path
+import re
 import sys
-portal=Path(sys.argv[1]);business=Path(sys.argv[2]);portal_text=portal.read_text();needle="function doGet(e) {\n  h38PortalRequireUnifiedUser_();";replacement="function doGet(e) {\n  if (e && e.parameter && e.parameter.app === 'business-office') {\n    boGetCurrentUser_();\n    return boRenderWebApp_();\n  }\n  h38PortalRequireUnifiedUser_();"
+portal=Path(sys.argv[1]);business=Path(sys.argv[2]);portal_text=portal.read_text();needle="function doGet(e) {\n  h38PortalRequireUnifiedUser_();";replacement="function doGet(e) {\n  if (e && e.parameter && e.parameter.app === 'business-office') {\n    if (e.parameter.quoteBuilder === '1') return boRenderQuoteBuilderApp_();\n    boGetCurrentUser_();\n    return boRenderWebApp_();\n  }\n  h38PortalRequireUnifiedUser_();"
 if needle not in portal_text: raise SystemExit('Unified user doGet router marker not found')
 portal_text=portal_text.replace(needle,replacement,1);render=".setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME);";embed=".setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);"
 if render not in portal_text: raise SystemExit('Owner Portal render marker not found')
 portal.write_text(portal_text.replace(render,embed,1));business_text=business.read_text()
-if 'function doGet() {' in business_text: business_text=business_text.replace('function doGet() {','function boBusinessOfficeDoGet_() {',1)
+business_text,count=re.subn(r'function\s+doGet\s*\(([^)]*)\)\s*\{',r'function boBusinessOfficeDoGet_(\1) {',business_text,count=1)
+if count != 1: raise SystemExit('Business Office doGet rename marker not found')
 if '.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)' not in business_text: raise SystemExit('Business Office embedding boundary is missing')
 business.write_text(business_text)
 PY
@@ -78,6 +80,9 @@ REQUIRED_BUSINESS_FILES=(
   BusinessOffice_Config.gs
   BusinessOffice_Core.gs
   BusinessOffice_ModuleAccess.gs
+  BusinessOffice_QuoteBuilder_Direct.gs
+  BusinessOffice_QuoteBuilder_Index.html
+  BusinessOffice_QuoteBuilder_Direct_Client.html
   BusinessOffice_UX.gs
   BusinessOffice_Web.gs
 )
@@ -87,6 +92,8 @@ done
 grep -F "function boGetCurrentUser_()" "$PROJECT/BusinessOffice_Auth.gs" >/dev/null
 grep -F "function boGetActiveEmail_()" "$PROJECT/BusinessOffice_Auth.gs" >/dev/null
 grep -F "e.parameter.app === 'business-office'" "$PROJECT/Portal_Services.js" >/dev/null
+grep -F "e.parameter.quoteBuilder === '1'" "$PROJECT/Portal_Services.js" >/dev/null
+grep -F "boRenderQuoteBuilderApp_()" "$PROJECT/Portal_Services.js" >/dev/null
 grep -F "h38PortalRequireUnifiedUser_" "$PROJECT/Portal_Services.js" >/dev/null
 grep -F "packId:'highway38'" "$PROJECT/BusinessOffice_00_Pack.gs" >/dev/null
 
@@ -106,23 +113,25 @@ REMOTE_AUTH="$(find_remote_source BusinessOffice_Auth)"
 REMOTE_CONFIG="$(find_remote_source BusinessOffice_Config)"
 REMOTE_CORE="$(find_remote_source BusinessOffice_Core)"
 REMOTE_GATE="$(find_remote_source BusinessOffice_ModuleAccess)"
+REMOTE_QB_DIRECT="$(find_remote_source BusinessOffice_QuoteBuilder_Direct)"
 REMOTE_UX="$(find_remote_source BusinessOffice_UX)"
 REMOTE_WEB="$(find_remote_source BusinessOffice_Web)"
-for remote_file in "$REMOTE_AUTH" "$REMOTE_CONFIG" "$REMOTE_CORE" "$REMOTE_GATE" "$REMOTE_UX" "$REMOTE_WEB"; do
+for remote_file in "$REMOTE_AUTH" "$REMOTE_CONFIG" "$REMOTE_CORE" "$REMOTE_GATE" "$REMOTE_QB_DIRECT" "$REMOTE_UX" "$REMOTE_WEB"; do
   test -n "$remote_file" && test -f "$remote_file" || { echo 'HOLD — required Business Office source did not reach the remote Apps Script project.'; exit 7; }
 done
 grep -F "function boGetCurrentUser_()" "$REMOTE_AUTH" >/dev/null
 grep -F "function boGetActiveEmail_()" "$REMOTE_AUTH" >/dev/null
-printf 'PASS — remote Apps Script source includes Business Office authentication and core modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
+grep -F "function boRenderQuoteBuilderApp_()" "$REMOTE_QB_DIRECT" >/dev/null
+printf 'PASS — remote Apps Script source includes Business Office authentication, direct Quote Builder routing, and core modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
 
 (cd "$PROJECT" && clasp deploy -i "$OWNER_DEPLOYMENT_ID" -d "Highway 38 unified application ${GITHUB_SHA}" && clasp deploy -i "$BUSINESS_OFFICE_DEPLOYMENT_ID" -d "Highway 38 unified application ${GITHUB_SHA}" && clasp list-deployments) 2>&1 | tee "$EVIDENCE/deployments-after.txt"
 grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null;grep -F "$BUSINESS_OFFICE_DEPLOYMENT_ID" "$EVIDENCE/deployments-after.txt" >/dev/null
-OWNER_URL="https://script.google.com/macros/s/${OWNER_DEPLOYMENT_ID}/exec";BUSINESS_URL="https://script.google.com/macros/s/${BUSINESS_OFFICE_DEPLOYMENT_ID}/exec?app=business-office"
-printf '%s' "$OWNER_URL" > "$EVIDENCE/owner-portal-url.txt";printf '%s' "$BUSINESS_URL" > "$EVIDENCE/business-office-url.txt"
-OWNER_STATUS="$(curl -L -sS -o "$EVIDENCE/owner-response.html" -w '%{http_code}' "$OWNER_URL" || true)";BUSINESS_STATUS="$(curl -L -sS -o "$EVIDENCE/business-response.html" -w '%{http_code}' "$BUSINESS_URL" || true)"
-printf '%s' "$OWNER_STATUS" > "$EVIDENCE/owner-http-status.txt";printf '%s' "$BUSINESS_STATUS" > "$EVIDENCE/business-http-status.txt";test "$OWNER_STATUS" != "404";test "$BUSINESS_STATUS" != "404"
-! grep -F "ReferenceError: boGetCurrentUser_ is not defined" "$EVIDENCE/owner-response.html" "$EVIDENCE/business-response.html"
+OWNER_URL="https://script.google.com/macros/s/${OWNER_DEPLOYMENT_ID}/exec";BUSINESS_URL="https://script.google.com/macros/s/${BUSINESS_OFFICE_DEPLOYMENT_ID}/exec?app=business-office";QUOTE_BUILDER_URL="${BUSINESS_URL}&quoteBuilder=1"
+printf '%s' "$OWNER_URL" > "$EVIDENCE/owner-portal-url.txt";printf '%s' "$BUSINESS_URL" > "$EVIDENCE/business-office-url.txt";printf '%s' "$QUOTE_BUILDER_URL" > "$EVIDENCE/quote-builder-url.txt"
+OWNER_STATUS="$(curl -L -sS -o "$EVIDENCE/owner-response.html" -w '%{http_code}' "$OWNER_URL" || true)";BUSINESS_STATUS="$(curl -L -sS -o "$EVIDENCE/business-response.html" -w '%{http_code}' "$BUSINESS_URL" || true)";QUOTE_BUILDER_STATUS="$(curl -L -sS -o "$EVIDENCE/quote-builder-response.html" -w '%{http_code}' "$QUOTE_BUILDER_URL" || true)"
+printf '%s' "$OWNER_STATUS" > "$EVIDENCE/owner-http-status.txt";printf '%s' "$BUSINESS_STATUS" > "$EVIDENCE/business-http-status.txt";printf '%s' "$QUOTE_BUILDER_STATUS" > "$EVIDENCE/quote-builder-http-status.txt";test "$OWNER_STATUS" != "404";test "$BUSINESS_STATUS" != "404";test "$QUOTE_BUILDER_STATUS" != "404"
+! grep -F "ReferenceError: boGetCurrentUser_ is not defined" "$EVIDENCE/owner-response.html" "$EVIDENCE/business-response.html" "$EVIDENCE/quote-builder-response.html"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
-{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"businessOfficeAuthVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false,"taskAssignmentEnabled":true,"messagingPreparationEnabled":true,"smsProviderReleaseRequired":true}
+{"status":"PASS","sourceCommit":"${GITHUB_SHA}","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"embeddedOwnerPortal":true,"embeddedBusinessOffice":true,"directQuoteBuilder":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"businessOfficeAuthVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false,"taskAssignmentEnabled":true,"messagingPreparationEnabled":true,"smsProviderReleaseRequired":true}
 JSON
 cat "$EVIDENCE/deployment-result.json"
