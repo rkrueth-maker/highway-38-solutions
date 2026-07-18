@@ -68,6 +68,17 @@ jobs:
         run: |
           BODY="Unified Highway 38 Business System production deployment started for commit ${GITHUB_SHA}. Existing Apps Script project and deployment IDs will be updated in place only after source, authentication, routing, approval, and remote-source checks pass. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          STATUS="$RUNNER_TEMP/unified-owner-portal-running.md"
+          cat > "$STATUS" <<EOF
+          ## RUNNING — Unified Owner Portal production deployment
+
+          - Source commit: ${GITHUB_SHA}
+          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - Target: existing Apps Script project and existing deployment IDs only
+          - New project or deployment: none
+          - External actions: locked
+          EOF
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Unified Owner Portal deployment RUNNING" --body-file "$STATUS"
 
       - name: Install and verify isolated Apps Script deployment tool
         id: dependencies
@@ -203,7 +214,7 @@ jobs:
         run: |
           REPORT="$RUNNER_TEMP/unified-owner-portal-pass.md"
           cat > "$REPORT" <<EOF
-          ## Unified Highway 38 Business System deployed
+          ## PASS — Unified Highway 38 Business System deployed
 
           - Source commit: ${GITHUB_SHA}
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
@@ -214,15 +225,15 @@ jobs:
           - Customer Portal RLS, account mapping, private storage, signed downloads, and version-checked quote approval: PASS
           - Seven workspaces: Today, Customers, Work, Money, Documents, Growth, Control
           - Module Manager, setup wizard, Approval Center, customer/job workspaces, role dashboards, calendar, users, backups, mobile navigation, and command launcher: PASS
-          - Canonical Business Office authentication and guaranteed Portal authentication bridge: REMOTE VERIFIED
+          - Canonical Business Office authentication, Portal authentication bridge, and explicit auth resolver: REMOTE VERIFIED
           - Existing Apps Script project and deployments updated in place
           - New project or deployment: none
           - Google user authentication and role controls: preserved
           - External actions: disabled and approval gated
-
-          Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Unified Owner Portal deployment PASS" --body-file "$REPORT"
 
       - name: Record unified application deployment HOLD
         if: failure()
@@ -238,11 +249,52 @@ jobs:
           [[ "$BLOCKER" != "unknown" || "${{ steps.install_clasp.outcome }}" == "success" ]] || BLOCKER="install_clasp"
           [[ "$BLOCKER" != "unknown" || "${{ steps.credential.outcome }}" == "success" ]] || BLOCKER="credential"
           [[ "$BLOCKER" != "unknown" || "${{ steps.deploy.outcome }}" == "success" ]] || BLOCKER="deploy"
-          DETAIL=""
-          if [[ "$BLOCKER" == "deploy" ]]; then
-            for file in artifacts/unified-owner-portal/remote-source-verification.txt artifacts/unified-owner-portal/clasp-push.txt artifacts/unified-owner-portal/deployments-after.txt; do
-              if [[ -f "$file" ]]; then DETAIL+=" $(basename "$file"): $(tail -n 4 "$file" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')"; fi
+          REPORT="$RUNNER_TEMP/unified-owner-portal-hold.md"
+          {
+            echo "## HOLD — Unified Owner Portal production deployment"
+            echo
+            echo "- Source commit: ${GITHUB_SHA}"
+            echo "- Blocker: ${BLOCKER}"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- New project or deployment: none"
+            echo "- Existing live deployment left unchanged"
+            echo
+            echo "### Stage outcomes"
+            echo
+            echo '```text'
+            echo "start=${{ steps.start.outcome }}"
+            echo "dependencies=${{ steps.dependencies.outcome }}"
+            echo "routing=${{ steps.routing.outcome }}"
+            echo "owner_portal=${{ steps.owner_portal.outcome }}"
+            echo "hard_rules=${{ steps.hard_rules.outcome }}"
+            echo "business_office=${{ steps.business_office.outcome }}"
+            echo "customer_portal=${{ steps.customer_portal.outcome }}"
+            echo "install_clasp=${{ steps.install_clasp.outcome }}"
+            echo "credential=${{ steps.credential.outcome }}"
+            echo "deploy=${{ steps.deploy.outcome }}"
+            echo '```'
+            echo
+            echo "### Deployment evidence tail"
+            for file in \
+              artifacts/unified-owner-portal/project-pull.txt \
+              artifacts/unified-owner-portal/deployments-before.txt \
+              artifacts/unified-owner-portal/local-source-diagnostics.txt \
+              artifacts/unified-owner-portal/clasp-status-before-push.txt \
+              artifacts/unified-owner-portal/clasp-push.txt \
+              artifacts/unified-owner-portal/remote-project-pull.txt \
+              artifacts/unified-owner-portal/remote-source-verification.txt \
+              artifacts/unified-owner-portal/deployments-after.txt \
+              artifacts/unified-owner-portal/owner-http-status.txt \
+              artifacts/unified-owner-portal/business-http-status.txt \
+              artifacts/unified-owner-portal/quote-builder-http-status.txt; do
+              if [[ -f "$file" ]]; then
+                echo
+                echo "#### $(basename "$file")"
+                echo '```text'
+                tail -n 20 "$file"
+                echo '```'
+              fi
             done
-          fi
-          BODY="Unified Highway 38 Business System deployment is on HOLD for commit ${GITHUB_SHA}. BLOCKER=${BLOCKER}.${DETAIL} Stage outcomes: start=${{ steps.start.outcome }}, dependencies=${{ steps.dependencies.outcome }}, public_tools=${{ steps.public_tools.outcome }}, routing=${{ steps.routing.outcome }}, owner_portal=${{ steps.owner_portal.outcome }}, hard_rules=${{ steps.hard_rules.outcome }}, business_office=${{ steps.business_office.outcome }}, unified_ux=${{ steps.unified_ux.outcome }}, photo_first=${{ steps.photo_first.outcome }}, task_messaging=${{ steps.task_messaging.outcome }}, customer_portal_snapshot=${{ steps.customer_portal_snapshot.outcome }}, customer_portal=${{ steps.customer_portal.outcome }}, install_clasp=${{ steps.install_clasp.outcome }}, credential=${{ steps.credential.outcome }}, deploy=${{ steps.deploy.outcome }}. No replacement project or deployment was created. Review evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          } > "$REPORT"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Unified Owner Portal deployment HOLD — ${BLOCKER}" --body-file "$REPORT"
