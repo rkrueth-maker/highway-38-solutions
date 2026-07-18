@@ -97,7 +97,7 @@ jobs:
           if(version!=='3.3.0')throw new Error('Unexpected clasp version '+version);
           console.log('Isolated clasp '+version+' installed.');
           NODE
-          "$CLASP_BIN" --version
+          "$CLASP_BIN" -v
 
       - name: Verify public ecosystem tools
         id: public_tools
@@ -143,7 +143,7 @@ jobs:
           CLASP_BIN="$H38_CLASP_DIR/node_modules/.bin/clasp"
           test -x "$CLASP_BIN"
           test "$(command -v clasp)" = "$CLASP_BIN"
-          "$CLASP_BIN" --version
+          "$CLASP_BIN" -v
 
       - name: Load encrypted Google credential
         id: credential
