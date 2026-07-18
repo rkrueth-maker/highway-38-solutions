@@ -1,6 +1,7 @@
 var H38_QUOTE_BUILDER_ADDON={routeTimer:null,pendingUrl:''};
 
 function h38QuoteBuilderAddonEnabled(){
+  if(window.H38_QB_ADDON_ENABLED!==true)return false;
   if(!H38_UNIFIED||!H38_UNIFIED.serviceUrl)return false;
   return typeof h38AppRouteAllowed!=='function'||h38AppRouteAllowed('bo:quotes');
 }
@@ -38,6 +39,7 @@ function h38QuoteBuilderCustomerContext(){
 }
 
 function h38QuoteBuilderPatchVisibleControls(){
+  if(!h38QuoteBuilderAddonEnabled())return;
   document.querySelectorAll('#nav button').forEach(function(button){
     var action=button.getAttribute('onclick')||'';
     if(action.indexOf("bo:quotes")<0)return;
