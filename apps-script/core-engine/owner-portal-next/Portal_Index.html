@@ -24,6 +24,7 @@
 <div class="modal" id="formModal" onclick="if(event.target===this)closeForm()"><div class="modal-panel"><div class="workspace-head"><div><h2 id="formTitle">Record</h2><div class="muted" id="formHelp"></div></div><button class="btn" onclick="closeForm()">Close</button></div><form id="recordForm" onsubmit="submitRecord(event)"><div class="form-grid" id="formFields"></div><div class="toolbar"><button class="btn primary" type="submit">Save internal record</button><button class="btn" type="button" onclick="closeForm()">Cancel</button></div></form></div></div>
 <div class="modal" id="businessFormModal" onclick="if(event.target===this)closeBusinessForm()"><div class="modal-panel"><div class="workspace-head"><div><h2 id="businessFormTitle">Business Office record</h2><div class="muted" id="businessFormHelp"></div></div><button class="btn" type="button" onclick="closeBusinessForm()">Close</button></div><form id="businessRecordForm" onsubmit="submitBusinessRecord(event)"><div class="form-grid" id="businessFormFields"></div><div class="toolbar"><button class="btn primary" type="submit">Save internal record</button><button class="btn" type="button" onclick="closeBusinessForm()">Cancel</button></div></form></div></div>
 <script>
+window.H38_QB_ADDON_ENABLED=<?!= (typeof boPackValue_ === 'function' && boPackValue_('modules.quoteBuilder',false) === true && boModuleEnabled_('quotes')) ? 'true' : 'false' ?>;
 <?!= h38PortalRawInclude_('Portal_Experience_Client_Core'); ?>
 <?!= h38PortalRawInclude_('Portal_Experience_Client_Views'); ?>
 <?!= h38PortalRawInclude_('Portal_Experience_Client_Workspace'); ?>
@@ -39,6 +40,7 @@
 <?!= h38PortalRawInclude_('Portal_Application_Client_Business'); ?>
 <?!= h38PortalRawInclude_('Portal_Application_Client_SafeActions'); ?>
 <?!= h38PortalRawInclude_('Portal_Application_Client_Core'); ?>
+<?!= h38PortalRawInclude_('Portal_QuoteBuilder_Addon_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_UX_Client_Boot'); ?>
 </script>
 </body>
