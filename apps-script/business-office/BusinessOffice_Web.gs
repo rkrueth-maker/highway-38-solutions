@@ -1,4 +1,4 @@
-/** Business Office — private role-aware web application API. Quote Builder deployment refresh: 2026-07-17. */
+/** Business Office — private role-aware web application API. Quote Builder deployment refresh verified: 2026-07-17. */
 
 function doGet() { return boSafeExecute_('Business Office web app',function(){boGetCurrentUser_();return boRenderWebApp_();},'System',boGetBusinessId_()); }
 
