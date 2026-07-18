@@ -9,7 +9,7 @@ function boRenderWebApp_(){
     .replace('--navy:#243447','--navy:'+branding.primaryColor)
     .replace('--blue:#52677d','--blue:'+branding.secondaryColor)
     .replace('<div class="notice"><strong>Controlled business system:</strong> customer sending, delivery, financial posting, payroll export, and tax report finalization require explicit approval. This system does not move money, fund payroll, file returns, or provide tax advice.</div>','<div class="notice"><strong>Controlled business system:</strong> '+boApprovalNotice_()+' This system does not move money, fund payroll, file returns, or provide tax advice.</div>')
-    .replace('</body>',boInclude_('BusinessOffice_UX_Client')+boInclude_('BusinessOffice_Unified_Client')+'</body>');
+    .replace('</body>',boInclude_('BusinessOffice_UX_Client')+boInclude_('BusinessOffice_QuoteBuilder_Client')+boInclude_('BusinessOffice_Unified_Client')+'</body>');
   return HtmlService.createHtmlOutput(html).setTitle(title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');
 }
 
@@ -88,7 +88,7 @@ function boGetModuleDefinitions_(){return{
   receipts:{title:'Receipts',primaryKey:'Receipt ID',fields:['Document ID','Vendor ID','Receipt Number','Date','Payment Method','Subtotal','Tax','Total','Customer ID','Job ID','Expense Category','Account Code','Approval Status','Posting Status','OCR Status']},
   vendorBills:{title:'Vendor Bills',primaryKey:'Bill ID',fields:['Bill Number','Vendor ID','PO ID','Job ID','Bill Date','Due Date','Terms','Status','Approval Status','Payment Status','Subtotal','Tax','Shipping','Total','Balance Due','Document ID']},
   expenses:{title:'Expenses',primaryKey:'Expense ID',fields:['Receipt ID','Vendor ID','Date','Description','Expense Category','Account Code','Customer ID','Job ID','Payment Method','Subtotal','Tax','Total','Reimbursable','Billable to Customer','Approval Status','Posting Status']},
-  invoices:{title:'Invoices',primaryKey:'Invoice ID',fields:['Invoice Number','Customer ID','Job ID','Quote ID','Invoice Date','Due Date','Payment Terms','Status','Approval Status','Send Allowed','Delivery Status','Subtotal','Discount','Tax Amount','Deposit Applied','Total','Amount Paid','Balance Due','Overdue Days']},
+  invoices:{title:'Invoices',primaryKey:'Invoice ID',fields:['Customer ID','Job ID','Quote ID','Invoice Date','Due Date','Payment Terms','Status','Approval Status','Send Allowed','Delivery Status','Subtotal','Discount','Tax Amount','Deposit Applied','Total','Amount Paid','Balance Due','Overdue Days']},
   payments:{title:'Payments',primaryKey:'Payment ID',fields:['Invoice ID','Customer ID','Job ID','Payment Date','Amount','Payment Method','Transaction Reference','Deposit Account','Status','Approval Status','Posting Status']},
   time:{title:'Time Tracking',primaryKey:'Time Entry ID',fields:['Employee ID','Job ID','Work Order ID','Date','Start Time','End Time','Break Minutes','Regular Hours','Overtime Hours','Pay Rate','Billable Rate','Approval Status','Payroll Period ID','Notes']},
   employees:{title:'Employees',primaryKey:'Employee ID',fields:['Employee Number','First Name','Last Name','Email','Phone','Employment Status','Pay Type','Hourly Rate','Salary Rate','Overtime Multiplier','Tax Profile Status','Hire Date','Status']},
