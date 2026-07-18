@@ -52,7 +52,6 @@ jobs:
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
-      H38_CLASP_DIR: ${{ runner.temp }}/h38-clasp
     steps:
       - name: Check out exact source
         uses: actions/checkout@v4
@@ -74,6 +73,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          H38_CLASP_DIR="$RUNNER_TEMP/h38-clasp"
+          echo "H38_CLASP_DIR=$H38_CLASP_DIR" >> "$GITHUB_ENV"
           rm -rf "$H38_CLASP_DIR"
           mkdir -p "$H38_CLASP_DIR"
           npm install \
