@@ -1,0 +1,149 @@
+<style>
+:root{--qb-radius:16px;--qb-soft:#eef4f8;--qb-accent:#e85d18}
+body{background:linear-gradient(180deg,#edf3f7 0,#f7f9fb 240px,#f3f6f9 100%)}
+.top{min-height:68px;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.14)}
+.brand h1{font-size:21px;letter-spacing:-.02em}.brand small{font-size:12px}.user{padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.08)}
+main{width:100%;max-width:1600px;margin:0 auto;padding:20px 22px 42px}.boundary{display:flex;align-items:center;gap:8px;border:0;border-left:5px solid #d9a400;box-shadow:0 5px 16px rgba(25,50,75,.06)}
+.hero{position:relative;overflow:hidden;padding:24px;border-radius:20px}.hero:after{content:"";position:absolute;right:-80px;bottom:-100px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.06)}.hero>*{position:relative;z-index:1}.hero small{font-weight:900;letter-spacing:.12em}.hero h2{letter-spacing:-.035em}.hero .actions{justify-content:flex-end}
+.panel{border-radius:var(--qb-radius);box-shadow:0 8px 28px rgba(23,58,94,.08);transition:box-shadow .16s ease,border-color .16s ease}.panel:hover{border-color:#c3d3df;box-shadow:0 12px 34px rgba(23,58,94,.11)}
+button{transition:transform .12s ease,box-shadow .12s ease,background .12s ease}button:hover:not(:disabled){transform:translateY(-1px)}button.primary{background:linear-gradient(135deg,var(--navy),#0f2d49);box-shadow:0 7px 16px rgba(23,58,94,.2)}button.camera-action{background:linear-gradient(135deg,var(--qb-accent),#c94708);color:#fff;box-shadow:0 8px 18px rgba(232,93,24,.24)}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(50,106,158,.18);border-color:var(--blue)}
+.table-wrap{background:#fff}tbody tr:hover{background:#f4f8fb}th{position:sticky;top:0;z-index:1}
+.qb-camera-panel{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px;border:2px dashed #a9c1d2;border-radius:14px;background:linear-gradient(135deg,#f7fbfd,#edf5f9)}
+.qb-camera-panel h3{margin:0 0 5px;color:var(--navy)}.qb-camera-panel p{margin:0;color:var(--muted);line-height:1.45}.qb-camera-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.qb-photo-queue{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.qb-photo-card{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:#fff}.qb-photo-card img{display:block;width:100%;height:105px;object-fit:cover;background:#dbe5ec}.qb-photo-card .qb-photo-meta{padding:8px;font-size:11px;line-height:1.35}.qb-photo-card .qb-photo-meta strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qb-photo-card .qb-photo-remove{position:absolute;right:6px;top:6px;width:32px;height:32px;min-height:32px;padding:0;border-radius:50%;background:rgba(143,29,29,.93);color:#fff}
+.qb-quote-photo-panel{margin-bottom:14px;padding:14px;border:1px solid #bdd1df;border-radius:14px;background:#f4f9fc}.qb-quote-photo-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.qb-quote-photo-head h3{margin:0}.qb-quote-photo-head p{margin:4px 0 0;color:var(--muted)}.qb-saved-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}.qb-saved-photo{border:1px solid var(--border);border-radius:11px;background:#fff;overflow:hidden}.qb-saved-photo img{display:block;width:100%;height:120px;object-fit:cover;background:#e7eef3}.qb-saved-photo div{padding:9px;font-size:12px}.qb-saved-photo a{color:var(--navy);font-weight:800}.qb-status-line{min-height:20px;margin-top:8px;font-size:12px;font-weight:800;color:var(--navy)}
+.qb-camera-dialog{width:min(760px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 28px 80px rgba(0,0,0,.35);background:#07131e;color:#fff}.qb-camera-dialog::backdrop{background:rgba(5,15,25,.78)}.qb-camera-frame{padding:16px}.qb-camera-frame video{display:block;width:100%;max-height:62vh;object-fit:contain;border-radius:12px;background:#000}.qb-camera-top,.qb-camera-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}.qb-camera-top{margin-bottom:12px}.qb-camera-top h2{margin:0;font-size:20px}.qb-camera-bottom{margin-top:12px}.qb-camera-help{font-size:12px;color:#c4d3df}.qb-camera-close{background:#263746;color:#fff}.qb-camera-shutter{min-width:150px;background:var(--qb-accent);color:#fff}
+.qb-mobile-capture{display:none}
+@media(max-width:950px){main{padding:16px}.qb-camera-panel{grid-template-columns:1fr}.qb-camera-actions{justify-content:flex-start}}
+@media(max-width:760px){body{padding-bottom:76px}.top{min-height:60px;padding:9px 12px}.brand h1{font-size:17px}.brand small{display:none}main{padding:10px 10px 30px}.boundary{font-size:12px}.hero{padding:18px}.hero .actions{justify-content:flex-start}.panel{padding:13px}.qb-camera-panel{padding:13px}.qb-camera-actions button{flex:1}.qb-photo-queue,.qb-saved-photos{grid-template-columns:repeat(2,minmax(0,1fr))}.qb-mobile-capture{display:block;position:fixed;left:50%;bottom:14px;z-index:35;transform:translateX(-50%);width:min(340px,calc(100vw - 28px));min-height:52px;border-radius:999px;background:linear-gradient(135deg,var(--qb-accent),#c94708);color:#fff;box-shadow:0 14px 30px rgba(65,28,8,.3)}.qb-mobile-capture:hover{transform:translateX(-50%)}.qb-camera-dialog{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}.qb-camera-frame{height:100%;display:flex;flex-direction:column}.qb-camera-frame video{flex:1;max-height:none}.qb-quote-photo-head{align-items:flex-start;flex-direction:column}.qb-quote-photo-head button{width:100%}}
+</style>
+<script>
+(function(){
+'use strict';
+const pending=[];
+let currentQuoteId='';
+let cameraTarget='draft';
+let cameraStream=null;
+let fallbackInput=null;
+const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const call=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
+const toast=(message,bad)=>{const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5000)};
+const setBusy=on=>$('qbOverlay')&&$('qbOverlay').classList.toggle('show',!!on);
+const mime=file=>file.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[String(file.name||'').split('.').pop().toLowerCase()]||'image/jpeg');
+const dataUrl=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-');
+
+function ensureCameraUi(){
+  if(!$('qbCameraDialog')){
+    document.body.insertAdjacentHTML('beforeend','<dialog id="qbCameraDialog" class="qb-camera-dialog"><div class="qb-camera-frame"><div class="qb-camera-top"><h2>Take a quote picture</h2><button class="qb-camera-close" type="button" id="qbCameraClose">Close</button></div><video id="qbCameraVideo" autoplay playsinline muted></video><canvas id="qbCameraCanvas" hidden></canvas><div class="qb-camera-bottom"><span class="qb-camera-help">The picture stays private and is attached only to the selected quote.</span><button class="qb-camera-shutter" type="button" id="qbCameraShutter">Capture Picture</button></div></div></dialog>');
+    $('qbCameraClose').addEventListener('click',closeCamera);
+    $('qbCameraShutter').addEventListener('click',captureFrame);
+    $('qbCameraDialog').addEventListener('cancel',event=>{event.preventDefault();closeCamera()});
+  }
+  if(!fallbackInput){
+    fallbackInput=document.createElement('input');fallbackInput.type='file';fallbackInput.accept='image/*';fallbackInput.setAttribute('capture','environment');fallbackInput.hidden=true;
+    fallbackInput.addEventListener('change',()=>{const files=Array.from(fallbackInput.files||[]);fallbackInput.value='';handleCapturedFiles(files)});
+    document.body.appendChild(fallbackInput);
+  }
+}
+function stopStream(){if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null}}
+function closeCamera(){stopStream();const dialog=$('qbCameraDialog');if(dialog&&dialog.open)dialog.close()}
+async function openCamera(target,quoteId){
+  ensureCameraUi();cameraTarget=target||'draft';currentQuoteId=quoteId||currentQuoteId||'';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){fallbackInput.click();return}
+  try{
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    $('qbCameraVideo').srcObject=cameraStream;$('qbCameraDialog').showModal();
+  }catch(error){stopStream();fallbackInput.click()}
+}
+async function captureFrame(){
+  const video=$('qbCameraVideo'),canvas=$('qbCameraCanvas');
+  if(!video||!video.videoWidth)return toast('Camera is not ready yet.',true);
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.92));
+  closeCamera();if(!blob)return toast('The picture could not be captured.',true);
+  handleCapturedFiles([new File([blob],'quote-photo-'+stamp()+'.jpg',{type:'image/jpeg'})]);
+}
+function handleCapturedFiles(files){
+  files.filter(file=>file&&file.type.indexOf('image/')===0).forEach(file=>{
+    if(file.size>20*1024*1024)return toast(file.name+' exceeds 20 MB.',true);
+    if(cameraTarget==='quote'&&currentQuoteId)saveCapturedFiles(currentQuoteId,[file]);
+    else{pending.push({file:file,url:URL.createObjectURL(file)});renderPending()}
+  });
+}
+window.qbCameraTakeForDraft=()=>openCamera('draft','');
+window.qbCameraTakeForQuote=quoteId=>openCamera('quote',quoteId);
+window.qbRemovePendingPhoto=index=>{const item=pending[index];if(item)URL.revokeObjectURL(item.url);pending.splice(index,1);renderPending()};
+function renderPending(){
+  const host=$('qbPendingPhotos');if(!host)return;
+  host.innerHTML=pending.length?pending.map((item,index)=>'<article class="qb-photo-card"><img src="'+esc(item.url)+'" alt="Captured quote picture '+(index+1)+'"><button class="qb-photo-remove" type="button" aria-label="Remove picture" onclick="qbRemovePendingPhoto('+index+')">×</button><div class="qb-photo-meta"><strong>'+esc(item.file.name)+'</strong><span>'+Math.max(1,Math.round(item.file.size/1024))+' KB · saves with quote</span></div></article>').join(''):'<div class="qb-status-line">No pictures captured yet.</div>';
+  const count=$('qbPendingCount');if(count)count.textContent=pending.length?pending.length+' picture'+(pending.length===1?'':'s')+' ready to save':'Pictures save automatically with the draft quote.';
+}
+function injectNewQuoteCamera(){
+  const form=document.querySelector('#qbContent form');if(!form||!$('project')||$('qbQuotePhotoPanel'))return;
+  const panel=document.createElement('section');panel.id='qbQuotePhotoPanel';panel.className='qb-camera-panel';
+  panel.innerHTML='<div><h3>Quote pictures</h3><p id="qbPendingCount">Pictures save automatically with the draft quote.</p></div><div class="qb-camera-actions"><button type="button" class="camera-action" onclick="qbCameraTakeForDraft()">📷 Take Picture</button></div><div id="qbPendingPhotos" class="qb-photo-queue"></div>';
+  const grid=form.querySelector('.form-grid');if(grid)grid.insertAdjacentElement('afterend',panel);else form.prepend(panel);renderPending();
+}
+async function saveCapturedFiles(quoteId,files){
+  if(!quoteId||!files.length)return [];
+  setBusy(true);const started=performance.now();
+  try{
+    const saved=[];
+    for(let i=0;i<files.length;i+=3){
+      const group=files.slice(i,i+3);
+      const results=await Promise.all(group.map(async file=>call('saveQuotePhoto',{payload:{quoteId:quoteId,fileName:file.name,mimeType:mime(file),base64Data:await dataUrl(file)}})));
+      saved.push(...results);
+    }
+    toast(saved.length+' picture'+(saved.length===1?'':'s')+' saved with the quote.');
+    console.log('H38_QB_CLIENT_TIMING',{stage:'camera_quote_save',durationMs:Math.round(performance.now()-started),quoteId:quoteId,files:saved.length});
+    return saved;
+  }catch(error){toast('Picture save stopped: '+(error.message||String(error)),true);throw error}finally{setBusy(false)}
+}
+async function renderQuotePhotos(quoteId){
+  const panel=$('qbQuotePhotosPanel');if(!panel)return;
+  const status=panel.querySelector('.qb-status-line');if(status)status.textContent='Loading saved pictures…';
+  try{
+    const docs=await call('quoteBuilderQuoteDocuments',{quoteId:quoteId});
+    const host=panel.querySelector('.qb-saved-photos');
+    if(host)host.innerHTML=docs.length?docs.map(doc=>{
+      const image=String(doc.mimeType||'').indexOf('image/')===0&&doc.fileId?'<img loading="lazy" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(doc.fileId)+'&sz=w500" alt="'+esc(doc.fileName||'Quote picture')+'">':'';
+      return '<article class="qb-saved-photo">'+image+'<div><strong>'+esc(doc.fileName||'Quote picture')+'</strong><br><span>'+esc(doc.reviewStatus||'Needs Review')+'</span>'+(doc.fileUrl?'<br><a href="'+esc(doc.fileUrl)+'" target="_blank" rel="noopener">Open original</a>':'')+'</div></article>';
+    }).join(''):'<div class="empty">No pictures saved with this quote yet.</div>';
+    if(status)status.textContent=docs.length+ ' saved file'+(docs.length===1?'':'s')+' attached to this quote.';
+  }catch(error){if(status)status.textContent='Saved pictures could not be loaded.'}
+}
+function injectQuoteDetailsCamera(quoteId){
+  const detailPanel=document.querySelector('#qbContent .panel');if(!detailPanel||$('qbQuotePhotosPanel'))return;
+  const panel=document.createElement('section');panel.id='qbQuotePhotosPanel';panel.className='qb-quote-photo-panel';
+  panel.innerHTML='<div class="qb-quote-photo-head"><div><h3>Quote pictures</h3><p>Press the button, take the picture, and it saves directly to this quote.</p></div><button type="button" class="camera-action" onclick="qbCameraTakeForQuote(\''+esc(quoteId)+'\')">📷 Take Picture</button></div><div class="qb-status-line">Loading saved pictures…</div><div class="qb-saved-photos"></div>';
+  detailPanel.prepend(panel);renderQuotePhotos(quoteId);
+}
+function injectMobileCapture(){
+  let button=$('qbMobileCapture');
+  if(!$('project')){if(button)button.remove();return}
+  if(!button){button=document.createElement('button');button.id='qbMobileCapture';button.type='button';button.className='qb-mobile-capture';button.innerHTML='📷 Take Picture for Quote';button.addEventListener('click',()=>openCamera('draft',''));document.body.appendChild(button)}
+}
+function polishCurrentView(){injectNewQuoteCamera();injectMobileCapture()}
+function install(){
+  if(typeof window.qbOpen!=='function'||typeof window.qbSave!=='function'||typeof window.qbDetails!=='function')return false;
+  ensureCameraUi();
+  const originalOpen=window.qbOpen;window.qbOpen=async function(view){const result=await originalOpen.apply(this,arguments);setTimeout(polishCurrentView,0);return result};
+  const originalDetails=window.qbDetails;window.qbDetails=async function(id){currentQuoteId=id;const result=await originalDetails.apply(this,arguments);injectQuoteDetailsCamera(id);injectMobileCapture();return result};
+  const originalSave=window.qbSave;window.qbSave=async function(event){
+    const saveStarted=Date.now(),files=pending.map(item=>item.file);await originalSave.apply(this,arguments);
+    if(!files.length)return;
+    const created=await call('quoteBuilderLastCreatedQuote');
+    if(!created||Number(created.createdMs||0)<saveStarted){toast('The quote was not created, so the pictures remain queued.',true);setTimeout(polishCurrentView,0);return}
+    await saveCapturedFiles(created.quoteId,files);
+    pending.forEach(item=>URL.revokeObjectURL(item.url));pending.splice(0,pending.length);currentQuoteId=created.quoteId;
+    await window.qbDetails(created.quoteId);
+  };
+  new MutationObserver(()=>setTimeout(polishCurrentView,0)).observe($('qbContent'),{childList:true,subtree:true});
+  polishCurrentView();return true;
+}
+let attempts=0;const timer=setInterval(()=>{attempts+=1;if(install()||attempts>120)clearInterval(timer)},50);
+})();
+</script>
