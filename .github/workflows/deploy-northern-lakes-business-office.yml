@@ -1,0 +1,116 @@
+name: Deploy Northern Lakes Business Office
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_id:
+        description: Existing dedicated NLPS Apps Script project ID; leave blank only for first installation
+        required: false
+        type: string
+      deployment_id:
+        description: Existing dedicated NLPS web-app deployment ID; leave blank only for first installation
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: northern-lakes-business-office-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      INPUT_SCRIPT_ID: ${{ inputs.script_id }}
+      INPUT_DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install clasp
+        run: npm install --global @google/clasp@3.1.0
+      - name: Load Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$CLASPRC_JSON" ]]; then printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          elif [[ -n "$CLASPRC_JSON_B64" ]]; then printf '%s' "$CLASPRC_JSON_B64" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — CLASPRC_JSON or CLASPRC_JSON_B64 is required.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+      - name: Assemble isolated Northern Lakes source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist/northern-lakes-business-office
+          mkdir -p dist/northern-lakes-business-office
+          bash scripts/assemble-business-office-app.sh \
+            "$PWD/dist/northern-lakes-business-office" \
+            "$PWD/business-packs/northern-lakes/apps-script/BusinessOffice_Pack.gs" \
+            "$PWD"
+          node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
+      - name: Create or connect dedicated Apps Script project
+        id: project
+        shell: bash
+        working-directory: dist/northern-lakes-business-office
+        run: |
+          set -euo pipefail
+          if [[ -n "$INPUT_SCRIPT_ID" ]]; then
+            printf '{"scriptId":"%s","rootDir":"."}\n' "$INPUT_SCRIPT_ID" > .clasp.json
+            SCRIPT_ID="$INPUT_SCRIPT_ID"
+          else
+            clasp create --type webapp --title 'Northern Lakes Business Office' --rootDir .
+            SCRIPT_ID="$(node -p "require('./.clasp.json').scriptId")"
+          fi
+          echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
+      - name: Push exact source and deploy web app
+        id: deployment
+        shell: bash
+        working-directory: dist/northern-lakes-business-office
+        run: |
+          set -euo pipefail
+          clasp push --force
+          VERSION="$(clasp version 'Northern Lakes isolated Business Office release' | sed -nE 's/.*version ([0-9]+).*/\1/p' | tail -1)"
+          [[ -n "$VERSION" ]] || { echo 'Could not determine Apps Script version.'; exit 1; }
+          if [[ -n "$INPUT_DEPLOYMENT_ID" ]]; then
+            OUTPUT="$(clasp deploy --deploymentId "$INPUT_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            DEPLOYMENT_ID="$INPUT_DEPLOYMENT_ID"
+          else
+            OUTPUT="$(clasp deploy --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            DEPLOYMENT_ID="$(printf '%s' "$OUTPUT" | sed -nE 's/^- ([^ ]+).*/\1/p' | head -1)"
+          fi
+          [[ -n "$DEPLOYMENT_ID" ]] || { echo "$OUTPUT"; echo 'Could not determine deployment ID.'; exit 1; }
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec" >> "$GITHUB_OUTPUT"
+      - name: Record deployment evidence
+        shell: bash
+        run: |
+          mkdir -p artifacts/northern-lakes-business-office
+          cat > artifacts/northern-lakes-business-office/deployment.json <<EOF
+          {
+            "businessId": "NLPS",
+            "scriptId": "${{ steps.project.outputs.script_id }}",
+            "deploymentId": "${{ steps.deployment.outputs.deployment_id }}",
+            "version": "${{ steps.deployment.outputs.version }}",
+            "url": "${{ steps.deployment.outputs.url }}",
+            "commit": "${GITHUB_SHA}",
+            "isolated": true,
+            "externalActionsEnabled": false,
+            "openAiKeyConfigured": ${{ env.OPENAI_API_KEY != '' }}
+          }
+          EOF
+          cat artifacts/northern-lakes-business-office/deployment.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: northern-lakes-business-office-${{ github.run_id }}
+          path: artifacts/northern-lakes-business-office
+          if-no-files-found: warn
+          retention-days: 90
