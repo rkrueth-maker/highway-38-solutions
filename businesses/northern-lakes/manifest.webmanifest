@@ -1,0 +1,11 @@
+{
+  "name": "Northern Lakes Property Services",
+  "short_name": "Northern Lakes",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3ead7",
+  "theme_color": "#153b2e",
+  "description": "Northern Lakes Property Services website and business applications.",
+  "icons": []
+}
