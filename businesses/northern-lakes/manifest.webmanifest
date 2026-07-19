@@ -1,11 +1,1 @@
-{
-  "name": "Northern Lakes Property Services",
-  "short_name": "Northern Lakes",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f3ead7",
-  "theme_color": "#153b2e",
-  "description": "Northern Lakes Property Services website and business applications.",
-  "icons": []
-}
+{"name":"Northern Lakes Property Maintenance LLC","short_name":"Northern Lakes","start_url":"./","scope":"./","display":"standalone","background_color":"#f4efe5","theme_color":"#113b2e","description":"Northern Lakes Property Maintenance website and beta business applications.","icons":[{"src":"assets/diamond-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
