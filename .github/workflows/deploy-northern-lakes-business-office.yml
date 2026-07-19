@@ -11,6 +11,10 @@ on:
         description: Existing dedicated NLPS web-app deployment ID; leave blank only for first installation
         required: false
         type: string
+  push:
+    branches: [main]
+    paths:
+      - 'businesses/northern-lakes/deploy-trigger.txt'
 
 permissions:
   contents: read
