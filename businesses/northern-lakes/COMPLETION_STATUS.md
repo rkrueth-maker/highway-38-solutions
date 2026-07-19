@@ -1,28 +1,35 @@
 # Northern Lakes Complete Build Status
 
-## Implemented in this release
+## Repository implementation complete
 - Public website and required public pages
 - Quote request flow with confirmation numbers
 - Customer Portal application surface
 - Owner Portal application surface
 - Business Office application surface
-- Complete Northern Lakes business pack patterned after Highway 38
-- Dedicated NLPS configuration keys and deployment namespace
+- Executable Northern Lakes Apps Script business pack
+- Shared Highway 38 Quote Builder engine installed under the Northern Lakes pack
+- Separate Take Picture and Upload Photos controls
+- Voice/photo field intake
+- Owner-gated AI quote drafting and Price Book matching
+- Owner-gated proposed-completion concept rendering
+- Dedicated NLPS configuration keys, namespace and storage boundaries
 - Roles, approval controls and external-action locks
+- Dedicated installation verifier
+- Dedicated create-or-update deployment workflow
 - Canonical metadata, structured data, robots.txt and sitemap.xml
 - Responsive styling and accessible semantic page structure
-- Approved Northern Lakes logo direction and approved website-design imagery
+- Approved Northern Lakes logo direction and website imagery
 
 ## Protected boundary
-No Highway 38 URL, data record, Apps Script deployment ID, authentication setting, routing rule or production control is replaced.
+No Highway 38 URL, data record, Apps Script deployment ID, authentication setting, routing rule or production control is replaced. Northern Lakes uses the reusable core with an isolated `NLPS` business pack.
 
-## Dedicated production activation gate
-The static Pages release is deployable and supports controlled browser testing. A true Highway 38-equivalent multi-user production installation still requires the existing installer/deployment workflow to create and verify:
-- dedicated Northern Lakes Apps Script project/deployment
-- dedicated Northern Lakes spreadsheet and Drive storage
-- authenticated Northern Lakes users and roles
-- server-backed public intake
-- server-backed customer isolation
-- PDF, OCR, email/SMS, payment and other approved integrations
+## Production activation
+Run `.github/workflows/deploy-northern-lakes-business-office.yml` with the repository's encrypted Google clasp credential.
 
-Until those dedicated resources are created and verified, sensitive customer data and external actions remain disabled.
+For the first run, leave `script_id` and `deployment_id` blank. The workflow creates one dedicated Northern Lakes Apps Script project and one web-app deployment, then records their IDs and URL in the workflow artifact.
+
+For every later release, supply those recorded IDs. The workflow updates the existing Northern Lakes project and deployment in place rather than creating replacements.
+
+Live AI generation also requires the repository secret `OPENAI_API_KEY`. Without it, the Quote Builder remains operational for camera, uploads, voice, manual quoting, Price Book work and approvals, while AI draft/render actions stay locked with an explicit configuration error.
+
+Production PASS is valid only after the deployment workflow succeeds and the resulting Northern Lakes web-app URL passes authenticated browser verification.
