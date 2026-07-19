@@ -10,91 +10,43 @@
   <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution">
   <link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1">
   <link rel="stylesheet" href="ux-unified-public.css?v=20260717-p0-refinement">
+  <link rel="stylesheet" href="platform-unified.css?v=20260719-product-unification">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="customer-portal-config.js?v=20260716-activated" defer></script>
   <script src="customer-portal-supabase.js?v=20260717-p0-refinement" defer></script>
-  <script defer src="brand-global.js?v=20260717-one-shot"></script>
+  <script defer src="brand-global.js?v=20260719-product-unification"></script>
   <script defer src="public-expansion.js?v=20260717-one-shot"></script>
+  <script defer src="platform-states.js?v=20260719-product-unification"></script>
   <script defer src="customer-portal-ux.js?v=20260717-p0-refinement"></script>
   <script defer src="customer-portal-quote-decisions.js?v=20260718-quote-decisions"></script>
+  <script defer src="customer-portal-unification.js?v=20260719-product-unification"></script>
 </head>
 <body class="h38-site h38-one-shot h38-customer-portal" data-page="customer">
   <a class="skip-link" href="#main">Skip to main content</a>
   <nav class="site-nav" aria-label="Main navigation"></nav>
   <main id="main" class="customer-shell">
-    <header class="customer-head">
-      <div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div>
-      <div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div>
-    </header>
+    <header class="customer-head"><div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div><div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div></header>
     <div id="portalNotice" class="portal-notice" aria-live="polite">Checking secure portal configuration…</div>
-
-    <section id="portal-hold" class="portal-panel" hidden>
-      <h2>Customer Portal temporarily unavailable</h2>
-      <p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p>
-      <p><strong>Highway 38 must verify the Supabase project, publishable key, authentication settings, and Row Level Security before access resumes.</strong></p>
-    </section>
-
-    <section id="portal-login" class="portal-panel portal-login" hidden>
-      <h2>Sign in securely</h2>
-      <p>Use the email address and password connected to your Highway 38 customer account. A one-time email link is also available.</p>
-      <form id="loginForm">
-        <label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label>
-        <label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password"></label>
-        <div class="portal-actions"><button class="btn btn-primary" type="submit">Sign in</button><button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button></div>
-        <p class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p>
-      </form>
-    </section>
-
+    <section id="portal-hold" class="portal-panel" hidden><h2>Customer Portal temporarily unavailable</h2><p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p><p><strong>Highway 38 must verify the Supabase project, publishable key, authentication settings, and Row Level Security before access resumes.</strong></p></section>
+    <section id="portal-login" class="portal-panel portal-login" hidden><h2>Sign in securely</h2><p>Use the email address and password connected to your Highway 38 customer account. A one-time email link is also available.</p><form id="loginForm"><label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label><label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password"></label><div class="portal-actions"><button class="btn btn-primary" type="submit">Sign in</button><button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button></div><p class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p></form></section>
     <section id="portal-app" hidden>
       <div class="h38-portal-layout">
-        <nav class="h38-portal-nav" aria-label="Customer Portal sections">
-          <a class="is-active" href="#portal-home">⌂ <span>Home</span></a>
-          <a href="#projects-section">▣ <span>Projects</span></a>
-          <a href="#quotes-section">✓ <span>Quotes</span></a>
-          <a href="#invoices-section">$ <span>Invoices</span></a>
-          <a href="#files-section">▤ <span>Files</span></a>
-          <a href="#messages-section">○ <span>Messages</span></a>
-          <button class="btn signout" type="button" onclick="document.getElementById('signOutButton').click()">Sign out</button>
-        </nav>
+        <nav class="h38-portal-nav" aria-label="Customer Portal sections"><a class="is-active" href="#portal-home">⌂ <span>Home</span></a><a href="#projects-section">▣ <span>Projects</span></a><a href="#quotes-section">✓ <span>Quotes</span></a><a href="#invoices-section">$ <span>Invoices</span></a><a href="#files-section">▤ <span>Files</span></a><a href="#messages-section">○ <span>Messages</span></a><button class="btn signout" type="button" onclick="document.getElementById('signOutButton').click()">Sign out</button></nav>
         <div class="h38-portal-main" id="portal-home">
           <header class="h38-portal-greeting"><h2>Good morning, <span id="customerName">Customer</span>.</h2><p id="customerCode"></p><p>Here is what is happening with your Highway 38 work.</p></header>
           <section id="actionRequired" aria-live="polite"></section>
-          <div class="portal-metrics" aria-label="Customer account summary">
-            <div class="portal-metric"><span>Active projects</span><strong id="metricJobs">0</strong></div>
-            <div class="portal-metric"><span>Quotes needing review</span><strong id="metricQuotes">0</strong></div>
-            <div class="portal-metric"><span>Outstanding balance</span><strong id="metricBalance">$0.00</strong></div>
-          </div>
+          <div class="portal-metrics" aria-label="Customer account summary"><div class="portal-metric"><span>Active projects</span><strong id="metricJobs">0</strong></div><div class="portal-metric"><span>Quotes needing review</span><strong id="metricQuotes">0</strong></div><div class="portal-metric"><span>Outstanding balance</span><strong id="metricBalance">$0.00</strong></div></div>
           <div class="h38-customer-grid">
-            <div class="portal-stack">
-              <section id="projects-section" class="portal-panel portal-section"><div class="portal-section-head"><h2>Current project</h2></div><div id="projectSelectorWrap" class="h38-project-selector" hidden><label for="projectSelector"><strong>Choose project</strong><select id="projectSelector"></select></label><button id="openSelectedProject" class="btn" type="button">Show project</button></div><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section>
-              <section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><p>Open the complete review before approving, requesting a change, or declining any quote.</p><div id="quotesList" class="portal-list"></div></section>
-            </div>
-            <div class="portal-stack">
-              <div class="h38-customer-subgrid">
-                <section id="files-section" class="portal-panel portal-section"><h2>Recent files</h2><div id="filesList" class="portal-list"></div></section>
-                <section id="invoices-section" class="portal-panel portal-section"><h2>Invoices</h2><div id="invoicesList" class="portal-list"></div></section>
-              </div>
-              <section id="messages-section" class="portal-panel portal-section"><h2>Messages</h2><p>Ask a question about the selected project or request a quote change.</p><div id="messageProjectContext" class="h38-message-project"><span>Project:</span><strong>No project selected</strong></div><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Record message for review</button></form><p>No automatic text or email is sent from this form.</p></section>
-            </div>
+            <div class="portal-stack"><section id="projects-section" class="portal-panel portal-section"><div class="portal-section-head"><h2>Current project</h2></div><div id="projectSelectorWrap" class="h38-project-selector" hidden><label for="projectSelector"><strong>Choose project</strong><select id="projectSelector"></select></label><button id="openSelectedProject" class="btn" type="button">Show project</button></div><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section><section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><p>Open the complete review before approving, requesting a change, or declining any quote.</p><div id="quotesList" class="portal-list"></div></section></div>
+            <div class="portal-stack"><div class="h38-customer-subgrid"><section id="files-section" class="portal-panel portal-section"><h2>Recent files</h2><div id="filesList" class="portal-list"></div></section><section id="invoices-section" class="portal-panel portal-section"><h2>Invoices</h2><div id="invoicesList" class="portal-list"></div></section></div><section id="messages-section" class="portal-panel portal-section"><h2>Messages</h2><p>Ask a question about the selected project or request a quote change.</p><div id="messageProjectContext" class="h38-message-project"><span>Project:</span><strong>No project selected</strong></div><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Send message to Highway 38 review queue</button></form><p>Recorded messages enter the Highway 38 review queue. No automatic text or email is sent.</p></section></div>
           </div>
         </div>
       </div>
-      <nav class="h38-portal-mobile-nav" aria-label="Customer Portal mobile navigation">
-        <a class="is-active" href="#portal-home"><span aria-hidden="true">⌂</span><span>Home</span></a>
-        <a href="#projects-section"><span aria-hidden="true">▣</span><span>Projects</span></a>
-        <a href="#files-section"><span aria-hidden="true">▤</span><span>Files</span></a>
-        <a href="#messages-section"><span aria-hidden="true">○</span><span>Messages</span></a>
-        <button id="portalMoreButton" type="button" aria-expanded="false" aria-controls="portalMoreMenu"><span aria-hidden="true">•••</span><span>More</span></button>
-      </nav>
+      <nav class="h38-portal-mobile-nav" aria-label="Customer Portal mobile navigation"><a class="is-active" href="#portal-home"><span aria-hidden="true">⌂</span><span>Home</span></a><a href="#projects-section"><span aria-hidden="true">▣</span><span>Projects</span></a><a href="#files-section"><span aria-hidden="true">▤</span><span>Files</span></a><a href="#messages-section"><span aria-hidden="true">○</span><span>Messages</span></a><button id="portalMoreButton" type="button" aria-expanded="false" aria-controls="portalMoreMenu"><span aria-hidden="true">•••</span><span>More</span></button></nav>
       <div id="portalMoreMenu" class="portal-panel" hidden><a class="btn" href="#quotes-section">Quotes</a><a class="btn" href="#invoices-section">Invoices</a><button class="btn" type="button" onclick="document.getElementById('signOutButton').click()">Sign out</button></div>
     </section>
   </main>
-
-  <dialog id="quoteReviewDialog" class="h38-quote-dialog" aria-labelledby="quoteReviewTitle">
-    <div class="h38-quote-dialog__head"><div><span class="badge">Complete quote review</span><h2 id="quoteReviewTitle">Quote</h2></div><button id="closeQuoteReview" class="btn" type="button" aria-label="Close quote review">Close</button></div>
-    <div class="h38-quote-dialog__body"><dl id="quoteReviewDetails" class="h38-quote-review"></dl></div>
-    <div class="h38-quote-dialog__actions"><button id="quoteRequestChange" class="btn" type="button">Request a change</button><button id="quoteApproveConfirmed" class="btn btn-primary" type="button">Approve this reviewed quote</button></div>
-  </dialog>
+  <dialog id="quoteReviewDialog" class="h38-quote-dialog" aria-labelledby="quoteReviewTitle"><div class="h38-quote-dialog__head"><div><span class="badge">Complete quote review</span><h2 id="quoteReviewTitle">Quote</h2></div><button id="closeQuoteReview" class="btn" type="button" aria-label="Close quote review">Close</button></div><div class="h38-quote-dialog__body"><dl id="quoteReviewDetails" class="h38-quote-review"></dl></div><div class="h38-quote-dialog__actions"><button id="quoteRequestChange" class="btn" type="button">Request a change</button><button id="quoteApproveConfirmed" class="btn btn-primary" type="button">Approve this reviewed quote</button></div></dialog>
   <footer class="site-footer"></footer>
 </body>
 </html>
