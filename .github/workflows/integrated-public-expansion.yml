@@ -58,7 +58,11 @@ jobs:
       - name: Verify one-shot UX
         run: node scripts/verify-one-shot-ux.js
       - name: Verify public expansion
-        run: node scripts/verify-public-expansion.js
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/public-expansion
+          node scripts/verify-public-expansion.js | tee artifacts/public-expansion/verification.json
       - name: Verify commercial system
         run: node scripts/verify-commercial-system.js
       - name: Verify public customer path
@@ -81,3 +85,11 @@ jobs:
         run: node scripts/verify-commercial-browser.js
       - name: Verify unified app UX
         run: node scripts/verify-unified-app-ux-complete.js
+      - name: Upload public expansion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-expansion-verification-${{ github.run_id }}
+          path: artifacts/public-expansion/verification.json
+          if-no-files-found: warn
+          retention-days: 30

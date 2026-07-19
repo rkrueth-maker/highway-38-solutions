@@ -9,57 +9,22 @@ var H38_PRODUCT_APPS=[];
     if(document.getElementById('h38ProductAppStyles'))return;
     var style=document.createElement('style');
     style.id='h38ProductAppStyles';
-    style.textContent='.product-app-hero{background:linear-gradient(135deg,#102a46,#1d4f80);border:1px solid #35658f;border-radius:14px;padding:22px;color:#fff;margin-bottom:16px}.product-app-hero h2{margin:5px 0 8px}.product-app-hero p{max-width:760px;margin:0;color:#d8e6f2}.product-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.product-module-card{background:#10243a;border:1px solid #31506e;border-radius:12px;padding:16px;display:flex;flex-direction:column;min-height:180px}.product-module-card h3{margin:0 0 8px}.product-module-card p{color:#b9c9d9;flex:1}.product-app-note{border-left:4px solid #ff6b00;background:#14263a;padding:13px 15px;border-radius:8px;margin-bottom:16px}.product-app-nav-badge{font-size:10px;border:1px solid #4c6f91;border-radius:999px;padding:2px 6px;color:#cfe1f2}.product-app-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#ff6b00;color:#fff;font-size:11px;font-weight:900;margin-right:8px}';
+    style.textContent='.product-app-hero{background:linear-gradient(135deg,#102a46,#1d4f80);border:1px solid #35658f;border-radius:14px;padding:22px;color:#fff;margin-bottom:16px}.product-app-hero h2{margin:5px 0 8px}.product-app-hero p{max-width:760px;margin:0;color:#d8e6f2}.product-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.product-module-card{background:#10243a;border:1px solid #31506e;border-radius:12px;padding:16px;display:flex;flex-direction:column;min-height:205px}.product-module-card h3{margin:0 0 8px}.product-module-card p{color:#b9c9d9;flex:1}.product-app-note{border-left:4px solid #ff6b00;background:#14263a;padding:13px 15px;border-radius:8px;margin-bottom:16px}.product-app-nav-badge{font-size:10px;border:1px solid #4c6f91;border-radius:999px;padding:2px 6px;color:#cfe1f2}.product-app-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#ff6b00;color:#fff;font-size:11px;font-weight:900;margin-right:8px}';
     document.head.appendChild(style);
   }
-  function appByRoute(route){
-    var key=String(route||'').replace(/^app:/,'');
-    return H38_PRODUCT_APPS.filter(function(app){return app.key===key;})[0]||null;
-  }
-  function moduleTitle(key){
-    var defs=H38_UNIFIED&&H38_UNIFIED.businessDefinitions||{};
-    return defs[key]&&defs[key].title||String(key||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,function(c){return c.toUpperCase();});
-  }
+  function appByRoute(route){var key=String(route||'').replace(/^app:/,'');return H38_PRODUCT_APPS.filter(function(app){return app.key===key;})[0]||null;}
+  function moduleTitle(key){var defs=H38_UNIFIED&&H38_UNIFIED.businessDefinitions||{};return defs[key]&&defs[key].title||String(key||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,function(c){return c.toUpperCase();});}
+  function moduleState(key){return typeof h38AppModuleState==='function'?h38AppModuleState(key):null;}
+  function latestActivity(modules){var latest='';(modules||[]).forEach(function(key){var state=moduleState(key);if(state&&state.lastUsed&&String(state.lastUsed)>latest)latest=String(state.lastUsed);});return latest;}
+  function roleName(){return H38_UNIFIED&&H38_UNIFIED.user&&H38_UNIFIED.user.role||'User';}
   function renderProductApp(app){
     var modules=(app.modules||[]).filter(function(key){return h38AppRouteAllowed('bo:'+key);});
-    var cards=modules.map(function(key){
-      return '<article class="product-module-card"><h3>'+esc(moduleTitle(key))+'</h3><p>Open the shared '+esc(moduleTitle(key))+' workspace for this product.</p><button class="btn primary" type="button" onclick="show(\'bo:'+attr(key)+'\')">Open workspace</button></article>';
-    }).join('');
-    document.getElementById('view').innerHTML='<div class="product-app-hero"><span class="pill blue">'+esc(app.tier)+' product</span><h2><span class="product-app-icon">'+esc(app.icon)+'</span>'+esc(app.name)+'</h2><p>'+esc(app.tagline)+'</p></div><div class="product-app-note"><b>Shared Core remains active.</b> These workspaces use the same customers, documents, approvals, roles, and audit history. External actions remain locked until approved.</div><div class="product-app-grid">'+cards+'</div>';
+    var cards=modules.map(function(key){var state=moduleState(key)||{};return '<article class="product-module-card"><div class="module-meta"><span>Installed</span><span>'+esc(roleName())+' access</span></div><h3>'+esc(moduleTitle(key))+'</h3><p>Open the shared '+esc(moduleTitle(key))+' workspace for this product.</p>'+(state.lastUsed?'<div class="last-activity">Last activity: '+esc(state.lastUsed)+'</div>':'<div class="last-activity">Ready for first use</div>')+'<button class="btn primary" type="button" onclick="show(\'bo:'+attr(key)+'\')">Open workspace</button></article>';}).join('');
+    var latest=latestActivity(modules);
+    document.getElementById('view').innerHTML='<div class="product-app-hero"><span class="pill blue">'+esc(app.tier)+' product</span><h2><span class="product-app-icon">'+esc(app.icon)+'</span>'+esc(app.name)+'</h2><p>'+esc(app.tagline)+'</p><div class="module-meta"><span>Installed</span><span>'+esc(roleName())+' access</span><span>'+modules.length+' workspaces</span>'+(latest?'<span>Last activity '+esc(latest)+'</span>':'')+'</div></div><div class="product-app-note"><b>Shared Core remains active.</b> These workspaces use the same customers, documents, approvals, roles, and audit history. External actions remain locked until approved.</div><div class="product-app-grid">'+cards+'</div>';
     history.replaceState(null,'','#module='+encodeURIComponent('app:'+app.key));
   }
-  window.renderNav=function(){
-    baseRenderNav();
-    injectStyles();
-    var nav=document.getElementById('nav');
-    if(!nav||!H38_PRODUCT_APPS.length)return;
-    var contains=String(CURRENT||'').indexOf('app:')===0;
-    var saved=localStorage.getItem('h38NavGroup:businessApps');
-    var open=saved==='open'||saved===null||contains;
-    var items=H38_PRODUCT_APPS.map(function(app){
-      var route='app:'+app.key;
-      return '<button class="'+(route===CURRENT?'active':'')+'" onclick="show(\''+attr(route)+'\')"><span><span class="product-app-icon">'+esc(app.icon)+'</span>'+esc(app.shortName)+'</span><small class="product-app-nav-badge">'+esc(app.tier)+'</small></button>';
-    }).join('');
-    nav.insertAdjacentHTML('afterbegin','<div class="nav-group '+(open?'open':'')+'" id="nav-group-businessApps"><button class="nav-group-toggle" aria-expanded="'+open+'" onclick="uxToggleNavGroup(\'businessApps\')"><span><span aria-hidden="true">▦</span> Business Apps</span><span aria-hidden="true">'+(open?'−':'+')+'</span></button><div class="nav-group-items">'+items+'</div></div>');
-  };
-  window.show=async function(module){
-    module=uxNormalizeModule(module);
-    if(String(module).indexOf('app:')===0){
-      var app=appByRoute(module);
-      if(!app)return baseShow('today');
-      CURRENT=module;renderNav();document.getElementById('side').classList.remove('open');renderProductApp(app);h38RenderSystemStatus();return true;
-    }
-    return baseShow(module);
-  };
-  window.refresh=async function(){
-    await baseRefresh();
-    try{
-      H38_PRODUCT_APPS=uxRows(await call('h38PortalProductApps'));
-      renderNav();
-      var requested=uxRequestedModule();
-      if(requested&&String(requested).indexOf('app:')===0)await show(requested);
-    }catch(error){
-      console.error('Business Apps catalog could not load',error);
-    }
-  };
+  window.renderNav=function(){baseRenderNav();injectStyles();var nav=document.getElementById('nav');if(!nav||!H38_PRODUCT_APPS.length)return;var contains=String(CURRENT||'').indexOf('app:')===0;var saved=localStorage.getItem('h38NavGroup:businessApps');var open=saved==='open'||saved===null||contains;var items=H38_PRODUCT_APPS.map(function(app){var route='app:'+app.key;return '<button class="'+(route===CURRENT?'active':'')+'" onclick="show(\''+attr(route)+'\')"><span><span class="product-app-icon">'+esc(app.icon)+'</span>'+esc(app.shortName)+'</span><small class="product-app-nav-badge">'+esc(app.tier)+'</small></button>';}).join('');nav.insertAdjacentHTML('afterbegin','<div class="nav-group '+(open?'open':'')+'" id="nav-group-businessApps"><button class="nav-group-toggle" aria-expanded="'+open+'" onclick="uxToggleNavGroup(\'businessApps\')"><span><span aria-hidden="true">▦</span> Business Apps</span><span aria-hidden="true">'+(open?'−':'+')+'</span></button><div class="nav-group-items">'+items+'</div></div>');};
+  window.show=async function(module){module=uxNormalizeModule(module);if(String(module).indexOf('app:')===0){var app=appByRoute(module);if(!app)return baseShow('today');CURRENT=module;renderNav();document.getElementById('side').classList.remove('open');renderProductApp(app);h38RenderSystemStatus();return true;}return baseShow(module);};
+  window.refresh=async function(){await baseRefresh();try{H38_PRODUCT_APPS=uxRows(await call('h38PortalProductApps'));renderNav();var requested=uxRequestedModule();if(requested&&String(requested).indexOf('app:')===0)await show(requested);}catch(error){console.error('Business Apps catalog could not load',error);}};
 })();

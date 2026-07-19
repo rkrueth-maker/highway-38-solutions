@@ -13,6 +13,9 @@ const exists = relative => fs.existsSync(path.join(root, relative));
 const check = (name, condition, evidence = '') => (condition ? passes : failures).push({ name, evidence });
 
 const index = read('index.html');
+const request = read('start-request.html');
+const requestClient = read('request-flow.js');
+const intake = read('apps-script/unified-shell/Unified_PublicIntake.gs');
 const portal = read('portal.html');
 const portalIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalUnified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
@@ -42,10 +45,17 @@ check('homepage has finished examples secondary CTA', /href="sample-library-now\
 check('homepage explains no charge on request', /Submitting a request creates no charge\./i.test(index));
 check('homepage uses real responsive navigation and sections', index.includes('class="site-header"') && index.includes('class="menu-button"') && index.includes('class="hero"'));
 check('homepage removes raster hotspot shell and swipe notice', !/class="[^"]*hotspot|approved-home__stage|Swipe horizontally/i.test(index));
-check('homepage keeps text and controls outside the approved hero image', index.includes('class="hero-copy"') && index.includes('class="hero-media"') && index.includes('assets/approved-homepage-mockup.png'));
+check('homepage uses clean approved hero photography without embedded mockup', index.includes('class="hero-copy"') && index.includes('class="hero-media"') && index.includes('assets/approved-website-images/10-project-planning-documents.jpg') && !index.includes('assets/approved-homepage-mockup.png'));
 check('homepage includes the four approved outcome paths', (index.match(/class="outcome-card"/g) || []).length === 4);
+check('homepage promotes the two software products', index.includes('Highway 38 Quote Builder') && index.includes('Highway 38 Business System') && index.includes('Software for small business'));
 check('prohibited quantitative CNC claim removed', !/(?:25,000\+|25,000\s+(?:CNC\s+)?programs?)/i.test(index));
 check('homepage contains no personal owner attribution', !/Rick\s+Krueth/i.test(index));
+
+check('request flow uses secure direct submission as primary action', /id="request-submit"[^>]*>Submit Request<\/button>/.test(request) && /data-intake-endpoint=/.test(request));
+check('request flow keeps email as fallback only', /id="email-summary" hidden>Email fallback/.test(request) && requestClient.includes('emailFallback'));
+check('request flow saves progress and returns confirmation number', requestClient.includes('H38Platform.saveDraft') && requestClient.includes('Request received') && requestClient.includes('requestId'));
+check('secure intake creates internal owner-review record only', /function doPost\(event\)/.test(intake) && /Owner Approval Required/.test(intake) && /External actions remain locked/.test(intake) && !/sendEmail|GmailApp|MailApp/.test(intake));
+check('secure intake has schema-independent duplicate protection', /H38_PUBLIC_INTAKE_/.test(intake) && /PropertiesService\.getScriptProperties/.test(intake) && /DUPLICATE_ACCEPTED/.test(intake));
 
 check('catalog contains 15 products', catalog && catalog.products.length === 15, catalog ? String(catalog.products.length) : 'missing catalog');
 check('catalog contains 9 bundles', catalog && catalog.bundles.length === 9, catalog ? String(catalog.bundles.length) : 'missing catalog');

@@ -1,6 +1,6 @@
 window.H38_GENERATED_ASSETS={
-  basic:"https://at.adobe.com/tLTVmnuFPcbz19ds",
-  shop:"https://at.adobe.com/3QtPywdvdv1htNtf",
+  basic:"assets/rick-review-basic-layout-v1.png?v=20260719-local-proof",
+  shop:"assets/rick-review-shop-flow-v1.png?v=20260719-local-proof",
   garage:"https://at.adobe.com/bdui4hWLtywqpqKp",
   layout:"https://at.adobe.com/ChW2M7ffWQYnjRiU",
   tools:"https://at.adobe.com/8acZOEvuildeJZpp",

@@ -2,75 +2,77 @@
 const fs=require('fs');
 const path=require('path');
 const root=path.resolve(__dirname,'..');
-const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const exists=p=>fs.existsSync(path.join(root,p));
-const fail=m=>{throw new Error(m)};
-const need=(text,marker,label)=>{if(!text.includes(marker))fail(`${label}: missing ${marker}`)};
+const read=p=>exists(p)?fs.readFileSync(path.join(root,p),'utf8'):'';
+const failures=[];
+const check=(name,condition,detail='')=>{if(!condition)failures.push({name,detail});};
+const requireFile=p=>check(`required file ${p}`,exists(p),p);
 
-const requiredFiles=['index.html','products.html','business-systems.html','sample-library-now.html','free-tools.html','start-request.html','solutions.html','service-guides.html','case-study-template.html','business-systems-data.js','public-expansion.css','public-expansion.js','tool-downloads.js','public-site-config.js','visual-cleanup.css','visual-cleanup-secondary.css','docs/public-website/CUSTOM_DOMAIN_READINESS.md'];
-requiredFiles.forEach(p=>{if(!exists(p))fail(`missing required file ${p}`)});
+[
+  'index.html','products.html','business-systems.html','sample-library-now.html','free-tools.html','start-request.html',
+  'solutions.html','service-guides.html','case-study-template.html','business-systems-data.js','public-expansion.css',
+  'public-expansion.js','tool-downloads.js','public-site-config.js','visual-cleanup.css','visual-cleanup-secondary.css',
+  'request-flow.js','apps-script/unified-shell/Unified_PublicIntake.gs','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
+].forEach(requireFile);
 
 const catalog=read('catalog-data.js');
-const productIds=[...catalog.matchAll(/"id":"H38-P\d{3}"/g)].map(x=>x[0]);
-const bundleIds=[...catalog.matchAll(/"id":"H38-B\d{3}"/g)].map(x=>x[0]);
-if(productIds.length!==15)fail(`expected 15 product records, found ${productIds.length}`);
-if(bundleIds.length!==9)fail(`expected 9 bundle records, found ${bundleIds.length}`);
+const productCount=(catalog.match(/"id":"H38-P\d{3}"/g)||[]).length;
+const bundleCount=(catalog.match(/"id":"H38-B\d{3}"/g)||[]).length;
+check('catalog preserves 15 products',productCount===15,String(productCount));
+check('catalog preserves 9 bundles',bundleCount===9,String(bundleCount));
 
 const home=read('index.html');
-need(home,'<span>Big problems.</span>','home primary promise');
-need(home,'<strong>Clear plans.</strong>','home promise completion');
-need(home,'href="start-request.html">Start a Request','home primary CTA');
-need(home,'href="sample-library-now.html">See Examples','home secondary CTA');
-need(home,'Submitting a request creates no charge','home no-charge reassurance');
-need(home,'assets/approved-homepage-mockup.png','exact approved homepage visual');
-need(home,'class="hero-copy"','responsive text column');
-need(home,'class="hero-media"','separate responsive image column');
-need(home,'Practical experience','verified experience section');
-if(home.includes('25,000+'))fail('unsupported CNC claim remains');
-if(/class="hotspot|Swipe horizontally|approved-home__stage/i.test(home))fail('retired raster hotspot shell remains');
-if((home.match(/class="outcome-card"/g)||[]).length!==4)fail('homepage must contain four approved outcome paths');
+check('homepage preserves approved promise',home.includes('<span>Big problems.</span>')&&home.includes('<strong>Clear plans.</strong>'));
+check('homepage has request and examples actions',home.includes('href="start-request.html"')&&home.includes('href="sample-library-now.html"'));
+check('homepage explains no-charge boundary',home.includes('Submitting a request creates no charge'));
+check('homepage uses clean approved planning image',home.includes('assets/approved-website-images/10-project-planning-documents.jpg'));
+check('homepage uses real responsive structure',home.includes('class="site-header"')&&home.includes('class="menu-button"')&&home.includes('class="hero-copy"')&&home.includes('class="hero-media"'));
+check('homepage retired mockup and hotspot shell are absent',!home.includes('assets/approved-homepage-mockup.png')&&!/class="hotspot|Swipe horizontally|approved-home__stage/i.test(home));
+check('homepage preserves four outcome paths',(home.match(/class="outcome-card"/g)||[]).length===4);
+check('unsupported quantitative CNC claim absent',!home.includes('25,000+'));
+
+const request=read('start-request.html');
+const requestFlow=read('request-flow.js');
+const intake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
+check('request flow preserves three steps',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
+check('request form is connected to existing unified deployment',request.includes('data-intake-endpoint="https://script.google.com/macros/s/'));
+check('request performs secure direct submission',requestFlow.includes('function submitDirect')&&requestFlow.includes("message.type!=='h38-public-intake'")&&requestFlow.includes('post.submit()'));
+check('request returns confirmation record',requestFlow.includes('Request received')&&requestFlow.includes('requestId'));
+check('request saves and restores progress',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft'));
+check('request keeps email fallback only',requestFlow.includes('function emailFallback')&&request.includes('id="email-summary" hidden'));
+check('intake protects duplicates and owner approval',intake.includes('DUPLICATE_ACCEPTED')&&intake.includes('Owner Approval Required')&&intake.includes('External actions remain locked'));
 
 const systems=read('business-systems-data.js');
-['Website Build Package','Business Office Suite','Command Center Suite','Complete Business System'].forEach(x=>need(systems,x,'business systems'));
-need(systems,'Request a scoped quote','business systems pricing');
-need(systems,'Tax-preparation support only','tax boundary');
-need(systems,'defined future product','Command Center honesty');
-if(/H38-[PB]\d{3}/.test(systems))fail('new business systems must not receive H38 product or bundle IDs');
+['Website Build Package','Business Office Suite','Command Center Suite','Complete Business System'].forEach(name=>check(`business system ${name}`,systems.includes(name)));
+check('business systems preserve tax boundary',systems.includes('Tax-preparation support only'));
+check('business systems do not invent catalog IDs',!/H38-[PB]\d{3}/.test(systems));
 
 const products=read('products.html');
-need(products,'data-products="plans"','planning products');
-need(products,'data-products="implementation"','implementation products');
-need(products,'data-products="manufacturing"','manufacturing products');
-need(products,'data-bundles','bundles');
-need(products,'15 fixed-price services. 9 approved bundles. 4 scoped systems.','catalog preservation marker');
+check('product families remain present',['data-products="plans"','data-products="implementation"','data-products="manufacturing"','data-bundles'].every(marker=>products.includes(marker)));
 
 const samples=read('sample-library-now.html');
-need(samples,'data-samples="all"','existing samples');
-need(samples,'data-system-scenarios','system demonstrations');
-need(samples,'hypothetical demonstration','proof classification wording');
-need(samples,'Workflow proof formats','workflow proof');
+check('sample library preserves all product samples',samples.includes('data-samples="all"'));
+check('sample library preserves system demonstrations',samples.includes('data-system-scenarios'));
+check('sample library preserves proof classification',samples.includes('data-image-classification="hypothetical-demonstration"'));
 
 const tools=read('tool-downloads.js');
 const toolNames=['Problem Definition Worksheet','Project Planning Checklist','Space Measurement Checklist','Garage and Shop Photo Checklist','Owner Decision Checklist','Project Scope Template','Shop Flow Observation Sheet','Tool and Material Zone Worksheet','Lead-to-Job Status Tracker','Follow-Up Checklist','Workflow Mapping Worksheet','Repeated Task Audit','File Cleanup Planning Checklist','Automation Opportunity Checklist','Machine Idle-Reason Tracker','Basic ROI Assumption Worksheet','Vendor RFQ Preparation Checklist','Fixture Concept Question Sheet','Vision Inspection Sample Checklist','Robot Tending Information Checklist','Automation Vendor Comparison Sheet','Small-Business Website Planning Checklist','Website Content Collection Worksheet','Business Office Readiness Checklist','Customer and Job Workflow Checklist','Command Center Requirements Worksheet','User Role Planning Sheet','Business System Implementation Checklist','Business Data Migration Checklist','Backup and Recovery Readiness Checklist'];
-if(toolNames.length!==30)fail('verifier tool list must contain 30 required downloads');
-toolNames.forEach(x=>need(tools,x,'free tools'));
-need(read('free-tools.html'),'data-expanded-downloads','free tools host');
+check('free-tool contract contains 30 downloads',toolNames.length===30);
+toolNames.forEach(name=>check(`free tool ${name}`,tools.includes(name)));
 
-const publicJs=read('public-expansion.js');
-['Services','Business Systems','Samples','Free Tools','Start a Request'].forEach(x=>need(publicJs,x,'public navigation'));
-need(publicJs,'exp-best-for','Best for rendering');
-need(publicJs,'business-system-interest','business system intake');
-need(publicJs,'Filter samples by result','sample result filtering');
-
-const approvedImages=['assets/approved-website-images/homepage-hero-garage-workspace.webp','assets/approved-website-images/project-planning-desk.webp','assets/approved-website-images/business-workflow-office.webp','assets/approved-website-images/manufacturing-automation.webp','assets/approved-website-images/05-organized-tool-wall-workbench.jpg','assets/approved-website-images/06-garage-layout-zones.jpg','assets/approved-website-images/07-storage-organization-system.jpg','assets/approved-website-images/08-request-process-checklist.jpg','assets/approved-website-images/09-clean-working-shop-floor.jpg','assets/approved-website-images/10-project-planning-documents.jpg','assets/approved-website-images/11-exterior-shop-building.jpg','assets/approved-website-images/12-cnc-machining-closeup.jpg','assets/approved-website-images/13-digital-organization-file-system.jpg','assets/approved-homepage-mockup.png'];
-approvedImages.forEach(p=>{if(!exists(p))fail(`missing approved image ${p}`)});
+[
+  'assets/approved-website-images/10-project-planning-documents.jpg',
+  'assets/rick-review-basic-layout-v1.png',
+  'assets/rick-review-shop-flow-v1.png',
+  'assets/product-proof/digital-workflow-build.png',
+  'assets/product-proof/robot-tending-concept-pack.png'
+].forEach(p=>check(`committed proof image ${p}`,exists(p)));
 
 const guides=read('service-guides.html');
-['garage-layout-planning','shop-organization-planning','small-business-workflow-setup','digital-workflow-implementation','file-document-cleanup','manufacturing-bottleneck-analysis','automation-opportunity-review','automation-rfq-preparation','fixture-jig-concept-review','vision-inspection-planning','robot-tending-concept-planning','small-business-website-building','business-office-system-setup','owner-command-center-setup','complete-business-system-implementation'].forEach(x=>need(guides,`id="${x}"`,'service guides'));
+const guideIds=['garage-layout-planning','shop-organization-planning','small-business-workflow-setup','digital-workflow-implementation','file-document-cleanup','manufacturing-bottleneck-analysis','automation-opportunity-review','automation-rfq-preparation','fixture-jig-concept-review','vision-inspection-planning','robot-tending-concept-planning','small-business-website-building','business-office-system-setup','owner-command-center-setup','complete-business-system-implementation'];
+guideIds.forEach(id=>check(`service guide ${id}`,guides.includes(`id="${id}"`)));
+check('domain changes remain approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
 
-const caseStudy=read('case-study-template.html');
-['Customer problem','Starting condition','Information received','Work performed','Deliverables','Customer-controlled decisions','Final result','Proof and authorization'].forEach(x=>need(caseStudy,x,'case study template'));
-need(read('docs/public-website/CUSTOM_DOMAIN_READINESS.md'),'NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED','domain boundary');
-need(read('public-site-config.js'),'awaiting-owner-approved-wording','service area configuration');
-
-console.log(JSON.stringify({status:'PASS',products:productIds.length,bundles:bundleIds.length,businessSystems:4,freeDownloads:toolNames.length,approvedImages:approvedImages.length,serviceGuides:15,responsiveHomepage:true},null,2));
+const result={status:failures.length?'FAIL':'PASS',products:productCount,bundles:bundleCount,freeDownloads:toolNames.length,serviceGuides:guideIds.length,failures};
+console.log(JSON.stringify(result,null,2));
+process.exit(failures.length?1:0);

@@ -18,6 +18,7 @@ function h38PortalRawInclude_(fileName) {
     'Portal_Business_Create_Styles',
     'Portal_Application_UX_Styles',
     'Portal_OneShot_UX_Styles',
+    'Portal_Product_Unification_Styles',
     'Portal_UX_Client_Shell',
     'Portal_Business_Client',
     'Portal_Business_Create_Client',
