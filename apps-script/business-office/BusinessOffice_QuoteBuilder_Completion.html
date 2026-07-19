@@ -2,14 +2,14 @@
 html.h38-quote-builder-focus .ux-global-search,html.h38-quote-builder-focus .header-upload{display:none!important}
 html.h38-quote-builder-focus .layout{grid-template-columns:250px minmax(0,1fr)}
 .qb-focus-nav{display:grid;gap:5px}.qb-focus-nav h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 10px;margin:0}.qb-focus-nav button{width:100%;text-align:left}.qb-focus-nav button.active{background:var(--light);color:var(--navy);box-shadow:inset 4px 0 var(--blue)}
-.qb-file-intake{grid-column:1/-1;border:2px dashed var(--blue);background:var(--light);border-radius:12px;padding:14px}.qb-file-intake input{background:#fff}.qb-file-list{display:grid;gap:6px;margin-top:9px}.qb-file-row{display:flex;justify-content:space-between;gap:12px;padding:7px 9px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px}.qb-upload-status{grid-column:1/-1;min-height:22px;font-weight:800;color:var(--navy)}
-@media(max-width:800px){html.h38-quote-builder-focus .layout{grid-template-columns:1fr}.qb-focus-nav{display:flex;overflow:auto;padding:6px}.qb-focus-nav h2{display:none}.qb-focus-nav button{min-width:max-content;width:auto}}
+.qb-file-intake{grid-column:1/-1;border:2px dashed var(--blue);background:var(--light);border-radius:12px;padding:14px}.qb-photo-actions{display:flex;gap:9px;flex-wrap:wrap;margin:9px 0}.qb-photo-actions button{min-width:170px}.qb-file-intake input[type=file]{display:none}.qb-file-list{display:grid;gap:6px;margin-top:9px}.qb-file-row{display:flex;justify-content:space-between;gap:12px;padding:7px 9px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px}.qb-upload-status{grid-column:1/-1;min-height:22px;font-weight:800;color:var(--navy)}.qb-ai-tools{grid-column:1/-1;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fff}.qb-ai-tools .actions{display:flex;gap:8px;flex-wrap:wrap}.qb-ai-concept img{display:block;width:min(100%,760px);margin-top:10px;border-radius:10px;border:1px solid var(--border)}.qb-ai-concept strong{display:block;margin-top:7px;color:#7a3d00}
+@media(max-width:800px){html.h38-quote-builder-focus .layout{grid-template-columns:1fr}.qb-focus-nav{display:flex;overflow:auto;padding:6px}.qb-focus-nav h2{display:none}.qb-focus-nav button{min-width:max-content;width:auto}.qb-photo-actions button{width:100%}}
 </style>
 <script>
 (function(){
 'use strict';
 var focusMode=new URLSearchParams(location.search).get('quoteBuilder')==='1';
-var installed=false;
+var installed=false,selectedFiles=[];
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fullSystemUrl(){var params=new URLSearchParams(location.search);params.delete('quoteBuilder');return location.pathname+(params.toString()?'?'+params.toString():'')}
@@ -32,29 +32,50 @@ function focusNav(){
 }
 
 function addFileIntake(){
-  var form=document.getElementById('qbAiForm');if(!form||document.getElementById('qbAiFiles'))return;
+  var form=document.getElementById('qbAiForm');if(!form||document.getElementById('qbAiCameraFiles'))return;
   var notes=document.getElementById('qbAiNotes');var wrap=document.createElement('div');wrap.className='qb-file-intake';
-  wrap.innerHTML='<label>Photos or PDFs<input id="qbAiFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf" capture="environment"></label><p class="boundary">Take pictures or choose existing files. Originals are uploaded privately and preserved. Each file remains review-only until approved.</p><div id="qbAiFileList" class="qb-file-list"></div>';
+  wrap.innerHTML='<strong>Field Photos and Files</strong><div class="qb-photo-actions"><button type="button" class="primary" id="qbTakePicture">📷 Take Picture</button><button type="button" class="secondary" id="qbUploadPhotos">🖼️ Upload Photos</button></div><input id="qbAiCameraFiles" type="file" accept="image/*" capture="environment"><input id="qbAiUploadFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"><p class="boundary">Take Picture opens the camera. Upload Photos opens existing photos or files. Originals remain private and owner-review only.</p><div id="qbAiFileList" class="qb-file-list"></div>';
   form.insertBefore(wrap,notes&&notes.parentElement?notes.parentElement:form.firstChild);
+  var tools=document.createElement('div');tools.className='qb-ai-tools';tools.innerHTML='<strong>AI Quote Assistant</strong><p>Use selected photos and field notes to draft the quote and optionally create a proposed-completion concept.</p><div class="actions"><button type="button" class="primary" id="qbBuildAiQuote">✨ Build Quote with AI</button><button type="button" class="secondary" id="qbBuildAiVisual">🖼️ Create Completion Visual</button></div><p class="boundary"><strong>Owner approval required.</strong> AI cannot approve price, send, schedule, charge, or treat a concept image as completion proof.</p><div id="qbAiConcept" class="qb-ai-concept"></div>';
+  form.insertBefore(tools,form.lastElementChild);
   var status=document.createElement('div');status.id='qbAiUploadStatus';status.className='qb-upload-status';status.setAttribute('aria-live','polite');form.insertBefore(status,form.lastElementChild);
-  document.getElementById('qbAiFiles').addEventListener('change',renderFiles)
+  document.getElementById('qbTakePicture').onclick=function(){document.getElementById('qbAiCameraFiles').click()};
+  document.getElementById('qbUploadPhotos').onclick=function(){document.getElementById('qbAiUploadFiles').click()};
+  document.getElementById('qbAiCameraFiles').addEventListener('change',collectFiles);
+  document.getElementById('qbAiUploadFiles').addEventListener('change',collectFiles);
+  document.getElementById('qbBuildAiQuote').onclick=buildAiQuote;
+  document.getElementById('qbBuildAiVisual').onclick=buildAiVisual;
 }
-function renderFiles(){
-  var files=Array.from((document.getElementById('qbAiFiles')||{}).files||[]),host=document.getElementById('qbAiFileList');if(!host)return;
-  host.innerHTML=files.map(function(file){return '<div class="qb-file-row"><strong>'+esc(file.name)+'</strong><span>'+Math.round(file.size/1024)+' KB</span></div>'}).join('')
-}
+function collectFiles(event){Array.from(event.target.files||[]).forEach(function(file){if(!selectedFiles.some(function(existing){return existing.name===file.name&&existing.size===file.size&&existing.lastModified===file.lastModified}))selectedFiles.push(file)});event.target.value='';renderFiles()}
+function renderFiles(){var host=document.getElementById('qbAiFileList');if(!host)return;host.innerHTML=selectedFiles.map(function(file,index){return '<div class="qb-file-row"><strong>'+esc(file.name)+'</strong><span>'+Math.round(file.size/1024)+' KB · <button type="button" data-remove-ai-file="'+index+'">Remove</button></span></div>'}).join('');host.querySelectorAll('[data-remove-ai-file]').forEach(function(button){button.onclick=function(){selectedFiles.splice(Number(button.getAttribute('data-remove-ai-file')),1);renderFiles()}})}
 function fileData(file){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result)};reader.onerror=reject;reader.readAsDataURL(file)})}
 function mime(file){if(file.type)return file.type;var ext=String(file.name||'').split('.').pop().toLowerCase();return {pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[ext]||'application/octet-stream'}
 async function uploadDraftFiles(customerId){
-  var input=document.getElementById('qbAiFiles'),files=Array.from(input&&input.files||[]),status=document.getElementById('qbAiUploadStatus'),refs=[];
-  for(var i=0;i<files.length;i++){
-    var file=files[i];if(file.size>20*1024*1024)throw new Error(file.name+' exceeds the 20 MB upload limit.');
-    if(status)status.textContent='Uploading '+(i+1)+' of '+files.length+': '+file.name;
-    var document=await call('uploadDocument',{payload:{fileName:file.name,mimeType:mime(file),base64Data:await fileData(file),documentType:'Quote Field Photo',sourceType:'Quote Builder',sourceId:customerId,accessClassification:'Private Customer'}});
-    refs.push((document['Document ID']||'Document')+' | '+(document['File Name']||file.name));
+  var status=document.getElementById('qbAiUploadStatus'),refs=[];
+  for(var i=0;i<selectedFiles.length;i++){
+    var file=selectedFiles[i];if(file.size>20*1024*1024)throw new Error(file.name+' exceeds the 20 MB upload limit.');
+    if(status)status.textContent='Uploading '+(i+1)+' of '+selectedFiles.length+': '+file.name;
+    var documentRecord=await call('uploadDocument',{payload:{fileName:file.name,mimeType:mime(file),base64Data:await fileData(file),documentType:'Quote Field Photo',sourceType:'Quote Builder',sourceId:customerId,accessClassification:'Private Customer'}});
+    refs.push((documentRecord['Document ID']||'Document')+' | '+(documentRecord['File Name']||file.name));
   }
-  if(status)status.textContent=files.length?files.length+' private file'+(files.length===1?'':'s')+' uploaded for review.':'';
+  if(status)status.textContent=selectedFiles.length?selectedFiles.length+' private file'+(selectedFiles.length===1?'':'s')+' uploaded for review.':'';
   return refs
+}
+function aiCustomer(){var customer=document.getElementById('qbAiCustomer');return customer&&customer.value||''}
+function aiNotes(){var notes=document.getElementById('qbAiNotes');return notes&&notes.value||''}
+async function imageDataList(){var images=selectedFiles.filter(function(file){return String(mime(file)).indexOf('image/')===0}).slice(0,6),out=[];for(var i=0;i<images.length;i++)out.push(await fileData(images[i]));return out}
+async function buildAiQuote(){
+  var customerId=aiCustomer();if(!customerId)return ownerMessage('Select a customer first.',true);if(!aiNotes()&&!selectedFiles.length)return ownerMessage('Add notes or photos first.',true);
+  var button=document.getElementById('qbBuildAiQuote');button.disabled=true;button.textContent='Building AI draft…';
+  try{var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boBuildAiQuoteDraft({customerId:customerId,projectTitle:'Field quote',notes:aiNotes(),photos:[]})});var details=result&&result.draft;if(details){var photos=await imageDataList();if(photos.length)result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boBuildAiQuoteDraft({customerId:customerId,projectTitle:'Field quote',notes:aiNotes(),photos:photos})});}ownerMessage((result&&result.message)||'AI draft staged for owner review.');var box=document.getElementById('qbAiPhotos');if(box&&result&&result.staged)box.value=(box.value?box.value+'\n':'')+'AI draft '+result.staged['Activity ID']+' — owner review required';}
+  catch(error){ownerMessage(error.message||String(error),true)}finally{button.disabled=false;button.textContent='✨ Build Quote with AI'}
+}
+async function buildAiVisual(){
+  var customerId=aiCustomer(),image=selectedFiles.find(function(file){return String(mime(file)).indexOf('image/')===0});if(!customerId)return ownerMessage('Select a customer first.',true);if(!image)return ownerMessage('Take or upload an image first.',true);
+  var instructions=window.prompt('Describe exactly what the completed result should look like. Include materials, colors, layout, and what must remain unchanged.');if(!instructions)return;
+  var button=document.getElementById('qbBuildAiVisual');button.disabled=true;button.textContent='Creating concept…';
+  try{var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boCreateAiCompletionVisual({customerId:customerId,projectTitle:'Field quote',imageDataUrl:null,instructions:instructions})});}
+  catch(first){try{var data=await fileData(image);var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boCreateAiCompletionVisual({customerId:customerId,projectTitle:'Field quote',imageDataUrl:data,instructions:instructions})});var host=document.getElementById('qbAiConcept');host.innerHTML='<img src="'+esc(result.visualUrl)+'" alt="AI proposed completion concept"><strong>'+esc(result.label)+'</strong><p>Stored for owner review and excluded from the proposal until approved.</p>';ownerMessage('Completion concept created for owner review.')}catch(error){ownerMessage(error.message||String(error),true)}}finally{button.disabled=false;button.textContent='🖼️ Create Completion Visual'}
 }
 
 function install(){
@@ -65,11 +86,8 @@ function install(){
   var originalPrepare=window.qbPrepareAi;window.qbPrepareAi=async function(event){
     if(event&&event.preventDefault)event.preventDefault();
     var customer=document.getElementById('qbAiCustomer');if(!customer||!customer.value)return originalPrepare.call(this,event);
-    try{
-      var refs=await uploadDraftFiles(customer.value),box=document.getElementById('qbAiPhotos');
-      if(refs.length&&box)box.value=[box.value.trim()].concat(refs).filter(Boolean).join('\n');
-      return await originalPrepare.call(this,{preventDefault:function(){}})
-    }catch(error){var status=document.getElementById('qbAiUploadStatus');if(status)status.textContent='Upload stopped: '+(error.message||String(error));if(typeof ownerMessage==='function')ownerMessage('Photo/PDF intake stopped. No quote was created.',true);else showToast(error.message||String(error),true)}
+    try{var refs=await uploadDraftFiles(customer.value),box=document.getElementById('qbAiPhotos');if(refs.length&&box)box.value=[box.value.trim()].concat(refs).filter(Boolean).join('\n');return await originalPrepare.call(this,{preventDefault:function(){}})}
+    catch(error){var status=document.getElementById('qbAiUploadStatus');if(status)status.textContent='Upload stopped: '+(error.message||String(error));if(typeof ownerMessage==='function')ownerMessage('Photo/PDF intake stopped. No quote was created.',true);else showToast(error.message||String(error),true)}
   };
   renderNav();if(document.getElementById('qbAiForm'))addFileIntake()
 }
