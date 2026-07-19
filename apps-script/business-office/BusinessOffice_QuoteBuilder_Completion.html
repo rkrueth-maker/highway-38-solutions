@@ -17,20 +17,10 @@ function focusNav(){
   if(!focusMode)return;
   var nav=document.getElementById('nav');if(!nav)return;
   var module=state&&state.module||'quoteBuilder';
-  var buttons=[
-    ['quoteBuilder','Quote Builder','qbOpen(\'dashboard\')'],
-    ['newQuote','New Quote','qbOpen(\'new\')'],
-    ['priceBook','Price Book','qbOpen(\'priceBook\')'],
-    ['templates','Templates','qbOpen(\'templates\')'],
-    ['aiDraft','Photo / AI Draft','qbOpen(\'ai\')'],
-    ['customers','Customers','openModule(\'customers\')'],
-    ['quotes','All Quotes','openModule(\'quotes\')'],
-    ['documents','Documents','openModule(\'documents\')']
-  ];
+  var buttons=[['quoteBuilder','Quote Builder','qbOpen(\'dashboard\')'],['newQuote','New Quote','qbOpen(\'new\')'],['priceBook','Price Book','qbOpen(\'priceBook\')'],['templates','Templates','qbOpen(\'templates\')'],['aiDraft','Photo / AI Draft','qbOpen(\'ai\')'],['customers','Customers','openModule(\'customers\')'],['quotes','All Quotes','openModule(\'quotes\')'],['documents','Documents','openModule(\'documents\')']];
   var view=(window.__h38QbView||'dashboard');
   nav.innerHTML='<div class="qb-focus-nav"><h2>Quote Builder</h2>'+buttons.map(function(item){var active=(item[0]===module)||(module==='quoteBuilder'&&((item[0]==='quoteBuilder'&&view==='dashboard')||item[0]===view));return '<button type="button" class="'+(active?'active':'')+'" onclick="'+item[2]+'">'+esc(item[1])+'</button>'}).join('')+'<button type="button" onclick="location.href=\''+esc(fullSystemUrl())+'\'">Full Business System</button></div>'
 }
-
 function addFileIntake(){
   var form=document.getElementById('qbAiForm');if(!form||document.getElementById('qbAiCameraFiles'))return;
   var notes=document.getElementById('qbAiNotes');var wrap=document.createElement('div');wrap.className='qb-file-intake';
@@ -41,54 +31,36 @@ function addFileIntake(){
   var status=document.createElement('div');status.id='qbAiUploadStatus';status.className='qb-upload-status';status.setAttribute('aria-live','polite');form.insertBefore(status,form.lastElementChild);
   document.getElementById('qbTakePicture').onclick=function(){document.getElementById('qbAiCameraFiles').click()};
   document.getElementById('qbUploadPhotos').onclick=function(){document.getElementById('qbAiUploadFiles').click()};
-  document.getElementById('qbAiCameraFiles').addEventListener('change',collectFiles);
-  document.getElementById('qbAiUploadFiles').addEventListener('change',collectFiles);
-  document.getElementById('qbBuildAiQuote').onclick=buildAiQuote;
-  document.getElementById('qbBuildAiVisual').onclick=buildAiVisual;
+  document.getElementById('qbAiCameraFiles').addEventListener('change',collectFiles);document.getElementById('qbAiUploadFiles').addEventListener('change',collectFiles);
+  document.getElementById('qbBuildAiQuote').onclick=buildAiQuote;document.getElementById('qbBuildAiVisual').onclick=buildAiVisual;
 }
 function collectFiles(event){Array.from(event.target.files||[]).forEach(function(file){if(!selectedFiles.some(function(existing){return existing.name===file.name&&existing.size===file.size&&existing.lastModified===file.lastModified}))selectedFiles.push(file)});event.target.value='';renderFiles()}
 function renderFiles(){var host=document.getElementById('qbAiFileList');if(!host)return;host.innerHTML=selectedFiles.map(function(file,index){return '<div class="qb-file-row"><strong>'+esc(file.name)+'</strong><span>'+Math.round(file.size/1024)+' KB · <button type="button" data-remove-ai-file="'+index+'">Remove</button></span></div>'}).join('');host.querySelectorAll('[data-remove-ai-file]').forEach(function(button){button.onclick=function(){selectedFiles.splice(Number(button.getAttribute('data-remove-ai-file')),1);renderFiles()}})}
 function fileData(file){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result)};reader.onerror=reject;reader.readAsDataURL(file)})}
 function mime(file){if(file.type)return file.type;var ext=String(file.name||'').split('.').pop().toLowerCase();return {pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[ext]||'application/octet-stream'}
-async function uploadDraftFiles(customerId){
-  var status=document.getElementById('qbAiUploadStatus'),refs=[];
-  for(var i=0;i<selectedFiles.length;i++){
-    var file=selectedFiles[i];if(file.size>20*1024*1024)throw new Error(file.name+' exceeds the 20 MB upload limit.');
-    if(status)status.textContent='Uploading '+(i+1)+' of '+selectedFiles.length+': '+file.name;
-    var documentRecord=await call('uploadDocument',{payload:{fileName:file.name,mimeType:mime(file),base64Data:await fileData(file),documentType:'Quote Field Photo',sourceType:'Quote Builder',sourceId:customerId,accessClassification:'Private Customer'}});
-    refs.push((documentRecord['Document ID']||'Document')+' | '+(documentRecord['File Name']||file.name));
-  }
-  if(status)status.textContent=selectedFiles.length?selectedFiles.length+' private file'+(selectedFiles.length===1?'':'s')+' uploaded for review.':'';
-  return refs
-}
+async function uploadDraftFiles(customerId){var status=document.getElementById('qbAiUploadStatus'),refs=[];for(var i=0;i<selectedFiles.length;i++){var file=selectedFiles[i];if(file.size>20*1024*1024)throw new Error(file.name+' exceeds the 20 MB upload limit.');if(status)status.textContent='Uploading '+(i+1)+' of '+selectedFiles.length+': '+file.name;var documentRecord=await call('uploadDocument',{payload:{fileName:file.name,mimeType:mime(file),base64Data:await fileData(file),documentType:'Quote Field Photo',sourceType:'Quote Builder',sourceId:customerId,accessClassification:'Private Customer'}});refs.push((documentRecord['Document ID']||'Document')+' | '+(documentRecord['File Name']||file.name));}if(status)status.textContent=selectedFiles.length?selectedFiles.length+' private file'+(selectedFiles.length===1?'':'s')+' uploaded for review.':'';return refs}
 function aiCustomer(){var customer=document.getElementById('qbAiCustomer');return customer&&customer.value||''}
 function aiNotes(){var notes=document.getElementById('qbAiNotes');return notes&&notes.value||''}
 async function imageDataList(){var images=selectedFiles.filter(function(file){return String(mime(file)).indexOf('image/')===0}).slice(0,6),out=[];for(var i=0;i<images.length;i++)out.push(await fileData(images[i]));return out}
 async function buildAiQuote(){
   var customerId=aiCustomer();if(!customerId)return ownerMessage('Select a customer first.',true);if(!aiNotes()&&!selectedFiles.length)return ownerMessage('Add notes or photos first.',true);
   var button=document.getElementById('qbBuildAiQuote');button.disabled=true;button.textContent='Building AI draft…';
-  try{var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boBuildAiQuoteDraft({customerId:customerId,projectTitle:'Field quote',notes:aiNotes(),photos:[]})});var details=result&&result.draft;if(details){var photos=await imageDataList();if(photos.length)result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boBuildAiQuoteDraft({customerId:customerId,projectTitle:'Field quote',notes:aiNotes(),photos:photos})});}ownerMessage((result&&result.message)||'AI draft staged for owner review.');var box=document.getElementById('qbAiPhotos');if(box&&result&&result.staged)box.value=(box.value?box.value+'\n':'')+'AI draft '+result.staged['Activity ID']+' — owner review required';}
+  try{var photos=await imageDataList();var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boBuildAiQuoteDraft({customerId:customerId,projectTitle:'Field quote',notes:aiNotes(),photos:photos})});ownerMessage((result&&result.message)||'AI draft staged for owner review.');var box=document.getElementById('qbAiPhotos');if(box&&result&&result.staged)box.value=(box.value?box.value+'\n':'')+'AI draft '+result.staged['Activity ID']+' — owner review required';}
   catch(error){ownerMessage(error.message||String(error),true)}finally{button.disabled=false;button.textContent='✨ Build Quote with AI'}
 }
 async function buildAiVisual(){
   var customerId=aiCustomer(),image=selectedFiles.find(function(file){return String(mime(file)).indexOf('image/')===0});if(!customerId)return ownerMessage('Select a customer first.',true);if(!image)return ownerMessage('Take or upload an image first.',true);
   var instructions=window.prompt('Describe exactly what the completed result should look like. Include materials, colors, layout, and what must remain unchanged.');if(!instructions)return;
   var button=document.getElementById('qbBuildAiVisual');button.disabled=true;button.textContent='Creating concept…';
-  try{var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boCreateAiCompletionVisual({customerId:customerId,projectTitle:'Field quote',imageDataUrl:null,instructions:instructions})});}
-  catch(first){try{var data=await fileData(image);var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boCreateAiCompletionVisual({customerId:customerId,projectTitle:'Field quote',imageDataUrl:data,instructions:instructions})});var host=document.getElementById('qbAiConcept');host.innerHTML='<img src="'+esc(result.visualUrl)+'" alt="AI proposed completion concept"><strong>'+esc(result.label)+'</strong><p>Stored for owner review and excluded from the proposal until approved.</p>';ownerMessage('Completion concept created for owner review.')}catch(error){ownerMessage(error.message||String(error),true)}}finally{button.disabled=false;button.textContent='🖼️ Create Completion Visual'}
+  try{var data=await fileData(image);var result=await new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boCreateAiCompletionVisual({customerId:customerId,projectTitle:'Field quote',imageDataUrl:data,instructions:instructions})});var host=document.getElementById('qbAiConcept');host.innerHTML='<img src="'+esc(result.visualUrl)+'" alt="AI proposed completion concept"><strong>'+esc(result.label)+'</strong><p>Stored for owner review and excluded from the proposal until approved.</p>';ownerMessage('Completion concept created for owner review.');}
+  catch(error){ownerMessage(error.message||String(error),true)}finally{button.disabled=false;button.textContent='🖼️ Create Completion Visual'}
 }
-
 function install(){
   if(installed||!window.__h38QuoteBuilderInstalled||typeof window.qbOpen!=='function')return;
   installed=true;if(focusMode)document.documentElement.classList.add('h38-quote-builder-focus');
   var originalRenderNav=window.renderNav;window.renderNav=function(){var result=originalRenderNav.apply(this,arguments);focusNav();return result};
   var originalQbOpen=window.qbOpen;window.qbOpen=async function(view){window.__h38QbView=view||'dashboard';var result=await originalQbOpen.apply(this,arguments);if(view==='ai')addFileIntake();focusNav();return result};
-  var originalPrepare=window.qbPrepareAi;window.qbPrepareAi=async function(event){
-    if(event&&event.preventDefault)event.preventDefault();
-    var customer=document.getElementById('qbAiCustomer');if(!customer||!customer.value)return originalPrepare.call(this,event);
-    try{var refs=await uploadDraftFiles(customer.value),box=document.getElementById('qbAiPhotos');if(refs.length&&box)box.value=[box.value.trim()].concat(refs).filter(Boolean).join('\n');return await originalPrepare.call(this,{preventDefault:function(){}})}
-    catch(error){var status=document.getElementById('qbAiUploadStatus');if(status)status.textContent='Upload stopped: '+(error.message||String(error));if(typeof ownerMessage==='function')ownerMessage('Photo/PDF intake stopped. No quote was created.',true);else showToast(error.message||String(error),true)}
-  };
+  var originalPrepare=window.qbPrepareAi;window.qbPrepareAi=async function(event){if(event&&event.preventDefault)event.preventDefault();var customer=document.getElementById('qbAiCustomer');if(!customer||!customer.value)return originalPrepare.call(this,event);try{var refs=await uploadDraftFiles(customer.value),box=document.getElementById('qbAiPhotos');if(refs.length&&box)box.value=[box.value.trim()].concat(refs).filter(Boolean).join('\n');return await originalPrepare.call(this,{preventDefault:function(){}})}catch(error){var status=document.getElementById('qbAiUploadStatus');if(status)status.textContent='Upload stopped: '+(error.message||String(error));if(typeof ownerMessage==='function')ownerMessage('Photo/PDF intake stopped. No quote was created.',true);else showToast(error.message||String(error),true)}};
   renderNav();if(document.getElementById('qbAiForm'))addFileIntake()
 }
 var attempts=0,timer=setInterval(function(){attempts+=1;if(window.__h38QuoteBuilderInstalled&&typeof window.qbOpen==='function'&&typeof window.renderNav==='function'){clearInterval(timer);install()}else if(attempts>160)clearInterval(timer)},100)
