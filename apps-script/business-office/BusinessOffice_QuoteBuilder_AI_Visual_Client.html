@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 let uploadInput=null,selectedVisualPhoto='';
-const call=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
+const call=(action,args)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);const payload=(args&&args.payload)||{};if(action==='buildAiQuoteDraft')return runner.boBuildAiQuoteDraft(payload);if(action==='createAiCompletionVisual')return runner.boCreateAiCompletionVisual(payload);return runner.boApi({action:action,args:args||{}});});
 const toast=(message,bad)=>{const node=document.getElementById('qbToast');if(node){node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5000)}};
 const text=(selector)=>{const el=document.querySelector(selector);return el?String(el.value||el.textContent||'').trim():''};
 function ensureUploadInput(){
