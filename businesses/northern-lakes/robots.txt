@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /customer-portal.html
+Disallow: /owner-portal.html
+Disallow: /business-office.html
+Disallow: /app-data/
+
+Sitemap: https://rkrueth-maker.github.io/highway-38-solutions/businesses/northern-lakes/sitemap.xml
