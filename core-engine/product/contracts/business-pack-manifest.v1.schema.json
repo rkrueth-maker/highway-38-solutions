@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://highway38.solutions/schemas/business-pack-manifest.v1.schema.json",
+  "title": "Business Pack Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "core", "business", "branding", "productEntitlement", "modules", "routes", "roles",
+    "services", "priceBook", "templates", "numbering", "storage", "customerPortal", "providers",
+    "approvals", "backups", "installation", "resources", "migrationHistory", "proof", "errors"
+  ],
+  "properties": {
+    "schema": { "$ref": "#/$defs/schemaIdentity" },
+    "core": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "business": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "legalName", "contacts", "regional"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "legalName": { "type": "string", "minLength": 1 },
+        "contacts": { "type": "array" },
+        "regional": { "type": "object" }
+      }
+    },
+    "branding": { "type": "object" },
+    "productEntitlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packageId", "version", "immutable"],
+      "properties": {
+        "packageId": { "type": "string", "enum": ["quote-builder", "business-system"] },
+        "version": { "type": "string", "minLength": 1 },
+        "immutable": { "const": true }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "disabled"],
+      "properties": {
+        "enabled": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "disabled": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "routes": { "type": "object" },
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["definitions", "customerAccessProfiles", "migrationPreview"],
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "permissions"],
+            "properties": {
+              "name": { "enum": ["Owner", "Administrator", "Staff", "Viewer"] },
+              "permissions": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+            }
+          }
+        },
+        "customerAccessProfiles": { "type": "array" },
+        "migrationPreview": { "type": "array" }
+      }
+    },
+    "services": { "type": "object" },
+    "priceBook": {
+      "type": "object",
+      "required": ["mode", "ownerConfirmed", "records"],
+      "properties": {
+        "mode": { "enum": ["EMPTY", "STARTER", "IMPORT"] },
+        "ownerConfirmed": { "type": "boolean" },
+        "records": { "type": "array" }
+      }
+    },
+    "templates": { "type": "object" },
+    "numbering": { "type": "object" },
+    "storage": { "type": "object" },
+    "customerPortal": {
+      "type": "object",
+      "required": ["configured", "released", "releaseApprovalReference", "accessRules"],
+      "properties": {
+        "configured": { "type": "boolean" },
+        "released": { "const": false },
+        "releaseApprovalReference": { "type": ["string", "null"] },
+        "accessRules": { "type": "array" }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["state", "ownerApprovalReference", "proofReference"],
+        "properties": {
+          "state": { "enum": ["LOCKED", "CONFIGURED_DISABLED", "TESTED_DISABLED", "OWNER_ENABLED"] },
+          "ownerApprovalReference": { "type": ["string", "null"] },
+          "proofReference": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "approvals": {
+      "type": "object",
+      "required": ["ownerRequiredForExternalActions", "externalActionsEnabled", "ownerOnlyControls"],
+      "properties": {
+        "ownerRequiredForExternalActions": { "const": true },
+        "externalActionsEnabled": { "const": false },
+        "ownerOnlyControls": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "backups": { "type": "object" },
+    "installation": {
+      "type": "object",
+      "required": ["installationId", "state", "environment"],
+      "properties": {
+        "installationId": { "type": ["string", "null"] },
+        "state": {
+          "enum": ["DRAFT", "PREFLIGHT_PASSED", "PLANNED", "PROVISIONING", "CONFIGURING", "VERIFYING", "ACCEPTANCE_PENDING", "COMMITTED", "HOLD", "QUARANTINED", "ROLLBACK_PENDING", "ROLLED_BACK"]
+        },
+        "environment": { "enum": ["sanitized-test", "customer-assisted", "controlled-beta-acceptance"] }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "required": ["items"],
+      "properties": { "items": { "type": "array" } }
+    },
+    "migrationHistory": {
+      "type": "object",
+      "required": ["items"],
+      "properties": { "items": { "type": "array" } }
+    },
+    "proof": { "type": "object", "required": ["required", "logReference"], "properties": { "required": { "const": true } } },
+    "errors": { "type": "object", "required": ["required", "logReference"], "properties": { "required": { "const": true } } }
+  },
+  "$defs": {
+    "schemaIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "Business Pack Manifest" },
+        "version": { "const": 1 }
+      }
+    }
+  }
+}

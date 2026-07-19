@@ -1,0 +1,89 @@
+{
+  "schema": { "name": "Product Package Manifest", "version": 1 },
+  "id": "quote-builder",
+  "name": "Highway 38 Quote Builder",
+  "version": "1.0.0",
+  "shell": "QUOTE_BUILDER",
+  "extends": null,
+  "applicationAreas": [
+    "today", "customers", "quotes", "price-book", "templates", "files", "quote-reports", "settings"
+  ],
+  "capabilities": [
+    "business-profile",
+    "users-and-roles",
+    "customers-and-contacts",
+    "photo-and-voice-quick-quote",
+    "quote-drafts",
+    "quote-versions",
+    "scope-and-line-items",
+    "good-better-best-options",
+    "recommended-and-optional-add-ons",
+    "price-book",
+    "quote-templates",
+    "photos-and-supporting-files",
+    "proposal-preview",
+    "pdf-generation",
+    "owner-approval",
+    "controlled-customer-sharing",
+    "customer-approve-request-change-decline-signature",
+    "viewed-and-activity-history",
+    "controlled-follow-up",
+    "backup-and-export",
+    "proof-log",
+    "error-log"
+  ],
+  "excludedCapabilities": [
+    "work-orders",
+    "jobs",
+    "general-task-management",
+    "purchasing",
+    "expenses",
+    "invoices-and-payments",
+    "payroll-preparation",
+    "accounting-preparation",
+    "general-operational-communications",
+    "full-operational-reporting",
+    "maintenance-management",
+    "shop-flow-manager",
+    "business-wide-approval-center"
+  ],
+  "routes": [
+    "/today", "/customers", "/customers/:id", "/quotes", "/quotes/new", "/quotes/:id", "/quotes/:id/versions",
+    "/price-book", "/templates", "/files", "/reports/quotes", "/settings", "/settings/users", "/settings/business"
+  ],
+  "serverFunctions": [
+    "customer.list", "customer.read", "customer.write", "quote.create", "quote.read", "quote.update", "quote.version.create",
+    "quote.option.create", "quote.addon.create", "quote.ownerReview.submit", "quote.ownerReview.approve", "quote.share.prepare",
+    "quote.customerDecision.record", "quote.signature.record", "quote.activity.read", "priceBook.read", "priceBook.write",
+    "template.read", "template.write", "file.upload", "file.read", "proposal.preview", "proposal.pdf.generate",
+    "backup.create", "backup.export", "proof.read", "error.read"
+  ],
+  "storage": [
+    "customers", "contacts", "quotes", "quote-versions", "quote-lines", "quote-options", "quote-addons", "price-book",
+    "quote-templates", "files", "quote-activity", "quote-decisions", "signatures", "number-sequences", "proof-log", "error-log", "backups"
+  ],
+  "reports": ["quote-pipeline", "quote-conversion", "quote-activity", "price-book-usage"],
+  "permissions": [
+    "business.read", "business.update", "users.read", "users.manage", "customers.read", "customers.write", "quotes.read",
+    "quotes.write", "quotes.review", "quotes.release", "quotes.customer-decision", "price-book.read", "price-book.write",
+    "templates.read", "templates.write", "files.read", "files.write", "reports.quotes.read", "backups.create", "logs.read"
+  ],
+  "controls": {
+    "ownerApprovalRequired": true,
+    "externalActionsEnabled": false,
+    "serverEnforced": true,
+    "routeEnforced": true,
+    "storageEnforced": true
+  },
+  "acceptanceTests": [
+    "quote-builder-shell-only",
+    "business-system-routes-rejected",
+    "business-system-server-functions-rejected",
+    "business-system-storage-not-provisioned",
+    "owner-approval-required-before-share",
+    "customer-decision-bound-to-version",
+    "external-actions-locked",
+    "proof-and-error-logs-present",
+    "backup-and-export-pass"
+  ]
+}

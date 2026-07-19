@@ -1,0 +1,81 @@
+{
+  "schema": { "name": "Product Package Manifest", "version": 1 },
+  "id": "business-system",
+  "name": "Highway 38 Business System",
+  "version": "1.0.0",
+  "shell": "BUSINESS_SYSTEM",
+  "extends": "quote-builder@1.0.0",
+  "applicationAreas": [
+    "today", "requests", "customers", "quotes", "price-book", "templates", "work", "jobs", "work-orders", "tasks",
+    "document-center", "communications", "purchases", "expenses", "invoices", "payments", "money", "approvals",
+    "reports", "customer-portal", "maintenance", "field-proof", "settings"
+  ],
+  "capabilities": [
+    "business-profile", "users-and-roles", "customers-and-contacts", "photo-and-voice-quick-quote", "quote-drafts",
+    "quote-versions", "scope-and-line-items", "good-better-best-options", "recommended-and-optional-add-ons", "price-book",
+    "quote-templates", "photos-and-supporting-files", "proposal-preview", "pdf-generation", "owner-approval",
+    "controlled-customer-sharing", "customer-approve-request-change-decline-signature", "viewed-and-activity-history",
+    "controlled-follow-up", "backup-and-export", "proof-log", "error-log", "requests", "work", "jobs", "work-orders",
+    "tasks", "document-center", "communications", "purchases", "expenses", "invoices", "payments", "money-management",
+    "operational-approvals", "business-reports", "full-customer-portal", "maintenance", "field-proof", "business-administration"
+  ],
+  "excludedCapabilities": [],
+  "routes": [
+    "/today", "/requests", "/customers", "/customers/:id", "/quotes", "/quotes/new", "/quotes/:id", "/quotes/:id/versions",
+    "/price-book", "/templates", "/work", "/jobs", "/jobs/:id", "/work-orders", "/tasks", "/documents",
+    "/communications", "/purchases", "/expenses", "/invoices", "/payments", "/money", "/approvals", "/reports",
+    "/customer-portal", "/maintenance", "/field-proof", "/files", "/settings", "/settings/users", "/settings/business",
+    "/settings/integrations"
+  ],
+  "serverFunctions": [
+    "customer.list", "customer.read", "customer.write", "quote.create", "quote.read", "quote.update", "quote.version.create",
+    "quote.option.create", "quote.addon.create", "quote.ownerReview.submit", "quote.ownerReview.approve", "quote.share.prepare",
+    "quote.customerDecision.record", "quote.signature.record", "quote.activity.read", "priceBook.read", "priceBook.write",
+    "template.read", "template.write", "file.upload", "file.read", "proposal.preview", "proposal.pdf.generate", "request.read",
+    "request.write", "job.read", "job.write", "workOrder.read", "workOrder.write", "task.read", "task.write", "document.read",
+    "document.write", "communication.prepare", "purchase.read", "purchase.write", "expense.read", "expense.write", "invoice.read",
+    "invoice.write", "payment.read", "payment.prepare", "approval.read", "approval.decide", "report.business.read",
+    "customerPortal.preview", "customerPortal.release", "maintenance.read", "maintenance.write", "fieldProof.write",
+    "backup.create", "backup.export", "proof.read", "error.read"
+  ],
+  "storage": [
+    "customers", "contacts", "requests", "quotes", "quote-versions", "quote-lines", "quote-options", "quote-addons", "price-book",
+    "quote-templates", "work", "jobs", "work-orders", "tasks", "documents", "communications", "purchases", "expenses",
+    "invoices", "payments", "approvals", "customer-portal-access", "maintenance", "field-proof", "files", "number-sequences",
+    "proof-log", "error-log", "backups"
+  ],
+  "reports": [
+    "quote-pipeline", "quote-conversion", "quote-activity", "price-book-usage", "request-status", "work-status", "job-status",
+    "work-order-status", "task-status", "purchase-status", "expense-summary", "invoice-aging", "payment-summary", "approval-status",
+    "business-performance", "customer-portal-activity", "maintenance-status"
+  ],
+  "permissions": [
+    "business.read", "business.update", "users.read", "users.manage", "customers.read", "customers.write", "quotes.read",
+    "quotes.write", "quotes.review", "quotes.release", "quotes.customer-decision", "price-book.read", "price-book.write",
+    "templates.read", "templates.write", "requests.read", "requests.write", "work.read", "work.write", "jobs.read", "jobs.write",
+    "work-orders.read", "work-orders.write", "tasks.read", "tasks.write", "documents.read", "documents.write",
+    "communications.prepare", "purchases.read", "purchases.write", "expenses.read", "expenses.write", "invoices.read",
+    "invoices.write", "payments.read", "payments.prepare", "approvals.read", "approvals.decide", "reports.business.read",
+    "customer-portal.preview", "customer-portal.release", "maintenance.read", "maintenance.write", "field-proof.write",
+    "files.read", "files.write", "backups.create", "logs.read", "integrations.configure", "integrations.owner-enable"
+  ],
+  "controls": {
+    "ownerApprovalRequired": true,
+    "externalActionsEnabled": false,
+    "serverEnforced": true,
+    "routeEnforced": true,
+    "storageEnforced": true
+  },
+  "acceptanceTests": [
+    "quote-builder-capabilities-preserved",
+    "business-system-shell-active",
+    "operational-routes-server-enforced",
+    "operational-storage-provisioned",
+    "owner-only-approval-controls",
+    "customer-portal-unreleased-by-default",
+    "providers-independently-locked",
+    "external-actions-locked",
+    "proof-and-error-logs-present",
+    "backup-and-recovery-pass"
+  ]
+}

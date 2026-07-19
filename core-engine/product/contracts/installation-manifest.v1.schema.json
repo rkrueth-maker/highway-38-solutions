@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://highway38.solutions/schemas/installation-manifest.v1.schema.json",
+  "title": "Installation Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "installationId", "attemptId", "operation", "environment", "state", "createdAt", "updatedAt",
+    "businessPack", "productPackage", "sourceCoreVersion", "targetCoreVersion", "inputHash", "ownerAccount",
+    "deployingAccount", "authorizedAdministrators", "supportAccess", "currentPhase", "phases", "phaseHistory",
+    "resources", "snapshots", "seedVersions", "providerStates", "temporaryEndpoints", "migrationHistory",
+    "quarantine", "proofReferences", "errorReferences", "previousDeployment", "targetDeployment", "acceptance",
+    "commit", "controls"
+  ],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "Installation Manifest" },
+        "version": { "const": 1 }
+      }
+    },
+    "installationId": { "type": "string", "minLength": 1 },
+    "attemptId": { "type": "string", "minLength": 1 },
+    "operation": { "enum": ["NEW_INSTALL", "VALIDATE_ONLY", "RESUME", "REPAIR", "UPGRADE", "ROLLBACK_VERIFY", "CONTROLLED_ACCEPTANCE"] },
+    "environment": { "enum": ["sanitized-test", "customer-assisted", "controlled-beta-acceptance"] },
+    "state": { "enum": ["DRAFT", "PREFLIGHT_PASSED", "PLANNED", "PROVISIONING", "CONFIGURING", "VERIFYING", "ACCEPTANCE_PENDING", "COMMITTED", "HOLD", "QUARANTINED", "ROLLBACK_PENDING", "ROLLED_BACK"] },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "businessPack": { "type": "object" },
+    "productPackage": { "type": "object" },
+    "sourceCoreVersion": { "type": "string" },
+    "targetCoreVersion": { "type": "string" },
+    "inputHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "ownerAccount": { "type": "string", "minLength": 1 },
+    "deployingAccount": { "type": "string", "minLength": 1 },
+    "authorizedAdministrators": { "type": "array" },
+    "supportAccess": { "type": "object" },
+    "currentPhase": { "type": ["string", "null"] },
+    "phases": { "type": "array", "minItems": 14, "maxItems": 14 },
+    "phaseHistory": { "type": "array" },
+    "resources": { "type": "array" },
+    "snapshots": { "type": "array" },
+    "seedVersions": { "type": "array" },
+    "providerStates": { "type": "object" },
+    "temporaryEndpoints": { "type": "array" },
+    "migrationHistory": { "type": "array" },
+    "quarantine": { "type": "array" },
+    "proofReferences": { "type": "array" },
+    "errorReferences": { "type": "array" },
+    "previousDeployment": { "type": ["object", "null"] },
+    "targetDeployment": { "type": ["object", "null"] },
+    "acceptance": { "type": "object" },
+    "commit": { "type": "object" },
+    "controls": {
+      "type": "object",
+      "required": ["externalActionsEnabled", "customerPortalReleased", "automaticCustomerEmail", "automaticCustomerSms", "automaticPaymentActions", "automaticWorkStart", "ownerApprovalRequired"],
+      "properties": {
+        "externalActionsEnabled": { "const": false },
+        "customerPortalReleased": { "const": false },
+        "automaticCustomerEmail": { "const": false },
+        "automaticCustomerSms": { "const": false },
+        "automaticPaymentActions": { "const": false },
+        "automaticWorkStart": { "const": false },
+        "ownerApprovalRequired": { "const": true }
+      }
+    }
+  }
+}

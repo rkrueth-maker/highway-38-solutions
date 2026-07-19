@@ -1,0 +1,68 @@
+{
+  "schema": { "name": "Business Pack Manifest", "version": 1 },
+  "core": { "id": "business-office-core", "version": "2.0.0" },
+  "business": {
+    "id": "SANITIZED-PROPERTY-SERVICES",
+    "name": "Sanitized Property Services",
+    "legalName": "Sanitized Property Services LLC",
+    "contacts": [{ "type": "owner", "name": "Test Owner", "email": "owner@example.invalid" }],
+    "regional": { "country": "US", "timezone": "America/Chicago", "currency": "USD" }
+  },
+  "branding": {
+    "brandName": "Sanitized Property Services",
+    "logo": "",
+    "accentColor": "#17324d",
+    "surfaceColor": "#ffffff"
+  },
+  "productEntitlement": { "packageId": "quote-builder", "version": "1.0.0", "immutable": true },
+  "modules": {
+    "enabled": ["today", "customers", "quotes", "price-book", "templates", "files", "quote-reports", "settings"],
+    "disabled": ["jobs", "work-orders", "purchases", "expenses", "invoices", "payments"]
+  },
+  "routes": { "publicWebsite": "", "ownerPortal": "", "quoteBuilder": "", "customerPortal": "" },
+  "roles": {
+    "definitions": [
+      { "name": "Owner", "permissions": ["*"] },
+      { "name": "Administrator", "permissions": ["records.read", "records.write", "reports.read"] },
+      { "name": "Staff", "permissions": ["records.read", "records.write"] },
+      { "name": "Viewer", "permissions": ["records.read"] }
+    ],
+    "customerAccessProfiles": [{ "name": "CustomerPortalUser", "permissions": ["customer.own.read"] }],
+    "migrationPreview": []
+  },
+  "services": { "categories": ["Property Maintenance", "Seasonal Services"] },
+  "priceBook": { "mode": "EMPTY", "source": null, "version": null, "ownerConfirmed": true, "records": [] },
+  "templates": { "version": "sanitized-v1", "defaults": {} },
+  "numbering": { "sequences": [{ "id": "quote", "prefix": "TQ", "next": 1 }] },
+  "storage": {
+    "propertyKeys": {
+      "BO_SPREADSHEET_ID": "SANITIZED_BO_SPREADSHEET_ID",
+      "BO_ROOT_FOLDER_ID": "SANITIZED_BO_ROOT_FOLDER_ID",
+      "BO_UPLOADS_FOLDER_ID": "SANITIZED_BO_UPLOADS_FOLDER_ID",
+      "BO_BACKUPS_FOLDER_ID": "SANITIZED_BO_BACKUPS_FOLDER_ID"
+    },
+    "folders": {},
+    "ownership": { "customerOwned": true, "ownerAccount": "owner@example.invalid", "deployingAccount": "owner@example.invalid" }
+  },
+  "customerPortal": { "configured": false, "released": false, "releaseApprovalReference": null, "accessRules": [] },
+  "providers": {
+    "payments": { "state": "LOCKED", "ownerApprovalReference": null, "proofReference": null },
+    "sms": { "state": "LOCKED", "ownerApprovalReference": null, "proofReference": null },
+    "email": { "state": "LOCKED", "ownerApprovalReference": null, "proofReference": null },
+    "scheduling": { "state": "LOCKED", "ownerApprovalReference": null, "proofReference": null }
+  },
+  "approvals": {
+    "ownerRequiredForExternalActions": true,
+    "externalActionsEnabled": false,
+    "ownerOnlyControls": [
+      "product-entitlement-change", "ownership-transfer", "external-provider-activation", "customer-portal-release",
+      "production-publishing", "destructive-cleanup", "live-data-rollback"
+    ]
+  },
+  "backups": { "enabled": true, "strategy": "PRE_WRITE_AND_ACCEPTANCE", "retentionDays": 30 },
+  "installation": { "installationId": null, "state": "DRAFT", "environment": "sanitized-test" },
+  "resources": { "items": [] },
+  "migrationHistory": { "items": [] },
+  "proof": { "required": true, "logReference": null },
+  "errors": { "required": true, "logReference": null }
+}

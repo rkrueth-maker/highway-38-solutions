@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://highway38.solutions/schemas/product-package-manifest.v1.schema.json",
+  "title": "Product Package Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "name", "version", "shell", "extends", "applicationAreas", "capabilities",
+    "excludedCapabilities", "routes", "serverFunctions", "storage", "reports", "permissions", "controls", "acceptanceTests"
+  ],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "Product Package Manifest" },
+        "version": { "const": 1 }
+      }
+    },
+    "id": { "enum": ["quote-builder", "business-system"] },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "shell": { "enum": ["QUOTE_BUILDER", "BUSINESS_SYSTEM"] },
+    "extends": { "type": ["string", "null"] },
+    "applicationAreas": { "$ref": "#/$defs/stringArray" },
+    "capabilities": { "$ref": "#/$defs/stringArray" },
+    "excludedCapabilities": { "$ref": "#/$defs/stringArray" },
+    "routes": { "$ref": "#/$defs/stringArray" },
+    "serverFunctions": { "$ref": "#/$defs/stringArray" },
+    "storage": { "$ref": "#/$defs/stringArray" },
+    "reports": { "$ref": "#/$defs/stringArray" },
+    "permissions": { "$ref": "#/$defs/stringArray" },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownerApprovalRequired", "externalActionsEnabled", "serverEnforced", "routeEnforced", "storageEnforced"],
+      "properties": {
+        "ownerApprovalRequired": { "const": true },
+        "externalActionsEnabled": { "const": false },
+        "serverEnforced": { "const": true },
+        "routeEnforced": { "const": true },
+        "storageEnforced": { "const": true }
+      }
+    },
+    "acceptanceTests": { "$ref": "#/$defs/stringArray" }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}
