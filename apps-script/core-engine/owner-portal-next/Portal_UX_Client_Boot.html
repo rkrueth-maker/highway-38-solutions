@@ -4,5 +4,24 @@ document.addEventListener('keydown',function(event){
     if(action){event.preventDefault();action.click();}
   }
 });
-setTimeout(function(){if(typeof refresh==='function')refresh();},900);
-setTimeout(function(){if(typeof refresh==='function'&&H38_UX)refresh();},2600);
+(function(){
+  var started=false;
+  function launch(){
+    if(started||typeof refresh!=='function')return;
+    started=true;
+    Promise.resolve(refresh()).finally(function(){started=false;});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(launch,100);},{once:true});
+  else setTimeout(launch,100);
+  setTimeout(function(){
+    var noticeNode=document.getElementById('notice');
+    if(noticeNode&&/Loading secure user session/i.test(noticeNode.textContent||''))launch();
+  },5000);
+  setTimeout(function(){
+    var noticeNode=document.getElementById('notice');
+    if(noticeNode&&/Loading secure user session/i.test(noticeNode.textContent||'')){
+      noticeNode.className='notice bad';
+      noticeNode.innerHTML='<b>The secure session did not finish loading.</b> Check the connection, then <button class="btn" type="button" onclick="location.reload()">reload the application</button>.';
+    }
+  },22000);
+})();
