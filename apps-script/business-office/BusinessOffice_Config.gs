@@ -6,7 +6,7 @@
  * are resolved at runtime through the selected business pack.
  */
 const H38_BO = Object.freeze({
-  VERSION: '2.0.0',
+  VERSION: '3.0.0',
   SPREADSHEET_PROPERTY: 'spreadsheetId',
   BUSINESS_PROPERTY: 'businessId',
   ROOT_FOLDER_PROPERTY: 'rootFolderId',
@@ -19,7 +19,7 @@ const H38_BO = Object.freeze({
   MAX_UPLOAD_BYTES: 20 * 1024 * 1024,
   ALLOWED_MIME_TYPES: Object.freeze(['application/pdf','image/jpeg','image/png','image/heic','image/heif']),
   CONDITIONAL_MIME_TYPES: Object.freeze(['image/heic','image/heif']),
-  ROLES: Object.freeze(['Owner','Administrator','Staff','Bookkeeper','Payroll','Viewer']),
+  ROLES: Object.freeze(['Owner','Administrator','Foreman','Estimator','Field Staff','Staff','Bookkeeper','Payroll','Viewer']),
   EXTERNAL_ACTIONS_ENABLED: false,
   DIRECT_PAYMENT_PROCESSING: false,
   DIRECT_PAYROLL_FUNDING: false,
