@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "verifiedAt": "2026-07-20T20:51:32Z",
+  "sourceCommit": "1682e0dd5992d6f2ce09585dadce565f78cc7f3f",
+  "signInRoute": "portal.html#business-office",
+  "businessSystemsRoute": "portal.html#business-office",
+  "retainedOwnerPortalDeployment": true,
+  "directBusinessOfficeDeploymentExposed": false
+}
