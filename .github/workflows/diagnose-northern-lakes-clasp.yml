@@ -62,12 +62,16 @@ jobs:
           LIST_RC=$?
           clasp list-scripts --json > "$ARTIFACT_DIR/script-list.json" 2>&1
           JSON_LIST_RC=$?
-          SCRIPT_LIST="$(cat "$ARTIFACT_DIR/script-list.txt")"
-          PROJECT_LINE="$(printf '%s\n' "$SCRIPT_LIST" | grep -F 'Northern Lakes Business Office' | head -1)"
-          SCRIPT_ID="$(printf '%s\n' "$PROJECT_LINE" | grep -oE '[A-Za-z0-9_-]{20,}' | head -1)"
+          SCRIPT_ID="$(node - "$ARTIFACT_DIR/script-list.json" <<'NODE'
+          const fs = require('fs');
+          const items = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const match = items.find((item) => item && item.name === 'Northern Lakes Business Office');
+          process.stdout.write(match ? String(match.id || '') : '');
+          NODE
+          )"
           if [[ -z "$SCRIPT_ID" ]]; then
             printf 'failed_command=project-recovery\nlist_exit_code=%s\njson_list_exit_code=%s\n' "$LIST_RC" "$JSON_LIST_RC" > "$ARTIFACT_DIR/summary.txt"
-            printf 'The exact-title Northern Lakes project could not be recovered. Review the private script-list files.\n' > "$ARTIFACT_DIR/project-recovery.log"
+            printf 'The exact-title Northern Lakes project could not be recovered from clasp JSON output.\n' > "$ARTIFACT_DIR/project-recovery.log"
             exit 0
           fi
           printf '%s\n' "$SCRIPT_ID" > "$ARTIFACT_DIR/recovered-script-id.txt"
