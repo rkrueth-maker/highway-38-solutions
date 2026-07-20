@@ -24,9 +24,9 @@ const productionWeb=read(required[4]);
 const reusableWeb=read(required[5]);
 const keys=text=>[...text.matchAll(/key:'([^']+)'/g)].map(match=>match[1]);
 const appKeys=keys(productionRegistry), reusableKeys=keys(reusableRegistry);
-const expected=['quote-builder','customer-manager','work-manager','document-center','invoice-payment-tracker','expense-receipt-manager','field-proof','customer-portal','request-intake-manager','price-book-template-manager','approval-center','vendor-purchase-manager','maintenance-manager','shop-flow-manager','business-system'];
+const expected=['quote-builder','customer-manager','work-manager','field-operations','document-center','invoice-payment-tracker','expense-receipt-manager','field-proof','social-control','customer-portal','request-intake-manager','price-book-template-manager','approval-center','vendor-purchase-manager','maintenance-manager','shop-flow-manager','business-system'];
 const sharedMenu=['Business Apps','Today','Customers','Work','Documents','Money','Approvals','Reports','Setup'];
-check('all fifteen focused products are registered',expected.every(key=>appKeys.includes(key))&&appKeys.length===15,JSON.stringify(appKeys));
+check('all seventeen focused products are registered',expected.every(key=>appKeys.includes(key))&&appKeys.length===17,JSON.stringify(appKeys));
 check('branded and reusable registries expose identical app keys',JSON.stringify(appKeys)===JSON.stringify(reusableKeys));
 check('reusable registry remains white-label',!/Highway\s*38|H38_|rkrueth|highway-38-solutions/i.test(reusableRegistry));
 check('production registry carries Highway 38 product branding',/Highway 38 Quote Builder/.test(productionRegistry)&&/Highway 38 Business System/.test(productionRegistry));
@@ -46,5 +46,7 @@ check('reusable app launcher is included',reusableWeb.includes("boInclude_('Busi
 check('app catalog is read-only metadata',productionWeb.includes('appCatalog:function(){return boGetBusinessAppCatalog_();}')&&!productionRegistry.includes('sendEmail')&&!productionRegistry.includes('UrlFetchApp'));
 check('controlled automation language remains visible',productionClient.includes('Controlled automation remains active.')&&productionRegistry.includes('externalActionsAutomatic: false'));
 check('shared modules include core customer document and approval records',['customers','documents','approvals'].every(marker=>productionRegistry.includes(`'${marker}'`)));
+check('Field Operations is reusable and standalone-capable',productionRegistry.includes("key:'field-operations'")&&reusableRegistry.includes("key:'field-operations'")&&productionRegistry.includes("name:'Highway 38 Field Operations'")&&reusableRegistry.includes("name:'Field Operations'"));
+check('Social Control is reusable and owner-approval controlled',productionRegistry.includes("key:'social-control'")&&reusableRegistry.includes("key:'social-control'")&&productionRegistry.includes("modules:['social','documents','approvals','reports']"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
 console.log(JSON.stringify({status:'PASS',apps:appKeys.length,sharedMenuItems:sharedMenu.length,architecture:'app-first-shared-office-with-focused-menus',standaloneConfiguration:'BO_ENABLED_APPS',whiteLabelReusableSource:true,externalActionsAutomatic:false},null,2));
