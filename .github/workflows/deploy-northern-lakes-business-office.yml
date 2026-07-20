@@ -81,10 +81,17 @@ jobs:
           SCRIPT_ID="${INPUT_SCRIPT_ID:-$RUNTIME_SCRIPT_ID}"
           DEPLOYMENT_ID="${INPUT_DEPLOYMENT_ID:-$RUNTIME_DEPLOYMENT_ID}"
           if [[ -z "$SCRIPT_ID" ]]; then
-            SCRIPT_LIST="$(clasp list-scripts)"
-            PROJECT_LINE="$(printf '%s\n' "$SCRIPT_LIST" | grep -F 'Northern Lakes Business Office' | head -1 || true)"
-            SCRIPT_ID="$(printf '%s\n' "$PROJECT_LINE" | grep -oE '[A-Za-z0-9_-]{40,}' | head -1 || true)"
-            if [[ -n "$SCRIPT_ID" ]]; then echo 'Recovered the existing dedicated Northern Lakes Apps Script project by exact title.'; fi
+            SCRIPT_LIST_FILE="$(mktemp)"
+            clasp list-scripts --json > "$SCRIPT_LIST_FILE"
+            SCRIPT_ID="$(node - "$SCRIPT_LIST_FILE" <<'NODE'
+          const fs = require('fs');
+          const items = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const matches = items.filter((item) => item && item.name === 'Northern Lakes Business Office' && item.id);
+          process.stdout.write(matches.length ? String(matches[0].id) : '');
+          NODE
+            )"
+            rm -f "$SCRIPT_LIST_FILE"
+            if [[ -n "$SCRIPT_ID" ]]; then echo 'Recovered the existing dedicated Northern Lakes Apps Script project from exact-name JSON output.'; fi
           fi
           FIRST_INSTALL=false
           if [[ -z "$SCRIPT_ID" || -z "$DEPLOYMENT_ID" ]]; then
