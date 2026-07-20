@@ -1,0 +1,8 @@
+Authorized Northern Lakes protected storage installation
+UTC date: 2026-07-20
+Business ID: NLPS
+Use verified neutral 81-sheet schema
+Use existing dedicated Northern Lakes folders
+Do not copy Highway 38 business data
+External actions remain disabled
+Authorization: fix both systems now
