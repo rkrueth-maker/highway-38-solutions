@@ -48,12 +48,20 @@ jobs:
           set -euo pipefail
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const c=require('./businesses/northern-lakes/app-deployment.json');
-          if(c.status!=='pass'||!c.scriptId||!c.deploymentId)throw new Error('Verified Northern Lakes deployment contract is required.');
+          if(c.status!=='pass'||!c.scriptId||!c.deploymentId||!c.businessOfficeUrl)throw new Error('Verified Northern Lakes deployment contract is required.');
           if(c.businessId!=='NLPS'||c.isolated!==true||c.externalActionsEnabled!==false)throw new Error('Northern Lakes safety contract is invalid.');
           console.log('script_id='+c.scriptId);
           console.log('deployment_id='+c.deploymentId);
+          console.log('business_office_url='+c.businessOfficeUrl);
           NODE
-      - name: Assemble temporary protected installer
+      - name: Generate one-time protected installer token
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN="$(openssl rand -hex 32)"
+          echo "::add-mask::$TOKEN"
+          echo "NLPS_INSTALL_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+      - name: Assemble install-only owner-executed web version
         shell: bash
         env:
           SCRIPT_ID: ${{ steps.target.outputs.script_id }}
@@ -69,14 +77,28 @@ jobs:
             dist/northern-lakes-business-office/BusinessOffice_NeutralProvisioning.gs
           node - <<'NODE'
           const fs=require('fs');
-          const file='dist/northern-lakes-business-office/BusinessOffice_NeutralProvisioning.gs';
+          const provisioner='dist/northern-lakes-business-office/BusinessOffice_NeutralProvisioning.gs';
           const schema=fs.readFileSync('business-packs/template-business/business-office.schema.json.gz.b64','utf8').trim();
-          let source=fs.readFileSync(file,'utf8');
+          let source=fs.readFileSync(provisioner,'utf8');
           if(!source.includes('__BO_NEUTRAL_SCHEMA_GZIP_B64__'))throw new Error('Neutral schema placeholder is missing.');
-          source=source.replace('__BO_NEUTRAL_SCHEMA_GZIP_B64__',schema);
-          fs.writeFileSync(file,source);
+          fs.writeFileSync(provisioner,source.replace('__BO_NEUTRAL_SCHEMA_GZIP_B64__',schema));
+          const manifestPath='dist/northern-lakes-business-office/appsscript.json';
+          const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+          manifest.webapp={access:'ANYONE_ANONYMOUS',executeAs:'USER_DEPLOYING'};
+          manifest.executionApi={access:'MYSELF'};
+          fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');
           NODE
           cat > dist/northern-lakes-business-office/BusinessOffice_NorthernLakesInstall.gs <<'GS'
+          function boNorthernLakesOwnerContext_(){
+            var email=boNormalizeText_(Session.getEffectiveUser().getEmail()).toLowerCase();
+            boAssert_(email,'The deploying Google account could not be identified.');
+            return email;
+          }
+          function boNorthernLakesValidateOwner_(){
+            var user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']);
+            boAssert_(role&&role['Role Name']==='Owner','Northern Lakes owner role validation failed.');
+            return{email:user.Email,role:role['Role Name']};
+          }
           function boNorthernLakesInstallOnce(){
             var properties=PropertiesService.getScriptProperties();
             var spreadsheetKey=boPackPropertyKey_('spreadsheetId');
@@ -84,10 +106,10 @@ jobs:
             if(existing){
               var existingValidation=boValidateInstallation();
               boAssert_(existingValidation.valid,'Existing Northern Lakes installation is not valid: '+JSON.stringify(existingValidation));
-              return{status:'PASS',reused:true,businessId:existingValidation.businessId,spreadsheetId:existingValidation.spreadsheetId,validation:existingValidation};
+              var existingOwner=boNorthernLakesValidateOwner_();
+              return{status:'PASS',reused:true,businessId:existingValidation.businessId,spreadsheetId:existingValidation.spreadsheetId,sheetCount:SpreadsheetApp.openById(existingValidation.spreadsheetId).getSheets().length,ownerRole:existingOwner.role,validation:existingValidation};
             }
-            var ownerEmail=boNormalizeText_(Session.getActiveUser().getEmail()).toLowerCase();
-            boAssert_(ownerEmail,'A signed-in Google deployment owner is required.');
+            var ownerEmail=boNorthernLakesOwnerContext_();
             var folders=boPackValue_('storage.betaDrive',{});
             ['rootFolderId','documentFolderId','pdfFolderId','exportFolderId','backupFolderId'].forEach(function(key){boAssert_(folders[key],'Northern Lakes dedicated folder is missing: '+key);});
             var installationId='NLPS-'+Utilities.getUuid();
@@ -125,47 +147,81 @@ jobs:
             });
             var validation=boValidateInstallation();
             boAssert_(validation.valid,'Northern Lakes installation validation failed: '+JSON.stringify(validation));
+            var owner=boNorthernLakesValidateOwner_();
             boProof_('BOOTSTRAP INSTALL','System','NLPS','PASS',JSON.stringify({installationId:installationId,spreadsheetId:provisioned.spreadsheetId}),ownerEmail);
-            return{status:'PASS',reused:false,businessId:'NLPS',spreadsheetId:provisioned.spreadsheetId,sheetCount:provisioned.sheetCount,installationId:installationId,validation:validation};
+            return{status:'PASS',reused:false,businessId:'NLPS',spreadsheetId:provisioned.spreadsheetId,sheetCount:provisioned.sheetCount,installationId:installationId,ownerRole:owner.role,validation:validation};
           }
           GS
+          cat > dist/northern-lakes-business-office/BusinessOffice_Web.gs <<'GS'
+          var NLPS_INSTALL_TOKEN_='__NLPS_INSTALL_TOKEN__';
+          function boNorthernLakesInstallResponse_(value){return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);}
+          function doGet(event){
+            var supplied=String(event&&event.parameter&&event.parameter.nlpsInstall||'');
+            if(!supplied||supplied!==NLPS_INSTALL_TOKEN_)return boNorthernLakesInstallResponse_({status:'HOLD',message:'Installer route unavailable.'});
+            try{return boNorthernLakesInstallResponse_(boNorthernLakesInstallOnce());}
+            catch(error){return boNorthernLakesInstallResponse_({status:'ERROR',message:String(error&&error.message||error)});}
+          }
+          GS
+          node - <<'NODE'
+          const fs=require('fs');const file='dist/northern-lakes-business-office/BusinessOffice_Web.gs';let source=fs.readFileSync(file,'utf8');source=source.replace('__NLPS_INSTALL_TOKEN__',process.env.NLPS_INSTALL_TOKEN);fs.writeFileSync(file,source);
+          NODE
           printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > dist/northern-lakes-business-office/.clasp.json
           node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
-      - name: Push temporary installer to authenticated HEAD
+      - name: Publish temporary install-only deployment
+        id: temporary
         shell: bash
         working-directory: dist/northern-lakes-business-office
+        env:
+          DEPLOYMENT_ID: ${{ steps.target.outputs.deployment_id }}
         run: |
           set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
           clasp push --force
-          sleep 8
+          clasp create-version 'Northern Lakes protected storage installer' --json > "$OUT/temporary-version.json"
+          VERSION="$(node -e "const v=require(process.argv[1]);process.stdout.write(String(v.versionNumber||v.version||''))" "$OUT/temporary-version.json")"
+          test -n "$VERSION"
+          clasp update-deployment "$DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes protected storage installer' --json > "$OUT/temporary-deployment.json"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          sleep 12
       - name: Create and bind dedicated Northern Lakes workbook
         id: install
         continue-on-error: true
         shell: bash
-        working-directory: dist/northern-lakes-business-office
+        env:
+          BUSINESS_OFFICE_URL: ${{ steps.target.outputs.business_office_url }}
         run: |
           set -euo pipefail
           OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
           SUCCESS=false
           for ATTEMPT in 1 2 3 4 5 6; do
-            RAW="$OUT/install-api-${ATTEMPT}.json"
-            ERROR_LOG="$OUT/install-error-${ATTEMPT}.log"
+            RAW="$OUT/install-web-${ATTEMPT}.json"
+            ERROR_LOG="$OUT/install-web-error-${ATTEMPT}.log"
             set +e
-            clasp run boNorthernLakesInstallOnce --params '[]' --json > "$RAW" 2> "$ERROR_LOG"
+            curl -L -sS --max-time 330 --get --data-urlencode "nlpsInstall=$NLPS_INSTALL_TOKEN" "$BUSINESS_OFFICE_URL" > "$RAW" 2> "$ERROR_LOG"
             RC=$?
             set -e
-            if [[ $RC -eq 0 && -s "$RAW" ]] && node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$RAW"; then
-              cp "$RAW" "$OUT/install-api.json"
-              SUCCESS=true
-              break
+            if [[ $RC -eq 0 && -s "$RAW" ]]; then
+              RESULT="$(node - "$RAW" <<'NODE'
+              const fs=require('fs');try{const v=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));process.stdout.write(String(v.status||'JSON'));}catch(e){process.stdout.write('INVALID');}
+              NODE
+              )"
+              if [[ "$RESULT" == "PASS" ]]; then
+                cp "$RAW" "$OUT/install-result.json"
+                SUCCESS=true
+                break
+              fi
+              if [[ "$RESULT" == "ERROR" ]]; then
+                cp "$RAW" "$OUT/install-result.json"
+                break
+              fi
             fi
-            sleep 8
+            sleep 10
           done
-          [[ "$SUCCESS" == "true" ]] || { echo 'Northern Lakes installation function did not return valid JSON after retries.'; exit 1; }
-          node - "$OUT/install-api.json" "$OUT/install-result.json" <<'NODE'
-          const fs=require('fs');const [raw,out]=process.argv.slice(2);const value=JSON.parse(fs.readFileSync(raw,'utf8'));if(value.error)throw new Error(value.error.message||JSON.stringify(value.error));const result=value.response;if(!result||result.status!=='PASS'||result.businessId!=='NLPS'||!result.spreadsheetId)throw new Error('Northern Lakes installation did not pass: '+JSON.stringify(result));fs.writeFileSync(out,JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({status:result.status,businessId:result.businessId,sheetCount:result.sheetCount||81,reused:!!result.reused}));
+          [[ "$SUCCESS" == "true" ]] || { echo 'Northern Lakes protected web installation did not pass.'; exit 1; }
+          node - "$OUT/install-result.json" <<'NODE'
+          const fs=require('fs');const result=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));const v=result.validation||{};if(result.status!=='PASS'||result.businessId!=='NLPS'||!result.spreadsheetId||result.sheetCount!==81||result.ownerRole!=='Owner'||v.valid!==true||v.businessId!=='NLPS'||v.externalActionsEnabled!=='FALSE'||!v.isolation||v.isolation.valid!==true)throw new Error('Northern Lakes installation validation failed: '+JSON.stringify(result));console.log(JSON.stringify({status:'PASS',businessId:'NLPS',sheetCount:81,ownerRole:'Owner',isolated:true,externalActionsEnabled:false}));
           NODE
-      - name: Restore clean production source and deployment
+      - name: Restore normal Google-authenticated production app
         id: final
         if: ${{ always() && steps.target.outcome == 'success' }}
         shell: bash
@@ -174,6 +230,7 @@ jobs:
           DEPLOYMENT_ID: ${{ steps.target.outputs.deployment_id }}
         run: |
           set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
           rm -rf dist/northern-lakes-business-office
           mkdir -p dist/northern-lakes-business-office
           bash scripts/assemble-business-office-app.sh \
@@ -184,47 +241,18 @@ jobs:
           node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
           cd dist/northern-lakes-business-office
           clasp push --force
-          clasp create-version 'Northern Lakes Business Office configured production' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/final-version.json"
-          VERSION="$(node -e "const v=require(process.argv[1]);process.stdout.write(String(v.versionNumber||v.version||''))" "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/final-version.json")"
+          clasp create-version 'Northern Lakes Business Office configured production' --json > "$OUT/final-version.json"
+          VERSION="$(node -e "const v=require(process.argv[1]);process.stdout.write(String(v.versionNumber||v.version||''))" "$OUT/final-version.json")"
           test -n "$VERSION"
-          clasp update-deployment "$DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office configured production' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/final-deployment.json"
+          clasp update-deployment "$DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office configured production' --json > "$OUT/final-deployment.json"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          sleep 8
-      - name: Enforce installation result after clean restoration
+          sleep 10
+      - name: Enforce installation result after normal app restoration
         if: ${{ always() && steps.target.outcome == 'success' && steps.install.outcome != 'success' }}
         shell: bash
         run: |
-          echo 'Northern Lakes storage installation failed, but clean production source was restored.'
+          echo 'Northern Lakes storage installation failed, but the normal Google-authenticated app was restored.'
           exit 1
-      - name: Verify installed production configuration
-        if: ${{ steps.install.outcome == 'success' && steps.final.outcome == 'success' }}
-        shell: bash
-        working-directory: dist/northern-lakes-business-office
-        run: |
-          set -euo pipefail
-          OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
-          run_function(){
-            local FUNCTION_NAME="$1" OUTPUT_NAME="$2" SUCCESS=false
-            for ATTEMPT in 1 2 3 4 5 6; do
-              local RAW="$OUT/${OUTPUT_NAME}-${ATTEMPT}.json" ERROR_LOG="$OUT/${OUTPUT_NAME}-error-${ATTEMPT}.log"
-              set +e
-              clasp run "$FUNCTION_NAME" --params '[]' --json > "$RAW" 2> "$ERROR_LOG"
-              local RC=$?
-              set -e
-              if [[ $RC -eq 0 && -s "$RAW" ]] && node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$RAW"; then
-                cp "$RAW" "$OUT/${OUTPUT_NAME}.json"
-                SUCCESS=true
-                break
-              fi
-              sleep 8
-            done
-            [[ "$SUCCESS" == "true" ]]
-          }
-          run_function boValidateInstallation validation-api
-          run_function boGetClientContext context-api
-          node - "$OUT/validation-api.json" "$OUT/context-api.json" <<'NODE'
-          const fs=require('fs');const unwrap=p=>{const v=JSON.parse(fs.readFileSync(p,'utf8'));if(v.error)throw new Error(v.error.message||JSON.stringify(v.error));return v.response};const validation=unwrap(process.argv[2]),context=unwrap(process.argv[3]);if(!validation||validation.valid!==true||validation.businessId!=='NLPS'||validation.externalActionsEnabled!=='FALSE'||validation.isolation.valid!==true)throw new Error('Installed validation failed: '+JSON.stringify(validation));if(!context||context.businessId!=='NLPS'||!context.user||context.user.role!=='Owner'||context.boundaries.externalActionsEnabled!==false)throw new Error('Owner context validation failed: '+JSON.stringify(context));console.log(JSON.stringify({status:'PASS',businessId:'NLPS',role:'Owner',isolated:true,externalActionsEnabled:false}));
-          NODE
       - name: Record configured runtime
         if: ${{ steps.install.outcome == 'success' && steps.final.outcome == 'success' }}
         shell: bash
@@ -233,7 +261,7 @@ jobs:
         run: |
           set -euo pipefail
           node - <<'NODE'
-          const fs=require('fs');const path='businesses/northern-lakes/app-deployment.json';const c=JSON.parse(fs.readFileSync(path,'utf8'));const install=JSON.parse(fs.readFileSync('artifacts/northern-lakes-storage-install/install-result.json','utf8'));c.version=String(process.env.FINAL_VERSION);c.updatedAt=new Date().toISOString().replace(/\.\d{3}Z$/,'Z');c.storageStatus='pass';c.spreadsheetId=install.spreadsheetId;c.isolated=true;c.externalActionsEnabled=false;fs.writeFileSync(path,JSON.stringify(c,null,2)+'\n');
+          const fs=require('fs');const path='businesses/northern-lakes/app-deployment.json';const c=JSON.parse(fs.readFileSync(path,'utf8'));const install=JSON.parse(fs.readFileSync('artifacts/northern-lakes-storage-install/install-result.json','utf8'));c.version=String(process.env.FINAL_VERSION);c.updatedAt=new Date().toISOString().replace(/\.\d{3}Z$/,'Z');c.storageStatus='pass';c.spreadsheetId=install.spreadsheetId;c.ownerRole=install.ownerRole;c.isolated=true;c.externalActionsEnabled=false;fs.writeFileSync(path,JSON.stringify(c,null,2)+'\n');
           NODE
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
