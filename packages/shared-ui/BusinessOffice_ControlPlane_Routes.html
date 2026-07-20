@@ -1,0 +1,13 @@
+<script>
+(function(){
+  'use strict';
+  var baseRoute=window.boControlUiRoute;
+  window.boControlUiRoute=function(route){
+    var value=String(route||'');
+    if(value.indexOf('bo:')===0)return openModule(value.slice(3));
+    if(value==='app:quote-builder')return openModule('quotes');
+    if(value.indexOf('control:')===0)value=value.slice(8);
+    return baseRoute(value);
+  };
+})();
+</script>
