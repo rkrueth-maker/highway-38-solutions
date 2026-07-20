@@ -1,0 +1,43 @@
+name: Record GitHub Pages deployment result
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Highway 38 site to GitHub Pages
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    if: ${{ github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Record deployment result
+        run: |
+          mkdir -p deployment-status
+          cat > deployment-status/pages-last.txt <<EOF
+          run_id=${{ github.event.workflow_run.id }}
+          run_number=${{ github.event.workflow_run.run_number }}
+          event=${{ github.event.workflow_run.event }}
+          status=${{ github.event.workflow_run.status }}
+          conclusion=${{ github.event.workflow_run.conclusion }}
+          head_sha=${{ github.event.workflow_run.head_sha }}
+          html_url=${{ github.event.workflow_run.html_url }}
+          EOF
+
+      - name: Commit deployment result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add deployment-status/pages-last.txt
+          git commit -m 'Record GitHub Pages deployment result' || exit 0
+          git push origin HEAD:main
