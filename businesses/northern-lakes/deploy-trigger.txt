@@ -1,5 +1,7 @@
 Authorized production deployment trigger
-UTC date: 2026-07-19
+UTC date: 2026-07-20
 Target: dedicated Northern Lakes Business Office
 Business ID: NLPS
 External actions: disabled
+ALLOW_FIRST_INSTALL=TRUE
+Authorization: build deploy go

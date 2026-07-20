@@ -4,13 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       script_id:
-        description: Existing dedicated NLPS Apps Script project ID; leave blank only for first installation
+        description: Existing dedicated NLPS Apps Script project ID; blank uses the recorded runtime ID
         required: false
         type: string
       deployment_id:
-        description: Existing dedicated NLPS web-app deployment ID; leave blank only for first installation
+        description: Existing dedicated NLPS web-app deployment ID; blank uses the recorded runtime ID
         required: false
         type: string
+      allow_first_install:
+        description: Allow creation of the first dedicated NLPS project and deployment when no recorded IDs exist
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -32,6 +37,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       INPUT_SCRIPT_ID: ${{ inputs.script_id }}
       INPUT_DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+      INPUT_ALLOW_FIRST_INSTALL: ${{ inputs.allow_first_install }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,15 +65,49 @@ jobs:
             "$PWD/business-packs/northern-lakes/apps-script/BusinessOffice_Pack.gs" \
             "$PWD"
           node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
+      - name: Resolve protected deployment target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNTIME_FILE="businesses/northern-lakes/app-deployment.json"
+          RUNTIME_SCRIPT_ID=""
+          RUNTIME_DEPLOYMENT_ID=""
+          if [[ -f "$RUNTIME_FILE" ]]; then
+            RUNTIME_SCRIPT_ID="$(node -e "const c=require('./$RUNTIME_FILE');process.stdout.write(String(c.scriptId||''))")"
+            RUNTIME_DEPLOYMENT_ID="$(node -e "const c=require('./$RUNTIME_FILE');process.stdout.write(String(c.deploymentId||''))")"
+          fi
+          SCRIPT_ID="${INPUT_SCRIPT_ID:-$RUNTIME_SCRIPT_ID}"
+          DEPLOYMENT_ID="${INPUT_DEPLOYMENT_ID:-$RUNTIME_DEPLOYMENT_ID}"
+          FIRST_INSTALL=false
+          if [[ -z "$SCRIPT_ID" || -z "$DEPLOYMENT_ID" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_ALLOW_FIRST_INSTALL" == "true" ]]; then
+              FIRST_INSTALL=true
+            elif grep -q '^ALLOW_FIRST_INSTALL=TRUE$' businesses/northern-lakes/deploy-trigger.txt; then
+              FIRST_INSTALL=true
+            else
+              echo 'HOLD — no recorded NLPS project/deployment IDs. First installation was not explicitly authorized.'
+              exit 78
+            fi
+          fi
+          if [[ "$FIRST_INSTALL" == "false" && ( -z "$SCRIPT_ID" || -z "$DEPLOYMENT_ID" ) ]]; then
+            echo 'HOLD — both the existing script ID and deployment ID are required.'
+            exit 78
+          fi
+          echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "first_install=$FIRST_INSTALL" >> "$GITHUB_OUTPUT"
       - name: Create or connect dedicated Apps Script project
         id: project
         shell: bash
         working-directory: dist/northern-lakes-business-office
+        env:
+          RESOLVED_SCRIPT_ID: ${{ steps.target.outputs.script_id }}
         run: |
           set -euo pipefail
-          if [[ -n "$INPUT_SCRIPT_ID" ]]; then
-            printf '{"scriptId":"%s","rootDir":"."}\n' "$INPUT_SCRIPT_ID" > .clasp.json
-            SCRIPT_ID="$INPUT_SCRIPT_ID"
+          if [[ -n "$RESOLVED_SCRIPT_ID" ]]; then
+            printf '{"scriptId":"%s","rootDir":"."}\n' "$RESOLVED_SCRIPT_ID" > .clasp.json
+            SCRIPT_ID="$RESOLVED_SCRIPT_ID"
           else
             clasp create --type webapp --title 'Northern Lakes Business Office' --rootDir .
             SCRIPT_ID="$(node -p "require('./.clasp.json').scriptId")"
@@ -77,14 +117,16 @@ jobs:
         id: deployment
         shell: bash
         working-directory: dist/northern-lakes-business-office
+        env:
+          RESOLVED_DEPLOYMENT_ID: ${{ steps.target.outputs.deployment_id }}
         run: |
           set -euo pipefail
           clasp push --force
           VERSION="$(clasp version 'Northern Lakes isolated Business Office release' | sed -nE 's/.*version ([0-9]+).*/\1/p' | tail -1)"
           [[ -n "$VERSION" ]] || { echo 'Could not determine Apps Script version.'; exit 1; }
-          if [[ -n "$INPUT_DEPLOYMENT_ID" ]]; then
-            OUTPUT="$(clasp deploy --deploymentId "$INPUT_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
-            DEPLOYMENT_ID="$INPUT_DEPLOYMENT_ID"
+          if [[ -n "$RESOLVED_DEPLOYMENT_ID" ]]; then
+            OUTPUT="$(clasp deploy --deploymentId "$RESOLVED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            DEPLOYMENT_ID="$RESOLVED_DEPLOYMENT_ID"
           else
             OUTPUT="$(clasp deploy --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
             DEPLOYMENT_ID="$(printf '%s' "$OUTPUT" | sed -nE 's/^- ([^ ]+).*/\1/p' | head -1)"
@@ -96,18 +138,21 @@ jobs:
       - name: Record deployment evidence
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts/northern-lakes-business-office
           cat > artifacts/northern-lakes-business-office/deployment.json <<EOF
           {
+            "status": "pass",
             "businessId": "NLPS",
             "scriptId": "${{ steps.project.outputs.script_id }}",
             "deploymentId": "${{ steps.deployment.outputs.deployment_id }}",
             "version": "${{ steps.deployment.outputs.version }}",
-            "url": "${{ steps.deployment.outputs.url }}",
+            "businessOfficeUrl": "${{ steps.deployment.outputs.url }}",
+            "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "commit": "${GITHUB_SHA}",
             "isolated": true,
             "externalActionsEnabled": false,
-            "openAiKeyConfigured": ${{ env.OPENAI_API_KEY != '' }}
+            "openAiKeyAvailableToWorkflow": ${{ env.OPENAI_API_KEY != '' }}
           }
           EOF
           cat artifacts/northern-lakes-business-office/deployment.json
