@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Verify public-page image paths and minimum visible imagery.
+"""Verify Highway 38 public marketing-page images.
 
 Run from the repository root:
     python scripts/verify-public-images.py
+
+Portal and application routes are intentionally covered by their existing
+protected workflows instead of this public-marketing image gate.
 """
 
 from __future__ import annotations
@@ -27,10 +30,6 @@ PUBLIC_PAGES = [
     "contact.html",
     "faq.html",
     "proof.html",
-    "start-request.html",
-    "sign-in.html",
-    "customer-portal.html",
-    "quote-builder.html",
 ]
 
 IMG_RE = re.compile(r'<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>', re.I)
@@ -82,7 +81,7 @@ def main() -> int:
             if clean_path(src) != LOGO_PATH:
                 content_images += 1
 
-        if page_name not in {"sign-in.html", "customer-portal.html", "quote-builder.html"} and content_images < 1:
+        if content_images < 1:
             errors.append(f"IMAGE-POOR PAGE: {page_name} has no explicit non-logo content image")
 
         if "assets/css/h38-site-v2.css" in text and "?v=" not in text:
@@ -98,7 +97,7 @@ def main() -> int:
                 errors.append(f"BROKEN CSS IMAGE: assets/css/h38-site-v2.css -> {raw}")
 
     print("Highway 38 public image verification")
-    print(f"Pages checked: {len(PUBLIC_PAGES)}")
+    print(f"Marketing pages checked: {len(PUBLIC_PAGES)}")
     print(f"Errors: {len(errors)}")
     print(f"Warnings: {len(warnings)}")
 
