@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/install-approved-logo.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/logo-install-trigger'
 
 permissions:
   contents: write
@@ -13,15 +17,15 @@ jobs:
   install-approved-logo:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out main
+      - name: Check out target branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
           fetch-depth: 0
 
       - name: Download exact approved logo
         env:
-          APPROVED_LOGO_URL: "https://lh7-rt.googleusercontent.com/slidesz/AGV_vUfStzhjcpA6b-stYIO-ynroNPLj0OSIlsA2r3fgyaOTpaF0Jwsng977kvBiXzD1bHobfkhFnYFVCkOqIkbS8nP4V_qWHWXtEcBQ90UGzvMzMLIOyA3AuBD8GqOZQgumDTXJ_k2t572jGgYdm_hQOGrf05xTjIqmbIks9NegM7N4z48s875z_g=s2048?key=NLYyqrEaw-WzR5yeMX5W6g"
+          APPROVED_LOGO_URL: "https://lh7-rt.googleusercontent.com/slidesz/AGV_vUc7rJPGDoPdMabjPO2JwNghcrfw3GUXr059hE5rxHfEnOUq0A488n52EuGTI-TXseIv5tVtLfuGdfubbHMOYAcKNQynLyiIMWr4ufSSszPCb7B_DcH6TdowVoS6Ljf86D7d4PN0l51nFVRLIs5gATIC9fFMoUa8ywLiaPo1y4bZ_cWEZ97bhA=s2048?key=NLYyqrEaw-WzR5yeMX5W6g"
         run: |
           curl --fail --location --retry 4 --retry-all-errors "$APPROVED_LOGO_URL" --output assets/highway38-logo.png
 
@@ -46,7 +50,9 @@ jobs:
             sed -i 's#assets/command-center/cc-42.webp#assets/highway38-logo.png#g' "$file"
           done
 
-      - name: Commit approved logo
+      - name: Commit approved logo to target branch
+        env:
+          TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -56,4 +62,4 @@ jobs:
             exit 0
           fi
           git commit -m 'Install exact approved Highway 38 logo'
-          git push origin HEAD:main
+          git push origin HEAD:"$TARGET_BRANCH"
