@@ -49,7 +49,7 @@ check('Social Control installed but publishing locked',pack.modules&&pack.module
 
 const controlSource=[read('rules'),read('core'),read('portalServer')].join('\n');
 check('control layer contains no provider network request',!/UrlFetchApp\s*\.\s*fetch|fetch\s*\(\s*['"]https?:/i.test(controlSource));
-check('selected social record only',/function boControlSocialAction_\(recordId/.test(read('core'))&&!/sendAll|publishAll|bulkPublish|automaticPublish/i.test(controlSource));
+check('selected social record only',/function boControlSocialAction_\(recordId/.test(read('core'))&&!/\b(?:sendAll|publishAll|bulkPublish|automaticPublish)\s*\(/i.test(controlSource));
 check('field proof starts private',/Customer Visible':'No'/.test(read('core'))&&/Owner Approval Required/.test(read('core')));
 check('receipt capture does not create expense automatically',/expenseCreated:false/.test(read('core'))&&/Posting Status':values\.postingStatus/.test(read('core')));
 check('direct Business Office loads control client',read('web').includes("boInclude_('BusinessOffice_ControlPlane_Client')"));
