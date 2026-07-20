@@ -1,0 +1,56 @@
+name: Business Office Control Plane Verification
+
+on:
+  pull_request:
+    paths:
+      - 'apps-script/business-office/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'business-packs/highway38/**'
+      - 'scripts/verify-business-office-control-plane.js'
+      - '.github/workflows/business-office-control-plane.yml'
+  push:
+    branches:
+      - 'agent/business-office-mobile-field-social-overhaul'
+    paths:
+      - 'apps-script/business-office/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'business-packs/highway38/**'
+      - 'scripts/verify-business-office-control-plane.js'
+      - '.github/workflows/business-office-control-plane.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run control-plane simulations
+        run: node scripts/verify-business-office-control-plane.js
+      - name: Assemble exact Business Office source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist/control-plane-business-office
+          bash scripts/assemble-business-office-app.sh \
+            "$PWD/dist/control-plane-business-office" \
+            "$PWD/business-packs/highway38/apps-script/BusinessOffice_Pack.gs" \
+            "$PWD"
+      - name: Syntax check assembled Apps Script
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in dist/control-plane-business-office/*.gs; do
+            node --check "$file"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-office-control-plane-${{ github.run_id }}
+          path: artifacts/business-office-control-plane/verification.json
+          if-no-files-found: warn
+          retention-days: 30
