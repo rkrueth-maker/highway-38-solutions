@@ -54,6 +54,7 @@ jobs:
           else echo 'HOLD — CLASPRC_JSON or CLASPRC_JSON_B64 is required.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+          clasp show-authorized-user --json
       - name: Assemble isolated Northern Lakes source
         shell: bash
         run: |
@@ -109,9 +110,10 @@ jobs:
             printf '{"scriptId":"%s","rootDir":"."}\n' "$RESOLVED_SCRIPT_ID" > .clasp.json
             SCRIPT_ID="$RESOLVED_SCRIPT_ID"
           else
-            clasp create --type webapp --title 'Northern Lakes Business Office' --rootDir .
+            clasp create-script --type webapp --title 'Northern Lakes Business Office' --rootDir .
             SCRIPT_ID="$(node -p "require('./.clasp.json').scriptId")"
           fi
+          [[ -n "$SCRIPT_ID" ]] || { echo 'Could not determine Apps Script project ID.'; exit 1; }
           echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
       - name: Push exact source and deploy web app
         id: deployment
@@ -122,16 +124,19 @@ jobs:
         run: |
           set -euo pipefail
           clasp push --force
-          VERSION="$(clasp version 'Northern Lakes isolated Business Office release' | sed -nE 's/.*version ([0-9]+).*/\1/p' | tail -1)"
+          VERSION_OUTPUT="$(clasp create-version 'Northern Lakes isolated Business Office release')"
+          printf '%s\n' "$VERSION_OUTPUT"
+          VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | sed -nE 's/.*[Vv]ersion[^0-9]*([0-9]+).*/\1/p' | tail -1)"
           [[ -n "$VERSION" ]] || { echo 'Could not determine Apps Script version.'; exit 1; }
           if [[ -n "$RESOLVED_DEPLOYMENT_ID" ]]; then
-            OUTPUT="$(clasp deploy --deploymentId "$RESOLVED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            OUTPUT="$(clasp create-deployment --deploymentId "$RESOLVED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
             DEPLOYMENT_ID="$RESOLVED_DEPLOYMENT_ID"
           else
-            OUTPUT="$(clasp deploy --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
-            DEPLOYMENT_ID="$(printf '%s' "$OUTPUT" | sed -nE 's/^- ([^ ]+).*/\1/p' | head -1)"
+            OUTPUT="$(clasp create-deployment --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            DEPLOYMENT_ID="$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*(AKfy[A-Za-z0-9_-]+).*/\1/p' | head -1)"
           fi
-          [[ -n "$DEPLOYMENT_ID" ]] || { echo "$OUTPUT"; echo 'Could not determine deployment ID.'; exit 1; }
+          printf '%s\n' "$OUTPUT"
+          [[ -n "$DEPLOYMENT_ID" ]] || { echo 'Could not determine deployment ID.'; exit 1; }
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec" >> "$GITHUB_OUTPUT"
