@@ -1,0 +1,11 @@
+<script>
+(function(){
+  'use strict';
+  var baseRoute=window.boControlRoute;
+  window.boControlCall=function(action,args){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boControlApiLive({action:action,args:args||{}});});};
+  function proofCard(row){var id=boControlJs(row['Task Proof ID']);return '<article class="bo-task-card"><strong>'+boControlEscape(row['Photo Type'])+' · Task '+boControlEscape(row['Task ID'])+'</strong><div>'+boControlEscape(row.Caption||'No caption')+'</div><div class="bo-control-status"><span class="bo-control-chip">'+boControlEscape(row['Approval Status'])+'</span><span class="bo-control-chip">Customer visible: '+boControlEscape(row['Customer Visible'])+'</span></div><div class="bo-control-toolbar"><button class="primary" onclick="boControlApproveProof(\''+id+'\',true)">Approve & share with customer</button><button class="secondary" onclick="boControlApproveProof(\''+id+'\',false)">Approve internal only</button></div></article>';}
+  window.boControlOpenProofReview=async function(){try{var data=await boControlRefresh(),rows=data.proofQueue||[];boControlHost(boControlBack()+'<section class="bo-control-hero"><p>FIELD PROOF REVIEW</p><h2>Choose what the customer may see</h2><p>Approved internal photos may later be selected for a specific owner-approved social post.</p></section><section class="bo-control-section">'+(rows.length?rows.map(proofCard).join(''):'<div class="empty">No job photos await owner review.</div>')+'</section>');}catch(error){showToast(error.message||String(error),true);}};
+  window.boControlApproveProof=async function(proofId,customerVisible){try{await boControlCall('approveProof',{proofId:proofId,customerVisible:customerVisible===true});showToast('Photo reviewed. Customer visibility: '+(customerVisible?'on':'internal only')+'.');boControlOpenProofReview();}catch(error){showToast(error.message||String(error),true);}};
+  window.boControlRoute=function(route){if(route==='control:proof')return boControlOpenProofReview();return baseRoute(route);};
+})();
+</script>
