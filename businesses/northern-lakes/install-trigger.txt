@@ -6,3 +6,4 @@ Use existing dedicated Northern Lakes folders
 Do not copy Highway 38 business data
 External actions remain disabled
 Authorization: fix both systems now
+Retry: authenticated HEAD execution with clean-source restoration guaranteed
