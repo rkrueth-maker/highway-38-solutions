@@ -1,108 +1,20 @@
 {
   "schemaVersion": 1,
   "installationId": "highway38-production",
-  "package": {
-    "id": "complete-business-system",
-    "name": "Complete Business System",
-    "singleApp": true
-  },
-  "business": {
-    "id": "H38",
-    "legalName": "Highway 38 Solutions",
-    "publicName": "Highway 38 Solutions"
-  },
-  "branding": {
-    "businessName": "Highway 38 Solutions",
-    "businessOfficeName": "Highway 38 Business System",
-    "logoPath": "assets/highway38-logo.png",
-    "logoUrl": "https://rkrueth-maker.github.io/highway-38-solutions/assets/highway38-logo.png?v=20260720-exact-0cbc4514",
-    "primaryColor": "#173a5e",
-    "secondaryColor": "#326a9e",
-    "documentFooter": "Highway 38 Business Office · Private preparation document",
-    "originalFileDescription": "Private Highway 38 Business Office original."
-  },
-  "contact": {
-    "ownerEmailProperty": "H38_BUSINESS_OFFICE_OWNER_EMAIL",
-    "publicEmail": "",
-    "phone": "",
-    "address": ""
-  },
-  "regional": {
-    "timeZone": "America/Chicago",
-    "currency": "USD",
-    "locale": "en-US"
-  },
-  "resources": {
-    "propertyKeys": {
-      "BO_SPREADSHEET_ID": "H38_BUSINESS_OFFICE_SPREADSHEET_ID",
-      "BO_DEFAULT_BUSINESS_ID": "H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID",
-      "BO_ROOT_FOLDER_ID": "H38_BUSINESS_OFFICE_ROOT_FOLDER_ID",
-      "BO_DOCUMENT_FOLDER_ID": "H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID",
-      "BO_PDF_FOLDER_ID": "H38_BUSINESS_OFFICE_PDF_FOLDER_ID",
-      "BO_EXPORT_FOLDER_ID": "H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID",
-      "BO_BACKUP_FOLDER_ID": "H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID",
-      "BO_INTAKE_SOURCE_SPREADSHEET_ID": "H38_BACKEND_SPREADSHEET_ID"
-    }
-  },
-  "website": {
-    "publicUrl": "https://rkrueth-maker.github.io/highway-38-solutions/",
-    "ownerPortalUrl": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html"
-  },
-  "catalog": {
-    "mode": "configured",
-    "source": "BO Products & Services"
-  },
-  "validation": {
-    "enforceCatalogCounts": true,
-    "expectedProductCount": 15,
-    "expectedBundleCount": 9
-  },
-  "approvalLanguage": {
-    "required": "Owner Approval Required",
-    "ownerRequired": "Owner approval is required.",
-    "dashboardReview": "Owner review is needed before customer action.",
-    "decisionButton": "Owner decision"
-  },
-  "tax": {
-    "mode": "preparation-only",
-    "directFiling": false
-  },
-  "modules": {
-    "commandCenter": true,
-    "website": true,
-    "growth": true,
-    "social": true,
-    "advertising": true,
-    "requests": true,
-    "customers": true,
-    "vendors": true,
-    "quotes": true,
-    "workOrders": true,
-    "jobs": true,
-    "purchaseOrders": true,
-    "vendorBills": true,
-    "receipts": true,
-    "expenses": true,
-    "invoices": true,
-    "payments": true,
-    "time": true,
-    "employees": true,
-    "payroll": true,
-    "contractors": true,
-    "tax": true,
-    "documents": true,
-    "accounting": true,
-    "reports": true,
-    "approvals": true,
-    "backups": true,
-    "setup": true
-  },
-  "templates": {
-    "quote": "default",
-    "workOrder": "default",
-    "invoice": "default",
-    "expense": "default",
-    "payroll": "default",
-    "taxPreparation": "default"
-  }
+  "package": {"id": "complete-business-system", "name": "Complete Business System", "singleApp": true},
+  "business": {"id": "H38", "legalName": "Highway 38 Solutions", "publicName": "Highway 38 Solutions"},
+  "branding": {"businessName": "Highway 38 Solutions", "businessOfficeName": "Highway 38 Business System", "logoPath": "assets/highway38-logo.png", "logoUrl": "https://rkrueth-maker.github.io/highway-38-solutions/assets/highway38-logo.png?v=20260720-exact-0cbc4514", "primaryColor": "#173a5e", "secondaryColor": "#326a9e", "documentFooter": "Highway 38 Business Office · Private preparation document", "originalFileDescription": "Private Highway 38 Business Office original."},
+  "contact": {"ownerEmailProperty": "H38_BUSINESS_OFFICE_OWNER_EMAIL", "publicEmail": "", "phone": "", "address": ""},
+  "regional": {"timeZone": "America/Chicago", "currency": "USD", "locale": "en-US"},
+  "resources": {"propertyKeys": {"BO_SPREADSHEET_ID": "H38_BUSINESS_OFFICE_SPREADSHEET_ID", "BO_DEFAULT_BUSINESS_ID": "H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID", "BO_ROOT_FOLDER_ID": "H38_BUSINESS_OFFICE_ROOT_FOLDER_ID", "BO_DOCUMENT_FOLDER_ID": "H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID", "BO_PDF_FOLDER_ID": "H38_BUSINESS_OFFICE_PDF_FOLDER_ID", "BO_EXPORT_FOLDER_ID": "H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID", "BO_BACKUP_FOLDER_ID": "H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID", "BO_INTAKE_SOURCE_SPREADSHEET_ID": "H38_BACKEND_SPREADSHEET_ID"}},
+  "website": {"publicUrl": "https://rkrueth-maker.github.io/highway-38-solutions/", "ownerPortalUrl": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html"},
+  "catalog": {"mode": "configured", "source": "BO Products & Services"},
+  "validation": {"enforceCatalogCounts": true, "expectedProductCount": 15, "expectedBundleCount": 9},
+  "approvalLanguage": {"required": "Owner Approval Required", "ownerRequired": "Owner approval is required.", "dashboardReview": "Owner review is needed before customer action.", "decisionButton": "Owner decision"},
+  "tax": {"mode": "preparation-only", "directFiling": false},
+  "roles": {"names": ["Owner", "Administrator", "Foreman", "Estimator", "Field Staff", "Staff", "Bookkeeper", "Payroll", "Viewer"]},
+  "modules": {"commandCenter": true, "website": true, "growth": true, "social": true, "advertising": true, "assignedTasks": true, "requests": true, "customers": true, "vendors": true, "quotes": true, "quoteBuilder": true, "workOrders": true, "jobs": true, "purchaseOrders": true, "vendorBills": true, "receipts": true, "expenses": true, "invoices": true, "payments": true, "time": true, "employees": true, "payroll": true, "contractors": true, "tax": true, "documents": true, "accounting": true, "reports": true, "approvals": true, "backups": true, "setup": true},
+  "workflow": {"externalActionsEnabled": false, "selectedRecordOnly": true, "approvalNotice": "Customer sending, delivery, financial posting, payroll export, tax report finalization, social publishing, advertising spend, and customer SMS require explicit owner approval."},
+  "social": {"provider": "none", "externalActionsEnabled": false, "ownerApprovalRequired": true, "selectedRecordOnly": true, "automaticPublishingEnabled": false, "bulkPublishingEnabled": false, "customerProofApprovalRequired": true},
+  "templates": {"quote": "default", "workOrder": "default", "invoice": "default", "expense": "default", "payroll": "default", "taxPreparation": "default"}
 }
