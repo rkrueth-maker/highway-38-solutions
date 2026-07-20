@@ -1,0 +1,31 @@
+name: Remove Superseded Business Office Renderer
+
+on:
+  push:
+    branches:
+      - 'agent/business-office-mobile-field-social-overhaul'
+    paths:
+      - '.github/workflows/cleanup-superseded-business-office-render.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/business-office-mobile-field-social-overhaul
+      - name: Remove superseded render harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -f \
+            .github/workflows/business-office-control-plane-render.yml \
+            scripts/render-business-office-control-plane.js \
+            .github/workflows/cleanup-superseded-business-office-render.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove superseded Business Office renderer'
+          git push origin HEAD:agent/business-office-mobile-field-social-overhaul
