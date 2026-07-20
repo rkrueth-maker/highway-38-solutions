@@ -106,12 +106,21 @@ jobs:
           RESOLVED_SCRIPT_ID: ${{ steps.target.outputs.script_id }}
         run: |
           set -euo pipefail
+          mkdir -p ../../artifacts/northern-lakes-business-office
           if [[ -n "$RESOLVED_SCRIPT_ID" ]]; then
             printf '{"scriptId":"%s","rootDir":"."}\n' "$RESOLVED_SCRIPT_ID" > .clasp.json
             SCRIPT_ID="$RESOLVED_SCRIPT_ID"
           else
-            clasp create-script --type webapp --title 'Northern Lakes Business Office' --rootDir .
-            SCRIPT_ID="$(node -p "require('./.clasp.json').scriptId")"
+            CREATE_DIR="$(mktemp -d)"
+            set +e
+            (cd "$CREATE_DIR" && DEBUG=clasp:* clasp create-script --type standalone --title 'Northern Lakes Business Office') > ../../artifacts/northern-lakes-business-office/create-project.log 2>&1
+            CREATE_STATUS=$?
+            set -e
+            cat ../../artifacts/northern-lakes-business-office/create-project.log
+            [[ "$CREATE_STATUS" -eq 0 ]] || exit "$CREATE_STATUS"
+            SCRIPT_ID="$(node -p "require('$CREATE_DIR/.clasp.json').scriptId")"
+            printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > .clasp.json
+            rm -rf "$CREATE_DIR"
           fi
           [[ -n "$SCRIPT_ID" ]] || { echo 'Could not determine Apps Script project ID.'; exit 1; }
           echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"

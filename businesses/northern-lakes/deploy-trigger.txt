@@ -5,4 +5,4 @@ Business ID: NLPS
 External actions: disabled
 ALLOW_FIRST_INSTALL=TRUE
 Authorization: build deploy go
-Retry: clasp 3 command migration
+Retry: clean-directory project creation with diagnostic artifact
