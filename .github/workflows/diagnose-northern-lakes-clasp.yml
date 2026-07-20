@@ -1,0 +1,97 @@
+name: Diagnose Northern Lakes clasp Final Step
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'businesses/northern-lakes/deploy-diagnostic-trigger.txt'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: northern-lakes-clasp-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clasp
+        shell: bash
+        run: npm install --global @google/clasp@3.1.0 >/dev/null 2>&1
+      - name: Load credential without logging it
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$CLASPRC_JSON" ]]; then
+            printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          elif [[ -n "$CLASPRC_JSON_B64" ]]; then
+            printf '%s' "$CLASPRC_JSON_B64" | base64 --decode > "$HOME/.clasprc.json"
+          else
+            echo 'No clasp credential is configured.'
+            exit 1
+          fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+          clasp show-authorized-user --json >/dev/null
+      - name: Assemble isolated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist/northern-lakes-business-office
+          mkdir -p dist/northern-lakes-business-office
+          bash scripts/assemble-business-office-app.sh \
+            "$PWD/dist/northern-lakes-business-office" \
+            "$PWD/business-packs/northern-lakes/apps-script/BusinessOffice_Pack.gs" \
+            "$PWD" >/dev/null
+          node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office >/dev/null
+      - name: Capture clasp command results safely
+        shell: bash
+        run: |
+          set +e
+          ARTIFACT_DIR="$GITHUB_WORKSPACE/artifacts/northern-lakes-clasp-diagnostic"
+          mkdir -p "$ARTIFACT_DIR"
+          cd "$GITHUB_WORKSPACE/dist/northern-lakes-business-office"
+
+          SCRIPT_LIST="$(clasp list-scripts 2>/dev/null)"
+          PROJECT_LINE="$(printf '%s\n' "$SCRIPT_LIST" | grep -F 'Northern Lakes Business Office' | head -1)"
+          SCRIPT_ID="$(printf '%s\n' "$PROJECT_LINE" | grep -oE '[A-Za-z0-9_-]{40,}' | head -1)"
+          if [[ -z "$SCRIPT_ID" ]]; then
+            printf 'failed_command=project-recovery\n' > "$ARTIFACT_DIR/summary.txt"
+            printf 'The exact-title Northern Lakes project could not be recovered.\n' > "$ARTIFACT_DIR/project-recovery.log"
+            exit 0
+          fi
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > .clasp.json
+
+          clasp push --force > "$ARTIFACT_DIR/01-push.log" 2>&1
+          PUSH_RC=$?
+          if [[ $PUSH_RC -ne 0 ]]; then
+            printf 'failed_command=push\nexit_code=%s\n' "$PUSH_RC" > "$ARTIFACT_DIR/summary.txt"
+            exit 0
+          fi
+
+          clasp create-version 'Northern Lakes diagnostic version' > "$ARTIFACT_DIR/02-create-version.log" 2>&1
+          VERSION_RC=$?
+          if [[ $VERSION_RC -ne 0 ]]; then
+            printf 'failed_command=create-version\nexit_code=%s\n' "$VERSION_RC" > "$ARTIFACT_DIR/summary.txt"
+            exit 0
+          fi
+
+          printf 'failed_command=none\npush=pass\ncreate_version=pass\n' > "$ARTIFACT_DIR/summary.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: northern-lakes-clasp-diagnostic-${{ github.run_id }}
+          path: artifacts/northern-lakes-clasp-diagnostic
+          if-no-files-found: error
+          retention-days: 7
+      - name: Mark controlled diagnostic complete
+        shell: bash
+        run: |
+          echo '::error::Controlled clasp diagnostic completed. Inspect the private artifact; no credential material was logged.'
+          exit 1
