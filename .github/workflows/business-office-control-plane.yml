@@ -48,12 +48,16 @@ jobs:
           mkdir -p "$OUT"
           : > "$OUT/assembled-syntax.txt"
           FAILED=0
+          TEMP_JS="$(mktemp --suffix=.js)"
+          trap 'rm -f "$TEMP_JS"' EXIT
           for file in dist/control-plane-business-office/*.gs; do
-            echo "CHECK $(basename "$file")" | tee -a "$OUT/assembled-syntax.txt"
-            if node --check "$file" >> "$OUT/assembled-syntax.txt" 2>&1; then
-              echo "PASS $(basename "$file")" | tee -a "$OUT/assembled-syntax.txt"
+            name="$(basename "$file")"
+            echo "CHECK $name" | tee -a "$OUT/assembled-syntax.txt"
+            cp "$file" "$TEMP_JS"
+            if node --check "$TEMP_JS" >> "$OUT/assembled-syntax.txt" 2>&1; then
+              echo "PASS $name" | tee -a "$OUT/assembled-syntax.txt"
             else
-              echo "FAIL $(basename "$file")" | tee -a "$OUT/assembled-syntax.txt"
+              echo "FAIL $name" | tee -a "$OUT/assembled-syntax.txt"
               FAILED=1
             fi
           done
