@@ -131,32 +131,43 @@ jobs:
           GS
           printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > dist/northern-lakes-business-office/.clasp.json
           node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
-      - name: Publish temporary installer version
-        id: temporary
+      - name: Push temporary installer to authenticated HEAD
         shell: bash
         working-directory: dist/northern-lakes-business-office
-        env:
-          DEPLOYMENT_ID: ${{ steps.target.outputs.deployment_id }}
         run: |
           set -euo pipefail
           clasp push --force
-          clasp create-version 'Northern Lakes protected storage installation' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/temporary-version.json"
-          VERSION="$(node -e "const v=require(process.argv[1]);process.stdout.write(String(v.versionNumber||v.version||''))" "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/temporary-version.json")"
-          test -n "$VERSION"
-          clasp update-deployment "$DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes protected storage installation' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/temporary-deployment.json"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          sleep 5
+          sleep 8
       - name: Create and bind dedicated Northern Lakes workbook
+        id: install
+        continue-on-error: true
         shell: bash
         working-directory: dist/northern-lakes-business-office
         run: |
           set -euo pipefail
-          clasp run boNorthernLakesInstallOnce --nondev --params '[]' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/install-api.json"
-          node - "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/install-api.json" "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/install-result.json" <<'NODE'
+          OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
+          SUCCESS=false
+          for ATTEMPT in 1 2 3 4 5 6; do
+            RAW="$OUT/install-api-${ATTEMPT}.json"
+            ERROR_LOG="$OUT/install-error-${ATTEMPT}.log"
+            set +e
+            clasp run boNorthernLakesInstallOnce --params '[]' --json > "$RAW" 2> "$ERROR_LOG"
+            RC=$?
+            set -e
+            if [[ $RC -eq 0 && -s "$RAW" ]] && node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$RAW"; then
+              cp "$RAW" "$OUT/install-api.json"
+              SUCCESS=true
+              break
+            fi
+            sleep 8
+          done
+          [[ "$SUCCESS" == "true" ]] || { echo 'Northern Lakes installation function did not return valid JSON after retries.'; exit 1; }
+          node - "$OUT/install-api.json" "$OUT/install-result.json" <<'NODE'
           const fs=require('fs');const [raw,out]=process.argv.slice(2);const value=JSON.parse(fs.readFileSync(raw,'utf8'));if(value.error)throw new Error(value.error.message||JSON.stringify(value.error));const result=value.response;if(!result||result.status!=='PASS'||result.businessId!=='NLPS'||!result.spreadsheetId)throw new Error('Northern Lakes installation did not pass: '+JSON.stringify(result));fs.writeFileSync(out,JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({status:result.status,businessId:result.businessId,sheetCount:result.sheetCount||81,reused:!!result.reused}));
           NODE
       - name: Restore clean production source and deployment
         id: final
+        if: ${{ always() && steps.target.outcome == 'success' }}
         shell: bash
         env:
           SCRIPT_ID: ${{ steps.target.outputs.script_id }}
@@ -178,18 +189,44 @@ jobs:
           test -n "$VERSION"
           clasp update-deployment "$DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office configured production' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/final-deployment.json"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          sleep 5
+          sleep 8
+      - name: Enforce installation result after clean restoration
+        if: ${{ always() && steps.target.outcome == 'success' && steps.install.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo 'Northern Lakes storage installation failed, but clean production source was restored.'
+          exit 1
       - name: Verify installed production configuration
+        if: ${{ steps.install.outcome == 'success' && steps.final.outcome == 'success' }}
         shell: bash
         working-directory: dist/northern-lakes-business-office
         run: |
           set -euo pipefail
-          clasp run boValidateInstallation --nondev --params '[]' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/validation-api.json"
-          clasp run boGetClientContext --nondev --params '[]' --json > "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/context-api.json"
-          node - "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/validation-api.json" "$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install/context-api.json" <<'NODE'
-          const fs=require('fs');const unwrap=p=>{const v=JSON.parse(fs.readFileSync(p,'utf8'));if(v.error)throw new Error(v.error.message||JSON.stringify(v.error));return v.response};const validation=unwrap(process.argv[2]),context=unwrap(process.argv[3]);if(!validation||validation.valid!==true||validation.businessId!=='NLPS'||validation.externalActionsEnabled!=='FALSE'||validation.isolation.valid!==true)throw new Error('Installed validation failed: '+JSON.stringify(validation));if(!context||context.businessId!=='NLPS'||!context.user||context.user.role!=='Owner'||context.boundaries.externalActionsEnabled!==false)throw new Error('Owner context validation failed.');console.log(JSON.stringify({status:'PASS',businessId:'NLPS',role:'Owner',isolated:true,externalActionsEnabled:false}));
+          OUT="$GITHUB_WORKSPACE/artifacts/northern-lakes-storage-install"
+          run_function(){
+            local FUNCTION_NAME="$1" OUTPUT_NAME="$2" SUCCESS=false
+            for ATTEMPT in 1 2 3 4 5 6; do
+              local RAW="$OUT/${OUTPUT_NAME}-${ATTEMPT}.json" ERROR_LOG="$OUT/${OUTPUT_NAME}-error-${ATTEMPT}.log"
+              set +e
+              clasp run "$FUNCTION_NAME" --params '[]' --json > "$RAW" 2> "$ERROR_LOG"
+              local RC=$?
+              set -e
+              if [[ $RC -eq 0 && -s "$RAW" ]] && node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$RAW"; then
+                cp "$RAW" "$OUT/${OUTPUT_NAME}.json"
+                SUCCESS=true
+                break
+              fi
+              sleep 8
+            done
+            [[ "$SUCCESS" == "true" ]]
+          }
+          run_function boValidateInstallation validation-api
+          run_function boGetClientContext context-api
+          node - "$OUT/validation-api.json" "$OUT/context-api.json" <<'NODE'
+          const fs=require('fs');const unwrap=p=>{const v=JSON.parse(fs.readFileSync(p,'utf8'));if(v.error)throw new Error(v.error.message||JSON.stringify(v.error));return v.response};const validation=unwrap(process.argv[2]),context=unwrap(process.argv[3]);if(!validation||validation.valid!==true||validation.businessId!=='NLPS'||validation.externalActionsEnabled!=='FALSE'||validation.isolation.valid!==true)throw new Error('Installed validation failed: '+JSON.stringify(validation));if(!context||context.businessId!=='NLPS'||!context.user||context.user.role!=='Owner'||context.boundaries.externalActionsEnabled!==false)throw new Error('Owner context validation failed: '+JSON.stringify(context));console.log(JSON.stringify({status:'PASS',businessId:'NLPS',role:'Owner',isolated:true,externalActionsEnabled:false}));
           NODE
       - name: Record configured runtime
+        if: ${{ steps.install.outcome == 'success' && steps.final.outcome == 'success' }}
         shell: bash
         env:
           FINAL_VERSION: ${{ steps.final.outputs.version }}
