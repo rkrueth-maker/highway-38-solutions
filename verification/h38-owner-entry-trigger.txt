@@ -1,0 +1,4 @@
+Verify live Highway 38 owner entry after route repair
+Commit source: PR #241
+Expected route: portal.html#business-office
+Direct Business Office deployment must not be exposed on public entry pages

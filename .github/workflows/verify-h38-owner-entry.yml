@@ -1,0 +1,54 @@
+name: Verify H38 Owner Entry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'verification/h38-owner-entry-trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitHub Pages propagation
+        run: sleep 30
+      - name: Verify live H38 owner entry chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://rkrueth-maker.github.io/highway-38-solutions'
+          CACHE="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fetch(){
+            local path="$1" out="$2"
+            for attempt in {1..12}; do
+              status="$(curl -L -sS -o "$out" -w '%{http_code}' "$BASE/$path?verify=$CACHE-$attempt")"
+              if [[ "$status" == '200' ]]; then return 0; fi
+              sleep 10
+            done
+            echo "Could not fetch $path with HTTP 200."
+            return 1
+          }
+          fetch 'sign-in.html' sign-in.html
+          fetch 'business-systems.html' business-systems.html
+          fetch 'portal.html' portal.html
+          grep -F 'href="portal.html#business-office">Business Office Sign In</a>' sign-in.html
+          grep -F 'href="portal.html#business-office">Open Business Office</a>' business-systems.html
+          grep -F "'business-office':'requests'" portal.html
+          grep -F 'AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg' portal.html
+          ! grep -F 'AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg' sign-in.html
+          ! grep -F 'AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg' business-systems.html
+          printf '%s\n' 'PASS — live H38 owner entry routes through retained Owner Portal.' > verification-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: h38-owner-entry-${{ github.run_id }}
+          path: |
+            sign-in.html
+            business-systems.html
+            portal.html
+            verification-result.txt
+          if-no-files-found: warn
+          retention-days: 30
