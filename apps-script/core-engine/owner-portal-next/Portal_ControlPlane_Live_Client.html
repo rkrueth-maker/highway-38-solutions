@@ -1,0 +1,12 @@
+(function(){
+  'use strict';
+  window.h38ControlFieldTransition=async function(event){
+    try{
+      var session=H38_CONTROL.data&&H38_CONTROL.data.currentSession;
+      if(!session)throw new Error('No active field session exists.');
+      await call('h38PortalControlAction',[{action:'fieldTransition',args:{sessionId:session['Field Session ID'],event:event,payload:{}}}]);
+      notice(event==='RESUME'?'<b>Work resumed.</b> Break time was calculated automatically.':'<b>Field session updated.</b>','ok');
+      h38ControlRoute('control:field');
+    }catch(error){notice(esc(error.message||error),'bad');}
+  };
+})();
