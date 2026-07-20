@@ -4,4 +4,4 @@ Target: dedicated Northern Lakes Business Office
 Business ID: NLPS
 Credentials: never logged
 External actions: disabled
-Retry: recover exact project from clasp JSON and test push/version
+Retry: verify corrected business pack syntax with push and create-version
