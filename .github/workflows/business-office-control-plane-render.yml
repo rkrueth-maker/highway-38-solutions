@@ -1,0 +1,58 @@
+name: Business Office Control Plane Render Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/business-office-control-plane/**'
+      - 'packages/shared-ui/BusinessOffice_ControlPlane*.html'
+      - 'packages/shared-ui/BusinessOffice_Index.html'
+      - 'apps/business-office/**'
+      - 'business-packs/template-business/**'
+      - 'scripts/build-business-office-installation.js'
+      - 'scripts/render-business-office-control-plane.js'
+      - '.github/workflows/business-office-control-plane-render.yml'
+  push:
+    branches:
+      - 'agent/business-office-mobile-field-social-overhaul'
+    paths:
+      - 'packages/business-office-control-plane/**'
+      - 'packages/shared-ui/BusinessOffice_ControlPlane*.html'
+      - 'packages/shared-ui/BusinessOffice_Index.html'
+      - 'apps/business-office/**'
+      - 'business-packs/template-business/**'
+      - 'scripts/build-business-office-installation.js'
+      - 'scripts/render-business-office-control-plane.js'
+      - '.github/workflows/business-office-control-plane-render.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install render dependencies
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Build neutral standalone Business Office
+        run: |
+          rm -rf artifacts/business-office-control-plane/render-bundle artifacts/business-office-control-plane/renders
+          node scripts/build-business-office-installation.js \
+            --pack template-business \
+            --mode standalone \
+            --out artifacts/business-office-control-plane/render-bundle
+      - name: Render role and device acceptance screens
+        run: node scripts/render-business-office-control-plane.js artifacts/business-office-control-plane/render-bundle artifacts/business-office-control-plane/renders
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-office-control-plane-renders-${{ github.run_id }}
+          path: artifacts/business-office-control-plane/renders
+          if-no-files-found: error
+          retention-days: 90
