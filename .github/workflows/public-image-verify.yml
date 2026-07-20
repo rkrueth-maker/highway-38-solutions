@@ -1,0 +1,34 @@
+name: Public Image Verify
+
+on:
+  pull_request:
+    paths:
+      - "*.html"
+      - "assets/**"
+      - "scripts/verify-public-images.py"
+      - ".github/workflows/public-image-verify.yml"
+  push:
+    branches: [main]
+    paths:
+      - "*.html"
+      - "assets/**"
+      - "scripts/verify-public-images.py"
+      - ".github/workflows/public-image-verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify public image paths and visibility
+        run: python scripts/verify-public-images.py
