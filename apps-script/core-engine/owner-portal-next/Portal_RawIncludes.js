@@ -36,6 +36,7 @@ function h38PortalRawInclude_(fileName) {
     'Portal_QuoteBuilder_Addon_Client',
     'Portal_QuoteBuilder_QuickCapture_Client',
     'Portal_ControlPlane_Client',
+    'Portal_ControlPlane_Live_Client',
     'Portal_UX_Client_Boot'
   ];
   fileName = String(fileName || '');
