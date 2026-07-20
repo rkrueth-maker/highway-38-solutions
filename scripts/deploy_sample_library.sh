@@ -4,10 +4,17 @@ set -euo pipefail
 PAGE="sample-library-now.html"
 LIVE_URL="https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html"
 ALLOW_DIRTY="false"
+LOGO_REFERENCE="$(python3 - <<'PY'
+import json
+from pathlib import Path
+manifest = json.loads(Path('scripts/config/approved-public-assets.json').read_text(encoding='utf-8'))
+print(manifest['approved_logo']['public_reference'])
+PY
+)"
 MATCHES=(
-  "catalog-data.js?v=20260711-commercial-overhaul"
-  "data-samples=\"all\""
-  "brand-global.js?v=20260713-logo2"
+  "$LOGO_REFERENCE"
+  "Six solution tracks. One connected workflow."
+  "id=\"examples\""
 )
 CUSTOM_MATCHES="false"
 
@@ -23,6 +30,7 @@ Options:
   --help                 Show this help text
 
 If one or more --match options are provided, default markers are replaced.
+The default approved-logo marker is read from scripts/config/approved-public-assets.json.
 EOF
 }
 

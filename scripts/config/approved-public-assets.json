@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "approved_logo": {
+    "description": "Exact owner-approved Highway 38 Solutions mountain-and-road badge",
+    "path": "assets/highway38-logo.png",
+    "git_blob_sha": "0cbc4514e645dfb25c12ee393b3633a145ebeb2a",
+    "cache_key": "20260720-exact-0cbc4514",
+    "public_reference": "assets/highway38-logo.png?v=20260720-exact-0cbc4514",
+    "alt_text": "Highway 38 Solutions",
+    "visible_text_fallback": "Highway 38 Solutions",
+    "allow_image_substitute": false,
+    "approved_release_commit": "9679b4b83b2685a67f48295d22346b83702da154"
+  },
+  "approved_public_image_directory": "assets/approved-website-images/",
+  "shared_public_css": "assets/css/h38-site-v2.css",
+  "shared_public_js": "assets/js/h38-site-v2.js",
+  "business_office_config": "business-packs/highway38/business-office.config.json",
+  "production_branch": "main",
+  "production_url": "https://rkrueth-maker.github.io/highway-38-solutions/",
+  "forbidden_logo_substitutes": [
+    "assets/command-center/cc-42.webp"
+  ]
+}

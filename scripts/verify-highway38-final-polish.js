@@ -31,6 +31,8 @@ const businessWeb = read('apps-script/business-office/BusinessOffice_Web.gs');
 const businessGate = read('apps-script/business-office/BusinessOffice_ModuleAccess.gs');
 const dashboard = read('apps-script/business-office/BusinessOffice_Dashboard.gs');
 const businessOfficeConfig = JSON.parse(read('business-packs/highway38/business-office.config.json'));
+const approvedAssets = JSON.parse(read('scripts/config/approved-public-assets.json'));
+const approvedLogoUrl = approvedAssets.production_url.replace(/\/$/, '') + '/' + approvedAssets.approved_logo.public_reference;
 const urlPlan = read('docs/verification/HIGHWAY38_FINAL_URLS.md');
 const legacyPlan = read('docs/verification/HIGHWAY38_LEGACY_PORTAL_INVENTORY.md');
 
@@ -87,7 +89,7 @@ for (const [name, ui] of [['Highway 38 Business Office', businessUi], ['shared B
   check(`${name} keeps financial and tax boundary`, ui.includes('does not move money, fund payroll, file returns, or provide tax advice'));
 }
 check('Highway 38 Business Office is aligned with shared UI', businessUi === sharedUi);
-check('Highway 38 Business Office uses approved logo URL', businessOfficeConfig.branding.logoUrl === 'https://rkrueth-maker.github.io/highway-38-solutions/assets/highway38-logo.png?v=20260713-logo2', businessOfficeConfig.branding.logoUrl || 'blank');
+check('Highway 38 Business Office uses manifest-controlled approved logo URL', businessOfficeConfig.branding.logoUrl === approvedLogoUrl, businessOfficeConfig.branding.logoUrl || 'blank');
 check('Highway 38 Business Office colors remain approved', businessOfficeConfig.branding.primaryColor === '#173a5e' && businessOfficeConfig.branding.secondaryColor === '#326a9e');
 check('Highway 38 package is configured as one complete app', businessOfficeConfig.package && businessOfficeConfig.package.singleApp === true && businessOfficeConfig.package.id === 'complete-business-system');
 

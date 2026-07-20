@@ -5,6 +5,8 @@ on:
     paths:
       - "*.html"
       - "assets/**"
+      - "business-packs/highway38/business-office.config.json"
+      - "scripts/config/approved-public-assets.json"
       - "scripts/verify-public-images.py"
       - ".github/workflows/public-image-verify.yml"
   push:
@@ -12,6 +14,8 @@ on:
     paths:
       - "*.html"
       - "assets/**"
+      - "business-packs/highway38/business-office.config.json"
+      - "scripts/config/approved-public-assets.json"
       - "scripts/verify-public-images.py"
       - ".github/workflows/public-image-verify.yml"
 
