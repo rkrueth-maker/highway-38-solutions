@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       script_id:
-        description: Existing dedicated NLPS Apps Script project ID; blank uses the recorded runtime ID
+        description: Existing dedicated NLPS Apps Script project ID; blank uses the recorded runtime ID or exact project-title recovery
         required: false
         type: string
       deployment_id:
@@ -22,7 +22,7 @@ on:
       - 'businesses/northern-lakes/deploy-trigger.txt'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: northern-lakes-business-office-production
@@ -54,7 +54,7 @@ jobs:
           else echo 'HOLD — CLASPRC_JSON or CLASPRC_JSON_B64 is required.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
-          clasp show-authorized-user --json
+          clasp show-authorized-user --json >/dev/null
       - name: Assemble isolated Northern Lakes source
         shell: bash
         run: |
@@ -80,6 +80,12 @@ jobs:
           fi
           SCRIPT_ID="${INPUT_SCRIPT_ID:-$RUNTIME_SCRIPT_ID}"
           DEPLOYMENT_ID="${INPUT_DEPLOYMENT_ID:-$RUNTIME_DEPLOYMENT_ID}"
+          if [[ -z "$SCRIPT_ID" ]]; then
+            SCRIPT_LIST="$(clasp list-scripts)"
+            PROJECT_LINE="$(printf '%s\n' "$SCRIPT_LIST" | grep -F 'Northern Lakes Business Office' | head -1 || true)"
+            SCRIPT_ID="$(printf '%s\n' "$PROJECT_LINE" | grep -oE '[A-Za-z0-9_-]{40,}' | head -1 || true)"
+            if [[ -n "$SCRIPT_ID" ]]; then echo 'Recovered the existing dedicated Northern Lakes Apps Script project by exact title.'; fi
+          fi
           FIRST_INSTALL=false
           if [[ -z "$SCRIPT_ID" || -z "$DEPLOYMENT_ID" ]]; then
             if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_ALLOW_FIRST_INSTALL" == "true" ]]; then
@@ -87,7 +93,7 @@ jobs:
             elif grep -q '^ALLOW_FIRST_INSTALL=TRUE$' businesses/northern-lakes/deploy-trigger.txt; then
               FIRST_INSTALL=true
             else
-              echo 'HOLD — no recorded NLPS project/deployment IDs. First installation was not explicitly authorized.'
+              echo 'HOLD — no complete recorded NLPS deployment target. First installation was not explicitly authorized.'
               exit 78
             fi
           fi
@@ -163,7 +169,21 @@ jobs:
             "openAiKeyAvailableToWorkflow": ${{ env.OPENAI_API_KEY != '' }}
           }
           EOF
+          cp artifacts/northern-lakes-business-office/deployment.json businesses/northern-lakes/app-deployment.json
           cat artifacts/northern-lakes-business-office/deployment.json
+      - name: Publish verified runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add businesses/northern-lakes/app-deployment.json
+          if git diff --cached --quiet; then
+            echo 'Runtime contract already current.'
+          else
+            git commit -m 'Record verified Northern Lakes deployment runtime'
+            git push origin HEAD:main
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
