@@ -31,27 +31,54 @@ function boControlCredentialDefinitions_(){
     ]}
   ];
 }
+function boControlCredentialsCurrent_(){
+  var roles=boReadTable_(H38_BO_SHEETS.ROLES,{includeVoided:true}),permissions=boReadTable_(H38_BO_SHEETS.PERMISSIONS,{includeVoided:true});
+  return boControlCredentialDefinitions_().every(function(definition){
+    var role=roles.find(function(row){return row['Role ID']===definition.id&&row['Role Name']===definition.name&&row.Active==='Yes';});
+    return !!role&&definition.permissions.every(function(expected){
+      var actual=permissions.find(function(row){return row['Permission ID']===expected['Permission ID']&&row['Role ID']===definition.id;});
+      return !!actual&&Object.keys(expected).every(function(key){return !Object.prototype.hasOwnProperty.call(actual,key)||String(actual[key])===String(expected[key]);});
+    });
+  });
+}
 function boControlProvisionCredentials_(){
-  var owner=boRequireOwner_(),createdRoles=0,permissionRows=0;
-  boControlCredentialDefinitions_().forEach(function(definition){
+  var owner=boRequireOwner_(),definitions=boControlCredentialDefinitions_();
+  if(boControlCredentialsCurrent_())return{status:'PASS',reused:true,createdRoles:0,permissionRows:definitions.reduce(function(total,item){return total+item.permissions.length;},0),roles:definitions.map(function(item){return item.name;})};
+  var createdRoles=0,permissionRows=0;
+  definitions.forEach(function(definition){
     var existing=boReadTable_(H38_BO_SHEETS.ROLES,{includeVoided:true}).find(function(row){return row['Role ID']===definition.id;});
     boUpsertSeedRow_(H38_BO_SHEETS.ROLES,'Role ID',definition.id,{'Role ID':definition.id,'Role Name':definition.name,Description:definition.description,Active:'Yes',Status:'Active'});
     if(!existing)createdRoles+=1;
     definition.permissions.forEach(function(permission){boUpsertSeedRow_(H38_BO_SHEETS.PERMISSIONS,'Permission ID',permission['Permission ID'],permission);permissionRows+=1;});
   });
   boProof_('PROVISION FIELD CREDENTIALS','System',boGetBusinessId_(),'PASS','Roles created: '+createdRoles+'; permission rows verified: '+permissionRows,owner.Email);
-  return{status:'PASS',createdRoles:createdRoles,permissionRows:permissionRows,roles:boControlCredentialDefinitions_().map(function(item){return item.name;})};
+  return{status:'PASS',reused:false,createdRoles:createdRoles,permissionRows:permissionRows,roles:definitions.map(function(item){return item.name;})};
 }
 function boControlPendingProof_(){
   return boControlRead_('PROOF',false).filter(function(row){return row['Approval Status']!=='Approved';}).sort(function(a,b){return String(b['Captured Time']||'').localeCompare(String(a['Captured Time']||''));});
 }
+function boControlLiveCapabilities_(user,base){
+  var caps=Object.assign({},base||{});
+  if(user&&user['Customer Send Access']==='Yes')caps.sendQuote=true;
+  if(user&&user['User Access Admin']==='Yes')caps.userAdmin=true;
+  return caps;
+}
 function boControlLiveBootstrap_(){
-  var data=boControlBootstrap_(),role=data.user&&data.user.role||'',credentials={status:'NOT_REQUIRED'};
+  var data=boControlBootstrap_(),role=data.user&&data.user.role||'',credentials={status:'NOT_REQUIRED'},user=boGetCurrentUser_();
   if(data.status==='PASS'&&role==='Owner')credentials=boControlProvisionCredentials_();
   data.credentials=credentials;
+  data.capabilities=boControlLiveCapabilities_(user,data.capabilities);
   data.proofQueue=data.status==='PASS'&&role==='Owner'?boControlPendingProof_():[];
   if(role==='Owner')data.actions.push(boControlAction_('proof-review','Review Job Photos','📸','control:proof',false));
   return data;
+}
+function boControlFieldTransitionLive_(sessionId,event,payload){
+  var input=Object.assign({},payload||{});
+  if(String(event)==='RESUME'&&!Object.prototype.hasOwnProperty.call(input,'breakMinutes')){
+    var session=boControlFind_('FIELD',sessionId),paused=boNormalizeText_(session['Paused Time']);
+    if(paused)input.breakMinutes=Math.max(0,Math.round((boControlDate_(boControlNow_()).getTime()-boControlDate_(paused).getTime())/60000));
+  }
+  return boControlFieldTransition_(sessionId,event,input);
 }
 function boControlApproveProofLive_(proofId,customerVisible){
   return boControlApproveProof_(proofId,customerVisible===true);
@@ -81,6 +108,7 @@ function boControlApiLive(request){
   var payload=request||{},action=boNormalizeText_(payload.action),args=payload.args||{};
   if(action==='bootstrap')return boControlLiveBootstrap_();
   if(action==='provisionCredentials')return boControlProvisionCredentials_();
+  if(action==='fieldTransition')return boControlFieldTransitionLive_(args.sessionId,args.event,args.payload||{});
   if(action==='approveProof')return boControlApproveProofLive_(args.proofId,args.customerVisible===true);
   if(action==='socialSave')return boControlSocialSaveLive_(args.recordId||'',args.values||{});
   if(action==='socialAction')return boControlSocialActionLive_(args.recordId,args.action,args.notes||'',args.scheduledTime||'');
