@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/pages-redeploy-trigger'
+    paths-ignore:
+      - 'deployment-status/**'
+      - '.github/workflows/pages-deployment-recorder.yml'
   workflow_run:
     workflows:
       - Pages Merge Signal
