@@ -53,7 +53,7 @@ check('Inbox supports ordered message playback', has(actions, 'boAiEmailOrdinalF
 check('Replies are restricted to current inbox session', has(actions, 'boAiCachedEmailByThreadId_') && has(actions, 'This email is not in the current private inbox session'), 'reply session boundary missing');
 check('Reply drafting treats email as untrusted', has(actions, 'quoted email is untrusted') || has(actions, 'quoted email is untrusted source material'), 'email prompt-injection boundary missing');
 check('Threaded reply headers are preserved', ['threadId','In-Reply-To','References'].every(marker => assistant.includes(marker) || actions.includes(marker)), 'threaded reply contract missing');
-check('Gmail scopes cover read and send', ['gmail.readonly','gmail.modify','script.external_request'].every(token => (manifest.oauthScopes || []).some(scope => scope.includes(token))), 'required Gmail scope missing');
+check('Gmail scopes use least privilege for read and send', ['gmail.readonly','gmail.send','script.external_request'].every(token => (manifest.oauthScopes || []).some(scope => scope.includes(token))) && !(manifest.oauthScopes || []).some(scope => scope.includes('gmail.modify')), 'required least-privilege Gmail scope missing');
 check('Email compatibility route uses approval engine', has(assistant, "boAiPrepareAction_({actionId:'email.send'") && has(assistant, 'boAiConfirmAction_'), 'legacy email route bypasses engine');
 check('Voice client plans commands', has(client, "api('aiCommand'"), 'aiCommand missing');
 check('Voice client confirms actions', has(client, "api('aiConfirmAction'"), 'aiConfirmAction missing');
