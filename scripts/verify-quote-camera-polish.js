@@ -14,6 +14,7 @@ const web=read('apps-script/business-office/BusinessOffice_Web.gs');
 const gate=read('apps-script/business-office/BusinessOffice_ModuleAccess.gs');
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
 const cameraUi=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Camera_Polish.html');
+const aiVisual=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Visual_Client.html');
 const voicePhoto=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Voice_Photo_Quick.html');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalRaw=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
@@ -57,6 +58,13 @@ need(cameraUi,'Promise.all(group.map','bounded parallel photo saves');
 need(cameraUi,'qb-mobile-capture','mobile capture control');
 reject(cameraUi,'Upload Picture','manual upload button wording');
 
+need(aiVisual,"const observerHost=document.getElementById('qbContent')||document.body",'Quote Builder observer scoped to changing workspace');
+need(aiVisual,'new MutationObserver(scheduleRefresh).observe(observerHost','scheduled idempotent visual refresh');
+need(aiVisual,"if(dialogFile&&dialogFile.textContent!=='Upload Existing Photo')",'camera label mutation guard');
+need(aiVisual,'if(refreshQueued)return','refresh coalescing');
+reject(aiVisual,'new MutationObserver(refresh).observe(document.documentElement','document-wide mutation feedback loop');
+reject(aiVisual,"dialogFile.textContent='Upload Existing Photo';dialogFile.onclick=",'repeated camera button rewrite and duplicate click binding');
+
 need(voicePhoto,'SpeechRecognition||window.webkitSpeechRecognition','browser speech-recognition support');
 need(voicePhoto,"call('prepareAiQuoteDraft'",'voice and picture AI draft staging');
 need(voicePhoto,'window.qbAddLine','Price Book suggestions applied to draft quote');
@@ -66,8 +74,8 @@ need(voicePhoto,'window.qbCameraTakeForDraft','quick trigger starts the proven c
 need(voicePhoto,'Talk + Pictures Quote','visible voice and picture assistant');
 need(voicePhoto,'Nothing was approved or sent.','external-action safety language');
 need(voicePhoto,"params.get('view')!=='quick'",'quick-launch route handling');
-reject(voicePhoto,"call('send",'automatic customer send');
-reject(voicePhoto,"call('approve",'automatic quote approval');
+reject(voicePhoto,"call('send'",'automatic customer send');
+reject(voicePhoto,"call('approve'",'automatic quote approval');
 
 need(portalIndex,"h38PortalRawInclude_('Portal_QuoteBuilder_QuickCapture_Client')",'Business Office quick-trigger include');
 need(portalRaw,"'Portal_QuoteBuilder_QuickCapture_Client'",'quick-trigger raw include allowlist');
@@ -83,8 +91,9 @@ need(sampleCss,'.sample-filter-shell','sample filter polish');
 need(sampleJs,"aria-expanded",'accessible bundle disclosure state');
 
 scripts(cameraUi).forEach(body=>new Function(body));
+scripts(aiVisual).forEach(body=>new Function(body));
 scripts(voicePhoto).forEach(body=>new Function(body));
 new Function(portalQuick);
 new Function(accordion);
 new Function(sampleJs);
-console.log('PASS — Chromebook camera, one-tap Business Office quick quote, speech capture, picture-assisted Price Book staging, internal-draft controls, private quote attachment, mobile capture, app polish, and Sample Library polish verified.');
+console.log('PASS — Chromebook camera, mutation-loop prevention, one-tap Business Office quick quote, speech capture, picture-assisted Price Book staging, internal-draft controls, private quote attachment, mobile capture, app polish, and Sample Library polish verified.');
