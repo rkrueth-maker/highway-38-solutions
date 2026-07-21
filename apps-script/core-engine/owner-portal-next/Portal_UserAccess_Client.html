@@ -1,0 +1,47 @@
+var H38_USER_ACCESS_MANAGER=null;
+
+function h38UserAccessById(userId){return uxRows(H38_USER_ACCESS_MANAGER&&H38_USER_ACCESS_MANAGER.users).filter(function(user){return user.id===userId;})[0]||null;}
+function h38UserAccessRoleById(roleId){return uxRows(H38_USER_ACCESS_MANAGER&&H38_USER_ACCESS_MANAGER.roles).filter(function(role){return role.id===roleId;})[0]||null;}
+function h38UserAccessCapabilityPills(user){
+  var access=[['Payroll',user.payrollAccess],['Tax',user.taxAccess],['Posting',user.postingAccess],['Customer send',user.customerSendAccess],['Export',user.exportAccess],['User admin',user.userAdminAccess]];
+  return access.map(function(item){return '<span class="pill '+(item[1]==='Yes'?'green':'gray')+'">'+esc(item[0])+': '+esc(item[1]||'No')+'</span>';}).join('');
+}
+function h38UserAccessCard(user){
+  var canManage=H38_USER_ACCESS_MANAGER&&H38_USER_ACCESS_MANAGER.canManage;
+  return '<article class="user-card h38-user-card"><div class="h38-user-card-head"><div><h3>'+esc(user.displayName||user.email)+'</h3><p class="muted">'+esc(user.email)+'</p></div>'+(canManage?'<button class="btn" type="button" onclick="h38OpenUserAccessForm(\''+attr(user.id)+'\')">Edit user</button>':'')+'</div><div class="toolbar">'+statusPill(user.status)+' '+statusPill(user.role)+'</div><div class="access-pills">'+h38UserAccessCapabilityPills(user)+'</div>'+(user.isOwner?'<p class="h38-user-note">The signed-in Owner account cannot be deactivated or reassigned.</p>':'')+'</article>';
+}
+async function h38RenderUserAccess(){
+  H38_USER_ACCESS_MANAGER=await call('h38PortalUserAccessManagerSnapshot');
+  var users=uxRows(H38_USER_ACCESS_MANAGER.users),canManage=H38_USER_ACCESS_MANAGER.canManage;
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="ux-eyebrow">Roles and permissions</div><h1>User Access</h1><div class="muted">Add Google accounts, assign Foreman or Employee access, change roles, and activate or deactivate accounts.</div></div><div class="toolbar"><span class="pill blue">'+users.length+' users</span>'+(canManage?'<button class="btn primary" type="button" onclick="h38OpenUserAccessForm(\'\')">Add User</button>':'')+'</div></div><section class="ux-section h38-user-guidance"><h2>How access works</h2><p>'+esc(H38_USER_ACCESS_MANAGER.guidance||'Use the exact Google account email the person will sign in with.')+'</p><p class="muted">Role changes affect the next authenticated session. No invitation email, customer message, payment, payroll action, or external action occurs here.</p></section><div class="user-grid h38-user-grid">'+(users.length?users.map(h38UserAccessCard).join(''):h38InstructionalEmpty('No users are configured.','Add the first authorized Google account and assign a role.','',''))+'</div>';
+}
+function h38CloseUserAccessForm(){var modal=document.getElementById('h38UserAccessModal');if(modal)modal.remove();}
+function h38UserRoleOptions(selectedRoleId,editingOwner){
+  return uxRows(H38_USER_ACCESS_MANAGER&&H38_USER_ACCESS_MANAGER.roles).filter(function(role){return role.name!=='Customer'&&(role.name!=='Owner'||editingOwner);}).map(function(role){return '<option value="'+attr(role.id)+'" '+(role.id===selectedRoleId?'selected':'')+'>'+esc(role.name)+(role.description?' — '+esc(role.description):'')+'</option>';}).join('');
+}
+function h38OpenUserAccessForm(userId){
+  if(!(H38_USER_ACCESS_MANAGER&&H38_USER_ACCESS_MANAGER.canManage)){notice('Owner approval is required to change user access.','hold');return;}
+  h38CloseUserAccessForm();
+  var user=userId?h38UserAccessById(userId):null,editingOwner=!!(user&&user.isOwner),defaultRole=uxRows(H38_USER_ACCESS_MANAGER.roles).filter(function(role){return role.name==='Employee';})[0]||uxRows(H38_USER_ACCESS_MANAGER.roles)[0]||{};
+  var modal=document.createElement('div');modal.id='h38UserAccessModal';modal.className='modal open';modal.style.display='flex';modal.onclick=function(event){if(event.target===modal)h38CloseUserAccessForm();};
+  modal.innerHTML='<div class="modal-panel h38-user-modal"><div class="workspace-head"><div><h2>'+(user?'Edit user':'Add user')+'</h2><div class="muted">Authorize one exact Google account and assign its operating role.</div></div><button class="btn" type="button" onclick="h38CloseUserAccessForm()">Close</button></div><form id="h38UserAccessForm" onsubmit="h38SaveUserAccess(event)"><input id="h38UserId" type="hidden" value="'+attr(user&&user.id||'')+'"><div class="form-grid"><label><span>Display name *</span><input id="h38UserDisplayName" required maxlength="120" value="'+attr(user&&user.displayName||'')+'" placeholder="Jamie Foreman"></label><label><span>Google account email *</span><input id="h38UserEmail" type="email" required value="'+attr(user&&user.email||'')+'" '+(editingOwner?'readonly':'')+' placeholder="name@company.com"></label><label><span>Role *</span><select id="h38UserRole" required '+(editingOwner?'disabled':'')+'>'+h38UserRoleOptions(user&&user.roleId||defaultRole.id,editingOwner)+'</select></label><label><span>Account status *</span><select id="h38UserStatus" '+(editingOwner?'disabled':'')+'><option value="Active" '+(!user||user.status==='Active'?'selected':'')+'>Active</option><option value="Inactive" '+(user&&user.status==='Inactive'?'selected':'')+'>Inactive</option></select></label></div><section class="h38-role-explainer"><b>Role boundary</b><p id="h38RoleExplanation" class="muted"></p></section><div class="toolbar"><button class="btn primary" type="submit">Save Role Assignment</button><button class="btn" type="button" onclick="h38CloseUserAccessForm()">Cancel</button></div></form></div>';
+  document.body.appendChild(modal);
+  document.getElementById('h38UserRole').addEventListener('change',h38UpdateUserRoleExplanation);
+  h38UpdateUserRoleExplanation();
+  document.getElementById('h38UserDisplayName').focus();
+}
+function h38UpdateUserRoleExplanation(){
+  var select=document.getElementById('h38UserRole'),target=document.getElementById('h38RoleExplanation');if(!select||!target)return;
+  var role=h38UserAccessRoleById(select.value),name=role&&role.name||'';
+  var copy={Foreman:'Can coordinate assigned field work, crews, jobs, time, photos, receipts, and equipment. Financial and customer-impacting actions remain owner controlled.',Employee:'Can see assigned work, job instructions, time, photos, receipts, and equipment. No customer, invoice, payment, accounting, payroll, tax, or user-administration access.',Administrator:'Broad operating access. Restricted financial capabilities remain separately controlled.',Bookkeeper:'Accounting preparation and exports; no payroll funding, tax filing, or direct payment execution.',Payroll:'Payroll preparation and controlled export access; no funding or tax filing.',Viewer:'Read-only access to permitted business records.',Staff:'General office and work access without owner-only controls.',Estimator:'Quote and estimating work without pricing release or financial execution.','Field Staff':'Legacy field access equivalent to an employee workspace.'};
+  target.textContent=copy[name]||role&&role.description||'This role uses the installed permission table and remains subject to owner approval boundaries.';
+}
+async function h38SaveUserAccess(event){
+  event.preventDefault();var button=event.submitter;if(button)button.disabled=true;
+  var roleSelect=document.getElementById('h38UserRole'),statusSelect=document.getElementById('h38UserStatus');
+  var payload={userId:document.getElementById('h38UserId').value,displayName:document.getElementById('h38UserDisplayName').value,email:document.getElementById('h38UserEmail').value,roleId:roleSelect.value,status:statusSelect.value};
+  var role=h38UserAccessRoleById(payload.roleId),exact=(payload.userId?'Update':'Add')+' '+payload.email+' as '+(role&&role.name||'the selected role')+' with '+payload.status+' status?\n\nThis changes application access only. It does not send an invitation or perform an external business action.';
+  if(!confirm(exact)){if(button)button.disabled=false;return;}
+  try{H38_USER_ACCESS_MANAGER=await call('h38PortalUserAccessSave',[payload]);h38CloseUserAccessForm();notice(esc(H38_USER_ACCESS_MANAGER.message||'User access saved.'),'ok');await h38RenderUserAccess();}
+  catch(error){ownerSafeFailure(error,'User access was not changed.');if(button)button.disabled=false;}
+}
