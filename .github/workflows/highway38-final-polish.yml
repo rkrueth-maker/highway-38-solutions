@@ -37,6 +37,8 @@ jobs:
         run: node scripts/verify-user-access-role-setup.js
       - name: Verify owner role preview
         run: node scripts/verify-owner-role-preview.js
+      - name: Verify single Apps Script version deployment
+        run: node scripts/verify-single-apps-script-version-deployment.js
       - name: Verify Business Office separation
         run: node scripts/verify-business-office-separation.js
       - name: Verify integrated backend
