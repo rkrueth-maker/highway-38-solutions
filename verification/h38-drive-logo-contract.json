@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "source": "Google Drive",
+  "driveFileId": "1tJZtDEl60NGrUFaOwrMvPzONeVZn2r3V",
+  "driveFileName": "Highway 38 Solutions — Approved Original Badge.webp",
+  "mimeType": "image/webp",
+  "sourceBytes": 8854,
+  "sha256": "cf2c8764b9ec118829b85d14bf4e877da786633cda32b8ef9c808f4b4d2eaa33",
+  "runtime": "embedded data URI in BusinessOffice_Logo_Client.html",
+  "altText": "Highway 38 Solutions",
+  "scope": "Highway 38 Business Office header",
+  "externalNetworkRequired": false
+}
