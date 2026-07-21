@@ -55,7 +55,7 @@ check('owner home exposes AI quote and decision actions', ['Ask H38 AI','Quick q
 check('owner home has a premium command-center hero', /h38-owner-hero/.test(ownerHome) && /Owner access/.test(ownerHome) && /External actions/.test(ownerHome) && /Make decisions, answer customers/.test(ownerHome));
 check('approved logo is presented at readable sidebar size', /#h38PortalLogo\{width:188px!important;height:141px!important/.test(ownerHomeStyles) && /\.side \.brand:before\{display:none!important\}/.test(ownerHomeStyles));
 check('technical release string is hidden from the visible brand', /release\.textContent='Owner Portal'/.test(ownerHome) && /release\.dataset\.fullRelease/.test(ownerHome));
-check('owner brand remains responsive on smaller screens', /width:98px!important;height:74px!important/.test(ownerHomeStyles) && /@media\(max-width:900px\)/.test(ownerHomeStyles));
+check('owner brand remains responsive on smaller screens', /width:98px!important;height:74px!important/.test(ownerHomeStyles) && /@media\(max-width:850px\)/.test(ownerHomeStyles));
 
 check('command launcher supports keyboard and grouped record search', /Ctrl K/.test(coreClient) && /event\.key\.toLowerCase\(\)===['"]k['"]/.test(coreClient) && /h38PortalBusinessSearch/.test(coreClient) && /Search customers, jobs, invoices, files, tasks/.test(coreClient));
 check('mobile daily navigation is installed', /mobile-bottom-nav/.test(styles) && ['Today','Search','Add','Approvals','More'].every(text => coreClient.includes(`>${text}<`)));
