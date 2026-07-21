@@ -16,7 +16,7 @@ check('existing deployed version is pulled for exact comparison',source.includes
 check('deployed version uses controlled-source inventory',source.includes('controlled-source-deployed-version.json')&&source.includes('inventories_match "$EVIDENCE/controlled-source-local.json" "$EVIDENCE/controlled-source-deployed-version.json"'));
 check('one release version variable controls both deployments',source.includes('DEPLOY_VERSION=')&&source.includes('--versionNumber "$DEPLOY_VERSION"'));
 check('version is created at most once in the script',(source.match(/clasp create-version/g)||[]).length===1,`count=${(source.match(/clasp create-version/g)||[]).length}`);
-const updates=[...source.matchAll(/clasp update-deployment[^\n]+/g)].map(match=>match[0]);
+const updates=[...source.matchAll(/clasp update-deployment\s+"\$(?:OWNER_DEPLOYMENT_ID|BUSINESS_OFFICE_DEPLOYMENT_ID)"\s+--versionNumber\s+"\$DEPLOY_VERSION"/g)].map(match=>match[0]);
 check('exactly two existing deployments are updated',updates.length===2,`count=${updates.length}`);
 check('both deployment updates pin the same version',updates.length===2&&updates.every(line=>line.includes('--versionNumber "$DEPLOY_VERSION"')),updates.join(' | '));
 check('both deployed lines are verified against the selected version',source.includes('OWNER_AFTER_LINE')&&source.includes('BUSINESS_AFTER_LINE')&&(source.match(/grep -F "@\$DEPLOY_VERSION"/g)||[]).length===2);
