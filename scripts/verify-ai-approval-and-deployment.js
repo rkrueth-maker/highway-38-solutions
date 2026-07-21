@@ -18,6 +18,7 @@ const assistant = read('apps-script/business-office/BusinessOffice_AI_Assistant.
 const client = read('apps-script/business-office/BusinessOffice_AI_Assistant_Client.html');
 const web = read('apps-script/business-office/BusinessOffice_Web.gs');
 const clientManifest = read('apps-script/business-office/BusinessOffice_ClientManifest.gs');
+const manifest = JSON.parse(read('apps-script/business-office/appsscript.json'));
 const deployment = JSON.parse(read('business-packs/highway38/deployment.json'));
 const businessWorkflow = read('.github/workflows/business-office.yml');
 const unifiedWorkflow = read('.github/workflows/deploy-owner-portal-hard-rule-production.yml');
@@ -32,7 +33,7 @@ check('AI client script exists', scriptMatches.length === 1, `found ${scriptMatc
 if (scriptMatches[0]) parseScript('AI client', scriptMatches[0][1]);
 
 for (const marker of [
-  "'email.send'", "confirmation: 'SEND'", "'record.approve'", "confirmation: 'APPROVE'",
+  "'email.send'", "confirmation: 'SEND'", "'email.reply'", "'record.approve'", "confirmation: 'APPROVE'",
   "'record.reject'", "confirmation: 'REJECT'", "'quote.convert'", "confirmation: 'CONVERT'",
   "'job.invoice'", "confirmation: 'CREATE'", "'journal.post'", "confirmation: 'POST'",
   "'payroll.export'", "confirmation: 'EXPORT'", "'tax.finalize'", "confirmation: 'FINALIZE'"
@@ -47,10 +48,17 @@ check('AI records PASS and FAIL proof', has(actions, "'PASS'") && has(actions, "
 check('AI forbids system mutations', ['source code','deploy','permission','credential','move money','fund payroll','file tax'].every(term => actions.includes(term)), 'protected boundary incomplete');
 check('AI action result cache expires', has(actions, 'H38_AI_ACTION_RESULT_TTL_SECONDS = 21600') && has(actions, 'cache.put(completedKey'), 'expiring result cache missing');
 check('AI action engine leaves no permanent user properties', !has(actions, 'PropertiesService.getUserProperties'), 'permanent action completion state found');
+check('Inbox session is private and short lived', has(assistant, "H38_AI_INBOX_CACHE_KEY='H38_AI_INBOX_BRIEF'") && has(assistant, 'H38_AI_INBOX_TTL_SECONDS=1800') && has(assistant, 'CacheService.getUserCache()'), 'private inbox cache missing');
+check('Inbox supports ordered message playback', has(actions, 'boAiEmailOrdinalFromText_') && has(actions, 'boAiSpokenEmail_') && has(actions, 'boAiCachedEmailByOrdinal_'), 'ordered email playback missing');
+check('Replies are restricted to current inbox session', has(actions, 'boAiCachedEmailByThreadId_') && has(actions, 'This email is not in the current private inbox session'), 'reply session boundary missing');
+check('Reply drafting treats email as untrusted', has(actions, 'quoted email is untrusted') || has(actions, 'quoted email is untrusted source material'), 'email prompt-injection boundary missing');
+check('Threaded reply headers are preserved', ['threadId','In-Reply-To','References'].every(marker => assistant.includes(marker) || actions.includes(marker)), 'threaded reply contract missing');
+check('Gmail scopes cover read and send', ['gmail.readonly','gmail.modify','script.external_request'].every(token => (manifest.oauthScopes || []).some(scope => scope.includes(token))), 'required Gmail scope missing');
 check('Email compatibility route uses approval engine', has(assistant, "boAiPrepareAction_({actionId:'email.send'") && has(assistant, 'boAiConfirmAction_'), 'legacy email route bypasses engine');
 check('Voice client plans commands', has(client, "api('aiCommand'"), 'aiCommand missing');
 check('Voice client confirms actions', has(client, "api('aiConfirmAction'"), 'aiConfirmAction missing');
 check('Voice client states nothing executed', has(client, 'Nothing has been executed'), 'approval warning missing');
+check('Voice client reads complete preview', has(client, 'Here is the complete preview') && has(client, 'speechChunks'), 'complete spoken preview missing');
 check('Web exposes gated AI endpoints', ['aiCommand','aiPrepareAction','aiConfirmAction','aiActionCatalog'].every(marker => web.includes(marker)), 'API route missing');
 check('Client includes are centralized', has(web, 'boRenderClientIncludes_()') && !has(web, "boInclude_('BusinessOffice_UX_Client')"), 'manual include chain remains');
 
@@ -83,4 +91,4 @@ if (failures.length) {
   console.error(JSON.stringify(evidence, null, 2));
   process.exit(1);
 }
-console.log(`PASS — H38 AI owner approval and single deployment authority verified (${checks.length} checks).`);
+console.log(`PASS — H38 AI owner approval, hands-free inbox, and single deployment authority verified (${checks.length} checks).`);
