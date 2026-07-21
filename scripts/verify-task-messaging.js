@@ -100,7 +100,8 @@ check('combined shell routes Business Office and Quote Builder', shellSource.inc
 check('Quote Builder owns the quote capability when installed', shellSource.includes("modules.quoteBuilder===true && modules.quotes!==false ? 'quoteBuilder' : 'legacyQuotes'") && shellSource.includes('disabledLegacyCapabilities'));
 check('deterministic builder removes duplicate entry and legacy auth bridge', builderSource.includes('h38PortalStandaloneDoGet_') && builderSource.includes('boBusinessOfficeStandaloneDoGet_') && builderSource.includes('fs.unlinkSync(legacyPortalBridge)') && builderSource.includes('entryPoints.length !== 1'));
 check('existing Apps Script deployments updated with clasp 3', deploySource.includes('clasp update-deployment "$OWNER_DEPLOYMENT_ID"') && deploySource.includes('clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID"'));
-check('no replacement project or URL', !deploySource.includes('clasp create') && deploySource.includes('updatedExistingDeployments') && deploySource.includes('createdNewProject') && deploySource.includes('createdNewDeployment'));
+const createVersionCount=(deploySource.match(/clasp create-version/g)||[]).length;
+check('no replacement project or URL', !/clasp\s+(?:create-script|create-deployment)\b/.test(deploySource) && createVersionCount===1 && deploySource.includes('updatedExistingDeployments') && deploySource.includes('createdNewProject') && deploySource.includes('createdNewDeployment'));
 check('deployment builds and remotely verifies unified shell', deploySource.includes('build-unified-apps-script-shell.js') && deploySource.includes('REMOTE_SHELL') && deploySource.includes('Remote project must contain one unified doGet'));
 check('deployment blocks known authentication regressions', deploySource.includes('boGetCurrentUser_ is not defined') && deploySource.includes('boNormalizeText_ is not defined'));
 
