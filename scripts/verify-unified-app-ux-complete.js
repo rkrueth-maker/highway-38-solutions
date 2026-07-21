@@ -15,6 +15,12 @@ const parses = (name, code) => {
   try { new Function(code); check(`${name} parses`, true); }
   catch (error) { check(`${name} parses`, false, error.message); }
 };
+const between = (source, start, end) => {
+  const from = source.indexOf(start);
+  if (from < 0) return '';
+  const to = end ? source.indexOf(end, from + start.length) : -1;
+  return source.slice(from, to < 0 ? source.length : to);
+};
 
 const index = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const raw = read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
@@ -32,16 +38,26 @@ const safeClient = read('apps-script/core-engine/owner-portal-next/Portal_Applic
 const styles = read('apps-script/core-engine/owner-portal-next/Portal_Application_UX_Styles.html');
 const ownerHome = read('apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html');
 const ownerHomeStyles = read('apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html');
+const fieldRoles = read('apps-script/core-engine/owner-portal-next/Portal_Field_Roles.js');
+const fieldClient = read('apps-script/core-engine/owner-portal-next/Portal_Field_Roles_Client.html');
+const credentials = read('apps-script/business-office/BusinessOffice_ControlPlane_25_LiveReadiness.gs');
+const config = read('apps-script/business-office/BusinessOffice_Config.gs');
+const platformConfig = read('packages/business-office-core/apps-script/BusinessOffice_Config.gs');
+const platformCredentials = read('packages/business-office-control-plane/apps-script/BusinessOffice_ControlLive.gs');
+const foremanCredential = between(credentials,"{id:'ROLE-FOREMAN'","{id:'ROLE-ESTIMATOR'");
+const employeeCredential = between(credentials,"{id:'ROLE-EMPLOYEE'","{id:'ROLE-FIELD'");
 
 const fragments = [
   'Portal_Application_UX_Styles',
   'Portal_Application_Client_Views',
   'Portal_Application_Client_Business',
   'Portal_Application_Client_SafeActions',
-  'Portal_Application_Client_Core'
+  'Portal_Application_Client_Core',
+  'Portal_Field_Roles_Client'
 ];
 check('all complete-app fragments are included', fragments.every(name => index.includes(`h38PortalRawInclude_('${name}')`)), fragments.join(', '));
 check('all complete-app fragments are allowlisted', fragments.every(name => raw.includes(`'${name}'`)), fragments.join(', '));
+check('field client loads after core routing', index.indexOf("h38PortalRawInclude_('Portal_Application_Client_Core')") < index.indexOf("h38PortalRawInclude_('Portal_Field_Roles_Client')"));
 
 const spaces = ['Today','Customers','Work','Money','Documents','Growth','Control'];
 check('seven adaptive spaces are defined', spaces.every(label => manifest.includes(`label:'${label}'`)), spaces.join(', '));
@@ -50,12 +66,25 @@ check('role-aware application startup is installed', ['h38PortalApplicationBoots
 
 check('Today is the daily default', /defaultModule\s*=\s*access\.ownerMode\s*\?\s*'today'/.test(manifest) && /What needs attention now\?/.test(ownerHome));
 check('Today includes decisions deadlines health money exceptions and changes', ['Needs your decision','Business health','Exceptions','Recently changed','Cash expected','Open errors'].every(text => viewsClient.includes(text)));
-check('role-specific dashboards are implemented', ['Administrator','Staff','Viewer','Bookkeeper','Payroll'].every(role => roleDashboard.includes(`${role}:`)) && /roleDashboard/.test(roleDashboard));
+check('role-specific dashboards are implemented', ['Administrator','Foreman','Employee','Field Staff','Staff','Viewer','Bookkeeper','Payroll'].every(role => roleDashboard.includes(`${role}:`)) && /roleDashboard/.test(roleDashboard));
 check('owner home exposes AI quote and decision actions', ['Ask H38 AI','Quick quote','Review \''].every(text => ownerHome.includes(text)) && /h38OpenOwnerAi/.test(ownerHome) && /h38OpenOwnerQuickQuote/.test(ownerHome));
 check('owner home has a premium command-center hero', /h38-owner-hero/.test(ownerHome) && /Owner access/.test(ownerHome) && /External actions/.test(ownerHome) && /Make decisions, answer customers/.test(ownerHome));
 check('approved logo is presented at readable sidebar size', /#h38PortalLogo\{width:188px!important;height:141px!important/.test(ownerHomeStyles) && /\.side \.brand:before\{display:none!important\}/.test(ownerHomeStyles));
 check('technical release string is hidden from the visible brand', /release\.textContent='Owner Portal'/.test(ownerHome) && /release\.dataset\.fullRelease/.test(ownerHome));
 check('owner brand remains responsive on smaller screens', /width:98px!important;height:74px!important/.test(ownerHomeStyles) && /@media\(max-width:850px\)/.test(ownerHomeStyles));
+
+check('Foreman and Employee are supported installation roles', [config,platformConfig].every(source => source.includes("'Foreman','Estimator','Employee','Field Staff'")));
+check('production and reusable packages provision Employee', [credentials,platformCredentials].every(source => source.includes("id:'ROLE-EMPLOYEE'") && source.includes("name:'Employee'")));
+check('Foreman field profile includes crew leadership modules', ['assignedTasks','customers','quotes','workOrders','jobs','time','receipts','documents','equipment'].every(module => fieldRoles.includes(`'${module}'`)) && /canAssignCrew:true/.test(fieldRoles));
+check('Employee field profile excludes customer and finance workspaces', /Employee:Object\.freeze\(\['commandCenter','assignedTasks','calendar','workOrders','jobs','time','receipts','documents','equipment'\]\)/.test(fieldRoles));
+check('Employee credentials allow only assigned field operations', ['WORK_ORDERS','JOBS','TIME_ENTRIES','DOCUMENTS','RECEIPTS','ASSETS','JOB_EQUIPMENT'].every(marker => employeeCredential.includes(marker)) && !['INVOICES','PAYMENTS','JOURNAL_ENTRIES','PAYROLL_PERIODS','TAX_PERIODS'].some(marker => employeeCredential.includes(marker)));
+check('Foreman credentials cannot post money payroll or tax', ['CUSTOMERS','QUOTES','WORK_ORDERS','JOBS','TIME_ENTRIES','DOCUMENTS','RECEIPTS','ASSETS','JOB_EQUIPMENT'].every(marker => foremanCredential.includes(marker)) && !['INVOICES','PAYMENTS','JOURNAL_ENTRIES','PAYROLL_PERIODS','TAX_PERIODS'].some(marker => foremanCredential.includes(marker)));
+check('owner bootstrap provisions field roles safely', /h38PortalEnsureFieldRoles_/.test(schema) && /owner\.fieldRoles/.test(schema) && /status:'HOLD'/.test(schema));
+check('unified navigation applies field-role visibility', /h38FieldRoleKnown_/.test(manifest) && /h38FieldRoleCanView_/.test(manifest) && /bo:equipment/.test(manifest));
+check('Foreman assignment is restricted and internal only', /h38PortalRequireForeman_/.test(fieldRoles) && /\['Owner','Administrator','Foreman'\]/.test(fieldRoles) && /FOREMAN_ASSIGN_TASK/.test(fieldRoles) && /Internal crew assignment only; no customer or financial action/.test(fieldRoles));
+check('Foreman and Employee field dashboards expose role actions', ['Foreman Portal','Employee Portal','Ask H38 AI','Assign crew','Log time','Upload photo','My Work'].every(text => fieldClient.includes(text)));
+check('field client enforces its route matrix', /H38_BASE_ROUTE_ALLOWED/.test(fieldClient) && /h38AppRouteAllowed=function/.test(fieldClient) && /profile\.modules\.indexOf\(key\)/.test(fieldClient));
+check('field role actions retain owner-controlled boundaries', /Customer sends, pricing approval, purchases, payments, payroll, and accounting remain owner-controlled/.test(fieldClient));
 
 check('command launcher supports keyboard and grouped record search', /Ctrl K/.test(coreClient) && /event\.key\.toLowerCase\(\)===['"]k['"]/.test(coreClient) && /h38PortalBusinessSearch/.test(coreClient) && /Search customers, jobs, invoices, files, tasks/.test(coreClient));
 check('mobile daily navigation is installed', /mobile-bottom-nav/.test(styles) && ['Today','Search','Add','Approvals','More'].every(text => coreClient.includes(`>${text}<`)));
@@ -91,7 +120,7 @@ check('user access and backup centers are implemented', /h38PortalUserAccessSnap
 check('system status indicator covers normal attention offline and synchronization', /All systems normal/.test(services) && /Attention needed/.test(services) && /synchronization/.test(services) && /app-status/.test(styles));
 
 check('Business Office list workspace and save are permission-aware', /h38PortalBusinessRequirePermission_/.test(businessServer) && /readOnly/.test(businessServer));
-check('hard external-action boundaries remain locked', [services,roleDashboard,workspace,businessServer].every(code => /externalActionsOccurred:false|externalActionsEnabled:false/.test(code)) && !/DIRECT_PAYMENT_PROCESSING:\s*true|liveExternalActions:\s*true|bulkExecution:\s*true/.test([services,roleDashboard,workspace,businessServer].join('\n')));
+check('hard external-action boundaries remain locked', [services,roleDashboard,workspace,businessServer,fieldRoles].every(code => /externalActionsOccurred:false|externalActionsEnabled:false/.test(code)) && !/DIRECT_PAYMENT_PROCESSING:\s*true|liveExternalActions:\s*true|bulkExecution:\s*true/.test([services,roleDashboard,workspace,businessServer,fieldRoles].join('\n')));
 
 parses('Portal_Application_UX server', services);
 parses('Portal_Role_Dashboard server', roleDashboard);
@@ -99,11 +128,13 @@ parses('Portal_Application_Schema server', schema);
 parses('Portal_Application_Workspace server', workspace);
 parses('Portal_Unified server', manifest);
 parses('Portal_Business server', businessServer);
+parses('Portal_Field_Roles server', fieldRoles);
 parses('Portal_Application_Client_Core', coreClient);
 parses('Portal_Application_Client_Views', viewsClient);
 parses('Portal_Application_Client_Business', businessClient);
 parses('Portal_Application_Client_SafeActions', safeClient);
 parses('Portal_OneShot_Client', ownerHome);
+parses('Portal_Field_Roles_Client', fieldClient);
 
 const result = { status: failures.length ? 'HOLD' : 'PASS', passes, failures, sourceCommit: process.env.GITHUB_SHA || '' };
 const outDir = path.join(root, 'artifacts', 'unified-app-ux');

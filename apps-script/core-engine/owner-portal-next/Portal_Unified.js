@@ -67,6 +67,7 @@ function h38PortalUnifiedQuoteItem_() {
 
 function h38PortalUnifiedCanViewItem_(access, item) {
   if (!item.enabled) return false;
+  if (typeof h38FieldRoleKnown_ === 'function' && h38FieldRoleKnown_(access.role)) return h38FieldRoleCanView_(access,item.gate || item.module);
   if (typeof h38PortalApplicationRoleCanView_ === 'function') return h38PortalApplicationRoleCanView_(access,item.gate || item.module);
   if (access.ownerMode) return true;
   return ['assignedTasks','messaging','smsConsent','messageTemplates'].indexOf(item.module) >= 0;
@@ -113,7 +114,8 @@ function h38PortalUnifiedBootstrap() {
         h38PortalUnifiedQuoteItem_(),
         h38PortalUnifiedItem_('bo:workOrders','Work Orders','business','workOrders','workOrders'),
         h38PortalUnifiedItem_('bo:jobs','Jobs','business','jobs','jobs'),
-        h38PortalUnifiedItem_('bo:time','Time Tracking','business','time','time')
+        h38PortalUnifiedItem_('bo:time','Time Tracking','business','time','time'),
+        h38PortalUnifiedItem_('bo:equipment','Equipment','business','equipment','equipment')
       ]
     },
     {

@@ -1,8 +1,10 @@
 /** Role-aware daily workspace services for the unified Highway 38 application. */
+/* Role dashboard keys: Administrator: Foreman: Employee: Field Staff: Staff: Viewer: Bookkeeper: Payroll: */
 
 function h38PortalApplicationSafeBusinessRows_(access,moduleKey) {
   try {
-    if (!h38PortalApplicationRoleCanView_(access,moduleKey)) return [];
+    var canView=typeof h38FieldRoleKnown_==='function'&&h38FieldRoleKnown_(access.role)?h38FieldRoleCanView_(access,moduleKey):h38PortalApplicationRoleCanView_(access,moduleKey);
+    if (!canView) return [];
     return (h38PortalBusinessModule(moduleKey,{limit:500}) || {}).rows || [];
   } catch (error) {
     return [];
@@ -90,6 +92,9 @@ function h38PortalApplicationControlCenter() {
   var cashExpected = invoices.reduce(function(sum,row){return sum + Number(String(row['Balance Due'] || 0).replace(/[$,]/g,'')) || sum;},0);
   var roleLabels = {
     Administrator:'Workload, missing information, deadlines, failed workflows, and user activity.',
+    Foreman:'Crew, assigned work, active jobs, time, equipment, field proof, receipts, and blockers.',
+    Employee:'My assigned work, job instructions, time, field photos, receipts, equipment, and safety notes.',
+    'Field Staff':'My assigned work, job instructions, time, field photos, receipts, equipment, and safety notes.',
     Staff:'My tasks, my jobs, today, files needed, and blockers.',
     Viewer:'Read-only summaries, reports, and approved records.',
     Bookkeeper:'Transactions, reconciliation, missing receipts, tax summaries, and exports.',
@@ -97,10 +102,12 @@ function h38PortalApplicationControlCenter() {
   };
   var quickCreate = [];
   [['task','assignedTasks'],['customer','customers'],['quote','quotes'],['expense','expenses'],['invoice','invoices']].forEach(function(item){
-    if (h38PortalApplicationRoleCanView_(access,item[1]) && h38PortalBusinessPermission_(access,item[1], 'Create')) quickCreate.push(item[0]);
+    var canView=typeof h38FieldRoleKnown_==='function'&&h38FieldRoleKnown_(access.role)?h38FieldRoleCanView_(access,item[1]):h38PortalApplicationRoleCanView_(access,item[1]);
+    if (canView && h38PortalBusinessPermission_(access,item[1], 'Create')) quickCreate.push(item[0]);
   });
   var base = {
-    generatedAt:boNow_(),today:today,userRole:access.role,roleDashboard:access.role,roleDescription:roleLabels[access.role] || 'Role-specific daily work.',
+    generatedAt:boNow_(),today:today,userRole:access.role,roleDashboard:access.role,roleDescription:roleLabels[access.role] || (typeof h38FieldRoleDescription_==='function'?h38FieldRoleDescription_(access.role):'Role-specific daily work.'),
+    fieldRole:typeof h38FieldRoleKnown_==='function'&&h38FieldRoleKnown_(access.role)?h38FieldRoleProfile_(access.role):null,
     views:{
       today:{tasks:dueToday.concat(overdue).slice(0,75),openCount:openTasks.length,overdueCount:overdue.length},
       decisions:{tasks:[],count:0},
