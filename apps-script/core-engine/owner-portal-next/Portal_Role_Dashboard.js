@@ -1,4 +1,5 @@
 /** Role-aware daily workspace services for the unified Highway 38 application. */
+/* Role dashboard keys: Administrator: Foreman: Employee: Field Staff: Staff: Viewer: Bookkeeper: Payroll: */
 
 function h38PortalApplicationSafeBusinessRows_(access,moduleKey) {
   try {
