@@ -56,11 +56,27 @@ jobs:
       - name: Install test dependencies
         run: npm install
       - name: Verify isolated reusable source
+        shell: bash
         run: |
-          set -euo pipefail
-          node scripts/verify-business-office-isolation.js
-          node scripts/verify-business-office-separation.js
-          node scripts/verify-modular-business-office-suite.js
+          set -uo pipefail
+          OUT=artifacts/business-office-clean-installation
+          mkdir -p "$OUT"
+          FAILED=0
+          run_check() {
+            local name="$1"
+            shift
+            echo "## $name" | tee "$OUT/$name.log"
+            if "$@" 2>&1 | tee -a "$OUT/$name.log"; then
+              echo "PASS $name" | tee -a "$OUT/$name.log"
+            else
+              echo "FAIL $name" | tee -a "$OUT/$name.log"
+              FAILED=1
+            fi
+          }
+          run_check isolation node scripts/verify-business-office-isolation.js
+          run_check separation node scripts/verify-business-office-separation.js
+          run_check modular-suite node scripts/verify-modular-business-office-suite.js
+          exit "$FAILED"
       - name: Verify Highway 38 control contract remains compatible
         run: |
           set -euo pipefail
@@ -94,14 +110,16 @@ jobs:
               FAILED=1
             fi
           done
-          node - "$OUT/simulated-template/BusinessOffice_ControlPlane.html" >> "$OUT/simulated-syntax.txt" <<'NODE'
+          for file in BusinessOffice_ControlPlane.html BusinessOffice_ControlPlane_Routes.html BusinessOffice_Equipment.html; do
+            node - "$OUT/simulated-template/$file" >> "$OUT/simulated-syntax.txt" <<'NODE'
           const fs=require('fs'),vm=require('vm');
           const text=fs.readFileSync(process.argv[2],'utf8');
           const match=text.match(/<script>([\s\S]*)<\/script>/);
-          if(!match)throw new Error('Reusable Control Plane script block is missing.');
-          new vm.Script(match[1],{filename:'BusinessOffice_ControlPlane.html'});
-          console.log('PASS BusinessOffice_ControlPlane.html');
+          if(!match)throw new Error('Reusable client script block is missing.');
+          new vm.Script(match[1],{filename:process.argv[2]});
+          console.log('PASS '+process.argv[2]);
           NODE
+          done
           exit "$FAILED"
       - name: Record simulated clean-install result
         run: |
@@ -118,6 +136,7 @@ jobs:
             generatedAt:new Date().toISOString(),
             generatedFiles:names.length,
             fieldOperations:names.includes('BusinessOffice_TaskCore.gs')&&names.includes('BusinessOffice_ControlCore.gs'),
+            equipmentAssetManagement:names.includes('BusinessOffice_EquipmentRules.gs')&&names.includes('BusinessOffice_EquipmentCore.gs')&&names.includes('BusinessOffice_Equipment.html'),
             socialControl:names.includes('BusinessOffice_ControlRules.gs')&&names.includes('BusinessOffice_ControlPlane.html'),
             nineCredentialModel:true,
             highway38DataCopied:false,
@@ -126,7 +145,9 @@ jobs:
             paymentProcessed:false,
             payrollFundsMoved:false,
             taxReturnFiled:false,
-            customerMessageSent:false
+            customerMessageSent:false,
+            equipmentExpenseCreated:false,
+            equipmentAccountingPosted:false
           };
           fs.writeFileSync(path.join(root,'simulated-acceptance-result.json'),JSON.stringify(result,null,2)+'\n');
           NODE
@@ -196,7 +217,7 @@ jobs:
           mkdir -p artifacts/business-office-clean-installation
           if [[ ! -f artifacts/business-office-clean-installation/failure-metadata.json ]]; then
             cat > artifacts/business-office-clean-installation/failure-metadata.json <<JSON
-          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","externalActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false,"customerMessageSent":false,"deliveryOccurred":false,"socialPublishingOccurred":false}
+          {"status":"HOLD","sourceCommit":"${GITHUB_SHA}","externalActionsOccurred":false,"paymentProcessed":false,"payrollFundsMoved":false,"taxReturnFiled":false,"customerMessageSent":false,"deliveryOccurred":false,"socialPublishingOccurred":false,"equipmentExpenseCreated":false,"equipmentAccountingPosted":false}
           JSON
           fi
       - name: Upload clean-install acceptance evidence
