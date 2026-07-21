@@ -23,11 +23,11 @@ if (!projectDir || projectDir === path.parse(projectDir).root) fail('a project d
 fs.mkdirSync(evidenceDir, { recursive: true });
 
 let portalSource = readRequired(portalServices);
-portalSource = replaceOnce(portalSource,/function doGet\(e\) \{\n  h38PortalRequireUnifiedUser_\(\);\n  return HtmlService\.createTemplateFromFile\('Portal_Index'\)\.evaluate\(\)\.setTitle\(H38_PORTAL_NEXT\.APP_NAME\)\.setSandboxMode\(HtmlService\.SandboxMode\.IFRAME\);\n\}/,"function h38PortalStandaloneDoGet_(e) {\n  h38PortalRequireUnifiedUser_();\n  return HtmlService.createTemplateFromFile('Portal_Index').evaluate().setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME);\n}",'Owner Portal standalone entry');
+portalSource = replaceOnce(portalSource,/function\s+doGet\(e\)\s*\{\s*h38PortalRequireUnifiedUser_\(\);\s*return\s+HtmlService\.createTemplateFromFile\('Portal_Index'\)\.evaluate\(\)\.setTitle\(H38_PORTAL_NEXT\.APP_NAME\)\.setSandboxMode\(HtmlService\.SandboxMode\.IFRAME\);\s*\}/,"function h38PortalStandaloneDoGet_(e) {\n  h38PortalRequireUnifiedUser_();\n  return HtmlService.createTemplateFromFile('Portal_Index').evaluate().setTitle(H38_PORTAL_NEXT.APP_NAME).setSandboxMode(HtmlService.SandboxMode.IFRAME);\n}",'Owner Portal standalone entry');
 fs.writeFileSync(portalServices, portalSource);
 
 let businessSource = readRequired(businessWeb);
-businessSource = replaceOnce(businessSource,/function doGet\(event\) \{/,'function boBusinessOfficeStandaloneDoGet_(event) {','Business Office standalone entry');
+businessSource = replaceOnce(businessSource,/function\s+doGet\(event\)\s*\{/,'function boBusinessOfficeStandaloneDoGet_(event) {','Business Office standalone entry');
 fs.writeFileSync(businessWeb, businessSource);
 
 if (fs.existsSync(legacyPortalBridge)) fs.unlinkSync(legacyPortalBridge);
