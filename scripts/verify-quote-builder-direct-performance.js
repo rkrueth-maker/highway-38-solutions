@@ -6,6 +6,7 @@ const path=require('path');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const need=(text,marker,label)=>{if(!text.includes(marker))throw new Error(`Missing ${label}: ${marker}`)};
+const needMatch=(text,pattern,label)=>{if(!pattern.test(text))throw new Error(`Missing ${label}: ${pattern}`)};
 const reject=(text,marker,label)=>{if(text.includes(marker))throw new Error(`Forbidden ${label}: ${marker}`)};
 const scriptBody=text=>{const match=text.match(/<script>([\s\S]*?)<\/script>/);if(!match)throw new Error('Script block missing');return match[1];};
 
@@ -23,7 +24,7 @@ const gate=read('apps-script/business-office/BusinessOffice_ModuleAccess.gs');
 const shell=read('apps-script/unified-shell/Unified_AppShell.gs');
 const deploy=read('scripts/deploy-unified-owner-portal-web.sh');
 
-need(web,'if (boIsQuoteBuilderRequest_(event)) return boRenderQuoteBuilderApp_();','standalone server direct-route detection');
+needMatch(web,/if\s*\(\s*boIsQuoteBuilderRequest_\(event\)\s*\)\s*return\s+boRenderQuoteBuilderApp_\(\)\s*;/,'standalone server direct-route detection');
 need(web,'createQuote:function(){return boCreateQuoteFast_','grouped quote create handler');
 need(web,'quoteBuilderCustomers:function()','lazy customer endpoint');
 need(web,'quoteBuilderDocuments:function()','lazy documents endpoint');
