@@ -1,30 +1,73 @@
 <style>
-#h38-ai-launch{position:fixed;right:22px;bottom:22px;z-index:9998;border:0;border-radius:999px;padding:13px 18px;background:#243447;color:#fff;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.24);cursor:pointer}
-#h38-ai-panel{position:fixed;top:0;right:-440px;width:min(440px,100vw);height:100vh;z-index:9999;background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.2);transition:right .22s ease;display:flex;flex-direction:column;font-family:inherit}
-#h38-ai-panel.open{right:0}.h38-ai-head{padding:16px;background:#243447;color:#fff;display:flex;justify-content:space-between;align-items:center}.h38-ai-head button{border:0;background:transparent;color:#fff;font-size:24px;cursor:pointer}.h38-ai-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;border-bottom:1px solid #ddd}.h38-ai-tools button,.h38-ai-send button{padding:10px;border:1px solid #ccd3da;border-radius:8px;background:#f7f9fb;cursor:pointer}.h38-ai-log{flex:1;overflow:auto;padding:14px;background:#f4f6f8}.h38-ai-msg{padding:10px 12px;border-radius:10px;margin:0 0 10px;white-space:pre-wrap}.h38-ai-user{background:#dfeaf5;margin-left:35px}.h38-ai-bot{background:#fff;border:1px solid #dde2e7;margin-right:20px}.h38-ai-compose{padding:12px;border-top:1px solid #ddd}.h38-ai-compose textarea{width:100%;min-height:72px;box-sizing:border-box;padding:10px;border:1px solid #bbc4cd;border-radius:8px;resize:vertical}.h38-ai-send{display:flex;gap:8px;margin-top:8px}.h38-ai-send button:first-child{flex:1;background:#243447;color:#fff}.h38-ai-status{font-size:12px;color:#607080;padding-top:6px}.h38-ai-action{background:#fff4d6;border:1px solid #d7ad38;padding:12px;border-radius:9px;margin-top:9px}.h38-ai-action strong{display:block;margin-bottom:6px}.h38-ai-action button{background:#243447;color:#fff;border:0;border-radius:7px;padding:10px 13px;cursor:pointer;margin-top:9px;width:100%;font-weight:800}.h38-ai-expiry{font-size:12px;color:#6e5a24;margin-top:6px}
+#h38-ai-launch{position:fixed;right:22px;bottom:86px;z-index:9998;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:12px 17px;min-height:44px;background:#2563eb;color:#fff;font-weight:900;box-shadow:0 10px 30px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
+#h38-ai-launch:hover{filter:brightness(1.1)}
+#h38-ai-launch.h38-ai-inline{position:static;right:auto;bottom:auto;z-index:auto;box-shadow:0 5px 16px rgba(0,0,0,.18);margin:0}
+#h38-ai-launch.needs-setup{background:#9a5a00}
+#h38-ai-panel{position:fixed;top:0;right:-440px;width:min(440px,100vw);height:100vh;z-index:9999;background:#fff;color:#17212b;box-shadow:-8px 0 30px rgba(0,0,0,.2);transition:right .22s ease;display:flex;flex-direction:column;font-family:inherit}
+#h38-ai-panel.open{right:0}.h38-ai-head{padding:16px;background:#243447;color:#fff;display:flex;justify-content:space-between;align-items:center}.h38-ai-head button{border:0;background:transparent;color:#fff;font-size:24px;cursor:pointer}.h38-ai-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;border-bottom:1px solid #ddd}.h38-ai-tools button,.h38-ai-send button{padding:10px;border:1px solid #ccd3da;border-radius:8px;background:#f7f9fb;color:#17212b;cursor:pointer}.h38-ai-log{flex:1;overflow:auto;padding:14px;background:#f4f6f8}.h38-ai-msg{padding:10px 12px;border-radius:10px;margin:0 0 10px;white-space:pre-wrap}.h38-ai-user{background:#dfeaf5;margin-left:35px}.h38-ai-bot{background:#fff;border:1px solid #dde2e7;margin-right:20px}.h38-ai-compose{padding:12px;border-top:1px solid #ddd}.h38-ai-compose textarea{width:100%;min-height:72px;box-sizing:border-box;padding:10px;border:1px solid #bbc4cd;border-radius:8px;resize:vertical;color:#17212b;background:#fff}.h38-ai-send{display:flex;gap:8px;margin-top:8px}.h38-ai-send button:first-child{flex:1;background:#243447;color:#fff}.h38-ai-status{font-size:12px;color:#607080;padding-top:6px}.h38-ai-action{background:#fff4d6;border:1px solid #d7ad38;padding:12px;border-radius:9px;margin-top:9px}.h38-ai-action strong{display:block;margin-bottom:6px}.h38-ai-action button{background:#243447;color:#fff;border:0;border-radius:7px;padding:10px 13px;cursor:pointer;margin-top:9px;width:100%;font-weight:800}.h38-ai-expiry{font-size:12px;color:#6e5a24;margin-top:6px}
+@media(max-width:800px){#h38-ai-launch:not(.h38-ai-inline){right:14px;bottom:82px}#h38-ai-launch.h38-ai-inline{min-width:max-content}}
 </style>
-<button id="h38-ai-launch" type="button" aria-label="Open H38 AI">Ask H38</button>
+<button id="h38-ai-launch" type="button" aria-label="Open H38 AI">Ask H38 AI</button>
 <aside id="h38-ai-panel" aria-label="H38 AI assistant">
  <div class="h38-ai-head"><div><strong>H38 AI</strong><div style="font-size:12px;opacity:.85">Owner → Operations assistant</div></div><button id="h38-ai-close" aria-label="Close">×</button></div>
  <div class="h38-ai-tools"><button data-ai-action="coach">Teach me</button><button data-ai-action="email">Email brief</button><button data-ai-action="improve">Improvements</button></div>
  <div class="h38-ai-log" id="h38-ai-log"><div class="h38-ai-msg h38-ai-bot">Talk to H38 about the business or ask it to prepare an action. It reads the complete prepared message or action back to you and gives the exact owner confirmation phrase before anything is sent, approved, posted, exported, converted, created, or finalized.</div></div>
- <div class="h38-ai-compose"><textarea id="h38-ai-input" placeholder="Ask H38 or give a business command…"></textarea><div class="h38-ai-send"><button id="h38-ai-submit">Send</button><button id="h38-ai-mic" title="Talk">🎙</button></div><div class="h38-ai-status" id="h38-ai-status">AI plans and previews. Deterministic H38 services execute only after owner approval.</div></div>
+ <div class="h38-ai-compose"><textarea id="h38-ai-input" placeholder="Ask H38 or give a business command…"></textarea><div class="h38-ai-send"><button id="h38-ai-submit">Send</button><button id="h38-ai-mic" title="Talk">🎙</button></div><div class="h38-ai-status" id="h38-ai-status">Checking H38 AI configuration…</div></div>
 </aside>
 <script>
 (function(){
- const panel=document.getElementById('h38-ai-panel'),log=document.getElementById('h38-ai-log'),input=document.getElementById('h38-ai-input'),status=document.getElementById('h38-ai-status');
- let lastAction=null,recognition=null,speechGeneration=0;
+ 'use strict';
+ const launch=document.getElementById('h38-ai-launch'),panel=document.getElementById('h38-ai-panel'),log=document.getElementById('h38-ai-log'),input=document.getElementById('h38-ai-input'),status=document.getElementById('h38-ai-status');
+ let lastAction=null,recognition=null,speechGeneration=0,bootstrapPromise=null,aiEnabled=null,setupMessageShown=false;
  const recordTypes={quotes:'Quote',invoices:'Invoice',workOrders:'Work Order',jobs:'Job',purchaseOrders:'Purchase Order',expenses:'Expense',payroll:'Payroll Period',tax:'Tax Period',accounting:'Journal Entry',approvals:'Approval'};
  function api(action,args){return new Promise(function(resolve,reject){if(!(window.google&&google.script&&google.script.run)){reject(new Error('H38 server connection is unavailable.'));return;}google.script.run.withSuccessHandler(resolve).withFailureHandler(function(e){reject(new Error((e&&e.message)||String(e)));}).boApi({action:action,args:args||{}});});}
  function context(){
   const active=document.querySelector('[data-module].active,[data-route].active,[aria-current="page"]');
-  const module=(active&&((active.dataset&&active.dataset.module)||active.textContent.trim()))||(typeof state!=='undefined'&&state.module)||document.body.dataset.module||'dashboard';
+  const module=(active&&((active.dataset&&active.dataset.module)||active.textContent.trim()))||(typeof state!=='undefined'&&state.module)||document.body.dataset.module||(/quote builder/i.test(document.title)?'quoteBuilder':'dashboard');
   const ctx={module:module,screen:document.title,task:'current screen'};
   try{if(typeof state!=='undefined'&&state.selected!=null&&state.rows&&state.rows[state.selected]&&state.bootstrap&&state.bootstrap.definitions&&state.bootstrap.definitions[state.module]){const def=state.bootstrap.definitions[state.module],row=state.rows[state.selected];ctx.recordType=recordTypes[state.module]||String(def.title||'Record').replace(/s$/,'');ctx.recordId=String(row[def.primaryKey]||'');ctx.recordSummary=JSON.stringify(row).slice(0,6000);}}catch(error){}
   return ctx;
  }
  function add(text,user){const el=document.createElement('div');el.className='h38-ai-msg '+(user?'h38-ai-user':'h38-ai-bot');el.textContent=String(text||'');log.appendChild(el);log.scrollTop=log.scrollHeight;return el;}
  function busy(text){status.textContent=text||'Working…';}
+ function placeLauncher(){
+  const portalTop=document.getElementById('ownerTopbar');
+  const quoteTop=document.querySelector('header.top');
+  const legacyActions=document.querySelector('header .header-actions');
+  let host=null,before=null;
+  launch.classList.remove('h38-ai-inline');
+  if(portalTop){host=portalTop;}
+  else if(quoteTop){host=quoteTop;before=document.getElementById('qbUser');}
+  else if(legacyActions){host=legacyActions;before=legacyActions.firstChild;}
+  if(host){
+   launch.classList.add('h38-ai-inline');
+   if(launch.parentNode!==host||before&&launch.nextSibling!==before)host.insertBefore(launch,before||null);
+  }
+ }
+ function loadBootstrap(){
+  if(bootstrapPromise)return bootstrapPromise;
+  bootstrapPromise=api('aiBootstrap',{}).then(function(config){
+   aiEnabled=!!(config&&config.enabled);
+   if(aiEnabled){
+    launch.textContent='Ask H38 AI';
+    launch.classList.remove('needs-setup');
+    launch.title='Open the H38 business assistant';
+    busy('H38 AI ready. Actions still require owner approval.');
+   }else{
+    launch.textContent='Ask H38 AI · Setup';
+    launch.classList.add('needs-setup');
+    launch.title='H38 AI is installed; OPENAI_API_KEY setup is required';
+    busy('H38 AI interface is installed. Add OPENAI_API_KEY in Apps Script properties to enable answers.');
+   }
+   return config||{};
+  }).catch(function(error){
+   bootstrapPromise=null;
+   aiEnabled=null;
+   busy('H38 AI status could not be checked: '+error.message);
+   return {enabled:false,error:error.message};
+  });
+  return bootstrapPromise;
+ }
  function speechChunks(text){const source=String(text||'').trim(),chunks=[];let rest=source;while(rest.length>2200){let cut=Math.max(rest.lastIndexOf('. ',2200),rest.lastIndexOf('! ',2200),rest.lastIndexOf('? ',2200),rest.lastIndexOf('\n',2200));if(cut<900)cut=2200;chunks.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();}if(rest)chunks.push(rest);return chunks;}
  function speak(text){if(!('speechSynthesis'in window))return;const generation=++speechGeneration;window.speechSynthesis.cancel();const chunks=speechChunks(text);function next(){if(generation!==speechGeneration||!chunks.length)return;const utterance=new SpeechSynthesisUtterance(chunks.shift());utterance.rate=1;utterance.onend=next;utterance.onerror=function(){busy('Voice playback stopped');};window.speechSynthesis.speak(utterance);}next();}
  function describeResult(completed){const result=completed&&completed.result||{};if(completed.actionId==='email.send')return 'Email sent to '+(result.to||'the approved recipient')+'.';if(completed.actionId==='email.reply')return 'Reply sent to '+(result.to||'the approved recipient')+' in the original email thread.';if(completed.actionId==='quote.convert')return 'Quote converted. Job '+(result.jobId||'created')+' and work order '+(result.workOrderId||'created')+'.';if(completed.actionId==='job.invoice')return 'Draft invoice '+(result.invoiceNumber||result.invoiceId||'created')+'.';if(completed.actionId==='payroll.export')return 'Approved payroll export created.';return (completed.label||'Approved action')+' completed.';}
@@ -39,18 +82,30 @@
   speak('I prepared '+action.label+'. Here is the complete preview. '+action.preview+'. Nothing has been executed. Say '+action.confirmation+' to approve it.');
  }
  async function handleResponse(result){if(result.kind==='action'&&result.action){if(result.answer)add(result.answer,false);showAction(result.action);busy('Waiting for owner approval');return;}add(result.answer||'Done.',false);busy('Ready');if(result.spoken!==false)speak(result.answer||'Done.');}
- async function ask(message){message=String(message||'').trim();if(!message)return;add(message,true);input.value='';busy('H38 is planning safely…');try{const result=await api('aiCommand',{message:message,context:context()});await handleResponse(result);}catch(e){add(e.message,false);busy('Needs attention');}}
+ async function ask(message){message=String(message||'').trim();if(!message)return;add(message,true);input.value='';busy('H38 is planning safely…');try{const config=await loadBootstrap();if(!config.enabled)throw new Error('H38 AI is installed but not configured. Add OPENAI_API_KEY in Apps Script properties.');const result=await api('aiCommand',{message:message,context:context()});await handleResponse(result);}catch(e){add(e.message,false);busy('Needs attention');}}
  async function confirmAction(confirmation){if(!lastAction)return;const action=lastAction;busy('Verifying owner approval…');try{const result=await api('aiConfirmAction',{actionToken:action.actionToken,confirmation:String(confirmation||'').toUpperCase()});const message=describeResult(result);add(message,false);lastAction=null;busy('Completed');speak(message);}catch(e){add(e.message,false);busy('Approval or execution failed');speak(e.message);}}
- async function emailBrief(){busy('Reading the inbox…');try{await handleResponse(await api('aiCommand',{message:'Read and summarize my important emails.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
- async function coach(){busy('Preparing the next step…');try{await handleResponse(await api('aiCommand',{message:'Teach me the next best step on this screen.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
- async function improvements(){busy('Reviewing workflow signals…');try{await handleResponse(await api('aiCommand',{message:'Show me the strongest workflow improvements.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
+ async function emailBrief(){busy('Reading the inbox…');try{const config=await loadBootstrap();if(!config.enabled)throw new Error('H38 AI is installed but not configured. Add OPENAI_API_KEY in Apps Script properties.');await handleResponse(await api('aiCommand',{message:'Read and summarize my important emails.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
+ async function coach(){busy('Preparing the next step…');try{const config=await loadBootstrap();if(!config.enabled)throw new Error('H38 AI is installed but not configured. Add OPENAI_API_KEY in Apps Script properties.');await handleResponse(await api('aiCommand',{message:'Teach me the next best step on this screen.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
+ async function improvements(){busy('Reviewing workflow signals…');try{const config=await loadBootstrap();if(!config.enabled)throw new Error('H38 AI is installed but not configured. Add OPENAI_API_KEY in Apps Script properties.');await handleResponse(await api('aiCommand',{message:'Show me the strongest workflow improvements.',context:context()}));}catch(e){add(e.message,false);busy('Needs attention');}}
  function voice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){add('Voice recognition is not available in this browser.',false);return;}if(recognition){recognition.stop();return;}recognition=new SR();recognition.continuous=false;recognition.interimResults=false;recognition.lang='en-US';recognition.onstart=function(){busy('Listening…');};recognition.onerror=function(){recognition=null;busy('Voice unavailable');};recognition.onend=function(){recognition=null;if(status.textContent==='Listening…')busy('Ready');};recognition.onresult=function(e){const words=e.results[0][0].transcript.trim();if(lastAction&&words.toUpperCase().replace(/^(CONFIRM|YES,?|PLEASE)\s+/,'')===lastAction.confirmation){add(words,true);confirmAction(lastAction.confirmation);return;}ask(words);};recognition.start();}
- document.getElementById('h38-ai-launch').onclick=function(){panel.classList.add('open');api('aiTelemetry',{event:{type:'module_open',module:'ai_assistant',outcome:'opened'}}).catch(function(){});};
+ function openPanel(){
+  panel.classList.add('open');
+  placeLauncher();
+  loadBootstrap().then(function(config){
+   if(!config.enabled&&!setupMessageShown){
+    setupMessageShown=true;
+    add('H38 AI is visible and installed, but the OpenAI connection is not configured yet. Add OPENAI_API_KEY in Apps Script properties; approval controls remain active.',false);
+   }
+  });
+  api('aiTelemetry',{event:{type:'module_open',module:'ai_assistant',outcome:'opened'}}).catch(function(){});
+ }
+ launch.onclick=openPanel;
  document.getElementById('h38-ai-close').onclick=function(){panel.classList.remove('open');};
  document.getElementById('h38-ai-submit').onclick=function(){const value=input.value.trim();if(lastAction&&value.toUpperCase()===lastAction.confirmation){add(value,true);input.value='';confirmAction(value);return;}ask(value);};
  document.getElementById('h38-ai-mic').onclick=voice;
  input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('h38-ai-submit').click();}});
  document.querySelectorAll('[data-ai-action]').forEach(function(btn){btn.onclick=function(){({coach:coach,email:emailBrief,improve:improvements})[btn.dataset.aiAction]();};});
- window.H38AI={ask:ask,prepareEmail:async function(to,subject,request,ctx){const action=await api('aiPrepareAction',{actionId:'email.send',arguments:{to:to,subject:subject,request:request},context:ctx||context()});showAction(action);return action;},confirm:confirmAction,open:function(){panel.classList.add('open');},speak:speak,stopSpeaking:function(){speechGeneration++;window.speechSynthesis&&window.speechSynthesis.cancel();}};
+ window.H38AI={ask:ask,prepareEmail:async function(to,subject,request,ctx){const action=await api('aiPrepareAction',{actionId:'email.send',arguments:{to:to,subject:subject,request:request},context:ctx||context()});showAction(action);return action;},confirm:confirmAction,open:openPanel,speak:speak,stopSpeaking:function(){speechGeneration++;window.speechSynthesis&&window.speechSynthesis.cancel();},status:loadBootstrap};
+ placeLauncher();setTimeout(placeLauncher,350);setTimeout(placeLauncher,1400);setTimeout(loadBootstrap,1200);
 })();
 </script>

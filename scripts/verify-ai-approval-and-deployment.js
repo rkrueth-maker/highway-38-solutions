@@ -17,6 +17,10 @@ function parseScript(name, source) { try { new Function(source); check(`${name} 
 const actions = read('apps-script/business-office/BusinessOffice_AI_Actions.gs');
 const assistant = read('apps-script/business-office/BusinessOffice_AI_Assistant.gs');
 const client = read('apps-script/business-office/BusinessOffice_AI_Assistant_Client.html');
+const logoClient = read('apps-script/business-office/BusinessOffice_Logo_Client.html');
+const businessIndex = read('apps-script/business-office/BusinessOffice_Index.html');
+const quoteIndex = read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
+const portalIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const web = read('apps-script/business-office/BusinessOffice_Web.gs');
 const clientManifest = read('apps-script/business-office/BusinessOffice_ClientManifest.gs');
 const engineTest = read('scripts/test-ai-approval-engine.js');
@@ -34,6 +38,9 @@ parseScript('AI approval engine simulation', engineTest.replace(/^#!.*\r?\n/, ''
 const scriptMatches = [...client.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 check('AI client script exists', scriptMatches.length === 1, `found ${scriptMatches.length}`);
 if (scriptMatches[0]) parseScript('AI client', scriptMatches[0][1]);
+const logoScriptMatches = [...logoClient.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+check('Approved logo client script exists', logoScriptMatches.length === 1, `found ${logoScriptMatches.length}`);
+if (logoScriptMatches[0]) parseScript('Approved logo client', logoScriptMatches[0][1]);
 
 for (const marker of [
   "'email.send'", "confirmation: 'SEND'", "'email.reply'", "'record.approve'", "confirmation: 'APPROVE'",
@@ -62,6 +69,8 @@ check('Voice client plans commands', has(client, "api('aiCommand'"), 'aiCommand 
 check('Voice client confirms actions', has(client, "api('aiConfirmAction'"), 'aiConfirmAction missing');
 check('Voice client states nothing executed', has(client, 'Nothing has been executed'), 'approval warning missing');
 check('Voice client reads complete preview', has(client, 'Here is the complete preview') && has(client, 'speechChunks'), 'complete spoken preview missing');
+check('AI launcher reports configuration status', has(client, "api('aiBootstrap'") && has(client, 'OPENAI_API_KEY') && has(client, 'needs-setup'), 'visible setup state missing');
+check('AI launcher attaches to live shells', ['ownerTopbar','header.top','header .header-actions'].every(marker => client.includes(marker)), 'live shell launcher placement missing');
 check('Web exposes gated AI endpoints', ['aiCommand','aiPrepareAction','aiConfirmAction','aiActionCatalog'].every(marker => web.includes(marker)), 'API route missing');
 check('Client includes are centralized', has(web, 'boRenderClientIncludes_()') && !has(web, "boInclude_('BusinessOffice_UX_Client')"), 'manual include chain remains');
 
@@ -69,6 +78,21 @@ const manifestEntries = [...clientManifest.matchAll(/'([^']+)'/g)].map(match => 
 check('Client manifest has no duplicates', new Set(manifestEntries).size === manifestEntries.length, 'duplicate client include');
 check('AI client is in manifest', manifestEntries.includes('BusinessOffice_AI_Assistant_Client'), 'AI client missing');
 check('Approved logo is in manifest', manifestEntries.includes('BusinessOffice_Logo_Client'), 'logo client missing');
+
+check('Owner Portal visibly includes H38 AI', portalIndex.includes("boInclude_('BusinessOffice_AI_Assistant_Client')") && portalIndex.includes('id="ownerTopbar"'), 'Owner Portal AI entry point missing');
+check('Quote Builder visibly includes H38 AI', quoteIndex.includes("boInclude_('BusinessOffice_AI_Assistant_Client')") && quoteIndex.includes('id="qbUser"'), 'Quote Builder AI entry point missing');
+check('Owner Portal visibly includes approved logo', portalIndex.includes("boInclude_('BusinessOffice_Logo_Client')") && portalIndex.includes('id="h38PortalLogo"'), 'Owner Portal logo integration missing');
+check('Quote Builder visibly includes approved logo', quoteIndex.includes("boInclude_('BusinessOffice_Logo_Client')") && quoteIndex.includes('id="qbLogo"'), 'Quote Builder logo integration missing');
+check('Business Office has approved logo target', businessIndex.includes('id="appLogo"'), 'Business Office logo target missing');
+check('One approved logo client targets all live shells', ['appLogo','qbLogo','h38PortalLogo'].every(marker => logoClient.includes(marker)), 'not all live logo targets are pinned');
+check('Approved Drive asset provenance is preserved', logoClient.includes('1tJZtDEl60NGrUFaOwrMvPzONeVZn2r3V') && logoClient.includes('cf2c8764b9ec118829b85d14bf4e877da786633cda32b8ef9c808f4b4d2eaa33'), 'Drive asset provenance missing');
+const logoMatch = logoClient.match(/const APPROVED_LOGO='data:image\/webp;base64,([^']+)'/);
+check('Approved logo is embedded as WebP', !!logoMatch, 'embedded WebP data URI missing');
+if (logoMatch) {
+  const embeddedHash = crypto.createHash('sha256').update(Buffer.from(logoMatch[1], 'base64')).digest('hex');
+  check('Embedded logo bytes match approved Drive file', embeddedHash === 'cf2c8764b9ec118829b85d14bf4e877da786633cda32b8ef9c808f4b4d2eaa33', `got ${embeddedHash}`);
+}
+check('Logo pinning is idempotent and scoped', logoClient.includes("attributeFilter:['src','alt','style']") && !logoClient.includes('observe(document.documentElement'), 'unsafe document-wide logo observer found');
 
 check('Deployment manifest schema upgraded', deployment.schemaVersion >= 2, 'schemaVersion must be at least 2');
 check('One production project is pinned', deployment.appsScript.productionProjectId === deployment.appsScript.ownerPortalProjectId && deployment.appsScript.productionProjectId === deployment.appsScript.businessOfficeProjectId, 'project IDs differ');
@@ -100,11 +124,11 @@ const evidence = {
     stdoutTail: String(simulation.stdout || '').slice(-4000),
     stderrTail: String(simulation.stderr || '').slice(-4000)
   },
-  contractHash: crypto.createHash('sha256').update(actions + assistant + client + web + clientManifest + engineTest).digest('hex')
+  contractHash: crypto.createHash('sha256').update(actions + assistant + client + logoClient + portalIndex + quoteIndex + web + clientManifest + engineTest).digest('hex')
 };
 fs.writeFileSync(path.join(evidenceDir, 'verification.json'), JSON.stringify(evidence, null, 2) + '\n');
 if (failures.length) {
   console.error(JSON.stringify(evidence, null, 2));
   process.exit(1);
 }
-console.log(`PASS — H38 AI owner approval, hands-free inbox, simulated execution controls, and single deployment authority verified (${checks.length} checks).`);
+console.log(`PASS — H38 AI owner approval, visible live-shell entry points, approved Drive branding, hands-free inbox, simulated execution controls, and single deployment authority verified (${checks.length} checks).`);
