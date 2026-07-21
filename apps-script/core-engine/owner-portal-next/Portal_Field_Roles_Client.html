@@ -15,12 +15,13 @@ h38AppRouteAllowed=function(route){
   var key=h38AppModuleKeyFromRoute(route),profile=h38FieldClientProfile(),state=h38AppModuleState(key);
   return profile.modules.indexOf(key)>=0&&(!state||state.enabled!==false);
 };
-function h38NormalizeBrand(){
+var H38_FIELD_NORMALIZE_BRAND=function(){
   H38_OWNER_NORMALIZE_BRAND();
   var role=h38FieldClientRole();if(!h38FieldClientKnown(role))return;
   var release=document.getElementById('release'),profile=h38FieldClientProfile();
   if(release){release.textContent=profile.portalLabel;release.title=(release.dataset&&release.dataset.fullRelease)||profile.portalLabel;}
-}
+};
+h38NormalizeBrand=H38_FIELD_NORMALIZE_BRAND;
 function h38FieldButton(label,action,primary){return'<button class="btn '+(primary||'')+'" type="button" onclick="'+action+'">'+esc(label)+'</button>';}
 function h38FieldHero(profile,openCount,holdCount){
   var actions='<button class="btn h38-ai-hero" type="button" onclick="h38OpenOwnerAi()">✦ Ask H38 AI</button>'+h38FieldButton('My Work',"show('bo:assignedTasks')",'primary');
