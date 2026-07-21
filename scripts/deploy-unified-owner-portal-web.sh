@@ -40,16 +40,40 @@ diagnostic_marker() {
   fi
 }
 
+write_controlled_inventory() {
+  local source_dir="$1"
+  local target_file="$2"
+  node - "$source_dir" "$target_file" <<'NODE'
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const [root,target]=process.argv.slice(2),inventory={};
+for(const name of fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_|Unified_)/.test(name)&&/\.(?:gs|js|html)$/i.test(name)).sort()){
+  const full=path.join(root,name),base=name.replace(/\.(?:gs|js|html)$/i,''),kind=/\.html$/i.test(name)?'html':'script';
+  const key=base+':'+kind;
+  if(inventory[key])throw new Error('Duplicate controlled source key: '+key);
+  const normalized=fs.readFileSync(full,'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'')+'\n';
+  inventory[key]={file:name,sha256:crypto.createHash('sha256').update(normalized).digest('hex'),bytes:Buffer.byteLength(normalized)};
+}
+fs.writeFileSync(target,JSON.stringify(inventory,null,2)+'\n');
+console.log(`Recorded ${Object.keys(inventory).length} controlled files in ${target}`);
+NODE
+}
+
 DEPLOY_STAGE="read_configuration"
+PRODUCTION_SCRIPT_ID="$(read_config appsScript.productionProjectId)"
 OWNER_SCRIPT_ID="$(read_config appsScript.ownerPortalProjectId)"
+BUSINESS_SCRIPT_ID="$(read_config appsScript.businessOfficeProjectId)"
 OWNER_DEPLOYMENT_ID="$(read_config appsScript.ownerPortalDeploymentId)"
 BUSINESS_OFFICE_DEPLOYMENT_ID="$(read_config appsScript.businessOfficeDeploymentId)"
 WEBSITE_PORTAL_URL="$(read_config website.ownerPortalUrl)"
+SINGLE_AUTHORITY="$(read_config controls.singleProductionAuthority)"
+test "$PRODUCTION_SCRIPT_ID" = "$OWNER_SCRIPT_ID"
+test "$PRODUCTION_SCRIPT_ID" = "$BUSINESS_SCRIPT_ID"
+test "$SINGLE_AUTHORITY" = "Deploy Unified Owner Portal"
 
 DEPLOY_STAGE="backup_current_project"
 rm -rf "$WORK" "$EVIDENCE";mkdir -p "$BACKUP" "$PROJECT" "$REMOTE_VERIFY" "$EVIDENCE"
-printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$BACKUP/.clasp.json"
-printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$PROJECT/.clasp.json"
+printf '{"scriptId":"%s","rootDir":"."}\n' "$PRODUCTION_SCRIPT_ID" > "$BACKUP/.clasp.json"
+printf '{"scriptId":"%s","rootDir":"."}\n' "$PRODUCTION_SCRIPT_ID" > "$PROJECT/.clasp.json"
 (cd "$BACKUP" && clasp pull) 2>&1 | tee "$EVIDENCE/project-pull.txt"
 tar -czf "$EVIDENCE/project-before.tar.gz" -C "$BACKUP" .
 sha256sum "$EVIDENCE/project-before.tar.gz" | tee "$EVIDENCE/project-before.sha256"
@@ -59,7 +83,7 @@ grep -F "$BUSINESS_OFFICE_DEPLOYMENT_ID" "$EVIDENCE/deployments-before.txt" >/de
 
 DEPLOY_STAGE="assemble_local_source"
 cp -a "$BACKUP/." "$PROJECT/"
-printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$PROJECT/.clasp.json"
+printf '{"scriptId":"%s","rootDir":"."}\n' "$PRODUCTION_SCRIPT_ID" > "$PROJECT/.clasp.json"
 cat > "$PROJECT/.claspignore" <<'EOF'
 **/*.md
 **/*.map
@@ -90,6 +114,9 @@ REQUIRED_BUSINESS_FILES=(
   BusinessOffice_Config.gs
   BusinessOffice_Core.gs
   BusinessOffice_ModuleAccess.gs
+  BusinessOffice_AI_Assistant.gs
+  BusinessOffice_AI_Actions.gs
+  BusinessOffice_ClientManifest.gs
   BusinessOffice_QuoteBuilder_Direct.gs
   BusinessOffice_QuoteBuilder_Index.html
   BusinessOffice_QuoteBuilder_Direct_Client.html
@@ -102,6 +129,7 @@ done
 test ! -e "$PROJECT/Portal_00_BusinessAuth.js"
 
 node "$REPO_ROOT/scripts/verify-unified-app-shell.js"
+node "$REPO_ROOT/scripts/verify-ai-approval-and-deployment.js"
 
 diagnostic_marker "$PROJECT/Unified_AppShell.gs" "var H38_PORTAL_AUTH_BRIDGE = (function(){"
 diagnostic_marker "$PROJECT/Unified_AppShell.gs" "function h38UnifiedShellCapabilityOwner_"
@@ -111,6 +139,7 @@ diagnostic_marker "$PROJECT/BusinessOffice_Web.gs" "function boBusinessOfficeSta
 diagnostic_marker "$PROJECT/Portal_Business.js" "function h38PortalGetCurrentUser_"
 diagnostic_marker "$PROJECT/BusinessOffice_Auth.gs" "function boGetCurrentUser_()"
 diagnostic_marker "$PROJECT/BusinessOffice_QuoteBuilder_Direct.gs" "function boRenderQuoteBuilderApp_()"
+write_controlled_inventory "$PROJECT" "$EVIDENCE/controlled-source-local.json"
 
 DEPLOY_STAGE="diagnostic_file_status"
 if ! (cd "$PROJECT" && clasp show-file-status) 2>&1 | tee "$EVIDENCE/clasp-status-before-push.txt"; then
@@ -121,11 +150,15 @@ DEPLOY_STAGE="push_source"
 (cd "$PROJECT" && clasp push --force) 2>&1 | tee "$EVIDENCE/clasp-push.txt"
 
 DEPLOY_STAGE="pull_remote_source"
-printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$REMOTE_VERIFY/.clasp.json"
+printf '{"scriptId":"%s","rootDir":"."}\n' "$PRODUCTION_SCRIPT_ID" > "$REMOTE_VERIFY/.clasp.json"
 (cd "$REMOTE_VERIFY" && clasp pull) 2>&1 | tee "$EVIDENCE/remote-project-pull.txt"
 find "$REMOTE_VERIFY" -maxdepth 1 -type f -printf '%f\n' | sort | tee "$EVIDENCE/remote-source-files.txt"
+write_controlled_inventory "$REMOTE_VERIFY" "$EVIDENCE/controlled-source-remote.json"
 
 DEPLOY_STAGE="verify_remote_source"
+node - "$EVIDENCE/controlled-source-local.json" "$EVIDENCE/controlled-source-remote.json" <<'NODE'
+const fs=require('fs');const [localFile,remoteFile]=process.argv.slice(2),local=JSON.parse(fs.readFileSync(localFile,'utf8')),remote=JSON.parse(fs.readFileSync(remoteFile,'utf8'));const localKeys=Object.keys(local).sort(),remoteKeys=Object.keys(remote).sort(),missing=localKeys.filter(key=>!remote[key]),extra=remoteKeys.filter(key=>!local[key]),changed=localKeys.filter(key=>remote[key]&&remote[key].sha256!==local[key].sha256);if(missing.length||extra.length||changed.length)throw new Error(`Remote controlled source mismatch. missing=${missing.join(',')||'none'} extra=${extra.join(',')||'none'} changed=${changed.join(',')||'none'}`);console.log(`PASS — ${localKeys.length} controlled files match remote source exactly.`);
+NODE
 REMOTE_SHELL="$(find_remote_source Unified_AppShell)"
 REMOTE_BUSINESS_ADAPTER="$(find_remote_source Portal_Business)"
 REMOTE_SERVICES="$(find_remote_source Portal_Services)"
@@ -152,7 +185,7 @@ grep -F "function boRenderQuoteBuilderApp_()" "$REMOTE_QB_DIRECT" >/dev/null
 node - "$REMOTE_VERIFY" <<'NODE'
 const fs=require('fs'),path=require('path'),root=process.argv[2],entries=[];for(const name of fs.readdirSync(root).filter(name=>/\.(?:gs|js)$/i.test(name))){const source=fs.readFileSync(path.join(root,name),'utf8');for(let i=0;i<(source.match(/\bfunction\s+doGet\s*\(/g)||[]).length;i++)entries.push(name)}if(entries.length!==1||!/^Unified_AppShell\.(?:gs|js)$/.test(entries[0]))throw new Error(`Remote project must contain one unified doGet; found ${entries.join(', ')||'none'}`);console.log(`Remote unified entry point: ${entries[0]}`);
 NODE
-printf 'PASS — remote Apps Script source includes one deterministic shell, one entry point, self-contained authentication, capability ownership, direct Quote Builder routing, and existing Business Office modules.\n' | tee "$EVIDENCE/remote-source-verification.txt"
+printf 'PASS — remote Apps Script source exactly matches the verified controlled source and includes one deterministic shell, one entry point, self-contained authentication, capability ownership, direct Quote Builder routing, and approval-gated AI actions.\n' | tee "$EVIDENCE/remote-source-verification.txt"
 
 DEPLOY_STAGE="update_existing_deployments"
 DEPLOYMENT_DESCRIPTION="Highway 38 unified shell ${GITHUB_SHA}"
@@ -170,6 +203,6 @@ done
 
 DEPLOY_STAGE="record_pass"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
-{"status":"PASS","sourceCommit":"${GITHUB_SHA}","shellVersion":"3.0.0","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${OWNER_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"singleEntryPointVerified":true,"selfContainedAuthentication":true,"legacyPortalAuthBridgeRemoved":true,"capabilityOwnershipVerified":true,"quoteBuilderOwnsQuotesWhenEnabled":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false}
+{"status":"PASS","sourceCommit":"${GITHUB_SHA}","shellVersion":"3.1.0","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${PRODUCTION_SCRIPT_ID}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"singleProductionAuthority":"${SINGLE_AUTHORITY}","singleEntryPointVerified":true,"selfContainedAuthentication":true,"legacyPortalAuthBridgeRemoved":true,"capabilityOwnershipVerified":true,"quoteBuilderOwnsQuotesWhenEnabled":true,"aiOwnerApprovalVerified":true,"exactControlledSourceVerified":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false}
 JSON
 cat "$EVIDENCE/deployment-result.json"
