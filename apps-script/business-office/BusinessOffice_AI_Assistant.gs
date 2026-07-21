@@ -38,7 +38,7 @@ function boAiPrepareEmail_(payload){
  const action=boAiPrepareAction_({actionId:'email.send',arguments:payload||{},context:(payload&&payload.context)||{}});
  return{confirmationToken:action.actionToken,actionToken:action.actionToken,draft:{to:String(payload&&payload.to||''),subject:String(payload&&payload.subject||'Highway 38 follow-up'),body:action.preview.split('\n\n').slice(1).join('\n\n')},preview:action.preview,confirmation:action.confirmation,expiresAt:action.expiresAt,requiresConfirmation:true,requiresOwnerApproval:true};
 }
-function boAiSendEmail_(payload){return boAiConfirmAction_({actionToken:payload&&(?:payload.actionToken||payload.confirmationToken),confirmation:payload&&payload.confirmation});}
+function boAiSendEmail_(payload){return boAiConfirmAction_({actionToken:payload&&(payload.actionToken||payload.confirmationToken),confirmation:payload&&payload.confirmation});}
 function boAiSendViaGmailApi_(draft){
  const to=boAiCleanHeader_(draft&&draft.to),subject=boAiCleanHeader_(draft&&draft.subject),body=String(draft&&draft.body||'');
  boAssert_(to&&to.indexOf('@')>0,'A valid email recipient is required.');
