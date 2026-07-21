@@ -35,6 +35,8 @@ jobs:
         run: node scripts/verify-field-role-client-runtime.js
       - name: Verify user access role setup
         run: node scripts/verify-user-access-role-setup.js
+      - name: Verify owner role preview
+        run: node scripts/verify-owner-role-preview.js
       - name: Verify Business Office separation
         run: node scripts/verify-business-office-separation.js
       - name: Verify integrated backend
