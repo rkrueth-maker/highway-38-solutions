@@ -60,9 +60,21 @@ function boAiSendViaGmailApi_(draft){
 }
 function boAiSaveLayout_(layout){const clean=boAiSanitizeLayout_(layout||{});PropertiesService.getUserProperties().setProperty('H38_AI_LAYOUT',JSON.stringify(clean));boAiRecordEvent_({type:'layout_change',module:String(clean.startModule||''),outcome:'saved'});return clean;}
 function boAiTelemetry_(event){boAiRecordEvent_(event||{});return{recorded:true};}
-function boAiRecommendations_(){
+function boAiTelemetryRecommendations_(){
  const events=boAiEvents_(),counts={};events.forEach(function(e){const key=[e.type||'event',e.module||'general',e.outcome||''].join('|');counts[key]=(counts[key]||0)+1;});const recommendations=[];
  Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,8).forEach(function(key){const p=key.split('|'),n=counts[key];if(n<3)return;if(p[0]==='module_open')recommendations.push({type:'layout',title:'Pin '+p[1],reason:'Opened '+n+' times recently.',risk:'low',requiresApproval:false});if(p[0]==='workflow_error')recommendations.push({type:'module',title:'Review '+p[1]+' workflow',reason:n+' recent workflow errors.',risk:'medium',requiresApproval:true});if(p[0]==='ai_chat')recommendations.push({type:'coaching',title:'Create guided help for '+p[1],reason:'Users repeatedly asked AI for help here.',risk:'low',requiresApproval:true});});return recommendations.slice(0,5);
+}
+function boAiRecommendations_(){
+ try{
+  if(typeof h38PortalUpgradeAdvisor==='function'){
+   const context=boGetClientContext()||{};
+   if(String(context.role||'')==='Owner'){
+    const advisor=h38PortalUpgradeAdvisor({source:'h38-ai'}),items=(advisor.recommendations||[]).filter(function(item){return item.activeSignal!==false&&item.status!=='Dismissed';}).slice(0,5);
+    if(items.length)return items.map(function(item){return{id:item.id,type:item.recommendationType,title:item.title,reason:(item.evidence||[]).map(function(evidence){return evidence.label+': '+evidence.value;}).join('; ')||item.businessProblem,risk:String(item.effortLevel||'Medium').toLowerCase(),requiresApproval:item.ownerApprovalRequired!==false,status:item.status,targetPack:item.targetPack||'',targetModule:item.targetModule||'',expectedBenefit:item.expectedBenefit,acceptedDoesNotInstallOrEnable:true};});
+   }
+  }
+ }catch(error){}
+ return boAiTelemetryRecommendations_();
 }
 function boAiRecordEvent_(event){const props=PropertiesService.getScriptProperties(),events=boAiJson_(props.getProperty('H38_AI_EVENTS'),[]),clean={at:new Date().toISOString(),type:String(event.type||'event').slice(0,40),module:String(event.module||'').slice(0,40),outcome:String(event.outcome||'').slice(0,60),durationMs:Number(event.durationMs)||0,count:Number(event.count)||0,role:String((boGetClientContext()||{}).role||'').slice(0,30)};events.push(clean);while(events.length>H38_AI_EVENT_LIMIT)events.shift();props.setProperty('H38_AI_EVENTS',JSON.stringify(events));}
 function boAiEvents_(){return boAiJson_(PropertiesService.getScriptProperties().getProperty('H38_AI_EVENTS'),[]);}

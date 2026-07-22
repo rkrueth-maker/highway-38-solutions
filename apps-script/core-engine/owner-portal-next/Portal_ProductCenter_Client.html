@@ -1,0 +1,96 @@
+var H38_PRODUCT_CENTER=null,H38_UPGRADE_ADVISOR=null,H38_PRODUCT_CENTER_TAB='installed';
+
+function h38ProductCenterRelabelNav(){uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){uxRows(group.items).forEach(function(item){if(item.key==='moduleManager')item.label='Product Center';});});if(typeof renderNav==='function')renderNav();}
+
+async function h38RenderModuleManager(){
+  h38ProductCenterRelabelNav();
+  var results=await Promise.all([call('h38PortalProductCenter'),call('h38PortalUpgradeAdvisor',[{}]),call('h38PortalModuleManager')]);
+  H38_PRODUCT_CENTER=results[0]||{};H38_UPGRADE_ADVISOR=results[1]||{};H38_APP_MODULE_MANAGER=results[2]||{};
+  h38RenderProductCenter();
+}
+
+function h38ProductCenterTab(tab){H38_PRODUCT_CENTER_TAB=tab;h38RenderProductCenter();}
+function h38ProductCenterPill(state){var label=state==='included'?'Included':state==='installed'?'Installed':state==='partial'?'Partially enabled':'Available';var tone=state==='included'||state==='installed'?'green':state==='partial'?'amber':'gray';return '<span class="pill '+tone+'">'+esc(label)+'</span>';}
+function h38ProductCenterRoles(pack){var roles=uxRows(pack.roleVisibility);return roles.length?roles.join(', '):'Owner';}
+function h38ProductCenterLastUsed(pack){var used=pack.lastUsed||{};return used.at?esc(used.module+' · '+used.at+(used.by?' · '+used.by:'')):'Not recorded';}
+function h38ProductCenterPackCard(pack){
+  var enabled=pack.installedState==='installed'||pack.installedState==='included';
+  var canEnable=!enabled;
+  return '<article class="product-center-card '+(enabled?'installed':'available')+'">'+
+    '<div class="product-center-card-head"><div><div class="ux-eyebrow">'+esc(pack.kind==='addon'?'Specialist add-on':'Product pack')+'</div><h3>'+esc(pack.name)+'</h3></div>'+h38ProductCenterPill(pack.installedState)+'</div>'+
+    '<p>'+esc(uxRows(pack.capabilities).join(' · '))+'</p>'+
+    '<div class="product-center-metrics"><div><small>Modules</small><b>'+esc(pack.enabledModuleCount||0)+' / '+esc(pack.moduleCount||0)+'</b></div><div><small>Records</small><b>'+esc(pack.recordCount||0)+'</b></div><div><small>Roles</small><b>'+esc(h38ProductCenterRoles(pack))+'</b></div><div><small>Last used</small><b>'+h38ProductCenterLastUsed(pack)+'</b></div></div>'+
+    '<div class="product-center-detail"><b>Dependencies:</b> '+esc(uxRows(pack.dependencies).join(', ')||'None')+'</div>'+
+    '<div class="product-center-detail"><b>Included modules:</b> '+esc(uxRows(pack.includedModules).map(function(module){return module.label||module.key;}).join(', '))+'</div>'+
+    '<div class="product-center-warning">'+esc(pack.existingRecordsWarning||'Existing records remain preserved.')+'</div>'+
+    '<div class="product-center-actions">'+(canEnable?'<button class="btn primary" type="button" onclick="h38ProductCenterEnable(\''+attr(pack.key)+'\')">Preview and enable</button>':'<button class="btn" type="button" onclick="h38ProductCenterPreviewOnly(\''+attr(pack.key)+'\')">Review configuration</button>')+'</div></article>';
+}
+function h38ProductCenterPackGrid(packs,empty){return packs.length?'<div class="product-center-grid">'+packs.map(h38ProductCenterPackCard).join('')+'</div>':h38InstructionalEmpty(empty,'No matching product configuration needs attention.','','');}
+
+function h38RenderProductCenter(){
+  var center=H38_PRODUCT_CENTER||{},advisor=H38_UPGRADE_ADVISOR||{},tabs=[['installed','Installed packs'],['available','Available packs'],['addons','Specialist add-ons'],['advisor','Upgrade Advisor'],['advanced','Advanced module controls']];
+  var body='';
+  if(H38_PRODUCT_CENTER_TAB==='installed')body=h38ProductCenterPackGrid(uxRows(center.installedPacks),'No installed packs were returned.');
+  if(H38_PRODUCT_CENTER_TAB==='available')body=h38ProductCenterPackGrid(uxRows(center.availablePacks),'All primary packs are installed.');
+  if(H38_PRODUCT_CENTER_TAB==='addons')body=h38ProductCenterPackGrid(uxRows(center.specialistAddOns),'No specialist add-ons are available.');
+  if(H38_PRODUCT_CENTER_TAB==='advisor')body=h38ProductCenterAdvisor(advisor);
+  if(H38_PRODUCT_CENTER_TAB==='advanced')body=h38ProductCenterAdvanced();
+  document.getElementById('view').innerHTML='<div class="ux-page-head"><div><div class="ux-eyebrow">Owner-only application configuration</div><h1>Product Center</h1><div class="muted">Review installed packs, available packs, specialist add-ons, Upgrade Advisor evidence, and advanced module controls without losing existing records.</div></div><div class="product-center-safety"><span class="pill green">Records preserved</span><span class="pill blue">Owner confirmation required</span></div></div>'+
+    '<div class="product-center-banner"><b>No silent changes.</b> Product Center never purchases a product, changes permissions, disables an existing module automatically, or executes an external action.</div>'+
+    '<nav class="product-center-tabs">'+tabs.map(function(item){var count=item[0]==='installed'?uxRows(center.installedPacks).length:item[0]==='available'?uxRows(center.availablePacks).length:item[0]==='addons'?uxRows(center.specialistAddOns).length:item[0]==='advisor'?(advisor.counts&&advisor.counts.New||0):uxRows(H38_APP_MODULE_MANAGER&&H38_APP_MODULE_MANAGER.modules).length;return '<button type="button" class="'+(H38_PRODUCT_CENTER_TAB===item[0]?'active':'')+'" onclick="h38ProductCenterTab(\''+item[0]+'\')">'+esc(item[1])+' <span>'+esc(count)+'</span></button>';}).join('')+'</nav>'+body;
+}
+
+async function h38ProductCenterPreviewOnly(packKey){
+  try{var preview=await call('h38PortalPreviewProductChange',[packKey,'ENABLE']);var text=h38ProductCenterPreviewText(preview);alert(text);}catch(error){ownerSafeFailure(error,'The Product Center preview could not be prepared. No configuration changed.');}
+}
+function h38ProductCenterPreviewText(preview){return [
+  (preview.pack&&preview.pack.name)||preview.packKey,
+  '',
+  'Dependency packs: '+(uxRows(preview.dependencyPacks).join(', ')||'None'),
+  'Modules to enable: '+(uxRows(preview.modulesToEnable).join(', ')||'None'),
+  'Configuration still required: '+(uxRows(preview.configurationRequired).join(', ')||'None'),
+  'Existing records reviewed: '+(preview.existingRecordCountReviewed||0),
+  'Roles with access: '+(uxRows(preview.rolesWithAccess).join(', ')||'Owner'),
+  '',preview.permissionImpact,preview.dataImpact,'',preview.possibleCostImpact
+].join('\n');}
+async function h38ProductCenterEnable(packKey){
+  try{
+    var preview=await call('h38PortalPreviewProductChange',[packKey,'ENABLE']);
+    var typed=prompt(h38ProductCenterPreviewText(preview)+'\n\nType ENABLE PACK to apply this change. No module will be disabled.','');
+    if(String(typed||'').trim().toUpperCase()!=='ENABLE PACK'){notice('Product Center change cancelled. Nothing was enabled or disabled.','hold');return;}
+    var result=await call('h38PortalApplyProductChange',[packKey,'ENABLE','ENABLE PACK']);
+    H38_PRODUCT_CENTER=result.productCenter||await call('h38PortalProductCenter');
+    H38_APP_MODULE_MANAGER=await call('h38PortalModuleManager');
+    H38_UNIFIED=await call('h38PortalUnifiedBootstrap');renderNav();
+    notice('Product pack enabled with Owner confirmation. Existing records and permissions were preserved.','ok');h38RenderProductCenter();
+  }catch(error){ownerSafeFailure(error,'The Product Center change was not applied. Existing configuration remains safe.');}
+}
+
+function h38ProductCenterAdvanced(){
+  var groups={};uxRows(H38_APP_MODULE_MANAGER&&H38_APP_MODULE_MANAGER.modules).forEach(function(module){(groups[module.group]||(groups[module.group]=[])).push(module);});
+  return '<section class="ux-section"><div class="ux-section-head"><div><h2>Advanced module controls</h2><p class="muted">Use only for individually reviewed module changes. Product Center never disables modules as part of a pack action.</p></div><span class="pill amber">Advanced</span></div><div class="product-center-warning"><b>Existing records stay preserved.</b> Disabling a module hides navigation and stops new work; it does not delete records, proof, errors, permissions, or audit history.</div></section>'+Object.keys(groups).map(function(group){return '<section class="ux-section"><div class="ux-section-head"><h2>'+esc(capitalize(group))+'</h2><span class="muted">'+groups[group].filter(function(item){return item.enabled;}).length+' enabled</span></div><div class="module-manager-grid">'+groups[group].map(function(module){return h38ModuleCard(module,H38_APP_MODULE_MANAGER.ownerMode);}).join('')+'</div></section>';}).join('');
+}
+
+function h38ProductCenterAdvisor(advisor){
+  var items=uxRows(advisor.recommendations),counts=advisor.counts||{};
+  return '<section class="ux-section"><div class="ux-section-head"><div><h2>H38 AI Upgrade Advisor</h2><p class="muted">Deterministic business signals create the recommendation first. H38 AI may explain it, but cannot install, enable, purchase, deploy, change permissions, move money, fund payroll, file taxes, or execute an external action.</p></div><span class="pill blue">'+esc(counts.New||0)+' new</span></div><div class="advisor-counts">'+['New','Reviewed','Postponed','Accepted','Dismissed'].map(function(status){return '<span class="pill '+(status==='New'?'blue':status==='Accepted'?'green':status==='Dismissed'?'gray':'amber')+'">'+esc(status)+': '+esc(counts[status]||0)+'</span>';}).join('')+'</div></section>'+(items.length?'<div class="advisor-grid">'+items.map(h38UpgradeRecommendationCard).join('')+'</div>':h38InstructionalEmpty('No recommendation signal is active.','The Advisor will create recommendations when deterministic operating evidence reaches a useful threshold.','',''));
+}
+function h38AdvisorEvidence(items){return '<ul class="advisor-evidence">'+uxRows(items).map(function(item){return '<li><b>'+esc(item.label||'Evidence')+':</b> '+esc(item.value||'')+' <small>'+esc(item.source||'')+'</small></li>';}).join('')+'</ul>';}
+function h38AdvisorSteps(items){return '<ol class="advisor-steps">'+uxRows(items).map(function(step){return '<li>'+esc(step)+'</li>';}).join('')+'</ol>';}
+function h38UpgradeRecommendationCard(item){
+  return '<article class="advisor-card '+(item.activeSignal===false?'inactive':'')+'"><div class="advisor-card-head"><div><div class="ux-eyebrow">'+esc(humanize(item.recommendationType))+'</div><h3>'+esc(item.title)+'</h3></div><span class="pill '+(item.status==='New'?'blue':item.status==='Accepted'?'green':item.status==='Dismissed'?'gray':'amber')+'">'+esc(item.status)+'</span></div>'+
+    '<div class="advisor-section"><b>Evidence from current system data</b>'+h38AdvisorEvidence(item.evidence)+'</div>'+
+    '<div class="advisor-two"><div><small>Business problem</small><p>'+esc(item.businessProblem)+'</p></div><div><small>Expected benefit</small><p>'+esc(item.expectedBenefit)+'</p></div></div>'+
+    '<div class="advisor-meta"><div><small>Effort</small><b>'+esc(item.effortLevel)+'</b></div><div><small>Possible cost</small><b>'+esc(item.possibleCostImpact)+'</b></div><div><small>Dependencies</small><b>'+esc(uxRows(item.dependencies).join(', ')||'None')+'</b></div><div><small>Owner approval</small><b>'+esc(item.ownerApprovalRequired?'Required':'Not required')+'</b></div></div>'+
+    '<div class="advisor-section"><b>Permission and data impact</b><p>'+esc(item.permissionDataImpact)+'</p></div>'+
+    '<div class="advisor-section"><b>Migration steps</b>'+h38AdvisorSteps(item.migrationSteps)+'</div>'+
+    (item.aiExplanation?'<div class="advisor-ai"><b>H38 AI explanation</b><p>'+esc(item.aiExplanation)+'</p></div>':'')+
+    '<div class="advisor-actions"><button class="btn" type="button" onclick="h38AdvisorExplain(\''+attr(item.id)+'\')">Explain with H38 AI</button>'+(item.targetPack?'<button class="btn" type="button" onclick="h38ProductCenterPreviewOnly(\''+attr(item.targetPack)+'\')">Preview pack</button>':'')+'<button class="btn" type="button" onclick="h38AdvisorStatus(\''+attr(item.id)+'\',\'Reviewed\')">Review</button><button class="btn" type="button" onclick="h38AdvisorPostpone(\''+attr(item.id)+'\')">Postpone</button><button class="btn" type="button" onclick="h38AdvisorDismiss(\''+attr(item.id)+'\')">Dismiss</button><button class="btn primary" type="button" onclick="h38AdvisorAccept(\''+attr(item.id)+'\')">Accept for planning</button></div>'+
+    '<div class="product-center-warning">Accepting a recommendation does not install or enable anything.</div></article>';
+}
+async function h38AdvisorReload(){H38_UPGRADE_ADVISOR=await call('h38PortalUpgradeAdvisor',[{}]);h38RenderProductCenter();}
+async function h38AdvisorStatus(id,status,options){try{await call('h38PortalUpdateUpgradeRecommendation',[id,status,options||{}]);notice('Recommendation status changed to '+status+'. No product or module change occurred.','ok');await h38AdvisorReload();}catch(error){ownerSafeFailure(error,'The recommendation status was not changed.');}}
+function h38AdvisorPostpone(id){var future=new Date(Date.now()+30*24*60*60*1000).toISOString().slice(0,10),until=prompt('Postpone until YYYY-MM-DD',future);if(!until)return;h38AdvisorStatus(id,'Postponed',{postponedUntil:until});}
+function h38AdvisorDismiss(id){var reason=prompt('Why are you dismissing this recommendation?','Not a priority right now.');if(reason===null)return;h38AdvisorStatus(id,'Dismissed',{reason:reason});}
+function h38AdvisorAccept(id){if(!confirm('Accept this recommendation for planning? This will not install, enable, purchase, deploy, change permissions, move money, fund payroll, file taxes, or execute an external action.'))return;h38AdvisorStatus(id,'Accepted',{});}
+async function h38AdvisorExplain(id){try{var result=await call('h38PortalExplainUpgradeRecommendation',[id]);notice('H38 AI explanation added. No system change occurred.','ok');await h38AdvisorReload();}catch(error){ownerSafeFailure(error,'H38 AI could not explain this recommendation. The deterministic evidence remains available.');}}
