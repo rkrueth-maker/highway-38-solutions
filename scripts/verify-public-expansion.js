@@ -22,13 +22,14 @@ check('catalog preserves 15 products',productCount===15,String(productCount));
 check('catalog preserves 9 bundles',bundleCount===9,String(bundleCount));
 
 const home=read('index.html');
-check('homepage preserves approved promise',home.includes('<span>Big problems.</span>')&&home.includes('<strong>Clear plans.</strong>'));
+check('homepage presents current project-intelligence promise',home.includes('From photos to plans.')&&home.includes('profitable work.'));
 check('homepage has request and examples actions',home.includes('href="start-request.html"')&&home.includes('href="sample-library-now.html"'));
-check('homepage explains no-charge boundary',home.includes('Submitting a request creates no charge'));
-check('homepage uses clean approved planning image',home.includes('assets/approved-website-images/10-project-planning-documents.jpg'));
-check('homepage uses real responsive structure',home.includes('class="site-header"')&&home.includes('class="menu-button"')&&home.includes('class="hero-copy"')&&home.includes('class="hero-media"'));
+check('homepage preserves human approval boundary through linked request flow',home.includes('start-request.html')&&read('start-request.html').includes('No charge'));
+check('homepage uses approved local industrial and contractor imagery',home.includes('assets/approved-website-images/'));
+check('homepage uses current responsive structure',home.includes('class="pi-nav"')&&home.includes('class="pi-menu"')&&home.includes('class="pi-hero-copy"')&&home.includes('class="pi-hero-media"'));
 check('homepage retired mockup and hotspot shell are absent',!home.includes('assets/approved-homepage-mockup.png')&&!/class="hotspot|Swipe horizontally|approved-home__stage/i.test(home));
-check('homepage preserves four outcome paths',(home.match(/class="outcome-card"/g)||[]).length===4);
+check('homepage preserves four audience paths',['Contractors & Builders','Manufacturing & CNC','Robotics & Automation','DIY & Training'].every(marker=>home.includes(marker)));
+check('homepage preserves scalable connected workflow',home.includes('Capture once. Use the information everywhere.')&&home.includes('Start small. Scale as you grow.'));
 check('unsupported quantitative CNC claim absent',!home.includes('25,000+'));
 
 const request=read('start-request.html');
