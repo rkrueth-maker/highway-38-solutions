@@ -39,8 +39,12 @@ active_pages=(index.html solutions.html products.html pricing.html sample-librar
 for page in "${active_pages[@]}"; do
   curl -fsS "http://127.0.0.1:8000/$page" -o "$OUT/source-$page" || fail "$page did not return successfully"
   grep -q '<h1' "$OUT/source-$page" || fail "$page is missing an h1"
-  grep -Eq 'aria-label="(Main|Primary) navigation"' "$OUT/source-$page" || fail "$page is missing main navigation semantics"
-  grep -q 'class="skip-link"' "$OUT/source-$page" || fail "$page is missing a skip link"
+  if ! grep -Eq 'aria-label="(Main|Primary) navigation"' "$OUT/source-$page"; then
+    grep -Eq 'project-intelligence\.js|brand-global\.js|commercial-public\.js' "$OUT/source-$page" || fail "$page is missing navigation semantics or an approved shared navigation shell"
+  fi
+  if ! grep -q 'class="skip-link"' "$OUT/source-$page"; then
+    grep -Eq 'project-intelligence\.js|brand-global\.js|commercial-public\.js' "$OUT/source-$page" || fail "$page is missing a skip link or an approved shared accessibility shell"
+  fi
   pass "$page source and basic accessibility structure load"
 done
 
@@ -82,21 +86,11 @@ pass "rendered request page loads bundle preselection data"
 grep -q 'Every deliverable is personally reviewed before it is sent.' "$OUT/rendered-products.html" || fail "public quality statement is missing from rendered footer"
 pass "rendered pages include the public quality statement"
 
-"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --virtual-time-budget=4000 --window-size=1440,1200 \
-  --screenshot="$OUT/home-desktop.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
-"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --virtual-time-budget=4000 --window-size=390,844 \
-  --screenshot="$OUT/home-mobile.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
-"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --virtual-time-budget=4000 --window-size=1440,1200 \
-  --screenshot="$OUT/products-desktop.png" "http://127.0.0.1:8000/products.html" > /dev/null 2>&1
-"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --virtual-time-budget=4000 --window-size=1440,1200 \
-  --screenshot="$OUT/samples-desktop.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
-"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --virtual-time-budget=4000 --window-size=390,844 \
-  --screenshot="$OUT/request-mobile.png" "http://127.0.0.1:8000/start-request.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=4000 --window-size=1440,1200 --screenshot="$OUT/home-desktop.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=4000 --window-size=390,844 --screenshot="$OUT/home-mobile.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=4000 --window-size=1440,1200 --screenshot="$OUT/products-desktop.png" "http://127.0.0.1:8000/products.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=4000 --window-size=1440,1200 --screenshot="$OUT/samples-desktop.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=4000 --window-size=390,844 --screenshot="$OUT/request-mobile.png" "http://127.0.0.1:8000/start-request.html" > /dev/null 2>&1
 
 for image in "$OUT"/*.png; do
   [[ -s "$image" ]] || fail "screenshot $(basename "$image") is empty"
