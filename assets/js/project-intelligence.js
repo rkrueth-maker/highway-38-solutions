@@ -1,0 +1,1 @@
+(()=>{const b=document.querySelector('.pi-menu'),n=document.querySelector('.pi-links');if(b&&n)b.addEventListener('click',()=>{const o=n.classList.toggle('open');b.setAttribute('aria-expanded',String(o))});document.querySelectorAll('.pi-links a').forEach(a=>a.addEventListener('click',()=>n&&n.classList.remove('open')));})();
