@@ -9,10 +9,10 @@ window.H38ContractorDemo = Object.freeze({
       "1BIXaFXIVK9FUEyWRSzQgM7CiH_tgk405": "assets/contractor-demo/flower-after.svg",
       "1MkSHG4k734T7dmhOmy5JsKFUJyoXW8Dz": "assets/contractor-demo/driveway-before.svg",
       "11fGOY_PJxwvgQm_uMwISvF98XrSXfJK0": "assets/contractor-demo/driveway-after.svg",
-      "12YDZ4GVNUnF0gRWuBqVxTAgzG8tiY6z3": "assets/approved-website-images/01-landscape-before.jpg",
-      "18d2FE5VGjM_q62KKTq12w6rsQ0otdUfk": "assets/approved-website-images/03-yard-improvement-after.jpg",
-      "1DZ55aulS2fzUrJsy1BsibrzzwaiZ_lv5": "assets/approved-website-images/01-landscape-before.jpg",
-      "1JU1RbFotwLziQJ5SJsEWgwE2lterUSh9": "assets/approved-website-images/02-landscape-construction.jpg"
+      "12YDZ4GVNUnF0gRWuBqVxTAgzG8tiY6z3": "assets/contractor-demo/pond-before.svg",
+      "18d2FE5VGjM_q62KKTq12w6rsQ0otdUfk": "assets/contractor-demo/pond-after.svg",
+      "1DZ55aulS2fzUrJsy1BsibrzzwaiZ_lv5": "assets/contractor-demo/lot-before.svg",
+      "1JU1RbFotwLziQJ5SJsEWgwE2lterUSh9": "assets/contractor-demo/lot-after.svg"
     };
     return images[id] || "assets/approved-website-images/10-project-planning-documents.jpg";
   },
