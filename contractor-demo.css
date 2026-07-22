@@ -1,7 +1,10 @@
 @import url('contractor-demo-base.css?v=20260722-first-render-final');
 .project-visual.project-pair{grid-template-columns:1fr;gap:0;position:relative}
-.project-visual.project-pair figure{width:100%;position:relative}
+.project-visual.project-pair figure{width:100%;position:relative;aspect-ratio:420/205;background-image:url('assets/demo-workthroughs/approved-project-pairs-sprite.svg?v=20260722-approved-hires-1');background-repeat:no-repeat;background-size:300% 100%;background-color:#e8ecea}
+.project-card:nth-child(5) .project-pair figure{background-position:left center}
+.project-card:nth-child(6) .project-pair figure{background-position:center center}
+.project-card:nth-child(7) .project-pair figure{background-position:right center}
 .project-visual.project-pair figure:before,.project-visual.project-pair figure:after{position:absolute;top:12px;z-index:2;padding:7px 10px;border-radius:999px;background:rgba(11,31,52,.9);color:#fff;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:900}
 .project-visual.project-pair figure:before{content:'Before';left:12px}
 .project-visual.project-pair figure:after{content:'After';left:calc(50% + 12px)}
-.project-visual.project-pair img{display:block;width:100%;height:auto;aspect-ratio:369/134;object-fit:cover}
+.project-visual.project-pair img{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
