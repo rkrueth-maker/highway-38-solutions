@@ -1,14 +1,14 @@
 window.H38ContractorDemo = Object.freeze({
-  version: "2026.07.22.2",
+  version: "2026.07.22.3",
   updated: "July 22, 2026",
   region: "Deer River / Grand Rapids, Minnesota",
   notice: "Hypothetical contractor demonstration — not a real customer, accepted contract, or completed project. Regional benchmark pricing requires field and supplier verification.",
   imageUrl(id) {
     const images = {
-      "1QqR5oj3Nw8sjykCnu7Vp5hh6VDIJ6GS9": "assets/approved-website-images/01-landscape-before.jpg",
-      "1BIXaFXIVK9FUEyWRSzQgM7CiH_tgk405": "assets/approved-website-images/03-yard-improvement-after.jpg",
-      "1MkSHG4k734T7dmhOmy5JsKFUJyoXW8Dz": "assets/approved-website-images/02-landscape-construction.jpg",
-      "11fGOY_PJxwvgQm_uMwISvF98XrSXfJK0": "assets/approved-website-images/11-exterior-shop-building.jpg",
+      "1QqR5oj3Nw8sjykCnu7Vp5hh6VDIJ6GS9": "assets/contractor-demo/flower-before.svg",
+      "1BIXaFXIVK9FUEyWRSzQgM7CiH_tgk405": "assets/contractor-demo/flower-after.svg",
+      "1MkSHG4k734T7dmhOmy5JsKFUJyoXW8Dz": "assets/contractor-demo/driveway-before.svg",
+      "11fGOY_PJxwvgQm_uMwISvF98XrSXfJK0": "assets/contractor-demo/driveway-after.svg",
       "12YDZ4GVNUnF0gRWuBqVxTAgzG8tiY6z3": "assets/approved-website-images/01-landscape-before.jpg",
       "18d2FE5VGjM_q62KKTq12w6rsQ0otdUfk": "assets/approved-website-images/03-yard-improvement-after.jpg",
       "1DZ55aulS2fzUrJsy1BsibrzzwaiZ_lv5": "assets/approved-website-images/01-landscape-before.jpg",
