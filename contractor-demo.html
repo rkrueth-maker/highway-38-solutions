@@ -42,14 +42,14 @@
     </section>
   </main>
   <footer class="pi-footer"><div class="pi-footer-grid"><div class="pi-logo-lock"><img src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions"><p>Project intelligence for real-world work.</p></div><div><h4>Demo</h4><a href="#examples">Example Quotes</a><a href="contractor-capabilities.html">Capabilities & Pricing</a></div><div><h4>Platform</h4><a href="quote-builder.html">Quote Builder</a><a href="job-guide.html">Job Guide</a><a href="business-systems.html">Business Office</a></div><div><h4>Contact</h4><a href="mailto:highway38solutions@gmail.com">highway38solutions@gmail.com</a></div></div></footer>
-  <script src="assets/js/h38-contractor-demo-data.js?v=20260722a"></script>
+  <script src="assets/js/h38-contractor-demo-data.js?v=20260722-correct-project-visuals-1940652"></script>
   <script src="assets/js/project-intelligence.js?v=20260722-release"></script>
   <script>
   (()=>{
     const source=window.H38ContractorDemo;if(!source)return;
     const order=['flower','drive','pond','clear'];
     const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
-    document.querySelector('[data-demo-grid]').innerHTML=order.map((key,index)=>{const q=source.quotes[key];return `<article class="demo-card"><div class="demo-pair"><img src="${source.imageUrl(q.before)}" alt="${q.beforeCaption}"><img src="${source.imageUrl(q.after)}" alt="${q.afterCaption}"></div><div class="demo-body"><div class="demo-brand-line"><img src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt=""><span>Highway 38 Quote Builder Example</span></div><span class="demo-label">Example ${String(index+1).padStart(2,'0')}</span><h3>${q.title}</h3><p class="demo-price">${money(q.base)} base</p><p>${q.scope}</p><h4>Optional upgrades</h4><ul>${q.upgrades.map(item=>`<li>${item[0]} — ${money(item[2])}</li>`).join('')}</ul><div class="demo-card-actions"><a class="pi-btn primary" href="contractor-demo-quote.html?example=${key}">View & Try Quote</a><a class="pi-btn secondary" href="contractor-demo-quote.html?example=${key}#itemized">Review Itemization</a></div></div></article>`}).join('');
+    document.querySelector('[data-demo-grid]').innerHTML=order.map((key,index)=>{const q=source.quotes[key];return `<article class="demo-card"><div class="demo-pair"><img src="${source.imageUrl(q.before)}" alt="${q.beforeCaption}"><img src="${source.imageUrl(q.after)}" alt="${q.afterCaption}"></div><div class="demo-body"><div class="demo-brand-line"><img src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt=""><span>Highway 38 Quote Builder Example</span></div><span class="demo-label">Example ${String(index+1).padStart(2,'0')}</span><h3>${q.title}</h3><p class="demo-price">${money(q.base)} base</p><p>${q.scope}</p><h4>Optional upgrades</h4><ul>${q.upgrades.map(item=>`<li>${item[0]} — ${money(item[2])}</li>`).join('')}</ul><div class="demo-card-actions"><a class="pi-btn primary" href="contractor-demo-quote.html?example=${key}&v=1940652">View & Try Quote</a><a class="pi-btn secondary" href="contractor-demo-quote.html?example=${key}&v=1940652#itemized">Review Itemization</a></div></div></article>`}).join('');
   })();
   </script>
 </body>
