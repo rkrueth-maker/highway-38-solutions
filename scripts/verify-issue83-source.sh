@@ -12,14 +12,16 @@ check_file_contains() {
   echo "PASS — $label"
 }
 
-check_file_contains index.html 'Big problems.' 'Homepage headline start'
-check_file_contains index.html 'Clear plans.' 'Homepage headline completion'
+check_file_contains index.html 'From photos to plans.' 'Homepage headline start'
+check_file_contains index.html 'profitable work.' 'Homepage headline completion'
 check_file_contains index.html 'h38-outcome-grid' 'Homepage outcome routing'
 check_file_contains index.html 'href="start-request.html">Start a Request' 'Homepage primary CTA'
 check_file_contains products.html 'Choose the smallest service that produces a useful result.' 'Solutions and Pricing customer-first headline'
 check_file_contains products.html '15 fixed-price services. 9 approved bundles. 4 scoped systems.' 'Approved catalog preservation'
 check_file_contains product.html 'data-product-detail-single' 'Product detail route'
-check_file_contains sample-library-now.html 'See the kind of finished result before choosing a service.' 'Sample Library headline'
+check_file_contains sample-library-now.html 'See the kind of finished result before choosing a service.' 'Project Examples headline'
+check_file_contains sample-library-now.html 'data-samples="all"' 'Public examples compatibility marker'
+check_file_contains sample-library-now.html 'href="pricing.html">See Pricing' 'Direct pricing route'
 check_file_contains start-request.html 'What would you like to have when this is finished?' 'Request outcome prompt'
 check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
 check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
