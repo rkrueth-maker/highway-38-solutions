@@ -62,9 +62,11 @@ check('secure intake has schema-independent duplicate protection', /H38_PUBLIC_I
 check('catalog contains 15 products', catalog && catalog.products.length === 15, catalog ? String(catalog.products.length) : 'missing catalog');
 check('catalog contains 9 bundles', catalog && catalog.bundles.length === 9, catalog ? String(catalog.bundles.length) : 'missing catalog');
 check('products page renders catalog products and bundles', products.includes('data-product-details') && products.includes('data-bundles'));
-check('Sample Library contains all product samples', samples.includes('data-samples="all"'));
-check('Sample Library contains bundle proof', samples.includes('data-bundles'));
-check('Sample Library Owner Portal link is clean', samples.includes('href="portal.html">Owner Portal'));
+check('public Examples contains four project workflows', (samples.match(/class="project-card"/g) || []).length === 4);
+check('public Examples links pricing directly', (samples.match(/href="pricing\.html">See Pricing/g) || []).length >= 5);
+check('public Examples does not expose private contractor routes', !/contractor-demo(?:-quote)?\.html/.test(samples));
+check('public Examples preserves proof classification', samples.includes('data-image-classification="hypothetical-demonstration"'));
+check('public Examples preserves legacy route hooks', samples.includes('data-samples="all"') && samples.includes('data-bundles'));
 
 check('Owner Portal is an automatic gateway to one secure app', /location\.replace\(target\)/.test(portal) && /Opening Highway 38 Business System/.test(portal));
 check('Owner Portal contains no obsolete six-button workspace row', !/owner-area-strip|Tasks &amp; Decisions|Quotes, Money &amp; Reports/.test(portal));
@@ -97,7 +99,6 @@ check('dashboard excludes controlled test records', dashboard.includes('boDashbo
 check('dashboard includes revenue, cost, and profit metrics', dashboard.includes("'Active-job revenue'") && dashboard.includes("'Active-job cost'") && dashboard.includes("'Active-job profit'"));
 check('dashboard includes payroll and tax preparation metrics', dashboard.includes("'Payroll preparation'") && dashboard.includes("'Tax preparation'"));
 check('dashboard includes documents and approvals metrics', dashboard.includes("'Documents needing review'") && dashboard.includes("'Pending owner approvals'"));
-
 check('current URL plan documents portal gateway', urlPlan.includes('/portal.html'));
 check('custom-domain actions remain approval gated', /Do not change DNS[\s\S]*without owner approval/i.test(urlPlan));
 check('legacy portal is explicitly preserved', /No component is approved for deletion/i.test(legacyPlan));
