@@ -8,12 +8,6 @@ on:
     paths-ignore:
       - 'deployment-status/**'
       - '.github/workflows/pages-deployment-recorder.yml'
-  workflow_run:
-    workflows:
-      - Pages Merge Signal
-      - Highway 38 Solutions Tests
-    types:
-      - completed
   workflow_dispatch:
 
 permissions:
@@ -23,11 +17,10 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -35,8 +28,6 @@ jobs:
     steps:
       - name: Checkout current main source
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
