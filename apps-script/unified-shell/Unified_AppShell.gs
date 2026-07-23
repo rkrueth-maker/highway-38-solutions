@@ -7,7 +7,7 @@
  */
 
 var H38_UNIFIED_SHELL = Object.freeze({
-  VERSION:'3.0.0',
+  VERSION:'3.1.0',
   OWNER_PORTAL:'owner-portal',
   BUSINESS_OFFICE:'business-office',
   QUOTE_BUILDER:'quote-builder',
@@ -196,7 +196,7 @@ function h38UnifiedShellRegistry(){
     installedApps:{businessOffice:true,quoteBuilder:quoteOwner==='quoteBuilder'},
     capabilityOwners:{quotes:quoteOwner},
     disabledLegacyCapabilities:{quotes:quoteOwner==='quoteBuilder'},
-    routes:{ownerPortal:'',businessOffice:'?app=business-office',quoteBuilder:'?app=business-office&quoteBuilder=1'},
+    routes:{ownerPortal:'',businessOffice:'',quoteBuilder:'?quoteBuilder=1'},
     modules:modules,
     externalActionsEnabled:false,
     ownerApprovalRequired:true
@@ -223,7 +223,7 @@ function h38UnifiedShellRenderBusinessOffice_(){
 }
 
 function h38UnifiedShellRenderQuoteBuilder_(){
-  if(h38UnifiedShellCapabilityOwner_('quotes')!=='quoteBuilder')return h38UnifiedShellRenderBusinessOffice_();
+  if(h38UnifiedShellCapabilityOwner_('quotes')!=='quoteBuilder')return h38UnifiedShellRenderPortal_();
   if(typeof boRenderQuoteBuilderApp_!=='function')throw new Error('Quote Builder renderer is unavailable.');
   return boRenderQuoteBuilderApp_();
 }
@@ -233,6 +233,6 @@ function doGet(event){
   var app=h38UnifiedShellParameter_(event,'app').toLowerCase();
   var quoteBuilder=h38UnifiedShellParameter_(event,'quoteBuilder');
   if(quoteBuilder==='1' || app===H38_UNIFIED_SHELL.QUOTE_BUILDER)return h38UnifiedShellRenderQuoteBuilder_();
-  if(app===H38_UNIFIED_SHELL.BUSINESS_OFFICE)return h38UnifiedShellRenderBusinessOffice_();
+  if(app===H38_UNIFIED_SHELL.BUSINESS_OFFICE)return h38UnifiedShellRenderPortal_();
   return h38UnifiedShellRenderPortal_();
 }
