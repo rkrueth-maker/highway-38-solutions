@@ -4,6 +4,7 @@
 const fs=require('fs');
 const path=require('path');
 const vm=require('vm');
+const childProcess=require('child_process');
 const ROOT=path.resolve(__dirname,'..');
 const PORTAL=path.join(ROOT,'apps-script','core-engine','owner-portal-next');
 const BUSINESS=path.join(ROOT,'apps-script','business-office');
@@ -27,7 +28,8 @@ const files={
   obsolete:path.join(BUSINESS,'BusinessOffice_AI_Native_UX_Client.html'),
   rules:path.join(ROOT,'docs','architecture','UNIFIED_APP_CHANGE_RULES.md'),
   agents:path.join(ROOT,'AGENTS.md'),
-  assetManifest:path.join(ROOT,'scripts','config','approved-public-assets.json')
+  assetManifest:path.join(ROOT,'scripts','config','approved-public-assets.json'),
+  assemblyVerifier:path.join(ROOT,'scripts','verify-unified-source-assembly.js')
 };
 
 Object.entries(files).forEach(([name,file])=>{
@@ -97,6 +99,11 @@ if(failures.length===0){
   check('change rules require deployment authority',/Deploy Unified Owner Portal/.test(rulesSource));
   check('existing asset authority remains',/Approved Asset Authority/.test(agentsSource)&&/controlled binary/.test(agentsSource));
   check('approved asset manifest remains present',exists(files.assetManifest));
+
+  const assembly=childProcess.spawnSync(process.execPath,[files.assemblyVerifier],{cwd:ROOT,encoding:'utf8'});
+  if(assembly.stdout)process.stdout.write(assembly.stdout);
+  if(assembly.stderr)process.stderr.write(assembly.stderr);
+  check('deterministic unified source assembly',assembly.status===0,'exit '+assembly.status);
 }
 
 const evidence={
