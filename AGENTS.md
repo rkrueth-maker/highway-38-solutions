@@ -6,6 +6,19 @@ These rules apply to **every chat, agent, branch, pull request, direct commit, a
 
 The approved Highway 38 logo is locked. Existing approved website images are also locked to their exact repository files and approved placements. Do not replace, regenerate, restyle, recrop, reorder, or move them unless Rick explicitly approves the change or the current placement is objectively broken or clearly unrelated to the surrounding content.
 
+## Mandatory change intake
+
+Before adding, changing, disabling, deleting, or deploying any website or web-app behavior:
+
+1. Read `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`.
+2. Classify the scope as public website, authenticated web app, Customer Portal/security boundary, shared architecture, or a combination.
+3. Identify the canonical owner for the route, component, module, schema, permission, image placement, data, and deployment.
+4. Confirm record, role, approval, external-action, image, performance, compatibility, migration, and rollback impact.
+5. Change the canonical source instead of adding a second shell, list, router, runtime, manifest, schema, data owner, or cleanup layer.
+6. Run `node scripts/verify-change-governance.js` before domain-specific verification.
+
+A change is not complete because it looks correct in one browser. It must follow the canonical architecture, pass verification, deploy through the accepted workflow, and be verified live at the exact commit.
+
 ## Unified application authority
 
 1. There is one authenticated product: **Highway 38 Business Office**.
@@ -128,9 +141,15 @@ These rules apply to any request that mentions deploy, deployment, GitHub Pages,
 10. When source is correct but live is stale, debug the Pages workflow and artifact source before rewriting the site.
 11. Temporary deployment recorders or transfer workflows must be removed after successful verification.
 12. End deploy verification with a one-line verdict in this format:
-   - `VERDICT: <PASS|BLOCKED|ALREADY_LIVE|UNKNOWN> | Scope Verified: <LOCAL|ORIGIN_MAIN|LIVE_PAGES|ORIGIN_MAIN+LIVE_PAGES|LOCAL+LIVE_PAGES>`
+    - `VERDICT: <PASS|BLOCKED|ALREADY_LIVE|UNKNOWN> | Scope Verified: <LOCAL|ORIGIN_MAIN|LIVE_PAGES|ORIGIN_MAIN+LIVE_PAGES|LOCAL+LIVE_PAGES>`
 
 ## Required Preflight
+
+Before every website or authenticated web-app addition/change:
+
+```bash
+node scripts/verify-change-governance.js
+```
 
 Before any image-heavy build, rebuild, or deployment:
 
@@ -162,6 +181,7 @@ Do not copy retired catalog, sample-count, logo-cache, or navigation markers fro
 
 Consult these before application, image-heavy, website, or deployment work:
 
+- `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`
 - `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`
 - `docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md`
 - `docs/public-website/APPROVED_ASSET_FAST_PATH.md`
