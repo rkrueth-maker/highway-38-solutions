@@ -69,19 +69,19 @@ function h38PortalModuleRegistry_(quoteCapabilityOwner) {
       ]
     },
     {
-      id:'control', label:'Control', icon:'⚙',
+      id:'office', label:'Office', icon:'⚙',
       items:[
-        {key:'moduleManager',label:'Modules',icon:'▦',type:'native',module:'moduleManager',gate:'setup',keywords:'enable disable features'},
+        {key:'moduleManager',label:'Apps & Modules',icon:'▦',type:'native',module:'moduleManager',gate:'setup',keywords:'business apps enabled disabled modules features'},
         {key:'setupWizard',label:'Business Setup',icon:'⚙',type:'native',module:'setupWizard',gate:'setup',keywords:'configuration install pack'},
         {key:'userAccess',label:'Users & Roles',icon:'◎',type:'native',module:'userAccess',gate:'users',keywords:'access permissions invite'},
-        {key:'backupCenter',label:'Backups',icon:'↺',type:'native',module:'backupCenter',gate:'backups',keywords:'restore recovery copies'},
-        {key:'proof',label:'Proof Log',icon:'✓',type:'native',module:'proof',gate:'proof',keywords:'audit evidence history'},
-        {key:'errors',label:'Error Log',icon:'!',type:'native',module:'errors',gate:'errors',keywords:'failures diagnostics'},
-        {key:'systemHealth',label:'System Health',icon:'◉',type:'native',module:'systemHealth',gate:'commandCenter',keywords:'status integrations checks'},
-        {key:'settings',label:'Settings',icon:'⚙',type:'native',module:'settings',gate:'settings',keywords:'preferences configuration'},
-        {key:'help',label:'Help & SOPs',icon:'?',type:'native',module:'help',gate:'commandCenter',keywords:'instructions support'},
         {key:'bo:employees',label:'Employees',icon:'◎',type:'business',module:'employees',gate:'employees',keywords:'staff payroll',secondary:true},
         {key:'bo:contractors',label:'Contractors & W-9',icon:'◎',type:'business',module:'contractors',gate:'contractors',keywords:'vendor tax forms',secondary:true},
+        {key:'backupCenter',label:'Backups',icon:'↺',type:'native',module:'backupCenter',gate:'backups',keywords:'restore recovery copies',secondary:true},
+        {key:'proof',label:'Proof Log',icon:'✓',type:'native',module:'proof',gate:'proof',keywords:'audit evidence history',secondary:true},
+        {key:'errors',label:'Error Log',icon:'!',type:'native',module:'errors',gate:'errors',keywords:'failures diagnostics',secondary:true},
+        {key:'systemHealth',label:'System Health',icon:'◉',type:'native',module:'systemHealth',gate:'commandCenter',keywords:'status integrations checks',secondary:true},
+        {key:'settings',label:'Settings',icon:'⚙',type:'native',module:'settings',gate:'settings',keywords:'preferences configuration',secondary:true},
+        {key:'help',label:'Help & SOPs',icon:'?',type:'native',module:'help',gate:'commandCenter',keywords:'instructions support',secondary:true},
         {key:'bo:setup',label:'Product Controls',icon:'⚙',type:'business',module:'setup',gate:'setup',keywords:'catalog products configuration',secondary:true}
       ]
     }
