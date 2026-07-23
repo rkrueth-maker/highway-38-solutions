@@ -3,7 +3,7 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-07-23-site-architecture-v1';
+  const VERSION='2026-07-23-site-architecture-v2';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const registry={
     version:VERSION,
