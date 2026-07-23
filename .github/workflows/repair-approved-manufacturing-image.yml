@@ -15,8 +15,9 @@ jobs:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       GH_TOKEN: ${{ github.token }}
       SOURCE_FILE_ID: 1NjgisuWkRUzrcxg0LJOitNlcYr6abNTS
+      SOURCE_SHA256: e311000da5b001aab8c57716f709404f6685b4c433410babb30c3cbbc17f6d0c
     steps:
-      - name: Inspect Google OAuth scope and Drive response
+      - name: Test app-created Drive copy transfer
         shell: bash
         run: |
           set -euo pipefail
@@ -32,28 +33,43 @@ jobs:
           req.on('error',e=>{throw e});req.end(body);
           NODE
           )"
-          token_info="$(curl -fsSL "https://oauth2.googleapis.com/tokeninfo?access_token=${ACCESS_TOKEN}" | jq '{scope,email,expires_in}')"
-          user_info="$(curl -fsSL -H "Authorization: Bearer ${ACCESS_TOKEN}" https://www.googleapis.com/oauth2/v2/userinfo | jq '{email,verified_email}')"
-          drive_response="$(curl -sS -w '\nHTTP_STATUS:%{http_code}\n' -H "Authorization: Bearer ${ACCESS_TOKEN}" "https://www.googleapis.com/drive/v3/files/${SOURCE_FILE_ID}?fields=id,name,mimeType,size&supportsAllDrives=true")"
+          copy_json="$(curl -sS -w '\nHTTP_STATUS:%{http_code}\n' -X POST \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"TEMP_H38_Manufacturing_Automation_Transfer.jpg"}' \
+            "https://www.googleapis.com/drive/v3/files/${SOURCE_FILE_ID}/copy?fields=id,name,mimeType,size&supportsAllDrives=true")"
+          copy_status="$(sed -n 's/^HTTP_STATUS://p' <<<"$copy_json")"
+          copy_body="$(sed '/^HTTP_STATUS:/d' <<<"$copy_json")"
+          copy_id="$(jq -r '.id // empty' <<<"$copy_body" 2>/dev/null || true)"
+          media_status='not-attempted'
+          media_size='0'
+          media_sha=''
+          if [[ "$copy_status" == 200 && -n "$copy_id" ]]; then
+            media_status="$(curl -sS -o "$RUNNER_TEMP/copied.jpg" -w '%{http_code}' \
+              -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "https://www.googleapis.com/drive/v3/files/${copy_id}?alt=media&supportsAllDrives=true")"
+            if [[ -f "$RUNNER_TEMP/copied.jpg" ]]; then
+              media_size="$(wc -c < "$RUNNER_TEMP/copied.jpg" | tr -d ' ')"
+              media_sha="$(sha256sum "$RUNNER_TEMP/copied.jpg" | awk '{print $1}')"
+            fi
+            curl -sS -X DELETE -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "https://www.googleapis.com/drive/v3/files/${copy_id}?supportsAllDrives=true" >/dev/null || true
+          fi
           issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --search 'Manufacturing image repair diagnostics in:title' --state all --limit 1 --json number --jq '.[0].number // empty')"
           body_file="$RUNNER_TEMP/report.md"
           {
             echo '# Manufacturing image repair diagnostics'
             echo
-            echo '## OAuth token info'
+            echo "Copy HTTP: $copy_status"
+            echo
             echo '```json'
-            echo "$token_info" | jq .
+            echo "$copy_body" | jq . 2>/dev/null || echo "$copy_body"
             echo '```'
             echo
-            echo '## OAuth user info'
-            echo '```json'
-            echo "$user_info" | jq .
-            echo '```'
-            echo
-            echo '## Drive metadata response'
-            echo '```text'
-            echo "$drive_response"
-            echo '```'
+            echo "Media HTTP: $media_status"
+            echo "Media bytes: $media_size"
+            echo "Media SHA-256: $media_sha"
+            echo "Expected SHA-256: $SOURCE_SHA256"
           } > "$body_file"
           if [[ -n "$issue" ]]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body-file "$body_file"
