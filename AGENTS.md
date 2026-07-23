@@ -1,5 +1,36 @@
 # AGENTS.md
 
+## Repository-wide authority
+
+These rules apply to **every chat, agent, branch, pull request, direct commit, automation, module, application, and public website change** in this repository. A narrower handoff may add restrictions, but it may not silently weaken these rules.
+
+The approved Highway 38 logo is locked. Existing approved website images are also locked to their exact repository files and approved placements. Do not replace, regenerate, restyle, recrop, reorder, or move them unless Rick explicitly approves the change or the current placement is objectively broken or clearly unrelated to the surrounding content.
+
+## Unified application authority
+
+1. There is one authenticated product: **Highway 38 Business Office**.
+2. Today is a workspace inside it, not a separate Command Center application.
+3. Every app/module must be declared once in `apps-script/business-office/BusinessOffice_ModuleContract.gs`.
+4. Every Business Office API action-to-module permission rule must be declared once in `apps-script/business-office/BusinessOffice_ActionContract.gs`.
+5. `Portal_Module_Registry.js`, Business Office schemas, navigation, access metadata, dependencies, and load behavior must derive from those contracts.
+6. Do not add a second navigation tree, shell, router, database, synchronization layer, startup system, loading system, AI launcher, or product catalog page.
+7. Deleting a module means disabling or archiving it while preserving records, proof, errors, permissions, and audit history unless Rick explicitly approves destructive migration.
+8. Secondary and administrative modules load on demand. They must not delay Today or the requested workspace.
+
+## Performance authority
+
+Performance is a release requirement, not optional polish.
+
+1. The authenticated shell startup budget is one browser-to-server startup RPC.
+2. Do not add page-wide `MutationObserver` cleanup layers when the real renderer is owned by this repository.
+3. Do not perform duplicate bootstrap, schema, navigation, role, or module-list requests.
+4. Use explicit render hooks, cached static contracts, route-level loading, and lazy/deferred optional clients.
+5. Public images below the first viewport must use `loading="lazy"` and explicit dimensions or stable aspect-ratio containers.
+6. Do not load page-specific CSS or JavaScript when the shared website shell already provides the component.
+7. Shared changes belong in shared files. Do not copy a component or utility into multiple pages.
+8. Any new dependency must prove that it is smaller or faster than the existing repository-native solution.
+9. Performance verifiers may not be weakened to accommodate duplicate code or slower startup.
+
 ## Approved Asset Authority
 
 These rules apply whenever Rick approves a logo, image, visual concept, page design, site rebuild, or complete site build.
@@ -7,11 +38,13 @@ These rules apply whenever Rick approves a logo, image, visual concept, page des
 1. Treat an approved image or logo as a **controlled binary**, not a visual suggestion.
 2. Do not redraw, regenerate, restyle, recolor, crop, trace, approximate, screenshot, or replace an approved asset unless Rick explicitly approves that change.
 3. Do not use image generation to recreate an approved asset.
-4. Do not use another repository image as a loading fallback for an approved logo.
+4. Do not use another repository image as a loading fallback for an approved logo or approved content image.
 5. The filename alone is not proof that the correct asset is installed. Validate the actual bytes.
-6. Read `scripts/config/approved-public-assets.json` before changing public imagery.
-7. When an approved asset changes, update the binary, manifest, cache key, public references, and verification expectations in the same PR.
-8. Preserve visible text branding for accessibility, but never substitute a different image when the approved logo fails to load.
+6. Read `scripts/config/approved-public-assets.json` and `scripts/config/approved-public-image-placements.json` before changing public imagery.
+7. The placement manifest is authoritative for the page, section, exact source path, alt text, and intended role of approved website images.
+8. An image may be moved without separate approval only when its current placement is objectively broken, inaccessible, duplicated by mistake, or clearly unrelated to the section. Record the exact reason and preserve the same binary.
+9. When an approved asset changes, update the binary, manifest, cache key, public references, and verification expectations in the same PR.
+10. Preserve visible text branding for accessibility, but never substitute a different image when the approved logo fails to load.
 
 ## Approved Asset Fast Path
 
@@ -34,9 +67,9 @@ Never solve a binary-transfer problem by substituting another logo or by changin
 ## Fast Site Build and Rebuild Rules
 
 1. Start from current `main` and inspect the existing shared shell once.
-2. Inventory approved image paths before writing page markup.
-3. Map pages to approved imagery before editing.
-4. Use one integrated branch for the full approved page set.
+2. Inventory approved image paths and placements before writing page markup.
+3. Preserve exact approved image files and placements unless a verified placement defect is recorded.
+4. Use one integrated branch or direct-main workstream for the full approved page set.
 5. Reuse:
    - `assets/css/h38-site-v2.css`
    - `assets/js/h38-site-v2.js`
@@ -47,7 +80,9 @@ Never solve a binary-transfer problem by substituting another logo or by changin
 9. Batch old-reference cleanup across all in-scope pages instead of fixing pages one at a time.
 10. Preserve Customer Portal security, authentication, roles, Apps Script IDs, approval gates, no-automatic-charge controls, production URLs, and data isolation unless the approved scope explicitly changes them.
 11. A public redesign must not silently become a portal, platform, pricing, or architecture rewrite.
-12. Do not reopen approved logo, imagery, layout, pricing, or architecture decisions without a verified conflict.
+12. Do not reopen approved logo, imagery, pricing, or product decisions without a verified conflict.
+13. Public pages must use the shared website registry and components defined by `docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md`.
+14. Retired pages must redirect to a current page; they may not keep a separate shell or duplicate content system.
 
 ## Image Verification Rules
 
@@ -55,6 +90,7 @@ Before opening or merging a visual PR, run:
 
 ```bash
 python3 scripts/verify-public-images.py
+node scripts/verify-public-image-placements.js
 ```
 
 The permanent gate must verify:
@@ -62,12 +98,14 @@ The permanent gate must verify:
 - the canonical logo is a real image;
 - the logo Git blob SHA matches `scripts/config/approved-public-assets.json`;
 - controlled public references use the manifest cache key;
+- exact approved content-image paths match the placement manifest;
 - forbidden substitute paths are absent;
 - repository-relative image paths resolve;
 - content images have descriptive alt text;
+- below-fold images are lazy loaded;
 - major public pages contain explicit non-logo imagery.
 
-Do not weaken the image gate to accommodate a corrupt primary asset or a substitute logo.
+Do not weaken the image gate to accommodate a corrupt primary asset, substitute logo, or unapproved content-image replacement.
 
 ## Deployment Safety Rules
 
@@ -98,6 +136,8 @@ Before any image-heavy build, rebuild, or deployment:
 
 ```bash
 python3 scripts/verify-public-images.py
+node scripts/verify-public-image-placements.js
+node scripts/verify-public-website-architecture.js
 ```
 
 For the Sample Library, use the manifest-driven wrapper rather than hard-coded historical markers:
@@ -116,16 +156,18 @@ python3 scripts/guard_deploy.py \
   --match "<current approved CTA or heading>"
 ```
 
-Do not copy retired catalog, sample-count, logo-cache, or navigation markers from historical documentation. Read the approved asset values from `scripts/config/approved-public-assets.json` and inspect the current target page before choosing verification markers.
+Do not copy retired catalog, sample-count, logo-cache, or navigation markers from historical documentation. Read the approved asset values from the current manifests and inspect the current target page before choosing verification markers.
 
 ## Reference Docs
 
-Consult these before image-heavy builds or deployment work:
+Consult these before application, image-heavy, website, or deployment work:
 
+- `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`
+- `docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md`
 - `docs/public-website/APPROVED_ASSET_FAST_PATH.md`
 - `docs/public-website/WEB_IMAGE_DEPLOYMENT_PLAYBOOK.md`
 - `docs/brand/HIGHWAY_38_PUBLIC_LOGO_STANDARD.md`
 - `docs/CHATGPT_LIVE_DEPLOY_INSTRUCTIONS_2026-07-06.md`
 - `docs/CHATGPT_HANDOFF_DEPLOY_PHOTOS_2026-07-06.md`
 
-Treat older docs as process references only. The current manifest, repository binary, current `main`, and verified live deployment are the technical source of truth.
+Treat older docs as process references only. The current contracts, manifests, repository binaries, current `main`, and verified live deployment are the technical source of truth.
