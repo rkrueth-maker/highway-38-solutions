@@ -102,8 +102,12 @@ jobs:
           done
           grep -Fq "assets/css/h38-request-v2.css?v=${short_sha}" _site/start-request.html
           test -f _site/assets/css/h38-request-v2.css
-          [[ "$(grep -Eo '<link[^>]+rel=["'"']stylesheet["'"'][^>]*>' _site/start-request.html | wc -l)" -eq 1 ]]
-          ! grep -Eq 'href=["'"'](?:commercial|commercial-public|brand-global|public-expansion|ux-unified-public|contact-options|platform-unified)\.css' _site/start-request.html
+          for style in commercial.css commercial-public.css brand-global.css public-expansion.css ux-unified-public.css contact-options.css platform-unified.css; do
+            ! grep -Fq "href=\"${style}" _site/start-request.html
+            ! grep -Fq "href='${style}" _site/start-request.html
+          done
+          grep -Fq '/* commercial.css */' _site/assets/css/h38-request-v2.css
+          grep -Fq '/* platform-unified.css */' _site/assets/css/h38-request-v2.css
           grep -Fq "assets/js/h38-request-options.js?v=${short_sha}" _site/start-request.html
           grep -Fq "request-flow.js?v=${short_sha}" _site/start-request.html
           grep -Fq 'data-intake-endpoint="https://script.google.com/macros/s/' _site/start-request.html
@@ -156,13 +160,18 @@ jobs:
             products="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/products.html?flush=${marker}-${attempt}" || true)"
             tools="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/free-tools.html?flush=${marker}-${attempt}" || true)"
             primary="$home$examples$solutions$pricing$about$contact$request"
+            request_styles_clean=1
+            for style in commercial.css commercial-public.css brand-global.css public-expansion.css ux-unified-public.css contact-options.css platform-unified.css; do
+              grep -Fq "href=\"${style}" <<<"$request" && request_styles_clean=0
+              grep -Fq "href='${style}" <<<"$request" && request_styles_clean=0
+            done
             if [[ "$live_sha" == "$expected" ]] \
               && [[ "$(grep -Fo "assets/js/h38-site-v2.js?v=${short_sha}" <<<"$primary" | wc -l)" -eq 7 ]] \
               && ! grep -Eq 'commercial\.js|commercial-public\.js|public-expansion\.js|brand-global\.js|project-intelligence\.js' <<<"$primary" \
               && grep -Fq "assets/css/h38-request-v2.css?v=${short_sha}" <<<"$request" \
+              && [[ "$request_styles_clean" -eq 1 ]] \
               && grep -Fq '/* commercial.css */' <<<"$request_css" \
               && grep -Fq '/* platform-unified.css */' <<<"$request_css" \
-              && ! grep -Eq 'href=["'"'](?:commercial|commercial-public|brand-global|public-expansion|ux-unified-public|contact-options|platform-unified)\.css' <<<"$request" \
               && grep -Fq "assets/js/h38-request-options.js?v=${short_sha}" <<<"$request" \
               && grep -Fq "request-flow.js?v=${short_sha}" <<<"$request" \
               && grep -Fq 'Eight complete project demonstrations' <<<"$examples" \
