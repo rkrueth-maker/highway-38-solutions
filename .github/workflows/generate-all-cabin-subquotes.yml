@@ -17,9 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-and-generate:
+  generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
@@ -53,11 +53,7 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
 
-      - name: Deploy through existing unified production authority
-        shell: bash
-        run: bash scripts/deploy-unified-owner-portal-web.sh
-
-      - name: Generate all 21 cabin sub-quotes
+      - name: Generate all 21 cabin sub-quotes in deployed Business Office
         id: generate
         shell: bash
         run: |
@@ -75,9 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cabin-subquote-generation-${{ github.run_id }}
-          path: |
-            cabin-subquote-generation-result.txt
-            artifacts/unified-owner-portal/
+          path: cabin-subquote-generation-result.txt
           if-no-files-found: warn
           retention-days: 90
 
