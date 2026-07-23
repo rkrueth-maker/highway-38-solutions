@@ -46,9 +46,10 @@ const representativeBusinessRoutes = ['bo:requests','bo:customers','bo:quotes','
 const rawFragmentNames = [...portalIndex.matchAll(/h38PortalRawInclude_\('([^']+)'\)/g)].map(match => match[1]);
 const missingRawAllowlistEntries = rawFragmentNames.filter(name => !portalRawIncludes.includes(`'${name}'`));
 
-assert('website Owner Portal page exists', /<title>Owner Portal \| Highway 38 Solutions<\/title>/.test(portal));
+assert('website unified Business Office gateway exists', /<title>Highway 38 Business Office \| Highway 38 Solutions<\/title>/.test(portal));
 assert('public portal is one automatic secure gateway', portal.includes(`var secure='${ownerAppUrl}'`) && /location\.replace\(target\)/.test(portal));
-assert('public portal contains no obsolete workspace tabs', !/owner-tabs|owner-area-strip|Operations &amp; Social|Open Business Office/.test(portal));
+assert('public portal contains no obsolete workspace chooser', !/owner-tabs|owner-area-strip|Operations &amp; Social|Choose where to open|Enter Command Center|Enter Business Office|class="choices"/.test(portal));
+assert('public portal contains one fallback Business Office action', (portal.match(/id="secureFallback"/g) || []).length === 1 && /Open Business Office/.test(portal));
 assert('public portal contains no private application iframe', !/<iframe\b/i.test(portal));
 assert('public portal preserves upload and business-office deep links', /upload:'documents'/.test(portal) && /'business-office':'requests'/.test(portal));
 assert('portal contains no spreadsheet destination', !/docs\.google\.com\/spreadsheets/i.test(portal));
