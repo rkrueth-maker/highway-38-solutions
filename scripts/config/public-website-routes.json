@@ -25,9 +25,9 @@
     "resources.html"
   ],
   "retired": {
-    "catalog.html":"sample-library-now.html",
-    "products.html":"solutions.html",
-    "product.html":"solutions.html",
+    "catalog.html":"pricing.html",
+    "products.html":"pricing.html",
+    "product.html":"pricing.html",
     "packages.html":"pricing.html",
     "tools.html":"sample-library-now.html",
     "free-tools.html":"sample-library-now.html",
