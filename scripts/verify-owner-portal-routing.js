@@ -11,7 +11,7 @@ const read=relativePath=>fs.readFileSync(path.join(root,relativePath),'utf8');
 const assert=(name,condition,evidence='')=>{(condition?passes:failures).push({name,evidence});console[condition?'log':'error'](`${condition?'PASS':'FAIL'}: ${name}${evidence?` — ${evidence}`:''}`);};
 
 const portal=read('portal.html');
-const brand=read('brand-global.js');
+const publicShell=read('assets/js/h38-site-v2.js');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalRawIncludes=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
 const moduleContractSource=read('apps-script/business-office/BusinessOffice_ModuleContract.gs');
@@ -89,7 +89,7 @@ assert('production deployment builds checked-in unified shell',/build-unified-ap
 assert('production deployment verifies exact remote source',/REMOTE_VERIFY/.test(deploySource)&&/remote-source-verification\.txt/.test(deploySource)&&/controlled-source-local\.json/.test(deploySource)&&/controlled-source-remote\.json/.test(deploySource));
 assert('production deployment removes legacy combined auth bridge',/test ! -e "\$PROJECT\/Portal_00_BusinessAuth\.js"/.test(deploySource)&&/fs\.unlinkSync\(legacyPortalBridge\)/.test(shellBuilder));
 
-assert('legacy Owner Login links route to portal.html',/link\.href='portal\.html'/.test(brand)&&/link\.removeAttribute\('target'\)/.test(brand));
+assert('canonical public shell routes Owner links to portal.html',/function routeOwnerLinks\(\)/.test(publicShell)&&/link\.href='portal\.html'/.test(publicShell)&&/link\.removeAttribute\('target'\)/.test(publicShell));
 assert('Business Office dashboard uses calculated owner metrics',/return boGetOwnerDashboard_\(\);/.test(businessCore));
 assert('dashboard contains no Open source records action',!/Open source records/i.test(businessUi));
 assert('administrative spreadsheet link is explicit and confirmed',/Administrative spreadsheet/.test(businessUi)&&/Open the administrative spreadsheet outside the Owner Portal\?/.test(businessUi));
