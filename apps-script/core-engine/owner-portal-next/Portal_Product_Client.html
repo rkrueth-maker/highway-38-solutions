@@ -4,12 +4,12 @@
  * Owns shared chrome, module context, navigation metadata, loading states, and
  * contextual AI entry. Individual modules should not recreate these features.
  */
-var H38_PRODUCT_OBSERVER=null,H38_PRODUCT_LAST_ROUTE='';
+var H38_PRODUCT_OBSERVER=null,H38_PRODUCT_LAST_ROUTE='',H38_PRODUCT_BASE_AFTER_RENDER=null;
 
 function h38ProductModuleMeta(route){
   route=String(route||CURRENT||'today');
   return H38_UNIFIED&&H38_UNIFIED.moduleIndex&&H38_UNIFIED.moduleIndex[route]||{
-    key:route,label:TITLES&&TITLES[route]||humanize(route),icon:'•',type:String(route).indexOf('bo:')===0?'business':'native',module:String(route).replace(/^bo:/,''),groupLabel:'Workspace',keywords:''
+    key:route,label:typeof TITLES!=='undefined'&&TITLES[route]||humanize(route),icon:'•',type:String(route).indexOf('bo:')===0?'business':'native',module:String(route).replace(/^bo:/,''),groupLabel:'Workspace',keywords:''
   };
 }
 
@@ -43,16 +43,18 @@ function h38ProductConfigureChrome(){
   if(status)status.title='System status';
 }
 
+function h38ProductRouteFromButton(button){
+  var source=button&&button.getAttribute('onclick')||'';
+  var match=source.match(/show\(['"]([^'"]+)['"]\)/);
+  return match?match[1]:'';
+}
+
 function h38ProductDecorateNavigation(){
-  uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){
-    var buttons=document.querySelectorAll('#nav-group-'+group.id+' .nav-group-items button');
-    uxRows(group.items).forEach(function(item,index){
-      var button=buttons[index];
-      if(!button)return;
-      button.setAttribute('data-icon',item.icon||'•');
-      button.classList.toggle('h38-secondary-module',item.secondary===true);
-      button.title=item.keywords?item.label+' · '+item.keywords:item.label;
-    });
+  document.querySelectorAll('.nav-group-items button').forEach(function(button){
+    var route=h38ProductRouteFromButton(button),meta=h38ProductModuleMeta(route);
+    button.setAttribute('data-icon',meta.icon||'•');
+    button.classList.toggle('h38-secondary-module',meta.secondary===true);
+    button.title=meta.keywords?meta.label+' · '+meta.keywords:meta.label;
   });
 }
 
@@ -95,7 +97,7 @@ window.h38ProductOpenAi=h38ProductOpenAi;
 
 function h38ProductAiStrip(route){
   var meta=h38ProductModuleMeta(route),prompts=h38ProductPrompts(route);
-  return '<div class="h38-native-ai-strip" data-h38-product-ai="1"><div class="h38-ai-strip-copy"><div class="h38-ai-label">H38 AI</div><strong>'+esc(meta.label)+'</strong></div><div class="h38-ai-prompt-row">'+prompts.map(function(prompt){return '<button class="h38-ai-prompt" type="button" onclick="h38ProductOpenAi('+JSON.stringify(prompt).replace(/"/g,'&quot;')+')">'+esc(prompt)+'</button>';}).join('')+'</div><button class="h38-ai-open" type="button" onclick="h38ProductOpenAi(\'\')">Open AI</button></div>';
+  return '<div class="h38-native-ai-strip" data-h38-product-ai="1"><div class="h38-ai-strip-copy"><div class="h38-ai-label">H38 AI</div><strong>'+esc(meta.label)+'</strong></div><div class="h38-ai-prompt-row">'+prompts.map(function(prompt){return '<button class="h38-ai-prompt" type="button" data-h38-ai-prompt="'+attr(prompt)+'">'+esc(prompt)+'</button>';}).join('')+'</div><button class="h38-ai-open" type="button" data-h38-ai-open="1">Open AI</button></div>';
 }
 
 function h38ProductLoadingState(){
@@ -132,6 +134,15 @@ function h38ProductApplyWorkspace(route){
   H38_PRODUCT_LAST_ROUTE=route;
 }
 
+function h38ProductConnectRenderLifecycle(){
+  if(H38_PRODUCT_BASE_AFTER_RENDER)return;
+  H38_PRODUCT_BASE_AFTER_RENDER=typeof window.h38AfterSurfaceRender==='function'?window.h38AfterSurfaceRender:function(){};
+  window.h38AfterSurfaceRender=function(module){
+    H38_PRODUCT_BASE_AFTER_RENDER(module);
+    setTimeout(function(){h38ProductApplyWorkspace(module);},0);
+  };
+}
+
 function h38ProductObserve(){
   if(H38_PRODUCT_OBSERVER)return;
   H38_PRODUCT_OBSERVER=new MutationObserver(function(){
@@ -145,9 +156,18 @@ function h38ProductObserve(){
   H38_PRODUCT_OBSERVER.observe(document.body,{childList:true,subtree:true});
 }
 
+function h38ProductHandleClick(event){
+  var prompt=event.target&&event.target.closest&&event.target.closest('[data-h38-ai-prompt]');
+  if(prompt){h38ProductOpenAi(prompt.getAttribute('data-h38-ai-prompt'));return;}
+  var open=event.target&&event.target.closest&&event.target.closest('[data-h38-ai-open]');
+  if(open)h38ProductOpenAi('');
+}
+
 function h38ProductBoot(){
+  h38ProductConnectRenderLifecycle();
   h38ProductConfigureChrome();
   h38ProductObserve();
+  document.addEventListener('click',h38ProductHandleClick);
   setTimeout(function(){h38ProductApplyWorkspace(CURRENT||'today');},120);
 }
 
