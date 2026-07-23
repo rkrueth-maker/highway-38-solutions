@@ -39,6 +39,7 @@ assert('deployment no longer contains inline Python routing patch', !/python3 - 
 assert('deployment verifies one remote entry point', /Remote project must contain one unified doGet/.test(deploy));
 assert('deployment verifies live auth failures are absent', /boNormalizeText_ is not defined/.test(deploy) && /boGetCurrentUser_ is not defined/.test(deploy));
 assert('Highway 38 pack enables Quote Builder', /quoteBuilder:true/.test(pack) && /quotes:true/.test(pack));
+assert('registry exposes one Business Office route', /routes:\{ownerPortal:'',businessOffice:'',quoteBuilder:'\?quoteBuilder=1'\}/.test(shell));
 
 function makeRuntime(quoteBuilderEnabled) {
   const tables = {
@@ -116,8 +117,8 @@ function quoteNavigationItem(bootstrap) {
 
 try {
   const enabled = makeRuntime(true);
-  assert('runtime routes default request to Owner Portal', enabled.doGet({parameter:{}}).kind === 'Portal_Index');
-  assert('runtime routes Business Office request to Business Office', enabled.doGet({parameter:{app:'business-office'}}).kind === 'business-office');
+  assert('runtime routes default request to unified application', enabled.doGet({parameter:{}}).kind === 'Portal_Index');
+  assert('runtime routes legacy Business Office request to unified application', enabled.doGet({parameter:{app:'business-office'}}).kind === 'Portal_Index');
   assert('runtime routes quoteBuilder=1 to Quote Builder', enabled.doGet({parameter:{app:'business-office',quoteBuilder:'1'}}).kind === 'quote-builder');
   assert('runtime registry disables legacy quote capability', enabled.h38UnifiedShellRegistry().disabledLegacyCapabilities.quotes === true);
   assert('runtime reports Quote Builder as quote owner', enabled.h38UnifiedShellCapabilityOwner_('quotes') === 'quoteBuilder');
@@ -129,7 +130,7 @@ try {
 
   const disabled = makeRuntime(false);
   assert('runtime restores legacy quote owner when add-on is disabled', disabled.h38UnifiedShellCapabilityOwner_('quotes') === 'legacyQuotes');
-  assert('disabled Quote Builder route falls back to Business Office', disabled.doGet({parameter:{quoteBuilder:'1'}}).kind === 'business-office');
+  assert('disabled Quote Builder route falls back to unified application', disabled.doGet({parameter:{quoteBuilder:'1'}}).kind === 'Portal_Index');
   const disabledBootstrap = disabled.h38PortalUnifiedBootstrap();
   assert('server navigation restores Quotes label when add-on is disabled', quoteNavigationItem(disabledBootstrap).label === 'Quotes');
   assert('server bootstrap restores legacy quote ownership', disabledBootstrap.capabilityOwners.quotes === 'legacyQuotes');
@@ -172,7 +173,7 @@ try {
 const result = {
   status: failures.length ? 'HOLD' : 'PASS',
   sourceCommit: process.env.GITHUB_SHA || '',
-  shellVersion:'3.0.0',
+  shellVersion:'3.1.0',
   passes,
   failures
 };
