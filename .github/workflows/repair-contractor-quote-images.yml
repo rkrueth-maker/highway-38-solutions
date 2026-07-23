@@ -1,4 +1,4 @@
-name: Repair contractor quote images
+name: Repair demo images and legacy products route
 
 on:
   push:
@@ -15,47 +15,72 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Store approved source and patch quote page
+
+      - name: Build direct approved image crops
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p assets/demo-workthroughs
-          curl -L --fail --retry 3 -o assets/demo-workthroughs/project-pairs-sprite.webp 'https://at.adobe.com/Gxbnz8YlpFSVHQEF'
+          python3 -m pip install --quiet pillow
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('contractor-quote-complete.html')
-          s = p.read_text()
-          marker = 'data-h38-project-pair-fix="20260723"'
-          if marker not in s:
-              inject = r'''<script data-h38-project-pair-fix="20260723">
-          (()=>{
-            const key=new URLSearchParams(location.search).get('example')||'flower';
-            const rows={deck:0,irrigation:1,kitchen:2};
-            if(!(key in rows))return;
-            const src='assets/demo-workthroughs/project-pairs-sprite.webp?v=20260723-final';
-            const before=document.getElementById('before');
-            const after=document.getElementById('after');
-            const row=rows[key];
-            [[before,'0%'],[after,'100%']].forEach(([img,x])=>{
-              if(!img)return;
-              img.removeAttribute('src');
-              img.style.backgroundImage=`url("${src}")`;
-              img.style.backgroundRepeat='no-repeat';
-              img.style.backgroundSize='200% 300%';
-              img.style.backgroundPosition=`${x} ${row===0?'0%':row===1?'50%':'100%'}`;
-              img.style.backgroundColor='#e8ecea';
-            });
-          })();
-          </script>'''
-              s = s.replace('</body>', inject + '\n</body>')
-              p.write_text(s)
+          from PIL import Image
+
+          root = Path('assets/demo-workthroughs')
+          source = root / 'project-pairs-sprite.webp'
+          if not source.exists():
+              raise SystemExit(f'Missing approved source: {source}')
+
+          image = Image.open(source).convert('RGB')
+          if image.size != (360, 534):
+              raise SystemExit(f'Unexpected approved source dimensions: {image.size}')
+
+          crops = {
+              'deck-before.webp': (0, 0, 180, 178),
+              'deck-after.webp': (180, 0, 360, 178),
+              'irrigation-before.webp': (0, 178, 180, 356),
+              'irrigation-after.webp': (180, 178, 360, 356),
+              'kitchen-before.webp': (0, 356, 180, 534),
+              'kitchen-after.webp': (180, 356, 360, 534),
+          }
+          for name, box in crops.items():
+              image.crop(box).save(root / name, 'WEBP', quality=92, method=6)
+
+          replacements = {
+              'deck-before.svg': 'deck-before.webp',
+              'deck-after.svg': 'deck-after.webp',
+              'irrigation-before.svg': 'irrigation-before.webp',
+              'irrigation-after.svg': 'irrigation-after.webp',
+              'kitchen-before.svg': 'kitchen-before.webp',
+              'kitchen-after.svg': 'kitchen-after.webp',
+          }
+          for filename in ('contractor-quote-complete.html', 'sample-library-now.html'):
+              path = Path(filename)
+              text = path.read_text()
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              path.write_text(text)
+
+          products = Path('products.html')
+          products.write_text('''<!doctype html>
+          <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,follow"><title>Redirecting to Pricing | Highway 38 Solutions</title><link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/pricing.html"><script>location.replace("pricing.html?from=legacy-products-final");</script><meta http-equiv="refresh" content="0;url=pricing.html?from=legacy-products-final"></head><body><main><h1>Opening current pricing…</h1><p><a href="pricing.html?from=legacy-products-final">Continue to current pricing</a></p></main></body></html>''')
           PY
-      - name: Commit repaired image assets
+
+      - name: Commit repaired assets and routes
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add contractor-quote-complete.html assets/demo-workthroughs/project-pairs-sprite.webp
+          git add \
+            assets/demo-workthroughs/deck-before.webp \
+            assets/demo-workthroughs/deck-after.webp \
+            assets/demo-workthroughs/irrigation-before.webp \
+            assets/demo-workthroughs/irrigation-after.webp \
+            assets/demo-workthroughs/kitchen-before.webp \
+            assets/demo-workthroughs/kitchen-after.webp \
+            contractor-quote-complete.html \
+            sample-library-now.html \
+            products.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Repair contractor quote before and after images'
+          git commit -m 'Use direct approved demo image crops and retire products catalog'
           git push origin main
