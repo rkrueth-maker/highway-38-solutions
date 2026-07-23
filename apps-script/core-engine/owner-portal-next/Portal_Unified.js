@@ -129,7 +129,7 @@ function h38PortalUnifiedBootstrap() {
     status:'PASS',
     version:typeof H38_APP_UX_VERSION_ !== 'undefined' ? H38_APP_UX_VERSION_ : 'unified',
     shellVersion:shellRegistry ? shellRegistry.version : '',
-    architectureVersion:'registry-v1',
+    architectureVersion:typeof H38_PORTAL_ARCHITECTURE_VERSION !== 'undefined' ? H38_PORTAL_ARCHITECTURE_VERSION : 'single-shell-registry-design-system-v1',
     singleApp:true,
     nativeBusinessOffice:true,
     adaptiveNavigation:true,
