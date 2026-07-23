@@ -91,7 +91,7 @@ function h38PortalUnifiedBootstrap() {
       id:'command',
       label:'Today',
       items:[
-        h38PortalUnifiedItem_('today','Home','native','today','commandCenter'),
+        h38PortalUnifiedItem_('today','Overview','native','today','commandCenter'),
         h38PortalUnifiedItem_('bo:assignedTasks','My Work','business','assignedTasks','assignedTasks'),
         h38PortalUnifiedItem_('approvalsCenter','Approvals','native','approvalsCenter','approvals'),
         h38PortalUnifiedItem_('calendarCenter','Calendar','native','calendarCenter','calendar')
