@@ -1,39 +1,173 @@
-name: Manufacturing Image Repair Diagnostics
+name: Restore Exact Approved Manufacturing Image
 
 on:
   push:
     branches: [main]
 
 permissions:
+  contents: write
   actions: read
-  contents: read
   issues: write
 
+concurrency:
+  group: restore-exact-approved-manufacturing-image
+  cancel-in-progress: false
+
 jobs:
-  report:
+  repair:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      FAILED_RUN_ID: 30049442232
+      ACCEPTED_BASELINE: 2d6328d92127294662204e38045b1844079de1ce
+      APPROVED_SOURCE_URL: https://at.adobe.com/AvUwhZ4sdaJyaJLI
+      APPROVED_SHA256: e311000da5b001aab8c57716f709404f6685b4c433410babb30c3cbbc17f6d0c
+      APPROVED_BLOB_SHA: 460bf2eac1f2f63bce343c388dd85867e639e498
+      APPROVED_CACHE_KEY: e311000d
+      LIVE_ROOT: https://rkrueth-maker.github.io/highway-38-solutions
+
     steps:
-      - name: Publish final exact-repair failure lines
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Guard scope and run governance first
         shell: bash
         run: |
           set -euo pipefail
-          gh run view "$FAILED_RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > "$RUNNER_TEMP/failed.log" || true
-          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --search 'Manufacturing image repair in:title' --state all --limit 1 --json number --jq '.[0].number // empty')"
-          body_file="$RUNNER_TEMP/report.md"
+          git rev-parse HEAD > "$RUNNER_TEMP/base-main-sha.txt"
+          git merge-base --is-ancestor "$ACCEPTED_BASELINE" HEAD
+          unexpected="$(git diff --name-only "$ACCEPTED_BASELINE"..HEAD | grep -Ev '^(\.github/workflows/repair-approved-manufacturing-image(-v2)?\.yml|\.github/scripts/repair-approved-manufacturing-image\.py|\.github/scripts/repair-public-ecosystem-verifier\.py)$' || true)"
+          if [[ -n "$unexpected" ]]; then
+            echo 'Unexpected changes exist after the accepted repair baseline:'
+            echo "$unexpected"
+            exit 1
+          fi
+          node scripts/verify-change-governance.js
+
+      - name: Download exact approved source and prepare repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pillow
+          source_file="$RUNNER_TEMP/H38_04_Manufacturing_Automation.jpg"
+          curl --fail --silent --show-error --location --max-time 180 "$APPROVED_SOURCE_URL" -o "$source_file"
+          APPROVED_SOURCE_FILE="$source_file" python3 .github/scripts/repair-approved-manufacturing-image.py
+          python3 .github/scripts/repair-public-ecosystem-verifier.py
+
+      - name: Run complete public website verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-change-governance.js
+          python3 scripts/verify-public-images.py
+          node scripts/verify-public-image-placements.js
+          node scripts/verify-public-website-architecture.js
+          node scripts/verify-public-ecosystem-tools.js
+          test "$(sha256sum assets/approved-website-images/manufacturing-automation.jpg | awk '{print $1}')" = "$APPROVED_SHA256"
+          python3 -c "from PIL import Image,ImageStat; p='assets/approved-website-images/manufacturing-automation.jpg'; im=Image.open(p); im.load(); assert im.format=='JPEG' and im.size==(1600,900); assert max(ImageStat.Stat(im.convert('RGB')).stddev)>=20; print('Exact approved JPEG is visibly nonblank.')"
+          git diff --check
+
+      - name: Commit only the canonical repair and remove temporary transfer files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- artifacts launch-control/evidence 2>/dev/null || true
+          git clean -fd artifacts/change-governance artifacts/public-image-placements artifacts/public-website-architecture launch-control/evidence || true
+          rm -f .github/workflows/repair-approved-manufacturing-image.yml
+          rm -f .github/workflows/repair-approved-manufacturing-image-v2.yml
+          rm -f .github/scripts/repair-approved-manufacturing-image.py
+          rm -f .github/scripts/repair-public-ecosystem-verifier.py
+
+          allowed='^(assets/approved-website-images/manufacturing-automation.jpg|solutions.html|about.html|robotics-automation.html|scripts/config/approved-public-assets.json|scripts/config/approved-public-image-placements.json|scripts/verify-public-images.py|scripts/verify-public-image-placements.js|scripts/verify-public-website-architecture.js|scripts/verify-public-ecosystem-tools.js|\.github/workflows/repair-approved-manufacturing-image.yml|\.github/workflows/repair-approved-manufacturing-image-v2.yml|\.github/scripts/repair-approved-manufacturing-image.py|\.github/scripts/repair-public-ecosystem-verifier.py)$'
+          unexpected="$(git status --short | sed 's/^...//' | grep -Ev "$allowed" || true)"
+          if [[ -n "$unexpected" ]]; then
+            echo 'Unexpected changed files:'
+            echo "$unexpected"
+            exit 1
+          fi
+
+          git fetch origin main
+          base_at_start="$(cat "$RUNNER_TEMP/base-main-sha.txt")"
+          if [[ "$(git rev-parse origin/main)" != "$base_at_start" ]]; then
+            echo 'Main changed during the bounded repair; refusing to overwrite concurrent work.'
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/approved-website-images/manufacturing-automation.jpg \
+            solutions.html about.html robotics-automation.html \
+            scripts/config/approved-public-assets.json \
+            scripts/config/approved-public-image-placements.json \
+            scripts/verify-public-images.py \
+            scripts/verify-public-image-placements.js \
+            scripts/verify-public-website-architecture.js \
+            scripts/verify-public-ecosystem-tools.js \
+            .github/workflows/repair-approved-manufacturing-image.yml \
+            .github/workflows/repair-approved-manufacturing-image-v2.yml \
+            .github/scripts/repair-approved-manufacturing-image.py \
+            .github/scripts/repair-public-ecosystem-verifier.py
+          git commit -m 'Restore exact approved manufacturing image'
+          git push origin HEAD:main
+          git rev-parse HEAD > "$RUNNER_TEMP/repaired-main-sha.txt"
+
+      - name: Verify exact Pages deployment and live image bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(cat "$RUNNER_TEMP/repaired-main-sha.txt")"
+          run_id=''
+          run_url=''
+          for attempt in $(seq 1 48); do
+            run_json="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow pages.yml --branch main --limit 30 --json databaseId,headSha,status,conclusion,url | jq -c --arg sha "$expected" '[.[] | select(.headSha==$sha)][0] // empty')"
+            if [[ -n "$run_json" ]]; then
+              run_id="$(jq -r '.databaseId' <<<"$run_json")"
+              run_url="$(jq -r '.url' <<<"$run_json")"
+              status="$(jq -r '.status' <<<"$run_json")"
+              conclusion="$(jq -r '.conclusion // ""' <<<"$run_json")"
+              echo "Pages run ${run_id}: ${status} ${conclusion}"
+              if [[ "$status" == completed ]]; then
+                test "$conclusion" = success
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test -n "$run_id"
+
+          marker="${run_id}-$(date +%s)"
+          live_sha="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/deployed-main-sha.txt?flush=${marker}")"
+          test "$live_sha" = "$expected"
+          curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/solutions.html?flush=${marker}" -o "$RUNNER_TEMP/solutions-live.html"
+          curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/about.html?flush=${marker}" -o "$RUNNER_TEMP/about-live.html"
+          curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/robotics-automation.html?flush=${marker}" -o "$RUNNER_TEMP/robotics-live.html"
+          grep -Fq 'assets/approved-website-images/manufacturing-automation.jpg?v=e311000d' "$RUNNER_TEMP/solutions-live.html"
+          grep -Fq 'assets/approved-website-images/manufacturing-automation.jpg?v=e311000d' "$RUNNER_TEMP/about-live.html"
+          grep -Fq 'assets/approved-website-images/manufacturing-automation.jpg?v=e311000d' "$RUNNER_TEMP/robotics-live.html"
+          curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/approved-website-images/manufacturing-automation.jpg?v=e311000d&flush=${marker}" -o "$RUNNER_TEMP/live-manufacturing.jpg"
+          test "$(sha256sum "$RUNNER_TEMP/live-manufacturing.jpg" | awk '{print $1}')" = "$APPROVED_SHA256"
+          python3 -c "from PIL import Image,ImageStat; import os; p=os.environ['RUNNER_TEMP']+'/live-manufacturing.jpg'; im=Image.open(p); im.load(); assert im.format=='JPEG' and im.size==(1600,900); assert max(ImageStat.Stat(im.convert('RGB')).stddev)>=20; print('LIVE PASS: exact approved manufacturing JPEG is visibly nonblank.')"
+
+          git push origin --delete agent/exact-manufacturing-image-transfer >/dev/null 2>&1 || true
+          body="PASS — Restored the exact approved 1600x900 manufacturing JPEG at commit ${expected}. Required governance, image, placement, architecture, and ecosystem verification passed. GitHub Pages run ${run_id} succeeded, deployed-main-sha matches, all affected live pages reference the controlled JPEG, and live bytes match SHA-256 ${APPROVED_SHA256}. Run: ${run_url}"
+          gh issue edit 287 --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair — PASS' --body "$body"
+          gh issue close 287 --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Report failure evidence
+        if: failure()
+        shell: bash
+        run: |
+          gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > "$RUNNER_TEMP/failed.log" || true
+          body_file="$RUNNER_TEMP/failure.md"
           {
-            echo '# Manufacturing image repair diagnostics'
+            echo 'BLOCKED — Exact manufacturing image repair did not complete.'
             echo
-            echo "Failed run: \`$FAILED_RUN_ID\`"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
             echo '```text'
-            tail -n 90 "$RUNNER_TEMP/failed.log"
+            tail -n 180 "$RUNNER_TEMP/failed.log"
             echo '```'
           } > "$body_file"
-          if [[ -n "$issue" ]]; then
-            gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair diagnostics' --body-file "$body_file"
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair diagnostics' --body-file "$body_file"
-          fi
+          gh issue edit 287 --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair — BLOCKED' --body-file "$body_file" || true
