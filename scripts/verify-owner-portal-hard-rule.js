@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-const fs=require('fs');const path=require('path');const vm=require('vm');
+const fs=require('fs');const path=require('path');const vm=require('vm');const childProcess=require('child_process');
 const ROOT=path.resolve(__dirname,'..');
 const portalRoot=path.join(ROOT,'apps-script','core-engine','owner-portal-next');
 const htmlPath=path.join(portalRoot,'Portal_Index.html');
@@ -12,6 +12,10 @@ fs.mkdirSync(evidenceDir,{recursive:true});
 const pass=[];const failures=[];
 function check(name,condition,detail=''){(condition?pass:failures).push({name,detail});}
 function expectThrow(name,fn,expected){try{fn();failures.push({name,detail:'Expected error but none was thrown.'});}catch(error){check(name,!expected||String(error.message).includes(expected),String(error.message));}}
+const architecture=childProcess.spawnSync(process.execPath,[path.join(ROOT,'scripts','verify-unified-app-architecture.js')],{cwd:ROOT,encoding:'utf8'});
+if(architecture.stdout)process.stdout.write(architecture.stdout);
+if(architecture.stderr)process.stderr.write(architecture.stderr);
+check('unified application architecture gate',architecture.status===0,'exit '+architecture.status);
 check('Portal Experience server file exists',fs.existsSync(experiencePath));
 check('Owner Portal HTML exists',fs.existsSync(htmlPath));
 check('Owner Portal style include exists',fs.existsSync(stylePath));
@@ -86,6 +90,6 @@ check('saved view reads back',context.h38PortalSavedViews().length===1);
 check('saved view deletes',context.h38PortalDeleteSavedView(saved.view.id).views.length===0);
 expectThrow('saved view rejects unsupported module',()=>context.h38PortalSaveView({name:'Bad',module:'admin',filters:{}}),'not allowed');
 
-const evidence={status:failures.length?'FAIL':'PASS',generatedAt:new Date().toISOString(),passed:pass.length,failed:failures.length,controls:{ownerOnly:true,selectedRecordOnly:true,externalActions:false,bulkExecution:false,automaticRetry:false,rawJsonInNormalSettings:false,mobileCards:true,savedViews:true,customer360:true,job360:true,preview:true},pass,failures};
+const evidence={status:failures.length?'FAIL':'PASS',generatedAt:new Date().toISOString(),passed:pass.length,failed:failures.length,controls:{ownerOnly:true,selectedRecordOnly:true,externalActions:false,bulkExecution:false,automaticRetry:false,rawJsonInNormalSettings:false,mobileCards:true,savedViews:true,customer360:true,job360:true,preview:true,registryDriven:true,singleDesignSystem:true},pass,failures};
 fs.writeFileSync(path.join(evidenceDir,'owner-portal-hard-rule-verification.json'),JSON.stringify(evidence,null,2)+'\n');
 console.log(JSON.stringify(evidence,null,2));process.exit(failures.length?1:0);
