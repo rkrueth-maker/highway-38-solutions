@@ -21,6 +21,8 @@ const write=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Write.
 const engine=read('apps-script/business-office/BusinessOffice_QuoteBuilder.gs');
 const hooks=read('apps-script/business-office/BusinessOffice_QuoteBuilder_CacheHooks.gs');
 const gate=read('apps-script/business-office/BusinessOffice_ModuleAccess.gs');
+const actionContract=read('apps-script/business-office/BusinessOffice_ActionContract.gs');
+const moduleContract=read('apps-script/business-office/BusinessOffice_ModuleContract.gs');
 const shell=read('apps-script/unified-shell/Unified_AppShell.gs');
 const deploy=read('scripts/deploy-unified-owner-portal-web.sh');
 
@@ -56,7 +58,7 @@ need(optimizations,'Promise.all(files.map(async file=>','parallel independent fi
 need(optimizations,"stage:'parallel_photo_ai'",'parallel intake timing');
 need(popoutNav,'.app{grid-template-columns:76px minmax(0,1fr)}','compact desktop navigation rail');
 need(popoutNav,'content:attr(data-label)','pop-out navigation labels');
-need(popoutNav,"new MutationObserver(enhancePopoutNav)",'navigation enhancement after rerender');
+need(popoutNav,'new MutationObserver(enhancePopoutNav)','navigation enhancement after rerender');
 need(popoutNav,'@media (max-width:760px)','readable mobile navigation labels');
 need(launch,"button.dataset.launchReturnAction==='1'",'idempotent return-button patch');
 need(launch,"button.querySelector('.nav-text')",'pop-out navigation markup preservation');
@@ -74,7 +76,11 @@ need(engine,"boQuoteBuilderCachePut_('templates'",'cached templates');
 need(hooks,"boQuoteBuilderInvalidateCache_('quotes')",'quote cache invalidation');
 need(hooks,"boQuoteBuilderInvalidateCache_('products')",'Price Book cache invalidation');
 need(hooks,"boQuoteBuilderInvalidateCache_('documents')",'document cache invalidation');
-need(gate,'quoteBuilderDirectBootstrap','direct API gate');
+need(gate,'boModulesForApiAction_','canonical API gate delegation');
+need(actionContract,'quoteBuilderDirectBootstrap','direct API action contract');
+need(actionContract,"modules:['quotes']",'Quote Builder module requirement');
+need(moduleContract,"boUnifiedModule_('quoteBuilder'",'Quote Builder canonical module contract');
+need(moduleContract,"loadStrategy:'on-demand'",'Quote Builder on-demand policy');
 need(shell,"var quoteBuilder=h38UnifiedShellParameter_(event,'quoteBuilder');",'unified production direct-route parameter');
 need(shell,"if(quoteBuilder==='1' || app===H38_UNIFIED_SHELL.QUOTE_BUILDER)return h38UnifiedShellRenderQuoteBuilder_();",'unified production direct router');
 need(shell,'return boRenderQuoteBuilderApp_();','unified production direct renderer');
@@ -87,4 +93,4 @@ new Function(scriptBody(client));
 new Function(scriptBody(optimizations));
 new Function(scriptBody(popoutNav));
 new Function(scriptBody(launch));
-console.log('PASS — direct Quote Builder routing, compact pop-out navigation, idempotent launch controls, lazy loading, compact payloads, single-read snapshots, grouped writes, targeted caches, parallel file intake, and timing logs verified.');
+console.log('PASS — direct Quote Builder routing, canonical module/action gates, compact pop-out navigation, lazy loading, compact payloads, single-read snapshots, grouped writes, targeted caches, parallel file intake, and timing logs verified.');
