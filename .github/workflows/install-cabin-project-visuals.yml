@@ -1,0 +1,52 @@
+name: Install approved cabin project visuals
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-cabin-project-visuals.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Download approved visuals and wire project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/demo-workthroughs
+          curl -L --fail --retry 3 -o assets/demo-workthroughs/cabin-plan-sheet.png 'https://at.adobe.com/8NVNgw8zkdXZjcdM'
+          curl -L --fail --retry 3 -o assets/demo-workthroughs/cabin-exterior-render.png 'https://at.adobe.com/4u4kBDinnv1SMOgb'
+          curl -L --fail --retry 3 -o assets/demo-workthroughs/cabin-interior-render.png 'https://at.adobe.com/B47fXf0zwiwsSD2T'
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('cabin-project-complete.html')
+          s=p.read_text()
+          s=s.replace('assets/demo-workthroughs/cabin-floor-plan.svg?v=20260722-cabin','assets/demo-workthroughs/cabin-plan-sheet.png?v=20260722-approved')
+          s=s.replace('assets/demo-workthroughs/cabin-elevation.svg?v=20260722-cabin','assets/demo-workthroughs/cabin-exterior-render.png?v=20260722-approved')
+          marker='</div><section class="section"><h2>Planning assumptions</h2>'
+          gallery='''</div><section class="section"><h2>Finished cabin interior concept</h2><figure style="margin:0"><img src="assets/demo-workthroughs/cabin-interior-render.png?v=20260722-approved" alt="Photorealistic open kitchen dining and living concept for the cabin" style="width:100%;border-radius:14px;display:block"><figcaption style="padding:10px 0">Representative rustic-modern open kitchen, dining, and living concept based on the cabin plan.</figcaption></figure></section><section class="section"><h2>Planning assumptions</h2>'''
+          if marker in s:
+              s=s.replace(marker,gallery,1)
+          p.write_text(s)
+
+          p=Path('assets/js/project-intelligence.js')
+          s=p.read_text()
+          s=s.replace('assets/demo-workthroughs/cabin-floor-plan.svg?v=20260722-cabin','assets/demo-workthroughs/cabin-plan-sheet.png?v=20260722-approved')
+          s=s.replace('assets/demo-workthroughs/cabin-elevation.svg?v=20260722-cabin','assets/demo-workthroughs/cabin-exterior-render.png?v=20260722-approved')
+          p.write_text(s)
+          PY
+      - name: Commit installed project visuals
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '4189823784896+github-actions[bot]@users.noreply.github.com'
+          git add assets/demo-workthroughs/cabin-plan-sheet.png assets/demo-workthroughs/cabin-exterior-render.png assets/demo-workthroughs/cabin-interior-render.png cabin-project-complete.html assets/js/project-intelligence.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'Install approved cabin plans and project renders'
+          git push origin main
