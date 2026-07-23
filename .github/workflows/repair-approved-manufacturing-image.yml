@@ -1,295 +1,40 @@
-name: Repair Approved Manufacturing Image
+name: Manufacturing Image Repair Diagnostics
 
 on:
   push:
     branches: [main]
 
 permissions:
-  contents: write
-  actions: write
+  actions: read
+  contents: read
   issues: write
 
-concurrency:
-  group: repair-approved-manufacturing-image
-  cancel-in-progress: false
-
 jobs:
-  repair:
+  report:
     runs-on: ubuntu-latest
     env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
-      BASELINE_SHA: 2d6328d92127294662204e38045b1844079de1ce
-      SOURCE_FILE_ID: 1NjgisuWkRUzrcxg0LJOitNlcYr6abNTS
-      SOURCE_SHA256: e311000da5b001aab8c57716f709404f6685b4c433410babb30c3cbbc17f6d0c
-      SOURCE_BLOB_SHA: 460bf2eac1f2f63bce343c388dd85867e639e498
-      OLD_WEBP_BLOB_SHA: 8d23576d8b6899ce9ae57a2a763d4ef50288e2cd
-      CACHE_KEY: e311000d
-
     steps:
-      - name: Check out current main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Confirm bounded repair scope and governance baseline
+      - name: Wait for sibling workflows to register
+        run: sleep 45
+      - name: Report all runs for this commit
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor "$BASELINE_SHA" HEAD
-          unexpected="$(git diff --name-only "$BASELINE_SHA"..HEAD | grep -v '^.github/workflows/repair-approved-manufacturing-image.yml$' || true)"
-          if [[ -n "$unexpected" ]]; then
-            echo "Unexpected changes after accepted baseline:"
-            echo "$unexpected"
-            exit 1
+          runs="$(gh run list --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --limit 100 --json databaseId,name,workflowName,status,conclusion,headSha,event,url,createdAt,updatedAt)"
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --search 'Manufacturing image repair diagnostics in:title' --state all --limit 1 --json number --jq '.[0].number // empty')"
+          body_file="$RUNNER_TEMP/manufacturing-repair-runs.md"
+          {
+            echo '# Manufacturing image repair diagnostics'
+            echo
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo
+            echo '```json'
+            echo "$runs" | jq .
+            echo '```'
+          } > "$body_file"
+          if [[ -n "$issue" ]]; then
+            gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair diagnostics' --body-file "$body_file"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title 'Manufacturing image repair diagnostics' --body-file "$body_file"
           fi
-          node scripts/verify-change-governance.js
-
-      - name: Load encrypted Google credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'No encrypted Google credential is configured.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'));console.log('Google credential loaded.')"
-
-      - name: Restore the exact approved JPEG and update canonical references
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pip install --disable-pip-version-check pillow
-          ACCESS_TOKEN="$(node <<'NODE'
-          const fs=require('fs'),https=require('https'),querystring=require('querystring');
-          const raw=JSON.parse(fs.readFileSync(process.env.HOME+'/.clasprc.json','utf8'));
-          function walk(o){if(!o||typeof o!=='object')return [];return [o,...Object.values(o).flatMap(walk)]}
-          const auth=walk(raw).find(o=>o&&typeof o==='object'&&(o.refresh_token||o.refreshToken)&&(o.client_id||o.clientId)&&(o.client_secret||o.clientSecret));
-          if(!auth)throw new Error('No refreshable OAuth credential found.');
-          const body=querystring.stringify({client_id:auth.client_id||auth.clientId,client_secret:auth.client_secret||auth.clientSecret,refresh_token:auth.refresh_token||auth.refreshToken,grant_type:'refresh_token'});
-          const req=https.request({method:'POST',hostname:'oauth2.googleapis.com',path:'/token',headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(body)}},res=>{let data='';res.on('data',c=>data+=c);res.on('end',()=>{const parsed=JSON.parse(data);if(!parsed.access_token)throw new Error(data);process.stdout.write(parsed.access_token)})});
-          req.on('error',e=>{throw e});req.end(body);
-          NODE
-          )"
-          mkdir -p "$RUNNER_TEMP/h38-approved-source"
-          curl --fail --silent --show-error --location --max-time 180 \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            "https://www.googleapis.com/drive/v3/files/${SOURCE_FILE_ID}?alt=media&supportsAllDrives=true" \
-            -o "$RUNNER_TEMP/h38-approved-source/H38_04_Manufacturing_Automation.jpg"
-
-          python3 <<'PY'
-          from pathlib import Path
-          from PIL import Image, ImageStat
-          import hashlib, json, os
-
-          root = Path('.')
-          source = Path(os.environ['RUNNER_TEMP']) / 'h38-approved-source' / 'H38_04_Manufacturing_Automation.jpg'
-          target = root / 'assets/approved-website-images/manufacturing-automation.jpg'
-          old_webp = root / 'assets/approved-website-images/manufacturing-automation.webp'
-          expected_sha256 = os.environ['SOURCE_SHA256']
-          expected_blob = os.environ['SOURCE_BLOB_SHA']
-          old_webp_blob = os.environ['OLD_WEBP_BLOB_SHA']
-          cache_key = os.environ['CACHE_KEY']
-
-          def git_blob_sha(path: Path) -> str:
-              data = path.read_bytes()
-              return hashlib.sha1(f'blob {len(data)}\0'.encode('ascii') + data).hexdigest()
-
-          source_bytes = source.read_bytes()
-          if hashlib.sha256(source_bytes).hexdigest() != expected_sha256:
-              raise SystemExit('Approved Drive source SHA-256 mismatch.')
-          if git_blob_sha(source) != expected_blob:
-              raise SystemExit('Approved Drive source Git blob mismatch.')
-          with Image.open(source) as image:
-              image.load()
-              if image.format != 'JPEG' or image.size != (1600, 900):
-                  raise SystemExit(f'Unexpected approved source: {image.format} {image.size}')
-              stats = ImageStat.Stat(image.convert('RGB'))
-              if max(stats.stddev) < 20:
-                  raise SystemExit('Approved source appears visually blank.')
-
-          if not old_webp.exists() or git_blob_sha(old_webp) != old_webp_blob:
-              raise SystemExit('The broken WebP no longer matches the verified defect baseline.')
-
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_bytes(source_bytes)
-          if git_blob_sha(target) != expected_blob:
-              raise SystemExit('Exact approved JPEG bytes were not preserved.')
-
-          old_ref_keyed = 'assets/approved-website-images/manufacturing-automation.webp?v=8d23576d'
-          old_ref_plain = 'assets/approved-website-images/manufacturing-automation.webp'
-          new_ref = f'assets/approved-website-images/manufacturing-automation.jpg?v={cache_key}'
-          expected_counts = {
-              'solutions.html': 2,
-              'about.html': 1,
-              'robotics-automation.html': 2,
-          }
-          for page_name, expected in expected_counts.items():
-              page = root / page_name
-              text = page.read_text(encoding='utf-8')
-              before = text.count(old_ref_keyed) + text.replace(old_ref_keyed, '').count(old_ref_plain)
-              text = text.replace(old_ref_keyed, new_ref).replace(old_ref_plain, new_ref)
-              after = text.count(new_ref)
-              if before != expected or after != expected:
-                  raise SystemExit(f'{page_name} manufacturing image count mismatch: {before} -> {after}, expected {expected}')
-              page.write_text(text, encoding='utf-8')
-
-          architecture = root / 'scripts/verify-public-website-architecture.js'
-          architecture_text = architecture.read_text(encoding='utf-8')
-          expected_arch_old = "'assets/approved-website-images/manufacturing-automation.webp',"
-          expected_arch_new = "'assets/approved-website-images/manufacturing-automation.jpg',"
-          if architecture_text.count(expected_arch_old) != 1:
-              raise SystemExit('Architecture verifier manufacturing path changed unexpectedly.')
-          architecture.write_text(architecture_text.replace(expected_arch_old, expected_arch_new, 1), encoding='utf-8')
-
-          placement_path = root / 'scripts/config/approved-public-image-placements.json'
-          placement = json.loads(placement_path.read_text(encoding='utf-8'))
-          placement['policyVersion'] = '2026-07-23-exact-placement-v3'
-          for page_name in ('solutions.html', 'about.html'):
-              for item in placement['pages'][page_name]:
-                  if item.get('src') == old_ref_plain:
-                      item['src'] = 'assets/approved-website-images/manufacturing-automation.jpg'
-          placement['pages']['robotics-automation.html'] = [
-              {'role':'hero','src':'assets/approved-website-images/manufacturing-automation.jpg','alt':'Industrial robot automation cell'},
-              {'role':'automation-planning','src':'assets/approved-website-images/manufacturing-automation.jpg','alt':'Automation planning and robot cell'},
-          ]
-          record = {
-              'date': '2026-07-23',
-              'page': 'solutions.html, about.html, robotics-automation.html',
-              'section': 'manufacturing and automation imagery',
-              'oldPlacement': 'assets/approved-website-images/manufacturing-automation.webp',
-              'newPlacement': 'assets/approved-website-images/manufacturing-automation.jpg',
-              'reason': 'Verified ChromeOS live-render defect: the approved WebP displayed as blank. Restored the exact owner-approved 1600x900 JPEG source from Drive without visual alteration.',
-              'binaryPolicy': 'Exact approved JPEG source bytes preserved; SHA-256 e311000da5b001aab8c57716f709404f6685b4c433410babb30c3cbbc17f6d0c; old broken WebP retained only for rollback history.'
-          }
-          changes = placement.setdefault('placementChanges', [])
-          if not any(item.get('newPlacement') == record['newPlacement'] and item.get('reason') == record['reason'] for item in changes):
-              changes.append(record)
-          placement_path.write_text(json.dumps(placement, indent=2) + '\n', encoding='utf-8')
-
-          assets_path = root / 'scripts/config/approved-public-assets.json'
-          assets = json.loads(assets_path.read_text(encoding='utf-8'))
-          assets['approved_content_assets'] = {
-              'manufacturing_automation': {
-                  'description': 'Exact owner-approved manufacturing and automation image restored from the approved Drive source',
-                  'path': 'assets/approved-website-images/manufacturing-automation.jpg',
-                  'git_blob_sha': expected_blob,
-                  'sha256': expected_sha256,
-                  'width': 1600,
-                  'height': 900,
-                  'public_reference': new_ref,
-              }
-          }
-          assets_path.write_text(json.dumps(assets, indent=2) + '\n', encoding='utf-8')
-
-          verifier_path = root / 'scripts/verify-public-images.py'
-          verifier = verifier_path.read_text(encoding='utf-8')
-          required_marker = '        "approved_logo",\n        "shared_public_css",'
-          if required_marker not in verifier:
-              raise SystemExit('Public image verifier required-asset marker changed.')
-          verifier = verifier.replace(required_marker, '        "approved_logo",\n        "approved_content_assets",\n        "shared_public_css",', 1)
-
-          helper_marker = '''def validate_logo(logo_file: Path, expected_blob_sha: str, errors: list[str]) -> str:\n'''
-          helper = '''def jpeg_dimensions(path: Path) -> tuple[int, int] | None:\n    data = path.read_bytes()\n    if not data.startswith(b"\\xff\\xd8"):\n        return None\n    i = 2\n    sof = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}\n    while i + 9 <= len(data):\n        if data[i] != 0xFF:\n            i += 1\n            continue\n        while i < len(data) and data[i] == 0xFF:\n            i += 1\n        if i >= len(data):\n            break\n        marker = data[i]\n        i += 1\n        if marker in {0xD8, 0xD9}:\n            continue\n        if i + 2 > len(data):\n            break\n        length = int.from_bytes(data[i:i + 2], "big")\n        if length < 2 or i + length > len(data):\n            break\n        if marker in sof and length >= 7:\n            height = int.from_bytes(data[i + 3:i + 5], "big")\n            width = int.from_bytes(data[i + 5:i + 7], "big")\n            return width, height\n        i += length\n    return None\n\n\ndef validate_approved_content_assets(items: dict, errors: list[str]) -> None:\n    for key, item in items.items():\n        relative = str(item.get("path", ""))\n        path = ROOT / relative\n        if not image_file_is_valid(path):\n            errors.append(f"INVALID APPROVED CONTENT IMAGE: {key} -> {relative}")\n            continue\n        actual_blob = git_blob_sha(path)\n        expected_blob = str(item.get("git_blob_sha", "")).lower()\n        if actual_blob != expected_blob:\n            errors.append(f"APPROVED CONTENT IMAGE BINARY MISMATCH: {key} expected {expected_blob}, got {actual_blob}")\n        actual_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()\n        expected_sha256 = str(item.get("sha256", "")).lower()\n        if actual_sha256 != expected_sha256:\n            errors.append(f"APPROVED CONTENT IMAGE SHA-256 MISMATCH: {key} expected {expected_sha256}, got {actual_sha256}")\n        expected_size = (int(item.get("width", 0)), int(item.get("height", 0)))\n        actual_size = jpeg_dimensions(path) if path.suffix.lower() in {".jpg", ".jpeg"} else None\n        if actual_size != expected_size:\n            errors.append(f"APPROVED CONTENT IMAGE DIMENSIONS MISMATCH: {key} expected {expected_size}, got {actual_size}")\n\n\n'''
-          if helper_marker not in verifier or 'def validate_approved_content_assets(' in verifier:
-              raise SystemExit('Public image verifier helper insertion point changed.')
-          verifier = verifier.replace(helper_marker, helper + helper_marker, 1)
-
-          call_marker = '''    if bool(logo.get("allow_image_substitute")):\n        errors.append("APPROVED LOGO POLICY ERROR: image substitution must remain disabled")\n\n'''
-          call_replacement = call_marker + '''    validate_approved_content_assets(assets.get("approved_content_assets", {}), errors)\n\n'''
-          if call_marker not in verifier:
-              raise SystemExit('Public image verifier content validation insertion point changed.')
-          verifier = verifier.replace(call_marker, call_replacement, 1)
-          verifier_path.write_text(verifier, encoding='utf-8')
-
-          for page_name, expected in expected_counts.items():
-              text = (root / page_name).read_text(encoding='utf-8')
-              if text.count(new_ref) != expected:
-                  raise SystemExit(f'{page_name} final approved JPEG reference count mismatch.')
-          for relative in ('solutions.html','about.html','robotics-automation.html','scripts/config/approved-public-image-placements.json','scripts/verify-public-website-architecture.js'):
-              if old_ref_plain in (root / relative).read_text(encoding='utf-8'):
-                  raise SystemExit(f'Broken WebP remains referenced in {relative}.')
-          PY
-
-      - name: Run complete public website verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-change-governance.js
-          python3 scripts/verify-public-images.py
-          node scripts/verify-public-image-placements.js
-          node scripts/verify-public-website-architecture.js
-          node scripts/verify-public-ecosystem-tools.js
-          python3 - <<'PY'
-          from PIL import Image, ImageStat
-          from pathlib import Path
-          image_path=Path('assets/approved-website-images/manufacturing-automation.jpg')
-          with Image.open(image_path) as image:
-              image.load()
-              assert image.format == 'JPEG'
-              assert image.size == (1600,900)
-              assert max(ImageStat.Stat(image.convert('RGB')).stddev) >= 20
-          print('Approved manufacturing JPEG decodes and contains visible image detail.')
-          PY
-          git diff --check
-
-      - name: Commit the canonical repair and remove this temporary workflow
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f .github/workflows/repair-approved-manufacturing-image.yml
-          allowed='^(assets/approved-website-images/manufacturing-automation.jpg|solutions.html|about.html|robotics-automation.html|scripts/config/approved-public-assets.json|scripts/config/approved-public-image-placements.json|scripts/verify-public-images.py|scripts/verify-public-website-architecture.js|.github/workflows/repair-approved-manufacturing-image.yml)$'
-          unexpected="$(git status --short | sed 's/^...//' | grep -Ev "$allowed" || true)"
-          if [[ -n "$unexpected" ]]; then
-            echo "Unexpected changed files:"
-            echo "$unexpected"
-            exit 1
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/approved-website-images/manufacturing-automation.jpg \
-            solutions.html about.html robotics-automation.html \
-            scripts/config/approved-public-assets.json \
-            scripts/config/approved-public-image-placements.json \
-            scripts/verify-public-images.py \
-            scripts/verify-public-website-architecture.js \
-            .github/workflows/repair-approved-manufacturing-image.yml
-          git commit -m 'Restore exact approved manufacturing image'
-          git push origin HEAD:main
-          new_sha="$(git rev-parse HEAD)"
-          echo "$new_sha" > "$RUNNER_TEMP/repaired-main-sha.txt"
-
-      - name: Deploy the exact repaired commit through Pages authority
-        shell: bash
-        run: |
-          set -euo pipefail
-          new_sha="$(cat "$RUNNER_TEMP/repaired-main-sha.txt")"
-          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
-          for attempt in $(seq 1 30); do
-            run_json="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow pages.yml --branch main --limit 10 --json databaseId,headSha,status,conclusion,url | jq -c --arg sha "$new_sha" '[.[] | select(.headSha==$sha)][0] // empty')"
-            if [[ -n "$run_json" ]]; then
-              run_id="$(jq -r '.databaseId' <<<"$run_json")"
-              status="$(jq -r '.status' <<<"$run_json")"
-              conclusion="$(jq -r '.conclusion // ""' <<<"$run_json")"
-              url="$(jq -r '.url' <<<"$run_json")"
-              echo "Pages run ${run_id}: ${status} ${conclusion} ${url}"
-              if [[ "$status" == 'completed' ]]; then
-                [[ "$conclusion" == 'success' ]]
-                exit 0
-              fi
-            fi
-            sleep 10
-          done
-          echo 'Timed out waiting for the exact repaired Pages run.'
-          exit 1
