@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "version": "2026-07-23-project-first-v1",
+  "primary": [
+    {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
+    {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
+    {"path":"solutions.html","label":"What We Do","shell":"canonical","visibility":"public"},
+    {"path":"pricing.html","label":"Pricing","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/pricing.html","shell":"canonical","visibility":"public"},
+    {"path":"about.html","label":"About","shell":"canonical","visibility":"public"},
+    {"path":"contact.html","label":"Contact","shell":"canonical","visibility":"public"},
+    {"path":"start-request.html","label":"Start a Project","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/start-request.html","shell":"canonical","visibility":"public"},
+    {"path":"portal.html","label":"Owner Access","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/portal.html","shell":"gateway","visibility":"private-gateway"}
+  ],
+  "demonstrations": [
+    {"path":"contractor-quote-complete.html","label":"Contractor Quote Demonstration","shell":"document","visibility":"noindex"},
+    {"path":"cabin-project-complete.html","label":"Cabin Project Demonstration","shell":"document","visibility":"noindex"}
+  ],
+  "specialist": [
+    "for-contractors.html",
+    "manufacturing-cnc.html",
+    "robotics-automation.html",
+    "quote-builder.html",
+    "job-guide.html",
+    "business-systems.html",
+    "resources.html"
+  ],
+  "retired": {
+    "catalog.html":"sample-library-now.html",
+    "products.html":"solutions.html",
+    "product.html":"solutions.html",
+    "packages.html":"pricing.html",
+    "tools.html":"sample-library-now.html",
+    "free-tools.html":"sample-library-now.html",
+    "tool-center.html":"sample-library-now.html",
+    "proof.html":"sample-library-now.html",
+    "forgeiq.html":"solutions.html",
+    "services.html":"solutions.html",
+    "specials.html":"pricing.html"
+  },
+  "private": [
+    "customer-portal.html",
+    "sign-in.html"
+  ]
+}
