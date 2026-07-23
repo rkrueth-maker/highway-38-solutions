@@ -25,7 +25,10 @@ const files={
   styles:path.join(PORTAL,'Portal_Product_Styles.html'),
   client:path.join(PORTAL,'Portal_Product_Client.html'),
   manifest:path.join(BUSINESS,'BusinessOffice_ClientManifest.gs'),
-  obsolete:path.join(BUSINESS,'BusinessOffice_AI_Native_UX_Client.html'),
+  obsoletePolish:path.join(BUSINESS,'BusinessOffice_AI_Native_UX_Client.html'),
+  obsoleteControl:path.join(BUSINESS,'BusinessOffice_ControlPlane_Client.html'),
+  obsoleteControlLive:path.join(BUSINESS,'BusinessOffice_ControlPlane_Live_Client.html'),
+  obsoleteApps:path.join(BUSINESS,'BusinessOffice_Modular_Suite.html'),
   rules:path.join(ROOT,'docs','architecture','UNIFIED_APP_CHANGE_RULES.md'),
   agents:path.join(ROOT,'AGENTS.md'),
   assetManifest:path.join(ROOT,'scripts','config','approved-public-assets.json'),
@@ -33,7 +36,7 @@ const files={
 };
 
 Object.entries(files).forEach(([name,file])=>{
-  if(name==='obsolete')return;
+  if(name.startsWith('obsolete'))return;
   check(name+' exists',exists(file),path.relative(ROOT,file));
 });
 
@@ -59,13 +62,11 @@ if(failures.length===0){
     check('registry returns groups',Array.isArray(groups)&&groups.length>=7,String(groups&&groups.length));
     const groupIds=[];
     const routeKeys=[];
-    const modules=[];
     (groups||[]).forEach(group=>{
       groupIds.push(group.id);
       check('group '+group.id+' has label and items',Boolean(group.id&&group.label&&Array.isArray(group.items)&&group.items.length),group.label||'');
       group.items.forEach(item=>{
         routeKeys.push(item.key);
-        modules.push(item.module);
         check('module '+item.key+' has required metadata',Boolean(item.key&&item.label&&item.icon&&item.type&&item.module&&item.gate&&item.keywords),JSON.stringify(item));
         check('module '+item.key+' has valid type',['native','business'].includes(item.type),item.type);
         check('business route '+item.key+' uses bo prefix',item.type!=='business'||item.key.startsWith('bo:'),item.key);
@@ -74,8 +75,11 @@ if(failures.length===0){
     });
     check('group IDs are unique',new Set(groupIds).size===groupIds.length,groupIds.join(','));
     check('route keys are unique',new Set(routeKeys).size===routeKeys.length,routeKeys.join(','));
-    check('required spaces exist',['Today','Customers','Work','Money','Documents','Growth','Control'].every(label=>groups.some(group=>group.label===label)),groups.map(group=>group.label).join(','));
-    check('core routes exist',['today','bo:assignedTasks','bo:requests','bo:customers','bo:quotes','bo:jobs','bo:invoices','bo:documents','proof','errors'].every(key=>routeKeys.includes(key)),routeKeys.join(','));
+    check('required spaces exist',['Today','Customers','Work','Money','Documents','Growth','Office'].every(label=>groups.some(group=>group.label===label)),groups.map(group=>group.label).join(','));
+    check('Office replaces Control group',groups.some(group=>group.id==='office'&&group.label==='Office')&&!groups.some(group=>group.id==='control'||group.label==='Control'),groupIds.join(','));
+    check('enabled apps are direct workspaces',['bo:requests','bo:customers','bo:quotes','bo:workOrders','bo:jobs','bo:invoices','bo:payments','bo:expenses','bo:documents','bo:reports'].every(key=>routeKeys.includes(key)),routeKeys.join(','));
+    check('Office exposes app management',routeKeys.includes('moduleManager')&&groups.find(group=>group.id==='office').items.some(item=>item.key==='moduleManager'&&item.label==='Apps & Modules'));
+    check('core routes exist',['today','bo:assignedTasks','proof','errors'].every(key=>routeKeys.includes(key)),routeKeys.join(','));
   }catch(error){
     check('registry evaluates',false,error.stack||error.message);
   }
@@ -89,7 +93,9 @@ if(failures.length===0){
   check('portal has one navigation host',(indexSource.match(/id=\"nav\"/g)||[]).length===1);
   check('portal keeps approved logo host',(indexSource.match(/id=\"h38PortalLogo\"/g)||[]).length===1);
   check('obsolete polish include removed',!indexSource.includes('BusinessOffice_AI_Native_UX_Client')&&!manifestSource.includes('BusinessOffice_AI_Native_UX_Client'));
-  check('obsolete polish file deleted',!exists(files.obsolete));
+  check('legacy Control Center client inactive',!manifestSource.includes('BusinessOffice_ControlPlane_Client')&&!manifestSource.includes('BusinessOffice_ControlPlane_Live_Client'));
+  check('legacy Business Apps hub inactive',!manifestSource.includes('BusinessOffice_Modular_Suite'));
+  check('obsolete UI files deleted',!exists(files.obsoletePolish)&&!exists(files.obsoleteControl)&&!exists(files.obsoleteControlLive)&&!exists(files.obsoleteApps));
   check('design system owns all major components',['#ownerTopbar','.nav-group-items','#view','.tablewrap','.drawer-panel','#h38-ai-panel','@media(max-width:800px)'].every(marker=>styleSource.includes(marker)),styleSource.length+' bytes');
   check('product client connects render lifecycle',/h38ProductConnectRenderLifecycle/.test(clientSource)&&/h38AfterSurfaceRender/.test(clientSource));
   check('product client provides contextual AI',/h38ProductPrompts/.test(clientSource)&&/data-h38-ai-prompt/.test(clientSource));
@@ -109,7 +115,7 @@ if(failures.length===0){
 const evidence={
   status:failures.length?'FAIL':'PASS',
   generatedAt:new Date().toISOString(),
-  architecture:'single-shell-registry-design-system-v1',
+  architecture:'single-shell-office-registry-v2',
   logoLocked:true,
   passed:pass.length,
   failed:failures.length,
