@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "2026-07-23-exact-placement-v2",
+  "logo": {
+    "path": "assets/highway38-logo.png",
+    "cacheKey": "20260720-exact-0cbc4514",
+    "placement": "shared header, shared footer, and approved document branding only"
+  },
+  "lockedDirectories": [
+    "assets/approved-website-images/",
+    "assets/contractor-demo/",
+    "assets/demo-workthroughs/"
+  ],
+  "placementChangePolicy": {
+    "default": "locked",
+    "allowedWithoutNewVisualApproval": [
+      "broken-path",
+      "duplicate-by-mistake",
+      "inaccessible-placement",
+      "clearly-unrelated-to-section"
+    ],
+    "requirements": [
+      "preserve-the-same-binary",
+      "record-page-section-old-placement-new-placement-and-reason",
+      "update-this-manifest-and-verifier-in-the-same-change"
+    ]
+  },
+  "pages": {
+    "index.html": [
+      {"role":"hero","src":"assets/demo-workthroughs/cabin-exterior-render.png","alt":"Completed Northwoods cabin project concept"},
+      {"role":"plans-card","src":"assets/demo-workthroughs/cabin-plan-sheet.png","alt":"Three-bedroom cabin plan sheet"},
+      {"role":"quote-card","src":"assets/demo-workthroughs/kitchen-after.webp","alt":"Completed kitchen remodel example"},
+      {"role":"instructions-card","src":"assets/approved-website-images/10-project-planning-documents.jpg","alt":"Project planning documents"},
+      {"role":"business-office-card","src":"assets/approved-website-images/business-workflow-office.webp","alt":"Connected Business Office workflow"}
+    ],
+    "solutions.html": [
+      {"role":"hero","src":"assets/approved-website-images/manufacturing-automation.webp","alt":"Automation and manufacturing systems"},
+      {"role":"automation-card","src":"assets/approved-website-images/manufacturing-automation.webp","alt":"Industrial automation and robotics planning"},
+      {"role":"cnc-card","src":"assets/approved-website-images/12-cnc-machining-closeup.jpg","alt":"CNC machining and process planning"},
+      {"role":"fixturing-card","src":"assets/approved-website-images/10-project-planning-documents.jpg","alt":"CNC fixture and workholding concept planning"},
+      {"role":"quote-builder-card","src":"assets/approved-website-images/business-workflow-office.webp","alt":"AI-assisted Quote Builder workflow"},
+      {"role":"business-office-card","src":"assets/approved-website-images/13-digital-organization-file-system.jpg","alt":"Connected Business Office records and workflow"}
+    ],
+    "pricing.html": [
+      {"role":"hero","src":"assets/demo-workthroughs/cabin-plan-sheet.png","alt":"Detailed project planning and quote example"}
+    ],
+    "about.html": [
+      {"role":"hero","src":"assets/approved-website-images/12-cnc-machining-closeup.jpg","alt":"CNC machining experience"},
+      {"role":"experience","src":"assets/approved-website-images/manufacturing-automation.webp","alt":"Automation and manufacturing experience"}
+    ],
+    "contact.html": [
+      {"role":"hero","src":"assets/approved-website-images/10-project-planning-documents.jpg","alt":"Project planning documents and measurements"},
+      {"role":"request-process","src":"assets/approved-website-images/08-request-process-checklist.jpg","alt":"Project request checklist"}
+    ],
+    "sample-library-now.html": [
+      {"role":"hero","src":"assets/demo-workthroughs/cabin-exterior-render.png","alt":"Completed Northwoods cabin example"},
+      {"role":"example-01-before","src":"assets/contractor-demo/flower-before.png","alt":"Flower garden before"},
+      {"role":"example-01-after","src":"assets/contractor-demo/flower-after.png","alt":"Flower garden after"},
+      {"role":"example-02-before","src":"assets/contractor-demo/driveway-before.jpg","alt":"Driveway before"},
+      {"role":"example-02-after","src":"assets/contractor-demo/driveway-after.jpg","alt":"Driveway after"},
+      {"role":"example-03-before","src":"assets/contractor-demo/pond-before.jpg","alt":"Pond before"},
+      {"role":"example-03-after","src":"assets/contractor-demo/pond-after.jpg","alt":"Pond after"},
+      {"role":"example-04-before","src":"assets/contractor-demo/lot-before.jpg","alt":"Lot before"},
+      {"role":"example-04-after","src":"assets/contractor-demo/lot-after.jpg","alt":"Lot after"},
+      {"role":"example-05-before","src":"assets/demo-workthroughs/deck-before.webp","alt":"Deck before"},
+      {"role":"example-05-after","src":"assets/demo-workthroughs/deck-after.webp","alt":"Deck after"},
+      {"role":"example-06-before","src":"assets/demo-workthroughs/irrigation-before.webp","alt":"Irrigation before"},
+      {"role":"example-06-after","src":"assets/demo-workthroughs/irrigation-after.webp","alt":"Irrigation after"},
+      {"role":"example-07-before","src":"assets/demo-workthroughs/kitchen-before.webp","alt":"Kitchen before"},
+      {"role":"example-07-after","src":"assets/demo-workthroughs/kitchen-after.webp","alt":"Kitchen after"},
+      {"role":"example-08-plan","src":"assets/demo-workthroughs/cabin-plan-sheet.png","alt":"Three-bedroom two-bath cabin plan sheet"},
+      {"role":"example-08-finished","src":"assets/demo-workthroughs/cabin-exterior-render.png","alt":"Completed Northwoods cabin concept"}
+    ],
+    "cabin-project-complete.html": [
+      {"role":"plan","src":"assets/demo-workthroughs/cabin-plan-sheet.png","alt":"Conceptual floor plan for three bedroom two bath cabin"},
+      {"role":"exterior","src":"assets/demo-workthroughs/cabin-exterior-render.png","alt":"Conceptual front elevation for northern Minnesota cabin"},
+      {"role":"interior","src":"assets/demo-workthroughs/cabin-interior-render.png","alt":"Photorealistic open kitchen dining and living concept for the cabin"}
+    ]
+  },
+  "dynamicPages": {
+    "contractor-quote-complete.html": {
+      "sourceConstants": {
+        "contractorDemo": "assets/contractor-demo/",
+        "workthroughs": "assets/demo-workthroughs/"
+      },
+      "examples": {
+        "flower": ["flower-before.png", "flower-after.png"],
+        "drive": ["driveway-before.jpg", "driveway-after.jpg"],
+        "pond": ["pond-before.jpg", "pond-after.jpg"],
+        "clear": ["lot-before.jpg", "lot-after.jpg"],
+        "deck": ["deck-before.webp", "deck-after.webp"],
+        "irrigation": ["irrigation-before.webp", "irrigation-after.webp"],
+        "kitchen": ["kitchen-before.webp", "kitchen-after.webp"]
+      }
+    }
+  },
+  "runtimeRules": {
+    "mayChangeImageSource": false,
+    "mayInsertRepresentativeImages": false,
+    "mayUseFallbackImage": false,
+    "mayAddLoadingAndDecodingAttributes": true,
+    "mayHideBrokenLogoWithoutSubstitution": true
+  }
+}
