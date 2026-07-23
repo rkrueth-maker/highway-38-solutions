@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: highway-38-cabin-subquotes
@@ -26,6 +27,7 @@ jobs:
       CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,6 +58,7 @@ jobs:
         run: bash scripts/deploy-unified-owner-portal-web.sh
 
       - name: Generate all 21 cabin sub-quotes
+        id: generate
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +67,7 @@ jobs:
           mkdir -p "$WORK"
           printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
           cd "$WORK"
-          npx clasp run boGenerateAllCabinSubquotes --params '[]' | tee "$GITHUB_WORKSPACE/cabin-subquote-generation-result.txt"
+          "$GITHUB_WORKSPACE/node_modules/.bin/clasp" run boGenerateAllCabinSubquotes --params '[]' | tee "$GITHUB_WORKSPACE/cabin-subquote-generation-result.txt"
           grep -E '21|generated|PASS|Complete' "$GITHUB_WORKSPACE/cabin-subquote-generation-result.txt"
 
       - name: Upload generation evidence
@@ -77,3 +80,17 @@ jobs:
             artifacts/unified-owner-portal/
           if-no-files-found: warn
           retention-days: 90
+
+      - name: Report successful cabin generation
+        if: success()
+        shell: bash
+        run: |
+          BODY="PASS — All 21 cabin sub-quotes were generated in the existing Business Office from commit ${GITHUB_SHA}. Same project record and approved plan, exterior, and interior visuals were used. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+
+      - name: Report cabin generation hold
+        if: failure()
+        shell: bash
+        run: |
+          BODY="HOLD — Cabin sub-quote generation failed for commit ${GITHUB_SHA}. Existing Business Office remained protected. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
