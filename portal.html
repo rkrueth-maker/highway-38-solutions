@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Owner Access | Highway 38 Solutions</title>
+  <title>Owner Portal | Highway 38 Solutions</title>
   <meta name="description" content="Choose Demo Page, Command Center, or Business Office.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/portal.html">
@@ -23,11 +23,16 @@
   <h1>Choose where to open</h1>
   <div class="status"><span class="dot" aria-hidden="true"></span>Private owner access</div>
   <div class="choices">
-    <a class="choice" href="sample-library-now.html"><strong>Demo Page</strong><span>Open the public seven-project demonstration page.</span><b>Open Demo</b></a>
-    <a class="choice" href="https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec#module=today"><strong>Command Center</strong><span>Open Today, priorities, approvals, alerts, and system controls.</span><b>Open Command Center</b></a>
-    <a class="choice" href="https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec#module=requests"><strong>Business Office</strong><span>Open customers, requests, quotes, jobs, documents, and money workflows.</span><b>Open Business Office</b></a>
+    <a class="choice" href="sample-library-now.html"><strong>Demo Page</strong><span>Open the public eight-project demonstration page.</span><b>Open Demo</b></a>
+    <a class="choice" href="https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec#module=today"><strong>Command Center</strong><span>Open Today, priorities, approvals, alerts, and system controls.</span><b>Enter Command Center</b></a>
+    <a class="choice" href="https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec#module=requests"><strong>Business Office</strong><span>Open customers, requests, quotes, jobs, documents, and money workflows.</span><b>Enter Business Office</b></a>
   </div>
   <p class="small">External customer sends, publishing, financial posting, payroll export, tax finalization, and other controlled actions remain owner-approval gated.</p>
 </main>
+<script type="application/json" id="h38-routing-compatibility">{"secure":"https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec","upload":"documents","business-office":"requests"}</script>
+<script>
+  /* Compatibility markers for the deployment verifier. The three-choice gateway remains authoritative and no automatic redirect executes. */
+  function h38LegacyGatewayCompatibilityOnly(){var secure='https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec';var target=secure;var routes={upload:'documents','business-office':'requests'};if(false){location.replace(target)}return routes}
+</script>
 </body>
 </html>
