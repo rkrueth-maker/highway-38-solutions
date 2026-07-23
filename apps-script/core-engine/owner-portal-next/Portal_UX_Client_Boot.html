@@ -4,6 +4,18 @@ document.addEventListener('keydown',function(event){
     if(action){event.preventDefault();action.click();}
   }
 });
+async function h38SyncWorkspaceFromHash(){
+  if(!H38_UNIFIED||typeof uxRequestedModule!=='function'||typeof show!=='function')return;
+  var requested=uxRequestedModule();
+  if(!requested||requested===CURRENT)return;
+  if(typeof h38AppRouteAllowed==='function'&&!h38AppRouteAllowed(requested))return;
+  await show(requested);
+}
+window.addEventListener('hashchange',function(){
+  h38SyncWorkspaceFromHash().catch(function(error){
+    if(typeof uxRenderWorkspaceFailure==='function')uxRenderWorkspaceFailure(error,'The requested workspace could not be opened.');
+  });
+});
 (function(){
   var started=false,finished=false;
   function launch(){
