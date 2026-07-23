@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const registry = read('apps-script/business-office/BusinessOffice_ModuleRegistry.gs');
 const moduleRegistry = read('apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js');
+const shell = read('apps-script/core-engine/owner-portal-next/Portal_UX_Client_Shell.html');
 const architecture = read('apps-script/core-engine/owner-portal-next/Portal_ProductArchitecture.js');
 const unified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
 const applicationUx = read('apps-script/core-engine/owner-portal-next/Portal_Application_UX.js');
@@ -29,7 +30,7 @@ function check(name, condition, evidence = '') {
   }
 }
 
-for (const [name, source] of [['legacy product registry', registry], ['unified module registry', moduleRegistry], ['product architecture server', architecture]]) {
+for (const [name, source] of [['compatibility product registry', registry], ['unified module registry', moduleRegistry], ['product architecture server', architecture], ['unified shell', shell]]) {
   try {
     new vm.Script(source, { filename: name });
     check(`${name} parses`, true);
@@ -46,22 +47,22 @@ const legacyKeys = [
 const packKeys = ['h38-core','sales-customer','operations','finance-office','growth'];
 const addOnKeys = ['equipment-maintenance','shop-flow-manufacturing','customer-portal-advanced','advanced-purchasing','advanced-financial-controls'];
 const protectedRoles = ['Owner','Administrator','Foreman','Employee','Bookkeeper','Payroll','Viewer','Staff','Estimator','Field Staff','Customer'];
-const legacyRoutes = [
+const visibleRoutes = [
   'today','bo:assignedTasks','approvalsCenter','calendarCenter','bo:requests','bo:customers','bo:messaging','bo:smsConsent',
   'bo:quotes','bo:workOrders','bo:jobs','bo:time','bo:equipment','bo:vendors','bo:purchaseOrders','bo:vendorBills','bo:receipts',
   'bo:expenses','bo:invoices','bo:payments','bo:accounting','bo:payroll','bo:tax','bo:documents','bo:messageTemplates','bo:reports',
-  'growth','websiteCenter','social','advertising','moduleManager','setupWizard','userAccess','backupCenter','bo:setup','bo:employees',
+  'growth','websiteCenter','social','advertising','moduleManager','setupWizard','userAccess','backupCenter','bo:employees',
   'bo:contractors','proof','errors','systemHealth','settings','help'
 ];
 
-check('legacy focused product catalog remains present', /function\s+boGetBusinessAppCatalog_\s*\(/.test(registry));
-check('new pack catalog is additive', /function\s+boGetProductPackCatalog_\s*\(/.test(registry));
+check('compatibility focused-product catalog remains available to migrations', /function\s+boGetBusinessAppCatalog_\s*\(/.test(registry));
+check('pack catalog remains available', /function\s+boGetProductPackCatalog_\s*\(/.test(registry));
 check('legacy alias map is present', /function\s+boGetLegacyProductPackAliasMap_\s*\(/.test(registry));
-legacyKeys.forEach(key => check(`legacy product preserved: ${key}`, registry.includes(`'${key}'`)));
+legacyKeys.forEach(key => check(`legacy product metadata preserved: ${key}`, registry.includes(`'${key}'`)));
 packKeys.forEach(key => check(`product pack defined: ${key}`, registry.includes(`key:'${key}'`)));
 addOnKeys.forEach(key => check(`specialist add-on defined: ${key}`, registry.includes(`key:'${key}'`)));
 check('Foreman and Employee are Operations experiences', /key:'operations'[\s\S]*roleExperiences:\['Foreman','Employee'\]/.test(registry));
-check('every legacy product explicitly preserves its route', legacyKeys.every(key => new RegExp(`'${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\s*:\\s*\\{[^}]*preserveLegacyRoute:true`).test(registry)));
+check('every legacy product preserves migration metadata', legacyKeys.every(key => new RegExp(`'${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\s*:\\s*\\{[^}]*preserveLegacyRoute:true`).test(registry)));
 
 check('read-only architecture endpoint exists', /function\s+h38PortalProductArchitecture\s*\(/.test(architecture));
 check('legacy resolver endpoint exists', /function\s+h38PortalResolveLegacyProduct\s*\(/.test(architecture));
@@ -85,7 +86,9 @@ const forbiddenArchitecturePatterns = [
 ];
 for (const pattern of forbiddenArchitecturePatterns) check(`architecture has no protected write ${pattern}`, !pattern.test(architecture));
 
-legacyRoutes.forEach(route => check(`legacy route remains in central navigation: ${route}`, moduleRegistry.includes(`key:'${route}'`) || moduleRegistry.includes(`key: '${route}'`)));
+visibleRoutes.forEach(route => check(`current route remains in central navigation: ${route}`, moduleRegistry.includes(`key:'${route}'`) || moduleRegistry.includes(`key: '${route}'`)));
+check('retired product controls route is not visible', !moduleRegistry.includes("key:'bo:setup'"));
+check('retired product and control bookmarks redirect safely', /'bo:setup':'moduleManager'/.test(shell) && /route\.indexOf\('app:'\)===0/.test(shell) && /control:'today'/.test(shell));
 check('unified bootstrap consumes the central registry', /h38PortalModuleRegistry_\(/.test(unified) && /moduleIndex:moduleIndex/.test(unified));
 check('module manager still preserves records when hidden', applicationUx.includes('recordsPreserved:true') && applicationUx.includes('preservedRecordCount'));
 check('module changes still require owner approval', applicationUx.includes('Owner approval is required to change installed modules.'));
@@ -166,7 +169,7 @@ try {
   check('runtime Operations experience includes Foreman and Employee', snapshot.packs.find(pack => pack.key === 'operations').roleExperiences.join('|') === 'Foreman|Employee');
   check('runtime H38 AI is available through Core', snapshot.moduleAvailability.h38Ai.enabled === true && snapshot.moduleAvailability.h38Ai.packMembership.includes('h38-core'));
   check('runtime pack modules report membership', ['customers','quotes','jobs','invoices','website'].every(key => snapshot.moduleAvailability[key].packMembership.length > 0));
-  check('runtime preserves routes and records', snapshot.legacyRoutesPreserved === true && snapshot.existingRecordsPreserved === true && snapshot.migrationMode === 'alias-only');
+  check('runtime preserves compatibility metadata and records', snapshot.legacyRoutesPreserved === true && snapshot.existingRecordsPreserved === true && snapshot.migrationMode === 'alias-only');
   check('runtime performs no automatic changes', snapshot.automaticInstallOrEnable === false && snapshot.externalActionsOccurred === false);
   const resolved = sandbox.h38PortalResolveLegacyProduct('shop-flow-manager');
   check('runtime resolves legacy product to add-on', resolved.status === 'PASS' && resolved.alias.primaryPack === 'shop-flow-manufacturing' && resolved.legacyRoutePreserved === true);
