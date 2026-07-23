@@ -9,6 +9,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const registry = read('apps-script/business-office/BusinessOffice_ModuleRegistry.gs');
+const moduleRegistry = read('apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js');
 const architecture = read('apps-script/core-engine/owner-portal-next/Portal_ProductArchitecture.js');
 const unified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
 const applicationUx = read('apps-script/core-engine/owner-portal-next/Portal_Application_UX.js');
@@ -28,7 +29,7 @@ function check(name, condition, evidence = '') {
   }
 }
 
-for (const [name, source] of [['legacy product registry', registry], ['product architecture server', architecture]]) {
+for (const [name, source] of [['legacy product registry', registry], ['unified module registry', moduleRegistry], ['product architecture server', architecture]]) {
   try {
     new vm.Script(source, { filename: name });
     check(`${name} parses`, true);
@@ -84,7 +85,8 @@ const forbiddenArchitecturePatterns = [
 ];
 for (const pattern of forbiddenArchitecturePatterns) check(`architecture has no protected write ${pattern}`, !pattern.test(architecture));
 
-legacyRoutes.forEach(route => check(`legacy route remains in navigation: ${route}`, unified.includes(`'${route}'`)));
+legacyRoutes.forEach(route => check(`legacy route remains in central navigation: ${route}`, moduleRegistry.includes(`key:'${route}'`) || moduleRegistry.includes(`key: '${route}'`)));
+check('unified bootstrap consumes the central registry', /h38PortalModuleRegistry_\(/.test(unified) && /moduleIndex:moduleIndex/.test(unified));
 check('module manager still preserves records when hidden', applicationUx.includes('recordsPreserved:true') && applicationUx.includes('preservedRecordCount'));
 check('module changes still require owner approval', applicationUx.includes('Owner approval is required to change installed modules.'));
 check('AI still cannot modify source or deploy', aiAssistant.includes("never:['modify source code','deploy code'") && aiActions.includes('Never plan source-code changes, deployments, permission changes, credential changes'));
