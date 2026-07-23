@@ -91,7 +91,7 @@ jobs:
           grep -Fq 'Eight complete project demonstrations' _site/sample-library-now.html
           grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' _site/sample-library-now.html
           ! grep -Eqi 'Browse 15 samples|15 products|9 recommended bundles' _site/sample-library-now.html _site/products.html _site/pricing.html
-          grep -Fq 'sample-library-now.html' _site/products.html
+          grep -Fq 'pricing.html' _site/products.html
           grep -Fq 'sample-library-now.html' _site/free-tools.html
 
       - name: Upload Pages artifact
@@ -119,7 +119,7 @@ jobs:
               && grep -Fq 'Eight complete project demonstrations' <<<"$examples" \
               && grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' <<<"$examples" \
               && ! grep -Eqi 'Browse 15 samples|15 products|9 recommended bundles' <<<"$examples$products" \
-              && grep -Fq 'sample-library-now.html' <<<"$products" \
+              && grep -Fq 'pricing.html' <<<"$products" \
               && grep -Fq 'sample-library-now.html' <<<"$tools"; then
               exit 0
             fi
