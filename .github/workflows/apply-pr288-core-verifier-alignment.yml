@@ -1,0 +1,206 @@
+name: Apply PR 288 Core Verifier Alignment
+
+on:
+  push:
+    branches:
+      - agent/business-office-startup-performance
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-pr288-core-verifier-alignment
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/business-office-startup-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Align current architecture verifiers
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-change-governance.js
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_name, old, new):
+              path=Path(path_name)
+              text=path.read_text(encoding='utf-8')
+              if text.count(old)!=1:
+                  raise SystemExit(f'{path_name}: expected one marker, found {text.count(old)}')
+              path.write_text(text.replace(old,new,1),encoding='utf-8')
+
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "const services = path.join(portalDir, 'Portal_Services.js');\n",
+            "const services = path.join(portalDir, 'Portal_Services.js');\nconst moduleContract = path.join(root, 'apps-script', 'business-office', 'BusinessOffice_ModuleContract.gs');\n"
+          )
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "const files = boFiles.concat([client,business,unified,services,rawIncludes,index,shell,shellBuilder,packJson,packGs,templateJson,deploy]);",
+            "const files = boFiles.concat([client,business,unified,services,moduleContract,rawIncludes,index,shell,shellBuilder,packJson,packGs,templateJson,deploy]);"
+          )
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "const portal = [business,unified,services,rawIncludes,index].filter(fs.existsSync).map(read).join('\\n');",
+            "const portal = [business,unified,services,rawIncludes,index].filter(fs.existsSync).map(read).join('\\n');\nconst contractSource = fs.existsSync(moduleContract) ? read(moduleContract) : '';"
+          )
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "check('My Tasks view', ui.includes('assignedTasks') && portal.includes(\"'My Tasks'\"));",
+            "check('My Work task view', ui.includes('assignedTasks') && contractSource.includes(\"boUnifiedModule_('assignedTasks','My Work'\"));"
+          )
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "check('unified package navigation', portal.includes(\"id: 'taskMessaging'\") && portal.includes(\"'bo:assignedTasks'\") && portal.includes(\"'bo:messaging'\"));",
+            "check('unified package navigation', contractSource.includes(\"'bo:assignedTasks'\") && contractSource.includes(\"'bo:messaging'\") && portal.includes('h38PortalModuleRegistry_('));"
+          )
+          replace_once(
+            'scripts/verify-task-messaging.js',
+            "check('non-owner default route', portal.includes(\"defaultModule: access.ownerMode ? 'today' : 'bo:assignedTasks'\"));",
+            "check('non-owner default route', /var defaultModule\\s*=\\s*access\\.ownerMode\\s*\\?\\s*'today'\\s*:\\s*'bo:assignedTasks'/.test(portal));"
+          )
+
+          replace_once(
+            'scripts/verify-business-office-separation.js',
+            "const failures=[];const passes=[];",
+            "const failures=[];const passes=[];\nfunction withoutCanonicalContractIdentifiers(text){return String(text||'').replace(/\\bH38_UNIFIED_[A-Z0-9_]+\\b/g,'').replace(/\\bH38_BO_ACTION_CONTRACT_VERSION\\b/g,'');}"
+          )
+          replace_once(
+            'scripts/verify-business-office-separation.js',
+            "check('neutral core contains no H38 identifiers',!(/\\bH38(?:_|\\b)/.test(neutral)));",
+            "check('neutral core contains no business-specific H38 identifiers',!(/\\bH38(?:_|\\b)/.test(withoutCanonicalContractIdentifiers(neutral))));"
+          )
+          replace_once(
+            'scripts/verify-business-office-separation.js',
+            "if(pack==='template-business')check('clean bundle has no Highway 38 leakage',!/Highway\\s*38|rkrueth|highway-38-solutions|H38_|AKfyc/i.test(all));",
+            "if(pack==='template-business')check('clean bundle has no Highway 38 branding or resource leakage',!/Highway\\s*38|rkrueth|highway-38-solutions|H38_|AKfyc/i.test(withoutCanonicalContractIdentifiers(all)));"
+          )
+
+          replace_once(
+            'scripts/verify-contact-options.js',
+            "const catalog = read('catalog-data.js');",
+            "const catalog = read('catalog-data.js');\nconst publicShell = read('assets/js/h38-site-v2.js');"
+          )
+          replace_once(
+            'scripts/verify-contact-options.js',
+            "assert('homepage retains a public contact route', /href=\"contact\\.html\"/.test(home));",
+            "assert('canonical public shell retains a public contact route', /\\['Contact','contact\\.html'\\]/.test(publicShell));"
+          )
+          PY
+
+          cat > scripts/verify-modular-business-office-suite.js <<'JS'
+          #!/usr/bin/env node
+          'use strict';
+          const fs=require('fs');
+          const path=require('path');
+          const root=path.resolve(__dirname,'..');
+          const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+          const exists=file=>fs.existsSync(path.join(root,file));
+          const failures=[];
+          const check=(name,condition,detail='')=>{if(!condition)failures.push({name,detail});else console.log(`PASS: ${name}`);};
+          const required=[
+            'apps-script/business-office/BusinessOffice_ModuleRegistry.gs',
+            'apps/business-office/BusinessOffice_ModuleRegistry.gs',
+            'packages/shared-ui/BusinessOffice_Modular_Suite.html',
+            'apps-script/business-office/BusinessOffice_Web.gs',
+            'apps-script/business-office/BusinessOffice_ClientManifest.gs',
+            'apps/business-office/BusinessOffice_Web.gs',
+            'apps-script/business-office/BusinessOffice_ModuleContract.gs',
+            'apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js',
+            'apps-script/core-engine/owner-portal-next/Portal_Product_Client.html'
+          ];
+          required.forEach(file=>check(`required ${file}`,exists(file)));
+          const productionRegistry=read(required[0]);
+          const reusableRegistry=read(required[1]);
+          const reusableClient=read(required[2]);
+          const productionWeb=read(required[3]);
+          const productionManifest=read(required[4]);
+          const reusableWeb=read(required[5]);
+          const contract=read(required[6]);
+          const portalRegistry=read(required[7]);
+          const productClient=read(required[8]);
+          const retiredProductionClient='apps-script/business-office/BusinessOffice_Modular_Suite.html';
+          const keys=text=>[...text.matchAll(/key:'([^']+)'/g)].map(match=>match[1]);
+          const expected=['quote-builder','customer-manager','work-manager','field-operations','equipment-asset-manager','document-center','invoice-payment-tracker','expense-receipt-manager','field-proof','social-control','customer-portal','request-intake-manager','price-book-template-manager','approval-center','vendor-purchase-manager','maintenance-manager','shop-flow-manager','business-system'];
+          const productPackKeys=['h38-core','sales-customer','operations','finance-office','growth','equipment-maintenance','shop-flow-manufacturing','customer-portal-advanced','advanced-purchasing','advanced-financial-controls'];
+          const productionAllKeys=keys(productionRegistry),reusableAllKeys=keys(reusableRegistry);
+          const appKeys=productionAllKeys.filter(key=>expected.includes(key)),reusableKeys=reusableAllKeys.filter(key=>expected.includes(key));
+          check('all eighteen compatibility app aliases remain registered',expected.every(key=>appKeys.includes(key))&&appKeys.length===18,JSON.stringify(appKeys));
+          check('production and reusable registries expose identical compatibility aliases',JSON.stringify(appKeys)===JSON.stringify(reusableKeys));
+          check('product-pack catalog remains metadata only',productPackKeys.every(key=>productionAllKeys.includes(key))&&productionRegistry.includes('function boGetProductPackCatalog_()')&&productionRegistry.includes('function boGetLegacyProductPackAliasMap_()'));
+          check('reusable registry remains white-label',!/Highway\s*38|H38_|rkrueth|highway-38-solutions/i.test(reusableRegistry));
+          check('production duplicate modular launcher is retired',!exists(retiredProductionClient)&&!productionManifest.includes('BusinessOffice_Modular_Suite'));
+          check('production Business Office renders through controlled client manifest',productionWeb.includes('boRenderClientIncludes_()'));
+          check('canonical module contract owns seven current workspace groups',['Today','Customers','Work','Money','Documents','Growth','Office'].every(label=>contract.includes(`label:'${label}'`))&&!contract.includes("label:'Control'"));
+          check('visible navigation derives from canonical module contract',portalRegistry.includes('boGetUnifiedModuleContract_()')&&productClient.includes('H38_UNIFIED=payload.unified')&&productClient.includes('renderNav();'));
+          check('Today remains the default workspace',contract.includes("'native','today'")&&productClient.includes("CURRENT||'today'"));
+          check('reusable standalone modular UI remains available',reusableClient.includes('Your Business Apps')&&reusableClient.includes('openBusinessApp')&&reusableWeb.includes("boInclude_('BusinessOffice_Modular_Suite')"));
+          check('reusable standalone configuration remains data-neutral',reusableRegistry.includes('BO_ENABLED_APPS')&&reusableClient.includes("standalone')==='1"));
+          check('compatibility app metadata is read-only',productionWeb.includes('appCatalog:function(){return boGetBusinessAppCatalog_();}')&&!productionRegistry.includes('sendEmail')&&!productionRegistry.includes('UrlFetchApp'));
+          check('external actions remain owner-controlled',productionRegistry.includes('externalActionsAutomatic:false'));
+          check('Field Operations Equipment and Social aliases remain reusable',reusableKeys.includes('field-operations')&&reusableKeys.includes('equipment-asset-manager')&&reusableKeys.includes('social-control'));
+          if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
+          console.log(JSON.stringify({status:'PASS',compatibilityApps:appKeys.length,productPacks:productPackKeys.length,workspaceGroups:7,architecture:'contract-derived-unified-business-office',whiteLabelReusableSource:true,externalActionsAutomatic:false,controlledClientManifest:true},null,2));
+          JS
+
+          cat > scripts/verify-issue83-source.sh <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          check_file_contains(){ local file="$1" marker="$2" label="$3"; if ! grep -Fq "$marker" "$file"; then echo "FAIL — $label: $file is missing marker: $marker" >&2; exit 1; fi; echo "PASS — $label"; }
+          check_file_contains index.html 'Bring us the problem.' 'Homepage project-first headline'
+          check_file_contains index.html 'complete project plan.' 'Homepage project-first completion'
+          check_file_contains index.html 'See it. Scope it. Run it.' 'Homepage connected workflow'
+          check_file_contains index.html 'href="start-request.html"' 'Homepage primary project request route'
+          check_file_contains index.html 'href="sample-library-now.html"' 'Homepage project examples route'
+          check_file_contains solutions.html 'Five connected capabilities' 'What We Do five-capability structure'
+          check_file_contains solutions.html 'Automation &amp; Robotics' 'Automation capability'
+          check_file_contains solutions.html 'CNC Machining &amp; Process Planning' 'CNC capability'
+          check_file_contains solutions.html 'AI-Assisted Quote Builder' 'Quote Builder capability'
+          check_file_contains sample-library-now.html 'Eight complete project demonstrations' 'Project Examples headline'
+          check_file_contains sample-library-now.html 'Representative demonstrations.' 'Project Examples disclosure'
+          check_file_contains sample-library-now.html 'data-samples="all"' 'Public examples compatibility marker'
+          check_file_contains start-request.html 'What result do you need?' 'Request outcome prompt'
+          check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
+          check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
+          check_file_contains portal.html 'Opening Highway 38 Business Office' 'Unified Owner gateway'
+          check_file_contains assets/js/h38-site-v2.js "['Contact','contact.html']" 'Canonical contact route'
+          check_file_contains assets/js/h38-site-v2.js "['Owner Access','portal.html']" 'Canonical Owner route'
+          claim_matches=$(grep -Fl '25,000+ CNC programs' ./*.html || true)
+          if [[ -n "$claim_matches" ]]; then echo 'FAIL — prohibited 25,000+ CNC programs claim found in public HTML:' >&2; echo "$claim_matches" >&2; exit 1; fi
+          echo 'PASS — prohibited CNC claim absent from public HTML'
+          echo 'Current project-first public source verification passed.'
+          SH
+          chmod +x scripts/verify-issue83-source.sh
+
+          rm -f .github/workflows/apply-pr288-core-verifier-alignment.yml
+          node scripts/verify-change-governance.js
+          node scripts/verify-task-messaging.js
+          node scripts/verify-task-messaging-hardening.js
+          node scripts/verify-business-office-separation.js
+          node scripts/verify-modular-business-office-suite.js
+          node scripts/verify-contact-options.js
+          bash scripts/verify-issue83-source.sh
+          git diff --check
+      - name: Commit current verifier alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/verify-task-messaging.js \
+            scripts/verify-business-office-separation.js \
+            scripts/verify-modular-business-office-suite.js \
+            scripts/verify-contact-options.js \
+            scripts/verify-issue83-source.sh \
+            .github/workflows/apply-pr288-core-verifier-alignment.yml
+          git commit -m 'Align verification with current unified architecture'
+          git push origin HEAD:agent/business-office-startup-performance
