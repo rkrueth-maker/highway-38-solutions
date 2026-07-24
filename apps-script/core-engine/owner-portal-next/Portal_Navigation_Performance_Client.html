@@ -6,16 +6,19 @@ var H38_NAV_BASE_SPECIAL={
   userAccess:window.h38RenderUserAccess,
   backupCenter:window.h38RenderBackupCenter
 };
-var H38_NAV_ROUTE_SEQUENCE=0,H38_NAV_ACTIVE={id:0,route:'',startedAt:0,cacheHit:false},H38_NAV_HTML_CACHE={},H38_NAV_TIMINGS={},H38_NAV_GROUP_PREFETCH_TIMER=null,H38_NAV_GROUP_PREFETCH_INFLIGHT={};
+var H38_NAV_ROUTE_SEQUENCE=0,H38_NAV_ACTIVE={id:0,route:'',startedAt:0,cacheHit:false},H38_NAV_HTML_CACHE={},H38_NAV_TIMINGS={},H38_NAV_PREFETCH_TIMERS=[],H38_NAV_ROUTE_PREFETCH_INFLIGHT={},H38_NAV_SERVER_INVALIDATE_TIMER=null;
 
 function h38NavNow(){return typeof performance!=='undefined'&&performance.now?performance.now():Date.now();}
 function h38NavTtl(route){
-  if(route==='approvalsCenter'||route==='proof'||route==='errors')return 30;
-  if(route==='calendarCenter'||route==='moduleManager'||route==='setupWizard'||route==='userAccess')return 120;
-  if(route==='backupCenter')return 60;
+  if(route==='approvalsCenter'||route==='proof'||route==='errors')return 15;
+  if(route==='calendarCenter')return 60;
+  if(route==='moduleManager'||route==='setupWizard'||route==='userAccess')return 30;
+  if(route==='backupCenter')return 15;
   if(route==='help')return 300;
-  if(route==='social'||route==='advertising'||route==='tasks')return 60;
-  if(String(route).indexOf('bo:')===0){var meta=typeof h38ProductModuleMeta==='function'?h38ProductModuleMeta(route):null;return Math.max(15,Number(meta&&meta.cacheTtlSeconds||60));}
+  if(route==='social'||route==='advertising'||route==='tasks')return 30;
+  if(route==='growth'||route==='websiteCenter')return 45;
+  if(route==='systemHealth')return 90;
+  if(String(route).indexOf('bo:')===0){var meta=typeof h38ProductModuleMeta==='function'?h38ProductModuleMeta(route):null;return Math.max(15,Number(meta&&meta.cacheTtlSeconds||30));}
   return 90;
 }
 function h38NavCurrent(token,route){return !!token&&H38_NAV_ACTIVE.id===token.id&&H38_NAV_ACTIVE.route===route&&CURRENT===route;}
@@ -35,32 +38,55 @@ function h38NavBegin(route){
 function h38NavFinish(token,route){
   if(!h38NavCurrent(token,route))return false;h38NavCacheHtml(route);h38NavBusy(false,route,token.cacheHit);var elapsed=Math.max(0,Math.round(h38NavNow()-token.startedAt));H38_NAV_TIMINGS[route]={milliseconds:elapsed,cacheHit:token.cacheHit,recordedAt:new Date().toISOString()};
   var view=document.getElementById('view');if(view){view.setAttribute('data-h38-rendered-route',route);view.setAttribute('data-h38-route-ms',String(elapsed));}
-  renderNav();h38RenderSystemStatus();if(view&&!view.querySelector('.role-banner')&&route==='today')view.insertAdjacentHTML('afterbegin',h38RoleBanner());h38NavScheduleGroupPrefetch(route);console.info('H38_NAV_ROUTE_TIMING',route,elapsed+'ms',token.cacheHit?'cache':'network');return true;
+  if(typeof h38AfterSurfaceRender==='function')h38AfterSurfaceRender(route);else{renderNav();h38RenderSystemStatus();}
+  h38NavScheduleGroupPrefetch(route);console.info('H38_NAV_ROUTE_TIMING',route,elapsed+'ms',token.cacheHit?'cache':'network');return true;
 }
 function h38NavFailure(token,route,error){if(!h38NavCurrent(token,route))return null;h38NavBusy(false,route,false);var view=document.getElementById('view');if(view&&view.innerHTML){notice('<b>HOLD:</b> '+esc(error&&error.message||error||'The workspace could not refresh.')+' The previous workspace remains visible.','hold');return null;}uxRenderWorkspaceFailure(error,'This workspace could not load. No record or external system was changed.');return null;}
 function h38NavigationPerformanceSnapshot(){return JSON.parse(JSON.stringify(H38_NAV_TIMINGS));}
 
 function h38NavGroupRoutes(route){var match=[];uxRows(H38_UNIFIED&&H38_UNIFIED.groups).some(function(group){var routes=uxRows(group.items).map(function(item){return item.key;});if(routes.indexOf(route)>=0){match=routes;return true;}return false;});return match;}
-function h38NavPrefetchable(route){return String(route).indexOf('bo:')===0||['approvalsCenter','calendarCenter','moduleManager','setupWizard','userAccess','backupCenter','help','tasks','proof','errors','social','advertising'].indexOf(route)>=0;}
+function h38NavOrderedGroupRoutes(route){var routes=h38NavGroupRoutes(route),index=routes.indexOf(route);return index<0?routes:routes.slice(index+1).concat(routes.slice(0,index));}
+function h38NavPrefetchable(route){return String(route).indexOf('bo:')===0||['approvalsCenter','calendarCenter','moduleManager','setupWizard','userAccess','backupCenter','help','tasks','proof','errors','growth','websiteCenter','systemHealth','social','advertising'].indexOf(route)>=0;}
 function h38NavRouteCached(route){if(String(route).indexOf('bo:')===0){var module=String(route).slice(3),options={query:'',filters:{},limit:50};return !!boNativeCacheRead(boNativeCacheKey(module,options),module);}return !!h38SurfaceCacheRead(route,h38NavTtl(route));}
 function h38NavStorePrefetch(route,data){if(!data)return;if(String(route).indexOf('bo:')===0){var module=String(route).slice(3),options={query:'',filters:{},limit:50};boNativeCacheWrite(boNativeCacheKey(module,options),data);}else h38SurfaceCacheWrite(route,data);}
-function h38NavScheduleGroupPrefetch(route){
-  clearTimeout(H38_NAV_GROUP_PREFETCH_TIMER);H38_NAV_GROUP_PREFETCH_TIMER=setTimeout(function(){
-    var candidates=h38NavGroupRoutes(route).filter(function(item){return item!==route&&h38AppRouteAllowed(item)&&h38NavPrefetchable(item)&&!h38NavRouteCached(item);}).slice(0,8);if(!candidates.length)return;
-    var key=candidates.join('|');if(H38_NAV_GROUP_PREFETCH_INFLIGHT[key])return;H38_NAV_GROUP_PREFETCH_INFLIGHT[key]=true;
-    call('h38PortalNavigationSurfaceBatch',[candidates.map(function(item){return{route:item,options:{query:'',filters:{},limit:50}};})]).then(function(result){uxRows(result&&result.items).forEach(function(item){if(item&&item.status==='PASS')h38NavStorePrefetch(item.route,item.data);});},function(){}).then(function(){delete H38_NAV_GROUP_PREFETCH_INFLIGHT[key];});
-  },700);
+function h38NavBatchData(result,route){var item=uxRows(result&&result.items).filter(function(row){return row&&row.route===route&&row.status==='PASS';})[0];return item&&item.data||null;}
+function h38NavRequestPayload(route){return{route:route,options:{query:'',filters:{},limit:50}};}
+function h38NavPrefetchOne(route){
+  if(!route||h38NavRouteCached(route))return Promise.resolve(null);if(H38_NAV_ROUTE_PREFETCH_INFLIGHT[route])return H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];
+  var pending=call('h38PortalNavigationSurfaceBatch',[[h38NavRequestPayload(route)]]).then(function(result){var data=h38NavBatchData(result,route);if(data)h38NavStorePrefetch(route,data);if(H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]===pending)delete H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];return data;},function(error){if(H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]===pending)delete H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];return null;});
+  H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]=pending;return pending;
 }
+function h38NavPrefetchBatch(routes){
+  var missing=(routes||[]).filter(function(route){return route&&!h38NavRouteCached(route)&&!H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];}).slice(0,5);if(!missing.length)return Promise.resolve(null);
+  var batch=call('h38PortalNavigationSurfaceBatch',[missing.map(h38NavRequestPayload)]);
+  missing.forEach(function(route){var pending=batch.then(function(result){var data=h38NavBatchData(result,route);if(data)h38NavStorePrefetch(route,data);if(H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]===pending)delete H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];return data;},function(){if(H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]===pending)delete H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];return null;});H38_NAV_ROUTE_PREFETCH_INFLIGHT[route]=pending;});
+  return batch.catch(function(){return null;});
+}
+function h38NavScheduleGroupPrefetch(route){
+  H38_NAV_PREFETCH_TIMERS.forEach(clearTimeout);H38_NAV_PREFETCH_TIMERS=[];
+  var candidates=h38NavOrderedGroupRoutes(route).filter(function(item){return item!==route&&h38AppRouteAllowed(item)&&h38NavPrefetchable(item)&&!h38NavRouteCached(item);}).slice(0,8);if(!candidates.length)return;
+  if(candidates[0])H38_NAV_PREFETCH_TIMERS.push(setTimeout(function(){h38NavPrefetchOne(candidates[0]);},60));
+  if(candidates[1])H38_NAV_PREFETCH_TIMERS.push(setTimeout(function(){h38NavPrefetchOne(candidates[1]);},220));
+  if(candidates[2])H38_NAV_PREFETCH_TIMERS.push(setTimeout(function(){h38NavPrefetchOne(candidates[2]);},450));
+  if(candidates.length>3)H38_NAV_PREFETCH_TIMERS.push(setTimeout(function(){h38NavPrefetchBatch(candidates.slice(3,8));},1200));
+}
+function h38NavLoadSurface(route,ttl,loader,force){
+  var cached=!force&&h38SurfaceCacheRead(route,ttl);if(cached)return Promise.resolve(cached);
+  var prefetched=!force&&H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];if(prefetched)return prefetched.then(function(data){if(data){h38SurfaceCacheWrite(route,data);return data;}return h38SurfaceLoad(route,ttl,loader,false);},function(){return h38SurfaceLoad(route,ttl,loader,false);});
+  return h38SurfaceLoad(route,ttl,loader,force===true);
+}
+function h38NavFetchServerSurface(route){return call('h38PortalNavigationSurfaceBatch',[[h38NavRequestPayload(route)]]).then(function(result){var data=h38NavBatchData(result,route);if(!data)throw new Error('The '+route+' surface returned no data.');return data;});}
+function h38NavInvalidateServerSoon(){clearTimeout(H38_NAV_SERVER_INVALIDATE_TIMER);H38_NAV_SERVER_INVALIDATE_TIMER=setTimeout(function(){call('h38PortalNavigationInvalidate').catch(function(){});},100);}
 
 async function h38NavInvokeWithData(renderer,endpoint,data,args){var baseCall=window.call;window.call=function(name,callArgs){if(name===endpoint)return Promise.resolve(data);return baseCall(name,callArgs);};try{return await renderer.apply(window,args||[]);}finally{window.call=baseCall;}}
 async function h38NavRenderSpecial(route,token,force){
   var data,ttl=h38NavTtl(route),renderer=H38_NAV_BASE_SPECIAL[route];if(!renderer)throw new Error('Unknown operating surface '+route+'.');
-  if(route==='approvalsCenter'){data=await h38SurfaceLoad(route,ttl,function(){return call('h38PortalApplicationApprovalCenter');},force===true);if(!h38NavCurrent(token,route))return null;return renderer(false);}
-  if(route==='calendarCenter'){data=await h38SurfaceLoad(route,ttl,function(){return call('h38PortalApplicationCalendar');},force===true);if(!h38NavCurrent(token,route))return null;return renderer(false);}
+  if(route==='approvalsCenter'){data=await h38NavLoadSurface(route,ttl,function(){return call('h38PortalApplicationApprovalCenter');},force===true);if(!h38NavCurrent(token,route))return null;return renderer(false);}
+  if(route==='calendarCenter'){data=await h38NavLoadSurface(route,ttl,function(){return call('h38PortalApplicationCalendar');},force===true);if(!h38NavCurrent(token,route))return null;return renderer(false);}
   var endpoint={moduleManager:'h38PortalModuleManager',setupWizard:'h38PortalSetupWizardState',userAccess:'h38PortalUserAccessSnapshot',backupCenter:'h38PortalBackupCenter'}[route];
-  data=await h38SurfaceLoad(route,ttl,function(){return call(endpoint);},force===true);if(!h38NavCurrent(token,route))return null;return h38NavInvokeWithData(renderer,endpoint,data,[]);
+  data=await h38NavLoadSurface(route,ttl,function(){return call(endpoint);},force===true);if(!h38NavCurrent(token,route))return null;return h38NavInvokeWithData(renderer,endpoint,data,[]);
 }
-async function h38NavDirectSpecial(route,force){var token=h38NavCurrent(H38_NAV_ACTIVE,route)?H38_NAV_ACTIVE:h38NavBegin(route);try{var result=await h38NavRenderSpecial(route,token,force!==false);h38NavFinish(token,route);return result;}catch(error){return h38NavFailure(token,route,error);}}
+async function h38NavDirectSpecial(route,force){var token=h38NavCurrent(H38_NAV_ACTIVE,route)?H38_NAV_ACTIVE:h38NavBegin(route);try{var result=await h38NavRenderSpecial(route,token,force===true);h38NavFinish(token,route);return result;}catch(error){return h38NavFailure(token,route,error);}}
 window.h38RenderModuleManager=function(force){return h38NavDirectSpecial('moduleManager',force);};
 window.h38RenderSetupWizard=function(force){return h38NavDirectSpecial('setupWizard',force);};
 window.h38RenderApprovalCenter=function(force){return h38NavDirectSpecial('approvalsCenter',force);};
@@ -73,24 +99,29 @@ async function h38NavBaseShow(module,token,force){
   if(module==='today'||module==='dashboard'){renderDashboard();return true;}
   if(module==='decisions'){renderTaskSurface('Needs my approval',EXPERIENCE.views.decisions.tasks,'Approve, revise, hold, or reject one selected record.');return true;}
   if(module==='active'){renderTaskSurface('Active work',EXPERIENCE.views.activeWork.tasks,'Open work with a current stage and next action.');return true;}
-  if(module==='growth'){renderGrowth(EXPERIENCE.views.growth);return true;}
-  if(module==='websiteCenter'){renderWebsiteCenter(EXPERIENCE.views.website);return true;}
-  if(module==='systemHealth'){renderSystemHealth(EXPERIENCE.views.systemHealth);return true;}
   if(module==='settings'){renderSettings();return true;}
+  if(module==='growth'){var growth=await h38NavLoadSurface(module,h38NavTtl(module),function(){return h38NavFetchServerSurface(module);},force===true);if(!h38NavCurrent(token,module))return null;renderGrowth(growth);return true;}
+  if(module==='websiteCenter'){var website=await h38NavLoadSurface(module,h38NavTtl(module),function(){return h38NavFetchServerSurface(module);},force===true);if(!h38NavCurrent(token,module))return null;renderWebsiteCenter(website);return true;}
+  if(module==='systemHealth'){var health=await h38NavLoadSurface(module,h38NavTtl(module),function(){return h38NavFetchServerSurface(module);},force===true);if(!h38NavCurrent(token,module))return null;renderSystemHealth(health);return true;}
   var ttl=h38NavTtl(module),loader,renderer;
   if(module==='help'){loader=function(){return call('h38PortalHelpCenter');};renderer=function(data){return renderHelp(data);};}
   else if(module==='tasks'){loader=function(){return call('h38PortalTasks',[{}]);};renderer=function(data){return renderTasks(data);};}
   else if(module==='proof'){loader=function(){return call('h38PortalProofLog',['']);};renderer=function(data){return renderRecords('Proof Log',data,null);};}
   else if(module==='errors'){loader=function(){return call('h38PortalErrorLog',['']);};renderer=function(data){return renderRecords('Error Log',data,null);};}
   else{var entity=module==='products'?'catalog':module;loader=function(){return call('h38PortalList',[entity,{}]);};renderer=function(data){return renderRecords(TITLES[module]||module,data,entity);};}
-  var data=await h38SurfaceLoad(module,ttl,loader,force===true);if(!h38NavCurrent(token,module))return null;return renderer(data);
+  var data=await h38NavLoadSurface(module,ttl,loader,force===true);if(!h38NavCurrent(token,module))return null;return renderer(data);
 }
 
+function h38NavDefaultBusinessRequest(request){return !request.force&&!request.query&&Object.keys(request.filters||{}).length===0&&Number(request.limit||50)===50;}
 window.renderBusinessModule=async function(module,query,options){
   options=options||{};var route='bo:'+module,token=options.routeToken||h38NavBegin(route),ownsToken=!options.routeToken;
   uxShowNativeWorkspace();BO_NATIVE.module=module;BO_NATIVE.query=boNativeText(query);var request=Object.assign({query:BO_NATIVE.query,filters:{},limit:50},options||{});delete request.routeToken;
   var key=boNativeCacheKey(module,request),cached=!request.force&&boNativeCacheRead(key,module);if(cached&&h38NavCurrent(token,route)){token.cacheHit=true;BO_NATIVE.data=cached;boNativeRenderModule(cached);if(ownsToken)h38NavFinish(token,route);return cached;}
-  try{var loaded=await boNativeLoadModule(module,request,request.force===true),data=loaded.data;if(!data)throw new Error('Business Office module returned no data.');if(!h38NavCurrent(token,route))return null;token.cacheHit=loaded.cacheHit===true;BO_NATIVE.data=data;boNativeRenderModule(data);if(ownsToken)h38NavFinish(token,route);return data;}catch(error){BO_NATIVE.data=null;if(ownsToken)return h38NavFailure(token,route,error);throw error;}
+  try{
+    var data=null,prefetched=h38NavDefaultBusinessRequest(request)&&H38_NAV_ROUTE_PREFETCH_INFLIGHT[route];if(prefetched)data=await prefetched;
+    if(!data){var loaded=await boNativeLoadModule(module,request,request.force===true);data=loaded.data;token.cacheHit=loaded.cacheHit===true;}else{boNativeCacheWrite(key,data);token.cacheHit=true;}
+    if(!data)throw new Error('Business Office module returned no data.');if(!h38NavCurrent(token,route))return null;BO_NATIVE.data=data;boNativeRenderModule(data);if(ownsToken)h38NavFinish(token,route);return data;
+  }catch(error){BO_NATIVE.data=null;if(ownsToken)return h38NavFailure(token,route,error);throw error;}
 };
 
 window.h38PortalBaseShow=function(module){var normalized=uxNormalizeModule(module),token=h38NavBegin(normalized);return h38NavBaseShow(normalized,token,false).then(function(result){h38NavFinish(token,normalized);return result;},function(error){return h38NavFailure(token,normalized,error);});};
@@ -98,5 +129,7 @@ window.show=async function(module){
   module=uxNormalizeModule(module);if(!h38AppRouteAllowed(module)){CURRENT=module;renderNav();var state=h38AppModuleState(h38AppModuleKeyFromRoute(module));document.getElementById('view').innerHTML=h38InstructionalEmpty('This module is not available.',state&&!state.enabled?'It is disabled by the installed business configuration. Existing records remain preserved.':'Your role does not have access to this workspace.','Open Apps & Modules','moduleManager');return null;}
   var token=h38NavBegin(module);try{var special=['moduleManager','setupWizard','approvalsCenter','calendarCenter','userAccess','backupCenter'].indexOf(module)>=0,result=special?await h38NavRenderSpecial(module,token,false):await h38NavBaseShow(module,token,false);if(!h38NavCurrent(token,module))return null;call('h38PortalTouchModule',[h38AppModuleKeyFromRoute(module)]).catch(function(){});h38NavFinish(token,module);return result;}catch(error){return h38NavFailure(token,module,error);}
 };
+var H38_NAV_BASE_WRITE_INVALIDATE=window.boNativeInvalidateAfterWrite;
+window.boNativeInvalidateAfterWrite=function(module){var result=H38_NAV_BASE_WRITE_INVALIDATE?H38_NAV_BASE_WRITE_INVALIDATE(module):null;delete H38_NAV_HTML_CACHE['bo:'+module];delete H38_NAV_HTML_CACHE.approvalsCenter;delete H38_NAV_HTML_CACHE.calendarCenter;h38NavInvalidateServerSoon();return result;};
 window.h38PrefetchOperatingSurfaces=function(){};
 window.boNativePrefetchFromRoute=function(){};
