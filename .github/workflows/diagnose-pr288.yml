@@ -23,10 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Apply the prepared source patch
+      - name: Extract and run the prepared source patch
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p navigation-cache-diagnostic
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -37,7 +38,23 @@ jobs:
               raise SystemExit('Prepared navigation-cache patch block was not found.')
           Path('/tmp/apply-navigation-cache-speed.py').write_text(textwrap.dedent(match.group(1)),encoding='utf-8')
           PY
-          python3 /tmp/apply-navigation-cache-speed.py
+          set +e
+          python3 /tmp/apply-navigation-cache-speed.py > navigation-cache-diagnostic/patch.log 2>&1
+          status=$?
+          set -e
+          echo "$status" > navigation-cache-diagnostic/patch.exit
+      - name: Upload patch diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: navigation-cache-patch-${{ github.run_id }}
+          path: navigation-cache-diagnostic
+          retention-days: 7
+      - name: Verify completed build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat navigation-cache-diagnostic/patch.exit)" = "0" || { cat navigation-cache-diagnostic/patch.log; exit 1; }
           rm -f .github/workflows/apply-navigation-cache-speed.yml
           rm -f .github/workflows/diagnose-pr288.yml
           node scripts/verify-change-governance.js >/tmp/governance.log
