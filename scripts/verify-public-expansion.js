@@ -1,79 +1,75 @@
 'use strict';
 const fs=require('fs');
 const path=require('path');
+const vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const exists=p=>fs.existsSync(path.join(root,p));
 const read=p=>exists(p)?fs.readFileSync(path.join(root,p),'utf8'):'';
-const failures=[];
-const check=(name,condition,detail='')=>{if(!condition)failures.push({name,detail});};
+const failures=[],passes=[];
+const check=(name,condition,detail='')=>{(condition?passes:failures).push({name,detail});};
 const requireFile=p=>check(`required file ${p}`,exists(p),p);
 
 [
-  'index.html','products.html','business-systems.html','sample-library-now.html','free-tools.html','start-request.html',
-  'solutions.html','service-guides.html','case-study-template.html','business-systems-data.js','public-expansion.css',
-  'public-expansion.js','tool-downloads.js','public-site-config.js','visual-cleanup.css','visual-cleanup-secondary.css',
-  'request-flow.js','apps-script/unified-shell/Unified_PublicIntake.gs','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
+ 'index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html',
+ 'cabin-project-complete.html','contractor-quote-complete.html','request-flow.js','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
+ 'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
+ 'apps-script/unified-shell/Unified_PublicIntake.gs','catalog-data.js','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
 ].forEach(requireFile);
 
-const catalog=read('catalog-data.js');
-const productCount=(catalog.match(/"id":"H38-P\d{3}"/g)||[]).length;
-const bundleCount=(catalog.match(/"id":"H38-B\d{3}"/g)||[]).length;
-check('catalog preserves 15 products',productCount===15,String(productCount));
-check('catalog preserves 9 bundles',bundleCount===9,String(bundleCount));
+const routes=JSON.parse(read('scripts/config/public-website-routes.json'));
+const primary=(routes.primary||[]).map(item=>item.path);
+const expected=['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html'];
+check('eight current public gateways are canonical',expected.every(page=>primary.includes(page))&&primary.length===8,JSON.stringify(primary));
+check('retired catalog and tool routes redirect to current pages',routes.retired['products.html']==='pricing.html'&&routes.retired['catalog.html']==='pricing.html'&&routes.retired['packages.html']==='pricing.html'&&routes.retired['tool-center.html']==='sample-library-now.html');
+
+const shell=read('assets/js/h38-site-v2.js');
+check('one public shell owns navigation and footer',/navigation\s*:\s*\[/.test(shell)&&/footer\s*:\s*\[/.test(shell)&&shell.includes('aria-label="Main navigation"'));
+check('public shell contains current destinations',['Project Examples','What We Do','Pricing','About','Contact','Owner Access'].every(label=>shell.includes(label)));
+check('public shell locks runtime image substitution',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(shell));
 
 const home=read('index.html');
-check('homepage presents current project-intelligence promise',home.includes('From photos to plans.')&&home.includes('profitable work.'));
-check('homepage has request and examples actions',home.includes('href="start-request.html"')&&home.includes('href="sample-library-now.html"'));
-check('homepage preserves human approval boundary through linked request flow',home.includes('start-request.html')&&read('start-request.html').includes('No charge'));
-check('homepage uses approved local industrial and contractor imagery',home.includes('assets/approved-website-images/'));
-check('homepage uses current responsive structure',home.includes('class="pi-nav"')&&home.includes('class="pi-menu"')&&home.includes('class="pi-hero-copy"')&&home.includes('class="pi-hero-media"'));
-check('homepage retired mockup and hotspot shell are absent',!home.includes('assets/approved-homepage-mockup.png')&&!/class="hotspot|Swipe horizontally|approved-home__stage/i.test(home));
-check('homepage preserves four audience paths',['Contractors & Builders','Manufacturing & CNC','Robotics & Automation','DIY & Training'].every(marker=>home.includes(marker)));
-check('homepage preserves scalable connected workflow',home.includes('Capture once. Use the information everywhere.')&&home.includes('Start small. Scale as you grow.'));
-check('unsupported quantitative CNC claim absent',!home.includes('25,000+'));
+check('homepage presents project-first promise',home.includes('Bring us the problem.')&&home.includes('complete project plan.')&&home.includes('See it. Scope it. Run it.'));
+check('homepage routes to request examples and capabilities',['start-request.html','sample-library-now.html','solutions.html'].every(link=>home.includes(`href="${link}"`)));
+check('homepage uses approved local images without mockup repair',home.includes('assets/')&&!home.includes('approved-homepage-mockup.png')&&!/https?:[^"']+\.(?:jpg|jpeg|png|webp)/i.test(home));
+check('homepage does not restore retired catalog experience',!home.includes('Choose Your Path')&&!home.includes('15 fixed-price services')&&!home.includes('9 approved bundles'));
+
+const solutions=read('solutions.html');
+const capabilities=['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'];
+check('What We Do contains five connected capabilities',(solutions.match(/data-capability=/g)||[]).length===5&&capabilities.every(label=>solutions.includes(label)));
+check('capabilities route to specialist pages',['robotics-automation.html','manufacturing-cnc.html','fixture-jig-concept-review.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
+
+const pricing=read('pricing.html');
+check('pricing is scope-driven instead of catalog-driven',pricing.includes('Project-first pricing')&&pricing.includes('Not a confusing catalog.')&&pricing.includes('The project scope drives the package.'));
+check('pricing requires approval before implementation',pricing.includes('Scope and price are approved before implementation.')&&pricing.includes('Request Project Pricing'));
+
+const samples=read('sample-library-now.html');
+check('Project Examples contains eight complete demonstrations',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
+check('Project Examples preserves hypothetical disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
+check('Project Examples uses six exact controlled replacement images',['deck-before.webp','deck-after.webp','irrigation-before.webp','irrigation-after.webp','kitchen-before.webp','kitchen-after.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
+check('Project Examples includes complete cabin package',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
 const intake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
-check('request flow preserves three steps',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
-check('request form is connected to existing unified deployment',request.includes('data-intake-endpoint="https://script.google.com/macros/s/'));
-check('request performs secure direct submission',requestFlow.includes('function submitDirect')&&requestFlow.includes("message.type!=='h38-public-intake'")&&requestFlow.includes('post.submit()'));
-check('request returns confirmation record',requestFlow.includes('Request received')&&requestFlow.includes('requestId'));
-check('request saves and restores progress',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft'));
-check('request keeps email fallback only',requestFlow.includes('function emailFallback')&&request.includes('id="email-summary" hidden'));
-check('intake protects duplicates and owner approval',intake.includes('DUPLICATE_ACCEPTED')&&intake.includes('Owner Approval Required')&&intake.includes('External actions remain locked'));
+check('request flow preserves three controlled steps',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
+check('request form uses secure existing intake endpoint',request.includes('data-intake-endpoint="https://script.google.com/macros/s/'));
+check('request saves progress and returns confirmation',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft')&&requestFlow.includes('Request received')&&requestFlow.includes('requestId'));
+check('request keeps email as fallback only',requestFlow.includes('emailFallback')&&request.includes('id="email-summary" hidden'));
+check('intake remains duplicate-protected and Owner reviewed',intake.includes('DUPLICATE_ACCEPTED')&&intake.includes('Owner Approval Required')&&intake.includes('External actions remain locked'));
 
-const systems=read('business-systems-data.js');
-['Website Build Package','Business Office Suite','Command Center Suite','Complete Business System'].forEach(name=>check(`business system ${name}`,systems.includes(name)));
-check('business systems preserve tax boundary',systems.includes('Tax-preparation support only'));
-check('business systems do not invent catalog IDs',!/H38-[PB]\d{3}/.test(systems));
+const contact=read('contact.html');
+check('contact offers quick email and conversation request',contact.includes('Email a quick message')&&contact.includes('Request a conversation')&&contact.includes('Nothing is sent automatically'));
+const portal=read('portal.html');
+check('Owner gateway opens the existing unified Business Office',portal.includes('Opening Highway 38 Business Office')&&portal.includes('location.replace(target)')&&!/<iframe\b/i.test(portal));
 
-const products=read('products.html');
-check('product families remain present',['data-products="plans"','data-products="implementation"','data-products="manufacturing"','data-bundles'].every(marker=>products.includes(marker)));
+const context={window:{}};
+vm.createContext(context);
+vm.runInContext(read('catalog-data.js'),context,{filename:'catalog-data.js'});
+const catalog=context.window.H38_CATALOG;
+check('legacy catalog compatibility data remains intact',catalog&&catalog.products.length===15&&catalog.bundles.length===9);
+check('custom-domain work remains approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
+check('prohibited quantitative CNC claim is absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(expected.map(read).join('\n')));
 
-const samples=read('sample-library-now.html');
-check('sample library preserves all product samples',samples.includes('data-samples="all"'));
-check('sample library preserves system demonstrations',samples.includes('data-system-scenarios'));
-check('sample library preserves proof classification',samples.includes('data-image-classification="hypothetical-demonstration"'));
-
-const tools=read('tool-downloads.js');
-const toolNames=['Problem Definition Worksheet','Project Planning Checklist','Space Measurement Checklist','Garage and Shop Photo Checklist','Owner Decision Checklist','Project Scope Template','Shop Flow Observation Sheet','Tool and Material Zone Worksheet','Lead-to-Job Status Tracker','Follow-Up Checklist','Workflow Mapping Worksheet','Repeated Task Audit','File Cleanup Planning Checklist','Automation Opportunity Checklist','Machine Idle-Reason Tracker','Basic ROI Assumption Worksheet','Vendor RFQ Preparation Checklist','Fixture Concept Question Sheet','Vision Inspection Sample Checklist','Robot Tending Information Checklist','Automation Vendor Comparison Sheet','Small-Business Website Planning Checklist','Website Content Collection Worksheet','Business Office Readiness Checklist','Customer and Job Workflow Checklist','Command Center Requirements Worksheet','User Role Planning Sheet','Business System Implementation Checklist','Business Data Migration Checklist','Backup and Recovery Readiness Checklist'];
-check('free-tool contract contains 30 downloads',toolNames.length===30);
-toolNames.forEach(name=>check(`free tool ${name}`,tools.includes(name)));
-
-[
-  'assets/approved-website-images/10-project-planning-documents.jpg',
-  'assets/rick-review-basic-layout-v1.png',
-  'assets/rick-review-shop-flow-v1.png',
-  'assets/product-proof/digital-workflow-build.png',
-  'assets/product-proof/robot-tending-concept-pack.png'
-].forEach(p=>check(`committed proof image ${p}`,exists(p)));
-
-const guides=read('service-guides.html');
-const guideIds=['garage-layout-planning','shop-organization-planning','small-business-workflow-setup','digital-workflow-implementation','file-document-cleanup','manufacturing-bottleneck-analysis','automation-opportunity-review','automation-rfq-preparation','fixture-jig-concept-review','vision-inspection-planning','robot-tending-concept-planning','small-business-website-building','business-office-system-setup','owner-command-center-setup','complete-business-system-implementation'];
-guideIds.forEach(id=>check(`service guide ${id}`,guides.includes(`id="${id}"`)));
-check('domain changes remain approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
-
-const result={status:failures.length?'FAIL':'PASS',products:productCount,bundles:bundleCount,freeDownloads:toolNames.length,serviceGuides:guideIds.length,failures};
+const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,projectExamples:8,capabilities:5,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
 console.log(JSON.stringify(result,null,2));
 process.exit(failures.length?1:0);
