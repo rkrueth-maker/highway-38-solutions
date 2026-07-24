@@ -113,7 +113,8 @@ def test_web_dashboard_public_site_route_serves_root_html_and_blocks_code_files(
 
     html_response = client.get("/sample-library-now.html")
     assert html_response.status_code == 200
-    assert "Demonstration materials use sample information" in html_response.get_data(as_text=True)
+    assert "Eight complete project demonstrations" in html_response.get_data(as_text=True)
+    assert "Representative demonstrations." in html_response.get_data(as_text=True)
 
     blocked_response = client.get("/app.py")
     assert blocked_response.status_code == 404
