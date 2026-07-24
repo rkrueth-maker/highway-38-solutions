@@ -11,11 +11,12 @@ The approved Highway 38 logo is locked. Existing approved website images are als
 Before adding, changing, disabling, deleting, or deploying any website or web-app behavior:
 
 1. Read `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`.
-2. Classify the scope as public website, authenticated web app, Customer Portal/security boundary, shared architecture, or a combination.
-3. Identify the canonical owner for the route, component, module, schema, permission, image placement, data, and deployment.
-4. Confirm record, role, approval, external-action, image, performance, compatibility, migration, and rollback impact.
-5. Change the canonical source instead of adding a second shell, list, router, runtime, manifest, schema, data owner, or cleanup layer.
-6. Run `node scripts/verify-change-governance.js` before domain-specific verification.
+2. For any authenticated app, module, route, form, API, shared client, or server change, also read `docs/architecture/MODULE_PERFORMANCE_STANDARD.md` and complete its module intake form.
+3. Classify the scope as public website, authenticated web app, Customer Portal/security boundary, shared architecture, performance and reliability, or a combination.
+4. Identify the canonical owner for the route, component, module, schema, permission, image placement, data, and deployment.
+5. Confirm record, role, approval, external-action, image, performance, compatibility, migration, and rollback impact.
+6. Change the canonical source instead of adding a second shell, list, router, runtime, manifest, schema, data owner, or cleanup layer.
+7. Run `node scripts/verify-change-governance.js` before domain-specific verification.
 
 A change is not complete because it looks correct in one browser. It must follow the canonical architecture, pass verification, deploy through the accepted workflow, and be verified live at the exact commit.
 
@@ -43,6 +44,17 @@ Performance is a release requirement, not optional polish.
 7. Shared changes belong in shared files. Do not copy a component or utility into multiple pages.
 8. Any new dependency must prove that it is smaller or faster than the existing repository-native solution.
 9. Performance verifiers may not be weakened to accommodate duplicate code or slower startup.
+10. New modules default to `loadStrategy:'on-demand'`; data-heavy secondary work may not be added to startup.
+11. Ordinary unfiltered list opens are bounded to 50 visible records or fewer unless a larger limit is justified in the canonical module contract.
+12. Full table or sheet scans are reserved for explicit search, filter, export, reconciliation, report, or audit operations.
+13. Every cacheable route must declare user/business scope, cache key, epoch/version, TTL, and all invalidating writes.
+14. Repeated requests for the same route and options must reuse one in-flight promise or safe request-scoped result.
+15. Older responses must not overwrite a newer route selection.
+16. Keep the current workspace visible while the next route loads; do not return to blank loading screens.
+17. Prefetch is read-only, prioritized, capped, and must populate the same cache used by a direct click.
+18. Record cold, warm, and cached route timing for every changed authenticated route.
+19. A startup regression greater than 10 percent or 500 milliseconds, whichever is larger, requires a written reason, compensating improvement, rollback plan, and Rick's approval.
+20. Use `.github/ISSUE_TEMPLATE/app-module-change.yml` before building a module and `.github/ISSUE_TEMPLATE/performance-regression.yml` when reporting slow behavior.
 
 ## Approved Asset Authority
 
@@ -183,6 +195,7 @@ Consult these before application, image-heavy, website, or deployment work:
 
 - `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`
 - `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`
+- `docs/architecture/MODULE_PERFORMANCE_STANDARD.md`
 - `docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md`
 - `docs/public-website/APPROVED_ASSET_FAST_PATH.md`
 - `docs/public-website/WEB_IMAGE_DEPLOYMENT_PLAYBOOK.md`

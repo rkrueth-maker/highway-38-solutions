@@ -16,6 +16,8 @@ on:
       - 'apps-script/business-office/BusinessOffice_ModuleContract.gs'
       - 'apps-script/business-office/BusinessOffice_ActionContract.gs'
       - 'apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
       - '.github/workflows/pages.yml'
       - '.github/workflows/deploy-owner-portal-hard-rule-production.yml'
       - '.github/workflows/change-governance.yml'
