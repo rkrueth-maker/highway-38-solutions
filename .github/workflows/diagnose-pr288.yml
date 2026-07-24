@@ -37,6 +37,7 @@ jobs:
               raise SystemExit('Prepared navigation-cache patch block was not found.')
           lines=match.group(1).splitlines()
           code='\n'.join(line[10:] if line.startswith('          ') else line for line in lines)+'\n'
+          code=code.replace('re.subn(pattern,replacement,text,count=1,flags=re.S)','re.subn(pattern,lambda match: replacement,text,count=1,flags=re.S)')
           Path('/tmp/apply-navigation-cache-speed.py').write_text(code,encoding='utf-8')
           PY
           set +e
