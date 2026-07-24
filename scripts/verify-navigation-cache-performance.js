@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+// Guards navigation grouping, bounded record reads, cache freshness, prefetch reuse, and approval boundaries.
 const fs=require('fs');
 const path=require('path');
 const vm=require('vm');
