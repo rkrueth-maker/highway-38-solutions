@@ -1,6 +1,9 @@
 name: Refine Navigation Cache Reliability
 
 on:
+  push:
+    branches:
+      - agent/navigation-and-module-cache-speed
   pull_request:
     branches: [main]
 
@@ -8,17 +11,17 @@ permissions:
   contents: write
 
 concurrency:
-  group: refine-navigation-cache-${{ github.event.pull_request.number }}
+  group: refine-navigation-cache-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   refine:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/navigation-and-module-cache-speed'
+    if: github.ref_name == 'agent/navigation-and-module-cache-speed' || github.event.pull_request.head.ref == 'agent/navigation-and-module-cache-speed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: agent/navigation-and-module-cache-speed
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -319,4 +322,4 @@ process.exit(failures.length?1:0);
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Preserve complete records while accelerating navigation'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:agent/navigation-and-module-cache-speed
