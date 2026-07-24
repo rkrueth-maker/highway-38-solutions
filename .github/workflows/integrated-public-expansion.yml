@@ -5,36 +5,70 @@ on:
     branches: [main]
     paths:
       - 'index.html'
-      - 'products.html'
-      - 'solutions.html'
-      - 'business-systems.html'
       - 'sample-library-now.html'
-      - 'free-tools.html'
+      - 'solutions.html'
+      - 'pricing.html'
+      - 'about.html'
+      - 'contact.html'
       - 'start-request.html'
-      - 'service-guides.html'
-      - 'case-study-template.html'
-      - 'business-systems-data.js'
-      - 'public-expansion.js'
-      - 'public-expansion.css'
-      - 'visual-cleanup.css'
-      - 'visual-cleanup-secondary.css'
-      - 'tool-downloads.js'
+      - 'portal.html'
+      - 'assets/js/h38-site-v2.js'
+      - 'assets/css/h38-site-v2.css'
+      - 'assets/contractor-demo/**'
+      - 'assets/demo-workthroughs/**'
+      - 'request-flow.js'
+      - 'customer-portal.html'
+      - 'customer-portal-*.js'
+      - 'supabase/migrations/**'
       - 'scripts/verify-public-expansion.js'
-      - 'scripts/verify-one-shot-ux.js'
       - 'scripts/verify-commercial-system.js'
       - 'scripts/verify-commercial-browser.js'
       - 'scripts/browser-commercial-smoke.sh'
-      - 'package.json'
+      - 'scripts/verify-contact-options.js'
+      - 'scripts/verify-one-shot-ux.js'
+      - 'scripts/verify-customer-portal-supabase.js'
+      - 'scripts/verify-public-website-architecture.js'
+      - 'scripts/config/public-website-routes.json'
+      - 'scripts/config/approved-public-assets.json'
+      - 'scripts/config/approved-public-image-placements.json'
+      - 'docs/architecture/**'
       - '.github/workflows/integrated-public-expansion.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: public-regression-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  commercial-regression:
+  structural-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify current public architecture
+        run: |
+          node scripts/verify-change-governance.js
+          node scripts/verify-contact-options.js
+          node scripts/verify-one-shot-ux.js
+          node scripts/verify-public-expansion.js
+          node scripts/verify-commercial-system.js
+          node scripts/verify-public-website-architecture.js
+          node scripts/verify-customer-portal-supabase.js
+
+  browser-regression:
+    needs: structural-regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,49 +81,19 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Verify JavaScript syntax
-        run: |
-          node --check business-systems-data.js
-          node --check public-expansion.js
-          node --check tool-downloads.js
-          node --check scripts/verify-public-expansion.js
-      - name: Verify contact options
-        run: node scripts/verify-contact-options.js
-      - name: Verify one-shot UX
-        run: node scripts/verify-one-shot-ux.js
-      - name: Verify public expansion
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p artifacts/public-expansion
-          node scripts/verify-public-expansion.js | tee artifacts/public-expansion/verification.json
-      - name: Verify commercial system
-        run: node scripts/verify-commercial-system.js
-      - name: Verify public customer path
-        run: node scripts/verify-public-customer-path.js
-      - name: Verify customer portal
-        run: node scripts/verify-customer-portal-supabase.js
-      - name: Verify Quote Builder complete
-        run: node scripts/verify-quote-builder-complete.js
-      - name: Verify Quote Builder performance
-        run: node scripts/verify-quote-builder-direct-performance.js
-      - name: Verify Quote Builder camera polish
-        run: node scripts/verify-quote-camera-polish.js
-      - name: Verify Quote Builder Business Office routing
-        run: node scripts/verify-quote-builder-business-office-routing.js
-      - name: Verify complete ecosystem
-        run: node scripts/verify-complete-ecosystem.js
-      - name: Verify complete ecosystem launch
-        run: node scripts/verify-complete-ecosystem-launch.js
-      - name: Verify commercial browser
+      - name: Verify project-first browser behavior
         run: node scripts/verify-commercial-browser.js
-      - name: Verify unified app UX
-        run: node scripts/verify-unified-app-ux-complete.js
-      - name: Upload public expansion evidence
+      - name: Verify focused shell screenshots and examples
+        run: bash scripts/browser-commercial-smoke.sh
+      - name: Upload public regression evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: public-expansion-verification-${{ github.run_id }}
-          path: artifacts/public-expansion/verification.json
+          name: public-regression-${{ github.run_id }}
+          path: |
+            artifacts/commercial-system/verification.json
+            artifacts/change-governance/verification.json
+            launch-control/evidence/customer-portal-supabase-verification.json
+            browser-artifacts/
           if-no-files-found: warn
           retention-days: 30
