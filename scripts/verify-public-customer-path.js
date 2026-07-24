@@ -91,7 +91,7 @@ const publicText=publicPrimary.map(read).join('\n');
 check('no public LLC claim',!/Highway 38[^\n<]{0,30}\bLLC\b/i.test(publicText));
 check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(publicText));
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
-check('no fake testimonials',!/customer testimonial|five-star review|★★★★★/i.test(publicText));
+check('no fake testimonial claims',!/five-star review|★★★★★|verified customer review|what our customers say/i.test(publicText));
 check('no actionable public checkout',!/href="[^"]*(?:checkout|cart)|action="[^"]*(?:checkout|cart)|>\s*(?:buy now|add to cart|checkout)\s*</i.test(publicText));
 
 const evidence={
