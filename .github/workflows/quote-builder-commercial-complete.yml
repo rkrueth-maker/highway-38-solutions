@@ -23,7 +23,21 @@ jobs:
         with:
           node-version: '24'
       - name: Verify commercial proposal system
-        run: node scripts/verify-quote-builder-commercial-complete.js
+        shell: bash
+        run: |
+          set +e
+          node scripts/verify-quote-builder-commercial-complete.js > quote-commercial.log 2>&1
+          code=$?
+          cat quote-commercial.log
+          exit "$code"
+      - name: Upload commercial verifier diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quote-commercial-diagnostic-${{ github.run_id }}
+          path: quote-commercial.log
+          if-no-files-found: warn
+          retention-days: 3
       - name: Verify existing Quote Builder camera and field capture
         run: node scripts/verify-quote-camera-polish.js
       - name: Verify direct Quote Builder performance
