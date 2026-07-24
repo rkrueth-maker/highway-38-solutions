@@ -1,9 +1,8 @@
 name: Diagnose PR 288
 
 on:
-  push:
-    branches:
-      - agent/business-office-startup-performance
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
