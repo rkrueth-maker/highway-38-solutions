@@ -32,16 +32,16 @@ def replace_text_files() -> None:
         'deck-after.webp': 'deck-finished-concept.webp',
         'kitchen-before.webp': 'kitchen-existing-condition.webp',
         'kitchen-after.webp': 'kitchen-remodel-concept.webp',
-        '20260722-direct-v2': '20260724-repaired-v1',
+        'irrigation-before.webp?v=20260724-repaired-v1': 'irrigation-before.webp?v=20260722-direct-v2',
+        'irrigation-after.webp?v=20260724-repaired-v1': 'irrigation-after.webp?v=20260722-direct-v2',
     }
     suffixes = {'.html', '.js', '.json', '.md', '.txt', '.sh', '.py'}
-    excluded = {'repair-deck-kitchen-favicon.py'}
     for path in ROOT.rglob('*'):
         if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in suffixes:
             continue
         if '.github' in path.parts and 'workflows' in path.parts:
             continue
-        if path.name in excluded:
+        if path.name == 'repair-deck-kitchen-favicon.py':
             continue
         try:
             text = path.read_text(encoding='utf-8')
@@ -65,9 +65,12 @@ def update_sample_library() -> None:
     new_deck = '<article class="project-card" data-project="deck"><div class="project-visual"><figure><span>Existing Site</span><img src="assets/demo-workthroughs/deck-existing-condition.webp?v=20260724-repaired-v1" width="1200" height="675" loading="lazy" alt="Existing rear entry before deck construction"></figure><figure><span>Finished Concept</span><img src="assets/demo-workthroughs/deck-finished-concept.webp?v=20260724-repaired-v1" width="1200" height="675" loading="lazy" alt="Finished 8 by 12 pressure-treated deck concept"></figure>'
     old_kitchen = '<article class="project-card"><div class="project-visual"><figure><span>Before</span><img src="assets/demo-workthroughs/kitchen-existing-condition.webp?v=20260724-repaired-v1" alt="Kitchen before"></figure><figure><span>After</span><img src="assets/demo-workthroughs/kitchen-remodel-concept.webp?v=20260724-repaired-v1" alt="Kitchen after"></figure>'
     new_kitchen = '<article class="project-card" data-project="kitchen"><div class="project-visual"><figure><span>Existing Kitchen</span><img src="assets/demo-workthroughs/kitchen-existing-condition.webp?v=20260724-repaired-v1" width="1200" height="675" loading="lazy" alt="Existing dated kitchen before renovation"></figure><figure><span>Remodel Concept</span><img src="assets/demo-workthroughs/kitchen-remodel-concept.webp?v=20260724-repaired-v1" width="1200" height="675" loading="lazy" alt="Mid-range kitchen remodel concept"></figure>'
-    if old_deck not in text or old_kitchen not in text:
-        raise RuntimeError('Sample Library deck or kitchen markup did not match the expected source.')
-    text = text.replace(old_deck, new_deck).replace(old_kitchen, new_kitchen)
+    if old_deck in text:
+        text = text.replace(old_deck, new_deck)
+    if old_kitchen in text:
+        text = text.replace(old_kitchen, new_kitchen)
+    if new_deck not in text or new_kitchen not in text:
+        raise RuntimeError('Sample Library repaired deck or kitchen markup is missing.')
     path.write_text(text, encoding='utf-8')
 
 
@@ -109,19 +112,28 @@ def update_manifest() -> None:
     }
     if entry not in changes:
         changes.append(entry)
+    sample_entries = {item['role']: item for item in data['pages']['sample-library-now.html']}
+    sample_entries['example-05-before']['alt'] = 'Existing rear entry before deck construction'
+    sample_entries['example-05-after']['alt'] = 'Finished 8 by 12 pressure-treated deck concept'
+    sample_entries['example-07-before']['alt'] = 'Existing dated kitchen before renovation'
+    sample_entries['example-07-after']['alt'] = 'Mid-range kitchen remodel concept'
     path.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
 
 
 def verify() -> None:
     sample = (ROOT / 'sample-library-now.html').read_text(encoding='utf-8')
     quote = (ROOT / 'contractor-quote-complete.html').read_text(encoding='utf-8')
+    manifest = (ROOT / 'scripts' / 'config' / 'approved-public-image-placements.json').read_text(encoding='utf-8')
     required = {
         'sample deck label': 'Existing Site' in sample,
         'sample kitchen label': 'Remodel Concept' in sample,
         'sample approved favicon': 'assets/highway38-logo.png?v=20260720-exact-0cbc4514' in sample,
+        'irrigation cache unchanged': 'irrigation-before.webp?v=20260722-direct-v2' in sample and 'irrigation-after.webp?v=20260722-direct-v2' in sample,
         'quote deck label': "bl:'Existing site'" in quote,
         'quote kitchen label': "bl:'Existing kitchen'" in quote,
         'quote badge positioning': '.badge{position:absolute;top:0;left:0;z-index:2;' in quote,
+        'manifest deck alt': 'Existing rear entry before deck construction' in manifest,
+        'manifest kitchen alt': 'Mid-range kitchen remodel concept' in manifest,
     }
     for name in (
         'deck-existing-condition.webp',
