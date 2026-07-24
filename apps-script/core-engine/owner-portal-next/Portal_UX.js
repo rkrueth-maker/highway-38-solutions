@@ -5,7 +5,10 @@
  */
 function h38PortalUxControlCenter() {
   h38PortalAssertOwner_();
-  var base = h38PortalExperienceControlCenter();
+  if (typeof h38PortalNavigationCacheGet_ === 'function') {
+    var existing = h38PortalNavigationCacheGet_('startup:owner-experience-v3');
+    if (existing) return existing;
+  }
   var today = h38PortalToday_();
   var tasks = h38PortalTaskProjection_({});
   var openTasks = tasks.filter(function(task){ return !h38PortalTaskTerminal_(task.status); });
@@ -17,70 +20,38 @@ function h38PortalUxControlCenter() {
   var errors = h38PortalUxSafeErrors_();
   var dueToday = openTasks.filter(function(task){ return task.dueDate && task.dueDate === today; });
   var overdue = openTasks.filter(function(task){ return task.dueDate && task.dueDate < today; });
-  var blocked = openTasks.filter(function(task){
-    return /block|hold|failed|error|missing/i.test([
-      task.status,task.blockingIssue,task.nextAction
-    ].join(' '));
-  });
-  var waitingCustomer = openTasks.filter(function(task){
-    return /waiting on customer|customer response|customer information|awaiting customer/i.test([
-      task.status,task.nextAction,task.blockingIssue
-    ].join(' '));
-  });
+  var blocked = openTasks.filter(function(task){ return /block|hold|failed|error|missing/i.test([task.status,task.blockingIssue,task.nextAction].join(' ')); });
+  var waitingCustomer = openTasks.filter(function(task){ return /waiting on customer|customer response|customer information|awaiting customer/i.test([task.status,task.nextAction,task.blockingIssue].join(' ')); });
   var noNextAction = openTasks.filter(function(task){ return !String(task.nextAction || '').trim(); });
-  var needsReview = openTasks.filter(function(task){
-    return /review|required|approval|decision|revise|reject|hold/i.test([
-      task.status,task.approvalStatus,task.approvalRequirement,task.decision
-    ].join(' '));
-  });
-  var unpaidInvoices = invoices.filter(function(row){
-    return h38PortalUxAmount_(row.Balance || row['Balance Due'] || row.Total) > 0 &&
-      !/paid|cancel|written off|void/i.test(String(row.Status || ''));
-  });
-  var overdueInvoices = unpaidInvoices.filter(function(row){
-    var due = row['Due Date'] || '';
-    return due && due < today;
-  });
-  var cashExpected = unpaidInvoices.reduce(function(sum,row){
-    return sum + h38PortalUxAmount_(row.Balance || row['Balance Due'] || row.Total);
-  },0);
+  var needsReview = openTasks.filter(function(task){ return /review|required|approval|decision|revise|reject|hold/i.test([task.status,task.approvalStatus,task.approvalRequirement,task.decision].join(' ')); });
+  var unpaidInvoices = invoices.filter(function(row){ return h38PortalUxAmount_(row.Balance || row['Balance Due'] || row.Total) > 0 && !/paid|cancel|written off|void/i.test(String(row.Status || '')); });
+  var overdueInvoices = unpaidInvoices.filter(function(row){ var due = row['Due Date'] || ''; return due && due < today; });
+  var cashExpected = unpaidInvoices.reduce(function(sum,row){ return sum + h38PortalUxAmount_(row.Balance || row['Balance Due'] || row.Total); },0);
   var month = today.slice(0,7);
-  var paidThisMonth = payments.filter(function(row){
-    return String(row['Payment Date'] || row.Date || '').slice(0,7) === month;
-  }).reduce(function(sum,row){ return sum + h38PortalUxAmount_(row.Amount); },0);
-  var expensesThisMonth = expenses.filter(function(row){
-    return String(row.Date || '').slice(0,7) === month;
-  }).reduce(function(sum,row){ return sum + h38PortalUxAmount_(row.Amount || row.Total); },0);
-  var activeJobs = jobs.filter(function(row){
-    return !/complete|cancel|archive|delivered/i.test(String(row['Job Stage'] || row.Status || ''));
-  });
+  var paidThisMonth = payments.filter(function(row){ return String(row['Payment Date'] || row.Date || '').slice(0,7) === month; }).reduce(function(sum,row){ return sum + h38PortalUxAmount_(row.Amount); },0);
+  var expensesThisMonth = expenses.filter(function(row){ return String(row.Date || '').slice(0,7) === month; }).reduce(function(sum,row){ return sum + h38PortalUxAmount_(row.Amount || row.Total); },0);
+  var activeJobs = jobs.filter(function(row){ return !/complete|cancel|archive|delivered/i.test(String(row['Job Stage'] || row.Status || '')); });
   var approvalItems = h38PortalUxApprovalItems_(needsReview,quotes,invoices);
+  var base = {
+    generatedAt:h38PortalNow_(),today:today,
+    views:{
+      today:{tasks:dueToday.concat(overdue).slice(0,50),openCount:openTasks.length,overdueCount:overdue.length},
+      decisions:{tasks:needsReview.slice(0,50),count:needsReview.length},
+      activeWork:{tasks:openTasks.slice(0,75),count:openTasks.length},
+      money:{summary:{cashExpected:cashExpected,paymentsReceived:paidThisMonth,expenses:expensesThisMonth,activeJobs:activeJobs.length},invoices:unpaidInvoices.slice(0,40)},
+      growth:{deferred:true,summary:{leads:0,socialDrafts:0,advertisingPlans:0},leads:[],social:[],advertising:[]},
+      website:{deferred:true,records:[]},
+      systemHealth:{deferred:true,installed:{installed:true},catalog:{status:'Deferred'},integrations:[],blockers:[],safety:{ownerOnly:true,selectedRecordOnly:true,bulkExecution:false,automaticRetry:false,liveExternalActions:false,triggers:false}},
+      calendar:{deferred:true,records:[]}
+    },
+    quickCreate:['task','lead','customer','job','quote','invoice','payment','expense','communication','social','advertising','website','calendar'],
+    externalActionsOccurred:false
+  };
   base.ux = {
     generatedAt:h38PortalNow_(),
-    metrics:{
-      needsReview:needsReview.length,
-      dueToday:dueToday.length,
-      overdue:overdue.length,
-      blocked:blocked.length,
-      cashExpected:cashExpected,
-      unpaidInvoices:unpaidInvoices.length,
-      overdueInvoices:overdueInvoices.length,
-      paidThisMonth:paidThisMonth,
-      expensesThisMonth:expensesThisMonth,
-      activeJobs:activeJobs.length,
-      noNextAction:noNextAction.length,
-      waitingCustomer:waitingCustomer.length,
-      openErrors:errors.filter(function(row){ return !/resolved|closed/i.test(String(row['Resolution Status'] || row.Status || '')); }).length
-    },
-    approvalQueue:approvalItems.slice(0,50),
-    dueToday:dueToday.slice(0,50),
-    overdue:overdue.slice(0,50),
-    blocked:blocked.slice(0,50),
-    noNextAction:noNextAction.slice(0,50),
-    waitingCustomer:waitingCustomer.slice(0,50),
-    unpaidInvoices:unpaidInvoices.slice(0,50),
-    overdueInvoices:overdueInvoices.slice(0,50),
-    recentActivity:h38PortalUxActivity_(tasks,quotes,invoices,payments,expenses,errors).slice(0,40),
+    metrics:{needsReview:needsReview.length,dueToday:dueToday.length,overdue:overdue.length,blocked:blocked.length,cashExpected:cashExpected,unpaidInvoices:unpaidInvoices.length,overdueInvoices:overdueInvoices.length,paidThisMonth:paidThisMonth,expensesThisMonth:expensesThisMonth,activeJobs:activeJobs.length,noNextAction:noNextAction.length,waitingCustomer:waitingCustomer.length,openErrors:errors.filter(function(row){ return !/resolved|closed/i.test(String(row['Resolution Status'] || row.Status || '')); }).length},
+    approvalQueue:approvalItems.slice(0,30),dueToday:dueToday.slice(0,30),overdue:overdue.slice(0,30),blocked:blocked.slice(0,30),noNextAction:noNextAction.slice(0,30),waitingCustomer:waitingCustomer.slice(0,30),unpaidInvoices:unpaidInvoices.slice(0,30),overdueInvoices:overdueInvoices.slice(0,30),
+    recentActivity:h38PortalUxActivity_(tasks,quotes,invoices,payments,expenses,errors).slice(0,30),
     builtInViews:[
       {id:'needs-review',name:'Needs my approval',module:'decisions'},
       {id:'due-today',name:'Due today',module:'tasks',filters:{due:'today'}},
@@ -92,8 +63,7 @@ function h38PortalUxControlCenter() {
       {id:'recently-updated',name:'Recently updated',module:'tasks',filters:{sort:'updated'}}
     ]
   };
-  base.externalActionsOccurred = false;
-  return base;
+  return typeof h38PortalNavigationCachePut_ === 'function' ? h38PortalNavigationCachePut_('startup:owner-experience-v3',base,20) : base;
 }
 
 function h38PortalUxWorkspace(taskId) {
