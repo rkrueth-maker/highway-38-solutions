@@ -6,7 +6,7 @@
  * derived from this contract. Runtime records and compatibility aliases remain
  * in their existing stores; this file owns module metadata only.
  */
-var H38_UNIFIED_MODULE_CONTRACT_VERSION = '2026-07-23-v1';
+var H38_UNIFIED_MODULE_CONTRACT_VERSION = '2026-07-24-v2';
 var H38_UNIFIED_MODULE_CONTRACT_CACHE_ = null;
 var H38_UNIFIED_MODULE_INDEX_CACHE_ = null;
 var H38_UNIFIED_BUSINESS_DEFINITIONS_CACHE_ = null;
@@ -59,10 +59,10 @@ function boGetUnifiedModuleContract_(){
 
     boUnifiedModule_('requests','New Requests','sales','business','bo:requests','requests','＋','leads intake estimate',{dependencies:['customers'],definition:{title:'New Requests',primaryKey:'Request ID',fields:['Received Time','Source','Status','Approval Status','Name','Email','Phone','Desired Outcome','Product / Bundle ID','Next Action']}}),
     boUnifiedModule_('customers','Customers','sales','business','bo:customers','customers','◎','contacts clients accounts',{essential:true,disablePolicy:'required',definition:{title:'Customers',primaryKey:'Customer ID',fields:['Customer Number','Display Name','Customer Type','Email','Phone','Payment Terms','Tax Status','Tags','Status','Attention Status','Notes']}}),
+    boUnifiedModule_('quotes','Quotes','sales','business','bo:quotes','quotes','▱','estimate proposal price',{capability:'quotes',dependencies:['customers','documents'],definition:{title:'Quotes & Proposals',primaryKey:'Quote ID',fields:['Quote Number','Customer ID','Project Title','Revision Number','Quote Date','Expiration Date','Status','Approval Status','Send Allowed','Customer Action','Payment Terms','Scope','Assumptions','Exclusions','Subtotal','Discount','Tax','Deposit','Total']}}),
     boUnifiedModule_('messaging','Communications','sales','business','bo:messaging','messaging','✉','messages email sms',{dependencies:['customers'],clientOwner:'Portal_TaskMessaging_Client.html'}),
     boUnifiedModule_('smsConsent','SMS Consent','sales','business','bo:smsConsent','smsConsent','✓','text opt in permission',{secondary:true,dependencies:['customers','messaging'],clientOwner:'Portal_TaskMessaging_Client.html'}),
 
-    boUnifiedModule_('quotes','Quotes','work','business','bo:quotes','quotes','▱','estimate proposal price',{capability:'quotes',dependencies:['customers','documents'],definition:{title:'Quotes & Proposals',primaryKey:'Quote ID',fields:['Quote Number','Customer ID','Project Title','Revision Number','Quote Date','Expiration Date','Status','Approval Status','Send Allowed','Customer Action','Payment Terms','Scope','Assumptions','Exclusions','Subtotal','Discount','Tax','Deposit','Total']}}),
     boUnifiedModule_('workOrders','Work Orders','work','business','bo:workOrders','workOrders','☑','scope execution',{dependencies:['quotes','customers'],definition:{title:'Work Orders',primaryKey:'Work Order ID',fields:['Work Order Number','Quote ID','Job ID','Customer ID','Work Requested','Scope','Assigned User ID','Priority','Start Date','Due Date','Status','Approval Status','Customer Approval Status','Completion Checklist']}}),
     boUnifiedModule_('jobs','Jobs','work','business','bo:jobs','jobs','◇','projects active field',{dependencies:['customers'],definition:{title:'Jobs',primaryKey:'Job ID',fields:['Job Number','Customer ID','Work Order ID','Quote ID','Project Title','Status','Stage','Priority','Assigned User ID','Start Date','Due Date','Approval Status','Invoice Status','Revenue','Total Cost','Profit','Profit Margin']}}),
     boUnifiedModule_('time','Time Tracking','work','business','bo:time','time','◷','hours labor clock',{dependencies:['jobs','employees'],definition:{title:'Time Tracking',primaryKey:'Time Entry ID',fields:['Employee ID','Job ID','Work Order ID','Date','Start Time','End Time','Break Minutes','Regular Hours','Overtime Hours','Pay Rate','Billable Rate','Approval Status','Payroll Period ID','Notes']}}),
@@ -80,7 +80,7 @@ function boGetUnifiedModuleContract_(){
     boUnifiedModule_('tax','Tax Prep','money','business','bo:tax','tax','%','filing documents liability',{secondary:true,dependencies:['accounting','documents'],definition:{title:'Tax Preparation',primaryKey:'Tax Period ID',fields:['Tax Type','Jurisdiction','Period Start','Period End','Due Date','Status','Approval Status','Finalization Allowed','Taxable Sales','Exempt Sales','Tax Collected','Tax Adjustments','Estimated Liability','Payment Recorded','Missing Documents']}}),
 
     boUnifiedModule_('documents','Files & OCR','documents','business','bo:documents','documents','▤','upload scan photos pdf',{essential:true,disablePolicy:'required',definition:{title:'Documents / OCR',primaryKey:'Document ID',fields:['File Name','MIME Type','Source Type','Source ID','Document Type','Upload State','OCR State','Review Status','Approval Status','Posted Status','Export Status','Is Voided','Access Classification','Uploaded Time']}}),
-    boUnifiedModule_('reports','Reports','documents','business','bo:reports','reports','▥','financial analysis summary',{dependencies:['documents'],cacheTtlSeconds:180,definition:{title:'Reports',primaryKey:'Metric',fields:['Metric','Amount']}}),
+    boUnifiedModule_('reports','Reports','money','business','bo:reports','reports','▥','financial analysis summary',{dependencies:['documents'],cacheTtlSeconds:180,definition:{title:'Reports',primaryKey:'Metric',fields:['Metric','Amount']}}),
     boUnifiedModule_('messageTemplates','Templates','documents','business','bo:messageTemplates','messageTemplates','▧','email sms reusable',{secondary:true,dependencies:['messaging'],clientOwner:'Portal_TaskMessaging_Client.html'}),
 
     boUnifiedModule_('growth','Growth Center','growth','native','growth','growth','↗','sales marketing opportunities',{dependencies:['customers'],cacheTtlSeconds:180}),

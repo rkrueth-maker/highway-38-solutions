@@ -1,4 +1,4 @@
-var H38_APP_MODULE_MANAGER=null,H38_APP_SETUP=null,H38_APP_COMMANDS=null,H38_APP_STATUS=null,H38_APP_BUSINESS_DASHBOARD=null,H38_COMMAND_SEARCH_RESULTS=[],H38_COMMAND_INDEX=0,H38_COMMAND_TIMER=null;
+var H38_APP_MODULE_MANAGER=null,H38_APP_SETUP=null,H38_APP_COMMANDS=null,H38_APP_STATUS=null,H38_APP_BUSINESS_DASHBOARD=null,H38_COMMAND_SEARCH_RESULTS=[],H38_COMMAND_INDEX=0,H38_COMMAND_TIMER=null,H38_APP_SURFACE_CACHE={},H38_APP_SURFACE_INFLIGHT={},H38_APP_SURFACE_PREFETCH_TIMER=null;
 
 function h38AppModuleKeyFromRoute(route){
   var map={today:'commandCenter',tasks:'assignedTasks',decisions:'approvals',approvalsCenter:'approvals',calendarCenter:'calendar',moduleManager:'setup',setupWizard:'setup',userAccess:'users',backupCenter:'backups',growth:'growth',websiteCenter:'website',social:'social',advertising:'advertising',proof:'proof',errors:'errors',settings:'settings',systemHealth:'commandCenter',help:'commandCenter'};
@@ -8,6 +8,13 @@ function h38AppModuleKeyFromRoute(route){
 function h38AppModuleState(key){return uxRows(H38_APP_MODULE_MANAGER&&H38_APP_MODULE_MANAGER.modules).filter(function(item){return item.key===key;})[0]||null;}
 function h38AppRouteAllowed(route){var state=h38AppModuleState(h38AppModuleKeyFromRoute(route));return !state||state.enabled&&state.canView;}
 function h38AppIcon(group){return {command:'◉',sales:'♟',work:'▣',money:'$',documents:'▤',growth:'↗',office:'⚙'}[group]||'•';}
+
+
+function h38SurfaceCacheRead(key,ttlSeconds){var entry=H38_APP_SURFACE_CACHE[key];if(!entry)return null;if(Date.now()-entry.savedAt>Number(ttlSeconds||60)*1000){delete H38_APP_SURFACE_CACHE[key];return null;}return entry.data;}
+function h38SurfaceCacheWrite(key,data){H38_APP_SURFACE_CACHE[key]={savedAt:Date.now(),data:data};return data;}
+function h38SurfaceInvalidate(key){if(key){delete H38_APP_SURFACE_CACHE[key];delete H38_APP_SURFACE_INFLIGHT[key];return;}H38_APP_SURFACE_CACHE={};H38_APP_SURFACE_INFLIGHT={};}
+function h38SurfaceLoad(key,ttlSeconds,loader,force){var cached=!force&&h38SurfaceCacheRead(key,ttlSeconds);if(cached)return Promise.resolve(cached);if(H38_APP_SURFACE_INFLIGHT[key])return H38_APP_SURFACE_INFLIGHT[key];var pending=Promise.resolve().then(loader).then(function(data){h38SurfaceCacheWrite(key,data);delete H38_APP_SURFACE_INFLIGHT[key];return data;},function(error){delete H38_APP_SURFACE_INFLIGHT[key];throw error;});H38_APP_SURFACE_INFLIGHT[key]=pending;return pending;}
+function h38PrefetchOperatingSurfaces(route){if(String(route||'')!=='today')return;clearTimeout(H38_APP_SURFACE_PREFETCH_TIMER);H38_APP_SURFACE_PREFETCH_TIMER=setTimeout(function(){h38SurfaceLoad('approvalsCenter',30,function(){return call('h38PortalApplicationApprovalCenter');},false).catch(function(){});h38SurfaceLoad('calendarCenter',120,function(){return call('h38PortalApplicationCalendar');},false).catch(function(){});},250);}
 
 function h38EnsureApplicationChrome(){
   var top=document.getElementById('ownerTopbar');
@@ -98,7 +105,7 @@ async function show(module){
     return true;
   }catch(error){uxRenderWorkspaceFailure(error,'This workspace opened without all related data. The selected record is safe; review the Error Log for technical details.');return null;}
 }
-function h38AfterSurfaceRender(module){renderNav();h38RenderSystemStatus();var view=document.getElementById('view');if(view&&!view.querySelector('.role-banner')&&module==='today')view.insertAdjacentHTML('afterbegin',h38RoleBanner());}
+function h38AfterSurfaceRender(module){renderNav();h38RenderSystemStatus();var view=document.getElementById('view');if(view&&!view.querySelector('.role-banner')&&module==='today')view.insertAdjacentHTML('afterbegin',h38RoleBanner());h38PrefetchOperatingSurfaces(module);if(typeof boNativePrefetchFromRoute==='function')boNativePrefetchFromRoute(module);}
 function h38RoleBanner(){var role=H38_UNIFIED&&H38_UNIFIED.user&&H38_UNIFIED.user.role||'User';var description=EXPERIENCE&&EXPERIENCE.roleDescription||({Owner:'Decisions, cash, risk, growth, and errors.',Administrator:'Workload, missing information, deadlines, failed workflows, and user activity.',Staff:'My tasks, my jobs, today, files needed, and blockers.',Viewer:'Read-only summaries, reports, and approved records.',Bookkeeper:'Transactions, reconciliation, missing receipts, tax summaries, and exports.',Payroll:'Payroll periods, time, employee records, and controlled exports.'}[role]||'One clear daily workspace for this role.');return '<div class="role-banner"><div><b>'+esc(role)+' workspace</b><small>'+esc(description)+'</small></div><span class="pill blue">'+esc(H38_UNIFIED&&H38_UNIFIED.packageName||'Business package')+'</span></div>';}
 
 function h38RenderSystemStatus(){

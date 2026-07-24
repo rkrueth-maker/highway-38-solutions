@@ -52,7 +52,7 @@ try{
     const names=fs.readdirSync(temp);
     const manifest=JSON.parse(fs.readFileSync(path.join(temp,'installation-manifest.json'),'utf8'));
     check('generated template contains shared contracts',['BusinessOffice_ModuleContract.gs','BusinessOffice_ActionContract.gs','BusinessOffice_ModuleAccess.gs'].every(name=>names.includes(name)),names.join(','));
-    check('generated manifest records contract version',manifest.moduleContractVersion==='2026-07-23-v1',manifest.moduleContractVersion||'missing');
+    check('generated manifest records contract version',manifest.moduleContractVersion==='2026-07-24-v2',manifest.moduleContractVersion||'missing');
     check('generated manifest is contract-driven',manifest.startupArchitecture==='contract-driven');
     const generatedWeb=fs.readFileSync(path.join(temp,'BusinessOffice_Web.gs'),'utf8');
     check('generated web has no duplicate schema list',!/function boGetModuleDefinitions_\(\)\{return\{/.test(generatedWeb));
@@ -65,6 +65,6 @@ const boundary=spawnSync(process.execPath,[path.join(root,'scripts/verify-source
 if(boundary.stdout)process.stdout.write(boundary.stdout);if(boundary.stderr)process.stderr.write(boundary.stderr);
 check('source boundary verification passes',boundary.status===0,`exit ${boundary.status}`);
 
-const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),moduleContractVersion:'2026-07-23-v1',externalActionsEnabled:false,passed:passes.length,failed:failures.length,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),moduleContractVersion:'2026-07-24-v2',externalActionsEnabled:false,passed:passes.length,failed:failures.length,passes,failures};
 const outDir=path.join(root,'artifacts','reusable-business-office-contracts');fs.mkdirSync(outDir,{recursive:true});fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);

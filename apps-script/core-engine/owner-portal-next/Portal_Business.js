@@ -93,23 +93,40 @@ function h38PortalBusinessBootstrap() {
   };
 }
 
-function h38PortalBusinessModule(moduleKey, options) {
-  var access = h38PortalRequireUnifiedUser_();
+function h38PortalBusinessModulePayload_(access, definitions, moduleKey, options) {
   moduleKey = boNormalizeText_(moduleKey);
   boAssertModuleEnabled_(moduleKey);
   if (h38PortalTaskMessagingModule_(moduleKey)) return h38PortalTaskMessagingModule(moduleKey,options || {});
-  var definitions = h38PortalBusinessDefinitions_();
   var definition = definitions[moduleKey];
   boAssert_(definition,'Business Office module is not supported: ' + moduleKey);
   h38PortalBusinessRequirePermission_(access,moduleKey,'View');
   var opts = options || {};
   var rows = boListRecords(moduleKey,{
-    query:boNormalizeText_(opts.query),filters:opts.filters || {},limit:Math.min(Number(opts.limit || 250),1000),includeVoided:opts.includeVoided === true
+    query:boNormalizeText_(opts.query),filters:opts.filters || {},limit:Math.min(Number(opts.limit || 50),1000),includeVoided:opts.includeVoided === true
   });
   return {
     status:'PASS',module:moduleKey,definition:definition,rows:rows,count:rows.length,boundary:boApprovalNotice_(),externalActionsEnabled:false,
     ownerApprovalRequired:true,readOnly:!h38PortalBusinessPermission_(access,moduleKey,'Edit'),userRole:access.role
   };
+}
+
+function h38PortalBusinessModule(moduleKey, options) {
+  var access = h38PortalRequireUnifiedUser_();
+  return h38PortalBusinessModulePayload_(access,h38PortalBusinessDefinitions_(),moduleKey,options || {});
+}
+
+function h38PortalBusinessModuleBatch(requests) {
+  var access = h38PortalRequireUnifiedUser_();
+  var definitions = h38PortalBusinessDefinitions_();
+  var items = (Array.isArray(requests) ? requests : []).slice(0,4).map(function(request){
+    var input = request || {};
+    try {
+      return h38PortalBusinessModulePayload_(access,definitions,input.module,input.options || {});
+    } catch (error) {
+      return {status:'HOLD',module:boNormalizeText_(input.module),message:error && error.message ? error.message : String(error || 'Prefetch failed.'),externalActionsEnabled:false};
+    }
+  });
+  return {status:'PASS',items:items,externalActionsEnabled:false,ownerApprovalRequired:true};
 }
 
 function h38PortalBusinessWorkspace(moduleKey, recordId) {

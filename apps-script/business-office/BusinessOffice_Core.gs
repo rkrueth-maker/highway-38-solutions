@@ -6,28 +6,61 @@ function boGetSheet_(sheetName) {
   return sheet;
 }
 
+function boBuildRecord_(headers, row, rowNumber) {
+  if (!row.some(function (value) { return value !== ''; })) return null;
+  const record = { __rowNumber: rowNumber };
+  headers.forEach(function (header, columnIndex) {
+    if (header) record[header] = row[columnIndex];
+  });
+  return record;
+}
+
+function boRecordInScope_(record, options, businessId) {
+  if (!record) return false;
+  const opts = options || {};
+  if (!opts.allBusinesses && Object.prototype.hasOwnProperty.call(record, 'Business ID') && record['Business ID'] !== businessId) return false;
+  if (!opts.includeVoided && (record['Is Voided'] === 'Yes' || record.Status === 'Voided')) return false;
+  return true;
+}
+
 function boReadTable_(sheetName, options) {
   const opts = options || {};
   const sheet = boGetSheet_(sheetName);
-  const values = sheet.getDataRange().getDisplayValues();
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 1 || lastColumn < 1) return [];
+  const values = sheet.getRange(1, 1, lastRow, lastColumn).getDisplayValues();
   if (!values.length) return [];
   const headers = values[0].map(boNormalizeText_);
-  return values.slice(1).filter(function (row) {
-    return row.some(function (value) { return value !== ''; });
-  }).map(function (row, index) {
-    const record = { __rowNumber: index + 2 };
-    headers.forEach(function (header, columnIndex) {
-      if (header) record[header] = row[columnIndex];
-    });
-    return record;
+  const businessId = opts.allBusinesses ? '' : boGetBusinessId_();
+  return values.slice(1).map(function (row, index) {
+    return boBuildRecord_(headers,row,index + 2);
   }).filter(function (record) {
-    if (opts.allBusinesses) return true;
-    if (!Object.prototype.hasOwnProperty.call(record, 'Business ID')) return true;
-    return record['Business ID'] === boGetBusinessId_();
-  }).filter(function (record) {
-    if (opts.includeVoided) return true;
-    return record['Is Voided'] !== 'Yes' && record.Status !== 'Voided';
+    return boRecordInScope_(record,opts,businessId);
   });
+}
+
+function boReadTableLimited_(sheetName, limit, options) {
+  const opts = options || {};
+  const target = Math.min(Math.max(Number(limit || 50),1),1000);
+  const sheet = boGetSheet_(sheetName);
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 2 || lastColumn < 1) return [];
+  const headers = sheet.getRange(1,1,1,lastColumn).getDisplayValues()[0].map(boNormalizeText_);
+  const businessId = opts.allBusinesses ? '' : boGetBusinessId_();
+  const chunkSize = Math.min(Math.max(target * 2,100),500);
+  const records = [];
+  for (let startRow = 2; startRow <= lastRow && records.length < target; startRow += chunkSize) {
+    const rowCount = Math.min(chunkSize,lastRow - startRow + 1);
+    const values = sheet.getRange(startRow,1,rowCount,lastColumn).getDisplayValues();
+    values.forEach(function (row,index) {
+      if (records.length >= target) return;
+      const record = boBuildRecord_(headers,row,startRow + index);
+      if (boRecordInScope_(record,opts,businessId)) records.push(record);
+    });
+  }
+  return records;
 }
 
 function boHeaders_(sheetName) {
@@ -114,8 +147,12 @@ function boListRecords(moduleKey, options) {
   const sheetName = H38_BO_MODULES[moduleKey] || moduleKey;
   boRequirePermission_(sheetName, 'View');
   const opts = options || {};
-  let rows = boReadTable_(sheetName, { includeVoided: opts.includeVoided === true });
   const query = boNormalizeText_(opts.query).toLowerCase();
+  const filters = opts.filters || {};
+  const limit = Math.min(Math.max(Number(opts.limit || 50), 1), 1000);
+  let rows = !query && Object.keys(filters).length === 0
+    ? boReadTableLimited_(sheetName,limit,{ includeVoided: opts.includeVoided === true })
+    : boReadTable_(sheetName,{ includeVoided: opts.includeVoided === true });
   if (query) {
     rows = rows.filter(function (row) {
       return Object.keys(row).some(function (key) {
@@ -123,7 +160,6 @@ function boListRecords(moduleKey, options) {
       });
     });
   }
-  const filters = opts.filters || {};
   Object.keys(filters).forEach(function (field) {
     const expected = filters[field];
     rows = rows.filter(function (row) {
@@ -132,7 +168,6 @@ function boListRecords(moduleKey, options) {
       return boNormalizeText_(row[field]) === boNormalizeText_(expected);
     });
   });
-  const limit = Math.min(Number(opts.limit || 200), 1000);
   return rows.slice(0, limit);
 }
 

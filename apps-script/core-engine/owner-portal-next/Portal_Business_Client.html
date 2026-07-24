@@ -1,9 +1,93 @@
-var BO_NATIVE={module:'',data:null,query:'',editing:null,workspace:null};
+var BO_NATIVE={module:'',data:null,query:'',editing:null,workspace:null},H38_BO_MODULE_CACHE={},H38_BO_MODULE_INFLIGHT={},H38_BO_MODULE_EPOCH={},H38_BO_PREFETCH_TIMER=null;
 
 function boNativeRows(value){return Array.isArray(value)?value:[];}
 function boNativeText(value){return String(value==null?'':value);}
 function boNativeJs(value){return JSON.stringify(boNativeText(value));}
 function boNativeUnique(values){return values.filter(function(value,index,list){return value&&list.indexOf(value)===index;});}
+
+function boNativeCacheKey(module,options){
+  var opts=options||{};
+  return String(module||'')+'|'+boNativeText(opts.query||'')+'|'+JSON.stringify(opts.filters||{})+'|'+String(opts.limit||50);
+}
+function boNativeCacheTtl(module){
+  var meta=typeof h38ProductModuleMeta==='function'?h38ProductModuleMeta('bo:'+module):null;
+  return Math.max(15,Number(meta&&meta.cacheTtlSeconds||60));
+}
+function boNativeModuleEpoch(module){return Number(H38_BO_MODULE_EPOCH[module]||0);}
+function boNativeCacheRead(key,module){
+  var entry=H38_BO_MODULE_CACHE[key];
+  if(!entry)return null;
+  if(Date.now()-entry.savedAt>boNativeCacheTtl(module)*1000){delete H38_BO_MODULE_CACHE[key];return null;}
+  return entry.data;
+}
+function boNativeCacheWrite(key,data){H38_BO_MODULE_CACHE[key]={savedAt:Date.now(),data:data};return data;}
+function boNativeInvalidate(module){
+  if(module)H38_BO_MODULE_EPOCH[module]=boNativeModuleEpoch(module)+1;
+  Object.keys(H38_BO_MODULE_CACHE).forEach(function(key){if(!module||key.indexOf(String(module)+'|')===0)delete H38_BO_MODULE_CACHE[key];});
+  Object.keys(H38_BO_MODULE_INFLIGHT).forEach(function(key){if(!module||key.indexOf(String(module)+'|')===0)delete H38_BO_MODULE_INFLIGHT[key];});
+}
+function boNativeInvalidateAfterWrite(module){
+  boNativeInvalidate(module);
+  if(typeof h38SurfaceInvalidate==='function'){
+    h38SurfaceInvalidate('approvalsCenter');
+    h38SurfaceInvalidate('calendarCenter');
+  }
+}
+function boNativeLoadModule(module,options,force){
+  var opts=Object.assign({query:'',filters:{},limit:50},options||{}),key=boNativeCacheKey(module,opts),cached=!force&&boNativeCacheRead(key,module);
+  if(cached)return Promise.resolve({data:cached,cacheHit:true});
+  if(!force&&H38_BO_MODULE_INFLIGHT[key])return H38_BO_MODULE_INFLIGHT[key];
+  var epoch=boNativeModuleEpoch(module),serverOptions=Object.assign({},opts);delete serverOptions.force;
+  var pending=call('h38PortalBusinessModule',[module,serverOptions]).then(function(data){
+    if(boNativeModuleEpoch(module)===epoch)boNativeCacheWrite(key,data);
+    if(H38_BO_MODULE_INFLIGHT[key]===pending)delete H38_BO_MODULE_INFLIGHT[key];
+    return{data:data,cacheHit:false};
+  },function(error){
+    if(H38_BO_MODULE_INFLIGHT[key]===pending)delete H38_BO_MODULE_INFLIGHT[key];
+    throw error;
+  });
+  H38_BO_MODULE_INFLIGHT[key]=pending;
+  return pending;
+}
+function boNativeVisibleBusinessRoutes(){
+  var routes=[];
+  uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){uxRows(group.items).forEach(function(item){if(String(item.key||'').indexOf('bo:')===0)routes.push(item.key);});});
+  return routes;
+}
+function boNativeBatchPrefetch(modules){
+  var requests=boNativeUnique(modules||[]).slice(0,3).map(function(route){
+    var module=String(route).replace(/^bo:/,''),options={query:'',filters:{},limit:50};
+    return{module:module,options:options,key:boNativeCacheKey(module,options),epoch:boNativeModuleEpoch(module)};
+  }).filter(function(request){return !boNativeCacheRead(request.key,request.module)&&!H38_BO_MODULE_INFLIGHT[request.key];});
+  if(!requests.length)return Promise.resolve(null);
+  var batch=call('h38PortalBusinessModuleBatch',[requests.map(function(request){return{module:request.module,options:request.options};})]);
+  requests.forEach(function(request){
+    var pending=batch.then(function(result){
+      var data=boNativeRows(result&&result.items).filter(function(item){return item&&item.status==='PASS'&&item.module===request.module;})[0]||null;
+      if(data&&boNativeModuleEpoch(request.module)===request.epoch)boNativeCacheWrite(request.key,data);
+      if(H38_BO_MODULE_INFLIGHT[request.key]===pending)delete H38_BO_MODULE_INFLIGHT[request.key];
+      return{data:data,cacheHit:false};
+    },function(error){
+      if(H38_BO_MODULE_INFLIGHT[request.key]===pending)delete H38_BO_MODULE_INFLIGHT[request.key];
+      throw error;
+    });
+    H38_BO_MODULE_INFLIGHT[request.key]=pending;
+  });
+  return batch.catch(function(){return null;});
+}
+function boNativePrefetchFromRoute(route){
+  clearTimeout(H38_BO_PREFETCH_TIMER);
+  H38_BO_PREFETCH_TIMER=setTimeout(function(){
+    var all=[];
+    uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){uxRows(group.items).forEach(function(item){all.push(item.key);});});
+    var current=String(route||CURRENT||'today'),index=all.indexOf(current),ordered=(index>=0?all.slice(index+1).concat(all.slice(0,index+1)):all),business=ordered.filter(function(key){return String(key).indexOf('bo:')===0;});
+    boNativeBatchPrefetch(business.slice(0,3));
+  },550);
+}
+function boNativeRefreshModule(module){
+  boNativeInvalidate(module);
+  return renderBusinessModule(module,BO_NATIVE.query,{force:true});
+}
 function boNativeCanCreate(module){return ['reports','approvals'].indexOf(module)<0;}
 function boNativeCanEdit(module){return ['reports','approvals'].indexOf(module)<0;}
 function boNativeHelp(module){
@@ -65,25 +149,14 @@ function boNativeRenderTable(data){
 }
 function boNativeRenderModule(data){
   var def=data.definition,module=data.module,view=document.getElementById('view');
-  view.innerHTML='<div class="bo-native-head"><div><div class="ux-eyebrow">Business Office · '+esc((H38_UNIFIED&&H38_UNIFIED.packageName)||'Installed package')+'</div><h1>'+esc(def.title)+'</h1><p class="muted">'+esc(boNativeHelp(module))+'</p></div><div class="bo-native-actions">'+(module==='documents'?'<button class="btn primary" type="button" onclick="openBusinessUpload()">Upload PDF / Take Picture</button>':'')+(boNativeCanCreate(module)?'<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+',\'\')">New record</button>':'')+'</div></div><div class="bo-native-toolbar"><input id="boNativeSearch" aria-label="Search '+esc(def.title)+'" placeholder="Search '+esc(def.title.toLowerCase())+'" value="'+attr(BO_NATIVE.query)+'" onkeydown="if(event.key===\'Enter\')businessSearchCurrent()"><button class="btn" type="button" onclick="businessSearchCurrent()">Search</button><button class="btn" type="button" onclick="businessClearSearch()">Clear</button><button class="btn" type="button" onclick="renderBusinessModule('+boNativeJs(module)+',BO_NATIVE.query)">Refresh</button></div><div class="bo-native-status"><span class="pill blue">'+esc(data.count||0)+' records</span><span class="pill amber">Owner approval required</span><span class="pill gray">External actions locked</span></div><div class="bo-native-boundary">'+esc(data.boundary||'Customer sends, payments, posting, payroll export, tax finalization, and delivery remain approval gated.')+'</div>'+boNativeRenderTable(data);
+  view.innerHTML='<div class="bo-native-head"><div><div class="ux-eyebrow">Business Office · '+esc((H38_UNIFIED&&H38_UNIFIED.packageName)||'Installed package')+'</div><h1>'+esc(def.title)+'</h1><p class="muted">'+esc(boNativeHelp(module))+'</p></div><div class="bo-native-actions">'+(module==='documents'?'<button class="btn primary" type="button" onclick="openBusinessUpload()">Upload PDF / Take Picture</button>':'')+(boNativeCanCreate(module)?'<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+',\'\')">New record</button>':'')+'</div></div><div class="bo-native-toolbar"><input id="boNativeSearch" aria-label="Search '+esc(def.title)+'" placeholder="Search '+esc(def.title.toLowerCase())+'" value="'+attr(BO_NATIVE.query)+'" onkeydown="if(event.key===\'Enter\')businessSearchCurrent()"><button class="btn" type="button" onclick="businessSearchCurrent()">Search</button><button class="btn" type="button" onclick="businessClearSearch()">Clear</button><button class="btn" type="button" onclick="boNativeRefreshModule('+boNativeJs(module)+')">Refresh</button></div><div class="bo-native-status"><span class="pill blue">'+esc(data.count||0)+' records</span><span class="pill amber">Owner approval required</span><span class="pill gray">External actions locked</span></div><div class="bo-native-boundary">'+esc(data.boundary||'Customer sends, payments, posting, payroll export, tax finalization, and delivery remain approval gated.')+'</div>'+boNativeRenderTable(data);
 }
-async function renderBusinessModule(module,query){
-  uxShowNativeWorkspace();
-  CURRENT='bo:'+module;renderNav();
-  BO_NATIVE.module=module;BO_NATIVE.query=boNativeText(query);
-  history.replaceState(null,'','#module='+encodeURIComponent(module));
-  var view=document.getElementById('view');
-  view.innerHTML='<div class="card">Loading '+esc(humanize(module))+'…</div>';
-  try{
-    var data=await call('h38PortalBusinessModule',[module,{query:BO_NATIVE.query,limit:250}]);
-    BO_NATIVE.data=data;
-    boNativeRenderModule(data);
-    return data;
-  }catch(error){
-    BO_NATIVE.data=null;
-    ownerSafeFailure(error,'The selected Business Office workspace could not load. No record was changed.');
-    return null;
-  }
+async function renderBusinessModule(module,query,options){
+  uxShowNativeWorkspace();CURRENT='bo:'+module;renderNav();BO_NATIVE.module=module;BO_NATIVE.query=boNativeText(query);history.replaceState(null,'','#module='+encodeURIComponent(module));
+  var request=Object.assign({query:BO_NATIVE.query,filters:{},limit:50},options||{}),key=boNativeCacheKey(module,request),cached=!request.force&&boNativeCacheRead(key,module),view=document.getElementById('view');
+  if(cached){BO_NATIVE.data=cached;boNativeRenderModule(cached);boNativePrefetchFromRoute(CURRENT);return cached;}
+  view.innerHTML='<div class="card" data-h38-workspace-state="loading">Loading '+esc(humanize(module))+'…</div>';
+  try{var loaded=await boNativeLoadModule(module,request,request.force===true),data=loaded.data;if(!data)throw new Error('Business Office module returned no data.');BO_NATIVE.data=data;boNativeRenderModule(data);boNativePrefetchFromRoute(CURRENT);return data;}catch(error){BO_NATIVE.data=null;ownerSafeFailure(error,'The selected Business Office workspace could not load. No record was changed.');return null;}
 }
 function businessSearchCurrent(){
   var input=document.getElementById('boNativeSearch');
@@ -173,7 +246,7 @@ async function submitBusinessRecord(event){
   var button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='Saving…';
   try{
     await call('h38PortalBusinessSave',[BO_NATIVE.editing.module,BO_NATIVE.editing.recordId,values]);
-    var module=BO_NATIVE.editing.module;closeBusinessForm();closeDrawer();notice('<b>Business Office record saved.</b> No external action occurred.','ok');await renderBusinessModule(module,BO_NATIVE.query);
+    var module=BO_NATIVE.editing.module;boNativeInvalidateAfterWrite(module);closeBusinessForm();closeDrawer();notice('<b>Business Office record saved.</b> No external action occurred.','ok');await renderBusinessModule(module,BO_NATIVE.query,{force:true});
   }catch(error){ownerSafeFailure(error,'The Business Office record was not saved.');}
   finally{button.disabled=false;button.textContent='Save internal record';}
 }
@@ -208,7 +281,7 @@ async function submitBusinessUpload(event){
   try{
     var base64Data=await boNativeReadFile(file);
     await call('h38PortalBusinessUpload',[{fileName:file.name,mimeType:mimeType,base64Data:base64Data,documentType:document.getElementById('boNativeDocumentType').value,sourceType:document.getElementById('boNativeSourceType').value,sourceId:document.getElementById('boNativeSourceId').value,accessClassification:'Private Business'}]);
-    closeBusinessForm();notice('<b>Document uploaded.</b> Original preserved. OCR and posting remain review-only.','ok');await renderBusinessModule('documents','');
+    boNativeInvalidateAfterWrite('documents');closeBusinessForm();notice('<b>Document uploaded.</b> Original preserved. OCR and posting remain review-only.','ok');await renderBusinessModule('documents','',{force:true});
   }catch(error){ownerSafeFailure(error,'The document was not uploaded. No record was posted.');}
   finally{button.disabled=false;button.textContent='Upload private document';progress.classList.remove('active');boNativeResetBusinessForm();}
 }

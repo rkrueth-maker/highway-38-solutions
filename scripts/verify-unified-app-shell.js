@@ -73,7 +73,7 @@ function makeRuntime(quoteBuilderEnabled){
   vm.runInContext(portalManifest,context,{filename:'Portal_Unified.js'});
   return context;
 }
-function quoteNavigationItem(bootstrap){const work=(bootstrap.groups||[]).find(group=>group.id==='work');return work&&(work.items||[]).find(item=>item.key==='bo:quotes');}
+function quoteNavigationItem(bootstrap){const customers=(bootstrap.groups||[]).find(group=>group.id==='sales');return customers&&(customers.items||[]).find(item=>item.key==='bo:quotes');}
 
 try{
   const enabled=makeRuntime(true);
@@ -87,7 +87,7 @@ try{
   assert('server navigation labels installed quote capability Quote Builder',quoteNavigationItem(enabledBootstrap).label==='Quote Builder');
   assert('server bootstrap reports Quote Builder ownership',enabledBootstrap.capabilityOwners.quotes==='quoteBuilder');
   assert('server bootstrap disables legacy quote capability',enabledBootstrap.disabledLegacyCapabilities.quotes===true);
-  assert('server bootstrap publishes contract architecture',enabledBootstrap.architectureVersion==='single-contract-office-registry-v4'&&enabledBootstrap.moduleContractVersion==='2026-07-23-v1'&&enabledBootstrap.moduleIndex['bo:quotes'].groupId==='work');
+  assert('server bootstrap publishes contract architecture',enabledBootstrap.architectureVersion==='single-contract-office-registry-v4'&&enabledBootstrap.moduleContractVersion==='2026-07-24-v2'&&enabledBootstrap.moduleIndex['bo:quotes'].groupId==='sales');
   assert('server bootstrap publishes load metadata',enabledBootstrap.moduleIndex['bo:quotes'].loadStrategy==='on-demand'&&Array.isArray(enabledBootstrap.moduleIndex['bo:quotes'].dependencies));
 
   const disabled=makeRuntime(false);
