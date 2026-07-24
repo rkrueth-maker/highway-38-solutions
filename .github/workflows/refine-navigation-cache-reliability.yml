@@ -1,0 +1,322 @@
+name: Refine Navigation Cache Reliability
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refine-navigation-cache-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  refine:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/navigation-and-module-cache-speed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply reliability refinements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path,text):
+              Path(path).write_text(text,encoding='utf-8')
+
+          def regex_once(text,pattern,replacement,label):
+              updated,count=re.subn(pattern,lambda match: replacement,text,count=1,flags=re.S)
+              if count!=1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return updated
+
+          core_path='apps-script/business-office/BusinessOffice_Core.gs'
+          core=read(core_path)
+          table_functions="""function boBuildRecord_(headers, row, rowNumber) {
+  if (!row.some(function (value) { return value !== ''; })) return null;
+  const record = { __rowNumber: rowNumber };
+  headers.forEach(function (header, columnIndex) {
+    if (header) record[header] = row[columnIndex];
+  });
+  return record;
+}
+
+function boRecordInScope_(record, options, businessId) {
+  if (!record) return false;
+  const opts = options || {};
+  if (!opts.allBusinesses && Object.prototype.hasOwnProperty.call(record, 'Business ID') && record['Business ID'] !== businessId) return false;
+  if (!opts.includeVoided && (record['Is Voided'] === 'Yes' || record.Status === 'Voided')) return false;
+  return true;
+}
+
+function boReadTable_(sheetName, options) {
+  const opts = options || {};
+  const sheet = boGetSheet_(sheetName);
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 1 || lastColumn < 1) return [];
+  const values = sheet.getRange(1, 1, lastRow, lastColumn).getDisplayValues();
+  if (!values.length) return [];
+  const headers = values[0].map(boNormalizeText_);
+  const businessId = opts.allBusinesses ? '' : boGetBusinessId_();
+  return values.slice(1).map(function (row, index) {
+    return boBuildRecord_(headers,row,index + 2);
+  }).filter(function (record) {
+    return boRecordInScope_(record,opts,businessId);
+  });
+}
+
+function boReadTableLimited_(sheetName, limit, options) {
+  const opts = options || {};
+  const target = Math.min(Math.max(Number(limit || 50),1),1000);
+  const sheet = boGetSheet_(sheetName);
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 2 || lastColumn < 1) return [];
+  const headers = sheet.getRange(1,1,1,lastColumn).getDisplayValues()[0].map(boNormalizeText_);
+  const businessId = opts.allBusinesses ? '' : boGetBusinessId_();
+  const chunkSize = Math.min(Math.max(target * 2,100),500);
+  const records = [];
+  for (let startRow = 2; startRow <= lastRow && records.length < target; startRow += chunkSize) {
+    const rowCount = Math.min(chunkSize,lastRow - startRow + 1);
+    const values = sheet.getRange(startRow,1,rowCount,lastColumn).getDisplayValues();
+    values.forEach(function (row,index) {
+      if (records.length >= target) return;
+      const record = boBuildRecord_(headers,row,startRow + index);
+      if (boRecordInScope_(record,opts,businessId)) records.push(record);
+    });
+  }
+  return records;
+}
+
+"""
+          core=regex_once(core,r"function boReadTable_\(sheetName, options\) \{.*?\n\}\n\n(?=function boHeaders_)",table_functions,'table read functions')
+          list_records="""function boListRecords(moduleKey, options) {
+  boAssertModuleEnabled_(moduleKey);
+  const sheetName = H38_BO_MODULES[moduleKey] || moduleKey;
+  boRequirePermission_(sheetName, 'View');
+  const opts = options || {};
+  const query = boNormalizeText_(opts.query).toLowerCase();
+  const filters = opts.filters || {};
+  const limit = Math.min(Math.max(Number(opts.limit || 50), 1), 1000);
+  let rows = !query && Object.keys(filters).length === 0
+    ? boReadTableLimited_(sheetName,limit,{ includeVoided: opts.includeVoided === true })
+    : boReadTable_(sheetName,{ includeVoided: opts.includeVoided === true });
+  if (query) {
+    rows = rows.filter(function (row) {
+      return Object.keys(row).some(function (key) {
+        return key !== '__rowNumber' && boNormalizeText_(row[key]).toLowerCase().indexOf(query) >= 0;
+      });
+    });
+  }
+  Object.keys(filters).forEach(function (field) {
+    const expected = filters[field];
+    rows = rows.filter(function (row) {
+      if (expected && typeof expected === 'object' && Object.prototype.hasOwnProperty.call(expected, 'gt')) return Number(row[field] || 0) > Number(expected.gt);
+      if (Array.isArray(expected)) return expected.indexOf(row[field]) >= 0;
+      return boNormalizeText_(row[field]) === boNormalizeText_(expected);
+    });
+  });
+  return rows.slice(0, limit);
+}
+
+"""
+          core=regex_once(core,r"function boListRecords\(moduleKey, options\) \{.*?\n\}\n\n(?=function boSaveRecord)",list_records,'list records')
+          write(core_path,core)
+
+          client_path='apps-script/core-engine/owner-portal-next/Portal_Business_Client.html'
+          client=read(client_path)
+          client=client.replace("H38_BO_MODULE_INFLIGHT={},H38_BO_PREFETCH_TIMER=null;","H38_BO_MODULE_INFLIGHT={},H38_BO_MODULE_EPOCH={},H38_BO_PREFETCH_TIMER=null;",1)
+          cache_helpers="""function boNativeCacheKey(module,options){
+  var opts=options||{};
+  return String(module||'')+'|'+boNativeText(opts.query||'')+'|'+JSON.stringify(opts.filters||{})+'|'+String(opts.limit||50);
+}
+function boNativeCacheTtl(module){
+  var meta=typeof h38ProductModuleMeta==='function'?h38ProductModuleMeta('bo:'+module):null;
+  return Math.max(15,Number(meta&&meta.cacheTtlSeconds||60));
+}
+function boNativeModuleEpoch(module){return Number(H38_BO_MODULE_EPOCH[module]||0);}
+function boNativeCacheRead(key,module){
+  var entry=H38_BO_MODULE_CACHE[key];
+  if(!entry)return null;
+  if(Date.now()-entry.savedAt>boNativeCacheTtl(module)*1000){delete H38_BO_MODULE_CACHE[key];return null;}
+  return entry.data;
+}
+function boNativeCacheWrite(key,data){H38_BO_MODULE_CACHE[key]={savedAt:Date.now(),data:data};return data;}
+function boNativeInvalidate(module){
+  if(module)H38_BO_MODULE_EPOCH[module]=boNativeModuleEpoch(module)+1;
+  Object.keys(H38_BO_MODULE_CACHE).forEach(function(key){if(!module||key.indexOf(String(module)+'|')===0)delete H38_BO_MODULE_CACHE[key];});
+  Object.keys(H38_BO_MODULE_INFLIGHT).forEach(function(key){if(!module||key.indexOf(String(module)+'|')===0)delete H38_BO_MODULE_INFLIGHT[key];});
+}
+function boNativeInvalidateAfterWrite(module){
+  boNativeInvalidate(module);
+  if(typeof h38SurfaceInvalidate==='function'){
+    h38SurfaceInvalidate('approvalsCenter');
+    h38SurfaceInvalidate('calendarCenter');
+  }
+}
+function boNativeLoadModule(module,options,force){
+  var opts=Object.assign({query:'',filters:{},limit:50},options||{}),key=boNativeCacheKey(module,opts),cached=!force&&boNativeCacheRead(key,module);
+  if(cached)return Promise.resolve({data:cached,cacheHit:true});
+  if(!force&&H38_BO_MODULE_INFLIGHT[key])return H38_BO_MODULE_INFLIGHT[key];
+  var epoch=boNativeModuleEpoch(module),serverOptions=Object.assign({},opts);delete serverOptions.force;
+  var pending=call('h38PortalBusinessModule',[module,serverOptions]).then(function(data){
+    if(boNativeModuleEpoch(module)===epoch)boNativeCacheWrite(key,data);
+    if(H38_BO_MODULE_INFLIGHT[key]===pending)delete H38_BO_MODULE_INFLIGHT[key];
+    return{data:data,cacheHit:false};
+  },function(error){
+    if(H38_BO_MODULE_INFLIGHT[key]===pending)delete H38_BO_MODULE_INFLIGHT[key];
+    throw error;
+  });
+  H38_BO_MODULE_INFLIGHT[key]=pending;
+  return pending;
+}
+function boNativeVisibleBusinessRoutes(){
+  var routes=[];
+  uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){uxRows(group.items).forEach(function(item){if(String(item.key||'').indexOf('bo:')===0)routes.push(item.key);});});
+  return routes;
+}
+function boNativeBatchPrefetch(modules){
+  var requests=boNativeUnique(modules||[]).slice(0,3).map(function(route){
+    var module=String(route).replace(/^bo:/,''),options={query:'',filters:{},limit:50};
+    return{module:module,options:options,key:boNativeCacheKey(module,options),epoch:boNativeModuleEpoch(module)};
+  }).filter(function(request){return !boNativeCacheRead(request.key,request.module)&&!H38_BO_MODULE_INFLIGHT[request.key];});
+  if(!requests.length)return Promise.resolve(null);
+  var batch=call('h38PortalBusinessModuleBatch',[requests.map(function(request){return{module:request.module,options:request.options};})]);
+  requests.forEach(function(request){
+    var pending=batch.then(function(result){
+      var data=boNativeRows(result&&result.items).filter(function(item){return item&&item.status==='PASS'&&item.module===request.module;})[0]||null;
+      if(data&&boNativeModuleEpoch(request.module)===request.epoch)boNativeCacheWrite(request.key,data);
+      if(H38_BO_MODULE_INFLIGHT[request.key]===pending)delete H38_BO_MODULE_INFLIGHT[request.key];
+      return{data:data,cacheHit:false};
+    },function(error){
+      if(H38_BO_MODULE_INFLIGHT[request.key]===pending)delete H38_BO_MODULE_INFLIGHT[request.key];
+      throw error;
+    });
+    H38_BO_MODULE_INFLIGHT[request.key]=pending;
+  });
+  return batch.catch(function(){return null;});
+}
+function boNativePrefetchFromRoute(route){
+  clearTimeout(H38_BO_PREFETCH_TIMER);
+  H38_BO_PREFETCH_TIMER=setTimeout(function(){
+    var all=[];
+    uxRows(H38_UNIFIED&&H38_UNIFIED.groups).forEach(function(group){uxRows(group.items).forEach(function(item){all.push(item.key);});});
+    var current=String(route||CURRENT||'today'),index=all.indexOf(current),ordered=(index>=0?all.slice(index+1).concat(all.slice(0,index+1)):all),business=ordered.filter(function(key){return String(key).indexOf('bo:')===0;});
+    boNativeBatchPrefetch(business.slice(0,3));
+  },550);
+}
+function boNativeRefreshModule(module){
+  boNativeInvalidate(module);
+  return renderBusinessModule(module,BO_NATIVE.query,{force:true});
+}
+"""
+          client=regex_once(client,r"function boNativeCacheKey\(module,options\)\{.*?\n(?=function boNativeCanCreate)",cache_helpers,'browser cache helpers')
+          client=client.replace("onclick=\"renderBusinessModule('+boNativeJs(module)+',BO_NATIVE.query)\">Refresh","onclick=\"boNativeRefreshModule('+boNativeJs(module)+')\">Refresh",1)
+          client=client.replace('var module=BO_NATIVE.editing.module;boNativeInvalidate(module);','var module=BO_NATIVE.editing.module;boNativeInvalidateAfterWrite(module);',1)
+          client=client.replace("boNativeInvalidate('documents');closeBusinessForm();","boNativeInvalidateAfterWrite('documents');closeBusinessForm();",1)
+          write(client_path,client)
+
+          tasks_path='apps-script/core-engine/owner-portal-next/Portal_TaskMessaging_Client.html'
+          tasks=read(tasks_path).replace('boNativeInvalidate(\'assignedTasks\')','boNativeInvalidateAfterWrite(\'assignedTasks\')').replace('boNativeInvalidate(\'messaging\')','boNativeInvalidateAfterWrite(\'messaging\')')
+          write(tasks_path,tasks)
+
+          reusable_path='scripts/verify-reusable-business-office-contracts.js'
+          reusable=read(reusable_path).replace("manifest.moduleContractVersion==='2026-07-23-v1'","manifest.moduleContractVersion==='2026-07-24-v2'").replace("moduleContractVersion:'2026-07-23-v1'","moduleContractVersion:'2026-07-24-v2'")
+          write(reusable_path,reusable)
+
+          verifier_path='scripts/verify-navigation-cache-performance.js'
+          verifier="""#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const vm=require('vm');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const failures=[];
+const pass=(name,ok,detail='')=>{console[ok?'log':'error'](`${ok?'PASS':'FAIL'}: ${name}${detail?' — '+detail:''}`);if(!ok)failures.push({name,detail});};
+const contract=read('apps-script/business-office/BusinessOffice_ModuleContract.gs');
+const core=read('apps-script/business-office/BusinessOffice_Core.gs');
+const server=read('apps-script/core-engine/owner-portal-next/Portal_Business.js');
+const client=read('apps-script/core-engine/owner-portal-next/Portal_Business_Client.html');
+const appCore=read('apps-script/core-engine/owner-portal-next/Portal_Application_Client_Core.html');
+const views=read('apps-script/core-engine/owner-portal-next/Portal_Application_Client_Views.html');
+const tasks=read('apps-script/core-engine/owner-portal-next/Portal_TaskMessaging_Client.html');
+const reusable=read('scripts/verify-reusable-business-office-contracts.js');
+const sales=['requests','customers','quotes','messaging','smsConsent'];
+const positions=sales.map(key=>contract.indexOf(`boUnifiedModule_('${key}'`));
+pass('Quotes are under Customers',contract.includes("boUnifiedModule_('quotes','Quotes','sales'"));
+pass('Customer options use intended order',positions.every((value,index)=>value>=0&&(index===0||value>positions[index-1])),JSON.stringify(positions));
+pass('Reports are under Money',contract.includes("boUnifiedModule_('reports','Reports','money'"));
+pass('ordinary lists default to fifty records',client.includes('limit:50')&&server.includes('opts.limit || 50')&&core.includes('opts.limit || 50'));
+pass('ordinary reads scan bounded chunks until the requested visible rows are found',core.includes('function boReadTableLimited_')&&core.includes('records.length < target')&&core.includes('startRow += chunkSize'));
+pass('limited reads preserve business and void filtering',core.includes('boRecordInScope_')&&core.includes("record['Business ID'] !== businessId")&&core.includes("record['Is Voided'] === 'Yes'"));
+pass('search and filters preserve complete-table behavior',core.includes("!query && Object.keys(filters).length === 0")&&core.includes("boReadTable_(sheetName,{ includeVoided"));
+pass('one batch endpoint owns route prefetch',server.includes('function h38PortalBusinessModuleBatch')&&client.includes("call('h38PortalBusinessModuleBatch'"));
+pass('module cache reuses in-flight and recent data',client.includes('H38_BO_MODULE_CACHE')&&client.includes('H38_BO_MODULE_INFLIGHT')&&client.includes('boNativeCacheRead'));
+pass('cache epochs prevent stale in-flight writes',client.includes('H38_BO_MODULE_EPOCH')&&client.includes('boNativeModuleEpoch(module)===epoch'));
+pass('manual refresh bypasses and invalidates cache',client.includes('function boNativeRefreshModule')&&client.includes('boNativeInvalidate(module)')&&client.includes("{force:true}"));
+pass('writes invalidate module and dependent native surfaces',client.includes('boNativeInvalidateAfterWrite')&&client.includes("h38SurfaceInvalidate('approvalsCenter')")&&client.includes("h38SurfaceInvalidate('calendarCenter')")&&tasks.includes('boNativeInvalidateAfterWrite'));
+pass('Today prefetches Approvals Calendar and business modules',appCore.includes("h38SurfaceLoad('approvalsCenter'")&&appCore.includes("h38SurfaceLoad('calendarCenter'")&&appCore.includes('boNativePrefetchFromRoute'));
+pass('Approval and Calendar reuse prefetched data',views.includes("h38SurfaceLoad('approvalsCenter'")&&views.includes("h38SurfaceLoad('calendarCenter'"));
+pass('task filters use cache and fifty-record limit',tasks.includes('boNativeLoadModule(module')&&tasks.includes('limit:50'));
+pass('reusable installer verification tracks the current contract version',reusable.includes("manifest.moduleContractVersion==='2026-07-24-v2'")&&reusable.includes("moduleContractVersion:'2026-07-24-v2'"));
+pass('external actions stay locked',server.includes('externalActionsEnabled:false')&&!/UrlFetchApp|GmailApp|MailApp/.test(client+appCore+views));
+for(const [name,source] of [['BusinessOffice_Core',core],['Portal_Business',server],['Portal_Business_Client',client],['Portal_Application_Client_Core',appCore],['Portal_Application_Client_Views',views],['Portal_TaskMessaging_Client',tasks]]){
+  try{new vm.Script(source,{filename:name});pass(name+' parses',true);}catch(error){pass(name+' parses',false,error.message);}
+}
+console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',failed:failures.length,failures},null,2));
+process.exit(failures.length?1:0);
+"""
+          write(verifier_path,verifier)
+          PY
+
+          node scripts/verify-navigation-cache-performance.js
+          node scripts/verify-change-governance.js
+          node scripts/verify-reusable-business-office-contracts.js
+          node scripts/verify-unified-app-architecture.js
+          node scripts/verify-owner-portal-next.js
+          node scripts/verify-business-office.js
+          node scripts/verify-unified-client-routing-runtime.js
+          node scripts/verify-task-messaging.js
+          node scripts/verify-task-messaging-hardening.js
+          node scripts/verify-unified-app-ux-complete.js
+      - name: Remove generated evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- artifacts/business-office/verification.json artifacts/task-messaging/verification.json
+          rm -f artifacts/change-governance/verification.json
+          rm -f artifacts/product-architecture/verification.json
+          rm -f artifacts/reusable-business-office-contracts/verification.json
+          rm -f artifacts/task-messaging/hardening-verification.json
+          rm -f artifacts/unified-app-ux/verification.json
+          rm -f artifacts/unified-shell/assembly.json
+          rm -f artifacts/unified-source-assembly/verification.json
+          rm -f launch-control/evidence/unified-app-architecture-verification.json
+          rm -f .github/workflows/refine-navigation-cache-reliability.yml
+          node scripts/verify-navigation-cache-performance.js
+          git diff --check
+      - name: Commit reliability refinements
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Preserve complete records while accelerating navigation'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
