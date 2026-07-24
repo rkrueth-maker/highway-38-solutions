@@ -39,7 +39,7 @@ check('homepage contains no prohibited CNC quantity claim or personal attributio
 check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-inner'));
 check('canonical public shell locks image replacement',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(publicShell));
 
-check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation &amp; Robotics','CNC Machining &amp; Process Planning','CNC Fixturing &amp; Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
+check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
 check('What We Do removes retired fixed-price paths',!solutions.includes('Choose Your Path')&&!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot'));
 check('pricing is project first and approval based',pricing.includes('Project-first pricing')&&pricing.includes('Not a confusing catalog.')&&pricing.includes('Scope and price are approved before implementation.'));
 
