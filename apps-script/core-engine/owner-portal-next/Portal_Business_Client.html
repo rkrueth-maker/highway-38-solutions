@@ -88,14 +88,15 @@ function boNativeRefreshModule(module){
   boNativeInvalidate(module);
   return renderBusinessModule(module,BO_NATIVE.query,{force:true});
 }
-function boNativeCanCreate(module){return ['reports','approvals'].indexOf(module)<0;}
-function boNativeCanEdit(module){return ['reports','approvals'].indexOf(module)<0;}
+function boNativeQuoteBuilderEnabled(){return typeof h38QuoteBuilderAddonEnabled==='function'&&h38QuoteBuilderAddonEnabled();}
+function boNativeCanCreate(module){if(module==='quotes'&&boNativeQuoteBuilderEnabled())return false;return ['reports','approvals'].indexOf(module)<0;}
+function boNativeCanEdit(module){if(module==='quotes'&&boNativeQuoteBuilderEnabled())return false;return ['reports','approvals'].indexOf(module)<0;}
 function boNativeHelp(module){
   var map={
     requests:'Review new requests and move each one toward a product recommendation, quote, or hold.',
     customers:'Keep customer contact, terms, status, tags, and related work together.',
     vendors:'Maintain vendor and contractor records used by purchasing and expenses.',
-    quotes:'Review scope, price, assumptions, exclusions, turnaround, revisions, and approval state.',
+    quotes:'Browse, search, and review quote records, status, customer, totals, and approval state. Use Quote Builder only when creating or editing the proposal.',
     workOrders:'Connect approved scope to the exact work that must be performed.',
     jobs:'Track the current stage, next action, owner, dates, revenue, cost, and approval state.',
     purchaseOrders:'Prepare purchasing records without creating an automatic order.',
@@ -147,9 +148,25 @@ function boNativeRenderTable(data){
   }).join('')+'</div>';
   return table+cards;
 }
+function boNativeModuleActions(module){
+  var actions=[];
+  if(module==='documents')actions.push('<button class="btn primary" type="button" onclick="openBusinessUpload()">Upload PDF / Take Picture</button>');
+  if(module==='quotes'&&boNativeQuoteBuilderEnabled()){
+    actions.push('<button class="btn primary" type="button" onclick="h38OpenNewQuote(\'\')">New Quote</button>');
+    actions.push('<button class="btn" type="button" onclick="h38OpenQuoteBuilder({view:\'dashboard\',returnModule:\'quotes\'})">Open Quote Builder</button>');
+  }else if(boNativeCanCreate(module)){
+    actions.push('<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+',\'\')">New record</button>');
+  }
+  if((module==='accounting'||module==='reports')&&typeof accountingCsv==='function')actions.push('<button class="btn" type="button" onclick="accountingCsv()">Export Accounting CSV</button>');
+  return actions.join('');
+}
+function boNativeRecordActions(module,recordId){
+  if(module==='quotes'&&boNativeQuoteBuilderEnabled())return '<button class="btn primary" type="button" onclick="h38EditQuoteInBuilder('+boNativeJs(recordId)+')">Edit in Quote Builder</button>';
+  return boNativeCanEdit(module)?'<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+','+boNativeJs(recordId)+')">Edit record</button>':'';
+}
 function boNativeRenderModule(data){
   var def=data.definition,module=data.module,view=document.getElementById('view');
-  view.innerHTML='<div class="bo-native-head"><div><div class="ux-eyebrow">Business Office · '+esc((H38_UNIFIED&&H38_UNIFIED.packageName)||'Installed package')+'</div><h1>'+esc(def.title)+'</h1><p class="muted">'+esc(boNativeHelp(module))+'</p></div><div class="bo-native-actions">'+(module==='documents'?'<button class="btn primary" type="button" onclick="openBusinessUpload()">Upload PDF / Take Picture</button>':'')+(boNativeCanCreate(module)?'<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+',\'\')">New record</button>':'')+'</div></div><div class="bo-native-toolbar"><input id="boNativeSearch" aria-label="Search '+esc(def.title)+'" placeholder="Search '+esc(def.title.toLowerCase())+'" value="'+attr(BO_NATIVE.query)+'" onkeydown="if(event.key===\'Enter\')businessSearchCurrent()"><button class="btn" type="button" onclick="businessSearchCurrent()">Search</button><button class="btn" type="button" onclick="businessClearSearch()">Clear</button><button class="btn" type="button" onclick="boNativeRefreshModule('+boNativeJs(module)+')">Refresh</button></div><div class="bo-native-status"><span class="pill blue">'+esc(data.count||0)+' records</span><span class="pill amber">Owner approval required</span><span class="pill gray">External actions locked</span></div><div class="bo-native-boundary">'+esc(data.boundary||'Customer sends, payments, posting, payroll export, tax finalization, and delivery remain approval gated.')+'</div>'+boNativeRenderTable(data);
+  view.innerHTML='<div class="bo-native-head"><div><div class="ux-eyebrow">Business Office · '+esc((H38_UNIFIED&&H38_UNIFIED.packageName)||'Installed package')+'</div><h1>'+esc(def.title)+'</h1><p class="muted">'+esc(boNativeHelp(module))+'</p></div><div class="bo-native-actions">'+boNativeModuleActions(module)+'</div></div><div class="bo-native-toolbar"><input id="boNativeSearch" aria-label="Search '+esc(def.title)+'" placeholder="Search '+esc(def.title.toLowerCase())+'" value="'+attr(BO_NATIVE.query)+'" onkeydown="if(event.key===\'Enter\')businessSearchCurrent()"><button class="btn" type="button" onclick="businessSearchCurrent()">Search</button><button class="btn" type="button" onclick="businessClearSearch()">Clear</button><button class="btn" type="button" onclick="boNativeRefreshModule('+boNativeJs(module)+')">Refresh</button></div><div class="bo-native-status"><span class="pill blue">'+esc(data.count||0)+' records</span><span class="pill amber">Owner approval required</span><span class="pill gray">External actions locked</span></div><div class="bo-native-boundary">'+esc(data.boundary||'Customer sends, payments, posting, payroll export, tax finalization, and delivery remain approval gated.')+'</div>'+boNativeRenderTable(data);
 }
 async function renderBusinessModule(module,query,options){
   uxShowNativeWorkspace();CURRENT='bo:'+module;renderNav();BO_NATIVE.module=module;BO_NATIVE.query=boNativeText(query);history.replaceState(null,'','#module='+encodeURIComponent(module));
@@ -195,7 +212,7 @@ async function openBusinessRecord(module,recordId){
     BO_NATIVE.workspace=workspace;
     var definition=BO_NATIVE.data&&BO_NATIVE.data.module===module?BO_NATIVE.data.definition:null;
     if(!definition){var moduleData=await call('h38PortalBusinessModule',[module,{limit:1}]);definition=moduleData.definition;}
-    body.innerHTML='<div class="ux-drawer-content"><div class="ux-drawer-head"><div><div class="ux-eyebrow">'+esc(definition.title)+'</div><h1>'+esc(boNativeTitle(workspace.primary,definition))+'</h1><p class="muted">'+esc(recordId)+'</p></div><div class="toolbar"><button class="btn" type="button" onclick="closeDrawer()">Close</button>'+(boNativeCanEdit(module)?'<button class="btn primary" type="button" onclick="openBusinessRecordForm('+boNativeJs(module)+','+boNativeJs(recordId)+')">Edit record</button>':'')+'</div></div><div class="bo-native-boundary">'+esc(workspace.boundary||'External actions remain approval gated.')+'</div>'+boNativeSummary(workspace.summary)+'<div class="tabs"><button class="tab active" type="button" onclick="boNativeWorkspaceTab(\'details\')">Details</button><button class="tab" type="button" onclick="boNativeWorkspaceTab(\'related\')">Related</button><button class="tab" type="button" onclick="boNativeWorkspaceTab(\'timeline\')">Timeline</button></div><div id="boNativeWorkspacePanel">'+boNativeFieldsGrid(workspace.primary)+'</div></div>';
+    body.innerHTML='<div class="ux-drawer-content"><div class="ux-drawer-head"><div><div class="ux-eyebrow">'+esc(definition.title)+'</div><h1>'+esc(boNativeTitle(workspace.primary,definition))+'</h1><p class="muted">'+esc(recordId)+'</p></div><div class="toolbar"><button class="btn" type="button" onclick="closeDrawer()">Close</button>'+boNativeRecordActions(module,recordId)+'</div></div><div class="bo-native-boundary">'+esc(workspace.boundary||'External actions remain approval gated.')+'</div>'+boNativeSummary(workspace.summary)+'<div class="tabs"><button class="tab active" type="button" onclick="boNativeWorkspaceTab(\'details\')">Details</button><button class="tab" type="button" onclick="boNativeWorkspaceTab(\'related\')">Related</button><button class="tab" type="button" onclick="boNativeWorkspaceTab(\'timeline\')">Timeline</button></div><div id="boNativeWorkspacePanel">'+boNativeFieldsGrid(workspace.primary)+'</div></div>';
   }catch(error){body.innerHTML='<div class="owner-safe-error"><b>Record workspace on hold.</b><p>'+esc(error.message||error)+'</p><p>No record or external system was changed.</p></div>';}
 }
 function boNativeWorkspaceTab(tab){

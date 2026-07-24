@@ -6,6 +6,7 @@ var requestedView=params.get('view')||'';
 var customerId=params.get('customerId')||'';
 var quoteId=params.get('quoteId')||'';
 var returnUrl=params.get('returnUrl')||'';
+var from=params.get('from')||'';
 var launchHandled=false;
 var baseOpen=window.qbOpen;
 
@@ -14,30 +15,45 @@ function businessOfficeReturnUrl(){
     try{
       var configured=new URL(returnUrl);
       configured.search='';
-      configured.hash='module=today';
+      configured.hash='module=quotes';
       return configured.toString();
     }catch(error){}
   }
   var url=new URL(location.href);
   ['app','quoteBuilder','view','customerId','quoteId','from','returnUrl','v'].forEach(function(key){url.searchParams.delete(key);});
-  url.hash='module=today';
+  url.hash='module=quotes';
   return url.toString();
 }
 
+function returnToBusinessOffice(){
+  location.assign(businessOfficeReturnUrl());
+}
+
+function wirePersistentOfficeReturn(){
+  var button=document.getElementById('qbBackToOffice');
+  if(!button)return;
+  button.textContent='Business Office';
+  button.setAttribute('aria-label','Return to Business Office');
+  button.title='Return to Business Office · Customers → Quotes';
+  button.onclick=returnToBusinessOffice;
+}
+
 function patchReturnAction(){
+  wirePersistentOfficeReturn();
   var button=document.querySelector('#qbNav .full-system button');
   if(!button||button.dataset.launchReturnAction==='1')return;
+  var label=from==='business-office'?'Back to Quotes':'Business Office';
   button.dataset.launchReturnAction='1';
-  button.dataset.label='Business Office';
-  button.setAttribute('aria-label','Business Office');
-  button.title='Return to the Business Office';
+  button.dataset.label=label;
+  button.setAttribute('aria-label',label);
+  button.title=from==='business-office'?'Return to the Quotes workspace':'Return to the Business Office';
   var text=button.querySelector('.nav-text');
   if(text){
-    if(text.textContent!=='Business Office')text.textContent='Business Office';
-  }else if((button.textContent||'').trim()!=='Business Office'){
-    button.textContent='Business Office';
+    if(text.textContent!==label)text.textContent=label;
+  }else if((button.textContent||'').trim()!==label){
+    button.textContent=label;
   }
-  button.onclick=function(){location.assign(businessOfficeReturnUrl());};
+  button.onclick=returnToBusinessOffice;
 }
 
 function selectLaunchCustomer(){
@@ -75,6 +91,7 @@ window.qbOpen=async function(view){
 
 var navHost=document.getElementById('qbNav');
 if(navHost)new MutationObserver(function(){patchReturnAction();}).observe(navHost,{childList:true,subtree:true});
+wirePersistentOfficeReturn();
 patchReturnAction();
 })();
 </script>

@@ -6,6 +6,15 @@ function h38QuoteBuilderAddonEnabled(){
   return typeof h38AppRouteAllowed!=='function'||h38AppRouteAllowed('bo:quotes');
 }
 
+function h38QuoteBuilderReturnUrl(options){
+  options=options||{};
+  var serviceUrl=H38_UNIFIED&&H38_UNIFIED.serviceUrl||location.href;
+  var url=new URL(serviceUrl);
+  url.search='';
+  url.hash='module='+encodeURIComponent(options.returnModule||'quotes');
+  return url.toString();
+}
+
 function h38QuoteBuilderLaunchUrl(options){
   options=options||{};
   var serviceUrl=H38_UNIFIED&&H38_UNIFIED.serviceUrl||location.href;
@@ -18,7 +27,7 @@ function h38QuoteBuilderLaunchUrl(options){
   if(options.customerId)url.searchParams.set('customerId',String(options.customerId));
   if(options.quoteId)url.searchParams.set('quoteId',String(options.quoteId));
   url.searchParams.set('from','business-office');
-  url.searchParams.set('returnUrl',serviceUrl);
+  url.searchParams.set('returnUrl',h38QuoteBuilderReturnUrl(options));
   return url.toString();
 }
 
@@ -38,62 +47,19 @@ function h38QuoteBuilderCustomerContext(){
   return workspace.recordId||workspace.primary&&workspace.primary['Customer ID']||'';
 }
 
-function h38QuoteBuilderPatchVisibleControls(){
-  if(!h38QuoteBuilderAddonEnabled())return;
-  document.querySelectorAll('#nav button').forEach(function(button){
-    var action=button.getAttribute('onclick')||'';
-    if(action.indexOf("bo:quotes")<0)return;
-    var label=button.querySelector('span');
-    if(label&&label.textContent!=='Quote Builder')label.textContent='Quote Builder';
-    button.dataset.quoteBuilderAddon='active';
-    button.title='Open the installed Quote Builder app';
-  });
-  document.querySelectorAll('.module-card h3').forEach(function(title){
-    if(title.textContent.trim()==='Quotes')title.textContent='Quote Builder';
-  });
-  document.querySelectorAll('button').forEach(function(button){
-    if(button.dataset.quoteBuilderWired==='1')return;
-    var text=button.textContent.trim();
-    if(text==='Start quote'){
-      button.dataset.quoteBuilderWired='1';
-      button.onclick=function(){return h38OpenQuoteBuilder({view:'new',customerId:h38QuoteBuilderCustomerContext()});};
-    }
-  });
+function h38OpenNewQuote(customerId){
+  return h38OpenQuoteBuilder({view:'new',customerId:customerId||h38QuoteBuilderCustomerContext(),returnModule:'quotes'});
 }
 
-var H38_QB_BASE_RENDER_NAV=renderNav;
-renderNav=function(){
-  var result=H38_QB_BASE_RENDER_NAV.apply(this,arguments);
-  h38QuoteBuilderPatchVisibleControls();
-  return result;
-};
-
-var H38_QB_BASE_SHOW=show;
-show=async function(module){
-  module=uxNormalizeModule(module);
-  if((module==='bo:quotes'||module==='quotes')&&h38QuoteBuilderAddonEnabled())return h38OpenQuoteBuilder({view:'dashboard'});
-  return H38_QB_BASE_SHOW.apply(this,arguments);
-};
-
-var H38_QB_BASE_RENDER_BUSINESS_MODULE=renderBusinessModule;
-renderBusinessModule=async function(module,query){
-  if(module==='quotes'&&h38QuoteBuilderAddonEnabled())return h38OpenQuoteBuilder({view:'dashboard'});
-  return H38_QB_BASE_RENDER_BUSINESS_MODULE.apply(this,arguments);
-};
-
-var H38_QB_BASE_OPEN_BUSINESS_RECORD=openBusinessRecord;
-openBusinessRecord=async function(module,recordId){
-  if(module==='quotes'&&h38QuoteBuilderAddonEnabled())return h38OpenQuoteBuilder({quoteId:recordId});
-  var result=await H38_QB_BASE_OPEN_BUSINESS_RECORD.apply(this,arguments);
-  h38QuoteBuilderPatchVisibleControls();
-  return result;
-};
+function h38EditQuoteInBuilder(quoteId){
+  return h38OpenQuoteBuilder({quoteId:quoteId,returnModule:'quotes'});
+}
 
 var H38_QB_BASE_OPEN_BUSINESS_FORM=openBusinessRecordForm;
 openBusinessRecordForm=function(module,recordId){
   if(module==='quotes'&&h38QuoteBuilderAddonEnabled()){
-    if(recordId)return h38OpenQuoteBuilder({quoteId:recordId});
-    return h38OpenQuoteBuilder({view:'new',customerId:h38QuoteBuilderCustomerContext()});
+    if(recordId)return h38EditQuoteInBuilder(recordId);
+    return h38OpenNewQuote();
   }
   return H38_QB_BASE_OPEN_BUSINESS_FORM.apply(this,arguments);
 };
@@ -103,30 +69,17 @@ runQuickCreate=async function(){
   var select=document.getElementById('quickCreate'),value=select&&select.value,module=h38QuickModule(value);
   if(module==='quotes'&&h38QuoteBuilderAddonEnabled()){
     if(select)select.value='';
-    return h38OpenQuoteBuilder({view:'new'});
+    return h38OpenNewQuote('');
   }
   return H38_QB_BASE_RUN_QUICK_CREATE.apply(this,arguments);
 };
 
 var H38_QB_BASE_RUN_COMMAND=h38RunCommand;
 h38RunCommand=function(index){
-  var item=H38_COMMAND_ITEMS&&H38_COMMAND_ITEMS[index];
-  if(item&&h38QuoteBuilderAddonEnabled()){
-    if(item.kind==='record'&&item.module==='quotes'){
-      h38CloseCommandPalette();
-      return h38OpenQuoteBuilder({quoteId:item.id});
-    }
-    var command=item.command||{};
-    if(command.kind==='create'&&command.module==='quotes'){
-      h38CloseCommandPalette();
-      return h38OpenQuoteBuilder({view:'new'});
-    }
-    if((command.module==='bo:quotes'||command.module==='quotes'||item.module==='bo:quotes')&&command.kind!=='create'){
-      h38CloseCommandPalette();
-      return h38OpenQuoteBuilder({view:'dashboard'});
-    }
+  var item=H38_COMMAND_ITEMS&&H38_COMMAND_ITEMS[index],command=item&&item.command||{};
+  if(item&&h38QuoteBuilderAddonEnabled()&&command.kind==='create'&&command.module==='quotes'){
+    h38CloseCommandPalette();
+    return h38OpenNewQuote('');
   }
   return H38_QB_BASE_RUN_COMMAND.apply(this,arguments);
 };
-
-new MutationObserver(function(){h38QuoteBuilderPatchVisibleControls();}).observe(document.documentElement,{childList:true,subtree:true});

@@ -62,8 +62,10 @@ need(popoutNav,'new MutationObserver(enhancePopoutNav)','navigation enhancement 
 need(popoutNav,'@media (max-width:760px)','readable mobile navigation labels');
 need(launch,"button.dataset.launchReturnAction==='1'",'idempotent return-button patch');
 need(launch,"button.querySelector('.nav-text')",'pop-out navigation markup preservation');
-need(launch,"button.dataset.label='Business Office'",'Business Office pop-out label');
-need(launch,"else if((button.textContent||'').trim()!=='Business Office')",'conditional plain-button fallback');
+need(launch,"var label=from==='business-office'?'Back to Quotes':'Business Office'",'context-aware return label');
+need(launch,'button.dataset.label=label','context-aware pop-out label');
+need(launch,"else if((button.textContent||'').trim()!==label)",'conditional plain-button fallback');
+need(launch,"configured.hash='module=quotes'",'Business Office Quotes return route');
 reject(launch,"button.textContent='Business Office';\n  button.title",'unconditional mutation-observer text replacement');
 need(write,'boQuoteBuilderAppendBatch_(quoteSnapshot, [quote])','single quote-header write');
 need(write,'boQuoteBuilderAppendBatch_(lineSnapshot, lineRecords)','batched quote-line write');
@@ -93,4 +95,4 @@ new Function(scriptBody(client));
 new Function(scriptBody(optimizations));
 new Function(scriptBody(popoutNav));
 new Function(scriptBody(launch));
-console.log('PASS — direct Quote Builder routing, canonical module/action gates, compact pop-out navigation, lazy loading, compact payloads, single-read snapshots, grouped writes, targeted caches, parallel file intake, and timing logs verified.');
+console.log('PASS — direct Quote Builder routing, canonical module/action gates, compact pop-out navigation, lazy loading, compact payloads, single-read snapshots, grouped writes, targeted caches, parallel file intake, context-aware Quotes return, and timing logs verified.');

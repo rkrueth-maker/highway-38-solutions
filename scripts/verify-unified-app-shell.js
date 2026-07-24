@@ -84,7 +84,7 @@ try{
   assert('runtime reports Quote Builder as quote owner',enabled.h38UnifiedShellCapabilityOwner_('quotes')==='quoteBuilder');
   assert('runtime preserves authenticated Owner role',enabled.h38UnifiedShellBootstrap().user.ownerMode===true);
   const enabledBootstrap=enabled.h38PortalUnifiedBootstrap();
-  assert('server navigation labels installed quote capability Quote Builder',quoteNavigationItem(enabledBootstrap).label==='Quote Builder');
+  assert('server navigation keeps Quotes label while Quote Builder owns editing',quoteNavigationItem(enabledBootstrap).label==='Quotes');
   assert('server bootstrap reports Quote Builder ownership',enabledBootstrap.capabilityOwners.quotes==='quoteBuilder');
   assert('server bootstrap disables legacy quote capability',enabledBootstrap.disabledLegacyCapabilities.quotes===true);
   assert('server bootstrap publishes contract architecture',enabledBootstrap.architectureVersion==='single-contract-office-registry-v4'&&enabledBootstrap.moduleContractVersion==='2026-07-24-v2'&&enabledBootstrap.moduleIndex['bo:quotes'].groupId==='sales');
