@@ -31,12 +31,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          import textwrap
           source=Path('.github/workflows/apply-navigation-cache-speed.yml').read_text(encoding='utf-8')
           match=re.search(r"python3 - <<'PY'\n(.*?)\n          PY",source,re.S)
           if not match:
               raise SystemExit('Prepared navigation-cache patch block was not found.')
-          Path('/tmp/apply-navigation-cache-speed.py').write_text(textwrap.dedent(match.group(1)),encoding='utf-8')
+          lines=match.group(1).splitlines()
+          code='\n'.join(line[10:] if line.startswith('          ') else line for line in lines)+'\n'
+          Path('/tmp/apply-navigation-cache-speed.py').write_text(code,encoding='utf-8')
           PY
           set +e
           python3 /tmp/apply-navigation-cache-speed.py > navigation-cache-diagnostic/patch.log 2>&1
