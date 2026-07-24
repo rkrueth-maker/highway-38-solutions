@@ -34,7 +34,7 @@ check('homepage routes to request and complete examples',home.includes('href="st
 check('homepage does not restore retired catalog as primary experience',!home.includes('Choose Your Path')&&!home.includes('15 fixed-price services')&&!home.includes('9 approved bundles'));
 
 const solutions=read('solutions.html');
-const capabilities=['Automation &amp; Robotics','CNC Machining &amp; Process Planning','CNC Fixturing &amp; Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'];
+const capabilities=['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'];
 check('What We Do exposes five accepted capabilities',capabilities.every(value=>solutions.includes(value))&&(solutions.match(/data-capability=/g)||[]).length===5);
 check('What We Do uses specialist links',['robotics-automation.html','manufacturing-cnc.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 check('What We Do does not restore fixed-price product cards',!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot')&&!solutions.includes('Workflow Opportunity Snapshot'));
