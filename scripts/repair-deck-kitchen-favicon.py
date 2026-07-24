@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from PIL import Image, ImageOps, ImageEnhance
-import base64
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,14 +34,12 @@ def replace_text_files() -> None:
         'kitchen-after.webp': 'kitchen-remodel-concept.webp',
         '20260722-direct-v2': '20260724-repaired-v1',
     }
-    suffixes = {'.html', '.js', '.json', '.md', '.txt', '.sh', '.yml', '.yaml', '.py'}
-    excluded = {
-        'repair-deck-kitchen-favicon.py',
-        'install-repaired-deck-kitchen-favicon.yml',
-        'apply-deck-kitchen-favicon-repair.yml',
-    }
+    suffixes = {'.html', '.js', '.json', '.md', '.txt', '.sh', '.py'}
+    excluded = {'repair-deck-kitchen-favicon.py'}
     for path in ROOT.rglob('*'):
         if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in suffixes:
+            continue
+        if '.github' in path.parts and 'workflows' in path.parts:
             continue
         if path.name in excluded:
             continue
