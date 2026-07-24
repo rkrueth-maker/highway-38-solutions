@@ -1,10 +1,9 @@
-name: Apply Deck Kitchen and Favicon Repair
+name: Diagnose Deck Kitchen and Favicon Repair
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'scripts/repair-deck-kitchen-favicon.py'
       - '.github/workflows/apply-deck-kitchen-favicon-repair.yml'
   workflow_dispatch:
 
@@ -12,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  apply-repair:
+  diagnose-repair:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -23,40 +22,44 @@ jobs:
           ref: agent/repair-deck-kitchen-favicon
           fetch-depth: 0
 
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
       - name: Use Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install Pillow
-        run: python -m pip install --disable-pip-version-check pillow
+      - name: Capture exact verifier output
+        shell: bash
+        run: |
+          set +e
+          mkdir -p diagnostics
+          : > diagnostics/deck-kitchen-favicon-verification.log
+          for command in \
+            'node scripts/verify-change-governance.js' \
+            'python3 scripts/verify-public-images.py' \
+            'node scripts/verify-public-image-placements.js' \
+            'node scripts/verify-public-website-architecture.js' \
+            'node scripts/verify-public-expansion.js' \
+            'node scripts/verify-commercial-system.js'
+          do
+            echo "===== $command =====" | tee -a diagnostics/deck-kitchen-favicon-verification.log
+            bash -lc "$command" >> diagnostics/deck-kitchen-favicon-verification.log 2>&1
+            echo "exit_code=$?" | tee -a diagnostics/deck-kitchen-favicon-verification.log
+          done
+          cat diagnostics/deck-kitchen-favicon-verification.log
+          exit 0
 
-      - name: Apply deterministic repair
-        run: python scripts/repair-deck-kitchen-favicon.py
-
-      - name: Commit repaired assets and references
+      - name: Commit diagnostic evidence
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git status --short
-          git add -A
-          if git diff --cached --quiet; then
-            echo 'No repair changes to commit.'
-            exit 0
-          fi
-          git commit -m 'Repair deck kitchen visuals and approved favicon'
+          git add diagnostics/deck-kitchen-favicon-verification.log
+          git commit -m 'Record deck kitchen favicon verification diagnostics' || exit 0
           git pull --rebase origin agent/repair-deck-kitchen-favicon
           git push origin HEAD:agent/repair-deck-kitchen-favicon
-
-      - name: Run public verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-change-governance.js
-          python3 scripts/verify-public-images.py
-          node scripts/verify-public-image-placements.js
-          node scripts/verify-public-website-architecture.js
-          node scripts/verify-public-expansion.js
-          node scripts/verify-commercial-system.js
