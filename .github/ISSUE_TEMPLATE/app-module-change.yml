@@ -1,0 +1,178 @@
+name: App or module change
+description: Plan a Highway 38 Business Office module, route, form, API, or shared app change with performance and safety requirements.
+title: "[App/Module] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Complete every field before implementation. Read `AGENTS.md`, `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`, `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`, and `docs/architecture/MODULE_PERFORMANCE_STANDARD.md`.
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Requested outcome
+      description: Describe the user-visible result and the problem being solved.
+      placeholder: What should be faster, easier, clearer, or newly possible?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Primary scope
+      options:
+        - Authenticated Business Office module or route
+        - Shared Business Office architecture
+        - Quote Builder capability
+        - Customer Portal/security boundary
+        - Public website
+        - Performance and reliability only
+        - Mixed scope
+    validations:
+      required: true
+
+  - type: input
+    id: module_route
+    attributes:
+      label: Module key and route
+      description: Use the canonical module key and visible route, or state that a new contract entry is required.
+      placeholder: quotes / bo:quotes
+    validations:
+      required: true
+
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Canonical ownership
+      description: Identify the module contract entry, action contract entries, server owner, client owner, and data owner.
+      placeholder: |
+        Module contract:
+        Action contract:
+        Server owner:
+        Client owner:
+        Data owner:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: loading
+    attributes:
+      label: Loading strategy
+      options:
+        - On demand
+        - Today-critical
+        - Hidden capability opened by explicit action
+        - Background read-only prefetch
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: record_limit
+    attributes:
+      label: Normal first-load record limit
+      description: Ordinary list opens normally use 50 visible records or fewer.
+      placeholder: "50"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reads
+    attributes:
+      label: Data sources and expected reads
+      description: List sheets, tables, services, startup payload reuse, request-scoped reuse, and any justified full scans.
+      placeholder: |
+        Data sources:
+        Expected server endpoints:
+        Expected spreadsheet/table reads:
+        Full-scan reason, if any:
+    validations:
+      required: true
+
+  - type: textarea
+    id: cache
+    attributes:
+      label: Cache plan
+      description: Define cache key inputs, user/business scope, epoch/version, TTL, and browser/server ownership.
+      placeholder: |
+        Cache key:
+        User/business scope:
+        Epoch/version:
+        TTL seconds:
+        Browser/server/both:
+    validations:
+      required: true
+
+  - type: textarea
+    id: invalidation
+    attributes:
+      label: Cache invalidation
+      description: List every save, upload, approval, task, message, import, or other write that invalidates this route and dependent routes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: prefetch
+    attributes:
+      label: Prefetch and in-flight reuse
+      description: State priority, whether it is one of the next three likely routes, batch limits, and how clicks join in-flight work.
+    validations:
+      required: true
+
+  - type: textarea
+    id: targets
+    attributes:
+      label: Performance targets and baseline
+      description: Record current measured behavior and proposed cold, warm, and cached targets.
+      placeholder: |
+        Current cold:
+        Current warm:
+        Current cached:
+        Proposed cold target:
+        Proposed warm/cached target:
+        Startup RPC impact:
+        Startup payload impact:
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: interaction_rules
+    attributes:
+      label: Interaction and request rules
+      options:
+        - label: The previous workspace will remain visible while the requested route loads.
+          required: true
+        - label: Older responses cannot overwrite a newer route selection.
+          required: true
+        - label: Repeated requests will reuse request-scoped data or one in-flight promise.
+          required: true
+        - label: No page-wide MutationObserver will be added to repair a repository-owned renderer.
+          required: true
+        - label: Prefetch remains read-only and cannot trigger an external action.
+          required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Security, records, and external-action impact
+      description: Explain authentication, roles, business/customer isolation, records, IDs, approvals, proof, errors, backups, and external actions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Migration and rollback plan
+      description: Explain how the change is reversed and how records remain safe.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Include governance, structural, browser, mobile, cold/warm timing, rapid-click, cache invalidation, and deployment checks.
+    validations:
+      required: true
