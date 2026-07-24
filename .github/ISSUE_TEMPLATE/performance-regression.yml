@@ -1,0 +1,99 @@
+name: Performance regression
+description: Report slow startup, slow navigation, blank loading, duplicate requests, stale rendering, or cache problems.
+title: "[Performance] "
+labels:
+  - performance
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Attach a screen recording when possible. Test from a completely closed tab for cold startup, then repeat the same route sequence twice for warm and cached behavior.
+
+  - type: input
+    id: production_commit
+    attributes:
+      label: Production commit or deployment run
+      placeholder: Commit SHA or workflow run number
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Startup / Owner Access
+        - Today
+        - Customers
+        - Work
+        - Money
+        - Documents
+        - Growth
+        - Office
+        - Quote Builder
+        - Customer Portal
+        - Public website
+        - Multiple areas
+    validations:
+      required: true
+
+  - type: textarea
+    id: route_sequence
+    attributes:
+      label: Exact route sequence
+      description: List every click in order and identify where the delay occurred.
+      placeholder: Today → My Work → Approvals → Calendar → Customers
+    validations:
+      required: true
+
+  - type: textarea
+    id: timings
+    attributes:
+      label: Measured timing
+      placeholder: |
+        Cold startup:
+        First route load:
+        Warm route load:
+        Cached route load:
+        Approximate data size:
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: symptoms
+    attributes:
+      label: Observed symptoms
+      options:
+        - label: Current page was replaced by a blank loading screen.
+        - label: The progress indicator remained visible too long.
+        - label: An older request overwrote a newer route.
+        - label: Clicking a prefetched route started another request.
+        - label: Returning to a route did not use cached content.
+        - label: A save did not refresh or invalidate dependent data.
+        - label: Startup performed work for routes that were not opened.
+        - label: Mobile behavior was slower or different from desktop.
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Recording, screenshots, console timing, or network evidence
+      description: Attach the recording and include `h38NavigationPerformanceSnapshot()` output when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: State the acceptable target and whether this route was previously faster.
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Data or external-action impact
+      description: Confirm whether any record changed, duplicate action occurred, or external action was attempted.
+      placeholder: No record or external action changed.
+    validations:
+      required: true
