@@ -15,6 +15,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install regression dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
       - name: Capture focused verifier output
         shell: bash
         run: |
@@ -30,7 +37,7 @@ jobs:
           echo $? > pr288-diagnostics/control-plane.exit
           python -m pytest -q > pr288-diagnostics/pytest.log 2>&1
           echo $? > pr288-diagnostics/pytest.exit
-          find pr288-diagnostics -type f -maxdepth 1 -print -exec sh -c 'echo ---; tail -n 180 "$1"' _ {} \;
+          find pr288-diagnostics -type f -maxdepth 1 -print -exec sh -c 'echo ---; tail -n 220 "$1"' _ {} \;
           exit 0
       - uses: actions/upload-artifact@v4
         with:
