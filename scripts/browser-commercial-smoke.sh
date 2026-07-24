@@ -72,7 +72,7 @@ grep -q 'Bring us the problem.' "$OUT/rendered-home.html" || fail "rendered home
 grep -q 'Project-first pricing' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing project-first pricing"
 grep -q 'What result do you need?' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the current outcome question"
 grep -q 'data-request-step="3"' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the review step"
-for name in deck-before.webp deck-after.webp irrigation-before.webp irrigation-after.webp kitchen-before.webp kitchen-after.webp; do
+for name in deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
   grep -q "assets/demo-workthroughs/$name" "$OUT/rendered-samples.html" || fail "rendered Project Examples is missing $name"
 done
 pass "rendered Project Examples uses the six controlled deck irrigation and kitchen images"

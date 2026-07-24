@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policyVersion": "2026-07-23-exact-placement-v3",
+  "policyVersion": "2026-07-24-deck-kitchen-favicon-repair-v1",
   "logo": {
     "path": "assets/highway38-logo.png",
     "cacheKey": "20260720-exact-0cbc4514",
@@ -43,6 +43,15 @@
       "newPlacement": "assets/approved-website-images/manufacturing-automation.jpg",
       "reason": "Verified ChromeOS live-render defect: the approved WebP displayed as blank. Restored the exact owner-approved 1600x900 JPEG source without visual alteration.",
       "binaryPolicy": "Exact approved JPEG source bytes preserved; SHA-256 e311000da5b001aab8c57716f709404f6685b4c433410babb30c3cbbc17f6d0c; Git blob 460bf2eac1f2f63bce343c388dd85867e639e498. The prior WebP remains only for rollback history."
+    },
+    {
+      "date": "2026-07-24",
+      "page": "sample-library-now.html and contractor-quote-complete.html",
+      "section": "Deck and kitchen existing-condition / finished-concept visuals and browser favicon",
+      "oldPlacement": "Source WebP files with embedded BEFORE/AFTER graphics and generic H38 path favicon",
+      "newPlacement": "Label-free normalized WebP derivatives with page-owned honest labels; public pages use the exact approved mountain-and-road logo as the favicon",
+      "reason": "Owner-directed repair after live review identified duplicate image labels, inconsistent concept presentation, and the wrong browser-tab icon",
+      "binaryPolicy": "Original source images remain for rollback. New derivatives preserve the underlying scenes and remove only the labeled top edge. The favicon references the exact approved assets/highway38-logo.png binary."
     }
   ],
   "pages": {
@@ -59,7 +68,7 @@
       },
       {
         "role": "quote-card",
-        "src": "assets/demo-workthroughs/kitchen-after.webp",
+        "src": "assets/demo-workthroughs/kitchen-remodel-concept.webp",
         "alt": "Completed kitchen remodel example"
       },
       {
@@ -187,12 +196,12 @@
       },
       {
         "role": "example-05-before",
-        "src": "assets/demo-workthroughs/deck-before.webp",
+        "src": "assets/demo-workthroughs/deck-existing-condition.webp",
         "alt": "Deck before"
       },
       {
         "role": "example-05-after",
-        "src": "assets/demo-workthroughs/deck-after.webp",
+        "src": "assets/demo-workthroughs/deck-finished-concept.webp",
         "alt": "Deck after"
       },
       {
@@ -207,12 +216,12 @@
       },
       {
         "role": "example-07-before",
-        "src": "assets/demo-workthroughs/kitchen-before.webp",
+        "src": "assets/demo-workthroughs/kitchen-existing-condition.webp",
         "alt": "Kitchen before"
       },
       {
         "role": "example-07-after",
-        "src": "assets/demo-workthroughs/kitchen-after.webp",
+        "src": "assets/demo-workthroughs/kitchen-remodel-concept.webp",
         "alt": "Kitchen after"
       },
       {
@@ -282,16 +291,16 @@
           "lot-after.jpg"
         ],
         "deck": [
-          "deck-before.webp",
-          "deck-after.webp"
+          "deck-existing-condition.webp",
+          "deck-finished-concept.webp"
         ],
         "irrigation": [
           "irrigation-before.webp",
           "irrigation-after.webp"
         ],
         "kitchen": [
-          "kitchen-before.webp",
-          "kitchen-after.webp"
+          "kitchen-existing-condition.webp",
+          "kitchen-remodel-concept.webp"
         ]
       }
     }

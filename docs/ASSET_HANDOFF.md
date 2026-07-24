@@ -17,12 +17,12 @@ Page: `sample-library-now.html`
 
 Canonical direct visual files:
 
-- `assets/demo-workthroughs/deck-before.webp`
-- `assets/demo-workthroughs/deck-after.webp`
+- `assets/demo-workthroughs/deck-existing-condition.webp`
+- `assets/demo-workthroughs/deck-finished-concept.webp`
 - `assets/demo-workthroughs/irrigation-before.webp`
 - `assets/demo-workthroughs/irrigation-after.webp`
-- `assets/demo-workthroughs/kitchen-before.webp`
-- `assets/demo-workthroughs/kitchen-after.webp`
+- `assets/demo-workthroughs/kitchen-existing-condition.webp`
+- `assets/demo-workthroughs/kitchen-remodel-concept.webp`
 
 Card mapping:
 

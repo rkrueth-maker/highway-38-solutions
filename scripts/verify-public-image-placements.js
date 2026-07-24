@@ -47,7 +47,7 @@ const legacyBrand=read('brand-global.js');
 const contractorCss=read('contractor-demo.css');
 const samplePage=read('sample-library-now.html');
 const contractorPage=read('contractor-quote-complete.html');
-const directFiles=['deck-before.webp','deck-after.webp','irrigation-before.webp','irrigation-after.webp','kitchen-before.webp','kitchen-after.webp'];
+const directFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before.webp','irrigation-after.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
 
 check('canonical shell declares source lock',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(canonical));
 check('canonical shell does not assign content image sources',!/\.querySelectorAll\([^\n]*img[\s\S]{0,300}\.src\s*=/.test(canonical));
