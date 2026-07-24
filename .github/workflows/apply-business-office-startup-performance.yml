@@ -1,0 +1,613 @@
+name: Apply Business Office Startup Performance Pass
+
+on:
+  push:
+    branches:
+      - agent/business-office-startup-performance
+
+permissions:
+  contents: write
+
+concurrency:
+  group: business-office-startup-performance-pass
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out performance branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/business-office-startup-performance
+          fetch-depth: 0
+
+      - name: Run governance before editing
+        run: node scripts/verify-change-governance.js
+
+      - name: Apply bounded canonical performance changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_text, old, new):
+              path = Path(path_text)
+              text = path.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path_text}: expected one replacement marker, found {count}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'apps-script/business-office/BusinessOffice_Config.gs',
+              "function boGetSpreadsheet_(){const id=boConfiguredValue_(H38_BO.SPREADSHEET_PROPERTY);if(!id)throw new Error('Missing Business Office spreadsheet configuration.');return SpreadsheetApp.openById(id);}",
+              "var H38_BO_SPREADSHEET_CACHE_=null;\nfunction boGetSpreadsheet_(){if(H38_BO_SPREADSHEET_CACHE_)return H38_BO_SPREADSHEET_CACHE_;const id=boConfiguredValue_(H38_BO.SPREADSHEET_PROPERTY);if(!id)throw new Error('Missing Business Office spreadsheet configuration.');H38_BO_SPREADSHEET_CACHE_=SpreadsheetApp.openById(id);return H38_BO_SPREADSHEET_CACHE_;}",
+          )
+
+          replace_once(
+              'packages/business-office-core/apps-script/BusinessOffice_Config.gs',
+              "function boGetSpreadsheet_(){const id=boConfiguredValue_(BO_PLATFORM.SPREADSHEET_PROPERTY);if(!id)throw new Error('Missing Business Office spreadsheet configuration.');return SpreadsheetApp.openById(id);}",
+              "var BO_SPREADSHEET_CACHE_=null;\nfunction boGetSpreadsheet_(){if(BO_SPREADSHEET_CACHE_)return BO_SPREADSHEET_CACHE_;const id=boConfiguredValue_(BO_PLATFORM.SPREADSHEET_PROPERTY);if(!id)throw new Error('Missing Business Office spreadsheet configuration.');BO_SPREADSHEET_CACHE_=SpreadsheetApp.openById(id);return BO_SPREADSHEET_CACHE_;}",
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """function h38PortalSpreadsheet_() {
+            if (!H38_PORTAL_NEXT.SPREADSHEET_ID) throw new Error('CONFIGURATION HOLD — H38_PORTAL_SPREADSHEET_ID is blank.');
+            return SpreadsheetApp.openById(H38_PORTAL_NEXT.SPREADSHEET_ID);
+          }
+          """,
+              """var H38_PORTAL_SPREADSHEET_CACHE_ = null;
+          var H38_PORTAL_INSTALLED_STATUS_CACHE_ = null;
+          var H38_PORTAL_LIST_CACHE_ = {};
+
+          function h38PortalSpreadsheet_() {
+            if (H38_PORTAL_SPREADSHEET_CACHE_) return H38_PORTAL_SPREADSHEET_CACHE_;
+            if (!H38_PORTAL_NEXT.SPREADSHEET_ID) throw new Error('CONFIGURATION HOLD — H38_PORTAL_SPREADSHEET_ID is blank.');
+            H38_PORTAL_SPREADSHEET_CACHE_ = SpreadsheetApp.openById(H38_PORTAL_NEXT.SPREADSHEET_ID);
+            return H38_PORTAL_SPREADSHEET_CACHE_;
+          }
+
+          function h38PortalCloneRows_(rows) {
+            return (rows || []).map(function(row){
+              var copy = {};
+              Object.keys(row || {}).forEach(function(key){ copy[key] = row[key]; });
+              return copy;
+            });
+          }
+
+          function h38PortalInvalidateReadCache_(entity) {
+            if (entity) delete H38_PORTAL_LIST_CACHE_[entity];
+            else H38_PORTAL_LIST_CACHE_ = {};
+            H38_PORTAL_INSTALLED_STATUS_CACHE_ = null;
+            if (entity === 'tasks' && typeof H38_PORTAL_TASK_PROJECTION_CACHE_ !== 'undefined') H38_PORTAL_TASK_PROJECTION_CACHE_ = null;
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """function h38PortalInstalledStatus_() {
+            var ss = h38PortalSpreadsheet_();
+            var missing = [];
+            Object.keys(H38_PORTAL_TABLES).forEach(function(key) {
+              var spec = H38_PORTAL_TABLES[key];
+              if (!ss.getSheetByName(spec.sheet)) missing.push(spec.sheet);
+            });
+            return {installed: missing.length === 0, missingSheets:missing, candidateRelease:H38_PORTAL_NEXT.RELEASE};
+          }
+          """,
+              """function h38PortalInstalledStatus_() {
+            if (H38_PORTAL_INSTALLED_STATUS_CACHE_) {
+              return {
+                installed:H38_PORTAL_INSTALLED_STATUS_CACHE_.installed,
+                missingSheets:H38_PORTAL_INSTALLED_STATUS_CACHE_.missingSheets.slice(),
+                candidateRelease:H38_PORTAL_INSTALLED_STATUS_CACHE_.candidateRelease
+              };
+            }
+            var ss = h38PortalSpreadsheet_();
+            var missing = [];
+            Object.keys(H38_PORTAL_TABLES).forEach(function(key) {
+              var spec = H38_PORTAL_TABLES[key];
+              if (!ss.getSheetByName(spec.sheet)) missing.push(spec.sheet);
+            });
+            H38_PORTAL_INSTALLED_STATUS_CACHE_ = {installed: missing.length === 0, missingSheets:missing.slice(), candidateRelease:H38_PORTAL_NEXT.RELEASE};
+            return {installed:H38_PORTAL_INSTALLED_STATUS_CACHE_.installed, missingSheets:missing.slice(), candidateRelease:H38_PORTAL_NEXT.RELEASE};
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """  h38PortalSeedSettings_();
+            h38PortalWriteProof_({jobId:'SYSTEM', source:'Portal Installer', action:'Install candidate data layer', decision:'INSTALL NON-DEPLOYED CANDIDATE', result:'PASS', evidence:'Created=' + created.join(', ') + '; Verified=' + verified.join(', '), notes:'No triggers, deployment, sends, payments, publishing, or customer delivery.'});
+          """,
+              """  h38PortalInvalidateReadCache_();
+            h38PortalSeedSettings_();
+            h38PortalWriteProof_({jobId:'SYSTEM', source:'Portal Installer', action:'Install candidate data layer', decision:'INSTALL NON-DEPLOYED CANDIDATE', result:'PASS', evidence:'Created=' + created.join(', ') + '; Verified=' + verified.join(', '), notes:'No triggers, deployment, sends, payments, publishing, or customer delivery.'});
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """function h38PortalList(entity, filters) {
+            h38PortalAssertOwner_();
+            filters = filters || {};
+            var t = h38PortalTable_(entity);
+            var values = t.sheet.getDataRange().getDisplayValues();
+            if (values.length < 2) return [];
+            var headers = values[0];
+            var rows = values.slice(1).filter(function(r){ return r.join('').trim() !== ''; }).map(function(r, index){
+              var o = h38PortalObjectFromRow_(headers,r);
+              o._rowNumber = index + 2;
+              o._entity = entity;
+              return o;
+            });
+            Object.keys(filters).forEach(function(key) {
+              var wanted = String(filters[key] || '').trim().toLowerCase();
+              if (!wanted) return;
+              rows = rows.filter(function(o){ return String(o[key] || '').toLowerCase().indexOf(wanted) >= 0; });
+            });
+            return rows.slice(-H38_PORTAL_NEXT.MAX_ROWS).reverse();
+          }
+          """,
+              """function h38PortalList(entity, filters) {
+            h38PortalAssertOwner_();
+            filters = filters || {};
+            var baseRows = H38_PORTAL_LIST_CACHE_[entity];
+            if (!baseRows) {
+              var t = h38PortalTable_(entity);
+              var values = t.sheet.getDataRange().getDisplayValues();
+              if (values.length < 2) {
+                H38_PORTAL_LIST_CACHE_[entity] = [];
+                return [];
+              }
+              var headers = values[0];
+              baseRows = values.slice(1).filter(function(r){ return r.join('').trim() !== ''; }).map(function(r, index){
+                var o = h38PortalObjectFromRow_(headers,r);
+                o._rowNumber = index + 2;
+                o._entity = entity;
+                return o;
+              });
+              H38_PORTAL_LIST_CACHE_[entity] = h38PortalCloneRows_(baseRows);
+            }
+            var rows = h38PortalCloneRows_(baseRows);
+            Object.keys(filters).forEach(function(key) {
+              var wanted = String(filters[key] || '').trim().toLowerCase();
+              if (!wanted) return;
+              rows = rows.filter(function(o){ return String(o[key] || '').toLowerCase().indexOf(wanted) >= 0; });
+            });
+            return rows.slice(-H38_PORTAL_NEXT.MAX_ROWS).reverse();
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """  if (current) t.sheet.getRange(current._rowNumber,1,1,row.length).setValues([row]);
+            else t.sheet.appendRow(row);
+            h38PortalWriteProof_({jobId:record['Job ID'] || id, source:spec.sheet, action:(current ? 'Update ' : 'Create ') + entity, decision:'INTERNAL RECORD ACTION', result:'PASS', evidence:spec.id + '=' + id, notes:'Internal record only; no external execution.'});
+          """,
+              """  if (current) t.sheet.getRange(current._rowNumber,1,1,row.length).setValues([row]);
+            else t.sheet.appendRow(row);
+            h38PortalInvalidateReadCache_(entity);
+            h38PortalWriteProof_({jobId:record['Job ID'] || id, source:spec.sheet, action:(current ? 'Update ' : 'Create ') + entity, decision:'INTERNAL RECORD ACTION', result:'PASS', evidence:spec.id + '=' + id, notes:'Internal record only; no external execution.'});
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """  sh.appendRow(headers.map(function(h){ return data[h] !== undefined ? data[h] : ''; }));
+            return proofId;
+          }
+          """,
+              """  sh.appendRow(headers.map(function(h){ return data[h] !== undefined ? data[h] : ''; }));
+            h38PortalInvalidateReadCache_('proof');
+            return proofId;
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Repository.js',
+              """  sh.appendRow(headers.map(function(h){ return data[h] !== undefined ? data[h] : ''; }));
+          }
+          """,
+              """  sh.appendRow(headers.map(function(h){ return data[h] !== undefined ? data[h] : ''; }));
+            h38PortalInvalidateReadCache_('errors');
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Services.js',
+              "/** Dashboard, unified tasks, full workspaces, reporting, search, and internal business workflows. */\n",
+              "/** Dashboard, unified tasks, full workspaces, reporting, search, and internal business workflows. */\nvar H38_PORTAL_TASK_PROJECTION_CACHE_ = null;\n",
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Services.js',
+              """function h38PortalTaskProjection_(filters) {
+            var installed = h38PortalInstalledStatus_();
+            var tasks = [];
+            if (installed.installed) tasks = h38PortalList('tasks',{}).map(function(r){ return h38PortalNormalizeTask_(r,'Portal Tasks'); });
+            tasks = tasks.concat(h38PortalLegacyTaskProjection_({}));
+            var seen = {};
+            tasks = tasks.filter(function(t){
+              var key = t.taskId + '|' + t.sourceSystem + '|' + t.sourceSheet + '|' + t.sourceRow;
+              if (seen[key]) return false;
+              seen[key] = true;
+              return true;
+            });
+            Object.keys(filters || {}).forEach(function(k){
+              var wanted = String(filters[k] || '').toLowerCase();
+              if (!wanted) return;
+              tasks = tasks.filter(function(t){ return String(t[k] || '').toLowerCase().indexOf(wanted) >= 0; });
+            });
+            tasks.sort(function(a,b){
+              var terminalA = h38PortalTaskTerminal_(a.status) ? 1 : 0;
+              var terminalB = h38PortalTaskTerminal_(b.status) ? 1 : 0;
+              if (terminalA !== terminalB) return terminalA - terminalB;
+              var pa={Urgent:0,High:1,Normal:2,Low:3};
+              var ap=pa[a.priority]===undefined?2:pa[a.priority], bp=pa[b.priority]===undefined?2:pa[b.priority];
+              if(ap!==bp) return ap-bp;
+              return String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')) || String(b.lastUpdate||'').localeCompare(String(a.lastUpdate||''));
+            });
+            return tasks.slice(0,H38_PORTAL_NEXT.MAX_ROWS);
+          }
+          """,
+              """function h38PortalTaskProjection_(filters) {
+            var tasks = H38_PORTAL_TASK_PROJECTION_CACHE_ ? h38PortalCloneRows_(H38_PORTAL_TASK_PROJECTION_CACHE_) : null;
+            if (!tasks) {
+              var installed = h38PortalInstalledStatus_();
+              tasks = [];
+              if (installed.installed) tasks = h38PortalList('tasks',{}).map(function(r){ return h38PortalNormalizeTask_(r,'Portal Tasks'); });
+              tasks = tasks.concat(h38PortalLegacyTaskProjection_({}));
+              var seen = {};
+              tasks = tasks.filter(function(t){
+                var key = t.taskId + '|' + t.sourceSystem + '|' + t.sourceSheet + '|' + t.sourceRow;
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+              });
+              tasks.sort(function(a,b){
+                var terminalA = h38PortalTaskTerminal_(a.status) ? 1 : 0;
+                var terminalB = h38PortalTaskTerminal_(b.status) ? 1 : 0;
+                if (terminalA !== terminalB) return terminalA - terminalB;
+                var pa={Urgent:0,High:1,Normal:2,Low:3};
+                var ap=pa[a.priority]===undefined?2:pa[a.priority], bp=pa[b.priority]===undefined?2:pa[b.priority];
+                if(ap!==bp) return ap-bp;
+                return String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')) || String(b.lastUpdate||'').localeCompare(String(a.lastUpdate||''));
+              });
+              H38_PORTAL_TASK_PROJECTION_CACHE_ = h38PortalCloneRows_(tasks);
+            }
+            Object.keys(filters || {}).forEach(function(k){
+              var wanted = String(filters[k] || '').toLowerCase();
+              if (!wanted) return;
+              tasks = tasks.filter(function(t){ return String(t[k] || '').toLowerCase().indexOf(wanted) >= 0; });
+            });
+            return tasks.slice(0,H38_PORTAL_NEXT.MAX_ROWS);
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/business-office/BusinessOffice_TaskMessaging_10_Core.gs',
+              """});
+
+          function h38TmNow_() {
+          """,
+              """});
+
+          var H38_TM_SCHEMA_VERSION = '2026-07-23-task-messaging-v1';
+          var H38_TM_SCHEMA_PROPERTY = 'H38_TM_SCHEMA_VERSION';
+          var H38_TM_SCHEMA_READY_ = false;
+
+          function h38TmNow_() {
+          """,
+          )
+
+          replace_once(
+              'apps-script/business-office/BusinessOffice_TaskMessaging_10_Core.gs',
+              """function h38TmEnsureSchema_() {
+            var user = boGetCurrentUser_(),
+              ss = boGetSpreadsheet_(),
+              created = [];
+            Object.keys(H38_TM_SHEETS).forEach(function (key) {
+              var sheet = ss.getSheetByName(H38_TM_SHEETS[key]),
+                headers = h38TmSheetHeaders_(key);
+              if (!sheet) {
+                boAssert_(
+                  h38TmManageAll_(user),
+                  "An Owner or Administrator must initialize task and messaging storage first.",
+                );
+                sheet = ss.insertSheet(H38_TM_SHEETS[key]);
+                sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+                sheet.setFrozenRows(1);
+                created.push(H38_TM_SHEETS[key]);
+              } else {
+                var existing = sheet.getLastColumn()
+                  ? sheet
+                      .getRange(1, 1, 1, sheet.getLastColumn())
+                      .getDisplayValues()[0]
+                      .map(boNormalizeText_)
+                  : [];
+                var missing = headers.filter(function (header) {
+                  return existing.indexOf(header) < 0;
+                });
+                if (missing.length) {
+                  boAssert_(
+                    h38TmManageAll_(user),
+                    "Task and messaging schema update requires Owner or Administrator access.",
+                  );
+                  sheet
+                    .getRange(1, existing.length + 1, 1, missing.length)
+                    .setValues([missing]);
+                }
+              }
+            });
+            if (created.length)
+              boProof_(
+                "INITIALIZE_TASK_MESSAGING",
+                "System",
+                boGetBusinessId_(),
+                "PASS",
+                "Created private sheets: " + created.join(", "),
+                user.Email,
+              );
+            return { status: "PASS", created: created };
+          }
+          """,
+              """function h38TmEnsureSchema_() {
+            if (H38_TM_SCHEMA_READY_) return { status: "PASS", created: [], cached: true, version: H38_TM_SCHEMA_VERSION };
+            var properties = boGetProperties_();
+            if (properties.getProperty(H38_TM_SCHEMA_PROPERTY) === H38_TM_SCHEMA_VERSION) {
+              H38_TM_SCHEMA_READY_ = true;
+              return { status: "PASS", created: [], cached: true, version: H38_TM_SCHEMA_VERSION };
+            }
+            var lock = LockService.getScriptLock();
+            boAssert_(lock.tryLock(5000), "Task and messaging schema initialization is temporarily busy. Try again.");
+            try {
+              if (properties.getProperty(H38_TM_SCHEMA_PROPERTY) === H38_TM_SCHEMA_VERSION) {
+                H38_TM_SCHEMA_READY_ = true;
+                return { status: "PASS", created: [], cached: true, version: H38_TM_SCHEMA_VERSION };
+              }
+              var user = boGetCurrentUser_(),
+                ss = boGetSpreadsheet_(),
+                created = [];
+              Object.keys(H38_TM_SHEETS).forEach(function (key) {
+                var sheet = ss.getSheetByName(H38_TM_SHEETS[key]),
+                  headers = h38TmSheetHeaders_(key);
+                if (!sheet) {
+                  boAssert_(
+                    h38TmManageAll_(user),
+                    "An Owner or Administrator must initialize task and messaging storage first.",
+                  );
+                  sheet = ss.insertSheet(H38_TM_SHEETS[key]);
+                  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+                  sheet.setFrozenRows(1);
+                  created.push(H38_TM_SHEETS[key]);
+                } else {
+                  var existing = sheet.getLastColumn()
+                    ? sheet
+                        .getRange(1, 1, 1, sheet.getLastColumn())
+                        .getDisplayValues()[0]
+                        .map(boNormalizeText_)
+                    : [];
+                  var missing = headers.filter(function (header) {
+                    return existing.indexOf(header) < 0;
+                  });
+                  if (missing.length) {
+                    boAssert_(
+                      h38TmManageAll_(user),
+                      "Task and messaging schema update requires Owner or Administrator access.",
+                    );
+                    sheet
+                      .getRange(1, existing.length + 1, 1, missing.length)
+                      .setValues([missing]);
+                  }
+                }
+              });
+              properties.setProperty(H38_TM_SCHEMA_PROPERTY, H38_TM_SCHEMA_VERSION);
+              H38_TM_SCHEMA_READY_ = true;
+              if (created.length)
+                boProof_(
+                  "INITIALIZE_TASK_MESSAGING",
+                  "System",
+                  boGetBusinessId_(),
+                  "PASS",
+                  "Created private sheets: " + created.join(", "),
+                  user.Email,
+                );
+              return { status: "PASS", created: created, cached: false, version: H38_TM_SCHEMA_VERSION };
+            } finally {
+              lock.releaseLock();
+            }
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Unified.js',
+              "  if (access.ownerMode && typeof h38TmEnsureSchema_ === 'function') h38TmEnsureSchema_();\n",
+              "",
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Unified.js',
+              """/** One browser round trip for the complete shell startup payload. */
+          function h38PortalStartupBundle(){
+            var started=Date.now();
+            var unified=h38PortalUnifiedBootstrap();
+            return {
+              status:'PASS',
+              bootstrap:h38PortalBootstrap(),
+              schema:h38PortalClientSchema(),
+              experience:h38PortalUxControlCenter(),
+              savedViews:h38PortalSavedViews(),
+              unified:unified,
+              performance:{rpcCount:1,serverElapsedMs:Date.now()-started,secondaryModulesDeferred:true}
+            };
+          }
+          """,
+              """function h38PortalStartupPhase_(phases,name,callback){
+            var started=Date.now();
+            var value=callback();
+            phases[name]=Date.now()-started;
+            return value;
+          }
+
+          /** One browser round trip for the complete shell startup payload. */
+          function h38PortalStartupBundle(){
+            var started=Date.now();
+            var phases={};
+            var payload={
+              status:'PASS',
+              bootstrap:h38PortalStartupPhase_(phases,'bootstrap',function(){return h38PortalBootstrap();}),
+              schema:h38PortalStartupPhase_(phases,'schema',function(){return h38PortalClientSchema();}),
+              experience:h38PortalStartupPhase_(phases,'experience',function(){return h38PortalUxControlCenter();}),
+              savedViews:h38PortalStartupPhase_(phases,'savedViews',function(){return h38PortalSavedViews();}),
+              unified:h38PortalStartupPhase_(phases,'unified',function(){return h38PortalUnifiedBootstrap();}),
+              performance:{rpcCount:1,serverElapsedMs:0,phaseMs:phases,payloadCharacters:0,secondaryModulesDeferred:true,schemaChecksDeferred:true,requestScopedReadCache:true}
+            };
+            payload.performance.serverElapsedMs=Date.now()-started;
+            payload.performance.payloadCharacters=JSON.stringify(payload).length;
+            return payload;
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Product_Client.html',
+              """  h38ProductConfigureChrome();
+            document.addEventListener('click',h38ProductHandleClick);
+            requestAnimationFrame(function(){h38ProductApplyWorkspace(CURRENT||'today');});
+          }
+          """,
+              """  h38ProductConfigureChrome();
+            document.addEventListener('click',h38ProductHandleClick);
+            var view=document.getElementById('view');
+            if(view&&!String(view.innerHTML||'').trim())view.innerHTML='<div data-h38-workspace-state="loading">'+h38ProductLoadingState()+'</div>';
+            requestAnimationFrame(function(){h38ProductApplyWorkspace(CURRENT||'today');});
+          }
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_UX_Client_Boot.html',
+              """  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(launch,100);},{once:true});
+            else setTimeout(launch,100);
+          """,
+              """  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){requestAnimationFrame(launch);},{once:true});
+            else requestAnimationFrame(launch);
+          """,
+          )
+
+          replace_once(
+              'apps-script/core-engine/owner-portal-next/Portal_Catalog.js',
+              """  sh.getRange(2,1,values.length,headers.length).setValues(values);
+            h38PortalSetSetting_('catalog_status','SYNCHRONIZED','Active','Exact 15-product / 9-bundle snapshot imported.');
+          """,
+              """  sh.getRange(2,1,values.length,headers.length).setValues(values);
+            h38PortalInvalidateReadCache_('catalog');
+            h38PortalSetSetting_('catalog_status','SYNCHRONIZED','Active','Exact 15-product / 9-bundle snapshot imported.');
+          """,
+          )
+
+          replace_once(
+              'scripts/verify-unified-app-architecture.js',
+              """  unified:path.join(PORTAL,'Portal_Unified.js'),
+            index:path.join(PORTAL,'Portal_Index.html'),
+          """,
+              """  unified:path.join(PORTAL,'Portal_Unified.js'),
+            repository:path.join(PORTAL,'Portal_Repository.js'),
+            services:path.join(PORTAL,'Portal_Services.js'),
+            index:path.join(PORTAL,'Portal_Index.html'),
+          """,
+          )
+
+          replace_once(
+              'scripts/verify-unified-app-architecture.js',
+              """  client:path.join(PORTAL,'Portal_Product_Client.html'),
+            publicPortal:path.join(ROOT,'portal.html'),
+          """,
+              """  client:path.join(PORTAL,'Portal_Product_Client.html'),
+            businessConfig:path.join(BUSINESS,'BusinessOffice_Config.gs'),
+            taskMessaging:path.join(BUSINESS,'BusinessOffice_TaskMessaging_10_Core.gs'),
+            publicPortal:path.join(ROOT,'portal.html'),
+          """,
+          )
+
+          replace_once(
+              'scripts/verify-unified-app-architecture.js',
+              """  const contractSource=read(files.contract),actionsSource=read(files.actions),accessSource=read(files.access),webSource=read(files.web),registrySource=read(files.registry),unifiedSource=read(files.unified),indexSource=read(files.index),rawSource=read(files.raw),shellSource=read(files.shell),experienceCoreSource=read(files.experienceCore),workspaceSource=read(files.workspace),bootSource=read(files.boot),styleSource=read(files.styles),clientSource=read(files.client),publicPortalSource=read(files.publicPortal),manifestSource=read(files.manifest),rulesSource=read(files.rules),agentsSource=read(files.agents);
+          """,
+              """  const contractSource=read(files.contract),actionsSource=read(files.actions),accessSource=read(files.access),webSource=read(files.web),registrySource=read(files.registry),unifiedSource=read(files.unified),repositorySource=read(files.repository),servicesSource=read(files.services),indexSource=read(files.index),rawSource=read(files.raw),shellSource=read(files.shell),experienceCoreSource=read(files.experienceCore),workspaceSource=read(files.workspace),bootSource=read(files.boot),styleSource=read(files.styles),clientSource=read(files.client),businessConfigSource=read(files.businessConfig),taskMessagingSource=read(files.taskMessaging),publicPortalSource=read(files.publicPortal),manifestSource=read(files.manifest),rulesSource=read(files.rules),agentsSource=read(files.agents);
+          """,
+          )
+
+          replace_once(
+              'scripts/verify-unified-app-architecture.js',
+              """    ['module contract',contractSource],['action contract',actionsSource],['module access',accessSource],['Business Office web',webSource],['module registry',registrySource],['unified bootstrap',unifiedSource],['unified shell client',shellSource],['product client',clientSource]
+          """,
+              """    ['module contract',contractSource],['action contract',actionsSource],['module access',accessSource],['Business Office web',webSource],['module registry',registrySource],['unified bootstrap',unifiedSource],['portal repository',repositorySource],['portal services',servicesSource],['Business Office config',businessConfigSource],['task messaging core',taskMessagingSource],['unified shell client',shellSource],['product client',clientSource]
+          """,
+          )
+
+          replace_once(
+              'scripts/verify-unified-app-architecture.js',
+              """  check('startup uses one browser RPC',/function h38PortalStartupBundle\(/.test(unifiedSource)&&/rpcCount:1/.test(unifiedSource)&&/call\('h38PortalStartupBundle'\)/.test(clientSource));
+            check('product client owns refresh',/window\.refresh=h38ProductRefresh/.test(clientSource));
+          """,
+              """  check('startup uses one browser RPC',/function h38PortalStartupBundle\(/.test(unifiedSource)&&/rpcCount:1/.test(unifiedSource)&&/call\('h38PortalStartupBundle'\)/.test(clientSource));
+            check('startup defers task messaging schema verification',!/h38TmEnsureSchema_\(\)/.test(unifiedSource)&&/schemaChecksDeferred:true/.test(unifiedSource));
+            check('startup reports phase timing and payload size',/phaseMs:phases/.test(unifiedSource)&&/payloadCharacters/.test(unifiedSource));
+            check('portal repository caches spreadsheet, install status, and list reads',/H38_PORTAL_SPREADSHEET_CACHE_/.test(repositorySource)&&/H38_PORTAL_INSTALLED_STATUS_CACHE_/.test(repositorySource)&&/H38_PORTAL_LIST_CACHE_/.test(repositorySource));
+            check('task projection is request cached',/H38_PORTAL_TASK_PROJECTION_CACHE_/.test(servicesSource)&&/h38PortalCloneRows_\(H38_PORTAL_TASK_PROJECTION_CACHE_\)/.test(servicesSource));
+            check('Business Office spreadsheet is request cached',/H38_BO_SPREADSHEET_CACHE_/.test(businessConfigSource));
+            check('task messaging schema is version gated and locked',/H38_TM_SCHEMA_VERSION/.test(taskMessagingSource)&&/H38_TM_SCHEMA_PROPERTY/.test(taskMessagingSource)&&/LockService\.getScriptLock\(\)/.test(taskMessagingSource));
+            check('startup begins without artificial delay',/requestAnimationFrame\(launch\)/.test(bootSource)&&!/setTimeout\(launch,100\)/.test(bootSource));
+            check('product client renders immediate loading skeleton',/data-h38-workspace-state=\\"loading\\"/.test(clientSource)&&/h38ProductLoadingState\(\)/.test(clientSource));
+            check('product client owns refresh',/window\.refresh=h38ProductRefresh/.test(clientSource));
+          """,
+          )
+          PY
+
+      - name: Run complete authenticated application verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-change-governance.js
+          node scripts/verify-unified-app-architecture.js
+          node scripts/verify-product-pack-architecture.js
+          node scripts/verify-owner-portal-routing.js
+          node scripts/verify-owner-portal-next.js
+          node scripts/verify-owner-portal-hard-rule.js
+          node scripts/verify-business-office.js
+          node scripts/verify-unified-client-routing-runtime.js
+          node scripts/verify-task-messaging-hardening.js
+          node scripts/verify-customer-portal-security.js
+          git diff --check
+
+      - name: Commit clean performance pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-business-office-startup-performance.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps-script/business-office/BusinessOffice_Config.gs \
+            apps-script/business-office/BusinessOffice_TaskMessaging_10_Core.gs \
+            apps-script/core-engine/owner-portal-next/Portal_Repository.js \
+            apps-script/core-engine/owner-portal-next/Portal_Services.js \
+            apps-script/core-engine/owner-portal-next/Portal_Unified.js \
+            apps-script/core-engine/owner-portal-next/Portal_Product_Client.html \
+            apps-script/core-engine/owner-portal-next/Portal_UX_Client_Boot.html \
+            apps-script/core-engine/owner-portal-next/Portal_Catalog.js \
+            packages/business-office-core/apps-script/BusinessOffice_Config.gs \
+            scripts/verify-unified-app-architecture.js \
+            .github/workflows/apply-business-office-startup-performance.yml
+          git commit -m 'Optimize Business Office startup performance'
+          git push origin HEAD:agent/business-office-startup-performance
