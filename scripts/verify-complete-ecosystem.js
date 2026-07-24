@@ -48,7 +48,7 @@ const publicText=publicFiles.map(file=>read(file)).join('\n');
 check('no public LLC claim',!/Highway 38[^\n<]{0,30}\bLLC\b/i.test(publicText));
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
 check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(publicText));
-check('no fake testimonials or reviews',!/customer testimonial|five-star review|★★★★★/i.test(publicText));
+check('no fake testimonials or reviews',!/five-star review|★★★★★|verified customer review|what our customers say/i.test(publicText));
 check('customer portal noindex',/noindex,nofollow/.test(read('customer-portal.html')));
 const customerPortal=read('customer-portal.html'),customerConfig=read('customer-portal-config.js'),customerClient=read('customer-portal-supabase.js'),customerSql=read('supabase/migrations/20260716_customer_portal.sql'),customerActivation=read('supabase/migrations/20260716_customer_portal_invite_activation.sql');
 check('customer portal active Supabase production state',
@@ -62,7 +62,7 @@ check('customer portal active Supabase production state',
   /enable row level security/i.test(customerSql)&&
   /link_invited_customer_account/.test(customerActivation)
 );
-check('ForgeIQ redirect',/location\.replace\('free-tools\.html'/.test(read('forgeiq.html')));
+check('ForgeIQ project-first redirect',/location\.replace\('solutions\.html/.test(read('forgeiq.html')));
 check('analytics event queue',/h38AnalyticsQueue/.test(read('ecosystem.js'))&&/tool_calculate/.test(read('free-tools.js')));
 const social=JSON.parse(read('social/30-day-content-bank.json'));
 check('30-day social bank',social.posts.length===30,social.posts.length);
@@ -75,7 +75,13 @@ for(const file of htmlFiles){
     const href=match[1];if(/^(https?:|mailto:|tel:|#)/.test(href))continue;const clean=href.split(/[?#]/)[0];if(!clean)continue;check(`${file}: local link ${clean}`,exists(clean));
   }
 }
-const sitemap=read('sitemap.xml');['services.html','free-tools.html','proof.html','business-os.html','business-concept-builder.html','resources.html','start-request.html','portal.html'].forEach(route=>check(`sitemap: ${route}`,sitemap.includes(route)));
+const routeRegistry=JSON.parse(read('scripts/config/public-website-routes.json'));
+const sitemap=read('sitemap.xml');
+for(const item of routeRegistry.primary.filter(item=>item.visibility==='public')){
+  const route=item.path;
+  check(`sitemap: ${route}`,route==='index.html'?sitemap.includes('highway-38-solutions/</loc>'):sitemap.includes(route));
+}
+for(const route of Object.keys(routeRegistry.retired||{}))check(`sitemap excludes retired: ${route}`,!sitemap.includes(route));
 const config=JSON.parse(read('business-os/configuration-schema.json')),installer=JSON.parse(read('business-os/installer-manifest.json'));
 check('configuration schema version',config.properties.schemaVersion.const==='1.0');
 check('selected-record hard const',config.properties.features.properties.selectedRecordOnly.const===true);

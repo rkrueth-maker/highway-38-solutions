@@ -42,7 +42,11 @@ jobs:
           figures=re.findall(r'<figure[^>]*>[\s\S]*?<img\s+src="([^"]+)"[^>]*alt="([^"]+)"[^>]*>[\s\S]*?</figure>',html)
           if len(figures)!=16:
               raise SystemExit(f'Expected 16 project figure images, found {len(figures)}')
-          exact=['deck-before.webp','deck-after.webp','irrigation-before.webp','irrigation-after.webp','kitchen-before.webp','kitchen-after.webp']
+          exact=[
+              'deck-existing-condition.webp','deck-finished-concept.webp',
+              'irrigation-before.webp','irrigation-after.webp',
+              'kitchen-existing-condition.webp','kitchen-remodel-concept.webp'
+          ]
           sources=[urlsplit(src).path for src,_ in figures]
           for name in exact:
               matches=[src for src in sources if src.endswith('/'+name)]
@@ -88,7 +92,7 @@ jobs:
           figure_count="$(grep -o '<figure>' raster-proof-artifacts/rendered-samples.html | wc -l | tr -d ' ')"
           test "$project_count" = "8"
           test "$figure_count" = "16"
-          for name in deck-before.webp deck-after.webp irrigation-before.webp irrigation-after.webp kitchen-before.webp kitchen-after.webp; do
+          for name in deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
             grep -Fq "assets/demo-workthroughs/$name" raster-proof-artifacts/rendered-samples.html
           done
           printf 'Project examples: %s\nDirect project figure images: %s\nApproved deck/irrigation/kitchen images: 6\n' "$project_count" "$figure_count" > raster-proof-artifacts/raster-proof-report.txt
