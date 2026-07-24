@@ -41,20 +41,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/audit-complete-navigation-and-settings.js
-          node scripts/verify-quote-builder-business-office-routing.js
-          node scripts/verify-unified-app-shell.js
-          node scripts/verify-unified-app-architecture.js
-          node scripts/verify-navigation-cache-performance.js
-          node scripts/verify-business-office.js
-          node scripts/verify-owner-portal-next.js
-          node scripts/verify-owner-portal-hard-rule.js
-          node scripts/verify-unified-client-routing-runtime.js
-          node scripts/verify-task-messaging-hardening.js
-          node scripts/verify-quote-builder-complete.js
-          node scripts/verify-quote-builder-direct-performance.js
-          node scripts/verify-quote-camera-polish.js
-          node scripts/verify-unified-app-ux-complete.js
+          mkdir -p /tmp/h38-navigation-checks
+          run_check() {
+            name="$1"; shift
+            echo "RUN: $name"
+            if "$@" >"/tmp/h38-navigation-checks/$name.log" 2>&1; then
+              echo "PASS: $name"
+            else
+              code=$?
+              echo "FAIL: $name (exit $code)"
+              tail -n 180 "/tmp/h38-navigation-checks/$name.log"
+              exit "$code"
+            fi
+          }
+          run_check complete-audit node scripts/audit-complete-navigation-and-settings.js
+          run_check quote-routing node scripts/verify-quote-builder-business-office-routing.js
+          run_check unified-shell node scripts/verify-unified-app-shell.js
+          run_check unified-architecture node scripts/verify-unified-app-architecture.js
+          run_check navigation-cache node scripts/verify-navigation-cache-performance.js
+          run_check business-office node scripts/verify-business-office.js
+          run_check owner-portal node scripts/verify-owner-portal-next.js
+          run_check hard-rule node scripts/verify-owner-portal-hard-rule.js
+          run_check client-routing node scripts/verify-unified-client-routing-runtime.js
+          run_check task-messaging node scripts/verify-task-messaging-hardening.js
+          run_check quote-complete node scripts/verify-quote-builder-complete.js
+          run_check quote-performance node scripts/verify-quote-builder-direct-performance.js
+          run_check quote-camera node scripts/verify-quote-camera-polish.js
+          run_check unified-ux node scripts/verify-unified-app-ux-complete.js
       - name: Keep branch source-only
         shell: bash
         run: |
