@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-07-24T05:57:46.305Z",
-  "passed": 76,
+  "generatedAt": "2026-07-16T19:51:59.087Z",
+  "passed": 68,
   "failed": 0,
   "controls": {
     "providerNeutral": true,
@@ -15,314 +15,77 @@
     "unknownDeliveryRetryLock": true,
     "bulkMessaging": false,
     "automaticTriggers": false,
-    "credentialsInScriptProperties": true,
-    "deterministicUnifiedShell": true
+    "credentialsInScriptProperties": true
   },
   "passes": [
-    {
-      "name": "file apps-script/business-office/BusinessOffice_TaskMessaging_10_Core.gs",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/business-office/BusinessOffice_TaskMessaging_20_SMS.gs",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/business-office/BusinessOffice_TaskMessaging_30_Web.gs",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_TaskMessaging_Client.html",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_Business.js",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_Unified.js",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_Services.js",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/business-office/BusinessOffice_ModuleContract.gs",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/core-engine/owner-portal-next/Portal_Index.html",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/unified-shell/Unified_AppShell.gs",
-      "detail": ""
-    },
-    {
-      "name": "file scripts/build-unified-apps-script-shell.js",
-      "detail": ""
-    },
-    {
-      "name": "file business-packs/highway38/business-pack.json",
-      "detail": ""
-    },
-    {
-      "name": "file business-packs/highway38/apps-script/BusinessOffice_Pack.gs",
-      "detail": ""
-    },
-    {
-      "name": "file business-packs/template-business/business-pack.json",
-      "detail": ""
-    },
-    {
-      "name": "file scripts/deploy-unified-owner-portal-web.sh",
-      "detail": ""
-    },
-    {
-      "name": "syntax BusinessOffice_TaskMessaging_10_Core.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax BusinessOffice_TaskMessaging_20_SMS.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax BusinessOffice_TaskMessaging_30_Web.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax Portal_Business.js",
-      "detail": ""
-    },
-    {
-      "name": "syntax Portal_Unified.js",
-      "detail": ""
-    },
-    {
-      "name": "syntax Portal_Services.js",
-      "detail": ""
-    },
-    {
-      "name": "syntax BusinessOffice_ModuleContract.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax Portal_RawIncludes.js",
-      "detail": ""
-    },
-    {
-      "name": "syntax BusinessOffice_Pack.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax Unified_AppShell.gs",
-      "detail": ""
-    },
-    {
-      "name": "Highway 38 pack JSON",
-      "detail": ""
-    },
-    {
-      "name": "template pack JSON",
-      "detail": ""
-    },
-    {
-      "name": "Highway 38 package controls assignedTasks",
-      "detail": ""
-    },
-    {
-      "name": "Highway 38 package controls messaging",
-      "detail": ""
-    },
-    {
-      "name": "Highway 38 package controls smsConsent",
-      "detail": ""
-    },
-    {
-      "name": "Highway 38 package controls messageTemplates",
-      "detail": ""
-    },
-    {
-      "name": "template enables internal tasks",
-      "detail": ""
-    },
-    {
-      "name": "template paid SMS stays disabled",
-      "detail": ""
-    },
-    {
-      "name": "provider-neutral Twilio configuration",
-      "detail": ""
-    },
-    {
-      "name": "SMS release locked in package",
-      "detail": ""
-    },
-    {
-      "name": "bulk and triggers disabled",
-      "detail": ""
-    },
-    {
-      "name": "owner approval required",
-      "detail": ""
-    },
-    {
-      "name": "documented consent required",
-      "detail": ""
-    },
-    {
-      "name": "STOP and opt-out suppression",
-      "detail": ""
-    },
-    {
-      "name": "duplicate-message lock",
-      "detail": ""
-    },
-    {
-      "name": "unknown delivery locks retry",
-      "detail": ""
-    },
-    {
-      "name": "credentials use Script Properties",
-      "detail": ""
-    },
-    {
-      "name": "no credential values committed",
-      "detail": ""
-    },
-    {
-      "name": "provider request isolated to Business Office adapter",
-      "detail": ""
-    },
-    {
-      "name": "send requires release and registration",
-      "detail": ""
-    },
-    {
-      "name": "manual inbound only",
-      "detail": ""
-    },
-    {
-      "name": "no automatic customer reply",
-      "detail": ""
-    },
-    {
-      "name": "selected message execution",
-      "detail": ""
-    },
-    {
-      "name": "no bulk send endpoint",
-      "detail": ""
-    },
-    {
-      "name": "task states complete",
-      "detail": ""
-    },
-    {
-      "name": "task user and role assignment",
-      "detail": ""
-    },
-    {
-      "name": "task due date priority notes",
-      "detail": ""
-    },
-    {
-      "name": "linked record validation",
-      "detail": ""
-    },
-    {
-      "name": "role and business isolation",
-      "detail": ""
-    },
-    {
-      "name": "workspace access repeats module policy",
-      "detail": ""
-    },
-    {
-      "name": "Proof Error and history records",
-      "detail": ""
-    },
-    {
-      "name": "My Work task view",
-      "detail": ""
-    },
-    {
-      "name": "owner all-task management",
-      "detail": ""
-    },
-    {
-      "name": "mobile-friendly reuse",
-      "detail": ""
-    },
-    {
-      "name": "unified package navigation",
-      "detail": ""
-    },
-    {
-      "name": "non-owner default route",
-      "detail": ""
-    },
-    {
-      "name": "owner native surfaces stay owner-gated",
-      "detail": ""
-    },
-    {
-      "name": "client fragment allowlisted and loaded",
-      "detail": ""
-    },
-    {
-      "name": "combined shell authenticates every route",
-      "detail": ""
-    },
-    {
-      "name": "combined shell routes Business Office and Quote Builder",
-      "detail": ""
-    },
-    {
-      "name": "Quote Builder owns the quote capability when installed",
-      "detail": ""
-    },
-    {
-      "name": "deterministic builder removes duplicate entry and legacy auth bridge",
-      "detail": ""
-    },
-    {
-      "name": "existing Apps Script deployments updated with clasp 3",
-      "detail": ""
-    },
-    {
-      "name": "no replacement project or URL",
-      "detail": ""
-    },
-    {
-      "name": "deployment builds and remotely verifies unified shell",
-      "detail": ""
-    },
-    {
-      "name": "deployment blocks known authentication regressions",
-      "detail": ""
-    },
-    {
-      "name": "runtime STOP keyword acceptance",
-      "detail": ""
-    },
-    {
-      "name": "runtime task assignment visibility",
-      "detail": ""
-    },
-    {
-      "name": "runtime provider release locked",
-      "detail": ""
-    },
-    {
-      "name": "runtime send hold performs no external action",
-      "detail": ""
-    }
+    {"name":"file apps-script/business-office/BusinessOffice_TaskMessaging_10_Core.gs","detail":""},
+    {"name":"file apps-script/business-office/BusinessOffice_TaskMessaging_20_SMS.gs","detail":""},
+    {"name":"file apps-script/business-office/BusinessOffice_TaskMessaging_30_Web.gs","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_TaskMessaging_Client.html","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_Business.js","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_Unified.js","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_Services.js","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js","detail":""},
+    {"name":"file apps-script/core-engine/owner-portal-next/Portal_Index.html","detail":""},
+    {"name":"file business-packs/highway38/business-pack.json","detail":""},
+    {"name":"file business-packs/highway38/apps-script/BusinessOffice_Pack.gs","detail":""},
+    {"name":"file business-packs/template-business/business-pack.json","detail":""},
+    {"name":"file scripts/deploy-unified-owner-portal-web.sh","detail":""},
+    {"name":"syntax BusinessOffice_TaskMessaging_10_Core.gs","detail":""},
+    {"name":"syntax BusinessOffice_TaskMessaging_20_SMS.gs","detail":""},
+    {"name":"syntax BusinessOffice_TaskMessaging_30_Web.gs","detail":""},
+    {"name":"syntax Portal_TaskMessaging_Client.html","detail":""},
+    {"name":"syntax Portal_Business.js","detail":""},
+    {"name":"syntax Portal_Unified.js","detail":""},
+    {"name":"syntax Portal_Services.js","detail":""},
+    {"name":"syntax Portal_RawIncludes.js","detail":""},
+    {"name":"syntax BusinessOffice_Pack.gs","detail":""},
+    {"name":"Highway 38 pack JSON","detail":""},
+    {"name":"template pack JSON","detail":""},
+    {"name":"Highway 38 package controls assignedTasks","detail":""},
+    {"name":"Highway 38 package controls messaging","detail":""},
+    {"name":"Highway 38 package controls smsConsent","detail":""},
+    {"name":"Highway 38 package controls messageTemplates","detail":""},
+    {"name":"template enables internal tasks","detail":""},
+    {"name":"template paid SMS stays disabled","detail":""},
+    {"name":"provider-neutral Twilio configuration","detail":""},
+    {"name":"SMS release locked in package","detail":""},
+    {"name":"bulk and triggers disabled","detail":""},
+    {"name":"owner approval required","detail":""},
+    {"name":"documented consent required","detail":""},
+    {"name":"STOP and opt-out suppression","detail":""},
+    {"name":"duplicate-message lock","detail":""},
+    {"name":"unknown delivery locks retry","detail":""},
+    {"name":"credentials use Script Properties","detail":""},
+    {"name":"no credential values committed","detail":""},
+    {"name":"provider request isolated to Business Office adapter","detail":""},
+    {"name":"send requires release and registration","detail":""},
+    {"name":"manual inbound only","detail":""},
+    {"name":"no automatic customer reply","detail":""},
+    {"name":"selected message execution","detail":""},
+    {"name":"no bulk send endpoint","detail":""},
+    {"name":"task states complete","detail":""},
+    {"name":"task user and role assignment","detail":""},
+    {"name":"task due date priority notes","detail":""},
+    {"name":"linked record validation","detail":""},
+    {"name":"role and business isolation","detail":""},
+    {"name":"workspace access repeats module policy","detail":""},
+    {"name":"Proof Error and history records","detail":""},
+    {"name":"My Tasks view","detail":""},
+    {"name":"owner all-task management","detail":""},
+    {"name":"mobile-friendly reuse","detail":""},
+    {"name":"unified package navigation","detail":""},
+    {"name":"non-owner default route","detail":""},
+    {"name":"owner native surfaces stay owner-gated","detail":""},
+    {"name":"unified doGet uses authenticated Business Office user","detail":""},
+    {"name":"client fragment allowlisted and loaded","detail":""},
+    {"name":"existing Apps Script deployment updated","detail":""},
+    {"name":"no replacement project or URL","detail":""},
+    {"name":"deployment router supports unified users","detail":""},
+    {"name":"runtime STOP keyword acceptance","detail":""},
+    {"name":"runtime task assignment visibility","detail":""},
+    {"name":"runtime provider release locked","detail":""},
+    {"name":"runtime send hold performs no external action","detail":""}
   ],
   "failures": []
 }
