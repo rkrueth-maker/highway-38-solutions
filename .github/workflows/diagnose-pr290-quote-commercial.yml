@@ -1,0 +1,34 @@
+name: Diagnose PR 290 Quote Commercial
+
+on:
+  push:
+    branches:
+      - agent/complete-navigation-settings-audit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Capture verifier output
+        shell: bash
+        run: |
+          set +e
+          node scripts/verify-quote-builder-commercial-complete.js > quote-commercial.log 2>&1
+          echo "exit_code=$?" >> quote-commercial.log
+          cat quote-commercial.log
+          exit 0
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr290-quote-commercial-${{ github.run_id }}
+          path: quote-commercial.log
+          retention-days: 3
