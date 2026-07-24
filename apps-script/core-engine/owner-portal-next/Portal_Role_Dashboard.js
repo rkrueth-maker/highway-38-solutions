@@ -28,6 +28,11 @@ function h38PortalApplicationAssignedTasks_(access) {
 }
 
 function h38PortalApplicationApprovalCenter() {
+  if (typeof h38PortalNavigationCached_ === 'function') return h38PortalNavigationCached_('native:approval-center',10,h38PortalApplicationApprovalCenterUncached_,false);
+  return h38PortalApplicationApprovalCenterUncached_();
+}
+
+function h38PortalApplicationApprovalCenterUncached_() {
   var access = h38PortalRequireUnifiedUser_();
   if (access.ownerMode) {
     var control = h38PortalUxControlCenter();
@@ -48,6 +53,11 @@ function h38PortalApplicationApprovalCenter() {
 }
 
 function h38PortalApplicationCalendar() {
+  if (typeof h38PortalNavigationCached_ === 'function') return h38PortalNavigationCached_('native:calendar-center',60,h38PortalApplicationCalendarUncached_,false);
+  return h38PortalApplicationCalendarUncached_();
+}
+
+function h38PortalApplicationCalendarUncached_() {
   var access = h38PortalRequireUnifiedUser_();
   var events = [];
   function add(rows,type,idField,titleField,dateField,statusField,module) {
@@ -74,7 +84,7 @@ function h38PortalApplicationControlCenter() {
     var owner = h38PortalUxControlCenter();
     owner.userRole = access.role;
     owner.roleDashboard = 'Owner';
-    owner.calendar = h38PortalApplicationCalendar();
+    owner.calendar = {status:'DEFERRED',events:[],externalActionsOccurred:false};
     return owner;
   }
 
@@ -116,7 +126,7 @@ function h38PortalApplicationControlCenter() {
       growth:{summary:{leads:0,socialDrafts:0,advertisingPlans:0},leads:[],social:[],advertising:[]},
       website:{records:[]},
       systemHealth:{installed:{installed:true},catalog:{status:'Role access'},integrations:[],blockers:[],safety:{roleAware:true,selectedRecordOnly:true,liveExternalActions:false}},
-      calendar:h38PortalApplicationCalendar()
+      calendar:{status:'DEFERRED',events:[],externalActionsOccurred:false}
     },
     quickCreate:quickCreate,
     externalActionsOccurred:false
