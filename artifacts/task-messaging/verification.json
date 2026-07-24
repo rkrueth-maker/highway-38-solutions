@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-07-24T06:07:35.092Z",
-  "passed": 76,
+  "generatedAt": "2026-07-16T19:51:59.087Z",
+  "passed": 68,
   "failed": 0,
   "controls": {
     "providerNeutral": true,
@@ -15,8 +15,7 @@
     "unknownDeliveryRetryLock": true,
     "bulkMessaging": false,
     "automaticTriggers": false,
-    "credentialsInScriptProperties": true,
-    "deterministicUnifiedShell": true
+    "credentialsInScriptProperties": true
   },
   "passes": [
     {
@@ -48,23 +47,11 @@
       "detail": ""
     },
     {
-      "name": "file apps-script/business-office/BusinessOffice_ModuleContract.gs",
-      "detail": ""
-    },
-    {
       "name": "file apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js",
       "detail": ""
     },
     {
       "name": "file apps-script/core-engine/owner-portal-next/Portal_Index.html",
-      "detail": ""
-    },
-    {
-      "name": "file apps-script/unified-shell/Unified_AppShell.gs",
-      "detail": ""
-    },
-    {
-      "name": "file scripts/build-unified-apps-script-shell.js",
       "detail": ""
     },
     {
@@ -96,6 +83,10 @@
       "detail": ""
     },
     {
+      "name": "syntax Portal_TaskMessaging_Client.html",
+      "detail": ""
+    },
+    {
       "name": "syntax Portal_Business.js",
       "detail": ""
     },
@@ -108,19 +99,11 @@
       "detail": ""
     },
     {
-      "name": "syntax BusinessOffice_ModuleContract.gs",
-      "detail": ""
-    },
-    {
       "name": "syntax Portal_RawIncludes.js",
       "detail": ""
     },
     {
       "name": "syntax BusinessOffice_Pack.gs",
-      "detail": ""
-    },
-    {
-      "name": "syntax Unified_AppShell.gs",
       "detail": ""
     },
     {
@@ -248,7 +231,7 @@
       "detail": ""
     },
     {
-      "name": "My Work task view",
+      "name": "My Tasks view",
       "detail": ""
     },
     {
@@ -272,27 +255,15 @@
       "detail": ""
     },
     {
+      "name": "unified doGet uses authenticated Business Office user",
+      "detail": ""
+    },
+    {
       "name": "client fragment allowlisted and loaded",
       "detail": ""
     },
     {
-      "name": "combined shell authenticates every route",
-      "detail": ""
-    },
-    {
-      "name": "combined shell routes Business Office and Quote Builder",
-      "detail": ""
-    },
-    {
-      "name": "Quote Builder owns the quote capability when installed",
-      "detail": ""
-    },
-    {
-      "name": "deterministic builder removes duplicate entry and legacy auth bridge",
-      "detail": ""
-    },
-    {
-      "name": "existing Apps Script deployments updated with clasp 3",
+      "name": "existing Apps Script deployment updated",
       "detail": ""
     },
     {
@@ -300,11 +271,7 @@
       "detail": ""
     },
     {
-      "name": "deployment builds and remotely verifies unified shell",
-      "detail": ""
-    },
-    {
-      "name": "deployment blocks known authentication regressions",
+      "name": "deployment router supports unified users",
       "detail": ""
     },
     {
