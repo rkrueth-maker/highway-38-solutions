@@ -1,0 +1,56 @@
+name: Finalize PR 288 Source
+
+on:
+  push:
+    branches:
+      - agent/business-office-startup-performance
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-pr288-source
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/business-office-startup-performance
+          fetch-depth: 0
+      - name: Apply business-neutral contract heading and remove diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-change-governance.js
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('apps-script/business-office/BusinessOffice_ModuleContract.gs')
+          text=path.read_text(encoding='utf-8')
+          old=' * Canonical Highway 38 application module contract.'
+          new=' * Canonical unified Business Office application module contract.'
+          if text.count(old)!=1:
+              raise SystemExit('Module contract heading marker changed unexpectedly.')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
+          rm -f .github/workflows/diagnose-pr288.yml
+          rm -f .github/workflows/finalize-pr288-source.yml
+          node scripts/verify-change-governance.js
+          node scripts/verify-one-shot-ux.js
+          node scripts/verify-owner-business-office-ux.js
+          node scripts/verify-business-office-control-plane.js
+          node scripts/verify-reusable-business-office-contracts.js
+          git diff --check
+      - name: Commit source cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps-script/business-office/BusinessOffice_ModuleContract.gs \
+            .github/workflows/diagnose-pr288.yml \
+            .github/workflows/finalize-pr288-source.yml
+          git commit -m 'Align verification with unified architecture'
+          git push origin HEAD:agent/business-office-startup-performance
