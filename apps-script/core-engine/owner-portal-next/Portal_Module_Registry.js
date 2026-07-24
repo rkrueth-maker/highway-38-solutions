@@ -11,15 +11,15 @@ function h38PortalModuleRegistry_(quoteCapabilityOwner) {
   });
   (contract.modules||[]).forEach(function(item){
     if(item.visible!==true||!item.route||!groups[item.group])return;
-    var label=item.module==='quotes'&&quoteCapabilityOwner==='quoteBuilder'?'Quote Builder':item.label;
     groups[item.group].items.push({
       key:item.route,
-      label:label,
+      label:item.label,
       icon:item.icon||'',
       type:item.type==='business'?'business':'native',
       module:item.module,
       gate:item.gate,
       capability:item.capability||'',
+      capabilityOwner:item.module==='quotes'?(quoteCapabilityOwner||'legacyQuotes'):'',
       keywords:item.keywords||'',
       secondary:item.secondary===true,
       dependencies:(item.dependencies||[]).slice(),
