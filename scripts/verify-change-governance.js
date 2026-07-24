@@ -15,6 +15,10 @@ const required={
   agents:'AGENTS.md',
   governance:'docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md',
   appRules:'docs/architecture/UNIFIED_APP_CHANGE_RULES.md',
+  performanceStandard:'docs/architecture/MODULE_PERFORMANCE_STANDARD.md',
+  prTemplate:'.github/PULL_REQUEST_TEMPLATE.md',
+  appModuleIssueForm:'.github/ISSUE_TEMPLATE/app-module-change.yml',
+  performanceIssueForm:'.github/ISSUE_TEMPLATE/performance-regression.yml',
   websiteRules:'docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md',
   moduleContract:'apps-script/business-office/BusinessOffice_ModuleContract.gs',
   actionContract:'apps-script/business-office/BusinessOffice_ActionContract.gs',
@@ -36,6 +40,10 @@ if(failures.length===0){
   const agents=read(required.agents);
   const governance=read(required.governance);
   const appRules=read(required.appRules);
+  const performanceStandard=read(required.performanceStandard);
+  const prTemplate=read(required.prTemplate);
+  const appModuleIssueForm=read(required.appModuleIssueForm);
+  const performanceIssueForm=read(required.performanceIssueForm);
   const websiteRules=read(required.websiteRules);
   const pagesWorkflow=read(required.pagesWorkflow);
   const appWorkflow=read(required.appWorkflow);
@@ -56,6 +64,7 @@ if(failures.length===0){
   check('root rules identify canonical public shell',agents.includes('assets/js/h38-site-v2.js')&&agents.includes('assets/css/h38-site-v2.css'));
   check('root rules identify canonical image placement manifest',agents.includes('scripts/config/approved-public-image-placements.json'));
   check('root rules require governance verification',agents.includes('node scripts/verify-change-governance.js'));
+  check('root rules make performance a release requirement',agents.includes('Performance is a release requirement, not optional polish.'));
 
   ['Classify the change before editing','Required change intake','Adding to the public website','Adding to the authenticated web app','Deleting or retiring','Prohibited additions','Performance requirements','Mandatory verification','Deployment authority','Definition of done'].forEach(marker=>check(`governance section: ${marker}`,governance.includes(marker)));
   check('governance locks logo and image binaries',/logo and approved website image binaries are locked/i.test(governance));
@@ -69,6 +78,29 @@ if(failures.length===0){
   check('verification is scope aware',governance.includes('Verification is scope-aware')&&governance.includes('Public-only checks should not gate an authenticated-only change')&&governance.includes('Customer Portal checks must remain focused on the Customer Portal security boundary'));
   check('security and destructive controls remain fail closed',/security, destructive-action, data-integrity, and deployment checks fail-closed/.test(governance));
   check('fast checks run before expensive checks',/Fast structural and syntax checks run before expensive browser, image, deployment, or clean-install checks/.test(governance));
+
+  ['Performance is part of the design','Startup rules','Module loading rules','Data-read rules','Cache rules','Prefetch rules','Release targets','Required performance evidence','Required module intake form','Definition of done'].forEach(marker=>check(`performance standard section: ${marker}`,performanceStandard.includes(marker)));
+  check('performance standard protects one startup RPC',performanceStandard.includes('one browser-to-server startup RPC'));
+  check('performance standard requires bounded first loads',/no more than 50 visible records/.test(performanceStandard));
+  check('performance standard requires in-flight reuse',/reuse one in-flight promise/.test(performanceStandard));
+  check('performance standard requires stale-response protection',/older request cannot overwrite a newer click/.test(performanceStandard));
+  check('performance standard requires scoped cache and invalidation',performanceStandard.includes('user and business scope')&&performanceStandard.includes('all write actions that invalidate it'));
+  check('performance standard defines measurable targets',performanceStandard.includes('Cached or already-prefetched route')&&performanceStandard.includes('Ordinary first module load')&&performanceStandard.includes('New browser-to-server startup RPCs'));
+  check('performance standard requires cold and warm evidence',performanceStandard.includes('cold first-open timing')&&performanceStandard.includes('warm/cached timing'));
+
+  ['Scope classification','Canonical ownership','Architecture and safety','Performance design','Required performance checks','Measured evidence','Verification'].forEach(marker=>check(`PR template section: ${marker}`,prTemplate.includes(marker)));
+  check('PR template blocks startup RPC growth',prTemplate.includes('No new browser-to-server startup RPC was added.'));
+  check('PR template requires bounded reads',prTemplate.includes('Ordinary unfiltered list opens are bounded'));
+  check('PR template requires cache invalidation',prTemplate.includes('All affected writes invalidate browser and server caches.'));
+  check('PR template requires stale and previous-workspace behavior',prTemplate.includes('A stale response cannot overwrite a newer route selection.')&&prTemplate.includes('The previous workspace remains visible while the new route loads.'));
+  check('PR template requires measured cold and warm timings',prTemplate.includes('Cold route timings:')&&prTemplate.includes('Warm/cached route timings:'));
+
+  check('app module issue form references performance standard',appModuleIssueForm.includes('MODULE_PERFORMANCE_STANDARD.md'));
+  ['Requested outcome','Canonical ownership','Loading strategy','Normal first-load record limit','Data sources and expected reads','Cache plan','Cache invalidation','Prefetch and in-flight reuse','Performance targets and baseline','Verification plan'].forEach(marker=>check(`app module issue form field: ${marker}`,appModuleIssueForm.includes(marker)));
+  check('app module issue form requires stale-response and in-flight safeguards',appModuleIssueForm.includes('Older responses cannot overwrite a newer route selection.')&&appModuleIssueForm.includes('Repeated requests will reuse request-scoped data or one in-flight promise.'));
+
+  ['Production commit or deployment run','Exact route sequence','Measured timing','Observed symptoms','Recording, screenshots, console timing, or network evidence','Expected behavior','Data or external-action impact'].forEach(marker=>check(`performance issue form field: ${marker}`,performanceIssueForm.includes(marker)));
+  check('performance issue form requires cold and warm retest',performanceIssueForm.includes('cold startup')&&performanceIssueForm.includes('warm and cached behavior'));
 
   check('app rules reference governance verifier',appRules.includes('node scripts/verify-change-governance.js'));
   check('website rules reference governance verifier',websiteRules.includes('node scripts/verify-change-governance.js'));
@@ -84,6 +116,7 @@ if(failures.length===0){
 
   check('governance workflow runs on pull requests',/pull_request:/.test(governanceWorkflow));
   check('governance workflow watches canonical rule and contract files',['AGENTS.md','docs/architecture/**','BusinessOffice_ModuleContract.gs','BusinessOffice_ActionContract.gs','approved-public-image-placements.json','public-website-routes.json'].every(marker=>governanceWorkflow.includes(marker)));
+  check('governance workflow watches development forms',governanceWorkflow.includes('.github/PULL_REQUEST_TEMPLATE.md')&&governanceWorkflow.includes('.github/ISSUE_TEMPLATE/**'));
   check('governance workflow runs the verifier',governanceWorkflow.includes('node scripts/verify-change-governance.js'));
   check('Pages production workflow runs the website architecture verifier',pagesWorkflow.includes('node scripts/verify-public-website-architecture.js'));
   check('website architecture verifier runs governance first',websiteVerifier.includes('verify-change-governance.js'));
@@ -91,7 +124,7 @@ if(failures.length===0){
   check('app architecture verifier runs governance first',appVerifier.includes('verify-change-governance.js'));
 }
 
-const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),policy:'website-and-web-app-governance-v2-performance-reliability',passed:pass.length,failed:failures.length,pass,failures};
+const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),policy:'website-and-web-app-governance-v3-performance-development',passed:pass.length,failed:failures.length,pass,failures};
 const out=file('artifacts/change-governance');
 fs.mkdirSync(out,{recursive:true});
 fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify(evidence,null,2)+'\n');
