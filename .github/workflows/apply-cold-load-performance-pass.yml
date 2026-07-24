@@ -1,0 +1,75 @@
+name: Apply Cold Load Performance Pass
+
+on:
+  push:
+    branches:
+      - agent/cold-load-cache-prefetch-pass
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-cold-load-performance-pass
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.ref_name == 'agent/cold-load-cache-prefetch-pass'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/cold-load-cache-prefetch-pass
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply server-side cache and startup patches
+        run: python3 scripts/apply-cold-load-server-patches.py
+      - name: Run focused verification
+        run: |
+          node scripts/verify-cold-load-cache-prefetch.js
+          node scripts/verify-whole-navigation-performance.js
+          node scripts/verify-navigation-cache-performance.js
+          node scripts/audit-complete-navigation-and-settings.js
+          node scripts/verify-unified-app-architecture.js
+          node scripts/verify-unified-app-shell.js
+          node scripts/verify-owner-portal-next.js
+          node scripts/verify-business-office.js
+          node scripts/verify-unified-client-routing-runtime.js
+          node scripts/verify-quote-builder-business-office-routing.js
+          git diff --check
+      - name: Remove generated evidence and temporary patch files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          for path in \
+            artifacts/business-office/verification.json \
+            artifacts/task-messaging/verification.json; do
+            if git cat-file -e origin/main:"$path" 2>/dev/null; then git checkout origin/main -- "$path"; fi
+          done
+          rm -f artifacts/change-governance/verification.json
+          rm -f artifacts/product-architecture/verification.json
+          rm -f artifacts/reusable-business-office-contracts/verification.json
+          rm -f artifacts/task-messaging/hardening-verification.json
+          rm -f artifacts/unified-app-ux/verification.json
+          rm -f artifacts/unified-shell/assembly.json
+          rm -f artifacts/unified-shell/verification.json
+          rm -f artifacts/unified-source-assembly/verification.json
+          rm -f launch-control/evidence/unified-app-architecture-verification.json
+          rm -f scripts/apply-cold-load-server-patches.py
+          rm -f .github/workflows/apply-cold-load-performance-pass.yml
+          node scripts/verify-cold-load-cache-prefetch.js
+          git diff --check
+      - name: Commit completed performance pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Reduce startup and cold navigation latency'
+          git push origin HEAD:agent/cold-load-cache-prefetch-pass
