@@ -129,6 +129,29 @@ function h38PortalUnifiedBootstrap() {
   };
 }
 
+function h38PortalStartupBootstrapLite_(){
+  var access=h38PortalRequireUnifiedUser_();
+  if(!access.ownerMode){
+    var unified=h38PortalUnifiedBootstrap();
+    return {
+      release:(typeof H38_BO!=='undefined'?H38_BO.VERSION:'Unified')+' · Role workspace',
+      installed:{installed:true,reason:'Business Office role access is active.'},catalog:{status:'Role controlled'},
+      modules:unified.groups.reduce(function(list,group){return list.concat(group.items.map(function(item){return item.module;}));},[]),
+      fieldRole:typeof h38FieldRoleKnown_==='function'&&h38FieldRoleKnown_(access.role)?h38FieldRoleProfile_(access.role):null,
+      safety:{ownerOnly:false,roleAware:true,selectedRecordOnly:true,bulkExecution:false,automaticRetry:false,liveExternalActions:false,triggers:false},user:unified.user,dashboard:{deferred:true}
+    };
+  }
+  var installed=h38PortalInstalledStatus_();
+  var catalog=installed.installed?(typeof h38PortalNavigationCached_==='function'?h38PortalNavigationCached_('startup:catalog',90,function(){return h38PortalCatalogStatus_();},false):h38PortalCatalogStatus_()):{status:'HOLD'};
+  var integrations=typeof h38PortalNavigationCached_==='function'?h38PortalNavigationCached_('startup:integrations',90,function(){return h38PortalIntegrationStatus_();},false):h38PortalIntegrationStatus_();
+  return {
+    appName:H38_PORTAL_NEXT.APP_NAME,release:H38_PORTAL_NEXT.RELEASE,timezone:H38_PORTAL_NEXT.TIMEZONE,access:access,installed:installed,catalog:catalog,
+    modules:H38_PORTAL_NEXT.MODULES,statuses:H38_PORTAL_STATUS,expenseCategories:H38_PORTAL_EXPENSE_CATEGORIES,approvalMatrix:H38_PORTAL_APPROVAL_MATRIX,
+    integrations:integrations,dashboard:{deferred:true},
+    safety:{testMode:H38_PORTAL_NEXT.TEST_MODE,liveExternalActions:H38_PORTAL_NEXT.LIVE_EXTERNAL_ACTIONS_ENABLED,selectedRecordOnly:true,bulkExecution:false,triggers:false},timestamp:h38PortalNow_()
+  };
+}
+
 function h38PortalStartupPhase_(phases,name,callback){
   var started=Date.now();
   var value=callback();
@@ -142,12 +165,12 @@ function h38PortalStartupBundle(){
   var phases={};
   var payload={
     status:'PASS',
-    bootstrap:h38PortalStartupPhase_(phases,'bootstrap',function(){return h38PortalBootstrap();}),
+    bootstrap:h38PortalStartupPhase_(phases,'bootstrap',function(){return h38PortalStartupBootstrapLite_();}),
     schema:h38PortalStartupPhase_(phases,'schema',function(){return h38PortalClientSchema();}),
     experience:h38PortalStartupPhase_(phases,'experience',function(){return h38PortalUxControlCenter();}),
     savedViews:h38PortalStartupPhase_(phases,'savedViews',function(){return h38PortalSavedViews();}),
     unified:h38PortalStartupPhase_(phases,'unified',function(){return h38PortalUnifiedBootstrap();}),
-    performance:{rpcCount:1,serverElapsedMs:0,phaseMs:phases,payloadCharacters:0,secondaryModulesDeferred:true,schemaChecksDeferred:true,requestScopedReadCache:true}
+    performance:{rpcCount:1,serverElapsedMs:0,phaseMs:phases,payloadCharacters:0,secondaryModulesDeferred:true,schemaChecksDeferred:true,requestScopedReadCache:true,persistentNavigationCache:true,calendarDeferred:true,growthDeferred:true}
   };
   payload.performance.serverElapsedMs=Date.now()-started;
   payload.performance.payloadCharacters=JSON.stringify(payload).length;
