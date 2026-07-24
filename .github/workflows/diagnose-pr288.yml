@@ -1,0 +1,40 @@
+name: Diagnose PR 288
+
+on:
+  push:
+    branches:
+      - agent/business-office-startup-performance
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Capture focused verifier output
+        shell: bash
+        run: |
+          set +e
+          mkdir -p pr288-diagnostics
+          node scripts/verify-one-shot-ux.js > pr288-diagnostics/one-shot.log 2>&1
+          echo $? > pr288-diagnostics/one-shot.exit
+          node scripts/verify-reusable-business-office-contracts.js > pr288-diagnostics/reusable.log 2>&1
+          echo $? > pr288-diagnostics/reusable.exit
+          node scripts/verify-owner-business-office-ux.js > pr288-diagnostics/owner-business-ux.log 2>&1
+          echo $? > pr288-diagnostics/owner-business-ux.exit
+          node scripts/verify-business-office-control-plane.js > pr288-diagnostics/control-plane.log 2>&1
+          echo $? > pr288-diagnostics/control-plane.exit
+          python -m pytest -q > pr288-diagnostics/pytest.log 2>&1
+          echo $? > pr288-diagnostics/pytest.exit
+          find pr288-diagnostics -type f -maxdepth 1 -print -exec sh -c 'echo ---; tail -n 180 "$1"' _ {} \;
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr288-diagnostics-${{ github.run_id }}
+          path: pr288-diagnostics
+          retention-days: 7
