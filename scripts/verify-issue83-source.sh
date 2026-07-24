@@ -12,41 +12,24 @@ check_file_contains() {
   echo "PASS — $label"
 }
 
-check_file_contains index.html 'From photos to plans.' 'Homepage headline start'
-check_file_contains index.html 'profitable work.' 'Homepage headline completion'
-check_file_contains index.html 'h38-outcome-grid' 'Homepage outcome routing'
-check_file_contains index.html 'href="start-request.html">Start a Request' 'Homepage primary CTA'
-check_file_contains products.html 'Choose the smallest service that produces a useful result.' 'Solutions and Pricing customer-first headline'
-check_file_contains products.html '15 fixed-price services. 9 approved bundles. 4 scoped systems.' 'Approved catalog preservation'
-check_file_contains product.html 'data-product-detail-single' 'Product detail route'
-check_file_contains sample-library-now.html 'See the kind of finished result before choosing a service.' 'Project Examples headline'
+check_file_contains index.html 'Bring us the problem.' 'Homepage project-first headline'
+check_file_contains index.html 'complete project plan.' 'Homepage project-first completion'
+check_file_contains index.html 'See it. Scope it. Run it.' 'Homepage connected workflow'
+check_file_contains index.html 'href="start-request.html"' 'Homepage primary project request route'
+check_file_contains index.html 'href="sample-library-now.html"' 'Homepage project examples route'
+check_file_contains solutions.html 'Five connected capabilities' 'What We Do five-capability structure'
+check_file_contains solutions.html 'Automation &amp; Robotics' 'Automation capability'
+check_file_contains solutions.html 'CNC Machining &amp; Process Planning' 'CNC capability'
+check_file_contains solutions.html 'AI-Assisted Quote Builder' 'Quote Builder capability'
+check_file_contains sample-library-now.html 'Eight complete project demonstrations' 'Project Examples headline'
+check_file_contains sample-library-now.html 'Representative demonstrations.' 'Project Examples disclosure'
 check_file_contains sample-library-now.html 'data-samples="all"' 'Public examples compatibility marker'
-check_file_contains sample-library-now.html 'href="pricing.html">See Pricing' 'Direct pricing route'
-check_file_contains start-request.html 'What would you like to have when this is finished?' 'Request outcome prompt'
+check_file_contains start-request.html 'What result do you need?' 'Request outcome prompt'
 check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
 check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
-check_file_contains problem-starter.html 'The Highway 38 Problem Starter' 'Problem Starter resource'
-check_file_contains sample-library-now.html 'data-owner-link="true"' 'Owner Portal location control'
-check_file_contains product-detail.js 'product_detail_view' 'Product detail analytics marker'
-
-service_pages=(
-  automation-opportunity-planning.html
-  digital-file-cleanup-planning.html
-  fixture-jig-concept-review.html
-  garage-layout-planning.html
-  manufacturing-bottleneck-analysis.html
-  project-planning-packets.html
-  robot-tending-concept-planning.html
-  shop-layout-flow-review.html
-  small-business-workflow-cleanup.html
-  vision-inspection-concept-planning.html
-)
-
-for page in "${service_pages[@]}"; do
-  check_file_contains "$page" '<title>' "$page title"
-  slug="${page%.html}"
-  check_file_contains "$page" "data-service=\"$slug\"" "$page service binding"
-done
+check_file_contains portal.html 'Opening Highway 38 Business Office' 'Unified Owner gateway'
+check_file_contains assets/js/h38-site-v2.js "['Contact','contact.html']" 'Canonical contact route'
+check_file_contains assets/js/h38-site-v2.js "['Owner Access','portal.html']" 'Canonical Owner route'
 
 claim_matches=$(grep -Fl '25,000+ CNC programs' ./*.html || true)
 if [[ -n "$claim_matches" ]]; then
@@ -55,5 +38,4 @@ if [[ -n "$claim_matches" ]]; then
   exit 1
 fi
 echo 'PASS — prohibited CNC claim absent from public HTML'
-
-echo 'Issue #83 source verification passed.'
+echo 'Current project-first public source verification passed.'
