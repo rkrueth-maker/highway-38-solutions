@@ -33,6 +33,16 @@ jobs:
           python -m py_compile scripts/rebuild-ground-up-house-cad.py
       - name: Generate coordinated Revision F package
         run: python scripts/rebuild-ground-up-house-cad.py
+      - name: Normalize public cover to controlling ground-up scope
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('whole-house-quote-package.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<h1>Whole-House Renovation<br>& Property Improvement</h1>','<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>')
+          s=s.replace('Complete coordinated master proposal, 10-sheet professional CAD-style coordination drawing set, and fourteen independently printable trade quotes.','Complete ground-up new-home proposal, coordinated 10-sheet construction drawing set, and fourteen independently printable construction phase quotes.')
+          p.write_text(s,encoding='utf-8')
+          PY
       - name: Install SVG validators and renderer
         run: |
           sudo apt-get update -qq
