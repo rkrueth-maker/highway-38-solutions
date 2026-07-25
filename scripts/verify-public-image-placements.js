@@ -47,7 +47,9 @@ const legacyBrand=read('brand-global.js');
 const contractorCss=read('contractor-demo.css');
 const samplePage=read('sample-library-now.html');
 const contractorPage=read('contractor-quote-complete.html');
-const directFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before.webp','irrigation-after.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const cardDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.svg','irrigation-after-clean.svg','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const contractorDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before.webp','irrigation-after.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const allDirectFiles=[...new Set([...cardDirectFiles,...contractorDirectFiles])];
 
 check('canonical shell declares source lock',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(canonical));
 check('canonical shell does not assign content image sources',!/\.querySelectorAll\([^\n]*img[\s\S]{0,300}\.src\s*=/.test(canonical));
@@ -56,9 +58,11 @@ check('canonical shell has no fallback source mutation',!/onerror\s*=|setAttribu
 check('canonical shell optimizes loading without source changes',/img\.loading='lazy'/.test(canonical)&&/img\.decoding='async'/.test(canonical)&&/img\.fetchPriority='high'/.test(canonical));
 check('project compatibility loader contains no image logic',!/fallback|contractor-demo|approved-website-images|\.src\s*=\s*['"]assets\//.test(legacyProject));
 check('brand compatibility loader contains no image placement',!/representativeFigure|placeApprovedImages|addRepresentativeGroup|IMAGE_BASE|approved-website-images/.test(legacyBrand));
-check('six direct approved project images exist',directFiles.every(file=>fs.existsSync(path.join(root,'assets/demo-workthroughs',file))),directFiles.join(', '));
-check('sample cards reference all six direct files',directFiles.every(file=>samplePage.includes(`assets/demo-workthroughs/${file}`)),directFiles.join(', '));
-check('contractor example data references all six direct files',directFiles.every(file=>contractorPage.includes(file)),directFiles.join(', '));
+check('approved project card and quote images exist',allDirectFiles.every(file=>fs.existsSync(path.join(root,'assets/demo-workthroughs',file))),allDirectFiles.join(', '));
+check('sample cards reference all six approved card files',cardDirectFiles.every(file=>samplePage.includes(`assets/demo-workthroughs/${file}`)),cardDirectFiles.join(', '));
+check('contractor example data references all six approved quote files',contractorDirectFiles.every(file=>contractorPage.includes(file)),contractorDirectFiles.join(', '));
+check('same-house flower concept is the approved sample image',samplePage.includes('assets/contractor-demo/flower-after-same-house.svg')&&samplePage.includes('alt="Flower garden after at the same house"'));
+check('matched flower quote is linked from the sample card',samplePage.includes('href="flower-garden-quote-complete.html"')&&samplePage.includes('$3,950'));
 check('project CSS does not use remote backgrounds',!/background-image\s*:\s*url\(['"]?https?:\/\//i.test(contractorCss));
 check('project CSS does not use the retired strip or sprite',!/project-pairs-(?:strip|sprite)/.test(contractorCss));
 check('project CSS does not hide approved images',!/opacity\s*:\s*0/.test(contractorCss));
