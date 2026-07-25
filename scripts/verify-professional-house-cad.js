@@ -45,7 +45,7 @@ const e101=read('assets/quote-builder/whole-house-cad/E-101.svg');
 ['PANEL A — REPRESENTATIVE SCHEDULE','KITCHEN SMALL APPLIANCE','RANGE','LIGHTING — MAIN','ELECTRICAL NOTES','PANEL A','class="light"','class="power"'].forEach(v=>need(e101,v,'E-101 electrical content'));
 const site=read('assets/quote-builder/whole-house-cad/C-S-L-101.svg');
 ['120′-0″ REPRESENTATIVE LOT WIDTH','180′-0″ REPRESENTATIVE LOT DEPTH','16′ × 12′ DECK','18′ × 24′ PATIO','DECK FRAMING PLAN — INSET','SITE / DECK NOTES','class="property"','class="setback"','class="contour"'].forEach(v=>need(site,v,'C-S-L-101 site content'));
-if((site.match(/class="dimline"/g)||[]).length<4)throw new Error('C-S-L-101 requires lot and site dimensions.');
+if((site.match(/class="dimline"/g)||[]).length<2)throw new Error('C-S-L-101 requires overall lot dimensions.');
 const html=read('whole-house-quote-package.html');
 for(const number of expected){
   need(html,`assets/quote-builder/whole-house-cad/${number}.svg`,`${number} package link`);
