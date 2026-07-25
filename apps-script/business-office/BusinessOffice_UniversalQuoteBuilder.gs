@@ -231,7 +231,7 @@ function boUniversalQuoteCalculate(payload){
   return {status:'PASS',version:H38_UQB.VERSION,lines:priced,subtotal:subtotal,taxRate:taxRate,tax:tax,discount:discount,total:total,deterministic:true,auditable:true,externalActionsPerformed:false};
 }
 
-function boUniversalPrepareHouseDemonstration(runKey){
+function boUniversalPrepareHouseDemonstrationPreview_(runKey){
   var owner=boRequireOwner_();
   var key=boUniversalRunKey_(runKey),house=boUniversalHouseDemo_();
   var runId=house.marker+'-'+key;
