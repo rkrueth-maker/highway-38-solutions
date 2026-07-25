@@ -1,0 +1,27 @@
+name: Complete House Quote Package
+on:
+  pull_request:
+    paths:
+      - 'whole-house-quote-package.html'
+      - 'quote-builder-sample-proposal.html'
+      - 'scripts/config/public-website-routes.json'
+      - 'scripts/verify-complete-house-quote-package.js'
+      - '.github/workflows/verify-complete-house-quote-package.yml'
+  push:
+    branches: [agent/complete-house-drawings-subquotes]
+    paths:
+      - 'whole-house-quote-package.html'
+      - 'quote-builder-sample-proposal.html'
+      - 'scripts/config/public-website-routes.json'
+      - 'scripts/verify-complete-house-quote-package.js'
+      - '.github/workflows/verify-complete-house-quote-package.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify drawings and full quotes
+        run: node scripts/verify-complete-house-quote-package.js
