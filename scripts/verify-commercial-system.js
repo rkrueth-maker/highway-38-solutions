@@ -46,7 +46,7 @@ check('pricing requires scope and price approval before implementation',pricing.
 const samples=read('sample-library-now.html');
 check('Project Examples contains eight complete examples',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
 check('Project Examples preserves representative disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
-const exactExampleImages=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before.webp','irrigation-after.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const exactExampleImages=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
 check('deck irrigation and kitchen use six direct approved files',exactExampleImages.every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com')&&!samples.includes('background-image'));
 check('cabin example includes plan and finished concept',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
 

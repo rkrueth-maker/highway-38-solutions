@@ -48,7 +48,7 @@ const contractorCss=read('contractor-demo.css');
 const samplePage=read('sample-library-now.html');
 const contractorPage=read('contractor-quote-complete.html');
 const cardDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
-const contractorDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before.webp','irrigation-after.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const contractorDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
 const allDirectFiles=[...new Set([...cardDirectFiles,...contractorDirectFiles])];
 
 check('canonical shell declares source lock',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(canonical));
