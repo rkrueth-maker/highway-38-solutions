@@ -1,7 +1,7 @@
 name: Visual quality repair
 on:
   push:
-    branches: [repair/visual-quality-gate]
+    branches: [main]
     paths: ['.github/workflows/visual-quality-repair.yml']
 permissions:
   contents: write
