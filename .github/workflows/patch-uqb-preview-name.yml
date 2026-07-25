@@ -1,0 +1,34 @@
+name: Patch UQB Preview Function Name
+on:
+  push:
+    branches: [agent/complete-universal-quote-builder]
+    paths: ['.github/workflows/patch-uqb-preview-name.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/complete-universal-quote-builder
+      - name: Rename demo-only preview and remove patch workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs')
+          text=p.read_text()
+          old='function boUniversalPrepareHouseDemonstration(runKey){'
+          new='function boUniversalPrepareHouseDemonstrationPreview_(runKey){'
+          if text.count(old)!=1:
+              raise SystemExit('Expected exactly one demo-only function to rename')
+          p.write_text(text.replace(old,new,1))
+          PY
+          git rm .github/workflows/patch-uqb-preview-name.yml
+          git add apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Separate demo preview from persistent house generator'
+          git push origin HEAD:agent/complete-universal-quote-builder
