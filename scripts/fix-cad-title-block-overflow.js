@@ -6,8 +6,8 @@ const root=path.resolve(__dirname,'..','assets','quote-builder','whole-house-cad
 const replacements={
   'A-101.svg':'Detailed Main-Floor Plan',
   'A-201.svg':'Exterior Elevations — Four Views',
-  'A-301.svg':'Building Sections & Details',
-  'A-401.svg':'Kitchen Plan & Elevations'
+  'A-301.svg':'Building Sections &amp; Details',
+  'A-401.svg':'Kitchen Plan &amp; Elevations'
 };
 for(const [name,title] of Object.entries(replacements)){
   const file=path.join(root,name);
@@ -17,4 +17,4 @@ for(const [name,title] of Object.entries(replacements)){
   svg=svg.replace(pattern,`$1${title}$2`);
   fs.writeFileSync(file,svg,'utf8');
 }
-console.log('Shortened architectural title-block captions to prevent revision-column overlap.');
+console.log('Shortened and XML-encoded architectural title-block captions.');
