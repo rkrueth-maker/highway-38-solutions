@@ -30,4 +30,18 @@ jobs:
         with:
           node-version: 24
       - name: Verify professional drawings and full quotes
-        run: node scripts/verify-complete-house-quote-package.js
+        id: cad_verify
+        continue-on-error: true
+        run: node scripts/verify-complete-house-quote-package.js > cad-verifier.log 2>&1
+      - name: Upload CAD verification diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: professional-cad-verifier
+          path: cad-verifier.log
+          if-no-files-found: error
+      - name: Enforce CAD verification result
+        if: steps.cad_verify.outcome != 'success'
+        run: |
+          cat cad-verifier.log
+          exit 1
