@@ -63,7 +63,7 @@ Agent outputs remain proposals until the configured approval level is satisfied.
 
 Each run prepares one project, one master proposal, fourteen trade sub-quotes, ten drawing-register entries, six subcontractor bid packages, and no customer send, purchasing, payment, scheduling, or other external action.
 
-The public demonstration is `universal-quote-builder.html`.
+The public demonstration is `universal-quote-builder.html`. The public examples index reports the same verified product counts: five levels, eighteen scenarios, and 34 pricing methods.
 
 ## Verification
 
