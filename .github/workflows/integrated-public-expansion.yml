@@ -8,11 +8,16 @@ on:
       - 'sample-library-now.html'
       - 'solutions.html'
       - 'pricing.html'
+      - 'pricing-data.js'
+      - 'quote-builder.html'
+      - 'business-systems.html'
+      - 'cabin-project-complete.html'
       - 'about.html'
       - 'contact.html'
       - 'start-request.html'
       - 'portal.html'
       - 'assets/js/h38-site-v2.js'
+      - 'assets/js/h38-request-options.js'
       - 'assets/css/h38-site-v2.css'
       - 'assets/contractor-demo/**'
       - 'assets/demo-workthroughs/**'
@@ -22,6 +27,7 @@ on:
       - 'supabase/migrations/**'
       - 'scripts/verify-public-expansion.js'
       - 'scripts/verify-commercial-system.js'
+      - 'scripts/verify-final-pricing-and-cabin.js'
       - 'scripts/verify-commercial-browser.js'
       - 'scripts/browser-commercial-smoke.sh'
       - 'scripts/capture-project-example-images.js'
@@ -65,6 +71,7 @@ jobs:
           node scripts/verify-one-shot-ux.js
           node scripts/verify-public-expansion.js
           node scripts/verify-commercial-system.js
+          node scripts/verify-final-pricing-and-cabin.js
           node scripts/verify-public-website-architecture.js
           node scripts/verify-customer-portal-supabase.js
 
@@ -86,9 +93,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Install rendered-image verifier
         run: python3 -m pip install --disable-pip-version-check pillow
-      - name: Verify project-first browser behavior
+      - name: Verify public browser behavior
         run: node scripts/verify-commercial-browser.js
-      - name: Verify focused shell screenshots and examples
+      - name: Verify focused shell, pricing, cabin, and examples
         run: bash scripts/browser-commercial-smoke.sh
       - name: Capture every Project Examples image
         run: node scripts/capture-project-example-images.js
@@ -101,6 +108,7 @@ jobs:
           name: public-regression-${{ github.run_id }}
           path: |
             artifacts/commercial-system/verification.json
+            artifacts/final-pricing-cabin/verification.json
             artifacts/change-governance/verification.json
             launch-control/evidence/customer-portal-supabase-verification.json
             browser-artifacts/
