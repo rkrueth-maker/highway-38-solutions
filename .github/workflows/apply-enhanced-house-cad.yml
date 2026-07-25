@@ -4,6 +4,7 @@ on:
     branches: [agent/professional-cad-rebuild]
     paths:
       - 'scripts/enhance-professional-house-cad.js'
+      - 'scripts/normalize-house-cad-revision-e.js'
       - '.github/workflows/apply-enhanced-house-cad.yml'
   workflow_dispatch:
 permissions:
@@ -21,9 +22,12 @@ jobs:
           node-version: 24
       - name: Enhance key architectural CAD sheets
         run: node scripts/enhance-professional-house-cad.js
+      - name: Normalize complete CAD set revision
+        run: node scripts/normalize-house-cad-revision-e.js
       - name: Verify enhanced source markers
         run: |
-          grep -q 'REV E' assets/quote-builder/whole-house-cad/A-101.svg
+          test "$(find assets/quote-builder/whole-house-cad -maxdepth 1 -name '*.svg' | wc -l)" -eq 10
+          test "$(grep -l 'REV E' assets/quote-builder/whole-house-cad/*.svg | wc -l)" -eq 10
           grep -q 'COVERED FRONT PORCH' assets/quote-builder/whole-house-cad/A-101.svg
           grep -q 'SOUTH / FRONT ELEVATION' assets/quote-builder/whole-house-cad/A-201.svg
           grep -q 'DETAIL 3 — DECK LEDGER' assets/quote-builder/whole-house-cad/A-301.svg
@@ -32,10 +36,10 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add whole-house-quote-package.html assets/quote-builder/whole-house-cad/A-101.svg assets/quote-builder/whole-house-cad/A-201.svg assets/quote-builder/whole-house-cad/A-301.svg assets/quote-builder/whole-house-cad/A-401.svg
+          git add whole-house-quote-package.html assets/quote-builder/whole-house-cad
           if git diff --cached --quiet; then
             echo 'No enhanced drawing changes.'
           else
-            git commit -m 'Enhance architectural CAD sheets to revision E'
+            git commit -m 'Enhance architectural CAD set to revision E'
             git push origin HEAD:agent/professional-cad-rebuild
           fi
