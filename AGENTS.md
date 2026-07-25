@@ -204,3 +204,12 @@ Consult these before application, image-heavy, website, or deployment work:
 - `docs/CHATGPT_HANDOFF_DEPLOY_PHOTOS_2026-07-06.md`
 
 Treat older docs as process references only. The current contracts, manifests, repository binaries, current `main`, and verified live deployment are the technical source of truth.
+
+
+## Visual Change Release Gate
+
+- Follow `docs/public-website/VISUAL_RELEASE_STANDARD.md` for every visual, image, layout, or UI change.
+- Do not commit visual changes directly to `main`; use one controlled branch and one integrated pull request.
+- Photographic project images must be direct PNG, JPEG, or WebP files. SVG photo wrappers are prohibited.
+- PR and live checks capture desktop, mobile, and per-image screenshots and reject blank or mismatched pixels.
+- Automated deployment status is technical verification only. Never claim Rick accepted the visual result until he explicitly reviews and accepts it.

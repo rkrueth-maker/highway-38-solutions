@@ -146,3 +146,12 @@ A public website change is complete only when:
 - all required verifiers pass;
 - the exact commit is verified on GitHub Pages;
 - the approved logo and approved content images are unchanged.
+
+
+## 10. Rendered visual acceptance
+
+1. Visual changes use a branch and pull request; direct-main visual changes are prohibited.
+2. Project photographs use direct PNG, JPEG, or WebP files. SVG photo wrappers are prohibited.
+3. Verification inspects rendered pixels, not only paths, signatures, HTTP responses, or screenshot-file existence.
+4. Full-page desktop/mobile and per-image evidence are required before merge and after deployment.
+5. Automation records technical verification only. Rick explicit review is required before visual acceptance is claimed.

@@ -214,3 +214,8 @@ A website or web-app addition or change is done only when:
 - governance and scope-relevant verification pass;
 - the accepted workflow deploys the exact commit;
 - live verification confirms the intended result.
+
+
+## 12. Visual release gate
+
+All public visual changes use one controlled branch and one integrated pull request. Project photographs use direct raster files, not SVG wrappers. PR and production checks inspect rendered pixels at desktop and mobile sizes. A technical pass is not owner visual acceptance. See `docs/public-website/VISUAL_RELEASE_STANDARD.md`.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policyVersion": "2026-07-24-deck-kitchen-favicon-repair-v1",
+  "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
   "logo": {
     "path": "assets/highway38-logo.png",
     "cacheKey": "20260720-exact-0cbc4514",
@@ -20,9 +20,12 @@
       "clearly-unrelated-to-section"
     ],
     "requirements": [
-      "preserve-the-same-binary",
+      "owner-directed-visual-change-or-objective-placement-defect",
+      "one-controlled-branch-and-one-integrated-pull-request",
+      "direct-raster-files-for-photographic-project-images",
       "record-page-section-old-placement-new-placement-and-reason",
-      "update-this-manifest-and-verifier-in-the-same-change"
+      "update-page-manifest-verifier-browser-checks-and-live-checks-together",
+      "capture-desktop-mobile-and-per-image-render-evidence"
     ]
   },
   "placementChanges": [
@@ -52,6 +55,15 @@
       "newPlacement": "Label-free normalized WebP derivatives with page-owned honest labels; public pages use the exact approved mountain-and-road logo as the favicon",
       "reason": "Owner-directed repair after live review identified duplicate image labels, inconsistent concept presentation, and the wrong browser-tab icon",
       "binaryPolicy": "Original source images remain for rollback. New derivatives preserve the underlying scenes and remove only the labeled top edge. The favicon references the exact approved assets/highway38-logo.png binary."
+    },
+    {
+      "date": "2026-07-24",
+      "page": "sample-library-now.html, flower-garden-quote-complete.html, and contractor-quote-complete.html",
+      "section": "Flower garden and four-zone irrigation before/after visuals",
+      "oldPlacement": "SVG photo wrappers and a drawn flower concept that could pass path checks while rendering blank or visually incorrect",
+      "newPlacement": "Direct WebP files with the same-house flower scene and label-free irrigation photographs",
+      "reason": "Owner-directed repair after live Chrome review showed a cartoon flower concept and blank irrigation panels despite technical PASS",
+      "binaryPolicy": "Raster derivatives were generated from repository source images. The flower preserves the existing-house upper scene; irrigation removes only the embedded label edge. Original sources remain for rollback."
     }
   ],
   "pages": {
@@ -161,8 +173,8 @@
       },
       {
         "role": "example-01-after",
-        "src": "assets/contractor-demo/flower-after.png",
-        "alt": "Flower garden after"
+        "src": "assets/contractor-demo/flower-after-same-house.webp",
+        "alt": "Flower garden after at the same house"
       },
       {
         "role": "example-02-before",
@@ -206,12 +218,12 @@
       },
       {
         "role": "example-06-before",
-        "src": "assets/demo-workthroughs/irrigation-before.webp",
+        "src": "assets/demo-workthroughs/irrigation-before-clean.webp",
         "alt": "Irrigation before"
       },
       {
         "role": "example-06-after",
-        "src": "assets/demo-workthroughs/irrigation-after.webp",
+        "src": "assets/demo-workthroughs/irrigation-after-clean.webp",
         "alt": "Irrigation after"
       },
       {
@@ -276,7 +288,7 @@
       "examples": {
         "flower": [
           "flower-before.png",
-          "flower-after.png"
+          "flower-after-same-house.webp"
         ],
         "drive": [
           "driveway-before.jpg",
@@ -295,8 +307,8 @@
           "deck-finished-concept.webp"
         ],
         "irrigation": [
-          "irrigation-before.webp",
-          "irrigation-after.webp"
+          "irrigation-before-clean.webp",
+          "irrigation-after-clean.webp"
         ],
         "kitchen": [
           "kitchen-existing-condition.webp",
