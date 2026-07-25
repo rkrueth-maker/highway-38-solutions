@@ -9,6 +9,7 @@ on:
       - '.github/workflows/business-office-production-v2.yml'
       - '.github/workflows/business-office-production-repair.yml'
       - 'scripts/deploy-unified-owner-portal-web.sh'
+      - 'scripts/verify-final-pricing-and-cabin.js'
       - 'portal.html'
       - 'customer-portal.html'
       - 'customer-portal-config.js'
@@ -36,6 +37,9 @@ on:
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
       - 'business-packs/highway38/**'
+      - 'pricing.html'
+      - 'pricing-data.js'
+      - 'cabin-project-complete.html'
   workflow_dispatch:
 
 permissions:
@@ -49,7 +53,7 @@ concurrency:
 jobs:
   deploy-and-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
@@ -71,7 +75,7 @@ jobs:
         id: start
         shell: bash
         run: |
-          BODY="Unified Highway 38 Business System production deployment started for commit ${GITHUB_SHA}. Existing Apps Script project and deployment IDs will be updated in place only after source, authentication, routing, approval, and remote-source checks pass. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Unified Highway 38 Business System production deployment started for commit ${GITHUB_SHA}. Existing Apps Script project and deployment IDs will be updated in place only after source, authentication, routing, approval, pricing, Cabin Demo 08, and remote-source checks pass. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
           STATUS="$RUNNER_TEMP/unified-owner-portal-running.md"
           cat > "$STATUS" <<EOF
@@ -80,6 +84,7 @@ jobs:
           - Source commit: ${GITHUB_SHA}
           - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           - Target: existing Apps Script project and existing deployment IDs only
+          - Cabin Demo 08 target: one master quote plus 21 linked sub-quotes across all relevant tables
           - New project or deployment: none
           - External actions: locked
           EOF
@@ -133,13 +138,14 @@ jobs:
         id: hard_rules
         run: node scripts/verify-owner-portal-hard-rule.js
 
-      - name: Verify focused Business Office, Quote Builder, and runtime controls
+      - name: Verify focused Business Office, Quote Builder, pricing, Cabin Demo 08, and runtime controls
         id: business_office
         shell: bash
         run: |
           set -euo pipefail
           node scripts/verify-unified-app-architecture.js
           node scripts/verify-business-office.js
+          node scripts/verify-final-pricing-and-cabin.js
           node scripts/verify-business-office-runtime-helpers.js
           node scripts/verify-unified-client-routing-runtime.js
           node scripts/verify-task-messaging-hardening.js
@@ -197,6 +203,41 @@ jobs:
         shell: bash
         run: bash scripts/deploy-unified-owner-portal-web.sh
 
+      - name: Generate and verify all Cabin Demo 08 system records
+        id: cabin_seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT_ID="$(node -e "const d=require('./business-packs/highway38/deployment.json'); process.stdout.write(d.appsScript.productionProjectId)")"
+          WORK="$RUNNER_TEMP/cabin-demo08-production"
+          mkdir -p "$WORK" artifacts/cabin-demo08
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
+          cd "$WORK"
+          "$H38_CLASP_DIR/node_modules/.bin/clasp" run boGenerateAllCabinSubquotes --params '[]' 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/cabin-demo08/production-generation.txt"
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          text=Path('artifacts/cabin-demo08/production-generation.txt').read_text()
+          compact=' '.join(text.split())
+          required=[
+            ('status PASS',r'"status"\s*:\s*"PASS"|status[^A-Za-z0-9]+PASS'),
+            ('21 subquotes',r'"subquoteCount"\s*:\s*21|subquoteCount[^0-9]+21'),
+            ('21 PDFs',r'"pdfCount"\s*:\s*21|pdfCount[^0-9]+21'),
+            ('22 quote records',r'"quoteRecordCount"\s*:\s*22|quoteRecordCount[^0-9]+22'),
+            ('22 approvals',r'"approvalCount"\s*:\s*22|approvalCount[^0-9]+22'),
+            ('21 work orders',r'"workOrderCount"\s*:\s*21|workOrderCount[^0-9]+21'),
+            ('21 purchase orders',r'"purchaseOrderCount"\s*:\s*21|purchaseOrderCount[^0-9]+21'),
+            ('21 proof records',r'"proofCount"\s*:\s*21|proofCount[^0-9]+21'),
+            ('no external actions',r'"externalActionsPerformed"\s*:\s*false|externalActionsPerformed[^A-Za-z]+false')
+          ]
+          missing=[label for label,pattern in required if not re.search(pattern,compact,re.I)]
+          report={'status':'HOLD' if missing else 'PASS','checks':[label for label,_ in required],'missing':missing,'source':'production clasp run'}
+          Path('artifacts/cabin-demo08/verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if missing: raise SystemExit('Incomplete Cabin Demo 08 production generation: '+', '.join(missing))
+          PY
+
       - name: Upload deployment and rollback evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -206,6 +247,8 @@ jobs:
             artifacts/unified-owner-portal/
             artifacts/owner-portal-routing/
             artifacts/business-office/
+            artifacts/final-pricing-cabin/
+            artifacts/cabin-demo08/
             artifacts/unified-app-ux/
             artifacts/photo-first-record-creation/
             artifacts/task-messaging/
@@ -227,6 +270,9 @@ jobs:
           - Public gateway: https://rkrueth-maker.github.io/highway-38-solutions/portal.html
           - Owner experience: one authenticated application and one adaptive navigation system
           - Current Owner Portal and Business Office acceptance: PASS
+          - Final approved pricing contract: PASS
+          - Cabin Demo 08: master project plus all 21 sub-quotes generated and linked across quotes, approvals, work orders, purchase planning, documents, proof, activity, and backup records
+          - Cabin PDFs: master package plus 21 package PDFs
           - Quote Builder camera and private quote attachment controls: PASS
           - Current task and messaging hardening: PASS
           - Customer Portal RLS, account mapping, private storage, signed downloads, and version-checked quote approval: PASS
@@ -256,6 +302,7 @@ jobs:
           [[ "$BLOCKER" != "unknown" || "${{ steps.install_clasp.outcome }}" == "success" ]] || BLOCKER="install_clasp"
           [[ "$BLOCKER" != "unknown" || "${{ steps.credential.outcome }}" == "success" ]] || BLOCKER="credential"
           [[ "$BLOCKER" != "unknown" || "${{ steps.deploy.outcome }}" == "success" ]] || BLOCKER="deploy"
+          [[ "$BLOCKER" != "unknown" || "${{ steps.cabin_seed.outcome }}" == "success" ]] || BLOCKER="cabin_seed"
           REPORT="$RUNNER_TEMP/unified-owner-portal-hold.md"
           {
             echo "## HOLD — Unified Owner Portal production deployment"
@@ -264,7 +311,7 @@ jobs:
             echo "- Blocker: ${BLOCKER}"
             echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "- New project or deployment: none"
-            echo "- Existing live deployment left unchanged"
+            echo "- Existing live deployment left unchanged unless deployment completed before Cabin Demo verification"
             echo
             echo "### Stage outcomes"
             echo
@@ -279,6 +326,7 @@ jobs:
             echo "install_clasp=${{ steps.install_clasp.outcome }}"
             echo "credential=${{ steps.credential.outcome }}"
             echo "deploy=${{ steps.deploy.outcome }}"
+            echo "cabin_seed=${{ steps.cabin_seed.outcome }}"
             echo '```'
             echo
             echo "### Deployment evidence tail"
@@ -293,12 +341,14 @@ jobs:
               artifacts/unified-owner-portal/deployments-after.txt \
               artifacts/unified-owner-portal/owner-http-status.txt \
               artifacts/unified-owner-portal/business-http-status.txt \
-              artifacts/unified-owner-portal/quote-builder-http-status.txt; do
+              artifacts/unified-owner-portal/quote-builder-http-status.txt \
+              artifacts/cabin-demo08/production-generation.txt \
+              artifacts/cabin-demo08/verification.json; do
               if [[ -f "$file" ]]; then
                 echo
                 echo "#### $(basename "$file")"
                 echo '```text'
-                tail -n 20 "$file"
+                tail -n 30 "$file"
                 echo '```'
               fi
             done
