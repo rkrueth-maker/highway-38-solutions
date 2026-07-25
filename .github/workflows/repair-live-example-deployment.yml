@@ -80,7 +80,7 @@ jobs:
           pages = pages_path.read_text()
           replacements = {
               'deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp': 'deck-existing-condition.webp deck-finished-concept.webp irrigation-before-clean.svg irrigation-after-clean.svg kitchen-existing-condition.webp kitchen-remodel-concept.webp',
-              "&& grep -Fq 'assets/demo-workthroughs/irrigation-after.webp' <<<\"$examples\" \\": "&& grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' <<<\"$examples\" \\\n              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' <<<\"$examples\" \\",
+              "&& grep -Fq 'assets/demo-workthroughs/irrigation-after.webp' <<<\"$examples\" \": "&& grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' <<<\"$examples\" \\\n              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' <<<\"$examples\" \",
           }
           for old, new in replacements.items():
               if old not in pages:
@@ -125,3 +125,5 @@ jobs:
         run: |
           set -euo pipefail
           gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+# trigger existing workflow on default branch
