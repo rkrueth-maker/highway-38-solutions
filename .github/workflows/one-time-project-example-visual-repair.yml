@@ -1,0 +1,69 @@
+name: One-time Project Examples raster generator
+
+on:
+  push:
+    branches:
+      - fix/project-example-visual-gate-20260724
+    paths:
+      - .github/workflows/one-time-project-example-visual-repair.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/project-example-visual-gate-20260724
+          fetch-depth: 0
+      - run: python3 -m pip install --disable-pip-version-check pillow
+      - name: Generate direct WebP project visuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageEnhance, ImageFilter
+
+          root=Path('.')
+          def fit(image,size=(1200,675)):
+              image=image.convert('RGB'); w,h=image.size; target=16/9
+              if w/h>target:
+                  nw=round(h*target); left=(w-nw)//2; image=image.crop((left,0,left+nw,h))
+              elif w/h<target:
+                  nh=round(w/target); top=(h-nh)//2; image=image.crop((0,top,w,top+nh))
+              return image.resize(size,Image.Resampling.LANCZOS)
+
+          before=Image.open(root/'assets/contractor-demo/flower-before.png').convert('RGB')
+          source=Image.open(root/'assets/contractor-demo/flower-after.png').convert('RGB')
+          before=fit(before.crop((0,round(before.height*.18),before.width,before.height)))
+          source=fit(source.crop((0,round(source.height*.18),source.width,source.height)))
+          mask=Image.new('L',before.size,0); px=mask.load(); start=round(before.height*.31); end=round(before.height*.54)
+          for y in range(before.height):
+              value=0 if y<=start else 255 if y>=end else round(255*(y-start)/(end-start))
+              for x in range(before.width): px[x,y]=value
+          flower=Image.composite(source,before,mask.filter(ImageFilter.GaussianBlur(18)))
+          flower=ImageEnhance.Sharpness(ImageEnhance.Contrast(flower).enhance(1.03)).enhance(1.18)
+          flower.save(root/'assets/contractor-demo/flower-after-same-house.webp','WEBP',quality=92,method=6)
+
+          for src,dst in [('irrigation-before.webp','irrigation-before-clean.webp'),('irrigation-after.webp','irrigation-after-clean.webp')]:
+              image=Image.open(root/'assets/demo-workthroughs'/src).convert('RGB')
+              image=image.crop((0,round(image.height*.145),image.width,image.height)).resize((1200,675),Image.Resampling.LANCZOS)
+              image=ImageEnhance.Sharpness(ImageEnhance.Contrast(image).enhance(1.02)).enhance(1.12)
+              image.save(root/'assets/demo-workthroughs'/dst,'WEBP',quality=92,method=6)
+          PY
+          rm -f assets/contractor-demo/flower-after-same-house.svg
+          rm -f assets/demo-workthroughs/irrigation-before-clean.svg assets/demo-workthroughs/irrigation-after-clean.svg
+          rm -f .github/workflows/one-time-project-example-visual-repair.yml
+      - name: Commit raster assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Replace broken SVG photo wrappers with direct WebP visuals'
+          git push origin HEAD:fix/project-example-visual-gate-20260724
