@@ -117,10 +117,15 @@ jobs:
           grep -Fq 'Eight complete project demonstrations' _site/sample-library-now.html
           grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' _site/sample-library-now.html
           grep -Fq "contractor-demo.css?v=${short_sha}" _site/sample-library-now.html
-          for image in deck-before.webp deck-after.webp irrigation-before.webp irrigation-after.webp kitchen-before.webp kitchen-after.webp; do
+          for image in deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
             grep -Fq "assets/demo-workthroughs/${image}" _site/sample-library-now.html
             test -f "_site/assets/demo-workthroughs/${image}"
           done
+          grep -Fq 'Existing Site' _site/sample-library-now.html
+          grep -Fq 'Finished Concept' _site/sample-library-now.html
+          grep -Fq 'Existing Kitchen' _site/sample-library-now.html
+          grep -Fq 'Remodel Concept' _site/sample-library-now.html
+          grep -Fq 'assets/highway38-logo.png?v=20260720-exact-0cbc4514' _site/sample-library-now.html
           ! grep -Eq 'project-pairs-(strip|sprite)' _site/contractor-demo.css _site/sample-library-now.html
           ! grep -Eq 'opacity:[[:space:]]*0' _site/contractor-demo.css
           grep -Fq 'background-image:none' _site/contractor-demo.css
@@ -177,9 +182,16 @@ jobs:
               && grep -Fq 'Eight complete project demonstrations' <<<"$examples" \
               && grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' <<<"$examples" \
               && grep -Fq "contractor-demo.css?v=${short_sha}" <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/deck-before.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/deck-existing-condition.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/deck-finished-concept.webp' <<<"$examples" \
               && grep -Fq 'assets/demo-workthroughs/irrigation-after.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/kitchen-after.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/kitchen-existing-condition.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/kitchen-remodel-concept.webp' <<<"$examples" \
+              && grep -Fq 'Existing Site' <<<"$examples" \
+              && grep -Fq 'Finished Concept' <<<"$examples" \
+              && grep -Fq 'Existing Kitchen' <<<"$examples" \
+              && grep -Fq 'Remodel Concept' <<<"$examples" \
+              && grep -Fq 'assets/highway38-logo.png?v=20260720-exact-0cbc4514' <<<"$examples" \
               && grep -Fq 'background-image:none' <<<"$demo_css" \
               && grep -Fq 'opacity:1' <<<"$demo_css" \
               && ! grep -Eq 'project-pairs-(strip|sprite)|opacity:[[:space:]]*0' <<<"$demo_css" \
@@ -208,7 +220,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          body="PASS — GitHub Pages is serving commit ${GITHUB_SHA}. The seven primary customer pages use one canonical shell; the live request page uses one bundled stylesheet, one focused options controller, and one secure submit flow. Exact approved images and logo are unchanged. Deck, irrigation, and kitchen use their six direct approved files with no sprite or remote fallback. Retired catalog/tool routes remain lightweight redirects. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body="PASS — GitHub Pages is serving commit ${GITHUB_SHA}. The seven primary customer pages use one canonical shell; the live request page uses one bundled stylesheet, one focused options controller, and one secure submit flow. Deck and kitchen use repaired label-free local derivatives with honest page-owned labels, irrigation remains unchanged, and the browser favicon uses the exact approved Highway 38 Solutions logo. Original deck and kitchen source files remain for rollback. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — PASS' --body "$body"
           gh issue close 284 --repo "$GITHUB_REPOSITORY" --reason completed
 
