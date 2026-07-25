@@ -41,7 +41,7 @@ check('request removed legacy product and bundle selectors',!request.includes('i
 check('request summary records selected approved offer',requestOptions.includes('Selected offer:')&&requestFlow.includes("catalogId:offer.toUpperCase()"));
 check('product pages publish approved prices',quoteBuilder.includes('$59/month')&&quoteBuilder.includes('Assisted setup: $499')&&businessOffice.includes('$249/month')&&businessOffice.includes('Implementation: $2,500')&&businessOffice.includes('Starting at $499/month'));
 
-check('cabin card states 21 quotes',samples.includes('Open Plans &amp; 21 Quotes')||samples.includes('Open Plans & 21 Quotes'));
+check('cabin card promises the complete quote package',(samples.includes('Open Plans &amp; All Quotes')||samples.includes('Open Plans & All Quotes')||samples.includes('Open Plans &amp; 21 Quotes')||samples.includes('Open Plans & 21 Quotes'))&&samples.includes('cabin-project-complete.html'));
 check('cabin card opens complete package',samples.includes('href="cabin-project-complete.html"'));
 check('cabin page includes Open All 21 control',cabin.includes('Open All 21 Quotes')&&cabin.includes('openAllTop'));
 check('cabin page contains 21 package definitions',(cabin.match(/^\['\d{2}-/gm)||[]).length===21||(cabin.match(/\['\d{2}-/g)||[]).length===21);
