@@ -25,10 +25,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Reconstruct durable generator
+      - name: Reconstruct and correct durable generator
         run: |
           cat scripts/.ground-up-cad-payload/part-*.b64 | base64 --decode | gzip --decompress > scripts/rebuild-ground-up-house-cad.py
           sed -i 's/parents\[0\]/parents[1]/' scripts/rebuild-ground-up-house-cad.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/rebuild-ground-up-house-cad.py')
+          s=p.read_text(encoding='utf-8')
+          needle="    text=text.replace('renovation and property improvement','ground-up new-home construction')"
+          addition="""    text=text.replace('Whole-House Renovation and Property Improvement','Ground-Up New-Home Construction')
+    text=text.replace('<h1>Whole-House Renovation<br>& Property Improvement</h1>','<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>')
+    text=text.replace('STANDALONE TRADE QUOTE','STANDALONE CONSTRUCTION PHASE QUOTE')
+    text=text.replace('REVISION C','REVISION F')
+    text=text.replace(' · REV C',' · REV F')
+    text=text.replace('H38-UQB-WH-${q.n}','H38-UQB-NEW-HOME-${q.n}')"""
+          if addition not in s:
+              if needle not in s:
+                  raise SystemExit('Generator patch anchor not found')
+              s=s.replace(needle,needle+'\n'+addition)
+          p.write_text(s,encoding='utf-8')
+          PY
           chmod +x scripts/rebuild-ground-up-house-cad.py
           python -m py_compile scripts/rebuild-ground-up-house-cad.py
       - name: Generate coordinated Revision F package
@@ -41,6 +58,10 @@ jobs:
           s=p.read_text(encoding='utf-8')
           s=s.replace('<h1>Whole-House Renovation<br>& Property Improvement</h1>','<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>')
           s=s.replace('Complete coordinated master proposal, 10-sheet professional CAD-style coordination drawing set, and fourteen independently printable trade quotes.','Complete ground-up new-home proposal, coordinated 10-sheet construction drawing set, and fourteen independently printable construction phase quotes.')
+          s=s.replace('Whole-House Renovation and Property Improvement','Ground-Up New-Home Construction')
+          s=s.replace('STANDALONE TRADE QUOTE','STANDALONE CONSTRUCTION PHASE QUOTE')
+          s=s.replace('REVISION C','REVISION F').replace(' · REV C',' · REV F')
+          s=s.replace('H38-UQB-WH-${q.n}','H38-UQB-NEW-HOME-${q.n}')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Install SVG validators and renderer
@@ -76,6 +97,7 @@ jobs:
           check 'Revision:</strong> F' whole-house-quote-package.html
           check 'Lot Clearing, Erosion Control & Temporary Access' whole-house-quote-package.html
           check 'Final Grading, Landscaping, Testing & Closeout' whole-house-quote-package.html
+          check 'STANDALONE CONSTRUCTION PHASE QUOTE' whole-house-quote-package.html
           check 'Ground-Up New-Home Construction' assets/quote-builder/whole-house-cad/G-001.svg
           check 'CLEARING / GRUBBING' assets/quote-builder/whole-house-cad/C-S-L-101.svg
           check 'STABILIZED CONSTRUCTION ENTRANCE' assets/quote-builder/whole-house-cad/C-S-L-101.svg
