@@ -50,3 +50,4 @@ const outDir=path.join(root,'artifacts','universal-quote-builder');
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify(output,null,2));
+require('./verify-universal-quote-builder-complete.js');
