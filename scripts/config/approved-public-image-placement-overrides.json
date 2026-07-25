@@ -1,0 +1,27 @@
+{
+  "policyVersion": "2026-07-24-flower-irrigation-repair-v2",
+  "placementChange": {
+    "date": "2026-07-24",
+    "page": "sample-library-now.html and flower-garden-quote-complete.html",
+    "section": "Flower garden finished concept, irrigation before/after cards, and matched quote scope",
+    "oldPlacement": "Different-house flower after image, irrigation images with embedded labels, and a flower quote that excluded visible stone edging",
+    "newPlacement": "Same-house flower concept, cropped label-free irrigation card wrappers, and a $3,950 quote including the visible natural-stone edging and closeout work",
+    "reason": "Owner-directed live review repair for same-property continuity and duplicate irrigation labels",
+    "binaryPolicy": "The flower concept reuses the approved existing-house image as its base. Irrigation wrappers crop the existing local WebP files without replacing the underlying scenes. Original files remain for rollback."
+  },
+  "page": "sample-library-now.html",
+  "roles": {
+    "example-01-after": {
+      "src": "assets/contractor-demo/flower-after-same-house.svg",
+      "alt": "Flower garden after at the same house"
+    },
+    "example-06-before": {
+      "src": "assets/demo-workthroughs/irrigation-before-clean.svg",
+      "alt": "Irrigation before"
+    },
+    "example-06-after": {
+      "src": "assets/demo-workthroughs/irrigation-after-clean.svg",
+      "alt": "Irrigation after"
+    }
+  }
+}
