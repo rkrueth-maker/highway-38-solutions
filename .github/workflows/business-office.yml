@@ -16,6 +16,7 @@ on:
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
       - 'scripts/verify-universal-quote-builder.js'
+      - 'scripts/verify-universal-quote-builder-complete.js'
       - 'scripts/verify-unified-app-architecture.js'
       - 'scripts/verify-business-office-runtime-helpers.js'
       - 'scripts/verify-unified-client-routing-runtime.js'
@@ -53,6 +54,7 @@ on:
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
       - 'scripts/verify-universal-quote-builder.js'
+      - 'scripts/verify-universal-quote-builder-complete.js'
       - 'scripts/verify-unified-app-architecture.js'
       - 'scripts/verify-business-office-runtime-helpers.js'
       - 'scripts/verify-unified-client-routing-runtime.js'
@@ -113,8 +115,11 @@ jobs:
       - name: Verify final pricing and complete cabin system
         run: node scripts/verify-final-pricing-and-cabin.js
 
-      - name: Verify Universal Quote Builder and house demonstration
+      - name: Verify Universal Quote Builder catalog and house demonstration
         run: node scripts/verify-universal-quote-builder.js
+
+      - name: Verify complete operational Universal Quote Builder
+        run: node scripts/verify-universal-quote-builder-complete.js
 
       - name: Verify Business Office runtime helpers
         run: node scripts/verify-business-office-runtime-helpers.js
@@ -170,6 +175,7 @@ jobs:
             artifacts/business-office/verification.json
             artifacts/final-pricing-cabin/verification.json
             artifacts/universal-quote-builder/verification.json
+            artifacts/universal-quote-builder-complete/verification.json
             artifacts/unified-app-ux/verification.json
             artifacts/ai-approval/verification.json
           if-no-files-found: warn
