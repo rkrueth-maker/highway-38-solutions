@@ -1,0 +1,43 @@
+name: Quote Builder Business Office Return
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Launch_Context.html'
+      - 'scripts/verify-quote-builder-office-return.js'
+      - '.github/workflows/quote-builder-office-return.yml'
+  push:
+    branches: [main, agent/fix-quote-builder-office-return]
+    paths:
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Launch_Context.html'
+      - 'scripts/verify-quote-builder-office-return.js'
+      - '.github/workflows/quote-builder-office-return.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-office-return:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify top-level Business Office return
+        run: node scripts/verify-quote-builder-office-return.js
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quote-builder-office-return-${{ github.run_id }}
+          path: artifacts/quote-builder-office-return/verification.json
+          if-no-files-found: warn
+          retention-days: 90
