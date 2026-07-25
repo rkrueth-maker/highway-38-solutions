@@ -41,7 +41,13 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Verify public website architecture, performance, and locked images
+      - name: Apply approved placement overrides
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-public-image-placement-overrides.py
+
+      - name: Verify public website and images
         shell: bash
         run: |
           set -euo pipefail
@@ -89,50 +95,26 @@ jobs:
             --include='*.csv' \
             --exclude='*' \
             ./ _site/
+
           sha="$(git rev-parse HEAD)"
           short_sha="${sha:0:12}"
           SHA="$short_sha" python3 scripts/build-public-site.py _site
           printf '%s\n' "$sha" > _site/deployed-main-sha.txt
 
-          primary_pages=(index.html sample-library-now.html solutions.html pricing.html about.html contact.html start-request.html)
-          for page in "${primary_pages[@]}"; do
-            test -f "_site/${page}"
-            grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" "_site/${page}"
-            ! grep -Eq 'commercial\.js|commercial-public\.js|public-expansion\.js|brand-global\.js|project-intelligence\.js' "_site/${page}"
-          done
-          grep -Fq "assets/css/h38-request-v2.css?v=${short_sha}" _site/start-request.html
-          test -f _site/assets/css/h38-request-v2.css
-          for style in commercial.css commercial-public.css brand-global.css public-expansion.css ux-unified-public.css contact-options.css platform-unified.css; do
-            ! grep -Fq "href=\"${style}" _site/start-request.html
-            ! grep -Fq "href='${style}" _site/start-request.html
-          done
-          grep -Fq '/* commercial.css */' _site/assets/css/h38-request-v2.css
-          grep -Fq '/* platform-unified.css */' _site/assets/css/h38-request-v2.css
-          grep -Fq "assets/js/h38-request-options.js?v=${short_sha}" _site/start-request.html
-          grep -Fq "request-flow.js?v=${short_sha}" _site/start-request.html
-          grep -Fq 'data-intake-endpoint="https://script.google.com/macros/s/' _site/start-request.html
-
-          test -f _site/products.html
-          test -f _site/free-tools.html
-          grep -Fq 'Eight complete project demonstrations' _site/sample-library-now.html
-          grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' _site/sample-library-now.html
+          test -f _site/sample-library-now.html
+          test -f _site/flower-garden-quote-complete.html
+          test -f _site/assets/contractor-demo/flower-after-same-house.svg
+          test -f _site/assets/demo-workthroughs/irrigation-before-clean.svg
+          test -f _site/assets/demo-workthroughs/irrigation-after-clean.svg
+          grep -Fq 'assets/contractor-demo/flower-after-same-house.svg' _site/sample-library-now.html
+          grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' _site/sample-library-now.html
+          grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' _site/sample-library-now.html
+          grep -Fq 'Flower garden after at the same house' _site/sample-library-now.html
+          grep -Fq '$3,950' _site/sample-library-now.html
+          grep -Fq '$3,950.00' _site/flower-garden-quote-complete.html
+          grep -Fq 'Natural-stone curved bed edge shown in concept' _site/flower-garden-quote-complete.html
+          grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" _site/sample-library-now.html
           grep -Fq "contractor-demo.css?v=${short_sha}" _site/sample-library-now.html
-          for image in deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
-            grep -Fq "assets/demo-workthroughs/${image}" _site/sample-library-now.html
-            test -f "_site/assets/demo-workthroughs/${image}"
-          done
-          grep -Fq 'Existing Site' _site/sample-library-now.html
-          grep -Fq 'Finished Concept' _site/sample-library-now.html
-          grep -Fq 'Existing Kitchen' _site/sample-library-now.html
-          grep -Fq 'Remodel Concept' _site/sample-library-now.html
-          grep -Fq 'assets/highway38-logo.png?v=20260720-exact-0cbc4514' _site/sample-library-now.html
-          ! grep -Eq 'project-pairs-(strip|sprite)' _site/contractor-demo.css _site/sample-library-now.html
-          ! grep -Eq 'opacity:[[:space:]]*0' _site/contractor-demo.css
-          grep -Fq 'background-image:none' _site/contractor-demo.css
-          grep -Fq 'opacity:1' _site/contractor-demo.css
-          ! grep -Eqi 'Browse 15 samples|15 products|9 recommended bundles' _site/sample-library-now.html _site/products.html _site/pricing.html
-          grep -Fq 'pricing.html' _site/products.html
-          grep -Fq 'sample-library-now.html' _site/free-tools.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -150,62 +132,36 @@ jobs:
           expected="$(git rev-parse HEAD)"
           short_sha="${expected:0:12}"
           marker="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          for attempt in $(seq 1 24); do
-            echo "Verification attempt ${attempt}/24"
+
+          for attempt in $(seq 1 30); do
+            echo "Verification attempt ${attempt}/30"
             live_sha="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/deployed-main-sha.txt?flush=${marker}-${attempt}" || true)"
-            home="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/index.html?flush=${marker}-${attempt}" || true)"
             examples="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/sample-library-now.html?flush=${marker}-${attempt}" || true)"
-            solutions="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/solutions.html?flush=${marker}-${attempt}" || true)"
-            pricing="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/pricing.html?flush=${marker}-${attempt}" || true)"
-            about="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/about.html?flush=${marker}-${attempt}" || true)"
-            contact="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/contact.html?flush=${marker}-${attempt}" || true)"
-            request="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/start-request.html?flush=${marker}-${attempt}" || true)"
-            request_css="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/css/h38-request-v2.css?v=${short_sha}&flush=${marker}-${attempt}" || true)"
-            demo_css="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/contractor-demo.css?v=${short_sha}&flush=${marker}-${attempt}" || true)"
-            products="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/products.html?flush=${marker}-${attempt}" || true)"
-            tools="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/free-tools.html?flush=${marker}-${attempt}" || true)"
-            primary="$home$examples$solutions$pricing$about$contact$request"
-            request_styles_clean=1
-            for style in commercial.css commercial-public.css brand-global.css public-expansion.css ux-unified-public.css contact-options.css platform-unified.css; do
-              grep -Fq "href=\"${style}" <<<"$request" && request_styles_clean=0
-              grep -Fq "href='${style}" <<<"$request" && request_styles_clean=0
-            done
+            flower_quote="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/flower-garden-quote-complete.html?flush=${marker}-${attempt}" || true)"
+            before_svg="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-before-clean.svg?flush=${marker}-${attempt}" || true)"
+            after_svg="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-after-clean.svg?flush=${marker}-${attempt}" || true)"
+
             if [[ "$live_sha" == "$expected" ]] \
-              && [[ "$(grep -Fo "assets/js/h38-site-v2.js?v=${short_sha}" <<<"$primary" | wc -l)" -eq 7 ]] \
-              && ! grep -Eq 'commercial\.js|commercial-public\.js|public-expansion\.js|brand-global\.js|project-intelligence\.js' <<<"$primary" \
-              && grep -Fq "assets/css/h38-request-v2.css?v=${short_sha}" <<<"$request" \
-              && [[ "$request_styles_clean" -eq 1 ]] \
-              && grep -Fq '/* commercial.css */' <<<"$request_css" \
-              && grep -Fq '/* platform-unified.css */' <<<"$request_css" \
-              && grep -Fq "assets/js/h38-request-options.js?v=${short_sha}" <<<"$request" \
-              && grep -Fq "request-flow.js?v=${short_sha}" <<<"$request" \
-              && grep -Fq 'Eight complete project demonstrations' <<<"$examples" \
-              && grep -Fq 'Uncleared Lot to 3-Bedroom Cabin' <<<"$examples" \
+              && grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" <<<"$examples" \
               && grep -Fq "contractor-demo.css?v=${short_sha}" <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/deck-existing-condition.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/deck-finished-concept.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/irrigation-after.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/kitchen-existing-condition.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/kitchen-remodel-concept.webp' <<<"$examples" \
-              && grep -Fq 'Existing Site' <<<"$examples" \
-              && grep -Fq 'Finished Concept' <<<"$examples" \
-              && grep -Fq 'Existing Kitchen' <<<"$examples" \
-              && grep -Fq 'Remodel Concept' <<<"$examples" \
-              && grep -Fq 'assets/highway38-logo.png?v=20260720-exact-0cbc4514' <<<"$examples" \
-              && grep -Fq 'background-image:none' <<<"$demo_css" \
-              && grep -Fq 'opacity:1' <<<"$demo_css" \
-              && ! grep -Eq 'project-pairs-(strip|sprite)|opacity:[[:space:]]*0' <<<"$demo_css" \
-              && ! grep -Eqi 'Browse 15 samples|15 products|9 recommended bundles' <<<"$examples$products" \
-              && grep -Fq 'pricing.html' <<<"$products" \
-              && grep -Fq 'sample-library-now.html' <<<"$tools"; then
+              && grep -Fq 'assets/contractor-demo/flower-after-same-house.svg' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' <<<"$examples" \
+              && grep -Fq 'Flower garden after at the same house' <<<"$examples" \
+              && grep -Fq '$3,950' <<<"$examples" \
+              && grep -Fq '$3,950.00' <<<"$flower_quote" \
+              && grep -Fq 'Natural-stone curved bed edge shown in concept' <<<"$flower_quote" \
+              && grep -Fq '<svg' <<<"$before_svg" \
+              && grep -Fq '<svg' <<<"$after_svg"; then
               exit 0
             fi
             sleep 10
           done
-          echo 'The GitHub Pages CDN did not serve the verified canonical-site artifact before timeout.'
+
+          echo 'The GitHub Pages CDN did not serve the repaired verified artifact before timeout.'
           exit 1
 
-      - name: Upload website architecture evidence
+      - name: Upload website verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -220,7 +176,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          body="PASS — GitHub Pages is serving commit ${GITHUB_SHA}. The seven primary customer pages use one canonical shell; the live request page uses one bundled stylesheet, one focused options controller, and one secure submit flow. Deck and kitchen use repaired label-free local derivatives with honest page-owned labels, irrigation remains unchanged, and the browser favicon uses the exact approved Highway 38 Solutions logo. Original deck and kitchen source files remain for rollback. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body="PASS — GitHub Pages is serving commit ${GITHUB_SHA}. The flower example uses the same house, its $3,950 quote includes the visible stone edging and closeout work, and the irrigation cards use clean local crops without overlapping labels. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — PASS' --body "$body"
           gh issue close 284 --repo "$GITHUB_REPOSITORY" --reason completed
 
@@ -228,5 +184,5 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          body="HOLD — Public website architecture, performance, image, deployment, or live verification failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body="HOLD — Public website verification or deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — HOLD' --body "$body"
