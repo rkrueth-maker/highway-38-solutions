@@ -1,11 +1,6 @@
-name: Generate All Cabin Sub-Quotes
+name: Generate All Cabin Sub-Quotes (Manual Recovery)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/generate-all-cabin-subquotes.yml'
-      - 'apps-script/business-office/BusinessOffice_CabinDemoSeeder.gs'
   workflow_dispatch:
 
 permissions:
@@ -30,10 +25,15 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+
+      - name: Verify complete Cabin Demo 08 contract
+        run: node scripts/verify-final-pricing-and-cabin.js
 
       - name: Install isolated clasp
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
@@ -53,25 +53,41 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
 
-      - name: Generate all 21 cabin sub-quotes in deployed Business Office
+      - name: Generate and verify all 21 cabin sub-quotes in deployed Business Office
         id: generate
         shell: bash
         run: |
           set -euo pipefail
           SCRIPT_ID="$(node -e "const d=require('./business-packs/highway38/deployment.json'); process.stdout.write(d.appsScript.productionProjectId)")"
           WORK="$RUNNER_TEMP/cabin-generator"
-          mkdir -p "$WORK"
+          mkdir -p "$WORK" artifacts/cabin-demo08
           printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
           cd "$WORK"
-          "$GITHUB_WORKSPACE/node_modules/.bin/clasp" run boGenerateAllCabinSubquotes --params '[]' 2>&1 | tee "$GITHUB_WORKSPACE/cabin-subquote-generation-result.txt"
-          grep -E '21|generated|PASS|Complete' "$GITHUB_WORKSPACE/cabin-subquote-generation-result.txt"
+          "$GITHUB_WORKSPACE/node_modules/.bin/clasp" run boGenerateAllCabinSubquotes --params '[]' 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/cabin-demo08/manual-generation.txt"
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          text=Path('artifacts/cabin-demo08/manual-generation.txt').read_text()
+          compact=' '.join(text.split())
+          expected={'subquoteCount':21,'pdfCount':21,'quoteRecordCount':22,'approvalCount':22,'workOrderCount':21,'purchaseOrderCount':21,'proofCount':21}
+          missing=[]
+          for key,value in expected.items():
+              if not re.search(rf'"?{re.escape(key)}"?\s*[:=]\s*{value}|{re.escape(key)}[^0-9]+{value}',compact,re.I): missing.append(f'{key}={value}')
+          if not re.search(r'"?status"?\s*[:=]\s*"?PASS"?',compact,re.I): missing.append('status=PASS')
+          if not re.search(r'"?externalActionsPerformed"?\s*[:=]\s*false',compact,re.I): missing.append('externalActionsPerformed=false')
+          report={'status':'HOLD' if missing else 'PASS','expected':expected,'missing':missing}
+          Path('artifacts/cabin-demo08/manual-verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if missing: raise SystemExit('Cabin Demo 08 recovery incomplete: '+', '.join(missing))
+          PY
 
       - name: Upload generation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cabin-subquote-generation-${{ github.run_id }}
-          path: cabin-subquote-generation-result.txt
+          path: artifacts/cabin-demo08/
           if-no-files-found: warn
           retention-days: 90
 
@@ -79,12 +95,12 @@ jobs:
         if: success()
         shell: bash
         run: |
-          BODY="PASS — All 21 cabin sub-quotes were generated in the existing Business Office from commit ${GITHUB_SHA}. Same project record and approved plan, exterior, and interior visuals were used. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="PASS — Manual recovery generated the master Cabin Demo 08 project and all 21 linked sub-quotes across quotes, quote lines, approvals, work orders, purchase planning, documents, proof, activity, and backup tables. No external action occurred. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Report cabin generation hold
         if: failure()
         shell: bash
         run: |
-          BODY="HOLD — Cabin sub-quote generation failed for commit ${GITHUB_SHA}. Existing Business Office remained protected. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="HOLD — Manual Cabin Demo 08 recovery failed. Existing Business Office records remain protected and no external action occurred. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
