@@ -15,24 +15,28 @@ for(const number of expected){
   const file=`assets/quote-builder/whole-house-cad/${number}.svg`;
   if(!fs.existsSync(path.join(root,file)))throw new Error(`Missing sheet ${file}`);
   const svg=read(file);
-  ['width="17in"','height="11in"','viewBox="0 0 1700 1100"','NOT FOR CONSTRUCTION','Field verification required','REV D','HIGHWAY 38 SOLUTIONS','Universal Quote Builder Demonstration','marker id="oa"','class="dimline"'].forEach(v=>need(svg,v,`${number} professional sheet control`));
+  ['width="17in"','height="11in"','viewBox="0 0 1700 1100"','NOT FOR CONSTRUCTION','Field verification required','REV D','HIGHWAY 38 SOLUTIONS','Universal Quote Builder Demonstration','marker id="oa"'].forEach(v=>need(svg,v,`${number} professional sheet control`));
   if((svg.match(/<text /g)||[]).length<20)throw new Error(`${number} lacks drawing annotations.`);
   if((svg.match(/<(line|path|rect|polyline|circle) /g)||[]).length<25)throw new Error(`${number} lacks CAD geometry.`);
 }
 const g=read('assets/quote-builder/whole-house-cad/G-001.svg');
 ['DRAWING INDEX','GENERAL NOTES','GRAPHIC LEGEND','ABBREVIATIONS','A-101','A-201','M-101','P-101','E-101','C-S-L-101'].forEach(v=>need(g,v,'G-001 index/legend'));
 const a101=read('assets/quote-builder/whole-house-cad/A-101.svg');
-['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','DINING','LIVING','OFFICE','MUD / LAUNDRY','BATH / MECH','KEYED PLAN NOTES','42″ minimum','GRID'].forEach(v=>need(a101,v,'A-101 plan content'));
+['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','DINING','LIVING','OFFICE','MUD / LAUNDRY','BATH / MECH','KEYED PLAN NOTES','42″ minimum','class="center"'].forEach(v=>need(a101,v,'A-101 plan content'));
 if((a101.match(/class="dimline"/g)||[]).length<8)throw new Error('A-101 requires complete overall and chained dimension strings.');
 const a102=read('assets/quote-builder/whole-house-cad/A-102.svg');
 ['SECOND-FLOOR PLAN','ROOF PLAN','PRIMARY BEDROOM','BEDROOM 2','BEDROOM 3','RIDGE','8:12','52′-0″ INCLUDING EAVES'].forEach(v=>need(a102,v,'A-102 upper/roof plan'));
+if((a102.match(/class="dimline"/g)||[]).length<4)throw new Error('A-102 requires upper-floor and roof dimensions.');
 const a201=read('assets/quote-builder/whole-house-cad/A-201.svg');
 ['SOUTH / FRONT ELEVATION','NORTH / REAR ELEVATION','EAST / RIGHT ELEVATION','WEST / LEFT ELEVATION','24′-6″ RIDGE','18′-0″ EAVE','8:12'].forEach(v=>need(a201,v,'A-201 elevation content'));
 if((a201.match(/ELEVATION/g)||[]).length<4)throw new Error('A-201 must contain four named exterior elevations.');
+if((a201.match(/class="dimline"/g)||[]).length<12)throw new Error('A-201 requires overall, eave, and ridge dimensions on all elevations.');
 const a301=read('assets/quote-builder/whole-house-cad/A-301.svg');
 ['BUILDING SECTION A-A','TYPICAL EXTERIOR WALL SECTION','DETAIL 1 — WINDOW FLASHING','DETAIL 2 — DECK LEDGER','24′-6″','2×6 STUDS'].forEach(v=>need(a301,v,'A-301 section/detail content'));
+if((a301.match(/class="dimline"/g)||[]).length<3)throw new Error('A-301 requires vertical section dimensions.');
 const a401=read('assets/quote-builder/whole-house-cad/A-401.svg');
 ['ENLARGED KITCHEN PLAN','NORTH CABINET ELEVATION','WEST / TALL CABINET ELEVATION','ISLAND 9′-0″ × 3′-9″','42″ MIN.','RANGE36','REF36','HOLD POINTS'].forEach(v=>need(a401,v,'A-401 kitchen content'));
+if((a401.match(/class="dimline"/g)||[]).length<5)throw new Error('A-401 requires island, aisle, and elevation dimensions.');
 const m=read('assets/quote-builder/whole-house-cad/M-101.svg');
 ['EQUIPMENT SCHEDULE','AHU-1','CU-1','ERV-1','HVAC NOTES','Manual J/S/D','class="duct"','class="return"'].forEach(v=>need(m,v,'M-101 HVAC content'));
 const p101=read('assets/quote-builder/whole-house-cad/P-101.svg');
@@ -41,6 +45,7 @@ const e101=read('assets/quote-builder/whole-house-cad/E-101.svg');
 ['PANEL A — REPRESENTATIVE SCHEDULE','KITCHEN SMALL APPLIANCE','RANGE','LIGHTING — MAIN','ELECTRICAL NOTES','PANEL A','class="light"','class="power"'].forEach(v=>need(e101,v,'E-101 electrical content'));
 const site=read('assets/quote-builder/whole-house-cad/C-S-L-101.svg');
 ['120′-0″ REPRESENTATIVE LOT WIDTH','180′-0″ REPRESENTATIVE LOT DEPTH','16′ × 12′ DECK','18′ × 24′ PATIO','DECK FRAMING PLAN — INSET','SITE / DECK NOTES','class="property"','class="setback"','class="contour"'].forEach(v=>need(site,v,'C-S-L-101 site content'));
+if((site.match(/class="dimline"/g)||[]).length<4)throw new Error('C-S-L-101 requires lot and site dimensions.');
 const html=read('whole-house-quote-package.html');
 for(const number of expected){
   need(html,`assets/quote-builder/whole-house-cad/${number}.svg`,`${number} package link`);
