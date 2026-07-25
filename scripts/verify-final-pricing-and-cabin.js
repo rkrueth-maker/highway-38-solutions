@@ -20,6 +20,7 @@ const samples=read('sample-library-now.html');
 const cabin=read('cabin-project-complete.html');
 const seeder=read('apps-script/business-office/BusinessOffice_CabinDemoSeeder.gs');
 const autoSeed=read('apps-script/business-office/BusinessOffice_CabinAutoSeed.gs');
+const authorizedGenerator=read('scripts/generate-cabin-demo-authorized.sh');
 
 const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,context,{filename:'pricing-data.js'});
 const source=context.window.H38_PRICING;
@@ -51,10 +52,12 @@ check('cabin public totals stay aligned',cabin.includes('$520,500')&&cabin.inclu
 
 const requiredSheets=['CUSTOMERS','CONTACTS','ADDRESSES','REQUESTS','QUOTES','QUOTE_LINES','APPROVALS','JOBS','WORK_ORDERS','VENDORS','PURCHASE_ORDERS','PO_LINES','DOCUMENTS','PROOF_LOG','ACTIVITY','BACKUP_LOG'];
 check('cabin seeder writes every relevant table',requiredSheets.every(name=>seeder.includes(`H38_BO_SHEETS.${name}`)),requiredSheets.join(', '));
-check('cabin seeder generates all 21 package PDFs',seeder.includes('pdfCount:results.filter')&&seeder.includes('subquoteCount:results.length'));
-check('cabin seeder returns expected table counts',seeder.includes('quoteRecordCount:results.length+1')&&seeder.includes('approvalCount:results.length+1')&&seeder.includes('purchaseOrderCount:results.length'));
-check('cabin auto-seed is versioned for complete coverage',autoSeed.includes("H38_CABIN_AUTOSEED_VERSION='V2-COMPLETE-TABLE-COVERAGE'"));
-check('cabin auto-seed rejects incomplete tables',autoSeed.includes('checks.quotes!==22')&&autoSeed.includes('checks.approvals!==22')&&autoSeed.includes('checks.purchaseOrders!==21'));
+check('cabin seeder generates one master and 21 package PDFs',seeder.includes('totalPdfCount:22')&&seeder.includes('packagePdfCount:packagePdfs')&&seeder.includes('masterPdfCount:masterPdfs'));
+check('cabin seeder verifies exact table coverage',seeder.includes('quotes:22')&&seeder.includes('quoteLines:42')&&seeder.includes('documents:25')&&seeder.includes('boVerifyCabinDemo08TableCoverage_'));
+check('cabin generator supports safe batches',seeder.includes('function boGeneratePreparedCabinBatch')&&seeder.includes('Math.min(5'));
+check('cabin auto-seed is versioned for verified coverage',autoSeed.includes("H38_CABIN_AUTOSEED_VERSION='V3-VERIFIED-ALL-TABLES'"));
+check('cabin auto-seed is resumable',autoSeed.includes('H38_CABIN_DEMO08_CURSOR')&&autoSeed.includes('H38_CABIN_AUTOSEED_BATCH_SIZE=3'));
+check('authorized generator verifies every table',authorizedGenerator.includes('boGeneratePreparedCabinBatch')&&authorizedGenerator.includes('boFinalizeCabinDemo08Generation')&&authorizedGenerator.includes('quotes:22')&&authorizedGenerator.includes('documents:25'));
 check('cabin external actions remain disabled',seeder.includes('No customer send, order, payment, scheduling, or other external action occurs.')&&seeder.includes('externalActionsPerformed:false'));
 
 const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),pricingVersion:source&&source.version,passed:passes.length,failed:failures.length,passes,failures};
