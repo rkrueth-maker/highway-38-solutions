@@ -25,16 +25,13 @@ function read(relative){return fs.readFileSync(file(relative),'utf8');}
 function exists(relative){return fs.existsSync(file(relative));}
 function size(relative){return fs.statSync(file(relative)).size;}
 function count(source,pattern){return (source.match(pattern)||[]).length;}
-function shellHost(html){
-  return html.match(/<(?:header|nav)\b[^>]*class=["'][^"']*(?:pi-nav|site-nav)[^"']*["'][^>]*>([\s\S]*?)<\/(?:header|nav)>/i);
-}
-function footerHost(html){
-  return html.match(/<footer\b[^>]*class=["'][^"']*(?:pi-footer|site-footer)[^"']*["'][^>]*>([\s\S]*?)<\/footer>/i);
-}
+function shellHost(html){return html.match(/<(?:header|nav)\b[^>]*class=["'][^"']*(?:pi-nav|site-nav)[^"']*["'][^>]*>([\s\S]*?)<\/(?:header|nav)>/i);}
+function footerHost(html){return html.match(/<footer\b[^>]*class=["'][^"']*(?:pi-footer|site-footer)[^"']*["'][^>]*>([\s\S]*?)<\/footer>/i);}
 
 const canonicalJs='assets/js/h38-site-v2.js';
 const canonicalCss='assets/css/h38-site-v2.css';
 const capabilityCss='assets/css/project-intelligence.css';
+const pricingData='pricing-data.js';
 const requestOptions='assets/js/h38-request-options.js';
 const requestFlow='request-flow.js';
 const legacyGlobalScripts=['commercial.js','commercial-public.js','public-expansion.js','brand-global.js','assets/js/project-intelligence.js'];
@@ -44,12 +41,14 @@ check('route registry schema',routes.schemaVersion===1,routes.version||'');
 check('canonical site script exists',exists(canonicalJs),canonicalJs);
 check('canonical site stylesheet exists',exists(canonicalCss),canonicalCss);
 check('capability stylesheet exists',exists(capabilityCss),capabilityCss);
+check('final pricing data exists',exists(pricingData),pricingData);
 check('focused request controller exists',exists(requestOptions),requestOptions);
 check('secure request flow exists',exists(requestFlow),requestFlow);
 
 const shell=read(canonicalJs);
 const shellCss=read(canonicalCss);
 const capabilityStyles=read(capabilityCss);
+const pricingSource=read(pricingData);
 const requestController=read(requestOptions);
 const secureRequest=read(requestFlow);
 
@@ -87,27 +86,21 @@ customerPages.forEach(route=>{
   if(route.canonical)check(`${page} canonical URL`,html.includes(`href="${route.canonical}"`)||html.includes(`href='${route.canonical}'`),route.canonical);
 
   if(page==='start-request.html'){
-    const allowed=['catalog-data.js','business-systems-data.js','platform-states.js',canonicalJs,requestOptions,requestFlow];
+    const allowed=[pricingData,'platform-states.js',canonicalJs,requestOptions,requestFlow];
     check('request page uses only focused startup scripts',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
     check('request page keeps secure endpoint',/data-intake-endpoint=["']https:\/\/script\.google\.com\/macros\/s\//.test(html));
     check('request page keeps no-charge language',/No charge/i.test(html)&&/No charge is created/i.test(html));
   }else{
     check(`${page} public script budget`,scripts.length===1,scripts.join(', '));
   }
-  if(styles.length>4)warn(`${page} stylesheet count`,`${styles.length} stylesheets`);
+  if(styles.length>7)warn(`${page} stylesheet count`,`${styles.length} stylesheets`);
 });
 
 const solutions=read('solutions.html');
 const requiredCapabilities=['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'];
 const capabilityKeys=['automation','cnc','fixturing','quote-builder','business-office'];
 const capabilityLinks=['robotics-automation.html','manufacturing-cnc.html','fixture-jig-concept-review.html','quote-builder.html','business-systems.html'];
-const capabilityImages=[
-  'assets/approved-website-images/manufacturing-automation.jpg',
-  'assets/approved-website-images/12-cnc-machining-closeup.jpg',
-  'assets/approved-website-images/10-project-planning-documents.jpg',
-  'assets/approved-website-images/business-workflow-office.webp',
-  'assets/approved-website-images/13-digital-organization-file-system.jpg'
-];
+const capabilityImages=['assets/approved-website-images/manufacturing-automation.jpg','assets/approved-website-images/12-cnc-machining-closeup.jpg','assets/approved-website-images/10-project-planning-documents.jpg','assets/approved-website-images/business-workflow-office.webp','assets/approved-website-images/13-digital-organization-file-system.jpg'];
 const capabilityStart=solutions.indexOf('data-capability-section="primary"');
 const capabilityEnd=solutions.indexOf('<section class="pi-section dark">',capabilityStart);
 const capabilitySection=capabilityStart>=0&&capabilityEnd>capabilityStart?solutions.slice(capabilityStart,capabilityEnd):'';
@@ -129,8 +122,11 @@ check('capability tablet layout is two columns',/@media\(max-width:980px\)[\s\S]
 check('capability phone layout is one column',/@media\(max-width:620px\)[\s\S]*\.pi-capability-grid[\s\S]*grid-template-columns:1fr/.test(capabilityStyles));
 check('capability layout prevents horizontal overflow',/body\{[^}]*overflow-x:hidden/.test(capabilityStyles)&&/minmax\(0,1fr\)/.test(capabilityStyles));
 
+check('final pricing source exposes three software offers',count(pricingSource,/classification:'software'/g)===3);
+check('final pricing source exposes one separate diagnostic',count(pricingSource,/classification:'diagnostic'/g)===1&&pricingSource.includes("id:'business-snapshot'"));
 check('request controller has no submit handler',!/addEventListener\(['"]submit['"]/.test(requestController));
-check('request controller owns approved option rendering',/renderProductOptions/.test(requestController)&&/renderBundleOptions/.test(requestController)&&/renderSystemOptions/.test(requestController));
+check('request controller owns final offer rendering',/renderOffers/.test(requestController)&&/selectedOffer/.test(requestController)&&/offerById/.test(requestController));
+check('request controller has no legacy catalog or bundle rendering',!/renderProductOptions|renderBundleOptions|renderSystemOptions|H38_CATALOG/.test(requestController));
 check('request controller prepares email fallback',/mailto:/.test(requestController)&&/email-summary/.test(requestController));
 check('request controller JavaScript budget',size(requestOptions)<=18000,`${size(requestOptions)} bytes`);
 check('secure request flow owns the only submit handler',count(secureRequest,/addEventListener\(['"]submit['"]/g)===1);
@@ -158,21 +154,7 @@ if(privateGateway){
   }
 }
 
-const evidence={
-  status:failures.length?'HOLD':'PASS',
-  generatedAt:new Date().toISOString(),
-  architecture:'project-first-public-site-v2.3',
-  governance:'website-and-web-app-governance-v1',
-  logoLocked:true,
-  imagePlacementsLocked:true,
-  whatWeDoCapabilities:requiredCapabilities,
-  canonicalShell:canonicalJs,
-  passed:passes.length,
-  failed:failures.length,
-  warnings,
-  passes,
-  failures
-};
+const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),architecture:'project-first-public-site-v2.4-final-pricing',governance:'website-and-web-app-governance-v1',logoLocked:true,imagePlacementsLocked:true,pricingProducts:3,whatWeDoCapabilities:requiredCapabilities,canonicalShell:canonicalJs,passed:passes.length,failed:failures.length,warnings,passes,failures};
 const outDir=file('artifacts/public-website-architecture');
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(evidence,null,2)+'\n');

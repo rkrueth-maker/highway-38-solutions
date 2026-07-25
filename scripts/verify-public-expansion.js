@@ -10,7 +10,7 @@ const check=(name,condition,detail='')=>{(condition?passes:failures).push({name,
 const requireFile=p=>check(`required file ${p}`,exists(p),p);
 
 [
- 'index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html',
+ 'index.html','sample-library-now.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
  'cabin-project-complete.html','contractor-quote-complete.html','request-flow.js','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
  'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
  'apps-script/unified-shell/Unified_PublicIntake.gs','catalog-data.js','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
@@ -39,8 +39,9 @@ check('What We Do contains five connected capabilities',(solutions.match(/data-c
 check('capabilities route to specialist pages',['robotics-automation.html','manufacturing-cnc.html','fixture-jig-concept-review.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 
 const pricing=read('pricing.html');
-check('pricing is scope-driven instead of catalog-driven',pricing.includes('Project-first pricing')&&pricing.includes('Not a confusing catalog.')&&pricing.includes('The project scope drives the package.'));
-check('pricing requires approval before implementation',pricing.includes('Scope and price are approved before implementation.')&&pricing.includes('Request Project Pricing'));
+check('pricing displays exactly three software products',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499'));
+check('pricing keeps Business Snapshot separate',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
+check('pricing includes approved support and AI rules',pricing.includes('$199/month')&&pricing.includes('Starting at $399/month')&&pricing.includes('AI is built in—not sold as a separate public plan.'));
 
 const samples=read('sample-library-now.html');
 check('Project Examples contains eight complete demonstrations',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
@@ -53,6 +54,7 @@ const requestFlow=read('request-flow.js');
 const intake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
 check('request flow preserves three controlled steps',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
 check('request form uses secure existing intake endpoint',request.includes('data-intake-endpoint="https://script.google.com/macros/s/'));
+check('request uses final offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
 check('request saves progress and returns confirmation',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft')&&requestFlow.includes('Request received')&&requestFlow.includes('requestId'));
 check('request keeps email as fallback only',requestFlow.includes('emailFallback')&&request.includes('id="email-summary" hidden'));
 check('intake remains duplicate-protected and Owner reviewed',intake.includes('DUPLICATE_ACCEPTED')&&intake.includes('Owner Approval Required')&&intake.includes('External actions remain locked'));
@@ -70,6 +72,6 @@ check('legacy catalog compatibility data remains intact',catalog&&catalog.produc
 check('custom-domain work remains approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
 check('prohibited quantitative CNC claim is absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(expected.map(read).join('\n')));
 
-const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,projectExamples:8,capabilities:5,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
+const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,projectExamples:8,capabilities:5,pricingProducts:3,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
 console.log(JSON.stringify(result,null,2));
 process.exit(failures.length?1:0);

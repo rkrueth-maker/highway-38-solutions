@@ -43,6 +43,7 @@ for page in "${active_pages[@]}"; do
   fi
   pass "$page source and current shell contract load"
 done
+curl -fsS "http://127.0.0.1:8000/cabin-project-complete.html" -o "$OUT/source-cabin.html" || fail "cabin package did not return successfully"
 
 chrome_dump() {
   local page="$1"
@@ -56,10 +57,13 @@ chrome_dump solutions.html "$OUT/rendered-solutions.html"
 chrome_dump pricing.html "$OUT/rendered-pricing.html"
 chrome_dump sample-library-now.html "$OUT/rendered-samples.html"
 chrome_dump start-request.html "$OUT/rendered-start-request.html"
+chrome_dump cabin-project-complete.html "$OUT/rendered-cabin.html"
 
 capability_count="$(grep -o 'data-capability="' "$OUT/rendered-solutions.html" | wc -l | tr -d ' ')"
 project_count="$(count_class project-card "$OUT/rendered-samples.html")"
 figure_count="$(count_class project-visual "$OUT/rendered-samples.html")"
+pricing_card_count="$(count_class price-card "$OUT/rendered-pricing.html")"
+cabin_quote_count="$(grep -o '<details class="quote-package" id="quote-[0-9][0-9]-' "$OUT/rendered-cabin.html" | wc -l | tr -d ' ')"
 
 [[ "$capability_count" == "5" ]] || fail "rendered What We Do page expected 5 capabilities and found $capability_count"
 pass "rendered What We Do page contains five capabilities"
@@ -67,11 +71,19 @@ pass "rendered What We Do page contains five capabilities"
 pass "rendered Project Examples contains eight complete projects"
 [[ "$figure_count" == "8" ]] || fail "rendered Project Examples expected 8 paired visual groups and found $figure_count"
 pass "rendered Project Examples contains eight paired visual groups"
+[[ "$pricing_card_count" == "3" ]] || fail "rendered pricing page expected 3 software cards and found $pricing_card_count"
+pass "rendered pricing page contains exactly three software products"
+[[ "$cabin_quote_count" == "21" ]] || fail "rendered cabin package expected 21 detailed quotes and found $cabin_quote_count"
+pass "rendered cabin package contains all 21 detailed quotes"
 
 grep -q 'Bring us the problem.' "$OUT/rendered-home.html" || fail "rendered homepage is missing the project-first promise"
-grep -q 'Project-first pricing' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing project-first pricing"
-grep -q 'What result do you need?' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the current outcome question"
+grep -q 'Three software products' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the three-product structure"
+grep -q '\$299 one-time' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the separate Business Snapshot"
+grep -q 'Most Popular' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the Business Office badge"
+grep -q 'id="offer"' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the approved offer selector"
 grep -q 'data-request-step="3"' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the review step"
+grep -q 'Open All 21 Quotes' "$OUT/rendered-cabin.html" || fail "rendered cabin package is missing the open-all control"
+grep -q 'Business Office system coverage' "$OUT/rendered-cabin.html" || fail "rendered cabin package is missing system table coverage"
 for name in deck-existing-condition.webp deck-finished-concept.webp irrigation-before-clean.webp irrigation-after-clean.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
   grep -q "assets/demo-workthroughs/$name" "$OUT/rendered-samples.html" || fail "rendered Project Examples is missing $name"
 done
@@ -85,7 +97,11 @@ pass "rendered canonical navigation and Owner gateway are present"
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/home-mobile.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/examples-desktop.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/examples-mobile.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/pricing-desktop.png" "http://127.0.0.1:8000/pricing.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/pricing-mobile.png" "http://127.0.0.1:8000/pricing.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/request-mobile.png" "http://127.0.0.1:8000/start-request.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/cabin-desktop.png" "http://127.0.0.1:8000/cabin-project-complete.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/cabin-mobile.png" "http://127.0.0.1:8000/cabin-project-complete.html" > /dev/null 2>&1
 
 for image in "$OUT"/*.png; do
   [[ -s "$image" ]] || fail "screenshot $(basename "$image") is empty"
@@ -98,7 +114,9 @@ Rendered counts:
 - What We Do capabilities: $capability_count
 - Project examples: $project_count
 - Paired visual groups: $figure_count
+- Pricing software cards: $pricing_card_count
+- Cabin detailed quotes: $cabin_quote_count
 - Chrome binary: $CHROME
 EOF
 
-echo "Project-first browser smoke verification passed." | tee -a "$REPORT"
+echo "Public browser smoke verification passed." | tee -a "$REPORT"

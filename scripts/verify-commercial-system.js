@@ -10,7 +10,7 @@ const exists=rel=>fs.existsSync(path.join(root,rel));
 const check=(name,condition,detail='')=>{(condition?passes:failures).push({name,detail});console.log(`${condition?'PASS':'FAIL'}: ${name}${detail?` — ${detail}`:''}`);};
 
 const required=[
- 'index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html',
+ 'index.html','sample-library-now.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
  'cabin-project-complete.html','contractor-quote-complete.html','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
  'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
  'catalog-data.js','apps-script/commercial-intake/FormBuilder.gs'
@@ -40,8 +40,9 @@ check('What We Do uses specialist links',['robotics-automation.html','manufactur
 check('What We Do does not restore fixed-price product cards',!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot')&&!solutions.includes('Workflow Opportunity Snapshot'));
 
 const pricing=read('pricing.html');
-check('pricing page is project first',pricing.includes('Project-first pricing')&&pricing.includes('Not a confusing catalog.')&&pricing.includes('The project scope drives the package.'));
-check('pricing requires scope and price approval before implementation',pricing.includes('Scope and price are approved before implementation.')&&pricing.includes('Request Project Pricing'));
+check('pricing page has final three-product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499'));
+check('pricing preserves Snapshot and approval boundaries',pricing.includes('$299 one-time')&&pricing.includes('Nothing is activated or charged from the request form.'));
+check('pricing marks Business Office Most Popular',pricing.includes('Most Popular')&&pricing.includes('Implementation: $2,500'));
 
 const samples=read('sample-library-now.html');
 check('Project Examples contains eight complete examples',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
@@ -53,7 +54,8 @@ check('cabin example includes plan and finished concept',samples.includes('cabin
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
 check('request page keeps three-step secure intake',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`))&&request.includes('id="request-submit"')&&request.includes('data-intake-endpoint='));
-check('request page preserves no-charge and Owner review language',/No charge|no-charge/i.test(request)&&/Owner review/i.test(request));
+check('request page preserves no-charge and Owner review language',/No charge|no-charge/i.test(request)&&/owner review/i.test(request));
+check('request uses approved offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
 check('request page preserves draft recovery and email fallback',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft')&&requestFlow.includes('emailFallback'));
 
 const portal=read('portal.html');
@@ -78,6 +80,6 @@ const activeText=expectedPrimary.map(read).join('\n')+'\n'+shell;
 check('public source contains no private owner email or committed secrets',!/rkrueth@gmail\.com|AIza[0-9A-Za-z_-]{20,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|Bearer\s+[A-Za-z0-9._-]{20,}/i.test(activeText));
 check('prohibited CNC quantity claim remains absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(activeText));
 
-const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),passed:passes.length,failed:failures.length,architecture:'project-first-public-site',catalogCompatibilityOnly:true,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),passed:passes.length,failed:failures.length,architecture:'project-first-public-site',pricingProducts:3,catalogCompatibilityOnly:true,passes,failures};
 const out=path.join(root,'artifacts','commercial-system');fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify(result,null,2)+'\n');
 if(failures.length){console.error(JSON.stringify(result,null,2));process.exit(1);}console.log(JSON.stringify(result,null,2));

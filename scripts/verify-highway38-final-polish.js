@@ -12,6 +12,7 @@ const index=read('index.html');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const samples=read('sample-library-now.html');
+const cabin=read('cabin-project-complete.html');
 const request=read('start-request.html');
 const requestClient=read('request-flow.js');
 const intake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
@@ -41,14 +42,16 @@ check('canonical public shell locks image replacement',/imagePolicy:\{changeSour
 
 check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
 check('What We Do removes retired fixed-price paths',!solutions.includes('Choose Your Path')&&!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot'));
-check('pricing is project first and approval based',pricing.includes('Project-first pricing')&&pricing.includes('Not a confusing catalog.')&&pricing.includes('Scope and price are approved before implementation.'));
+check('pricing uses final approved product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
 
 check('public Examples contains eight complete project workflows',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
 check('public Examples preserves representative proof classification',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
 check('public Examples uses six direct controlled deck irrigation kitchen images',['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
 check('public Examples includes complete cabin walkthrough',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
+check('cabin walkthrough opens all 21 detailed quotes',cabin.includes('Open All 21 Quotes')&&(cabin.match(/\['\d{2}-/g)||[]).length===21&&cabin.includes('Business Office system coverage'));
 
 check('request flow uses secure direct submission',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
+check('request flow uses approved offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
 check('request flow keeps email fallback and draft recovery',request.includes('id="email-summary" hidden>Email fallback')&&requestClient.includes('emailFallback')&&requestClient.includes('H38Platform.saveDraft')&&requestClient.includes('H38Platform.loadDraft'));
 check('secure intake creates internal Owner-review record only',/function doPost\(event\)/.test(intake)&&/Owner Approval Required/.test(intake)&&!/sendEmail|GmailApp|MailApp/.test(intake));
 check('secure intake preserves idempotency protection',/H38_PUBLIC_INTAKE_/.test(intake)&&/DUPLICATE_ACCEPTED/.test(intake));
