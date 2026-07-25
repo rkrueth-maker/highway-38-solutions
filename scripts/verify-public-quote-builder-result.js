@@ -9,33 +9,28 @@ const absent=(text,marker,label)=>{if(text.includes(marker))throw new Error('Une
 const universal=read('universal-quote-builder.html');
 const library=read('sample-library-now.html');
 const product=read('quote-builder.html');
-const sample=read('quote-builder-sample-proposal.html');
+const redirect=read('quote-builder-sample-proposal.html');
+const sample=read('whole-house-quote-package.html');
 const routes=JSON.parse(read('scripts/config/public-website-routes.json'));
-
 need(universal,'id="result"','completed result section');
 need(universal,'This is what Quote Builder produced—not just what it can store.','result-first headline');
 ['Master customer proposal','Trade sub-quotes','Drawing records','Bid packages','Cross-industry scenarios','Automatic external actions'].forEach(label=>need(universal,label,'result metric '+label));
-need(universal,'quote-builder-sample-proposal.html','printable sample link');
-need(library,'quote-builder-sample-proposal.html','Project Examples printable sample link');
-need(product,'quote-builder-sample-proposal.html','product-page printable sample link');
-
-need(sample,'Print / Save as PDF','print action');
+need(universal,'quote-builder-sample-proposal.html','complete-package entry link');
+need(library,'quote-builder-sample-proposal.html','Project Examples complete-package link');
+need(product,'quote-builder-sample-proposal.html','product-page complete-package link');
+need(redirect,'whole-house-quote-package.html','redirect to corrected complete package');
+need(sample,'Print / Save Complete Package','complete package print action');
 need(sample,'window.print()','browser print implementation');
 need(sample,'@media print','print stylesheet');
-need(sample,'DEMONSTRATION<br>NOT A CONTRACT','visible demonstration watermark');
-need(sample,'Safe public sample:','public data-boundary notice');
-need(sample,'14 trade sub-quotes','completed trade output');
-need(sample,'10-sheet drawing register','completed drawing output');
-need(sample,'6 bid packages','completed bid output');
-need(sample,'Internal cost, margin, vendor pricing, approval history, user data, and live Business Office records are intentionally excluded.','protected-field exclusion');
-need(sample,'Customer copy and acceptance controls','print guidance');
-need(sample,'Customer signature — disabled for this public demonstration','disabled public signature');
-
-['Rick Krueth','rkrueth@gmail.com','USER-OWNER','RUN-20260725','UQBP-','UQBS-','google.script.run','script.google.com/macros'].forEach(marker=>absent(sample,marker,'private or authenticated marker'));
-const route=routes.demonstrations.find(item=>item.path==='quote-builder-sample-proposal.html');
-if(!route)throw new Error('Printable sample route is not registered.');
-if(route.visibility!=='public'||route.shell!=='document')throw new Error('Printable sample route must be a public document route.');
-
-const internalNumbers=['$9,750','$11,076','$22,308','$30,030','$19,305','$20,982','$17,004','$14,352','$13,065','$14,976','$21,372','$18,408','$6,708','$4,641'];
-internalNumbers.forEach(value=>absent(sample,value,'internal cost value'));
-console.log('PASS — Public website shows the completed Quote Builder outputs and provides a sanitized, watermarked, print-ready customer sample without private records or internal cost data.');
+need(sample,'DEMONSTRATION — NOT A CONTRACT','visible demonstration watermark');
+['FRONT ELEVATION — SOUTH','RIGHT-SIDE ELEVATION — EAST','REAR ELEVATION — NORTH','A-101 — Existing / Proposed Main-Floor Plan','A-201 — Proposed Kitchen Plan & Cabinet Elevations','MEP-101 — Plumbing, Electrical & HVAC Coordination','C/S/L-101 — Site, Concrete, Deck & Drainage Plan'].forEach(label=>need(sample,label,'complete drawing content '+label));
+['Complete included scope','Itemized price','Deliverables and completion','Schedule','Payment','Assumptions','Exclusions','Change conditions','Customer acceptance / date','Authorized contractor / date'].forEach(label=>need(sample,label,'complete quote field '+label));
+const quoteDefs=(sample.match(/\{n:'\d{2}',key:/g)||[]).length;
+if(quoteDefs!==14)throw new Error('Expected 14 complete standalone quotes; found '+quoteDefs);
+const drawingSheets=(sample.match(/<section class="sheet">/g)||[]).length;
+if(drawingSheets<5)throw new Error('Expected at least 5 drawing sheets; found '+drawingSheets);
+['Rick Krueth','rkrueth@gmail.com','USER-OWNER','RUN-20260725','UQBP-','UQBS-','google.script.run','script.google.com/macros','Internal Cost','Margin'].forEach(marker=>absent(sample,marker,'private or authenticated marker'));
+const route=routes.demonstrations.find(item=>item.path==='whole-house-quote-package.html');
+if(!route)throw new Error('Complete package route is not registered.');
+if(route.visibility!=='public'||route.shell!=='document')throw new Error('Complete package route must be a public document route.');
+console.log(JSON.stringify({status:'PASS',drawingSheets,completeQuotes:quoteDefs,privateMarkers:0},null,2));
