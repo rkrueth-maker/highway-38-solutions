@@ -33,12 +33,27 @@ jobs:
         id: cad_verify
         continue-on-error: true
         run: node scripts/verify-complete-house-quote-package.js > cad-verifier.log 2>&1
-      - name: Upload CAD verification diagnostics
+      - name: Install SVG renderer
+        if: always()
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+      - name: Render key CAD sheets for visual evidence
+        if: always()
+        run: |
+          mkdir -p cad-rendered
+          for sheet in A-101 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
+            rsvg-convert --width 1700 --height 1100 "assets/quote-builder/whole-house-cad/${sheet}.svg" -o "cad-rendered/${sheet}.png"
+          done
+          test "$(find cad-rendered -name '*.png' | wc -l)" -eq 8
+      - name: Upload CAD verification and rendered evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: professional-cad-verifier
-          path: cad-verifier.log
+          name: professional-cad-evidence
+          path: |
+            cad-verifier.log
+            cad-rendered/*.png
           if-no-files-found: error
       - name: Enforce CAD verification result
         if: steps.cad_verify.outcome != 'success'
