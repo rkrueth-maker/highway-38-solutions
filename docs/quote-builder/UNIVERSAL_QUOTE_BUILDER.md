@@ -39,7 +39,7 @@ Customer and internal outputs are visibility-controlled views of the same struct
 
 ## Pricing
 
-`BusinessOffice_UniversalQuoteBuilder.gs` provides deterministic line calculations for unit, service, labor, machine, setup, operation, production, area, volume, weight, flat-rate, recurring, tiered, formula, cost-plus, target-margin, pass-through, allowance, and time-and-material methods.
+`BusinessOffice_UniversalQuoteBuilder.gs` provides 34 deterministic pricing methods covering unit, service, labor, machine, setup, operation, production, area, volume, weight, flat-rate, recurring, tiered, formula, cost-plus, target-margin, pass-through, allowance, and time-and-material calculations.
 
 Every result preserves input values, formula, price-book version, waste, markup, margin, minimum charge, difficulty, contingency, manual override, override reason, approving user, and source and warning status.
 
@@ -64,3 +64,7 @@ Agent outputs remain proposals until the configured approval level is satisfied.
 Each run prepares one project, one master proposal, fourteen trade sub-quotes, ten drawing-register entries, six subcontractor bid packages, and no customer send, purchasing, payment, scheduling, or other external action.
 
 The public demonstration is `universal-quote-builder.html`.
+
+## Verification
+
+The dedicated verifier is `scripts/verify-universal-quote-builder.js`. It is included in fast application, commercial, Business Office, PR source-smoke, and production deployment verification paths. The expected machine-readable result records five levels, 34 pricing methods, eight controlled agents, eighteen scenarios, fourteen house sub-quotes, ten drawings, six bid packages, open-ended example wording, and zero external actions.
