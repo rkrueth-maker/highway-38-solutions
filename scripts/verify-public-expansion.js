@@ -10,7 +10,7 @@ const check=(name,condition,detail='')=>{(condition?passes:failures).push({name,
 const requireFile=p=>check(`required file ${p}`,exists(p),p);
 
 [
- 'index.html','sample-library-now.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
+ 'index.html','sample-library-now.html','universal-quote-builder.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
  'cabin-project-complete.html','contractor-quote-complete.html','request-flow.js','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
  'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
  'apps-script/unified-shell/Unified_PublicIntake.gs','catalog-data.js','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
@@ -20,6 +20,7 @@ const routes=JSON.parse(read('scripts/config/public-website-routes.json'));
 const primary=(routes.primary||[]).map(item=>item.path);
 const expected=['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html'];
 check('eight current public gateways are canonical',expected.every(page=>primary.includes(page))&&primary.length===8,JSON.stringify(primary));
+check('universal demonstration is registered',routes.demonstrations.some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog and tool routes redirect to current pages',routes.retired['products.html']==='pricing.html'&&routes.retired['catalog.html']==='pricing.html'&&routes.retired['packages.html']==='pricing.html'&&routes.retired['tool-center.html']==='sample-library-now.html');
 
 const shell=read('assets/js/h38-site-v2.js');
@@ -44,10 +45,17 @@ check('pricing keeps Business Snapshot separate',pricing.includes('id="snapshot"
 check('pricing includes approved support and AI rules',pricing.includes('$199/month')&&pricing.includes('Starting at $399/month')&&pricing.includes('AI is built in—not sold as a separate public plan.'));
 
 const samples=read('sample-library-now.html');
-check('Project Examples contains eight complete demonstrations',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
+const existingProjectCount=(samples.match(/class="project-card"/g)||[]).length;
+check('Project Examples preserves all approved project demonstrations',existingProjectCount>=8&&samples.includes('Open-ended example library'),String(existingProjectCount));
+check('Project Examples leads with universal demonstration',samples.includes('universal-quote-builder.html')&&samples.includes('Universal Quote Builder demonstration'));
+check('Project Examples has no fixed example-count language',!/Eight complete|Explore the Eight|current eight-project/i.test(samples));
 check('Project Examples preserves hypothetical disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
 check('Project Examples uses six exact controlled replacement images',['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
 check('Project Examples includes complete cabin package',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
+
+const universal=read('universal-quote-builder.html');
+check('Universal Quote Builder covers progressive depth and all examples',universal.includes('Five levels')&&universal.includes('All example types')&&universal.includes('Whole-House Renovation and Property Improvement'));
+check('Universal Quote Builder exposes controlled trade and drawing proof',universal.includes('Trade sub-quotes')&&universal.includes('Bid packages')&&universal.includes('Permit submission')&&universal.includes('External actions</span><strong>0'));
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
@@ -72,6 +80,6 @@ check('legacy catalog compatibility data remains intact',catalog&&catalog.produc
 check('custom-domain work remains approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
 check('prohibited quantitative CNC claim is absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(expected.map(read).join('\n')));
 
-const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,projectExamples:8,capabilities:5,pricingProducts:3,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
+const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,existingProjectExamples:existingProjectCount,universalDemonstration:true,capabilities:5,pricingProducts:3,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
 console.log(JSON.stringify(result,null,2));
 process.exit(failures.length?1:0);

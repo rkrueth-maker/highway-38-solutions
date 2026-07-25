@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-23-project-first-v1",
+  "version": "2026-07-25-universal-quote-builder-v1",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
@@ -12,6 +12,7 @@
     {"path":"portal.html","label":"Owner Access","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/portal.html","shell":"gateway","visibility":"private-gateway"}
   ],
   "demonstrations": [
+    {"path":"universal-quote-builder.html","label":"Universal Quote Builder Demonstration","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/universal-quote-builder.html","shell":"canonical","visibility":"public"},
     {"path":"contractor-quote-complete.html","label":"Contractor Quote Demonstration","shell":"document","visibility":"noindex"},
     {"path":"cabin-project-complete.html","label":"Cabin Project Demonstration","shell":"document","visibility":"noindex"}
   ],

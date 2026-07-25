@@ -8,74 +8,51 @@ on:
       - '.github/workflows/production-smoke.yml'
       - 'scripts/verify-issue83-source.sh'
       - 'scripts/verify-one-shot-ux.js'
-      - 'ux-unified-public.css'
-      - 'request-flow.js'
-      - 'customer-portal-ux.js'
-      - 'public-expansion.js'
+      - 'scripts/verify-universal-quote-builder.js'
+      - 'scripts/config/public-website-routes.json'
       - 'index.html'
-      - 'products.html'
-      - 'product.html'
       - 'sample-library-now.html'
+      - 'universal-quote-builder.html'
+      - 'quote-builder.html'
+      - 'solutions.html'
+      - 'pricing.html'
+      - 'pricing-data.js'
       - 'start-request.html'
-      - 'customer-portal.html'
-      - 'problem-starter.html'
-      - 'automation-opportunity-planning.html'
-      - 'digital-file-cleanup-planning.html'
-      - 'fixture-jig-concept-review.html'
-      - 'garage-layout-planning.html'
-      - 'manufacturing-bottleneck-analysis.html'
-      - 'project-planning-packets.html'
-      - 'robot-tending-concept-planning.html'
-      - 'shop-layout-flow-review.html'
-      - 'small-business-workflow-cleanup.html'
-      - 'vision-inspection-concept-planning.html'
-      - 'service-landing.js'
-      - 'issue83-enhancements.js'
-      - 'issue83-enhancements.css'
-      - 'catalog-data.js'
-      - 'commercial.js'
-      - 'commercial.css'
-      - 'catalog-navigation.js'
-      - 'product-detail.js'
+      - 'portal.html'
+      - 'contact.html'
+      - 'about.html'
+      - 'assets/js/h38-site-v2.js'
+      - 'assets/css/project-intelligence.css'
+      - 'request-flow.js'
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/production-smoke.yml'
       - 'scripts/verify-issue83-source.sh'
       - 'scripts/verify-one-shot-ux.js'
-      - 'docs/commercial-system/production-smoke-request.md'
-      - 'ux-unified-public.css'
-      - 'request-flow.js'
-      - 'customer-portal-ux.js'
-      - 'public-expansion.js'
+      - 'scripts/verify-universal-quote-builder.js'
+      - 'scripts/config/public-website-routes.json'
       - 'index.html'
-      - 'products.html'
-      - 'product.html'
       - 'sample-library-now.html'
+      - 'universal-quote-builder.html'
+      - 'quote-builder.html'
+      - 'solutions.html'
+      - 'pricing.html'
+      - 'pricing-data.js'
       - 'start-request.html'
-      - 'customer-portal.html'
-      - 'problem-starter.html'
-      - 'automation-opportunity-planning.html'
-      - 'digital-file-cleanup-planning.html'
-      - 'fixture-jig-concept-review.html'
-      - 'garage-layout-planning.html'
-      - 'manufacturing-bottleneck-analysis.html'
-      - 'project-planning-packets.html'
-      - 'robot-tending-concept-planning.html'
-      - 'shop-layout-flow-review.html'
-      - 'small-business-workflow-cleanup.html'
-      - 'vision-inspection-concept-planning.html'
-      - 'service-landing.js'
-      - 'issue83-enhancements.js'
-      - 'issue83-enhancements.css'
-      - 'catalog-data.js'
-      - 'commercial.js'
-      - 'commercial.css'
-      - 'catalog-navigation.js'
-      - 'product-detail.js'
+      - 'portal.html'
+      - 'contact.html'
+      - 'about.html'
+      - 'assets/js/h38-site-v2.js'
+      - 'assets/css/project-intelligence.css'
+      - 'request-flow.js'
 
 permissions:
   contents: read
+
+concurrency:
+  group: production-site-smoke-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   pull-request-source-smoke:
@@ -87,21 +64,26 @@ jobs:
         shell: bash
         run: |
           set +e
-          bash scripts/verify-issue83-source.sh > /tmp/issue83-source-report.txt 2>&1
+          bash scripts/verify-issue83-source.sh > /tmp/public-source-report.txt 2>&1
           status=$?
-          cat /tmp/issue83-source-report.txt
+          cat /tmp/public-source-report.txt
           exit "$status"
-      - name: Upload Issue 83 source report
+      - name: Verify Universal Quote Builder source contract
+        run: node scripts/verify-universal-quote-builder.js
+      - name: Upload public source report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue83-source-report
-          path: /tmp/issue83-source-report.txt
-          if-no-files-found: error
+          name: public-source-report-${{ github.run_id }}
+          path: |
+            /tmp/public-source-report.txt
+            artifacts/universal-quote-builder/verification.json
+          if-no-files-found: warn
 
   production-smoke:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - name: Verify deployed GitHub Pages site
         shell: bash
@@ -112,7 +94,7 @@ jobs:
             local path="$1"
             local pattern="$2"
             local out="$3"
-            for attempt in $(seq 1 24); do
+            for attempt in $(seq 1 36); do
               if curl --fail --location --silent --show-error --max-time 30 "$base/$path?deployment=${GITHUB_SHA}" -o "$out" && grep -Fq "$pattern" "$out"; then
                 return 0
               fi
@@ -122,34 +104,43 @@ jobs:
             return 1
           }
 
-          fetch_until_ready '' 'Big problems.' /tmp/home.html
-          grep -Fq 'Clear plans.' /tmp/home.html
-          grep -Fq 'h38-outcome-grid' /tmp/home.html
-          grep -Fq 'Start a Request' /tmp/home.html
-          fetch_until_ready 'products.html' 'Choose the smallest service that produces a useful result.' /tmp/products.html
-          grep -Fq '15 fixed-price services. 9 approved bundles. 4 scoped systems.' /tmp/products.html
-          fetch_until_ready 'product.html?id=H38-P001' 'data-product-detail-single' /tmp/product.html
-          fetch_until_ready 'sample-library-now.html' 'See the kind of finished result before choosing a service.' /tmp/samples.html
-          fetch_until_ready 'start-request.html' 'What would you like to have when this is finished?' /tmp/request.html
+          fetch_until_ready '' 'Bring us the problem.' /tmp/home.html
+          grep -Fq 'complete project plan.' /tmp/home.html
+          grep -Fq 'See it. Scope it. Run it.' /tmp/home.html
+          grep -Fq 'href="sample-library-now.html"' /tmp/home.html
+
+          fetch_until_ready 'pricing.html' 'Three software products' /tmp/pricing.html
+          grep -Fq '$59' /tmp/pricing.html
+          grep -Fq '$249' /tmp/pricing.html
+          grep -Fq 'Starting at $499' /tmp/pricing.html
+          grep -Fq '$299 one-time' /tmp/pricing.html
+
+          fetch_until_ready 'quote-builder.html' 'Simple when the quote is simple.' /tmp/quote-builder.html
+          grep -Fq 'universal-quote-builder.html' /tmp/quote-builder.html
+
+          fetch_until_ready 'universal-quote-builder.html' 'Highway 38 Universal Quote Builder' /tmp/universal.html
+          grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/universal.html
+          grep -Fq 'Trade sub-quotes' /tmp/universal.html
+          grep -Fq 'External actions</span><strong>0' /tmp/universal.html
+
+          fetch_until_ready 'sample-library-now.html' 'Complete project demonstrations' /tmp/samples.html
+          grep -Fq 'Open-ended example library' /tmp/samples.html
+          grep -Fq 'universal-quote-builder.html' /tmp/samples.html
+          grep -Fq 'data-owner-link="true"' /tmp/samples.html
+
+          fetch_until_ready 'solutions.html' 'Five connected capabilities' /tmp/solutions.html
+          fetch_until_ready 'start-request.html' 'What result do you need?' /tmp/request.html
           grep -Fq 'data-request-step="1"' /tmp/request.html
           grep -Fq 'data-request-step="3"' /tmp/request.html
-          fetch_until_ready 'problem-starter.html' 'The Highway 38 Problem Starter' /tmp/problem-starter.html
+          fetch_until_ready 'portal.html' 'Opening Highway 38 Business Office' /tmp/portal.html
 
-          fetch_until_ready 'automation-opportunity-planning.html' '<title>Automation Opportunity Planning | Highway 38 Solutions</title>' /tmp/automation.html
-          fetch_until_ready 'digital-file-cleanup-planning.html' '<title>Digital File Cleanup Planning | Highway 38 Solutions</title>' /tmp/digital-cleanup.html
-          fetch_until_ready 'fixture-jig-concept-review.html' '<title>Fixture and Jig Concept Review | Highway 38 Solutions</title>' /tmp/fixture.html
-          fetch_until_ready 'garage-layout-planning.html' '<title>Garage Layout Planning | Highway 38 Solutions</title>' /tmp/garage.html
-          fetch_until_ready 'manufacturing-bottleneck-analysis.html' '<title>Manufacturing Bottleneck Analysis | Highway 38 Solutions</title>' /tmp/bottleneck.html
-          fetch_until_ready 'project-planning-packets.html' '<title>Project Planning Packets | Highway 38 Solutions</title>' /tmp/project.html
-          fetch_until_ready 'robot-tending-concept-planning.html' '<title>Robot Tending Concept Planning | Highway 38 Solutions</title>' /tmp/robot.html
-          fetch_until_ready 'shop-layout-flow-review.html' '<title>Shop Layout and Flow Review | Highway 38 Solutions</title>' /tmp/shop.html
-          fetch_until_ready 'small-business-workflow-cleanup.html' '<title>Small-Business Workflow Cleanup | Highway 38 Solutions</title>' /tmp/workflow.html
-          fetch_until_ready 'vision-inspection-concept-planning.html' '<title>Vision Inspection Concept Planning | Highway 38 Solutions</title>' /tmp/vision.html
-
-          grep -Fq 'data-owner-link="true"' /tmp/samples.html
-          if grep -Fq '25,000+ CNC programs' /tmp/home.html /tmp/products.html /tmp/samples.html; then
+          if grep -Eqi 'Eight complete|Explore the Eight|current eight-project' /tmp/samples.html; then
+            echo 'Fixed eight-example language found on deployed examples page.' >&2
+            exit 1
+          fi
+          if grep -Fq '25,000+ CNC programs' /tmp/home.html /tmp/samples.html /tmp/solutions.html; then
             echo 'Prohibited 25,000+ CNC programs claim found on deployed public pages.' >&2
             exit 1
           fi
 
-          echo 'Production GitHub Pages smoke check passed.'
+          echo 'Production GitHub Pages smoke check passed for current project-first architecture.'
