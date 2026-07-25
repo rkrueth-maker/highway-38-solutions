@@ -58,24 +58,38 @@ jobs:
             rsvg-convert --width 1700 --height 1100 "$sheet" -o "/tmp/ground-up-cad-rendered/${name}.png"
           done
           test "$(find /tmp/ground-up-cad-rendered -name '*.png' | wc -l)" -eq 10
+      - name: Upload generated package and rendered evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ground-up-new-house-revision-f-evidence
+          path: |
+            whole-house-quote-package.html
+            assets/quote-builder/whole-house-cad/*.svg
+            /tmp/ground-up-cad-rendered/*.png
+          if-no-files-found: error
       - name: Enforce ground-up scope and coordinated underlays
         run: |
           set -euo pipefail
-          grep -q 'Ground-Up New Home' whole-house-quote-package.html
-          grep -q 'Lot Clearing Through Final Completion' whole-house-quote-package.html
-          grep -q 'Revision:</strong> F' whole-house-quote-package.html
-          grep -q 'Lot Clearing, Erosion Control & Temporary Access' whole-house-quote-package.html
-          grep -q 'Final Grading, Landscaping, Testing & Closeout' whole-house-quote-package.html
-          grep -q 'Ground-Up New-Home Construction' assets/quote-builder/whole-house-cad/G-001.svg
-          grep -q 'CLEARING / GRUBBING' assets/quote-builder/whole-house-cad/C-S-L-101.svg
-          grep -q 'STABILIZED CONSTRUCTION ENTRANCE' assets/quote-builder/whole-house-cad/C-S-L-101.svg
-          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/M-101.svg
-          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/P-101.svg
-          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/E-101.svg
-          grep -q 'AHU-1' assets/quote-builder/whole-house-cad/M-101.svg
-          grep -q 'WATER / SANITARY SERVICE ENTRY' assets/quote-builder/whole-house-cad/P-101.svg
-          grep -q 'PANEL A' assets/quote-builder/whole-house-cad/E-101.svg
-          ! grep -Eiq 'whole-house renovation|property improvement|selective demolition|existing-house demolition' whole-house-quote-package.html assets/quote-builder/whole-house-cad/*.svg
+          check(){ grep -q "$1" "$2" || { echo "MISSING [$1] in $2"; exit 1; }; }
+          check 'Ground-Up New Home' whole-house-quote-package.html
+          check 'Lot Clearing Through Final Completion' whole-house-quote-package.html
+          check 'Revision:</strong> F' whole-house-quote-package.html
+          check 'Lot Clearing, Erosion Control & Temporary Access' whole-house-quote-package.html
+          check 'Final Grading, Landscaping, Testing & Closeout' whole-house-quote-package.html
+          check 'Ground-Up New-Home Construction' assets/quote-builder/whole-house-cad/G-001.svg
+          check 'CLEARING / GRUBBING' assets/quote-builder/whole-house-cad/C-S-L-101.svg
+          check 'STABILIZED CONSTRUCTION ENTRANCE' assets/quote-builder/whole-house-cad/C-S-L-101.svg
+          check 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/M-101.svg
+          check 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/P-101.svg
+          check 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/E-101.svg
+          check 'AHU-1' assets/quote-builder/whole-house-cad/M-101.svg
+          check 'WATER / SANITARY SERVICE ENTRY' assets/quote-builder/whole-house-cad/P-101.svg
+          check 'PANEL A' assets/quote-builder/whole-house-cad/E-101.svg
+          if grep -Eiq 'whole-house renovation|property improvement|selective demolition|existing-house demolition' whole-house-quote-package.html assets/quote-builder/whole-house-cad/*.svg; then
+            echo 'FORBIDDEN SCOPE LANGUAGE FOUND:'
+            grep -Ein 'whole-house renovation|property improvement|selective demolition|existing-house demolition' whole-house-quote-package.html assets/quote-builder/whole-house-cad/*.svg || true
+            exit 1
+          fi
       - name: Commit generated ground-up construction set
         run: |
           git config user.name github-actions[bot]
