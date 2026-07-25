@@ -41,12 +41,6 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Apply approved placement overrides
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/apply-public-image-placement-overrides.py
-
       - name: Verify public website and images
         shell: bash
         run: |
@@ -103,12 +97,13 @@ jobs:
 
           test -f _site/sample-library-now.html
           test -f _site/flower-garden-quote-complete.html
-          test -f _site/assets/contractor-demo/flower-after-same-house.svg
-          test -f _site/assets/demo-workthroughs/irrigation-before-clean.svg
-          test -f _site/assets/demo-workthroughs/irrigation-after-clean.svg
-          grep -Fq 'assets/contractor-demo/flower-after-same-house.svg' _site/sample-library-now.html
-          grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' _site/sample-library-now.html
-          grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' _site/sample-library-now.html
+          test -f _site/assets/contractor-demo/flower-after-same-house.webp
+          test -f _site/assets/demo-workthroughs/irrigation-before-clean.webp
+          test -f _site/assets/demo-workthroughs/irrigation-after-clean.webp
+          grep -Fq 'assets/contractor-demo/flower-after-same-house.webp' _site/sample-library-now.html
+          grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.webp' _site/sample-library-now.html
+          grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.webp' _site/sample-library-now.html
+          ! grep -Eq 'flower-after-same-house\.svg|irrigation-(before|after)-clean\.svg' _site/sample-library-now.html
           grep -Fq 'Flower garden after at the same house' _site/sample-library-now.html
           grep -Fq '$3,950' _site/sample-library-now.html
           grep -Fq '$3,950.00' _site/flower-garden-quote-complete.html
@@ -125,7 +120,7 @@ jobs:
         id: deploy
         uses: actions/deploy-pages@v4
 
-      - name: Verify live deployment
+      - name: Verify live deployment source and direct assets
         shell: bash
         run: |
           set -euo pipefail
@@ -138,21 +133,27 @@ jobs:
             live_sha="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/deployed-main-sha.txt?flush=${marker}-${attempt}" || true)"
             examples="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/sample-library-now.html?flush=${marker}-${attempt}" || true)"
             flower_quote="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/flower-garden-quote-complete.html?flush=${marker}-${attempt}" || true)"
-            before_svg="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-before-clean.svg?flush=${marker}-${attempt}" || true)"
-            after_svg="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-after-clean.svg?flush=${marker}-${attempt}" || true)"
+            flower_ok=0
+            irrigation_before_ok=0
+            irrigation_after_ok=0
+            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/contractor-demo/flower-after-same-house.webp?flush=${marker}-${attempt}" -o /tmp/flower-after-same-house.webp && [[ "$(wc -c </tmp/flower-after-same-house.webp)" -gt 10000 ]] && flower_ok=1
+            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-before-clean.webp?flush=${marker}-${attempt}" -o /tmp/irrigation-before-clean.webp && [[ "$(wc -c </tmp/irrigation-before-clean.webp)" -gt 10000 ]] && irrigation_before_ok=1
+            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-after-clean.webp?flush=${marker}-${attempt}" -o /tmp/irrigation-after-clean.webp && [[ "$(wc -c </tmp/irrigation-after-clean.webp)" -gt 10000 ]] && irrigation_after_ok=1
 
             if [[ "$live_sha" == "$expected" ]] \
               && grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" <<<"$examples" \
               && grep -Fq "contractor-demo.css?v=${short_sha}" <<<"$examples" \
-              && grep -Fq 'assets/contractor-demo/flower-after-same-house.svg' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.svg' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.svg' <<<"$examples" \
+              && grep -Fq 'assets/contractor-demo/flower-after-same-house.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.webp' <<<"$examples" \
+              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.webp' <<<"$examples" \
+              && ! grep -Eq 'flower-after-same-house\.svg|irrigation-(before|after)-clean\.svg' <<<"$examples" \
               && grep -Fq 'Flower garden after at the same house' <<<"$examples" \
               && grep -Fq '$3,950' <<<"$examples" \
               && grep -Fq '$3,950.00' <<<"$flower_quote" \
               && grep -Fq 'Natural-stone curved bed edge shown in concept' <<<"$flower_quote" \
-              && grep -Fq '<svg' <<<"$before_svg" \
-              && grep -Fq '<svg' <<<"$after_svg"; then
+              && [[ "$flower_ok" -eq 1 ]] \
+              && [[ "$irrigation_before_ok" -eq 1 ]] \
+              && [[ "$irrigation_after_ok" -eq 1 ]]; then
               exit 0
             fi
             sleep 10
@@ -160,6 +161,17 @@ jobs:
 
           echo 'The GitHub Pages CDN did not serve the repaired verified artifact before timeout.'
           exit 1
+
+      - name: Install live visual verification dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          python3 -m pip install --disable-pip-version-check pillow
+
+      - name: Capture and verify live Project Examples pixels
+        run: |
+          node scripts/capture-project-example-images.js "${LIVE_ROOT}"
+          python3 scripts/verify-rendered-project-images.py browser-artifacts/project-images
 
       - name: Upload website verification evidence
         if: always()
@@ -169,20 +181,21 @@ jobs:
           path: |
             artifacts/public-website-architecture/
             artifacts/public-image-placements/
+            browser-artifacts/project-images/
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Record PASS
+      - name: Record technical PASS
         if: success()
         shell: bash
         run: |
-          body="PASS — GitHub Pages is serving commit ${GITHUB_SHA}. The flower example uses the same house, its $3,950 quote includes the visible stone edging and closeout work, and the irrigation cards use clean local crops without overlapping labels. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — PASS' --body "$body"
+          body="TECHNICAL PASS — GitHub Pages is serving commit ${GITHUB_SHA}; direct-raster and rendered-pixel checks passed. The flower example uses the same house, its $3,950 quote includes the visible stone edging and closeout work, and the irrigation cards use label-free raster crops. Owner visual acceptance remains separate. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages technical verification — PASS; visual acceptance pending owner review' --body "$body"
           gh issue close 284 --repo "$GITHUB_REPOSITORY" --reason completed
 
       - name: Record HOLD
         if: failure()
         shell: bash
         run: |
-          body="HOLD — Public website verification or deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body="HOLD — Public website verification, rendered-pixel verification, or deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — HOLD' --body "$body"
