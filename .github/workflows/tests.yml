@@ -4,9 +4,25 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/*.py'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'pytest.ini'
+      - '.github/workflows/tests.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - '**/*.py'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'pytest.ini'
+      - '.github/workflows/tests.yml'
+
+concurrency:
+  group: highway38-python-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
