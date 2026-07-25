@@ -28,12 +28,13 @@ const requiredAssets=[
   'scripts/config/approved-public-image-placements.json'
 ];
 
-check('project-first route registry version',/project-first/.test(String(registry.version||'')),registry.version||'');
+check('universal project-first route registry version',/universal-quote-builder/.test(String(registry.version||'')),registry.version||'');
 check('eight primary routes',primary.length===8,String(primary.length));
 for(const expected of ['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html']){
   check(`primary route registered: ${expected}`,primary.includes(expected));
 }
-for(const file of [...primary,...requiredAssets])check(`required public artifact: ${file}`,exists(file));
+check('universal demonstration registered',(registry.demonstrations||[]).some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
+for(const file of [...primary,'universal-quote-builder.html',...requiredAssets])check(`required public artifact: ${file}`,exists(file));
 
 const approved=JSON.parse(read('scripts/config/approved-public-assets.json'));
 const logoRef=approved.approved_logo&&approved.approved_logo.public_reference;
@@ -59,14 +60,18 @@ for(const route of publicPrimary.filter(route=>!['start-request.html'].includes(
 
 const home=read('index.html');
 const examples=read('sample-library-now.html');
+const universal=read('universal-quote-builder.html');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const request=read('start-request.html');
 const portal=read('portal.html');
 check('home routes to project examples',home.includes('sample-library-now.html'));
 check('home routes to start project',home.includes('start-request.html'));
-check('examples provide eight project cards',(examples.match(/class="project-card(?:"|\s)/g)||[]).length===8);
-check('examples route to full demonstrations',examples.includes('contractor-quote-complete.html?example=')&&examples.includes('cabin-project-complete.html'));
+const projectCardCount=(examples.match(/class="project-card(?:"|\s)/g)||[]).length;
+check('examples preserve approved project cards and remain open-ended',projectCardCount>=8&&examples.includes('Open-ended example library'),String(projectCardCount));
+check('examples route to full demonstrations',examples.includes('contractor-quote-complete.html?example=')&&examples.includes('cabin-project-complete.html')&&examples.includes('universal-quote-builder.html'));
+check('examples remove fixed count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(examples));
+check('universal demonstration covers simple through complex work',universal.includes('Simple when the quote is simple.')&&universal.includes('All example types')&&universal.includes('Whole-House Renovation and Property Improvement'));
 check('solutions is capability-first',/Automation|CNC|Quote Builder|Business Office/.test(solutions));
 check('pricing is project-first',/project/i.test(pricing)&&pricing.includes('start-request.html'));
 check('request page preserves controlled intake',request.includes('assets/js/h38-request-options.js')&&request.includes('request-flow.js'));
@@ -87,7 +92,7 @@ for(const route of publicPrimary){
 }
 for(const oldRoute of Object.keys(retired))check(`sitemap excludes retired ${oldRoute}`,!sitemap.includes(oldRoute));
 
-const publicText=publicPrimary.map(read).join('\n');
+const publicText=publicPrimary.map(read).join('\n')+'\n'+universal;
 check('no public LLC claim',!/Highway 38[^\n<]{0,30}\bLLC\b/i.test(publicText));
 check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(publicText));
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
@@ -97,10 +102,12 @@ check('no actionable public checkout',!/href="[^"]*(?:checkout|cart)|action="[^"
 const evidence={
   status:failures.length?'HOLD':'PASS',
   generatedAt:new Date().toISOString(),
-  architecture:'project-first-public-v1',
+  architecture:'project-first-universal-quote-v1',
   passed:passes.length,
   failed:failures.length,
   routes:primary,
+  existingProjectExamples:projectCardCount,
+  universalDemonstration:true,
   controls:{
     routeRegistry:true,
     sharedShell:true,
