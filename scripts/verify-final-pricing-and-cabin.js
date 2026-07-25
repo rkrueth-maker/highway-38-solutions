@@ -7,6 +7,7 @@ const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const failures=[],passes=[];
 const check=(name,condition,evidence='')=>{(condition?passes:failures).push({name,evidence});console.log(`${condition?'PASS':'FAIL'}: ${name}${evidence?` — ${evidence}`:''}`);};
+const softwareCardCount=html=>[...html.matchAll(/class="([^"]*)"/g)].filter(match=>match[1].split(/\s+/).includes('price-card')).length;
 
 const pricing=read('pricing.html');
 const pricingData=read('pricing-data.js');
@@ -29,9 +30,9 @@ check('approved software prices',source&&source.offers.find(item=>item.id==='quo
 check('approved implementation prices',source&&source.offers.find(item=>item.id==='quote-builder').assistedSetup===499&&source.offers.find(item=>item.id==='business-office').implementation===2500&&source.offers.find(item=>item.id==='configured-system').implementationStarting===7500);
 check('optional support prices',source&&source.support.find(item=>item.id==='managed-support').monthly===199&&source.support.find(item=>item.id==='managed-operations').monthlyStarting===399);
 
-check('pricing page has exactly three primary software cards',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3);
+check('pricing page has exactly three primary software cards',softwareCardCount(pricing)===3,String(softwareCardCount(pricing)));
 check('Business Office marked Most Popular',pricing.includes('Most Popular')&&pricing.includes('$249 <small>/ month</small>'));
-check('Business Snapshot is below and not a fourth price card',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&(pricing.match(/class="price-card/g)||[]).length===3);
+check('Business Snapshot is below and not a fourth price card',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&softwareCardCount(pricing)===3);
 check('configured prices use starting at',pricing.includes('Starting at $499')&&pricing.includes('Implementation starting at $7,500'));
 check('AI has no separate public price card',pricing.includes('AI is built in—not sold as a separate public plan.')&&!/class="price-card[^>]*>[\s\S]{0,500}<h2>[^<]*AI/i.test(pricing));
 check('old public pricing packages removed',!/(Project Snapshot|Plan & Quote|Complete Job Package|Business Office Project)/.test(pricing));
