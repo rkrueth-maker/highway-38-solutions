@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="title desc">
+  <title id="title">Finished flower garden at the same house</title>
+  <desc id="desc">The original gray-sided house and camera angle with a completed curved flower bed added along the foundation.</desc>
+  <defs>
+    <linearGradient id="mulch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d3824"/>
+      <stop offset="0.55" stop-color="#3f2518"/>
+      <stop offset="1" stop-color="#28160f"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eee7db"/>
+      <stop offset="0.55" stop-color="#c6b9a6"/>
+      <stop offset="1" stop-color="#938571"/>
+    </linearGradient>
+    <radialGradient id="leaf" cx="40%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#5e9a42"/>
+      <stop offset="1" stop-color="#204d2a"/>
+    </radialGradient>
+    <filter id="bedShadow" x="-10%" y="-20%" width="120%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#10200f" flood-opacity="0.32"/>
+    </filter>
+    <filter id="plantShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-color="#0f240f" flood-opacity="0.35"/>
+    </filter>
+    <clipPath id="frame"><rect width="1200" height="675" rx="0"/></clipPath>
+    <g id="pinkFlower">
+      <circle cy="-10" r="10" fill="#d94f76"/><circle cx="10" r="10" fill="#ec6f91"/><circle cy="10" r="10" fill="#d94f76"/><circle cx="-10" r="10" fill="#ec6f91"/><circle r="6" fill="#ffd85b"/>
+    </g>
+    <g id="yellowFlower">
+      <circle cy="-9" r="9" fill="#ffd34a"/><circle cx="9" r="9" fill="#f3b91e"/><circle cy="9" r="9" fill="#ffd34a"/><circle cx="-9" r="9" fill="#f3b91e"/><circle r="5" fill="#6a4a16"/>
+    </g>
+    <g id="purpleFlower">
+      <circle cy="-9" r="9" fill="#9258c8"/><circle cx="9" r="9" fill="#b17be0"/><circle cy="9" r="9" fill="#9258c8"/><circle cx="-9" r="9" fill="#b17be0"/><circle r="5" fill="#ffd86b"/>
+    </g>
+  </defs>
+  <g clip-path="url(#frame)">
+    <image x="0" y="0" width="1200" height="675" preserveAspectRatio="xMidYMid slice" href="flower-before.png?v=20260722-exact" xlink:href="flower-before.png?v=20260722-exact"/>
+    <g filter="url(#bedShadow)">
+      <path d="M300 545 C455 501 590 462 760 452 C940 441 1085 454 1200 425 L1200 675 L235 675 C238 615 255 573 300 545Z" fill="url(#mulch)"/>
+      <path d="M289 546 C455 495 594 455 762 445 C938 434 1082 448 1205 418" fill="none" stroke="#6f6658" stroke-width="40" stroke-linecap="round"/>
+      <path d="M289 542 C455 491 594 451 762 441 C938 430 1082 444 1205 414" fill="none" stroke="url(#edge)" stroke-width="27" stroke-linecap="round"/>
+      <path d="M291 536 C458 486 597 446 766 436 C941 425 1080 439 1202 409" fill="none" stroke="#f5efe5" stroke-opacity="0.55" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <g filter="url(#plantShadow)">
+      <ellipse cx="435" cy="525" rx="58" ry="37" fill="url(#leaf)"/>
+      <ellipse cx="402" cy="509" rx="32" ry="52" fill="#2f6638" transform="rotate(-26 402 509)"/>
+      <ellipse cx="468" cy="504" rx="30" ry="48" fill="#397940" transform="rotate(24 468 504)"/>
+      <ellipse cx="580" cy="487" rx="70" ry="46" fill="url(#leaf)"/>
+      <ellipse cx="552" cy="458" rx="34" ry="58" fill="#2e6a38" transform="rotate(-20 552 458)"/>
+      <ellipse cx="615" cy="459" rx="34" ry="58" fill="#397c42" transform="rotate(20 615 459)"/>
+      <ellipse cx="760" cy="482" rx="78" ry="48" fill="url(#leaf)"/>
+      <ellipse cx="727" cy="449" rx="38" ry="62" fill="#2b6335" transform="rotate(-18 727 449)"/>
+      <ellipse cx="798" cy="452" rx="38" ry="60" fill="#3b7d44" transform="rotate(20 798 452)"/>
+      <ellipse cx="954" cy="490" rx="72" ry="45" fill="url(#leaf)"/>
+      <ellipse cx="928" cy="458" rx="35" ry="58" fill="#2e6938" transform="rotate(-18 928 458)"/>
+      <ellipse cx="986" cy="462" rx="34" ry="56" fill="#3a7b42" transform="rotate(17 986 462)"/>
+    </g>
+
+    <g filter="url(#plantShadow)">
+      <g transform="translate(380 535)"><use href="#pinkFlower"/><use href="#pinkFlower" transform="translate(35 -22) scale(.82)"/><use href="#yellowFlower" transform="translate(70 5) scale(.9)"/><use href="#purpleFlower" transform="translate(26 34) scale(.78)"/></g>
+      <g transform="translate(525 500)"><use href="#yellowFlower"/><use href="#pinkFlower" transform="translate(42 -28) scale(.9)"/><use href="#purpleFlower" transform="translate(84 -5) scale(.85)"/><use href="#yellowFlower" transform="translate(55 35) scale(.78)"/></g>
+      <g transform="translate(698 492)"><use href="#purpleFlower"/><use href="#pinkFlower" transform="translate(46 -32) scale(.92)"/><use href="#yellowFlower" transform="translate(95 -4) scale(.88)"/><use href="#pinkFlower" transform="translate(66 38) scale(.75)"/></g>
+      <g transform="translate(895 503)"><use href="#yellowFlower"/><use href="#purpleFlower" transform="translate(44 -34) scale(.9)"/><use href="#pinkFlower" transform="translate(88 -5) scale(.86)"/><use href="#yellowFlower" transform="translate(58 35) scale(.75)"/></g>
+      <g transform="translate(1045 486)"><use href="#pinkFlower"/><use href="#yellowFlower" transform="translate(43 -25) scale(.9)"/><use href="#purpleFlower" transform="translate(82 10) scale(.82)"/></g>
+    </g>
+
+    <g opacity="0.98" filter="url(#plantShadow)">
+      <ellipse cx="342" cy="612" rx="42" ry="24" fill="#9c9487" transform="rotate(-8 342 612)"/><ellipse cx="342" cy="605" rx="31" ry="14" fill="#c4beb4" transform="rotate(-8 342 605)"/>
+      <ellipse cx="660" cy="604" rx="35" ry="22" fill="#827c71" transform="rotate(12 660 604)"/><ellipse cx="660" cy="598" rx="25" ry="12" fill="#b7b0a5" transform="rotate(12 660 598)"/>
+      <ellipse cx="1018" cy="596" rx="40" ry="23" fill="#918a7d" transform="rotate(-12 1018 596)"/><ellipse cx="1018" cy="590" rx="29" ry="13" fill="#c1baae" transform="rotate(-12 1018 590)"/>
+    </g>
+  </g>
+</svg>
