@@ -1,0 +1,43 @@
+name: Trigger Project Examples controls repair
+
+on:
+  push:
+    branches:
+      - fix/project-example-visual-gate-20260724
+    paths:
+      - .github/workflows/trigger-project-example-controls-repair.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/project-example-visual-gate-20260724
+          fetch-depth: 0
+      - name: Execute embedded controls repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          source=Path('.github/workflows/one-time-project-example-controls-repair.yml').read_text().splitlines()
+          start=next(i for i,line in enumerate(source) if "python3 - <<'PY'" in line)+1
+          end=next(i for i in range(start,len(source)) if source[i].strip()=='PY')
+          code=textwrap.dedent('\n'.join(source[start:end]))
+          exec(compile(code,'embedded-controls-repair','exec'),{'__name__':'__main__'})
+          PY
+          rm -f .github/workflows/trigger-project-example-controls-repair.yml
+      - name: Commit repaired controls
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Fix Project Examples controls and visual release rules'
+          git push origin HEAD:fix/project-example-visual-gate-20260724
