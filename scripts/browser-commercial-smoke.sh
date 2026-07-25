@@ -72,7 +72,7 @@ grep -q 'Bring us the problem.' "$OUT/rendered-home.html" || fail "rendered home
 grep -q 'Project-first pricing' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing project-first pricing"
 grep -q 'What result do you need?' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the current outcome question"
 grep -q 'data-request-step="3"' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the review step"
-for name in deck-existing-condition.webp deck-finished-concept.webp irrigation-before.webp irrigation-after.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
+for name in deck-existing-condition.webp deck-finished-concept.webp irrigation-before-clean.webp irrigation-after-clean.webp kitchen-existing-condition.webp kitchen-remodel-concept.webp; do
   grep -q "assets/demo-workthroughs/$name" "$OUT/rendered-samples.html" || fail "rendered Project Examples is missing $name"
 done
 pass "rendered Project Examples uses the six controlled deck irrigation and kitchen images"
@@ -84,6 +84,7 @@ pass "rendered canonical navigation and Owner gateway are present"
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/home-desktop.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/home-mobile.png" "http://127.0.0.1:8000/index.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/examples-desktop.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
+"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/examples-mobile.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1
 "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/request-mobile.png" "http://127.0.0.1:8000/start-request.html" > /dev/null 2>&1
 
 for image in "$OUT"/*.png; do

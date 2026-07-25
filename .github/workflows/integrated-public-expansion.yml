@@ -24,6 +24,8 @@ on:
       - 'scripts/verify-commercial-system.js'
       - 'scripts/verify-commercial-browser.js'
       - 'scripts/browser-commercial-smoke.sh'
+      - 'scripts/capture-project-example-images.js'
+      - 'scripts/verify-rendered-project-images.py'
       - 'scripts/verify-contact-options.js'
       - 'scripts/verify-one-shot-ux.js'
       - 'scripts/verify-customer-portal-supabase.js'
@@ -32,6 +34,7 @@ on:
       - 'scripts/config/approved-public-assets.json'
       - 'scripts/config/approved-public-image-placements.json'
       - 'docs/architecture/**'
+      - 'docs/public-website/VISUAL_RELEASE_STANDARD.md'
       - '.github/workflows/integrated-public-expansion.yml'
   workflow_dispatch:
 
@@ -68,7 +71,7 @@ jobs:
   browser-regression:
     needs: structural-regression
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,10 +84,16 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Install rendered-image verifier
+        run: python3 -m pip install --disable-pip-version-check pillow
       - name: Verify project-first browser behavior
         run: node scripts/verify-commercial-browser.js
       - name: Verify focused shell screenshots and examples
         run: bash scripts/browser-commercial-smoke.sh
+      - name: Capture every Project Examples image
+        run: node scripts/capture-project-example-images.js
+      - name: Reject blank, broken, SVG-wrapped, or mismatched project visuals
+        run: python3 scripts/verify-rendered-project-images.py browser-artifacts/project-images
       - name: Upload public regression evidence
         if: always()
         uses: actions/upload-artifact@v4
