@@ -1,0 +1,48 @@
+<script>
+(function(){
+'use strict';
+var MAX_STEPS=20;
+function rpc(name,args){return new Promise(function(resolve,reject){var runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[]);});}
+function overlay(show,text){var el=document.getElementById('qbOverlay');if(!el)return;el.textContent=text||'Working…';el.classList.toggle('show',!!show);}
+function toast(message,bad){var el=document.getElementById('qbToast');if(!el)return;el.textContent=message;el.style.background=bad?'#7a1515':'#162331';el.classList.add('show');setTimeout(function(){el.classList.remove('show');},7000);}
+function defaultRunKey(){var d=new Date(),pad=function(v){return String(v).padStart(2,'0');};return 'RUN-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());}
+function progressText(result,step){var counts=result&&result.counts||{};return 'Building example run '+(result.runKey||'')+' — '+(result.progressPercent||0)+'% · '+(result.phase||'starting')+' · step '+step+' of '+MAX_STEPS+' · projects '+(counts.projectCount||0)+'/18 · house packages '+(counts.houseSubquotes||0)+'/14 · drawings '+(counts.drawings||0)+'/10 · bids '+(counts.bidPackages||0)+'/6';}
+async function runToCompletion(runKey,button){
+  if(window.H38_UQB_RESUME_ACTIVE)return;
+  window.H38_UQB_RESUME_ACTIVE=true;if(button)button.disabled=true;
+  try{
+    var result=null;
+    for(var step=1;step<=MAX_STEPS;step+=1){
+      overlay(true,result?progressText(result,step):'Starting resumable Universal Quote example run…');
+      result=await rpc('boUniversalResumeExampleSuite',[runKey]);
+      overlay(true,progressText(result,step));
+      if(result.complete){toast('Example run '+result.runKey+' completed: 18 projects, 14 house packages, 10 drawings, and 6 bid packages.');if(window.qbOpen)window.qbOpen('universal');return result;}
+    }
+    throw new Error('The example run is still incomplete after '+MAX_STEPS+' controlled steps. Open the Universal Builder and resume the same run again.');
+  }finally{window.H38_UQB_RESUME_ACTIVE=false;overlay(false);if(button)button.disabled=false;}
+}
+async function begin(button){
+  try{
+    overlay(true,'Checking for an incomplete example run…');
+    var latest=await rpc('boUniversalLatestIncompleteExampleRun',[]),runKey='';
+    overlay(false);
+    if(latest&&latest.runKey&&!latest.complete){
+      var okay=window.confirm('Resume '+latest.runKey+' from '+latest.progressPercent+'% complete? Existing records will be reused and only missing records will be created.');
+      if(!okay)return;runKey=latest.runKey;
+    }else{
+      runKey=window.prompt('Example run label',defaultRunKey());
+      if(!runKey)return;
+    }
+    await runToCompletion(runKey,button);
+  }catch(error){overlay(false);toast((error&&error.message)||String(error),true);}
+}
+function bindButton(button){
+  if(!button||button.dataset.uqbResumeBound==='yes')return;
+  button.dataset.uqbResumeBound='yes';button.textContent='Resume / Prepare Example Run';button.onclick=function(event){event.preventDefault();event.stopPropagation();begin(button);};
+}
+function scan(){document.querySelectorAll('[data-uqb="examples"]').forEach(bindButton);}
+new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true});
+scan();
+window.H38_UQB_RESUME={run:runToCompletion,scan:scan};
+})();
+</script>
