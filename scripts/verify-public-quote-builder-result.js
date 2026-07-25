@@ -20,8 +20,8 @@ need(universal,'quote-builder-sample-proposal.html','complete-package entry link
 need(library,'quote-builder-sample-proposal.html','Project Examples complete-package link');
 need(product,'quote-builder-sample-proposal.html','product-page complete-package link');
 need(redirect,'whole-house-quote-package.html','redirect to corrected complete package');
-['Print / Save Complete Package','window.print()','@media print','DEMONSTRATION — NOT A CONTRACT','10-sheet professional CAD-style coordination drawing set','Open full-size SVG'].forEach(label=>need(sample,label,'complete package control'));
-['G-001 — General Notes, Index & Symbols','A-101 — Proposed Main-Floor Plan','A-102 — Second-Floor & Roof Plan','A-201 — Exterior Elevations — Four Views','A-301 — Building Sections & Envelope Details','A-401 — Kitchen Plan & Interior Elevations','M-101 — HVAC Distribution & Equipment Plan','P-101 — Plumbing Plan, Riser & Fixture Schedule','E-101 — Lighting, Power & Panel Schedule','C-S-L-101 — Site, Deck, Concrete, Drainage & Landscape'].forEach(label=>need(sample,label,'professional drawing content '+label));
+['Print / Save Complete Package','window.print()','@media print','DEMONSTRATION — NOT A CONTRACT','10-sheet professional CAD-style coordination drawing set','Open full-size SVG','Revision E'].forEach(label=>need(sample,label,'complete package control'));
+['G-001 — General Notes, Index & Symbols','A-101 — Proposed Main-Floor Plan — Detailed','A-102 — Second-Floor & Roof Plan','A-201 — Exterior Elevations — Detailed Four Views','A-301 — Building Sections & Envelope Details — Detailed','A-401 — Kitchen Plan & Interior Elevations — Detailed','M-101 — HVAC Distribution & Equipment Plan','P-101 — Plumbing Plan, Riser & Fixture Schedule','E-101 — Lighting, Power & Panel Schedule','C-S-L-101 — Site, Deck, Concrete, Drainage & Landscape'].forEach(label=>need(sample,label,'professional drawing content '+label));
 ['Complete included scope','Itemized price','Deliverables and completion','Schedule','Payment','Assumptions','Exclusions','Change conditions','Customer acceptance / date','Authorized contractor / date'].forEach(label=>need(sample,label,'complete quote field '+label));
 const quoteDefs=(sample.match(/\{n:'\d{2}',key:/g)||[]).length;
 if(quoteDefs!==14)throw new Error('Expected 14 complete standalone quotes; found '+quoteDefs);
@@ -33,4 +33,4 @@ if(!route)throw new Error('Complete package route is not registered.');
 if(route.visibility!=='public'||route.shell!=='document')throw new Error('Complete package route must be a public document route.');
 const cad=spawnSync(process.execPath,[path.join(root,'scripts','verify-professional-house-cad.js')],{cwd:root,encoding:'utf8'});
 if(cad.status!==0)throw new Error('Professional CAD verification failed:\n'+cad.stdout+'\n'+cad.stderr);
-console.log(JSON.stringify({status:'PASS',drawingSheets,completeQuotes:quoteDefs,professionalCad:true,privateMarkers:0},null,2));
+console.log(JSON.stringify({status:'PASS',revision:'E',drawingSheets,completeQuotes:quoteDefs,professionalCad:true,privateMarkers:0},null,2));
