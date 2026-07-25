@@ -27,9 +27,16 @@ function boCabinAutoSeedOwner_(){
   var role=boGetRole_(user['Role ID']);if(!role||role['Role Name']!=='Owner')throw new Error('Stored Cabin Demo 08 user is not an Owner.');
   return user;
 }
+function boCabinAutoSeedAcceptCoverage_(properties,coverage){
+  properties.setProperty('H38_CABIN_DEMO08_GENERATED','YES');properties.setProperty('H38_CABIN_DEMO08_GENERATED_VERSION',H38_CABIN_AUTOSEED_VERSION);properties.setProperty('H38_CABIN_DEMO08_STATUS','PASS');properties.setProperty('H38_CABIN_DEMO08_PROGRESS','21/21');properties.setProperty('H38_CABIN_DEMO08_CURSOR','21');properties.setProperty('H38_CABIN_DEMO08_RESULT_JSON',JSON.stringify(coverage));properties.setProperty('H38_CABIN_DEMO08_COMPLETED_AT',new Date().toISOString());properties.deleteProperty('H38_CABIN_DEMO08_ERROR');
+}
 function boEnsureCabinDemo08Generation_(owner){
   var properties=boCabinAutoSeedProperties_(),generated=properties.getProperty('H38_CABIN_DEMO08_GENERATED_VERSION');
   if(generated===H38_CABIN_AUTOSEED_VERSION)return {status:'PASS',generated:true};
+  try{
+    var existingCoverage=boVerifyCabinDemo08TableCoverage_(boCabinDemo_(),boCabinRoot_());
+    if(existingCoverage.status==='PASS'){boCabinAutoSeedAcceptCoverage_(properties,existingCoverage);return {status:'PASS',generated:true,coverage:existingCoverage};}
+  }catch(coverageError){}
   boCabinAutoSeedStoreOwner_(owner);
   var lock=LockService.getScriptLock();if(!lock.tryLock(3000))return {status:'RUNNING',generated:false};
   try{
@@ -72,12 +79,8 @@ function boRunCabinAutoSeed_(){
     properties.setProperty('H38_CABIN_DEMO08_UPDATED_AT',new Date().toISOString());
     if(end<cfg.packages.length){boCabinAutoSeedSchedule_(5000);return {status:'RUNNING',processed:end,total:cfg.packages.length,batch:results.length,externalActionsPerformed:false};}
     var finalResult=boFinalizeCabinDemo08Generation_(owner);
-    properties.setProperty('H38_CABIN_DEMO08_GENERATED_VERSION',H38_CABIN_AUTOSEED_VERSION);
-    properties.setProperty('H38_CABIN_DEMO08_STATUS','PASS');
-    properties.setProperty('H38_CABIN_DEMO08_PROGRESS','21/21');
+    boCabinAutoSeedAcceptCoverage_(properties,finalResult.coverage||finalResult);
     properties.setProperty('H38_CABIN_DEMO08_RESULT_JSON',JSON.stringify(finalResult));
-    properties.setProperty('H38_CABIN_DEMO08_COMPLETED_AT',new Date().toISOString());
-    properties.deleteProperty('H38_CABIN_DEMO08_ERROR');
     return finalResult;
   }catch(error){
     properties.setProperty('H38_CABIN_DEMO08_STATUS','HOLD');
