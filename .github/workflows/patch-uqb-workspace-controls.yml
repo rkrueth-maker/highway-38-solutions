@@ -1,0 +1,63 @@
+name: Patch UQB Workspace Controls
+on:
+  push:
+    branches: [agent/complete-universal-quote-builder]
+    paths: ['.github/workflows/patch-uqb-workspace-controls.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/complete-universal-quote-builder
+      - name: Wire approval and completion controls
+        shell: python
+        run: |
+          from pathlib import Path
+          records=Path('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Records.gs')
+          text=records.read_text()
+          old="knowledgePacks:boUniversalReadRows_('KNOWLEDGE').filter(function(row){return row.Active==='Yes';})"
+          new="knowledgePacks:boUniversalReadRows_('KNOWLEDGE')"
+          if text.count(old)!=1: raise SystemExit('Knowledge Pack project payload marker missing')
+          records.write_text(text.replace(old,new,1))
+
+          client=Path('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Workspace_Client.html')
+          text=client.read_text()
+          changes=[
+          ('''<div class="actions" style="margin-top:12px"><button class="primary" data-uqb="materialize">Create / Refresh Master Quote</button><button class="secondary" data-uqb="reviseProject">New Revision</button></div>''',
+           '''<div class="actions" style="margin-top:12px"><button class="primary" data-uqb="materialize">Create / Refresh Master Quote</button><button class="secondary" data-uqb="reviewProject">Run Quote Review</button><button class="secondary" data-uqb="consistency">Complete Consistency Review</button><button class="secondary" data-uqb="reviewRecord" data-id="Project|'''+"'+esc(projectId)+'"+'''">Approve / Reject Project</button><button class="secondary" data-uqb="reviseProject">New Revision</button><button class="secondary" data-uqb="changeOrder">Prepare Change Order</button><button class="secondary" data-uqb="completion">Generate Completion Package</button></div>'''),
+          ('''<button class="secondary" data-uqb="execution" data-id="'+esc(s['Subquote ID'])+'">Prepare Work</button></div>''',
+           '''<button class="secondary" data-uqb="execution" data-id="'+esc(s['Subquote ID'])+'">Prepare Work</button><button class="secondary" data-uqb="reviewRecord" data-id="Subquote|'+esc(s['Subquote ID'])+'">Approve / Reject</button></div>'''),
+          ('''<button class="secondary" data-uqb="reviseDrawing" data-id="'+esc(x['Drawing ID'])+'">Revise</button>''',
+           '''<div class="uqb-row-actions"><button class="secondary" data-uqb="reviseDrawing" data-id="'+esc(x['Drawing ID'])+'">Revise</button><button class="secondary" data-uqb="reviewRecord" data-id="Drawing|'+esc(x['Drawing ID'])+'">Approve / Reject</button></div>'''),
+          ('''<button class="secondary" data-uqb="compareBids" data-id="'+esc(b['Bid Package ID'])+'">Compare</button></div>''',
+           '''<button class="secondary" data-uqb="compareBids" data-id="'+esc(b['Bid Package ID'])+'">Compare</button><button class="secondary" data-uqb="reviewRecord" data-id="Bid Package|'+esc(b['Bid Package ID'])+'">Approve / Reject Package</button></div>'''),
+          ('''return '<article class="uqb-card"><h3>'+esc(k['Pack Name'])+'</h3><p>Version '+esc(k.Version)+'</p>'+badge(k.Active==='Yes'?'Active':'Inactive')+'</article>';''',
+           '''return '<article class="uqb-card"><h3>'+esc(k['Pack Name'])+'</h3><p>Version '+esc(k.Version)+'</p>'+badge(k.Active==='Yes'?'Active':'Inactive')+(k.Active==='Yes'?'':'<div class="uqb-row-actions" style="margin-top:10px"><button class="secondary" data-uqb="activateKnowledge" data-id="'+esc(k['Knowledge Pack ID'])+'">Approve and Activate</button></div>')+'</article>';''')
+          ]
+          for old,new in changes:
+              if text.count(old)!=1: raise SystemExit('Workspace marker missing: '+old[:80])
+              text=text.replace(old,new,1)
+          anchor="if(name==='export'){"
+          if text.count(anchor)!=1: raise SystemExit('Export action anchor missing')
+          handlers=r'''if(name==='reviewProject'){run('Reviewing project completeness',function(){return rpc('boUniversalReviewProject',[projectId]);}).then(function(r){var rows=r.findings.map(function(f){return[badge(f.severity),esc(f.area),esc(f.message)];});document.getElementById('uqbPane_overview').innerHTML='<section class="panel"><div class="uqb-toolbar"><h3>Quote Review — '+esc(r.status)+'</h3><button class="secondary" data-uqb="tab" data-id="overview">Back</button></div>'+simpleTable(['Status','Area','Finding'],rows)+'</section>';bind(document.getElementById('uqbPane_overview'));}).catch(function(){});return;}
+if(name==='consistency'){if(!ctx.user.owner){toast('Owner review is required.',true);return;}openForm('Complete consistency review',[{name:'notes',label:'Review notes',type:'textarea',full:true,required:true}], 'Complete Review',function(v){run('Completing consistency review',function(){return rpc('boUniversalCompleteConsistencyReview',[projectId,v.notes]);}).then(reload).catch(function(){});});return;}
+if(name==='reviewRecord'){if(!ctx.user.owner){toast('Owner approval is required.',true);return;}var parts=id.split('|'),recordType=parts.shift(),recordId=parts.join('|');openForm('Approve or reject '+recordType,[{name:'decision',label:'Decision',type:'select',options:['Approved','Rejected']},{name:'notes',label:'Decision notes',type:'textarea',full:true,required:true}], 'Record Decision',function(v){run('Recording Owner decision',function(){return rpc('boUniversalApproveRecord',[recordType,recordId,v.decision,v.notes]);}).then(reload).catch(function(){});});return;}
+if(name==='activateKnowledge'){if(!ctx.user.owner){toast('Owner approval is required.',true);return;}openForm('Approve and activate Knowledge Pack',[{name:'notes',label:'Activation notes',type:'textarea',full:true,required:true}], 'Activate Pack',function(v){run('Activating Knowledge Pack',function(){return rpc('boUniversalActivateKnowledgePack',[id,v.notes]);}).then(reload).catch(function(){});});return;}
+if(name==='completion'){run('Generating completion package',function(){return rpc('boUniversalGenerateCompletionPackage',[projectId]);}).then(function(r){toast(r.documents.length+' private completion-package PDFs generated.');if(r.documents[0])window.open(r.documents[0].fileUrl,'_blank');}).catch(function(){});return;}
+if(name==='changeOrder'){openForm('Prepare change order',[{name:'description',label:'Change description',type:'textarea',full:true,required:true},{name:'reason',label:'Reason',type:'textarea',full:true},{name:'amountChange',label:'Amount change',type:'number',step:'0.01',value:'0'},{name:'scheduleChange',label:'Schedule change'}], 'Prepare Change Order',function(v){v.amountChange=num(v.amountChange);run('Preparing change order',function(){return rpc('boUniversalPrepareChangeOrderRecord',[projectId,'',v]);}).then(function(){toast('Change order prepared for Owner and customer approval.');reload();}).catch(function(){});});return;}
+'''
+          text=text.replace(anchor,handlers+anchor,1)
+          client.write_text(text)
+      - name: Remove patch workflow and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/patch-uqb-workspace-controls.yml
+          git add apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Records.gs apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Workspace_Client.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Connect Universal Quote approvals and completion controls'
+          git push origin HEAD:agent/complete-universal-quote-builder
