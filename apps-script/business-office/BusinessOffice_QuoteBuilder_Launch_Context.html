@@ -7,26 +7,60 @@ var customerId=params.get('customerId')||'';
 var quoteId=params.get('quoteId')||'';
 var returnUrl=params.get('returnUrl')||'';
 var from=params.get('from')||'';
+var scriptLocation=null;
 var launchHandled=false;
 var baseOpen=window.qbOpen;
 
+function topParameter(name){
+  return scriptLocation&&scriptLocation.parameter&&scriptLocation.parameter[name]||'';
+}
+
+function syncTopLocation(value){
+  scriptLocation=value||{};
+  requestedView=requestedView||topParameter('view');
+  customerId=customerId||topParameter('customerId');
+  quoteId=quoteId||topParameter('quoteId');
+  returnUrl=returnUrl||topParameter('returnUrl');
+  from=from||topParameter('from');
+  wirePersistentOfficeReturn();
+  patchReturnAction();
+}
+
 function businessOfficeReturnUrl(){
-  if(returnUrl){
+  var configuredReturn=returnUrl||topParameter('returnUrl');
+  if(configuredReturn){
     try{
-      var configured=new URL(returnUrl);
+      var configured=new URL(configuredReturn,document.referrer||location.href);
       configured.search='';
       configured.hash='module=quotes';
       return configured.toString();
     }catch(error){}
   }
-  var url=new URL(location.href);
+  var source=document.referrer||location.href;
+  var url=new URL(source,location.href);
   ['app','quoteBuilder','view','customerId','quoteId','from','returnUrl','v'].forEach(function(key){url.searchParams.delete(key);});
   url.hash='module=quotes';
   return url.toString();
 }
 
-function returnToBusinessOffice(){
-  location.assign(businessOfficeReturnUrl());
+function returnToBusinessOffice(event){
+  var target=businessOfficeReturnUrl();
+  var source=event&&event.currentTarget;
+  if(source&&String(source.tagName||'').toUpperCase()==='A'){
+    source.setAttribute('href',target);
+    source.setAttribute('target','_top');
+    return true;
+  }
+  if(event&&typeof event.preventDefault==='function')event.preventDefault();
+  var link=document.createElement('a');
+  link.href=target;
+  link.target='_top';
+  link.rel='noopener';
+  link.style.display='none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  return false;
 }
 
 function wirePersistentOfficeReturn(){
@@ -34,6 +68,8 @@ function wirePersistentOfficeReturn(){
   if(!button)return;
   button.textContent='Business Office';
   button.setAttribute('aria-label','Return to Business Office');
+  button.setAttribute('href',businessOfficeReturnUrl());
+  button.setAttribute('target','_top');
   button.title='Return to Business Office · Customers → Quotes';
   button.onclick=returnToBusinessOffice;
 }
@@ -93,5 +129,8 @@ var navHost=document.getElementById('qbNav');
 if(navHost)new MutationObserver(function(){patchReturnAction();}).observe(navHost,{childList:true,subtree:true});
 wirePersistentOfficeReturn();
 patchReturnAction();
+if(window.google&&google.script&&google.script.url&&typeof google.script.url.getLocation==='function'){
+  google.script.url.getLocation(syncTopLocation);
+}
 })();
 </script>
