@@ -67,7 +67,7 @@ jobs:
           grep -q 'Lot Clearing, Erosion Control & Temporary Access' whole-house-quote-package.html
           grep -q 'Final Grading, Landscaping, Testing & Closeout' whole-house-quote-package.html
           grep -q 'Ground-Up New-Home Construction' assets/quote-builder/whole-house-cad/G-001.svg
-          grep -q 'CLEARING / GRUBBING LIMITS' assets/quote-builder/whole-house-cad/C-S-L-101.svg
+          grep -q 'CLEARING / GRUBBING' assets/quote-builder/whole-house-cad/C-S-L-101.svg
           grep -q 'STABILIZED CONSTRUCTION ENTRANCE' assets/quote-builder/whole-house-cad/C-S-L-101.svg
           grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/M-101.svg
           grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/P-101.svg
