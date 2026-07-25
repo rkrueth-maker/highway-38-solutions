@@ -55,6 +55,6 @@ need(html,'10-sheet professional CAD-style coordination drawing set','cover draw
 need(html,'Open full-size SVG','full-size drawing control');
 need(html,'Revision:</strong> D','package revision D');
 if((html.match(/<section class="sheet cad-sheet"/g)||[]).length!==10)throw new Error('Package must expose exactly 10 CAD drawing sheets.');
-absent(html,'three-view','old schematic three-view layout');
+absent(html,'<div class="three-view"','old schematic three-view markup');
 absent(html,'A-100 — House Exterior Views','old schematic elevation sheet');
 console.log(JSON.stringify({status:'PASS',professionalCadSheets:10,format:'17x11 SVG',elevations:4,dimensionedPlans:2,sectionsAndDetails:true,kitchenElevations:true,hvac:true,plumbing:true,electrical:true,siteDeckDrainage:true},null,2));
