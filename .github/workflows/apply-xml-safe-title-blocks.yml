@@ -1,0 +1,45 @@
+name: Apply XML-Safe CAD Title Blocks
+on:
+  push:
+    branches: [agent/professional-cad-rebuild]
+    paths:
+      - 'scripts/fix-cad-title-block-overflow.js'
+      - '.github/workflows/apply-xml-safe-title-blocks.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/professional-cad-rebuild
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/fix-cad-title-block-overflow.js
+      - name: Validate all CAD SVG XML
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils librsvg2-bin
+          for sheet in assets/quote-builder/whole-house-cad/*.svg; do
+            xmllint --noout "$sheet"
+          done
+          mkdir -p /tmp/cad-render
+          for sheet in A-101 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
+            rsvg-convert --width 1700 --height 1100 "assets/quote-builder/whole-house-cad/${sheet}.svg" -o "/tmp/cad-render/${sheet}.png"
+          done
+          test "$(find /tmp/cad-render -name '*.png' | wc -l)" -eq 8
+      - name: Commit XML-safe title blocks
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add assets/quote-builder/whole-house-cad/A-101.svg assets/quote-builder/whole-house-cad/A-201.svg assets/quote-builder/whole-house-cad/A-301.svg assets/quote-builder/whole-house-cad/A-401.svg
+          if git diff --cached --quiet; then
+            echo 'No XML-safe changes.'
+          else
+            git commit -m 'Encode CAD title blocks for valid SVG'
+            git push origin HEAD:agent/professional-cad-rebuild
+          fi
