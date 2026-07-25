@@ -43,8 +43,8 @@ check(quotePage.includes('universal-quote-builder.html'),'Quote Builder product 
 check(samples.includes('universal-quote-builder.html'),'Project examples must link to the universal demonstration.');
 check(!/Eight complete|Explore the Eight|current eight-project/i.test(samples+' '+redirect),'Fixed eight-example language must be removed.');
 check(routes.demonstrations.some(item=>item.path==='universal-quote-builder.html'),'Universal demonstration route is not registered.');
-check(packageJson.scripts['test:universal-quote-builder']==='node scripts/verify-universal-quote-builder.js','Universal verifier npm command is missing.');
-check(packageJson.scripts['test:commercial'].includes('verify-universal-quote-builder.js'),'Commercial verification does not include Universal Quote Builder.');
+check(packageJson.scripts['test:universal-quote-builder'].includes('verify-universal-quote-builder.js')&&packageJson.scripts['test:universal-quote-builder'].includes('verify-universal-quote-builder-complete.js'),'Universal verifier npm command is incomplete.');
+check(packageJson.scripts['test:commercial'].includes('verify-universal-quote-builder.js')&&packageJson.scripts['test:commercial'].includes('verify-universal-quote-builder-complete.js'),'Commercial verification does not include the complete Universal Quote Builder.');
 const output={status:'PASS',version:'2026-07-25-universal-v1',checks:18,quoteLevels:5,pricingMethods:pricingMethods.length,agents:8,examples:18,houseSubquotes:14,houseDrawings:10,houseBidPackages:6,fixedEightLanguage:false,externalActionsPerformed:false};
 const outDir=path.join(root,'artifacts','universal-quote-builder');
 fs.mkdirSync(outDir,{recursive:true});
