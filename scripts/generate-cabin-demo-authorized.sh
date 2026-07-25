@@ -68,7 +68,7 @@ run_function() {
   local function_name="$1"
   local params="$2"
   local output_file="$3"
-  (cd "$HARNESS" && "$CLASP_BIN" run-function "$function_name" --params "$params") 2>&1 | tee "$output_file"
+  (cd "$HARNESS" && "$CLASP_BIN" run "$function_name" --params "$params") 2>&1 | tee "$output_file"
 }
 
 # Back up the already-authorized development project. Its live deployment is not changed.
