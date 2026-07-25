@@ -1,5 +1,5 @@
 name: App or module change
-description: Plan a Highway 38 Business Office module, route, form, API, or shared app change with performance and safety requirements.
+description: Plan a Highway 38 Business Office module, route, form, API, workflow, data-generation, or shared app change with speed, reliability, performance, and safety requirements.
 title: "[App/Module] "
 labels:
   - enhancement
@@ -7,14 +7,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Complete every field before implementation. Read `AGENTS.md`, `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`, `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`, and `docs/architecture/MODULE_PERFORMANCE_STANDARD.md`.
+        Complete every field before implementation. Read `AGENTS.md`, `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`, `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`, `docs/architecture/MODULE_PERFORMANCE_STANDARD.md`, and `docs/architecture/FAST_RELIABLE_CHANGE_PROCESS.md`.
 
   - type: textarea
     id: outcome
     attributes:
       label: Requested outcome
       description: Describe the user-visible result and the problem being solved.
-      placeholder: What should be faster, easier, clearer, or newly possible?
+      placeholder: What should be faster, easier, clearer, more reliable, or newly possible?
     validations:
       required: true
 
@@ -28,6 +28,8 @@ body:
         - Quote Builder capability
         - Customer Portal/security boundary
         - Public website
+        - Workflow, deployment, or verification
+        - Data generation, migration, or backfill
         - Performance and reliability only
         - Mixed scope
     validations:
@@ -46,13 +48,45 @@ body:
     id: ownership
     attributes:
       label: Canonical ownership
-      description: Identify the module contract entry, action contract entries, server owner, client owner, and data owner.
+      description: Identify the module contract entry, action contract entries, server owner, client owner, data owner, existing verifier, and production workflow.
       placeholder: |
         Module contract:
         Action contract:
         Server owner:
         Client owner:
         Data owner:
+        Existing verifier owner:
+        Production workflow:
+    validations:
+      required: true
+
+  - type: textarea
+    id: fast_execution
+    attributes:
+      label: Fast and reliable execution path
+      description: Define the one branch, one PR, fast checks, expensive checks, evidence reuse, concurrency owner, and rollback boundary.
+      placeholder: |
+        Integrated branch/PR:
+        Change-plan command:
+        Fast checks before browser/live work:
+        Expensive or live checks:
+        Reusable evidence from the exact commit:
+        Shared resource protected by concurrency:
+        Rollback boundary:
+    validations:
+      required: true
+
+  - type: textarea
+    id: failure_handling
+    attributes:
+      label: Failure diagnosis and rerun rules
+      description: State how the first failing stage will be classified and how blind repeated runs will be prevented.
+      placeholder: |
+        First failing stage owner:
+        Failure classes to distinguish:
+        Failed-job-only rerun path:
+        Action after the same failure occurs twice:
+        Safe HOLD behavior:
     validations:
       required: true
 
@@ -137,10 +171,28 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: long_running
+    attributes:
+      label: Generation, migration, or backfill controls
+      description: Use Not applicable when no long-running or record-generating work exists. Otherwise define stable IDs, upserts, batch size, cursor, version, exact counts, idempotent rerun, backup, and no-external-action behavior.
+      placeholder: |
+        Stable marker and IDs:
+        Upsert strategy:
+        Batch size:
+        Cursor/checkpoint storage:
+        Version key:
+        Expected table and file counts:
+        Idempotent rerun result:
+        Backup/rollback:
+        External actions:
+    validations:
+      required: true
+
   - type: checkboxes
     id: interaction_rules
     attributes:
-      label: Interaction and request rules
+      label: Interaction, execution, and request rules
       options:
         - label: The previous workspace will remain visible while the requested route loads.
           required: true
@@ -151,6 +203,14 @@ body:
         - label: No page-wide MutationObserver will be added to repair a repository-owned renderer.
           required: true
         - label: Prefetch remains read-only and cannot trigger an external action.
+          required: true
+        - label: One integrated branch and one authoritative deployment workflow will own the result.
+          required: true
+        - label: Existing workflow, harness, generator, verifier, and data owners were searched before adding another one.
+          required: true
+        - label: Fast structural checks will run before browser, image, clean-install, Apps Script, or production checks.
+          required: true
+        - label: A failed run will be diagnosed before rerun, and the same failure will not be blindly repeated more than twice.
           required: true
 
   - type: textarea
@@ -173,6 +233,14 @@ body:
     id: verification
     attributes:
       label: Verification plan
-      description: Include governance, structural, browser, mobile, cold/warm timing, rapid-click, cache invalidation, and deployment checks.
+      description: Include the scope-aware planner, governance, structural, browser, mobile, cold/warm timing, rapid-click, cache invalidation, exact-count/idempotency, deployment, live verification, and evidence artifact checks that apply.
+      placeholder: |
+        npm run plan:change -- --base <base> --head <head>
+        Fast checks:
+        Scope checks:
+        Exact-count or idempotency checks:
+        Production workflow:
+        Live verification:
+        Evidence artifact:
     validations:
       required: true
