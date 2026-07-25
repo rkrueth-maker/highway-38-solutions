@@ -4,15 +4,21 @@ on:
     paths:
       - 'whole-house-quote-package.html'
       - 'quote-builder-sample-proposal.html'
+      - 'assets/quote-builder/whole-house-cad/**'
       - 'scripts/config/public-website-routes.json'
+      - 'scripts/generate-professional-house-cad.js'
+      - 'scripts/verify-professional-house-cad.js'
       - 'scripts/verify-complete-house-quote-package.js'
       - '.github/workflows/verify-complete-house-quote-package.yml'
   push:
-    branches: [agent/complete-house-drawings-subquotes]
+    branches: [main]
     paths:
       - 'whole-house-quote-package.html'
       - 'quote-builder-sample-proposal.html'
+      - 'assets/quote-builder/whole-house-cad/**'
       - 'scripts/config/public-website-routes.json'
+      - 'scripts/generate-professional-house-cad.js'
+      - 'scripts/verify-professional-house-cad.js'
       - 'scripts/verify-complete-house-quote-package.js'
       - '.github/workflows/verify-complete-house-quote-package.yml'
 jobs:
@@ -22,6 +28,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Verify drawings and full quotes
+          node-version: 24
+      - name: Verify professional drawings and full quotes
         run: node scripts/verify-complete-house-quote-package.js
