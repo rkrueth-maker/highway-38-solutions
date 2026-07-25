@@ -1,8 +1,8 @@
 /**
  * Owner-only Cabin Demo 08 generator.
  * Creates one linked project, one master quote, 21 individual sub-quotes,
- * 21 quote lines, approvals, work orders, purchase-planning records, PDFs,
- * documents, proof, activity, and backup evidence.
+ * linked records across every relevant Business Office table, one master PDF,
+ * 21 package PDFs, proof, activity, and backup evidence.
  * No customer send, order, payment, scheduling, or other external action occurs.
  */
 const H38_CABIN_MARKER='H38-DEMO8-CABIN';
@@ -83,6 +83,9 @@ function boCabinInsertVisuals_(body,cfg){
   });
 }
 
+function boCabinPackageFileName_(cfg,pkg){return H38_CABIN_MARKER+'-QUOTE-'+pkg[0]+' — '+pkg[1]+'.pdf';}
+function boCabinMasterFileName_(cfg){return cfg.masterQuoteId+' — Plans and All 21 Quotes.pdf';}
+
 function boCabinPackagePdf_(folder,cfg,pkg){
   const quoteId=H38_CABIN_MARKER+'-QUOTE-'+pkg[0],name=quoteId+' — '+pkg[1];
   const old=folder.getFilesByName(name+'.pdf');if(old.hasNext())return old.next();
@@ -157,24 +160,92 @@ function boFinalizeCabinBackup_(cfg,root,owner,results){
   return file;
 }
 
-function boGenerateCabinSubquote(packageKey){
-  const owner=boRequireOwner_(),cfg=boCabinDemo_(),pkg=cfg.packages.find(function(item){return item[0]===String(packageKey);});
+function boCabinExpectedIds_(cfg){
+  const packageIds=function(prefix,suffix){return cfg.packages.map(function(pkg){return H38_CABIN_MARKER+prefix+pkg[0]+(suffix||'');});};
+  const masterLines=cfg.packages.map(function(pkg,index){return cfg.masterQuoteId+'-LINE-'+String(index+1).padStart(3,'0');});
+  const subQuotes=packageIds('-QUOTE-');
+  return {
+    customers:[cfg.customerId],contacts:[cfg.contactId],addresses:[cfg.addressId],requests:[cfg.requestId],
+    quotes:[cfg.masterQuoteId].concat(subQuotes),quoteLines:masterLines.concat(subQuotes.map(function(id){return id+'-LINE-001';})),
+    approvals:[cfg.masterApprovalId].concat(packageIds('-APPROVAL-')),jobs:[cfg.jobId],workOrders:packageIds('-TASK-'),vendors:packageIds('-VENDOR-'),
+    purchaseOrders:packageIds('-PO-'),poLines:packageIds('-PO-','-LINE-001'),
+    documents:cfg.visuals.map(function(visual){return H38_CABIN_MARKER+'-VISUAL-'+visual[0];}).concat([H38_CABIN_MARKER+'-DOC-MASTER']).concat(subQuotes.map(function(id){return id+'-DOC';})),
+    proof:packageIds('-PROOF-'),activity:packageIds('-ACTIVITY-'),backup:[H38_CABIN_MARKER+'-BACKUP-001']
+  };
+}
+
+function boCabinCountExpected_(sheetName,ids){
+  const headers=boHeaders_(sheetName),key=boPrimaryKeyHeader_(headers),wanted={};
+  ids.forEach(function(id){wanted[String(id)]=true;});
+  return boReadTable_(sheetName,{includeVoided:true}).filter(function(row){return Boolean(wanted[String(row[key])]);}).length;
+}
+
+function boVerifyCabinDemo08TableCoverage_(cfg,root){
+  cfg=cfg||boCabinDemo_();root=root||boCabinRoot_();
+  const ids=boCabinExpectedIds_(cfg),counts={
+    customers:boCabinCountExpected_(H38_BO_SHEETS.CUSTOMERS,ids.customers),contacts:boCabinCountExpected_(H38_BO_SHEETS.CONTACTS,ids.contacts),addresses:boCabinCountExpected_(H38_BO_SHEETS.ADDRESSES,ids.addresses),requests:boCabinCountExpected_(H38_BO_SHEETS.REQUESTS,ids.requests),
+    quotes:boCabinCountExpected_(H38_BO_SHEETS.QUOTES,ids.quotes),quoteLines:boCabinCountExpected_(H38_BO_SHEETS.QUOTE_LINES,ids.quoteLines),approvals:boCabinCountExpected_(H38_BO_SHEETS.APPROVALS,ids.approvals),jobs:boCabinCountExpected_(H38_BO_SHEETS.JOBS,ids.jobs),
+    workOrders:boCabinCountExpected_(H38_BO_SHEETS.WORK_ORDERS,ids.workOrders),vendors:boCabinCountExpected_(H38_BO_SHEETS.VENDORS,ids.vendors),purchaseOrders:boCabinCountExpected_(H38_BO_SHEETS.PURCHASE_ORDERS,ids.purchaseOrders),poLines:boCabinCountExpected_(H38_BO_SHEETS.PO_LINES,ids.poLines),
+    documents:boCabinCountExpected_(H38_BO_SHEETS.DOCUMENTS,ids.documents),proof:boCabinCountExpected_(H38_BO_SHEETS.PROOF_LOG,ids.proof),activity:boCabinCountExpected_(H38_BO_SHEETS.ACTIVITY,ids.activity),backup:boCabinCountExpected_(H38_BO_SHEETS.BACKUP_LOG,ids.backup)
+  };
+  const expected={customers:1,contacts:1,addresses:1,requests:1,quotes:22,quoteLines:42,approvals:22,jobs:1,workOrders:21,vendors:21,purchaseOrders:21,poLines:21,documents:25,proof:21,activity:21,backup:1};
+  const masterFolder=root.getFoldersByName('03 Master Quote').next(),subFolder=root.getFoldersByName('04 Sub-Quotes').next();
+  const masterPdfs=masterFolder.getFilesByName(boCabinMasterFileName_(cfg)).hasNext()?1:0;
+  const packagePdfs=cfg.packages.reduce(function(total,pkg){return total+(subFolder.getFilesByName(boCabinPackageFileName_(cfg,pkg)).hasNext()?1:0);},0);
+  const missing=Object.keys(expected).filter(function(key){return counts[key]!==expected[key];});
+  if(masterPdfs!==1)missing.push('masterPdfs');if(packagePdfs!==21)missing.push('packagePdfs');
+  return {status:missing.length?'HOLD':'PASS',marker:H38_CABIN_MARKER,projectId:cfg.projectId,jobId:cfg.jobId,masterQuoteId:cfg.masterQuoteId,expected:expected,counts:counts,masterPdfCount:masterPdfs,packagePdfCount:packagePdfs,totalPdfCount:masterPdfs+packagePdfs,missing:missing,externalActionsPerformed:false};
+}
+
+function boVerifyCabinDemo08TableCoverage(){boRequireOwner_();return boVerifyCabinDemo08TableCoverage_(boCabinDemo_(),boCabinRoot_());}
+
+function boPrepareCabinDemo08Generation_(owner){
+  const cfg=boCabinDemo_(),root=boCabinRoot_(),masterPdf=boCabinSeedCore_(cfg,root);
+  return {status:'PASS',projectId:cfg.projectId,jobId:cfg.jobId,masterQuoteId:cfg.masterQuoteId,masterPdfId:masterPdf.getId(),packageCount:cfg.packages.length,ownerEmail:owner.Email||'',externalActionsPerformed:false};
+}
+function boPrepareCabinDemo08Generation(){return boPrepareCabinDemo08Generation_(boRequireOwner_());}
+
+function boGeneratePreparedCabinSubquote_(packageKey,owner){
+  const cfg=boCabinDemo_(),pkg=cfg.packages.find(function(item){return item[0]===String(packageKey);});
   if(!pkg)throw new Error('Unknown cabin package: '+packageKey);
-  const root=boCabinRoot_();boCabinSeedCore_(cfg,root);
-  const result=boCabinSeedPackage_(cfg,root,pkg,cfg.packages.indexOf(pkg),owner);
-  boProof_('GENERATE CABIN SUBQUOTE','Quote',result.quoteId,'PASS','Generated and linked '+pkg[1]+' across the Cabin Demo 08 system tables.',owner.Email);
+  const result=boCabinSeedPackage_(cfg,boCabinRoot_(),pkg,cfg.packages.indexOf(pkg),owner);
   return Object.assign({status:'PASS',projectId:cfg.projectId,jobId:cfg.jobId,externalActionsPerformed:false},result);
+}
+function boGeneratePreparedCabinSubquote(packageKey){return boGeneratePreparedCabinSubquote_(packageKey,boRequireOwner_());}
+
+function boGeneratePreparedCabinBatch(startIndex,batchSize){
+  const owner=boRequireOwner_(),cfg=boCabinDemo_(),start=Math.max(0,Number(startIndex)||0),size=Math.max(1,Math.min(5,Number(batchSize)||3)),results=[];
+  cfg.packages.slice(start,start+size).forEach(function(pkg,index){results.push(boCabinSeedPackage_(cfg,boCabinRoot_(),pkg,start+index,owner));});
+  return {status:'PASS',startIndex:start,processed:results.length,nextIndex:start+results.length,total:cfg.packages.length,subquotes:results,externalActionsPerformed:false};
+}
+
+function boCabinExistingResults_(cfg,root){
+  const folder=root.getFoldersByName('04 Sub-Quotes').next();
+  return cfg.packages.map(function(pkg,index){
+    const quoteId=H38_CABIN_MARKER+'-QUOTE-'+pkg[0],files=folder.getFilesByName(boCabinPackageFileName_(cfg,pkg)),pdf=files.hasNext()?files.next():null;
+    return {quoteId:quoteId,title:pkg[1],amount:pkg[2],pdfId:pdf?pdf.getId():'',pdfUrl:pdf?pdf.getUrl():'',approvalId:H38_CABIN_MARKER+'-APPROVAL-'+pkg[0],taskId:H38_CABIN_MARKER+'-TASK-'+pkg[0],poId:H38_CABIN_MARKER+'-PO-'+pkg[0],sequence:index+1};
+  });
+}
+
+function boFinalizeCabinDemo08Generation_(owner){
+  const cfg=boCabinDemo_(),root=boCabinRoot_(),results=boCabinExistingResults_(cfg,root),backup=boFinalizeCabinBackup_(cfg,root,owner,results),coverage=boVerifyCabinDemo08TableCoverage_(cfg,root);
+  if(coverage.status!=='PASS')throw new Error('Cabin Demo 08 table coverage incomplete: '+JSON.stringify(coverage));
+  boProof_('GENERATE ALL CABIN SUBQUOTES','Project',cfg.projectId,'PASS','Generated master project and all 21 linked sub-quotes across customers, contacts, addresses, requests, quotes, quote lines, approvals, jobs, work orders, vendors, purchase orders, PO lines, documents, proof, activity, and backup tables.',owner.Email||'Owner');
+  const properties=PropertiesService.getScriptProperties(),version=typeof H38_CABIN_AUTOSEED_VERSION!=='undefined'?H38_CABIN_AUTOSEED_VERSION:'V3-VERIFIED-ALL-TABLES';
+  properties.setProperty('H38_CABIN_DEMO08_GENERATED','YES');properties.setProperty('H38_CABIN_DEMO08_GENERATED_VERSION',version);properties.setProperty('H38_CABIN_DEMO08_STATUS','PASS');properties.setProperty('H38_CABIN_DEMO08_COMPLETED_AT',new Date().toISOString());properties.setProperty('H38_CABIN_DEMO08_RESULT_JSON',JSON.stringify(coverage));properties.deleteProperty('H38_CABIN_DEMO08_ERROR');
+  return {status:'PASS',projectId:cfg.projectId,jobId:cfg.jobId,masterQuoteId:cfg.masterQuoteId,subquoteCount:21,pdfCount:21,totalPdfCount:22,quoteRecordCount:coverage.counts.quotes,quoteLineCount:coverage.counts.quoteLines,approvalCount:coverage.counts.approvals,workOrderCount:coverage.counts.workOrders,vendorCount:coverage.counts.vendors,purchaseOrderCount:coverage.counts.purchaseOrders,poLineCount:coverage.counts.poLines,documentCount:coverage.counts.documents,proofCount:coverage.counts.proof,activityCount:coverage.counts.activity,backupCount:coverage.counts.backup,totalOfPackages:cfg.direct,masterPlanningTotal:cfg.total,backupFileId:backup.getId(),coverage:coverage,subquotes:results,externalActionsPerformed:false};
+}
+function boFinalizeCabinDemo08Generation(){return boFinalizeCabinDemo08Generation_(boRequireOwner_());}
+
+function boGenerateCabinSubquote(packageKey){
+  const owner=boRequireOwner_();boPrepareCabinDemo08Generation_(owner);const result=boGeneratePreparedCabinSubquote_(packageKey,owner);
+  boProof_('GENERATE CABIN SUBQUOTE','Quote',result.quoteId,'PASS','Generated and linked one Cabin Demo 08 package across the system tables.',owner.Email||'Owner');return result;
 }
 
 function boGenerateAllCabinSubquotes(){
-  const owner=boRequireOwner_(),cfg=boCabinDemo_(),root=boCabinRoot_(),results=[];
-  const masterPdf=boCabinSeedCore_(cfg,root);
-  cfg.packages.forEach(function(pkg,index){results.push(boCabinSeedPackage_(cfg,root,pkg,index,owner));});
-  const backup=boFinalizeCabinBackup_(cfg,root,owner,results);
-  boProof_('GENERATE ALL CABIN SUBQUOTES','Project',cfg.projectId,'PASS','Generated master project and all 21 linked sub-quotes across quotes, quote lines, approvals, work orders, purchase planning, documents, proof, activity, and backup records.',owner.Email);
-  return {status:'PASS',projectId:cfg.projectId,jobId:cfg.jobId,masterQuoteId:cfg.masterQuoteId,subquoteCount:results.length,pdfCount:results.filter(function(result){return Boolean(result.pdfId);}).length,masterPdfId:masterPdf.getId(),documentCount:cfg.visuals.length+results.length+1,quoteRecordCount:results.length+1,quoteLineCount:results.length*2,approvalCount:results.length+1,workOrderCount:results.length,purchaseOrderCount:results.length,proofCount:results.length,totalOfPackages:cfg.direct,masterPlanningTotal:cfg.total,backupFileId:backup.getId(),subquotes:results,externalActionsPerformed:false};
+  const owner=boRequireOwner_(),cfg=boCabinDemo_();boPrepareCabinDemo08Generation_(owner);
+  cfg.packages.forEach(function(pkg){boGeneratePreparedCabinSubquote_(pkg[0],owner);});
+  return boFinalizeCabinDemo08Generation_(owner);
 }
 
-function boSeedCabinDemoProject(){
-  return boGenerateAllCabinSubquotes();
-}
+function boSeedCabinDemoProject(){return boGenerateAllCabinSubquotes();}
