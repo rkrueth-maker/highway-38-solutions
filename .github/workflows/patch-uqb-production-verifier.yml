@@ -1,0 +1,41 @@
+name: Patch Complete UQB Production Verification
+on:
+  push:
+    branches: [agent/complete-universal-quote-builder]
+    paths: ['.github/workflows/patch-uqb-production-verifier.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/complete-universal-quote-builder
+      - name: Add strict operational verifier to deployment
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('.github/workflows/deploy-owner-portal-hard-rule-production.yml')
+          text=p.read_text()
+          changes=[
+            ("      - 'scripts/verify-universal-quote-builder.js'\n", "      - 'scripts/verify-universal-quote-builder.js'\n      - 'scripts/verify-universal-quote-builder-complete.js'\n"),
+            ("          node scripts/verify-universal-quote-builder.js\n", "          node scripts/verify-universal-quote-builder.js\n          node scripts/verify-universal-quote-builder-complete.js\n"),
+            ("            artifacts/universal-quote-builder/\n", "            artifacts/universal-quote-builder/\n            artifacts/universal-quote-builder-complete/\n"),
+            ("          - Universal Quote Builder: five progressive quote levels, 34 auditable pricing methods, controlled agents, and coordinated house demonstration: PASS\n", "          - Universal Quote Builder: persistent projects, revisions, sub-quotes, pricing, measurements, scope, drawings, bids, Knowledge Packs, agent runs, PDFs, execution preparation, and actuals: PASS\n          - Universal Quote Builder foundation: five progressive levels, 34 auditable pricing methods, eight controlled agents, and coordinated house demonstration: PASS\n")
+          ]
+          for old,new in changes:
+              if text.count(old)!=1:
+                  raise SystemExit('Expected one production workflow marker: '+old.strip())
+              text=text.replace(old,new,1)
+          p.write_text(text)
+      - name: Remove patch workflow and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/patch-uqb-production-verifier.yml
+          git add .github/workflows/deploy-owner-portal-hard-rule-production.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Verify complete Universal Quote Builder before production deploy'
+          git push origin HEAD:agent/complete-universal-quote-builder
