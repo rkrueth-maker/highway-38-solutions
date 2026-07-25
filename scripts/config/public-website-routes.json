@@ -1,20 +1,88 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-25-universal-quote-builder-v1",
+  "version": "2026-07-25-public-quote-result-v2",
   "primary": [
-    {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
-    {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
-    {"path":"solutions.html","label":"What We Do","shell":"canonical","visibility":"public"},
-    {"path":"pricing.html","label":"Pricing","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/pricing.html","shell":"canonical","visibility":"public"},
-    {"path":"about.html","label":"About","shell":"canonical","visibility":"public"},
-    {"path":"contact.html","label":"Contact","shell":"canonical","visibility":"public"},
-    {"path":"start-request.html","label":"Start a Project","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/start-request.html","shell":"canonical","visibility":"public"},
-    {"path":"portal.html","label":"Owner Access","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/portal.html","shell":"gateway","visibility":"private-gateway"}
+    {
+      "path": "index.html",
+      "label": "Home",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "sample-library-now.html",
+      "label": "Project Examples",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "solutions.html",
+      "label": "What We Do",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "pricing.html",
+      "label": "Pricing",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/pricing.html",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "about.html",
+      "label": "About",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "contact.html",
+      "label": "Contact",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "start-request.html",
+      "label": "Start a Project",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/start-request.html",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "portal.html",
+      "label": "Owner Access",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html",
+      "shell": "gateway",
+      "visibility": "private-gateway"
+    }
   ],
   "demonstrations": [
-    {"path":"universal-quote-builder.html","label":"Universal Quote Builder Demonstration","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/universal-quote-builder.html","shell":"canonical","visibility":"public"},
-    {"path":"contractor-quote-complete.html","label":"Contractor Quote Demonstration","shell":"document","visibility":"noindex"},
-    {"path":"cabin-project-complete.html","label":"Cabin Project Demonstration","shell":"document","visibility":"noindex"}
+    {
+      "path": "universal-quote-builder.html",
+      "label": "Universal Quote Builder Demonstration",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/universal-quote-builder.html",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
+      "path": "quote-builder-sample-proposal.html",
+      "label": "Printable Quote Builder Sample Proposal",
+      "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/quote-builder-sample-proposal.html",
+      "shell": "document",
+      "visibility": "public"
+    },
+    {
+      "path": "contractor-quote-complete.html",
+      "label": "Contractor Quote Demonstration",
+      "shell": "document",
+      "visibility": "noindex"
+    },
+    {
+      "path": "cabin-project-complete.html",
+      "label": "Cabin Project Demonstration",
+      "shell": "document",
+      "visibility": "noindex"
+    }
   ],
   "specialist": [
     "for-contractors.html",
@@ -26,17 +94,17 @@
     "resources.html"
   ],
   "retired": {
-    "catalog.html":"pricing.html",
-    "products.html":"pricing.html",
-    "product.html":"pricing.html",
-    "packages.html":"pricing.html",
-    "tools.html":"sample-library-now.html",
-    "free-tools.html":"sample-library-now.html",
-    "tool-center.html":"sample-library-now.html",
-    "proof.html":"sample-library-now.html",
-    "forgeiq.html":"solutions.html",
-    "services.html":"solutions.html",
-    "specials.html":"pricing.html"
+    "catalog.html": "pricing.html",
+    "products.html": "pricing.html",
+    "product.html": "pricing.html",
+    "packages.html": "pricing.html",
+    "tools.html": "sample-library-now.html",
+    "free-tools.html": "sample-library-now.html",
+    "tool-center.html": "sample-library-now.html",
+    "proof.html": "sample-library-now.html",
+    "forgeiq.html": "solutions.html",
+    "services.html": "solutions.html",
+    "specials.html": "pricing.html"
   },
   "private": [
     "customer-portal.html",
