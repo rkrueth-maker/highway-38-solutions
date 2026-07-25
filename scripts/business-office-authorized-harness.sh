@@ -50,6 +50,14 @@ fs.writeFileSync(target,JSON.stringify(base,null,2)+'\n');
 NODE
 }
 
+run_harness_function() {
+  local function_name="$1"
+  local params="${2:-[]}"
+  local output_file="$3"
+  (cd "$OWNER_HARNESS" && clasp run-function "$function_name" --params "$params") 2>&1 | tee "$output_file"
+  parse_json_output "$output_file" "${output_file%.txt}.json"
+}
+
 # 1. Back up the authorized Owner Portal development project and deployment inventory.
 printf '{"scriptId":"%s","rootDir":"."}\n' "$OWNER_SCRIPT_ID" > "$OWNER_BACKUP/.clasp.json"
 (cd "$OWNER_BACKUP" && clasp pull) 2>&1 | tee "$EVIDENCE/owner-pull.txt"
@@ -63,6 +71,8 @@ cp -a "$OWNER_BACKUP/." "$OWNER_HARNESS/"
 cp "$REPO_ROOT"/apps-script/business-office/*.gs "$OWNER_HARNESS/"
 cp "$REPO_ROOT/apps-script/business-office/BusinessOffice_Index.html" "$OWNER_HARNESS/"
 cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$OWNER_HARNESS/"
+# The controlled harness executes generation explicitly; do not schedule the production auto-seed trigger here.
+rm -f "$OWNER_HARNESS/BusinessOffice_CabinAutoSeed.gs"
 # The existing portal owns doGet. Rename only the harness copy; all other web API functions remain testable.
 python3 - "$OWNER_HARNESS/BusinessOffice_Web.gs" <<'PY'
 from pathlib import Path
@@ -158,6 +168,34 @@ if(!Array.isArray(c.pdfFiles)||c.pdfFiles.length!==9) failures.push('nine genera
 if(failures.length) throw new Error('LIVE ACCEPTANCE HOLD: '+failures.join(', '));
 NODE
 
+# 6. Generate Cabin Demo 08 through the same authenticated Business Office runtime.
+run_harness_function boPrepareCabinDemo08Generation '[]' "$EVIDENCE/cabin-demo08-prepare.txt"
+node -e "const r=require('./artifacts/business-office-authorized/cabin-demo08-prepare.json');if(r.status!=='PASS'||r.packageCount!==21)throw new Error('Cabin Demo preparation failed.')"
+for start in 0 3 6 9 12 15 18; do
+  run_harness_function boGeneratePreparedCabinBatch "[$start,3]" "$EVIDENCE/cabin-demo08-batch-${start}.txt"
+  node - "$EVIDENCE/cabin-demo08-batch-${start}.json" <<'NODE'
+const r=require(process.argv[2]);
+if(r.status!=='PASS'||r.processed<1||r.processed>3||r.externalActionsPerformed!==false)throw new Error('Cabin Demo batch failed: '+JSON.stringify(r));
+NODE
+done
+run_harness_function boFinalizeCabinDemo08Generation '[]' "$EVIDENCE/cabin-demo08-finalize.txt"
+node <<'NODE'
+const fs=require('fs');
+const result=require('./artifacts/business-office-authorized/cabin-demo08-finalize.json');
+const expected={customers:1,contacts:1,addresses:1,requests:1,quotes:22,quoteLines:42,approvals:22,jobs:1,workOrders:21,vendors:21,purchaseOrders:21,poLines:21,documents:25,proof:21,activity:21,backup:1};
+const failures=[];
+if(result.status!=='PASS'||result.externalActionsPerformed!==false)failures.push('result status');
+if(result.subquoteCount!==21||result.pdfCount!==21||result.totalPdfCount!==22)failures.push('quote/PDF totals');
+const coverage=result.coverage||{};
+if(coverage.status!=='PASS')failures.push('coverage status');
+for(const [key,value] of Object.entries(expected))if(!coverage.counts||coverage.counts[key]!==value)failures.push(`${key}:${coverage.counts&&coverage.counts[key]}/${value}`);
+if(coverage.masterPdfCount!==1||coverage.packagePdfCount!==21)failures.push('Drive PDFs');
+const report={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA,marker:'H38-DEMO8-CABIN',expected,counts:coverage.counts||{},masterPdfCount:coverage.masterPdfCount||0,packagePdfCount:coverage.packagePdfCount||0,totalPdfCount:coverage.totalPdfCount||0,externalActionsPerformed:false,failures};
+fs.writeFileSync('artifacts/business-office-authorized/cabin-demo08-verification.json',JSON.stringify(report,null,2)+'\n');
+if(failures.length)throw new Error('CABIN DEMO 08 HOLD: '+failures.join(', '));
+console.log(JSON.stringify(report,null,2));
+NODE
+
 (cd "$OWNER_HARNESS" && clasp run-function boGetRenderedWebAppHtml) 2>&1 | tee "$EVIDENCE/rendered-web-app-output.txt"
 node <<'NODE'
 const fs=require('fs');
@@ -179,7 +217,7 @@ fs.writeFileSync('artifacts/business-office-authorized/rendered-business-office.
 })().catch(error=>{console.error(error);process.exit(1)});
 NODE
 
-# 6. Update the separate Business Office Web App project and existing deployment in place.
+# 7. Update the separate Business Office Web App project and existing deployment in place.
 printf '{"scriptId":"%s","rootDir":"."}\n' "$BO_APP_SCRIPT_ID" > "$APP_BACKUP/.clasp.json"
 (cd "$APP_BACKUP" && clasp pull) 2>&1 | tee "$EVIDENCE/business-office-app-pull.txt"
 tar -czf "$EVIDENCE/business-office-app-before.tar.gz" -C "$APP_BACKUP" .
@@ -203,7 +241,7 @@ HTTP_STATUS="$(curl -L -sS -o "$EVIDENCE/business-office-web-response.html" -w '
 printf '%s' "$HTTP_STATUS" > "$EVIDENCE/business-office-web-http-status.txt"
 test "$HTTP_STATUS" != "404"
 
-# 7. Restore the Owner Portal development source and retain only the additive sync runtime.
+# 8. Restore the Owner Portal development source and retain only the additive sync runtime.
 cp -a "$OWNER_BACKUP/." "$OWNER_RESTORE/"
 cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$OWNER_RESTORE/"
 (cd "$OWNER_RESTORE" && clasp push --force) 2>&1 | tee "$EVIDENCE/owner-restore-push.txt"
@@ -227,6 +265,10 @@ cat > "$EVIDENCE/authorized-production-result.json" <<JSON
   "intakeSyncInstalled": true,
   "intakeSyncIntervalMinutes": 5,
   "liveAcceptance": "PASS",
+  "cabinDemo08AllTableCoverage": "PASS",
+  "cabinDemo08MasterQuotes": 1,
+  "cabinDemo08Subquotes": 21,
+  "cabinDemo08TotalPdfs": 22,
   "externalActionsEnabled": false,
   "customerActionsOccurred": false,
   "paymentProcessed": false,
