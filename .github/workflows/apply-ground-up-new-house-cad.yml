@@ -5,6 +5,12 @@ on:
     paths:
       - 'scripts/.ground-up-cad-payload/**'
       - '.github/workflows/apply-ground-up-new-house-cad.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/quote-builder/GROUND_UP_NEW_HOUSE_SCOPE_SOURCE_OF_TRUTH.md'
+      - 'scripts/.ground-up-cad-payload/**'
+      - '.github/workflows/apply-ground-up-new-house-cad.yml'
   workflow_dispatch:
 permissions:
   contents: write
