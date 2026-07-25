@@ -63,7 +63,7 @@ capability_count="$(grep -o 'data-capability="' "$OUT/rendered-solutions.html" |
 project_count="$(count_class project-card "$OUT/rendered-samples.html")"
 figure_count="$(count_class project-visual "$OUT/rendered-samples.html")"
 pricing_card_count="$(count_class price-card "$OUT/rendered-pricing.html")"
-cabin_quote_count="$(count_class quote-package "$OUT/rendered-cabin.html")"
+cabin_quote_count="$(grep -o '<details class="quote-package" id="quote-[0-9][0-9]-' "$OUT/rendered-cabin.html" | wc -l | tr -d ' ')"
 
 [[ "$capability_count" == "5" ]] || fail "rendered What We Do page expected 5 capabilities and found $capability_count"
 pass "rendered What We Do page contains five capabilities"
