@@ -5,13 +5,69 @@ on:
     branches:
       - highway38-final-polish
       - main
+    paths:
+      - '*.html'
+      - '*.js'
+      - 'assets/**'
+      - 'apps-script/**'
+      - 'apps/**'
+      - 'business-packs/**'
+      - 'core-engine/**'
+      - 'packages/**'
+      - 'scripts/verify-highway38-final-polish.js'
+      - 'scripts/verify-owner-portal-routing.js'
+      - 'scripts/verify-commercial-system.js'
+      - 'scripts/verify-business-office.js'
+      - 'scripts/verify-field-role-client-runtime.js'
+      - 'scripts/verify-user-access-role-setup.js'
+      - 'scripts/verify-owner-role-preview.js'
+      - 'scripts/verify-single-apps-script-version-deployment.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'scripts/verify-integrated-backend.js'
+      - 'scripts/verify-commercial-browser.js'
+      - 'tests/**'
+      - '**/*.py'
+      - 'requirements.txt'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/highway38-final-polish.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - '*.html'
+      - '*.js'
+      - 'assets/**'
+      - 'apps-script/**'
+      - 'apps/**'
+      - 'business-packs/**'
+      - 'core-engine/**'
+      - 'packages/**'
+      - 'scripts/verify-highway38-final-polish.js'
+      - 'scripts/verify-owner-portal-routing.js'
+      - 'scripts/verify-commercial-system.js'
+      - 'scripts/verify-business-office.js'
+      - 'scripts/verify-field-role-client-runtime.js'
+      - 'scripts/verify-user-access-role-setup.js'
+      - 'scripts/verify-owner-role-preview.js'
+      - 'scripts/verify-single-apps-script-version-deployment.js'
+      - 'scripts/verify-business-office-separation.js'
+      - 'scripts/verify-integrated-backend.js'
+      - 'scripts/verify-commercial-browser.js'
+      - 'tests/**'
+      - '**/*.py'
+      - 'requirements.txt'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/highway38-final-polish.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: highway38-final-polish-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   static-and-system-verification:
