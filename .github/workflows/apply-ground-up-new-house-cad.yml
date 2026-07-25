@@ -1,0 +1,73 @@
+name: Apply Ground-Up New-House CAD Revision F
+on:
+  push:
+    branches: [agent/fix-new-house-scope-and-cad-floating-objects]
+    paths:
+      - 'scripts/.ground-up-cad-payload/**'
+      - '.github/workflows/apply-ground-up-new-house-cad.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generate-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-new-house-scope-and-cad-floating-objects
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reconstruct durable generator
+        run: |
+          cat scripts/.ground-up-cad-payload/part-*.b64 | base64 --decode | gzip --decompress > scripts/rebuild-ground-up-house-cad.py
+          sed -i 's/parents\[0\]/parents[1]/' scripts/rebuild-ground-up-house-cad.py
+          chmod +x scripts/rebuild-ground-up-house-cad.py
+          python -m py_compile scripts/rebuild-ground-up-house-cad.py
+      - name: Generate coordinated Revision F package
+        run: python scripts/rebuild-ground-up-house-cad.py
+      - name: Install SVG validators and renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils librsvg2-bin
+      - name: Validate and render every CAD sheet
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ground-up-cad-rendered
+          test "$(find assets/quote-builder/whole-house-cad -maxdepth 1 -name '*.svg' | wc -l)" -eq 10
+          for sheet in assets/quote-builder/whole-house-cad/*.svg; do
+            xmllint --noout "$sheet"
+            name="$(basename "$sheet" .svg)"
+            rsvg-convert --width 1700 --height 1100 "$sheet" -o "/tmp/ground-up-cad-rendered/${name}.png"
+          done
+          test "$(find /tmp/ground-up-cad-rendered -name '*.png' | wc -l)" -eq 10
+      - name: Enforce ground-up scope and coordinated underlays
+        run: |
+          set -euo pipefail
+          grep -q 'Ground-Up New Home' whole-house-quote-package.html
+          grep -q 'Lot Clearing Through Final Completion' whole-house-quote-package.html
+          grep -q 'Revision:</strong> F' whole-house-quote-package.html
+          grep -q 'Lot Clearing, Erosion Control & Temporary Access' whole-house-quote-package.html
+          grep -q 'Final Grading, Landscaping, Testing & Closeout' whole-house-quote-package.html
+          grep -q 'Ground-Up New-Home Construction' assets/quote-builder/whole-house-cad/G-001.svg
+          grep -q 'CLEARING / GRUBBING LIMITS' assets/quote-builder/whole-house-cad/C-S-L-101.svg
+          grep -q 'STABILIZED CONSTRUCTION ENTRANCE' assets/quote-builder/whole-house-cad/C-S-L-101.svg
+          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/M-101.svg
+          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/P-101.svg
+          grep -q 'Coordinated Architectural Underlay' assets/quote-builder/whole-house-cad/E-101.svg
+          grep -q 'AHU-1' assets/quote-builder/whole-house-cad/M-101.svg
+          grep -q 'WATER / SANITARY SERVICE ENTRY' assets/quote-builder/whole-house-cad/P-101.svg
+          grep -q 'PANEL A' assets/quote-builder/whole-house-cad/E-101.svg
+          ! grep -Eiq 'whole-house renovation|property improvement|selective demolition|existing-house demolition' whole-house-quote-package.html assets/quote-builder/whole-house-cad/*.svg
+      - name: Commit generated ground-up construction set
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/rebuild-ground-up-house-cad.py whole-house-quote-package.html assets/quote-builder/whole-house-cad/*.svg
+          if git diff --cached --quiet; then
+            echo 'No generated CAD changes.'
+          else
+            git commit -m 'Rebuild whole-house demo as coordinated ground-up construction set'
+            git push origin HEAD:agent/fix-new-house-scope-and-cad-floating-objects
+          fi
