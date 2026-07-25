@@ -10,7 +10,7 @@ const exists=rel=>fs.existsSync(path.join(root,rel));
 const check=(name,condition,detail='')=>{(condition?passes:failures).push({name,detail});console.log(`${condition?'PASS':'FAIL'}: ${name}${detail?` — ${detail}`:''}`);};
 
 const required=[
- 'index.html','sample-library-now.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
+ 'index.html','sample-library-now.html','universal-quote-builder.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
  'cabin-project-complete.html','contractor-quote-complete.html','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
  'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
  'catalog-data.js','apps-script/commercial-intake/FormBuilder.gs'
@@ -21,6 +21,7 @@ const routeManifest=JSON.parse(read('scripts/config/public-website-routes.json')
 const primary=(routeManifest.primary||[]).map(item=>item.path);
 const expectedPrimary=['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html'];
 check('project-first route manifest owns the eight current gateways',expectedPrimary.every(path=>primary.includes(path))&&primary.length===8,JSON.stringify(primary));
+check('Universal Quote Builder demonstration is public and canonical',routeManifest.demonstrations.some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog routes point to current project-first pages',routeManifest.retired&&routeManifest.retired['products.html']==='pricing.html'&&routeManifest.retired['catalog.html']==='pricing.html'&&routeManifest.retired['packages.html']==='pricing.html'&&routeManifest.retired['tools.html']==='sample-library-now.html');
 
 const shell=read('assets/js/h38-site-v2.js');
@@ -45,11 +46,18 @@ check('pricing preserves Snapshot and approval boundaries',pricing.includes('$29
 check('pricing marks Business Office Most Popular',pricing.includes('Most Popular')&&pricing.includes('Implementation: $2,500'));
 
 const samples=read('sample-library-now.html');
-check('Project Examples contains eight complete examples',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
+const existingExampleCount=(samples.match(/class="project-card"/g)||[]).length;
+check('Project Examples preserves existing examples and supports future additions',existingExampleCount>=8&&samples.includes('Open-ended example library'),String(existingExampleCount));
+check('Project Examples leads with universal demonstration',samples.includes('universal-quote-builder.html')&&samples.includes('Universal Quote Builder demonstration'));
+check('Project Examples removes fixed example-count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(samples));
 check('Project Examples preserves representative disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
 const exactExampleImages=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
 check('deck irrigation and kitchen use six direct approved files',exactExampleImages.every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com')&&!samples.includes('background-image'));
 check('cabin example includes plan and finished concept',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
+
+const universal=read('universal-quote-builder.html');
+check('Universal Quote Builder demonstrates progressive cross-industry depth',universal.includes('Five levels')&&universal.includes('All example types')&&universal.includes('Whole-House Renovation and Property Improvement'));
+check('Universal demonstration preserves safety classification',universal.includes('Representative demonstrations.')&&universal.includes('Permit submission')&&universal.includes('External actions</span><strong>0'));
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
@@ -76,10 +84,10 @@ const formBuilder=read('apps-script/commercial-intake/FormBuilder.gs');
 check('commercial form builder performs no automatic external action',!/createTrigger|newTrigger|sendEmail|GmailApp|MailApp|UrlFetchApp/.test(formBuilder));
 check('commercial form builder preserves Owner review boundary',formBuilder.includes('OWNER REVIEW REQUIRED BEFORE LINK REPLACEMENT'));
 
-const activeText=expectedPrimary.map(read).join('\n')+'\n'+shell;
+const activeText=expectedPrimary.map(read).join('\n')+'\n'+shell+'\n'+universal;
 check('public source contains no private owner email or committed secrets',!/rkrueth@gmail\.com|AIza[0-9A-Za-z_-]{20,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|Bearer\s+[A-Za-z0-9._-]{20,}/i.test(activeText));
 check('prohibited CNC quantity claim remains absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(activeText));
 
-const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),passed:passes.length,failed:failures.length,architecture:'project-first-public-site',pricingProducts:3,catalogCompatibilityOnly:true,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),passed:passes.length,failed:failures.length,architecture:'project-first-public-site',pricingProducts:3,existingProjectExamples:existingExampleCount,universalDemonstration:true,catalogCompatibilityOnly:true,passes,failures};
 const out=path.join(root,'artifacts','commercial-system');fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify(result,null,2)+'\n');
 if(failures.length){console.error(JSON.stringify(result,null,2));process.exit(1);}console.log(JSON.stringify(result,null,2));
