@@ -14,7 +14,7 @@ async function runToCompletion(runKey,button){
     var result=null;
     for(var step=1;step<=MAX_STEPS;step+=1){
       overlay(true,result?progressText(result,step):'Starting resumable Universal Quote example run…');
-      result=await rpc('boUniversalResumeExampleSuite',[runKey]);
+      result=await rpc('boUniversalResumeExampleSuiteStep',[runKey]);
       overlay(true,progressText(result,step));
       if(result.complete){toast('Example run '+result.runKey+' completed: 18 projects, 14 house packages, 10 drawings, and 6 bid packages.');if(window.qbOpen)window.qbOpen('universal');return result;}
     }
