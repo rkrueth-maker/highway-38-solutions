@@ -5,12 +5,40 @@ on:
     branches:
       - main
       - owner-business-office-ux-overhaul-2026-07-16
+    paths:
+      - 'apps-script/unified-shell/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'apps-script/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'apps/business-office/**'
+      - 'business-packs/highway38/**'
+      - 'scripts/verify-owner-business-office-ux.js'
+      - 'scripts/verify-unified-app-ux-complete.js'
+      - 'scripts/verify-business-office.js'
+      - 'scripts/verify-owner-portal-routing.js'
+      - '.github/workflows/owner-business-office-ux.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'apps-script/unified-shell/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'apps-script/business-office/**'
+      - 'apps-script/business-office-sync/**'
+      - 'apps/business-office/**'
+      - 'business-packs/highway38/**'
+      - 'scripts/verify-owner-business-office-ux.js'
+      - 'scripts/verify-unified-app-ux-complete.js'
+      - 'scripts/verify-business-office.js'
+      - 'scripts/verify-owner-portal-routing.js'
+      - '.github/workflows/owner-business-office-ux.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: owner-business-office-ux-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integrated-ux:
