@@ -1,0 +1,34 @@
+name: Apply CAD Title Block Fix
+on:
+  push:
+    branches: [agent/professional-cad-rebuild]
+    paths:
+      - 'scripts/fix-cad-title-block-overflow.js'
+      - '.github/workflows/apply-cad-title-block-fix.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/professional-cad-rebuild
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/fix-cad-title-block-overflow.js
+      - run: |
+          grep -q '>Building Sections & Details</text>' assets/quote-builder/whole-house-cad/A-301.svg
+          grep -q '>Kitchen Plan & Elevations</text>' assets/quote-builder/whole-house-cad/A-401.svg
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add assets/quote-builder/whole-house-cad/A-101.svg assets/quote-builder/whole-house-cad/A-201.svg assets/quote-builder/whole-house-cad/A-301.svg assets/quote-builder/whole-house-cad/A-401.svg
+          if git diff --cached --quiet; then
+            echo 'No title-block changes.'
+          else
+            git commit -m 'Fix CAD title block overflow'
+            git push origin HEAD:agent/professional-cad-rebuild
+          fi
