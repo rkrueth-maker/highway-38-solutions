@@ -1,0 +1,94 @@
+name: One-time Project Examples controls repair
+on:
+  push:
+    branches: [fix/project-example-visual-gate-20260724]
+    paths: [.github/workflows/one-time-project-example-controls-repair.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/project-example-visual-gate-20260724
+          fetch-depth: 0
+      - name: Align pages, manifests, tests, and rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          root=Path('.')
+          mapping={'flower-after-same-house.svg':'flower-after-same-house.webp','irrigation-before-clean.svg':'irrigation-before-clean.webp','irrigation-after-clean.svg':'irrigation-after-clean.webp','20260724-same-house-v1':'20260724-raster-v3','20260724-clean-labels-v1':'20260724-raster-v3'}
+          for name in ('sample-library-now.html','flower-garden-quote-complete.html'):
+              p=root/name;t=p.read_text()
+              for old,new in mapping.items():t=t.replace(old,new)
+              p.write_text(t)
+          p=root/'contractor-quote-complete.html';t=p.read_text()
+          t=t.replace("after:A+'flower-after.png'","after:A+'flower-after-same-house.webp?v=20260724-raster-v3'")
+          t=t.replace("before:D+'irrigation-before.webp?v=20260722-direct-v2'","before:D+'irrigation-before-clean.webp?v=20260724-raster-v3'")
+          t=t.replace("after:D+'irrigation-after.webp?v=20260722-direct-v2'","after:D+'irrigation-after-clean.webp?v=20260724-raster-v3'")
+          t=t.replace("flower:{n:'Q-DEMO-001',t:'Flower Garden Transformation',b:2850","flower:{n:'Q-DEMO-001',t:'Flower Garden Transformation',b:3950")
+          t=t.replace("inc:['Layout and mark bed edges','Remove sod and vegetation','Prepare planting bed','Install plants, edging, and mulch','Cleanup and edge restoration']","inc:['Layout and mark bed edges','Remove sod and vegetation','Prepare planting bed','Install plants and natural-stone edging','Mulch, cleanup, and edge restoration']")
+          t=t.replace("['Mulch and cleanup','Mulch, finish grading, cleanup',1,'LS',660]","['Stone edging','Natural-stone curved bed edge shown in concept',1,'LS',1100],['Mulch and cleanup','Mulch, finish grading, cleanup',1,'LS',660]")
+          t=t.replace("ups:[['Drip irrigation zone','Add one drip zone',850],['Natural-stone edging','Upgrade edging material',1100]]","ups:[['Drip irrigation zone','Add one drip zone',850],['Low-voltage garden lighting','Add garden lighting',575]]")
+          p.write_text(t)
+          mp=root/'scripts/config/approved-public-image-placements.json';m=json.loads(mp.read_text());m['policyVersion']='2026-07-24-direct-raster-visual-gate-v3'
+          m['placementChangePolicy']['requirements']=['owner-directed-visual-change-or-objective-placement-defect','one-controlled-branch-and-one-integrated-pull-request','direct-raster-files-for-photographic-project-images','record-page-section-old-placement-new-placement-and-reason','update-page-manifest-verifier-browser-checks-and-live-checks-together','capture-desktop-mobile-and-per-image-render-evidence']
+          m['placementChanges'].append({'date':'2026-07-24','page':'sample-library-now.html, flower-garden-quote-complete.html, and contractor-quote-complete.html','section':'Flower garden and four-zone irrigation before/after visuals','oldPlacement':'SVG photo wrappers and a drawn flower concept that could pass path checks while rendering blank or visually incorrect','newPlacement':'Direct WebP files with the same-house flower scene and label-free irrigation photographs','reason':'Owner-directed repair after live Chrome review showed a cartoon flower concept and blank irrigation panels despite technical PASS','binaryPolicy':'Raster derivatives were generated from repository source images. The flower preserves the existing-house upper scene; irrigation removes only the embedded label edge. Original sources remain for rollback.'})
+          for item in m['pages']['sample-library-now.html']:
+              if item['role']=='example-01-after':item.update(src='assets/contractor-demo/flower-after-same-house.webp',alt='Flower garden after at the same house')
+              if item['role']=='example-06-before':item['src']='assets/demo-workthroughs/irrigation-before-clean.webp'
+              if item['role']=='example-06-after':item['src']='assets/demo-workthroughs/irrigation-after-clean.webp'
+          m['dynamicPages']['contractor-quote-complete.html']['examples']['flower']=['flower-before.png','flower-after-same-house.webp']
+          m['dynamicPages']['contractor-quote-complete.html']['examples']['irrigation']=['irrigation-before-clean.webp','irrigation-after-clean.webp']
+          mp.write_text(json.dumps(m,indent=2)+'\n')
+          for name in ('scripts/config/approved-public-image-placement-overrides.json','scripts/apply-public-image-placement-overrides.py'):
+              q=root/name
+              if q.exists():q.unlink()
+          vp=root/'scripts/verify-public-image-placements.js';v=vp.read_text()
+          for old,new in mapping.items():v=v.replace(old,new)
+          anchor="check('same-house flower concept is the approved sample image',samplePage.includes('assets/contractor-demo/flower-after-same-house.webp')&&samplePage.includes('alt=\"Flower garden after at the same house\"'));"
+          if anchor in v and 'project photographs use direct raster files' not in v:v=v.replace(anchor,anchor+"\ncheck('project photographs use direct raster files',!/(flower-after-same-house|irrigation-before-clean|irrigation-after-clean)\\.svg/.test(samplePage+contractorPage)&&/(flower-after-same-house|irrigation-before-clean|irrigation-after-clean)\\.webp/.test(samplePage+contractorPage));")
+          vp.write_text(v)
+          sp=root/'scripts/browser-commercial-smoke.sh';s=sp.read_text().replace('irrigation-before.webp irrigation-after.webp','irrigation-before-clean.webp irrigation-after-clean.webp')
+          line='"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=1440,1200 --screenshot="$OUT/examples-desktop.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1\n'
+          if line in s and 'examples-mobile.png' not in s:s=s.replace(line,line+'"$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=5000 --window-size=390,844 --screenshot="$OUT/examples-mobile.png" "http://127.0.0.1:8000/sample-library-now.html" > /dev/null 2>&1\n')
+          sp.write_text(s)
+          bp=root/'scripts/verify-commercial-browser.js';bp.write_text(bp.read_text().replace("'irrigation-before.webp','irrigation-after.webp'","'irrigation-before-clean.webp','irrigation-after-clean.webp'"))
+          prp=root/'.github/workflows/integrated-public-expansion.yml';pr=prp.read_text()
+          pr=pr.replace('      - name: Verify project-first browser behavior\n        run: node scripts/verify-commercial-browser.js','      - name: Install rendered-image verifier\n        run: python3 -m pip install --disable-pip-version-check pillow\n      - name: Verify project-first browser behavior\n        run: node scripts/verify-commercial-browser.js')
+          pr=pr.replace('      - name: Verify focused shell screenshots and examples\n        run: bash scripts/browser-commercial-smoke.sh','      - name: Verify focused shell screenshots and examples\n        run: bash scripts/browser-commercial-smoke.sh\n      - name: Capture every Project Examples image\n        run: node scripts/capture-project-example-images.js\n      - name: Reject blank, broken, SVG-wrapped, or mismatched project visuals\n        run: python3 scripts/verify-rendered-project-images.py browser-artifacts/project-images')
+          prp.write_text(pr)
+          pp=root/'.github/workflows/pages.yml';pages=pp.read_text();pages=re.sub(r'\n      - name: Apply approved placement overrides\n        shell: bash\n        run: \|\n          set -euo pipefail\n          python3 scripts/apply-public-image-placement-overrides.py\n','',pages)
+          for old,new in mapping.items():pages=pages.replace(old,new)
+          pages=re.sub(r'\n            before_svg=.*?\n            after_svg=.*?\n','\n',pages)
+          pages=pages.replace("              && grep -Fq '<svg' <<<\"$before_svg\" \\\n              && grep -Fq '<svg' <<<\"$after_svg\"; then","              && curl -fsSL --connect-timeout 15 \"${LIVE_ROOT}/assets/demo-workthroughs/irrigation-before-clean.webp?flush=${marker}-${attempt}\" -o /tmp/irrigation-before-clean.webp \\\n              && curl -fsSL --connect-timeout 15 \"${LIVE_ROOT}/assets/demo-workthroughs/irrigation-after-clean.webp?flush=${marker}-${attempt}\" -o /tmp/irrigation-after-clean.webp \\\n              && test \"$(wc -c </tmp/irrigation-before-clean.webp)\" -gt 10000 \\\n              && test \"$(wc -c </tmp/irrigation-after-clean.webp)\" -gt 10000; then")
+          visual='''\n      - name: Install live visual verification dependencies\n        run: |\n          npm ci\n          npx playwright install --with-deps chromium\n          python3 -m pip install --disable-pip-version-check pillow\n\n      - name: Capture and verify live Project Examples pixels\n        run: |\n          node scripts/capture-project-example-images.js \"${LIVE_ROOT}\"\n          python3 scripts/verify-rendered-project-images.py browser-artifacts/project-images\n'''
+          pages=pages.replace('\n      - name: Upload website verification evidence',visual+'\n      - name: Upload website verification evidence')
+          pages=pages.replace('            artifacts/public-image-placements/','            artifacts/public-image-placements/\n            browser-artifacts/project-images/')
+          pages=pages.replace('PASS — GitHub Pages is serving commit ${GITHUB_SHA}.','TECHNICAL PASS — GitHub Pages is serving commit ${GITHUB_SHA}; rendered-image checks passed. Owner visual acceptance remains separate.')
+          pages=pages.replace("--title 'GitHub Pages architecture and live verification — PASS'","--title 'GitHub Pages technical verification — PASS; visual acceptance pending owner review'")
+          pp.write_text(pages)
+          ap=root/'AGENTS.md';a=ap.read_text()
+          if '## Visual Change Release Gate' not in a:a+='''\n\n## Visual Change Release Gate\n\n- Follow `docs/public-website/VISUAL_RELEASE_STANDARD.md` for every visual, image, layout, or UI change.\n- Do not commit visual changes directly to `main`; use one controlled branch and one integrated pull request.\n- Photographic project images must be direct PNG, JPEG, or WebP files. SVG photo wrappers are prohibited.\n- PR and live checks capture desktop, mobile, and per-image screenshots and reject blank or mismatched pixels.\n- Automated deployment status is technical verification only. Never claim Rick accepted the visual result until he explicitly reviews and accepts it.\n'''
+          ap.write_text(a)
+          gp=root/'docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md';g=gp.read_text()
+          if '## 12. Visual release gate' not in g:g+='''\n\n## 12. Visual release gate\n\nAll public visual changes use one controlled branch and one integrated pull request. Project photographs use direct raster files, not SVG wrappers. PR and production checks inspect rendered pixels at desktop and mobile sizes. A technical pass is not owner visual acceptance. See `docs/public-website/VISUAL_RELEASE_STANDARD.md`.\n'''
+          gp.write_text(g)
+          rp=root/'docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md';r=rp.read_text()
+          if '## 10. Rendered visual acceptance' not in r:r+='''\n\n## 10. Rendered visual acceptance\n\n1. Visual changes use a branch and pull request; direct-main visual changes are prohibited.\n2. Project photographs use direct PNG, JPEG, or WebP files. SVG photo wrappers are prohibited.\n3. Verification inspects rendered pixels, not only paths, signatures, HTTP responses, or screenshot-file existence.\n4. Full-page desktop/mobile and per-image evidence are required before merge and after deployment.\n5. Automation records technical verification only. Rick explicit review is required before visual acceptance is claimed.\n'''
+          rp.write_text(r)
+          selfp=root/'.github/workflows/one-time-project-example-controls-repair.yml'
+          if selfp.exists():selfp.unlink()
+          PY
+      - name: Commit integrated controls
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Enforce rendered-image visual release gate'
+          git push origin HEAD:fix/project-example-visual-gate-20260724
