@@ -14,6 +14,14 @@ on:
       - 'scripts/verify-ai-approval-and-deployment.js'
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
+      - 'scripts/verify-unified-app-architecture.js'
+      - 'scripts/verify-business-office-runtime-helpers.js'
+      - 'scripts/verify-unified-client-routing-runtime.js'
+      - 'scripts/verify-task-messaging-hardening.js'
+      - 'scripts/verify-quote-builder-complete.js'
+      - 'scripts/verify-quote-builder-direct-performance.js'
+      - 'scripts/verify-quote-camera-polish.js'
+      - 'scripts/verify-quote-builder-business-office-routing.js'
       - 'scripts/verify-business-office-existing-deployment.js'
       - 'scripts/verify-owner-business-office-ux.js'
       - 'scripts/verify-unified-app-ux-complete.js'
@@ -36,6 +44,14 @@ on:
       - 'scripts/verify-ai-approval-and-deployment.js'
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
+      - 'scripts/verify-unified-app-architecture.js'
+      - 'scripts/verify-business-office-runtime-helpers.js'
+      - 'scripts/verify-unified-client-routing-runtime.js'
+      - 'scripts/verify-task-messaging-hardening.js'
+      - 'scripts/verify-quote-builder-complete.js'
+      - 'scripts/verify-quote-builder-direct-performance.js'
+      - 'scripts/verify-quote-camera-polish.js'
+      - 'scripts/verify-quote-builder-business-office-routing.js'
       - 'scripts/verify-business-office-existing-deployment.js'
       - 'scripts/verify-owner-business-office-ux.js'
       - 'scripts/verify-unified-app-ux-complete.js'
@@ -74,6 +90,9 @@ jobs:
           mkdir -p artifacts/ux-scan
           node scripts/verify-one-shot-ux.js | tee artifacts/ux-scan/verification.json
 
+      - name: Verify unified application architecture
+        run: node scripts/verify-unified-app-architecture.js
+
       - name: Verify Business Office source
         run: node scripts/verify-business-office.js
 
@@ -91,6 +110,18 @@ jobs:
 
       - name: Verify task messaging hardening
         run: node scripts/verify-task-messaging-hardening.js
+
+      - name: Verify complete Quote Builder
+        run: node scripts/verify-quote-builder-complete.js
+
+      - name: Verify Quote Builder direct performance
+        run: node scripts/verify-quote-builder-direct-performance.js
+
+      - name: Verify Quote Builder camera polish
+        run: node scripts/verify-quote-camera-polish.js
+
+      - name: Verify Quote Builder Business Office routing
+        run: node scripts/verify-quote-builder-business-office-routing.js
 
       - name: Verify Supabase Customer Portal
         run: node scripts/verify-customer-portal-supabase.js
