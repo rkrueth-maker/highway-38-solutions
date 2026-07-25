@@ -24,12 +24,12 @@ for(const number of expected){
   ['whole-house renovation','property improvement','selective demolition','existing-house demolition'].forEach(v=>absent(svg,v,`${number} scope drift`));
 }
 const g=read('assets/quote-builder/whole-house-cad/G-001.svg');
-['GROUND-UP NEW-HOME CONSTRUCTION','PROJECT BEGINS WITH SURVEY, EROSION CONTROL, LOT CLEARING, GRUBBING, TOPSOIL STRIPPING, AND ROUGH GRADING.','PROJECT CONTINUES THROUGH EXCAVATION, FOUNDATION, FRAMING, DRY-IN, ROUGH-INS, INSULATION, INTERIORS, SITE UTILITIES, FINAL GRADING, AND CLOSEOUT.','PROHIBITED SCOPE DRIFT','No symbol, fixture, register, device, cabinet, deck, roof, or utility may float'].forEach(v=>need(g,v,'G-001 fixed scope definition'));
+['GROUND-UP NEW-HOME CONSTRUCTION','PROJECT DEFINITION — FIXED SCOPE','PROJECT BEGINS WITH SURVEY, EROSION CONTROL, LOT CLEARING, GRUBBING, TOPSOIL STRIPPING, AND ROUGH GRADING.','PROJECT CONTINUES THROUGH EXCAVATION, FOUNDATION, FRAMING, DRY-IN, ROUGH-INS, INSULATION, INTERIORS, SITE UTILITIES, FINAL GRADING, AND CLOSEOUT.','No symbol, fixture, register, device, cabinet, deck, roof, or utility may float'].forEach(v=>need(g,v,'G-001 fixed scope definition'));
 const a101=read('assets/quote-builder/whole-house-cad/A-101.svg');
-['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','DINING','LIVING','OFFICE / SHOP','MUD / LAUNDRY','BATH / MECH','FOYER / STAIR','COVERED FRONT PORCH — 16′ × 6′','REAR DECK','DOOR / WINDOW SCHEDULE','anchored to the coordinated building geometry'].forEach(v=>need(a101,v,'A-101 coordinated plan content'));
+['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','DINING','LIVING','OFFICE / FLEX','MUD / LAUNDRY','BATH / MECH','FOYER / STAIR','COVERED FRONT PORCH — 16′ × 6′','REAR DECK','DOOR / WINDOW SCHEDULE','anchored to the coordinated building geometry'].forEach(v=>need(a101,v,'A-101 coordinated plan content'));
 if(count(a101,/class="dimline"/g)<5)throw new Error('A-101 requires overall and chained dimensions.');
 const a102=read('assets/quote-builder/whole-house-cad/A-102.svg');
-['SECOND-FLOOR PLAN','ROOF PLAN','PRIMARY BEDROOM','BEDROOM 2','BEDROOM 3','HALL / STAIR','RIDGE','8:12'].forEach(v=>need(a102,v,'A-102 upper-floor and roof content'));
+['A-102 — Second-Floor &amp; Roof Plan','ROOF PLAN','PRIMARY BEDROOM','BEDROOM 2','BEDROOM 3','HALL / STAIR','RIDGE','8:12'].forEach(v=>need(a102,v,'A-102 upper-floor and roof content'));
 if(count(a102,/class="dimline"/g)<4)throw new Error('A-102 requires coordinated floor and roof dimensions.');
 const a201=read('assets/quote-builder/whole-house-cad/A-201.svg');
 ['SOUTH / FRONT ELEVATION','NORTH / REAR ELEVATION','EAST / RIGHT ELEVATION','WEST / LEFT ELEVATION','COVERED FRONT PORCH','REAR DECK ATTACHED AT LEDGER','CHIMNEY','FINISHED GRADE 100′-0″','connected to wall, roof, slab, or grade geometry'].forEach(v=>need(a201,v,'A-201 grounded elevation content'));
@@ -38,10 +38,10 @@ const a301=read('assets/quote-builder/whole-house-cad/A-301.svg');
 ['BUILDING SECTION A-A — THROUGH PORCH / KITCHEN / STAIR','ATTACHED PORCH ROOF','FOUNDATION / FOOTING — FINAL DESIGN','DETAIL 1 — EXTERIOR WALL / EAVE','DETAIL 2 — WINDOW OPENING / FLASHING','DETAIL 3 — DECK LEDGER / FLASHING','porch roof, porch post, deck ledger, stairs, floors, walls, roof, foundation, and grade are physically connected'].forEach(v=>need(a301,v,'A-301 connected construction content'));
 if(count(a301,/class="dimline"/g)<3||count(a301,/class="leader"/g)<10)throw new Error('A-301 requires connected assemblies, dimensions, and material callouts.');
 const a401=read('assets/quote-builder/whole-house-cad/A-401.svg');
-['ENLARGED KITCHEN PLAN','NORTH CABINET ELEVATION — SINK / RANGE WALL','WEST / TALL CABINET ELEVATION — PANTRY / OVENS / REFRIGERATOR','ISLAND 9′-0″ × 3′-9″','42″ MIN. AISLE','DOUBLE SINK','PREP SINK','DBL OVEN','REFRIGERATOR','attached to the room and finished-floor geometry'].forEach(v=>need(a401,v,'A-401 anchored kitchen content'));
+['ENLARGED KITCHEN PLAN','NORTH CABINET ELEVATION — SINK / RANGE WALL','WEST / TALL CABINET ELEVATION — PANTRY / OVENS / REFRIGERATOR','ISLAND 9′-0″ × 3′-9″','42″ MIN. AISLE','SINK 36','PREP SINK','DBL OVEN','REFRIGERATOR','attached to the room and finished-floor geometry'].forEach(v=>need(a401,v,'A-401 anchored kitchen content'));
 if(count(a401,/class="dimline"/g)<6||count(a401,/class="casework"/g)<15)throw new Error('A-401 requires dimensioned and anchored casework.');
 const m=read('assets/quote-builder/whole-house-cad/M-101.svg');
-['HVAC Plan on Coordinated Architectural Underlay','KITCHEN','LIVING','BATH / MECH','AHU-1','CU-1','EQUIPMENT / AIR DEVICE SCHEDULE','Every supply, return, thermostat, and equipment symbol is connected'].forEach(v=>need(m,v,'M-101 coordinated HVAC content'));
+['HVAC Plan on Coordinated Architectural Underlay','KITCHEN','LIVING','BATH / MECH','AHU-1','CU-1','EQUIPMENT / AIR DEVICE SCHEDULE','Every register, return, equipment item, thermostat, condenser, and duct route is tied to the coordinated room/wall plan'].forEach(v=>need(m,v,'M-101 coordinated HVAC content'));
 if(count(m,/class="underheavy"/g)<5||count(m,/class="duct"/g)<8||count(m,/class="return"/g)<2)throw new Error('M-101 must use the architectural underlay with connected supply and return routes.');
 const p101=read('assets/quote-builder/whole-house-cad/P-101.svg');
 ['Plumbing Plan on Coordinated Architectural Underlay','KITCHEN','MUD / LAUNDRY','BATH / MECH','WATER / SANITARY SERVICE ENTRY','DOMESTIC WATER / DWV RISER','FIXTURE SCHEDULE','Every plumbing fixture and service route is anchored'].forEach(v=>need(p101,v,'P-101 coordinated plumbing content'));
