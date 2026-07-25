@@ -6,20 +6,26 @@ on:
     paths:
       - 'universal-quote-builder.html'
       - 'quote-builder-sample-proposal.html'
+      - 'whole-house-quote-package.html'
+      - 'assets/quote-builder/whole-house-cad/**'
       - 'sample-library-now.html'
       - 'quote-builder.html'
       - 'scripts/config/public-website-routes.json'
       - 'scripts/verify-public-quote-builder-result.js'
+      - 'scripts/verify-professional-house-cad.js'
       - '.github/workflows/public-quote-builder-result.yml'
   push:
     branches: [main]
     paths:
       - 'universal-quote-builder.html'
       - 'quote-builder-sample-proposal.html'
+      - 'whole-house-quote-package.html'
+      - 'assets/quote-builder/whole-house-cad/**'
       - 'sample-library-now.html'
       - 'quote-builder.html'
       - 'scripts/config/public-website-routes.json'
       - 'scripts/verify-public-quote-builder-result.js'
+      - 'scripts/verify-professional-house-cad.js'
       - '.github/workflows/public-quote-builder-result.yml'
   workflow_dispatch:
 
@@ -38,4 +44,18 @@ jobs:
         with:
           node-version: '24'
       - name: Verify result and printable sample
-        run: node scripts/verify-public-quote-builder-result.js
+        id: public_verify
+        continue-on-error: true
+        run: node scripts/verify-public-quote-builder-result.js > public-quote-verifier.log 2>&1
+      - name: Upload public quote verification diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-quote-builder-verifier
+          path: public-quote-verifier.log
+          if-no-files-found: error
+      - name: Enforce public quote verification result
+        if: steps.public_verify.outcome != 'success'
+        run: |
+          cat public-quote-verifier.log
+          exit 1
