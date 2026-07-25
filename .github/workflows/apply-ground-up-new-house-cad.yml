@@ -29,41 +29,14 @@ jobs:
         run: |
           cat scripts/.ground-up-cad-payload/part-*.b64 | base64 --decode | gzip --decompress > scripts/rebuild-ground-up-house-cad.py
           sed -i 's/parents\[0\]/parents[1]/' scripts/rebuild-ground-up-house-cad.py
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('scripts/rebuild-ground-up-house-cad.py')
-          s=p.read_text(encoding='utf-8')
-          needle="    text=text.replace('renovation and property improvement','ground-up new-home construction')"
-          addition="""    text=text.replace('Whole-House Renovation and Property Improvement','Ground-Up New-Home Construction')
-    text=text.replace('<h1>Whole-House Renovation<br>& Property Improvement</h1>','<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>')
-    text=text.replace('STANDALONE TRADE QUOTE','STANDALONE CONSTRUCTION PHASE QUOTE')
-    text=text.replace('REVISION C','REVISION F')
-    text=text.replace(' · REV C',' · REV F')
-    text=text.replace('H38-UQB-WH-${q.n}','H38-UQB-NEW-HOME-${q.n}')"""
-          if addition not in s:
-              if needle not in s:
-                  raise SystemExit('Generator patch anchor not found')
-              s=s.replace(needle,needle+'\n'+addition)
-          p.write_text(s,encoding='utf-8')
-          PY
+          python -c 'from pathlib import Path; p=Path("scripts/rebuild-ground-up-house-cad.py"); s=p.read_text(encoding="utf-8"); needle="    text=text.replace(\x27renovation and property improvement\x27,\x27ground-up new-home construction\x27)"; addition="    text=text.replace(\x27Whole-House Renovation and Property Improvement\x27,\x27Ground-Up New-Home Construction\x27)\n    text=text.replace(\x27<h1>Whole-House Renovation<br>& Property Improvement</h1>\x27,\x27<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>\x27)\n    text=text.replace(\x27STANDALONE TRADE QUOTE\x27,\x27STANDALONE CONSTRUCTION PHASE QUOTE\x27)\n    text=text.replace(\x27REVISION C\x27,\x27REVISION F\x27)\n    text=text.replace(\x27 · REV C\x27,\x27 · REV F\x27)\n    text=text.replace(\x27H38-UQB-WH-${q.n}\x27,\x27H38-UQB-NEW-HOME-${q.n}\x27)"; assert needle in s; p.write_text(s if addition in s else s.replace(needle,needle+"\n"+addition),encoding="utf-8")'
           chmod +x scripts/rebuild-ground-up-house-cad.py
           python -m py_compile scripts/rebuild-ground-up-house-cad.py
       - name: Generate coordinated Revision F package
         run: python scripts/rebuild-ground-up-house-cad.py
-      - name: Normalize public cover to controlling ground-up scope
+      - name: Normalize public package to controlling ground-up scope
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('whole-house-quote-package.html')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('<h1>Whole-House Renovation<br>& Property Improvement</h1>','<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>')
-          s=s.replace('Complete coordinated master proposal, 10-sheet professional CAD-style coordination drawing set, and fourteen independently printable trade quotes.','Complete ground-up new-home proposal, coordinated 10-sheet construction drawing set, and fourteen independently printable construction phase quotes.')
-          s=s.replace('Whole-House Renovation and Property Improvement','Ground-Up New-Home Construction')
-          s=s.replace('STANDALONE TRADE QUOTE','STANDALONE CONSTRUCTION PHASE QUOTE')
-          s=s.replace('REVISION C','REVISION F').replace(' · REV C',' · REV F')
-          s=s.replace('H38-UQB-WH-${q.n}','H38-UQB-NEW-HOME-${q.n}')
-          p.write_text(s,encoding='utf-8')
-          PY
+          python -c 'from pathlib import Path; p=Path("whole-house-quote-package.html"); s=p.read_text(encoding="utf-8"); s=s.replace("<h1>Whole-House Renovation<br>& Property Improvement</h1>","<h1>Ground-Up New Home<br>Lot Clearing Through Final Completion</h1>").replace("Complete coordinated master proposal, 10-sheet professional CAD-style coordination drawing set, and fourteen independently printable trade quotes.","Complete ground-up new-home proposal, coordinated 10-sheet construction drawing set, and fourteen independently printable construction phase quotes.").replace("Whole-House Renovation and Property Improvement","Ground-Up New-Home Construction").replace("STANDALONE TRADE QUOTE","STANDALONE CONSTRUCTION PHASE QUOTE").replace("REVISION C","REVISION F").replace(" · REV C"," · REV F").replace("H38-UQB-WH-${q.n}","H38-UQB-NEW-HOME-${q.n}"); p.write_text(s,encoding="utf-8")'
       - name: Install SVG validators and renderer
         run: |
           sudo apt-get update -qq
