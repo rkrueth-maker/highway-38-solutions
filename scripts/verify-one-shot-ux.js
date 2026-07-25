@@ -11,9 +11,9 @@ const passes=[];
 const check=(name,condition,detail='')=>(condition?passes:failures).push({name,detail});
 const need=(file,marker,label)=>check(label,read(file).includes(marker),`${file} must contain ${marker}`);
 
-const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html','apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
+const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html','apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
 required.forEach(file=>check(`required ${file}`,exists(file)));
-['assets/js/h38-site-v2.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html'].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
+['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html'].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
 
 const home=read('index.html');
 const publicShell=read('assets/js/h38-site-v2.js');
@@ -33,13 +33,15 @@ check('homepage does not restore retired product catalog as primary experience',
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
+const requestOptions=read('assets/js/h38-request-options.js');
 const publicIntake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
 [1,2,3].forEach(step=>check(`request step ${step}`,request.includes(`data-request-step="${step}"`)));
-['What result do you need?','Tell us about the problem.','Contact and review.'].forEach(text=>check(`request copy ${text}`,request.includes(text)));
+['What result do you need?','Tell us about the problem and select the closest offer.','Contact and review.'].forEach(text=>check(`request copy ${text}`,request.includes(text)));
 check('request has three primary choices',(request.match(/class="h38-choice-card"/g)||[]).length===3);
-check('request has two secondary choices',(request.match(/class="h38-choice-link"/g)||[]).length===2);
+check('request has three secondary choices',(request.match(/class="h38-choice-link"/g)||[]).length===3);
 check('first Continue is disabled until selection',/data-request-next disabled aria-disabled="true"/.test(request)&&requestFlow.includes('updateFirstContinue'));
-check('request preserves approved selectors',request.includes('id="product"')&&request.includes('id="bundle"')&&request.includes('id="business-system-interest"'));
+check('request uses the approved offer selector',request.includes('id="offer"')&&request.includes('pricing-data.js')&&!request.includes('id="bundle"')&&!request.includes('id="product"'));
+check('request exposes final four customer choices',['quote-builder','business-office','configured-system','business-snapshot'].every(id=>requestOptions.includes(id)));
 check('request preserves buying-term truth',['price','payment','turnaround','revisions','exclusions'].every(term=>request.toLowerCase().includes(term)));
 check('request no-charge control',/No charge|no-charge/i.test(request));
 check('secure submission remains owner reviewed',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&publicIntake.includes('Owner Approval Required'));
