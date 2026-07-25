@@ -1,0 +1,59 @@
+<script>
+(function(){
+'use strict';
+var originalOpen=window.qbOpen;
+var cache=null;
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v)||0);}
+function direct(name,args){return new Promise(function(resolve,reject){var runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[]);});}
+function installNav(){
+  var nav=document.getElementById('qbNav');if(!nav)return;
+  var existing=document.getElementById('qbUniversalNav');
+  if(!existing){
+    var button=document.createElement('button');button.id='qbUniversalNav';button.type='button';button.textContent='Universal Builder';button.onclick=function(){window.qbOpen('universal');};
+    var full=nav.querySelector('.full-system');nav.insertBefore(button,full||null);existing=button;
+  }
+  existing.classList.toggle('active',window.H38_QB_UNIVERSAL_ACTIVE===true);
+}
+function levelCard(level){return '<article class="catalog-card"><small>LEVEL '+esc(level.level)+'</small><h3>'+esc(level.name)+'</h3><p>'+esc(level.description)+'</p><div><strong>Structure:</strong> '+level.requires.map(esc).join(', ')+'</div></article>';}
+function exampleCard(example){return '<article class="catalog-card"><small>'+esc(example.business)+' · Level '+esc(example.level)+'</small><h3>'+esc(example.title)+'</h3><p>'+esc(example.summary)+'</p><div><strong>Pricing:</strong> '+example.pricing.map(function(v){return esc(v.replace(/_/g,' '));}).join(', ')+'</div></article>';}
+function houseRows(house){return house.subquotes.map(function(row){return '<tr><td>'+esc(row.sequence)+'</td><td>'+esc(row.title)+'</td><td>'+esc(row.scope)+'</td><td>'+money(row.amount)+'</td><td>'+esc(row.status)+'</td></tr>';}).join('');}
+function drawingRows(house){return house.drawings.map(function(row){return '<tr><td>'+esc(row.number)+'</td><td>'+esc(row.title)+'</td><td>'+esc(row.classification)+'</td><td>'+esc(row.revision)+'</td><td>'+esc(row.review)+'</td></tr>';}).join('');}
+function render(data){
+  cache=data;window.H38_QB_UNIVERSAL_ACTIVE=true;installNav();
+  document.querySelectorAll('#qbNav button').forEach(function(button){if(button.id!=='qbUniversalNav')button.classList.remove('active');});
+  var house=data.house;
+  document.getElementById('qbContent').innerHTML='<div class="shell">'+
+    '<div class="hero"><div><small>HIGHWAY 38 UNIVERSAL QUOTE BUILDER</small><h2>Simple when the quote is simple. Deep when the work is complex.</h2><p>One canonical Quote Builder now supports progressive quote depth, structured master and sub-quotes, auditable pricing, drawings, bid packages, execution information, and controlled H38 AI agents.</p></div><div class="actions"><button class="primary" onclick="qbUniversalPrepare()">Prepare House Demo</button><button class="secondary" onclick="qbOpen(\'new\')">New Quote</button></div></div>'+
+    '<section class="panel"><div class="toolbar" style="justify-content:space-between"><div><h3>Recommended quote depth</h3><p>Select the project conditions. The recommendation never prevents an authorized user from changing the level.</p></div><button onclick="qbUniversalRecommend()">Recommend Level</button></div><div class="form-grid"><label>Number of line items<input id="uqItemCount" type="number" min="1" value="1"></label><label>Project type<select id="uqProjectType"><option value="simple">Simple service</option><option value="itemized">Itemized work</option><option value="areas">Physical areas or rooms</option><option value="technical">Technical specifications or operations</option><option value="integration">Multi-trade or integrated system</option></select></label></div><div id="uqRecommendation" class="notice good">Start with the minimum depth needed. Additional structure appears only when the project requires it.</div></section>'+
+    '<section class="panel"><h3>Five progressive quote levels</h3><div class="catalog">'+data.levels.map(levelCard).join('')+'</div></section>'+
+    '<section class="panel"><h3>Cross-industry example library</h3><p>These examples use the same engine and controlled data model—not separate industry applications.</p><div class="catalog">'+data.examples.map(exampleCard).join('')+'</div></section>'+
+    '<section class="panel"><div class="toolbar" style="justify-content:space-between"><div><h3>'+esc(house.title)+'</h3><p>'+esc(house.summary)+'</p></div><strong style="font-size:1.4rem;color:var(--navy)">'+money(house.total)+'</strong></div><div class="metrics"><div class="metric"><span>Trade sub-quotes</span><strong>'+house.subquotes.length+'</strong></div><div class="metric"><span>Drawing sheets</span><strong>'+house.drawings.length+'</strong></div><div class="metric"><span>Bid packages</span><strong>'+house.bidPackages.length+'</strong></div></div><h4>Master proposal and trade sub-quotes</h4><div class="table-wrap"><table><thead><tr><th>#</th><th>Trade / package</th><th>Scope</th><th>Planning amount</th><th>Status</th></tr></thead><tbody>'+houseRows(house)+'</tbody></table></div><h4>Drawing register</h4><div class="table-wrap"><table><thead><tr><th>Sheet</th><th>Title</th><th>Classification</th><th>Rev.</th><th>Review control</th></tr></thead><tbody>'+drawingRows(house)+'</tbody></table></div><div class="notice" style="background:var(--warn)"><strong>Controlled demonstration.</strong> Conceptual, estimating, bidding, field-layout, permit, construction-ready, professional-review, and approved-final classifications remain visibly separate. No customer quote, bid request, purchase, payment, schedule promise, or work authorization is sent automatically.</div></section>'+
+    '<section class="panel"><h3>Universal controls</h3><div class="catalog"><article class="catalog-card"><h3>Deterministic pricing</h3><p>'+data.pricingMethods.length+' supported pricing methods preserve source inputs, formula, version, factors, minimums, overrides, reasons, and approvers.</p></article><article class="catalog-card"><h3>Controlled agent framework</h3><p>'+data.agents.length+' role-defined agents operate at Assist, Prepare, or approved execution levels with Proof Log and Error Log controls.</p></article><article class="catalog-card"><h3>Business Setup Agent</h3><p>Self-setup, assisted setup, advanced technical setup, and ongoing optimization all activate proposed rules only after authorized review.</p></article></div></section></div>';
+}
+window.qbUniversalRecommend=async function(){
+  var type=document.getElementById('uqProjectType').value;
+  var input={itemCount:Number(document.getElementById('uqItemCount').value)||1,options:type==='itemized',physicalAreas:type==='areas',measurements:type==='areas',technicalSpecifications:type==='technical',operations:type==='technical',systemIntegration:type==='integration',multipleTrades:type==='integration',vendorPackages:type==='integration'};
+  try{var result=await direct('boUniversalQuoteRecommendLevel',[input]);document.getElementById('uqRecommendation').innerHTML='<strong>Level '+esc(result.recommendedLevel)+': '+esc(result.level.name)+'</strong><br>'+result.reasons.map(esc).join(' ');}
+  catch(error){document.getElementById('uqRecommendation').className='notice bad';document.getElementById('uqRecommendation').textContent=error.message||String(error);}
+};
+window.qbUniversalPrepare=async function(){
+  var key=prompt('Run label for this demonstration. Reusing the same label creates the same idempotency key.','HOUSE-'+new Date().toISOString().slice(0,10).replace(/-/g,''));
+  if(key===null)return;
+  try{var result=await direct('boUniversalPrepareHouseDemonstration',[key]);alert('Prepared '+result.runId+' with '+result.subquoteCount+' sub-quotes, '+result.drawingCount+' drawings, and '+result.bidPackageCount+' bid packages. Nothing was sent.');}
+  catch(error){alert('Stopped safely: '+(error.message||String(error)));}
+};
+window.qbOpen=async function(view){
+  if(view==='universal'){
+    window.H38_QB_UNIVERSAL_ACTIVE=true;installNav();
+    document.getElementById('qbContent').innerHTML='<div class="panel loading-card">Loading Universal Quote Builder…</div>';
+    try{render(cache||await direct('boUniversalQuoteBuilderCatalog',[]));}catch(error){document.getElementById('qbContent').innerHTML='<div class="panel notice bad"><strong>Universal Quote Builder stopped safely.</strong><br>'+esc(error.message||String(error))+'</div>';}
+    return;
+  }
+  window.H38_QB_UNIVERSAL_ACTIVE=false;
+  var result=await originalOpen(view);installNav();return result;
+};
+setInterval(installNav,700);
+installNav();
+})();
+</script>
