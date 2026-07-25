@@ -1,0 +1,41 @@
+name: Public Quote Builder Result
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'universal-quote-builder.html'
+      - 'quote-builder-sample-proposal.html'
+      - 'sample-library-now.html'
+      - 'quote-builder.html'
+      - 'scripts/config/public-website-routes.json'
+      - 'scripts/verify-public-quote-builder-result.js'
+      - '.github/workflows/public-quote-builder-result.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'universal-quote-builder.html'
+      - 'quote-builder-sample-proposal.html'
+      - 'sample-library-now.html'
+      - 'quote-builder.html'
+      - 'scripts/config/public-website-routes.json'
+      - 'scripts/verify-public-quote-builder-result.js'
+      - '.github/workflows/public-quote-builder-result.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify result and printable sample
+        run: node scripts/verify-public-quote-builder-result.js
