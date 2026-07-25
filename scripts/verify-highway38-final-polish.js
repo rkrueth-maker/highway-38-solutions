@@ -12,6 +12,7 @@ const index=read('index.html');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const samples=read('sample-library-now.html');
+const universal=read('universal-quote-builder.html');
 const cabin=read('cabin-project-complete.html');
 const request=read('start-request.html');
 const requestClient=read('request-flow.js');
@@ -44,10 +45,15 @@ check('What We Do has five accepted capability cards',(solutions.match(/data-cap
 check('What We Do removes retired fixed-price paths',!solutions.includes('Choose Your Path')&&!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot'));
 check('pricing uses final approved product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
 
-check('public Examples contains eight complete project workflows',(samples.match(/class="project-card"/g)||[]).length===8&&samples.includes('Eight complete project demonstrations'));
+const existingExampleCount=(samples.match(/class="project-card"/g)||[]).length;
+check('public Examples preserves approved workflows and remains open-ended',existingExampleCount>=8&&samples.includes('Open-ended example library'),String(existingExampleCount));
+check('public Examples leads with Universal Quote Builder',samples.includes('universal-quote-builder.html')&&samples.includes('Universal Quote Builder demonstration'));
+check('public Examples removes fixed example-count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(samples));
 check('public Examples preserves representative proof classification',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
 check('public Examples uses six direct controlled deck irrigation kitchen images',['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
 check('public Examples includes complete cabin walkthrough',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
+check('Universal Quote Builder demonstrates simple through integrated quoting',universal.includes('Simple when the quote is simple.')&&universal.includes('All example types')&&universal.includes('Whole-House Renovation and Property Improvement'));
+check('Universal Quote Builder preserves drawing and external-action controls',universal.includes('Permit submission')&&universal.includes('Professional review required')&&universal.includes('External actions</span><strong>0'));
 check('cabin walkthrough opens all 21 detailed quotes',cabin.includes('Open All 21 Quotes')&&(cabin.match(/\['\d{2}-/g)||[]).length===21&&cabin.includes('Business Office system coverage'));
 
 check('request flow uses secure direct submission',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
@@ -57,6 +63,7 @@ check('secure intake creates internal Owner-review record only',/function doPost
 check('secure intake preserves idempotency protection',/H38_PUBLIC_INTAKE_/.test(intake)&&/DUPLICATE_ACCEPTED/.test(intake));
 
 check('project-first route manifest owns current public gateways',['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html'].every(path=>(routes.primary||[]).some(item=>item.path===path)));
+check('Universal Quote Builder demonstration is registered',(routes.demonstrations||[]).some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog and tool routes remain redirects',routes.retired['products.html']==='pricing.html'&&routes.retired['catalog.html']==='pricing.html'&&routes.retired['tool-center.html']==='sample-library-now.html');
 check('one approved asset manifest and one placement manifest remain canonical',approvedAssets.approved_logo&&placements.pages&&exists('scripts/config/approved-public-assets.json')&&exists('scripts/config/approved-public-image-placements.json'));
 check('approved logo remains substitution locked',approvedAssets.approved_logo.allow_image_substitute===false);
@@ -79,6 +86,6 @@ check('Business Office uses controlled approved logo',businessConfig.branding.lo
 check('Business Office remains one complete app',businessConfig.package&&businessConfig.package.singleApp===true);
 check('deployment updates existing IDs in place',deployment.includes('clasp update-deployment "$OWNER_DEPLOYMENT_ID"')&&deployment.includes('clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID"')&&!/clasp\s+(?:create-script|create-deployment)\b/.test(deployment));
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-public-plus-unified-business-office',passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-universal-quote-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,passes,failures};
 const outputDir=path.join(root,'artifacts','final-polish');fs.mkdirSync(outputDir,{recursive:true});fs.writeFileSync(path.join(outputDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);
