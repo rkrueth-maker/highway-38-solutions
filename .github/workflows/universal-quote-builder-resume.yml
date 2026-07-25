@@ -1,0 +1,47 @@
+name: Universal Quote Builder Resumable Example Run
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume_Step.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume_Client.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'scripts/verify-universal-quote-builder-resume.js'
+      - '.github/workflows/universal-quote-builder-resume.yml'
+  push:
+    branches: [main, agent/uqb-resumable-example-run]
+    paths:
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume_Step.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume_Client.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'scripts/verify-universal-quote-builder-resume.js'
+      - '.github/workflows/universal-quote-builder-resume.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-resumable-example-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify resumable idempotent generation
+        run: node scripts/verify-universal-quote-builder-resume.js
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: universal-quote-builder-resume-${{ github.run_id }}
+          path: artifacts/universal-quote-builder-resume/verification.json
+          if-no-files-found: warn
+          retention-days: 90
