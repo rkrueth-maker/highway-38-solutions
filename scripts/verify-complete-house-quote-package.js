@@ -8,10 +8,10 @@ const file=path.join(root,'whole-house-quote-package.html');
 if(!fs.existsSync(file))throw new Error('Missing whole-house-quote-package.html');
 const html=fs.readFileSync(file,'utf8');
 const required=[
- 'G-001 — General Notes, Index & Symbols','A-101 — Proposed Main-Floor Plan','A-102 — Second-Floor & Roof Plan',
- 'A-201 — Exterior Elevations — Four Views','A-301 — Building Sections & Envelope Details','A-401 — Kitchen Plan & Interior Elevations',
+ 'G-001 — General Notes, Index & Symbols','A-101 — Proposed Main-Floor Plan — Detailed','A-102 — Second-Floor & Roof Plan',
+ 'A-201 — Exterior Elevations — Detailed Four Views','A-301 — Building Sections & Envelope Details — Detailed','A-401 — Kitchen Plan & Interior Elevations — Detailed',
  'M-101 — HVAC Distribution & Equipment Plan','P-101 — Plumbing Plan, Riser & Fixture Schedule','E-101 — Lighting, Power & Panel Schedule',
- 'C-S-L-101 — Site, Deck, Concrete, Drainage & Landscape','Open full-size SVG','Revision D',
+ 'C-S-L-101 — Site, Deck, Concrete, Drainage & Landscape','Open full-size SVG','Revision E',
  'Complete included scope','Itemized price','Deliverables and completion','Schedule','Payment','Assumptions','Exclusions','Change conditions',
  'Customer acceptance / date','Authorized contractor / date','Print / Save Complete Package','DEMONSTRATION — NOT A CONTRACT'
 ];
@@ -27,4 +27,4 @@ const routes=JSON.parse(fs.readFileSync(path.join(root,'scripts/config/public-we
 if(!routes.demonstrations.some(x=>x.path==='whole-house-quote-package.html'&&x.visibility==='public'))throw new Error('Complete package is not registered as a public demonstration');
 const cad=spawnSync(process.execPath,[path.join(root,'scripts','verify-professional-house-cad.js')],{cwd:root,encoding:'utf8'});
 if(cad.status!==0)throw new Error('Professional CAD verification failed:\n'+cad.stdout+'\n'+cad.stderr);
-console.log(JSON.stringify({status:'PASS',drawingSheets,completeQuotes:quoteDefs,professionalCad:true,externalActions:0},null,2));
+console.log(JSON.stringify({status:'PASS',revision:'E',drawingSheets,completeQuotes:quoteDefs,professionalCad:true,externalActions:0},null,2));
