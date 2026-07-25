@@ -17,7 +17,29 @@ Describe the user-visible result and why this change is needed.
 - Server owner:
 - Client owner:
 - Data owner:
+- Existing verifier owner:
 - Deployment workflow:
+
+## Fast and reliable execution plan
+
+Follow `docs/architecture/FAST_RELIABLE_CHANGE_PROCESS.md`.
+
+- Change-plan command and result:
+- Fast checks that run before browser/live work:
+- Expensive or live checks required:
+- Evidence from this exact commit that remains reusable:
+- Shared resource protected by concurrency:
+- Batch/checkpoint plan for generation, migration, or backfill:
+- First failing stage and classification, if any:
+- Rollback boundary:
+
+- [ ] This work uses one integrated branch, one pull request, and one authoritative deployment workflow per production target.
+- [ ] I searched for and reused the existing workflow, harness, generator, verifier, and data owner before adding another one.
+- [ ] Fast structural checks run before browser, image, clean-install, Apps Script, or production checks.
+- [ ] Successful expensive evidence is not rerun when the exact commit and tested inputs are unchanged.
+- [ ] A failed run was diagnosed from its first failing stage before rerun.
+- [ ] The same failure will not be blindly repeated more than twice; the execution design will be corrected instead.
+- [ ] Temporary workflows, diagnostics, or harness changes are removed in this workstream after use.
 
 ## Architecture and safety
 
@@ -26,6 +48,7 @@ Describe the user-visible result and why this change is needed.
 - [ ] External actions remain disabled or use an existing explicit Owner-approval gate.
 - [ ] Existing Apps Script project and deployment IDs are preserved.
 - [ ] Migration and rollback behavior is documented where data or schema changed.
+- [ ] Seeders, migrations, generators, or backfills are deterministic, idempotent, resumable, version-aware, duplicate-resistant, and exact-count verified.
 
 ## Performance design
 
@@ -72,18 +95,22 @@ Complete this section for every authenticated app, module, route, form, API, sha
 - Rapid-click stale-response result:
 - Desktop result:
 - Mobile result:
+- Exact record and file counts, when applicable:
+- Idempotent rerun result, when applicable:
 - External actions observed: None / explain
 
 Any missed target must include the cause, mitigation, Rick's decision, and rollback path.
 
 ## Verification
 
+- [ ] `npm run plan:change -- --base <base> --head <head>`
 - [ ] `node scripts/verify-change-governance.js`
 - [ ] Scope-relevant structural and syntax checks
 - [ ] Scope-relevant Business Office, Owner Portal, Customer Portal, or public-site checks
 - [ ] Desktop and mobile browser verification when UI behavior changed
 - [ ] Exact production workflow verified the merged commit when deployment is required
+- [ ] Machine-readable PASS or honest HOLD evidence was uploaded
 
 ## Files and obsolete behavior
 
-List important files changed, old routes or duplicate logic removed, compatibility redirects retained, and any intentionally deferred work.
+List important files changed, old routes or duplicate logic removed, compatibility redirects retained, temporary workflows removed, documentation updated, and any intentionally deferred work.

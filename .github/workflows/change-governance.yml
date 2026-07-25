@@ -8,6 +8,7 @@ on:
       - 'AGENTS.md'
       - 'docs/architecture/**'
       - 'scripts/verify-change-governance.js'
+      - 'scripts/plan-change-verification.js'
       - 'scripts/config/approved-public-assets.json'
       - 'scripts/config/approved-public-image-placements.json'
       - 'scripts/config/public-website-routes.json'
@@ -21,6 +22,7 @@ on:
       - '.github/workflows/pages.yml'
       - '.github/workflows/deploy-owner-portal-hard-rule-production.yml'
       - '.github/workflows/change-governance.yml'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -34,22 +36,32 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
+      - name: Check out source with comparison history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
+      - name: Build scope-aware verification plan
+        env:
+          H38_PLAN_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          H38_PLAN_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/plan-change-verification.js --base "$H38_PLAN_BASE" --head "$H38_PLAN_HEAD"
+
       - name: Verify repository-wide website and web app governance
         run: node scripts/verify-change-governance.js
 
-      - name: Upload governance evidence
+      - name: Upload planning and governance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: change-governance-${{ github.run_id }}
-          path: artifacts/change-governance/
+          path: |
+            artifacts/change-plan/
+            artifacts/change-governance/
           if-no-files-found: warn
           retention-days: 90

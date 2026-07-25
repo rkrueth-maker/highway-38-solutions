@@ -11,14 +11,32 @@ The approved Highway 38 logo is locked. Existing approved website images are als
 Before adding, changing, disabling, deleting, or deploying any website or web-app behavior:
 
 1. Read `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`.
-2. For any authenticated app, module, route, form, API, shared client, or server change, also read `docs/architecture/MODULE_PERFORMANCE_STANDARD.md` and complete its module intake form.
-3. Classify the scope as public website, authenticated web app, Customer Portal/security boundary, shared architecture, performance and reliability, or a combination.
-4. Identify the canonical owner for the route, component, module, schema, permission, image placement, data, and deployment.
-5. Confirm record, role, approval, external-action, image, performance, compatibility, migration, and rollback impact.
-6. Change the canonical source instead of adding a second shell, list, router, runtime, manifest, schema, data owner, or cleanup layer.
-7. Run `node scripts/verify-change-governance.js` before domain-specific verification.
+2. Read `docs/architecture/FAST_RELIABLE_CHANGE_PROCESS.md` and use its staged execution path.
+3. For any authenticated app, module, route, form, API, shared client, or server change, also read `docs/architecture/MODULE_PERFORMANCE_STANDARD.md` and complete its module intake form.
+4. Classify the scope as public website, authenticated web app, Customer Portal/security boundary, shared architecture, performance and reliability, or a combination.
+5. Identify the canonical owner for the route, component, module, schema, permission, image placement, data, verifier, workflow, and deployment.
+6. Confirm record, role, approval, external-action, image, performance, compatibility, migration, rollback, and evidence impact.
+7. Change the canonical source instead of adding a second shell, list, router, runtime, manifest, schema, data owner, cleanup layer, workflow, generator, harness, or verifier.
+8. Run `npm run plan:change -- --base <base-ref> --head <head-ref>` and then `node scripts/verify-change-governance.js` before domain-specific verification.
 
 A change is not complete because it looks correct in one browser. It must follow the canonical architecture, pass verification, deploy through the accepted workflow, and be verified live at the exact commit.
+
+## Fast and Reliable Execution Authority
+
+1. Use one workstream, one integrated branch, one pull request, one authoritative deployment workflow per production target, and one final evidence packet.
+2. Inspect the existing workflow, harness, generator, verifier, deployment, and evidence before creating another one.
+3. Run fast governance, syntax, structural, manifest, and contract checks before browser, image, clean-install, Apps Script, or production work.
+4. Reuse successful evidence only when it is tied to the exact commit and the tested inputs did not change.
+5. Do not rerun unrelated expensive checks merely because another scope failed.
+6. Diagnose the first failing stage before any rerun. Classify the failure as source defect, stale verifier, permission boundary, platform outage, concurrency conflict, or environment/configuration problem.
+7. Rerun only the failed job or affected scope when possible. When the same failure occurs twice, stop repeating the pipeline and correct the execution design, permission path, batch size, or authoritative harness.
+8. A seeder, migration, backfill, PDF build, import, or generator must be deterministic, idempotent, resumable, version-aware, duplicate-resistant, auditable, rollback-preserving, and safe to rerun.
+9. Long-running data work uses stable IDs, upserts, batches of normally two to five logical records, a persisted cursor and version, and exact final record and file counts.
+10. Do not run two workflows concurrently when they modify the same Apps Script project, deployment, spreadsheet, Drive folder, production site, or other shared resource.
+11. Remove temporary workflows, diagnostics, hosted transfer URLs, and harness-only changes in the same workstream after use.
+12. Update authoritative process documents, intake templates, and verification rules in the same pull request when the execution process changes.
+13. Preserve the current live system and external-action locks whenever final verification is HOLD.
+14. Do not claim PASS while production or live verification is running, missing, stale, or HOLD.
 
 ## Unified application authority
 
@@ -160,6 +178,7 @@ These rules apply to any request that mentions deploy, deployment, GitHub Pages,
 Before every website or authenticated web-app addition/change:
 
 ```bash
+npm run plan:change -- --base <base-ref> --head <head-ref>
 node scripts/verify-change-governance.js
 ```
 
@@ -194,6 +213,7 @@ Do not copy retired catalog, sample-count, logo-cache, or navigation markers fro
 Consult these before application, image-heavy, website, or deployment work:
 
 - `docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md`
+- `docs/architecture/FAST_RELIABLE_CHANGE_PROCESS.md`
 - `docs/architecture/UNIFIED_APP_CHANGE_RULES.md`
 - `docs/architecture/MODULE_PERFORMANCE_STANDARD.md`
 - `docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md`
@@ -204,7 +224,6 @@ Consult these before application, image-heavy, website, or deployment work:
 - `docs/CHATGPT_HANDOFF_DEPLOY_PHOTOS_2026-07-06.md`
 
 Treat older docs as process references only. The current contracts, manifests, repository binaries, current `main`, and verified live deployment are the technical source of truth.
-
 
 ## Visual Change Release Gate
 
