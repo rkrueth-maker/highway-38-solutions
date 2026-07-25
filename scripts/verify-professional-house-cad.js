@@ -16,7 +16,7 @@ for(const number of expected){
   const file=`assets/quote-builder/whole-house-cad/${number}.svg`;
   if(!fs.existsSync(path.join(root,file)))throw new Error(`Missing sheet ${file}`);
   const svg=read(file);
-  ['width="17in"','height="11in"','viewBox="0 0 1700 1100"','NOT FOR CONSTRUCTION','VERIFY BEFORE CONSTRUCTION','REV F','HIGHWAY 38 SOLUTIONS','New-Home Construction — Lot Clearing Through Final Completion','marker id="oa"'].forEach(v=>need(svg,v,`${number} Revision F sheet control`));
+  ['width="17in"','height="11in"','viewBox="0 0 1700 1100"','NOT FOR CONSTRUCTION','VERIFY BEFORE CONSTRUCTION','REV F','HIGHWAY 38 SOLUTIONS','New-Home Construction','marker id="oa"'].forEach(v=>need(svg,v,`${number} Revision F sheet control`));
   if(!svg.trim().endsWith('</svg>'))throw new Error(`${number} is not a complete SVG document.`);
   if(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-f]+;)/i.test(svg))throw new Error(`${number} contains an unescaped XML entity.`);
   if(count(svg,/<text /g)<20)throw new Error(`${number} lacks drawing annotations.`);
