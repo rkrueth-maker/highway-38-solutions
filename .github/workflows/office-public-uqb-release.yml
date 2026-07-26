@@ -16,6 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   issues: write
 
@@ -51,23 +52,43 @@ jobs:
         run: |
           set -euo pipefail
           DEPLOYED_SHA=""
+          DEPLOYED_RUN=""
+          DEPLOYED_URL=""
+          SOURCE_PATHS=(
+            apps-script/business-office
+            apps-script/unified-shell
+            apps-script/business-office-sync
+            business-packs/highway38
+            scripts/assemble-business-office-app.sh
+            scripts/build-unified-apps-script-shell.js
+            scripts/deploy-unified-owner-portal-web.sh
+          )
           for attempt in $(seq 1 60); do
-            BODY="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json body --jq '.body')"
-            DEPLOYED_SHA="$(printf '%s\n' "$BODY" | sed -nE \
-              -e 's/^- Source commit: ([0-9a-f]{40})$/\1/p' \
-              -e 's/^- Compatible deployed source: ([0-9a-f]{40})$/\1/p' \
-              -e 's/^- Deployed source: ([0-9a-f]{40})$/\1/p' | head -n 1)"
-            if [[ "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-              git fetch --no-tags origin "$DEPLOYED_SHA" || true
-              if git merge-base --is-ancestor "$DEPLOYED_SHA" "$GITHUB_SHA"; then
-                printf 'PASS — deployed source %s is contained in release %s.\n' "$DEPLOYED_SHA" "$GITHUB_SHA"
-                printf '%s' "$DEPLOYED_SHA" > /tmp/deployed-source-sha.txt
-                exit 0
+            RUNS_JSON="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow 'Deploy Unified Owner Portal' --branch main --status success --limit 40 --json databaseId,headSha,url,createdAt 2>/dev/null || printf '[]')"
+            while IFS=$'\t' read -r candidate_sha candidate_run candidate_url; do
+              [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]] || continue
+              git fetch --no-tags origin "$candidate_sha" >/dev/null 2>&1 || continue
+              git merge-base --is-ancestor "$candidate_sha" "$GITHUB_SHA" || continue
+              if git diff --quiet "$candidate_sha..$GITHUB_SHA" -- "${SOURCE_PATHS[@]}"; then
+                DEPLOYED_SHA="$candidate_sha"
+                DEPLOYED_RUN="$candidate_run"
+                DEPLOYED_URL="$candidate_url"
+                break
               fi
+            done < <(node -e '
+              const runs=JSON.parse(process.argv[1]||"[]");
+              for(const run of runs) console.log([run.headSha||"",run.databaseId||"",run.url||""].join("\t"));
+            ' "$RUNS_JSON")
+            if [[ "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              printf 'PASS — successful deployment run %s contains compatible H38 source %s for release %s.\n' "$DEPLOYED_RUN" "$DEPLOYED_SHA" "$GITHUB_SHA"
+              printf '%s' "$DEPLOYED_SHA" > /tmp/deployed-source-sha.txt
+              printf '%s' "$DEPLOYED_RUN" > /tmp/deployed-run-id.txt
+              printf '%s' "$DEPLOYED_URL" > /tmp/deployed-run-url.txt
+              exit 0
             fi
             sleep 10
           done
-          echo 'HOLD — no compatible deployed H38 source could be verified.' >&2
+          echo 'HOLD — no successful compatible Deploy Unified Owner Portal run could be verified.' >&2
           exit 1
 
       - uses: actions/setup-node@v4
@@ -119,6 +140,7 @@ jobs:
 
           - Release commit: ${GITHUB_SHA}
           - Deployed source: $(cat /tmp/deployed-source-sha.txt)
+          - Deployment run: $(cat /tmp/deployed-run-url.txt)
           - Business Office source of truth: PASS
           - Demo project: ${PROJECT_ID}
           - Persistent project records: 1
@@ -147,6 +169,7 @@ jobs:
 
           - Release commit: ${GITHUB_SHA}
           - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
+          - Compatible deployment run: $(cat /tmp/deployed-run-url.txt 2>/dev/null || echo unknown)
           - Deployed H38 application remains preserved
           - Office demo generation or verification did not complete
           - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
@@ -163,5 +186,7 @@ jobs:
           path: |
             artifacts/office-public-uqb-demo/
             /tmp/deployed-source-sha.txt
+            /tmp/deployed-run-id.txt
+            /tmp/deployed-run-url.txt
           if-no-files-found: warn
           retention-days: 90
