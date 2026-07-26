@@ -13,6 +13,8 @@ on:
       - 'index.html'
       - 'sample-library-now.html'
       - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
       - 'quote-builder.html'
       - 'solutions.html'
       - 'pricing.html'
@@ -35,6 +37,8 @@ on:
       - 'index.html'
       - 'sample-library-now.html'
       - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
       - 'quote-builder.html'
       - 'solutions.html'
       - 'pricing.html'
@@ -118,18 +122,30 @@ jobs:
           fetch_until_ready 'quote-builder.html' 'Simple when the quote is simple.' /tmp/quote-builder.html
           grep -Fq 'universal-quote-builder.html' /tmp/quote-builder.html
 
-          fetch_until_ready 'universal-quote-builder.html' 'One project inside Office.' /tmp/universal.html
-          grep -Fq 'Office-generated public demonstration' /tmp/universal.html
-          grep -Fq '14</strong>complete phase quotes' /tmp/universal.html
-          grep -Fq '10</strong>attached CAD sheets' /tmp/universal.html
-          grep -Fq '?publicUqbDemo=1' /tmp/universal.html
-          ! grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/universal.html
-          ! grep -Fq '$342,815' /tmp/universal.html
-
           fetch_until_ready 'sample-library-now.html' 'Complete project demonstrations' /tmp/samples.html
           grep -Fq 'Open-ended example library' /tmp/samples.html
-          grep -Fq 'universal-quote-builder.html' /tmp/samples.html
           grep -Fq 'data-owner-link="true"' /tmp/samples.html
+          grep -Fq 'data-project="cabin"' /tmp/samples.html
+          grep -Fq 'id="universal-quote-builder-examples"' /tmp/samples.html
+          grep -Fq 'Universal Quote Builder overview' /tmp/samples.html
+          grep -Fq 'Complete quote examples matched to their CAD drawings' /tmp/samples.html
+          grep -Fq 'View full quote' /tmp/samples.html
+          grep -Fq 'View full-size CAD sheets' /tmp/samples.html
+          grep -Fq 'Print / save complete package' /tmp/samples.html
+          grep -Fq 'Public examples only:' /tmp/samples.html
+          house_line="$(grep -n 'data-project="cabin"' /tmp/samples.html | head -1 | cut -d: -f1)"
+          examples_line="$(grep -n 'id="universal-quote-builder-examples"' /tmp/samples.html | head -1 | cut -d: -f1)"
+          [[ "$house_line" =~ ^[0-9]+$ && "$examples_line" =~ ^[0-9]+$ && "$examples_line" -ge "$house_line" ]]
+          ! grep -Fq 'class="universal-card"' /tmp/samples.html
+          ! grep -Fq 'See What It Produced' /tmp/samples.html
+          ! grep -Fq 'script.google.com' /tmp/samples.html
+          ! grep -Fq '<iframe' /tmp/samples.html
+          ! grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/samples.html
+          ! grep -Fq '$342,815' /tmp/samples.html
+
+          fetch_until_ready 'universal-quote-builder.html' 'sample-library-now.html#universal-quote-builder-examples' /tmp/universal.html
+          fetch_until_ready 'universal-quote-builder-example.html' 'Print / Save PDF' /tmp/universal-viewer.html
+          fetch_until_ready 'assets/js/uqb-public-examples.js' "version: '2026-07-26-static-public-v1'" /tmp/universal-data.js
 
           fetch_until_ready 'solutions.html' 'Five connected capabilities' /tmp/solutions.html
           fetch_until_ready 'start-request.html' 'What result do you need?' /tmp/request.html
@@ -146,4 +162,4 @@ jobs:
             exit 1
           fi
 
-          echo 'Production GitHub Pages smoke check passed for current Office-generated project-first architecture.'
+          echo 'Production GitHub Pages smoke check passed with Universal Quote Builder examples directly beneath the house example.'
