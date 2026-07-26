@@ -33,7 +33,7 @@ absent(universal,'$342,815','obsolete renovation total');
 
 need(catalog,"VERSION:'2026-07-26-universal-v2'",'current UQB catalog version');
 need(catalog,'New-house construction from lot clearing to closeout','ground-up catalog example');
-need(catalog,'H38_UQB_PUBLIC_DEMO','shared Office demo definition');
+need(catalog,'H38_UQB_PUBLIC_DEMO','shared public demo definition');
 absent(catalog,'Whole-House Renovation and Property Improvement','stale house scope');
 
 ['boUniversalPublicDemoStep','boUniversalPublicDemoStatus','boRenderUniversalPublicDemo_','boRenderUniversalPublicDrawing_','boRenderUniversalPublicQuote_'].forEach(fn=>need(server,'function '+fn,'Office demo function '+fn));
@@ -51,9 +51,9 @@ need(server,'H38_BO_SHEETS.DOCUMENTS','Business Office document records');
 need(server,"externalActionsPerformed:false",'no external action proof');
 need(server,"'Customer Visible':'Yes'",'customer visibility control');
 const quoteSpecs=(server.match(/Object\.freeze\(\{n:'\d{2}',key:/g)||[]).length;
-if(quoteSpecs!==14)throw new Error('Expected 14 Office quote specifications; found '+quoteSpecs);
+if(quoteSpecs!==14)throw new Error('Expected 14 public quote specifications; found '+quoteSpecs);
 const drawingSpecs=(server.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length;
-if(drawingSpecs!==10)throw new Error('Expected 10 Office drawing specifications; found '+drawingSpecs);
+if(drawingSpecs!==10)throw new Error('Expected 10 public drawing specifications; found '+drawingSpecs);
 
 need(examples,'H38_UQB_PUBLIC_EXAMPLE_PACKAGES','matched package registry');
 need(examples,'function boRenderUniversalPublicExamples_','public examples renderer');
@@ -63,8 +63,12 @@ need(examples,'View full quote','per-example full quote action');
 need(examples,'View full-size CAD sheets','per-example CAD action');
 need(examples,'Print / save complete package','per-example package action');
 need(examples,'No live customers, private Highway 38 records','public-only explanation');
+need(examples,'fixed public demonstration specification and public CAD assets only','fixed public source explanation');
 need(examples,"@page cad{size:17in 11in landscape",'full-size CAD print page');
 need(examples,"quote['Customer Visible']==='Yes'",'public quote visibility filter');
+need(examples,"'Asset URL':H38_UQB_PUBLIC_DEMO.ASSET_BASE",'public CAD asset source');
+absent(examples,'boUqbPublicDemoRows_','private demonstration-record reader');
+absent(examples,'DriveApp.getFileById','private Drive record reader');
 const packageSpecs=(examples.match(/Object\.freeze\(\{key:'/g)||[]).length;
 if(packageSpecs!==7)throw new Error('Expected 7 matched public example packages; found '+packageSpecs);
 const matchedSheets=[...examples.matchAll(/sheets:\[([^\]]+)\]/g)].flatMap(match=>(match[1].match(/'[^']+'/g)||[]));
@@ -100,4 +104,4 @@ for(const [file,text] of [['client',client]]){
   const blocks=[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   blocks.forEach(block=>{try{new Function(block[1]);}catch(error){throw new Error(file+' JavaScript syntax failed: '+error.message);}});
 }
-console.log(JSON.stringify({status:'PASS',source:'public demonstration records only',quoteSpecs,drawingSpecs,matchedPackages:packageSpecs,matchedSheets:matchedSheets.length,publicRoute:true,resumable:true,professionalCad:true,externalActions:0},null,2));
+console.log(JSON.stringify({status:'PASS',source:'fixed public demonstration specification and public CAD assets only',quoteSpecs,drawingSpecs,matchedPackages:packageSpecs,matchedSheets:matchedSheets.length,privateRecordsRead:false,publicRoute:true,resumableOwnerGeneratorPreserved:true,professionalCad:true,externalActions:0},null,2));
