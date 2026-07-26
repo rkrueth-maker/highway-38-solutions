@@ -57,7 +57,7 @@ need(uploadServer,"CacheService.getUserCache()",'user-isolated upload session');
 need(uploadServer,"sourceType: 'Quote'",'uploaded document attached to quote');
 need(uploadServer,"base64Data.length === session.base64Length",'chunk completeness verification');
 need(uploadServer,"/^Uploaded quote intake/i",'untouched placeholder protection');
-need(uploadServer,"'Send Allowed'",'owner-controlled quote contract reference');
+need(uploadServer,'nothing sent.','no-send proof on AI-applied quote');
 if(/call\(['"](?:approve|prepareCustomerAction|aiSendEmail)/.test(uploadClient))throw new Error('Durable upload client must not approve, send, or release the quote.');
 need(portal,'customer-portal-quote-decisions.js','customer decision client include');
 need(decisions,"rpc('customer_portal_decide_quote'",'customer decision RPC');
