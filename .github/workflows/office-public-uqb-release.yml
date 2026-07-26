@@ -8,6 +8,7 @@ on:
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs'
+      - 'apps-script/business-office/ZZ_BusinessOffice_UniversalQuoteBuilder_OfficeRecords.gs'
       - 'apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
@@ -27,9 +28,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify-public-only-examples:
+  verify-office-backed-examples:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -38,10 +39,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Record public example verification start
+      - name: Record Office-backed verification start
         shell: bash
         run: |
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder public-only example verification started for ${GITHUB_SHA}. This run verifies seven matched quote-and-CAD packages directly from the fixed public demonstration specification and public CAD assets. It does not read or generate private H38 records. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder Office-backed example verification started for ${GITHUB_SHA}. This run verifies the published H38 Business Office project, fourteen phase quotes, fifty-six itemized lines, eighty-four scope sections, ten drawing records, fifteen documents, and seven matched public quote-and-CAD packages. No external action is performed. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Confirm compatible H38 source is deployed
         shell: bash
@@ -91,15 +92,15 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Verify public example source contract
+      - name: Verify Office-backed source contract
         run: |
           node scripts/verify-public-quote-builder-result.js
           node scripts/verify-universal-quote-builder.js
 
-      - name: Verify deployed public-only quote and CAD examples
+      - name: Verify deployed Office-backed quote and CAD examples
         run: bash scripts/generate-office-public-uqb-demo.sh
 
-      - name: Record public-only UQB example PASS
+      - name: Record Office-backed UQB example PASS
         if: success()
         shell: bash
         run: |
@@ -107,20 +108,26 @@ jobs:
           RESULT='artifacts/office-public-uqb-demo/deployment-verification.json'
           test -f "$RESULT"
           PUBLIC_URL="$(node -p "require('./$RESULT').publicUrl")"
+          COUNTS="$(node -p "JSON.stringify(require('./$RESULT').counts)")"
           REPORT="$RUNNER_TEMP/office-public-uqb-pass.md"
           cat > "$REPORT" <<EOF
-          ## PASS — deployed public-only Universal Quote Builder examples
+          ## PASS — deployed Office-backed Universal Quote Builder examples
 
           - Release commit: ${GITHUB_SHA}
           - Deployed source: $(cat /tmp/deployed-source-sha.txt)
           - Deployment run: $(cat /tmp/deployed-run-url.txt)
-          - Public example packages: 7
-          - Matched CAD sheets: 10
+          - Source of truth: Highway 38 Business Office Core Data
+          - Published project records: 1
+          - Complete phase quotes: 14
+          - Itemized quote lines: 56
+          - Scope sections: 84
+          - Drawing records: 10
+          - Document records: 15
+          - Matched public quote-and-CAD packages: 7
+          - Verified counts: ${COUNTS}
           - View full quote: verified
           - View full-size CAD sheets: verified
           - Print / save complete package: verified
-          - Source: fixed H38 public demonstration specification and public CAD assets
-          - Private H38 records read: none
           - Private fields exposed: none
           - External actions performed: none
           - Existing Apps Script project and deployment IDs: preserved
@@ -128,29 +135,28 @@ jobs:
           - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples PASS" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office-backed UQB quote and CAD examples PASS" --body-file "$REPORT"
 
-      - name: Record public-only UQB example HOLD
+      - name: Record Office-backed UQB example HOLD
         if: failure()
         shell: bash
         run: |
           REPORT="$RUNNER_TEMP/office-public-uqb-hold.md"
           cat > "$REPORT" <<EOF
-          ## HOLD — deployed public-only Universal Quote Builder examples
+          ## HOLD — deployed Office-backed Universal Quote Builder examples
 
           - Release commit: ${GITHUB_SHA}
           - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
           - Compatible deployment run: $(cat /tmp/deployed-run-url.txt 2>/dev/null || echo unknown)
-          - Deployed H38 application remains preserved
-          - Public example verification did not complete
-          - No private H38 record generation or read was attempted
+          - Deployed H38 application and existing Office records remain preserved
+          - Office record-count or public-package verification did not complete
           - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
           - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples HOLD" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office-backed UQB quote and CAD examples HOLD" --body-file "$REPORT"
 
-      - name: Upload exact public verification evidence
+      - name: Upload exact Office-backed verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
