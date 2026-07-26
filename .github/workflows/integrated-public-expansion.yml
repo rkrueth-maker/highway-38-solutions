@@ -6,6 +6,9 @@ on:
     paths:
       - 'index.html'
       - 'sample-library-now.html'
+      - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
       - 'solutions.html'
       - 'pricing.html'
       - 'pricing-data.js'
@@ -64,16 +67,30 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Verify current public architecture
-        run: |
-          node scripts/verify-change-governance.js
-          node scripts/verify-contact-options.js
-          node scripts/verify-one-shot-ux.js
-          node scripts/verify-public-expansion.js
-          node scripts/verify-commercial-system.js
-          node scripts/verify-final-pricing-and-cabin.js
-          node scripts/verify-public-website-architecture.js
-          node scripts/verify-customer-portal-supabase.js
+      - name: Verify change governance
+        run: node scripts/verify-change-governance.js 2>&1 | tee /tmp/verify-change-governance.log
+      - name: Verify contact options
+        run: node scripts/verify-contact-options.js 2>&1 | tee /tmp/verify-contact-options.log
+      - name: Verify one-shot UX
+        run: node scripts/verify-one-shot-ux.js 2>&1 | tee /tmp/verify-one-shot-ux.log
+      - name: Verify public expansion
+        run: node scripts/verify-public-expansion.js 2>&1 | tee /tmp/verify-public-expansion.log
+      - name: Verify commercial system
+        run: node scripts/verify-commercial-system.js 2>&1 | tee /tmp/verify-commercial-system.log
+      - name: Verify final pricing and cabin
+        run: node scripts/verify-final-pricing-and-cabin.js 2>&1 | tee /tmp/verify-final-pricing-and-cabin.log
+      - name: Verify public website architecture
+        run: node scripts/verify-public-website-architecture.js 2>&1 | tee /tmp/verify-public-website-architecture.log
+      - name: Verify customer portal Supabase
+        run: node scripts/verify-customer-portal-supabase.js 2>&1 | tee /tmp/verify-customer-portal-supabase.log
+      - name: Upload structural diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-structural-diagnostics-${{ github.run_id }}
+          path: /tmp/verify-*.log
+          if-no-files-found: warn
+          retention-days: 30
 
   browser-regression:
     needs: structural-regression
