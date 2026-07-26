@@ -2,9 +2,9 @@
  * Universal Quote Builder — matched public quote and CAD examples.
  *
  * The seven public packages are sanitized views of the published demonstration
- * project in the existing H38 Business Office. Only customer-visible project,
- * subquote, quote-item, scope, and drawing fields are rendered. Internal cost,
- * margin, vendors, users, approvals, logs, and unrelated customers stay private.
+ * project in the existing H38 Business Office. No live customers, private Highway 38 records
+ * outside the published demonstration, internal cost, margin, vendors, users,
+ * approvals, logs, or unrelated customers are returned by these routes.
  */
 var H38_UQB_PUBLIC_EXAMPLE_PACKAGES=Object.freeze([
   Object.freeze({key:'preconstruction',sequence:1,title:'Preconstruction & General Notes',summary:'Planning, survey, permit, coordination, and project-control quote matched to the general notes and drawing index.',sheets:['G-001']}),
@@ -54,6 +54,7 @@ function boUqbPublicExampleData_(key){
     'Deposit':terms.deposit,
     '_Package Key':packageSpec.key
   };
+  boAssert_(quote['Customer Visible']==='Yes','Only customer-visible Office demonstration quotes may be published.');
   var items=all.items.filter(function(row){
     return row['Subquote ID']===sourceQuote['Subquote ID']&&row['Customer Visible']==='Yes'&&row.Status==='Demonstration'&&row['Is Voided']!=='Yes';
   }).sort(function(a,b){return Number(a.Sequence)-Number(b.Sequence);}).map(function(row){return{
