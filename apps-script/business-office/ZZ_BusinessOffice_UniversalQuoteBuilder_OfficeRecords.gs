@@ -62,6 +62,20 @@ boUqbPublicDemoActive_=function(){
   return project;
 };
 
+function boRenderUniversalPublicOfficeStatus_(){
+  var status=boUqbPublicDemoStatus_(H38_UQB_OFFICE_PUBLIC.RUN_KEY);
+  var output={
+    status:status.status,
+    complete:status.complete,
+    sourceOfTruth:status.sourceOfTruth,
+    counts:status.counts,
+    expected:status.expected,
+    publicFieldsOnly:true,
+    externalActionsPerformed:false
+  };
+  return ContentService.createTextOutput(JSON.stringify(output)).setMimeType(ContentService.MimeType.JSON);
+}
+
 boRenderUniversalPublicDrawing_=function(drawingId){
   var project=boUqbPublicDemoActive_();
   var drawing=boUniversalReadRows_('DRAWINGS').find(function(row){
