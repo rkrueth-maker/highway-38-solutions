@@ -1,0 +1,59 @@
+<style>
+.uqb-example-hero{background:linear-gradient(135deg,#173a5e,#0c2945);color:#fff;border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.uqb-example-hero h2{margin:4px 0;font-size:clamp(1.8rem,4vw,2.6rem)}.uqb-example-hero p{max-width:820px;color:#dbe8f3;line-height:1.55}
+.uqb-workflow{display:grid;grid-template-columns:repeat(9,minmax(88px,1fr));gap:7px;margin-top:14px}.uqb-stage{position:relative;background:#fff;border:1px solid var(--border);border-radius:11px;padding:11px 9px;text-align:center}.uqb-stage b{display:block;color:var(--orange);font-size:12px}.uqb-stage strong{display:block;color:var(--navy);margin-top:3px}.uqb-stage small{display:block;color:var(--muted);margin-top:4px;line-height:1.3}
+.uqb-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.uqb-example-card{border:1px solid var(--border);border-radius:14px;background:#fff;overflow:hidden;box-shadow:var(--shadow)}.uqb-example-card.office{border:2px solid var(--blue)}.uqb-example-body{padding:16px}.uqb-example-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.uqb-example-head h3{margin:3px 0}.uqb-example-price{font-size:1.35rem;font-weight:900;color:var(--navy);white-space:nowrap}.uqb-example-mode{display:inline-block;border-radius:999px;padding:5px 9px;background:#eaf2fa;color:var(--navy);font-size:11px;font-weight:900}.uqb-example-card.office .uqb-example-mode{background:var(--good);color:#15552e}.uqb-capabilities,.uqb-stage-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}.uqb-capabilities span,.uqb-stage-chips span{border:1px solid var(--border);border-radius:999px;padding:5px 8px;background:#f8fafc;font-size:11px;font-weight:800}.uqb-stage-chips span{background:#eef4f0;color:#173a2a}.uqb-example-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.uqb-example-actions a,.uqb-example-actions button{min-height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;padding:9px 11px;text-decoration:none;font-weight:900}.uqb-example-actions a{background:var(--navy);color:#fff}.uqb-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px}.uqb-summary-grid .metric strong{font-size:24px}
+@media(max-width:1100px){.uqb-workflow{grid-template-columns:repeat(3,1fr)}}@media(max-width:800px){.uqb-example-grid,.uqb-summary-grid{grid-template-columns:1fr}}@media(max-width:560px){.uqb-workflow{grid-template-columns:1fr 1fr}.uqb-example-head{display:block}.uqb-example-price{margin-top:7px}}
+</style>
+<script>
+(function(){
+'use strict';
+var previousOpen=window.qbOpen,cache=null;
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v)||0);}
+function direct(name,args){return new Promise(function(resolve,reject){var runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[]);});}
+function installNav(){
+  var nav=document.getElementById('qbNav');if(!nav)return;
+  var button=document.getElementById('qbExamplesNav');
+  if(!button){
+    button=document.createElement('button');button.id='qbExamplesNav';button.type='button';button.textContent='Examples & Workflow';button.onclick=function(){window.qbOpen('examples');};
+    var universal=document.getElementById('qbUniversalNav'),full=nav.querySelector('.full-system');nav.insertBefore(button,universal||full||null);
+  }
+  button.classList.toggle('active',window.H38_QB_EXAMPLES_ACTIVE===true);
+}
+function stageMap(data){var map={};(data.businessOfficeWorkflow||[]).forEach(function(stage){map[stage.key]=stage;});return map;}
+function workflowMarkup(data){
+  return (data.businessOfficeWorkflow||[]).map(function(stage){return '<article class="uqb-stage"><b>'+String(stage.sequence).padStart(2,'0')+'</b><strong>'+esc(stage.name)+'</strong><small>'+esc(stage.description)+'</small></article>';}).join('');
+}
+function exampleMarkup(example,data,stages){
+  var url=String(data.publicExamplesBaseUrl||'')+String(example.publicPath||''),office=example.officeMode==='Published Office demonstration';
+  var chips=(example.workflow||[]).map(function(key){return stages[key]?'<span>'+esc(stages[key].name)+'</span>':'';}).join('');
+  var capabilities=(example.capabilities||[]).map(function(item){return '<span>'+esc(item)+'</span>';}).join('');
+  var officeAction=office?'<button class="secondary" type="button" onclick="qbOpen(\'universal\')">Open Office House Records</button>':'';
+  return '<article class="uqb-example-card'+(office?' office':'')+'"><div class="uqb-example-body"><div class="uqb-example-head"><div><span class="uqb-example-mode">'+esc(example.officeMode)+'</span><small style="display:block;margin-top:8px;color:var(--muted)">'+esc(example.business)+' · Level '+esc(example.level)+'</small><h3>'+esc(example.title)+'</h3></div><div class="uqb-example-price">'+money(example.amount)+'</div></div><p>'+esc(example.summary)+'</p><div class="uqb-capabilities">'+capabilities+'</div><div class="uqb-stage-chips">'+chips+'</div><div class="uqb-example-actions"><a href="'+esc(url)+'" target="_blank" rel="noopener">Open Full Example</a>'+officeAction+'</div></div></article>';
+}
+function render(data){
+  cache=data;window.H38_QB_EXAMPLES_ACTIVE=true;installNav();
+  document.querySelectorAll('#qbNav button').forEach(function(button){button.classList.toggle('active',button.id==='qbExamplesNav');});
+  var examples=data.publicCapabilityExamples||[],workflow=data.businessOfficeWorkflow||[],stages=stageMap(data),officeCount=examples.filter(function(example){return example.officeMode==='Published Office demonstration';}).length;
+  document.getElementById('qbContent').innerHTML='<div class="shell">'+
+    '<section class="uqb-example-hero"><small>H38 BUSINESS OFFICE CAPABILITY SHOWCASE</small><h2>Show the complete workflow—not just a finished quote.</h2><p>All eight public Quote Builder examples are now visible inside the private H38 Office. Use this view to explain how one connected Business Office carries a request through measurements, planning, quoting, approvals, job guidance, execution, proof, and closeout.</p><div class="actions"><a class="qb-office-return" style="background:#fff;color:var(--navy)" href="'+esc(String(data.publicExamplesBaseUrl||'')+'quote-builder.html#examples')+'" target="_blank" rel="noopener">Open Public Quote Builder Library</a><button class="secondary" onclick="qbOpen(\'universal\')">Open Universal Builder</button></div></section>'+
+    '<section class="panel"><div class="toolbar" style="justify-content:space-between"><div><h3>Business Office workflow</h3><p>The same controlled stages support a small property-service quote, a technical system, or a whole-building project.</p></div><strong>'+workflow.length+' connected stages</strong></div><div class="uqb-workflow">'+workflowMarkup(data)+'</div></section>'+
+    '<section class="panel"><div class="uqb-summary-grid"><div class="metric"><span>Public capability examples</span><strong>'+examples.length+'</strong></div><div class="metric"><span>Workflow stages</span><strong>'+workflow.length+'</strong></div><div class="metric"><span>Quote depth levels shown</span><strong>'+new Set(examples.map(function(item){return item.level;})).size+'</strong></div><div class="metric"><span>Full Office-generated projects</span><strong>'+officeCount+'</strong></div></div><div class="notice" style="background:var(--warn)"><strong>Clear demonstration boundary.</strong> The seven smaller examples are presentation cards linked to their public finished packages. The cabin is the full persistent H38 Business Office demonstration with project, quote, line, scope, drawing, document, proof, and closeout records. Nothing is sent or authorized automatically.</div></section>'+
+    '<section class="panel"><div class="toolbar" style="justify-content:space-between"><div><h3>All Quote Builder examples</h3><p>Use the cards to show what the system can capture, calculate, coordinate, document, and prove.</p></div><strong>'+examples.length+' examples</strong></div><div class="uqb-example-grid">'+examples.map(function(example){return exampleMarkup(example,data,stages);}).join('')+'</div></section>'+
+    '</div>';
+}
+window.qbOpen=async function(view){
+  if(view==='examples'){
+    window.H38_QB_EXAMPLES_ACTIVE=true;installNav();
+    document.getElementById('qbContent').innerHTML='<div class="panel loading-card">Loading examples and Business Office workflow…</div>';
+    try{render(cache||await direct('boUniversalQuoteBuilderCatalog',[]));}
+    catch(error){document.getElementById('qbContent').innerHTML='<div class="panel notice bad"><strong>Examples & Workflow stopped safely.</strong><br>'+esc(error&&error.message||String(error))+'</div>';}
+    return;
+  }
+  window.H38_QB_EXAMPLES_ACTIVE=false;
+  var result=await previousOpen(view);installNav();return result;
+};
+setInterval(installNav,700);installNav();
+})();
+</script>
