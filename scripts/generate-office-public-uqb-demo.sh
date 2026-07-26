@@ -52,7 +52,9 @@ NODE
 run_function() {
   local function_name="$1" params="$2" output="$3"
   set +e
-  (cd "$WORK" && clasp run-function "$function_name" --params "$params" --nondev --json) >"$output" 2>&1
+  # Run the pulled authorized project in development mode. The H38 production
+  # web deployment is not the API-executable deployment selected by --nondev.
+  (cd "$WORK" && clasp run-function "$function_name" --params "$params" --json) >"$output" 2>&1
   local status=$?
   set -e
   cat "$output"
@@ -67,8 +69,8 @@ BUSINESS_DEPLOYMENT_ID="$(read_config appsScript.businessOfficeDeploymentId)"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
 
 # Pull the actual authorized project before using the Execution API. A bare
-# .clasp.json is not sufficient because clasp also needs the deployed manifest
-# and executionApi configuration.
+# .clasp.json is not sufficient because clasp also needs the project manifest,
+# scopes, and executionApi configuration.
 set +e
 (cd "$WORK" && clasp pull) >"$EVIDENCE/project-pull.txt" 2>&1
 PULL_STATUS=$?
