@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/fix-new-house-demo-scope.js'
+      - 'scripts/repair-new-house-cad-output.js'
       - 'docs/quote-builder/NEW_HOUSE_DEMO_SCOPE_LOCK.md'
       - '.github/workflows/apply-new-house-scope-fix.yml'
   workflow_dispatch:
@@ -24,7 +25,9 @@ jobs:
         with:
           node-version: 24
       - name: Apply locked ground-up scope
-        run: node scripts/fix-new-house-demo-scope.js
+        run: |
+          node scripts/fix-new-house-demo-scope.js
+          node scripts/repair-new-house-cad-output.js
       - name: Commit corrected package
         run: |
           git config user.name github-actions[bot]
@@ -40,10 +43,14 @@ jobs:
       - name: Validate scope and drawings
         run: |
           grep -q 'New-House Construction<br>From Lot Clearing to Closeout' whole-house-quote-package.html
+          grep -q '$602,050' whole-house-quote-package.html
           grep -q "title:'Lot Clearing, Grubbing & Erosion Control'" whole-house-quote-package.html
           ! grep -q 'Whole-House Renovation' whole-house-quote-package.html
           ! grep -q "title:'Selective Demolition'" whole-house-quote-package.html
-          for sheet in M-101 P-101 E-101; do grep -q 'architectural-underlay' "assets/quote-builder/whole-house-cad/${sheet}.svg"; done
+          ! grep -R -q 'Whole-House Renovation' assets/quote-builder/whole-house-cad
+          for sheet in M-101 P-101 E-101; do
+            test "$(grep -o 'id=\"architectural-underlay\"' "assets/quote-builder/whole-house-cad/${sheet}.svg" | wc -l)" -eq 1
+          done
           grep -q 'APPROVED CLEARING / DISTURBANCE LIMIT' assets/quote-builder/whole-house-cad/C-S-L-101.svg
           sudo apt-get update -qq
           sudo apt-get install -y -qq libxml2-utils librsvg2-bin
