@@ -40,7 +40,9 @@ assert('deployment no longer contains inline routing patch',!/python3 - .*Portal
 assert('deployment verifies one remote entry point',/Remote project must contain one unified doGet/.test(deploy));
 assert('deployment verifies live auth failures are absent',/boNormalizeText_ is not defined/.test(deploy)&&/boGetCurrentUser_ is not defined/.test(deploy));
 assert('Highway 38 pack enables Quote Builder',/quoteBuilder:true/.test(pack)&&/quotes:true/.test(pack));
-assert('registry exposes one Business Office route',/routes:\{ownerPortal:'',businessOffice:'',quoteBuilder:'\?quoteBuilder=1'\}/.test(shell));
+assert('registry exposes one Business Office route and one sanitized demo route',/routes:\{ownerPortal:'',businessOffice:'',quoteBuilder:'\?quoteBuilder=1',publicUqbDemo:'\?publicUqbDemo=1'\}/.test(shell));
+assert('public UQB route is evaluated before private authentication',shell.indexOf('var publicResult=h38UnifiedShellPublicUqbRoute_(event);')<shell.indexOf('H38_PORTAL_AUTH_BRIDGE.getCurrentUser();'));
+assert('public UQB route is narrowly limited to demo drawing and quote renderers',/if\(demo==='1'\)/.test(shell)&&/if\(drawing\)/.test(shell)&&/if\(quote\)/.test(shell));
 
 function makeRuntime(quoteBuilderEnabled){
   const tables={
@@ -60,6 +62,7 @@ function makeRuntime(quoteBuilderEnabled){
     ScriptApp:{getService:()=>({getUrl:()=> 'https://script.google.com/macros/s/TEST/exec'})},
     H38_PORTAL_NEXT:{APP_NAME:'Test Business System'},H38_APP_UX_VERSION_:'test-unified',H38_PORTAL_ARCHITECTURE_VERSION:'single-contract-office-registry-v4',
     boRenderWebApp_:()=>({kind:'business-office'}),boRenderQuoteBuilderApp_:()=>({kind:'quote-builder'}),
+    boRenderUniversalPublicDemo_:()=>({kind:'public-uqb-demo'}),boRenderUniversalPublicDrawing_:id=>({kind:'public-uqb-drawing',id}),boRenderUniversalPublicQuote_:id=>({kind:'public-uqb-quote',id}),
     boModuleEnabled_:key=>!Object.prototype.hasOwnProperty.call(modules,key)||modules[key]!==false,
     boPackValue_:(name,fallback)=>name==='package.id'?'complete-business-system':name==='package.name'?'Complete Business System':name==='packId'?'test-pack':fallback,
     boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'Assertion failed.');},
@@ -77,6 +80,9 @@ function quoteNavigationItem(bootstrap){const customers=(bootstrap.groups||[]).f
 
 try{
   const enabled=makeRuntime(true);
+  assert('runtime routes public demo without private authentication',enabled.doGet({parameter:{publicUqbDemo:'1'}}).kind==='public-uqb-demo');
+  assert('runtime routes public drawing through sanitized renderer',enabled.doGet({parameter:{publicUqbDrawing:'DRAW-1'}}).kind==='public-uqb-drawing');
+  assert('runtime routes public quote through sanitized renderer',enabled.doGet({parameter:{publicUqbQuote:'SUB-1'}}).kind==='public-uqb-quote');
   assert('runtime routes default request to unified application',enabled.doGet({parameter:{}}).kind==='Portal_Index');
   assert('runtime routes legacy Business Office request to unified application',enabled.doGet({parameter:{app:'business-office'}}).kind==='Portal_Index');
   assert('runtime routes quoteBuilder=1 to Quote Builder',enabled.doGet({parameter:{app:'business-office',quoteBuilder:'1'}}).kind==='quote-builder');
