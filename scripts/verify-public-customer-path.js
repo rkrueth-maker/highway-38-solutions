@@ -59,7 +59,7 @@ check('Quote Builder owns the current public example experience',quoteBuilder.in
 check('Quote Builder loads project cards and complete quote/CAD/package actions',quoteBuilder.includes("fetch('sample-library-now.html")&&quoteBuilder.includes("href(item.key,'quote')")&&quoteBuilder.includes("href(item.key,'cad')")&&quoteBuilder.includes("href(item.key,'package')"));
 check('examples remove fixed count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(examples));
 check('legacy Universal Quote Builder route redirects to the maintained example library',universal.includes('sample-library-now.html#universal-quote-builder-examples')&&universal.includes('location.replace'));
-check('public quote and CAD data remains available',examplesData.includes('window.H38_UQB_PUBLIC_EXAMPLES')&&examplesData.includes('packages:')&&examplesData.includes('drawings:'));
+check('public quote and CAD data remains available',examplesData.includes('global.H38_UQB_PUBLIC_EXAMPLES')&&examplesData.includes('const packages = [')&&examplesData.includes('const drawings = {'));
 check('universal demonstration removes stale renovation scope',!universal.includes('Whole-House Renovation and Property Improvement')&&!universal.includes('$342,815'));
 check('solutions is capability-first',/Automation|CNC|Quote Builder|Business Office/.test(solutions));
 check('pricing is project-first',/project/i.test(pricing)&&pricing.includes('start-request.html'));
