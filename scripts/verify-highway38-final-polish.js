@@ -13,6 +13,8 @@ const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const samples=read('sample-library-now.html');
 const universal=read('universal-quote-builder.html');
+const publicExamples=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs');
+const publicDemo=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs');
 const cabin=read('cabin-project-complete.html');
 const request=read('start-request.html');
 const requestClient=read('request-flow.js');
@@ -52,8 +54,8 @@ check('public Examples removes fixed example-count wording',!/Eight complete|Exp
 check('public Examples preserves representative proof classification',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
 check('public Examples uses six direct controlled deck irrigation kitchen images',['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
 check('public Examples includes complete cabin walkthrough',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
-check('Universal Quote Builder demonstrates Office-generated simple through integrated quoting',universal.includes('One project inside Office.')&&universal.includes('Fourteen phase quotes')&&universal.includes('New-house construction from lot clearing through closeout')&&universal.includes('?publicUqbDemo=1'));
-check('Universal Quote Builder preserves CAD, review, and external-action controls',universal.includes('Ten drawing records and files')&&universal.includes('applicable licensed-professional review')&&universal.includes('<strong>0</strong>automatic external actions'));
+check('Universal Quote Builder presents matched public quote and CAD packages',universal.includes('Universal Quote Builder overview')&&universal.includes('Complete quote examples matched to their CAD drawings')&&universal.includes('?publicUqbDemo=1')&&(publicExamples.match(/Object\.freeze\(\{key:'/g)||[]).length===7);
+check('Universal Quote Builder preserves CAD review public-only and external-action controls',universal.includes('View full quote')&&universal.includes('View full-size CAD sheets')&&universal.includes('Print or save the package')&&universal.includes('Public examples only:')&&universal.includes('applicable licensed-professional review')&&publicExamples.includes("quote['Customer Visible']==='Yes'")&&publicDemo.includes('externalActionsPerformed:false'));
 check('cabin walkthrough opens all 21 detailed quotes',cabin.includes('Open All 21 Quotes')&&(cabin.match(/\['\d{2}-/g)||[]).length===21&&cabin.includes('Business Office system coverage'));
 
 check('request flow uses secure direct submission',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
@@ -86,6 +88,6 @@ check('Business Office uses controlled approved logo',businessConfig.branding.lo
 check('Business Office remains one complete app',businessConfig.package&&businessConfig.package.singleApp===true);
 check('deployment updates existing IDs in place',deployment.includes('clasp update-deployment "$OWNER_DEPLOYMENT_ID"')&&deployment.includes('clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID"')&&!/clasp\s+(?:create-script|create-deployment)\b/.test(deployment));
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-universal-quote-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-matched-public-quote-cad-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,matchedPublicPackages:7,passes,failures};
 const outputDir=path.join(root,'artifacts','final-polish');fs.mkdirSync(outputDir,{recursive:true});fs.writeFileSync(path.join(outputDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);
