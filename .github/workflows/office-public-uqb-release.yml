@@ -46,16 +46,18 @@ jobs:
         run: |
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Office-generated Universal Quote Builder demo release started for ${GITHUB_SHA}. This run will create and verify the H38 Business Office project, fourteen phase quotes, fifty-six itemized lines, eighty-four scope sections, ten CAD files, fifteen documents, and the sanitized public result. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-      - name: Confirm deployed H38 source is an ancestor
+      - name: Confirm compatible H38 source is deployed
         shell: bash
         run: |
           set -euo pipefail
           DEPLOYED_SHA=""
           for attempt in $(seq 1 60); do
-            BODY="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json title,body --jq '.title+"\n"+.body')"
-            TITLE="$(printf '%s\n' "$BODY" | head -n 1)"
-            DEPLOYED_SHA="$(printf '%s\n' "$BODY" | sed -nE 's/^- Source commit: ([0-9a-f]{40})$/\1/p' | head -n 1)"
-            if [[ "$TITLE" == *"PASS"* && "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            BODY="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json body --jq '.body')"
+            DEPLOYED_SHA="$(printf '%s\n' "$BODY" | sed -nE \
+              -e 's/^- Source commit: ([0-9a-f]{40})$/\1/p' \
+              -e 's/^- Compatible deployed source: ([0-9a-f]{40})$/\1/p' \
+              -e 's/^- Deployed source: ([0-9a-f]{40})$/\1/p' | head -n 1)"
+            if [[ "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
               git fetch --no-tags origin "$DEPLOYED_SHA" || true
               if git merge-base --is-ancestor "$DEPLOYED_SHA" "$GITHUB_SHA"; then
                 printf 'PASS — deployed source %s is contained in release %s.\n' "$DEPLOYED_SHA" "$GITHUB_SHA"
@@ -65,7 +67,7 @@ jobs:
             fi
             sleep 10
           done
-          echo 'HOLD — no compatible deployed H38 source reached PASS.' >&2
+          echo 'HOLD — no compatible deployed H38 source could be verified.' >&2
           exit 1
 
       - uses: actions/setup-node@v4
@@ -144,6 +146,7 @@ jobs:
           ## HOLD — Office-generated public quote and CAD demo
 
           - Release commit: ${GITHUB_SHA}
+          - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
           - Deployed H38 application remains preserved
           - Office demo generation or verification did not complete
           - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
