@@ -26,10 +26,12 @@ check_file_contains sample-library-now.html 'Open-ended example library' 'Open-e
 check_file_contains sample-library-now.html 'universal-quote-builder.html' 'Universal Quote Builder example route'
 check_file_contains sample-library-now.html 'Representative demonstrations.' 'Project Examples disclosure'
 check_file_contains sample-library-now.html 'data-samples="all"' 'Public examples compatibility marker'
-check_file_contains universal-quote-builder.html 'One project inside Office.' 'Office-first Universal Quote Builder promise'
-check_file_contains universal-quote-builder.html 'Office-generated public demonstration' 'Office-generated result source'
-check_file_contains universal-quote-builder.html '14</strong>complete phase quotes' 'Fourteen complete phase quotes'
-check_file_contains universal-quote-builder.html '10</strong>attached CAD sheets' 'Ten attached CAD sheets'
+check_file_contains universal-quote-builder.html 'Universal Quote Builder overview' 'Universal Quote Builder overview'
+check_file_contains universal-quote-builder.html 'Complete quote examples matched to their CAD drawings' 'Matched quote and CAD examples'
+check_file_contains universal-quote-builder.html 'View full quote' 'Full quote action'
+check_file_contains universal-quote-builder.html 'View full-size CAD sheets' 'Full-size CAD action'
+check_file_contains universal-quote-builder.html 'Print or save the package' 'Complete package action'
+check_file_contains universal-quote-builder.html 'Public examples only:' 'Public-only record boundary'
 check_file_contains universal-quote-builder.html '?publicUqbDemo=1' 'Sanitized Business Office result route'
 check_file_contains quote-builder.html 'universal-quote-builder.html' 'Quote Builder universal demonstration route'
 check_file_contains start-request.html 'What result do you need?' 'Request outcome prompt'
@@ -39,6 +41,10 @@ check_file_contains portal.html 'Opening Highway 38 Business Office' 'Unified Ow
 check_file_contains assets/js/h38-site-v2.js "['Contact','contact.html']" 'Canonical contact route'
 check_file_contains assets/js/h38-site-v2.js "['Owner Access','portal.html']" 'Canonical Owner route'
 
+if grep -Fq 'What Office creates' universal-quote-builder.html || grep -Fq 'What Quote Builder produced' universal-quote-builder.html; then
+  echo 'FAIL — tangent result-board language remains on Universal Quote Builder demonstration.' >&2
+  exit 1
+fi
 if grep -Fq 'Whole-House Renovation and Property Improvement' universal-quote-builder.html; then
   echo 'FAIL — stale renovation scope remains on Universal Quote Builder demonstration.' >&2
   exit 1
@@ -60,4 +66,4 @@ if [[ -n "$claim_matches" ]]; then
   exit 1
 fi
 echo 'PASS — prohibited CNC claim absent from public HTML'
-echo 'Current Office-generated project-first public source verification passed.'
+echo 'Current matched public quote-and-CAD source verification passed.'
