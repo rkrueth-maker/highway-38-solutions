@@ -18,6 +18,7 @@ const portalManifest=read('apps-script/core-engine/owner-portal-next/Portal_Unif
 const builder=read('scripts/build-unified-apps-script-shell.js');
 const deploy=read('scripts/deploy-unified-owner-portal-web.sh');
 const pack=read('business-packs/highway38/apps-script/BusinessOffice_Pack.gs');
+const doGetBlock=(shell.match(/function doGet\(event\)\{([\s\S]*?)\n\}/)||[])[1]||'';
 
 assert('checked-in shell owns combined doGet',/function doGet\(event\)/.test(shell));
 assert('shell owns self-contained authentication',/var H38_PORTAL_AUTH_BRIDGE = \(function\(\)\{/.test(shell));
@@ -41,7 +42,7 @@ assert('deployment verifies one remote entry point',/Remote project must contain
 assert('deployment verifies live auth failures are absent',/boNormalizeText_ is not defined/.test(deploy)&&/boGetCurrentUser_ is not defined/.test(deploy));
 assert('Highway 38 pack enables Quote Builder',/quoteBuilder:true/.test(pack)&&/quotes:true/.test(pack));
 assert('registry exposes one Business Office route and one sanitized demo route',/routes:\{ownerPortal:'',businessOffice:'',quoteBuilder:'\?quoteBuilder=1',publicUqbDemo:'\?publicUqbDemo=1'\}/.test(shell));
-assert('public UQB route is evaluated before private authentication',shell.indexOf('var publicResult=h38UnifiedShellPublicUqbRoute_(event);')<shell.indexOf('H38_PORTAL_AUTH_BRIDGE.getCurrentUser();'));
+assert('public UQB route is evaluated before private authentication',doGetBlock.indexOf('var publicResult=h38UnifiedShellPublicUqbRoute_(event);')>=0&&doGetBlock.indexOf('var publicResult=h38UnifiedShellPublicUqbRoute_(event);')<doGetBlock.indexOf('H38_PORTAL_AUTH_BRIDGE.getCurrentUser();'));
 assert('public UQB route is narrowly limited to demo drawing and quote renderers',/if\(demo==='1'\)/.test(shell)&&/if\(drawing\)/.test(shell)&&/if\(quote\)/.test(shell));
 
 function makeRuntime(quoteBuilderEnabled){
@@ -62,7 +63,7 @@ function makeRuntime(quoteBuilderEnabled){
     ScriptApp:{getService:()=>({getUrl:()=> 'https://script.google.com/macros/s/TEST/exec'})},
     H38_PORTAL_NEXT:{APP_NAME:'Test Business System'},H38_APP_UX_VERSION_:'test-unified',H38_PORTAL_ARCHITECTURE_VERSION:'single-contract-office-registry-v4',
     boRenderWebApp_:()=>({kind:'business-office'}),boRenderQuoteBuilderApp_:()=>({kind:'quote-builder'}),
-    boRenderUniversalPublicDemo_:()=>({kind:'public-uqb-demo'}),boRenderUniversalPublicDrawing_:id=>({kind:'public-uqb-drawing',id}),boRenderUniversalPublicQuote_:id=>({kind:'public-uqb-quote',id}),
+    boRenderCustomerProposal_:token=>({kind:'public-proposal',token}),boRenderUniversalPublicDemo_:()=>({kind:'public-uqb-demo'}),boRenderUniversalPublicDrawing_:id=>({kind:'public-uqb-drawing',id}),boRenderUniversalPublicQuote_:id=>({kind:'public-uqb-quote',id}),
     boModuleEnabled_:key=>!Object.prototype.hasOwnProperty.call(modules,key)||modules[key]!==false,
     boPackValue_:(name,fallback)=>name==='package.id'?'complete-business-system':name==='package.name'?'Complete Business System':name==='packId'?'test-pack':fallback,
     boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'Assertion failed.');},
@@ -80,6 +81,7 @@ function quoteNavigationItem(bootstrap){const customers=(bootstrap.groups||[]).f
 
 try{
   const enabled=makeRuntime(true);
+  assert('runtime routes customer proposal without private authentication',enabled.doGet({parameter:{proposal:'TOKEN-1'}}).kind==='public-proposal');
   assert('runtime routes public demo without private authentication',enabled.doGet({parameter:{publicUqbDemo:'1'}}).kind==='public-uqb-demo');
   assert('runtime routes public drawing through sanitized renderer',enabled.doGet({parameter:{publicUqbDrawing:'DRAW-1'}}).kind==='public-uqb-drawing');
   assert('runtime routes public quote through sanitized renderer',enabled.doGet({parameter:{publicUqbQuote:'SUB-1'}}).kind==='public-uqb-quote');
