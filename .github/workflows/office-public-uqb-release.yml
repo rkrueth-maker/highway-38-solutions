@@ -1,0 +1,108 @@
+name: Office Public UQB Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/office-public-uqb-release.yml'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_Web.gs'
+      - 'apps-script/unified-shell/Unified_AppShell.gs'
+      - 'scripts/generate-office-public-uqb-demo.sh'
+      - 'universal-quote-builder.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: office-public-uqb-release
+  cancel-in-progress: false
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm deployed H38 source is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOYED_SHA=""
+          for attempt in $(seq 1 60); do
+            BODY="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json title,body --jq '.title+"\n"+.body')"
+            TITLE="$(printf '%s\n' "$BODY" | head -n 1)"
+            DEPLOYED_SHA="$(printf '%s\n' "$BODY" | sed -nE 's/^- Source commit: ([0-9a-f]{40})$/\1/p' | head -n 1)"
+            if [[ "$TITLE" == *"PASS"* && "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              git fetch --no-tags origin "$DEPLOYED_SHA" || true
+              if git merge-base --is-ancestor "$DEPLOYED_SHA" "$GITHUB_SHA"; then
+                printf 'PASS — deployed source %s is contained in release %s.\n' "$DEPLOYED_SHA" "$GITHUB_SHA"
+                printf '%s' "$DEPLOYED_SHA" > /tmp/deployed-source-sha.txt
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'HOLD — no compatible deployed H38 source reached PASS.' >&2
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify Office demo source contract
+        run: |
+          node scripts/verify-public-quote-builder-result.js
+          node scripts/verify-universal-quote-builder.js
+
+      - name: Install isolated clasp
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/h38-clasp" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
+          echo "$RUNNER_TEMP/h38-clasp/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+
+      - name: Generate Office records files and public result
+        run: bash scripts/generate-office-public-uqb-demo.sh
+
+      - name: Upload exact generation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: office-public-uqb-release-${{ github.run_id }}
+          path: |
+            artifacts/office-public-uqb-demo/
+            /tmp/deployed-source-sha.txt
+          if-no-files-found: error
+          retention-days: 90
