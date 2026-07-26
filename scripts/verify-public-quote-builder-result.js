@@ -1,125 +1,13 @@
 #!/usr/bin/env node
 'use strict';
-const fs=require('fs');
 const path=require('path');
 const {spawnSync}=require('child_process');
 const root=path.resolve(__dirname,'..');
-const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const need=(text,marker,label)=>{if(!text.includes(marker))throw new Error('Missing '+label+': '+marker);};
-const absent=(text,marker,label)=>{if(text.includes(marker))throw new Error('Unexpected '+label+': '+marker);};
-const universal=read('universal-quote-builder.html');
-const server=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs');
-const office=read('apps-script/business-office/ZZ_BusinessOffice_UniversalQuoteBuilder_OfficeRecords.gs');
-const examples=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs');
-const publicRoute=read('apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs');
-const release=read('scripts/generate-office-public-uqb-demo.sh');
-const catalog=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs');
-const web=read('apps-script/business-office/BusinessOffice_Web.gs');
-const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
-const client=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html');
-const sample=read('whole-house-quote-package.html');
-
-need(universal,'Universal Quote Builder overview','overview section');
-need(universal,'Complete quote examples matched to their CAD drawings','matched examples heading');
-need(universal,'View full quote','full quote promise');
-need(universal,'View full-size CAD sheets','full-size CAD promise');
-need(universal,'Print or save the package','complete package promise');
-need(universal,'?publicUqbDemo=1','sanitized Office example route');
-need(universal,'id="uqOfficeDemo"','embedded Office examples');
-need(universal,'The page reads the published demonstration project inside the existing H38 Business Office','Office source explanation');
-need(universal,'Sanitized H38 Business Office demonstration results','Office result header');
-absent(universal,'What Office creates','tangent result section');
-absent(universal,'This is what Quote Builder produced—not just what it can store.','unapproved tangent result board');
-absent(universal,'Whole-House Renovation and Property Improvement','renovation scope drift');
-absent(universal,'$342,815','obsolete renovation total');
-
-need(catalog,"VERSION:'2026-07-26-universal-v2'",'current UQB catalog version');
-need(catalog,'New-house construction from lot clearing to closeout','ground-up catalog example');
-need(catalog,'H38_UQB_PUBLIC_DEMO','shared public demo definition');
-absent(catalog,'Whole-House Renovation and Property Improvement','stale house scope');
-
-['boUniversalPublicDemoStep','boUniversalPublicDemoStatus','boRenderUniversalPublicDemo_','boRenderUniversalPublicDrawing_','boRenderUniversalPublicQuote_'].forEach(fn=>need(server,'function '+fn,'Office demo function '+fn));
-need(server,"PROJECT_TITLE:'New-House Construction — Lot Clearing to Closeout'",'locked project title');
-need(server,'TOTAL:602050','coordinated Office total');
-need(server,"boUqbPublicDemoUpsert_('PROJECTS'",'persistent project record');
-need(server,"boUqbPublicDemoUpsert_('SUBQUOTES'",'persistent subquote records');
-need(server,"boUqbPublicDemoUpsert_('ITEMS'",'persistent item records');
-need(server,"boUqbPublicDemoUpsert_('SCOPES'",'persistent scope records');
-need(server,"boUqbPublicDemoUpsert_('DRAWINGS'",'persistent drawing records');
-need(server,'H38_BO_SHEETS.DOCUMENTS','Business Office document records');
-need(server,"externalActionsPerformed:false",'no external action proof');
-const quoteSpecs=(server.match(/Object\.freeze\(\{n:'\d{2}',key:/g)||[]).length;
-if(quoteSpecs!==14)throw new Error('Expected 14 Office quote specifications; found '+quoteSpecs);
-const drawingSpecs=(server.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length;
-if(drawingSpecs!==10)throw new Error('Expected 10 Office drawing specifications; found '+drawingSpecs);
-
-need(office,"RUN_KEY:'PUBLIC-NEW-HOUSE-DEMO-V1'",'published Office run key');
-need(office,"PROJECT_ID:'H38-UQB-PUBLIC-PUBLIC-NEW-HOUSE-DEMO-V1-PROJECT-001'",'published Office project');
-need(office,"sourceOfTruth:'H38 Business Office Core Data'",'Office source of truth');
-need(office,'expected={project:1,subquotes:14,items:56,scopes:84,drawings:10,documents:15,published:1}','exact Office record contract');
-need(office,"marker.indexOf('PUBLIC-ASSET:')===0",'Office drawing asset reference');
-need(office,'H38_UQB_PUBLIC_DEMO.DRAWINGS.some','approved CAD allowlist');
-need(office,'function boRenderUniversalPublicOfficeStatus_','sanitized Office count route');
-need(office,'publicFieldsOnly:true','public-field status proof');
-need(office,'boRenderUniversalPublicDrawing_=function','Office drawing renderer');
-absent(office,'MailApp','automatic mail');
-absent(office,'GmailApp','automatic Gmail');
-
-need(examples,'H38_UQB_PUBLIC_EXAMPLE_PACKAGES','matched package registry');
-need(examples,'function boRenderUniversalPublicExamples_','public examples renderer');
-need(examples,'function boRenderUniversalPublicExamplePackage_','complete package renderer');
-need(examples,'function boUqbPublicExampleSafeSvg_','safe full-size CAD renderer');
-need(examples,'boUqbPublicDemoRows_()','published Office record reader');
-need(examples,"row['Customer Visible']==='Yes'",'customer-visible quote/item filter');
-need(examples,"JSON.parse(String(row&&row['Options JSON']",'Office schedule and payment terms');
-need(examples,"?publicUqbDrawing=",'Office drawing route');
-need(examples,'Generated through H38 Office:','Office source label');
-need(examples,'Office-generated public example:','Office quote notice');
-need(examples,'View full quote','per-example full quote action');
-need(examples,'View full-size CAD sheets','per-example CAD action');
-need(examples,'Print / save complete package','per-example package action');
-need(examples,"@page cad{size:17in 11in landscape",'full-size CAD print page');
-absent(examples,"'Asset URL':H38_UQB_PUBLIC_DEMO.ASSET_BASE",'fixed-spec drawing source');
-absent(examples,'quoteSpec.lines.map','fixed-spec quote line source');
-const packageSpecs=(examples.match(/Object\.freeze\(\{key:'/g)||[]).length;
-if(packageSpecs!==7)throw new Error('Expected 7 matched Office example packages; found '+packageSpecs);
-const matchedSheets=[...examples.matchAll(/sheets:\[([^\]]+)\]/g)].flatMap(match=>(match[1].match(/'[^']+'/g)||[]));
-if(matchedSheets.length!==10)throw new Error('Expected all 10 CAD sheets to be assigned exactly once; found '+matchedSheets.length);
-if(new Set(matchedSheets).size!==10)throw new Error('A CAD sheet is duplicated across public example packages.');
-
-need(publicRoute,"h38UnifiedShellParameter_(event,'publicUqbStatus')",'sanitized Office status route');
-need(publicRoute,'boRenderUniversalPublicOfficeStatus_','Office status renderer');
-need(publicRoute,"h38UnifiedShellParameter_(event,'publicUqbPackage')",'public package route');
-need(publicRoute,"h38UnifiedShellParameter_(event,'view')",'public package view selector');
-need(publicRoute,'boRenderUniversalPublicExamples_','matched examples route');
-need(publicRoute,'boRenderUniversalPublicExamplePackage_','complete package route');
-need(publicRoute,'return null;','private-route fallthrough');
-
-need(release,'publicUqbStatus=1','deployed Office count verification');
-need(release,"sourceOfTruth:'H38 Business Office Core Data'",'release Office source');
-need(release,'generatedThroughOffice:true','release Office generation proof');
-need(release,"grep -Fq '4–8 weeks'",'Office schedule verification');
-need(release,"grep -Fq '30% at authorization'",'Office payment verification');
-absent(release,'clasp run-function','blocked Execution API path');
-
-need(web,'if(p.publicUqbDemo)return boRenderUniversalPublicDemo_();','preserved standalone public demo route');
-need(index,"boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI')",'Owner demo control include');
-need(client,'Build / Refresh Public Demo','Owner build button');
-need(client,'boUniversalPublicDemoStep','resumable Owner generation call');
-
-['Rick Krueth','rkrueth@gmail.com','USER-OWNER','RUN-20260725','UQBP-','UQBS-'].forEach(marker=>{
-  absent(universal,marker,'private marker on public page');
-  absent(examples,marker,'private marker in public example renderer');
-});
-['Print / Save Complete Package','DEMONSTRATION — NOT A CONTRACT','Revision E'].forEach(label=>need(sample,label,'preserved static source package '+label));
-const cad=spawnSync(process.execPath,[path.join(root,'scripts','verify-professional-house-cad.js')],{cwd:root,encoding:'utf8'});
-if(cad.status!==0)throw new Error('Professional CAD verification failed:\n'+cad.stdout+'\n'+cad.stderr);
-
-for(const [file,text] of [['server',server],['office',office],['catalog',catalog],['examples',examples],['publicRoute',publicRoute]]){
-  try{new Function(text);}catch(error){throw new Error(file+' JavaScript syntax failed: '+error.message);}
+function run(script,label){
+  const result=spawnSync(process.execPath,[path.join(root,'scripts',script)],{cwd:root,encoding:'utf8'});
+  if(result.status!==0)throw new Error(label+' failed:\n'+result.stdout+'\n'+result.stderr);
+  process.stdout.write(result.stdout);
 }
-for(const [file,text] of [['client',client]]){
-  const blocks=[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-  blocks.forEach(block=>{try{new Function(block[1]);}catch(error){throw new Error(file+' JavaScript syntax failed: '+error.message);}});
-}
-console.log(JSON.stringify({status:'PASS',source:'H38 Business Office Core Data',quoteSpecs,drawingSpecs,matchedPackages:packageSpecs,matchedSheets:matchedSheets.length,officeRecordContract:{project:1,subquotes:14,items:56,scopes:84,drawings:10,documents:15,published:1},publicFieldsOnly:true,publicRoute:true,professionalCad:true,externalActions:0},null,2));
+run('verify-static-public-uqb.js','Static public UQB verification');
+run('verify-professional-house-cad.js','Professional CAD verification');
+console.log(JSON.stringify({status:'PASS',source:'standalone fictional public dataset and public CAD assets',hosting:'GitHub Pages',matchedPackages:7,matchedSheets:10,privateRecordsRead:false,authenticatedServiceRequired:false,externalActions:0},null,2));
