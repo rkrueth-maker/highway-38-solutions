@@ -1,4 +1,5 @@
 name: Office Public UQB Release
+run-name: Office Public UQB Release — ${{ github.sha }}
 
 on:
   push:
