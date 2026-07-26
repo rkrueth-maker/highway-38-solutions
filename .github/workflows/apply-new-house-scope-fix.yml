@@ -4,6 +4,7 @@ on:
     paths:
       - 'scripts/fix-new-house-demo-scope.js'
       - 'scripts/repair-new-house-cad-output.js'
+      - 'scripts/normalize-new-house-cad-groups.js'
       - 'docs/quote-builder/NEW_HOUSE_DEMO_SCOPE_LOCK.md'
       - '.github/workflows/apply-new-house-scope-fix.yml'
   workflow_dispatch:
@@ -28,6 +29,7 @@ jobs:
         run: |
           node scripts/fix-new-house-demo-scope.js
           node scripts/repair-new-house-cad-output.js
+          node scripts/normalize-new-house-cad-groups.js
       - name: Commit corrected package
         run: |
           git config user.name github-actions[bot]
@@ -51,6 +53,7 @@ jobs:
           for sheet in M-101 P-101 E-101; do
             test "$(grep -o 'id=\"architectural-underlay\"' "assets/quote-builder/whole-house-cad/${sheet}.svg" | wc -l)" -eq 1
           done
+          test "$(grep -o 'id=\"new-house-site-controls\"' assets/quote-builder/whole-house-cad/C-S-L-101.svg | wc -l)" -eq 1
           grep -q 'APPROVED CLEARING / DISTURBANCE LIMIT' assets/quote-builder/whole-house-cad/C-S-L-101.svg
           sudo apt-get update -qq
           sudo apt-get install -y -qq libxml2-utils librsvg2-bin
