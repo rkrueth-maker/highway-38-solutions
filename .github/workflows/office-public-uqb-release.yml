@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/office-public-uqb-release.yml'
+      - '.github/workflows/office-public-uqb-demo.yml'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs'
