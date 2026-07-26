@@ -12,7 +12,7 @@ mkdir -p "$DESTINATION"
 # Apps Script pulls server files as .js. Remove every Business Office-owned
 # namespace before copying repository .gs files so a later deployment cannot
 # contain both .js and .gs versions with the same Apps Script base name.
-find "$DESTINATION" -maxdepth 1 -type f \( -name 'BusinessOffice_*' -o -name 'ZZZ_BusinessOffice_*' -o -name 'BusinessOffice_Index.html' \) -delete
+find "$DESTINATION" -maxdepth 1 -type f \( -name 'BusinessOffice_*' -o -name 'Z*_BusinessOffice_*' -o -name 'BusinessOffice_Index.html' \) -delete
 cp "$REPO_ROOT"/apps-script/business-office/*.gs "$DESTINATION/"
 rm -f "$DESTINATION/BusinessOffice_00_Pack.gs" "$DESTINATION/BusinessOffice_Pack.gs"
 cp "$PACK_SOURCE" "$DESTINATION/BusinessOffice_00_Pack.gs"
