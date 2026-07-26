@@ -5,166 +5,154 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/office-public-uqb-release.yml'
-      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs'
-      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html'
-      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs'
-      - 'apps-script/business-office/ZZ_BusinessOffice_UniversalQuoteBuilder_OfficeRecords.gs'
-      - 'apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs'
-      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
-      - 'apps-script/business-office/BusinessOffice_Web.gs'
-      - 'apps-script/unified-shell/Unified_AppShell.gs'
-      - 'scripts/generate-office-public-uqb-demo.sh'
       - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
+      - 'assets/quote-builder/whole-house-cad/**'
+      - 'scripts/verify-static-public-uqb.js'
+      - 'scripts/verify-public-quote-builder-result.js'
+      - 'scripts/verify-universal-quote-builder.js'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/office-public-uqb-release.yml'
+      - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
+      - 'assets/quote-builder/whole-house-cad/**'
+      - 'scripts/verify-static-public-uqb.js'
+      - 'scripts/verify-public-quote-builder-result.js'
+      - 'scripts/verify-universal-quote-builder.js'
   workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
   issues: write
 
 concurrency:
-  group: office-public-uqb-release
-  cancel-in-progress: false
+  group: public-uqb-release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  verify-office-backed-examples:
+  verify-static-public-examples:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out release source
+      - name: Check out public source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Record Office-backed verification start
-        shell: bash
-        run: |
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder Office-backed example verification started for ${GITHUB_SHA}. This run verifies the published H38 Business Office project, fourteen phase quotes, fifty-six itemized lines, eighty-four scope sections, ten drawing records, fifteen documents, and seven matched public quote-and-CAD packages. No external action is performed. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
-      - name: Confirm compatible H38 source is deployed
-        shell: bash
-        run: |
-          set -euo pipefail
-          DEPLOYED_SHA=""
-          DEPLOYED_RUN=""
-          DEPLOYED_URL=""
-          SOURCE_PATHS=(
-            apps-script/business-office
-            apps-script/unified-shell
-            apps-script/business-office-sync
-            business-packs/highway38
-            scripts/assemble-business-office-app.sh
-            scripts/build-unified-apps-script-shell.js
-            scripts/deploy-unified-owner-portal-web.sh
-          )
-          for attempt in $(seq 1 60); do
-            RUNS_JSON="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow 'Deploy Unified Owner Portal' --branch main --status success --limit 40 --json databaseId,headSha,url,createdAt 2>/dev/null || printf '[]')"
-            while IFS=$'\t' read -r candidate_sha candidate_run candidate_url; do
-              [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]] || continue
-              git fetch --no-tags origin "$candidate_sha" >/dev/null 2>&1 || continue
-              git merge-base --is-ancestor "$candidate_sha" "$GITHUB_SHA" || continue
-              if git diff --quiet "$candidate_sha..$GITHUB_SHA" -- "${SOURCE_PATHS[@]}"; then
-                DEPLOYED_SHA="$candidate_sha"
-                DEPLOYED_RUN="$candidate_run"
-                DEPLOYED_URL="$candidate_url"
-                break
-              fi
-            done < <(node -e '
-              const runs=JSON.parse(process.argv[1]||"[]");
-              for(const run of runs) console.log([run.headSha||"",run.databaseId||"",run.url||""].join("\t"));
-            ' "$RUNS_JSON")
-            if [[ "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-              printf 'PASS — successful deployment run %s contains compatible H38 source %s for release %s.\n' "$DEPLOYED_RUN" "$DEPLOYED_SHA" "$GITHUB_SHA"
-              printf '%s' "$DEPLOYED_SHA" > /tmp/deployed-source-sha.txt
-              printf '%s' "$DEPLOYED_RUN" > /tmp/deployed-run-id.txt
-              printf '%s' "$DEPLOYED_URL" > /tmp/deployed-run-url.txt
-              exit 0
-            fi
-            sleep 10
-          done
-          echo 'HOLD — no successful compatible Deploy Unified Owner Portal run could be verified.' >&2
-          exit 1
 
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Verify Office-backed source contract
+      - name: Verify static public quote and CAD contract
         run: |
+          node scripts/verify-static-public-uqb.js
           node scripts/verify-public-quote-builder-result.js
           node scripts/verify-universal-quote-builder.js
 
-      - name: Verify deployed Office-backed quote and CAD examples
-        run: bash scripts/generate-office-public-uqb-demo.sh
+      - name: Record live verification start
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder static public example verification started for ${GITHUB_SHA}. This run verifies seven anonymous quote-and-CAD packages, ten public CAD sheets, full quote views, full-size CAD views, and printable complete packages. No private H38 records or authenticated service are used. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-      - name: Record Office-backed UQB example PASS
-        if: success()
+      - name: Verify deployed GitHub Pages examples
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
-          RESULT='artifacts/office-public-uqb-demo/deployment-verification.json'
-          test -f "$RESULT"
+          EVIDENCE='artifacts/static-public-uqb/live'
+          mkdir -p "$EVIDENCE"
+          BASE='https://rkrueth-maker.github.io/highway-38-solutions'
+          PAGE="$BASE/universal-quote-builder.html?v=$GITHUB_SHA"
+          VIEWER="$BASE/universal-quote-builder-example.html?v=$GITHUB_SHA"
+          DATA="$BASE/assets/js/uqb-public-examples.js?v=$GITHUB_SHA"
+          verified=false
+          for attempt in $(seq 1 60); do
+            page_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/universal-quote-builder.html" -w '%{http_code}' "$PAGE" || true)"
+            viewer_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/universal-quote-builder-example.html" -w '%{http_code}' "$VIEWER" || true)"
+            data_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/uqb-public-examples.js" -w '%{http_code}' "$DATA" || true)"
+            printf '%s' "$page_status" > "$EVIDENCE/page-http-status.txt"
+            printf '%s' "$viewer_status" > "$EVIDENCE/viewer-http-status.txt"
+            printf '%s' "$data_status" > "$EVIDENCE/data-http-status.txt"
+            if [[ "$page_status" =~ ^2[0-9][0-9]$ ]] \
+              && [[ "$viewer_status" =~ ^2[0-9][0-9]$ ]] \
+              && [[ "$data_status" =~ ^2[0-9][0-9]$ ]] \
+              && grep -Fq 'Complete quote examples matched to their CAD drawings' "$EVIDENCE/universal-quote-builder.html" \
+              && grep -Fq 'universal-quote-builder-example.html?example=' "$EVIDENCE/universal-quote-builder.html" \
+              && grep -Fq 'Print / Save PDF' "$EVIDENCE/universal-quote-builder-example.html" \
+              && grep -Fq "version: '2026-07-26-static-public-v1'" "$EVIDENCE/uqb-public-examples.js" \
+              && ! grep -Fq 'script.google.com' "$EVIDENCE/universal-quote-builder.html"; then
+              verified=true
+              break
+            fi
+            sleep 10
+          done
+          [[ "$verified" == true ]] || { echo 'HOLD — GitHub Pages did not publish the required public UQB contract.' >&2; exit 1; }
+          for sheet in G-001 A-101 A-102 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
+            status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/${sheet}.svg" -w '%{http_code}' "$BASE/assets/quote-builder/whole-house-cad/${sheet}.svg?v=$GITHUB_SHA" || true)"
+            [[ "$status" =~ ^2[0-9][0-9]$ ]] || { echo "HOLD — public CAD sheet ${sheet} returned ${status}." >&2; exit 1; }
+            grep -Eiq '<svg[[:space:]>]' "$EVIDENCE/${sheet}.svg" || { echo "HOLD — public CAD sheet ${sheet} is not SVG." >&2; exit 1; }
+          done
+          node - "$EVIDENCE/deployment-verification.json" "$GITHUB_SHA" "$BASE/universal-quote-builder.html" <<'NODE'
+          const fs=require('fs');
+          const [out,commit,url]=process.argv.slice(2);
+          fs.writeFileSync(out,JSON.stringify({status:'PASS',sourceCommit:commit,architecture:'static public GitHub Pages',publicPackages:7,publicCadSheets:10,fullQuoteViews:true,fullSizeCadViews:true,printableCompletePackages:true,anonymousAccess:true,privateRecordsRead:false,authenticatedServiceRequired:false,externalActionsPerformed:false,publicUrl:url},null,2)+'\n');
+          NODE
+          cat "$EVIDENCE/deployment-verification.json"
+
+      - name: Record public UQB PASS
+        if: success() && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          RESULT='artifacts/static-public-uqb/live/deployment-verification.json'
           PUBLIC_URL="$(node -p "require('./$RESULT').publicUrl")"
-          COUNTS="$(node -p "JSON.stringify(require('./$RESULT').counts)")"
-          REPORT="$RUNNER_TEMP/office-public-uqb-pass.md"
+          REPORT="$RUNNER_TEMP/public-uqb-pass.md"
           cat > "$REPORT" <<EOF
-          ## PASS — deployed Office-backed Universal Quote Builder examples
+          ## PASS — public Universal Quote Builder quote and CAD examples
 
           - Release commit: ${GITHUB_SHA}
-          - Deployed source: $(cat /tmp/deployed-source-sha.txt)
-          - Deployment run: $(cat /tmp/deployed-run-url.txt)
-          - Source of truth: Highway 38 Business Office Core Data
-          - Published project records: 1
-          - Complete phase quotes: 14
-          - Itemized quote lines: 56
-          - Scope sections: 84
-          - Drawing records: 10
-          - Document records: 15
+          - Hosting: static GitHub Pages
+          - Anonymous access: verified
           - Matched public quote-and-CAD packages: 7
-          - Verified counts: ${COUNTS}
+          - Public CAD sheets: 10
           - View full quote: verified
           - View full-size CAD sheets: verified
           - Print / save complete package: verified
-          - Private fields exposed: none
+          - Private H38 records read: none
+          - Authenticated Apps Script dependency: none
           - External actions performed: none
-          - Existing Apps Script project and deployment IDs: preserved
           - Public result: ${PUBLIC_URL}
           - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office-backed UQB quote and CAD examples PASS" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples PASS" --body-file "$REPORT"
 
-      - name: Record Office-backed UQB example HOLD
-        if: failure()
+      - name: Record public UQB HOLD
+        if: failure() && github.event_name != 'pull_request'
         shell: bash
         run: |
-          REPORT="$RUNNER_TEMP/office-public-uqb-hold.md"
+          REPORT="$RUNNER_TEMP/public-uqb-hold.md"
           cat > "$REPORT" <<EOF
-          ## HOLD — deployed Office-backed Universal Quote Builder examples
+          ## HOLD — public Universal Quote Builder quote and CAD examples
 
           - Release commit: ${GITHUB_SHA}
-          - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
-          - Compatible deployment run: $(cat /tmp/deployed-run-url.txt 2>/dev/null || echo unknown)
-          - Deployed H38 application and existing Office records remain preserved
-          - Office record-count or public-package verification did not complete
-          - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
+          - Static source verification or GitHub Pages publication did not complete
+          - No private H38 records were read
+          - No customer send, purchase, payment, scheduling, approval, or work authorization occurred
           - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office-backed UQB quote and CAD examples HOLD" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples HOLD" --body-file "$REPORT"
 
-      - name: Upload exact Office-backed verification evidence
+      - name: Upload public UQB evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: office-public-uqb-release-${{ github.run_id }}
-          path: |
-            artifacts/office-public-uqb-demo/
-            /tmp/deployed-source-sha.txt
-            /tmp/deployed-run-id.txt
-            /tmp/deployed-run-url.txt
-          if-no-files-found: warn
+          name: static-public-uqb-${{ github.run_id }}
+          path: artifacts/static-public-uqb/
+          if-no-files-found: error
           retention-days: 90
