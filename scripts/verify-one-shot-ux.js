@@ -24,9 +24,11 @@ need('index.html','Bring us the problem.','homepage presents current project-fir
 need('index.html','complete project plan.','homepage completes current project-first promise');
 need('index.html','See it. Scope it. Run it.','homepage explains the project-first workflow');
 need('index.html','From first photo to final closeout.','homepage explains the connected project lifecycle');
-check('homepage exposes the three accepted project steps',['See complete examples','Tell us about your project','Receive the working package'].every(marker=>home.includes(marker)));
+check('homepage exposes the three accepted discovery steps',['See the full capability path','Tell us about the problem','Receive the working system'].every(marker=>home.includes(marker)));
 check('homepage exposes connected deliverables',['Plans and visual concepts','Detailed quotes','Job-ready instructions','Connected Business Office'].every(marker=>home.includes(marker)));
-check('homepage preserves current request examples solutions pricing and contact routes',['start-request.html','sample-library-now.html','solutions.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
+check('homepage preserves neutral request solutions pricing and contact routes',['start-request.html','solutions.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
+check('homepage does not directly promote one software product',!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(home));
+check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']"));
 check('homepage uses verified local imagery',home.includes('assets/')&&!/https?:[^"']+\.(?:jpg|jpeg|png|webp)/i.test(home));
 check('homepage removes obsolete mockup shells',!home.includes('approved-homepage-mockup.png')&&!home.includes('class="hotspot')&&!home.includes('approved-home__stage'));
 check('homepage does not restore retired product catalog as primary experience',!home.includes('Choose Your Path')&&!home.includes('Browse 15 products')&&!home.includes('9 bundles'));

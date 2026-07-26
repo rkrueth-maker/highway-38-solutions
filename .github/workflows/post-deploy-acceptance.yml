@@ -102,7 +102,7 @@ jobs:
             return 1
           }
 
-          check_page 'index.html' 'Big problems. Clear plans.'
+          check_page 'index.html' 'Bring us the problem.'
           check_page 'ecosystem-status.html' 'Highway 38 Solutions · Ecosystem'
           check_page 'customer-portal.html' 'No customer records, files, quotes, invoices, payments, deliverables, or communications are exposed'
           check_page 'business-concept-builder.html' 'Turn a rough idea into a structured launch package.'

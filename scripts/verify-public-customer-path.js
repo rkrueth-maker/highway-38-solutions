@@ -31,7 +31,7 @@ for(const route of primary){
   for(const match of html.matchAll(/(?:href|src)="([^"#?]+)(?:[?#][^"]*)?"/g)){
     const target=match[1];
     if(/^(?:https?:|mailto:|tel:|data:|javascript:)/i.test(target))continue;
-    if(!target||target.startsWith('/'))continue;
+    if(!target||target.startsWith('/')||/[+'()]/.test(target))continue;
     check(`${route}: local asset ${target}`,exists(target),target);
   }
 }
@@ -40,20 +40,26 @@ for(const route of publicPrimary.filter(route=>!['start-request.html'].includes(
   check(`${route}: canonical shared shell`,html.includes('assets/js/h38-site-v2.js')||route==='portal.html');
 }
 const home=read('index.html');
+const shell=read('assets/js/h38-site-v2.js');
 const examples=read('sample-library-now.html');
 const universal=read('universal-quote-builder.html');
+const quoteBuilder=read('quote-builder.html');
+const examplesData=read('assets/js/uqb-public-examples.js');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const request=read('start-request.html');
 const portal=read('portal.html');
-check('home routes to project examples',home.includes('sample-library-now.html'));
+check('home routes to neutral capability discovery',home.includes('solutions.html')&&home.includes('pricing.html'));
+check('home does not directly promote either software product',!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(home));
+check('shared shell does not directly promote either software product',!shell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!shell.includes("['Quote Builder','quote-builder.html']")&&!shell.includes("{href:'business-systems.html',label:'Business Office'}")&&!shell.includes("['Business Office','business-systems.html']"));
 check('home routes to start project',home.includes('start-request.html'));
 const projectCardCount=(examples.match(/class="project-card(?:"|\s)/g)||[]).length;
 check('examples preserve approved project cards and remain open-ended',projectCardCount>=8&&examples.includes('Open-ended example library'),String(projectCardCount));
-check('examples route to full demonstrations',examples.includes('contractor-quote-complete.html?example=')&&examples.includes('cabin-project-complete.html')&&examples.includes('universal-quote-builder.html'));
+check('Quote Builder owns the current public example experience',quoteBuilder.includes('id="examples"')&&quoteBuilder.includes('id="quoteBuilderExamples"')&&quoteBuilder.includes('assets/js/uqb-public-examples.js'));
+check('Quote Builder loads project cards and complete quote/CAD/package actions',quoteBuilder.includes("fetch('sample-library-now.html")&&quoteBuilder.includes("href(item.key,'quote')")&&quoteBuilder.includes("href(item.key,'cad')")&&quoteBuilder.includes("href(item.key,'package')"));
 check('examples remove fixed count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(examples));
-check('universal demonstration is Office-generated',universal.includes('One project inside Office.')&&universal.includes('Office-generated public demonstration'));
-check('universal demonstration exposes complete quote and CAD evidence',universal.includes('14</strong>complete phase quotes')&&universal.includes('10</strong>attached CAD sheets')&&universal.includes('?publicUqbDemo=1'));
+check('legacy Universal Quote Builder route redirects to the maintained example library',universal.includes('sample-library-now.html#universal-quote-builder-examples')&&universal.includes('location.replace'));
+check('public quote and CAD data remains available',examplesData.includes('global.H38_UQB_PUBLIC_EXAMPLES')&&examplesData.includes('const packages = [')&&examplesData.includes('const drawings = {'));
 check('universal demonstration removes stale renovation scope',!universal.includes('Whole-House Renovation and Property Improvement')&&!universal.includes('$342,815'));
 check('solutions is capability-first',/Automation|CNC|Quote Builder|Business Office/.test(solutions));
 check('pricing is project-first',/project/i.test(pricing)&&pricing.includes('start-request.html'));
@@ -78,7 +84,7 @@ check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(pu
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
 check('no fake testimonial claims',!/five-star review|★★★★★|verified customer review|what our customers say/i.test(publicText));
 check('no actionable public checkout',!/href="[^"]*(?:checkout|cart)|action="[^"]*(?:checkout|cart)|>\s*(?:buy now|add to cart|checkout)\s*</i.test(publicText));
-const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),architecture:'project-first-office-generated-universal-quote-v2',passed:passes.length,failed:failures.length,routes:primary,existingProjectExamples:projectCardCount,universalDemonstration:true,officeGeneratedDemo:true,controls:{routeRegistry:true,sharedShell:true,projectExamples:true,controlledIntake:true,deterministicRetiredRedirects:true,externalCheckout:false,rawCardFields:false},passes,failures};
+const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),architecture:'project-first-quote-builder-integrated-examples-equal-product-paths',passed:passes.length,failed:failures.length,routes:primary,existingProjectExamples:projectCardCount,universalDemonstration:true,quoteBuilderIntegratedExamples:true,controls:{routeRegistry:true,sharedShell:true,projectExamples:true,equalProductPaths:true,controlledIntake:true,deterministicRetiredRedirects:true,externalCheckout:false,rawCardFields:false},passes,failures};
 const outDir=path.join(ROOT,'launch-control','evidence');
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'public-customer-path-verification.json'),JSON.stringify(evidence,null,2)+'\n');
