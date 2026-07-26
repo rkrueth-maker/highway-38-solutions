@@ -196,7 +196,7 @@ function h38UnifiedShellRegistry(){
     installedApps:{businessOffice:true,quoteBuilder:quoteOwner==='quoteBuilder'},
     capabilityOwners:{quotes:quoteOwner},
     disabledLegacyCapabilities:{quotes:quoteOwner==='quoteBuilder'},
-    routes:{ownerPortal:'',businessOffice:'',quoteBuilder:'?quoteBuilder=1'},
+    routes:{ownerPortal:'',businessOffice:'',quoteBuilder:'?quoteBuilder=1',publicUqbDemo:'?publicUqbDemo=1'},
     modules:modules,
     externalActionsEnabled:false,
     ownerApprovalRequired:true
