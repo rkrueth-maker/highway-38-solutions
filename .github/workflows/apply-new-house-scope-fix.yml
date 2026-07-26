@@ -3,8 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/fix-new-house-demo-scope.js'
-      - 'scripts/repair-new-house-cad-output.js'
       - 'scripts/normalize-new-house-cad-groups.js'
+      - 'scripts/finalize-new-house-scope-labels.js'
       - 'docs/quote-builder/NEW_HOUSE_DEMO_SCOPE_LOCK.md'
       - '.github/workflows/apply-new-house-scope-fix.yml'
   workflow_dispatch:
@@ -28,8 +28,8 @@ jobs:
       - name: Apply locked ground-up scope
         run: |
           node scripts/fix-new-house-demo-scope.js
-          node scripts/repair-new-house-cad-output.js
           node scripts/normalize-new-house-cad-groups.js
+          node scripts/finalize-new-house-scope-labels.js
       - name: Commit corrected package
         run: |
           git config user.name github-actions[bot]
