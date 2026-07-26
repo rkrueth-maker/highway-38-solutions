@@ -17,7 +17,7 @@ check('project-first route manifest owns the eight current gateways',expectedPri
 check('Universal Quote Builder compatibility route is public and canonical',routeManifest.demonstrations.some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog routes point to current project-first pages',routeManifest.retired&&routeManifest.retired['products.html']==='pricing.html'&&routeManifest.retired['catalog.html']==='pricing.html'&&routeManifest.retired['packages.html']==='pricing.html'&&routeManifest.retired['tools.html']==='sample-library-now.html');
 const shell=read('assets/js/h38-site-v2.js');
-check('one canonical public shell owns current navigation',['Project Examples','What We Do','Pricing','About','Contact','Owner Access'].every(label=>shell.includes(label))&&shell.includes('class="pi-menu"'));
+check('one canonical public shell owns current navigation',['Quote Builder','What We Do','Pricing','About','Contact','Owner Access'].every(label=>shell.includes(label))&&!/label:'Project Examples'/.test(shell)&&shell.includes('class="pi-menu"'));
 check('canonical shell preserves Owner gateway',shell.includes("['Owner Access','portal.html']"));
 check('canonical shell locks image source changes',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(shell));
 const home=read('index.html');
