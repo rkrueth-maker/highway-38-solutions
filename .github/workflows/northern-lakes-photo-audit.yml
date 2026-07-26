@@ -40,11 +40,16 @@ jobs:
             [materials.svg]='https://at.adobe.com/bTH529YWcRzIXb5S'
             [lake.svg]='https://at.adobe.com/MakfVzah2NoljNFV'
             [about.svg]='https://at.adobe.com/D6Sppw6vOlxtV92W'
+            [diamond-logo.png]='https://at.adobe.com/OMtpLzLHR44RSlAA'
           )
           for name in "${!urls[@]}"; do
             echo "Downloading $name"
             curl --location --fail --retry 3 --retry-all-errors --silent --show-error "${urls[$name]}" -o "$asset_dir/$name"
-            grep -q '<svg' "$asset_dir/$name" || { echo "$name did not download as SVG"; head -c 300 "$asset_dir/$name"; exit 1; }
+            if [[ "$name" == *.svg ]]; then
+              grep -q '<svg' "$asset_dir/$name" || { echo "$name did not download as SVG"; head -c 300 "$asset_dir/$name"; exit 1; }
+            else
+              file --mime-type "$asset_dir/$name" | grep -q 'image/png' || { echo "$name did not download as PNG"; exit 1; }
+            fi
           done
           node scripts/apply-northern-lakes-photo-pass.js
       - name: Commit imported photo corrections
@@ -58,8 +63,8 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add businesses/northern-lakes scripts/apply-northern-lakes-photo-pass.js
-          git commit -m 'Replace Northern Lakes rendered photos with full-resolution assets'
+          git add businesses/northern-lakes scripts/audit-northern-lakes-rendered-photos.js scripts/apply-northern-lakes-photo-pass.js
+          git commit -m 'Finish Northern Lakes rendered photo corrections'
           git push origin HEAD:${{ github.head_ref }}
       - name: Set up Node
         uses: actions/setup-node@v4
