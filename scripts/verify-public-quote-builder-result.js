@@ -9,6 +9,10 @@ const need=(text,marker,label)=>{if(!text.includes(marker))throw new Error('Miss
 const absent=(text,marker,label)=>{if(text.includes(marker))throw new Error('Unexpected '+label+': '+marker);};
 const universal=read('universal-quote-builder.html');
 const server=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs');
+const direct=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_ZDirectRecords.gs');
+const seed=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_ZSeed.gs');
+const unifiedSeedRoute=read('apps-script/unified-shell/Unified_ZPublicUqbSeed.gs');
+const release=read('scripts/generate-office-public-uqb-demo.sh');
 const catalog=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs');
 const web=read('apps-script/business-office/BusinessOffice_Web.gs');
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
@@ -52,24 +56,46 @@ if(quoteSpecs!==14)throw new Error('Expected 14 Office quote specifications; fou
 const drawingSpecs=(server.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length;
 if(drawingSpecs!==10)throw new Error('Expected 10 Office drawing specifications; found '+drawingSpecs);
 
+need(direct,'function boUqbPublicDemoActive_()','deterministic active-project fallback');
+need(direct,"publicationMode:'deterministic Office records'",'direct Office publication mode');
+need(direct,"marker.indexOf('PUBLIC-ASSET:')",'controlled CAD asset reference');
+need(direct,'H38_UQB_PUBLIC_DEMO.DRAWINGS.some','CAD asset allowlist');
+need(direct,'boRenderUniversalPublicDrawing_','Office drawing renderer override');
+need(seed,"CUSTOMER_ID:'CUST-H38-UQB-PUBLIC-DEMO-001'",'public-safe Office demo customer');
+need(seed,'function boRenderUniversalPublicSeed_','CSV seed renderer');
+['customers','projects','revisions','subquotes','items','scopes','drawings','drawing-revisions','documents','proof'].forEach(name=>need(seed,"'"+name+"'",'Office seed '+name));
+need(seed,"'Owner Approval Required'",'seed approval boundary');
+need(seed,"'Demonstration'",'seed status');
+need(seed,'externalActionsPerformed:false','seed no-action proof');
+need(unifiedSeedRoute,"var seed=h38UnifiedShellParameter_(event,'publicUqbSeed')",'public seed route');
+need(unifiedSeedRoute,'boRenderUniversalPublicSeed_(seed)','public seed renderer call');
+need(release,'publicUqbSeed=${seed}','deployed seed verification');
+need(release,'subquotes":14','release quote count');
+need(release,'items":56','release item count');
+need(release,'scopes":84','release scope count');
+need(release,'drawings":10','release drawing count');
+need(release,'documents":15','release document count');
+need(release,'H38 Business Office Core Data','Office source of truth');
+absent(release,'clasp run-function','blocked Execution API path');
+
 need(web,'if(p.publicUqbDemo)return boRenderUniversalPublicDemo_();','public demo route before authentication');
 need(web,'if(p.publicUqbDrawing)return boRenderUniversalPublicDrawing_','public drawing route');
 need(web,'if(p.publicUqbQuote)return boRenderUniversalPublicQuote_','public quote route');
 need(index,"boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI')",'Owner demo control include');
 need(client,'Build / Refresh Public Demo','Owner build button');
-need(client,'boUniversalPublicDemoStep','resumable Office generation call');
-need(client,'while(!result.complete)','controlled completion loop');
+need(client,'boUniversalPublicDemoStep','resumable interactive Office generation call');
+need(client,'while(!result.complete)','controlled interactive completion loop');
 
 ['Rick Krueth','rkrueth@gmail.com','USER-OWNER','RUN-20260725','UQBP-','UQBS-','Internal Cost','Margin'].forEach(marker=>absent(universal,marker,'private marker on public page'));
 ['Print / Save Complete Package','DEMONSTRATION — NOT A CONTRACT','Revision E'].forEach(label=>need(sample,label,'preserved static source package '+label));
 const cad=spawnSync(process.execPath,[path.join(root,'scripts','verify-professional-house-cad.js')],{cwd:root,encoding:'utf8'});
 if(cad.status!==0)throw new Error('Professional CAD verification failed:\n'+cad.stdout+'\n'+cad.stderr);
 
-for(const [file,text] of [['server',server],['catalog',catalog]]){
+for(const [file,text] of [['server',server],['direct',direct],['seed',seed],['unified seed route',unifiedSeedRoute],['catalog',catalog]]){
   try{new Function(text);}catch(error){throw new Error(file+' JavaScript syntax failed: '+error.message);}
 }
 for(const [file,text] of [['client',client]]){
   const blocks=[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   blocks.forEach(block=>{try{new Function(block[1]);}catch(error){throw new Error(file+' JavaScript syntax failed: '+error.message);}});
 }
-console.log(JSON.stringify({status:'PASS',source:'H38 Business Office',quoteSpecs,drawingSpecs,publicRoute:true,resumable:true,professionalCad:true,externalActions:0},null,2));
+console.log(JSON.stringify({status:'PASS',source:'H38 Business Office Core Data',quoteSpecs,drawingSpecs,publicRoute:true,deterministicSeed:true,interactiveGeneration:true,professionalCad:true,externalActions:0},null,2));
