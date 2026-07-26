@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-25-complete-house-package-v1",
+  "version": "2026-07-26-universal-quote-builder-office-generated-v2",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},

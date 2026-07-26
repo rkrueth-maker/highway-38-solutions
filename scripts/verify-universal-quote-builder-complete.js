@@ -16,7 +16,7 @@ const pricingBlock=(catalog.match(/PRICING_METHODS:Object\.freeze\(\[([\s\S]*?)\
 const pricingMethods=(pricingBlock.match(/'[^']+'/g)||[]).length;
 const agentBlock=(catalog.match(/AGENTS:Object\.freeze\(\[([\s\S]*?)\]\)/)||[])[1]||'';
 const agents=(agentBlock.match(/Object\.freeze\(\{key:/g)||[]).length;
-const exampleBlock=(catalog.match(/function boUniversalQuoteExamples_\(\)\{[\s\S]*?return \[([\s\S]*?)\];\n\}/)||[])[1]||'';
+const exampleBlock=(catalog.match(/function boUniversalQuoteExamples_\(\)\{([\s\S]*?)function boUniversalHouseDemo_/)||[])[1]||'';
 const examples=(exampleBlock.match(/\{key:/g)||[]).length;
 check('five progressive quote levels',levels===5,String(levels));
 check('34 deterministic pricing methods',pricingMethods===34,String(pricingMethods));

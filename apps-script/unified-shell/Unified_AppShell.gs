@@ -196,7 +196,7 @@ function h38UnifiedShellRegistry(){
     installedApps:{businessOffice:true,quoteBuilder:quoteOwner==='quoteBuilder'},
     capabilityOwners:{quotes:quoteOwner},
     disabledLegacyCapabilities:{quotes:quoteOwner==='quoteBuilder'},
-    routes:{ownerPortal:'',businessOffice:'',quoteBuilder:'?quoteBuilder=1'},
+    routes:{ownerPortal:'',businessOffice:'',quoteBuilder:'?quoteBuilder=1',publicUqbDemo:'?publicUqbDemo=1'},
     modules:modules,
     externalActionsEnabled:false,
     ownerApprovalRequired:true
@@ -228,7 +228,33 @@ function h38UnifiedShellRenderQuoteBuilder_(){
   return boRenderQuoteBuilderApp_();
 }
 
+function h38UnifiedShellPublicUqbRoute_(event){
+  var proposalToken=h38UnifiedShellParameter_(event,'proposal');
+  var demo=h38UnifiedShellParameter_(event,'publicUqbDemo');
+  var drawing=h38UnifiedShellParameter_(event,'publicUqbDrawing');
+  var quote=h38UnifiedShellParameter_(event,'publicUqbQuote');
+  if(proposalToken){
+    if(typeof boRenderCustomerProposal_!=='function')throw new Error('Customer proposal renderer is unavailable.');
+    return boRenderCustomerProposal_(proposalToken);
+  }
+  if(demo==='1'){
+    if(typeof boRenderUniversalPublicDemo_!=='function')throw new Error('Published Universal Quote Builder demonstration is unavailable.');
+    return boRenderUniversalPublicDemo_();
+  }
+  if(drawing){
+    if(typeof boRenderUniversalPublicDrawing_!=='function')throw new Error('Published drawing renderer is unavailable.');
+    return boRenderUniversalPublicDrawing_(drawing);
+  }
+  if(quote){
+    if(typeof boRenderUniversalPublicQuote_!=='function')throw new Error('Published quote renderer is unavailable.');
+    return boRenderUniversalPublicQuote_(quote);
+  }
+  return null;
+}
+
 function doGet(event){
+  var publicResult=h38UnifiedShellPublicUqbRoute_(event);
+  if(publicResult)return publicResult;
   H38_PORTAL_AUTH_BRIDGE.getCurrentUser();
   var app=h38UnifiedShellParameter_(event,'app').toLowerCase();
   var quoteBuilder=h38UnifiedShellParameter_(event,'quoteBuilder');
