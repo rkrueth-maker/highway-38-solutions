@@ -118,10 +118,13 @@ jobs:
           fetch_until_ready 'quote-builder.html' 'Simple when the quote is simple.' /tmp/quote-builder.html
           grep -Fq 'universal-quote-builder.html' /tmp/quote-builder.html
 
-          fetch_until_ready 'universal-quote-builder.html' 'Highway 38 Universal Quote Builder' /tmp/universal.html
-          grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/universal.html
-          grep -Fq 'Trade sub-quotes' /tmp/universal.html
-          grep -Fq 'External actions</span><strong>0' /tmp/universal.html
+          fetch_until_ready 'universal-quote-builder.html' 'One project inside Office.' /tmp/universal.html
+          grep -Fq 'Office-generated public demonstration' /tmp/universal.html
+          grep -Fq '14</strong>complete phase quotes' /tmp/universal.html
+          grep -Fq '10</strong>attached CAD sheets' /tmp/universal.html
+          grep -Fq '?publicUqbDemo=1' /tmp/universal.html
+          ! grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/universal.html
+          ! grep -Fq '$342,815' /tmp/universal.html
 
           fetch_until_ready 'sample-library-now.html' 'Complete project demonstrations' /tmp/samples.html
           grep -Fq 'Open-ended example library' /tmp/samples.html
@@ -143,4 +146,4 @@ jobs:
             exit 1
           fi
 
-          echo 'Production GitHub Pages smoke check passed for current project-first architecture.'
+          echo 'Production GitHub Pages smoke check passed for current Office-generated project-first architecture.'
