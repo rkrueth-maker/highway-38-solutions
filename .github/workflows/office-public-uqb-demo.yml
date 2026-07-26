@@ -14,6 +14,10 @@ on:
       - 'scripts/generate-office-public-uqb-demo.sh'
       - 'scripts/verify-public-quote-builder-result.js'
       - 'scripts/verify-universal-quote-builder.js'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/office-public-uqb-demo.yml'
   workflow_run:
     workflows: ['Deploy Unified Owner Portal']
     types: [completed]
@@ -63,7 +67,7 @@ jobs:
           retention-days: 7
 
   generate-and-verify-live-demo:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
