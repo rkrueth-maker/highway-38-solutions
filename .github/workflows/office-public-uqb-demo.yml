@@ -1,0 +1,91 @@
+name: Office Public UQB Demo
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/office-public-uqb-demo.yml'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder*.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder*.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_Web.gs'
+      - 'apps-script/unified-shell/Unified_AppShell.gs'
+      - 'universal-quote-builder.html'
+      - 'scripts/generate-office-public-uqb-demo.sh'
+      - 'scripts/verify-public-quote-builder-result.js'
+      - 'scripts/verify-universal-quote-builder.js'
+  workflow_run:
+    workflows: ['Deploy Unified Owner Portal']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: office-public-uqb-demo-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  verify-source:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify Office-driven quote and CAD contract
+        run: |
+          node scripts/verify-public-quote-builder-result.js
+          node scripts/verify-universal-quote-builder.js
+          bash scripts/verify-issue83-source.sh
+
+  generate-and-verify-live-demo:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+    steps:
+      - name: Check out deployed source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated clasp
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/h38-clasp" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
+          echo "$RUNNER_TEMP/h38-clasp/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+      - name: Generate Office records, files, and sanitized public result
+        run: bash scripts/generate-office-public-uqb-demo.sh
+      - name: Upload generation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: office-public-uqb-demo-${{ github.run_id }}
+          path: artifacts/office-public-uqb-demo/
+          if-no-files-found: error
+          retention-days: 90
