@@ -64,7 +64,7 @@ need(examples,'View full-size CAD sheets','per-example CAD action');
 need(examples,'Print / save complete package','per-example package action');
 need(examples,'No live customers, private Highway 38 records','public-only explanation');
 need(examples,"@page cad{size:17in 11in landscape",'full-size CAD print page');
-need(examples,"row['Customer Visible']==='Yes'",'public quote visibility filter');
+need(examples,"quote['Customer Visible']==='Yes'",'public quote visibility filter');
 const packageSpecs=(examples.match(/Object\.freeze\(\{key:'/g)||[]).length;
 if(packageSpecs!==7)throw new Error('Expected 7 matched public example packages; found '+packageSpecs);
 const matchedSheets=[...examples.matchAll(/sheets:\[([^\]]+)\]/g)].flatMap(match=>(match[1].match(/'[^']+'/g)||[]));
