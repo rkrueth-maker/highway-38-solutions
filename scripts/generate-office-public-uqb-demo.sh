@@ -52,8 +52,6 @@ NODE
 run_function() {
   local function_name="$1" params="$2" output="$3"
   set +e
-  # Run the pulled authorized project in development mode. The H38 production
-  # web deployment is not the API-executable deployment selected by --nondev.
   (cd "$WORK" && clasp run-function "$function_name" --params "$params" --json) >"$output" 2>&1
   local status=$?
   set -e
@@ -94,6 +92,29 @@ NODE
 (cd "$WORK" && clasp show-authorized-user --json) >"$EVIDENCE/authorized-user.json" 2>&1 || true
 (cd "$WORK" && clasp list-deployments --json) >"$EVIDENCE/deployments.json" 2>&1 || true
 grep -F "$BUSINESS_DEPLOYMENT_ID" "$EVIDENCE/deployments.json" >/dev/null
+
+# Match the proven Business Office authorization harness. The pulled source is
+# pushed back unchanged and an un-deployed script version is created before the
+# development-mode Execution API call. No deployment is created or updated.
+set +e
+(cd "$WORK" && clasp push --force) >"$EVIDENCE/authorized-push.txt" 2>&1
+PUSH_STATUS=$?
+set -e
+cat "$EVIDENCE/authorized-push.txt"
+if [[ $PUSH_STATUS -ne 0 ]]; then
+  echo "HOLD — could not authorize the pulled H38 project source." >&2
+  exit "$PUSH_STATUS"
+fi
+set +e
+(cd "$WORK" && clasp create-version "Office public UQB authorized run ${GITHUB_SHA:-manual}") >"$EVIDENCE/authorized-version.txt" 2>&1
+VERSION_STATUS=$?
+set -e
+cat "$EVIDENCE/authorized-version.txt"
+if [[ $VERSION_STATUS -ne 0 ]]; then
+  echo "HOLD — could not create the authorized un-deployed script version." >&2
+  exit "$VERSION_STATUS"
+fi
+grep -E 'Created version [0-9]+' "$EVIDENCE/authorized-version.txt" >/dev/null
 
 PARAMS="[\"$RUN_KEY\"]"
 complete=false
