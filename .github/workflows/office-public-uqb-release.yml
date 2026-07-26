@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/office-public-uqb-release.yml'
+      - 'sample-library-now.html'
       - 'universal-quote-builder.html'
       - 'universal-quote-builder-example.html'
       - 'assets/js/uqb-public-examples.js'
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/office-public-uqb-release.yml'
+      - 'sample-library-now.html'
       - 'universal-quote-builder.html'
       - 'universal-quote-builder-example.html'
       - 'assets/js/uqb-public-examples.js'
@@ -57,7 +59,7 @@ jobs:
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder static public example verification started for ${GITHUB_SHA}. This run verifies seven anonymous quote-and-CAD packages, ten public CAD sheets, full quote views, full-size CAD views, and printable complete packages. No private H38 records or authenticated service are used. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder static public example verification started for ${GITHUB_SHA}. This run verifies that seven anonymous quote-and-CAD packages and ten public CAD sheets are displayed directly beneath the whole-building house example, with full quote views, full-size CAD views, and printable complete packages. No private H38 records or authenticated service are used. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Verify deployed GitHub Pages examples
         if: github.event_name != 'pull_request'
@@ -67,40 +69,52 @@ jobs:
           EVIDENCE='artifacts/static-public-uqb/live'
           mkdir -p "$EVIDENCE"
           BASE='https://rkrueth-maker.github.io/highway-38-solutions'
-          PAGE="$BASE/universal-quote-builder.html?v=$GITHUB_SHA"
+          PAGE="$BASE/sample-library-now.html?v=$GITHUB_SHA"
+          REDIRECT="$BASE/universal-quote-builder.html?v=$GITHUB_SHA"
           VIEWER="$BASE/universal-quote-builder-example.html?v=$GITHUB_SHA"
           DATA="$BASE/assets/js/uqb-public-examples.js?v=$GITHUB_SHA"
           verified=false
           for attempt in $(seq 1 60); do
-            page_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/universal-quote-builder.html" -w '%{http_code}' "$PAGE" || true)"
+            page_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/sample-library-now.html" -w '%{http_code}' "$PAGE" || true)"
+            redirect_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/universal-quote-builder.html" -w '%{http_code}' "$REDIRECT" || true)"
             viewer_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/universal-quote-builder-example.html" -w '%{http_code}' "$VIEWER" || true)"
             data_status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/uqb-public-examples.js" -w '%{http_code}' "$DATA" || true)"
             printf '%s' "$page_status" > "$EVIDENCE/page-http-status.txt"
+            printf '%s' "$redirect_status" > "$EVIDENCE/redirect-http-status.txt"
             printf '%s' "$viewer_status" > "$EVIDENCE/viewer-http-status.txt"
             printf '%s' "$data_status" > "$EVIDENCE/data-http-status.txt"
+            house_line="$(grep -n 'data-project="cabin"' "$EVIDENCE/sample-library-now.html" | head -1 | cut -d: -f1 || true)"
+            examples_line="$(grep -n 'id="universal-quote-builder-examples"' "$EVIDENCE/sample-library-now.html" | head -1 | cut -d: -f1 || true)"
             if [[ "$page_status" =~ ^2[0-9][0-9]$ ]] \
+              && [[ "$redirect_status" =~ ^2[0-9][0-9]$ ]] \
               && [[ "$viewer_status" =~ ^2[0-9][0-9]$ ]] \
               && [[ "$data_status" =~ ^2[0-9][0-9]$ ]] \
-              && grep -Fq 'Complete quote examples matched to their CAD drawings' "$EVIDENCE/universal-quote-builder.html" \
-              && grep -Fq 'universal-quote-builder-example.html?example=' "$EVIDENCE/universal-quote-builder.html" \
+              && [[ "$house_line" =~ ^[0-9]+$ ]] \
+              && [[ "$examples_line" =~ ^[0-9]+$ ]] \
+              && (( examples_line >= house_line )) \
+              && grep -Fq 'Complete quote examples matched to their CAD drawings' "$EVIDENCE/sample-library-now.html" \
+              && grep -Fq 'universal-quote-builder-example.html?example=' "$EVIDENCE/sample-library-now.html" \
+              && grep -Fq 'sample-library-now.html#universal-quote-builder-examples' "$EVIDENCE/universal-quote-builder.html" \
               && grep -Fq 'Print / Save PDF' "$EVIDENCE/universal-quote-builder-example.html" \
               && grep -Fq "version: '2026-07-26-static-public-v1'" "$EVIDENCE/uqb-public-examples.js" \
-              && ! grep -Fq 'script.google.com' "$EVIDENCE/universal-quote-builder.html"; then
+              && ! grep -Fq 'class="universal-card"' "$EVIDENCE/sample-library-now.html" \
+              && ! grep -Fq 'See What It Produced' "$EVIDENCE/sample-library-now.html" \
+              && ! grep -Fq 'script.google.com' "$EVIDENCE/sample-library-now.html"; then
               verified=true
               break
             fi
             sleep 10
           done
-          [[ "$verified" == true ]] || { echo 'HOLD — GitHub Pages did not publish the required public UQB contract.' >&2; exit 1; }
+          [[ "$verified" == true ]] || { echo 'HOLD — GitHub Pages did not publish the UQB examples directly beneath the house example.' >&2; exit 1; }
           for sheet in G-001 A-101 A-102 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
             status="$(curl -L -sS --max-time 60 -o "$EVIDENCE/${sheet}.svg" -w '%{http_code}' "$BASE/assets/quote-builder/whole-house-cad/${sheet}.svg?v=$GITHUB_SHA" || true)"
             [[ "$status" =~ ^2[0-9][0-9]$ ]] || { echo "HOLD — public CAD sheet ${sheet} returned ${status}." >&2; exit 1; }
             grep -Eiq '<svg[[:space:]>]' "$EVIDENCE/${sheet}.svg" || { echo "HOLD — public CAD sheet ${sheet} is not SVG." >&2; exit 1; }
           done
-          node - "$EVIDENCE/deployment-verification.json" "$GITHUB_SHA" "$BASE/universal-quote-builder.html" <<'NODE'
+          node - "$EVIDENCE/deployment-verification.json" "$GITHUB_SHA" "$BASE/sample-library-now.html#universal-quote-builder-examples" <<'NODE'
           const fs=require('fs');
           const [out,commit,url]=process.argv.slice(2);
-          fs.writeFileSync(out,JSON.stringify({status:'PASS',sourceCommit:commit,architecture:'static public GitHub Pages',publicPackages:7,publicCadSheets:10,fullQuoteViews:true,fullSizeCadViews:true,printableCompletePackages:true,anonymousAccess:true,privateRecordsRead:false,authenticatedServiceRequired:false,externalActionsPerformed:false,publicUrl:url},null,2)+'\n');
+          fs.writeFileSync(out,JSON.stringify({status:'PASS',sourceCommit:commit,architecture:'static public GitHub Pages',placement:'directly beneath whole-building house example',publicPackages:7,publicCadSheets:10,fullQuoteViews:true,fullSizeCadViews:true,printableCompletePackages:true,anonymousAccess:true,privateRecordsRead:false,authenticatedServiceRequired:false,externalActionsPerformed:false,publicUrl:url},null,2)+'\n');
           NODE
           cat "$EVIDENCE/deployment-verification.json"
 
@@ -115,6 +129,8 @@ jobs:
           ## PASS — public Universal Quote Builder quote and CAD examples
 
           - Release commit: ${GITHUB_SHA}
+          - Placement: directly beneath the whole-building house example
+          - Separate top result-board showcase: removed
           - Hosting: static GitHub Pages
           - Anonymous access: verified
           - Matched public quote-and-CAD packages: 7
@@ -129,7 +145,7 @@ jobs:
           - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples PASS" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB examples beneath house PASS" --body-file "$REPORT"
 
       - name: Record public UQB HOLD
         if: failure() && github.event_name != 'pull_request'
@@ -140,13 +156,14 @@ jobs:
           ## HOLD — public Universal Quote Builder quote and CAD examples
 
           - Release commit: ${GITHUB_SHA}
+          - Required placement: directly beneath the whole-building house example
           - Static source verification or GitHub Pages publication did not complete
           - No private H38 records were read
           - No customer send, purchase, payment, scheduling, approval, or work authorization occurred
           - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples HOLD" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB examples beneath house HOLD" --body-file "$REPORT"
 
       - name: Upload public UQB evidence
         if: always()
