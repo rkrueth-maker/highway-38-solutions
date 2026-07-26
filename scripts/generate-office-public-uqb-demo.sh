@@ -28,29 +28,77 @@ parse_result() {
   node - "$input" "$output" <<'NODE'
 const fs=require('fs');
 const [input,output]=process.argv.slice(2);
-const raw=fs.readFileSync(input,'utf8');
+const raw=fs.readFileSync(input,'utf8').replace(/^\uFEFF/,'');
 const candidates=[];
 for(let start=raw.indexOf('{');start>=0;start=raw.indexOf('{',start+1)){
   for(let end=raw.lastIndexOf('}');end>start;end=raw.lastIndexOf('}',end-1)){
     try{candidates.push(JSON.parse(raw.slice(start,end+1)));break;}catch(error){}
   }
 }
-if(!candidates.length)throw new Error(`No JSON result found in ${input}: ${raw.slice(0,800)}`);
-const value=candidates.find(item=>item&&typeof item==='object'&&('complete' in item||item.status))||candidates[0];
+if(!candidates.length)throw new Error(`No JSON result found in ${input}: ${raw.slice(0,1200)}`);
+let value=candidates.find(item=>item&&typeof item==='object'&&('response' in item||'complete' in item||'status' in item))||candidates[0];
+if(value&&typeof value==='object'&&Object.prototype.hasOwnProperty.call(value,'error')&&value.error){
+  throw new Error(`Apps Script execution error: ${JSON.stringify(value.error)}`);
+}
+if(value&&typeof value==='object'&&Object.prototype.hasOwnProperty.call(value,'response'))value=value.response;
+if(typeof value==='string'){
+  try{value=JSON.parse(value);}catch(error){}
+}
+if(!value||typeof value!=='object')throw new Error(`Apps Script returned an invalid result: ${JSON.stringify(value)}`);
 fs.writeFileSync(output,JSON.stringify(value,null,2)+'\n');
 NODE
+}
+
+run_function() {
+  local function_name="$1" params="$2" output="$3"
+  set +e
+  (cd "$WORK" && clasp run-function "$function_name" --params "$params" --nondev --json) >"$output" 2>&1
+  local status=$?
+  set -e
+  cat "$output"
+  if [[ $status -ne 0 ]]; then
+    echo "HOLD — clasp run-function ${function_name} failed with status ${status}." >&2
+    exit "$status"
+  fi
 }
 
 SCRIPT_ID="$(read_config appsScript.productionProjectId)"
 BUSINESS_DEPLOYMENT_ID="$(read_config appsScript.businessOfficeDeploymentId)"
 printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
 
+# Pull the actual authorized project before using the Execution API. A bare
+# .clasp.json is not sufficient because clasp also needs the deployed manifest
+# and executionApi configuration.
+set +e
+(cd "$WORK" && clasp pull) >"$EVIDENCE/project-pull.txt" 2>&1
+PULL_STATUS=$?
+set -e
+cat "$EVIDENCE/project-pull.txt"
+if [[ $PULL_STATUS -ne 0 ]]; then
+  echo "HOLD — could not pull the existing authorized H38 Apps Script project." >&2
+  exit "$PULL_STATUS"
+fi
+
+test -f "$WORK/appsscript.json"
+node - "$WORK/appsscript.json" "$SCRIPT_ID" <<'NODE'
+const fs=require('fs');
+const [manifestPath,expectedScriptId]=process.argv.slice(2);
+const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+if(!manifest.executionApi||!manifest.executionApi.access)throw new Error('Pulled Apps Script manifest does not expose the Execution API.');
+const clasp=JSON.parse(fs.readFileSync(require('path').join(require('path').dirname(manifestPath),'.clasp.json'),'utf8'));
+if(clasp.scriptId!==expectedScriptId)throw new Error('Pulled project does not match the configured H38 production project.');
+console.log(`PASS — pulled authorized H38 project; executionApi=${manifest.executionApi.access}.`);
+NODE
+(cd "$WORK" && clasp show-authorized-user --json) >"$EVIDENCE/authorized-user.json" 2>&1 || true
+(cd "$WORK" && clasp list-deployments --json) >"$EVIDENCE/deployments.json" 2>&1 || true
+grep -F "$BUSINESS_DEPLOYMENT_ID" "$EVIDENCE/deployments.json" >/dev/null
+
 PARAMS="[\"$RUN_KEY\"]"
 complete=false
 for step in $(seq 1 "$MAX_STEPS"); do
   txt="$EVIDENCE/step-$(printf '%02d' "$step").txt"
   json="$EVIDENCE/step-$(printf '%02d' "$step").json"
-  (cd "$WORK" && clasp run-function boUniversalPublicDemoStep --params "$PARAMS") 2>&1 | tee "$txt"
+  run_function boUniversalPublicDemoStep "$PARAMS" "$txt"
   parse_result "$txt" "$json"
   node - "$json" <<'NODE'
 const r=require(process.argv[2]);
@@ -71,7 +119,7 @@ fi
 
 STATUS_TXT="$EVIDENCE/status.txt"
 STATUS_JSON="$EVIDENCE/status.json"
-(cd "$WORK" && clasp run-function boUniversalPublicDemoStatus --params "$PARAMS") 2>&1 | tee "$STATUS_TXT"
+run_function boUniversalPublicDemoStatus "$PARAMS" "$STATUS_TXT"
 parse_result "$STATUS_TXT" "$STATUS_JSON"
 node - "$STATUS_JSON" <<'NODE'
 const r=require(process.argv[2]);

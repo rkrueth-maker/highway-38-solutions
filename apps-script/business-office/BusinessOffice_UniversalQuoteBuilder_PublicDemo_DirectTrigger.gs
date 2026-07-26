@@ -4,8 +4,9 @@
  * H38 Apps Script deployment before it creates or verifies demo records.
  */
 var H38_UQB_PUBLIC_DEMO_DIRECT_TRIGGER = Object.freeze({
-  version: '2026-07-26-exact-deploy-v1',
+  version: '2026-07-26-exact-deploy-v2',
   runKey: 'PUBLIC-NEW-HOUSE-DEMO-V1',
+  claspContext: 'pulled-authorized-production-project',
   existingDeploymentOnly: true,
   externalActionsEnabled: false
 });
