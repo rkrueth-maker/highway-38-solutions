@@ -12,7 +12,7 @@ const server=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuil
 const catalog=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs');
 const web=read('apps-script/business-office/BusinessOffice_Web.gs');
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
-const client=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_Client.html');
+const client=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html');
 const sample=read('whole-house-quote-package.html');
 
 need(universal,'id="office-results"','Office result section');
@@ -55,9 +55,9 @@ if(drawingSpecs!==10)throw new Error('Expected 10 Office drawing specifications;
 need(web,'if(p.publicUqbDemo)return boRenderUniversalPublicDemo_();','public demo route before authentication');
 need(web,'if(p.publicUqbDrawing)return boRenderUniversalPublicDrawing_','public drawing route');
 need(web,'if(p.publicUqbQuote)return boRenderUniversalPublicQuote_','public quote route');
-need(index,"boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_Client')",'Owner demo control include');
-need(client,"Build / Refresh Public Demo",'Owner build button');
-need(client,"boUniversalPublicDemoStep",'resumable Office generation call');
+need(index,"boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI')",'Owner demo control include');
+need(client,'Build / Refresh Public Demo','Owner build button');
+need(client,'boUniversalPublicDemoStep','resumable Office generation call');
 need(client,'while(!result.complete)','controlled completion loop');
 
 ['Rick Krueth','rkrueth@gmail.com','USER-OWNER','RUN-20260725','UQBP-','UQBS-','Internal Cost','Margin'].forEach(marker=>absent(universal,marker,'private marker on public page'));
