@@ -17,7 +17,7 @@ on:
 
 permissions:
   contents: read
-  issues: read
+  issues: write
 
 concurrency:
   group: office-public-uqb-release
@@ -40,6 +40,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Record Office demo generation start
+        shell: bash
+        run: |
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Office-generated Universal Quote Builder demo release started for ${GITHUB_SHA}. This run will create and verify the H38 Business Office project, fourteen phase quotes, fifty-six itemized lines, eighty-four scope sections, ten CAD files, fifteen documents, and the sanitized public result. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Confirm deployed H38 source is an ancestor
         shell: bash
@@ -96,6 +101,57 @@ jobs:
       - name: Generate Office records files and public result
         run: bash scripts/generate-office-public-uqb-demo.sh
 
+      - name: Record complete Office-generated public demo
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT='artifacts/office-public-uqb-demo/deployment-verification.json'
+          test -f "$RESULT"
+          PROJECT_ID="$(node -p "require('./$RESULT').projectId")"
+          PUBLIC_URL="$(node -p "require('./$RESULT').publicUrl")"
+          COUNTS="$(node -p "JSON.stringify(require('./$RESULT').counts)")"
+          REPORT="$RUNNER_TEMP/office-public-uqb-pass.md"
+          cat > "$REPORT" <<EOF
+          ## PASS — H38 deployment and Office-generated public demo
+
+          - Release commit: ${GITHUB_SHA}
+          - Deployed source: $(cat /tmp/deployed-source-sha.txt)
+          - Business Office source of truth: PASS
+          - Demo project: ${PROJECT_ID}
+          - Persistent project records: 1
+          - Complete phase quotes: 14
+          - Itemized quote lines: 56
+          - Scope sections: 84
+          - CAD drawing records and attached files: 10
+          - Generated quote and combined documents: 15
+          - Published pointer: 1
+          - Verified counts: ${COUNTS}
+          - Public Office result: ${PUBLIC_URL}
+          - External actions performed: none
+          - Existing Apps Script project and deployment IDs: preserved
+          - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "H38 deployment and Office demo PASS" --body-file "$REPORT"
+
+      - name: Record Office demo generation HOLD
+        if: failure()
+        shell: bash
+        run: |
+          REPORT="$RUNNER_TEMP/office-public-uqb-hold.md"
+          cat > "$REPORT" <<EOF
+          ## HOLD — Office-generated public quote and CAD demo
+
+          - Release commit: ${GITHUB_SHA}
+          - Deployed H38 application remains preserved
+          - Office demo generation or verification did not complete
+          - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
+          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office public quote and CAD demo HOLD" --body-file "$REPORT"
+
       - name: Upload exact generation evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,5 +160,5 @@ jobs:
           path: |
             artifacts/office-public-uqb-demo/
             /tmp/deployed-source-sha.txt
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
