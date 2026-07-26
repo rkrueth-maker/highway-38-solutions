@@ -5,14 +5,12 @@ on:
       - 'scripts/fix-new-house-demo-scope.js'
       - 'docs/quote-builder/NEW_HOUSE_DEMO_SCOPE_LOCK.md'
       - '.github/workflows/apply-new-house-scope-fix.yml'
-  push:
-    branches: [agent/fix-new-house-scope-cad]
-    paths:
-      - 'scripts/fix-new-house-demo-scope.js'
-      - '.github/workflows/apply-new-house-scope-fix.yml'
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: new-house-scope-fix
+  cancel-in-progress: true
 jobs:
   fix:
     if: github.actor != 'github-actions[bot]'
@@ -21,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/fix-new-house-scope-cad
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -35,6 +34,7 @@ jobs:
             echo 'No generated corrections.'
           else
             git commit -m 'Correct demo to ground-up new-house construction'
+            git pull --rebase origin agent/fix-new-house-scope-cad
             git push origin HEAD:agent/fix-new-house-scope-cad
           fi
       - name: Validate scope and drawings
