@@ -16,11 +16,23 @@ check_file_contains index.html 'Bring us the problem.' 'Homepage project-first h
 check_file_contains index.html 'complete project plan.' 'Homepage project-first completion'
 check_file_contains index.html 'See it. Scope it. Run it.' 'Homepage connected workflow'
 check_file_contains index.html 'href="start-request.html"' 'Homepage primary project request route'
-check_file_contains index.html 'href="sample-library-now.html"' 'Homepage project examples route'
+check_file_contains index.html 'href="solutions.html"' 'Homepage neutral capability route'
+check_file_contains index.html 'href="pricing.html"' 'Homepage neutral pricing route'
+if grep -Eq 'href="(quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html' index.html; then
+  echo 'FAIL — homepage directly promotes an individual software product.' >&2
+  exit 1
+fi
+echo 'PASS — homepage keeps software products behind neutral discovery paths'
+if grep -Fq "{href:'quote-builder.html',label:'Quote Builder'}" assets/js/h38-site-v2.js || grep -Fq "['Quote Builder','quote-builder.html']" assets/js/h38-site-v2.js || grep -Fq "{href:'business-systems.html',label:'Business Office'}" assets/js/h38-site-v2.js || grep -Fq "['Business Office','business-systems.html']" assets/js/h38-site-v2.js; then
+  echo 'FAIL — shared navigation or footer directly promotes one software product.' >&2
+  exit 1
+fi
+echo 'PASS — shared shell gives Quote Builder and Business Office equal paths'
 check_file_contains solutions.html 'Five connected capabilities' 'What We Do five-capability structure'
 check_file_contains solutions.html 'Automation & Robotics' 'Automation capability'
 check_file_contains solutions.html 'CNC Machining & Process Planning' 'CNC capability'
 check_file_contains solutions.html 'AI-Assisted Quote Builder' 'Quote Builder capability'
+check_file_contains solutions.html 'Highway 38 Business Office' 'Business Office capability'
 check_file_contains sample-library-now.html 'Complete project demonstrations' 'Project Examples headline'
 check_file_contains sample-library-now.html 'Open-ended example library' 'Open-ended Project Examples architecture'
 check_file_contains sample-library-now.html 'data-project="cabin"' 'Whole-building house example'
