@@ -5,67 +5,21 @@ on:
     paths:
       - 'businesses/northern-lakes/**'
       - 'scripts/audit-northern-lakes-rendered-photos.js'
-      - 'scripts/apply-northern-lakes-photo-pass.js'
       - '.github/workflows/northern-lakes-photo-audit.yml'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   rendered-photo-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
-      - name: Checkout photo-audit branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
-      - name: Import full-resolution approved photo assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          asset_dir='businesses/northern-lakes/assets'
-          mkdir -p "$asset_dir"
-          declare -A urls=(
-            [hero.svg]='https://at.adobe.com/sBHIfeXI26iGb2n4'
-            [snow.svg]='https://at.adobe.com/gtAC1CmfPCEuxZRF'
-            [lawn.svg]='https://at.adobe.com/fx92fqG38Zgrx8Fz'
-            [landscaping.svg]='https://at.adobe.com/YPuabXDCeVvTzTQJ'
-            [excavation.svg]='https://at.adobe.com/wsxPCaUgTKslQiSX'
-            [equipment.svg]='https://at.adobe.com/VPZNU2jNSs0CBGch'
-            [materials.svg]='https://at.adobe.com/bTH529YWcRzIXb5S'
-            [lake.svg]='https://at.adobe.com/MakfVzah2NoljNFV'
-            [about.svg]='https://at.adobe.com/D6Sppw6vOlxtV92W'
-            [diamond-logo.png]='https://at.adobe.com/OMtpLzLHR44RSlAA'
-          )
-          for name in "${!urls[@]}"; do
-            echo "Downloading $name"
-            curl --location --fail --retry 3 --retry-all-errors --silent --show-error "${urls[$name]}" -o "$asset_dir/$name"
-            if [[ "$name" == *.svg ]]; then
-              grep -q '<svg' "$asset_dir/$name" || { echo "$name did not download as SVG"; head -c 300 "$asset_dir/$name"; exit 1; }
-            else
-              file --mime-type "$asset_dir/$name" | grep -q 'image/png' || { echo "$name did not download as PNG"; exit 1; }
-            fi
-          done
-          node scripts/apply-northern-lakes-photo-pass.js
-      - name: Commit imported photo corrections
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            echo 'Photo files already current.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add businesses/northern-lakes scripts/audit-northern-lakes-rendered-photos.js scripts/apply-northern-lakes-photo-pass.js
-          git commit -m 'Finish Northern Lakes rendered photo corrections'
-          git push origin HEAD:${{ github.head_ref }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
