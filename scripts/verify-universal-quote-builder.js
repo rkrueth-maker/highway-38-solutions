@@ -36,7 +36,7 @@ check(!server.includes('H38-DEMO8-CABIN')&&!publicServer.includes('H38-DEMO8-CAB
 check(client.includes("qbOpen('universal')"),'Universal Builder navigation is missing.');
 check(client.includes('boUniversalQuoteBuilderCatalog'),'Universal Builder client catalog call is missing.');
 check(index.includes("boInclude_('BusinessOffice_UniversalQuoteBuilder_Client')"),'Quote Builder does not include the universal client.');
-check(index.includes("boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_Client')"),'Quote Builder does not include the Office public-demo control.');
+check(index.includes("boInclude_('BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI')"),'Quote Builder does not include the Office public-demo control.');
 check(publicPage.includes('One project inside Office.'),'Public Office-first demonstration hero is missing.');
 check(publicPage.includes('Office-generated public demonstration'),'Public Office-generated result is missing.');
 check(publicPage.includes('?publicUqbDemo=1'),'Public sanitized Business Office route is missing.');
