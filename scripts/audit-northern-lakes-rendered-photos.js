@@ -138,9 +138,13 @@ function server() {
         }
 
         const broken = images.filter(img => img.visible && (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0));
-        const underResolved = images.filter(img => img.visible && img.renderedWidth >= 220 && img.renderedHeight >= 140 && (
-          img.naturalWidth < img.renderedWidth * 1.15 || img.naturalHeight < img.renderedHeight * 1.15
-        ));
+        const underResolved = images.filter(img => {
+          if (!img.visible || img.renderedWidth < 220 || img.renderedHeight < 140) return false;
+          const scaleX = img.renderedWidth / img.naturalWidth;
+          const scaleY = img.renderedHeight / img.naturalHeight;
+          const effectiveScale = Math.max(scaleX, scaleY);
+          return effectiveScale > 1.25;
+        });
         const missingAlt = images.filter(img => img.visible && !img.alt.trim());
         const duplicateSources = Object.entries(images.filter(img => img.visible).reduce((acc, img) => {
           const key = (img.currentSrc || img.src).replace(/[?&]v=[^&]+/g, '');
