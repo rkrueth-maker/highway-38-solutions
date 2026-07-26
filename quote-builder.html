@@ -3,19 +3,159 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Universal Quote Builder — $59/month | Highway 38 Solutions</title>
-<meta name="description" content="Highway 38 Universal Quote Builder starts at $59 per month with self-setup included or assisted setup for $499 one-time. Standard H38 AI is included.">
+<title>Universal Quote Builder — Examples and Pricing | Highway 38 Solutions</title>
+<meta name="description" content="Build professional quotes and review complete public project examples, matched CAD drawings, pricing, scopes, and printable packages in the Highway 38 Universal Quote Builder.">
+<link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/quote-builder.html">
 <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
 <link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260723-flow">
-<style>.offer-band{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding:24px;border:1px solid #d8e2dc;border-radius:18px;background:#fff}.offer-price{font-size:2rem;font-weight:900;color:#1f6b47}.offer-price small{display:block;font-size:.95rem;color:#52636c}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature-grid article{background:#fff;border:1px solid #d8e2dc;border-radius:14px;padding:20px}.feature-grid h3{margin-top:0}.depth-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.depth-card{background:#fff;border:1px solid #d8e2dc;border-top:5px solid #1f6b47;border-radius:14px;padding:17px}.depth-card strong{font-size:1.8rem;color:#1f6b47}.depth-card h3{margin:5px 0}.universal-band{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}.universal-band img{width:100%;border-radius:16px}@media(max-width:980px){.depth-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:850px){.offer-band,.feature-grid,.universal-band{grid-template-columns:1fr}}@media(max-width:560px){.depth-grid{grid-template-columns:1fr}}</style>
+<link rel="stylesheet" href="contractor-demo.css?v=20260723-direct-approved">
+<style>
+#overview,#examples,#pricing,#features,#universal-quote-builder-examples{scroll-margin-top:110px}
+.qb-subnav{position:sticky;top:79px;z-index:35;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:10px 20px;background:#0b2942;border-bottom:1px solid rgba(255,255,255,.12)}
+.qb-subnav a{padding:8px 14px;border-radius:999px;color:#fff;font-weight:900;font-size:.9rem}
+.qb-subnav a:hover,.qb-subnav a:focus{background:#fff;color:#0b2942}
+.offer-band{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding:24px;border:1px solid #d8e2dc;border-radius:18px;background:#fff}
+.offer-price{font-size:2rem;font-weight:900;color:#1f6b47}.offer-price small{display:block;font-size:.95rem;color:#52636c}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature-grid article{background:#fff;border:1px solid #d8e2dc;border-radius:14px;padding:20px}.feature-grid h3{margin-top:0}
+.depth-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.depth-card{background:#fff;border:1px solid #d8e2dc;border-top:5px solid #1f6b47;border-radius:14px;padding:17px}.depth-card strong{font-size:1.8rem;color:#1f6b47}.depth-card h3{margin:5px 0}
+.universal-band{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}.universal-band img{width:100%;border-radius:16px}
+.examples-intro{max-width:900px;margin:0 auto 28px;text-align:center}.examples-intro p{color:#52636c;line-height:1.65}
+.examples-status{max-width:1180px;margin:0 auto;padding:22px;border:1px solid #d8e2dc;border-radius:14px;background:#fff;color:#52636c;text-align:center}
+.project-card[data-project="cabin"]{grid-column:1/-1}
+.project-card[data-project="cabin"] .project-visual img{object-fit:cover;background:#f4f7f5}
+.project-card[data-project="cabin"] .project-visual figure:first-child img{object-fit:contain}
+.project-topline span{font-weight:900;color:#52636c}
+.uqb-under-house{border-top:8px solid #0b1f34;background:#f2f6f3;padding:52px 28px 30px}
+.uqb-head{text-align:center;max-width:880px;margin:0 auto 28px}.uqb-head h4{font-size:clamp(2rem,4vw,3.2rem);line-height:1.08;margin:8px 0;color:#0b1f34}.uqb-head p{color:#52636c;line-height:1.65}
+.uqb-kicker{font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#1f6b47;font-size:.8rem}
+.uqb-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px}.uqb-overview article{background:#fff;border:1px solid #d8e2dc;border-radius:16px;padding:20px}.uqb-overview strong{display:block;color:#1f6b47;font-size:1.1rem;margin-bottom:5px}
+.uqb-public-note{margin:0 0 28px;border-left:5px solid #1f6b47;background:#e7f5ec;padding:14px 16px;border-radius:10px}
+.uqb-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.uqb-card{background:#fff;border:1px solid #d8e2dc;border-radius:18px;overflow:hidden;box-shadow:0 12px 30px rgba(11,31,52,.08)}
+.uqb-preview{aspect-ratio:17/11;background:#fff;border-bottom:1px solid #d8e2dc;overflow:hidden}.uqb-preview img{width:100%;height:100%;object-fit:contain;display:block}
+.uqb-card-body{padding:20px}.uqb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.uqb-card h5{font-size:1.45rem;margin:0;color:#0b1f34}.uqb-price{font-size:1.35rem;font-weight:900;color:#1f6b47;white-space:nowrap}.uqb-card p{color:#52636c}
+.uqb-sheets{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.uqb-sheets span{background:#eef4f0;border:1px solid #d8e2dc;border-radius:999px;padding:5px 9px;font-size:.78rem;font-weight:900}
+.uqb-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:17px}.uqb-actions a{display:grid;place-items:center;text-align:center;border-radius:9px;padding:11px 10px;text-decoration:none;font-weight:900;background:#0b1f34;color:#fff}.uqb-actions a:nth-child(2){background:#fff;color:#0b1f34;border:2px solid #0b1f34}.uqb-actions a:nth-child(3){grid-column:1/-1;background:#ff6900}
+.uqb-warning{background:#fff3d8;border:1px solid #e7c678;border-radius:13px;padding:15px;line-height:1.5;margin-top:18px}.uqb-error{background:#fff;border:1px solid #d77;border-radius:12px;padding:18px;color:#7a1f1f}
+@media(max-width:980px){.depth-grid{grid-template-columns:repeat(2,1fr)}.qb-subnav{top:74px}}
+@media(max-width:900px){.uqb-overview,.uqb-example-grid{grid-template-columns:1fr}}
+@media(max-width:850px){.offer-band,.feature-grid,.universal-band{grid-template-columns:1fr}}
+@media(max-width:620px){.qb-subnav{position:static}.uqb-under-house{padding:38px 16px 20px}.uqb-card-head{display:block}.uqb-price{margin-top:8px}.uqb-actions{grid-template-columns:1fr}.uqb-actions a:nth-child(3){grid-column:auto}}
+@media(max-width:560px){.depth-grid{grid-template-columns:1fr}}
+</style>
 </head>
-<body data-page="quote-builder"><a class="skip-link" href="#main">Skip to main content</a><header class="pi-nav"></header><main id="main">
-<section class="pi-hero"><div class="pi-hero-copy"><span class="pi-eyebrow">Universal Quote Builder</span><h1>Simple when the quote is simple.<br><strong>Deep when the work is complex.</strong></h1><p>Build a recurring service quote, measured construction estimate, technical manufacturing quote, subcontractor bid package, or coordinated multi-business proposal from the same shared engine.</p><div class="pi-actions"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="universal-quote-builder.html">See Every Example</a></div></div><div class="pi-hero-media"><img src="assets/approved-website-images/business-workflow-office.webp" alt="Universal Quote Builder and connected business workflow interface"></div></section>
-<section class="pi-section"><div class="offer-band pi-compact"><div><span class="pi-eyebrow">Professional universal quoting</span><h2>Highway 38 Quote Builder</h2><p>For contractors, service businesses, repair shops, manufacturers, fabricators, integrators, and professional firms that need professional quoting without being forced into an industry-specific app.</p></div><div><div class="offer-price">$59/month<small>Self-setup included<br>Assisted setup: $499 one-time</small></div></div></div></section>
-<section class="pi-section alt"><div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">Progressive quote depth</span><h2>Only show the structure the project needs.</h2><p>Quote Builder recommends an appropriate level from intake. Authorized users can change it.</p></div><div class="depth-grid pi-compact"><article class="depth-card"><strong>1</strong><h3>Basic</h3><p>Customer, service, quantity, frequency, price, terms, and acceptance.</p></article><article class="depth-card"><strong>2</strong><h3>Itemized</h3><p>Services, materials, labor, packages, options, taxes, and discounts.</p></article><article class="depth-card"><strong>3</strong><h3>Area-based</h3><p>Rooms, yards, zones, measurements, quantities, photos, and drawings.</p></article><article class="depth-card"><strong>4</strong><h3>Technical</h3><p>Specifications, operations, rates, setup, tooling, inspection, revisions, and risk.</p></article><article class="depth-card"><strong>5</strong><h3>Concept and integration</h3><p>Alternatives, layouts, architecture, equipment, controls, phases, commissioning, and acceptance.</p></article></div></section>
-<section class="pi-section"><div class="universal-band pi-compact"><div><span class="pi-eyebrow">One structured project model</span><h2>A quote is more than prices and a PDF.</h2><p>Complex projects can use a master proposal with independently manageable area, trade, system, phase, assembly, vendor, subcontractor, alternate, and upgrade sub-quotes.</p><div class="pi-list"><div>Customer proposal and protected internal estimate from the same structured data</div><div>Deterministic, auditable pricing formulas and quantity sources</div><div>Material takeoff, labor, equipment, tooling, vendor, and subcontractor costing</div><div>Drawings, annotated images, revision classifications, and professional-review controls</div><div>Work instructions, inspection checks, evidence requirements, and completion criteria</div><div>Work-order, purchase, schedule, change-order, invoice, closeout, and actual-review basis</div></div><div class="pi-actions"><a class="pi-btn primary" href="universal-quote-builder.html#result">See the Completed Result</a><a class="pi-btn secondary" href="quote-builder-sample-proposal.html">View Printable Sample Quote</a></div></div><div><img src="assets/demo-workthroughs/cabin-plan-sheet.png?v=20260722-approved" alt="Professional project drawing and coordinated quote demonstration"></div></div></section>
-<section class="pi-section alt"><div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">Included</span><h2>Everything needed to create, track, review, and approve professional quotes.</h2></div><div class="feature-grid pi-compact"><article><h3>Universal quote system</h3><p>Customers, master and sub-quotes, reusable services, price-book items, templates, lifecycle, options, approvals, revisions, and acceptance records.</p></article><article><h3>Pricing, drawings, and documents</h3><p>Labor, materials, machines, equipment, setup, operations, formulas, markup, margin, tax, discounts, photos, attachments, drawing registers, and PDFs.</p></article><article><h3>Product limits</h3><p>One business, up to three users, standard backups, standard support, and normal included H38 AI use. Advanced processing and configuration are scoped separately.</p></article></div></section>
-<section class="pi-section"><div class="pi-split pi-compact"><div><span class="pi-eyebrow">H38 AI included</span><h2>Eight controlled universal agents—not dozens of disconnected industry bots.</h2><div class="pi-list"><div>Intake and Requirements</div><div>Quote Architect</div><div>Measurement and Quantity</div><div>Pricing and Costing</div><div>Scope and Instruction</div><div>Drawing</div><div>Quote Review</div><div>Business Setup</div></div></div><div class="pi-screen"><img src="assets/approved-website-images/08-request-process-checklist.jpg" alt="Field capture, controlled AI, and quote review checklist"></div></div><div class="pi-callout pi-compact"><p><strong>Standard H38 AI is included.</strong> AI may organize inputs, draft content, identify gaps, and recommend formulas. Official prices, labor rates, material costs, code requirements, and technical specifications must come from approved business knowledge or verified sources. Advanced photo measurement, high-volume processing, custom agents, and specialized automation require the appropriate product level or approved scope.</p></div></section>
-<section class="pi-section alt"><div class="pi-head pi-compact"><span class="pi-eyebrow">Assisted setup — $499</span><h2>Launch with the business basics already configured.</h2></div><div class="pi-list pi-compact"><div>Business branding and company settings</div><div>Quote template and customer-facing proposal setup</div><div>Up to 25 service or price-book items</div><div>Basic pricing methods and approval controls</div><div>Up to three users</div><div>One remote setup session and basic launch verification</div></div><div class="pi-callout pi-compact"><p><strong>Advanced technical setup</strong> for machining, stamping, automation, complex construction, specialized formulas, migrations, and custom Business Knowledge Packs is quoted separately.</p></div></section>
-<section class="pi-section dark"><div class="pi-callout pi-compact pi-center"><h2>Start at $59 per month.</h2><p>Self-setup is included. Nothing is activated or charged from the request form. Existing users can open the secure Quote Builder directly.</p><div class="pi-actions" style="justify-content:center"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="universal-quote-builder.html">Explore All Examples</a><a class="pi-btn secondary" href="https://script.google.com/macros/s/AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg/exec?app=business-office&amp;quoteBuilder=1#module=quoteBuilder">Existing User: Open Quote Builder</a><a class="pi-btn secondary" href="portal.html#business-office">Owner Access</a></div></div></section>
-</main><footer class="pi-footer"></footer><script src="assets/js/h38-site-v2.js?v=2026-07-23-site-architecture-v2"></script></body></html>
+<body data-page="quote-builder">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="pi-nav"></header>
+<main id="main">
+<section class="pi-hero" id="overview">
+  <div class="pi-hero-copy">
+    <span class="pi-eyebrow">Universal Quote Builder</span>
+    <h1>Simple when the quote is simple.<br><strong>Deep when the work is complex.</strong></h1>
+    <p>Build a recurring service quote, measured construction estimate, technical manufacturing quote, subcontractor bid package, or coordinated multi-business proposal from the same shared engine.</p>
+    <div class="pi-actions"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="#examples">Explore Project Examples</a></div>
+  </div>
+  <div class="pi-hero-media"><img src="assets/approved-website-images/business-workflow-office.webp" alt="Universal Quote Builder and connected business workflow interface"></div>
+</section>
+
+<nav class="qb-subnav" aria-label="Quote Builder sections">
+  <a href="#overview">Overview</a>
+  <a href="#examples">Project Examples</a>
+  <a href="#pricing">Pricing</a>
+  <a href="#features">Features</a>
+</nav>
+
+<section class="pi-section" id="pricing">
+  <div class="offer-band pi-compact">
+    <div><span class="pi-eyebrow">Professional universal quoting</span><h2>Highway 38 Quote Builder</h2><p>For contractors, service businesses, repair shops, manufacturers, fabricators, integrators, and professional firms that need professional quoting without being forced into an industry-specific app.</p></div>
+    <div><div class="offer-price">$59/month<small>Self-setup included<br>Assisted setup: $499 one-time</small></div></div>
+  </div>
+</section>
+
+<section class="pi-section alt" id="examples">
+  <div class="examples-intro">
+    <span class="pi-eyebrow">Project examples inside Quote Builder</span>
+    <h2>See complete projects, quotes, drawings, and printable packages.</h2>
+    <p>All public project demonstrations now live here inside the Quote Builder experience. The whole-building house remains the primary example, with its matched quote-and-CAD packages directly beneath it.</p>
+  </div>
+  <div id="quoteBuilderExamples" class="examples-status" aria-live="polite">Loading Quote Builder project examples…</div>
+</section>
+
+<section class="pi-section alt">
+  <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">Progressive quote depth</span><h2>Only show the structure the project needs.</h2><p>Quote Builder recommends an appropriate level from intake. Authorized users can change it.</p></div>
+  <div class="depth-grid pi-compact">
+    <article class="depth-card"><strong>1</strong><h3>Basic</h3><p>Customer, service, quantity, frequency, price, terms, and acceptance.</p></article>
+    <article class="depth-card"><strong>2</strong><h3>Itemized</h3><p>Services, materials, labor, packages, options, taxes, and discounts.</p></article>
+    <article class="depth-card"><strong>3</strong><h3>Area-based</h3><p>Rooms, yards, zones, measurements, quantities, photos, and drawings.</p></article>
+    <article class="depth-card"><strong>4</strong><h3>Technical</h3><p>Specifications, operations, rates, setup, tooling, inspection, revisions, and risk.</p></article>
+    <article class="depth-card"><strong>5</strong><h3>Concept and integration</h3><p>Alternatives, layouts, architecture, equipment, controls, phases, commissioning, and acceptance.</p></article>
+  </div>
+</section>
+
+<section class="pi-section">
+  <div class="universal-band pi-compact">
+    <div><span class="pi-eyebrow">One structured project model</span><h2>A quote is more than prices and a PDF.</h2><p>Complex projects can use a master proposal with independently manageable area, trade, system, phase, assembly, vendor, subcontractor, alternate, and upgrade sub-quotes.</p>
+      <div class="pi-list"><div>Customer proposal and protected internal estimate from the same structured data</div><div>Deterministic, auditable pricing formulas and quantity sources</div><div>Material takeoff, labor, equipment, tooling, vendor, and subcontractor costing</div><div>Drawings, annotated images, revision classifications, and professional-review controls</div><div>Work instructions, inspection checks, evidence requirements, and completion criteria</div><div>Work-order, purchase, schedule, change-order, invoice, closeout, and actual-review basis</div></div>
+      <div class="pi-actions"><a class="pi-btn primary" href="#examples">See Completed Projects</a><a class="pi-btn secondary" href="quote-builder-sample-proposal.html">View Printable Sample Quote</a></div>
+    </div>
+    <div><img src="assets/demo-workthroughs/cabin-plan-sheet.png?v=20260722-approved" alt="Professional project drawing and coordinated quote demonstration"></div>
+  </div>
+</section>
+
+<section class="pi-section alt" id="features">
+  <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">Included</span><h2>Everything needed to create, track, review, and approve professional quotes.</h2></div>
+  <div class="feature-grid pi-compact">
+    <article><h3>Universal quote system</h3><p>Customers, master and sub-quotes, reusable services, price-book items, templates, lifecycle, options, approvals, revisions, and acceptance records.</p></article>
+    <article><h3>Pricing, drawings, and documents</h3><p>Labor, materials, machines, equipment, setup, operations, formulas, markup, margin, tax, discounts, photos, attachments, drawing registers, and PDFs.</p></article>
+    <article><h3>Product limits</h3><p>One business, up to three users, standard backups, standard support, and normal included H38 AI use. Advanced processing and configuration are scoped separately.</p></article>
+  </div>
+</section>
+
+<section class="pi-section">
+  <div class="pi-split pi-compact">
+    <div><span class="pi-eyebrow">H38 AI included</span><h2>Eight controlled universal agents—not dozens of disconnected industry bots.</h2><div class="pi-list"><div>Intake and Requirements</div><div>Quote Architect</div><div>Measurement and Quantity</div><div>Pricing and Costing</div><div>Scope and Instruction</div><div>Drawing</div><div>Quote Review</div><div>Business Setup</div></div></div>
+    <div class="pi-screen"><img src="assets/approved-website-images/08-request-process-checklist.jpg" alt="Field capture, controlled AI, and quote review checklist"></div>
+  </div>
+  <div class="pi-callout pi-compact"><p><strong>Standard H38 AI is included.</strong> AI may organize inputs, draft content, identify gaps, and recommend formulas. Official prices, labor rates, material costs, code requirements, and technical specifications must come from approved business knowledge or verified sources. Advanced photo measurement, high-volume processing, custom agents, and specialized automation require the appropriate product level or approved scope.</p></div>
+</section>
+
+<section class="pi-section alt">
+  <div class="pi-head pi-compact"><span class="pi-eyebrow">Assisted setup — $499</span><h2>Launch with the business basics already configured.</h2></div>
+  <div class="pi-list pi-compact"><div>Business branding and company settings</div><div>Quote template and customer-facing proposal setup</div><div>Up to 25 service or price-book items</div><div>Basic pricing methods and approval controls</div><div>Up to three users</div><div>One remote setup session and basic launch verification</div></div>
+  <div class="pi-callout pi-compact"><p><strong>Advanced technical setup</strong> for machining, stamping, automation, complex construction, specialized formulas, migrations, and custom Business Knowledge Packs is quoted separately.</p></div>
+</section>
+
+<section class="pi-section dark">
+  <div class="pi-callout pi-compact pi-center"><h2>Start at $59 per month.</h2><p>Self-setup is included. Nothing is activated or charged from the request form. Existing users can open the secure Quote Builder directly.</p>
+    <div class="pi-actions" style="justify-content:center"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="#examples">Explore Project Examples</a><a class="pi-btn secondary" href="https://script.google.com/macros/s/AKfycbyf9ivM04iKqg9QqM1PgRQgD4Imf6VY_mMpCLLsU6lRbGYsprTEEzlwEE93pRgqPzCcmg/exec?app=business-office&amp;quoteBuilder=1#module=quoteBuilder" data-owner-app>Existing User: Open Quote Builder</a><a class="pi-btn secondary" href="portal.html#business-office">Owner Access</a></div>
+  </div>
+</section>
+</main>
+<footer class="pi-footer"></footer>
+<script src="assets/js/h38-site-v2.js?v=2026-07-27-quote-builder-examples"></script>
+<script src="assets/js/uqb-public-examples.js?v=20260726-static-public-v1"></script>
+<script>
+(function(){
+  'use strict';
+  const mount=document.getElementById('quoteBuilderExamples');
+  const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value)||0);
+  const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const href=(key,view)=>'universal-quote-builder-example.html?example='+encodeURIComponent(key)+'&view='+view;
+  function renderUqb(){
+    const data=window.H38_UQB_PUBLIC_EXAMPLES;
+    const grid=document.getElementById('uqbExampleGrid');
+    if(!grid)return;
+    if(!data||!Array.isArray(data.packages)){grid.innerHTML='<div class="uqb-error">The public quote-and-CAD examples could not be loaded.</div>';return;}
+    grid.innerHTML=data.packages.map((item,index)=>{
+      const drawing=data.drawings[item.sheets[0]];
+      const sheetTags=item.sheets.map(sheet=>'<span>'+escape(sheet)+'</span>').join('');
+      return '<article class="uqb-card"><div class="uqb-preview"><img loading="lazy" src="'+escape(drawing.asset)+'" alt="'+escape(drawing.sheet+' '+drawing.title)+'"></div><div class="uqb-card-body"><div class="uqb-card-head"><div><span class="uqb-kicker">Public example '+String(index+1).padStart(2,'0')+'</span><h5>'+escape(item.title)+'</h5></div><div class="uqb-price">'+money(item.total)+'</div></div><p>'+escape(item.summary)+'</p><div class="uqb-sheets">'+sheetTags+'</div><div class="uqb-actions"><a href="'+href(item.key,'quote')+'" target="_blank" rel="noopener">View full quote</a><a href="'+href(item.key,'cad')+'" target="_blank" rel="noopener">View full-size CAD sheets</a><a href="'+href(item.key,'package')+'" target="_blank" rel="noopener">Print / save complete package</a></div></div></article>';
+    }).join('');
+  }
+  fetch('sample-library-now.html?v=20260727-integrated',{cache:'no-store'})
+    .then(response=>{if(!response.ok)throw new Error('HTTP '+response.status);return response.text();})
+    .then(markup=>{const doc=new DOMParser().parseFromString(markup,'text/html');const grid=doc.querySelector('#projects .project-grid');if(!grid)throw new Error('Example grid missing');mount.className='';mount.replaceChildren(grid.cloneNode(true));mount.querySelectorAll('img').forEach(img=>{if(!img.loading)img.loading='lazy';img.decoding='async';});renderUqb();})
+    .catch(error=>{mount.className='examples-status uqb-error';mount.textContent='Project examples could not be loaded. Please refresh the page. ('+error.message+')';});
+})();
+</script>
+</body>
+</html>
