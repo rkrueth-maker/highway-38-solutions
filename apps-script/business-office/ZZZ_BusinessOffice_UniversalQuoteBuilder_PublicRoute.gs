@@ -1,11 +1,12 @@
 /**
- * Unified-shell public route extension for matched UQB quote/CAD packages.
+ * Unified-shell public route extension for matched Office-backed UQB packages.
  *
  * This assignment intentionally replaces only the public route dispatcher.
  * Authentication and every private Business Office route remain unchanged.
  */
 h38UnifiedShellPublicUqbRoute_=function(event){
   var proposalToken=h38UnifiedShellParameter_(event,'proposal');
+  var status=h38UnifiedShellParameter_(event,'publicUqbStatus');
   var demo=h38UnifiedShellParameter_(event,'publicUqbDemo');
   var packageKey=h38UnifiedShellParameter_(event,'publicUqbPackage');
   var packageView=h38UnifiedShellParameter_(event,'view');
@@ -14,6 +15,10 @@ h38UnifiedShellPublicUqbRoute_=function(event){
   if(proposalToken){
     if(typeof boRenderCustomerProposal_!=='function')throw new Error('Customer proposal renderer is unavailable.');
     return boRenderCustomerProposal_(proposalToken);
+  }
+  if(status==='1'){
+    if(typeof boRenderUniversalPublicOfficeStatus_!=='function')throw new Error('Published Office demonstration status is unavailable.');
+    return boRenderUniversalPublicOfficeStatus_();
   }
   if(demo==='1'){
     if(typeof boRenderUniversalPublicExamples_==='function')return boRenderUniversalPublicExamples_();
