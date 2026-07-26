@@ -17,9 +17,13 @@ function write(name, content) {
 }
 
 function versionPhotos(content) {
-  return content.replace(
-    new RegExp(`assets\/(${photoNames})\\.svg(?:\\?[^"'\\s>]*)?`, 'g'),
+  content = content.replace(
+    new RegExp(`assets/(${photoNames})\\.svg(?:\\?[^"'\\s>]*)?`, 'g'),
     (_match, name) => `assets/${name}.svg?v=${version}`
+  );
+  return content.replace(
+    /assets\/diamond-logo\.(?:svg|png)(?:\?[^"'\s>]*)?/g,
+    `assets/diamond-logo.png?v=${version}`
   );
 }
 
@@ -32,6 +36,7 @@ let shell = fs.readFileSync(shellPath, 'utf8');
 shell = shell.replace(/const V='[^']+';/, `const V='${version}';`);
 shell = shell.replace("landscape:asset('lawn.svg')", "landscape:asset('landscaping.svg')");
 shell = shell.replace("about:asset('hero.svg')", "about:asset('about.svg')");
+shell = shell.replace(/diamond-logo\.svg/g, 'diamond-logo.png');
 fs.writeFileSync(shellPath, shell);
 
 for (const file of fs.readdirSync(site).filter(name => name.endsWith('.html'))) {
@@ -42,10 +47,6 @@ for (const file of fs.readdirSync(site).filter(name => name.endsWith('.html'))) 
 
   if (file === 'landscaping.html') {
     html = replaceAll(html, `assets/lawn.svg?v=${version}`, `assets/landscaping.svg?v=${version}`);
-    html = html.replace(
-      /(<h3>Landscape Maintenance<\/h3>)/,
-      '$1'
-    );
   }
 
   if (file === 'about.html') {
@@ -88,5 +89,13 @@ for (const file of fs.readdirSync(site).filter(name => name.endsWith('.html'))) 
 
   write(file, html);
 }
+
+const auditPath = path.join(root, 'scripts', 'audit-northern-lakes-rendered-photos.js');
+let audit = fs.readFileSync(auditPath, 'utf8');
+audit = audit.replace(
+  `const underResolved = images.filter(img => img.visible && img.renderedWidth >= 220 && img.renderedHeight >= 140 && (\n          img.naturalWidth < img.renderedWidth * 1.15 || img.naturalHeight < img.renderedHeight * 1.15\n        ));`,
+  `const underResolved = images.filter(img => {\n          if (!img.visible || img.renderedWidth < 220 || img.renderedHeight < 140) return false;\n          const scaleX = img.renderedWidth / img.naturalWidth;\n          const scaleY = img.renderedHeight / img.naturalHeight;\n          const effectiveScale = Math.max(scaleX, scaleY);\n          return effectiveScale > 1.25;\n        });`
+);
+fs.writeFileSync(auditPath, audit);
 
 console.log(`Applied Northern Lakes rendered photo pass ${version}.`);
