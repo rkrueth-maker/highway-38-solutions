@@ -36,10 +36,23 @@ jobs:
         with:
           node-version: '24'
       - name: Verify Office-driven quote and CAD contract
+        shell: bash
         run: |
-          node scripts/verify-public-quote-builder-result.js
-          node scripts/verify-universal-quote-builder.js
-          bash scripts/verify-issue83-source.sh
+          set -euo pipefail
+          run_check() {
+            local label="$1"
+            shift
+            local out="/tmp/${label}.log"
+            if ! "$@" >"$out" 2>&1; then
+              echo "FAIL — ${label}"
+              tail -n 80 "$out"
+              exit 1
+            fi
+            tail -n 20 "$out"
+          }
+          run_check public-result node scripts/verify-public-quote-builder-result.js
+          run_check universal-builder node scripts/verify-universal-quote-builder.js
+          run_check public-source bash scripts/verify-issue83-source.sh
 
   generate-and-verify-live-demo:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
