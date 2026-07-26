@@ -40,13 +40,16 @@ for(const route of publicPrimary.filter(route=>!['start-request.html'].includes(
   check(`${route}: canonical shared shell`,html.includes('assets/js/h38-site-v2.js')||route==='portal.html');
 }
 const home=read('index.html');
+const shell=read('assets/js/h38-site-v2.js');
 const examples=read('sample-library-now.html');
 const universal=read('universal-quote-builder.html');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const request=read('start-request.html');
 const portal=read('portal.html');
-check('home routes to project examples',home.includes('sample-library-now.html'));
+check('home routes to neutral capability discovery',home.includes('solutions.html')&&home.includes('pricing.html'));
+check('home does not directly promote either software product',!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(home));
+check('shared shell does not directly promote either software product',!shell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!shell.includes("['Quote Builder','quote-builder.html']")&&!shell.includes("{href:'business-systems.html',label:'Business Office'}")&&!shell.includes("['Business Office','business-systems.html']"));
 check('home routes to start project',home.includes('start-request.html'));
 const projectCardCount=(examples.match(/class="project-card(?:"|\s)/g)||[]).length;
 check('examples preserve approved project cards and remain open-ended',projectCardCount>=8&&examples.includes('Open-ended example library'),String(projectCardCount));
@@ -78,7 +81,7 @@ check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(pu
 check('no raw card fields',!/cardNumber|\bcvv\b|\bcvc\b|fullCard/i.test(publicText));
 check('no fake testimonial claims',!/five-star review|★★★★★|verified customer review|what our customers say/i.test(publicText));
 check('no actionable public checkout',!/href="[^"]*(?:checkout|cart)|action="[^"]*(?:checkout|cart)|>\s*(?:buy now|add to cart|checkout)\s*</i.test(publicText));
-const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),architecture:'project-first-office-generated-universal-quote-v2',passed:passes.length,failed:failures.length,routes:primary,existingProjectExamples:projectCardCount,universalDemonstration:true,officeGeneratedDemo:true,controls:{routeRegistry:true,sharedShell:true,projectExamples:true,controlledIntake:true,deterministicRetiredRedirects:true,externalCheckout:false,rawCardFields:false},passes,failures};
+const evidence={status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),architecture:'project-first-office-generated-universal-quote-v2-equal-product-paths',passed:passes.length,failed:failures.length,routes:primary,existingProjectExamples:projectCardCount,universalDemonstration:true,officeGeneratedDemo:true,controls:{routeRegistry:true,sharedShell:true,projectExamples:true,equalProductPaths:true,controlledIntake:true,deterministicRetiredRedirects:true,externalCheckout:false,rawCardFields:false},passes,failures};
 const outDir=path.join(ROOT,'launch-control','evidence');
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'public-customer-path-verification.json'),JSON.stringify(evidence,null,2)+'\n');
