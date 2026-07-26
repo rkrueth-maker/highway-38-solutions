@@ -19,7 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: node scripts/fix-new-house-demo-scope.js
+      - name: Apply locked ground-up scope
+        run: node scripts/fix-new-house-demo-scope.js
       - name: Validate scope and drawings
         run: |
           grep -q 'New-House Construction<br>From Lot Clearing to Closeout' whole-house-quote-package.html
