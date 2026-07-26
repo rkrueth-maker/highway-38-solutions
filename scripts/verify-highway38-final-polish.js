@@ -47,10 +47,10 @@ const publicDrawings=publicData&&publicData.drawings?Object.keys(publicData.draw
 const matchedSheets=publicPackages.flatMap(item=>item.sheets||[]);
 
 check('homepage uses current project-first promise',index.includes('Bring us the problem.')&&index.includes('complete project plan.')&&index.includes('See it. Scope it. Run it.'));
-check('homepage has request and examples actions',index.includes('href="start-request.html"')&&index.includes('href="sample-library-now.html"'));
+check('homepage has request and neutral discovery actions',index.includes('href="start-request.html"')&&index.includes('href="solutions.html"')&&index.includes('href="pricing.html"')&&!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(index));
 check('homepage uses approved local imagery without mockup shell',index.includes('assets/approved-website-images/')&&!index.includes('approved-homepage-mockup.png')&&!/class="[^"]*hotspot/.test(index));
 check('homepage contains no prohibited CNC quantity claim or personal attribution',!/25,000\+\s*(?:CNC\s+)?programs?|Rick\s+Krueth/i.test(index));
-check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-grid'));
+check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-grid')&&!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}"));
 check('canonical public shell locks image replacement',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(publicShell));
 
 check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
@@ -103,6 +103,6 @@ check('Business Office uses controlled approved logo',businessConfig.branding.lo
 check('Business Office remains one complete app',businessConfig.package&&businessConfig.package.singleApp===true);
 check('deployment updates existing IDs in place',deployment.includes('clasp update-deployment "$OWNER_DEPLOYMENT_ID"')&&deployment.includes('clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID"')&&!/clasp\s+(?:create-script|create-deployment)\b/.test(deployment));
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-embedded-public-quote-cad-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,publicPlacement:'directly beneath whole-building house example',matchedPublicPackages:publicPackages.length,publicCadSheets:publicDrawings.length,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-equal-product-paths-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,publicPlacement:'dedicated Quote Builder and compatibility example routes',matchedPublicPackages:publicPackages.length,publicCadSheets:publicDrawings.length,passes,failures};
 const outputDir=path.join(root,'artifacts','final-polish');fs.mkdirSync(outputDir,{recursive:true});fs.writeFileSync(path.join(outputDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);
