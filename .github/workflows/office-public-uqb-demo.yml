@@ -53,6 +53,14 @@ jobs:
           run_check public-result node scripts/verify-public-quote-builder-result.js
           run_check universal-builder node scripts/verify-universal-quote-builder.js
           run_check public-source bash scripts/verify-issue83-source.sh
+      - name: Upload source verifier logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: office-public-uqb-source-${{ github.run_id }}
+          path: /tmp/*.log
+          if-no-files-found: warn
+          retention-days: 7
 
   generate-and-verify-live-demo:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
