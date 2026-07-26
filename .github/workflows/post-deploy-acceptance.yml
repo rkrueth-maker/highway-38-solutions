@@ -175,9 +175,9 @@ jobs:
 
           The verified ecosystem portion is live and has passed repository and production URL checks.
 
-          - Source commit: `${GITHUB_SHA}`
+          - Source commit: \`${GITHUB_SHA}\`
           - Acceptance run: ${artifact_url}
-          - Rollback baseline: `3bd325f`
+          - Rollback baseline: \`3bd325f\`
           - Live pages verified: homepage, ecosystem hub, customer portal status, Business Concept Builder, Planning Tool Center, and Proof Center
           - External email, payment requests/processing, social publishing, advertising spend, and final delivery: **LOCKED**
           - Private PST, Clow/CSC, customer, vendor, employee, address, family, and unapproved-photo data: **NOT PUBLIC**
@@ -193,8 +193,8 @@ jobs:
           - Public-tool functional verifier: PASS
           - Six production URL marker checks: PASS
           - Evidence artifact: ${artifact_url}
-          - Source commit: `${GITHUB_SHA}`
-          - Rollback baseline: `3bd325f`
+          - Source commit: \`${GITHUB_SHA}\`
+          - Rollback baseline: \`3bd325f\`
           - External actions remain locked
 
           Issue #37 remains open for the unresolved cross-workstream acceptance items and exact blockers recorded under Issue #31.
