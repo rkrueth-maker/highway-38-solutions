@@ -116,7 +116,14 @@ def test_web_dashboard_public_site_route_serves_root_html_and_blocks_code_files(
     page = html_response.get_data(as_text=True)
     assert "Complete project demonstrations" in page
     assert "Open-ended example library" in page
-    assert "universal-quote-builder.html" in page
+    assert 'data-project="cabin"' in page
+    assert 'id="universal-quote-builder-examples"' in page
+    assert page.index('id="universal-quote-builder-examples"') > page.index('data-project="cabin"')
+    assert "View full quote" in page
+    assert "View full-size CAD sheets" in page
+    assert "Print / save complete package" in page
+    assert 'class="universal-card"' not in page
+    assert "See What It Produced" not in page
     assert "Representative demonstrations." in page
 
     blocked_response = client.get("/app.py")

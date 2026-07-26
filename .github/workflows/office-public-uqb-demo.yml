@@ -13,10 +13,15 @@ on:
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
       - 'apps-script/business-office/BusinessOffice_Web.gs'
       - 'apps-script/unified-shell/Unified_AppShell.gs'
+      - 'sample-library-now.html'
       - 'universal-quote-builder.html'
+      - 'universal-quote-builder-example.html'
+      - 'assets/js/uqb-public-examples.js'
       - 'scripts/generate-office-public-uqb-demo.sh'
+      - 'scripts/verify-static-public-uqb.js'
       - 'scripts/verify-public-quote-builder-result.js'
       - 'scripts/verify-universal-quote-builder.js'
+      - 'scripts/verify-issue83-source.sh'
 
 permissions:
   contents: read
@@ -33,10 +38,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify Office-backed quote and CAD source contract
+      - name: Verify embedded public quote and CAD source contract
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/verify-static-public-uqb.js
           node scripts/verify-public-quote-builder-result.js
           node scripts/verify-universal-quote-builder.js
           bash scripts/verify-issue83-source.sh
