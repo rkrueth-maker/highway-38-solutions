@@ -26,6 +26,17 @@ jobs:
           node-version: 24
       - name: Apply locked ground-up scope
         run: node scripts/fix-new-house-demo-scope.js
+      - name: Commit corrected package
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add whole-house-quote-package.html assets/quote-builder/whole-house-cad
+          if git diff --cached --quiet; then
+            echo 'No generated corrections.'
+          else
+            git commit -m 'Correct demo to ground-up new-house construction'
+            git push origin HEAD:agent/fix-new-house-scope-cad
+          fi
       - name: Validate scope and drawings
         run: |
           grep -q 'New-House Construction<br>From Lot Clearing to Closeout' whole-house-quote-package.html
@@ -43,14 +54,3 @@ jobs:
             rsvg-convert --width 1700 --height 1100 "$sheet" -o "/tmp/new-house-cad/${name}.png"
           done
           test "$(find /tmp/new-house-cad -name '*.png' | wc -l)" -eq 10
-      - name: Commit corrected package
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add whole-house-quote-package.html assets/quote-builder/whole-house-cad
-          if git diff --cached --quiet; then
-            echo 'No generated corrections.'
-          else
-            git commit -m 'Correct demo to ground-up new-house construction'
-            git push origin HEAD:agent/fix-new-house-scope-cad
-          fi
