@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -101,3 +101,75 @@ jobs:
           test "${{ steps.commercial.outputs.exit_code }}" = "0"
           test "${{ steps.browser.outputs.exit_code }}" = "0"
           test "${{ steps.pytest.outputs.exit_code }}" = "0"
+
+  transfer-northern-lakes-approved-binaries:
+    if: github.head_ref == 'fix/northern-lakes-direct-raster-images'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out controlled branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/northern-lakes-direct-raster-images
+          fetch-depth: 0
+
+      - name: Install image verifier
+        run: python3 -m pip install --quiet Pillow
+
+      - name: Download and validate exact approved source binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          out='businesses/northern-lakes/assets/approved-photos'
+          rm -rf "$out"
+          mkdir -p "$out"
+          fetch() {
+            local name="$1" url="$2" tmp="$out/$name.download"
+            curl --fail --show-error --silent --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time 180 "$url" --output "$tmp"
+            python3 - "$tmp" "$out/$name" <<'PY'
+import os, sys
+from PIL import Image
+src, stem = sys.argv[1:]
+with Image.open(src) as im: im.verify()
+with Image.open(src) as im:
+    fmt=(im.format or '').upper(); w,h=im.size
+    ext={'JPEG':'.jpg','PNG':'.png','WEBP':'.webp'}.get(fmt)
+    if not ext: raise SystemExit(f'unsupported image type {fmt}')
+    if w < 900 or h < 500: raise SystemExit(f'image too small: {w}x{h}')
+    os.replace(src, stem+ext)
+    print(stem+ext, w, h, fmt)
+PY
+          }
+          fetch home-hero 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:9d9509a5-3956-4c01-8d6d-0dbd566d174c'
+          fetch snow-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:9d9509a5-3956-4c01-8d6d-0dbd566d174c'
+          fetch lawn-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:65f7e03e-e7e0-4108-b8f5-36e959bbded6'
+          fetch landscape-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:701b1ca9-ea9e-4277-a8c2-44f2058c50e1'
+          fetch property-work 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:38de198d-c5f3-4795-8d25-de5022c3d024'
+          fetch equipment-rental 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:503b1d08-2c44-423f-a83f-e1cdad87abb9'
+          fetch materials-delivery 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:fd5097e0-fb8e-426f-83b7-bf1b7c0154d6'
+          fetch service-area-lake 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:4091c6b6-3e2d-493d-b346-aee2b4bf0a2e'
+          fetch about-equipment 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:b1171653-48af-409c-8395-2b8809f68cdb'
+          python3 - <<'PY'
+import hashlib,json
+from pathlib import Path
+from PIL import Image,ImageStat
+root=Path('businesses/northern-lakes/assets/approved-photos'); rows=[]
+for p in sorted(root.iterdir()):
+    if p.suffix.lower() not in {'.png','.jpg','.jpeg','.webp'}: continue
+    with Image.open(p) as im:
+        var=[round(x,2) for x in ImageStat.Stat(im.convert('RGB')).var]
+        if max(var)<25: raise SystemExit(f'blank/flat image: {p}')
+        rows.append({'path':p.as_posix(),'width':im.width,'height':im.height,'format':im.format,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'channelVariance':var})
+if len(rows)!=9: raise SystemExit(f'expected 9 images; found {len(rows)}')
+Path('businesses/northern-lakes/APPROVED_IMAGE_TRANSFER_EVIDENCE.json').write_text(json.dumps(rows,indent=2)+'\n')
+PY
+
+      - name: Commit exact approved binaries to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add businesses/northern-lakes/assets/approved-photos businesses/northern-lakes/APPROVED_IMAGE_TRANSFER_EVIDENCE.json
+          git diff --cached --exit-code && { echo 'No transferred files found'; exit 1; } || true
+          git commit -m 'Transfer approved Northern Lakes image binaries'
+          git push origin HEAD:fix/northern-lakes-direct-raster-images
