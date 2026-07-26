@@ -28,6 +28,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   issues: write
 
@@ -44,198 +45,129 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify Office-driven quote and CAD contract
+      - name: Verify public-only quote and CAD contract
         shell: bash
         run: |
           set -euo pipefail
-          run_check() {
-            local label="$1"
-            shift
-            local out="/tmp/${label}.log"
-            if ! "$@" >"$out" 2>&1; then
-              echo "FAIL — ${label}"
-              tail -n 80 "$out"
-              exit 1
-            fi
-            tail -n 20 "$out"
-          }
-          run_check public-result node scripts/verify-public-quote-builder-result.js
-          run_check universal-builder node scripts/verify-universal-quote-builder.js
-          run_check public-source bash scripts/verify-issue83-source.sh
-      - name: Upload source verifier logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: office-public-uqb-source-${{ github.run_id }}
-          path: /tmp/*.log
-          if-no-files-found: warn
-          retention-days: 7
+          node scripts/verify-public-quote-builder-result.js
+          node scripts/verify-universal-quote-builder.js
+          bash scripts/verify-issue83-source.sh
 
-  generate-and-verify-live-demo:
+  verify-live-public-examples:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
     steps:
       - name: Check out exact source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Wait for compatible H38 Apps Script deployment
-        id: deployment
+      - name: Wait for compatible existing H38 deployment
         shell: bash
         run: |
           set -euo pipefail
+          SOURCE_PATHS=(
+            apps-script/business-office
+            apps-script/unified-shell
+            apps-script/business-office-sync
+            business-packs/highway38
+            scripts/assemble-business-office-app.sh
+            scripts/build-unified-apps-script-shell.js
+            scripts/deploy-unified-owner-portal-web.sh
+          )
           for attempt in $(seq 1 90); do
-            issue_json="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json title,body)"
-            DEPLOYED_SHA="$(ISSUE_JSON="$issue_json" node <<'NODE'
-          const issue=JSON.parse(process.env.ISSUE_JSON);
-          const body=String(issue.body||'');
-          const match=body.match(/^- (?:Source commit|Deployed source): ([0-9a-f]{40})$/m);
-          const pass=/PASS/.test(String(issue.title||''));
-          process.stdout.write(pass&&match?match[1]:'');
-          NODE
-            )"
-            if [[ "$DEPLOYED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-              git fetch --no-tags origin "$DEPLOYED_SHA" >/dev/null 2>&1 || true
-              if git merge-base --is-ancestor "$DEPLOYED_SHA" "$GITHUB_SHA"; then
-                echo "PASS — compatible deployed H38 source ${DEPLOYED_SHA} is contained in ${GITHUB_SHA}."
-                printf '%s' "$DEPLOYED_SHA" > /tmp/deployed-source-sha.txt
+            RUNS_JSON="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow 'Deploy Unified Owner Portal' --branch main --status success --limit 40 --json databaseId,headSha,url,createdAt 2>/dev/null || printf '[]')"
+            while IFS=$'\t' read -r candidate_sha candidate_run candidate_url; do
+              [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]] || continue
+              git fetch --no-tags origin "$candidate_sha" >/dev/null 2>&1 || continue
+              git merge-base --is-ancestor "$candidate_sha" "$GITHUB_SHA" || continue
+              if git diff --quiet "$candidate_sha..$GITHUB_SHA" -- "${SOURCE_PATHS[@]}"; then
+                printf '%s' "$candidate_sha" > /tmp/deployed-source-sha.txt
+                printf '%s' "$candidate_run" > /tmp/deployed-run-id.txt
+                printf '%s' "$candidate_url" > /tmp/deployed-run-url.txt
+                echo "PASS — compatible existing deployment ${candidate_run} contains ${candidate_sha}."
                 exit 0
               fi
-            fi
-            echo "Waiting for compatible H38 deployment (${attempt}/90)…"
+            done < <(node -e '
+              const runs=JSON.parse(process.argv[1]||"[]");
+              for(const run of runs) console.log([run.headSha||"",run.databaseId||"",run.url||""].join("\t"));
+            ' "$RUNS_JSON")
             sleep 10
           done
-          echo "HOLD — no compatible deployed H38 source reached PASS." >&2
+          echo 'HOLD — no compatible successful existing deployment was verified.' >&2
           exit 1
-
-      - name: Record live Office demo generation start
-        if: success()
-        shell: bash
-        run: |
-          cat > /tmp/office-demo-running.md <<EOF
-          ## RUNNING — Office-generated public quote and CAD demo
-
-          - Release commit: ${GITHUB_SHA}
-          - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt)
-          - Target: 1 project, 14 phase quotes, 56 itemized lines, 84 scope sections, 10 CAD files, and 15 generated documents
-          - Business Office remains the source of truth
-          - External actions remain disabled
-          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          EOF
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office public quote and CAD demo RUNNING" --body-file /tmp/office-demo-running.md
 
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Install isolated clasp
-        id: install_clasp
+      - name: Verify public-only source contract
         run: |
-          set -euo pipefail
-          npm install --prefix "$RUNNER_TEMP/h38-clasp" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
-          echo "$RUNNER_TEMP/h38-clasp/node_modules/.bin" >> "$GITHUB_PATH"
+          node scripts/verify-public-quote-builder-result.js
+          node scripts/verify-universal-quote-builder.js
 
-      - name: Load encrypted Google credential
-        id: credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+      - name: Verify live public quote and CAD routes
+        run: bash scripts/generate-office-public-uqb-demo.sh
 
-      - name: Generate Office records, files, and sanitized public result
-        id: generate
-        shell: bash
-        run: |
-          set -o pipefail
-          bash scripts/generate-office-public-uqb-demo.sh 2>&1 | tee /tmp/office-public-uqb-generate.log
-
-      - name: Record complete Office-generated public demo
+      - name: Record public-only UQB PASS
         if: success()
         shell: bash
         run: |
           set -euo pipefail
           RESULT='artifacts/office-public-uqb-demo/deployment-verification.json'
           test -f "$RESULT"
-          PROJECT_ID="$(node -p "require('./$RESULT').projectId")"
           PUBLIC_URL="$(node -p "require('./$RESULT').publicUrl")"
-          COUNTS="$(node -p "JSON.stringify(require('./$RESULT').counts)")"
           cat > /tmp/office-demo-pass.md <<EOF
-          ## PASS — H38 deployment and Office-generated public demo
+          ## PASS — public-only Universal Quote Builder examples
 
           - Release commit: ${GITHUB_SHA}
           - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt)
-          - Business Office source of truth: PASS
-          - Demo project: ${PROJECT_ID}
-          - Persistent project records: 1
-          - Complete phase quotes: 14
-          - Itemized quote lines: 56
-          - Scope sections: 84
-          - CAD drawing records and attached files: 10
-          - Generated quote and combined documents: 15
-          - Published pointer: 1
-          - Verified counts: ${COUNTS}
-          - Public Office result: ${PUBLIC_URL}
+          - Existing deployment run: $(cat /tmp/deployed-run-url.txt)
+          - Matched public example packages: 7
+          - Coordinated public CAD sheets: 10
+          - View full quote: verified
+          - View full-size CAD sheets: verified
+          - Print / save complete package: verified
+          - Source: fixed public demonstration specification and approved public CAD assets
+          - Private H38 records read: none
+          - Private fields exposed: none
           - External actions performed: none
           - Existing Apps Script project and deployment IDs: preserved
+          - Public result: ${PUBLIC_URL}
           - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "H38 deployment and Office demo PASS" --body-file /tmp/office-demo-pass.md
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples PASS" --body-file /tmp/office-demo-pass.md
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file /tmp/office-demo-pass.md
 
-      - name: Record exact Office demo generation HOLD
+      - name: Record public-only UQB HOLD
         if: failure()
         shell: bash
         run: |
-          {
-            echo '## HOLD — Office-generated public quote and CAD demo'
-            echo
-            echo "- Release commit: ${GITHUB_SHA}"
-            if [[ -f /tmp/deployed-source-sha.txt ]]; then echo "- Compatible deployed source: $(cat /tmp/deployed-source-sha.txt)"; fi
-            echo "- Deployment gate: ${{ steps.deployment.outcome }}"
-            echo "- Clasp install: ${{ steps.install_clasp.outcome }}"
-            echo "- Credential load: ${{ steps.credential.outcome }}"
-            echo "- Office generation: ${{ steps.generate.outcome }}"
-            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            echo '- Existing H38 application and data remain preserved'
-            echo '- External actions remained disabled'
-            if [[ -f /tmp/office-public-uqb-generate.log ]]; then
-              echo
-              echo '### Generator log tail'
-              echo '```text'
-              tail -n 80 /tmp/office-public-uqb-generate.log
-              echo '```'
-            fi
-          } > /tmp/office-demo-hold.md
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office public quote and CAD demo HOLD" --body-file /tmp/office-demo-hold.md
+          cat > /tmp/office-demo-hold.md <<EOF
+          ## HOLD — public-only Universal Quote Builder examples
+
+          - Release commit: ${GITHUB_SHA}
+          - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
+          - Existing H38 application remains preserved
+          - No private H38 record generation or read was attempted
+          - No customer send, purchase, payment, scheduling, approval, or work authorization occurred
+          - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples HOLD" --body-file /tmp/office-demo-hold.md
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file /tmp/office-demo-hold.md
 
-      - name: Upload generation evidence
+      - name: Upload public verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: office-public-uqb-demo-${{ github.run_id }}
           path: |
             artifacts/office-public-uqb-demo/
-            /tmp/office-public-uqb-generate.log
             /tmp/deployed-source-sha.txt
+            /tmp/deployed-run-id.txt
+            /tmp/deployed-run-url.txt
           if-no-files-found: warn
           retention-days: 90
