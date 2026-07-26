@@ -1,0 +1,41 @@
+name: Northern Lakes Rendered Photo Audit
+
+on:
+  pull_request:
+    paths:
+      - 'businesses/northern-lakes/**'
+      - 'scripts/audit-northern-lakes-rendered-photos.js'
+      - '.github/workflows/northern-lakes-photo-audit.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rendered-photo-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Capture and verify every Northern Lakes page
+        run: node scripts/audit-northern-lakes-rendered-photos.js
+      - name: Upload rendered screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: northern-lakes-rendered-photo-audit-${{ github.run_id }}
+          path: artifacts/northern-lakes-photo-audit
+          if-no-files-found: error
+          retention-days: 30
