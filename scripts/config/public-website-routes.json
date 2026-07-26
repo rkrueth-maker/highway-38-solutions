@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-26-universal-quote-builder-office-generated-v2",
+  "version": "2026-07-26-universal-quote-builder-static-public-v1",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
@@ -13,6 +13,7 @@
   ],
   "demonstrations": [
     {"path":"universal-quote-builder.html","label":"Universal Quote Builder Demonstration","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/universal-quote-builder.html","shell":"canonical","visibility":"public"},
+    {"path":"universal-quote-builder-example.html","label":"Universal Quote Builder Public Package Viewer","shell":"document","visibility":"public-noindex"},
     {"path":"whole-house-quote-package.html","label":"Complete Whole-House Quote and Drawing Package","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/whole-house-quote-package.html","shell":"document","visibility":"public"},
     {"path":"quote-builder-sample-proposal.html","label":"Whole-House Package Redirect","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/whole-house-quote-package.html","shell":"document","visibility":"public"},
     {"path":"contractor-quote-complete.html","label":"Contractor Quote Demonstration","shell":"document","visibility":"noindex"},

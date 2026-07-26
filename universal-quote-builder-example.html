@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Universal Quote Builder Public Example | Highway 38 Solutions</title>
+<meta name="robots" content="noindex,follow">
+<link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<style>
+:root{--navy:#0b1f34;--green:#1f6b47;--orange:#e85d18;--line:#d8e2dc;--soft:#eef4f0;--ink:#142131}*{box-sizing:border-box}html{background:#edf2f5;color:var(--ink);font:14px/1.48 Arial,sans-serif}body{margin:0}.toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--navy);color:#fff;box-shadow:0 5px 18px rgba(0,0,0,.18)}.toolbar strong{margin-right:auto}.toolbar a,.toolbar button{border:0;border-radius:8px;padding:10px 13px;text-decoration:none;font:inherit;font-weight:800;cursor:pointer}.toolbar a{background:#fff;color:var(--navy)}.toolbar button{background:var(--orange);color:#fff}.toolbar .view-link{background:rgba(255,255,255,.13);color:#fff}.toolbar .view-link[aria-current="page"]{background:#fff;color:var(--navy)}main{max-width:17in;margin:18px auto}.quote-page,.cad-sheet,.error{background:#fff;border:1px solid var(--line);box-shadow:0 12px 30px rgba(11,31,52,.12)}.quote-page{page:quote;max-width:8.5in;min-height:10.5in;margin:18px auto;padding:.45in}.cad-sheet{page:cad;max-width:17in;margin:18px auto;padding:.18in;break-before:page}.cad-sheet img{display:block;width:100%;height:auto;background:#fff}.sheet-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:8px}.sheet-head h2{margin:0;color:var(--navy)}.sheet-head a{color:var(--green);font-weight:800}.stamp{display:inline-block;border:3px solid #9d2525;color:#9d2525;font-weight:900;padding:6px 10px;transform:rotate(-2deg)}h1,h2,h3{color:var(--navy)}h1{font-size:2rem;line-height:1.08;margin:18px 0 6px}.price{font-size:2rem;color:var(--green);font-weight:900}.meta{color:#52636c}.grid{display:grid;grid-template-columns:1.35fr .85fr;gap:16px}.box{border:1px solid var(--line);border-radius:9px;padding:12px;margin:11px 0}.box h2,.box h3{margin-top:0}.box ul{padding-left:20px}.box li+li{margin-top:5px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}th{background:var(--navy);color:#fff}td:nth-child(n+2),th:nth-child(n+2){text-align:right}.notice{background:#fff3df;border-left:5px solid var(--orange);padding:11px 13px;margin-top:14px}.error{max-width:760px;margin:60px auto;padding:26px;border-radius:14px}.error a{color:var(--green);font-weight:800}@media(max-width:850px){.toolbar{flex-wrap:wrap}.toolbar strong{width:100%;margin:0}.grid{grid-template-columns:1fr}.quote-page,.cad-sheet{margin:0;border:0;box-shadow:none}.sheet-head{align-items:flex-start;flex-direction:column}}@page quote{size:letter portrait;margin:.45in}@page cad{size:17in 11in landscape;margin:.2in}@media print{html,body{background:#fff}.toolbar{display:none}main{margin:0;max-width:none}.quote-page,.cad-sheet{margin:0;border:0;box-shadow:none}.cad-sheet{break-before:page}.error{display:none}}
+</style>
+</head>
+<body>
+<nav class="toolbar" aria-label="Example package controls">
+<strong id="toolbarTitle">Universal Quote Builder public example</strong>
+<a href="universal-quote-builder.html#public-examples">Back to examples</a>
+<a class="view-link" id="quoteView" href="#">Full quote</a>
+<a class="view-link" id="cadView" href="#">Full-size CAD</a>
+<a class="view-link" id="packageView" href="#">Complete package</a>
+<button type="button" id="printButton">Print / Save PDF</button>
+</nav>
+<main id="content" aria-live="polite"></main>
+<script src="assets/js/uqb-public-examples.js?v=20260726-static-public-v1"></script>
+<script>
+(function(){
+  'use strict';
+  const data=window.H38_UQB_PUBLIC_EXAMPLES;
+  const params=new URLSearchParams(location.search);
+  const key=(params.get('example')||'framing').toLowerCase();
+  const mode=['quote','cad','package'].includes((params.get('view')||'package').toLowerCase())?(params.get('view')||'package').toLowerCase():'package';
+  const example=data&&data.packages.find(item=>item.key===key);
+  const content=document.getElementById('content');
+  const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value)||0);
+  const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const link=view=>'universal-quote-builder-example.html?example='+encodeURIComponent(key)+'&view='+view;
+  document.getElementById('quoteView').href=link('quote');
+  document.getElementById('cadView').href=link('cad');
+  document.getElementById('packageView').href=link('package');
+  document.getElementById(mode+'View').setAttribute('aria-current','page');
+  document.getElementById('printButton').addEventListener('click',()=>window.print());
+  if(!example){
+    content.innerHTML='<section class="error"><h1>Example not found</h1><p>The requested public demonstration package is unavailable.</p><p><a href="universal-quote-builder.html#public-examples">Return to the public examples</a></p></section>';
+    return;
+  }
+  document.title=example.title+' | Universal Quote Builder Public Example';
+  document.getElementById('toolbarTitle').textContent=example.title;
+  const drawings=example.sheets.map(sheet=>data.drawings[sheet]).filter(Boolean);
+  function quoteHtml(){
+    const rows=example.items.map(item=>'<tr><td>'+escape(item[0])+'</td><td>'+escape(item[1]+' '+item[2])+'</td><td>'+money(item[3])+'</td><td>'+money(item[4])+'</td></tr>').join('');
+    const scope=example.scope.map(item=>'<li>'+escape(item)+'</li>').join('');
+    const assumptions=example.assumptions.map(item=>'<li>'+escape(item)+'</li>').join('');
+    const exclusions=example.exclusions.map(item=>'<li>'+escape(item)+'</li>').join('');
+    const sheets=drawings.map(item=>escape(item.sheet+' — '+item.title)).join('<br>');
+    return '<article class="quote-page"><span class="stamp">PUBLIC DEMONSTRATION — NOT A CONTRACT</span><h1>'+escape(example.quoteTitle)+'</h1><p class="meta">'+escape(data.projectTitle)+'<br>'+escape(data.projectLocation)+'</p><div class="price">'+money(example.total)+'</div><div class="grid"><section><div class="box"><h2>Complete included scope</h2><ul>'+scope+'</ul></div><div class="box"><h2>Itemized price</h2><table><thead><tr><th>Description</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>'+rows+'<tr><td colspan="3"><strong>Total</strong></td><td><strong>'+money(example.total)+'</strong></td></tr></tbody></table></div><div class="box"><h2>Completion requirements</h2><p>Written scope complete, deficiencies resolved, required evidence attached, and closeout requirements satisfied.</p></div></section><aside><div class="box"><h3>Matched CAD sheets</h3><p>'+sheets+'</p></div><div class="box"><h3>Schedule and payment</h3><p>'+escape(example.duration)+'<br>'+escape(example.deposit)+'</p></div><div class="box"><h3>Assumptions</h3><ul>'+assumptions+'</ul></div><div class="box"><h3>Exclusions</h3><ul>'+exclusions+'</ul></div><div class="box"><h3>Change conditions</h3><p>Concealed conditions, utility conflicts, code deficiencies, changed selections, unavailable products, or work beyond the written scope require owner-reviewed change control.</p></div></aside></div><div class="notice"><strong>Public fictional example only:</strong> This package uses a standalone public demonstration dataset and public CAD assets. It does not read or expose private Highway 38 records. Actual work requires verified measurements, current pricing, applicable licensed-professional review, permits, and authorized approval.</div></article>';
+  }
+  function cadHtml(){
+    return drawings.map(item=>'<section class="cad-sheet"><div class="sheet-head"><div><h2>'+escape(item.sheet)+' — '+escape(item.title)+'</h2><span>'+escape(item.classification)+' · Revision E public example</span></div><a href="'+escape(item.asset)+'" target="_blank" rel="noopener">Open original SVG</a></div><img src="'+escape(item.asset)+'" alt="'+escape(item.sheet+' '+item.title)+'"></section>').join('');
+  }
+  let html='';
+  if(mode!=='cad')html+=quoteHtml();
+  if(mode!=='quote')html+=cadHtml();
+  content.innerHTML=html;
+})();
+</script>
+</body>
+</html>
