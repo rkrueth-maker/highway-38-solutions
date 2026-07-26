@@ -1,5 +1,10 @@
 name: Apply New-House Scope Fix
 on:
+  pull_request:
+    paths:
+      - 'scripts/fix-new-house-demo-scope.js'
+      - 'docs/quote-builder/NEW_HOUSE_DEMO_SCOPE_LOCK.md'
+      - '.github/workflows/apply-new-house-scope-fix.yml'
   push:
     branches: [agent/fix-new-house-scope-cad]
     paths:
