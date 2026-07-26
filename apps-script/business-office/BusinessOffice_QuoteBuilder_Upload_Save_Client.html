@@ -1,0 +1,145 @@
+<script>
+(function(){
+'use strict';
+const MAX_BYTES=20*1024*1024;
+const DIRECT_BYTES=3*1024*1024;
+const CHUNK_CHARS=2000000;
+const MAX_IMAGE_EDGE=2200;
+const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const js=value=>String(value==null?'':value).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
+const mime=file=>{if(file&&file.type)return file.type.toLowerCase();const ext=String(file&&file.name||'').split('.').pop().toLowerCase();return {pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[ext]||'application/octet-stream'};
+const date=days=>{const d=new Date();d.setDate(d.getDate()+(days||0));return d.toISOString().slice(0,10)};
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5200)}
+function busy(on){const node=$('qbOverlay');if(node)node.classList.toggle('show',!!on)}
+function call(action,args){return new Promise((resolve,reject)=>{google.script.run.withSuccessHandler(resolve).withFailureHandler(error=>reject(error)).boApi({action:action,args:args||{}})})}
+function readDataUrl(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||new Error('The file could not be read.'));reader.readAsDataURL(blob)})}
+function resultHtml(kind,title,message,extra){return '<div class="notice '+(kind==='bad'?'bad':'good')+'"><strong>'+esc(title)+'</strong><br>'+esc(message||'')+(extra||'')+'</div>'}
+function setResult(html){const host=$('aiResult');if(host)host.innerHTML=html}
+function progress(message,quoteNumber){setResult(resultHtml('good',quoteNumber?'Draft '+quoteNumber+' is saved.':'Working…',message))}
+
+async function compressImage(file){
+  const type=mime(file);
+  if(!/^image\/(jpeg|png|webp)$/.test(type)||typeof createImageBitmap!=='function')return {blob:file,fileName:file.name,mimeType:type,compressed:false};
+  if(file.size<=DIRECT_BYTES)return {blob:file,fileName:file.name,mimeType:type,compressed:false};
+  let bitmap;
+  try{bitmap=await createImageBitmap(file)}catch(error){return {blob:file,fileName:file.name,mimeType:type,compressed:false}}
+  try{
+    const scale=Math.min(1,MAX_IMAGE_EDGE/Math.max(bitmap.width,bitmap.height));
+    const width=Math.max(1,Math.round(bitmap.width*scale)),height=Math.max(1,Math.round(bitmap.height*scale));
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+    const context=canvas.getContext('2d',{alpha:false});context.drawImage(bitmap,0,0,width,height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.82));
+    if(blob&&blob.size<file.size){const base=String(file.name||'quote-photo').replace(/\.[^.]+$/,'');return {blob:blob,fileName:base+'.jpg',mimeType:'image/jpeg',compressed:true}}
+    return {blob:file,fileName:file.name,mimeType:type,compressed:false};
+  }finally{if(bitmap&&bitmap.close)bitmap.close()}
+}
+
+async function uploadDirect(prepared,quoteId){
+  return call('saveQuotePhoto',{payload:{quoteId:quoteId,fileName:prepared.fileName,mimeType:prepared.mimeType,base64Data:await readDataUrl(prepared.blob)}})
+}
+
+async function uploadChunked(prepared,quoteId,onProgress){
+  const encoded=(await readDataUrl(prepared.blob)).split(',')[1]||'';
+  const chunkCount=Math.ceil(encoded.length/CHUNK_CHARS);
+  const started=await call('quoteUploadBegin',{payload:{quoteId:quoteId,fileName:prepared.fileName,mimeType:prepared.mimeType,sizeBytes:prepared.blob.size,base64Length:encoded.length,chunkCount:chunkCount}});
+  try{
+    for(let index=0;index<chunkCount;index+=1){
+      if(onProgress)onProgress(index+1,chunkCount);
+      await call('quoteUploadChunk',{payload:{sessionId:started.sessionId,quoteId:quoteId,index:index,data:encoded.slice(index*CHUNK_CHARS,(index+1)*CHUNK_CHARS)}});
+    }
+    return await call('quoteUploadFinalize',{payload:{sessionId:started.sessionId,quoteId:quoteId}});
+  }catch(error){
+    try{await call('quoteUploadAbort',{payload:{sessionId:started.sessionId,quoteId:quoteId}})}catch(ignore){}
+    throw error;
+  }
+}
+
+async function uploadFileToQuote(file,quote,position,total){
+  let prepared=await compressImage(file);
+  if(prepared.blob.size>MAX_BYTES)throw new Error(prepared.fileName+' exceeds the 20 MB upload limit after preparation.');
+  const label='Uploading '+position+' of '+total+': '+prepared.fileName+(prepared.compressed?' (optimized)':'');
+  progress(label,quote['Quote Number']);
+  if(prepared.blob.size<=DIRECT_BYTES)return uploadDirect(prepared,quote['Quote ID']);
+  return uploadChunked(prepared,quote['Quote ID'],(part,count)=>progress(label+' — part '+part+' of '+count,quote['Quote Number']));
+}
+
+async function durablePhotoAiSave(event){
+  event.preventDefault();
+  const customer=$('aiCustomer'),title=$('aiTitle'),notes=$('aiNotes'),fileInput=$('aiFiles');
+  const resultHost=$('aiResult');
+  const files=Array.from(fileInput&&fileInput.files||[]);
+  const noteText=notes?notes.value.trim():'';
+  if(!customer||!customer.value)return toast('Choose a customer.',true);
+  if(!noteText&&!files.length)return toast('Add field notes or select at least one photo or PDF.',true);
+  const derivedTitle=(title&&title.value.trim())||String(files[0]&&files[0].name||'Uploaded quote review').replace(/\.[^.]+$/,'')||'Uploaded quote review';
+  let quote=null;
+  busy(true);
+  try{
+    progress('Creating the H38 draft before uploading files…','');
+    quote=await call('createQuote',{payload:{
+      customerId:customer.value,
+      projectTitle:derivedTitle,
+      quoteDate:date(0),
+      expirationDate:date(30),
+      paymentTerms:'Net 15',
+      deposit:0,
+      scope:noteText||'Review the attached quote intake documents and prepare the final controlled scope.',
+      assumptions:'Uploaded photos, PDFs, measurements, quantities, pricing, and field conditions require owner review.',
+      exclusions:'Final scope, quantities, taxes, schedule, customer release, purchasing, and work authorization are excluded until owner approval.',
+      customerNotes:'',
+      internalNotes:'Created from H38 Photo / AI Quote intake. Original files remain private. Files selected: '+files.map(file=>file.name).join('; '),
+      lines:[{description:'Uploaded quote intake — review scope, quantities, and pricing',quantity:1,unit:'project',rate:0,discount:0,taxable:false,taxRate:0,notes:'Internal placeholder until the AI/owner review is applied.'}]
+    }});
+    progress('The quote exists in H38. Uploading '+files.length+' selected file'+(files.length===1?'':'s')+'…',quote['Quote Number']);
+    const refs=[],failures=[];
+    for(let index=0;index<files.length;index+=1){
+      try{
+        const doc=await uploadFileToQuote(files[index],quote,index+1,files.length);
+        refs.push((doc['Document ID']||doc.documentId||'Document')+' | '+(doc['File Name']||doc.fileName||files[index].name));
+      }catch(error){failures.push(files[index].name+': '+(error.message||String(error)))}
+    }
+    let staged=null,applied=null;
+    try{
+      progress('Preparing Price Book matches for owner review…',quote['Quote Number']);
+      staged=await call('prepareAiQuoteDraft',{payload:{customerId:customer.value,projectTitle:derivedTitle,notes:noteText||('Review uploaded files: '+files.map(file=>file.name).join(', ')),photos:refs}});
+      applied=await call('applyAiDraftToQuote',{quoteId:quote['Quote ID'],draftId:staged['Activity ID']});
+    }catch(error){failures.push('AI review: '+(error.message||String(error)))}
+    const appliedLines=applied&&Number(applied.appliedLines||0)||0;
+    const summary='Draft '+(quote['Quote Number']||'quote')+' is saved with '+refs.length+' attached file'+(refs.length===1?'':'s')+(appliedLines?' and '+appliedLines+' Price Book review line'+(appliedLines===1?'':'s'):'')+'. Nothing was sent.';
+    toast(summary,failures.length>0);
+    if(failures.length&&resultHost){
+      resultHost.innerHTML=resultHtml('bad','The quote is saved, but part of intake needs attention.',summary+' '+failures.join(' | '),'<div class="toolbar" style="margin-top:10px"><button class="primary" type="button" onclick="qbDetails(\''+js(quote['Quote ID'])+'\')">Open Saved Quote</button></div>');
+      return;
+    }
+    if(typeof window.qbRefresh==='function')window.qbRefresh;
+    await window.qbDetails(quote['Quote ID']);
+  }catch(error){
+    const message=error&&error.message||String(error);
+    if(quote&&resultHost){
+      resultHost.innerHTML=resultHtml('bad','The draft quote was saved before the upload stopped.','Draft '+(quote['Quote Number']||'')+' remains in H38. '+message,'<div class="toolbar" style="margin-top:10px"><button class="primary" type="button" onclick="qbDetails(\''+js(quote['Quote ID'])+'\')">Open Saved Quote</button></div>');
+    }else setResult(resultHtml('bad','The quote could not be saved.',message));
+    toast(message,true);
+  }finally{busy(false)}
+}
+durablePhotoAiSave.__h38DurableUpload=true;
+
+function install(){
+  if(typeof window.qbPrepareAi==='function'&&!window.qbPrepareAi.__h38DurableUpload)window.qbPrepareAi=durablePhotoAiSave;
+  if(typeof window.qbSave==='function'&&!window.qbSave.__h38PersistentErrors){
+    const prior=window.qbSave;
+    const wrapped=async function(event){
+      const form=event&&event.currentTarget;
+      const old=form&&form.querySelector('[data-qb-save-error]');if(old)old.remove();
+      try{return await prior(event)}catch(error){
+        const box=document.createElement('div');box.dataset.qbSaveError='1';box.className='notice bad';box.innerHTML='<strong>The draft was not saved.</strong><br>'+esc(error&&error.message||String(error));
+        if(form)form.insertBefore(box,form.firstChild);toast(error&&error.message||String(error),true);throw error;
+      }
+    };
+    wrapped.__h38PersistentErrors=true;window.qbSave=wrapped;
+  }
+}
+let attempts=0;const timer=setInterval(()=>{attempts+=1;install();if(attempts>=40)clearInterval(timer)},100);
+install();
+})();
+</script>
