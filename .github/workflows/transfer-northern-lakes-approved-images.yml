@@ -28,6 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           out='businesses/northern-lakes/assets/approved-photos'
+          rm -rf "$out"
           mkdir -p "$out"
 
           fetch() {
@@ -58,6 +59,7 @@ PY
           }
 
           fetch home-hero 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:9d9509a5-3956-4c01-8d6d-0dbd566d174c'
+          fetch snow-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:9d9509a5-3956-4c01-8d6d-0dbd566d174c'
           fetch lawn-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:65f7e03e-e7e0-4108-b8f5-36e959bbded6'
           fetch landscape-service 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:701b1ca9-ea9e-4277-a8c2-44f2058c50e1'
           fetch property-work 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:38de198d-c5f3-4795-8d25-de5022c3d024'
@@ -66,7 +68,6 @@ PY
           fetch service-area-lake 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:4091c6b6-3e2d-493d-b346-aee2b4bf0a2e'
           fetch about-equipment 'https://photoshop-api.adobe.io/v2/short-url/urn:aaid:ps:US:b1171653-48af-409c-8395-2b8809f68cdb'
 
-          cp "$out"/home-hero.* "$out"/snow-service.${out##*.} 2>/dev/null || true
           find "$out" -maxdepth 1 -type f -print -exec file {} \;
 
       - name: Create transfer evidence
@@ -92,8 +93,8 @@ for path in sorted(root.iterdir()):
             'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
             'channelVariance': [round(v, 2) for v in stat.var],
         })
-if len(rows) < 8:
-    raise SystemExit(f'Expected 8 approved images; found {len(rows)}')
+if len(rows) != 9:
+    raise SystemExit(f'Expected 9 approved image placements; found {len(rows)}')
 Path('businesses/northern-lakes/APPROVED_IMAGE_TRANSFER_EVIDENCE.json').write_text(json.dumps(rows, indent=2) + '\n')
 PY
 
