@@ -34,6 +34,7 @@ const capabilityCss='assets/css/project-intelligence.css';
 const pricingData='pricing-data.js';
 const requestOptions='assets/js/h38-request-options.js';
 const requestFlow='request-flow.js';
+const publicExamplesData='assets/js/uqb-public-examples.js';
 const legacyGlobalScripts=['commercial.js','commercial-public.js','public-expansion.js','brand-global.js','assets/js/project-intelligence.js'];
 const customerPages=routes.primary.filter(route=>route.visibility==='public');
 
@@ -44,6 +45,7 @@ check('capability stylesheet exists',exists(capabilityCss),capabilityCss);
 check('final pricing data exists',exists(pricingData),pricingData);
 check('focused request controller exists',exists(requestOptions),requestOptions);
 check('secure request flow exists',exists(requestFlow),requestFlow);
+check('public UQB example data exists',exists(publicExamplesData),publicExamplesData);
 
 const shell=read(canonicalJs);
 const shellCss=read(canonicalCss);
@@ -90,6 +92,9 @@ customerPages.forEach(route=>{
     check('request page uses only focused startup scripts',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
     check('request page keeps secure endpoint',/data-intake-endpoint=["']https:\/\/script\.google\.com\/macros\/s\//.test(html));
     check('request page keeps no-charge language',/No charge/i.test(html)&&/No charge is created/i.test(html));
+  }else if(page==='sample-library-now.html'){
+    const allowed=[canonicalJs,publicExamplesData];
+    check('sample-library-now.html public script budget',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
   }else{
     check(`${page} public script budget`,scripts.length===1,scripts.join(', '));
   }
