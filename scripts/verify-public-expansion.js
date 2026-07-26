@@ -12,7 +12,7 @@ const requireFile=p=>check(`required file ${p}`,exists(p),p);
  'index.html','sample-library-now.html','universal-quote-builder.html','solutions.html','pricing.html','pricing-data.js','quote-builder.html','business-systems.html','about.html','contact.html','start-request.html','portal.html',
  'cabin-project-complete.html','contractor-quote-complete.html','request-flow.js','assets/js/h38-site-v2.js','assets/css/h38-site-v2.css',
  'scripts/config/public-website-routes.json','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json',
- 'apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs','catalog-data.js','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
+ 'apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs','apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs','apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs','catalog-data.js','docs/public-website/CUSTOM_DOMAIN_READINESS.md'
 ].forEach(requireFile);
 const routes=JSON.parse(read('scripts/config/public-website-routes.json'));
 const primary=(routes.primary||[]).map(item=>item.path);
@@ -47,10 +47,15 @@ check('Project Examples uses six exact controlled replacement images',['deck-exi
 check('Project Examples includes complete cabin package',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
 const universal=read('universal-quote-builder.html');
 const publicDemo=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs');
-check('Universal Quote Builder is Office-first',universal.includes('One project inside Office.')&&universal.includes('Office-generated public demonstration'));
-check('Universal Quote Builder embeds sanitized Office results',universal.includes('?publicUqbDemo=1')&&universal.includes('14</strong>complete phase quotes')&&universal.includes('10</strong>attached CAD sheets'));
-check('Universal demonstration preserves no-external-action control',universal.includes('automatic external actions')&&publicDemo.includes('externalActionsPerformed:false'));
-check('Universal demonstration removes renovation tangent',!universal.includes('Whole-House Renovation and Property Improvement')&&!universal.includes('$342,815'));
+const publicExamples=read('apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs');
+const publicRoute=read('apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs');
+check('Universal Quote Builder presents matched public quote and CAD packages',universal.includes('Universal Quote Builder overview')&&universal.includes('Complete quote examples matched to their CAD drawings')&&publicRoute.includes('boRenderUniversalPublicExamples_'));
+check('Universal Quote Builder embeds sanitized public examples',universal.includes('?publicUqbDemo=1')&&universal.includes('Public examples only:')&&publicExamples.includes('No live customers, private Highway 38 records'));
+check('Universal demonstration provides quote CAD and package actions',universal.includes('View full quote')&&universal.includes('View full-size CAD sheets')&&universal.includes('Print or save the package')&&publicExamples.includes('Print / save complete package'));
+check('Universal demonstration preserves public-only and no-external-action controls',publicExamples.includes("quote['Customer Visible']==='Yes'")&&publicDemo.includes('externalActionsPerformed:false'));
+const matchedSheets=[...publicExamples.matchAll(/sheets:\[([^\]]+)\]/g)].flatMap(match=>(match[1].match(/'[^']+'/g)||[]));
+check('Universal demonstration defines seven matched packages using ten unique CAD sheets',(publicExamples.match(/Object\.freeze\(\{key:'/g)||[]).length===7&&matchedSheets.length===10&&new Set(matchedSheets).size===10);
+check('Universal demonstration removes result-board and renovation tangents',!universal.includes('What Office creates')&&!universal.includes('What Quote Builder produced')&&!universal.includes('Whole-House Renovation and Property Improvement')&&!universal.includes('$342,815'));
 check('Office demo defines fourteen quotes and ten CAD sheets',(publicDemo.match(/Object\.freeze\(\{n:'\d{2}',key:/g)||[]).length===14&&(publicDemo.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length===10);
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
@@ -72,6 +77,6 @@ const catalog=context.window.H38_CATALOG;
 check('legacy catalog compatibility data remains intact',catalog&&catalog.products.length===15&&catalog.bundles.length===9);
 check('custom-domain work remains approval gated',read('docs/public-website/CUSTOM_DOMAIN_READINESS.md').includes('NO DOMAIN, BILLING, OR DNS CHANGE AUTHORIZED'));
 check('prohibited quantitative CNC claim is absent',!/25,000\+\s*(?:CNC\s+)?programs?/i.test(expected.map(read).join('\n')));
-const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,existingProjectExamples:existingProjectCount,universalDemonstration:true,officeGeneratedDemo:true,capabilities:5,pricingProducts:3,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
+const result={status:failures.length?'FAIL':'PASS',architecture:'project-first-public-site',canonicalRoutes:primary.length,existingProjectExamples:existingProjectCount,universalDemonstration:true,officeGeneratedDemo:true,matchedPublicPackages:7,capabilities:5,pricingProducts:3,catalogCompatibilityOnly:true,passed:passes.length,failed:failures.length,failures};
 console.log(JSON.stringify(result,null,2));
 process.exit(failures.length?1:0);
