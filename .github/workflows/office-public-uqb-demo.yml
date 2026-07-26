@@ -14,16 +14,25 @@ on:
       - 'scripts/generate-office-public-uqb-demo.sh'
       - 'scripts/verify-public-quote-builder-result.js'
       - 'scripts/verify-universal-quote-builder.js'
-  workflow_run:
-    workflows: ['Deploy Unified Owner Portal']
-    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/office-public-uqb-demo.yml'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder*.gs'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder*.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
+      - 'apps-script/business-office/BusinessOffice_Web.gs'
+      - 'apps-script/unified-shell/Unified_AppShell.gs'
+      - 'universal-quote-builder.html'
+      - 'scripts/generate-office-public-uqb-demo.sh'
   workflow_dispatch:
 
 permissions:
   contents: read
+  issues: read
 
 concurrency:
-  group: office-public-uqb-demo-${{ github.event.workflow_run.head_sha || github.sha }}
+  group: office-public-uqb-demo-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -63,10 +72,11 @@ jobs:
           retention-days: 7
 
   generate-and-verify-live-demo:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
+      GH_TOKEN: ${{ github.token }}
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
       CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
@@ -74,13 +84,33 @@ jobs:
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
     steps:
-      - name: Check out deployed source
+      - name: Check out exact source
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Wait for exact H38 Apps Script deployment
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            issue_json="$(gh issue view 168 --repo "$GITHUB_REPOSITORY" --json title,body)"
+            if ISSUE_JSON="$issue_json" EXPECTED_SHA="$GITHUB_SHA" node <<'NODE'
+          const issue=JSON.parse(process.env.ISSUE_JSON);
+          const expected=process.env.EXPECTED_SHA;
+          const pass=issue.title==='Unified Owner Portal deployment PASS' && issue.body.includes('Source commit: '+expected);
+          process.exit(pass?0:1);
+          NODE
+            then
+              echo "PASS — exact H38 deployment ${GITHUB_SHA} is live."
+              exit 0
+            fi
+            echo "Waiting for exact H38 deployment ${GITHUB_SHA} (${attempt}/90)…"
+            sleep 10
+          done
+          echo "HOLD — exact H38 deployment ${GITHUB_SHA} did not reach PASS." >&2
+          exit 1
       - name: Install isolated clasp
         run: |
           set -euo pipefail
