@@ -7,6 +7,8 @@ on:
       - '.github/workflows/office-public-uqb-release.yml'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo_UI.html'
+      - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs'
+      - 'apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs'
       - 'apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html'
       - 'apps-script/business-office/BusinessOffice_Web.gs'
@@ -25,27 +27,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  generate-and-verify:
+  verify-public-only-examples:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Record Office demo generation start
+      - name: Record public example verification start
         shell: bash
         run: |
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Office-generated Universal Quote Builder demo release started for ${GITHUB_SHA}. This run will create and verify the H38 Business Office project, fourteen phase quotes, fifty-six itemized lines, eighty-four scope sections, ten CAD files, fifteen documents, and the sanitized public result. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "Universal Quote Builder public-only example verification started for ${GITHUB_SHA}. This run verifies seven matched quote-and-CAD packages directly from the fixed public demonstration specification and public CAD assets. It does not read or generate private H38 records. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Confirm compatible H38 source is deployed
         shell: bash
@@ -95,90 +91,66 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Verify Office demo source contract
+      - name: Verify public example source contract
         run: |
           node scripts/verify-public-quote-builder-result.js
           node scripts/verify-universal-quote-builder.js
 
-      - name: Install isolated clasp
-        run: |
-          set -euo pipefail
-          npm install --prefix "$RUNNER_TEMP/h38-clasp" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
-          echo "$RUNNER_TEMP/h38-clasp/node_modules/.bin" >> "$GITHUB_PATH"
-
-      - name: Load encrypted Google credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
-
-      - name: Generate Office records files and public result
+      - name: Verify deployed public-only quote and CAD examples
         run: bash scripts/generate-office-public-uqb-demo.sh
 
-      - name: Record complete Office-generated public demo
+      - name: Record public-only UQB example PASS
         if: success()
         shell: bash
         run: |
           set -euo pipefail
           RESULT='artifacts/office-public-uqb-demo/deployment-verification.json'
           test -f "$RESULT"
-          PROJECT_ID="$(node -p "require('./$RESULT').projectId")"
           PUBLIC_URL="$(node -p "require('./$RESULT').publicUrl")"
-          COUNTS="$(node -p "JSON.stringify(require('./$RESULT').counts)")"
           REPORT="$RUNNER_TEMP/office-public-uqb-pass.md"
           cat > "$REPORT" <<EOF
-          ## PASS — H38 deployment and Office-generated public demo
+          ## PASS — deployed public-only Universal Quote Builder examples
 
           - Release commit: ${GITHUB_SHA}
           - Deployed source: $(cat /tmp/deployed-source-sha.txt)
           - Deployment run: $(cat /tmp/deployed-run-url.txt)
-          - Business Office source of truth: PASS
-          - Demo project: ${PROJECT_ID}
-          - Persistent project records: 1
-          - Complete phase quotes: 14
-          - Itemized quote lines: 56
-          - Scope sections: 84
-          - CAD drawing records and attached files: 10
-          - Generated quote and combined documents: 15
-          - Published pointer: 1
-          - Verified counts: ${COUNTS}
-          - Public Office result: ${PUBLIC_URL}
+          - Public example packages: 7
+          - Matched CAD sheets: 10
+          - View full quote: verified
+          - View full-size CAD sheets: verified
+          - Print / save complete package: verified
+          - Source: fixed H38 public demonstration specification and public CAD assets
+          - Private H38 records read: none
+          - Private fields exposed: none
           - External actions performed: none
           - Existing Apps Script project and deployment IDs: preserved
+          - Public result: ${PUBLIC_URL}
           - Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "H38 deployment and Office demo PASS" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples PASS" --body-file "$REPORT"
 
-      - name: Record Office demo generation HOLD
+      - name: Record public-only UQB example HOLD
         if: failure()
         shell: bash
         run: |
           REPORT="$RUNNER_TEMP/office-public-uqb-hold.md"
           cat > "$REPORT" <<EOF
-          ## HOLD — Office-generated public quote and CAD demo
+          ## HOLD — deployed public-only Universal Quote Builder examples
 
           - Release commit: ${GITHUB_SHA}
           - Compatible deployed source: $(cat /tmp/deployed-source-sha.txt 2>/dev/null || echo unknown)
           - Compatible deployment run: $(cat /tmp/deployed-run-url.txt 2>/dev/null || echo unknown)
           - Deployed H38 application remains preserved
-          - Office demo generation or verification did not complete
+          - Public example verification did not complete
+          - No private H38 record generation or read was attempted
           - No automatic customer send, purchase, payment, scheduling, approval, or work authorization occurred
           - Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file "$REPORT"
-          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Office public quote and CAD demo HOLD" --body-file "$REPORT"
+          gh issue edit 168 --repo "$GITHUB_REPOSITORY" --title "Public UQB quote and CAD examples HOLD" --body-file "$REPORT"
 
-      - name: Upload exact generation evidence
+      - name: Upload exact public verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
