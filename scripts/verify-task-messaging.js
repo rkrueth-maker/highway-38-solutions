@@ -11,7 +11,8 @@ const boFiles = [
   'BusinessOffice_TaskMessaging_20_SMS.gs',
   'BusinessOffice_TaskMessaging_30_Web.gs',
   'BusinessOffice_EmailMessagingSync.gs',
-  'ZZZ_BusinessOffice_EmailMessagingWeb.gs'
+  'ZZZ_BusinessOffice_EmailMessagingWeb.gs',
+  'ZZZZ_BusinessOffice_LiveExternalActions.gs'
 ].map(name => path.join(root, 'apps-script', 'business-office', name));
 const portalDir = path.join(root, 'apps-script', 'core-engine', 'owner-portal-next');
 const client = path.join(portalDir, 'Portal_TaskMessaging_Client.html');
@@ -68,7 +69,7 @@ catch (error) { check('template pack JSON', false, error.message); }
 check('template enables internal tasks', template.modules && template.modules.assignedTasks === true);
 check('template paid SMS stays disabled', template.modules && template.modules.messaging === false && template.messaging && template.messaging.provider === 'none');
 check('provider-neutral Twilio configuration', pack.messaging && pack.messaging.providerNeutral === true && pack.messaging.provider === 'twilio');
-check('SMS release locked in package', pack.messaging && pack.messaging.externalActionsEnabled === false && pack.messaging.inboundSyncEnabled === false);
+check('Highway 38 SMS software release is explicit and selected-record only', pack.messaging && pack.messaging.externalActionsEnabled === true && pack.messaging.inboundSyncEnabled === false && pack.workflow && pack.workflow.externalActionsEnabled === true && pack.workflow.ownerApprovalRequired === true && pack.workflow.selectedRecordOnly === true && pack.workflow.bulkExternalActionsEnabled === false && pack.workflow.automaticExternalTriggersEnabled === false && Array.isArray(pack.workflow.liveActionTypes) && pack.workflow.liveActionTypes.includes('sms') && source.includes('h38PortalLiveExternalStatus'));
 check('bulk and triggers disabled', pack.messaging && pack.messaging.bulkMessagingEnabled === false && pack.messaging.automaticTriggersEnabled === false && !/ScriptApp\s*\.\s*newTrigger/.test(source));
 check('owner approval required', pack.messaging && pack.messaging.ownerApprovalRequired === true && source.includes('boRequireOwner_()') && /["']Send Allowed["']/.test(source));
 check('documented consent required', pack.messaging && pack.messaging.documentedConsentRequired === true && /Consent Status["']\]\s*===\s*["']Consented/.test(source));
@@ -129,9 +130,12 @@ if (source) {
   const runtime = {
     console,JSON,Date,Math,RegExp,String,Number,Boolean,Object,Array,Set,Error,
     Utilities:{formatDate:()=> '2026-07-16 12:00:00',getUuid:()=> '00000000-0000-4000-8000-000000000001',DigestAlgorithm:{SHA_256:'SHA_256'},Charset:{UTF_8:'UTF_8'},computeDigest:()=>[1,2,3,4],base64Encode:value=>String(value)},
-    UrlFetchApp:{fetch:()=>{externalFetches += 1;throw new Error('External request must not occur in locked acceptance test.');}},
+    UrlFetchApp:{fetch:()=>{externalFetches += 1;throw new Error('External request must not occur in locked reusable runtime test.');}},
+    PropertiesService:{getScriptProperties:()=>({getProperty:key=>propertyValues[key] || '',setProperty:(key,value)=>{propertyValues[key]=value;},deleteProperty:key=>{delete propertyValues[key];}})},
     boPackValue_:(key,fallback)=>({
       'business.timeZone':'America/Chicago',
+      'workflow.externalActionsEnabled':false,
+      'workflow.liveActionTypes':[],
       'messaging.provider':'twilio',
       'messaging.externalActionsEnabled':false,
       'messaging.inboundSyncEnabled':false
@@ -144,6 +148,7 @@ if (source) {
     boGetCurrentUser_:()=>({'User ID':'USER-OWNER','Role ID':'ROLE-OWNER',Email:'owner@example.test'}),
     boRequireOwner_:()=>({'User ID':'USER-OWNER','Role ID':'ROLE-OWNER',Email:'owner@example.test'}),
     boRequireRestrictedArea_:()=>true,
+    boApprovalNotice_:()=> 'Owner approval required.',
     boProof_:()=>true,boError_:()=>true,boAudit_:()=>true
   };
   vm.createContext(runtime);
@@ -155,13 +160,13 @@ if (source) {
   const assigned={'Assigned User ID':'STAFF-1','Assigned Role':'','Assigned By User ID':'OWNER'};
   check('runtime task assignment visibility', runtime.h38TmTaskVisible_(assigned,staff) === true && runtime.h38TmTaskVisible_(assigned,viewer) === false && runtime.h38TmTaskVisible_(assigned,owner) === true);
   runtime.h38TmUsageSummary_=()=>({month:'2026-07',segments:0,providerCost:0,segmentLimit:0,costLimit:0,segmentLimitReached:false,costLimitReached:false});
-  check('runtime provider release locked', runtime.h38TmProviderStatus_().outboundReleased === false);
+  check('reusable runtime provider release remains locked', runtime.h38TmProviderStatus_().outboundReleased === false);
   runtime.h38TmFind_=()=>({Direction:'Outbound',Channel:'SMS',Status:'Approved','Approval Status':'Approved','Send Allowed':'Yes','Retry Locked':'No','Normalized Phone':'+12185550101','Message ID':'MSG-1','Message Body':'Test message'});
   runtime.h38TmConsentForPhone_=()=>({'Consent Status':'Consented','Consent ID':'CONSENT-1'});
   runtime.h38TmDuplicateMessage_=()=>null;
   runtime.h38TmMessageEvent_=()=>true;
   const hold=runtime.h38TmSendMessage_('MSG-1');
-  check('runtime send hold performs no external action', hold.status === 'HOLD' && hold.externalActionsOccurred === false && externalFetches === 0);
+  check('locked reusable runtime send performs no external action', hold.status === 'HOLD' && hold.externalActionsOccurred === false && externalFetches === 0);
 }
 
 const evidence={
@@ -169,7 +174,7 @@ const evidence={
   generatedAt:new Date().toISOString(),
   passed:passes.length,
   failed:failures.length,
-  controls:{providerNeutral:true,outboundLocked:true,inboundManual:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,selectedRecordOnly:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessaging:false,automaticTriggers:false,credentialsInScriptProperties:true,emailEvidence:true,emailReadOnly:true,deterministicUnifiedShell:true},
+  controls:{providerNeutral:true,productionOutboundReleaseControlled:true,reusableDefaultLocked:true,inboundManual:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,selectedRecordOnly:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessaging:false,automaticTriggers:false,credentialsInScriptProperties:true,emailEvidence:true,emailReadOnly:true,deterministicUnifiedShell:true},
   passes,failures
 };
 const out=path.join(root,'artifacts','task-messaging');
