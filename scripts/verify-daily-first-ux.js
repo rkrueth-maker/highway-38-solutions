@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const vm=require('vm');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const exists=file=>fs.existsSync(path.join(root,file));
+const failures=[];
+const passes=[];
+const check=(name,condition,detail='')=>(condition?passes:failures).push({name,detail});
+const syntax=file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}};
+
+const dailyStyles='apps-script/core-engine/owner-portal-next/Portal_DailyFirst_Styles.html';
+const dailyClient='apps-script/core-engine/owner-portal-next/Portal_DailyFirst_Client.html';
+const perfClient='apps-script/core-engine/owner-portal-next/Portal_Performance_Reliability_Client.html';
+const aiBridge='apps-script/core-engine/owner-portal-next/Portal_Onboarding_AiBridge.html';
+const backend='apps-script/business-office/BusinessOffice_TestMode_Onboarding.gs';
+const aiAssistant='apps-script/business-office/BusinessOffice_AI_Assistant.gs';
+const auth='apps-script/business-office/BusinessOffice_Auth.gs';
+const index='apps-script/core-engine/owner-portal-next/Portal_Index.html';
+const raw='apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js';
+[dailyStyles,dailyClient,perfClient,aiBridge,backend,aiAssistant,auth,index,raw].forEach(file=>check(`required ${file}`,exists(file)));
+[dailyClient,perfClient,aiBridge,backend,aiAssistant,auth,raw].forEach(syntax);
+
+const css=read(dailyStyles),client=read(dailyClient),performance=read(perfClient),bridge=read(aiBridge),server=read(backend),assistant=read(aiAssistant),authSource=read(auth),portal=read(index),rawSource=read(raw);
+check('daily-first assets load through allowlist and portal',portal.includes('Portal_DailyFirst_Styles')&&portal.includes('Portal_DailyFirst_Client')&&portal.includes('Portal_Performance_Reliability_Client')&&portal.includes('Portal_Onboarding_AiBridge')&&rawSource.includes('Portal_DailyFirst_Styles')&&rawSource.includes('Portal_DailyFirst_Client'));
+check('Today first layer is limited to four operating sections',['Next action',"Today's work",'Needs attention','Quick actions'].every(marker=>client.includes(marker)));
+check('Today work and attention lists are deliberately capped',client.includes('.slice(0,5)')&&client.includes('.slice(0,4)'));
+check('Today uses specific action labels',['Review quote','Open customer','Check invoice','Open task','Open job','Review decision'].every(marker=>client.includes(marker)));
+check('quick actions expose daily work not system administration',['Add customer','New request','Build quote','Assign employee','Onboard'].every(marker=>client.includes(marker)));
+check('phone Chromebook and desktop layouts remain deliberate',css.includes('body.h38-phone-shell')&&css.includes('body.h38-chromebook-shell')&&css.includes('.h38-daily-grid'));
+check('phone controls remain readable and touch friendly',css.includes('min-height:58px')&&css.includes('font-size:18px')&&css.includes('grid-template-columns:1fr'));
+check('Chromebook layout reduces waste while preserving readability',css.includes('body.h38-chromebook-shell .h38-daily-head')&&css.includes('font-size:25px')&&css.includes('min-height:76px'));
+check('onboarding agent covers employee customer and vendor',['employee','customer','vendor'].every(kind=>client.includes(`data-onboard-kind="${kind}"`))&&server.includes("['employee','customer','vendor']"));
+check('onboarding is owner controlled and creates internal follow-up tasks',server.includes('boRequireOwner_()')&&server.includes('h38OnboardingTask_')&&server.includes('externalActionsOccurred:false')&&server.includes('No invitation or customer message was sent'));
+check('onboarding prevents duplicate records',server.includes('h38OnboardingDuplicate_')&&server.includes('duplicatePrevented:true'));
+check('H38 AI visibly launches the onboarding agent',bridge.includes('Onboard people')&&bridge.includes('h38OpenOnboardingAgent'));
+check('Test Mode is owner only time limited and allowlisted',server.includes('boRequireOwner_()')&&server.includes('H38_TEST_MODE_MAX_MINUTES')&&server.includes('allowlist')&&server.includes('expiresAt'));
+check('Test Mode cannot unlock protected financial actions',['Payments, purchasing, payroll, tax, and public publishing remain blocked','directPaymentProcessing:false','directPayrollFunding:false','directTaxFiling:false'].every(marker=>(server+authSource).includes(marker)));
+check('Test Mode marks and restricts internal email',server.includes('[H38 TEST]')&&server.includes('allowlisted internal recipient')&&assistant.includes('h38TestModePrepareEmail_')&&assistant.includes('TEST_MODE_EMAIL'));
+check('performance targets match accepted UX thresholds',['shellUsableMs:2500','cachedRouteMs:500','uncachedRouteMs:1200','buttonFeedbackMs:100','lcpMs:2500','inpMs:200','cls:0.1'].every(marker=>performance.includes(marker)));
+check('button reliability audit detects no visible response',performance.includes('No visible state change detected')&&performance.includes('MutationObserver')&&performance.includes('buttonAudits'));
+check('route performance is measured on real navigation',client.includes('H38_DAILY_BASE_SHOW')&&client.includes('durationMs')&&performance.includes('routePassRate'));
+check('daily-first layer stays lightweight',Buffer.byteLength(client)<70000&&Buffer.byteLength(css)<35000&&Buffer.byteLength(performance)<12000&&Buffer.byteLength(bridge)<6000);
+check('existing owner confirmation remains active for external sends',assistant.includes('requiresOwnerApproval:true')&&assistant.includes('mustConfirm')&&!server.includes('bypassOwnerApproval'));
+
+const result={status:failures.length?'FAIL':'PASS',passed:passes.length,failed:failures.length,failures};
+console.log(JSON.stringify(result,null,2));
+process.exit(failures.length?1:0);
