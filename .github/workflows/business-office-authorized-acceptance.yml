@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/business-office-authorized-acceptance.yml'
       - 'scripts/business-office-authorized-harness.sh'
+      - 'scripts/patch-business-office-authorized-harness-base.py'
+      - 'scripts/patch-full-business-office-demo-harness.py'
+      - 'scripts/verify-whole-navigation-performance.js'
+      - 'scripts/verify-full-business-office-demo.js'
       - 'apps-script/business-office/**'
       - 'apps-script/business-office-sync/**'
   workflow_dispatch:
