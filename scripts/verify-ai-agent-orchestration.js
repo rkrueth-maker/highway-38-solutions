@@ -18,7 +18,9 @@ function parse(name, source) {
 }
 function hasAll(source, markers) { return markers.every(marker => source.includes(marker)); }
 
-const orchestration = read('apps-script/business-office/BusinessOffice_AI_AgentOrchestration.gs');
+const orchestrationBase = read('apps-script/business-office/BusinessOffice_AI_AgentOrchestration.gs');
+const orchestrationV2 = read('apps-script/business-office/BusinessOffice_AI_AgentOrchestration_V2.gs');
+const orchestration = orchestrationBase + '\n' + orchestrationV2;
 const web = read('apps-script/business-office/BusinessOffice_Web.gs');
 const client = read('apps-script/business-office/BusinessOffice_AI_Assistant_Client.html');
 const actions = read('apps-script/business-office/BusinessOffice_AI_Actions.gs');
@@ -27,7 +29,8 @@ const taskCore = read('apps-script/business-office/BusinessOffice_TaskMessaging_
 const sms = read('apps-script/business-office/BusinessOffice_TaskMessaging_20_SMS.gs');
 const commercial = read('apps-script/business-office/BusinessOffice_QuoteBuilder_Commercial.gs');
 
-parse('AI agent orchestration', orchestration);
+parse('AI agent orchestration base', orchestrationBase);
+parse('AI agent orchestration V2', orchestrationV2);
 parse('Business Office web API', web);
 const scripts = [...client.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 check('AI client has one script', scripts.length === 1, `found ${scripts.length}`);
@@ -72,6 +75,9 @@ check('Agent runs are auditable',
 check('SMS Owner command reuses the existing provider-neutral subsystem',
   hasAll(orchestration, ['h38TmProviderStatus_', 'h38TmConsentForPhone_', 'h38TmSaveMessage_', 'h38TmApproveMessage_', 'h38TmSendMessage_']),
   'SMS path bypasses controlled messaging');
+check('Quote delivery supports controlled email or SMS',
+  hasAll(orchestration, ["channel === 'SMS'", 'boAiEmailFromText_', 'boAiPhoneFromText_', "'Linked Record Type': 'Quote'"]),
+  'quote channel routing missing');
 check('SMS consent and provider release remain mandatory',
   hasAll(orchestration, ['businessRegistrationApproved', 'outboundReleased', "Consent Status'] !== 'Consented'"]),
   'SMS release boundary missing');
@@ -83,7 +89,7 @@ check('Inbound SMS synchronization is included in backend automation',
   'inbound synchronization missing');
 
 check('Final quote approve-and-send is a controlled composite',
-  hasAll(orchestration, ['boAiApproveAndSendQuote_', "status: 'Internal Review'", "status: 'Approved to Share'", 'boQuoteCommercialPrepareShare_', "actionId: 'email.send'", "status: 'Shared'"]),
+  hasAll(orchestration, ['boAiApproveAndSendQuote_', "boApproveSelectedRecord('Quote'", "status: 'Internal Review'", "status: 'Approved to Share'", 'boQuoteCommercialPrepareShare_', "actionId: 'email.send'", "status: 'Shared'"]),
   'quote approval and sending flow incomplete');
 check('Quote readiness blocks missing customer, scope, total, or recipient',
   hasAll(orchestration, ['boAiQuoteReadiness_', 'verified customer email address', 'Customer-facing scope', 'quote total']),
@@ -93,14 +99,17 @@ check('Controlled proposal lifecycle remains authoritative',
   'commercial lifecycle missing');
 
 check('Backend automation processes inbox, inbound SMS, requests, and quotes',
-  hasAll(orchestration, ['boAiEmailBrief_', 'h38TmSyncInbound_', 'H38_BO_SHEETS.REQUESTS', 'H38_BO_SHEETS.QUOTES', 'Automatic request preparation', 'Automatic quote readiness review']),
+  hasAll(orchestration, ['boAiEmailBrief_', 'Automatic inbound email intake', 'h38TmSyncInbound_', 'H38_BO_SHEETS.REQUESTS', 'H38_BO_SHEETS.QUOTES', 'Automatic request preparation', 'Automatic quote readiness review']),
   'backend pass incomplete');
+check('Unchanged backend records are fingerprinted and skipped',
+  hasAll(orchestration, ['H38_AI_AUTOMATION_STATE_PROPERTY_V2', 'boAiAutomationChangedV2_', 'boAiAutomationMarkV2_', 'Inbox unchanged', 'skippedUnchanged']),
+  'idempotent automation fingerprints missing');
 check('Optional 15-minute trigger is owner-installed and removable',
   hasAll(orchestration, ['everyMinutes(15)', 'boAiInstallAutomationTrigger_', 'boAiRemoveAutomationTrigger_', 'boAiAutomationScheduledRun']),
   'scheduled automation controls missing');
 
 check('Web API routes through the new command router',
-  hasAll(web, ['boAiCommandRouter_', 'boAiAutomationBootstrap_', 'aiAutomationRun', 'aiTakeoverQueue', 'aiResolveTakeover', 'aiAgents']),
+  hasAll(web, ['boAiCommandRouterV2_', 'boAiAutomationBootstrapV2_', 'boAiAutomationRunV2_', 'aiAutomationRun', 'aiTakeoverQueue', 'aiResolveTakeover', 'aiAgents']),
   'new endpoints not exposed');
 check('Client visibly exposes back office and Owner blocks',
   hasAll(client, ['Run back office', 'Owner blocks', 'h38-ai-takeover', "result.kind==='completed'", "result.kind==='takeover'", "result.kind==='automation'"]),
