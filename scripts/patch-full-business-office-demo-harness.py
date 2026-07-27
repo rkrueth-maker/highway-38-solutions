@@ -10,11 +10,8 @@ if len(sys.argv) != 2:
 path = Path(sys.argv[1])
 text = path.read_text()
 
-wrong_id = "13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o"
-correct_id = "13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-"
-if wrong_id not in text:
-    raise SystemExit("authorized Owner Portal project identifier marker was not found")
-text = text.replace(wrong_id, correct_id, 1)
+# Keep the repository's established authorized execution project unchanged.
+# Its execution API is already approved; the live production project is deployment-only.
 
 old_assembly = textwrap.dedent('''
 cp -a "$OWNER_BACKUP/." "$OWNER_HARNESS/"
