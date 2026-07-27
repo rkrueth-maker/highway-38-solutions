@@ -18,6 +18,7 @@ const demo = read('apps-script/business-office/BusinessOffice_FullApprovedDemo.g
 const phases = read('apps-script/business-office/BusinessOffice_FullApprovedDemo_V2.gs');
 const workflow = read('.github/workflows/run-full-business-office-demo-authorized.yml');
 const authorizedHarness = read('scripts/business-office-authorized-harness.sh');
+const patcher = read('scripts/patch-full-business-office-demo-harness.py');
 const orchestration = read('apps-script/business-office/BusinessOffice_AI_AgentOrchestration.gs');
 const actions = read('apps-script/business-office/BusinessOffice_AI_Actions.gs');
 
@@ -85,28 +86,47 @@ check('established authorized harness remains source', hasAll(authorizedHarness,
   'OWNER_HARNESS',
   'OWNER_RESTORE'
 ]));
+check('patcher removes pulled duplicate Business Office source', hasAll(patcher, [
+  "-name 'BusinessOffice_*.js'",
+  "-name 'BusinessOffice_*.gs'",
+  "-name 'BusinessOffice_*.html'",
+  'cp "$REPO_ROOT"/apps-script/business-office/*.gs',
+  'cp "$REPO_ROOT"/apps-script/business-office/*.html'
+]));
+check('patcher renames Business Office doGet', hasAll(patcher, [
+  're.subn',
+  'function\\s+doGet\\s*\\(',
+  'function boHarnessDoGet_('
+]));
+check('patcher runs phased demo', hasAll(patcher, [
+  'boPrepareFullApprovedBusinessOfficeDemo',
+  'boRunFullApprovedBusinessOfficeDemoAgentBatch',
+  'boRunFullApprovedBusinessOfficeDemoEmailBatch',
+  'boFinalizeFullApprovedBusinessOfficeDemo'
+]));
+check('patcher checks exact results', hasAll(patcher, [
+  "r.projectCount!==7",
+  "r.agentCount!==8",
+  "r.approvedEmailCount!==8",
+  'rkrueth@gmail.com',
+  'highway38solutions@gmail.com'
+]));
+check('patcher restores authorized source', hasAll(patcher, [
+  'Restore the authorized Owner Portal development source immediately after the demo.',
+  'OWNER_RESTORE',
+  'BusinessOffice_Sync.js',
+  'test "$BEFORE_LINE" = "$AFTER_LINE"'
+]));
 check('post-deployment workflow', hasAll(workflow, [
   'workflow_run:',
   'Deploy Unified Owner Portal',
   'scripts/business-office-authorized-harness.sh',
-  'boPrepareFullApprovedBusinessOfficeDemo',
-  'boRunFullApprovedBusinessOfficeDemoAgentBatch',
-  'boRunFullApprovedBusinessOfficeDemoEmailBatch',
-  'boFinalizeFullApprovedBusinessOfficeDemo',
+  'scripts/patch-full-business-office-demo-harness.py',
+  'bash -n "$HARNESS"',
   'full-business-office-demo-${{ github.run_id }}'
 ]));
-check('workflow checks exact results', hasAll(workflow, [
-  "r.projectCount!==7",
-  "r.agentCount!==8",
-  "r.approvedEmailCount!==8",
-  "rkrueth@gmail.com",
-  "highway38solutions@gmail.com"
-]));
-check('workflow restores authorized source', hasAll(workflow, [
-  'Restore the authorized Owner Portal development source immediately after the demo.',
-  'OWNER_RESTORE',
-  'test "$BEFORE_LINE" = "$AFTER_LINE"'
-]));
+check('shared authorized concurrency lock', workflow.includes('group: highway-38-business-office-authorized-acceptance'));
+check('complete harness log captured', workflow.includes('artifacts/full-business-office-demo/harness.log'));
 check('workflow preserves no-public-publish boundary', workflow.includes('nothing was publicly published'));
 
 if (failures.length) {
@@ -114,4 +134,4 @@ if (failures.length) {
   failures.forEach(item => console.error(`- ${item}`));
   process.exit(1);
 }
-console.log('PASS — Resumable full approved Business Office demo contract is complete and bounded.');
+console.log('PASS — Deterministic resumable full approved Business Office demo contract is complete and bounded.');
