@@ -2,7 +2,7 @@ name: Run Full Business Office Demo (Authorized)
 
 on:
   workflow_run:
-    workflows: ["Deploy Unified Owner Portal"]
+    workflows: ["Business Office Authorized Acceptance"]
     types: [completed]
   workflow_dispatch:
 
@@ -42,11 +42,17 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
-      - name: Check out deployed main source
+      - name: Check out accepted main source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
           fetch-depth: 1
+
+      - name: Record controlled demo start
+        shell: bash
+        run: |
+          BODY="RUNNING — Controlled full Business Office demo. Source: ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Approved internal recipients only: rkrueth@gmail.com and highway38solutions@gmail.com."
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Use Node.js
         uses: actions/setup-node@v4
