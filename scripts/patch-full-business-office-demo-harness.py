@@ -24,10 +24,10 @@ cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$OWNER_
 ''').strip()
 new_assembly = textwrap.dedent('''
 cp -a "$OWNER_BACKUP/." "$OWNER_HARNESS/"
-# clasp pull writes Apps Script source as .js. Remove only pulled Business Office
-# files before copying the canonical .gs/.html source so no duplicate script names exist.
+# clasp pull writes Apps Script source as .js. Remove every pulled Business Office
+# file, including ZZ_/ZZZ_ compatibility names, before copying canonical source.
 find "$OWNER_HARNESS" -maxdepth 1 -type f \\
-  \( -name 'BusinessOffice_*.js' -o -name 'BusinessOffice_*.gs' -o -name 'BusinessOffice_*.html' \) \\
+  \( -name '*BusinessOffice_*.js' -o -name '*BusinessOffice_*.gs' -o -name '*BusinessOffice_*.html' \) \\
   -delete
 cp "$REPO_ROOT"/apps-script/business-office/*.gs "$OWNER_HARNESS/"
 cp "$REPO_ROOT"/apps-script/business-office/*.html "$OWNER_HARNESS/"
