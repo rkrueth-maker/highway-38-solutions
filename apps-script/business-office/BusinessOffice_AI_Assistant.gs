@@ -55,10 +55,15 @@ function boAiSendViaGmailApi_(draft){
  const mime=headers.concat(['MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',body]).join('\r\n');
  const encoded=Utilities.base64EncodeWebSafe(mime,Utilities.Charset.UTF_8).replace(/=+$/,'');
  const request={raw:encoded};if(draft&&draft.threadId)request.threadId=String(draft.threadId);
- const response=UrlFetchApp.fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(request),muteHttpExceptions:true});
- boAssert_(response.getResponseCode()>=200&&response.getResponseCode()<300,'Confirmed email could not be sent.');
- const result=JSON.parse(response.getContentText()||'{}');
- boAssert_(result.id,'Gmail accepted the email but did not return a message ID.');
+ let result;
+ try{
+  boAssert_(typeof Gmail!=='undefined'&&Gmail.Users&&Gmail.Users.Messages&&typeof Gmail.Users.Messages.send==='function','The Gmail API service is not enabled for this Business Office deployment.');
+  result=Gmail.Users.Messages.send(request,'me');
+ }catch(error){
+  const detail=String(error&&error.message||error||'Unknown Gmail error.').replace(/\s+/g,' ').slice(0,500);
+  throw new Error('Confirmed email could not be sent. Gmail returned: '+detail);
+ }
+ boAssert_(result&&result.id,'Gmail accepted the email but did not return a message ID.');
  return{id:String(result.id),threadId:String(result.threadId||draft&&draft.threadId||''),labelIds:result.labelIds||[],rawMime:mime};
 }
 function boAiSaveLayout_(layout){const clean=boAiSanitizeLayout_(layout||{});PropertiesService.getUserProperties().setProperty('H38_AI_LAYOUT',JSON.stringify(clean));boAiRecordEvent_({type:'layout_change',module:String(clean.startModule||''),outcome:'saved'});return clean;}
