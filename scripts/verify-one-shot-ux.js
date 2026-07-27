@@ -86,6 +86,9 @@ check('mobile shell self-creates persistent task navigation',fieldCss.includes('
 check('mobile shell provides large touch targets',fieldCss.includes('min-height:48px')&&fieldCss.includes('min-height:52px'));
 check('mobile Today prioritizes next work',fieldCss.includes('.ux-dashboard-grid>.h38-next-up{order:-1}')&&fieldClient.includes('h38MobileLimitToday'));
 check('mobile Today removes duplicate dense sections',fieldCss.includes('.h38-needs-decision{display:none')&&fieldCss.includes('.h38-today-lower{display:none'));
+check('phone mode uses readable default type and controls',fieldCss.includes('@media(max-width:600px)')&&fieldCss.includes('font-size:18px!important')&&fieldCss.includes('font-size:16px!important')&&fieldCss.includes('min-height:54px!important'));
+check('phone lifecycle stages are swipeable instead of tiny five-column cells',fieldCss.includes('scroll-snap-type:x proximity')&&fieldCss.includes('flex:0 0 118px!important')&&fieldCss.includes('font-size:12px!important'));
+check('phone mode removes redundant miniature AI prompt strip',fieldCss.includes('.h38-native-ai-strip{display:none!important}'));
 check('mobile lifecycle overview spans request through payment',fieldClient.includes('Work from request to payment')&&['intake','quotes','work','billing','paid'].every(marker=>fieldClient.includes(marker)));
 check('workflow automation performs only safe internal transitions',['boCreateCustomerFromRequest','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob'].every(marker=>workflow.includes(marker))&&workflow.includes('externalActionsOccurred: false'));
 check('workflow automation preserves owner gates',['Draft invoice ready for review','Approved invoice ready to send','Invoice follow-up is due','Recorded payment needs review'].every(marker=>workflow.includes(marker)));

@@ -40,3 +40,58 @@ body.h38-mobile-shell .drawer-panel,body.h38-mobile-shell .modal-panel{width:100
 body.h38-mobile-shell .tablewrap{border:0!important;overflow:visible!important}body.h38-mobile-shell table{min-width:0!important}body.h38-mobile-shell thead{display:none!important}body.h38-mobile-shell tbody,body.h38-mobile-shell tr,body.h38-mobile-shell td{display:block!important;width:100%!important}body.h38-mobile-shell tr{margin:9px 0!important;padding:8px!important;border:1px solid var(--ux-line)!important;border-radius:12px!important;background:var(--ux-card)!important}body.h38-mobile-shell td{padding:8px!important;border:0!important;border-bottom:1px solid #203552!important}body.h38-mobile-shell td:last-child{border-bottom:0!important}body.h38-mobile-shell td:before{position:static!important;float:none!important;display:block!important;width:auto!important;margin:0 0 3px!important;color:var(--ux-muted)!important;font-size:10px!important}
 body.h38-mobile-shell .h38-mobile-add-sheet{position:fixed;inset:0;z-index:120;display:none;align-items:flex-end;background:rgba(0,0,0,.62);backdrop-filter:blur(3px)}body.h38-mobile-shell .h38-mobile-add-sheet.open{display:flex}body.h38-mobile-shell .h38-mobile-add-panel{width:100%;max-height:82dvh;overflow:auto;border-radius:20px 20px 0 0;border:1px solid #315372;border-bottom:0;background:#091727;padding:15px 14px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -24px 60px rgba(0,0,0,.45)}body.h38-mobile-shell .h38-mobile-add-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}body.h38-mobile-shell .h38-mobile-add-head h2{margin:0;font-size:20px}body.h38-mobile-shell .h38-mobile-add-head button{min-width:44px;min-height:44px;border:1px solid var(--ux-line);border-radius:10px;background:var(--ux-panel);color:#fff;font-size:20px}body.h38-mobile-shell .h38-mobile-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}body.h38-mobile-shell .h38-mobile-add-grid button{display:grid;gap:5px;min-height:82px;border:1px solid #315372;border-radius:13px;background:#10263d;color:#fff;padding:12px;text-align:left;font-weight:850}body.h38-mobile-shell .h38-mobile-add-grid button span{color:var(--ux-muted);font-size:12px;font-weight:500}
 @media(max-width:430px){body.h38-mobile-shell .h38-mobile-workflow-stages{grid-template-columns:repeat(5,minmax(0,1fr))}body.h38-mobile-shell .h38-mobile-next-action{grid-template-columns:1fr}body.h38-mobile-shell .h38-mobile-next-action .btn{width:100%}body.h38-mobile-shell .h38-mobile-add-grid{grid-template-columns:1fr}}
+
+/* Large-readable phone mode: fewer tiny controls, stronger hierarchy, and field-sized text. */
+@media(max-width:600px){
+body.h38-mobile-shell{font-size:18px!important;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+body.h38-mobile-shell .h38-native-ai-strip{display:none!important}
+body.h38-mobile-shell .content{padding:12px 12px 24px!important}
+body.h38-mobile-shell #view,body.h38-mobile-shell main,body.h38-mobile-shell .content{min-height:0!important}
+body.h38-mobile-shell .h38-mobile-top{grid-template-columns:54px minmax(0,1fr) 54px 54px;min-height:70px;padding:8px 10px}
+body.h38-mobile-shell .h38-mobile-top button{min-width:54px;min-height:54px;font-size:24px}
+body.h38-mobile-shell .h38-mobile-top-title b{font-size:19px!important}
+body.h38-mobile-shell .h38-mobile-top-title small{font-size:13px!important;margin-top:3px}
+body.h38-mobile-shell .mobile-bottom-nav,body.h38-mobile-shell #mobileBottomNav{height:calc(78px + env(safe-area-inset-bottom))!important;padding:4px 4px env(safe-area-inset-bottom)!important}
+body.h38-mobile-shell .mobile-bottom-nav button{min-height:68px!important;font-size:13px!important}
+body.h38-mobile-shell .mobile-bottom-nav button b{font-size:25px!important;margin-bottom:2px}
+body.h38-mobile-shell .h38-owner-hero{padding:17px!important;gap:12px!important}
+body.h38-mobile-shell .h38-owner-hero h1{font-size:clamp(2rem,8vw,2.35rem)!important;line-height:1.06!important}
+body.h38-mobile-shell .h38-owner-hero-actions{grid-template-columns:1fr!important;gap:10px!important}
+body.h38-mobile-shell .h38-owner-hero-actions .btn,body.h38-mobile-shell .btn{min-height:54px!important;font-size:16px!important;line-height:1.25!important}
+body.h38-mobile-shell .h38-owner-hero-actions .btn:last-child{grid-column:auto}
+body.h38-mobile-shell .h38-mobile-workflow{padding:15px!important;gap:12px!important;border-radius:16px!important}
+body.h38-mobile-shell .h38-mobile-workflow-head{align-items:center!important}
+body.h38-mobile-shell .h38-mobile-workflow-head h2{font-size:20px!important;line-height:1.2!important}
+body.h38-mobile-shell .h38-mobile-workflow-head .btn{min-width:70px!important}
+body.h38-mobile-shell .h38-mobile-workflow-stages{display:flex!important;grid-template-columns:none!important;gap:10px!important;overflow-x:auto!important;padding:2px 1px 8px!important;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+body.h38-mobile-shell .h38-mobile-stage{flex:0 0 118px!important;min-width:118px!important;min-height:78px!important;padding:12px 9px!important;scroll-snap-align:start}
+body.h38-mobile-shell .h38-mobile-stage b{font-size:26px!important;line-height:1!important}
+body.h38-mobile-shell .h38-mobile-stage span{font-size:12px!important;line-height:1.2!important;margin-top:7px!important}
+body.h38-mobile-shell .h38-mobile-next-action{grid-template-columns:1fr!important;padding:15px!important;gap:12px!important}
+body.h38-mobile-shell .h38-mobile-next-action small{font-size:12px!important}
+body.h38-mobile-shell .h38-mobile-next-action strong{font-size:18px!important;line-height:1.35!important;margin-top:5px!important}
+body.h38-mobile-shell .h38-mobile-next-action .btn{width:100%!important}
+body.h38-mobile-shell .h38-owner-alert{padding:15px!important}
+body.h38-mobile-shell .h38-owner-alert h2,body.h38-mobile-shell .h38-owner-alert strong{font-size:18px!important}
+body.h38-mobile-shell .h38-owner-alert .toolbar{grid-template-columns:1fr!important;gap:10px!important}
+body.h38-mobile-shell .ux-metrics.h38-primary-metrics{gap:10px!important;margin:11px 0!important}
+body.h38-mobile-shell .ux-metric{min-height:106px!important;padding:14px!important}
+body.h38-mobile-shell .ux-metric b{font-size:12px!important;line-height:1.25!important}
+body.h38-mobile-shell .ux-metric strong{font-size:31px!important;line-height:1!important;margin-top:10px!important}
+body.h38-mobile-shell .ux-section{padding:15px!important;border-radius:15px!important}
+body.h38-mobile-shell .ux-section-head h2{font-size:17px!important}
+body.h38-mobile-shell .ux-section-head .btn{min-height:48px!important;font-size:15px!important}
+body.h38-mobile-shell .ux-list-item{padding:15px!important;gap:10px!important;border-radius:13px!important}
+body.h38-mobile-shell .ux-list-item strong,body.h38-mobile-shell .ux-list-item b{font-size:17px!important;line-height:1.3!important}
+body.h38-mobile-shell .ux-list-item span,body.h38-mobile-shell .ux-list-item small,body.h38-mobile-shell .ux-list-item p{font-size:14px!important;line-height:1.45!important}
+body.h38-mobile-shell .ux-list-item .btn{min-height:54px!important;font-size:16px!important}
+body.h38-mobile-shell .workspace-head h1,body.h38-mobile-shell .workspace-head h2{font-size:24px!important;line-height:1.2!important}
+body.h38-mobile-shell label,body.h38-mobile-shell .form-grid label{font-size:16px!important}
+body.h38-mobile-shell input,body.h38-mobile-shell select,body.h38-mobile-shell textarea{font-size:17px!important;min-height:54px!important}
+body.h38-mobile-shell td{font-size:16px!important;line-height:1.45!important;padding:11px!important}
+body.h38-mobile-shell td:before{font-size:12px!important;margin-bottom:5px!important}
+body.h38-mobile-shell .h38-mobile-add-head h2{font-size:24px!important}
+body.h38-mobile-shell .h38-mobile-add-grid button{min-height:96px!important;font-size:18px!important;padding:15px!important}
+body.h38-mobile-shell .h38-mobile-add-grid button span{font-size:14px!important;line-height:1.35!important}
+body.h38-mobile-shell footer,body.h38-mobile-shell .ux-footer{font-size:13px!important;line-height:1.45!important}
+}
