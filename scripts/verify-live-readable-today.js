@@ -31,6 +31,8 @@ check('readable Chromebook shell marker',chromebookStyles.includes('Readable Chr
 check('Chromebook sidebar is wider',chromebookStyles.includes('--h38-sidebar:236px'));
 check('Chromebook navigation items are readable',chromebookStyles.includes('.nav-group-items button{min-height:48px!important')&&chromebookStyles.includes('font-size:16px!important'));
 check('Chromebook toolbar is readable',chromebookStyles.includes('#ownerTopbar{min-height:68px!important')&&chromebookStyles.includes('#ownerTopbar .btn{min-height:50px!important'));
+check('Chromebook toolbar wraps without overlap',chromebookStyles.includes('flex-wrap:wrap!important')&&chromebookStyles.includes('.btn:not(.command-trigger){flex:0 0 auto!important'));
+check('Chromebook Refresh label is fully visible',chromebookStyles.includes('#ownerTopbar .h38-refresh{display:inline-flex!important')&&chromebookStyles.includes('min-width:118px!important')&&chromebookStyles.includes('font-size:16px!important')&&chromebookStyles.includes('white-space:nowrap!important'));
 check('Chromebook workspace has useful padding',chromebookStyles.includes('#view{padding:18px 24px 96px!important'));
 check('Chromebook Today layout marker',dailyStyles.includes('Chromebook Today layout v2'));
 check('Chromebook Today uses balanced columns',dailyStyles.includes('grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr)'));
