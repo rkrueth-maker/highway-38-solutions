@@ -95,8 +95,8 @@ check('patcher removes pulled duplicate Business Office source', hasAll(patcher,
 ]));
 check('patcher renames Business Office doGet', hasAll(patcher, [
   're.subn',
-  'function\\s+doGet\\s*\\(',
-  'function boHarnessDoGet_('
+  'function boHarnessDoGet_(',
+  'Business Office doGet rename failed.'
 ]));
 check('patcher runs phased demo', hasAll(patcher, [
   'boPrepareFullApprovedBusinessOfficeDemo',
