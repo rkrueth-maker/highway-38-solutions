@@ -73,7 +73,8 @@ const forbidden=[/GmailApp\.sendEmail/i,/MailApp\.sendEmail/i,/Stripe/i,/PayPal/
 for(const pattern of forbidden) assert(`forbidden pattern absent ${pattern}`,!pattern.test(allSource));
 assert('no anonymous production web access',!read(path.join(boDir,'appsscript.json')).includes('ANYONE_ANONYMOUS'));
 assert('web app executes as accessing user',read(path.join(boDir,'appsscript.json')).includes('USER_ACCESSING'));
-assert('external actions hard disabled',/EXTERNAL_ACTIONS_ENABLED\s*:\s*false/.test(allSource)&&h38Pack.workflow.externalActionsEnabled===false&&templatePack.workflow.externalActionsEnabled===false);
+assert('reusable Business Office defaults external actions to disabled',/EXTERNAL_ACTIONS_ENABLED\s*:\s*false/.test(allSource)&&templatePack.workflow.externalActionsEnabled===false);
+assert('protected Highway 38 live release is explicit and Owner gated',h38Pack.workflow.externalActionsEnabled===true&&h38Pack.workflow.ownerApprovalRequired===true&&h38Pack.workflow.selectedRecordOnly===true&&h38Pack.workflow.bulkExternalActionsEnabled===false&&h38Pack.workflow.automaticExternalTriggersEnabled===false&&Array.isArray(h38Pack.workflow.liveActionTypes)&&h38Pack.workflow.liveActionTypes.includes('email')&&allSource.includes('function h38PortalLiveExternalStatus'));
 assert('direct payment hard disabled',/DIRECT_PAYMENT_PROCESSING\s*:\s*false/.test(allSource)&&h38Pack.boundaries.directPaymentProcessing===false&&templatePack.boundaries.directPaymentProcessing===false);
 assert('payroll funding hard disabled',/DIRECT_PAYROLL_FUNDING\s*:\s*false/.test(allSource)&&h38Pack.boundaries.directPayrollFunding===false&&templatePack.boundaries.directPayrollFunding===false);
 assert('tax filing hard disabled',/DIRECT_TAX_FILING\s*:\s*false/.test(allSource)&&h38Pack.boundaries.directTaxFiling===false&&templatePack.boundaries.directTaxFiling===false);
@@ -88,7 +89,7 @@ assert('tax finalization gate',allSource.includes("'Finalization Allowed'] === '
 assert('quote send gate',allSource.includes("'Send Allowed'"));
 assert('role set complete',['Owner','Administrator','Staff','Bookkeeper','Payroll','Viewer'].every(role=>h38Pack.roles.names.includes(role)&&templatePack.roles.names.includes(role)));
 assert('task messaging package enabled',h38Pack.modules.assignedTasks===true&&h38Pack.modules.messaging===true&&h38Pack.modules.smsConsent===true&&h38Pack.modules.messageTemplates===true);
-assert('task messaging external release locked',h38Pack.messaging&&h38Pack.messaging.externalActionsEnabled===false&&h38Pack.messaging.inboundSyncEnabled===false);
+assert('task messaging live release preserves consent and bulk locks',h38Pack.messaging&&h38Pack.messaging.externalActionsEnabled===true&&h38Pack.messaging.ownerApprovalRequired===true&&h38Pack.messaging.documentedConsentRequired===true&&h38Pack.messaging.stopSuppressionRequired===true&&h38Pack.messaging.duplicateProtectionRequired===true&&h38Pack.messaging.bulkMessagingEnabled===false&&h38Pack.messaging.automaticTriggersEnabled===false&&h38Pack.messaging.inboundSyncEnabled===false);
 
 const configSource=read(path.join(boDir,'BusinessOffice_Config.gs'));
 const sheetNames=[...configSource.matchAll(/:\s*'BO [^']+'/g)].map(match=>match[0]);
