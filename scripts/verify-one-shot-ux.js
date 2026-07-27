@@ -13,10 +13,14 @@ const need=(file,marker,label)=>check(label,read(file).includes(marker),`${file}
 
 const mobileStyles='apps-script/core-engine/owner-portal-next/Portal_Mobile_Field_Styles.html';
 const mobileClient='apps-script/core-engine/owner-portal-next/Portal_Mobile_Field_Client.html';
+const taskStyles='apps-script/core-engine/owner-portal-next/Portal_TaskAssignment_Styles.html';
+const taskClient='apps-script/core-engine/owner-portal-next/Portal_TaskMessaging_Client.html';
+const taskRules='apps-script/business-office/BusinessOffice_TaskAssignmentRules.gs';
+const portalBusiness='apps-script/core-engine/owner-portal-next/Portal_Business.js';
 const workflowAutomation='apps-script/business-office/ZZZ_BusinessOffice_WorkflowAutomation.gs';
-const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html',mobileStyles,mobileClient,workflowAutomation,'apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
+const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html',mobileStyles,mobileClient,taskStyles,taskClient,taskRules,portalBusiness,workflowAutomation,'apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
 required.forEach(file=>check(`required ${file}`,exists(file)));
-['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html',mobileClient,workflowAutomation].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
+['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html',mobileClient,taskClient,taskRules,portalBusiness,workflowAutomation].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
 
 const home=read('index.html');
 const publicShell=read('assets/js/h38-site-v2.js');
@@ -72,6 +76,7 @@ check('Owner one-shot styles included',portalIndex.includes('Portal_OneShot_UX_S
 check('Owner canonical product styles included',portalIndex.includes('Portal_Product_Styles')&&raw.includes('Portal_Product_Styles'));
 check('Owner one-shot client included',portalIndex.includes('Portal_OneShot_Client')&&raw.includes('Portal_OneShot_Client'));
 check('touch-first mobile field shell included',portalIndex.includes('Portal_Mobile_Field_Styles')&&portalIndex.includes('Portal_Mobile_Field_Client')&&raw.includes('Portal_Mobile_Field_Styles')&&raw.includes('Portal_Mobile_Field_Client'));
+check('task assignment responsive styles included',portalIndex.includes('Portal_TaskAssignment_Styles')&&raw.includes('Portal_TaskAssignment_Styles'));
 check('mobile viewport supports safe areas',portalIndex.includes('viewport-fit=cover'));
 check('legacy portal product and control layers absent',!/(Portal_Product_Unification|Portal_ProductCenter|Portal_ProductApps|Portal_ControlPlane_Client|Portal_ControlPlane_Styles)/.test(portalIndex+raw));
 const owner=read('apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html');
@@ -79,16 +84,24 @@ const owner=read('apps-script/core-engine/owner-portal-next/Portal_OneShot_Clien
 check('Owner external actions remain gated',owner.includes('remain approval gated'));
 check('Owner selected record controls preserved',read('apps-script/core-engine/owner-portal-next/Portal_Application_Client_Views.html').includes('Selected record only'));
 
-const fieldCss=read(mobileStyles),fieldClient=read(mobileClient),workflow=read(workflowAutomation);
-check('mobile shell detects touch and wide mobile browser modes',fieldClient.includes('(pointer:coarse)')&&fieldClient.includes('max-width:1100px'));
+const fieldCss=read(mobileStyles),fieldClient=read(mobileClient),assignmentCss=read(taskStyles),assignmentClient=read(taskClient),rules=read(taskRules),business=read(portalBusiness),workflow=read(workflowAutomation);
+check('device shell separates phone Chromebook and desktop modes',fieldClient.includes('(pointer:coarse)')&&fieldClient.includes('max-width:720px')&&fieldClient.includes('max-width:1280px')&&['h38-phone-shell','h38-compact-shell','h38-desktop-shell'].every(marker=>fieldClient.includes(marker)));
 check('mobile shell removes scaled desktop navigation',fieldCss.includes('body.h38-mobile-shell .side')&&fieldCss.includes('translateX(-105%)')&&fieldCss.includes('body.h38-mobile-shell .top{display:none'));
 check('mobile shell self-creates persistent task navigation',fieldCss.includes('#mobileBottomNav')&&fieldClient.includes("document.createElement('nav')")&&fieldClient.includes('Today</span>')&&fieldClient.includes('Work</span>')&&fieldClient.includes('Customers</span>'));
+check('mobile add sheet exposes direct task creation',fieldClient.includes("h38MobileCreate('assignedTasks')")&&fieldClient.includes('Assign work to a person or role'));
 check('mobile shell provides large touch targets',fieldCss.includes('min-height:48px')&&fieldCss.includes('min-height:52px'));
 check('mobile Today prioritizes next work',fieldCss.includes('.ux-dashboard-grid>.h38-next-up{order:-1}')&&fieldClient.includes('h38MobileLimitToday'));
 check('mobile Today removes duplicate dense sections',fieldCss.includes('.h38-needs-decision{display:none')&&fieldCss.includes('.h38-today-lower{display:none'));
-check('phone mode uses readable default type and controls',fieldCss.includes('@media(max-width:600px)')&&fieldCss.includes('font-size:18px!important')&&fieldCss.includes('font-size:16px!important')&&fieldCss.includes('min-height:54px!important'));
-check('phone lifecycle stages are swipeable instead of tiny five-column cells',fieldCss.includes('scroll-snap-type:x proximity')&&fieldCss.includes('flex:0 0 118px!important')&&fieldCss.includes('font-size:12px!important'));
-check('phone mode removes redundant miniature AI prompt strip',fieldCss.includes('.h38-native-ai-strip{display:none!important}'));
+check('true phone class uses readable default type and controls',assignmentCss.includes('body.h38-phone-shell{font-size:18px')&&assignmentCss.includes('min-height:56px')&&assignmentCss.includes('font-size:17px'));
+check('phone lifecycle stages are swipeable instead of tiny five-column cells',assignmentCss.includes('scroll-snap-type:x proximity')&&assignmentCss.includes('flex:0 0 132px')&&assignmentCss.includes('font-size:14px'));
+check('phone mode removes redundant miniature AI prompt strip',assignmentCss.includes('body.h38-phone-shell .h38-native-ai-strip{display:none'));
+check('Chromebook mode preserves office navigation with readable controls',assignmentCss.includes('body.h38-compact-shell')&&assignmentCss.includes('--h38-sidebar:220px')&&assignmentCss.includes('min-height:48px'));
+check('desktop mode preserves full oversight with readable tables',assignmentCss.includes('body.h38-desktop-shell')&&assignmentCss.includes('tbody td{font-size:14px'));
+check('task center exposes tasks team workload and automation rules',['Task Center','Team workload','Automation rules','New task','Run auto assignments'].every(marker=>assignmentClient.includes(marker)));
+check('task center exposes rule editor and starter rules',['h38TmOpenRuleForm','h38TmSaveAssignmentRule','h38TmSeedAssignmentRules','Install starter rules'].every(marker=>assignmentClient.includes(marker)));
+check('task assignment backend is owner controlled and internal only',rules.includes('h38TaskRuleRequireManager_')&&rules.includes('TASK_AUTO_ASSIGN')&&rules.includes('No external action')&&rules.includes('externalActionsOccurred:false'));
+check('task assignment rules cover request through payment follow-up',['request.created','quote.approved','job.created','job.completed','invoice.created','invoice.overdue','payment.review'].every(marker=>rules.includes(marker)));
+check('record saves apply automatic assignment rules safely',business.includes('h38PortalBusinessApplyTaskRules_')&&business.includes('taskAssignment:taskAssignment')&&business.includes('externalActionsOccurred:false'));
 check('mobile lifecycle overview spans request through payment',fieldClient.includes('Work from request to payment')&&['intake','quotes','work','billing','paid'].every(marker=>fieldClient.includes(marker)));
 check('workflow automation performs only safe internal transitions',['boCreateCustomerFromRequest','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob'].every(marker=>workflow.includes(marker))&&workflow.includes('externalActionsOccurred: false'));
 check('workflow automation preserves owner gates',['Draft invoice ready for review','Approved invoice ready to send','Invoice follow-up is due','Recorded payment needs review'].every(marker=>workflow.includes(marker)));
