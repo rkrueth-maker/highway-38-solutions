@@ -47,6 +47,7 @@ check('message event records Gmail ID and evidence',hasAll(sync,["'Provider Mess
 check('audit and proof remain active',hasAll(sync,['h38TmAppend_(\'MESSAGES\'',"boProof_('EMAIL CAPTURE'","boError_('Gmail Communications capture'"]));
 check('demo evidence backfill uses existing Gmail label',hasAll(sync,["H38_EMAIL_DEMO_LABEL = 'H38 Business Office Demo Evidence'","label:\"' + H38_EMAIL_DEMO_LABEL","boEmailSyncDemoEvidence_"]));
 check('recent inbox and sent sync are bounded',hasAll(sync,["in:sent newer_than:30d","in:inbox newer_than:30d","Math.min(Number(options.sentLimit) || 15, 50)"]));
+check('recent sync classifies each Gmail message by actual sender',hasAll(web,["function boEmailSyncRecent_(options)","GmailApp.search('in:sent newer_than:30d'", "), '', sentLimit)","per-message direction"]));
 check('startup sync is owner-only and non-blocking',hasAll(sync,["h38TmUserRole_(user) !== 'Owner'","boEmailSyncStartupSafe_","return { status: 'HOLD'","externalActionOccurred: false"]));
 check('standalone Business Office bootstrap runs safe sync',api.includes('emailSync:boEmailSyncStartupSafe_()'));
 check('standalone Business Office exposes manual sync and status',hasAll(api,['emailSync:function()','boEmailSyncRecent_(args)','boEmailSyncDemoEvidence_()','emailSyncStatus:function()']));
