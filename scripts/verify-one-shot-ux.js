@@ -88,7 +88,7 @@ const fieldCss=read(mobileStyles),fieldClient=read(mobileClient),assignmentCss=r
 check('device shell separates phone Chromebook and desktop modes',fieldClient.includes('(pointer:coarse)')&&fieldClient.includes('max-width:720px')&&fieldClient.includes('max-width:1280px')&&['h38-phone-shell','h38-compact-shell','h38-desktop-shell'].every(marker=>fieldClient.includes(marker)));
 check('mobile shell removes scaled desktop navigation',fieldCss.includes('body.h38-mobile-shell .side')&&fieldCss.includes('translateX(-105%)')&&fieldCss.includes('body.h38-mobile-shell .top{display:none'));
 check('mobile shell self-creates persistent task navigation',fieldCss.includes('#mobileBottomNav')&&fieldClient.includes("document.createElement('nav')")&&fieldClient.includes('Today</span>')&&fieldClient.includes('Work</span>')&&fieldClient.includes('Customers</span>'));
-check('mobile add sheet exposes direct task creation',fieldClient.includes("h38MobileCreate('assignedTasks')")&&fieldClient.includes('Assign work to a person or role'));
+check('mobile add sheet exposes direct task creation',fieldClient.includes("h38MobileCreate(\\'assignedTasks\\')")&&fieldClient.includes('Assign work to a person or role'));
 check('mobile shell provides large touch targets',fieldCss.includes('min-height:48px')&&fieldCss.includes('min-height:52px'));
 check('mobile Today prioritizes next work',fieldCss.includes('.ux-dashboard-grid>.h38-next-up{order:-1}')&&fieldClient.includes('h38MobileLimitToday'));
 check('mobile Today removes duplicate dense sections',fieldCss.includes('.h38-needs-decision{display:none')&&fieldCss.includes('.h38-today-lower{display:none'));
