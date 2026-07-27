@@ -94,6 +94,10 @@ check('patcher removes every pulled Business Office source form', hasAll(patcher
   'cp "$REPO_ROOT"/apps-script/business-office/*.gs',
   'cp "$REPO_ROOT"/apps-script/business-office/*.html'
 ]));
+check('patcher preserves established authorized execution project', hasAll(patcher, [
+  "Keep the repository's established authorized execution project unchanged.",
+  'live production project is deployment-only'
+]));
 check('patcher renames Business Office doGet', hasAll(patcher, [
   're.subn',
   'function boHarnessDoGet_(',
@@ -118,13 +122,18 @@ check('patcher restores authorized source', hasAll(patcher, [
   'BusinessOffice_Sync.js',
   'test "$BEFORE_LINE" = "$AFTER_LINE"'
 ]));
-check('post-deployment workflow', hasAll(workflow, [
+check('post-acceptance workflow', hasAll(workflow, [
   'workflow_run:',
-  'Deploy Unified Owner Portal',
+  'Business Office Authorized Acceptance',
   'scripts/business-office-authorized-harness.sh',
   'scripts/patch-full-business-office-demo-harness.py',
   'bash -n "$HARNESS"',
   'full-business-office-demo-${{ github.run_id }}'
+]));
+check('workflow records demo start', hasAll(workflow, [
+  'Record controlled demo start',
+  'RUNNING — Controlled full Business Office demo',
+  'GITHUB_RUN_ID'
 ]));
 check('shared authorized concurrency lock', workflow.includes('group: highway-38-business-office-authorized-acceptance'));
 check('complete harness log captured', workflow.includes('artifacts/full-business-office-demo/harness.log'));
