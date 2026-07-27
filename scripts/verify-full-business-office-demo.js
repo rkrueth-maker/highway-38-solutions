@@ -15,18 +15,20 @@ function parse(name, source) {
 }
 
 const demo = read('apps-script/business-office/BusinessOffice_FullApprovedDemo.gs');
-const harness = read('scripts/run-full-business-office-demo-authorized.sh');
+const phases = read('apps-script/business-office/BusinessOffice_FullApprovedDemo_V2.gs');
 const workflow = read('.github/workflows/run-full-business-office-demo-authorized.yml');
+const authorizedHarness = read('scripts/business-office-authorized-harness.sh');
 const orchestration = read('apps-script/business-office/BusinessOffice_AI_AgentOrchestration.gs');
 const actions = read('apps-script/business-office/BusinessOffice_AI_Actions.gs');
 
 parse('BusinessOffice_FullApprovedDemo.gs', demo);
+parse('BusinessOffice_FullApprovedDemo_V2.gs', phases);
 
 check('exact controlled addresses', hasAll(demo, [
   "H38_FULL_DEMO_OWNER_EMAIL = 'rkrueth@gmail.com'",
   "H38_FULL_DEMO_BUSINESS_EMAIL = 'highway38solutions@gmail.com'"
 ]));
-check('seven existing hypotheticals', hasAll(demo, [
+check('seven existing hypotheticals', hasAll(demo + phases, [
   'boSeedUnifiedSevenDemoSystem()',
   "boFullDemoProjectContext_('DECK')",
   "boFullDemoProjectContext_('IRR')",
@@ -36,8 +38,15 @@ check('seven existing hypotheticals', hasAll(demo, [
 check('all eight agents', [
   'intake_requirements','quote_architect','measurement_quantity','pricing_costing',
   'scope_instruction','drawing','quote_review','business_setup'
-].every(key => demo.includes(`boFullDemoRunAgent_('${key}'`)));
-check('owner-only runner', hasAll(demo, ['boRequireOwner_()', 'authorized only for Rick Krueth']));
+].every(key => phases.includes(`key: '${key}'`)));
+check('resumable phases', hasAll(phases, [
+  'function boPrepareFullApprovedBusinessOfficeDemo()',
+  'function boRunFullApprovedBusinessOfficeDemoAgentBatch(',
+  'function boRunFullApprovedBusinessOfficeDemoEmailBatch(',
+  'function boFinalizeFullApprovedBusinessOfficeDemo()',
+  'function boGetFullApprovedBusinessOfficeDemoStatus()'
+]));
+check('owner-only execution', hasAll(demo + phases, ['boRequireOwner_()', 'authorized only for Rick Krueth']));
 check('actual intake email linkage', hasAll(demo, ['GmailApp.search', 'Email Thread ID', 'Email Message ID', 'H38_FULL_DEMO_INTAKE_SUBJECT']));
 check('approved action engine email path', hasAll(demo, [
   "actionId: 'email.send'",
@@ -45,17 +54,22 @@ check('approved action engine email path', hasAll(demo, [
   'boAiConfirmAction_',
   'prepared.confirmation'
 ]));
-check('duplicate locks', hasAll(demo, [
+check('duplicate locks', hasAll(demo + phases, [
   "H38_FULL_DEMO_MARKER + '-COMPLETE'",
   "H38_FULL_DEMO_MARKER + '-EMAIL-'",
   'duplicatePrevented: true'
 ]));
-check('eight approved emails', hasAll(demo, [
-  'seed.projects.forEach',
-  "emails.push(boFullDemoSendApprovedEmail_('OWNER-SUMMARY'",
-  'approvedEmailCount: emails.length'
+check('owner takeover approval remains bounded', hasAll(phases, [
+  'function boFullDemoApproveTakeover_',
+  'Internal demonstration only; no external commitment.',
+  'H38 DEMO TAKEOVER APPROVED'
 ]));
-check('protected boundaries', hasAll(demo, [
+check('eight approved emails', hasAll(phases, [
+  'boUnifiedDemoProjects_().map(boFullDemoProjectEmailSpec_)',
+  "suffix: 'OWNER-SUMMARY'",
+  'boAssert_(emailCount === 8'
+]));
+check('protected boundaries', hasAll(demo + phases, [
   'financialExternalActions: false',
   'moneyMoved: false',
   'payrollFunded: false',
@@ -65,20 +79,33 @@ check('protected boundaries', hasAll(demo, [
 ]));
 check('orchestration support exists', hasAll(orchestration, ['function boAiRunSpecialist_', 'function boAiAgentCatalog_']));
 check('approval action support exists', hasAll(actions, ["'email.send'", 'function boAiPrepareAction_', 'function boAiConfirmAction_']));
-check('production execution harness', hasAll(harness, [
-  'boRunFullApprovedBusinessOfficeDemo',
-  'projectCount!==7',
-  'agentCount!==8',
-  'approvedEmailCount!==8',
-  'rkrueth@gmail.com',
-  'highway38solutions@gmail.com'
+check('established authorized harness remains source', hasAll(authorizedHarness, [
+  'run_harness_function()',
+  'boBootstrapInstall',
+  'OWNER_HARNESS',
+  'OWNER_RESTORE'
 ]));
 check('post-deployment workflow', hasAll(workflow, [
   'workflow_run:',
   'Deploy Unified Owner Portal',
-  'scripts/run-full-business-office-demo-authorized.sh',
-  'scripts/verify-full-business-office-demo.js',
+  'scripts/business-office-authorized-harness.sh',
+  'boPrepareFullApprovedBusinessOfficeDemo',
+  'boRunFullApprovedBusinessOfficeDemoAgentBatch',
+  'boRunFullApprovedBusinessOfficeDemoEmailBatch',
+  'boFinalizeFullApprovedBusinessOfficeDemo',
   'full-business-office-demo-${{ github.run_id }}'
+]));
+check('workflow checks exact results', hasAll(workflow, [
+  "r.projectCount!==7",
+  "r.agentCount!==8",
+  "r.approvedEmailCount!==8",
+  "rkrueth@gmail.com",
+  "highway38solutions@gmail.com"
+]));
+check('workflow restores authorized source', hasAll(workflow, [
+  'Restore the authorized Owner Portal development source immediately after the demo.',
+  'OWNER_RESTORE',
+  'test "$BEFORE_LINE" = "$AFTER_LINE"'
 ]));
 check('workflow preserves no-public-publish boundary', workflow.includes('nothing was publicly published'));
 
@@ -87,4 +114,4 @@ if (failures.length) {
   failures.forEach(item => console.error(`- ${item}`));
   process.exit(1);
 }
-console.log('PASS — Full approved Business Office demo contract is complete and bounded.');
+console.log('PASS — Resumable full approved Business Office demo contract is complete and bounded.');
