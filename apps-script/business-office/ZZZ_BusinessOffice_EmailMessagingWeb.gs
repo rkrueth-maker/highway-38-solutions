@@ -1,7 +1,7 @@
 /** Final Communications bindings — Email rows are evidence records; SMS actions remain SMS-only. */
-var H38_EMAIL_WEB_BINDING_VERSION = '2026-07-27-email-communications-web-v1';
+var H38_EMAIL_WEB_BINDING_VERSION = '2026-07-27-email-communications-web-v2';
 
-/** Final recent-sync override: Gmail search returns threads, so classify each message by its actual From header. */
+/** V2 recent-sync override: Gmail search returns threads, so classify each message by its actual From header. */
 function boEmailSyncRecent_(options) {
   options = options || {};
   var owner = boRequireOwner_();
