@@ -57,6 +57,9 @@ function boAiSendViaGmailApi_(draft){
  const request={raw:encoded};if(draft&&draft.threadId)request.threadId=String(draft.threadId);
  const response=UrlFetchApp.fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(request),muteHttpExceptions:true});
  boAssert_(response.getResponseCode()>=200&&response.getResponseCode()<300,'Confirmed email could not be sent.');
+ const result=JSON.parse(response.getContentText()||'{}');
+ boAssert_(result.id,'Gmail accepted the email but did not return a message ID.');
+ return{id:String(result.id),threadId:String(result.threadId||draft&&draft.threadId||''),labelIds:result.labelIds||[],rawMime:mime};
 }
 function boAiSaveLayout_(layout){const clean=boAiSanitizeLayout_(layout||{});PropertiesService.getUserProperties().setProperty('H38_AI_LAYOUT',JSON.stringify(clean));boAiRecordEvent_({type:'layout_change',module:String(clean.startModule||''),outcome:'saved'});return clean;}
 function boAiTelemetry_(event){boAiRecordEvent_(event||{});return{recorded:true};}
