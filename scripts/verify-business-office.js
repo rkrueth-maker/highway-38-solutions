@@ -104,6 +104,11 @@ assert('sync execution API enabled',syncManifest.executionApi&&syncManifest.exec
 
 const ui=read(path.join(boDir,'BusinessOffice_Index.html'));
 assert('mobile responsive UI',/@media\s*\(max-width:800px\)/.test(ui));
+assert('mobile fixed bottom navigation',ui.includes('grid-template-columns:repeat(5,minmax(0,1fr))')&&ui.includes('openMobileMore()')&&ui.includes('openMobileCreate()'));
+assert('mobile record cards replace desktop table surface',ui.includes('class="table-wrap desktop-records"')&&ui.includes('class="mobile-records"')&&ui.includes('renderMobileCard'));
+assert('mobile full-screen editing and touch targets',ui.includes('height:100dvh')&&ui.includes('min-height:54px'));
+assert('ordinary Business Office lists are bounded',ui.includes('limit:50')&&!ui.includes('limit:500'));
+assert('closed Owner authorization status is visible',ui.includes('CLOSED · OWNER AUTHORIZED')&&ui.includes('Owner approval controls are active'));
 assert('confirmation before destructive action',ui.includes('confirm('));
 assert('document preview before approval',ui.includes('previewUpload')&&ui.includes('uploadPreview'));
 assert('mobile camera capture control',ui.includes('capture="environment"'));
