@@ -49,7 +49,7 @@ from pathlib import Path
 import re
 path=Path(__import__('sys').argv[1])
 text=path.read_text()
-text,count=re.subn(r'function\\s+doGet\\s*\\(', 'function boHarnessDoGet_(', text, count=1)
+text,count=re.subn(r'function\s+doGet\s*\(', 'function boHarnessDoGet_(', text, count=1)
 if count != 1:
     raise SystemExit('Business Office doGet rename failed.')
 path.write_text(text)
