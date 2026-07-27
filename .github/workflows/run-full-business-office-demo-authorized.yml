@@ -1,0 +1,106 @@
+name: Run Full Business Office Demo (Authorized)
+
+on:
+  workflow_run:
+    workflows: ["Deploy Unified Owner Portal"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: highway-38-full-business-office-demo
+  cancel-in-progress: false
+
+jobs:
+  run-demo:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out deployed main source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify authorized full demo source
+        run: node scripts/verify-full-business-office-demo.js
+
+      - name: Install isolated clasp
+        shell: bash
+        run: |
+          set -euo pipefail
+          H38_CLASP_DIR="$RUNNER_TEMP/h38-clasp"
+          echo "H38_CLASP_DIR=$H38_CLASP_DIR" >> "$GITHUB_ENV"
+          npm install \
+            --prefix "$H38_CLASP_DIR" \
+            --no-save \
+            --package-lock=false \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund \
+            @google/clasp@3.3.0
+          "$H38_CLASP_DIR/node_modules/.bin/clasp" -v
+
+      - name: Load existing production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'Missing existing production clasp credential.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+
+      - name: Run seven projects, eight agents, approvals, and internal emails
+        shell: bash
+        run: bash scripts/run-full-business-office-demo-authorized.sh
+
+      - name: Upload full demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-business-office-demo-${{ github.run_id }}
+          path: artifacts/full-business-office-demo/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Report successful full demo
+        if: success()
+        shell: bash
+        run: |
+          BODY="PASS — The controlled Highway 38 Business Office demonstration completed seven hypothetical projects, all eight H38 specialist agents, full internal Owner approval records, seven approved project emails to highway38solutions@gmail.com, and one approved completion email to rkrueth@gmail.com. No real money moved, payroll was not funded, taxes were not filed, supplier orders were not transmitted, and nothing was publicly published. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
+
+      - name: Report full demo hold
+        if: failure()
+        shell: bash
+        run: |
+          BODY="HOLD — The controlled full Business Office demonstration did not complete. Per-record and per-email duplicate locks remain active, so a rerun will not duplicate completed records or resend completed internal emails. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY"
