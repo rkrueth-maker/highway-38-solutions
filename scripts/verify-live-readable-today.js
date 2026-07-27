@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const index=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
+const daily=read('apps-script/core-engine/owner-portal-next/Portal_DailyFirst_Client.html');
+const mobile=read('apps-script/core-engine/owner-portal-next/Portal_Mobile_Field_Client.html');
+const failures=[];
+const check=(name,condition)=>{if(!condition)failures.push(name);};
+check('final Today bridge marker',index.includes("window.H38ReadableTodayRoute='direct-extra-large-v2'"));
+check('Today route directly invokes readable renderer',index.includes("typeof h38DailyRender==='function')return h38DailyRender()"));
+check('phone upgrade persists Extra Large',index.includes("localStorage.setItem('h38MobileTextSize','extra')"));
+check('readable renderer exists',daily.includes('function h38DailyRender()'));
+check('readable renderer limits attention',daily.includes('rows:unique.slice(0,2)'));
+check('mobile shell exposes Find',mobile.includes('<span>Find</span>'));
+check('final phone CSS raises Today heading',index.includes('font-size:39px!important'));
+check('final phone CSS raises primary button',index.includes('min-height:70px!important'));
+const result={status:failures.length?'FAIL':'PASS',failed:failures.length,failures};
+console.log(JSON.stringify(result,null,2));
+process.exit(failures.length?1:0);
