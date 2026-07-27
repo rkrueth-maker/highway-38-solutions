@@ -11,7 +11,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: highway-38-full-business-office-demo
+  group: highway-38-business-office-authorized-acceptance
   cancel-in-progress: false
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
     if: >-
       ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
       H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
@@ -85,6 +85,7 @@ jobs:
           HARNESS="$RUNNER_TEMP/full-demo-authorized-harness.sh"
           cp scripts/business-office-authorized-harness.sh "$HARNESS"
           sed -i 's/13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o/13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-/' "$HARNESS"
+          grep -F 'OWNER_SCRIPT_ID="13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-"' "$HARNESS"
           python3 - "$HARNESS" <<'PY'
           from pathlib import Path
           import sys
@@ -152,7 +153,10 @@ jobs:
 
       - name: Run seven projects, eight agents, approvals, and internal emails
         shell: bash
-        run: bash "$(cat "$RUNNER_TEMP/full-demo-harness-path.txt")"
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/full-business-office-demo
+          bash "$(cat "$RUNNER_TEMP/full-demo-harness-path.txt")" 2>&1 | tee artifacts/full-business-office-demo/harness.log
 
       - name: Upload full demo evidence
         if: always()
