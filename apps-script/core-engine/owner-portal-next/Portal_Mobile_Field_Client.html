@@ -8,6 +8,7 @@ var H38_MOBILE_STAGE_ROUTES={intake:'bo:requests',quotes:'bo:quotes',work:'bo:jo
 var H38_MOBILE_ORIGINAL_ENSURE=typeof h38EnsureApplicationChrome==='function'?h38EnsureApplicationChrome:null;
 var H38_MOBILE_ORIGINAL_AFTER=typeof h38AfterSurfaceRender==='function'?h38AfterSurfaceRender:null;
 var H38_MOBILE_ORIGINAL_QUICK_ADD=typeof h38AppQuickAdd==='function'?h38AppQuickAdd:null;
+var H38_MOBILE_TEXT_SIZE_KEY='h38MobileTextSize';
 
 function h38ViewportWidth(){return Math.round(window.visualViewport&&window.visualViewport.width||window.innerWidth||document.documentElement.clientWidth||1024);}
 function h38ShortestScreen(){var screenWidth=window.screen&&window.screen.width||h38ViewportWidth(),screenHeight=window.screen&&window.screen.height||h38ViewportWidth();return Math.min(Number(screenWidth)||9999,Number(screenHeight)||9999);}
@@ -15,6 +16,11 @@ function h38CoarsePointer(){try{return window.matchMedia(H38_COARSE_QUERY).match
 function h38PhoneWanted(){var width=h38ViewportWidth(),shortest=h38ShortestScreen();try{return window.matchMedia(H38_PHONE_QUERY).matches||width<=720||(h38CoarsePointer()&&shortest<=720);}catch(error){return width<=720||shortest<=720;}}
 function h38CompactWanted(){if(h38PhoneWanted())return false;var width=h38ViewportWidth(),shortest=h38ShortestScreen();try{return window.matchMedia(H38_COMPACT_QUERY).matches||width<=1280||(h38CoarsePointer()&&shortest<=900);}catch(error){return width<=1280;}}
 function h38MobileWanted(){return h38PhoneWanted();}
+function h38MobileCurrentRoute(){return String(typeof CURRENT==='undefined'?'today':CURRENT);}
+function h38MobileTextSize(){try{return localStorage.getItem(H38_MOBILE_TEXT_SIZE_KEY)||'large';}catch(error){return'large';}}
+function h38ApplyMobileTextSize(value){var size=['standard','large','extra'].indexOf(String(value))>=0?String(value):'large';document.body.setAttribute('data-h38-text-size',size);try{localStorage.setItem(H38_MOBILE_TEXT_SIZE_KEY,size);}catch(error){}document.querySelectorAll('[data-h38-text-size-choice]').forEach(function(button){button.setAttribute('aria-pressed',String(button.getAttribute('data-h38-text-size-choice')===size));});return size;}
+function h38SetMobileTextSize(value){var size=h38ApplyMobileTextSize(value);if(typeof h38DailyFeedback==='function')h38DailyFeedback('Text size set to '+(size==='extra'?'Extra Large':size.charAt(0).toUpperCase()+size.slice(1))+'.');}
+function h38MobileConnectionLabel(){return navigator.onLine===false?'Offline':'Online';}
 function h38MobileRouteLabel(route){
   var map={today:'Today',approvalsCenter:'Approvals',calendarCenter:'Calendar',tasks:'My Work','bo:assignedTasks':'My Work','bo:requests':'Requests','bo:customers':'Customers','bo:quotes':'Quotes','bo:jobs':'Jobs','bo:invoices':'Invoices','bo:payments':'Payments','bo:documents':'Documents','bo:expenses':'Expenses'};
   var titleMap=typeof TITLES!=='undefined'&&TITLES?TITLES:{};
@@ -26,6 +32,7 @@ function h38ApplyMobileShell(){
   document.body.classList.toggle('h38-phone-shell',phone);
   document.body.classList.toggle('h38-compact-shell',compact);
   document.body.classList.toggle('h38-desktop-shell',!phone&&!compact);
+  h38ApplyMobileTextSize(h38MobileTextSize());
   if(!phone){var side=document.getElementById('side');if(side)side.classList.remove('open');}
   h38EnsureMobileChrome();
   h38UpdateMobileTitle();
@@ -35,95 +42,75 @@ function h38MobileMenuState(){
   var side=document.getElementById('side'),scrim=document.getElementById('h38MobileNavScrim');
   if(scrim)scrim.classList.toggle('open',!!(side&&side.classList.contains('open')&&h38PhoneWanted()));
 }
-function h38MobileCloseMenu(){
-  var side=document.getElementById('side');if(side)side.classList.remove('open');h38MobileMenuState();
-}
+function h38MobileCloseMenu(){var side=document.getElementById('side');if(side)side.classList.remove('open');h38MobileMenuState();}
 function h38UpdateMobileTitle(){
   var title=document.getElementById('h38MobileTitle'),sub=document.getElementById('h38MobileSubtitle');
-  if(title)title.textContent=h38MobileRouteLabel(typeof CURRENT==='undefined'?'today':CURRENT);
-  if(sub){var user=H38_UNIFIED&&H38_UNIFIED.user||{};sub.textContent=(user.role||'Owner')+' · '+(H38_UNIFIED&&H38_UNIFIED.packageName||'Highway 38 Business Office');}
-  document.querySelectorAll('#mobileBottomNav [data-mobile-route]').forEach(function(button){button.classList.toggle('active',button.getAttribute('data-mobile-route')===String(typeof CURRENT==='undefined'?'today':CURRENT));});
+  if(title)title.textContent=h38MobileRouteLabel(h38MobileCurrentRoute());
+  if(sub){var user=H38_UNIFIED&&H38_UNIFIED.user||{};sub.textContent=(user.role||'Owner')+' · Closed · '+h38MobileConnectionLabel();}
+  document.querySelectorAll('#mobileBottomNav [data-mobile-route]').forEach(function(button){button.classList.toggle('active',button.getAttribute('data-mobile-route')===h38MobileCurrentRoute());});
+  h38EnsureBottomNav();
+}
+function h38MobileContextIsCapture(){return /^bo:(jobs|quotes|documents)$/.test(h38MobileCurrentRoute());}
+function h38MobileCapture(){
+  h38CloseMobileAdd();
+  Promise.resolve(show('bo:documents')).then(function(){setTimeout(function(){if(typeof openBusinessUpload==='function')openBusinessUpload();},70);});
+}
+function h38MobilePrimaryActionHtml(){
+  if(h38MobileContextIsCapture())return '<button onclick="h38MobileCapture()"><b>▣</b><span>Camera</span></button>';
+  return '<button onclick="h38OpenMobileAdd()"><b>＋</b><span>Add</span></button>';
 }
 function h38EnsureBottomNav(){
   var nav=document.getElementById('mobileBottomNav');
-  if(!nav){
-    nav=document.createElement('nav');
-    nav.id='mobileBottomNav';
-    nav.className='mobile-bottom-nav';
-    nav.setAttribute('aria-label','Mobile application navigation');
-    document.body.appendChild(nav);
-  }
-  nav.hidden=false;
-  nav.removeAttribute('hidden');
-  nav.innerHTML='<button data-mobile-route="today" onclick="show(\'today\')"><b>⌂</b><span>Today</span></button><button data-mobile-route="bo:assignedTasks" onclick="show(\'bo:assignedTasks\')"><b>✓</b><span>Work</span></button><button onclick="h38OpenMobileAdd()"><b>＋</b><span>Add</span></button><button data-mobile-route="bo:customers" onclick="show(\'bo:customers\')"><b>♟</b><span>Customers</span></button><button onclick="toggleMenu()"><b>☰</b><span>More</span></button>';
+  if(!nav){nav=document.createElement('nav');nav.id='mobileBottomNav';nav.className='mobile-bottom-nav';nav.setAttribute('aria-label','Mobile application navigation');document.body.appendChild(nav);}
+  nav.hidden=false;nav.removeAttribute('hidden');
+  nav.innerHTML='<button data-mobile-route="today" onclick="show(\'today\')"><b>⌂</b><span>Today</span></button><button data-mobile-route="bo:assignedTasks" onclick="show(\'bo:assignedTasks\')"><b>✓</b><span>Work</span></button>'+h38MobilePrimaryActionHtml()+'<button onclick="h38OpenCommandPalette()"><b>⌕</b><span>Find</span></button><button onclick="toggleMenu()"><b>☰</b><span>More</span></button>';
   return nav;
 }
 function h38EnsureMobileChrome(){
   var main=document.querySelector('.app main');
   if(main&&!document.getElementById('h38MobileTop')){
     var top=document.createElement('header');top.id='h38MobileTop';top.className='h38-mobile-top';
-    top.innerHTML='<button type="button" aria-label="Open navigation" onclick="toggleMenu()">☰</button><div class="h38-mobile-top-title"><b id="h38MobileTitle">Today</b><small id="h38MobileSubtitle">Highway 38 Business Office</small></div><button type="button" aria-label="Search" onclick="h38OpenCommandPalette()">⌕</button><button type="button" aria-label="Ask H38 AI" onclick="h38OpenOwnerAi()">✦</button>';
+    top.innerHTML='<button type="button" aria-label="Open navigation" onclick="toggleMenu()">☰</button><div class="h38-mobile-top-title"><b id="h38MobileTitle">Today</b><small id="h38MobileSubtitle">Owner · Closed · Online</small></div><button type="button" aria-label="Find records" onclick="h38OpenCommandPalette()">⌕</button><button type="button" aria-label="Ask H38 AI" onclick="h38OpenOwnerAi()">✦</button>';
     main.insertBefore(top,main.firstChild);
   }
-  if(!document.getElementById('h38MobileNavScrim')){
-    var scrim=document.createElement('div');scrim.id='h38MobileNavScrim';scrim.className='h38-mobile-nav-scrim';scrim.onclick=h38MobileCloseMenu;document.body.appendChild(scrim);
-  }
+  if(!document.getElementById('h38MobileNavScrim')){var scrim=document.createElement('div');scrim.id='h38MobileNavScrim';scrim.className='h38-mobile-nav-scrim';scrim.onclick=h38MobileCloseMenu;document.body.appendChild(scrim);}
   var side=document.getElementById('side');
-  if(side&&side.dataset.h38MobileObserved!=='1'){
-    side.dataset.h38MobileObserved='1';new MutationObserver(h38MobileMenuState).observe(side,{attributes:true,attributeFilter:['class']});
-  }
+  if(side&&side.dataset.h38MobileObserved!=='1'){side.dataset.h38MobileObserved='1';new MutationObserver(h38MobileMenuState).observe(side,{attributes:true,attributeFilter:['class']});}
   h38EnsureBottomNav();
   if(!document.getElementById('h38MobileAddSheet')){
     var sheet=document.createElement('div');sheet.id='h38MobileAddSheet';sheet.className='h38-mobile-add-sheet';sheet.onclick=function(event){if(event.target===sheet)h38CloseMobileAdd();};
-    sheet.innerHTML='<div class="h38-mobile-add-panel" role="dialog" aria-modal="true" aria-label="Add new work"><div class="h38-mobile-add-head"><h2>Add new</h2><button type="button" aria-label="Close" onclick="h38CloseMobileAdd()">×</button></div><div class="h38-mobile-add-grid"><button type="button" onclick="h38MobileCreate(\'requests\')">New request<span>Capture a new problem or lead</span></button><button type="button" onclick="h38MobileCreate(\'customers\')">New customer<span>Add contact and service details</span></button><button type="button" onclick="h38MobileCreate(\'assignedTasks\')">New task<span>Assign work to a person or role</span></button><button type="button" onclick="h38MobileCreate(\'quotes\')">New quote<span>Build scope and pricing</span></button><button type="button" onclick="h38MobileCreate(\'jobs\')">New job<span>Open field work</span></button><button type="button" onclick="h38MobileCreate(\'documents\')">Photo or document<span>Capture field evidence</span></button><button type="button" onclick="h38MobileCreate(\'expenses\')">New expense<span>Record a receipt or cost</span></button></div></div>';
+    sheet.innerHTML='<div class="h38-mobile-add-panel" role="dialog" aria-modal="true" aria-label="Add new work"><div class="h38-mobile-add-head"><h2>Add new</h2><button type="button" aria-label="Close" onclick="h38CloseMobileAdd()">×</button></div><div class="h38-mobile-add-grid"><button type="button" onclick="h38MobileVoiceCapture()">Voice capture<span>Speak a customer, note, task, or request</span></button><button type="button" onclick="h38MobileCreate(\'requests\')">New request<span>Capture a new problem or lead</span></button><button type="button" onclick="h38MobileCreate(\'customers\')">New customer<span>Add contact and service details</span></button><button type="button" onclick="h38MobileCreate(\'assignedTasks\')">New task<span>Assign work to a person or role</span></button><button type="button" onclick="h38MobileCreate(\'quotes\')">New quote<span>Build scope and pricing</span></button><button type="button" onclick="h38MobileCreate(\'jobs\')">New job<span>Open field work</span></button><button type="button" onclick="h38MobileCapture()">Photo or document<span>Capture field evidence</span></button><button type="button" onclick="h38MobileCreate(\'expenses\')">New expense<span>Record a receipt or cost</span></button></div></div>';
     document.body.appendChild(sheet);
   }
   h38UpdateMobileTitle();
 }
-function h38OpenMobileAdd(){
-  if(!h38MobileWanted()&&H38_MOBILE_ORIGINAL_QUICK_ADD)return H38_MOBILE_ORIGINAL_QUICK_ADD();
-  h38EnsureMobileChrome();var sheet=document.getElementById('h38MobileAddSheet');if(sheet)sheet.classList.add('open');
-}
+function h38OpenMobileAdd(){if(!h38MobileWanted()&&H38_MOBILE_ORIGINAL_QUICK_ADD)return H38_MOBILE_ORIGINAL_QUICK_ADD();h38EnsureMobileChrome();var sheet=document.getElementById('h38MobileAddSheet');if(sheet)sheet.classList.add('open');}
 function h38CloseMobileAdd(){var sheet=document.getElementById('h38MobileAddSheet');if(sheet)sheet.classList.remove('open');}
-async function h38MobileCreate(module){
-  h38CloseMobileAdd();await show('bo:'+module);if(module!=='documents'&&typeof openBusinessRecordForm==='function')openBusinessRecordForm(module,'');
-}
+async function h38MobileCreate(module){h38CloseMobileAdd();await show('bo:'+module);if(module!=='documents'&&typeof openBusinessRecordForm==='function')openBusinessRecordForm(module,'');}
+function h38MobileVoiceCapture(){h38CloseMobileAdd();h38OpenOwnerAi();setTimeout(function(){var mic=document.getElementById('h38-ai-mic');if(mic)mic.click();else{var input=document.getElementById('h38-ai-input');if(input)input.focus();}},120);}
 function h38MobileLimitToday(){
   if(!document.body.classList.contains('h38-mobile-shell'))return;
   var host=document.querySelector('.h38-needs-decision .ux-section')||document.querySelector('.h38-needs-decision');if(!host)return;
-  var rows=host.querySelectorAll('.ux-list-item');rows.forEach(function(row,index){row.classList.toggle('h38-mobile-extra-decision',index>=3);});
-  if(rows.length>3&&!host.querySelector('.h38-mobile-more-decisions')){
-    var more=document.createElement('button');more.type='button';more.className='btn h38-mobile-more-decisions';more.textContent='View all '+rows.length+' decisions';more.onclick=function(){show('approvalsCenter');};host.appendChild(more);
-  }
+  var rows=host.querySelectorAll('.ux-list-item');rows.forEach(function(row,index){row.classList.toggle('h38-mobile-extra-decision',index>=2);});
+  if(rows.length>2&&!host.querySelector('.h38-mobile-more-decisions')){var more=document.createElement('button');more.type='button';more.className='btn h38-mobile-more-decisions';more.textContent='View all '+rows.length+' decisions';more.onclick=function(){show('approvalsCenter');};host.appendChild(more);}
 }
-function h38WorkflowStageHtml(stage){
-  var key=String(stage.key||''),route=H38_MOBILE_STAGE_ROUTES[key]||'today';
-  return '<button class="h38-mobile-stage" type="button" onclick="show(\''+attr(route)+'\')"><b>'+esc(stage.count||0)+'</b><span>'+esc(stage.label||key)+'</span></button>';
-}
+function h38WorkflowStageHtml(stage){var key=String(stage.key||''),route=H38_MOBILE_STAGE_ROUTES[key]||'today';return '<button class="h38-mobile-stage" type="button" onclick="show(\''+attr(route)+'\')"><b>'+esc(stage.count||0)+'</b><span>'+esc(stage.label||key)+'</span></button>';}
 function h38RenderMobileWorkflow(data){
-  if(!document.body.classList.contains('h38-mobile-shell')||String(typeof CURRENT==='undefined'?'today':CURRENT)!=='today')return;
+  if(!document.body.classList.contains('h38-mobile-shell')||h38MobileCurrentRoute()!=='today')return;
   var view=document.getElementById('view'),hero=view&&view.querySelector('.h38-owner-hero');if(!view||!hero)return;
   var existing=document.getElementById('h38MobileWorkflow');if(existing)existing.remove();
   var recommended=data&&data.recommended||{},section=document.createElement('section');section.id='h38MobileWorkflow';section.className='h38-mobile-workflow';
   section.innerHTML='<div class="h38-mobile-workflow-head"><div><h2>Work from request to payment</h2><p>Safe steps run automatically and stop at approval gates.</p></div><button class="btn" type="button" onclick="h38RunMobileAutomation()">Run</button></div><div class="h38-mobile-workflow-stages">'+(data&&data.stages||[]).map(h38WorkflowStageHtml).join('')+'</div><div class="h38-mobile-next-action"><div><small>Recommended next action</small><strong>'+esc(recommended.label||'No urgent workflow action is waiting.')+'</strong></div><button class="btn primary" type="button" onclick="show(\''+attr(recommended.route||'today')+'\')">Open</button></div>';
   hero.insertAdjacentElement('afterend',section);
 }
-function h38LoadMobileWorkflow(){
-  if(!document.body.classList.contains('h38-mobile-shell')||String(typeof CURRENT==='undefined'?'today':CURRENT)!=='today')return;
-  call('h38PortalWorkflowStatus').then(h38RenderMobileWorkflow).catch(function(){/* Today remains usable when lifecycle status is unavailable. */});
-}
-function h38RunMobileAutomation(){
-  if(window.H38AI&&typeof window.H38AI.runBackOffice==='function'){window.H38AI.runBackOffice();setTimeout(function(){h38LoadMobileWorkflow();},1800);return;}
-  h38OpenOwnerAi();
-}
-function h38MobileAfterRender(module){
-  h38ApplyMobileShell();h38EnsureBottomNav();h38UpdateMobileTitle();h38MobileLimitToday();if(module==='today')h38LoadMobileWorkflow();
-}
+function h38LoadMobileWorkflow(){if(!document.body.classList.contains('h38-mobile-shell')||h38MobileCurrentRoute()!=='today')return;call('h38PortalWorkflowStatus').then(h38RenderMobileWorkflow).catch(function(){});}
+function h38RunMobileAutomation(){if(window.H38AI&&typeof window.H38AI.runBackOffice==='function'){window.H38AI.runBackOffice();setTimeout(function(){h38LoadMobileWorkflow();},1800);return;}h38OpenOwnerAi();}
+function h38MobileAfterRender(module){h38ApplyMobileShell();h38EnsureBottomNav();h38UpdateMobileTitle();h38MobileLimitToday();if(module==='today')h38LoadMobileWorkflow();}
 
 if(H38_MOBILE_ORIGINAL_ENSURE){h38EnsureApplicationChrome=function(){var result=H38_MOBILE_ORIGINAL_ENSURE.apply(this,arguments);h38EnsureMobileChrome();h38ApplyMobileShell();return result;};}
 if(H38_MOBILE_ORIGINAL_AFTER){h38AfterSurfaceRender=function(module){var result=H38_MOBILE_ORIGINAL_AFTER.apply(this,arguments);h38MobileAfterRender(module);return result;};}
 h38AppQuickAdd=h38OpenMobileAdd;
-window.h38OpenMobileAdd=h38OpenMobileAdd;window.h38CloseMobileAdd=h38CloseMobileAdd;window.h38MobileCreate=h38MobileCreate;window.h38RunMobileAutomation=h38RunMobileAutomation;
-window.addEventListener('resize',h38ApplyMobileShell,{passive:true});window.addEventListener('orientationchange',h38ApplyMobileShell,{passive:true});if(window.visualViewport)window.visualViewport.addEventListener('resize',h38ApplyMobileShell,{passive:true});
+window.h38OpenMobileAdd=h38OpenMobileAdd;window.h38CloseMobileAdd=h38CloseMobileAdd;window.h38MobileCreate=h38MobileCreate;window.h38MobileCapture=h38MobileCapture;window.h38MobileVoiceCapture=h38MobileVoiceCapture;window.h38RunMobileAutomation=h38RunMobileAutomation;window.h38SetMobileTextSize=h38SetMobileTextSize;
+window.addEventListener('resize',h38ApplyMobileShell,{passive:true});window.addEventListener('orientationchange',h38ApplyMobileShell,{passive:true});window.addEventListener('online',h38UpdateMobileTitle);window.addEventListener('offline',h38UpdateMobileTitle);if(window.visualViewport)window.visualViewport.addEventListener('resize',h38ApplyMobileShell,{passive:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){h38ApplyMobileShell();h38EnsureMobileChrome();},{once:true});else{h38ApplyMobileShell();h38EnsureMobileChrome();}
 })();
