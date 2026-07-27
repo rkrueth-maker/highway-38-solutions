@@ -5,13 +5,13 @@ var H38_AI_INBOX_TTL_SECONDS=1800;
 var H38_AI_ALLOWED_LAYOUT_KEYS=['density','startModule','pinnedModules','collapsedGroups','showCoach','voiceReplies'];
 
 function boAiBootstrap_(){
- const props=PropertiesService.getUserProperties();
- return{enabled:!!PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY'),model:PropertiesService.getScriptProperties().getProperty('OPENAI_MODEL')||'gpt-5-mini',policy:boAiPolicy_(),actions:boAiActionCatalogForClient_(),preferences:boAiSanitizeLayout_(boAiJson_(props.getProperty('H38_AI_LAYOUT'),{})),recommendations:boAiRecommendations_()};
+ const props=PropertiesService.getUserProperties(),testMode=typeof h38TestModeRead_==='function'?h38TestModeRead_():{active:false};
+ return{enabled:!!PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY'),model:PropertiesService.getScriptProperties().getProperty('OPENAI_MODEL')||'gpt-5-mini',policy:boAiPolicy_(),actions:boAiActionCatalogForClient_(),preferences:boAiSanitizeLayout_(boAiJson_(props.getProperty('H38_AI_LAYOUT'),{})),recommendations:boAiRecommendations_(),testMode:testMode};
 }
 function boAiPolicy_(){return{
- may:['read approved business context','read and summarize the signed-in user inbox','explain the app','draft content','recommend improvements','change reversible user layout preferences','prepare allowlisted business actions'],
+ may:['read approved business context','read and summarize the signed-in user inbox','explain the app','draft content','recommend improvements','change reversible user layout preferences','prepare allowlisted business actions','send owner-approved internal validation messages while controlled Test Mode is active'],
  mustConfirm:['send or reply to email','approve or reject records','convert quotes','create invoices','post approved accounting entries','export approved payroll','finalize approved tax preparation reports'],
- never:['modify source code','deploy code','change permissions or credentials','move money','fund payroll','file tax returns','silently send, approve, post, export or finalize']
+ never:['modify source code','deploy code','change permissions or credentials','move money','fund payroll','file tax returns','silently send, approve, post, export or finalize','send Test Mode messages outside the active allowlist']
 };}
 function boAiChat_(payload){
  payload=payload||{};
@@ -46,6 +46,7 @@ function boAiPrepareEmail_(payload){
 }
 function boAiSendEmail_(payload){return boAiConfirmAction_({actionToken:payload&&(payload.actionToken||payload.confirmationToken),confirmation:payload&&payload.confirmation});}
 function boAiSendViaGmailApi_(draft){
+ draft=typeof h38TestModePrepareEmail_==='function'?h38TestModePrepareEmail_(draft||{}):(draft||{});
  const to=boAiCleanHeader_(draft&&draft.to),subject=boAiCleanHeader_(draft&&draft.subject),body=String(draft&&draft.body||'');
  boAssert_(to&&to.indexOf('@')>0,'A valid email recipient is required.');
  boAssert_(body,'The reviewed email body is required.');
@@ -64,6 +65,7 @@ function boAiSendViaGmailApi_(draft){
   throw new Error('Confirmed email could not be sent. Gmail returned: '+detail);
  }
  boAssert_(result&&result.id,'Gmail accepted the email but did not return a message ID.');
+ if(draft.h38TestMode)boProof_('TEST_MODE_EMAIL','Email',String(result.id),'PASS','Allowlisted internal Test Mode email sent to '+to+'.',boGetActiveEmail_());
  return{id:String(result.id),threadId:String(result.threadId||draft&&draft.threadId||''),labelIds:result.labelIds||[],rawMime:mime};
 }
 function boAiSaveLayout_(layout){const clean=boAiSanitizeLayout_(layout||{});PropertiesService.getUserProperties().setProperty('H38_AI_LAYOUT',JSON.stringify(clean));boAiRecordEvent_({type:'layout_change',module:String(clean.startModule||''),outcome:'saved'});return clean;}
