@@ -56,6 +56,12 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Record Gmail backfill start
+        shell: bash
+        run: |
+          BODY="RUNNING — Gmail Communications live backfill. Source: ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The run must verify at least ten BO Messages Email rows and ten linked demo evidence files before PASS."
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -153,4 +159,11 @@ jobs:
         shell: bash
         run: |
           BODY="PASS — Gmail evidence ingestion and the live backfill completed in the existing Highway 38 Business Office. BO Messages now contains the labeled Gmail demo set, each message has a linked private .eml evidence document, and Message Events / Proof records were created idempotently. Existing Apps Script project and deployment IDs were preserved. No GitHub Pages or public website deployment ran. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+
+      - name: Record Gmail backfill HOLD
+        if: failure()
+        shell: bash
+        run: |
+          BODY="HOLD — Gmail Communications live backfill did not verify. No customer email was sent and no financial action occurred. The authorized execution project restoration trap remains active. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
