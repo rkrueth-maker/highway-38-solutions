@@ -2,7 +2,7 @@
 <html>
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Highway 38 Business System</title>
   <style><?!= h38PortalRawInclude_('Portal_Experience_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_UX_Styles'); ?></style>
@@ -13,6 +13,7 @@
   <style><?!= h38PortalRawInclude_('Portal_UserAccess_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_RolePreview_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_Product_Styles'); ?></style>
+  <style><?!= h38PortalRawInclude_('Portal_Mobile_Field_Styles'); ?></style>
   <style>.unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}.h38-brand-copy{min-width:0}</style>
 </head>
 <body>
@@ -51,6 +52,7 @@ window.H38_QB_ADDON_ENABLED=<?!= (typeof boPackValue_ === 'function' && boPackVa
 <?!= h38PortalRawInclude_('Portal_Equipment_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Product_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Navigation_Performance_Client'); ?>
+<?!= h38PortalRawInclude_('Portal_Mobile_Field_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_UX_Client_Boot'); ?>
 </script>
 <?!= boInclude_('BusinessOffice_AI_Assistant_Client') ?>
