@@ -141,6 +141,24 @@ function h38PortalBusinessWorkspace(moduleKey, recordId) {
   return workspace;
 }
 
+function h38PortalBusinessBeforeSave_(moduleKey, recordId) {
+  if (!recordId || typeof h38TmApplyAssignmentRulesForSave_ !== 'function') return null;
+  try {
+    var definition = h38PortalBusinessDefinitions_()[moduleKey] || {};
+    var primaryKey = definition.primaryKey || '';
+    if (!primaryKey) return null;
+    return boListRecords(moduleKey,{limit:1000,includeVoided:true}).find(function(row){return boNormalizeText_(row[primaryKey]) === boNormalizeText_(recordId);}) || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function h38PortalBusinessApplyTaskRules_(moduleKey, before, saved) {
+  if (typeof h38TmApplyAssignmentRulesForSave_ !== 'function') return {created:0,duplicates:0,errors:[],events:[]};
+  try { return h38TmApplyAssignmentRulesForSave_(moduleKey,before,saved); }
+  catch (error) { return {created:0,duplicates:0,errors:[{message:error && error.message ? error.message : String(error)}],events:[]}; }
+}
+
 function h38PortalBusinessSave(moduleKey, recordId, values) {
   var access = h38PortalRequireUnifiedUser_();
   boAssertModuleEnabled_(moduleKey);
@@ -150,8 +168,10 @@ function h38PortalBusinessSave(moduleKey, recordId, values) {
     return {status:'PASS',module:moduleKey,record:h38PortalTaskMessagingSave(moduleKey,recordId || '',values || {}),externalActionsOccurred:false,boundary:boApprovalNotice_()};
   }
   h38PortalBusinessRequirePermission_(access,moduleKey,action);
+  var before = h38PortalBusinessBeforeSave_(moduleKey,recordId);
   var saved = boSaveRecord(moduleKey,recordId || '',values || {});
-  return {status:'PASS',module:moduleKey,record:saved,externalActionsOccurred:false,boundary:boApprovalNotice_()};
+  var taskAssignment = h38PortalBusinessApplyTaskRules_(moduleKey,before,saved);
+  return {status:'PASS',module:moduleKey,record:saved,taskAssignment:taskAssignment,externalActionsOccurred:false,boundary:boApprovalNotice_()};
 }
 
 function h38PortalBusinessSaveFromDocument(moduleKey, recordId, values, documentId) {
@@ -179,14 +199,16 @@ function h38PortalBusinessSaveFromDocument(moduleKey, recordId, values, document
   if (fields.indexOf('OCR Status') >= 0 && !payload['OCR Status']) payload['OCR Status'] = documentRecord['OCR State'] || 'Not Started';
   if (fields.indexOf('Notes') >= 0) payload.Notes = [boNormalizeText_(payload.Notes),evidenceNote].filter(Boolean).join(' | ');
 
+  var before = h38PortalBusinessBeforeSave_(moduleKey,recordId);
   var saved = h38PortalTaskMessagingModule_(moduleKey) ? h38PortalTaskMessagingSave(moduleKey,recordId || '',payload) : boSaveRecord(moduleKey,recordId || '',payload);
   var savedId = boNormalizeText_(saved[definition.primaryKey]);
   boUpdateRecord_(H38_BO_SHEETS.DOCUMENTS,documentId,{
     'Source Type':definition.title || moduleKey,'Source ID':savedId,'Review Status':documentRecord['Review Status'] || 'Needs Review'
   },'Link uploaded evidence to Business Office record');
   boProof_('LINK_SOURCE_DOCUMENT',definition.title || moduleKey,savedId,'PASS','Linked source document ' + documentId + ' without external action.',h38PortalGetActiveEmail_());
+  var taskAssignment = h38PortalTaskMessagingModule_(moduleKey) ? {created:0,duplicates:0,errors:[],events:[]} : h38PortalBusinessApplyTaskRules_(moduleKey,before,saved);
 
-  return {status:'PASS',module:moduleKey,record:saved,documentId:documentId,sourceLinked:true,externalActionsOccurred:false,boundary:boApprovalNotice_()};
+  return {status:'PASS',module:moduleKey,record:saved,documentId:documentId,sourceLinked:true,taskAssignment:taskAssignment,externalActionsOccurred:false,boundary:boApprovalNotice_()};
 }
 
 function h38PortalBusinessSearch(query) {
