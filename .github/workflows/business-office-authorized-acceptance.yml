@@ -50,7 +50,11 @@ jobs:
         with:
           node-version: '24'
       - name: Verify merged Business Office source
-        run: npm run test:business-office
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/business-office-authorized
+          npm run test:business-office 2>&1 | tee artifacts/business-office-authorized/static-test.log
       - name: Install authorized deployment tools
         run: |
           npm install --global @google/clasp@3.1.0
