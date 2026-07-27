@@ -11,9 +11,12 @@ const passes=[];
 const check=(name,condition,detail='')=>(condition?passes:failures).push({name,detail});
 const need=(file,marker,label)=>check(label,read(file).includes(marker),`${file} must contain ${marker}`);
 
-const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html','apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
+const mobileStyles='apps-script/core-engine/owner-portal-next/Portal_Mobile_Field_Styles.html';
+const mobileClient='apps-script/core-engine/owner-portal-next/Portal_Mobile_Field_Client.html';
+const workflowAutomation='apps-script/business-office/ZZZ_BusinessOffice_WorkflowAutomation.gs';
+const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html',mobileStyles,mobileClient,workflowAutomation,'apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
 required.forEach(file=>check(`required ${file}`,exists(file)));
-['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html'].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
+['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html',mobileClient,workflowAutomation].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
 
 const home=read('index.html');
 const publicShell=read('assets/js/h38-site-v2.js');
@@ -68,11 +71,25 @@ const raw=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js'
 check('Owner one-shot styles included',portalIndex.includes('Portal_OneShot_UX_Styles')&&raw.includes('Portal_OneShot_UX_Styles'));
 check('Owner canonical product styles included',portalIndex.includes('Portal_Product_Styles')&&raw.includes('Portal_Product_Styles'));
 check('Owner one-shot client included',portalIndex.includes('Portal_OneShot_Client')&&raw.includes('Portal_OneShot_Client'));
+check('touch-first mobile field shell included',portalIndex.includes('Portal_Mobile_Field_Styles')&&portalIndex.includes('Portal_Mobile_Field_Client')&&raw.includes('Portal_Mobile_Field_Styles')&&raw.includes('Portal_Mobile_Field_Client'));
+check('mobile viewport supports safe areas',portalIndex.includes('viewport-fit=cover'));
 check('legacy portal product and control layers absent',!/(Portal_Product_Unification|Portal_ProductCenter|Portal_ProductApps|Portal_ControlPlane_Client|Portal_ControlPlane_Styles)/.test(portalIndex+raw));
 const owner=read('apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html');
 ['Needs decision','Due today','Overdue','Money requiring attention','Next up','Recent activity'].forEach(marker=>check(`Owner Today marker ${marker}`,owner.includes(marker)));
 check('Owner external actions remain gated',owner.includes('remain approval gated'));
 check('Owner selected record controls preserved',read('apps-script/core-engine/owner-portal-next/Portal_Application_Client_Views.html').includes('Selected record only'));
+
+const fieldCss=read(mobileStyles),fieldClient=read(mobileClient),workflow=read(workflowAutomation);
+check('mobile shell detects touch and wide mobile browser modes',fieldClient.includes('(pointer:coarse)')&&fieldClient.includes('max-width:1100px'));
+check('mobile shell removes scaled desktop navigation',fieldCss.includes('body.h38-mobile-shell .side')&&fieldCss.includes('translateX(-105%)')&&fieldCss.includes('body.h38-mobile-shell .top{display:none'));
+check('mobile shell provides persistent task navigation',fieldCss.includes('.mobile-bottom-nav')&&fieldClient.includes('Today</span>')&&fieldClient.includes('Work</span>')&&fieldClient.includes('Customers</span>'));
+check('mobile shell provides large touch targets',fieldCss.includes('min-height:48px')&&fieldCss.includes('min-height:52px'));
+check('mobile Today prioritizes next work',fieldCss.includes('.ux-dashboard-grid>.h38-next-up{order:-1}')&&fieldClient.includes('h38MobileLimitToday'));
+check('mobile lifecycle overview spans request through payment',fieldClient.includes('Work from request to payment')&&['intake','quotes','work','billing','paid'].every(marker=>fieldClient.includes(marker)));
+check('workflow automation performs only safe internal transitions',['boCreateCustomerFromRequest','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob'].every(marker=>workflow.includes(marker))&&workflow.includes('externalActionsOccurred: false'));
+check('workflow automation preserves owner gates',['Draft invoice ready for review','Approved invoice ready to send','Invoice follow-up is due','Recorded payment needs review'].every(marker=>workflow.includes(marker)));
+check('workflow lifecycle status is read-only and mobile consumable',workflow.includes('function h38PortalWorkflowStatus()')&&workflow.includes('ownerApprovalRequiredForExternalActions: true'));
+check('automation override reports no external action',workflow.includes('No external action was performed.')&&workflow.includes("boProof_('H38 BACK OFFICE AUTOMATION'"));
 
 const css=read('assets/css/project-intelligence.css');
 check('current site responsive rules exist',css.includes('@media(max-width:980px)')&&css.includes('@media(max-width:620px)'));
