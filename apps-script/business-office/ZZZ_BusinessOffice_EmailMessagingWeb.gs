@@ -1,6 +1,22 @@
 /** Final Communications bindings — Email rows are evidence records; SMS actions remain SMS-only. */
 var H38_EMAIL_WEB_BINDING_VERSION = '2026-07-27-email-communications-web-v1';
 
+/** Final recent-sync override: Gmail search returns threads, so classify each message by its actual From header. */
+function boEmailSyncRecent_(options) {
+  options = options || {};
+  var owner = boRequireOwner_();
+  boAssertModuleEnabled_('messaging');
+  h38TmRequireModule_('messaging', 'Edit');
+  var sentLimit = Math.max(1, Math.min(Number(options.sentLimit) || 15, 50));
+  var inboxLimit = Math.max(1, Math.min(Number(options.inboxLimit) || 15, 50));
+  var results = [];
+  results = results.concat(boEmailSyncThreads_(GmailApp.search('in:sent newer_than:30d', 0, sentLimit), '', sentLimit));
+  results = results.concat(boEmailSyncThreads_(GmailApp.search('in:inbox newer_than:30d', 0, inboxLimit), '', inboxLimit));
+  boGetProperties_().setProperty(H38_EMAIL_SYNC_LAST_PROPERTY, new Date().toISOString());
+  boProof_('EMAIL SYNC', 'System', 'GMAIL-RECENT', 'PASS', 'Captured/reconciled ' + results.length + ' recent Gmail messages with per-message direction.', owner.Email);
+  return { status: 'PASS', scope: 'recent', captured: results.length, results: results };
+}
+
 function h38PortalMessagingSyncEmail(options) {
   boAssertModuleEnabled_('messaging');
   h38TmRequireModule_('messaging', 'Edit');
