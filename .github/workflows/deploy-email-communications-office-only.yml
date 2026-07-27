@@ -1,0 +1,136 @@
+name: Deploy Gmail Communications Fix (Office Only)
+
+on:
+  push:
+    branches: [agent/fix-email-communications-sync]
+    paths:
+      - '.github/workflows/deploy-email-communications-office-only.yml'
+      - 'apps-script/business-office/**'
+      - 'apps-script/core-engine/owner-portal-next/**'
+      - 'scripts/deploy-unified-owner-portal-web.sh'
+      - 'scripts/assemble-business-office-app.sh'
+      - 'scripts/build-unified-apps-script-shell.js'
+      - 'scripts/verify-email-communications-sync.js'
+      - 'scripts/verify-task-messaging.js'
+      - 'scripts/verify-task-messaging-hardening.js'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: highway-38-email-communications-office-only
+  cancel-in-progress: true
+
+jobs:
+  deploy-existing-apps-script:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      CLASP_AUTH_JSON: ${{ secrets.CLASP_AUTH_JSON }}
+      CLASP_AUTH_JSON_B64: ${{ secrets.CLASP_AUTH_JSON_B64 }}
+      CLASPRC: ${{ secrets.CLASPRC }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out exact Office fix source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify Gmail Communications and existing Office controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-email-communications-sync.js
+          node scripts/verify-task-messaging.js
+          node scripts/verify-task-messaging-hardening.js
+          node scripts/verify-business-office.js
+          node scripts/verify-unified-app-shell.js
+          node scripts/verify-ai-approval-and-deployment.js
+
+      - name: Install isolated clasp
+        shell: bash
+        run: |
+          set -euo pipefail
+          H38_CLASP_DIR="$RUNNER_TEMP/h38-clasp"
+          echo "H38_CLASP_DIR=$H38_CLASP_DIR" >> "$GITHUB_ENV"
+          npm install \
+            --prefix "$H38_CLASP_DIR" \
+            --no-save \
+            --package-lock=false \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund \
+            @google/clasp@3.3.0
+          echo "$H38_CLASP_DIR/node_modules/.bin" >> "$GITHUB_PATH"
+          "$H38_CLASP_DIR/node_modules/.bin/clasp" -v
+
+      - name: Load existing encrypted clasp credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON}" ]]; then printf '%s' "${CLASP_AUTH_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON_B64}" ]]; then printf '%s' "${CLASP_AUTH_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC}" ]]; then printf '%s' "${CLASPRC}" > "$HOME/.clasprc.json"
+          else echo 'HOLD — no existing clasp credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Existing clasp credential loaded.')"
+
+      - name: Update existing Apps Script project and deployments in place
+        shell: bash
+        run: bash scripts/deploy-unified-owner-portal-web.sh
+
+      - name: Verify public website was not deployed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -d artifacts/github-pages
+          test -f artifacts/unified-owner-portal/deployment-result.json
+          node - <<'NODE'
+          const result=require('./artifacts/unified-owner-portal/deployment-result.json');
+          if(result.status!=='PASS')throw new Error('Office deployment did not pass.');
+          if(result.updatedExistingDeployments!==true)throw new Error('Existing deployments were not updated.');
+          if(result.createdNewProject!==false||result.createdNewDeployment!==false)throw new Error('A replacement Apps Script project or deployment was created.');
+          if(result.externalActionsOccurred!==false)throw new Error('An external business action occurred during deployment.');
+          console.log('PASS — existing authenticated Apps Script deployments updated; no public website deployment performed.');
+          NODE
+
+      - name: Upload Office-only deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-communications-office-only-${{ github.run_id }}
+          path: |
+            artifacts/email-communications-sync/
+            artifacts/task-messaging/
+            artifacts/unified-owner-portal/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Record Office-only deployment result
+        if: success()
+        shell: bash
+        run: |
+          BODY="PASS — Gmail evidence ingestion is deployed to the existing Highway 38 Apps Script project and existing Owner Portal / Business Office deployment IDs. Future approved H38 emails capture Gmail message IDs, Communications rows, Message Events, Proof/Audit records, and private .eml evidence files. The labeled demo set will backfill when Rick opens or refreshes the Business Office. No GitHub Pages or public website deployment ran. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
