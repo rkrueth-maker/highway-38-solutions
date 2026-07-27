@@ -86,10 +86,11 @@ check('established authorized harness remains source', hasAll(authorizedHarness,
   'OWNER_HARNESS',
   'OWNER_RESTORE'
 ]));
-check('patcher removes pulled duplicate Business Office source', hasAll(patcher, [
-  "-name 'BusinessOffice_*.js'",
-  "-name 'BusinessOffice_*.gs'",
-  "-name 'BusinessOffice_*.html'",
+check('patcher removes every pulled Business Office source form', hasAll(patcher, [
+  "-name '*BusinessOffice_*.js'",
+  "-name '*BusinessOffice_*.gs'",
+  "-name '*BusinessOffice_*.html'",
+  'including ZZ_/ZZZ_ compatibility names',
   'cp "$REPO_ROOT"/apps-script/business-office/*.gs',
   'cp "$REPO_ROOT"/apps-script/business-office/*.html'
 ]));
