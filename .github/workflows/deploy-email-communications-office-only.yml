@@ -10,6 +10,7 @@ on:
       - 'scripts/deploy-unified-owner-portal-web.sh'
       - 'scripts/assemble-business-office-app.sh'
       - 'scripts/build-unified-apps-script-shell.js'
+      - 'scripts/run-email-communications-backfill-authorized.sh'
       - 'scripts/verify-email-communications-sync.js'
       - 'scripts/verify-task-messaging.js'
       - 'scripts/verify-task-messaging-hardening.js'
@@ -27,8 +28,17 @@ concurrency:
 jobs:
   deploy-existing-apps-script:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
+      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
+      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
+      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
+      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
+      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
+      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
+      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
+      H38_BO_BUSINESS_ID: H38
+      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
       CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
@@ -61,6 +71,7 @@ jobs:
           node scripts/verify-business-office.js
           node scripts/verify-unified-app-shell.js
           node scripts/verify-ai-approval-and-deployment.js
+          bash -n scripts/run-email-communications-backfill-authorized.sh
 
       - name: Install isolated clasp
         shell: bash
@@ -101,28 +112,37 @@ jobs:
         shell: bash
         run: bash scripts/deploy-unified-owner-portal-web.sh
 
+      - name: Execute owner-authorized Gmail evidence backfill
+        shell: bash
+        run: bash scripts/run-email-communications-backfill-authorized.sh
+
       - name: Verify public website was not deployed
         shell: bash
         run: |
           set -euo pipefail
           test ! -d artifacts/github-pages
           test -f artifacts/unified-owner-portal/deployment-result.json
+          test -f artifacts/email-communications-backfill/verification.json
           node - <<'NODE'
-          const result=require('./artifacts/unified-owner-portal/deployment-result.json');
-          if(result.status!=='PASS')throw new Error('Office deployment did not pass.');
-          if(result.updatedExistingDeployments!==true)throw new Error('Existing deployments were not updated.');
-          if(result.createdNewProject!==false||result.createdNewDeployment!==false)throw new Error('A replacement Apps Script project or deployment was created.');
-          if(result.externalActionsOccurred!==false)throw new Error('An external business action occurred during deployment.');
-          console.log('PASS — existing authenticated Apps Script deployments updated; no public website deployment performed.');
+          const deployment=require('./artifacts/unified-owner-portal/deployment-result.json');
+          const backfill=require('./artifacts/email-communications-backfill/verification.json');
+          if(deployment.status!=='PASS')throw new Error('Office deployment did not pass.');
+          if(deployment.updatedExistingDeployments!==true)throw new Error('Existing deployments were not updated.');
+          if(deployment.createdNewProject!==false||deployment.createdNewDeployment!==false)throw new Error('A replacement Apps Script project or deployment was created.');
+          if(deployment.externalActionsOccurred!==false)throw new Error('An external business action occurred during deployment.');
+          if(backfill.status!=='PASS')throw new Error('Live Gmail Communications backfill did not pass.');
+          if(Number(backfill.status.emailMessages)<10||Number(backfill.status.demoMessages)<10)throw new Error('Live Office does not contain the required Gmail evidence rows.');
+          console.log('PASS — existing Apps Script deployments updated, Gmail evidence backfilled, and no public website deployment performed.');
           NODE
 
-      - name: Upload Office-only deployment evidence
+      - name: Upload Office-only deployment and backfill evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: email-communications-office-only-${{ github.run_id }}
           path: |
             artifacts/email-communications-sync/
+            artifacts/email-communications-backfill/
             artifacts/task-messaging/
             artifacts/unified-owner-portal/
           if-no-files-found: warn
@@ -132,5 +152,5 @@ jobs:
         if: success()
         shell: bash
         run: |
-          BODY="PASS — Gmail evidence ingestion is deployed to the existing Highway 38 Apps Script project and existing Owner Portal / Business Office deployment IDs. Future approved H38 emails capture Gmail message IDs, Communications rows, Message Events, Proof/Audit records, and private .eml evidence files. The labeled demo set will backfill when Rick opens or refreshes the Business Office. No GitHub Pages or public website deployment ran. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="PASS — Gmail evidence ingestion and the live backfill completed in the existing Highway 38 Business Office. BO Messages now contains the labeled Gmail demo set, each message has a linked private .eml evidence document, and Message Events / Proof records were created idempotently. Existing Apps Script project and deployment IDs were preserved. No GitHub Pages or public website deployment ran. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
