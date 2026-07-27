@@ -16,7 +16,14 @@ if(!fs.existsSync(packPath))throw new Error(`Business pack not found: ${packPath
 const pack=JSON.parse(fs.readFileSync(packPath,'utf8'));
 for(const required of ['installationId','business','branding','resources'])if(!pack[required])throw new Error(`Business pack missing ${required}.`);
 if(!pack.business.id||!pack.branding.businessName||!pack.resources.propertyKeys)throw new Error('Business pack is incomplete.');
-if(!pack.social||pack.social.externalActionsEnabled!==false||pack.social.automaticPublishingEnabled!==false||pack.social.bulkPublishingEnabled!==false)throw new Error('Business pack social boundaries must default to disabled.');
+const closedEnvironment=pack.workflow&&pack.workflow.closedEnvironment===true;
+if(!pack.social)throw new Error('Business pack social configuration is required.');
+if(closedEnvironment){
+  if(pack.workflow.externalActionsEnabled!==true||pack.workflow.ownerApprovalRequired!==true)throw new Error('Closed-environment execution requires enabled workflow and authenticated Owner authorization.');
+  if(pack.social.ownerApprovalRequired!==true)throw new Error('Closed-environment social execution requires Owner authorization.');
+}else if(pack.social.externalActionsEnabled!==false||pack.social.automaticPublishingEnabled!==false||pack.social.bulkPublishingEnabled!==false){
+  throw new Error('Reusable business pack social boundaries must default to disabled.');
+}
 if(!pack.modules||pack.modules.equipment!==true)throw new Error('Business pack must explicitly enable Equipment & Asset Management.');
 const sources=[
  ['packages/business-office-core/apps-script/BusinessOffice_Config.gs','BusinessOffice_Config.gs'],
@@ -57,7 +64,7 @@ const apps=[...appRegistry.matchAll(/\{key:'([^']+)'/g)].map(match=>match[1]);
 if(!apps.length||new Set(apps).size!==apps.length)throw new Error('Focused app compatibility registry is empty or contains duplicate keys.');
 const contractSource=fs.readFileSync(path.join(root,'apps-script/business-office/BusinessOffice_ModuleContract.gs'),'utf8');
 const contractVersion=(contractSource.match(/H38_UNIFIED_MODULE_CONTRACT_VERSION\s*=\s*'([^']+)'/)||[])[1]||'';
-const manifest={installationId:pack.installationId,businessId:pack.business.id,businessName:pack.branding.businessName,mode,generatedAt:new Date().toISOString(),sourceFiles:sources.map(x=>x[0]),configurationHash:crypto.createHash('sha256').update(JSON.stringify(pack)).digest('hex'),moduleContractVersion:contractVersion,apps,externalActionsEnabled:false,socialPublishingEnabled:false,equipmentAssetManagement:true,startupArchitecture:'contract-driven'};
+const manifest={installationId:pack.installationId,businessId:pack.business.id,businessName:pack.branding.businessName,mode,generatedAt:new Date().toISOString(),sourceFiles:sources.map(x=>x[0]),configurationHash:crypto.createHash('sha256').update(JSON.stringify(pack)).digest('hex'),moduleContractVersion:contractVersion,apps,closedEnvironment,externalActionsEnabled:pack.workflow&&pack.workflow.externalActionsEnabled===true,socialPublishingEnabled:pack.social.externalActionsEnabled===true,equipmentAssetManagement:true,startupArchitecture:'contract-driven'};
 fs.writeFileSync(path.join(output,'installation-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 if(mode==='combined')fs.writeFileSync(path.join(output,'combined-deployment.json'),JSON.stringify({ownerPortalUrl:pack.website?.ownerPortalUrl||'',publicWebsiteUrl:pack.website?.publicUrl||'',businessOfficeEmbedded:true},null,2)+'\n');
 const generated=fs.readdirSync(output).filter(name=>/\.(?:gs|html|json)$/.test(name)).map(name=>fs.readFileSync(path.join(output,name),'utf8')).join('\n');
@@ -66,6 +73,7 @@ for(const required of ['BusinessOffice_ModuleContract.gs','BusinessOffice_Action
 if(!generated.includes('function boGetUnifiedModuleContract_()')||!generated.includes('function boModulesForApiAction_(')||!generated.includes('boModulesForApiAction_(boNormalizeText_(action)'))throw new Error('Generated installation is not using the canonical module and action contracts.');
 if(/function boGetModuleDefinitions_\(\)\{return\{/.test(fs.readFileSync(path.join(output,'BusinessOffice_Web.gs'),'utf8')))throw new Error('Generated installation contains a duplicate hard-coded module schema.');
 if(!generated.includes("key:'field-operations'")||!generated.includes("key:'social-control'")||!generated.includes("key:'equipment-asset-manager'"))throw new Error('Generated installation is missing compatibility packaging metadata.');
-if(!generated.includes('External social publishing is locked.'))throw new Error('Generated installation is missing the social publishing hold.');
+if(!closedEnvironment&&!generated.includes('External social publishing is locked.'))throw new Error('Reusable installation is missing the default social publishing hold.');
+if(closedEnvironment&&pack.social.externalActionsEnabled!==true)throw new Error('Closed-environment installation did not preserve its social execution policy.');
 if(!generated.includes('BO Equipment Events')||!generated.includes('Equipment Checkout Photo')||!generated.includes('Assign / check out'))throw new Error('Generated installation is missing equipment schema, proof, or cellphone controls.');
 console.log(JSON.stringify(manifest,null,2));
