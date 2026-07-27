@@ -3,80 +3,165 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Business Office</title>
   <style>
-    :root { --navy:#173a5e; --blue:#326a9e; --light:#eef5fb; --border:#d7e0e8; --text:#17212b; --muted:#5e6a75; --warn:#fff0bf; --bad:#ffe0e0; --good:#dff4e7; }
+    :root {
+      --navy:#173a5e; --blue:#326a9e; --light:#eef5fb; --border:#d7e0e8;
+      --text:#17212b; --muted:#5e6a75; --warn:#fff0bf; --bad:#ffe0e0; --good:#dff4e7;
+      --surface:#fff; --page:#f6f8fa; --shadow:0 8px 24px rgba(23,58,94,.08);
+    }
     * { box-sizing:border-box; }
-    body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--text); background:#f6f8fa; }
+    html { -webkit-text-size-adjust:100%; }
+    body { margin:0; font-family:Inter,Arial,Helvetica,sans-serif; color:var(--text); background:var(--page); font-size:16px; line-height:1.45; }
     button,input,select,textarea { font:inherit; }
-    button { min-height:44px; border:0; border-radius:8px; padding:10px 15px; cursor:pointer; font-weight:700; }
+    button { min-height:46px; border:0; border-radius:10px; padding:10px 15px; cursor:pointer; font-weight:750; touch-action:manipulation; }
     button.primary { background:var(--navy); color:white; }
     button.secondary { background:#e7eef5; color:var(--navy); }
     button.danger { background:#8f1d1d; color:white; }
     button:disabled { opacity:.55; cursor:not-allowed; }
-    header { background:var(--navy); color:white; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; position:sticky; top:0; z-index:5; }
-    header h1 { font-size:20px; margin:0; display:flex; align-items:center; gap:10px; }
-    .brand-logo { width:36px; height:36px; object-fit:contain; border-radius:6px; background:white; display:none; }
-    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; }
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible { outline:3px solid #7db7ea; outline-offset:2px; }
+    a { color:var(--blue); font-weight:700; }
+    header { background:var(--navy); color:white; padding:10px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; position:sticky; top:0; z-index:50; min-height:64px; box-shadow:0 2px 10px rgba(0,0,0,.12); }
+    header h1 { font-size:20px; margin:0; display:flex; align-items:center; gap:10px; min-width:0; }
+    #appTitle { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .brand-logo { width:38px; height:38px; object-fit:contain; border-radius:8px; background:white; display:none; flex:0 0 auto; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
     .header-upload { background:white; color:var(--navy); border:2px solid white; white-space:nowrap; }
-    .user { font-size:13px; text-align:right; }
+    .system-pill { min-height:36px; padding:7px 10px; border:1px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12); color:#fff; border-radius:999px; font-size:12px; letter-spacing:.03em; white-space:nowrap; }
+    .user { font-size:13px; text-align:right; line-height:1.25; }
+    .user strong,.user span { display:block; }
+    .user-mobile { display:none!important; }
     .layout { display:grid; grid-template-columns:250px minmax(0,1fr); min-height:calc(100vh - 64px); }
     nav { background:white; border-right:1px solid var(--border); padding:12px; overflow:auto; }
-    nav button { display:block; width:100%; text-align:left; margin:3px 0; background:transparent; color:var(--text); }
+    nav button { display:flex; align-items:center; width:100%; text-align:left; margin:3px 0; background:transparent; color:var(--text); }
     nav button.active { background:var(--light); color:var(--navy); }
-    main { padding:18px; overflow:auto; }
-    .notice { background:var(--warn); padding:12px; border-radius:8px; margin-bottom:14px; line-height:1.35; }
+    .nav-icon { width:26px; text-align:center; font-size:18px; flex:0 0 auto; }
+    main { padding:18px; overflow:auto; min-width:0; }
+    .system-status { background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .system-status summary { padding:11px 14px; cursor:pointer; font-weight:800; color:var(--navy); }
+    .system-status p { margin:0; padding:0 14px 14px; color:var(--muted); }
     .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
-    .toolbar input,.toolbar select { min-height:44px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:white; }
+    .toolbar input,.toolbar select { min-height:46px; padding:9px 11px; border:1px solid var(--border); border-radius:10px; background:white; }
     .toolbar input { min-width:240px; flex:1; }
-    .panel { background:white; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .panel { background:white; border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    .panel h2,.panel h3 { margin-top:0; }
     .quick-upload { border:2px solid var(--blue); background:var(--light); }
-    .quick-upload h2 { margin-top:0; }
+    .today-hero { background:linear-gradient(135deg,var(--navy),var(--blue)); color:white; border-radius:18px; padding:22px; margin-bottom:14px; box-shadow:var(--shadow); }
+    .today-hero .eyebrow { font-size:12px; font-weight:900; letter-spacing:.12em; opacity:.85; }
+    .today-hero h2 { margin:5px 0 7px; font-size:clamp(26px,5vw,38px); line-height:1.1; }
+    .today-hero p { margin:0; color:#e8f2fb; }
+    .quick-action-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:14px 0; }
+    .quick-action { min-height:74px; display:flex; align-items:center; justify-content:flex-start; gap:11px; text-align:left; background:white; color:var(--navy); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.03); }
+    .quick-action .icon { font-size:25px; width:30px; text-align:center; }
     .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-    .card { border:1px solid var(--border); border-radius:10px; padding:14px; background:white; }
-    .card .count { font-size:28px; font-weight:800; color:var(--navy); }
-    .card .label { font-weight:700; margin-bottom:6px; }
-    .card .detail { font-size:13px; color:var(--muted); line-height:1.35; }
-    .status { display:inline-block; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:700; background:#e8edf2; }
+    .card { border:1px solid var(--border); border-radius:13px; padding:14px; background:white; }
+    .card .count { font-size:30px; font-weight:850; color:var(--navy); }
+    .card .label { font-weight:800; margin-bottom:6px; }
+    .card .detail { font-size:14px; color:var(--muted); line-height:1.4; }
+    .status { display:inline-block; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:800; background:#e8edf2; white-space:normal; }
     .status.approved,.status.complete,.status.posted,.status.active,.status.recorded { background:var(--good); color:#15552e; }
     .status.required,.status.pending,.status.review,.status.overdue { background:var(--warn); color:#6b4b00; }
     .status.rejected,.status.error,.status.voided { background:var(--bad); color:#7a1515; }
     .admin-link { font-weight:700; color:#6b4b00; }
-    .table-wrap { overflow:auto; border:1px solid var(--border); border-radius:8px; }
+    .table-wrap { overflow:auto; border:1px solid var(--border); border-radius:10px; }
     table { border-collapse:collapse; width:100%; min-width:900px; background:white; }
-    th,td { border-bottom:1px solid var(--border); padding:9px 10px; text-align:left; vertical-align:top; white-space:nowrap; }
+    th,td { border-bottom:1px solid var(--border); padding:10px; text-align:left; vertical-align:top; white-space:nowrap; }
     th { background:var(--navy); color:white; position:sticky; top:0; z-index:1; }
     tr.selected { outline:3px solid var(--blue); outline-offset:-3px; }
     tr:hover td { background:#f7fafc; }
+    .mobile-records { display:none; }
+    .record-card { border:1px solid var(--border); border-radius:14px; background:#fff; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    .record-card.selected { border:3px solid var(--blue); padding:12px; }
+    .record-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .record-card-title { font-size:18px; font-weight:850; line-height:1.25; overflow-wrap:anywhere; }
+    .record-card-id { color:var(--muted); font-size:13px; margin-top:3px; overflow-wrap:anywhere; }
+    .record-card-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+    .record-card-field { min-width:0; }
+    .record-card-label { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:800; }
+    .record-card-value { font-size:15px; font-weight:650; overflow-wrap:anywhere; }
+    .record-card-actions { display:flex; gap:8px; margin-top:12px; }
+    .record-card-actions button { flex:1; min-height:50px; }
+    .selected-actions { background:var(--light); border:1px solid var(--blue); border-radius:12px; padding:10px; }
     .empty { padding:28px; text-align:center; color:var(--muted); }
-    dialog { width:min(900px,96vw); max-height:92vh; border:0; border-radius:12px; padding:0; box-shadow:0 20px 60px rgba(0,0,0,.25); }
-    dialog::backdrop { background:rgba(0,0,0,.45); }
-    .dialog-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; background:var(--navy); color:white; }
+    dialog { width:min(900px,96vw); max-height:92vh; border:0; border-radius:14px; padding:0; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+    dialog::backdrop { background:rgba(0,0,0,.5); }
+    .dialog-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 18px; background:var(--navy); color:white; }
     .dialog-body { padding:18px; overflow:auto; max-height:70vh; }
-    .dialog-actions { padding:14px 18px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+    .dialog-actions { padding:14px 18px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; background:#fff; }
     .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-    label { display:block; font-weight:700; font-size:13px; }
-    label input,label select,label textarea { display:block; width:100%; margin-top:5px; padding:10px; min-height:44px; border:1px solid var(--border); border-radius:8px; }
-    label textarea { min-height:90px; resize:vertical; }
+    label { display:block; font-weight:800; font-size:14px; }
+    label input,label select,label textarea { display:block; width:100%; margin-top:5px; padding:11px; min-height:48px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+    label textarea { min-height:100px; resize:vertical; }
     .full { grid-column:1 / -1; }
-    .loading { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.7); z-index:20; font-size:18px; font-weight:700; }
+    .mobile-sheet { width:min(620px,100vw); margin:auto auto 0; border-radius:20px 20px 0 0; max-height:88vh; }
+    .mobile-sheet .dialog-body { max-height:70vh; }
+    .sheet-action-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .sheet-action { min-height:72px; display:flex; align-items:center; gap:10px; text-align:left; background:var(--light); color:var(--navy); }
+    .sheet-action span { font-size:24px; width:28px; text-align:center; }
+    .loading { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.76); z-index:100; font-size:18px; font-weight:800; }
     .loading.show { display:flex; }
-    .toast { position:fixed; right:18px; bottom:18px; max-width:420px; background:#17212b; color:white; padding:12px 15px; border-radius:9px; display:none; z-index:30; }
+    .toast { position:fixed; right:18px; bottom:18px; max-width:420px; background:#17212b; color:white; padding:12px 15px; border-radius:10px; display:none; z-index:110; }
     .toast.show { display:block; }
-    .upload-preview { max-width:100%; max-height:300px; border:1px solid var(--border); border-radius:8px; margin-top:10px; }
-    .boundary { color:var(--muted); font-size:12px; line-height:1.4; margin-top:8px; }
+    .upload-preview { max-width:100%; max-height:300px; border:1px solid var(--border); border-radius:10px; margin-top:10px; }
+    .boundary { color:var(--muted); font-size:13px; line-height:1.45; margin-top:8px; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; }
     @media (max-width:800px) {
-      header { align-items:flex-start; }
-      .header-actions { flex-direction:column-reverse; align-items:flex-end; gap:6px; }
-      .header-upload { min-height:48px; }
-      .layout { grid-template-columns:1fr; }
-      nav { display:flex; overflow:auto; border-right:0; border-bottom:1px solid var(--border); padding:8px; position:sticky; top:78px; z-index:4; }
-      nav button { min-width:max-content; width:auto; margin-right:4px; }
-      main { padding:12px; }
+      body { padding-bottom:calc(76px + env(safe-area-inset-bottom)); font-size:16px; }
+      header { min-height:58px; padding:8px 10px; gap:8px; }
+      header h1 { font-size:18px; max-width:52vw; }
+      .brand-logo { width:34px; height:34px; }
+      .header-actions { gap:6px; }
+      .header-upload { display:none; }
+      .system-pill { font-size:10px; min-height:34px; padding:6px 8px; }
+      .user strong,.user-detail { display:none!important; }
+      .user-mobile { display:block!important; font-size:11px; }
+      .layout { display:block; min-height:calc(100vh - 58px); }
+      nav { position:fixed; left:0; right:0; bottom:0; z-index:80; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:2px; border:0; border-top:1px solid var(--border); padding:5px 5px calc(5px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.98); box-shadow:0 -5px 20px rgba(23,58,94,.12); overflow:visible; }
+      nav button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-width:0; width:100%; min-height:60px; margin:0; padding:5px 2px; border-radius:10px; font-size:11px; line-height:1.1; text-align:center; }
+      nav button.active { background:var(--light); color:var(--navy); }
+      .nav-icon { width:auto; font-size:22px; line-height:1; }
+      main { padding:10px; overflow:visible; }
+      .system-status { margin-bottom:10px; }
+      .system-status summary { padding:9px 11px; font-size:13px; }
+      .system-status p { font-size:13px; padding:0 11px 11px; }
+      .today-hero { padding:17px; border-radius:15px; }
+      .today-hero h2 { font-size:28px; }
+      .quick-action-grid { grid-template-columns:1fr 1fr; gap:9px; }
+      .quick-action { min-height:88px; padding:10px; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px; font-size:15px; }
+      .quick-action .icon { font-size:28px; text-align:left; }
+      .cards { grid-template-columns:1fr 1fr; gap:9px; }
+      .card { padding:12px; }
+      .card .count { font-size:27px; }
+      .card .detail { font-size:13px; }
+      .panel { padding:13px; border-radius:13px; }
+      .panel h2 { font-size:22px; }
+      .toolbar { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .toolbar input,.toolbar select { grid-column:1 / -1; min-width:0; width:100%; min-height:52px; font-size:16px; }
+      .toolbar button { min-height:52px; width:100%; }
+      .selected-actions { position:sticky; top:62px; z-index:35; display:grid; grid-template-columns:1fr 1fr; box-shadow:var(--shadow); }
+      .selected-actions strong { grid-column:1 / -1; overflow-wrap:anywhere; }
+      .desktop-records { display:none; }
+      .mobile-records { display:grid; gap:10px; }
+      .record-card-grid { grid-template-columns:1fr 1fr; }
+      .record-card-actions { position:relative; }
       .form-grid { grid-template-columns:1fr; }
-      .toolbar input { min-width:100%; }
-      button { min-height:48px; }
+      .full { grid-column:auto; }
+      label { font-size:15px; }
+      label input,label select,label textarea { min-height:54px; font-size:16px; }
+      button { min-height:52px; }
+      dialog:not(.mobile-sheet) { width:100vw; height:100dvh; max-height:100dvh; border-radius:0; margin:0; }
+      dialog:not(.mobile-sheet) .dialog-body { max-height:calc(100dvh - 132px); padding:14px; }
+      dialog:not(.mobile-sheet) .dialog-actions { position:sticky; bottom:0; display:grid; grid-template-columns:1fr 1fr; padding:10px; }
+      .mobile-sheet { max-height:88dvh; }
+      .sheet-action-grid { grid-template-columns:1fr 1fr; }
+      .toast { left:10px; right:10px; bottom:calc(84px + env(safe-area-inset-bottom)); max-width:none; }
+    }
+    @media (max-width:420px) {
+      .cards { grid-template-columns:1fr; }
+      .record-card-grid { grid-template-columns:1fr; }
+      .sheet-action-grid { grid-template-columns:1fr; }
+      .system-pill { max-width:135px; overflow:hidden; text-overflow:ellipsis; }
     }
   </style>
 </head>
@@ -84,14 +169,18 @@
 <header>
   <h1><img class="brand-logo" id="appLogo" alt=""><span id="appTitle">Business Office</span></h1>
   <div class="header-actions">
+    <button class="system-pill" onclick="toggleSystemStatus()" aria-controls="systemStatus">CLOSED · OWNER AUTHORIZED</button>
     <button class="header-upload" onclick="openUpload()">Upload PDF / Take Picture</button>
     <div class="user" id="userBox">Loading authorized account…</div>
   </div>
 </header>
 <div class="layout">
-  <nav id="nav"></nav>
+  <nav id="nav" aria-label="Business Office navigation"></nav>
   <main>
-    <div class="notice"><strong>Controlled business system:</strong> customer sending, delivery, financial posting, payroll export, and tax report finalization require explicit approval. This system does not move money, fund payroll, file returns, or provide tax advice.</div>
+    <details id="systemStatus" class="system-status">
+      <summary>Owner approval controls are active</summary>
+      <p>Implemented actions are available inside this closed Business Office. Customer sends, payments, purchases, payroll funding, tax filing, publishing, advertising, bulk actions, automatic triggers, and deployment still require Rick’s explicit instruction or the existing Owner confirmation step.</p>
+    </details>
     <section id="content"></section>
   </main>
 </div>
@@ -118,8 +207,12 @@
   </div>
   <div class="dialog-actions"><button class="secondary" onclick="closeUpload()">Cancel</button><button class="primary" onclick="uploadDocument()">Upload privately</button></div>
 </dialog>
+<dialog id="mobileSheet" class="mobile-sheet">
+  <div class="dialog-head"><strong id="mobileSheetTitle">More</strong><button class="secondary" onclick="closeMobileSheet()">Close</button></div>
+  <div class="dialog-body" id="mobileSheetBody"></div>
+</dialog>
 <script>
-  const state = { bootstrap:null, module:'dashboard', rows:[], selected:null, query:'', filters:{}, savedViews:[], savedViewId:'' };
+  const state = { bootstrap:null, module:'dashboard', rows:[], selected:null, query:'', filters:{}, savedViews:[], savedViewId:'', mobileMode:null };
 
   function call(action,args={}) {
     showLoading(true);
@@ -140,42 +233,118 @@
     document.documentElement.style.setProperty('--blue', branding.secondaryColor || '#326a9e');
     const logo = document.getElementById('appLogo');
     if (branding.logoUrl) { logo.src = branding.logoUrl; logo.alt = branding.businessName || 'Business logo'; logo.style.display = 'block'; }
-    document.getElementById('userBox').innerHTML = `<strong>${escapeHtml(user.displayName)}</strong><br>${escapeHtml(user.role)} · ${escapeHtml(user.email)}`;
+    document.getElementById('userBox').innerHTML = `<strong>${escapeHtml(user.displayName)}</strong><span class="user-detail">${escapeHtml(user.role)} · ${escapeHtml(user.email)}</span><span class="user-mobile">${escapeHtml(user.role)}</span>`;
+    state.mobileMode = isMobileViewport();
     renderNav();
     renderDashboard();
+    window.addEventListener('resize', syncResponsiveNav, {passive:true});
   }
 
+  function isMobileViewport(){ return window.matchMedia('(max-width:800px)').matches; }
+  function syncResponsiveNav(){
+    const next = isMobileViewport();
+    if(next !== state.mobileMode){ state.mobileMode = next; renderNav(); }
+  }
+  function moduleByKeys(keys){
+    const modules = state.bootstrap && Array.isArray(state.bootstrap.modules) ? state.bootstrap.modules : [];
+    return keys.map(key => modules.find(module => module.key === key)).find(Boolean) || null;
+  }
+  function navIcon(key){
+    const icons={dashboard:'⌂',customers:'👥',quotes:'▤',jobs:'✓',workOrders:'🛠',requests:'!',documents:'📷',communications:'✉',messages:'✉',receipts:'🧾'};
+    return icons[key] || '•';
+  }
+  function navButton(item){
+    const active = item.keys ? item.keys.includes(state.module) : item.module && state.module === item.module.key;
+    if(item.action) return `<button class="${active?'active':''}" onclick="${item.action}" aria-label="${escapeHtml(item.label)}"><span class="nav-icon">${item.icon}</span><span>${escapeHtml(item.label)}</span></button>`;
+    if(!item.module) return '';
+    return `<button class="${active?'active':''}" onclick="openModule('${js(item.module.key)}')"><span class="nav-icon">${item.icon||navIcon(item.module.key)}</span><span>${escapeHtml(item.label||item.module.label)}</span></button>`;
+  }
   function renderNav() {
     const nav = document.getElementById('nav');
-    nav.innerHTML = state.bootstrap.modules.map(module => `<button class="${state.module===module.key?'active':''}" onclick="openModule('${module.key}')">${escapeHtml(module.key==='documents'?'Documents / Upload':module.label)}</button>`).join('');
+    const modules = state.bootstrap.modules || [];
+    if(!isMobileViewport()){
+      nav.innerHTML = modules.map(module => `<button class="${state.module===module.key?'active':''}" onclick="openModule('${js(module.key)}')"><span class="nav-icon">${navIcon(module.key)}</span><span>${escapeHtml(module.key==='documents'?'Documents / Upload':module.label)}</span></button>`).join('');
+      return;
+    }
+    const role = String((state.bootstrap.context.user||{}).role||'').toLowerCase();
+    const today = moduleByKeys(['dashboard','today']);
+    const customers = moduleByKeys(['customers']);
+    const work = moduleByKeys(['jobs','workOrders','assignedTasks','requests']);
+    const messages = moduleByKeys(['communications','messages','taskMessaging']);
+    const ownerItems = [
+      {module:today,label:'Today',icon:'⌂'},
+      {module:customers,label:'Customers',icon:'👥'},
+      {action:'openMobileCreate()',label:'Create',icon:'＋'},
+      {module:work,label:'Work',icon:'✓',keys:['jobs','workOrders','assignedTasks','requests']},
+      {action:'openMobileMore()',label:'More',icon:'⋯'}
+    ];
+    const staffItems = [
+      {module:today,label:'Today',icon:'⌂'},
+      {module:work,label:'Work',icon:'✓',keys:['jobs','workOrders','assignedTasks','requests']},
+      {action:'openUpload()',label:'Camera',icon:'📷'},
+      {module:messages,label:'Messages',icon:'✉',keys:['communications','messages','taskMessaging']},
+      {action:'openMobileMore()',label:'More',icon:'⋯'}
+    ];
+    nav.innerHTML = (role.includes('owner') || role.includes('admin') ? ownerItems : staffItems).map(navButton).join('');
   }
 
   async function openModule(module) {
     state.module = module; state.selected = null; state.query = ''; state.filters = {}; state.savedViews = []; state.savedViewId = '';
+    closeMobileSheet();
     renderNav();
-    if (module === 'dashboard') return renderDashboard();
+    if (module === 'dashboard' || module === 'today') return renderDashboard();
     if (module === 'reports') return renderReports();
     await loadRows();
   }
 
+  function dashboardQuickActions(){
+    const actions=[{label:'Take photo or upload',icon:'📷',onclick:'openUpload()'}];
+    const candidates=[
+      {keys:['customers'],label:'New customer',icon:'👤'},
+      {keys:['quotes'],label:'New quote',icon:'▤'},
+      {keys:['jobs','workOrders'],label:'New work',icon:'🛠'},
+      {keys:['receipts'],label:'Scan receipt',icon:'🧾'}
+    ];
+    candidates.forEach(item=>{const module=moduleByKeys(item.keys);if(module&&canCreate(module.key))actions.push({label:item.label,icon:item.icon,onclick:`openModuleAndCreate('${js(module.key)}')`});});
+    return actions.slice(0,6).map(action=>`<button class="quick-action" onclick="${action.onclick}"><span class="icon">${action.icon}</span><span>${escapeHtml(action.label)}</span></button>`).join('');
+  }
   function renderDashboard() {
     state.module='dashboard'; renderNav();
     const rows = state.bootstrap.dashboard || [];
-    document.getElementById('content').innerHTML = `<div class="panel quick-upload"><h2>Upload documents and photos</h2><p>Upload a PDF, choose an existing picture, or take a new picture with your device camera.</p><div class="toolbar"><button class="primary" onclick="openUpload()">Upload PDF / Take Picture</button><button class="secondary" onclick="openModule('documents')">View Documents / OCR</button></div></div><div class="panel"><h2>Business Dashboard</h2><p>Use the Owner Portal navigation to open the live records behind these totals.</p><div class="cards">${rows.map(row => `<div class="card"><div class="label">${escapeHtml(row['Business Area']||row['Portal Area']||'Status')}</div><div class="count">${escapeHtml(row['Live Count']||row['Count / Status']||'0')}</div><div class="detail">${escapeHtml(row['What Needs Attention']||row['Control Rule']||'')}</div></div>`).join('')}</div></div>`;
+    const user = state.bootstrap.context.user || {};
+    document.getElementById('content').innerHTML = `<section class="today-hero"><div class="eyebrow">TODAY</div><h2>Good day, ${escapeHtml(user.displayName||'Rick')}</h2><p>Open the next job, handle what needs attention, or create a record without digging through the full system.</p></section><section class="panel"><h2>Quick actions</h2><div class="quick-action-grid">${dashboardQuickActions()}</div></section><section class="panel"><h2>Needs attention and business snapshot</h2><div class="cards">${rows.map(row => `<div class="card"><div class="label">${escapeHtml(row['Business Area']||row['Portal Area']||'Status')}</div><div class="count">${escapeHtml(row['Live Count']||row['Count / Status']||'0')}</div><div class="detail">${escapeHtml(row['What Needs Attention']||row['Control Rule']||'')}</div></div>`).join('')||'<div class="empty">No dashboard items need attention.</div>'}</div></section>`;
   }
 
   async function loadRows() {
     const def = state.bootstrap.definitions[state.module];
     if (!def) return showToast('No view definition for this module.', true);
     state.savedViews = await call('savedViews',{module:state.module});
-    state.rows = await call('list',{module:state.module,options:{query:state.query,filters:state.filters,limit:500}});
+    state.rows = await call('list',{module:state.module,options:{query:state.query,filters:state.filters,limit:50}});
     renderTable(def);
   }
 
   function renderTable(def) {
     const fields = [def.primaryKey].concat(def.fields.filter(f => f!==def.primaryKey));
-    document.getElementById('content').innerHTML = `<div class="panel"><h2>${escapeHtml(def.title)}</h2><div class="toolbar"><input id="searchBox" placeholder="Search ${escapeHtml(def.title.toLowerCase())}" value="${escapeHtml(state.query)}" onkeydown="if(event.key==='Enter')searchRows()"><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views</option>${state.savedViews.map(view=>`<option value="${escapeHtml(view['Saved View ID'])}" ${state.savedViewId===view['Saved View ID']?'selected':''}>${escapeHtml(view['View Name'])}</option>`).join('')}</select><button class="secondary" onclick="searchRows()">Search</button><button class="secondary" onclick="clearView()">Clear view</button><button class="secondary" onclick="loadRows()">Refresh</button>${canCreate(state.module)?'<button class="primary" onclick="openNewRecord()">New record</button>':''}${state.module==='documents'?'<button class="primary" onclick="openUpload()">Upload PDF / Take Picture</button>':''}</div><div id="selectionActions"></div><div class="table-wrap">${state.rows.length?`<table><thead><tr>${fields.map(f=>`<th>${escapeHtml(f)}</th>`).join('')}</tr></thead><tbody>${state.rows.map((row,index)=>`<tr onclick="selectRow(${index})" class="${state.selected===index?'selected':''}">${fields.map(f=>`<td>${formatCell(f,row[f])}</td>`).join('')}</tr>`).join('')}</tbody></table>`:'<div class="empty"><strong>No records match this view.</strong><br>Use New record, upload a document, or adjust the search.</div>'}</div></div>`;
+    document.getElementById('content').innerHTML = `<div class="panel"><h2>${escapeHtml(def.title)}</h2><div class="toolbar"><input id="searchBox" placeholder="Search ${escapeHtml(def.title.toLowerCase())}" value="${escapeHtml(state.query)}" onkeydown="if(event.key==='Enter')searchRows()"><select id="savedViews" aria-label="Saved views" onchange="applySavedView(this.value)"><option value="">Saved views</option>${state.savedViews.map(view=>`<option value="${escapeHtml(view['Saved View ID'])}" ${state.savedViewId===view['Saved View ID']?'selected':''}>${escapeHtml(view['View Name'])}</option>`).join('')}</select><button class="secondary" onclick="searchRows()">Search</button><button class="secondary" onclick="clearView()">Clear view</button><button class="secondary" onclick="loadRows()">Refresh</button>${canCreate(state.module)?'<button class="primary" onclick="openNewRecord()">New record</button>':''}${state.module==='documents'?'<button class="primary" onclick="openUpload()">Upload / Camera</button>':''}</div><div id="selectionActions"></div>${state.rows.length?`<div class="table-wrap desktop-records"><table><thead><tr>${fields.map(f=>`<th>${escapeHtml(f)}</th>`).join('')}</tr></thead><tbody>${state.rows.map((row,index)=>`<tr onclick="selectRow(${index})" class="${state.selected===index?'selected':''}">${fields.map(f=>`<td>${formatCell(f,row[f])}</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="mobile-records">${state.rows.map((row,index)=>renderMobileCard(def,row,index)).join('')}</div>`:'<div class="empty"><strong>No records match this view.</strong><br>Use New record, upload a document, or adjust the search.</div>'}</div>`;
     renderSelectionActions();
+  }
+  function mobileTitleField(def,row){
+    const candidates=def.fields.filter(field=>/name|title|customer|project|subject|description/i.test(field));
+    return candidates.find(field=>String(row[field]||'').trim()) || def.primaryKey;
+  }
+  function mobileSummaryFields(def,row,titleField){
+    const priority=/status|state|approval|decision|amount|total|balance|date|customer|vendor|job|quote|invoice|phone|email/i;
+    const candidates=def.fields.filter(field=>field!==titleField&&field!==def.primaryKey&&String(row[field]||'').trim()&&!/^https?:\/\//i.test(String(row[field]))&&!/notes|scope|assumptions|exclusions|checklist|description/i.test(field));
+    return candidates.sort((a,b)=>(priority.test(b)?1:0)-(priority.test(a)?1:0)).slice(0,4);
+  }
+  function renderMobileCard(def,row,index){
+    const titleField=mobileTitleField(def,row), title=String(row[titleField]||row[def.primaryKey]||'Record'), id=String(row[def.primaryKey]||'');
+    const summary=mobileSummaryFields(def,row,titleField).map(field=>`<div class="record-card-field"><div class="record-card-label">${escapeHtml(field)}</div><div class="record-card-value">${formatCell(field,row[field])}</div></div>`).join('');
+    return `<article class="record-card ${state.selected===index?'selected':''}" aria-label="${escapeHtml(title)}"><div class="record-card-head"><div><div class="record-card-title">${escapeHtml(title)}</div><div class="record-card-id">${escapeHtml(id)}</div></div>${statusBadgeFromRow(row)}</div><div class="record-card-grid">${summary||'<div class="record-card-field"><div class="record-card-value">Open this record to view details.</div></div>'}</div><div class="record-card-actions"><button class="secondary" onclick="selectRow(${index})">${state.selected===index?'Selected':'Open'}</button>${canCreate(state.module)?`<button class="primary" onclick="editRow(${index})">Edit</button>`:''}</div></article>`;
+  }
+  function statusBadgeFromRow(row){
+    const field=Object.keys(row).find(key=>/status|state|approval|decision/i.test(key)&&String(row[key]||'').trim());
+    return field?`<span class="status ${statusClass(String(row[field]))}">${escapeHtml(row[field])}</span>`:'';
   }
 
   function renderSelectionActions() {
@@ -197,10 +366,11 @@
     if(state.module==='accounting') { buttons.push(`<button class="primary" onclick="approveSelected('Journal Entry','Post')">${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`); buttons.push(`<button class="secondary" onclick="runAction('postJournal',{entryId:'${js(id)}'})">Post approved entry</button>`); }
     if(state.module==='approvals') buttons.push(`<button class="primary" onclick="approveQueueRow()">Record ${escapeHtml((state.bootstrap.context.approvalLanguage||{}).decisionButton||'Owner decision')}</button>`);
     if(canVoid(state.module)) buttons.push(`<button class="danger" onclick="voidSelected()">Void selected</button>`);
-    host.innerHTML=`<div class="toolbar"><strong>Selected: ${escapeHtml(id)}</strong>${buttons.join('')}</div>`;
+    host.innerHTML=`<div class="toolbar selected-actions"><strong>Selected: ${escapeHtml(id)}</strong>${buttons.join('')}</div>`;
   }
 
   function selectRow(index){state.selected=index; const def=state.bootstrap.definitions[state.module]; renderTable(def);}
+  function editRow(index){state.selected=index;editSelected();}
   function searchRows(){state.query=document.getElementById('searchBox').value.trim();loadRows();}
   function applySavedView(viewId){
     state.savedViewId=viewId||''; state.filters={}; state.query='';
@@ -215,6 +385,7 @@
   function canVoid(module){return !['reports','approvals','dashboard','setup'].includes(module);}
 
   function openNewRecord(){openEditor(null);}
+  async function openModuleAndCreate(module){await openModule(module);openNewRecord();}
   function editSelected(){const row=state.rows[state.selected];openEditor(row);}
   function openEditor(row){
     const def=state.bootstrap.definitions[state.module]; const form=document.getElementById('recordForm');
@@ -228,6 +399,22 @@
     [...form.elements].forEach(el=>{if(el.name) values[el.name]=el.value;});
     await runAction('save',{module:state.module,recordId:form.dataset.recordId||'',values},false); closeDialog(); await loadRows();
   }
+
+  function openMobileMore(){
+    const modules=state.bootstrap.modules||[];
+    document.getElementById('mobileSheetTitle').textContent='All workspaces';
+    document.getElementById('mobileSheetBody').innerHTML=`<div class="sheet-action-grid">${modules.map(module=>`<button class="sheet-action" onclick="openModule('${js(module.key)}')"><span>${navIcon(module.key)}</span><b>${escapeHtml(module.key==='documents'?'Documents / Upload':module.label)}</b></button>`).join('')}</div>`;
+    document.getElementById('mobileSheet').showModal();
+  }
+  function openMobileCreate(){
+    const actions=[`<button class="sheet-action" onclick="closeMobileSheet();openUpload()"><span>📷</span><b>Photo or upload</b></button>`];
+    [{keys:['customers'],label:'New customer',icon:'👤'},{keys:['quotes'],label:'New quote',icon:'▤'},{keys:['jobs','workOrders'],label:'New work',icon:'🛠'},{keys:['receipts'],label:'New receipt',icon:'🧾'}].forEach(item=>{const module=moduleByKeys(item.keys);if(module&&canCreate(module.key))actions.push(`<button class="sheet-action" onclick="closeMobileSheet();openModuleAndCreate('${js(module.key)}')"><span>${item.icon}</span><b>${escapeHtml(item.label)}</b></button>`);});
+    document.getElementById('mobileSheetTitle').textContent='Create';
+    document.getElementById('mobileSheetBody').innerHTML=`<div class="sheet-action-grid">${actions.join('')}</div>`;
+    document.getElementById('mobileSheet').showModal();
+  }
+  function closeMobileSheet(){const dialog=document.getElementById('mobileSheet');if(dialog&&dialog.open)dialog.close();}
+  function toggleSystemStatus(){const details=document.getElementById('systemStatus');details.open=!details.open;details.scrollIntoView({block:'nearest'});}
 
   async function approveSelected(recordType,approvalType){
     const row=state.rows[state.selected], def=state.bootstrap.definitions[state.module], recordId=row[def.primaryKey];
@@ -254,7 +441,7 @@
   }
   async function validateLedger(){const result=await call('validateLedger');showToast(result.valid?'Ledger validation passed.':'Ledger validation is on hold.',!result.valid);}
 
-  function openUpload(){document.getElementById('uploadDialog').showModal();}
+  function openUpload(){closeMobileSheet();document.getElementById('uploadDialog').showModal();}
   function closeUpload(){document.getElementById('uploadDialog').close();}
   function previewUpload(){const f=document.getElementById('uploadFile').files[0],host=document.getElementById('uploadPreview');host.innerHTML='';if(!f)return;if(f.type.startsWith('image/')){const img=document.createElement('img');img.className='upload-preview';img.src=URL.createObjectURL(f);host.appendChild(img);}else host.textContent=`Selected: ${f.name} (${Math.round(f.size/1024)} KB)`;}
   async function uploadDocument(){
