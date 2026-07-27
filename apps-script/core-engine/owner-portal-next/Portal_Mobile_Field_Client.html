@@ -1,32 +1,39 @@
-/* Touch-aware mobile shell, quick actions, and lifecycle overview. */
+/* Device-aware phone, Chromebook/tablet, and desktop shell behavior. */
 (function(){
 'use strict';
-var H38_MOBILE_QUERY='(max-width:1100px), (pointer:coarse)';
+var H38_PHONE_QUERY='(max-width:720px)';
+var H38_COMPACT_QUERY='(min-width:721px) and (max-width:1280px)';
+var H38_COARSE_QUERY='(pointer:coarse)';
 var H38_MOBILE_STAGE_ROUTES={intake:'bo:requests',quotes:'bo:quotes',work:'bo:jobs',billing:'bo:invoices',paid:'bo:payments'};
 var H38_MOBILE_ORIGINAL_ENSURE=typeof h38EnsureApplicationChrome==='function'?h38EnsureApplicationChrome:null;
 var H38_MOBILE_ORIGINAL_AFTER=typeof h38AfterSurfaceRender==='function'?h38AfterSurfaceRender:null;
 var H38_MOBILE_ORIGINAL_QUICK_ADD=typeof h38AppQuickAdd==='function'?h38AppQuickAdd:null;
 
-function h38MobileWanted(){
-  try{return window.matchMedia(H38_MOBILE_QUERY).matches||window.innerWidth<=1100;}
-  catch(error){return window.innerWidth<=1100;}
-}
+function h38ViewportWidth(){return Math.round(window.visualViewport&&window.visualViewport.width||window.innerWidth||document.documentElement.clientWidth||1024);}
+function h38ShortestScreen(){var screenWidth=window.screen&&window.screen.width||h38ViewportWidth(),screenHeight=window.screen&&window.screen.height||h38ViewportWidth();return Math.min(Number(screenWidth)||9999,Number(screenHeight)||9999);}
+function h38CoarsePointer(){try{return window.matchMedia(H38_COARSE_QUERY).matches;}catch(error){return false;}}
+function h38PhoneWanted(){var width=h38ViewportWidth(),shortest=h38ShortestScreen();try{return window.matchMedia(H38_PHONE_QUERY).matches||width<=720||(h38CoarsePointer()&&shortest<=720);}catch(error){return width<=720||shortest<=720;}}
+function h38CompactWanted(){if(h38PhoneWanted())return false;var width=h38ViewportWidth(),shortest=h38ShortestScreen();try{return window.matchMedia(H38_COMPACT_QUERY).matches||width<=1280||(h38CoarsePointer()&&shortest<=900);}catch(error){return width<=1280;}}
+function h38MobileWanted(){return h38PhoneWanted();}
 function h38MobileRouteLabel(route){
   var map={today:'Today',approvalsCenter:'Approvals',calendarCenter:'Calendar',tasks:'My Work','bo:assignedTasks':'My Work','bo:requests':'Requests','bo:customers':'Customers','bo:quotes':'Quotes','bo:jobs':'Jobs','bo:invoices':'Invoices','bo:payments':'Payments','bo:documents':'Documents','bo:expenses':'Expenses'};
   var titleMap=typeof TITLES!=='undefined'&&TITLES?TITLES:{};
   return map[String(route||'')]||String(titleMap[route]||route||'Business Office').replace(/^bo:/,'');
 }
 function h38ApplyMobileShell(){
-  var mobile=h38MobileWanted();
-  document.body.classList.toggle('h38-mobile-shell',mobile);
-  if(!mobile){var side=document.getElementById('side');if(side)side.classList.remove('open');}
+  var phone=h38PhoneWanted(),compact=h38CompactWanted();
+  document.body.classList.toggle('h38-mobile-shell',phone);
+  document.body.classList.toggle('h38-phone-shell',phone);
+  document.body.classList.toggle('h38-compact-shell',compact);
+  document.body.classList.toggle('h38-desktop-shell',!phone&&!compact);
+  if(!phone){var side=document.getElementById('side');if(side)side.classList.remove('open');}
   h38EnsureMobileChrome();
   h38UpdateMobileTitle();
-  return mobile;
+  return phone;
 }
 function h38MobileMenuState(){
   var side=document.getElementById('side'),scrim=document.getElementById('h38MobileNavScrim');
-  if(scrim)scrim.classList.toggle('open',!!(side&&side.classList.contains('open')));
+  if(scrim)scrim.classList.toggle('open',!!(side&&side.classList.contains('open')&&h38PhoneWanted()));
 }
 function h38MobileCloseMenu(){
   var side=document.getElementById('side');if(side)side.classList.remove('open');h38MobileMenuState();
@@ -68,7 +75,7 @@ function h38EnsureMobileChrome(){
   h38EnsureBottomNav();
   if(!document.getElementById('h38MobileAddSheet')){
     var sheet=document.createElement('div');sheet.id='h38MobileAddSheet';sheet.className='h38-mobile-add-sheet';sheet.onclick=function(event){if(event.target===sheet)h38CloseMobileAdd();};
-    sheet.innerHTML='<div class="h38-mobile-add-panel" role="dialog" aria-modal="true" aria-label="Add new work"><div class="h38-mobile-add-head"><h2>Add new</h2><button type="button" aria-label="Close" onclick="h38CloseMobileAdd()">×</button></div><div class="h38-mobile-add-grid"><button type="button" onclick="h38MobileCreate(\'requests\')">New request<span>Capture a new problem or lead</span></button><button type="button" onclick="h38MobileCreate(\'customers\')">New customer<span>Add contact and service details</span></button><button type="button" onclick="h38MobileCreate(\'quotes\')">New quote<span>Build scope and pricing</span></button><button type="button" onclick="h38MobileCreate(\'jobs\')">New job<span>Open field work</span></button><button type="button" onclick="h38MobileCreate(\'documents\')">Photo or document<span>Capture field evidence</span></button><button type="button" onclick="h38MobileCreate(\'expenses\')">New expense<span>Record a receipt or cost</span></button></div></div>';
+    sheet.innerHTML='<div class="h38-mobile-add-panel" role="dialog" aria-modal="true" aria-label="Add new work"><div class="h38-mobile-add-head"><h2>Add new</h2><button type="button" aria-label="Close" onclick="h38CloseMobileAdd()">×</button></div><div class="h38-mobile-add-grid"><button type="button" onclick="h38MobileCreate(\'requests\')">New request<span>Capture a new problem or lead</span></button><button type="button" onclick="h38MobileCreate(\'customers\')">New customer<span>Add contact and service details</span></button><button type="button" onclick="h38MobileCreate(\'assignedTasks\')">New task<span>Assign work to a person or role</span></button><button type="button" onclick="h38MobileCreate(\'quotes\')">New quote<span>Build scope and pricing</span></button><button type="button" onclick="h38MobileCreate(\'jobs\')">New job<span>Open field work</span></button><button type="button" onclick="h38MobileCreate(\'documents\')">Photo or document<span>Capture field evidence</span></button><button type="button" onclick="h38MobileCreate(\'expenses\')">New expense<span>Record a receipt or cost</span></button></div></div>';
     document.body.appendChild(sheet);
   }
   h38UpdateMobileTitle();
