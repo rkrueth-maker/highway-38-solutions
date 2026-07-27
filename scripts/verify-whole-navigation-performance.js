@@ -18,7 +18,7 @@ pass('performance controller is included before boot',index.indexOf("Portal_Navi
 pass('performance controller is allowlisted',raw.includes("'Portal_Navigation_Performance_Client'"));
 pass('previous workspace is not replaced by loading placeholder',!client.includes("Loading selected operating surface")&&!client.includes("view.innerHTML='<div class=\"card\" data-h38-workspace-state=\"loading\""));
 pass('route tokens reject stale responses',client.includes('H38_NAV_ROUTE_SEQUENCE')&&client.includes('h38NavCurrent(token,route)')&&client.includes('if(!h38NavCurrent(token,module))return null'));
-pass('all route types use shared surface cache',client.includes('h38SurfaceLoad(module,ttl,loader')&&client.includes('h38SurfaceLoad(route,ttl')&&client.includes('boNativeCacheRead'));
+pass('all route types use shared surface cache',client.includes('function h38NavLoadSurface(route,ttl,loader,force)')&&client.includes('return h38SurfaceLoad(route,ttl,loader,force===true)')&&client.includes('h38NavLoadSurface(module,h38NavTtl(module)')&&client.includes('boNativeCacheRead'));
 pass('Business Office rendering waits for current route',client.includes("window.renderBusinessModule=async function")&&client.includes("if(!h38NavCurrent(token,route))return null"));
 pass('returning routes restore rendered HTML immediately',client.includes('H38_NAV_HTML_CACHE')&&client.includes('h38NavRestoreHtml(route)'));
 pass('current navigation group prefetches in one server batch',client.includes("call('h38PortalNavigationSurfaceBatch'")&&client.includes('h38NavGroupRoutes(route)')&&client.includes('.slice(0,8)'));
