@@ -1,0 +1,17 @@
+/* Lightweight real-device performance and no-op button instrumentation. */
+(function(){
+'use strict';
+var perf=window.H38Performance=window.H38Performance||{routes:[]};
+perf.targets={shellUsableMs:2500,cachedRouteMs:500,uncachedRouteMs:1200,buttonFeedbackMs:100,lcpMs:2500,inpMs:200,cls:0.1};
+perf.webVitals=perf.webVitals||{};perf.buttonAudits=perf.buttonAudits||[];perf.startedAt=perf.startedAt||Date.now();
+var domVersion=0;new MutationObserver(function(){domVersion++;}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','disabled','aria-busy']});
+function label(button){return String(button.getAttribute('aria-label')||button.title||button.textContent||'button').replace(/\s+/g,' ').trim().slice(0,120);}
+document.addEventListener('click',function(event){var button=event.target&&event.target.closest&&event.target.closest('button');if(!button||button.disabled)return;var started=performance.now(),version=domVersion,item={label:label(button),route:String(document.body.dataset.h38Route||''),startedAt:new Date().toISOString(),responded:false,responseMs:null};perf.buttonAudits.push(item);perf.buttonAudits=perf.buttonAudits.slice(-100);requestAnimationFrame(function(){item.visualResponseMs=Math.round(performance.now()-started);});setTimeout(function(){item.responded=domVersion!==version||button.disabled||document.activeElement!==button||!!document.querySelector('.modal.open,.drawer.open,.h38-onboard-modal.open,.h38-ai-panel.open,[aria-busy="true"]');item.responseMs=Math.round(performance.now()-started);if(!item.responded)item.warning='No visible state change detected. Review this control in the button audit.';},1500);},true);
+if('PerformanceObserver'in window){
+ try{new PerformanceObserver(function(list){list.getEntries().forEach(function(entry){perf.webVitals.lcpMs=Math.round(entry.startTime);});}).observe({type:'largest-contentful-paint',buffered:true});}catch(error){}
+ try{new PerformanceObserver(function(list){list.getEntries().forEach(function(entry){if(!entry.hadRecentInput)perf.webVitals.cls=Number(((perf.webVitals.cls||0)+entry.value).toFixed(4));});}).observe({type:'layout-shift',buffered:true});}catch(error){}
+ try{new PerformanceObserver(function(list){list.getEntries().forEach(function(entry){var duration=Math.round(entry.duration||0);perf.webVitals.inpMs=Math.max(perf.webVitals.inpMs||0,duration);});}).observe({type:'event',buffered:true,durationThreshold:40});}catch(error){}
+}
+window.addEventListener('load',function(){perf.loadMs=Math.round(performance.now());requestAnimationFrame(function(){perf.shellUsableMs=Math.round(performance.now());perf.shellWithinTarget=perf.shellUsableMs<=perf.targets.shellUsableMs;});},{once:true});
+window.h38PerformanceSnapshot=function(){var routes=(perf.routes||[]).slice(-25),buttonWarnings=(perf.buttonAudits||[]).filter(function(item){return item.warning;});return{targets:perf.targets,loadMs:perf.loadMs||0,shellUsableMs:perf.shellUsableMs||0,webVitals:perf.webVitals,routes:routes,buttonWarnings:buttonWarnings,routePassRate:routes.length?routes.filter(function(item){return Number(item.durationMs||0)<=perf.targets.uncachedRouteMs;}).length/routes.length:1};};
+})();

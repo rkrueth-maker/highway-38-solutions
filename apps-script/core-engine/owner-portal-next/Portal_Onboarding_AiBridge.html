@@ -1,0 +1,10 @@
+/* Add deterministic onboarding to H38 AI without requiring the model connection. */
+(function(){
+'use strict';
+function install(){
+ var tools=document.querySelector('#h38-ai-panel .h38-ai-tools');if(!tools||document.getElementById('h38AiOnboard'))return false;
+ var button=document.createElement('button');button.id='h38AiOnboard';button.type='button';button.textContent='Onboard people';button.title='Open the H38 Onboarding Agent for an employee, customer, or vendor';button.onclick=function(){var panel=document.getElementById('h38-ai-panel');if(panel)panel.classList.remove('open');if(typeof h38OpenOnboardingAgent==='function')h38OpenOnboardingAgent('employee');};tools.insertBefore(button,tools.firstChild);return true;
+}
+var attempts=0,timer=setInterval(function(){attempts++;if(install()||attempts>20)clearInterval(timer);},150);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();

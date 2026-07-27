@@ -90,13 +90,13 @@ function boRequireRestrictedArea_(area){
 function boGetClientContext(){
   var bridge=boAuthBridge_();
   if(bridge&&typeof bridge.getClientContext==='function')return bridge.getClientContext();
-  var user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']),pack=boGetPackSnapshot_();
+  var user=boGetCurrentUser_(),role=boGetRole_(user['Role ID']),pack=boGetPackSnapshot_(),testBoundary=typeof h38TestModeBoundary_==='function'?h38TestModeBoundary_():{externalActionsEnabled:false,testMode:{active:false}};
   return {
     version:H38_BO.VERSION,
     businessId:boGetBusinessId_(),
     business:{id:pack.business.id,name:pack.business.publicName,legalName:pack.business.legalName||'',timeZone:pack.business.timeZone,branding:pack.branding,urls:pack.urls,approvalNotice:boApprovalNotice_(),packId:pack.packId,deploymentMode:pack.deployment.mode},
     modules:pack.modules,
     user:{id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',payrollAccess:user['Payroll Access']==='Yes',taxAccess:user['Tax Access']==='Yes',postingAccess:user['Posting Access']==='Yes',customerSendAccess:user['Customer Send Access']==='Yes',exportAccess:user['Export Access']==='Yes',userAdminAccess:user['User Access Admin']==='Yes'},
-    boundaries:{externalActionsEnabled:false,directPaymentProcessing:false,directPayrollFunding:false,directTaxFiling:false,tax:boTaxBoundary_(),accounting:boAccountingBoundary_()}
+    boundaries:{externalActionsEnabled:testBoundary.externalActionsEnabled,directPaymentProcessing:false,directPayrollFunding:false,directTaxFiling:false,testMode:testBoundary.testMode,tax:boTaxBoundary_(),accounting:boAccountingBoundary_()}
   };
 }
