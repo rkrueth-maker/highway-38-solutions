@@ -17,19 +17,28 @@ concurrency:
 jobs:
   run-demo:
     if: >-
-      ${{
-        github.event_name == 'workflow_dispatch' ||
-        (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
-      }}
+      ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
+      H38_BO_SPREADSHEET_ID: 1kDDKWx9jfObWm8EmaXm5weDCTJbQ8RTf7-sq4RDEYlA
+      H38_BO_ROOT_FOLDER_ID: 1kDgnuxRLaJTZoO01O1U1bbeDNNAgdaI6
+      H38_BO_DOCUMENT_FOLDER_ID: 1Vq8UjAzxW4hIKYoodkf1hfqkATWiXjVC
+      H38_BO_PDF_FOLDER_ID: 11ak4QZ7ag8daYO1_uO6NTCVXIO7Kh6j3
+      H38_BO_EXPORT_FOLDER_ID: 1Jn2vW5gwJcaNX0BH1em-v0M9Q3-SwiJQ
+      H38_BO_BACKUP_FOLDER_ID: 1rjl_m8u1YlaXSo29m46apa9dQD1zeucs
+      H38_BO_OWNER_EMAIL: rkrueth@gmail.com
+      H38_BO_BUSINESS_ID: H38
+      H38_BACKEND_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
       CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
       CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      CLASP_AUTH_JSON: ${{ secrets.CLASP_AUTH_JSON }}
+      CLASP_AUTH_JSON_B64: ${{ secrets.CLASP_AUTH_JSON_B64 }}
+      CLASPRC: ${{ secrets.CLASPRC }}
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -47,23 +56,11 @@ jobs:
       - name: Verify authorized full demo source
         run: node scripts/verify-full-business-office-demo.js
 
-      - name: Install isolated clasp
+      - name: Install established authorized tools
         shell: bash
-        run: |
-          set -euo pipefail
-          H38_CLASP_DIR="$RUNNER_TEMP/h38-clasp"
-          echo "H38_CLASP_DIR=$H38_CLASP_DIR" >> "$GITHUB_ENV"
-          npm install \
-            --prefix "$H38_CLASP_DIR" \
-            --no-save \
-            --package-lock=false \
-            --ignore-scripts \
-            --no-audit \
-            --no-fund \
-            @google/clasp@3.3.0
-          "$H38_CLASP_DIR/node_modules/.bin/clasp" -v
+        run: npm install --global @google/clasp@3.1.0
 
-      - name: Load existing production credentials
+      - name: Load encrypted clasp credential
         shell: bash
         run: |
           set -euo pipefail
@@ -74,20 +71,96 @@ jobs:
           elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
           elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
           elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'Missing existing production clasp credential.'; exit 78; fi
+          elif [[ -n "${CLASP_AUTH_JSON}" ]]; then printf '%s' "${CLASP_AUTH_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_AUTH_JSON_B64}" ]]; then printf '%s' "${CLASP_AUTH_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC}" ]]; then printf '%s' "${CLASPRC}" > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted clasp credential is configured.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
 
+      - name: Build approved resumable execution harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          HARNESS="$RUNNER_TEMP/full-demo-authorized-harness.sh"
+          cp scripts/business-office-authorized-harness.sh "$HARNESS"
+          sed -i 's/13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o/13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-/' "$HARNESS"
+          python3 - "$HARNESS" <<'PY'
+          from pathlib import Path
+          import sys
+          path=Path(sys.argv[1])
+          text=path.read_text()
+          marker='# 4. Generate compact but legible real image and PDF fixtures.'
+          block=r'''
+          # Controlled full Business Office demo through the already-authorized runtime.
+          FULL_DEMO_EVIDENCE="$REPO_ROOT/artifacts/full-business-office-demo"
+          mkdir -p "$FULL_DEMO_EVIDENCE"
+          run_harness_function boPrepareFullApprovedBusinessOfficeDemo '[]' "$FULL_DEMO_EVIDENCE/prepare.txt"
+          node -e "const r=require('./artifacts/full-business-office-demo/prepare.json');if(r.status!=='PASS'||r.projectCount!==7)throw new Error('Full demo preparation failed.')"
+          for start in 0 2 4 6; do
+            run_harness_function boRunFullApprovedBusinessOfficeDemoAgentBatch "[$start,2]" "$FULL_DEMO_EVIDENCE/agents-${start}.txt"
+            node - "$FULL_DEMO_EVIDENCE/agents-${start}.json" <<'NODE'
+          const r=require(process.argv[2]);
+          if(r.status!=='PASS'||r.processed<1||r.processed>2)throw new Error('Agent batch failed: '+JSON.stringify(r));
+          NODE
+          done
+          for start in 0 3 6; do
+            run_harness_function boRunFullApprovedBusinessOfficeDemoEmailBatch "[$start,3]" "$FULL_DEMO_EVIDENCE/emails-${start}.txt"
+            node - "$FULL_DEMO_EVIDENCE/emails-${start}.json" <<'NODE'
+          const r=require(process.argv[2]);
+          if(r.status!=='PASS'||r.processed<1||r.processed>3)throw new Error('Email batch failed: '+JSON.stringify(r));
+          NODE
+          done
+          run_harness_function boFinalizeFullApprovedBusinessOfficeDemo '[]' "$FULL_DEMO_EVIDENCE/finalize.txt"
+          cp "$FULL_DEMO_EVIDENCE/finalize.json" "$FULL_DEMO_EVIDENCE/result.json"
+          node - "$FULL_DEMO_EVIDENCE/result.json" <<'NODE'
+          const fs=require('fs');
+          const r=require(process.argv[2]);
+          const failures=[];
+          if(r.status!=='PASS')failures.push('status');
+          if(r.projectCount!==7)failures.push('projectCount');
+          if(r.agentCount!==8)failures.push('agentCount');
+          if(r.approvedEmailCount!==8)failures.push('approvedEmailCount');
+          if(!(r.approvedRecipients||[]).includes('rkrueth@gmail.com'))failures.push('owner recipient');
+          if(!(r.approvedRecipients||[]).includes('highway38solutions@gmail.com'))failures.push('H38 recipient');
+          for(const key of ['financialExternalActions','moneyMoved','payrollFunded','taxesFiled','supplierOrdersTransmitted','publicPublishingPerformed'])if(r[key]!==false)failures.push(key);
+          const report={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',result:r,failures};
+          fs.writeFileSync('artifacts/full-business-office-demo/verification.json',JSON.stringify(report,null,2)+'\n');
+          if(failures.length)throw new Error('Full demo verification failed: '+failures.join(', '));
+          console.log(JSON.stringify(report,null,2));
+          NODE
+
+          # Restore the authorized Owner Portal development source immediately after the demo.
+          cp -a "$OWNER_BACKUP/." "$OWNER_RESTORE/"
+          cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$OWNER_RESTORE/"
+          (cd "$OWNER_RESTORE" && clasp push --force) 2>&1 | tee "$FULL_DEMO_EVIDENCE/owner-restore-push.txt"
+          (cd "$OWNER_RESTORE" && clasp list-deployments) 2>&1 | tee "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt"
+          grep -F "$OWNER_DEPLOYMENT_ID" "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt" >/dev/null
+          BEFORE_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/owner-deployments-before.txt")"
+          AFTER_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt")"
+          test "$BEFORE_LINE" = "$AFTER_LINE"
+          exit 0
+          '''
+          if marker not in text:
+              raise SystemExit('Authorized harness insertion marker was not found.')
+          path.write_text(text.replace(marker, block+'\n'+marker, 1))
+          PY
+          chmod +x "$HARNESS"
+          printf '%s\n' "$HARNESS" > "$RUNNER_TEMP/full-demo-harness-path.txt"
+
       - name: Run seven projects, eight agents, approvals, and internal emails
         shell: bash
-        run: bash scripts/run-full-business-office-demo-authorized.sh
+        run: bash "$(cat "$RUNNER_TEMP/full-demo-harness-path.txt")"
 
       - name: Upload full demo evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: full-business-office-demo-${{ github.run_id }}
-          path: artifacts/full-business-office-demo/
+          path: |
+            artifacts/full-business-office-demo/
+            artifacts/business-office-authorized/business-office-bootstrap.*
+            artifacts/business-office-authorized/authorized-project-before.*
           if-no-files-found: warn
           retention-days: 90
 
