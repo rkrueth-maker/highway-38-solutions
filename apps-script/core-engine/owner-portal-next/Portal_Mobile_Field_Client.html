@@ -13,7 +13,8 @@ function h38MobileWanted(){
 }
 function h38MobileRouteLabel(route){
   var map={today:'Today',approvalsCenter:'Approvals',calendarCenter:'Calendar',tasks:'My Work','bo:assignedTasks':'My Work','bo:requests':'Requests','bo:customers':'Customers','bo:quotes':'Quotes','bo:jobs':'Jobs','bo:invoices':'Invoices','bo:payments':'Payments','bo:documents':'Documents','bo:expenses':'Expenses'};
-  return map[String(route||'')]||String(TITLES&&TITLES[route]||route||'Business Office').replace(/^bo:/,'');
+  var titleMap=typeof TITLES!=='undefined'&&TITLES?TITLES:{};
+  return map[String(route||'')]||String(titleMap[route]||route||'Business Office').replace(/^bo:/,'');
 }
 function h38ApplyMobileShell(){
   var mobile=h38MobileWanted();
