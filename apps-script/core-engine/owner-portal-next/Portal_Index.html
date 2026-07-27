@@ -19,7 +19,8 @@
   <style><?!= h38PortalRawInclude_('Portal_DailyFirst_Styles'); ?></style>
   <style>.unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}.h38-brand-copy{min-width:0}</style>
   <style id="h38-final-readable-phone">
-  @media(max-width:720px){
+    /* Apply by the runtime phone-shell classes instead of CSS viewport width.
+       Apps Script can report a desktop-sized CSS viewport on a real phone. */
     body.h38-mobile-shell,body.h38-phone-shell{font-size:21px!important;padding-bottom:calc(116px + env(safe-area-inset-bottom))!important}
     body.h38-mobile-shell .content,body.h38-phone-shell .content{padding:14px 14px 32px!important}
     body.h38-mobile-shell .h38-mobile-top,body.h38-phone-shell .h38-mobile-top{grid-template-columns:64px minmax(0,1fr) 64px 64px!important;min-height:86px!important;padding:10px 12px!important;gap:9px!important}
@@ -63,7 +64,6 @@
     body.h38-mobile-shell .ux-section-head h2{font-size:21px!important}
     body.h38-mobile-shell .ux-list-item strong,body.h38-mobile-shell .ux-list-item b{font-size:20px!important}
     body.h38-mobile-shell .ux-list-item span,body.h38-mobile-shell .ux-list-item small,body.h38-mobile-shell .ux-list-item p{font-size:17px!important}
-  }
   </style>
 </head>
 <body>
@@ -125,7 +125,7 @@ window.H38_QB_ADDON_ENABLED=<?!= (typeof boPackValue_ === 'function' && boPackVa
   }catch(error){}
   if(typeof h38ApplyMobileTextSize==='function')h38ApplyMobileTextSize(typeof h38MobileTextSize==='function'?h38MobileTextSize():'extra');
   window.H38ReadableTodayRoute='direct-extra-large-v2';
-  window.H38ReadableShell='large-controls-v3';
+  window.H38ReadableShell='class-driven-large-controls-v4';
 })();
 </script>
 <?!= boInclude_('BusinessOffice_AI_Assistant_Client') ?>
