@@ -9,7 +9,9 @@ const root = path.resolve(__dirname, '..');
 const boFiles = [
   'BusinessOffice_TaskMessaging_10_Core.gs',
   'BusinessOffice_TaskMessaging_20_SMS.gs',
-  'BusinessOffice_TaskMessaging_30_Web.gs'
+  'BusinessOffice_TaskMessaging_30_Web.gs',
+  'BusinessOffice_EmailMessagingSync.gs',
+  'ZZZ_BusinessOffice_EmailMessagingWeb.gs'
 ].map(name => path.join(root, 'apps-script', 'business-office', name));
 const portalDir = path.join(root, 'apps-script', 'core-engine', 'owner-portal-next');
 const client = path.join(portalDir, 'Portal_TaskMessaging_Client.html');
@@ -36,7 +38,7 @@ function check(name, condition, detail = '') {
 function read(file) { return fs.readFileSync(file, 'utf8'); }
 
 files.forEach(file => check('file ' + path.relative(root,file), fs.existsSync(file)));
-for (const file of boFiles.concat([business,unified,services,moduleContract,rawIncludes,packGs,shell])) {
+for (const file of boFiles.concat([business,unified,services,moduleContract,rawIncludes,packGs,shell,client])) {
   if (!fs.existsSync(file)) continue;
   try {
     new vm.Script(read(file), {filename:path.basename(file)});
@@ -77,10 +79,18 @@ check('credentials use Script Properties', source.includes('H38_SMS_TWILIO_ACCOU
 check('no credential values committed', !/(AC[a-f0-9]{30,}|SK[a-f0-9]{30,}|authToken\s*[:=]\s*['"][^'"]{12,}|api[_ -]?key\s*[:=]\s*['"][^'"]+)/i.test(source + portal + read(packGs)));
 check('provider request isolated to Business Office adapter', source.includes('UrlFetchApp.fetch') && !portal.includes('UrlFetchApp.fetch') && !shellSource.includes('UrlFetchApp.fetch'));
 check('send requires release and registration', source.includes('H38_SMS_SEND_RELEASED') && source.includes('H38_SMS_A2P_APPROVED') && source.includes('outboundReleased'));
-check('manual inbound only', source.includes('h38TmSyncInbound_') && ui.includes('Sync inbound replies') && ui.includes('Inbound sync is manual'));
+check('manual inbound SMS only', source.includes('h38TmSyncInbound_') && ui.includes('Sync inbound SMS') && ui.includes('h38TmSyncInbound()'));
 check('no automatic customer reply', /automaticReplies\s*:\s*false/.test(source) && ui.includes('never sends a response'));
-check('selected message execution', source.includes('function h38TmSendMessage_(messageId)') && ui.includes('Send only selected message'));
+check('selected SMS execution', source.includes('function h38TmSendMessage_(messageId)') && ui.includes('Send only selected message'));
 check('no bulk send endpoint', !/sendBulk|bulkSend|sendAll|campaignSend/i.test(source + ui));
+
+check('Email evidence uses shared Communications table', source.includes("Channel: 'Email'") && source.includes("Provider: 'Gmail'") && source.includes("h38TmAppend_('MESSAGES'"));
+check('Email evidence creates a linked RFC822 document', source.includes("'message/rfc822'") && source.includes("'Document Type': 'Email Evidence'") && source.includes("'Document ID': documentId"));
+check('Email sync is owner-only and idempotent', source.includes('function boEmailSyncDemoEvidence_') && source.includes('boRequireOwner_()') && source.includes("'Duplicate Key': 'GMAIL|'") && source.includes('boEmailExistingMessage_'));
+check('Email sync never sends or deletes Gmail', !/GmailApp\.sendEmail|messages\/send|moveToTrash|deleteMessage/.test(read(path.join(root,'apps-script','business-office','BusinessOffice_EmailMessagingSync.gs'))));
+check('Email records cannot use SMS decisions or provider send', source.includes("message.Channel === 'SMS'") && source.includes('Email evidence does not use SMS approval controls') && source.includes('Captured email cannot be released through the SMS provider'));
+check('Communications UI separates Email and SMS', ui.includes("data.definition.title='Communications'") && ui.includes("if(row.Channel==='Email')") && ui.includes('Open Gmail') && ui.includes('Open evidence file'));
+check('manual Gmail evidence sync is explicit', ui.includes('Sync demo email evidence') && ui.includes('Sync recent Gmail') && ui.includes('h38PortalMessagingSyncEmail'));
 
 check('task states complete', ['Open','Accepted','Started','Waiting','Blocked','Completed','Cancelled','Overdue'].every(status => (source + ui).includes(status)));
 check('task user and role assignment', source.includes('Assigned User ID') && source.includes('Assigned Role') && source.includes('reassign'));
@@ -146,7 +156,7 @@ if (source) {
   check('runtime task assignment visibility', runtime.h38TmTaskVisible_(assigned,staff) === true && runtime.h38TmTaskVisible_(assigned,viewer) === false && runtime.h38TmTaskVisible_(assigned,owner) === true);
   runtime.h38TmUsageSummary_=()=>({month:'2026-07',segments:0,providerCost:0,segmentLimit:0,costLimit:0,segmentLimitReached:false,costLimitReached:false});
   check('runtime provider release locked', runtime.h38TmProviderStatus_().outboundReleased === false);
-  runtime.h38TmFind_=()=>({Direction:'Outbound',Status:'Approved','Approval Status':'Approved','Send Allowed':'Yes','Retry Locked':'No','Normalized Phone':'+12185550101','Message ID':'MSG-1','Message Body':'Test message'});
+  runtime.h38TmFind_=()=>({Direction:'Outbound',Channel:'SMS',Status:'Approved','Approval Status':'Approved','Send Allowed':'Yes','Retry Locked':'No','Normalized Phone':'+12185550101','Message ID':'MSG-1','Message Body':'Test message'});
   runtime.h38TmConsentForPhone_=()=>({'Consent Status':'Consented','Consent ID':'CONSENT-1'});
   runtime.h38TmDuplicateMessage_=()=>null;
   runtime.h38TmMessageEvent_=()=>true;
@@ -159,7 +169,7 @@ const evidence={
   generatedAt:new Date().toISOString(),
   passed:passes.length,
   failed:failures.length,
-  controls:{providerNeutral:true,outboundLocked:true,inboundManual:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,selectedRecordOnly:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessaging:false,automaticTriggers:false,credentialsInScriptProperties:true,deterministicUnifiedShell:true},
+  controls:{providerNeutral:true,outboundLocked:true,inboundManual:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,selectedRecordOnly:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessaging:false,automaticTriggers:false,credentialsInScriptProperties:true,emailEvidence:true,emailReadOnly:true,deterministicUnifiedShell:true},
   passes,failures
 };
 const out=path.join(root,'artifacts','task-messaging');
