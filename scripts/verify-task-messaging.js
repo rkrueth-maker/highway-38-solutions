@@ -69,9 +69,8 @@ catch (error) { check('template pack JSON', false, error.message); }
 check('template enables internal tasks', template.modules && template.modules.assignedTasks === true);
 check('template paid SMS stays disabled', template.modules && template.modules.messaging === false && template.messaging && template.messaging.provider === 'none');
 check('provider-neutral Twilio configuration', pack.messaging && pack.messaging.providerNeutral === true && pack.messaging.provider === 'twilio');
-check('Highway 38 SMS software release is explicit and selected-record only', pack.messaging && pack.messaging.externalActionsEnabled === true && pack.messaging.inboundSyncEnabled === false && pack.workflow && pack.workflow.externalActionsEnabled === true && pack.workflow.ownerApprovalRequired === true && pack.workflow.selectedRecordOnly === true && pack.workflow.bulkExternalActionsEnabled === false && pack.workflow.automaticExternalTriggersEnabled === false && Array.isArray(pack.workflow.liveActionTypes) && pack.workflow.liveActionTypes.includes('sms') && source.includes('h38PortalLiveExternalStatus'));
-check('bulk and triggers disabled', pack.messaging && pack.messaging.bulkMessagingEnabled === false && pack.messaging.automaticTriggersEnabled === false && !/ScriptApp\s*\.\s*newTrigger/.test(source));
-check('owner approval required', pack.messaging && pack.messaging.ownerApprovalRequired === true && source.includes('boRequireOwner_()') && /["']Send Allowed["']/.test(source));
+check('Highway 38 messaging is Owner-authorized in the closed environment', pack.workflow && pack.workflow.closedEnvironment === true && pack.workflow.externalActionsEnabled === true && pack.workflow.ownerApprovalRequired === true && pack.workflow.selectedRecordOnly === false && pack.workflow.bulkExternalActionsEnabled === true && pack.workflow.automaticExternalTriggersEnabled === true && pack.messaging && pack.messaging.externalActionsEnabled === true && pack.messaging.inboundSyncEnabled === true && pack.messaging.bulkMessagingEnabled === true && pack.messaging.automaticTriggersEnabled === true && Array.isArray(pack.workflow.liveActionTypes) && pack.workflow.liveActionTypes.includes('sms') && source.includes('h38PortalLiveExternalStatus'));
+check('closed-environment messaging retains owner confirmation', pack.messaging && pack.messaging.ownerApprovalRequired === true && source.includes('boRequireOwner_()') && /["']Send Allowed["']/.test(source));
 check('documented consent required', pack.messaging && pack.messaging.documentedConsentRequired === true && /Consent Status["']\]\s*===\s*["']Consented/.test(source));
 check('STOP and opt-out suppression', pack.messaging && pack.messaging.stopSuppressionRequired === true && /STOPALL\|UNSUBSCRIBE\|CANCEL\|END\|QUIT/.test(source) && /["']Opted Out["']/.test(source));
 check('duplicate-message lock', pack.messaging && pack.messaging.duplicateProtectionRequired === true && source.includes('Duplicate-message lock') && source.includes('h38TmDuplicateMessage_'));
@@ -80,10 +79,9 @@ check('credentials use Script Properties', source.includes('H38_SMS_TWILIO_ACCOU
 check('no credential values committed', !/(AC[a-f0-9]{30,}|SK[a-f0-9]{30,}|authToken\s*[:=]\s*['"][^'"]{12,}|api[_ -]?key\s*[:=]\s*['"][^'"]+)/i.test(source + portal + read(packGs)));
 check('provider request isolated to Business Office adapter', source.includes('UrlFetchApp.fetch') && !portal.includes('UrlFetchApp.fetch') && !shellSource.includes('UrlFetchApp.fetch'));
 check('send requires release and registration', source.includes('H38_SMS_SEND_RELEASED') && source.includes('H38_SMS_A2P_APPROVED') && source.includes('outboundReleased'));
-check('manual inbound SMS only', source.includes('h38TmSyncInbound_') && ui.includes('Sync inbound SMS') && ui.includes('h38TmSyncInbound()'));
-check('no automatic customer reply', /automaticReplies\s*:\s*false/.test(source) && ui.includes('never sends a response'));
-check('selected SMS execution', source.includes('function h38TmSendMessage_(messageId)') && ui.includes('Send only selected message'));
-check('no bulk send endpoint', !/sendBulk|bulkSend|sendAll|campaignSend/i.test(source + ui));
+check('inbound SMS synchronization is available', source.includes('h38TmSyncInbound_') && ui.includes('Sync inbound SMS') && ui.includes('h38TmSyncInbound()') && source.includes('H38_SMS_INBOUND_SYNC_RELEASED'));
+check('selected SMS execution remains available', source.includes('function h38TmSendMessage_(messageId)') && ui.includes('Send only selected message'));
+check('closed-environment policy does not hard-disable bulk or trigger controls', pack.messaging.bulkMessagingEnabled === true && pack.messaging.automaticTriggersEnabled === true && source.includes('bulkMessagingEnabled=boPackValue_') && source.includes('automaticTriggersEnabled=boPackValue_'));
 
 check('Email evidence uses shared Communications table', source.includes("Channel: 'Email'") && source.includes("Provider: 'Gmail'") && source.includes("h38TmAppend_('MESSAGES'"));
 check('Email evidence creates a linked RFC822 document', source.includes("'message/rfc822'") && source.includes("'Document Type': 'Email Evidence'") && source.includes("'Document ID': documentId"));
@@ -134,11 +132,14 @@ if (source) {
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>propertyValues[key] || '',setProperty:(key,value)=>{propertyValues[key]=value;},deleteProperty:key=>{delete propertyValues[key];}})},
     boPackValue_:(key,fallback)=>({
       'business.timeZone':'America/Chicago',
+      'workflow.closedEnvironment':false,
       'workflow.externalActionsEnabled':false,
       'workflow.liveActionTypes':[],
       'messaging.provider':'twilio',
       'messaging.externalActionsEnabled':false,
-      'messaging.inboundSyncEnabled':false
+      'messaging.inboundSyncEnabled':false,
+      'messaging.bulkMessagingEnabled':false,
+      'messaging.automaticTriggersEnabled':false
     })[key] ?? fallback,
     boGetProperties_:()=>({getProperty:key=>propertyValues[key] || ''}),
     boNormalizeText_:value=>String(value == null ? '' : value).trim(),
@@ -174,7 +175,7 @@ const evidence={
   generatedAt:new Date().toISOString(),
   passed:passes.length,
   failed:failures.length,
-  controls:{providerNeutral:true,productionOutboundReleaseControlled:true,reusableDefaultLocked:true,inboundManual:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,selectedRecordOnly:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessaging:false,automaticTriggers:false,credentialsInScriptProperties:true,emailEvidence:true,emailReadOnly:true,deterministicUnifiedShell:true},
+  controls:{providerNeutral:true,closedEnvironmentOwnerAuthorized:true,reusableDefaultLocked:true,inboundSyncEnabled:true,ownerApproval:true,consentRequired:true,optOutSuppression:true,duplicateLock:true,unknownDeliveryRetryLock:true,bulkMessagingPolicyEnabled:true,automaticTriggerPolicyEnabled:true,credentialsInScriptProperties:true,emailEvidence:true,emailReadOnly:true,deterministicUnifiedShell:true},
   passes,failures
 };
 const out=path.join(root,'artifacts','task-messaging');
