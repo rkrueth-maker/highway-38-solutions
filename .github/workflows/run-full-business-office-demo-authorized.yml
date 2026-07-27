@@ -84,71 +84,11 @@ jobs:
           set -euo pipefail
           HARNESS="$RUNNER_TEMP/full-demo-authorized-harness.sh"
           cp scripts/business-office-authorized-harness.sh "$HARNESS"
-          sed -i 's/13Bes6_rs3LD-Sch4Vi5DKssCnIU_qb4hzZpGpDVfoRELRAk0HtXEJ7o/13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-/' "$HARNESS"
-          grep -F 'OWNER_SCRIPT_ID="13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-"' "$HARNESS"
-          python3 - "$HARNESS" <<'PY'
-          from pathlib import Path
-          import sys
-          import textwrap
-          path=Path(sys.argv[1])
-          text=path.read_text()
-          marker='# 4. Generate compact but legible real image and PDF fixtures.'
-          block=textwrap.dedent(r'''
-          # Controlled full Business Office demo through the already-authorized runtime.
-          FULL_DEMO_EVIDENCE="$REPO_ROOT/artifacts/full-business-office-demo"
-          mkdir -p "$FULL_DEMO_EVIDENCE"
-          run_harness_function boPrepareFullApprovedBusinessOfficeDemo '[]' "$FULL_DEMO_EVIDENCE/prepare.txt"
-          node -e "const r=require('./artifacts/full-business-office-demo/prepare.json');if(r.status!=='PASS'||r.projectCount!==7)throw new Error('Full demo preparation failed.')"
-          for start in 0 2 4 6; do
-            run_harness_function boRunFullApprovedBusinessOfficeDemoAgentBatch "[$start,2]" "$FULL_DEMO_EVIDENCE/agents-${start}.txt"
-            node - "$FULL_DEMO_EVIDENCE/agents-${start}.json" <<'NODE'
-          const r=require(process.argv[2]);
-          if(r.status!=='PASS'||r.processed<1||r.processed>2)throw new Error('Agent batch failed: '+JSON.stringify(r));
-          NODE
-          done
-          for start in 0 3 6; do
-            run_harness_function boRunFullApprovedBusinessOfficeDemoEmailBatch "[$start,3]" "$FULL_DEMO_EVIDENCE/emails-${start}.txt"
-            node - "$FULL_DEMO_EVIDENCE/emails-${start}.json" <<'NODE'
-          const r=require(process.argv[2]);
-          if(r.status!=='PASS'||r.processed<1||r.processed>3)throw new Error('Email batch failed: '+JSON.stringify(r));
-          NODE
-          done
-          run_harness_function boFinalizeFullApprovedBusinessOfficeDemo '[]' "$FULL_DEMO_EVIDENCE/finalize.txt"
-          cp "$FULL_DEMO_EVIDENCE/finalize.json" "$FULL_DEMO_EVIDENCE/result.json"
-          node - "$FULL_DEMO_EVIDENCE/result.json" <<'NODE'
-          const fs=require('fs');
-          const r=require(process.argv[2]);
-          const failures=[];
-          if(r.status!=='PASS')failures.push('status');
-          if(r.projectCount!==7)failures.push('projectCount');
-          if(r.agentCount!==8)failures.push('agentCount');
-          if(r.approvedEmailCount!==8)failures.push('approvedEmailCount');
-          if(!(r.approvedRecipients||[]).includes('rkrueth@gmail.com'))failures.push('owner recipient');
-          if(!(r.approvedRecipients||[]).includes('highway38solutions@gmail.com'))failures.push('H38 recipient');
-          for(const key of ['financialExternalActions','moneyMoved','payrollFunded','taxesFiled','supplierOrdersTransmitted','publicPublishingPerformed'])if(r[key]!==false)failures.push(key);
-          const report={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',result:r,failures};
-          fs.writeFileSync('artifacts/full-business-office-demo/verification.json',JSON.stringify(report,null,2)+'\n');
-          if(failures.length)throw new Error('Full demo verification failed: '+failures.join(', '));
-          console.log(JSON.stringify(report,null,2));
-          NODE
-
-          # Restore the authorized Owner Portal development source immediately after the demo.
-          cp -a "$OWNER_BACKUP/." "$OWNER_RESTORE/"
-          cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$OWNER_RESTORE/"
-          (cd "$OWNER_RESTORE" && clasp push --force) 2>&1 | tee "$FULL_DEMO_EVIDENCE/owner-restore-push.txt"
-          (cd "$OWNER_RESTORE" && clasp list-deployments) 2>&1 | tee "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt"
-          grep -F "$OWNER_DEPLOYMENT_ID" "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt" >/dev/null
-          BEFORE_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/owner-deployments-before.txt")"
-          AFTER_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt")"
-          test "$BEFORE_LINE" = "$AFTER_LINE"
-          exit 0
-          ''')
-          if marker not in text:
-              raise SystemExit('Authorized harness insertion marker was not found.')
-          path.write_text(text.replace(marker, block+'\n'+marker, 1))
-          PY
+          python3 scripts/patch-full-business-office-demo-harness.py "$HARNESS"
           chmod +x "$HARNESS"
           bash -n "$HARNESS"
+          grep -F "find \"\$OWNER_HARNESS\" -maxdepth 1 -type f" "$HARNESS"
+          grep -F "boPrepareFullApprovedBusinessOfficeDemo" "$HARNESS"
           printf '%s\n' "$HARNESS" > "$RUNNER_TEMP/full-demo-harness-path.txt"
 
       - name: Run seven projects, eight agents, approvals, and internal emails
@@ -166,7 +106,8 @@ jobs:
           path: |
             artifacts/full-business-office-demo/
             artifacts/business-office-authorized/business-office-bootstrap.*
-            artifacts/business-office-authorized/authorized-project-before.*
+            artifacts/business-office-authorized/owner-project-before.*
+            artifacts/business-office-authorized/owner-deployments-before.txt
           if-no-files-found: warn
           retention-days: 90
 
