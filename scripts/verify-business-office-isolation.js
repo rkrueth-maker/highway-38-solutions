@@ -25,15 +25,24 @@ for (const item of packs) {
   const keys = item.config.resources && item.config.resources.propertyKeys || {};
   check(`${item.name} uses property-key resource isolation`, Object.keys(keys).length >= 7 && Object.values(keys).every(value => /^[A-Z0-9_]+$/.test(value)));
   check(`${item.name} contains no embedded Google resource IDs`, !/(?:1[A-Za-z0-9_-]{20,}|AKfyc[A-Za-z0-9_-]+)/.test(configText));
-  check(`${item.name} keeps direct payment disabled`, item.config.tax.directFiling === false);
-  if (item.name !== 'highway38') check(`${item.name} contains no Highway 38 leakage`, !/Highway\s*38|rkrueth|highway-38-solutions|H38_/i.test(configText));
+  if (item.name === 'highway38') {
+    check('highway38 closed environment is explicit', item.config.workflow && item.config.workflow.closedEnvironment === true && item.config.workflow.externalActionsEnabled === true);
+    check('highway38 Owner-authorized direct tax policy is explicit', item.config.tax && item.config.tax.directFiling === true && item.config.workflow.ownerApprovalRequired === true);
+  } else {
+    const workflow=item.config.workflow||{};
+    check(`${item.name} keeps direct tax filing disabled`, item.config.tax && item.config.tax.directFiling === false);
+    check(`${item.name} keeps external execution disabled`, workflow.externalActionsEnabled !== true);
+    check(`${item.name} contains no Highway 38 leakage`, !/Highway\s*38|rkrueth|highway-38-solutions|H38_/i.test(configText));
+  }
 }
 const h38 = packs.find(item => item.name === 'highway38').config;
 const template = packs.find(item => item.name === 'template-business').config;
 const h38Keys = new Set(Object.values(h38.resources.propertyKeys));
 const templateKeys = new Set(Object.values(template.resources.propertyKeys));
+const templateWorkflow=template.workflow||{};
 check('Highway 38 and template use different primary resource property namespaces', h38.resources.propertyKeys.BO_SPREADSHEET_ID !== template.resources.propertyKeys.BO_SPREADSHEET_ID);
 check('template has no Highway 38 resource property keys', [...templateKeys].every(key => !key.startsWith('H38_')));
+check('Highway 38 closed execution cannot leak into template configuration', h38.workflow.closedEnvironment === true && templateWorkflow.externalActionsEnabled !== true && template.tax.directFiling === false);
 const result = { status: failures.length ? 'HOLD' : 'PASS', packs: packs.map(item => item.name), passes, failures };
 const out = path.join(root, 'artifacts', 'separate-business-office-platform');
 fs.mkdirSync(out, { recursive: true });

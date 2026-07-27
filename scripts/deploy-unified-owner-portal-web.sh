@@ -170,10 +170,10 @@ grep -F "function boRenderQuoteBuilderApp_()" "$REMOTE_QB_DIRECT" >/dev/null
 node - "$REMOTE_VERIFY" <<'NODE'
 const fs=require('fs'),path=require('path'),root=process.argv[2],entries=[];for(const name of fs.readdirSync(root).filter(name=>/\.(?:gs|js)$/i.test(name))){const source=fs.readFileSync(path.join(root,name),'utf8');for(let i=0;i<(source.match(/\bfunction\s+doGet\s*\(/g)||[]).length;i++)entries.push(name)}if(entries.length!==1||!/^Unified_AppShell\.(?:gs|js)$/.test(entries[0]))throw new Error(`Remote project must contain one unified doGet; found ${entries.join(', ')||'none'}`);console.log(`Remote unified entry point: ${entries[0]}`);
 NODE
-printf 'PASS — remote Apps Script source exactly matches the verified controlled source and includes one deterministic shell, one entry point, self-contained authentication, capability ownership, direct Quote Builder routing, and approval-gated AI actions.\n' | tee "$EVIDENCE/remote-source-verification.txt"
+printf 'PASS — remote Apps Script source exactly matches the verified controlled source and includes one deterministic shell, one entry point, self-contained authentication, capability ownership, direct Quote Builder routing, and authenticated Owner-authorized closed-environment actions.\n' | tee "$EVIDENCE/remote-source-verification.txt"
 
 DEPLOY_STAGE="select_single_version"
-DEPLOYMENT_DESCRIPTION="Highway 38 unified shell ${GITHUB_SHA}"
+DEPLOYMENT_DESCRIPTION="Highway 38 closed environment ${GITHUB_SHA}"
 DEPLOY_VERSION=""
 OWNER_DEPLOYMENT_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$EVIDENCE/deployments-before.txt" | head -n 1 || true)"
 OWNER_VERSION="$(printf '%s\n' "$OWNER_DEPLOYMENT_LINE" | sed -nE 's/.*@([0-9]+).*/\1/p')"
@@ -227,6 +227,6 @@ done
 
 DEPLOY_STAGE="record_pass"
 cat > "$EVIDENCE/deployment-result.json" <<JSON
-{"status":"PASS","sourceCommit":"${GITHUB_SHA}","shellVersion":"3.1.0","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${PRODUCTION_SCRIPT_ID}","deploymentVersion":"${DEPLOY_VERSION}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"singleProductionAuthority":"${SINGLE_AUTHORITY}","singleVersionPerRelease":true,"singleEntryPointVerified":true,"selfContainedAuthentication":true,"legacyPortalAuthBridgeRemoved":true,"capabilityOwnershipVerified":true,"quoteBuilderOwnsQuotesWhenEnabled":true,"aiOwnerApprovalVerified":true,"exactControlledSourceVerified":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"externalActionsEnabled":false,"externalActionsOccurred":false}
+{"status":"PASS","sourceCommit":"${GITHUB_SHA}","shellVersion":"3.2.0","businessPack":"highway38","deploymentConfiguration":"business-packs/highway38/deployment.json","scriptId":"${PRODUCTION_SCRIPT_ID}","deploymentVersion":"${DEPLOY_VERSION}","ownerPortalDeploymentId":"${OWNER_DEPLOYMENT_ID}","businessOfficeDeploymentId":"${BUSINESS_OFFICE_DEPLOYMENT_ID}","ownerPortalUrl":"${OWNER_URL}","businessOfficeUrl":"${BUSINESS_URL}","quoteBuilderUrl":"${QUOTE_BUILDER_URL}","websitePortalUrl":"${WEBSITE_PORTAL_URL}","updatedExistingDeployments":true,"createdNewProject":false,"createdNewDeployment":false,"singleProductionAuthority":"${SINGLE_AUTHORITY}","singleVersionPerRelease":true,"singleEntryPointVerified":true,"selfContainedAuthentication":true,"legacyPortalAuthBridgeRemoved":true,"capabilityOwnershipVerified":true,"quoteBuilderOwnsQuotesWhenEnabled":true,"aiOwnerApprovalVerified":true,"exactControlledSourceVerified":true,"googleAuthenticationRequired":true,"remoteSourceVerified":true,"closedEnvironment":true,"ownerAuthorizedAllImplementedActions":true,"permanentCategoryBlocks":[],"externalActionsEnabled":true,"externalActionsOccurred":false}
 JSON
 cat "$EVIDENCE/deployment-result.json"

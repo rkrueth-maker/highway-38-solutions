@@ -22,7 +22,7 @@ check('workflow never creates production deployments',!productionWorkflow.includ
 check('deployment backs up bound project',deploy.includes('project-before.tar.gz'));
 check('exact controlled source is compared after push',deploy.includes('controlled-source-local.json')&&deploy.includes('controlled-source-remote.json'));
 check('owner, Business Office, and Quote Builder endpoints are verified',deploy.includes('owner-response.html')&&deploy.includes('business-response.html')&&deploy.includes('quote-builder-response.html'));
-check('external actions remain disabled',deploy.includes('"externalActionsEnabled":false')&&deploy.includes('"externalActionsOccurred":false'));
+check('closed-environment execution is recorded without claiming deployment actions occurred',deploy.includes('"closedEnvironment":true')&&deploy.includes('"ownerAuthorizedAllImplementedActions":true')&&deploy.includes('"permanentCategoryBlocks":[]')&&deploy.includes('"externalActionsEnabled":true')&&deploy.includes('"externalActionsOccurred":false'));
 check('no new project or deployment evidence',deploy.includes('"createdNewProject":false')&&deploy.includes('"createdNewDeployment":false'));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1)}
 console.log(JSON.stringify({status:'PASS',checks:14},null,2));

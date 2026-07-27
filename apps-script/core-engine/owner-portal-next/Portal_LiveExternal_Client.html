@@ -1,4 +1,4 @@
-/* Production live-execution status and controls. */
+/* Closed-environment execution status and controls. */
 (function(){
 'use strict';
 var H38_LIVE_STATUS=null;
@@ -11,22 +11,22 @@ function h38LiveStyle(){
 }
 function h38LiveCall(name){
   if(typeof call==='function')return call(name);
-  return new Promise(function(resolve,reject){if(!(window.google&&google.script&&google.script.run)){reject(new Error('Live status is unavailable.'));return;}google.script.run.withSuccessHandler(resolve).withFailureHandler(function(error){reject(new Error(error&&error.message||String(error)));})[name]();});
+  return new Promise(function(resolve,reject){if(!(window.google&&google.script&&google.script.run)){reject(new Error('Execution status is unavailable.'));return;}google.script.run.withSuccessHandler(resolve).withFailureHandler(function(error){reject(new Error(error&&error.message||String(error)));})[name]();});
 }
 function h38LiveSummary(status){
   var actions=(status.allowedActionTypes||[]).map(function(value){return String(value).replace(/([a-z])([A-Z])/g,'$1 $2');}).join(', ');
-  var sms=status.sms||{},smsText=sms.outboundReleased&&sms.credentialsConfigured&&sms.fromNumberConfigured&&sms.businessRegistrationApproved?'SMS provider ready':'SMS remains provider-gated until credentials, sending number, and A2P approval are complete';
-  return 'Released: '+actions+'.\n\n'+smsText+'.\n\nStill blocked: payments, refunds, purchasing, payroll, tax filing, accounting movement, public publishing, advertising spend, bulk sends, and automatic external triggers.';
+  var sms=status.sms||{},smsText=sms.outboundReleased&&sms.credentialsConfigured&&sms.fromNumberConfigured&&sms.businessRegistrationApproved?'SMS provider ready':'SMS needs its configured provider credentials, sending number, and registration before actual delivery';
+  return 'Closed environment: authenticated Owner-authorized execution is enabled.\n\nAvailable action types: '+actions+'.\n\n'+smsText+'.\n\nThere are no permanent category-level execution blocks. An action can still stop when its provider, required data, role permission, consent, duplicate, or record validation is not satisfied.';
 }
 function h38LiveApply(status){
   H38_LIVE_STATUS=status||H38_LIVE_STATUS;if(!H38_LIVE_STATUS||!H38_LIVE_STATUS.externalActionsEnabled)return;
   h38LiveStyle();document.body.classList.add('h38-live-external-enabled');
   var host=document.getElementById('h38DailyTest');
-  if(host){host.className='h38-daily-test h38-live-external';host.innerHTML='<span class="h38-live-chip">LIVE · Owner approval</span><button class="btn h38-live-details" type="button" id="h38LiveDetails">Live controls</button><span class="h38-live-note">One selected record at a time</span>';var details=document.getElementById('h38LiveDetails');if(details)details.onclick=function(){window.alert(h38LiveSummary(H38_LIVE_STATUS));};}
-  Array.prototype.slice.call(document.querySelectorAll('body *')).forEach(function(node){if(node.children.length)return;var text=String(node.textContent||'').trim();if(text==='External actions locked')node.textContent='Live · Owner approval';if(text==='Approval gated')node.textContent='Live · Owner approval';});
-  var view=document.getElementById('view');if(view&&String(typeof CURRENT==='undefined'?'today':CURRENT)==='today'&&!document.getElementById('h38LiveBanner')){var banner=document.createElement('div');banner.id='h38LiveBanner';banner.className='h38-live-banner';banner.innerHTML='<div><strong>Live customer actions are on</strong><span>Email, approved delivery, portal invitations, scheduling notices, and provider-ready SMS can execute after explicit Owner approval.</span></div><button class="btn" type="button" id="h38LiveBannerDetails">Details</button>';view.insertBefore(banner,view.firstChild);document.getElementById('h38LiveBannerDetails').onclick=function(){window.alert(h38LiveSummary(H38_LIVE_STATUS));};}
+  if(host){host.className='h38-daily-test h38-live-external';host.innerHTML='<span class="h38-live-chip">CLOSED · OWNER AUTHORIZED</span><button class="btn h38-live-details" type="button" id="h38LiveDetails">Execution controls</button><span class="h38-live-note">All implemented actions available</span>';var details=document.getElementById('h38LiveDetails');if(details)details.onclick=function(){window.alert(h38LiveSummary(H38_LIVE_STATUS));};}
+  Array.prototype.slice.call(document.querySelectorAll('body *')).forEach(function(node){if(node.children.length)return;var text=String(node.textContent||'').trim();if(text==='External actions locked'||text==='Approval gated'||text==='Live · Owner approval')node.textContent='Closed · Owner authorized';});
+  var view=document.getElementById('view');if(view&&String(typeof CURRENT==='undefined'?'today':CURRENT)==='today'&&!document.getElementById('h38LiveBanner')){var banner=document.createElement('div');banner.id='h38LiveBanner';banner.className='h38-live-banner';banner.innerHTML='<div><strong>Closed-environment execution is on</strong><span>The authenticated Owner may run any implemented action. Provider setup, required data, permissions, consent, duplicate protection, Proof Log, Audit, and Error Log remain active.</span></div><button class="btn" type="button" id="h38LiveBannerDetails">Details</button>';view.insertBefore(banner,view.firstChild);document.getElementById('h38LiveBannerDetails').onclick=function(){window.alert(h38LiveSummary(H38_LIVE_STATUS));};}
 }
-function h38LiveLoad(){return h38LiveCall('h38PortalLiveExternalStatus').then(function(status){h38LiveApply(status);return status;}).catch(function(error){if(window.console)console.warn('Live external status:',error.message||error);return null;});}
+function h38LiveLoad(){return h38LiveCall('h38PortalLiveExternalStatus').then(function(status){h38LiveApply(status);return status;}).catch(function(error){if(window.console)console.warn('Closed-environment execution status:',error.message||error);return null;});}
 window.h38AfterSurfaceRender=function(){var result=H38_LIVE_BASE_AFTER.apply(this,arguments);setTimeout(function(){if(H38_LIVE_STATUS)h38LiveApply(H38_LIVE_STATUS);else h38LiveLoad();},0);return result;};
 window.H38LiveExternal={status:function(){return H38_LIVE_STATUS;},refresh:h38LiveLoad};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(h38LiveLoad,500);},{once:true});else setTimeout(h38LiveLoad,500);
