@@ -88,10 +88,11 @@ jobs:
           python3 - "$HARNESS" <<'PY'
           from pathlib import Path
           import sys
+          import textwrap
           path=Path(sys.argv[1])
           text=path.read_text()
           marker='# 4. Generate compact but legible real image and PDF fixtures.'
-          block=r'''
+          block=textwrap.dedent(r'''
           # Controlled full Business Office demo through the already-authorized runtime.
           FULL_DEMO_EVIDENCE="$REPO_ROOT/artifacts/full-business-office-demo"
           mkdir -p "$FULL_DEMO_EVIDENCE"
@@ -140,12 +141,13 @@ jobs:
           AFTER_LINE="$(grep -F "$OWNER_DEPLOYMENT_ID" "$FULL_DEMO_EVIDENCE/owner-deployments-after.txt")"
           test "$BEFORE_LINE" = "$AFTER_LINE"
           exit 0
-          '''
+          ''')
           if marker not in text:
               raise SystemExit('Authorized harness insertion marker was not found.')
           path.write_text(text.replace(marker, block+'\n'+marker, 1))
           PY
           chmod +x "$HARNESS"
+          bash -n "$HARNESS"
           printf '%s\n' "$HARNESS" > "$RUNNER_TEMP/full-demo-harness-path.txt"
 
       - name: Run seven projects, eight agents, approvals, and internal emails
