@@ -37,6 +37,7 @@ function h38ReleaseLiveExternalProperties_(){
   properties.setProperty(H38_LIVE_EXTERNAL_RELEASE_PROPERTY_,'TRUE');
   properties.setProperty(H38_CLOSED_ENVIRONMENT_PROPERTY_,h38ClosedEnvironment_()?'TRUE':'FALSE');
   if(boExternalActionAllowed_('sms'))properties.setProperty('H38_SMS_SEND_RELEASED','TRUE');
+  if(boPackValue_('messaging.inboundSyncEnabled',false)===true)properties.setProperty('H38_SMS_INBOUND_SYNC_RELEASED','TRUE');
   if(properties.getProperty(H38_LIVE_EXTERNAL_PROOF_PROPERTY_)!=='TRUE'){
     var owner=boRequireOwner_();
     boProof_('ENABLE_CLOSED_ENVIRONMENT_EXECUTION','System',boGetBusinessId_(),'PASS','Authenticated Owner-authorized execution enabled for all implemented Highway 38 actions. Provider credentials, role permissions, record validation, consent requirements, duplicate protection, Proof Log, Audit, and Error Log remain active controls.',owner.Email);
@@ -78,6 +79,11 @@ function h38PortalLiveExternalStatus(){
   if(boExternalActionsEnabled_()&&String((boGetRole_(user['Role ID'])||{})['Role Name']||'')==='Owner')h38ReleaseLiveExternalProperties_();
   var provider=typeof h38TmProviderStatus_==='function'?h38TmProviderStatus_():null;
   var controls=h38ClosedEnvironmentControls_();
+  if(provider){
+    provider.bulkMessagingEnabled=boPackValue_('messaging.bulkMessagingEnabled',false)===true;
+    provider.automaticTriggersEnabled=boPackValue_('messaging.automaticTriggersEnabled',false)===true;
+    provider.inboundSyncEnabled=boPackValue_('messaging.inboundSyncEnabled',false)===true;
+  }
   return {
     status:boExternalActionsEnabled_()?'LIVE':'LOCKED',
     mode:controls.closedEnvironment?'CLOSED_ENVIRONMENT':'CONTROLLED',
@@ -137,8 +143,14 @@ if(H38_LIVE_BASE_VALIDATE_BUSINESS_PACK_){
 var H38_LIVE_BASE_PROVIDER_STATUS_=typeof h38TmProviderStatus_==='function'?h38TmProviderStatus_:null;
 if(H38_LIVE_BASE_PROVIDER_STATUS_){
   h38TmProviderStatus_=function(){
-    if(boExternalActionAllowed_('sms'))PropertiesService.getScriptProperties().setProperty('H38_SMS_SEND_RELEASED','TRUE');
-    return H38_LIVE_BASE_PROVIDER_STATUS_();
+    var properties=PropertiesService.getScriptProperties();
+    if(boExternalActionAllowed_('sms'))properties.setProperty('H38_SMS_SEND_RELEASED','TRUE');
+    if(boPackValue_('messaging.inboundSyncEnabled',false)===true)properties.setProperty('H38_SMS_INBOUND_SYNC_RELEASED','TRUE');
+    var status=H38_LIVE_BASE_PROVIDER_STATUS_();
+    status.bulkMessagingEnabled=boPackValue_('messaging.bulkMessagingEnabled',false)===true;
+    status.automaticTriggersEnabled=boPackValue_('messaging.automaticTriggersEnabled',false)===true;
+    status.inboundSyncEnabled=boPackValue_('messaging.inboundSyncEnabled',false)===true;
+    return status;
   };
 }
 
