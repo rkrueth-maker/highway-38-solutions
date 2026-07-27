@@ -1,0 +1,60 @@
+/* ChromeOS workspace and unmistakable employee task-assignment entry points. */
+(function(){
+'use strict';
+var H38_CHROMEOS_PATTERN=/\bCrOS\b/i;
+var H38_CHROMEBOOK_BASE_AFTER=typeof window.h38AfterSurfaceRender==='function'?window.h38AfterSurfaceRender:function(){};
+var H38_CHROMEBOOK_BASE_FORM=typeof window.openBusinessRecordForm==='function'?window.openBusinessRecordForm:null;
+
+function h38IsChromeOs(){return H38_CHROMEOS_PATTERN.test(String(navigator&&navigator.userAgent||''));}
+function h38TaskRouteButton(){return Array.prototype.slice.call(document.querySelectorAll('.nav-group-items button')).find(function(button){return /show\(['"]bo:assignedTasks['"]\)/.test(button.getAttribute('onclick')||'');})||null;}
+function h38WorkNavGroup(){return Array.prototype.slice.call(document.querySelectorAll('.nav-group')).find(function(group){var toggle=group.querySelector('.nav-group-toggle');return toggle&&/^work\b/i.test((toggle.textContent||'').trim());})||null;}
+function h38OpenEmployeeTask(){
+  Promise.resolve(show('bo:assignedTasks')).then(function(){setTimeout(function(){if(typeof openBusinessRecordForm==='function')openBusinessRecordForm('assignedTasks','');},60);});
+}
+function h38OpenTaskCenter(view){
+  Promise.resolve(show('bo:assignedTasks')).then(function(){setTimeout(function(){if(typeof h38TmSetTaskCenterView==='function')h38TmSetTaskCenterView(view||'tasks');},80);});
+}
+function h38DecorateTaskNavigation(){
+  var button=h38TaskRouteButton();if(!button)return;
+  button.textContent='Tasks & Team';button.title='Assign tasks to employees or roles, review workload, and manage automatic assignments.';button.setAttribute('data-icon','✓');
+  var work=h38WorkNavGroup(),items=work&&work.querySelector('.nav-group-items');if(items&&button.parentElement!==items)items.insertBefore(button,items.firstChild);
+}
+function h38EnsureAssignButton(){
+  var top=document.getElementById('ownerTopbar');if(!top||document.getElementById('h38AssignTaskButton'))return;
+  var button=document.createElement('button');button.id='h38AssignTaskButton';button.className='btn h38-assign-task-button';button.type='button';button.textContent='Assign task';button.title='Create and assign work to an employee, user, or role';button.onclick=h38OpenEmployeeTask;
+  top.insertBefore(button,document.getElementById('h38NewRecord')||document.getElementById('h38-ai-launch')||null);
+}
+function h38EnsureHeroAssignment(){
+  if(String(typeof CURRENT==='undefined'?'today':CURRENT)!=='today')return;
+  var actions=document.querySelector('.h38-owner-hero-actions');if(!actions||document.getElementById('h38HeroAssignTask'))return;
+  var button=document.createElement('button');button.id='h38HeroAssignTask';button.className='btn h38-hero-assign-task';button.type='button';button.textContent='Assign task';button.onclick=h38OpenEmployeeTask;
+  actions.insertBefore(button,actions.firstChild);
+}
+function h38EnsureTaskHelp(){
+  if(String(typeof CURRENT==='undefined'?'':CURRENT)!=='bo:assignedTasks')return;
+  var center=document.getElementById('h38TaskCenter'),body=document.getElementById('h38TaskCenterBody');if(!center||!body||document.getElementById('h38EmployeeAssignmentHelp'))return;
+  var users=(window.H38_TM_ASSIGNEES&&H38_TM_ASSIGNEES.users)||[],roles=(window.H38_TM_ASSIGNEES&&H38_TM_ASSIGNEES.roles)||[];
+  var panel=document.createElement('section');panel.id='h38EmployeeAssignmentHelp';panel.className='h38-employee-assignment-help';
+  panel.innerHTML='<div><h3>Assign work to an employee</h3><p>Choose an active employee/user or crew role when creating the task. '+users.length+' assignable user'+(users.length===1?'':'s')+' and '+roles.length+' role'+(roles.length===1?'':'s')+' are available.</p></div><div class="toolbar"><button class="btn primary" type="button" id="h38EmployeeNewTask">Assign task</button><button class="btn" type="button" id="h38EmployeeTeamView">Team workload</button><button class="btn" type="button" id="h38EmployeeUsers">Employees & users</button></div>';
+  center.insertBefore(panel,body);
+  document.getElementById('h38EmployeeNewTask').onclick=h38OpenEmployeeTask;
+  document.getElementById('h38EmployeeTeamView').onclick=function(){h38OpenTaskCenter('team');};
+  document.getElementById('h38EmployeeUsers').onclick=function(){if(typeof h38AppRouteAllowed==='function'&&h38AppRouteAllowed('bo:employees'))show('bo:employees');else show('userAccess');};
+}
+function h38RelabelAssignmentForm(){
+  var form=document.getElementById('businessRecordForm');if(!form||String(window.BO_NATIVE&&BO_NATIVE.module||'')!=='assignedTasks')return;
+  var user=form.querySelector('[name="Assigned User ID"]'),role=form.querySelector('[name="Assigned Role"]');
+  if(user&&user.closest('label')){var label=user.closest('label').querySelector('span');if(label)label.textContent='Employee / user';var first=user.options&&user.options[0];if(first)first.textContent='Choose employee/user or assign by role';}
+  if(role&&role.closest('label')){var roleLabel=role.closest('label').querySelector('span');if(roleLabel)roleLabel.textContent='Crew role';}
+  var help=document.getElementById('businessFormHelp');if(help)help.textContent='Assign this internal task to an active employee/user or crew role. Employees who need to open and update their own tasks must also have an active Users & Roles account.';
+}
+function h38ApplyChromebookWorkspace(){
+  document.body.classList.toggle('h38-chromebook-shell',h38IsChromeOs()&&!document.body.classList.contains('h38-phone-shell'));
+  h38EnsureAssignButton();h38DecorateTaskNavigation();h38EnsureHeroAssignment();h38EnsureTaskHelp();
+}
+window.h38OpenEmployeeTask=h38OpenEmployeeTask;window.h38OpenTaskCenter=h38OpenTaskCenter;
+window.h38AfterSurfaceRender=function(module){var result=H38_CHROMEBOOK_BASE_AFTER.apply(this,arguments);requestAnimationFrame(function(){h38ApplyChromebookWorkspace();});return result;};
+if(H38_CHROMEBOOK_BASE_FORM){window.openBusinessRecordForm=function(module,recordId){var result=H38_CHROMEBOOK_BASE_FORM.apply(this,arguments);if(module==='assignedTasks')setTimeout(h38RelabelAssignmentForm,0);return result;};}
+window.addEventListener('resize',h38ApplyChromebookWorkspace,{passive:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){h38ApplyChromebookWorkspace();},{once:true});else h38ApplyChromebookWorkspace();
+})();
