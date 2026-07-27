@@ -49,7 +49,9 @@ function h38RelabelAssignmentForm(){
   var help=document.getElementById('businessFormHelp');if(help)help.textContent='Assign this internal task to an active employee/user or crew role. Employees who need to open and update their own tasks must also have an active Users & Roles account.';
 }
 function h38ApplyChromebookWorkspace(){
-  document.body.classList.toggle('h38-chromebook-shell',h38IsChromeOs()&&!document.body.classList.contains('h38-phone-shell'));
+  var chromebook=h38IsChromeOs()&&!document.body.classList.contains('h38-phone-shell');
+  document.body.classList.toggle('h38-chromebook-shell',chromebook);
+  if(chromebook){document.body.classList.add('h38-compact-shell');document.body.classList.remove('h38-desktop-shell');}
   h38EnsureAssignButton();h38DecorateTaskNavigation();h38EnsureHeroAssignment();h38EnsureTaskHelp();
 }
 window.h38OpenEmployeeTask=h38OpenEmployeeTask;window.h38OpenTaskCenter=h38OpenTaskCenter;
