@@ -37,6 +37,20 @@ function h38UpdateMobileTitle(){
   if(sub){var user=H38_UNIFIED&&H38_UNIFIED.user||{};sub.textContent=(user.role||'Owner')+' · '+(H38_UNIFIED&&H38_UNIFIED.packageName||'Highway 38 Business Office');}
   document.querySelectorAll('#mobileBottomNav [data-mobile-route]').forEach(function(button){button.classList.toggle('active',button.getAttribute('data-mobile-route')===String(typeof CURRENT==='undefined'?'today':CURRENT));});
 }
+function h38EnsureBottomNav(){
+  var nav=document.getElementById('mobileBottomNav');
+  if(!nav){
+    nav=document.createElement('nav');
+    nav.id='mobileBottomNav';
+    nav.className='mobile-bottom-nav';
+    nav.setAttribute('aria-label','Mobile application navigation');
+    document.body.appendChild(nav);
+  }
+  nav.hidden=false;
+  nav.removeAttribute('hidden');
+  nav.innerHTML='<button data-mobile-route="today" onclick="show(\'today\')"><b>⌂</b><span>Today</span></button><button data-mobile-route="bo:assignedTasks" onclick="show(\'bo:assignedTasks\')"><b>✓</b><span>Work</span></button><button onclick="h38OpenMobileAdd()"><b>＋</b><span>Add</span></button><button data-mobile-route="bo:customers" onclick="show(\'bo:customers\')"><b>♟</b><span>Customers</span></button><button onclick="toggleMenu()"><b>☰</b><span>More</span></button>';
+  return nav;
+}
 function h38EnsureMobileChrome(){
   var main=document.querySelector('.app main');
   if(main&&!document.getElementById('h38MobileTop')){
@@ -51,10 +65,7 @@ function h38EnsureMobileChrome(){
   if(side&&side.dataset.h38MobileObserved!=='1'){
     side.dataset.h38MobileObserved='1';new MutationObserver(h38MobileMenuState).observe(side,{attributes:true,attributeFilter:['class']});
   }
-  var nav=document.getElementById('mobileBottomNav');
-  if(nav){
-    nav.innerHTML='<button data-mobile-route="today" onclick="show(\'today\')"><b>⌂</b><span>Today</span></button><button data-mobile-route="bo:assignedTasks" onclick="show(\'bo:assignedTasks\')"><b>✓</b><span>Work</span></button><button onclick="h38OpenMobileAdd()"><b>＋</b><span>Add</span></button><button data-mobile-route="bo:customers" onclick="show(\'bo:customers\')"><b>♟</b><span>Customers</span></button><button onclick="toggleMenu()"><b>☰</b><span>More</span></button>';
-  }
+  h38EnsureBottomNav();
   if(!document.getElementById('h38MobileAddSheet')){
     var sheet=document.createElement('div');sheet.id='h38MobileAddSheet';sheet.className='h38-mobile-add-sheet';sheet.onclick=function(event){if(event.target===sheet)h38CloseMobileAdd();};
     sheet.innerHTML='<div class="h38-mobile-add-panel" role="dialog" aria-modal="true" aria-label="Add new work"><div class="h38-mobile-add-head"><h2>Add new</h2><button type="button" aria-label="Close" onclick="h38CloseMobileAdd()">×</button></div><div class="h38-mobile-add-grid"><button type="button" onclick="h38MobileCreate(\'requests\')">New request<span>Capture a new problem or lead</span></button><button type="button" onclick="h38MobileCreate(\'customers\')">New customer<span>Add contact and service details</span></button><button type="button" onclick="h38MobileCreate(\'quotes\')">New quote<span>Build scope and pricing</span></button><button type="button" onclick="h38MobileCreate(\'jobs\')">New job<span>Open field work</span></button><button type="button" onclick="h38MobileCreate(\'documents\')">Photo or document<span>Capture field evidence</span></button><button type="button" onclick="h38MobileCreate(\'expenses\')">New expense<span>Record a receipt or cost</span></button></div></div>';
@@ -87,7 +98,7 @@ function h38RenderMobileWorkflow(data){
   var view=document.getElementById('view'),hero=view&&view.querySelector('.h38-owner-hero');if(!view||!hero)return;
   var existing=document.getElementById('h38MobileWorkflow');if(existing)existing.remove();
   var recommended=data&&data.recommended||{},section=document.createElement('section');section.id='h38MobileWorkflow';section.className='h38-mobile-workflow';
-  section.innerHTML='<div class="h38-mobile-workflow-head"><div><h2>Work from request to payment</h2><p>H38 prepares safe internal steps and stops at owner or customer gates.</p></div><button class="btn" type="button" onclick="h38RunMobileAutomation()">Run</button></div><div class="h38-mobile-workflow-stages">'+(data&&data.stages||[]).map(h38WorkflowStageHtml).join('')+'</div><div class="h38-mobile-next-action"><div><small>Recommended next action</small><strong>'+esc(recommended.label||'No urgent workflow action is waiting.')+'</strong></div><button class="btn primary" type="button" onclick="show(\''+attr(recommended.route||'today')+'\')">Open</button></div>';
+  section.innerHTML='<div class="h38-mobile-workflow-head"><div><h2>Work from request to payment</h2><p>Safe steps run automatically and stop at approval gates.</p></div><button class="btn" type="button" onclick="h38RunMobileAutomation()">Run</button></div><div class="h38-mobile-workflow-stages">'+(data&&data.stages||[]).map(h38WorkflowStageHtml).join('')+'</div><div class="h38-mobile-next-action"><div><small>Recommended next action</small><strong>'+esc(recommended.label||'No urgent workflow action is waiting.')+'</strong></div><button class="btn primary" type="button" onclick="show(\''+attr(recommended.route||'today')+'\')">Open</button></div>';
   hero.insertAdjacentElement('afterend',section);
 }
 function h38LoadMobileWorkflow(){
@@ -99,7 +110,7 @@ function h38RunMobileAutomation(){
   h38OpenOwnerAi();
 }
 function h38MobileAfterRender(module){
-  h38ApplyMobileShell();h38UpdateMobileTitle();h38MobileLimitToday();if(module==='today')h38LoadMobileWorkflow();
+  h38ApplyMobileShell();h38EnsureBottomNav();h38UpdateMobileTitle();h38MobileLimitToday();if(module==='today')h38LoadMobileWorkflow();
 }
 
 if(H38_MOBILE_ORIGINAL_ENSURE){h38EnsureApplicationChrome=function(){var result=H38_MOBILE_ORIGINAL_ENSURE.apply(this,arguments);h38EnsureMobileChrome();h38ApplyMobileShell();return result;};}

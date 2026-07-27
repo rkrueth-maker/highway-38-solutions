@@ -82,9 +82,10 @@ check('Owner selected record controls preserved',read('apps-script/core-engine/o
 const fieldCss=read(mobileStyles),fieldClient=read(mobileClient),workflow=read(workflowAutomation);
 check('mobile shell detects touch and wide mobile browser modes',fieldClient.includes('(pointer:coarse)')&&fieldClient.includes('max-width:1100px'));
 check('mobile shell removes scaled desktop navigation',fieldCss.includes('body.h38-mobile-shell .side')&&fieldCss.includes('translateX(-105%)')&&fieldCss.includes('body.h38-mobile-shell .top{display:none'));
-check('mobile shell provides persistent task navigation',fieldCss.includes('.mobile-bottom-nav')&&fieldClient.includes('Today</span>')&&fieldClient.includes('Work</span>')&&fieldClient.includes('Customers</span>'));
+check('mobile shell self-creates persistent task navigation',fieldCss.includes('#mobileBottomNav')&&fieldClient.includes("document.createElement('nav')")&&fieldClient.includes('Today</span>')&&fieldClient.includes('Work</span>')&&fieldClient.includes('Customers</span>'));
 check('mobile shell provides large touch targets',fieldCss.includes('min-height:48px')&&fieldCss.includes('min-height:52px'));
 check('mobile Today prioritizes next work',fieldCss.includes('.ux-dashboard-grid>.h38-next-up{order:-1}')&&fieldClient.includes('h38MobileLimitToday'));
+check('mobile Today removes duplicate dense sections',fieldCss.includes('.h38-needs-decision{display:none')&&fieldCss.includes('.h38-today-lower{display:none'));
 check('mobile lifecycle overview spans request through payment',fieldClient.includes('Work from request to payment')&&['intake','quotes','work','billing','paid'].every(marker=>fieldClient.includes(marker)));
 check('workflow automation performs only safe internal transitions',['boCreateCustomerFromRequest','boConvertQuoteToWorkOrderAndJob','boCreateInvoiceFromJob'].every(marker=>workflow.includes(marker))&&workflow.includes('externalActionsOccurred: false'));
 check('workflow automation preserves owner gates',['Draft invoice ready for review','Approved invoice ready to send','Invoice follow-up is due','Recorded payment needs review'].every(marker=>workflow.includes(marker)));
