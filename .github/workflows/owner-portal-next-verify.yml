@@ -6,11 +6,13 @@ on:
     paths:
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'scripts/verify-owner-portal-next.js'
+      - 'scripts/verify-live-readable-today.js'
       - '.github/workflows/owner-portal-next-verify.yml'
   pull_request:
     paths:
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'scripts/verify-owner-portal-next.js'
+      - 'scripts/verify-live-readable-today.js'
       - '.github/workflows/owner-portal-next-verify.yml'
   workflow_dispatch:
 
@@ -36,14 +38,26 @@ jobs:
           status=${PIPESTATUS[0]}
           echo "exit_code=${status}" >> "${GITHUB_OUTPUT}"
           exit 0
+      - name: Verify live readable Today route
+        id: readable_today
+        shell: bash
+        run: |
+          set +e
+          node scripts/verify-live-readable-today.js | tee readable-today-verify-result.json
+          status=${PIPESTATUS[0]}
+          echo "exit_code=${status}" >> "${GITHUB_OUTPUT}"
+          exit 0
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: owner-portal-verify-result
-          path: owner-portal-verify-result.json
+          path: |
+            owner-portal-verify-result.json
+            readable-today-verify-result.json
           if-no-files-found: error
       - name: Enforce verification result
         shell: bash
         run: |
           test "${{ steps.verifier.outputs.exit_code }}" -eq 0
+          test "${{ steps.readable_today.outputs.exit_code }}" -eq 0
