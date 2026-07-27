@@ -76,10 +76,10 @@ check('SMS Owner command reuses the existing provider-neutral subsystem',
   hasAll(orchestration, ['h38TmProviderStatus_', 'h38TmConsentForPhone_', 'h38TmSaveMessage_', 'h38TmApproveMessage_', 'h38TmSendMessage_']),
   'SMS path bypasses controlled messaging');
 check('Quote delivery supports controlled email or SMS',
-  hasAll(orchestration, ["channel === 'SMS'", 'boAiEmailFromText_', 'boAiPhoneFromText_', "'Linked Record Type': 'Quote'"]),
+  hasAll(orchestration, ["channel==='SMS'", 'boAiEmailFromTextV2_', 'boAiPhoneFromTextV2_', "'Linked Record Type':'Quote'"]),
   'quote channel routing missing');
 check('SMS consent and provider release remain mandatory',
-  hasAll(orchestration, ['businessRegistrationApproved', 'outboundReleased', "Consent Status'] !== 'Consented'"]),
+  hasAll(orchestration, ['businessRegistrationApproved', 'outboundReleased', "Consent Status']!=='Consented'"]),
   'SMS release boundary missing');
 check('Existing SMS hardening remains available',
   hasAll(sms, ['Duplicate-message lock', 'H38_SMS_A2P_APPROVED', 'H38_SMS_SEND_RELEASED', 'H38_SMS_INBOUND_SYNC_RELEASED']),
@@ -89,7 +89,7 @@ check('Inbound SMS synchronization is included in backend automation',
   'inbound synchronization missing');
 
 check('Final quote approve-and-send is a controlled composite',
-  hasAll(orchestration, ['boAiApproveAndSendQuote_', "boApproveSelectedRecord('Quote'", "status: 'Internal Review'", "status: 'Approved to Share'", 'boQuoteCommercialPrepareShare_', "actionId: 'email.send'", "status: 'Shared'"]),
+  hasAll(orchestration, ['boAiApproveAndSendQuote_', "boApproveSelectedRecord('Quote'", "status:'Internal Review'", "status:'Approved to Share'", 'boQuoteCommercialPrepareShare_', "actionId:'email.send'", "status:'Shared'"]),
   'quote approval and sending flow incomplete');
 check('Quote readiness blocks missing customer, scope, total, or recipient',
   hasAll(orchestration, ['boAiQuoteReadiness_', 'verified customer email address', 'Customer-facing scope', 'quote total']),
