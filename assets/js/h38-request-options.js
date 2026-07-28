@@ -54,7 +54,7 @@
   function installAssurance(){
     const anchor=byId('intake-assurance-anchor');
     if(!anchor||anchor.children.length)return;
-    anchor.innerHTML='<details class="intake-assurance intake-assurance--compact"><summary>How product, price, and next steps are confirmed</summary><div class="assurance-grid"><div><strong>1. Fit review</strong><span>Your request is matched to Quote Builder, Business Office, Configured Business System, or the separate Business Snapshot diagnostic.</span></div><div><strong>2. Scope confirmation</strong><span>Setup or implementation, payment terms, deliverables, turnaround, exclusions, usage allowances, and any custom work are confirmed before work begins.</span></div><div><strong>3. Owner control</strong><span>No subscription, payment request, quote send, customer communication, or external action occurs automatically.</span></div></div></details>';
+    anchor.innerHTML='<details class="intake-assurance intake-assurance--compact"><summary>How product, price, and next steps are confirmed</summary><div class="assurance-grid"><div><strong>1. Fit review</strong><span>Your request is matched to Quote Builder, Business Office, Custom Business System, or the separate Business Snapshot diagnostic.</span></div><div><strong>2. Scope confirmation</strong><span>Setup or implementation, payment terms, deliverables, turnaround, exclusions, usage allowances, and any custom work are confirmed before work begins.</span></div><div><strong>3. Owner control</strong><span>No subscription, payment request, quote send, customer communication, or external action occurs automatically.</span></div></div></details>';
   }
 
   function summaryText(){

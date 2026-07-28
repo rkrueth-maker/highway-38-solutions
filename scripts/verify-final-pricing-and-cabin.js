@@ -24,7 +24,7 @@ const authorizedGenerator=read('scripts/generate-cabin-demo-authorized.sh');
 
 const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,context,{filename:'pricing-data.js'});
 const source=context.window.H38_PRICING;
-check('pricing data source loads',source&&source.version==='2026-07-24-final');
+check('pricing data source loads',source&&source.version==='2026-07-28-clarity');
 check('exactly three software offers',source&&source.offers.filter(item=>item.classification==='software').length===3);
 check('Business Snapshot is separate diagnostic',source&&source.offers.filter(item=>item.classification==='diagnostic').length===1&&source.offers.find(item=>item.id==='business-snapshot').oneTime===299);
 check('approved software prices',source&&source.offers.find(item=>item.id==='quote-builder').monthly===59&&source.offers.find(item=>item.id==='business-office').monthly===249&&source.offers.find(item=>item.id==='configured-system').monthlyStarting===499);
@@ -34,11 +34,15 @@ check('optional support prices',source&&source.support.find(item=>item.id==='man
 check('pricing page has exactly three primary software cards',softwareCardCount(pricing)===3,String(softwareCardCount(pricing)));
 check('Business Office marked Most Popular',pricing.includes('Most Popular')&&pricing.includes('$249 <small>/ month</small>'));
 check('Business Snapshot is below and not a fourth price card',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&softwareCardCount(pricing)===3);
+check('pricing cards explain best fit',(pricing.match(/Best for:/g)||[]).length===3);
+check('custom system name is customer-facing',pricing.includes('Custom Business System')&&!pricing.includes('Configured Business System'));
+check('Business Snapshot is clearly not software',pricing.includes('This is a one-time business review, not a software subscription.'));
+check('Quote Builder language is plain',quoteBuilder.includes('Quotes that match the job')&&quoteBuilder.includes('Eight built-in AI assistants for professional quoting.'));
 check('configured prices use starting at',pricing.includes('Starting at $499')&&pricing.includes('Implementation starting at $7,500'));
 check('AI has no separate public price card',pricing.includes('AI is built in—not sold as a separate public plan.')&&!/class="price-card[^>]*>[\s\S]{0,500}<h2>[^<]*AI/i.test(pricing));
 check('old public pricing packages removed',!/(Project Snapshot|Plan & Quote|Complete Job Package|Business Office Project)/.test(pricing));
 
-check('request uses final pricing data',request.includes('pricing-data.js?v=20260724-final')&&request.includes('id="offer"')&&!request.includes('catalog-data.js'));
+check('request uses final pricing data',request.includes('pricing-data.js?v=20260728-clarity')&&request.includes('id="offer"')&&!request.includes('catalog-data.js'));
 check('request removed legacy product and bundle selectors',!request.includes('id="product"')&&!request.includes('id="bundle"')&&!request.includes('known service, bundle'));
 check('request summary records selected approved offer',requestOptions.includes('Selected offer:')&&requestFlow.includes("catalogId:offer.toUpperCase()"));
 check('product pages publish approved prices',quoteBuilder.includes('$59/month')&&quoteBuilder.includes('Assisted setup: $499')&&businessOffice.includes('$249/month')&&businessOffice.includes('Implementation: $2,500')&&businessOffice.includes('Starting at $499/month'));
