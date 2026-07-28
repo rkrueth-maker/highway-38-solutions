@@ -8,7 +8,9 @@ function h38LinkedOfficeConfig(){
     label:'Northern Lakes',
     shortLabel:'Northern Lakes',
     ownerOnly:true,
-    url:'https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec',
+    preview:true,
+    url:'https://rkrueth-maker.github.io/highway-38-solutions/businesses/northern-lakes/business-office-preview.html',
+    liveUrl:'https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec',
     setupUrl:'https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec?setup=1',
     isolated:true
   };
