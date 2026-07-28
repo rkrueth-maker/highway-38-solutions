@@ -2,11 +2,12 @@ Authorized production deployment trigger
 UTC date: 2026-07-28
 Target: existing dedicated Northern Lakes Business Office project and deployment
 Business ID: NLPS
-Release: clean unified Core Engine installer, Northern Lakes Drive setup, training examples, and H38 linked-office control
+Release: owner preview, controlled H38 Support Owner access, reusable support-access contract, clean unified Core Engine installer, Drive setup, and training examples
 Drive setup account: northernlakesproperty@gmail.com
-External actions: disabled
+H38 support owners: rkrueth@gmail.com, mandakw55@gmail.com
+External actions: disabled and approval gated
 ALLOW_FIRST_INSTALL=TRUE
-Authorization: Rick Krueth explicitly authorized build, deployment, and customer setup email preparation
-Protection: preserve the previous Northern Lakes deployment version and archive old resource IDs; do not delete old Drive data
-Retry reason: merge-triggered confirmation that the clean installer is live before sending the customer setup email
-Retry sequence: 2
+Authorization: Rick Krueth explicitly authorized deployment and a new-chat handoff
+Protection: update the existing Northern Lakes project and deployment in place; preserve prior deployment and old storage references; do not delete customer data
+Source baseline: 921f693e2cfafe77375a3f1d567ecb1931550dc2
+Trigger sequence: 3
