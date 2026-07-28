@@ -3,14 +3,15 @@
   "businessId": "NLPS",
   "scriptId": "1_RbfPyqgg-VWNHVLWQLKh7PFBNs1XnBSYRZ969raabhen7LuWgQjAnlX",
   "deploymentId": "AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL",
-  "version": "12",
+  "version": "16",
   "businessOfficeUrl": "https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec",
-  "updatedAt": "2026-07-20T20:35:34Z",
-  "commit": "6ecc5ae55575e335eb5fa3147626ddef311b760c",
+  "setupUrl": "https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec?setup=1",
+  "updatedAt": "2026-07-28T01:04:21Z",
+  "commit": "9fc24ffa1aa78d7632a95f11ba9be799a39e73ad",
   "isolated": true,
+  "coreEngine": "unified",
+  "driveOwnerSetupAccount": "northernlakesproperty@gmail.com",
   "externalActionsEnabled": false,
-  "openAiKeyAvailableToWorkflow": false,
-  "storageStatus": "pass",
-  "spreadsheetId": "1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4",
-  "ownerRole": "Owner"
+  "previousProjectPreserved": true,
+  "openAiKeyAvailableToWorkflow": false
 }
