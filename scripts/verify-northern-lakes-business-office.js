@@ -9,6 +9,7 @@ function requireFile(name){const file=path.join(root,name);if(!fs.existsSync(fil
 function verifyScriptSyntax(name){const source=requireFile(name);if(!source)return;try{new vm.Script(source,{filename:name});}catch(error){fail('syntax error in '+name+': '+error.message);}}
 const pack=requireFile('BusinessOffice_00_Pack.gs');
 const setup=requireFile('BusinessOffice_NorthernLakesSetup.gs');
+const fast=requireFile('BusinessOffice_NorthernLakesFastProvisioning.gs');
 const setupPage=requireFile('BusinessOffice_Installation.html');
 const unified=requireFile('Unified_AppShell.gs');
 const portalIndex=requireFile('Portal_Index.html');
@@ -32,13 +33,20 @@ const required=[
   [setup,/05 — Payroll and Tax — Restricted/,'restricted payroll and tax folder'],
   [setup,/08 — Examples and Training/,'examples folder'],
   [setup,/99 — Archived Old Office/,'old office archive folder'],
-  [setup,/nlpsExampleDefinitions_/,'example workbook definitions'],
+  [setup,/nlpsExampleDefinitions_/,'example sheet definitions'],
   [setup,/SAMPLE — Customer and Request/,'customer example'],
   [setup,/SAMPLE — Employee Task Assignment/,'task example'],
   [setup,/USER-H38-IMPLEMENTATION-OWNER/,'Rick implementation owner'],
   [setup,/boAfterBusinessRecordSave_/,'automatic record-folder hook'],
   [setup,/Drive Folder ID/,'job folder ID writeback'],
   [setup,/previousInstallationPreserved:true/,'old office preservation proof'],
+  [setup,/nlpsFastCreateCoreWorkbook_/,'fast core workbook connected'],
+  [setup,/nlpsFastCreateExamples_/,'fast examples connected'],
+  [fast,/Sheets\.Spreadsheets\.create/,'Sheets API workbook creation'],
+  [fast,/Sheets\.Spreadsheets\.Values\.batchUpdate/,'batched sheet values'],
+  [fast,/schema\.sheets\.length===81/,'fast 81-sheet validation'],
+  [fast,/definitions\.length===13/,'13 example tabs validation'],
+  [fast,/Northern Lakes — Examples and Training/,'single examples workbook'],
   [setupPage,/Create Clean Northern Lakes Office/,'owner setup action'],
   [setupPage,/Parent Google Drive folder/,'Drive folder selection'],
   [setupPage,/northernlakesproperty@gmail\.com/,'required signed-in setup account'],
@@ -61,5 +69,5 @@ const assembledFiles=fs.readdirSync(root);
 assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).forEach(verifyScriptSyntax);
 if(/H38_BUSINESS_OFFICE_SPREADSHEET_ID|H38_BUSINESS_OFFICE_DEPLOYMENT_ID/.test(pack))fail('Highway 38 storage or deployment key leaked into Northern Lakes pack');
 if(/1QBG_2j-CSOpo00nkK1-K9VQGGBNv5N7v|1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4/.test(pack+setup))fail('Retired Northern Lakes storage was hard-coded into the clean installation');
-if((setup.match(/name:'SAMPLE —/g)||[]).length!==13)fail('expected exactly 13 separate training example workbooks');
-if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,trainingWorkbooks:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
+if((setup.match(/name:'SAMPLE —/g)||[]).length!==13)fail('expected exactly 13 training example sheet definitions');
+if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
