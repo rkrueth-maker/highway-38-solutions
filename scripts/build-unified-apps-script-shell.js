@@ -34,6 +34,15 @@ if (fs.existsSync(legacyPortalBridge)) fs.unlinkSync(legacyPortalBridge);
 fs.copyFileSync(shellSource, shellTarget);
 fs.copyFileSync(intakeSource, intakeTarget);
 
+let combinedShell = readRequired(shellTarget);
+combinedShell = replaceOnce(
+  combinedShell,
+  /function doGet\(event\)\{\n  var publicResult=/,
+  "function doGet(event){\n  if(typeof boSetupEntryAllowed_==='function'&&boSetupEntryAllowed_(event)){\n    if(typeof boRenderInstallationPage_!=='function')throw new Error('Business Office setup renderer is unavailable.');\n    return boRenderInstallationPage_();\n  }\n  var publicResult=",
+  'pack-controlled first-run setup route'
+);
+fs.writeFileSync(shellTarget, combinedShell);
+
 const controlledFiles = fs.readdirSync(projectDir).filter(name => /\.(?:gs|js)$/i.test(name)).sort();
 const entryPoints = [];
 for (const name of controlledFiles) { const source = fs.readFileSync(path.join(projectDir, name), 'utf8'); const count = (source.match(/\bfunction\s+doGet\s*\(/g) || []).length; for (let index = 0; index < count; index += 1) entryPoints.push(name); }
@@ -49,6 +58,8 @@ const requiredMarkers = [
   'function h38UnifiedShellRenderQuoteBuilder_',
   'function h38UnifiedShellPublicUqbRoute_',
   'function doGet(event)',
+  "typeof boSetupEntryAllowed_==='function'",
+  'boRenderInstallationPage_',
   "h38UnifiedShellParameter_(event,'proposal')",
   'boRenderCustomerProposal_',
   "h38UnifiedShellParameter_(event,'publicUqbDemo')",
@@ -74,6 +85,7 @@ const result = {
   customerProposalRoute:'public token validated by commercial proposal engine',
   publicUqbDemoRoute:'sanitized published Office records and attachments only',
   publicIntakeRoute:'validated request record only; no automatic external action',
+  firstRunSetupRoute:'available only when the installed business pack explicitly supplies setup controls',
   externalActionsEnabled:false
 };
 fs.writeFileSync(path.join(evidenceDir, 'assembly.json'), `${JSON.stringify(result, null, 2)}\n`);
