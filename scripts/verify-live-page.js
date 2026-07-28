@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Fetches the live Highway 38 Sample Library and controlled catalog source.
- * Verifies the current Issue #83 public markers, catalog ID counts, Owner
- * Portal control, proof classification, and prohibited public claims.
+ * Verifies the current public Highway 38 product structure, Quote Builder
+ * experience, complete new-house package, and all ten public CAD SVG routes.
  *
  * Exit code 0 = PASS, 1 = FAIL.
  */
@@ -13,24 +12,108 @@ const https = require('https');
 const http = require('http');
 const url = require('url');
 
-const VERIFY_URL =
-  process.env.VERIFY_URL ||
-  'https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html';
-const CATALOG_URL = new URL('catalog-data.js', VERIFY_URL).toString();
+const DEFAULT_BASE_URL = 'https://rkrueth-maker.github.io/highway-38-solutions/';
+const BASE_URL = normalizeBaseUrl(
+  process.env.VERIFY_BASE_URL || process.env.VERIFY_URL || DEFAULT_BASE_URL,
+);
 
-const REQUIRED_STRINGS = [
-  'See the kind of finished result before choosing a service.',
-  '15 existing service demonstrations',
-  'Hypothetical examples',
-  'data-owner-link="true"',
-  'data-samples="all"',
-  'Owner Portal',
-  'What you send. What Highway 38 delivers.',
-  'Approved outcome bundles',
-  'data-bundles',
+const PAGE_CHECKS = [
+  {
+    label: 'homepage',
+    path: 'index.html',
+    required: [
+      'Bring us the problem.',
+      'Start a Project',
+      'Explore What We Do',
+      'You do not need to choose from a long product catalog.',
+      'Connected Business Office',
+    ],
+  },
+  {
+    label: 'pricing',
+    path: 'pricing.html',
+    required: [
+      'Three software products',
+      'Quote Builder',
+      '$59',
+      'Self-setup included',
+      'Assisted setup: $499 one-time',
+      'Highway 38 Business Office',
+      'Configured Business System',
+      'Business Snapshot',
+      '$299 one-time',
+    ],
+  },
+  {
+    label: 'Quote Builder',
+    path: 'quote-builder.html',
+    required: [
+      'Universal Quote Builder',
+      '$59/month',
+      'Self-setup included',
+      'Assisted setup: $499 one-time',
+      'start-request.html?offer=quote-builder',
+      'See complete projects, quotes, drawings, and printable packages.',
+      'H38 AI included',
+    ],
+  },
+  {
+    label: 'Sample Library',
+    path: 'sample-library-now.html',
+    required: [
+      'Complete Project Examples',
+      'Representative demonstrations.',
+      'data-samples="all"',
+      'Universal Quote Builder overview',
+      'Complete quote examples matched to their CAD drawings',
+      'Public examples only:',
+      'data-owner-link="true"',
+    ],
+  },
+  {
+    label: 'complete new-house package',
+    path: 'whole-house-quote-package.html',
+    required: [
+      'Complete New-House Construction Package',
+      '10-sheet CAD-style coordination set',
+      'fourteen independently printable phase quotes',
+      'Revision:</strong> E',
+      'Print / Save Complete Package',
+      'DEMONSTRATION — NOT A CONTRACT',
+    ],
+  },
+  {
+    label: 'About',
+    path: 'about.html',
+    required: [
+      'Built on experience.',
+      'Experience from the shop floor to the Business Office.',
+      'AI with Human Control',
+      '30+ years',
+    ],
+  },
 ];
 
-const FORBIDDEN_STRINGS = [
+const CAD_SHEETS = [
+  'G-001',
+  'A-101',
+  'A-102',
+  'A-201',
+  'A-301',
+  'A-401',
+  'M-101',
+  'P-101',
+  'E-101',
+  'C-S-L-101',
+];
+
+const COMMON_FORBIDDEN_STRINGS = [
+  'Start a $99 Problem Snapshot',
+  '$99 Problem Snapshot',
+  '15 fixed-price services. 9 approved bundles. 4 scoped systems.',
+  '15 existing service demonstrations',
+  'Version 5 package ladder add-on',
+  'Version 5 package ladder',
   '25,000+ CNC programs',
   'Rick Krueth',
   'automatically sends customer emails',
@@ -38,13 +121,37 @@ const FORBIDDEN_STRINGS = [
   'payment requested automatically',
   'final delivery without owner approval',
   'fully autonomous real-customer automation',
-  'Version 5 package ladder add-on',
-  'Version 5 package ladder',
+  '404: File not found',
+];
+
+const CAD_REQUIRED_STRINGS = [
+  'NOT FOR CONSTRUCTION',
+  'Field verification required',
+  'REV E',
+  'Ground-Up New-House Construction',
+];
+
+const CAD_FORBIDDEN_STRINGS = [
+  'Whole-House Renovation',
+  'Selective Demolition',
+  'Plumbing Renovation',
   '404: File not found',
 ];
 
 const MAX_ATTEMPTS = 10;
 const RETRY_DELAY_MS = 15000;
+
+function normalizeBaseUrl(rawUrl) {
+  const parsed = new URL(rawUrl);
+  if (!parsed.pathname.endsWith('/')) {
+    const lastSegment = parsed.pathname.split('/').pop() || '';
+    if (lastSegment.includes('.')) parsed.pathname = parsed.pathname.replace(/[^/]+$/, '');
+    else parsed.pathname += '/';
+  }
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString();
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,7 +164,7 @@ function fetchUrl(rawUrl, redirectsLeft = 5) {
 
     const req = lib.get(
       rawUrl,
-      { headers: { 'User-Agent': 'highway38-verify-live-page/3.0' } },
+      { headers: { 'User-Agent': 'highway38-verify-live-page/4.0' } },
       (res) => {
         if (
           redirectsLeft > 0 &&
@@ -102,55 +209,61 @@ async function fetchWithRetries(rawUrl, label) {
   throw new Error(`${label} did not return HTTP 200 after ${MAX_ATTEMPTS} attempts.`);
 }
 
-function uniqueMatches(text, pattern) {
-  return new Set(text.match(pattern) || []);
+function verifyRequired(label, body, requiredStrings) {
+  let failed = false;
+  for (const required of requiredStrings) {
+    if (body.includes(required)) {
+      console.log(`PASS ${label} required: ${required}`);
+    } else {
+      console.error(`FAIL ${label} missing required string: ${required}`);
+      failed = true;
+    }
+  }
+  return failed;
+}
+
+function verifyForbidden(label, body, forbiddenStrings) {
+  let failed = false;
+  for (const forbidden of forbiddenStrings) {
+    if (body.includes(forbidden)) {
+      console.error(`FAIL ${label} forbidden string found: ${forbidden}`);
+      failed = true;
+    } else {
+      console.log(`PASS ${label} forbidden absent: ${forbidden}`);
+    }
+  }
+  return failed;
 }
 
 async function run() {
-  console.log('=== Highway 38 Solutions — live Sample Library verification ===');
-  console.log('Sample URL:', VERIFY_URL);
-  console.log('Catalog URL:', CATALOG_URL);
-
-  const [html, catalogSource] = await Promise.all([
-    fetchWithRetries(VERIFY_URL, 'Sample Library'),
-    fetchWithRetries(CATALOG_URL, 'controlled catalog'),
-  ]);
+  console.log('=== Highway 38 Solutions — current live product and Quote Builder verification ===');
+  console.log('Base URL:', BASE_URL);
 
   let failed = false;
+  const pageBodies = new Map();
 
-  for (const required of REQUIRED_STRINGS) {
-    if (html.includes(required)) {
-      console.log(`PASS required: ${required}`);
+  for (const page of PAGE_CHECKS) {
+    const pageUrl = new URL(page.path, BASE_URL).toString();
+    const body = await fetchWithRetries(pageUrl, page.label);
+    pageBodies.set(page.path, body);
+    failed = verifyRequired(page.label, body, page.required) || failed;
+    failed = verifyForbidden(page.label, body, COMMON_FORBIDDEN_STRINGS) || failed;
+  }
+
+  const packageBody = pageBodies.get('whole-house-quote-package.html') || '';
+  for (const sheet of CAD_SHEETS) {
+    const relativePath = `assets/quote-builder/whole-house-cad/${sheet}.svg`;
+    if (packageBody.includes(relativePath)) {
+      console.log(`PASS package links CAD sheet: ${sheet}`);
     } else {
-      console.error(`FAIL missing required string: ${required}`);
+      console.error(`FAIL package missing CAD sheet link: ${sheet}`);
       failed = true;
     }
-  }
 
-  for (const forbidden of FORBIDDEN_STRINGS) {
-    if (html.includes(forbidden)) {
-      console.error(`FAIL forbidden string found: ${forbidden}`);
-      failed = true;
-    } else {
-      console.log(`PASS forbidden absent: ${forbidden}`);
-    }
-  }
-
-  const productIds = uniqueMatches(catalogSource, /H38-P(?:00[1-9]|01[0-5])/g);
-  const bundleIds = uniqueMatches(catalogSource, /H38-B00[1-9]/g);
-
-  if (productIds.size === 15) {
-    console.log('PASS controlled catalog: 15 unique product IDs');
-  } else {
-    console.error(`FAIL controlled catalog product count: expected 15, found ${productIds.size}`);
-    failed = true;
-  }
-
-  if (bundleIds.size === 9) {
-    console.log('PASS controlled catalog: 9 unique bundle IDs');
-  } else {
-    console.error(`FAIL controlled catalog bundle count: expected 9, found ${bundleIds.size}`);
-    failed = true;
+    const sheetUrl = new URL(relativePath, BASE_URL).toString();
+    const body = await fetchWithRetries(sheetUrl, `CAD sheet ${sheet}`);
+    failed = verifyRequired(`CAD sheet ${sheet}`, body, CAD_REQUIRED_STRINGS) || failed;
+    failed = verifyForbidden(`CAD sheet ${sheet}`, body, CAD_FORBIDDEN_STRINGS) || failed;
   }
 
   if (failed) {
