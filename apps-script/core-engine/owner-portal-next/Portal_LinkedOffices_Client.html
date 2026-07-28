@@ -1,13 +1,9 @@
 (function(){
 'use strict';
-function linkedOffices(){
-  return window.H38_UNIFIED&&Array.isArray(H38_UNIFIED.linkedOffices)?H38_UNIFIED.linkedOffices:[];
-}
+var office=null,requested=false;
 function install(){
   var top=document.getElementById('ownerTopbar');
-  if(!top||document.getElementById('h38LinkedOfficeButton'))return false;
-  var office=linkedOffices().filter(function(item){return item&&item.url&&item.ownerOnly!==false;})[0];
-  if(!office)return false;
+  if(!office||!top||document.getElementById('h38LinkedOfficeButton'))return false;
   var link=document.createElement('a');
   link.id='h38LinkedOfficeButton';
   link.className='btn h38-linked-office-button';
@@ -21,7 +17,14 @@ function install(){
   if(refresh)top.insertBefore(link,refresh);else top.appendChild(link);
   return true;
 }
-var attempts=0,timer=setInterval(function(){attempts+=1;if(install()||attempts>160)clearInterval(timer);},50);
+function load(){
+  if(requested||!window.google||!google.script||!google.script.run)return;
+  requested=true;
+  google.script.run.withSuccessHandler(function(value){
+    if(value&&value.status==='PASS'&&value.url){office=value;install();}
+  }).withFailureHandler(function(){office=null;}).h38LinkedOfficeConfig();
+}
+var attempts=0,timer=setInterval(function(){attempts+=1;load();if(install()||attempts>160)clearInterval(timer);},50);
 var base=typeof window.h38AfterSurfaceRender==='function'?window.h38AfterSurfaceRender:function(){};
-window.h38AfterSurfaceRender=function(){var result=base.apply(this,arguments);requestAnimationFrame(install);return result;};
+window.h38AfterSurfaceRender=function(){var result=base.apply(this,arguments);requestAnimationFrame(function(){load();install();});return result;};
 })();
