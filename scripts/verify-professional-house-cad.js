@@ -36,7 +36,7 @@ const g=read('assets/quote-builder/whole-house-cad/G-001.svg');
 absent(g,'SITE CLEARING, EARTHWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','G-001 stale site-sheet title');
 
 const a101=read('assets/quote-builder/whole-house-cad/A-101.svg');
-['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','17′-0″ × 15′-0″','DINING','14′-0″ × 15′-0″','LIVING','OFFICE / SHOP','MUD / LAUNDRY','BATH / MECH','KEYED PLAN NOTES','DOOR / WINDOW SCHEDULE','COVERED FRONT PORCH','16′ × 12′ REAR DECK','EXTERIOR WALL TYPE W1','42″ minimum','class="center"','class="furniture"','class="fixture"'].forEach(v=>need(a101,v,'A-101 coordinated plan content'));
+['48′-0″ OVERALL','32′-0″ OVERALL','KITCHEN','17′-0″ × 15′-0″','DINING','14′-0″ × 15′-0″','LIVING','OFFICE / SHOP','MUD / LAUNDRY','BATH / MECH','KEYED PLAN NOTES','DOOR / WINDOW SCHEDULE','COVERED FRONT PORCH','16′ × 12′ REAR DECK','EXTERIOR WALL TYPE W1','42″ minimum','class="furniture"','class="fixture"'].forEach(v=>need(a101,v,'A-101 coordinated plan content'));
 if(count(a101,/class="dimline"/g)<8)throw new Error('A-101 requires complete overall and chained dimension strings.');
 
 const a102=read('assets/quote-builder/whole-house-cad/A-102.svg');
