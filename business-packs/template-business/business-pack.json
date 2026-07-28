@@ -4,6 +4,7 @@
   "business": {"id": "NEWBUSINESS", "legalName": "New Business", "publicName": "New Business", "timeZone": "America/Chicago"},
   "branding": {"logoUrl": "", "primaryColor": "#243447", "secondaryColor": "#52677d", "accentColor": "#c79a3b"},
   "contacts": {"ownerEmailProperty": "BUSINESS_OFFICE_OWNER_EMAIL", "publicEmail": ""},
+  "support": {"enabled": true, "provider": "Highway 38 Solutions", "accessMode": "signed-in-owner", "customerVisible": true, "auditRequired": true, "revocable": true, "accounts": [{"email": "rkrueth@gmail.com", "displayName": "Rick Krueth — H38 Support Owner"}, {"email": "mandakw55@gmail.com", "displayName": "Amanda Krueth — H38 Support Owner"}]},
   "urls": {"website": "", "ownerPortal": ""},
   "modules": {"assignedTasks": true, "messaging": false, "smsConsent": false, "messageTemplates": true, "requests": true, "customers": true, "vendors": true, "quotes": true, "workOrders": true, "jobs": true, "equipment": true, "purchaseOrders": true, "vendorBills": true, "invoices": true, "payments": true, "receipts": true, "expenses": true, "documents": true, "accounting": true, "payroll": true, "tax": true, "reports": true, "approvals": true, "backups": true},
   "roles": {"names": ["Owner", "Administrator", "Foreman", "Estimator", "Field Staff", "Staff", "Bookkeeper", "Payroll", "Viewer"]},

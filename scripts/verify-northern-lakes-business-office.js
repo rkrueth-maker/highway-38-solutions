@@ -4,6 +4,7 @@ const fs=require('fs');
 const path=require('path');
 const vm=require('vm');
 const root=path.resolve(process.argv[2]||'dist/northern-lakes-business-office');
+const repoRoot=path.resolve(__dirname,'..');
 function fail(message){console.error('FAIL — '+message);process.exitCode=1;}
 function requireFile(name){const file=path.join(root,name);if(!fs.existsSync(file)){fail('missing '+name);return '';}return fs.readFileSync(file,'utf8');}
 function verifyScriptSyntax(name){const source=requireFile(name);if(!source)return;try{new vm.Script(source,{filename:name});}catch(error){fail('syntax error in '+name+': '+error.message);}}
@@ -12,17 +13,29 @@ const setup=requireFile('BusinessOffice_NorthernLakesSetup.gs');
 const fast=requireFile('BusinessOffice_NorthernLakesFastProvisioning.gs');
 const setupPage=requireFile('BusinessOffice_Installation.html');
 const unified=requireFile('Unified_AppShell.gs');
+const auth=requireFile('BusinessOffice_Auth.gs');
 const portalIndex=requireFile('Portal_Index.html');
 const quote=requireFile('BusinessOffice_QuoteBuilder.gs');
 const quoteIndex=requireFile('BusinessOffice_QuoteBuilder_Index.html');
 const aiClient=requireFile('BusinessOffice_QuoteBuilder_AI_Visual_Client.html');
 const aiServer=requireFile('BusinessOffice_QuoteBuilder_AI_Visual.gs');
+const previewPath=path.join(repoRoot,'businesses','northern-lakes','business-office-preview.html');
+const preview=fs.existsSync(previewPath)?fs.readFileSync(previewPath,'utf8'):'';
+const linkedPath=path.join(repoRoot,'business-packs','highway38','apps-script','BusinessOffice_LinkedOffices.gs');
+const linked=fs.existsSync(linkedPath)?fs.readFileSync(linkedPath,'utf8'):'';
+const templatePackPath=path.join(repoRoot,'business-packs','template-business','business-pack.json');
+const templatePack=fs.existsSync(templatePackPath)?fs.readFileSync(templatePackPath,'utf8'):'';
 const required=[
   [pack,/packId:'northern-lakes'/,'Northern Lakes pack ID'],
   [pack,/business:\s*Object\.freeze\(\{id:'NLPS'/,'NLPS business ID'],
   [pack,/publicEmail:'northernlakesproperty@gmail\.com'/,'Northern Lakes system email'],
   [pack,/systemOwnerEmail:'northernlakesproperty@gmail\.com'/,'Drive setup owner'],
   [pack,/cleanInstallGeneration:'clean-core-v1'/,'clean installation generation'],
+  [pack,/support:Object\.freeze\(\{enabled:true/,'controlled H38 support contract'],
+  [pack,/rkrueth@gmail\.com/,'Rick support principal'],
+  [pack,/mandakw55@gmail\.com/,'Amanda support principal'],
+  [pack,/customerVisible:true/,'visible support access'],
+  [pack,/revocable:true/,'revocable support access'],
   [pack,/NLPS_BUSINESS_OFFICE_SPREADSHEET_ID/,'dedicated spreadsheet key'],
   [pack,/NLPS_BUSINESS_OFFICE_DEPLOYMENT_ID/,'dedicated deployment key'],
   [pack,/namespace:'NLPS'/,'NLPS namespace'],
@@ -52,7 +65,18 @@ const required=[
   [setupPage,/northernlakesproperty@gmail\.com/,'required signed-in setup account'],
   [unified,/typeof boSetupEntryAllowed_==='function'/,'pack-controlled setup route'],
   [unified,/boRenderInstallationPage_/,'setup page renderer'],
+  [unified,/function getSupportAccount\(email\)/,'unified support authentication'],
+  [unified,/supportAccess:user\['__Support Access'\]==='Yes'/,'support status in unified context'],
+  [auth,/function boSupportAccount_\(email\)/,'standalone support authentication'],
+  [auth,/supportProvider:user\['__Support Provider'\]/,'support status in Business Office context'],
   [portalIndex,/Portal_LinkedOffices_Client/,'linked office client included'],
+  [preview,/H38 owner preview/i,'owner preview identity'],
+  [preview,/Sample data only/i,'sample-only preview boundary'],
+  [preview,/Open Live Office/,'live office control from preview'],
+  [linked,/business-office-preview\.html/,'H38 button opens owner preview'],
+  [linked,/liveUrl:/,'linked office keeps separate live URL'],
+  [templatePack,/"support"\s*:\s*\{"enabled"\s*:\s*true/,'future customer pack support default'],
+  [templatePack,/mandakw55@gmail\.com/,'future Amanda support principal'],
   [quote,/boPrepareAiQuoteDraft_/,'shared AI draft staging'],
   [quoteIndex,/BusinessOffice_QuoteBuilder_AI_Visual_Client/,'AI client included in direct Quote Builder'],
   [aiClient,/Take Picture/,'camera-only control'],
@@ -70,4 +94,4 @@ assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).forEach(verifyScriptSynta
 if(/H38_BUSINESS_OFFICE_SPREADSHEET_ID|H38_BUSINESS_OFFICE_DEPLOYMENT_ID/.test(pack))fail('Highway 38 storage or deployment key leaked into Northern Lakes pack');
 if(/1QBG_2j-CSOpo00nkK1-K9VQGGBNv5N7v|1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4/.test(pack+setup))fail('Retired Northern Lakes storage was hard-coded into the clean installation');
 if((setup.match(/name:'SAMPLE —/g)||[]).length!==13)fail('expected exactly 13 training example sheet definitions');
-if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
+if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,ownerPreview:true,supportAccess:{provider:'Highway 38 Solutions',accounts:['rkrueth@gmail.com','mandakw55@gmail.com'],signedInRequired:true,customerVisible:true,revocable:true},syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));

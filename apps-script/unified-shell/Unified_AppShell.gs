@@ -96,9 +96,37 @@ var H38_PORTAL_AUTH_BRIDGE = (function(){
 
   function getActiveEmail(){return text(Session.getActiveUser().getEmail()).toLowerCase();}
 
+  function getSupportAccount(email){
+    var normalized=text(email).toLowerCase();
+    if(!normalized)return null;
+    var support=readPack().support||{};
+    if(support.enabled!==true)return null;
+    var accounts=Array.isArray(support.accounts)?support.accounts:[];
+    var account=accounts.find(function(item){return text(item&&item.email).toLowerCase()===normalized;});
+    if(!account)return null;
+    return {
+      'User ID':'H38-SUPPORT-'+normalized.replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').toUpperCase(),
+      'Business ID':businessId(),
+      Email:normalized,
+      'Display Name':text(account.displayName)||('H38 Support — '+normalized),
+      'Role ID':'ROLE-OWNER',
+      Status:'Active',
+      'Payroll Access':'Yes',
+      'Tax Access':'Yes',
+      'Posting Access':'Yes',
+      'Customer Send Access':'Yes',
+      'Export Access':'Yes',
+      'User Access Admin':'Yes',
+      '__Support Access':'Yes',
+      '__Support Provider':text(support.provider)||'Highway 38 Solutions'
+    };
+  }
+
   function getCurrentUser(){
     var email=getActiveEmail();
     assertValue(email,'A signed-in Google account is required.');
+    var supportUser=getSupportAccount(email);
+    if(supportUser)return supportUser;
     var user=readTable(SHEETS.USERS,{includeVoided:true}).find(function(row){
       return text(row.Email).toLowerCase()===email && row.Status==='Active';
     });
@@ -168,12 +196,12 @@ var H38_PORTAL_AUTH_BRIDGE = (function(){
       businessId:businessId(),
       business:{id:text(packValue('business.id',businessId())),name:text(packValue('business.publicName','Business Office')),legalName:text(packValue('business.legalName','')),timeZone:text(packValue('business.timeZone','UTC'))||'UTC',branding:pack.branding||{},urls:pack.urls||{},approvalNotice:text(workflow.approvalNotice||'External actions require explicit owner approval.'),packId:text(pack.packId||'configured-business'),deploymentMode:text(deployment.mode||'combined')},
       modules:pack.modules||{},
-      user:{id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',payrollAccess:user['Payroll Access']==='Yes',taxAccess:user['Tax Access']==='Yes',postingAccess:user['Posting Access']==='Yes',customerSendAccess:user['Customer Send Access']==='Yes',exportAccess:user['Export Access']==='Yes',userAdminAccess:user['User Access Admin']==='Yes'},
+      user:{id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',payrollAccess:user['Payroll Access']==='Yes',taxAccess:user['Tax Access']==='Yes',postingAccess:user['Posting Access']==='Yes',customerSendAccess:user['Customer Send Access']==='Yes',exportAccess:user['Export Access']==='Yes',userAdminAccess:user['User Access Admin']==='Yes',supportAccess:user['__Support Access']==='Yes',supportProvider:user['__Support Provider']||''},
       boundaries:{externalActionsEnabled:false,directPaymentProcessing:false,directPayrollFunding:false,directTaxFiling:false,tax:text(boundaries.tax||'Tax-preparation support only.'),accounting:text(boundaries.accounting||'Accounting-preparation system.')}
     };
   }
 
-  return Object.freeze({text:text,assertValue:assertValue,readPack:readPack,packValue:packValue,businessId:businessId,readTable:readTable,getActiveEmail:getActiveEmail,getCurrentUser:getCurrentUser,getRole:getRole,getPermissionRows:getPermissionRows,moduleMatchesPermission:moduleMatchesPermission,hasPermission:hasPermission,requirePermission:requirePermission,requireOwner:requireOwner,canAccessRestrictedArea:canAccessRestrictedArea,requireRestrictedArea:requireRestrictedArea,getClientContext:getClientContext});
+  return Object.freeze({text:text,assertValue:assertValue,readPack:readPack,packValue:packValue,businessId:businessId,readTable:readTable,getActiveEmail:getActiveEmail,getSupportAccount:getSupportAccount,getCurrentUser:getCurrentUser,getRole:getRole,getPermissionRows:getPermissionRows,moduleMatchesPermission:moduleMatchesPermission,hasPermission:hasPermission,requirePermission:requirePermission,requireOwner:requireOwner,canAccessRestrictedArea:canAccessRestrictedArea,requireRestrictedArea:requireRestrictedArea,getClientContext:getClientContext});
 })();
 
 function h38UnifiedShellParameter_(event,name){
@@ -207,7 +235,7 @@ function h38UnifiedShellBootstrap(){
   var user=H38_PORTAL_AUTH_BRIDGE.getCurrentUser();
   var role=H38_PORTAL_AUTH_BRIDGE.getRole(user['Role ID']);
   var registry=h38UnifiedShellRegistry();
-  registry.user={id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',ownerMode:!!(role&&role['Role Name']==='Owner')};
+  registry.user={id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',ownerMode:!!(role&&role['Role Name']==='Owner'),supportAccess:user['__Support Access']==='Yes',supportProvider:user['__Support Provider']||''};
   return registry;
 }
 
