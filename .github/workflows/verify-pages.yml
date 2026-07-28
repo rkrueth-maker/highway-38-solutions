@@ -18,11 +18,14 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      VERIFY_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html?verification=consolidated
+      VERIFY_BASE_URL: ${{ vars.PUBLIC_SITE_BASE_URL || 'https://rkrueth-maker.github.io/highway-38-solutions/' }}
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout deployed source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,7 +35,7 @@ jobs:
       - name: Wait for GitHub Pages propagation
         run: sleep 60
 
-      - name: Run live page verification script
+      - name: Run current live product and Quote Builder verification
         run: node scripts/verify-live-page.js
 
       - name: Add verification summary
@@ -40,6 +43,7 @@ jobs:
         run: |
           echo "## Highway 38 live page verification" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**URL tested:** $VERIFY_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Base URL tested:** $VERIFY_BASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Source commit:** $SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Checks current products, package prices, owner-approval language, unsafe claims, and obsolete Version 5 wording." >> "$GITHUB_STEP_SUMMARY"
+          echo "Checks the current three-product pricing, Quote Builder offer and examples, complete new-house package, all ten CAD SVG routes, owner-control language, and removal of discontinued or stale public claims." >> "$GITHUB_STEP_SUMMARY"
