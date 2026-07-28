@@ -42,14 +42,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq librsvg2-bin
-      - name: Render key CAD sheets for visual evidence
+      - name: Render all CAD sheets for visual evidence
         if: always()
         run: |
           mkdir -p cad-rendered
-          for sheet in A-101 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
+          for sheet in G-001 A-101 A-102 A-201 A-301 A-401 M-101 P-101 E-101 C-S-L-101; do
             rsvg-convert --width 1700 --height 1100 "assets/quote-builder/whole-house-cad/${sheet}.svg" -o "cad-rendered/${sheet}.png"
           done
-          test "$(find cad-rendered -name '*.png' | wc -l)" -eq 8
+          test "$(find cad-rendered -name '*.png' | wc -l)" -eq 10
       - name: Upload CAD verification and rendered evidence
         if: always()
         uses: actions/upload-artifact@v4
