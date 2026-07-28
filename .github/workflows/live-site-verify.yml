@@ -19,135 +19,39 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SITE_URL: https://rkrueth-maker.github.io/highway-38-solutions/index.html
-      PRODUCTS_URL: https://rkrueth-maker.github.io/highway-38-solutions/products.html
-      SAMPLE_LIBRARY_URL: https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html
-      PROBLEM_STARTER_URL: https://rkrueth-maker.github.io/highway-38-solutions/problem-starter.html
-      ABOUT_URL: https://rkrueth-maker.github.io/highway-38-solutions/about.html
+      VERIFY_BASE_URL: ${{ vars.PUBLIC_SITE_BASE_URL || 'https://rkrueth-maker.github.io/highway-38-solutions/' }}
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
 
     steps:
-      - name: Wait briefly for GitHub Pages propagation
-        run: sleep 30
+      - name: Checkout deployed source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
-      - name: Fetch live pages with retries
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Wait for GitHub Pages propagation
+        run: sleep 60
+
+      - name: Verify current public site, products, Quote Builder, package, and CAD routes
+        shell: bash
         run: |
           set -euo pipefail
-
-          fetch_page () {
-            LABEL="$1"
-            URL="$2"
-            OUT="$3"
-
-            for i in {1..10}; do
-              echo "Attempt $i: fetching $LABEL at $URL"
-              STATUS=$(curl -L -s -o "$OUT" -w "%{http_code}" "$URL?verification=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}")
-              echo "$LABEL HTTP status: $STATUS"
-
-              if [ "$STATUS" = "200" ]; then
-                echo "$LABEL fetched successfully."
-                return 0
-              fi
-
-              sleep 15
-            done
-
-            echo "Failed to fetch $LABEL with HTTP 200."
-            exit 1
-          }
-
-          fetch_page "home" "$SITE_URL" live-homepage.html
-          fetch_page "products" "$PRODUCTS_URL" live-products.html
-          fetch_page "sample library" "$SAMPLE_LIBRARY_URL" live-sample-library.html
-          fetch_page "Problem Starter" "$PROBLEM_STARTER_URL" live-problem-starter.html
-          fetch_page "about" "$ABOUT_URL" live-about.html
-
-      - name: Verify required live page text
-        run: |
-          set -euo pipefail
-          REPORT=live-site-verification-report.txt
-
-          echo "Highway 38 live-site verification" > "$REPORT"
-          echo "Checked URL: $SITE_URL" >> "$REPORT"
-          echo "Checked URL: $PRODUCTS_URL" >> "$REPORT"
-          echo "Checked URL: $SAMPLE_LIBRARY_URL" >> "$REPORT"
-          echo "Checked URL: $PROBLEM_STARTER_URL" >> "$REPORT"
-          echo "Checked URL: $ABOUT_URL" >> "$REPORT"
-          echo "Run ID: $GITHUB_RUN_ID" >> "$REPORT"
-          echo "Run attempt: $GITHUB_RUN_ATTEMPT" >> "$REPORT"
-          echo "" >> "$REPORT"
-
-          check_text () {
-            FILE="$1"
-            LABEL="$2"
-            TEXT="$3"
-
-            if grep -Fq -- "$TEXT" "$FILE"; then
-              echo "PASS: $LABEL" | tee -a "$REPORT"
-            else
-              echo "FAIL: $LABEL" | tee -a "$REPORT"
-              exit 1
-            fi
-          }
-
-          reject_text () {
-            FILE="$1"
-            LABEL="$2"
-            TEXT="$3"
-
-            if grep -Fq -- "$TEXT" "$FILE"; then
-              echo "FAIL: $LABEL" | tee -a "$REPORT"
-              exit 1
-            else
-              echo "PASS: $LABEL" | tee -a "$REPORT"
-            fi
-          }
-
-          check_text live-homepage.html "Approved homepage headline" "Big problems. Clear plans."
-          check_text live-homepage.html "Outcome-first request CTA" "Start a Request"
-          check_text live-homepage.html "Examples secondary CTA" "See Examples"
-          check_text live-homepage.html "Approved supporting line" "Plans, workflows, and business systems built around the real problem."
-          check_text live-homepage.html "No-charge request assurance" "Submitting a request creates no charge."
-          check_text live-homepage.html "Reviewed-delivery assurance" "Reviewed before delivery"
-          reject_text live-homepage.html "No prohibited CNC claim on homepage" "25,000+ CNC programs"
-          reject_text live-homepage.html "No public personal-name attribution on homepage" "Rick Krueth"
-          reject_text live-homepage.html "No obvious GitHub Pages 404 on home" "404: File not found"
-
-          check_text live-products.html "Approved product discovery headline" "Choose the smallest service that produces a useful result."
-          check_text live-products.html "Approved catalog count" "15 fixed-price services. 9 approved bundles. 4 scoped systems."
-          check_text live-products.html "All-products rendering target" 'data-products="plans"'
-          check_text live-products.html "Bundle rendering target" "data-bundles"
-          reject_text live-products.html "No prohibited CNC claim on products" "25,000+ CNC programs"
-          reject_text live-products.html "No obvious GitHub Pages 404 on products" "404: File not found"
-
-          check_text live-sample-library.html "Sample Library current headline" "See the kind of finished result before choosing a service."
-          check_text live-sample-library.html "Fifteen-sample path" "15 existing service demonstrations"
-          check_text live-sample-library.html "Hypothetical proof classification" "Hypothetical examples"
-          check_text live-sample-library.html "Owner Portal control" 'data-owner-link="true"'
-          check_text live-sample-library.html "Owner Portal link" "Owner Portal"
-          check_text live-sample-library.html "All-samples rendering target" 'data-samples="all"'
-          reject_text live-sample-library.html "No prohibited CNC claim in samples" "25,000+ CNC programs"
-          reject_text live-sample-library.html "No obvious GitHub Pages 404 on samples" "404: File not found"
-
-          check_text live-problem-starter.html "Problem Starter resource" "The Highway 38 Problem Starter"
-          check_text live-problem-starter.html "Problem Starter request route" 'Start a $99 Problem Snapshot'
-          check_text live-problem-starter.html "Problem Starter no-charge assurance" "No charge from submitting a request"
-          reject_text live-problem-starter.html "No obvious GitHub Pages 404 on Problem Starter" "404: File not found"
-
-          check_text live-about.html "Approved interim CNC wording" "Programmed and maintained thousands of CNC jobs over many years"
-          check_text live-about.html "Owner attribution" "The Owner brings 30 years of combined hands-on experience"
-          reject_text live-about.html "No prohibited CNC claim on About" "25,000+ CNC programs"
-          reject_text live-about.html "No public personal-name attribution on About" "Rick Krueth"
-          reject_text live-about.html "No obvious GitHub Pages 404 on About" "404: File not found"
-
-          echo "" >> "$REPORT"
-          echo "Live verification completed successfully." >> "$REPORT"
+          node scripts/verify-live-page.js 2>&1 | tee live-site-verification-report.txt
 
       - name: Add pass/fail summary
         if: always()
+        shell: bash
         run: |
           echo "## Highway 38 live-site verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Base URL:** $VERIFY_BASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Source commit:** $SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ -f live-site-verification-report.txt ]; then
@@ -161,39 +65,32 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: highway-38-live-site-verification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            live-site-verification-report.txt
-            live-homepage.html
-            live-products.html
-            live-sample-library.html
-            live-problem-starter.html
-            live-about.html
+          path: live-site-verification-report.txt
 
-      - name: Record Issue 83 live verification
+      - name: Record live verification
         if: success()
         shell: bash
         run: |
           set -euo pipefail
           run_url="https://github.com/${REPO}/actions/runs/${GITHUB_RUN_ID}"
-          cat > /tmp/issue83-live-pass.md <<EOF
-          <!-- h38-issue83-live-pass -->
-          ## Issue #83 LIVE_PAGES verification PASS
+          cat > /tmp/highway38-live-pass.md <<EOF_COMMENT
+          <!-- h38-current-live-pass -->
+          ## Current Highway 38 LIVE_PAGES verification PASS
 
-          - Homepage, Products & Pricing, Sample Library, Problem Starter, and About returned HTTP 200.
-          - Approved outcome-first homepage headline, request path, examples path, and assurances: PASS.
-          - Controlled 15-product / 9-bundle presentation markers: PASS.
-          - Sample proof classification and Owner Portal control: PASS.
-          - Approved interim CNC wording: PASS.
-          - Prohibited **25,000+ CNC programs** claim: ABSENT.
-          - Public personal-name attribution: ABSENT.
+          - Homepage, Pricing, Quote Builder, Sample Library, complete new-house package, and About returned HTTP 200.
+          - Current three-software-product pricing and Quote Builder $59/month offer: PASS.
+          - Quote Builder public examples, printable package, and all ten CAD SVG routes: PASS.
+          - Revision E, ground-up new-house, field-verification, and not-for-construction controls: PASS.
+          - Discontinued $99 Problem Snapshot, old fixed 15-service catalog, Version 5 wording, prohibited autonomy claims, and public personal-name attribution: ABSENT.
+          - Verification base: ${VERIFY_BASE_URL}
           - Verification run: ${run_url}
-          - Verification source commit: `${GITHUB_SHA}`
+          - Verification source commit: `${SOURCE_SHA}`
 
           Final LIVE_PAGES disposition: **PASS**.
-          EOF
-          existing="$(gh api "repos/${REPO}/issues/83/comments" --paginate --jq '.[] | select(.body | contains("<!-- h38-issue83-live-pass -->")) | .id' | tail -n 1)"
+          EOF_COMMENT
+          existing="$(gh api "repos/${REPO}/issues/83/comments" --paginate --jq '.[] | select(.body | contains("<!-- h38-current-live-pass -->")) | .id' | tail -n 1)"
           if [[ -n "$existing" ]]; then
-            gh api --method PATCH "repos/${REPO}/issues/comments/${existing}" -f body="$(cat /tmp/issue83-live-pass.md)" >/dev/null
+            gh api --method PATCH "repos/${REPO}/issues/comments/${existing}" -f body="$(cat /tmp/highway38-live-pass.md)" >/dev/null
           else
-            gh issue comment 83 --repo "$REPO" --body-file /tmp/issue83-live-pass.md >/dev/null
+            gh issue comment 83 --repo "$REPO" --body-file /tmp/highway38-live-pass.md >/dev/null
           fi
