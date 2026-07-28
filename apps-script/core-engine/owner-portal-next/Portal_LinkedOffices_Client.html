@@ -1,0 +1,27 @@
+(function(){
+'use strict';
+function linkedOffices(){
+  return window.H38_UNIFIED&&Array.isArray(H38_UNIFIED.linkedOffices)?H38_UNIFIED.linkedOffices:[];
+}
+function install(){
+  var top=document.getElementById('ownerTopbar');
+  if(!top||document.getElementById('h38LinkedOfficeButton'))return false;
+  var office=linkedOffices().filter(function(item){return item&&item.url&&item.ownerOnly!==false;})[0];
+  if(!office)return false;
+  var link=document.createElement('a');
+  link.id='h38LinkedOfficeButton';
+  link.className='btn h38-linked-office-button';
+  link.href=office.url;
+  link.target='_blank';
+  link.rel='noopener';
+  link.title='Open '+(office.name||office.label||'linked business office')+' in a new tab';
+  link.setAttribute('aria-label',link.title);
+  link.textContent='↗ '+(office.shortLabel||office.label||office.name||'Linked Office');
+  var refresh=top.querySelector('.h38-refresh');
+  if(refresh)top.insertBefore(link,refresh);else top.appendChild(link);
+  return true;
+}
+var attempts=0,timer=setInterval(function(){attempts+=1;if(install()||attempts>160)clearInterval(timer);},50);
+var base=typeof window.h38AfterSurfaceRender==='function'?window.h38AfterSurfaceRender:function(){};
+window.h38AfterSurfaceRender=function(){var result=base.apply(this,arguments);requestAnimationFrame(install);return result;};
+})();
