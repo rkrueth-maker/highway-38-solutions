@@ -20,6 +20,7 @@ on:
     branches: [main]
     paths:
       - 'businesses/northern-lakes/deploy-trigger.txt'
+      - '.github/workflows/deploy-northern-lakes-business-office.yml'
 
 permissions:
   contents: write
@@ -223,13 +224,24 @@ jobs:
           node - "$LOCAL" "$REMOTE" <<'NODE'
           const fs=require('fs'),path=require('path'),crypto=require('crypto');
           const [local,remote]=process.argv.slice(2);
-          const inventory=root=>Object.fromEntries(fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_|Unified_|appsscript)/.test(name)&&/\.(?:gs|js|html|json)$/.test(name)).sort().map(name=>{
-            const normalized=fs.readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'')+'\n';
-            return[name,crypto.createHash('sha256').update(normalized).digest('hex')];
-          }));
-          const expected=inventory(local),actual=inventory(remote),missing=Object.keys(expected).filter(name=>!actual[name]),extra=Object.keys(actual).filter(name=>!expected[name]),changed=Object.keys(expected).filter(name=>actual[name]&&actual[name]!==expected[name]);
+          function inventory(root){
+            const result={};
+            const files=fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_|Unified_|appsscript)/.test(name)&&/\.(?:gs|js|html|json)$/i.test(name)).sort();
+            for(const name of files){
+              const base=name.replace(/\.(?:gs|js|html|json)$/i,'');
+              const kind=/\.html$/i.test(name)?'html':/\.json$/i.test(name)?'json':'script';
+              const key=base+':'+kind;
+              if(result[key])throw new Error(`Duplicate controlled source key: ${key}`);
+              const normalized=fs.readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'')+'\n';
+              result[key]={file:name,sha256:crypto.createHash('sha256').update(normalized).digest('hex')};
+            }
+            return result;
+          }
+          const expected=inventory(local),actual=inventory(remote);
+          const expectedKeys=Object.keys(expected).sort(),actualKeys=Object.keys(actual).sort();
+          const missing=expectedKeys.filter(key=>!actual[key]),extra=actualKeys.filter(key=>!expected[key]),changed=expectedKeys.filter(key=>actual[key]&&actual[key].sha256!==expected[key].sha256);
           if(missing.length||extra.length||changed.length)throw new Error(`Remote source mismatch. missing=${missing.join(',')||'none'} extra=${extra.join(',')||'none'} changed=${changed.join(',')||'none'}`);
-          console.log(`PASS — ${Object.keys(expected).length} Northern Lakes controlled files match remote exactly.`);
+          console.log(`PASS — ${expectedKeys.length} Northern Lakes controlled files match remote exactly; Apps Script .gs/.js extension differences normalized.`);
           NODE
       - name: Record deployment evidence
         shell: bash
