@@ -79,7 +79,10 @@ jobs:
           if(!source.includes('__BO_NEUTRAL_SCHEMA_GZIP_B64__'))throw new Error('Northern Lakes setup schema placeholder is missing.');
           if(!schema)throw new Error('Neutral Business Office schema is empty.');
           source=source.replace('__BO_NEUTRAL_SCHEMA_GZIP_B64__',schema);
+          source=source.replace('var workbook=nlpsCreateCoreWorkbook_(schema,folders.root,installationId);','var workbook=nlpsFastCreateCoreWorkbook_(schema,folders.root,installationId);');
+          source=source.replace('var examples=nlpsCreateExamples_(folders.examples);','var examples=nlpsFastCreateExamples_(folders.examples);');
           if(source.includes('__BO_NEUTRAL_SCHEMA_GZIP_B64__'))throw new Error('Northern Lakes setup schema injection was incomplete.');
+          if(!source.includes('nlpsFastCreateCoreWorkbook_')||!source.includes('nlpsFastCreateExamples_'))throw new Error('Northern Lakes fast provisioning was not connected.');
           fs.writeFileSync(setupPath,source);
           NODE
 
@@ -163,6 +166,21 @@ jobs:
           fi
           [[ -n "$SCRIPT_ID" ]] || { echo 'Could not determine Apps Script project ID.'; exit 1; }
           echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
+      - name: Preserve current Northern Lakes project and deployment evidence
+        shell: bash
+        env:
+          SCRIPT_ID: ${{ steps.project.outputs.script_id }}
+          DEPLOYMENT_ID: ${{ steps.target.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          BACKUP="$RUNNER_TEMP/northern-lakes-before"
+          rm -rf "$BACKUP"
+          mkdir -p "$BACKUP" artifacts/northern-lakes-business-office
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$BACKUP/.clasp.json"
+          (cd "$BACKUP" && clasp pull)
+          tar -czf artifacts/northern-lakes-business-office/project-before.tar.gz -C "$BACKUP" .
+          (cd "$BACKUP" && clasp list-deployments) | tee artifacts/northern-lakes-business-office/deployments-before.txt
+          if [[ -n "$DEPLOYMENT_ID" ]]; then grep -F "$DEPLOYMENT_ID" artifacts/northern-lakes-business-office/deployments-before.txt >/dev/null; fi
       - name: Push exact unified source and deploy existing web app
         id: deployment
         shell: bash
@@ -190,6 +208,29 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec" >> "$GITHUB_OUTPUT"
           echo "setup_url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec?setup=1" >> "$GITHUB_OUTPUT"
+      - name: Verify exact remote Northern Lakes source
+        shell: bash
+        env:
+          SCRIPT_ID: ${{ steps.project.outputs.script_id }}
+        run: |
+          set -euo pipefail
+          LOCAL="$PWD/dist/northern-lakes-business-office"
+          REMOTE="$RUNNER_TEMP/northern-lakes-remote"
+          rm -rf "$REMOTE"
+          mkdir -p "$REMOTE"
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$REMOTE/.clasp.json"
+          (cd "$REMOTE" && clasp pull)
+          node - "$LOCAL" "$REMOTE" <<'NODE'
+          const fs=require('fs'),path=require('path'),crypto=require('crypto');
+          const [local,remote]=process.argv.slice(2);
+          const inventory=root=>Object.fromEntries(fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_|Unified_|appsscript)/.test(name)&&/\.(?:gs|js|html|json)$/.test(name)).sort().map(name=>{
+            const normalized=fs.readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'')+'\n';
+            return[name,crypto.createHash('sha256').update(normalized).digest('hex')];
+          }));
+          const expected=inventory(local),actual=inventory(remote),missing=Object.keys(expected).filter(name=>!actual[name]),extra=Object.keys(actual).filter(name=>!expected[name]),changed=Object.keys(expected).filter(name=>actual[name]&&actual[name]!==expected[name]);
+          if(missing.length||extra.length||changed.length)throw new Error(`Remote source mismatch. missing=${missing.join(',')||'none'} extra=${extra.join(',')||'none'} changed=${changed.join(',')||'none'}`);
+          console.log(`PASS — ${Object.keys(expected).length} Northern Lakes controlled files match remote exactly.`);
+          NODE
       - name: Record deployment evidence
         shell: bash
         run: |
@@ -210,6 +251,7 @@ jobs:
             "coreEngine": "unified",
             "driveOwnerSetupAccount": "northernlakesproperty@gmail.com",
             "externalActionsEnabled": false,
+            "previousProjectPreserved": true,
             "openAiKeyAvailableToWorkflow": ${{ env.OPENAI_API_KEY != '' }}
           }
           EOF
