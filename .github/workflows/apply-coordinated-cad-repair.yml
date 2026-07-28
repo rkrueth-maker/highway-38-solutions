@@ -6,11 +6,15 @@ on:
     paths:
       - 'scripts/cad-repair/*.b64'
       - '.github/workflows/apply-coordinated-cad-repair.yml'
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   generate:
+    if: github.event_name != 'pull_request' || github.head_ref == 'agent/repair-coordinated-cad-set'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
