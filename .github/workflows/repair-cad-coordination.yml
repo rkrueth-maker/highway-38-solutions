@@ -1,11 +1,12 @@
 name: Repair CAD Coordination
 on:
-  push:
-    branches:
-      - agent/repair-cad-coordination
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
     paths:
       - 'scripts/repair-house-cad-coordination.js'
       - '.github/workflows/repair-cad-coordination.yml'
+      - 'assets/quote-builder/whole-house-cad/**'
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/repair-cad-coordination
+          ref: ${{ github.event.pull_request.head.ref || 'agent/repair-cad-coordination' }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -49,7 +50,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add assets/quote-builder/whole-house-cad
           git commit -m 'Repair coordinated house CAD sheets'
-          git push origin HEAD:agent/repair-cad-coordination
+          git push origin HEAD:${{ github.event.pull_request.head.ref || 'agent/repair-cad-coordination' }}
       - name: Upload repaired render evidence
         uses: actions/upload-artifact@v4
         with:
