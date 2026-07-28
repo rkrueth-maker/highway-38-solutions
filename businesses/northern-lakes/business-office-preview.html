@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Northern Lakes Business Office — H38 Owner Preview</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    :root{--bg:#eef2ef;--deep:#071711;--side:#0d261c;--panel:#fff;--soft:#f6f9f7;--line:#d7e0da;--text:#17231d;--muted:#65736b;--green:#174f3b;--green2:#25694f;--gold:#9a632f;--shadow:0 12px 30px rgba(7,31,22,.10)}
+    *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}.app{min-height:100vh;display:grid;grid-template-columns:238px minmax(0,1fr)}
+    .sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:18px 14px;background:linear-gradient(180deg,var(--side),var(--deep));color:#edf5f0}.brand{display:flex;gap:12px;align-items:center;padding:6px 8px 19px;border-bottom:1px solid rgba(255,255,255,.12)}.brand img{width:58px;height:58px;border-radius:12px;background:#f5eee3;padding:4px;object-fit:contain}.brand strong{display:block;font-size:17px;letter-spacing:.045em}.brand span{display:block;color:#b7cabf;font-size:12px}.nav-label{padding:18px 12px 7px;color:#8da196;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.nav a{display:flex;align-items:center;gap:11px;min-height:48px;padding:10px 12px;border-radius:10px;color:#dce8e1;text-decoration:none;font-weight:750}.nav a.active,.nav a:hover{background:rgba(255,255,255,.11);color:#fff}.ico{width:22px;text-align:center;font-size:20px}.support-note{margin:20px 7px 0;padding:13px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.06);color:#bfd0c6;font-size:12px}
+    .shell{min-width:0}.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;min-height:68px;padding:9px 22px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.96);backdrop-filter:blur(10px)}.top-title{min-width:0;margin-right:auto}.top-title strong{display:block;font-size:18px}.top-title span{display:block;color:var(--muted);font-size:13px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:10px;background:#fff;text-decoration:none;font-weight:800;white-space:nowrap}.btn.primary{background:var(--green);border-color:var(--green);color:#fff}.btn.preview{background:#fff7e9;border-color:#e7c899;color:#74481f}
+    main{max-width:1460px;margin:0 auto;padding:28px 30px 70px}.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:22px}.eyebrow{color:var(--green2);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:5px 0 7px;font-size:clamp(32px,4vw,45px);line-height:1.05}.hero p{margin:0;color:var(--muted);font-size:17px}.status{min-width:300px;padding:15px 17px;border-radius:14px;background:#102d22;color:#fff;box-shadow:var(--shadow)}.status strong{display:block}.status span{display:block;margin-top:5px;color:#c0d2c7;font-size:13px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:20px}.stack{display:grid;gap:20px}.card{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 19px;border-bottom:1px solid var(--line)}.card-head h2{margin:0;font-size:18px}.card-head a{color:var(--green2);font-weight:800;text-decoration:none;font-size:14px}.card-body{padding:18px}
+    .next{display:grid;grid-template-columns:66px minmax(0,1fr) auto;gap:16px;align-items:center}.next-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:16px;background:#e5f0ea;color:var(--green);font-size:30px}.next h3{margin:0 0 4px;font-size:21px}.next p{margin:0;color:var(--muted)}
+    .quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.quick a{display:flex;gap:12px;align-items:center;min-height:86px;padding:15px;border:1px solid var(--line);border-radius:13px;background:var(--soft);text-decoration:none}.quick b{display:block}.quick span{display:block;color:var(--muted);font-size:13px}.qico{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:#e4eee8;font-size:23px}
+    .list{display:grid;gap:11px}.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:12px}.dot{width:10px;height:10px;border-radius:50%;background:#d08a36}.dot.green{background:#3d9b6e}.row b{display:block}.row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.tag{padding:5px 8px;border-radius:999px;background:#eef4f0;color:#355646;font-size:12px;font-weight:800}.tag.warn{background:#fff1d4;color:#79511f}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.metric{padding:15px;border:1px solid var(--line);border-radius:13px;background:var(--soft)}.metric strong{display:block;font-size:25px}.metric span{color:var(--muted);font-size:13px}.notice{margin-top:20px;padding:14px 16px;border:1px solid #dec08f;border-radius:12px;background:#fff7e8;color:#68451e;font-size:14px}
+    @media(max-width:980px){.app{grid-template-columns:1fr}.sidebar{display:none}.grid{grid-template-columns:1fr}.hero{display:block}.status{margin-top:18px;min-width:0}.topbar{padding:9px 14px}.topbar .btn:not(.primary){display:none}main{padding:22px 16px 80px}.quick{grid-template-columns:1fr 1fr}}
+    @media(max-width:560px){.top-title span{display:none}.topbar .primary{padding:0 11px}.quick{grid-template-columns:1fr}.next{grid-template-columns:54px 1fr}.next .btn{grid-column:1/-1}.metrics{grid-template-columns:1fr}.hero h1{font-size:34px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/diamond-logo.png?v=owner-preview-20260728" alt="Northern Lakes diamond logo"><div><strong>NORTHERN LAKES</strong><span>Business Office</span></div></div>
+    <nav class="nav" aria-label="Preview navigation">
+      <div class="nav-label">Daily</div><a class="active" href="#"><span class="ico">⌂</span>Today</a>
+      <div class="nav-label">Customers</div><a href="#"><span class="ico">♟</span>Requests</a><a href="#"><span class="ico">◎</span>Customers</a><a href="#"><span class="ico">✉</span>Communications</a>
+      <div class="nav-label">Work</div><a href="#"><span class="ico">▤</span>Quotes</a><a href="#"><span class="ico">▣</span>Jobs</a><a href="#"><span class="ico">✓</span>Tasks &amp; Team</a><a href="#"><span class="ico">◫</span>Schedule</a>
+      <div class="nav-label">Office</div><a href="#"><span class="ico">$</span>Money</a><a href="#"><span class="ico">▱</span>Documents</a><a href="#"><span class="ico">⚙</span>Office</a>
+    </nav>
+    <div class="support-note"><strong>H38 owner preview</strong><br>This page uses sample display data only. It cannot write to Northern Lakes Drive or perform business actions.</div>
+  </aside>
+  <div class="shell">
+    <header class="topbar">
+      <div class="top-title"><strong>Northern Lakes Property Maintenance LLC</strong><span>Owner Preview · Sample data only</span></div>
+      <a class="btn preview" href="index.html" target="_blank" rel="noopener">Website</a>
+      <a class="btn" href="https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec?setup=1" target="_blank" rel="noopener">Customer Setup</a>
+      <a class="btn primary" href="https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec" target="_blank" rel="noopener">Open Live Office</a>
+    </header>
+    <main>
+      <section class="hero">
+        <div><div class="eyebrow">Monday · Northern Lakes operations</div><h1>Today</h1><p>One clear view of customers, crews, jobs, approvals, money, documents, and follow-up.</p></div>
+        <div class="status"><strong>H38 Support Access</strong><span>Rick and Amanda use signed-in, auditable support access. No anonymous administrator route.</span></div>
+      </section>
+      <section class="grid">
+        <div class="stack">
+          <article class="card"><div class="card-head"><h2>Next action</h2><a href="#">View work queue</a></div><div class="card-body"><div class="next"><div class="next-icon">▤</div><div><h3>Review Johnson driveway quote</h3><p>Scope and pricing are prepared. Owner approval is required before sending.</p></div><a class="btn primary" href="#">Review quote</a></div></div></article>
+          <article class="card"><div class="card-head"><h2>Quick actions</h2><a href="#">All actions</a></div><div class="card-body"><div class="quick"><a href="#"><span class="qico">＋</span><span><b>New request</b><span>Capture a customer need</span></span></a><a href="#"><span class="qico">▤</span><span><b>Build quote</b><span>Use the shared Quote Builder</span></span></a><a href="#"><span class="qico">▣</span><span><b>Open job</b><span>Tasks, photos and proof</span></span></a><a href="#"><span class="qico">⌁</span><span><b>Add photo</b><span>Field capture and documents</span></span></a></div></div></article>
+          <article class="card"><div class="card-head"><h2>Today’s work</h2><a href="#">View schedule</a></div><div class="card-body"><div class="list"><div class="row"><span class="dot green"></span><div><b>Commercial lot mowing</b><small>Northwoods Storage · Crew A · 9:00 AM</small></div><span class="tag">Scheduled</span></div><div class="row"><span class="dot green"></span><div><b>Gravel driveway grading</b><small>Johnson property · Skid steer and trailer</small></div><span class="tag">In progress</span></div><div class="row"><span class="dot"></span><div><b>Equipment inspection</b><small>Skid steer hydraulic and attachment check</small></div><span class="tag warn">Proof needed</span></div></div></div></article>
+        </div>
+        <div class="stack">
+          <article class="card"><div class="card-head"><h2>Needs attention</h2><a href="#">View all</a></div><div class="card-body"><div class="list"><div class="row"><span class="dot"></span><div><b>Quote awaiting owner review</b><small>Johnson driveway grading · $4,850</small></div><span class="tag warn">Approval</span></div><div class="row"><span class="dot"></span><div><b>Receipt missing from expense</b><small>Aggregate supplier · Job NLPS-0021</small></div><span class="tag warn">Document</span></div><div class="row"><span class="dot"></span><div><b>Invoice follow-up due</b><small>Northwoods Storage · 8 days open</small></div><span class="tag warn">Money</span></div></div></div></article>
+          <article class="card"><div class="card-head"><h2>Business snapshot</h2><a href="#">Reports</a></div><div class="card-body"><div class="metrics"><div class="metric"><strong>7</strong><span>Active jobs</span></div><div class="metric"><strong>3</strong><span>Quotes waiting</span></div><div class="metric"><strong>$18.4k</strong><span>Open invoices</span></div></div></div></article>
+          <article class="card"><div class="card-head"><h2>Connected office</h2></div><div class="card-body"><div class="list"><div class="row"><span class="dot green"></span><div><b>Google Drive storage</b><small>Customer and job folders created automatically</small></div><span class="tag">Ready after setup</span></div><div class="row"><span class="dot green"></span><div><b>Core Engine upgrades</b><small>Northern Lakes data and branding remain isolated</small></div><span class="tag">Protected</span></div><div class="row"><span class="dot green"></span><div><b>Examples and training</b><small>13 sample sections separated from live records</small></div><span class="tag">Included</span></div></div></div></article>
+        </div>
+      </section>
+      <div class="notice"><strong>Preview boundary:</strong> This is the visual owner preview you requested. It does not use the customer’s Google account, create Drive files, change records, or send anything. Use <strong>Open Live Office</strong> only when you need the actual signed-in installation.</div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
