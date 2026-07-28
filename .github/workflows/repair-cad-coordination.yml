@@ -1,0 +1,58 @@
+name: Repair CAD Coordination
+on:
+  push:
+    branches:
+      - agent/repair-cad-coordination
+    paths:
+      - 'scripts/repair-house-cad-coordination.js'
+      - '.github/workflows/repair-cad-coordination.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/repair-cad-coordination
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply coordinated drawing repairs
+        run: node scripts/repair-house-cad-coordination.js
+      - name: Verify repaired package
+        run: |
+          node scripts/verify-professional-house-cad.js
+          node scripts/verify-complete-house-quote-package.js
+      - name: Install SVG renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+      - name: Render every CAD sheet
+        run: |
+          mkdir -p cad-repaired
+          for file in assets/quote-builder/whole-house-cad/*.svg; do
+            name="$(basename "$file" .svg)"
+            rsvg-convert --width 1700 --height 1100 "$file" -o "cad-repaired/${name}.png"
+          done
+          test "$(find cad-repaired -name '*.png' | wc -l)" -eq 10
+      - name: Commit repaired assets
+        run: |
+          if git diff --quiet -- assets/quote-builder/whole-house-cad; then
+            echo 'No CAD asset changes were produced.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/quote-builder/whole-house-cad
+          git commit -m 'Repair coordinated house CAD sheets'
+          git push origin HEAD:agent/repair-cad-coordination
+      - name: Upload repaired render evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: repaired-cad-render-evidence
+          path: cad-repaired/*.png
+          if-no-files-found: error
