@@ -91,4 +91,5 @@ const insertBefore=(s,marker,content,label)=>{const i=s.indexOf(marker);if(i<0)t
  write('P-101',s);
 }
 
+// This script is intentionally idempotent only through a clean checkout; CI commits the repaired assets once.
 console.log(JSON.stringify({status:'PASS',repaired:['G-001','A-101','A-102','A-201','A-301','A-401','C-S-L-101','P-101']},null,2));
