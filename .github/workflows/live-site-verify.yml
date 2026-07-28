@@ -78,13 +78,13 @@ jobs:
           ## Current Highway 38 LIVE_PAGES verification PASS
 
           - Homepage, Pricing, Quote Builder, Sample Library, complete new-house package, and About returned HTTP 200.
-          - Current three-software-product pricing and Quote Builder $59/month offer: PASS.
+          - Current three-software-product pricing and Quote Builder \$59/month offer: PASS.
           - Quote Builder public examples, printable package, and all ten CAD SVG routes: PASS.
           - Revision E, ground-up new-house, field-verification, and not-for-construction controls: PASS.
-          - Discontinued $99 Problem Snapshot, old fixed 15-service catalog, Version 5 wording, prohibited autonomy claims, and public personal-name attribution: ABSENT.
+          - Discontinued \$99 Problem Snapshot, old fixed 15-service catalog, Version 5 wording, prohibited autonomy claims, and public personal-name attribution: ABSENT.
           - Verification base: ${VERIFY_BASE_URL}
           - Verification run: ${run_url}
-          - Verification source commit: `${SOURCE_SHA}`
+          - Verification source commit: \`${SOURCE_SHA}\`
 
           Final LIVE_PAGES disposition: **PASS**.
           EOF_COMMENT
