@@ -1,0 +1,295 @@
+name: Apply public clarity pass
+
+on:
+  push:
+    branches:
+      - agent/clarify-public-product-paths
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out clarity branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clarify-public-product-paths
+          fetch-depth: 0
+
+      - name: Apply exact clarity replacements
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path, old, new, expected=1):
+              file_path = Path(path)
+              text = file_path.read_text(encoding='utf-8')
+              found = text.count(old)
+              if found != expected:
+                  raise SystemExit(f'{path}: expected {expected} matches, found {found}: {old[:100]!r}')
+              file_path.write_text(text.replace(old, new), encoding='utf-8')
+
+          replace_exact(
+              'pricing.html',
+              'content="Highway 38 Solutions pricing for Smart Contact Websites, Quote Builder, Business Office, and configured business systems."',
+              'content="Highway 38 Solutions pricing for Smart Contact Websites, Quote Builder, Business Office, and custom business systems."',
+          )
+          replace_exact(
+              'pricing.html',
+              '.price-card .pi-actions{margin-top:auto}\n.ai-note',
+              '.price-card .pi-actions{margin-top:auto}\n.best-for{margin:0 0 14px;padding:10px 12px;border-left:4px solid #1f6b47;background:#f4f8f5;color:#243b31}\n.ai-note',
+          )
+          replace_exact(
+              'pricing.html',
+              '"name":"Configured Business System"',
+              '"name":"Custom Business System"',
+          )
+          replace_exact(
+              'pricing.html',
+              '<p>Three software products cover professional quoting, complete business operations, and deeply configured systems. Standard H38 AI is built into every level.</p>',
+              '<p>Three software products cover professional quoting, complete business operations, and custom systems for advanced workflows. Standard H38 AI is built into every level.</p>',
+          )
+          replace_exact(
+              'pricing.html',
+              '<h2>Choose the operating depth your business needs.</h2>\n    <p>Subscriptions are month-to-month at launch. Setup and implementation are separate where shown.</p>',
+              '<h2>Choose the system that matches the problem.</h2>\n    <p><strong>Start with Quote Builder</strong> when quoting is the main problem. <strong>Choose Business Office</strong> when the whole business needs to stay connected. <strong>Choose a Custom Business System</strong> when advanced workflows, automation, integrations, or field tools require deeper setup.</p>\n    <p>Subscriptions are month-to-month at launch. Setup and implementation are separate where shown.</p>',
+          )
+          replace_exact(
+              'pricing.html',
+              '<h2>Quote Builder</h2>\n        <div class="price-line">',
+              '<h2>Quote Builder</h2>\n        <p class="best-for"><strong>Best for:</strong> Businesses mainly needing professional quotes.</p>\n        <div class="price-line">',
+          )
+          replace_exact(
+              'pricing.html',
+              '<h2>Highway 38 Business Office</h2>\n        <div class="price-line">',
+              '<h2>Highway 38 Business Office</h2>\n        <p class="best-for"><strong>Best for:</strong> Businesses needing quotes, jobs, money, documents, and daily operations connected.</p>\n        <div class="price-line">',
+          )
+          replace_exact(
+              'pricing.html',
+              '<h2>Configured Business System</h2>\n        <div class="price-line">',
+              '<h2>Custom Business System</h2>\n        <p class="best-for"><strong>Best for:</strong> Businesses needing custom workflows, automation, integrations, or advanced field tools.</p>\n        <div class="price-line">',
+          )
+          replace_exact(
+              'pricing.html',
+              '<p>A deeply configured operating system for advanced workflows, automation, integrations, migration, custom modules, and higher-touch support.</p>',
+              '<p>A custom operating system for advanced workflows, automation, integrations, migration, specialized modules, and higher-touch support.</p>',
+          )
+          replace_exact(
+              'pricing.html',
+              '<span class="pi-eyebrow">Not sure where to start?</span>\n      <h2>Business Snapshot</h2>\n      <div class="snapshot-price">$299 one-time</div>\n      <p>Get a focused review',
+              '<span class="pi-eyebrow">Not ready to choose software?</span>\n      <h2>Start with a Business Snapshot</h2>\n      <div class="snapshot-price">$299 one-time</div>\n      <p><strong>This is a one-time business review, not a software subscription.</strong></p>\n      <p>Get a focused review',
+          )
+          replace_exact(
+              'pricing.html',
+              'Business Office or Configured Business System implementation',
+              'Business Office or Custom Business System implementation',
+          )
+          replace_exact(
+              'pricing.html',
+              '<th>Configured Business System</th>',
+              '<th>Custom Business System</th>',
+          )
+          replace_exact(
+              'pricing.html',
+              '<h2>Choose a product—or let the Snapshot define the path.</h2>',
+              '<h2>Choose software—or start with a Business Snapshot.</h2>',
+          )
+          replace_exact(
+              'pricing.html',
+              'assets/js/h38-site-v2.js?v=2026-07-23-site-architecture-v2',
+              'assets/js/h38-site-v2.js?v=2026-07-28-clarity',
+          )
+
+          replace_exact(
+              'quote-builder.html',
+              '<title>Universal Quote Builder — Examples and Pricing | Highway 38 Solutions</title>',
+              '<title>Quote Builder — Examples and Pricing | Highway 38 Solutions</title>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              'in the Highway 38 Universal Quote Builder.',
+              'in Highway 38 Quote Builder.',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<span class="pi-eyebrow">Universal Quote Builder</span>',
+              '<span class="pi-eyebrow">Highway 38 Quote Builder</span>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<p>Build a recurring service quote, measured construction estimate, technical manufacturing quote, subcontractor bid package, or coordinated multi-business proposal from the same shared engine.</p>',
+              '<p>Create professional quotes, attach photos and documents, calculate pricing, track approvals, and produce customer-ready PDFs—all in one place.</p>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              'alt="Universal Quote Builder and connected business workflow interface"',
+              'alt="Quote Builder and connected business workflow interface"',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<span class="pi-eyebrow">Professional universal quoting</span>',
+              '<span class="pi-eyebrow">Professional quoting</span>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<span class="pi-eyebrow">Progressive quote depth</span><h2>Only show the structure the project needs.</h2><p>Quote Builder recommends an appropriate level from intake. Authorized users can change it.</p>',
+              '<span class="pi-eyebrow">Quotes that match the job</span><h2>Use only the detail each job needs.</h2><p>Quote Builder recommends a practical starting level from intake. Authorized users can adjust it when the work requires more or less detail.</p>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<span class="pi-eyebrow">One structured project model</span><h2>A quote is more than prices and a PDF.</h2><p>Complex projects can use a master proposal with independently manageable area, trade, system, phase, assembly, vendor, subcontractor, alternate, and upgrade sub-quotes.</p>',
+              '<span class="pi-eyebrow">Everything stays connected</span><h2>A quote is more than prices and a PDF.</h2><p>Separate quotes for each phase, trade, area, option, vendor, or subcontractor can still roll into one clear customer proposal.</p>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<article><h3>Universal quote system</h3>',
+              '<article><h3>Complete quote system</h3>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              '<h2>Eight controlled universal agents—not dozens of disconnected industry bots.</h2>',
+              '<h2>Eight built-in AI assistants for professional quoting.</h2>',
+          )
+          replace_exact(
+              'quote-builder.html',
+              'assets/js/h38-site-v2.js?v=2026-07-27-quote-builder-examples',
+              'assets/js/h38-site-v2.js?v=2026-07-28-clarity',
+          )
+
+          replace_exact(
+              'assets/js/h38-site-v2.js',
+              "const VERSION='2026-07-27-equal-product-paths';",
+              "const VERSION='2026-07-28-clarity';",
+          )
+          replace_exact(
+              'assets/js/h38-site-v2.js',
+              "{href:'solutions.html',label:'What We Do'},\n      {href:'pricing.html',label:'Pricing'},",
+              "{href:'solutions.html',label:'What We Do'},\n      {href:'quote-builder.html#examples',label:'Project Examples'},\n      {href:'pricing.html',label:'Pricing'},",
+          )
+          replace_exact(
+              'assets/js/h38-site-v2.js',
+              "{heading:'Learn',links:[['What We Do','solutions.html'],['About','about.html'],['Contact','contact.html']]}",
+              "{heading:'Learn',links:[['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples'],['About','about.html'],['Contact','contact.html']]}",
+          )
+
+          replace_exact(
+              'pricing-data.js',
+              "version:'2026-07-24-final'",
+              "version:'2026-07-28-clarity'",
+          )
+          replace_exact(
+              'pricing-data.js',
+              "name:'Configured Business System'",
+              "name:'Custom Business System'",
+          )
+          replace_exact(
+              'pricing-data.js',
+              'Business Office or Configured Business System implementation',
+              'Business Office or Custom Business System implementation',
+          )
+
+          replace_exact(
+              'assets/js/h38-request-options.js',
+              'Quote Builder, Business Office, Configured Business System, or the separate Business Snapshot diagnostic.',
+              'Quote Builder, Business Office, Custom Business System, or the separate Business Snapshot diagnostic.',
+          )
+
+          replace_exact(
+              'start-request.html',
+              'pricing-data.js?v=20260724-final',
+              'pricing-data.js?v=20260728-clarity',
+          )
+          replace_exact(
+              'start-request.html',
+              'assets/js/h38-site-v2.js?v=2026-07-23-site-architecture-v2',
+              'assets/js/h38-site-v2.js?v=2026-07-28-clarity',
+          )
+          replace_exact(
+              'start-request.html',
+              'assets/js/h38-request-options.js?v=2026-07-24-final-pricing',
+              'assets/js/h38-request-options.js?v=2026-07-28-clarity',
+          )
+          replace_exact(
+              'start-request.html',
+              '<option value="configured">Build a configured operating system</option>',
+              '<option value="configured">Build a custom business system</option>',
+          )
+          replace_exact(
+              'start-request.html',
+              '<strong>Configure advanced workflows</strong>',
+              '<strong>Build a custom system</strong>',
+          )
+          replace_exact(
+              'start-request.html',
+              'Configured work is finalized after requirements review.',
+              'Custom system scope is finalized after requirements review.',
+          )
+
+          replace_exact(
+              'business-systems.html',
+              '<h2>Configured Business System</h2>',
+              '<h2>Custom Business System</h2>',
+          )
+          replace_exact(
+              'business-systems.html',
+              'assets/js/h38-site-v2.js?v=2026-07-23-site-architecture-v2',
+              'assets/js/h38-site-v2.js?v=2026-07-28-clarity',
+          )
+
+          replace_exact(
+              'scripts/verify-live-page.js',
+              "'Configured Business System',",
+              "'Custom Business System',",
+          )
+          replace_exact(
+              'scripts/verify-live-page.js',
+              "'Business Snapshot',\n      '$299 one-time',",
+              "'Business Snapshot',\n      '$299 one-time',\n      'Best for:',\n      'This is a one-time business review, not a software subscription.',",
+          )
+          replace_exact(
+              'scripts/verify-live-page.js',
+              "'See complete projects, quotes, drawings, and printable packages.',\n      'H38 AI included',",
+              "'See complete projects, quotes, drawings, and printable packages.',\n      'Create professional quotes, attach photos and documents, calculate pricing, track approvals, and produce customer-ready PDFs—all in one place.',\n      'Quotes that match the job',\n      'Eight built-in AI assistants for professional quoting.',\n      'H38 AI included',",
+          )
+
+          replace_exact(
+              'scripts/verify-final-pricing-and-cabin.js',
+              "source&&source.version==='2026-07-24-final'",
+              "source&&source.version==='2026-07-28-clarity'",
+          )
+          replace_exact(
+              'scripts/verify-final-pricing-and-cabin.js',
+              "request.includes('pricing-data.js?v=20260724-final')",
+              "request.includes('pricing-data.js?v=20260728-clarity')",
+          )
+          replace_exact(
+              'scripts/verify-final-pricing-and-cabin.js',
+              "check('Business Snapshot is below and not a fourth price card',pricing.includes('id=\"snapshot\"')&&pricing.includes('$299 one-time')&&softwareCardCount(pricing)===3);",
+              "check('Business Snapshot is below and not a fourth price card',pricing.includes('id=\"snapshot\"')&&pricing.includes('$299 one-time')&&softwareCardCount(pricing)===3);\ncheck('pricing cards explain best fit',(pricing.match(/Best for:/g)||[]).length===3);\ncheck('custom system name is customer-facing',pricing.includes('Custom Business System')&&!pricing.includes('Configured Business System'));\ncheck('Business Snapshot is clearly not software',pricing.includes('This is a one-time business review, not a software subscription.'));\ncheck('Quote Builder language is plain',quoteBuilder.includes('Quotes that match the job')&&quoteBuilder.includes('Eight built-in AI assistants for professional quoting.'));",
+          )
+
+          Path('.github/workflows/apply-clarity-pass.yml').unlink()
+          PY
+
+      - name: Validate clarity pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/js/h38-site-v2.js
+          node --check assets/js/h38-request-options.js
+          node --check pricing-data.js
+          node --check scripts/verify-live-page.js
+          node scripts/verify-final-pricing-and-cabin.js
+
+      - name: Commit clarity changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pricing.html quote-builder.html business-systems.html start-request.html pricing-data.js assets/js/h38-site-v2.js assets/js/h38-request-options.js scripts/verify-live-page.js scripts/verify-final-pricing-and-cabin.js .github/workflows/apply-clarity-pass.yml
+          git commit -m 'Clarify public product choices and Quote Builder language'
+          git push origin HEAD:agent/clarify-public-product-paths
