@@ -17,7 +17,7 @@
   <style><?!= h38PortalRawInclude_('Portal_TaskAssignment_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_Chromebook_Styles'); ?></style>
   <style><?!= h38PortalRawInclude_('Portal_DailyFirst_Styles'); ?></style>
-  <style>.unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}.h38-brand-copy{min-width:0}</style>
+  <style>.unified-package{display:block;margin-top:4px;color:#d8e6f2;font-size:.72rem;font-weight:600}.h38-brand-copy{min-width:0}.h38-linked-office-button{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap!important;text-decoration:none!important;background:linear-gradient(135deg,#2c7658,#47a879)!important;color:#f7fff9!important;border-color:rgba(144,229,182,.35)!important;font-weight:900!important}</style>
   <style id="h38-final-readable-phone">
     /* Apply by runtime phone-shell class, not CSS viewport width.
        Apps Script can report a desktop-sized CSS viewport on a real phone. */
@@ -102,6 +102,7 @@ window.H38_QB_ADDON_ENABLED=<?!= (typeof boPackValue_ === 'function' && boPackVa
 <?!= h38PortalRawInclude_('Portal_QuoteBuilder_QuickCapture_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Equipment_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Product_Client'); ?>
+<?!= h38PortalRawInclude_('Portal_LinkedOffices_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Navigation_Performance_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Mobile_Field_Client'); ?>
 <?!= h38PortalRawInclude_('Portal_Chromebook_Client'); ?>

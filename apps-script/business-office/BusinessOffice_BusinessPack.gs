@@ -114,17 +114,23 @@ function boGetPackSnapshot_() {
   return {
     schemaVersion: pack.schemaVersion,
     packId: pack.packId,
+    package: pack.package || {},
     business: pack.business,
     branding: pack.branding,
     contacts: pack.contacts || {},
+    setup: pack.setup || {},
     urls: pack.urls || {},
     modules: pack.modules || {},
+    roles: pack.roles || {},
     workflow: pack.workflow || {},
+    messaging: pack.messaging || {},
     boundaries: pack.boundaries || {},
     catalog: pack.catalog || {},
     tax: pack.tax || {},
     documents: pack.documents || {},
-    deployment: { mode: boPackValue_('deployment.mode', 'standalone') },
+    numbering: pack.numbering || {},
+    storage: pack.storage || {},
+    deployment: pack.deployment || {},
     isolation: pack.isolation || {}
   };
 }

@@ -37,7 +37,11 @@ const files={
   boot:path.join(PORTAL,'Portal_UX_Client_Boot.html'),
   styles:path.join(PORTAL,'Portal_Product_Styles.html'),
   client:path.join(PORTAL,'Portal_Product_Client.html'),
+  linkedClient:path.join(PORTAL,'Portal_LinkedOffices_Client.html'),
+  linkedServer:path.join(ROOT,'business-packs','highway38','apps-script','BusinessOffice_LinkedOffices.gs'),
   businessConfig:path.join(BUSINESS,'BusinessOffice_Config.gs'),
+  businessCore:path.join(BUSINESS,'BusinessOffice_Core.gs'),
+  businessPack:path.join(BUSINESS,'BusinessOffice_BusinessPack.gs'),
   taskMessaging:path.join(BUSINESS,'BusinessOffice_TaskMessaging_10_Core.gs'),
   publicPortal:path.join(ROOT,'portal.html'),
   manifest:path.join(BUSINESS,'BusinessOffice_ClientManifest.gs'),
@@ -54,11 +58,11 @@ const legacyPortalUi=['Portal_ControlPlane_Client.html','Portal_ControlPlane_Liv
 Object.entries(files).forEach(([name,file])=>{if(name.startsWith('obsolete'))return;check(name+' exists',exists(file),path.relative(ROOT,file));});
 
 if(failures.length===0){
-  const contractSource=read(files.contract),actionsSource=read(files.actions),accessSource=read(files.access),webSource=read(files.web),registrySource=read(files.registry),unifiedSource=read(files.unified),repositorySource=read(files.repository),servicesSource=read(files.services),indexSource=read(files.index),rawSource=read(files.raw),shellSource=read(files.shell),experienceCoreSource=read(files.experienceCore),workspaceSource=read(files.workspace),bootSource=read(files.boot),styleSource=read(files.styles),clientSource=read(files.client),businessConfigSource=read(files.businessConfig),taskMessagingSource=read(files.taskMessaging),publicPortalSource=read(files.publicPortal),manifestSource=read(files.manifest),rulesSource=read(files.rules),agentsSource=read(files.agents);
+  const contractSource=read(files.contract),actionsSource=read(files.actions),accessSource=read(files.access),webSource=read(files.web),registrySource=read(files.registry),unifiedSource=read(files.unified),repositorySource=read(files.repository),servicesSource=read(files.services),indexSource=read(files.index),rawSource=read(files.raw),shellSource=read(files.shell),experienceCoreSource=read(files.experienceCore),workspaceSource=read(files.workspace),bootSource=read(files.boot),styleSource=read(files.styles),clientSource=read(files.client),linkedClientSource=read(files.linkedClient),linkedServerSource=read(files.linkedServer),businessConfigSource=read(files.businessConfig),businessCoreSource=read(files.businessCore),businessPackSource=read(files.businessPack),taskMessagingSource=read(files.taskMessaging),publicPortalSource=read(files.publicPortal),manifestSource=read(files.manifest),rulesSource=read(files.rules),agentsSource=read(files.agents);
   [
-    ['module contract',contractSource],['action contract',actionsSource],['module access',accessSource],['Business Office web',webSource],['module registry',registrySource],['unified bootstrap',unifiedSource],['portal repository',repositorySource],['portal services',servicesSource],['Business Office config',businessConfigSource],['task messaging core',taskMessagingSource],['unified shell client',shellSource],['product client',clientSource]
+    ['module contract',contractSource],['action contract',actionsSource],['module access',accessSource],['Business Office web',webSource],['module registry',registrySource],['unified bootstrap',unifiedSource],['portal repository',repositorySource],['portal services',servicesSource],['Business Office config',businessConfigSource],['Business Office core',businessCoreSource],['Business Office pack',businessPackSource],['linked office server',linkedServerSource],['task messaging core',taskMessagingSource],['unified shell client',shellSource],['product client',clientSource]
   ].forEach(([name,source])=>{try{new vm.Script(source,{filename:name});check(name+' syntax',true);}catch(error){check(name+' syntax',false,error.message);}});
-  try{new vm.Script(experienceCoreSource+'\n'+workspaceSource+'\n'+bootSource,{filename:'Portal_Client_Foundation.html'});check('portal client foundation syntax',true);}catch(error){check('portal client foundation syntax',false,error.message);}
+  try{new vm.Script(experienceCoreSource+'\n'+workspaceSource+'\n'+bootSource+'\n'+linkedClientSource,{filename:'Portal_Client_Foundation.html'});check('portal client foundation syntax',true);}catch(error){check('portal client foundation syntax',false,error.message);}
 
   const context={boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'assertion failed');}};
   try{
@@ -94,14 +98,19 @@ if(failures.length===0){
   check('portal repository caches spreadsheet, install status, and list reads',/H38_PORTAL_SPREADSHEET_CACHE_/.test(repositorySource)&&/H38_PORTAL_INSTALLED_STATUS_CACHE_/.test(repositorySource)&&/H38_PORTAL_LIST_CACHE_/.test(repositorySource));
   check('task projection is request cached',/H38_PORTAL_TASK_PROJECTION_CACHE_/.test(servicesSource)&&/h38PortalCloneRows_\(H38_PORTAL_TASK_PROJECTION_CACHE_\)/.test(servicesSource));
   check('Business Office spreadsheet is request cached',/H38_BO_SPREADSHEET_CACHE_/.test(businessConfigSource));
+  check('pack snapshots preserve storage and setup identity',/storage: pack\.storage \|\| \{\}/.test(businessPackSource)&&/setup: pack\.setup \|\| \{\}/.test(businessPackSource)&&/package: pack\.package \|\| \{\}/.test(businessPackSource));
+  check('record saves expose optional business-pack folder automation',/typeof boAfterBusinessRecordSave_ === 'function'/.test(businessCoreSource)&&/Record folder automation/.test(businessCoreSource));
   check('task messaging schema is version gated and locked',/H38_TM_SCHEMA_VERSION/.test(taskMessagingSource)&&/H38_TM_SCHEMA_PROPERTY/.test(taskMessagingSource)&&/LockService\.getScriptLock\(\)/.test(taskMessagingSource));
   check('startup begins without artificial delay',/requestAnimationFrame\(launch\)/.test(bootSource)&&!/setTimeout\(launch,100\)/.test(bootSource));
-  check('product client renders immediate loading skeleton',/data-h38-workspace-state=\"loading\"/.test(clientSource)&&/h38ProductLoadingState\(\)/.test(clientSource));
+  check('product client renders immediate loading skeleton',/data-h38-workspace-state="loading"/.test(clientSource)&&/h38ProductLoadingState\(\)/.test(clientSource));
   check('product client owns refresh',/window\.refresh=h38ProductRefresh/.test(clientSource));
   check('page-wide MutationObserver removed',!/MutationObserver/.test(clientSource));
   check('secondary modules remain on demand',/secondaryModulesDeferred:true/.test(unifiedSource)&&/loadStrategy:'on-demand'/.test(contractSource));
   check('portal loads product styles',indexSource.includes("h38PortalRawInclude_('Portal_Product_Styles')"));
   check('portal loads product client',indexSource.includes("h38PortalRawInclude_('Portal_Product_Client')"));
+  check('portal loads linked office control',indexSource.includes("h38PortalRawInclude_('Portal_LinkedOffices_Client')"));
+  check('linked office client uses owner-only server configuration',/h38LinkedOfficeConfig/.test(linkedClientSource)&&/target='_blank'/.test(linkedClientSource)&&/rel='noopener'/.test(linkedClientSource));
+  check('H38 linked office service requires Owner and opens isolated Northern Lakes deployment',/boRequireOwner_\(\)/.test(linkedServerSource)&&/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/.test(linkedServerSource)&&/isolated:true/.test(linkedServerSource));
   check('portal has one top bar',(indexSource.match(/id="ownerTopbar"/g)||[]).length===1);
   check('portal has one navigation host',(indexSource.match(/id="nav"/g)||[]).length===1);
   check('portal keeps approved logo host',(indexSource.match(/id="h38PortalLogo"/g)||[]).length===1);
