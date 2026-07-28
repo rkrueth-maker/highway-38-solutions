@@ -8,4 +8,5 @@ External actions: disabled
 ALLOW_FIRST_INSTALL=TRUE
 Authorization: Rick Krueth explicitly authorized build, deployment, and customer setup email preparation
 Protection: preserve the previous Northern Lakes deployment version and archive old resource IDs; do not delete old Drive data
-Retry reason: confirm the clean installer is live before sending the customer setup email
+Retry reason: merge-triggered confirmation that the clean installer is live before sending the customer setup email
+Retry sequence: 2
