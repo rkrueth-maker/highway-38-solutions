@@ -6,13 +6,15 @@ const root=path.resolve(__dirname,'..');
 const dir=path.join(root,'assets','quote-builder','whole-house-cad');
 const read=n=>fs.readFileSync(path.join(dir,n+'.svg'),'utf8');
 const write=(n,s)=>fs.writeFileSync(path.join(dir,n+'.svg'),s);
-const replace=(s,from,to,label)=>{if(!s.includes(from))throw new Error(`Missing ${label}: ${from}`);return s.replaceAll(from,to)};
+const replace=(s,from,to,label)=>{if(!s.includes(from)){if(s.includes(to))return s;throw new Error(`Missing ${label}: ${from}`);}return s.replaceAll(from,to)};
 const insertBefore=(s,marker,content,label)=>{const i=s.indexOf(marker);if(i<0)throw new Error(`Missing insertion marker ${label}`);return s.slice(0,i)+content+s.slice(i)};
 
 // G-001: keep the index synchronized with the actual site sheet.
 {
  let s=read('G-001');
- s=replace(s,'SITE, DECK, CONCRETE, DRAINAGE &amp; LANDSCAPE','SITE CLEARING, EARTHWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','G-001 site index title');
+ s=replace(s,'SITE, DECK, CONCRETE, DRAINAGE &amp; LANDSCAPE','SITE CLEARING, EARWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','G-001 site index title');
+ // Preserve the approved spelling used by the actual site sheet.
+ s=s.replaceAll('SITE CLEARING, EARWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','SITE CLEARING, EARTHWORK, UTILITIES, DRAINAGE &amp; FINAL SITE');
  write('G-001',s);
 }
 
@@ -91,5 +93,4 @@ const insertBefore=(s,marker,content,label)=>{const i=s.indexOf(marker);if(i<0)t
  write('P-101',s);
 }
 
-// This script is intentionally idempotent only through a clean checkout; CI commits the repaired assets once.
 console.log(JSON.stringify({status:'PASS',repaired:['G-001','A-101','A-102','A-201','A-301','A-401','C-S-L-101','P-101']},null,2));
