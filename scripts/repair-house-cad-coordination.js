@@ -12,9 +12,7 @@ const insertBefore=(s,marker,content,label)=>{const i=s.indexOf(marker);if(i<0)t
 // G-001: keep the index synchronized with the actual site sheet.
 {
  let s=read('G-001');
- s=replace(s,'SITE, DECK, CONCRETE, DRAINAGE &amp; LANDSCAPE','SITE CLEARING, EARWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','G-001 site index title');
- // Preserve the approved spelling used by the actual site sheet.
- s=s.replaceAll('SITE CLEARING, EARWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','SITE CLEARING, EARTHWORK, UTILITIES, DRAINAGE &amp; FINAL SITE');
+ s=replace(s,'SITE, DECK, CONCRETE, DRAINAGE &amp; LANDSCAPE','SITE CLEARING, EARTHWORK, UTILITIES, DRAINAGE &amp; FINAL SITE','G-001 site index title');
  write('G-001',s);
 }
 
