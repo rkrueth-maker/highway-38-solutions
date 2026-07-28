@@ -175,7 +175,21 @@ function boSaveRecord(moduleKey, recordId, values) {
   boAssertModuleEnabled_(moduleKey);
   const sheetName = H38_BO_MODULES[moduleKey] || moduleKey;
   boRequirePermission_(sheetName, recordId ? 'Edit' : 'Create');
-  return recordId ? boUpdateRecord_(sheetName, recordId, values, 'Web application') : boAppendRecord_(sheetName, values, 'Web application');
+  let saved = recordId ? boUpdateRecord_(sheetName, recordId, values, 'Web application') : boAppendRecord_(sheetName, values, 'Web application');
+  if (typeof boAfterBusinessRecordSave_ === 'function') {
+    try {
+      const automation = boAfterBusinessRecordSave_(moduleKey, saved);
+      if (automation && automation.record) saved = automation.record;
+    } catch (error) {
+      let savedId = recordId || '';
+      try {
+        const key = boPrimaryKeyHeader_(boHeaders_(sheetName));
+        savedId = saved[key] || savedId;
+      } catch (keyError) {}
+      boError_('Record folder automation', sheetName, savedId, error, 'Error');
+    }
+  }
+  return saved;
 }
 
 function boGetDashboard() {
