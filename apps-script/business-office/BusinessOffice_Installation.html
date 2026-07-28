@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Northern Lakes Business Office Setup</title>
+  <style>
+    :root{--bg:#07140f;--panel:#10271e;--panel2:#163329;--line:rgba(210,230,219,.18);--text:#f5f1e8;--muted:#b8c9bf;--accent:#46b980;--warn:#f2b84b;--bad:#ee7470}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 90% 0,#173c2d 0,transparent 38%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{max-width:920px;margin:0 auto;padding:28px 18px 70px}.brand{display:flex;align-items:center;gap:14px;margin-bottom:22px}.mark{width:58px;height:58px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--panel);font-size:28px}.brand h1{margin:0;font-size:clamp(1.7rem,4vw,2.5rem)}.brand p{margin:4px 0 0;color:var(--muted)}
+    .card{padding:22px;margin:14px 0;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--panel2),var(--panel));box-shadow:0 18px 45px rgba(0,0,0,.22)}h2{margin:0 0 10px;font-size:1.35rem}p{line-height:1.55}.status{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.055);border:1px solid var(--line);font-weight:800}.status.ok{border-color:rgba(70,185,128,.55)}.status.hold{border-color:rgba(242,184,75,.55)}.status.bad{border-color:rgba(238,116,112,.55)}
+    label{display:block;margin:16px 0 7px;font-weight:800}input{width:100%;min-height:52px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#081a13;color:var(--text);font-size:16px}small{display:block;margin-top:6px;color:var(--muted);line-height:1.45}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}button,a.btn{min-height:52px;display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-weight:900;text-decoration:none;cursor:pointer}.primary{background:var(--accent)!important;color:#04130d!important;border-color:transparent!important}.danger{background:rgba(238,116,112,.15)!important;border-color:rgba(238,116,112,.45)!important}button:disabled{opacity:.45;cursor:not-allowed}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.item{padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035)}.item b{display:block;margin-bottom:4px}.item span{color:var(--muted);font-size:.92rem}.hidden{display:none!important}.result-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.warning{color:#ffe0a0}.error{white-space:pre-wrap;color:#ffd0cd}
+    @media(max-width:680px){main{padding:18px 12px 55px}.card{padding:17px}.grid{grid-template-columns:1fr}.actions button,.actions .btn,.result-links .btn{width:100%}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="brand"><div class="mark">🌲</div><div><h1>Northern Lakes Business Office</h1><p>Clean Core Engine installation and Google Drive setup</p></div></div>
+
+  <section class="card">
+    <h2>Signed-in account</h2>
+    <div id="accountStatus" class="status hold">Checking the Google account…</div>
+    <p id="accountHelp" class="warning">Setup must be completed while signed in as northernlakesproperty@gmail.com.</p>
+  </section>
+
+  <section class="card">
+    <h2>What this creates</h2>
+    <div class="grid">
+      <div class="item"><b>Complete Business Office</b><span>Today, Customers, Work, Money, Documents, Growth, Office, Quote Builder, H38 AI, users, approvals, logs and backups.</span></div>
+      <div class="item"><b>Dedicated Drive storage</b><span>A new Northern Lakes root folder with separate operating, restricted, training, backup and archive areas.</span></div>
+      <div class="item"><b>Clean 81-sheet core workbook</b><span>No H38 records and no old Northern Lakes demo records are copied.</span></div>
+      <div class="item"><b>Training examples</b><span>Separate SAMPLE sheets for customers, quotes, jobs, time, expenses, invoices, equipment, communication, marketing, proof and task assignment.</span></div>
+      <div class="item"><b>Automatic record folders</b><span>Customer and job folder structures are created as records are saved.</span></div>
+      <div class="item"><b>Upgrade protection</b><span>The existing Northern Lakes project and deployment stay in place while the shared Core Engine can be upgraded later.</span></div>
+    </div>
+  </section>
+
+  <section id="installCard" class="card">
+    <h2>Create the clean office</h2>
+    <p>The previous office is disconnected from active use but its IDs are preserved in <b>99 — Archived Old Office</b>. Nothing is permanently deleted by this installer.</p>
+    <label for="parentFolder">Parent Google Drive folder</label>
+    <input id="parentFolder" placeholder="Leave blank for My Drive, or paste a Drive folder URL / ID">
+    <small>The installer creates a new folder named “Northern Lakes Business Office” inside this location.</small>
+
+    <label for="confirmation">Confirmation</label>
+    <input id="confirmation" autocomplete="off" placeholder="CREATE CLEAN NORTHERN LAKES OFFICE">
+    <small>Type the exact phrase shown above. This prevents an accidental replacement.</small>
+
+    <div class="actions">
+      <button id="installButton" class="primary" type="button" onclick="installOffice()" disabled>Create Clean Northern Lakes Office</button>
+      <button type="button" onclick="loadStatus()">Refresh setup status</button>
+    </div>
+    <p id="progress" class="warning"></p>
+    <pre id="error" class="error"></pre>
+  </section>
+
+  <section id="completeCard" class="card hidden">
+    <h2>Installation active</h2>
+    <div id="completeStatus" class="status ok">Northern Lakes is ready.</div>
+    <div class="result-links">
+      <a id="officeLink" class="btn primary" target="_top">Open Northern Lakes Office</a>
+      <a id="driveLink" class="btn" target="_blank" rel="noopener">Open Northern Lakes Drive</a>
+      <a id="sheetLink" class="btn" target="_blank" rel="noopener">Open Core Data Workbook</a>
+    </div>
+  </section>
+</main>
+<script>
+  var setupState=null;
+  function setText(id,value){document.getElementById(id).textContent=value||''}
+  function show(id,visible){document.getElementById(id).classList.toggle('hidden',!visible)}
+  function renderStatus(status){
+    setupState=status||{};
+    var account=document.getElementById('accountStatus');
+    account.className='status '+(status.canInstall?'ok':status.signedIn?'hold':'bad');
+    account.textContent=status.activeEmail?'Signed in as '+status.activeEmail:'No Google account email was detected.';
+    setText('accountHelp',status.canInstall?'Correct setup account. Drive files will be created in this account.':'Sign out of other Google accounts or switch to '+status.requiredSetupEmail+' before installing.');
+    document.getElementById('installButton').disabled=!status.canInstall;
+    if(status.configured){
+      show('completeCard',true);
+      document.getElementById('officeLink').href=status.officeUrl||location.href.replace(/[?&]setup=1/,'');
+      document.getElementById('driveLink').href=status.rootFolderUrl||'#';
+      document.getElementById('sheetLink').href=status.spreadsheetUrl||'#';
+      setText('completeStatus','Clean Northern Lakes installation is active · '+(status.generation||'configured'));
+    }else show('completeCard',false);
+  }
+  function loadStatus(){
+    setText('error','');setText('progress','Checking setup status…');
+    google.script.run.withSuccessHandler(function(value){setText('progress','');renderStatus(value);})
+      .withFailureHandler(function(error){setText('progress','');setText('error',error&&error.message?error.message:String(error));})
+      .boNorthernLakesSetupStatus();
+  }
+  function installOffice(){
+    if(!setupState||!setupState.canInstall)return;
+    var button=document.getElementById('installButton');
+    button.disabled=true;setText('error','');setText('progress','Creating the folder structure, clean workbook, examples, archive reference and manifest. Keep this tab open…');
+    google.script.run.withSuccessHandler(function(value){
+      setText('progress','Installation completed and validated.');
+      renderStatus({
+        canInstall:true,signedIn:true,activeEmail:setupState.activeEmail,requiredSetupEmail:setupState.requiredSetupEmail,
+        configured:true,generation:value.generation,officeUrl:value.officeUrl,rootFolderUrl:value.rootFolderUrl,spreadsheetUrl:value.spreadsheetUrl
+      });
+    }).withFailureHandler(function(error){
+      button.disabled=false;setText('progress','Installation stopped. No external customer action occurred.');
+      setText('error',error&&error.message?error.message:String(error));
+    }).boNorthernLakesCreateCleanOffice({
+      parentFolder:document.getElementById('parentFolder').value,
+      confirmation:document.getElementById('confirmation').value
+    });
+  }
+  loadStatus();
+</script>
+</body>
+</html>
