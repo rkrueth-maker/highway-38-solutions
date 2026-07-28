@@ -12,11 +12,39 @@ function boGetActiveEmail_(){
   if(bridge&&typeof bridge.getActiveEmail==='function')return bridge.getActiveEmail();
   return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();
 }
+function boSupportAccount_(email){
+  var normalized=boAuthText_(email).toLowerCase();
+  if(!normalized)return null;
+  var pack=boGetPackSnapshot_();
+  var support=pack&&pack.support?pack.support:{};
+  if(support.enabled!==true)return null;
+  var accounts=Array.isArray(support.accounts)?support.accounts:[];
+  var account=accounts.find(function(item){return boAuthText_(item&&item.email).toLowerCase()===normalized;});
+  if(!account)return null;
+  return {
+    'User ID':'H38-SUPPORT-'+normalized.replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').toUpperCase(),
+    'Business ID':boGetBusinessId_(),
+    Email:normalized,
+    'Display Name':boAuthText_(account.displayName)||('H38 Support — '+normalized),
+    'Role ID':'ROLE-OWNER',
+    Status:'Active',
+    'Payroll Access':'Yes',
+    'Tax Access':'Yes',
+    'Posting Access':'Yes',
+    'Customer Send Access':'Yes',
+    'Export Access':'Yes',
+    'User Access Admin':'Yes',
+    '__Support Access':'Yes',
+    '__Support Provider':boAuthText_(support.provider)||'Highway 38 Solutions'
+  };
+}
 function boGetCurrentUser_(){
   var bridge=boAuthBridge_();
   if(bridge&&typeof bridge.getCurrentUser==='function')return bridge.getCurrentUser();
   var email=boGetActiveEmail_();
   boAuthAssert_(email,'A signed-in Google account is required.');
+  var supportUser=boSupportAccount_(email);
+  if(supportUser)return supportUser;
   var user=boReadTable_(H38_BO_SHEETS.USERS,{includeVoided:true}).find(function(row){
     return boAuthText_(row.Email).toLowerCase()===email&&row.Status==='Active';
   });
@@ -96,7 +124,7 @@ function boGetClientContext(){
     businessId:boGetBusinessId_(),
     business:{id:pack.business.id,name:pack.business.publicName,legalName:pack.business.legalName||'',timeZone:pack.business.timeZone,branding:pack.branding,urls:pack.urls,approvalNotice:boApprovalNotice_(),packId:pack.packId,deploymentMode:pack.deployment.mode},
     modules:pack.modules,
-    user:{id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',payrollAccess:user['Payroll Access']==='Yes',taxAccess:user['Tax Access']==='Yes',postingAccess:user['Posting Access']==='Yes',customerSendAccess:user['Customer Send Access']==='Yes',exportAccess:user['Export Access']==='Yes',userAdminAccess:user['User Access Admin']==='Yes'},
+    user:{id:user['User ID'],email:user.Email,displayName:user['Display Name'],role:role?role['Role Name']:'',payrollAccess:user['Payroll Access']==='Yes',taxAccess:user['Tax Access']==='Yes',postingAccess:user['Posting Access']==='Yes',customerSendAccess:user['Customer Send Access']==='Yes',exportAccess:user['Export Access']==='Yes',userAdminAccess:user['User Access Admin']==='Yes',supportAccess:user['__Support Access']==='Yes',supportProvider:user['__Support Provider']||''},
     boundaries:{externalActionsEnabled:testBoundary.externalActionsEnabled,directPaymentProcessing:false,directPayrollFunding:false,directTaxFiling:false,testMode:testBoundary.testMode,tax:boTaxBoundary_(),accounting:boAccountingBoundary_()}
   };
 }
