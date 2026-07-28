@@ -1,8 +1,10 @@
 Authorized production deployment trigger
-UTC date: 2026-07-20
-Target: dedicated Northern Lakes Business Office
+UTC date: 2026-07-27
+Target: existing dedicated Northern Lakes Business Office project and deployment
 Business ID: NLPS
+Release: clean unified Core Engine installer, Northern Lakes Drive setup, training examples, and H38 linked-office control
+Drive setup account: northernlakesproperty@gmail.com
 External actions: disabled
 ALLOW_FIRST_INSTALL=TRUE
-Authorization: build deploy go
-Retry: package push and version creation verified; execute protected production deployment
+Authorization: Rick Krueth explicitly authorized build and deployment
+Protection: preserve the previous Northern Lakes deployment version and archive old resource IDs; do not delete old Drive data
