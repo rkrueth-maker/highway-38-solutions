@@ -55,17 +55,49 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
           clasp show-authorized-user --json >/dev/null
-      - name: Assemble isolated Northern Lakes source
+      - name: Assemble isolated Northern Lakes unified Core Engine
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf dist/northern-lakes-business-office
-          mkdir -p dist/northern-lakes-business-office
+          PROJECT="$PWD/dist/northern-lakes-business-office"
+          rm -rf "$PROJECT"
+          mkdir -p "$PROJECT"
+
+          cp apps-script/core-engine/owner-portal-next/*.js "$PROJECT/"
+          cp apps-script/core-engine/owner-portal-next/*.html "$PROJECT/"
           bash scripts/assemble-business-office-app.sh \
-            "$PWD/dist/northern-lakes-business-office" \
+            "$PROJECT" \
             "$PWD/business-packs/northern-lakes/apps-script/BusinessOffice_Pack.gs" \
             "$PWD"
-          node scripts/verify-northern-lakes-business-office.js dist/northern-lakes-business-office
+          cp apps-script/business-office-sync/BusinessOffice_Sync.gs "$PROJECT/"
+
+          node - "$PROJECT/BusinessOffice_NorthernLakesSetup.gs" "business-packs/template-business/business-office.schema.json.gz.b64" <<'NODE'
+          const fs=require('fs');
+          const [setupPath,schemaPath]=process.argv.slice(2);
+          let source=fs.readFileSync(setupPath,'utf8');
+          const schema=fs.readFileSync(schemaPath,'utf8').trim();
+          if(!source.includes('__BO_NEUTRAL_SCHEMA_GZIP_B64__'))throw new Error('Northern Lakes setup schema placeholder is missing.');
+          if(!schema)throw new Error('Neutral Business Office schema is empty.');
+          source=source.replace('__BO_NEUTRAL_SCHEMA_GZIP_B64__',schema);
+          if(source.includes('__BO_NEUTRAL_SCHEMA_GZIP_B64__'))throw new Error('Northern Lakes setup schema injection was incomplete.');
+          fs.writeFileSync(setupPath,source);
+          NODE
+
+          node scripts/build-unified-apps-script-shell.js "$PROJECT" "$PWD"
+          node scripts/verify-northern-lakes-business-office.js "$PROJECT"
+          node scripts/verify-unified-app-shell.js
+
+          node - "$PROJECT" <<'NODE'
+          const fs=require('fs'),path=require('path'),root=process.argv[2];
+          const files=fs.readdirSync(root).filter(name=>/^(Portal_|BusinessOffice_|Unified_)/.test(name)&&/\.(?:gs|js|html)$/.test(name));
+          const entries=[];
+          for(const name of files.filter(name=>/\.(?:gs|js)$/.test(name))){
+            const source=fs.readFileSync(path.join(root,name),'utf8');
+            for(let i=0;i<(source.match(/\bfunction\s+doGet\s*\(/g)||[]).length;i++)entries.push(name);
+          }
+          if(entries.length!==1||entries[0]!=='Unified_AppShell.gs')throw new Error(`Expected one unified entry point; found ${entries.join(',')||'none'}`);
+          console.log(`PASS — Northern Lakes unified source contains ${files.length} controlled files and one entry point.`);
+          NODE
       - name: Resolve protected deployment target
         id: target
         shell: bash
@@ -131,7 +163,7 @@ jobs:
           fi
           [[ -n "$SCRIPT_ID" ]] || { echo 'Could not determine Apps Script project ID.'; exit 1; }
           echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
-      - name: Push exact source and deploy web app
+      - name: Push exact unified source and deploy existing web app
         id: deployment
         shell: bash
         working-directory: dist/northern-lakes-business-office
@@ -140,15 +172,16 @@ jobs:
         run: |
           set -euo pipefail
           clasp push --force
-          VERSION_OUTPUT="$(clasp create-version 'Northern Lakes isolated Business Office release')"
+          clasp show-file-status
+          VERSION_OUTPUT="$(clasp create-version 'Northern Lakes unified Core Engine release')"
           printf '%s\n' "$VERSION_OUTPUT"
           VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | sed -nE 's/.*[Vv]ersion[^0-9]*([0-9]+).*/\1/p' | tail -1)"
           [[ -n "$VERSION" ]] || { echo 'Could not determine Apps Script version.'; exit 1; }
           if [[ -n "$RESOLVED_DEPLOYMENT_ID" ]]; then
-            OUTPUT="$(clasp create-deployment --deploymentId "$RESOLVED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            OUTPUT="$(clasp create-deployment --deploymentId "$RESOLVED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description 'Northern Lakes unified Business Office production')"
             DEPLOYMENT_ID="$RESOLVED_DEPLOYMENT_ID"
           else
-            OUTPUT="$(clasp create-deployment --versionNumber "$VERSION" --description 'Northern Lakes Business Office production')"
+            OUTPUT="$(clasp create-deployment --versionNumber "$VERSION" --description 'Northern Lakes unified Business Office production')"
             DEPLOYMENT_ID="$(printf '%s\n' "$OUTPUT" | sed -nE 's/.*(AKfy[A-Za-z0-9_-]+).*/\1/p' | head -1)"
           fi
           printf '%s\n' "$OUTPUT"
@@ -156,6 +189,7 @@ jobs:
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec" >> "$GITHUB_OUTPUT"
+          echo "setup_url=https://script.google.com/macros/s/$DEPLOYMENT_ID/exec?setup=1" >> "$GITHUB_OUTPUT"
       - name: Record deployment evidence
         shell: bash
         run: |
@@ -169,9 +203,12 @@ jobs:
             "deploymentId": "${{ steps.deployment.outputs.deployment_id }}",
             "version": "${{ steps.deployment.outputs.version }}",
             "businessOfficeUrl": "${{ steps.deployment.outputs.url }}",
+            "setupUrl": "${{ steps.deployment.outputs.setup_url }}",
             "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "commit": "${GITHUB_SHA}",
             "isolated": true,
+            "coreEngine": "unified",
+            "driveOwnerSetupAccount": "northernlakesproperty@gmail.com",
             "externalActionsEnabled": false,
             "openAiKeyAvailableToWorkflow": ${{ env.OPENAI_API_KEY != '' }}
           }
