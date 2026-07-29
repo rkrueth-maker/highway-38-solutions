@@ -10,6 +10,11 @@ const exists=rel=>fs.existsSync(path.join(root,rel));
 const check=(name,condition,evidence='')=>(condition?passes:failures).push({name,evidence});
 
 const index=read('index.html');
+const software=read('software.html');
+const projectServices=read('project-services.html');
+const interactiveDemo=read('quote-builder-demo.html');
+const implementation=read('implementation.html');
+const security=read('security-reliability.html');
 const solutions=read('solutions.html');
 const pricing=read('pricing.html');
 const samples=read('sample-library-now.html');
@@ -46,16 +51,22 @@ const publicPackages=publicData&&Array.isArray(publicData.packages)?publicData.p
 const publicDrawings=publicData&&publicData.drawings?Object.keys(publicData.drawings):[];
 const matchedSheets=publicPackages.flatMap(item=>item.sheets||[]);
 
-check('homepage uses current project-first promise',index.includes('Bring us the problem.')&&index.includes('complete project plan.')&&index.includes('See it. Scope it. Run it.'));
-check('homepage has request and neutral discovery actions',index.includes('href="start-request.html"')&&index.includes('href="solutions.html"')&&index.includes('href="pricing.html"')&&!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(index));
+check('homepage uses current problem-first promise',index.includes('Bring us the problem.')&&index.includes('clear working path.')&&index.includes('See it. Scope it. Run it.'));
+check('homepage has controlled request and balanced discovery actions',index.includes('href="start-request.html"')&&index.includes('href="software.html"')&&index.includes('href="project-services.html"')&&index.includes('href="pricing.html"')&&!/href=["']business-systems\.html/i.test(index)&&!/href=["']quote-builder\.html["']/i.test(index));
+check('homepage separates software and project-service buyers',index.includes('I need better software')&&index.includes('I need help solving a project'));
 check('homepage uses approved local imagery without mockup shell',index.includes('assets/approved-website-images/')&&!index.includes('approved-homepage-mockup.png')&&!/class="[^"]*hotspot/.test(index));
 check('homepage contains no prohibited CNC quantity claim or personal attribution',!/25,000\+\s*(?:CNC\s+)?programs?|Rick\s+Krueth/i.test(index));
-check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-grid')&&!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}"));
+check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-grid')&&!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&publicShell.includes("{href:'software.html',label:'Software'}")&&publicShell.includes("{href:'project-services.html',label:'Project Services'}"));
 check('canonical public shell locks image replacement',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(publicShell));
+check('software page explains all three approved levels',software.includes('Quote Builder')&&software.includes('Business Office')&&software.includes('Custom Business System'));
+check('project services page retains licensed and field verification boundary',projectServices.includes('Planning support does not replace licensed or field verification.'));
+check('interactive quote demo is browser-only and non-submitting',interactiveDemo.includes('Nothing leaves this page')&&!/script\.google\.com|data-intake-endpoint/.test(interactiveDemo));
+check('implementation and security pages make launch controls visible',implementation.includes('Acceptance evidence')&&security.includes('Controlled external actions')&&security.includes('Fail-closed boundaries'));
 
 check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
 check('What We Do removes retired fixed-price paths',!solutions.includes('Choose Your Path')&&!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot'));
 check('pricing uses final approved product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
+check('pricing explains implementation value',pricing.includes('Implementation value')&&pricing.includes('implementation.html')&&pricing.includes('security-reliability.html'));
 
 const existingExampleCount=(samples.match(/class="project-card"/g)||[]).length;
 const houseIndex=samples.indexOf('data-project="cabin"');
@@ -79,7 +90,7 @@ check('request flow keeps email fallback and draft recovery',request.includes('i
 check('secure intake creates internal Owner-review record only',/function doPost\(event\)/.test(intake)&&/Owner Approval Required/.test(intake)&&!/sendEmail|GmailApp|MailApp/.test(intake));
 check('secure intake preserves idempotency protection',/H38_PUBLIC_INTAKE_/.test(intake)&&/DUPLICATE_ACCEPTED/.test(intake));
 
-check('project-first route manifest owns current public gateways',['index.html','sample-library-now.html','solutions.html','pricing.html','about.html','contact.html','start-request.html','portal.html'].every(routePath=>(routes.primary||[]).some(item=>item.path===routePath)));
+check('competitive-readiness route manifest owns current public gateways',['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','start-request.html','portal.html'].every(routePath=>(routes.primary||[]).some(item=>item.path===routePath)));
 check('Universal Quote Builder compatibility route is registered',(routes.demonstrations||[]).some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog and tool routes remain redirects',routes.retired['products.html']==='pricing.html'&&routes.retired['catalog.html']==='pricing.html'&&routes.retired['tool-center.html']==='sample-library-now.html');
 check('one approved asset manifest and one placement manifest remain canonical',approvedAssets.approved_logo&&placements.pages&&exists('scripts/config/approved-public-assets.json')&&exists('scripts/config/approved-public-image-placements.json'));
@@ -103,6 +114,6 @@ check('Business Office uses controlled approved logo',businessConfig.branding.lo
 check('Business Office remains one complete app',businessConfig.package&&businessConfig.package.singleApp===true);
 check('deployment updates existing IDs in place',deployment.includes('clasp update-deployment "$OWNER_DEPLOYMENT_ID"')&&deployment.includes('clasp update-deployment "$BUSINESS_OFFICE_DEPLOYMENT_ID"')&&!/clasp\s+(?:create-script|create-deployment)\b/.test(deployment));
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'project-first-equal-product-paths-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,publicPlacement:'dedicated Quote Builder and compatibility example routes',matchedPublicPackages:publicPackages.length,publicCadSheets:publicDrawings.length,passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,architecture:'competitive-readiness-split-buyer-paths-plus-unified-business-office',existingProjectExamples:existingExampleCount,universalDemonstration:true,publicPlacement:'Quote Builder examples plus browser-only interactive demo',matchedPublicPackages:publicPackages.length,publicCadSheets:publicDrawings.length,passes,failures};
 const outputDir=path.join(root,'artifacts','final-polish');fs.mkdirSync(outputDir,{recursive:true});fs.writeFileSync(path.join(outputDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));process.exit(failures.length?1:0);

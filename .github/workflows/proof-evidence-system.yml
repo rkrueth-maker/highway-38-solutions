@@ -10,10 +10,12 @@ on:
       - 'proof.js'
       - 'proof-data.js'
       - 'free-tools.html'
+      - 'sample-library-now.html'
       - 'downloads/**'
       - 'launch-control/public-proof-manifest.json'
       - 'scripts/process-private-proof-evidence.js'
       - 'scripts/verify-proof-evidence-system.js'
+      - 'scripts/verify-proof-evidence-current.js'
       - '.github/workflows/proof-evidence-system.yml'
   push:
     branches:
@@ -24,10 +26,12 @@ on:
       - 'proof.js'
       - 'proof-data.js'
       - 'free-tools.html'
+      - 'sample-library-now.html'
       - 'downloads/**'
       - 'launch-control/public-proof-manifest.json'
       - 'scripts/process-private-proof-evidence.js'
       - 'scripts/verify-proof-evidence-system.js'
+      - 'scripts/verify-proof-evidence-current.js'
       - '.github/workflows/proof-evidence-system.yml'
   workflow_dispatch:
 
@@ -42,8 +46,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify PST preservation, private indexing, public proof, photos, calculators, and downloads
-        run: node scripts/verify-proof-evidence-system.js
+      - name: Verify private proof controls and current public proof routing
+        run: node scripts/verify-proof-evidence-current.js
       - name: Upload proof-system evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -51,6 +55,7 @@ jobs:
           name: proof-evidence-system-${{ github.run_id }}
           path: |
             launch-control/evidence/proof-evidence-system-verification.json
+            launch-control/evidence/proof-evidence-current-verification.json
             launch-control/evidence/proof-evidence-synthetic-pipeline.json
           if-no-files-found: error
           retention-days: 90

@@ -20,7 +20,7 @@ const taskClient='apps-script/core-engine/owner-portal-next/Portal_TaskMessaging
 const taskRules='apps-script/business-office/BusinessOffice_TaskAssignmentRules.gs';
 const portalBusiness='apps-script/core-engine/owner-portal-next/Portal_Business.js';
 const workflowAutomation='apps-script/business-office/ZZZ_BusinessOffice_WorkflowAutomation.gs';
-const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html',mobileStyles,mobileClient,dailyStyles,dailyClient,taskStyles,taskClient,taskRules,portalBusiness,workflowAutomation,'apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
+const required=['assets/css/project-intelligence.css','assets/js/h38-site-v2.js','platform-unified.css','platform-states.js','pricing-data.js','assets/js/h38-request-options.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','index.html','software.html','project-services.html','quote-builder-demo.html','implementation.html','security-reliability.html','solutions.html','pricing.html','start-request.html','customer-portal.html','supabase/migrations/20260717_customer_portal_quote_project_ux.sql','apps-script/unified-shell/Unified_PublicIntake.gs','apps-script/core-engine/owner-portal-next/Portal_OneShot_UX_Styles.html','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html','apps-script/core-engine/owner-portal-next/Portal_Product_Styles.html',mobileStyles,mobileClient,dailyStyles,dailyClient,taskStyles,taskClient,taskRules,portalBusiness,workflowAutomation,'apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js','apps-script/core-engine/owner-portal-next/Portal_Index.html'];
 required.forEach(file=>check(`required ${file}`,exists(file)));
 ['assets/js/h38-site-v2.js','pricing-data.js','assets/js/h38-request-options.js','platform-states.js','request-flow.js','customer-portal-ux.js','customer-portal-unification.js','customer-portal-supabase.js','apps-script/core-engine/owner-portal-next/Portal_OneShot_Client.html',mobileClient,dailyClient,taskClient,taskRules,portalBusiness,workflowAutomation].forEach(file=>{try{new vm.Script(read(file),{filename:file});check(`syntax ${file}`,true);}catch(error){check(`syntax ${file}`,false,error.message);}});
 
@@ -29,18 +29,22 @@ const publicShell=read('assets/js/h38-site-v2.js');
 need('index.html','class="pi-nav"','homepage uses current responsive navigation host');
 check('canonical shell labels the main navigation',publicShell.includes('aria-label="Main navigation"'));
 check('canonical shell provides accessible mobile navigation control',publicShell.includes('class="pi-menu"')&&publicShell.includes('aria-expanded="false"')&&publicShell.includes('aria-controls="h38-main-navigation"'));
-need('index.html','Bring us the problem.','homepage presents current project-first promise');
-need('index.html','complete project plan.','homepage completes current project-first promise');
+need('index.html','Bring us the problem.','homepage presents current problem-first promise');
+need('index.html','clear working path.','homepage states the current practical outcome');
 need('index.html','See it. Scope it. Run it.','homepage explains the project-first workflow');
 need('index.html','From first photo to final closeout.','homepage explains the connected project lifecycle');
-check('homepage exposes the three accepted discovery steps',['See the full capability path','Tell us about the problem','Receive the working system'].every(marker=>home.includes(marker)));
+check('homepage exposes the three accepted discovery steps',['See the complete proof','Tell us about the problem','Receive the working system'].every(marker=>home.includes(marker)));
+check('homepage separates software and project-service buyer paths',home.includes('I need better software')&&home.includes('I need help solving a project')&&home.includes('software.html')&&home.includes('project-services.html'));
 check('homepage exposes connected deliverables',['Plans and visual concepts','Detailed quotes','Job-ready instructions','Connected Business Office'].every(marker=>home.includes(marker)));
 check('homepage preserves neutral request solutions pricing and contact routes',['start-request.html','solutions.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
-check('homepage does not directly promote one software product',!/href=["'](?:quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html/i.test(home));
-check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']"));
+check('homepage does not directly sell one authenticated software product',!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
+check('homepage may link product examples without turning them into the primary buyer path',home.includes('quote-builder.html#examples')&&home.includes('software.html'));
+check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']")&&publicShell.includes("{href:'software.html',label:'Software'}"));
 check('homepage uses verified local imagery',home.includes('assets/')&&!/https?:[^"']+\.(?:jpg|jpeg|png|webp)/i.test(home));
 check('homepage removes obsolete mockup shells',!home.includes('approved-homepage-mockup.png')&&!home.includes('class="hotspot')&&!home.includes('approved-home__stage'));
 check('homepage does not restore retired product catalog as primary experience',!home.includes('Choose Your Path')&&!home.includes('Browse 15 products')&&!home.includes('9 bundles'));
+check('interactive quote demo remains browser-only',read('quote-builder-demo.html').includes('Nothing leaves this page')&&!/script\.google\.com|data-intake-endpoint/.test(read('quote-builder-demo.html')));
+check('implementation and security paths are visible',home.includes('implementation.html')&&home.includes('security-reliability.html'));
 
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
