@@ -1,11 +1,16 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-26-universal-quote-builder-static-public-v1",
+  "version": "2026-07-29-competitive-readiness",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
     {"path":"solutions.html","label":"What We Do","shell":"canonical","visibility":"public"},
+    {"path":"software.html","label":"Business Software","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/software.html","shell":"canonical","visibility":"public"},
+    {"path":"project-services.html","label":"Project Services","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/project-services.html","shell":"canonical","visibility":"public"},
     {"path":"pricing.html","label":"Pricing","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/pricing.html","shell":"canonical","visibility":"public"},
+    {"path":"quote-builder-demo.html","label":"Interactive Quote Builder Demo","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/quote-builder-demo.html","shell":"canonical","visibility":"public"},
+    {"path":"implementation.html","label":"Implementation and Onboarding","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/implementation.html","shell":"canonical","visibility":"public"},
+    {"path":"security-reliability.html","label":"Security and Reliability","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/security-reliability.html","shell":"canonical","visibility":"public"},
     {"path":"about.html","label":"About","shell":"canonical","visibility":"public"},
     {"path":"contact.html","label":"Contact","shell":"canonical","visibility":"public"},
     {"path":"start-request.html","label":"Start a Project","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/start-request.html","shell":"canonical","visibility":"public"},
