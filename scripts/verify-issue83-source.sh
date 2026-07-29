@@ -12,22 +12,39 @@ check_file_contains() {
   echo "PASS — $label"
 }
 
-check_file_contains index.html 'Bring us the problem.' 'Homepage project-first headline'
-check_file_contains index.html 'complete project plan.' 'Homepage project-first completion'
-check_file_contains index.html 'See it. Scope it. Run it.' 'Homepage connected workflow'
-check_file_contains index.html 'href="start-request.html"' 'Homepage primary project request route'
-check_file_contains index.html 'href="solutions.html"' 'Homepage neutral capability route'
-check_file_contains index.html 'href="pricing.html"' 'Homepage neutral pricing route'
-if grep -Eq 'href="(quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html' index.html; then
-  echo 'FAIL — homepage directly promotes an individual software product.' >&2
+check_file_contains index.html 'Bring us the problem.' 'Homepage problem-first headline'
+check_file_contains index.html 'clear working path.' 'Homepage practical outcome'
+check_file_contains index.html 'Choose the kind of help you need' 'Homepage buyer choice'
+check_file_contains index.html 'I need better software' 'Homepage software path'
+check_file_contains index.html 'I need help solving a project' 'Homepage project-service path'
+check_file_contains index.html 'href="software.html"' 'Homepage software route'
+check_file_contains index.html 'href="project-services.html"' 'Homepage project services route'
+check_file_contains index.html 'href="quote-builder-demo.html"' 'Homepage interactive quote route'
+check_file_contains index.html 'href="implementation.html"' 'Homepage implementation route'
+check_file_contains index.html 'href="security-reliability.html"' 'Homepage security route'
+check_file_contains index.html 'href="start-request.html"' 'Homepage controlled request route'
+check_file_contains index.html 'href="pricing.html"' 'Homepage pricing route'
+if grep -Eq 'href="business-systems\.html' index.html; then
+  echo 'FAIL — homepage directly sells the authenticated Business Office route.' >&2
   exit 1
 fi
-echo 'PASS — homepage keeps software products behind neutral discovery paths'
-if grep -Fq "{href:'quote-builder.html',label:'Quote Builder'}" assets/js/h38-site-v2.js || grep -Fq "['Quote Builder','quote-builder.html']" assets/js/h38-site-v2.js || grep -Fq "{href:'business-systems.html',label:'Business Office'}" assets/js/h38-site-v2.js || grep -Fq "['Business Office','business-systems.html']" assets/js/h38-site-v2.js; then
-  echo 'FAIL — shared navigation or footer directly promotes one software product.' >&2
+echo 'PASS — homepage keeps authenticated software behind the software buyer path'
+check_file_contains assets/js/h38-site-v2.js "{href:'software.html',label:'Software'}" 'Canonical software path'
+check_file_contains assets/js/h38-site-v2.js "{href:'project-services.html',label:'Project Services'}" 'Canonical project services path'
+if grep -Fq "{href:'quote-builder.html',label:'Quote Builder'}" assets/js/h38-site-v2.js || grep -Fq "{href:'business-systems.html',label:'Business Office'}" assets/js/h38-site-v2.js; then
+  echo 'FAIL — shared navigation directly favors one software product.' >&2
   exit 1
 fi
-echo 'PASS — shared shell gives Quote Builder and Business Office equal paths'
+echo 'PASS — shared shell keeps product selection inside the software path'
+check_file_contains software.html 'Three software levels' 'Software product structure'
+check_file_contains software.html 'AI prepares; people approve' 'Software control boundary'
+check_file_contains project-services.html 'Planning support does not replace licensed or field verification.' 'Project-service professional boundary'
+check_file_contains quote-builder-demo.html 'Nothing leaves this page' 'Interactive demo privacy boundary'
+check_file_contains quote-builder-demo.html 'Not a real customer quote or authorization to proceed.' 'Interactive demo authorization boundary'
+check_file_contains implementation.html 'Discover and preserve' 'Implementation preservation phase'
+check_file_contains implementation.html 'Acceptance evidence' 'Implementation acceptance evidence'
+check_file_contains security-reliability.html 'Controlled external actions' 'Security external-action controls'
+check_file_contains security-reliability.html 'Fail-closed boundaries' 'Security fail-closed controls'
 check_file_contains solutions.html 'Five connected capabilities' 'What We Do five-capability structure'
 check_file_contains solutions.html 'Automation & Robotics' 'Automation capability'
 check_file_contains solutions.html 'CNC Machining & Process Planning' 'CNC capability'
@@ -47,6 +64,8 @@ check_file_contains sample-library-now.html 'Representative demonstrations.' 'Pr
 check_file_contains sample-library-now.html 'data-samples="all"' 'Public examples compatibility marker'
 check_file_contains universal-quote-builder.html 'sample-library-now.html#universal-quote-builder-examples' 'Legacy Universal Quote Builder redirect'
 check_file_contains quote-builder.html 'universal-quote-builder.html' 'Quote Builder compatibility route'
+check_file_contains quote-builder.html 'quote-builder-demo.html' 'Quote Builder interactive demo route'
+check_file_contains pricing.html 'Implementation value' 'Pricing implementation explanation'
 check_file_contains start-request.html 'What result do you need?' 'Request outcome prompt'
 check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
 check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
@@ -97,4 +116,4 @@ if [[ -n "$claim_matches" ]]; then
   exit 1
 fi
 echo 'PASS — prohibited CNC claim absent from public HTML'
-echo 'Current embedded public quote-and-CAD source verification passed.'
+echo 'Current public buyer-path, quote-demo, and quote-and-CAD source verification passed.'
