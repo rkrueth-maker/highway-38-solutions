@@ -3,13 +3,14 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-07-27-equal-product-paths';
+  const VERSION='2026-07-28-clarity';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const registry={
     version:VERSION,
     logo:LOGO,
     navigation:[
       {href:'solutions.html',label:'What We Do'},
+      {href:'quote-builder.html#examples',label:'Project Examples'},
       {href:'pricing.html',label:'Pricing'},
       {href:'about.html',label:'About'},
       {href:'portal.html',label:'Owner Access'},
@@ -17,7 +18,7 @@
     ],
     footer:[
       {heading:'Start',links:[['Start a Project','start-request.html'],['Pricing','pricing.html']]},
-      {heading:'Learn',links:[['What We Do','solutions.html'],['About','about.html'],['Contact','contact.html']]},
+      {heading:'Learn',links:[['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples'],['About','about.html'],['Contact','contact.html']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
     redirects:{
