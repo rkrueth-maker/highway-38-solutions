@@ -3,13 +3,14 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-07-28-clarity';
+  const VERSION='2026-07-29-competitive-readiness';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const registry={
     version:VERSION,
     logo:LOGO,
     navigation:[
-      {href:'solutions.html',label:'What We Do'},
+      {href:'software.html',label:'Software'},
+      {href:'project-services.html',label:'Project Services'},
       {href:'quote-builder.html#examples',label:'Project Examples'},
       {href:'pricing.html',label:'Pricing'},
       {href:'about.html',label:'About'},
@@ -17,8 +18,9 @@
       {href:'start-request.html',label:'Start a Project',cta:true}
     ],
     footer:[
-      {heading:'Start',links:[['Start a Project','start-request.html'],['Pricing','pricing.html']]},
-      {heading:'Learn',links:[['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples'],['About','about.html'],['Contact','contact.html']]},
+      {heading:'Start',links:[['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
+      {heading:'Explore',links:[['Business Software','software.html'],['Project Services','project-services.html'],['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples']]},
+      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
     redirects:{
@@ -32,7 +34,7 @@
   function currentPage(){return location.pathname.split('/').pop()||'index.html';}
   function ensureStyles(){if(document.querySelector('link[data-h38-site-shell]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='assets/css/h38-site-v2.css?v='+VERSION;link.dataset.h38SiteShell='1';document.head.appendChild(link);}
   function brand(){return `<a class="pi-brand" href="index.html"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><span>HIGHWAY 38 SOLUTIONS</span></a>`;}
-  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const active=page===item.href||(page==='index.html'&&item.href==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
+  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const target=item.href.split('#')[0];const active=page===target||(page==='index.html'&&target==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
   function footerMarkup(){return `<div class="pi-footer-grid"><div class="pi-logo-lock"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><p>Plans, systems and guided project delivery.</p></div>${registry.footer.map(group=>`<div><h4>${group.heading}</h4>${group.links.map(link=>`<a href="${link[1]}">${link[0]}</a>`).join('')}</div>`).join('')}</div>`;}
   function mountHeader(){const header=document.querySelector('header.pi-nav,nav.site-nav,header.site-header');if(!header)return;if(header.matches('nav')){const replacement=document.createElement('header');replacement.className='pi-nav';header.replaceWith(replacement);replacement.innerHTML=navMarkup();}else{header.className='pi-nav';header.innerHTML=navMarkup();}}
   function mountFooter(){const footer=document.querySelector('footer.pi-footer,footer.site-footer,footer.footer');if(!footer)return;footer.className='pi-footer';footer.innerHTML=footerMarkup();}
