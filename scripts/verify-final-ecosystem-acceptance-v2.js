@@ -35,7 +35,8 @@ function main(){
     'launch-control/final-acceptance-package.json','launch-control/FINAL_ACCEPTANCE.md','final-acceptance.html','ecosystem-status.html',
     'revenue-operations-status.html','customer-portal.html','business-concept-builder.html','proof.html','free-tools.html','products.html','sitemap.xml','catalog-data.js',
     'core-engine/product/config/core-engine.default.json','core-engine/product/business-concept-builder/business-concept-core.js','core-engine/customer-portal/README.md',
-    'core-engine/revenue-operations/config/provider-activation.json','core-engine/revenue-operations/config/social-content-plan-30-day.json','proof-system/status.json'
+    'core-engine/revenue-operations/config/provider-activation.json','core-engine/revenue-operations/config/social-content-plan-30-day.json','proof-system/status.json',
+    'scripts/verify-proof-evidence-current.js'
   ];
   required.forEach(file=>check(`required artifact: ${file}`,exists(file)));
 
@@ -63,7 +64,7 @@ function main(){
 
   check('public URL inventory recorded',pkg.livePublicUrls.length>=16,String(pkg.livePublicUrls.length));
   pkg.livePublicUrls.forEach(url=>{const target=localTarget(url);check(`public URL target: ${url}`,target&&exists(target),target||'invalid site URL');});
-  check('final acceptance route published in sitemap',exists('final-acceptance.html')&&read('sitemap.xml').includes('final-acceptance.html'));
+  check('final acceptance route published in sitemap',exists('final-acceptance.html')&&read('sitemap.xml').includes('<loc>https://rkrueth-maker.github.io/highway-38-solutions/final-acceptance.html</loc>'));
 
   const blockerIds=pkg.exactRemainingBlockers.map(item=>item.id);
   check('blockers numerous and unique',blockerIds.length>=15&&new Set(blockerIds).size===blockerIds.length,String(blockerIds.length));
@@ -115,7 +116,7 @@ function main(){
 
   const verifierFiles=[
     'scripts/verify-complete-ecosystem-launch.js','scripts/verify-public-ecosystem-tools.js','scripts/verify-business-os-productization.js',
-    'scripts/verify-business-concept-builder.js','scripts/verify-proof-evidence-system.js','scripts/verify-revenue-operations-core.js','scripts/verify-revenue-growth-activation.js'
+    'scripts/verify-business-concept-builder.js','scripts/verify-proof-evidence-current.js','scripts/verify-revenue-operations-core.js','scripts/verify-revenue-growth-activation.js'
   ];
   const verifierRuns=verifierFiles.map(runVerifier);
   verifierRuns.forEach(result=>check(`integrated verifier: ${result.file}`,result.status==='PASS',result.detail));
