@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Verifies the current public Highway 38 product structure, Quote Builder
- * experience, complete new-house package, and all ten public CAD SVG routes.
+ * Verifies the current public Highway 38 buyer paths, product structure,
+ * interactive quote demonstration, complete new-house package, and all ten
+ * public CAD SVG routes.
  *
  * Exit code 0 = PASS, 1 = FAIL.
  */
@@ -24,9 +25,38 @@ const PAGE_CHECKS = [
     required: [
       'Bring us the problem.',
       'Start a Project',
-      'Explore What We Do',
-      'You do not need to choose from a long product catalog.',
+      'Try the Quote Demo',
+      'Choose the kind of help you need',
+      'I need better software',
+      'I need help solving a project',
+      'Implementation and Onboarding',
+      'Security and Reliability',
       'Connected Business Office',
+    ],
+  },
+  {
+    label: 'software buyer path',
+    path: 'software.html',
+    required: [
+      'Software for real business work',
+      'Quote Builder',
+      'Business Office',
+      'Custom Business System',
+      'Try the Quote Demo',
+      'AI prepares; people approve',
+      'Implementation is documented',
+    ],
+  },
+  {
+    label: 'project services buyer path',
+    path: 'project-services.html',
+    required: [
+      'Planning and guided project delivery',
+      'Construction and property projects',
+      'Manufacturing and CNC work',
+      'Automation and business workflows',
+      'Planning support does not replace licensed or field verification.',
+      'Start a Project Request',
     ],
   },
   {
@@ -44,6 +74,45 @@ const PAGE_CHECKS = [
       '$299 one-time',
       'Best for:',
       'This is a one-time business review, not a software subscription.',
+    ],
+  },
+  {
+    label: 'interactive Quote Builder demo',
+    path: 'quote-builder-demo.html',
+    required: [
+      'Interactive browser-only demonstration',
+      'Nothing leaves this page',
+      'Quote inputs',
+      'Line items',
+      'Print / Save PDF',
+      'Nothing was stored or sent.',
+      'Not a real customer quote or authorization to proceed.',
+    ],
+  },
+  {
+    label: 'implementation and onboarding',
+    path: 'implementation.html',
+    required: [
+      'Implementation that produces a working system',
+      'Discover and preserve',
+      'Configure and migrate',
+      'Verify and train',
+      'Launch and hand off',
+      'Business Office implementation — $2,500',
+      'Acceptance evidence',
+    ],
+  },
+  {
+    label: 'security and reliability',
+    path: 'security-reliability.html',
+    required: [
+      'Security, controls and reliability',
+      'Identity and role access',
+      'Business and customer isolation',
+      'Controlled external actions',
+      'Backups and rollback',
+      'Fail-closed boundaries',
+      'H38 AI boundaries',
     ],
   },
   {
@@ -169,7 +238,7 @@ function fetchUrl(rawUrl, redirectsLeft = 5) {
 
     const req = lib.get(
       rawUrl,
-      { headers: { 'User-Agent': 'highway38-verify-live-page/4.0' } },
+      { headers: { 'User-Agent': 'highway38-verify-live-page/5.0' } },
       (res) => {
         if (
           redirectsLeft > 0 &&
@@ -241,7 +310,7 @@ function verifyForbidden(label, body, forbiddenStrings) {
 }
 
 async function run() {
-  console.log('=== Highway 38 Solutions — current live product and Quote Builder verification ===');
+  console.log('=== Highway 38 Solutions — current live product, trust, and Quote Builder verification ===');
   console.log('Base URL:', BASE_URL);
 
   let failed = false;
