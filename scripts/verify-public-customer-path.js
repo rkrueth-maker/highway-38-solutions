@@ -85,11 +85,10 @@ for(const [oldRoute,target] of Object.entries(retired)){
   check(`${oldRoute}: deterministic redirect`,/location\.replace|http-equiv="refresh"/i.test(html),target);
 }
 const sitemap=read('sitemap.xml');
-for(const route of publicPrimary){
-  const included=route==='index.html'?sitemap.includes('highway-38-solutions/</loc>'):sitemap.includes(route);
-  check(`sitemap includes ${route}`,included);
-}
-for(const oldRoute of Object.keys(retired))check(`sitemap excludes retired ${oldRoute}`,!sitemap.includes(oldRoute));
+const sitemapRoutes=new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match=>{const parsed=new URL(match[1]);const route=parsed.pathname.split('/').filter(Boolean).pop();return route&&route.includes('.')?route:'index.html';}));
+for(const route of publicPrimary)check(`sitemap includes ${route}`,sitemapRoutes.has(route));
+for(const oldRoute of Object.keys(retired))check(`sitemap excludes retired ${oldRoute}`,!sitemapRoutes.has(oldRoute));
+check('sitemap preserves final acceptance route',sitemapRoutes.has('final-acceptance.html'));
 const publicText=publicPrimary.map(read).join('\n')+'\n'+universal;
 check('no public LLC claim',!/Highway 38[^\n<]{0,30}\bLLC\b/i.test(publicText));
 check('no private employer names in public package',!/\bClow\b|\bCSC\b/i.test(publicText));
