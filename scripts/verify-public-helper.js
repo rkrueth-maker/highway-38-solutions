@@ -21,6 +21,7 @@ try{new vm.Script(helper,{filename:'assets/js/h38-helper.js'});check('helper Jav
 try{new vm.Script(shell,{filename:'assets/js/h38-site-v2.js'});check('public shell JavaScript parses',true);}catch(error){check('public shell JavaScript parses',false,error.message);}
 
 check('canonical shell loads one public helper asset',shell.includes("assets/js/h38-helper.js?v=")&&shell.includes("script[data-h38-public-helper]")&&shell.includes("helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsInput:false,privateDataAccess:false,externalActions:false}"));
+check('visual scan polish version is active',shell.includes("const VERSION='2026-07-29-visual-scan-v1'"));
 check('helper identifies approved-information boundary',helper.includes('Answers use approved Highway 38 website information.')&&helper.includes('Nothing entered here is sent or saved.')&&helper.includes('Do not enter private customer information.'));
 check('helper covers approved product and service paths',['Quote Builder is $59 per month','Business Office is $249 per month','Custom Business System starts at $499 per month','Business Snapshot is a separate $299 one-time review','Smart Contact Website is a separate service priced at $1,995 setup plus $99 per month'].every(marker=>helper.includes(marker)));
 check('helper preserves human approval and external-action boundary',helper.includes('People remain responsible for final approval and controlled external actions.')&&helper.includes('The helper does not promise an integration, move money, send messages, or create commitments.'));
@@ -30,6 +31,10 @@ check('helper renders user input with textContent rather than HTML',helper.inclu
 check('helper includes accessible controls and keyboard close',helper.includes("aria-controls','h38-helper-panel")&&helper.includes("aria-live','polite")&&helper.includes("event.key==='Escape'")&&helper.includes("aria-label','Close Highway 38 Helper"));
 check('helper includes page-aware prompts and quick starts',helper.includes("'software.html':'Ask which software level fits your business.'")&&helper.includes('Which product fits my business?')&&helper.includes('What does implementation include?'));
 check('helper styles support desktop, mobile, focus, and safe-area use',css.includes('.h38-helper-panel')&&css.includes('.h38-helper-launcher:focus-visible')&&css.includes('@media(max-width:620px)')&&css.includes('env(safe-area-inset-bottom)'));
+check('mobile helper launcher is compact and cannot cover wide calls to action',css.includes("width:58px;min-width:58px;height:58px")&&css.includes("content:'Help'"));
+check('helper launcher hides while the panel is open',css.includes('.h38-helper-root.open .h38-helper-launcher{visibility:hidden;pointer-events:none}'));
+check('all helper quick prompts are visible in a two-column grid',css.includes('.h38-helper-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))'));
+check('mobile pricing comparison explains horizontal scrolling',css.includes("Swipe sideways to compare all three products."));
 check('footer exposes a non-binding helper entry point',shell.includes("['Ask the H38 Helper','#h38-helper']")&&shell.includes('data-h38-helper-open'));
 
 function normalizeBase(raw){
@@ -42,7 +47,7 @@ function normalizeBase(raw){
 function fetchText(rawUrl,redirects=4){
   return new Promise((resolve,reject)=>{
     const lib=rawUrl.startsWith('https:')?https:http;
-    const request=lib.get(rawUrl,{headers:{'User-Agent':'highway38-public-helper-verify/1.0'}},response=>{
+    const request=lib.get(rawUrl,{headers:{'User-Agent':'highway38-public-helper-verify/1.1'}},response=>{
       if(redirects>0&&[301,302,303,307,308].includes(response.statusCode)&&response.headers.location){
         response.resume();
         fetchText(new URL(response.headers.location,rawUrl).toString(),redirects-1).then(resolve,reject);
@@ -60,8 +65,9 @@ async function verifyLive(){
   if(!raw)return;
   const base=normalizeBase(raw);
   const assets=[
-    ['live public shell','assets/js/h38-site-v2.js',['assets/js/h38-helper.js?v=','approvedSiteInformationOnly:true','storesInput:false','externalActions:false']],
-    ['live public helper','assets/js/h38-helper.js',['Ask the H38 Helper','Nothing entered here is sent or saved.','Which product fits my business?','Quote Builder is $59 per month']]
+    ['live public shell','assets/js/h38-site-v2.js',['assets/js/h38-helper.js?v=','approvedSiteInformationOnly:true','storesInput:false','externalActions:false','2026-07-29-visual-scan-v1']],
+    ['live public helper','assets/js/h38-helper.js',['Ask the H38 Helper','Nothing entered here is sent or saved.','Which product fits my business?','Quote Builder is $59 per month']],
+    ['live helper visual polish','assets/css/h38-site-v2.css',["content:'Help'",'grid-template-columns:repeat(2,minmax(0,1fr))','Swipe sideways to compare all three products.']]
   ];
   for(const [label,relative,markers] of assets){
     try{
@@ -75,7 +81,7 @@ async function verifyLive(){
 
 (async()=>{
   await verifyLive();
-  const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.SOURCE_SHA||process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,networkedHelper:false,storesInput:false,privateDataAccess:false,externalActions:false,passes,failures};
+  const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.SOURCE_SHA||process.env.GITHUB_SHA||'',passed:passes.length,failed:failures.length,networkedHelper:false,storesInput:false,privateDataAccess:false,externalActions:false,visualScanPolish:true,passes,failures};
   const outputDir=path.join(root,'artifacts','public-helper');
   fs.mkdirSync(outputDir,{recursive:true});
   fs.writeFileSync(path.join(outputDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
