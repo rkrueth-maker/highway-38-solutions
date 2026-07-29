@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
       - name: Verify final polish contract
         run: node scripts/verify-highway38-final-polish.js
+      - name: Verify public Highway 38 Helper
+        run: node scripts/verify-public-helper.js
       - name: Verify Owner Portal routing
         run: node scripts/verify-owner-portal-routing.js
       - name: Verify commercial system
@@ -50,6 +52,7 @@ jobs:
           name: highway38-final-polish-static-${{ github.run_id }}
           path: |
             artifacts/final-polish/verification.json
+            artifacts/public-helper/verification.json
             artifacts/owner-portal-routing/verification.json
             launch-control/evidence/complete-ecosystem-verification.json
           if-no-files-found: warn
