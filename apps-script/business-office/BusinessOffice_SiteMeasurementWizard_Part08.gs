@@ -1,7 +1,9 @@
 function boSiteMeasurementVerify(projectId,subquoteId,payload){
   return boSafeExecute_('Verify Site Measurement value',function(){
     var access=boQuoteBuilderRequireAction_('Edit');payload=payload||{};boSiteMeasurementArea_(projectId,subquoteId);
-    var row=boUniversalFind_('MEASUREMENTS',payload.measurementId),original=boSiteMeasurementNumber_(row.Value,'Original value'),checked=boSiteMeasurementNumber_(payload.checkedValue,'Checked value'),tolerance=payload.tolerance==null?H38_SITE_MEASUREMENT.DEFAULT_TOLERANCE_FEET:boSiteMeasurementPositive_(payload.tolerance,'Tolerance',true),difference=Math.abs(original-checked),passed=difference<=tolerance;
+    var row=boUniversalFind_('MEASUREMENTS',payload.measurementId);
+    boAssert_(row['Project ID']===projectId&&row['Subquote ID']===subquoteId,'The selected measurement does not belong to this project area.');
+    var original=boSiteMeasurementNumber_(row.Value,'Original value'),checked=boSiteMeasurementNumber_(payload.checkedValue,'Checked value'),tolerance=payload.tolerance==null?H38_SITE_MEASUREMENT.DEFAULT_TOLERANCE_FEET:boSiteMeasurementPositive_(payload.tolerance,'Tolerance',true),difference=Math.abs(original-checked),passed=difference<=tolerance;
     var meta=boSiteMeasurementParseMeta_(row.Notes)||{marker:H38_SITE_MEASUREMENT.NOTE_MARKER,kind:'measurement',data:{}},nextMeta=Object.assign({},meta.data,{verification:{originalValue:original,checkedValue:checked,difference:difference,tolerance:tolerance,tool:payload.tool||'',user:access.user.email,time:boNow_(),passed:passed,note:payload.note||''}});
     boUniversalUpdate_('MEASUREMENTS',payload.measurementId,{'Verification Status':passed?'Checked':'Conflict — Review Required',Confidence:passed?'FIELD_MEASURED_AND_CHECKED':'NEEDS_REMEASUREMENT',Notes:boSiteMeasurementMeta_(meta.kind,nextMeta)});
     boUniversalUpdate_('PROJECTS',projectId,{'Consistency Status':'Review Required','Approval Status':'Owner Approval Required'});
