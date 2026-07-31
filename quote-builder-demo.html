@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Free Online Quote Builder Example | Highway 38 Solutions</title>
-  <meta name="description" content="Try a finished, browser-only contractor quote example. Edit scope, line items, quantities, units, markup, tax, deposit, assumptions, exclusions, and terms without sending or storing data.">
+  <title>Free Landscaping Quote Builder Example | Highway 38 Solutions</title>
+  <meta name="description" content="Try a finished, browser-only landscaping quote. Edit scope, line items, quantities, internal costs, markup, tax, deposit, assumptions, exclusions, and terms without sending or storing data.">
   <link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/quote-builder-demo.html">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260723-flow">
@@ -18,9 +18,9 @@
     .demo-panel h2,.demo-panel h3{margin-top:0}.section-kicker{margin:0 0 14px;color:#52636c}
     .preset-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 22px}
     .preset-btn{border:1px solid #bfd0c6;border-radius:12px;background:#f6faf7;color:#173226;padding:13px;text-align:left;font:inherit;font-weight:850;cursor:pointer}.preset-btn span{display:block;margin-top:4px;color:#63746b;font-size:.78rem;font-weight:650}.preset-btn:hover,.preset-btn[aria-pressed="true"]{border-color:#1f6b47;background:#e8f1ec;color:#12472f}
-    .demo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.demo-field{display:flex;flex-direction:column;gap:6px}.demo-field.full{grid-column:1/-1}.demo-field label{font-weight:800;color:#0b1f34}.demo-field small{color:#65736c}
+    .demo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.demo-field{display:flex;flex-direction:column;gap:6px}.demo-field.full{grid-column:1/-1}.demo-field label{font-weight:800;color:#0b1f34}.demo-field small{color:#65736c}.internal-field{border:1px dashed #aabbb1;border-radius:12px;background:#f6f8f7;padding:12px}
     .demo-field input,.demo-field textarea,.demo-field select{width:100%;box-sizing:border-box;border:1px solid #b9c7bf;border-radius:10px;padding:11px 12px;font:inherit;background:#fff;color:#102033}.demo-field textarea{min-height:102px;resize:vertical}
-    .line-wrap{overflow-x:auto;border:1px solid #e0e8e3;border-radius:12px;margin-top:12px}.line-table{width:100%;border-collapse:collapse;min-width:820px}.line-table th,.line-table td{padding:9px 7px;border-bottom:1px solid #e2e9e5;text-align:left;vertical-align:middle}.line-table th{background:#f4f7f5;color:#334b3f;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}.line-table input,.line-table select{width:100%;box-sizing:border-box;border:1px solid #bcc9c1;border-radius:8px;padding:9px;font:inherit;background:#fff}.line-table .category{width:128px}.line-table .num{width:78px}.line-table .unit{width:92px}.line-table .money{width:116px}.line-table .remove{width:44px;text-align:center}.icon-btn{border:1px solid #c5d0ca;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900}
+    .line-wrap{overflow-x:auto;border:1px solid #e0e8e3;border-radius:12px;margin-top:12px}.line-table{width:100%;border-collapse:collapse;min-width:860px}.line-table th,.line-table td{padding:9px 7px;border-bottom:1px solid #e2e9e5;text-align:left;vertical-align:middle}.line-table th{background:#f4f7f5;color:#334b3f;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}.line-table input,.line-table select{width:100%;box-sizing:border-box;border:1px solid #bcc9c1;border-radius:8px;padding:9px;font:inherit;background:#fff}.line-table .category{width:128px}.line-table .num{width:78px}.line-table .unit{width:92px}.line-table .money{width:126px}.line-table .remove{width:44px;text-align:center}.icon-btn{border:1px solid #c5d0ca;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900}
     .demo-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.demo-toolbar button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:900;cursor:pointer}.demo-toolbar .primary{background:#1f6b47;color:#fff}.demo-toolbar .secondary{background:#e8efeb;color:#173226}.demo-toolbar .danger{background:#fff3ee;color:#8a2f13;border:1px solid #f0c7b8}
     .quote-preview{position:sticky;top:92px;padding:0;overflow:hidden}.quote-paper{padding:28px}.quote-ribbon{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:#0b1f34;color:#fff}.quote-ribbon strong{letter-spacing:.06em;text-transform:uppercase;font-size:.82rem}.sample-badge{border-radius:999px;background:#fff1e7;color:#8b3b0a;padding:5px 9px;font-size:.72rem;font-weight:900}.quote-head{display:flex;justify-content:space-between;gap:18px;padding-bottom:16px;border-bottom:2px solid #173226}.quote-head h2{margin:0}.quote-meta{text-align:right;color:#52636c}.quote-meta strong{color:#173226}
     .project-summary{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;padding:18px 0;border-bottom:1px solid #e0e8e3}.summary-box{border-left:3px solid #1f6b47;padding-left:12px}.summary-box span{display:block;color:#63746b;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}.summary-box strong{display:block;margin-top:4px;color:#173226}
@@ -28,7 +28,7 @@
     .totals{margin-left:auto;max-width:320px;padding-top:14px}.total-row{display:flex;justify-content:space-between;gap:20px;padding:5px 0}.total-row.grand{margin-top:6px;padding-top:10px;border-top:2px solid #173226;font-size:1.2rem;font-weight:900}.payment-box{margin-top:14px;border:1px solid #c9d8cf;border-radius:12px;background:#f4f8f5;padding:13px}.payment-box .total-row{font-size:.92rem}.payment-box .total-row:first-child{font-weight:900;color:#173226}
     .preview-empty{color:#6b7871;font-style:italic}.demo-status{min-height:24px;font-weight:800;color:#1f6b47}.boundary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
     @media(max-width:1050px){.demo-layout{grid-template-columns:1fr}.quote-preview{position:static}.example-strip{grid-template-columns:repeat(3,1fr)}.example-intro{grid-column:1/-1}.boundary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:720px){.preset-bar,.demo-fields,.project-summary{grid-template-columns:1fr}.demo-field.full{grid-column:auto}.demo-panel{padding:18px}.quote-preview{padding:0}.quote-paper{padding:20px}.quote-head{display:block}.quote-meta{text-align:left;margin-top:8px}.example-strip{grid-template-columns:1fr}.example-intro{grid-column:auto}.boundary-grid{grid-template-columns:1fr}.line-wrap{border:0}.line-table{min-width:0}.line-table thead{display:none}.line-table,.line-table tbody,.line-table tr,.line-table td{display:block;width:100%}.line-table tr{border:1px solid #e1e8e4;border-radius:12px;margin:10px 0;padding:9px;box-sizing:border-box;background:#fff}.line-table td{border:0;padding:5px}.line-table td::before{display:block;margin-bottom:4px;color:#607068;font-size:.7rem;font-weight:900;text-transform:uppercase}.line-table td:nth-child(1)::before{content:'Category'}.line-table td:nth-child(2)::before{content:'Description'}.line-table td:nth-child(3)::before{content:'Quantity'}.line-table td:nth-child(4)::before{content:'Unit'}.line-table td:nth-child(5)::before{content:'Unit price'}.line-table td:nth-child(6)::before{content:'Remove'}.line-table .category,.line-table .num,.line-table .unit,.line-table .money,.line-table .remove{width:100%}}
+    @media(max-width:720px){.preset-bar,.demo-fields,.project-summary{grid-template-columns:1fr}.demo-field.full{grid-column:auto}.demo-panel{padding:18px}.quote-preview{padding:0}.quote-paper{padding:20px}.quote-head{display:block}.quote-meta{text-align:left;margin-top:8px}.example-strip{grid-template-columns:1fr}.example-intro{grid-column:auto}.boundary-grid{grid-template-columns:1fr}.line-wrap{border:0}.line-table{min-width:0}.line-table thead{display:none}.line-table,.line-table tbody,.line-table tr,.line-table td{display:block;width:100%}.line-table tr{border:1px solid #e1e8e4;border-radius:12px;margin:10px 0;padding:9px;box-sizing:border-box;background:#fff}.line-table td{border:0;padding:5px}.line-table td::before{display:block;margin-bottom:4px;color:#607068;font-size:.7rem;font-weight:900;text-transform:uppercase}.line-table td:nth-child(1)::before{content:'Category'}.line-table td:nth-child(2)::before{content:'Description'}.line-table td:nth-child(3)::before{content:'Quantity'}.line-table td:nth-child(4)::before{content:'Unit'}.line-table td:nth-child(5)::before{content:'Internal cost / rate'}.line-table td:nth-child(6)::before{content:'Remove'}.line-table .category,.line-table .num,.line-table .unit,.line-table .money,.line-table .remove{width:100%}}
     @media print{header.pi-nav,footer.pi-footer,.demo-editor,.demo-notice,.pi-hero,.demo-boundaries,.example-strip,.h38-helper-root{display:none!important}.demo-layout{display:block}.demo-panel{box-shadow:none;border:0;padding:0}.quote-preview{position:static}.quote-paper{padding:0}.pi-section{padding:0!important}.quote-ribbon{background:#fff;color:#000;border-bottom:1px solid #333}.sample-badge{border:1px solid #999}}
   </style>
 </head>
@@ -38,54 +38,55 @@
 <main id="main">
   <section class="pi-hero">
     <div class="pi-hero-copy">
-      <span class="pi-eyebrow">Free online quote builder example</span>
-      <h1>Start with a finished quote.<br><strong>Change it into your own.</strong></h1>
-      <p>This example opens as a believable contractor quote with a detailed scope, material and labor line items, units, markup, tax, deposit, schedule, assumptions, exclusions, and terms. Edit any value and the customer preview updates immediately.</p>
+      <span class="pi-eyebrow">Free landscaping quote builder example</span>
+      <h1>Start with a finished landscape quote.<br><strong>Change it into your own.</strong></h1>
+      <p>The featured example covers a complete front-entry landscape renovation with removal, soil preparation, edging, plants, mulch, installation, cleanup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
       <div class="pi-actions"><a class="pi-btn primary" href="#demo">Edit the Featured Quote</a><a class="pi-btn secondary" href="quote-builder.html#examples">View Complete Quote and CAD Packages</a></div>
     </div>
     <div class="pi-callout"><h3>Nothing leaves this page</h3><p>This demonstration uses browser memory only. It does not create an account, save a customer, upload files, call H38 AI, send a quote, charge a card, or submit information to Highway 38.</p></div>
   </section>
 
-  <div class="demo-notice" role="note"><strong>Demo boundary:</strong> Every business, customer, location, price, tax rate, schedule, and project detail shown here is fictional. Verify all real measurements, costs, taxes, codes, specifications, licensing requirements, and customer terms.</div>
+  <div class="demo-notice" role="note"><strong>Demo boundary:</strong> Every business, customer, location, price, tax rate, schedule, plant, quantity, and project detail shown here is fictional. Verify all real measurements, site conditions, costs, taxes, utilities, plant suitability, specifications, licensing requirements, and customer terms.</div>
 
   <div class="example-strip" aria-label="Featured quote summary">
-    <div class="example-intro"><strong>Featured example: Two-stall garage workshop upgrade</strong><span>A complete sample that combines planning, demolition, materials, fabrication, installation, cleanup, payment terms, and customer-facing boundaries.</span></div>
-    <div class="example-stat"><strong>8 line items</strong><span>Materials + labor + closeout</span></div>
+    <div class="example-intro"><strong>Featured example: Front-entry landscape renovation</strong><span>A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.</span></div>
+    <div class="example-stat"><strong>10 line items</strong><span>Design + materials + labor</span></div>
     <div class="example-stat"><strong>3–4 working days</strong><span>Fictional estimated duration</span></div>
-    <div class="example-stat"><strong>Print-ready</strong><span>Use browser Print / Save PDF</span></div>
+    <div class="example-stat"><strong>Markup stays internal</strong><span>Not shown in preview or PDF</span></div>
   </div>
 
   <section class="pi-section" id="demo">
     <div class="demo-layout pi-compact">
       <div class="demo-panel demo-editor">
         <h2>Build the quote</h2>
-        <p class="section-kicker">Choose a finished example, then edit it. Nothing is sent or saved.</p>
-        <div class="preset-bar" aria-label="Quote example presets">
-          <button type="button" class="preset-btn" data-preset="garage" aria-pressed="true">Garage workshop<span>Materials, fabrication, labor, cleanup</span></button>
-          <button type="button" class="preset-btn" data-preset="maintenance" aria-pressed="false">Property maintenance<span>Outdoor labor, materials, disposal</span></button>
-          <button type="button" class="preset-btn" data-preset="technical" aria-pressed="false">Technical installation<span>Engineering, hardware, integration, training</span></button>
+        <p class="section-kicker">Choose a finished landscaping example, then edit it. Nothing is sent or saved.</p>
+        <div class="preset-bar" aria-label="Landscaping quote example presets">
+          <button type="button" class="preset-btn" data-preset="landscape" aria-pressed="true">Landscape renovation<span>Beds, edging, plants, mulch, installation</span></button>
+          <button type="button" class="preset-btn" data-preset="drainage" aria-pressed="false">Drainage and lawn repair<span>Downspouts, grading, soil, seed, erosion control</span></button>
+          <button type="button" class="preset-btn" data-preset="seasonal" aria-pressed="false">Seasonal property cleanup<span>Bed cleanup, pruning, mulch, debris removal</span></button>
         </div>
 
         <form id="demoForm">
           <div class="demo-fields">
-            <div class="demo-field"><label for="business">Business name</label><input id="business" value="Northwoods Property &amp; Repair"></div>
-            <div class="demo-field"><label for="quoteNumber">Quote number</label><input id="quoteNumber" value="Q-2048"></div>
-            <div class="demo-field"><label for="customer">Customer</label><input id="customer" value="Morgan Family — fictional"></div>
-            <div class="demo-field"><label for="project">Project</label><input id="project" value="Two-stall garage workshop upgrade"></div>
+            <div class="demo-field"><label for="business">Business name</label><input id="business" value="Northwoods Landscape &amp; Property Care"></div>
+            <div class="demo-field"><label for="quoteNumber">Quote number</label><input id="quoteNumber" value="L-3017"></div>
+            <div class="demo-field"><label for="customer">Customer</label><input id="customer" value="Anderson Residence — fictional"></div>
+            <div class="demo-field"><label for="project">Project</label><input id="project" value="Front-entry landscape renovation"></div>
             <div class="demo-field full"><label for="location">Project location</label><input id="location" value="Grand Rapids area — sample location"></div>
-            <div class="demo-field full"><label for="scope">Scope of work</label><textarea id="scope">Protect the active work area; remove and dispose of existing freestanding shelving; verify wall conditions and layout; install 24 linear feet of heavy-duty wall storage; fabricate and install a 12-foot workbench; install two overhead storage racks; label work zones; complete final cleanup and customer walkthrough.</textarea></div>
+            <div class="demo-field full"><label for="scope">Scope of work</label><textarea id="scope">Confirm final bed outline and plant locations; protect the driveway and turf; remove overgrown shrubs and existing bed debris; reshape approximately 420 square feet of planting beds; amend soil; install natural-stone edging; install twelve shrubs and twenty-eight perennials; apply premium hardwood mulch; water in new plantings; complete final cleanup and customer walkthrough.</textarea></div>
             <div class="demo-field"><label for="duration">Estimated duration</label><input id="duration" value="3–4 working days"></div>
             <div class="demo-field"><label for="schedule">Target schedule</label><input id="schedule" value="Within 3 weeks of written approval"></div>
-            <div class="demo-field"><label for="markup">Markup percentage</label><input id="markup" type="number" min="0" step="0.1" value="10"></div>
-            <div class="demo-field"><label for="tax">Tax percentage</label><input id="tax" type="number" min="0" step="0.1" value="7.375"><small>Sample rate only. Taxability varies.</small></div>
+            <div class="demo-field internal-field"><label for="markup">Internal markup percentage</label><input id="markup" type="number" min="0" step="0.1" value="15"><small>Used to calculate customer unit prices. Never shown in the customer preview or printed quote.</small></div>
+            <div class="demo-field"><label for="tax">Tax percentage</label><input id="tax" type="number" min="0" step="0.1" value="7.375"><small>Sample rate only. Taxability varies by item and location.</small></div>
             <div class="demo-field"><label for="deposit">Deposit percentage</label><input id="deposit" type="number" min="0" max="100" step="1" value="35"></div>
-            <div class="demo-field"><label for="validDays">Quote valid for</label><input id="validDays" value="30 days"></div>
+            <div class="demo-field"><label for="validDays">Quote valid for</label><input id="validDays" value="21 days"></div>
           </div>
 
-          <h3 style="margin-top:26px">Line items</h3>
+          <h3 style="margin-top:26px">Internal line-item setup</h3>
+          <p class="section-kicker">Enter internal cost or labor rates. The customer preview automatically rolls the markup into customer-facing unit prices.</p>
           <div class="line-wrap">
-            <table class="line-table" aria-label="Quote line items">
-              <thead><tr><th class="category">Category</th><th>Description</th><th class="num">Qty</th><th class="unit">Unit</th><th class="money">Unit price</th><th class="remove">Remove</th></tr></thead>
+            <table class="line-table" aria-label="Internal quote line items">
+              <thead><tr><th class="category">Category</th><th>Description</th><th class="num">Qty</th><th class="unit">Unit</th><th class="money">Internal cost / rate</th><th class="remove">Remove</th></tr></thead>
               <tbody id="lineItems"></tbody>
             </table>
           </div>
@@ -96,9 +97,9 @@
           </div>
 
           <div class="demo-fields">
-            <div class="demo-field full"><label for="assumptions">Assumptions</label><textarea id="assumptions">Garage is cleared enough to safely access the work walls. Existing framing is suitable for the specified anchors after field verification. Customer confirms final storage locations before installation. Material colors and accessory placement are selected before ordering.</textarea></div>
-            <div class="demo-field full"><label for="exclusions">Exclusions</label><textarea id="exclusions">Electrical wiring, structural repair, insulation, drywall replacement, painting, permit fees, concealed damage, hazardous-material handling, and work outside the listed scope. Any added work requires a written change.</textarea></div>
-            <div class="demo-field full"><label for="terms">Customer terms</label><textarea id="terms">Quote valid for 30 days. A 35% deposit is due after written acceptance and before material ordering. Remaining balance is due after completion and customer walkthrough. Schedule is confirmed only after approval, deposit, and material availability.</textarea></div>
+            <div class="demo-field full"><label for="assumptions">Assumptions</label><textarea id="assumptions">Work areas are accessible by pickup and small trailer. Customer approves the final bed outline and plant substitutions before ordering. Buried utilities are marked where excavation is required. Existing soil can be amended without major excavation. Water is available on site for installation and initial watering.</textarea></div>
+            <div class="demo-field full"><label for="exclusions">Exclusions</label><textarea id="exclusions">Irrigation installation or repair, tree removal, stump grinding, retaining walls, hardscape beyond listed edging, excavation deeper than 8 inches, utility relocation, permit fees, long-term plant maintenance, and correction of hidden site conditions unless added by written change.</textarea></div>
+            <div class="demo-field full"><label for="terms">Customer terms</label><textarea id="terms">Quote valid for 21 days. A 35% deposit is due after written acceptance and before material or plant ordering. Plant varieties may be substituted only with customer approval. Weather and material availability may move the schedule. Remaining balance is due after installation, cleanup, and customer walkthrough.</textarea></div>
           </div>
           <div class="demo-toolbar"><button type="button" class="primary" id="printQuote">Print / Save PDF</button></div>
           <div id="demoStatus" class="demo-status" aria-live="polite"></div>
@@ -108,29 +109,29 @@
       <div class="demo-panel quote-preview" aria-live="polite">
         <div class="quote-ribbon"><strong>Customer quote preview</strong><span class="sample-badge">Fictional sample</span></div>
         <div class="quote-paper">
-          <div class="quote-head"><div><span class="pi-eyebrow">Prepared by</span><h2 id="previewBusiness">Northwoods Property &amp; Repair</h2></div><div class="quote-meta"><strong id="previewNumber">Q-2048</strong><div id="previewDate"></div><div id="previewValid">Valid for 30 days</div></div></div>
+          <div class="quote-head"><div><span class="pi-eyebrow">Prepared by</span><h2 id="previewBusiness">Northwoods Landscape &amp; Property Care</h2></div><div class="quote-meta"><strong id="previewNumber">L-3017</strong><div id="previewDate"></div><div id="previewValid">Valid for 21 days</div></div></div>
           <div class="project-summary">
-            <div class="summary-box"><span>Prepared for</span><strong id="previewCustomer">Morgan Family — fictional</strong><div id="previewLocation">Grand Rapids area — sample location</div></div>
-            <div class="summary-box"><span>Project</span><strong id="previewProject">Two-stall garage workshop upgrade</strong><div id="previewDuration">3–4 working days</div></div>
+            <div class="summary-box"><span>Prepared for</span><strong id="previewCustomer">Anderson Residence — fictional</strong><div id="previewLocation">Grand Rapids area — sample location</div></div>
+            <div class="summary-box"><span>Project</span><strong id="previewProject">Front-entry landscape renovation</strong><div id="previewDuration">3–4 working days</div></div>
           </div>
           <div class="quote-section"><h3>Scope of work</h3><p id="previewScope"></p><p><strong>Target schedule:</strong> <span id="previewSchedule"></span></p></div>
-          <div class="quote-section"><h3>Pricing</h3><table class="preview-table"><thead><tr><th>Work item</th><th>Qty / unit</th><th>Amount</th></tr></thead><tbody id="previewItems"></tbody></table><div class="totals"><div class="total-row"><span>Line-item subtotal</span><strong id="subtotal">$0.00</strong></div><div class="total-row"><span>Markup</span><strong id="markupTotal">$0.00</strong></div><div class="total-row"><span>Tax</span><strong id="taxTotal">$0.00</strong></div><div class="total-row grand"><span>Quote total</span><span id="grandTotal">$0.00</span></div></div><div class="payment-box"><div class="total-row"><span id="depositLabel">Deposit due at acceptance</span><strong id="depositTotal">$0.00</strong></div><div class="total-row"><span>Estimated balance at completion</span><strong id="balanceTotal">$0.00</strong></div></div></div>
+          <div class="quote-section"><h3>Pricing</h3><table class="preview-table"><thead><tr><th>Work item</th><th>Qty / unit</th><th>Amount</th></tr></thead><tbody id="previewItems"></tbody></table><div class="totals"><div class="total-row"><span>Project subtotal</span><strong id="customerSubtotal">$0.00</strong></div><div class="total-row"><span>Estimated tax</span><strong id="taxTotal">$0.00</strong></div><div class="total-row grand"><span>Quote total</span><span id="grandTotal">$0.00</span></div></div><div class="payment-box"><div class="total-row"><span id="depositLabel">Deposit due at acceptance</span><strong id="depositTotal">$0.00</strong></div><div class="total-row"><span>Estimated balance at completion</span><strong id="balanceTotal">$0.00</strong></div></div></div>
           <div class="quote-section"><h3>Assumptions</h3><p id="previewAssumptions"></p></div>
           <div class="quote-section"><h3>Exclusions</h3><p id="previewExclusions"></p></div>
           <div class="quote-section"><h3>Terms</h3><p id="previewTerms"></p></div>
-          <p><small>Interactive Highway 38 demonstration. Not a real customer quote, contract, tax determination, promise of schedule, or authorization to proceed.</small></p>
+          <p><small>Interactive Highway 38 demonstration. Not a real customer quote, contract, tax determination, plant warranty, promise of schedule, or authorization to proceed.</small></p>
         </div>
       </div>
     </div>
   </section>
 
   <section class="pi-section alt demo-boundaries">
-    <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">What this example demonstrates</span><h2>A useful quote explains the work—not just the final number.</h2></div>
+    <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">What this example demonstrates</span><h2>A professional landscaping quote protects the price and explains the work.</h2></div>
     <div class="boundary-grid pi-compact">
-      <article class="pi-card"><div class="pi-card-body"><h3>Finished starting point</h3><p>Visitors see a complete quote immediately instead of having to invent a project before the demo becomes useful.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Clear cost structure</h3><p>Category, quantity, unit, unit price, markup, tax, deposit, and balance are visible and editable.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Scope boundaries</h3><p>Assumptions, exclusions, schedule language, validity, and written-change controls reduce misunderstanding.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Three business types</h3><p>Switch between garage work, property maintenance, and technical installation examples to see the same structure adapt.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Landscape-ready structure</h3><p>Design, removal, soil, plants, materials, labor, equipment, watering, cleanup, and closeout can be quoted together.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Private markup</h3><p>Markup stays in the editor. Customer unit prices already include it, so the preview and printed quote remain clean.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Site boundaries</h3><p>Utilities, weather, soil, substitutions, watering, access, exclusions, and written-change controls reduce misunderstanding.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Three landscaping jobs</h3><p>Switch between renovation, drainage repair, and seasonal cleanup examples using the same quote structure.</p></div></article>
     </div>
     <div class="pi-callout pi-compact" style="margin-top:24px"><h3>What the paid Quote Builder adds</h3><p>Connected customers, saved versions, reusable templates, price-book items, photos, documents, approvals, acceptance records, branded PDFs, controlled H38 AI, and quote-to-job workflow.</p></div>
     <div class="pi-actions" style="justify-content:center;margin-top:24px"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="pricing.html">Compare Products</a></div>
@@ -143,66 +144,68 @@
   const $=id=>document.getElementById(id);
   const body=$('lineItems');
   const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
-  const categories=['Planning','Demolition','Materials','Labor','Fabrication','Equipment','Closeout','Other'];
+  const categories=['Design','Removal','Materials','Planting','Labor','Equipment','Closeout','Other'];
   const presets={
-    garage:{
-      business:'Northwoods Property & Repair',quoteNumber:'Q-2048',customer:'Morgan Family — fictional',project:'Two-stall garage workshop upgrade',location:'Grand Rapids area — sample location',duration:'3–4 working days',schedule:'Within 3 weeks of written approval',markup:10,tax:7.375,deposit:35,validDays:'30 days',
-      scope:'Protect the active work area; remove and dispose of existing freestanding shelving; verify wall conditions and layout; install 24 linear feet of heavy-duty wall storage; fabricate and install a 12-foot workbench; install two overhead storage racks; label work zones; complete final cleanup and customer walkthrough.',
-      assumptions:'Garage is cleared enough to safely access the work walls. Existing framing is suitable for the specified anchors after field verification. Customer confirms final storage locations before installation. Material colors and accessory placement are selected before ordering.',
-      exclusions:'Electrical wiring, structural repair, insulation, drywall replacement, painting, permit fees, concealed damage, hazardous-material handling, and work outside the listed scope. Any added work requires a written change.',
-      terms:'Quote valid for 30 days. A 35% deposit is due after written acceptance and before material ordering. Remaining balance is due after completion and customer walkthrough. Schedule is confirmed only after approval, deposit, and material availability.',
+    landscape:{
+      business:'Northwoods Landscape & Property Care',quoteNumber:'L-3017',customer:'Anderson Residence — fictional',project:'Front-entry landscape renovation',location:'Grand Rapids area — sample location',duration:'3–4 working days',schedule:'Within 3 weeks of written approval',markup:15,tax:7.375,deposit:35,validDays:'21 days',
+      scope:'Confirm final bed outline and plant locations; protect the driveway and turf; remove overgrown shrubs and existing bed debris; reshape approximately 420 square feet of planting beds; amend soil; install natural-stone edging; install twelve shrubs and twenty-eight perennials; apply premium hardwood mulch; water in new plantings; complete final cleanup and customer walkthrough.',
+      assumptions:'Work areas are accessible by pickup and small trailer. Customer approves the final bed outline and plant substitutions before ordering. Buried utilities are marked where excavation is required. Existing soil can be amended without major excavation. Water is available on site for installation and initial watering.',
+      exclusions:'Irrigation installation or repair, tree removal, stump grinding, retaining walls, hardscape beyond listed edging, excavation deeper than 8 inches, utility relocation, permit fees, long-term plant maintenance, and correction of hidden site conditions unless added by written change.',
+      terms:'Quote valid for 21 days. A 35% deposit is due after written acceptance and before material or plant ordering. Plant varieties may be substituted only with customer approval. Weather and material availability may move the schedule. Remaining balance is due after installation, cleanup, and customer walkthrough.',
       items:[
-        {category:'Planning',description:'Site protection, field verification, and final storage layout',qty:1,unit:'project',rate:285},
-        {category:'Demolition',description:'Remove and dispose of existing freestanding shelving',qty:6,unit:'labor hr',rate:68},
-        {category:'Materials',description:'Heavy-duty wall track, brackets, shelves, and mounting hardware',qty:24,unit:'lin ft',rate:46},
-        {category:'Labor',description:'Install wall-storage system and verify load points',qty:14,unit:'labor hr',rate:78},
-        {category:'Fabrication',description:'12-foot workbench material allowance',qty:1,unit:'allowance',rate:980},
-        {category:'Fabrication',description:'Fabricate, install, level, and secure workbench',qty:14,unit:'labor hr',rate:82},
-        {category:'Equipment',description:'Overhead storage rack package',qty:2,unit:'each',rate:425},
-        {category:'Closeout',description:'Zone labels, final cleanup, photos, and customer walkthrough',qty:1,unit:'project',rate:325}
+        {category:'Design',description:'Site walk, final bed layout, plant placement, and work-area setup',qty:1,unit:'project',rate:225},
+        {category:'Removal',description:'Remove overgrown shrubs, weeds, and existing bed debris',qty:12,unit:'labor hr',rate:65},
+        {category:'Materials',description:'Natural-stone landscape edging with base material',qty:95,unit:'lin ft',rate:18},
+        {category:'Materials',description:'Compost and screened planting soil amendment',qty:6,unit:'cubic yd',rate:78},
+        {category:'Materials',description:'Premium hardwood mulch delivered',qty:8,unit:'cubic yd',rate:62},
+        {category:'Planting',description:'Cold-hardy foundation shrubs',qty:12,unit:'each',rate:38},
+        {category:'Planting',description:'Perennial color and pollinator plants',qty:28,unit:'each',rate:16},
+        {category:'Labor',description:'Bed shaping, soil preparation, edging, planting, and mulching',qty:22,unit:'labor hr',rate:68},
+        {category:'Equipment',description:'Delivery, compact equipment, and disposal allowance',qty:1,unit:'allowance',rate:425},
+        {category:'Closeout',description:'Initial watering, final cleanup, care sheet, photos, and walkthrough',qty:1,unit:'project',rate:180}
       ]
     },
-    maintenance:{
-      business:'Northwoods Property Care',quoteNumber:'Q-2051',customer:'Lakeside Cabin Owner — fictional',project:'Spring cleanup and drainage correction',location:'Itasca County — sample location',duration:'1–2 working days',schedule:'Next available weather window',markup:8,tax:7.375,deposit:25,validDays:'21 days',
-      scope:'Complete spring debris cleanup; extend four downspouts away from the foundation; reshape one low drainage area with topsoil; install seed and erosion blanket; haul one load of debris; complete final cleanup and photo closeout.',
-      assumptions:'Work area is accessible by pickup and small trailer. Buried utilities are marked where digging is required. Final grading quantities are confirmed after site walk. Weather and soil conditions are suitable for the planned work.',
-      exclusions:'Tree removal, stump work, drainage pipe beyond listed extensions, excavation deeper than 6 inches, irrigation repair, hidden utility damage, permit fees, and work caused by unexpected site conditions.',
-      terms:'Quote valid for 21 days. A 25% deposit is due after written approval. Weather may move the schedule. Balance is due after walkthrough and photo closeout.',
+    drainage:{
+      business:'Northwoods Landscape & Property Care',quoteNumber:'L-3021',customer:'Lakeside Homeowner — fictional',project:'Foundation drainage and lawn repair',location:'Itasca County — sample location',duration:'2–3 working days',schedule:'Next suitable weather window after approval',markup:14,tax:7.375,deposit:30,validDays:'21 days',
+      scope:'Verify surface drainage direction; extend four downspouts; remove sod from one low area; install shallow solid drainage pipe to daylight where feasible; add screened topsoil; reshape the affected grade; install seed, starter fertilizer, and erosion blanket; complete final cleanup and photo closeout.',
+      assumptions:'Buried utilities are marked before excavation. A workable daylight outlet is available within the listed distance. Existing soils can be graded without rock excavation. Customer provides water for establishment. Weather and soil conditions are suitable for seeding.',
+      exclusions:'Foundation waterproofing, drain tile, sump work, excavation deeper than 12 inches, rock excavation, retaining walls, utility relocation, irrigation repair, tree-root removal, permit fees, and correction of hidden conditions unless added by written change.',
+      terms:'Quote valid for 21 days. A 30% deposit is due after written approval and before material ordering. Weather may move the schedule. Customer is responsible for watering and establishment after closeout. Balance is due after walkthrough.',
       items:[
-        {category:'Planning',description:'Site walk, drainage layout, and work-area setup',qty:1,unit:'project',rate:165},
-        {category:'Labor',description:'Leaf, branch, and landscape-bed cleanup',qty:7,unit:'labor hr',rate:65},
-        {category:'Materials',description:'Downspout extension materials and fasteners',qty:4,unit:'each',rate:42},
-        {category:'Materials',description:'Screened topsoil for low-area correction',qty:3,unit:'cubic yd',rate:118},
-        {category:'Labor',description:'Minor grading, seed, and erosion blanket installation',qty:8,unit:'labor hr',rate:68},
-        {category:'Materials',description:'Seed, starter fertilizer, and erosion blanket',qty:850,unit:'sq ft',rate:1.12},
-        {category:'Equipment',description:'Debris haul and disposal allowance',qty:1,unit:'load',rate:245},
-        {category:'Closeout',description:'Final cleanup, drainage check, and photo closeout',qty:1,unit:'project',rate:110}
+        {category:'Design',description:'Drainage walk, elevation review, layout, and work-area setup',qty:1,unit:'project',rate:245},
+        {category:'Materials',description:'Downspout adapters, fittings, and solid drain pipe',qty:85,unit:'lin ft',rate:6.8},
+        {category:'Labor',description:'Shallow trenching, pipe installation, backfill, and compaction',qty:16,unit:'labor hr',rate:72},
+        {category:'Materials',description:'Screened topsoil for grade correction',qty:7,unit:'cubic yd',rate:74},
+        {category:'Labor',description:'Fine grading and lawn preparation',qty:10,unit:'labor hr',rate:68},
+        {category:'Materials',description:'Seed, starter fertilizer, and erosion blanket',qty:1200,unit:'sq ft',rate:1.05},
+        {category:'Equipment',description:'Mini-loader, trailer, delivery, and disposal allowance',qty:1,unit:'allowance',rate:560},
+        {category:'Closeout',description:'Drainage test, final cleanup, photos, and care instructions',qty:1,unit:'project',rate:165}
       ]
     },
-    technical:{
-      business:'Iron Range Automation Service',quoteNumber:'Q-2054',customer:'Sample Manufacturing Customer',project:'Machine-tending safety and sensor upgrade',location:'Northern Minnesota — sample facility',duration:'4–5 working days',schedule:'Planned shutdown window after approval',markup:12,tax:0,deposit:40,validDays:'30 days',
-      scope:'Verify machine I/O and existing guarding; document the controlled work boundary; install two photoelectric sensors and two guard-interlock assemblies; complete panel wiring and labels; update control logic; test safe states; train designated operators; provide commissioning and closeout documentation.',
-      assumptions:'Machine documentation and authorized electrical access are available. Customer provides an approved shutdown and lockout window. Existing controller has available I/O and memory. Final safety design is reviewed and accepted by the responsible customer authority before implementation.',
-      exclusions:'Machine rebuilding, new control cabinet, network infrastructure, production losses, third-party certification, guarding fabrication outside listed hardware, and correction of pre-existing code or safety deficiencies unless added by written change.',
-      terms:'Quote valid for 30 days. A 40% deposit is due before hardware ordering. Customer retains final responsibility for machine safety acceptance, production release, and compliance review. Balance is due after commissioning and documentation handoff.',
+    seasonal:{
+      business:'Northwoods Landscape & Property Care',quoteNumber:'L-3026',customer:'Pine Ridge Property — fictional',project:'Spring landscape cleanup and mulch refresh',location:'Northern Minnesota — sample property',duration:'1–2 working days',schedule:'Next available seasonal route date',markup:12,tax:7.375,deposit:20,validDays:'14 days',
+      scope:'Remove winter debris from lawn and planting beds; cut back approved perennials and ornamental grasses; complete light shrub pruning; redefine bed edges; hand-weed planting areas; apply approximately seven cubic yards of hardwood mulch; haul listed debris; complete final cleanup and photo closeout.',
+      assumptions:'Property is accessible and free of snow cover. Customer identifies plants that should not be cut back. Existing bed edges can be refreshed without new hard edging. Mulch quantity is confirmed before delivery. No hazardous debris is present.',
+      exclusions:'Tree pruning, tree removal, stump work, major shrub renovation, chemical weed treatment, lawn fertilization, irrigation work, new plant installation, hardscape repair, and hidden debris beyond listed cleanup.',
+      terms:'Quote valid for 14 days. A 20% deposit is due after written approval. Seasonal routing and weather may change the work date. Added pruning or debris requires written approval. Balance is due after photo closeout.',
       items:[
-        {category:'Planning',description:'Field review, I/O verification, and implementation plan',qty:6,unit:'engineering hr',rate:125},
-        {category:'Planning',description:'Safety-function review and controlled test plan',qty:1,unit:'project',rate:850},
-        {category:'Materials',description:'Photoelectric sensor package with brackets and cabling',qty:2,unit:'each',rate:385},
-        {category:'Materials',description:'Guard-interlock hardware package',qty:2,unit:'each',rate:460},
-        {category:'Materials',description:'Panel wiring, terminals, labels, and installation allowance',qty:1,unit:'allowance',rate:680},
-        {category:'Labor',description:'Programming, wiring integration, and controlled testing',qty:18,unit:'technical hr',rate:145},
-        {category:'Labor',description:'Commissioning and operator training',qty:8,unit:'technical hr',rate:135},
-        {category:'Closeout',description:'As-built notes, backup, test record, and handoff package',qty:1,unit:'project',rate:625}
+        {category:'Design',description:'Property walk, work-area confirmation, and crew setup',qty:1,unit:'project',rate:145},
+        {category:'Labor',description:'Lawn and planting-bed debris cleanup',qty:9,unit:'labor hr',rate:62},
+        {category:'Labor',description:'Perennial cutback and light shrub pruning',qty:7,unit:'labor hr',rate:68},
+        {category:'Labor',description:'Bed edging and hand weeding',qty:8,unit:'labor hr',rate:65},
+        {category:'Materials',description:'Premium hardwood mulch delivered',qty:7,unit:'cubic yd',rate:60},
+        {category:'Labor',description:'Mulch installation and bed finish work',qty:10,unit:'labor hr',rate:64},
+        {category:'Equipment',description:'Debris haul and disposal allowance',qty:1,unit:'load',rate:275},
+        {category:'Closeout',description:'Final cleanup, photos, and customer summary',qty:1,unit:'project',rate:110}
       ]
     }
   };
 
-  function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));}
+  function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
   function optionMarkup(selected){return categories.map(category=>'<option'+(category===selected?' selected':'')+'>'+escapeHtml(category)+'</option>').join('');}
   function row(item={category:'Other',description:'',qty:1,unit:'each',rate:0}){
     const tr=document.createElement('tr');
-    tr.innerHTML='<td class="category"><select class="cat" aria-label="Line item category">'+optionMarkup(item.category)+'</select></td><td><input class="desc" aria-label="Line item description" value="'+escapeHtml(item.description)+'"></td><td class="num"><input class="qty" aria-label="Quantity" type="number" min="0" step="0.01" value="'+Number(item.qty||0)+'"></td><td class="unit"><input class="unit-value" aria-label="Unit" value="'+escapeHtml(item.unit||'each')+'"></td><td class="money"><input class="rate" aria-label="Unit price" type="number" min="0" step="0.01" value="'+Number(item.rate||0)+'"></td><td class="remove"><button type="button" class="icon-btn" aria-label="Remove line item">×</button></td>';
+    tr.innerHTML='<td class="category"><select class="cat" aria-label="Line item category">'+optionMarkup(item.category)+'</select></td><td><input class="desc" aria-label="Line item description" value="'+escapeHtml(item.description)+'"></td><td class="num"><input class="qty" aria-label="Quantity" type="number" min="0" step="0.01" value="'+Number(item.qty||0)+'"></td><td class="unit"><input class="unit-value" aria-label="Unit" value="'+escapeHtml(item.unit||'each')+'"></td><td class="money"><input class="rate" aria-label="Internal cost or rate" type="number" min="0" step="0.01" value="'+Number(item.rate||0)+'"></td><td class="remove"><button type="button" class="icon-btn" aria-label="Remove line item">×</button></td>';
     tr.querySelectorAll('input,select').forEach(input=>input.addEventListener('input',render));
     tr.querySelector('button').addEventListener('click',()=>{tr.remove();render();});
     body.appendChild(tr);
@@ -211,12 +214,13 @@
   function number(id){return Math.max(0,Number($(id).value)||0);}
   function fill(id,value){$(id).value=value;}
   function loadPreset(name){
-    const preset=presets[name]||presets.garage;
+    const preset=presets[name]||presets.landscape;
     ['business','quoteNumber','customer','project','location','duration','schedule','scope','assumptions','exclusions','terms','validDays'].forEach(id=>fill(id,preset[id]));
     ['markup','tax','deposit'].forEach(id=>fill(id,preset[id]));
     body.innerHTML='';preset.items.forEach(row);
     document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===name)));
-    $('demoStatus').textContent=(name==='garage'?'Featured garage workshop':name==='maintenance'?'Property maintenance':'Technical installation')+' example loaded. Nothing was sent or saved.';
+    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch'};
+    $('demoStatus').textContent=(names[name]||names.landscape)+' example loaded. Internal markup remains hidden from the customer quote.';
     render();
   }
   function render(){
@@ -232,18 +236,17 @@
     $('previewAssumptions').textContent=text('assumptions')||'None listed.';
     $('previewExclusions').textContent=text('exclusions')||'None listed.';
     $('previewTerms').textContent=text('terms')||'No terms entered.';
-    const items=[...body.querySelectorAll('tr')].map(tr=>({category:tr.querySelector('.cat').value,description:tr.querySelector('.desc').value.trim(),qty:Math.max(0,Number(tr.querySelector('.qty').value)||0),unit:tr.querySelector('.unit-value').value.trim(),rate:Math.max(0,Number(tr.querySelector('.rate').value)||0)}));
+    const markupFactor=1+(number('markup')/100);
+    const items=[...body.querySelectorAll('tr')].map(tr=>({category:tr.querySelector('.cat').value,description:tr.querySelector('.desc').value.trim(),qty:Math.max(0,Number(tr.querySelector('.qty').value)||0),unit:tr.querySelector('.unit-value').value.trim(),internalRate:Math.max(0,Number(tr.querySelector('.rate').value)||0)}));
+    const customerItems=items.map(item=>({...item,customerRate:item.internalRate*markupFactor,amount:item.qty*item.internalRate*markupFactor}));
     const preview=$('previewItems');
-    preview.innerHTML=items.length?items.map(item=>'<tr><td><span class="item-category">'+escapeHtml(item.category)+'</span>'+escapeHtml(item.description||'Untitled item')+'<span class="item-detail">'+money.format(item.rate)+' per '+escapeHtml(item.unit||'unit')+'</span></td><td>'+item.qty+' '+escapeHtml(item.unit||'unit')+'</td><td>'+money.format(item.qty*item.rate)+'</td></tr>').join(''):'<tr><td colspan="3" class="preview-empty">Add a line item to calculate the quote.</td></tr>';
-    const subtotal=items.reduce((sum,item)=>sum+(item.qty*item.rate),0);
-    const markup=subtotal*(number('markup')/100);
-    const taxable=subtotal+markup;
-    const tax=taxable*(number('tax')/100);
-    const total=taxable+tax;
+    preview.innerHTML=customerItems.length?customerItems.map(item=>'<tr><td><span class="item-category">'+escapeHtml(item.category)+'</span>'+escapeHtml(item.description||'Untitled item')+'<span class="item-detail">'+money.format(item.customerRate)+' per '+escapeHtml(item.unit||'unit')+'</span></td><td>'+item.qty+' '+escapeHtml(item.unit||'unit')+'</td><td>'+money.format(item.amount)+'</td></tr>').join(''):'<tr><td colspan="3" class="preview-empty">Add a line item to calculate the quote.</td></tr>';
+    const customerSubtotal=customerItems.reduce((sum,item)=>sum+item.amount,0);
+    const tax=customerSubtotal*(number('tax')/100);
+    const total=customerSubtotal+tax;
     const depositPercent=Math.min(100,number('deposit'));
     const deposit=total*(depositPercent/100);
-    $('subtotal').textContent=money.format(subtotal);
-    $('markupTotal').textContent=money.format(markup);
+    $('customerSubtotal').textContent=money.format(customerSubtotal);
     $('taxTotal').textContent=money.format(tax);
     $('grandTotal').textContent=money.format(total);
     $('depositLabel').textContent=depositPercent+'% deposit due at acceptance';
@@ -254,14 +257,14 @@
   ['business','quoteNumber','customer','project','location','duration','schedule','scope','markup','tax','deposit','validDays','assumptions','exclusions','terms'].forEach(id=>$(id).addEventListener('input',render));
   document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>loadPreset(button.dataset.preset)));
   $('addLine').addEventListener('click',()=>{row({category:'Other',description:'New line item',qty:1,unit:'each',rate:0});render();});
-  $('resetPreset').addEventListener('click',()=>loadPreset('garage'));
+  $('resetPreset').addEventListener('click',()=>loadPreset('landscape'));
   $('clearDemo').addEventListener('click',()=>{body.innerHTML='';['business','quoteNumber','customer','project','location','duration','schedule','scope','assumptions','exclusions','terms','validDays'].forEach(id=>$(id).value='');$('markup').value='0';$('tax').value='0';$('deposit').value='0';document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed','false'));$('demoStatus').textContent='Demo cleared. Nothing was stored or sent.';render();});
   $('printQuote').addEventListener('click',()=>{render();window.print();});
   $('demoForm').addEventListener('submit',event=>event.preventDefault());
   $('previewDate').textContent=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'long',day:'numeric'}).format(new Date());
-  loadPreset('garage');
+  loadPreset('landscape');
 })();
 </script>
-<script src="assets/js/h38-site-v2.js?v=2026-07-29-visual-polish"></script>
+<script src="assets/js/h38-site-v2.js?v=2026-07-30-landscaping-quote"></script>
 </body>
 </html>
