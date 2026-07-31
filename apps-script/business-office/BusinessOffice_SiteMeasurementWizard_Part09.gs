@@ -1,3 +1,14 @@
+function boSiteMeasurementClientBundle(){
+  boQuoteBuilderRequireAction_('View');
+  return{
+    styles:HtmlService.createHtmlOutputFromFile('BusinessOffice_SiteMeasurementWizard_Styles').getContent(),
+    core:HtmlService.createHtmlOutputFromFile('BusinessOffice_SiteMeasurementWizard_Client_Core').getContent(),
+    forms:HtmlService.createHtmlOutputFromFile('BusinessOffice_SiteMeasurementWizard_Client_Forms').getContent(),
+    version:H38_SITE_MEASUREMENT.VERSION,
+    externalActionsPerformed:false
+  };
+}
+
 function boSiteMeasurementAcceptance(){
   boQuoteBuilderRequireAction_('View');
   var baseline=boSiteMeasurementBaselineArea_([{distance:0,width:3},{distance:4,width:4.2},{distance:8,width:5.1},{distance:12,width:6},{distance:16,width:6.4},{distance:20,width:5.9},{distance:24,width:5.2},{distance:28,width:4.5},{distance:32,width:3.8},{distance:36,width:3},{distance:38,width:2.5}]);
