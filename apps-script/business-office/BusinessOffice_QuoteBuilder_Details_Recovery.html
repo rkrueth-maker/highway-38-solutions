@@ -1,0 +1,97 @@
+<script>
+(function(){
+'use strict';
+const DETAIL_TIMEOUT_MS=18000;
+const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const js=value=>String(value==null?'':value).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
+const num=value=>{const n=Number(String(value==null?'':value).replace(/[$,]/g,''));return Number.isFinite(n)?n:0};
+const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(value));
+let lastManualDetailsClick=0;
+
+document.addEventListener('click',event=>{
+  const target=event.target&&event.target.closest?event.target.closest('[onclick*="qbDetails"],[data-qb-open-details]'):null;
+  if(target)lastManualDetailsClick=Date.now();
+},true);
+
+function callWithTimeout(action,args,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const timer=setTimeout(()=>{
+      if(settled)return;
+      settled=true;
+      reject(new Error('Quote details took too long to load. The draft remains saved.'));
+    },timeoutMs||DETAIL_TIMEOUT_MS);
+    google.script.run
+      .withSuccessHandler(result=>{if(settled)return;settled=true;clearTimeout(timer);resolve(result)})
+      .withFailureHandler(error=>{if(settled)return;settled=true;clearTimeout(timer);reject(error)})
+      .boApi({action:action,args:args||{}});
+  });
+}
+
+function dashboardButton(){
+  return '<button type="button" class="secondary" onclick="qbOpen(\'dashboard\')">Back to Dashboard</button>';
+}
+
+function savedSummary(quoteId){
+  const resultHost=$('aiResult');
+  const priorText=resultHost?String(resultHost.textContent||''):'';
+  const numberMatch=priorText.match(/Draft\s+([A-Z0-9-]+)/i);
+  const label=numberMatch?('Draft '+numberMatch[1]):'Draft quote';
+  const html='<div class="notice good" data-qb-saved-summary="1"><strong>'+esc(label)+' is saved.</strong><br>The photos and AI review finished. Nothing was sent.<div class="toolbar" style="margin-top:12px"><button type="button" class="primary" data-qb-open-details="1" onclick="qbOpenSavedQuote(\''+js(quoteId)+'\')">Open Saved Quote</button>'+dashboardButton()+'</div></div>';
+  if(resultHost){resultHost.innerHTML=html;resultHost.scrollIntoView({behavior:'smooth',block:'center'});}
+  else if($('qbContent'))$('qbContent').innerHTML='<div class="shell"><section class="panel">'+html+'</section></div>';
+  return {saved:true,quoteId:quoteId};
+}
+
+function detailRows(lines){
+  if(!lines.length)return '<div class="empty">No quote lines were returned.</div>';
+  return '<div class="table-wrap"><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Total</th></tr></thead><tbody>'+lines.map(line=>'<tr><td>'+esc(line['Line Number']||'')+'</td><td>'+esc(line.Description||'')+'</td><td>'+esc(line.Quantity||'')+'</td><td>'+esc(line.Unit||'')+'</td><td>'+money(line.Rate||0)+'</td><td>'+money(line['Line Total']||0)+'</td></tr>').join('')+'</tbody></table></div>';
+}
+
+function renderDetails(data,quoteId){
+  const q=data&&data.quote||{},lines=data&&data.lines||[];
+  const title=q['Quote Number']||'Saved quote';
+  const project=q['Project Title']||'';
+  $('qbContent').innerHTML='<div class="shell"><div class="hero"><div><small>HIGHWAY 38 QUOTE BUILDER</small><h2>'+esc(title)+'</h2><p>'+esc(project)+'</p></div><div class="actions">'+dashboardButton()+'</div></div><section class="panel"><div class="form-grid"><div><strong>Status</strong><p>'+esc(q.Status||'Draft')+'</p></div><div><strong>Approval</strong><p>'+esc(q['Approval Status']||'Owner review required')+'</p></div><div class="full"><strong>Scope</strong><p>'+esc(q.Scope||'')+'</p></div><div class="full"><strong>Assumptions</strong><p>'+esc(q.Assumptions||'')+'</p></div><div class="full"><strong>Exclusions</strong><p>'+esc(q.Exclusions||'')+'</p></div></div>'+detailRows(lines)+'<div class="totals"><div class="total-row"><span>Subtotal</span><strong>'+money(q.Subtotal||0)+'</strong></div><div class="total-row"><span>Tax</span><strong>'+money(q.Tax||0)+'</strong></div><div class="total-row final"><span>Total</span><strong>'+money(q.Total||0)+'</strong></div></div></section></div>';
+  const perf=$('qbPerf');if(perf)perf.textContent='Saved quote details loaded';
+  return {quote:q,lines:lines,quoteId:quoteId};
+}
+
+function renderDetailFailure(quoteId,error){
+  const message=error&&error.message||String(error||'Quote details did not load.');
+  $('qbContent').innerHTML='<div class="shell"><section class="panel"><div class="notice bad"><strong>The draft is saved, but full details did not load.</strong><br>'+esc(message)+'</div><div class="toolbar" style="margin-top:12px"><button type="button" class="primary" data-qb-open-details="1" onclick="qbOpenSavedQuote(\''+js(quoteId)+'\')">Retry Details</button>'+dashboardButton()+'</div></section></div>';
+}
+
+async function openSavedQuote(quoteId){
+  const host=$('qbContent');
+  if(host)host.innerHTML='<div class="panel loading-card">Loading saved quote…</div>';
+  try{
+    const data=await callWithTimeout('quoteBuilderQuoteDetails',{quoteId:quoteId},DETAIL_TIMEOUT_MS);
+    return renderDetails(data,quoteId);
+  }catch(error){
+    renderDetailFailure(quoteId,error);
+    return {saved:true,quoteId:quoteId,error:error&&error.message||String(error)};
+  }
+}
+openSavedQuote.__h38DetailsRecovery=true;
+window.qbOpenSavedQuote=openSavedQuote;
+
+function install(){
+  const current=window.qbDetails;
+  if(typeof current!=='function'||current.__h38DetailsRecovery)return;
+  const wrapped=function(quoteId){
+    const manual=Date.now()-lastManualDetailsClick<1500;
+    if(!manual&&$('aiResult'))return Promise.resolve(savedSummary(quoteId));
+    return openSavedQuote(quoteId);
+  };
+  wrapped.__h38DetailsRecovery=true;
+  wrapped.__h38Prior=current;
+  window.qbDetails=wrapped;
+}
+
+let attempts=0;
+const timer=setInterval(()=>{attempts+=1;install();if(attempts>=60)clearInterval(timer)},100);
+install();
+})();
+</script>
