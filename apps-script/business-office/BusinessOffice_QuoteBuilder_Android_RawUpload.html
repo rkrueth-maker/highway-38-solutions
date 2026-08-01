@@ -6,9 +6,9 @@
 (function(){
 'use strict';
 const GENERIC_CUSTOMER='CUST-H38-GENERIC-QUOTE';
-const CHUNK_BYTES=786432;
+const CHUNK_BYTES=6*1024*1024;
 const MAX_FILE_BYTES=20*1024*1024;
-const UPLOAD_TIMEOUT_MS=60000;
+const UPLOAD_TIMEOUT_MS=90000;
 const ANALYSIS_TIMEOUT_MS=150000;
 const PRICE_TIMEOUT_MS=60000;
 let rawFiles=[];
@@ -41,7 +41,7 @@ function removeRawFile(index){const entry=rawFiles[index];if(!entry)return;if(en
 document.addEventListener('click',event=>{const button=event.target&&event.target.closest&&event.target.closest('[data-qb-raw-remove]');if(!button)return;event.preventDefault();event.stopImmediatePropagation();removeRawFile(Number(button.dataset.qbRawRemove))},true);
 function startStream(entry){if(!entry.file||typeof entry.file.stream!=='function')return;try{entry.reader=entry.file.stream().getReader();entry.firstRead=entry.reader.read()}catch(error){entry.reader=null;entry.firstRead=null}}
 function addInputFiles(input){const seen={};rawFiles.forEach(entry=>{seen[entry.key]=true});Array.from(input.files||[]).forEach(file=>{if(rawFiles.length>=4)return;const mimeType=fileMime(file),key=fileKey(file);if(!/^image\/(jpeg|png|webp)$/i.test(mimeType)){toast((file.name||'Photo')+' must be JPEG, PNG, or WebP.',true);return}if(!file.size||file.size>MAX_FILE_BYTES){toast((file.name||'Photo')+' exceeds the 20 MB upload limit.',true);return}if(seen[key])return;seen[key]=true;rawFiles.push({file:file,input:input});const entry=rawFiles[rawFiles.length-1];Object.assign(entry,{key:key,name:file.name||('quote-photo-'+rawFiles.length+'.jpg'),size:file.size,mimeType:mimeType,status:'queued',documentId:'',error:'',reader:null,firstRead:null,remainder:null,streamDone:false});startStream(entry)});if(!rawFiles.some(entry=>entry.input===input))releaseInputIfUnused(input);renderQueue();scheduleImmediateUploads()}
-function openPicker(mode){const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.dataset.h38PersistentPermission='1';if(mode==='camera')input.setAttribute('capture','environment');else input.multiple=true;input.addEventListener('change',()=>addInputFiles(input),{once:true});document.body.appendChild(input);pickerInputs.push(input);input.click()}
+function openPicker(mode){const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.dataset.h38PersistentPermission='1';input.setAttribute('aria-hidden','true');input.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';if(mode==='camera')input.setAttribute('capture','environment');else input.multiple=true;input.addEventListener('change',()=>addInputFiles(input),{once:true});document.body.appendChild(input);pickerInputs.push(input);requestAnimationFrame(()=>input.click())}
 function readChunk(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||''),comma=value.indexOf(',');resolve(comma>=0?value.slice(comma+1):value)};reader.onerror=()=>reject(reader.error||new Error('Android could not read the selected photo. Choose it again and keep Quote Builder open until the upload finishes.'));reader.readAsDataURL(blob)})}
 function bytesToBase64(bytes){let binary='';const step=32768;for(let offset=0;offset<bytes.length;offset+=step)binary+=String.fromCharCode.apply(null,bytes.subarray(offset,Math.min(bytes.length,offset+step)));return btoa(binary)}
 async function readStreamBytes(entry,maxBytes){const parts=[];let total=0;function take(value){if(!value||!value.length)return;const remaining=maxBytes-total,used=value.length>remaining?value.subarray(0,remaining):value;parts.push(used);total+=used.length;entry.remainder=value.length>remaining?value.subarray(remaining):null}if(entry.remainder){const value=entry.remainder;entry.remainder=null;take(value)}while(total<maxBytes&&!entry.streamDone){const result=entry.firstRead?await entry.firstRead:await entry.reader.read();entry.firstRead=null;if(result.done){entry.streamDone=true;break}take(result.value)}const bytes=new Uint8Array(total);let offset=0;parts.forEach(part=>{bytes.set(part,offset);offset+=part.length});return bytes}
@@ -71,6 +71,8 @@ function installControls(){window.qbCameraTakeForDraft=()=>openPicker('camera');
 function installSaveWrapper(){if(saveWrapped||typeof window.qbSave!=='function')return;saveWrapped=true;const prior=window.qbSave;window.qbSave=async function(event){const ids=stagedDocumentIds.slice(),started=Date.now();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await withTimeout(api('quoteBuilderLastCreatedQuote'),30000,'Finding the saved quote');if(created&&Number(created.createdMs||0)>=started)await attachStagedPhotos(created.quoteId)}catch(error){toast('The quote was saved, but the photo link needs review: '+clean(error&&error.message||error),true)}}return result}}
 function install(){installControls();installSaveWrapper()}
 const observer=new MutationObserver(()=>requestAnimationFrame(install));observer.observe($('qbContent')||document.body,{childList:true,subtree:true});
+window.addEventListener('pageshow',()=>setTimeout(install,0));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(install,0)});
 install();setTimeout(install,300);setTimeout(install,1200);
 })();
 </script>
