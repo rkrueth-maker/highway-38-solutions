@@ -71,7 +71,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         customerId: 'CUST-H38-GENERIC-QUOTE',
         projectTitle: 'Gutters',
         notes: [
-          'Scope: Replace existing gutters with 6-inch white gutters.',
+          'Scope: Replace existing gutters with 6-inch white gutters and add leaf guard to all new gutter runs.',
           'Known dimensions and assumptions: Door with window is 36 inches by 80 inches.',
           'Use the visible door only as a scale reference. Identify visible gutter runs, one downspout, and related components.',
           'Internal owner-review draft only. Do not approve or send.'
@@ -80,12 +80,20 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       });
       const draft = boQuoteBuilderMobileAcceptanceDraft_(analysisResult);
       const suggested = Array.isArray(draft.suggestedLines) ? draft.suggestedLines : [];
-      boAssert_(suggested.length >= 1, 'Photo analysis did not return a usable gutter quote line.');
+      boAssert_(suggested.length >= 2, 'Photo analysis did not return usable gutter and typed-scope quote lines.');
+      const leafGuard = suggested.find(function (line) {
+        return /(?:leaf|gutter)\s*guard|gutter\s*protection/i.test([
+          line.description || '',
+          line.searchQuery || '',
+          line.evidence || ''
+        ].join(' '));
+      });
+      boAssert_(leafGuard, 'The explicitly typed leaf guard scope was omitted from the live quote draft.');
 
       const priced = suggested.slice(0, 6).map(function (line) {
         const query = boNormalizeText_([
           line.searchQuery || line.description || line.catalogId || '',
-          draft.scope || 'Replace existing gutters with 6-inch white gutters and one downspout.'
+          draft.scope || 'Replace existing gutters with 6-inch white gutters, one downspout, and leaf guard.'
         ].filter(Boolean).join('. Work scope: '));
         const result = boQuoteBuilderResolveLinePrice({
           query: query,
@@ -108,12 +116,13 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       });
 
       const gutter = priced.find(function (line) {
-        return /gutter/i.test([
+        const text = [
           line.description,
           line.catalogName,
           line.catalogDescription,
           line.catalogSource
-        ].join(' '));
+        ].join(' ');
+        return /gutter/i.test(text) && !/(?:leaf|gutter)\s*guard|gutter\s*protection/i.test(text);
       });
       boAssert_(gutter && gutter.rate > 0, 'The live gutter scope did not receive a nonzero Price Book rate.');
       const gutterCoverage = [
@@ -139,7 +148,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         'Quote',
         quoteId,
         'PASS',
-        photoIds.length + ' real photos analyzed; combined gutter scope including one downspout priced; editable draft loaded; nothing sent.',
+        photoIds.length + ' real photos analyzed; typed leaf guard preserved; gutter scope including one downspout priced; editable draft loaded; nothing sent.',
         access.user.email
       );
 
@@ -156,7 +165,9 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
           durationMs: Date.now() - analysisStarted,
           projectTitle: draft.projectTitle || '',
           observations: draft.photoObservations || [],
-          lineCount: suggested.length
+          lineCount: suggested.length,
+          requiredScopePreserved: true,
+          requiredScopeLine: leafGuard.description || leafGuard.searchQuery || 'Leaf guard'
         },
         pricing: priced,
         editDraft: {
