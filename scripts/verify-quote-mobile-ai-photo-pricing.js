@@ -152,3 +152,4 @@ new Function(stage);
 new Function(ai);
 new Function(editServer);
 console.log('PASS — simple phone quote, persistent Android file permission, raw chunked uploads without phone image decoding, private server staging, editable saved quotes, bounded detail recovery, scope-driven pricing, and owner-review controls verified.');
+require('./verify-quote-mobile-stabilization.js');
