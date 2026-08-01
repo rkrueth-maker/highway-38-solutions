@@ -114,11 +114,20 @@ import sys
 web=Path(sys.argv[1]); auth=Path(sys.argv[2]); harness=Path(sys.argv[3]); token=sys.argv[4]
 web.write_text(web.read_text().replace('function doGet() {','function boMobileAcceptanceDoGet_() {'))
 auth_text=auth.read_text()
-old="return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();"
-new="return 'rkrueth@gmail.com';"
-if old not in auth_text:
-    raise SystemExit('Could not patch temporary owner identity.')
-auth.write_text(auth_text.replace(old,new,1))
+old_bridge="""function boAuthBridge_(){
+  var root=typeof globalThis!=='undefined'?globalThis:this;
+  return root&&root.H38_PORTAL_AUTH_BRIDGE?root.H38_PORTAL_AUTH_BRIDGE:null;
+}"""
+old_email="""function boGetActiveEmail_(){
+  var bridge=boAuthBridge_();
+  if(bridge&&typeof bridge.getActiveEmail==='function')return bridge.getActiveEmail();
+  return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();
+}"""
+if old_bridge not in auth_text or old_email not in auth_text:
+    raise SystemExit('Could not patch temporary Business Office authentication bridge.')
+auth_text=auth_text.replace(old_bridge,"function boAuthBridge_(){return null;}",1)
+auth_text=auth_text.replace(old_email,"function boGetActiveEmail_(){return 'rkrueth@gmail.com';}",1)
+auth.write_text(auth_text)
 text=harness.read_text()
 text=text.replace("const H38_BO_ACCEPTANCE_TOKEN_PROPERTY = 'H38_BUSINESS_OFFICE_ACCEPTANCE_TOKEN';", "const H38_BO_ACCEPTANCE_TOKEN = '"+token+"';")
 text=text.replace("const expected = PropertiesService.getScriptProperties().getProperty(H38_BO_ACCEPTANCE_TOKEN_PROPERTY) || '';", "const expected = H38_BO_ACCEPTANCE_TOKEN;")
