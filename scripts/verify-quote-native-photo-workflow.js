@@ -2,6 +2,7 @@
 'use strict';
 const fs=require('fs');
 const path=require('path');
+const vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const need=(text,marker,label)=>{if(!text.includes(marker))throw new Error(`Missing ${label}: ${marker}`)};
@@ -11,6 +12,7 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 const recovery=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html');
 const live=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs');
 const edit=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html');
+const aiPublic=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs');
 
 need(recovery,'id="qbNativeCamera" type="file"','visible native camera input');
 need(recovery,'capture="environment"','rear-camera request on native input');
@@ -44,6 +46,11 @@ need(edit,'Edit and reprocess','saved draft returns to builder');
 need(edit,'id="qbSimplePhotoQuote"','photo reprocessing in edit mode');
 need(edit,"direct('boQuoteBuilderUpdateEditableQuote'",'saved draft update');
 
+need(aiPublic,'boQuoteBuilderPreserveRequiredScope_','server-side typed scope preservation');
+need(aiPublic,'Explicitly entered by the user and preserved as required scope','typed scope evidence');
+need(aiPublic,"/\\b(?:leaf|gutter)\\s*guards?\\b/",'leaf guard and gutter guard normalization');
+need(aiPublic,"return 'linear foot'",'gutter guard unit selection');
+
 need(live,'function boQuoteBuilderRunMobileProductionAcceptance()','live production acceptance entry');
 need(live,'const targetUploadBytes = 4800000','normal phone-photo-sized live upload fixture');
 need(live,'syntheticUploadBytes','live upload byte-count evidence');
@@ -59,7 +66,24 @@ need(live,"sent: false",'no automatic send');
 need(live,"setTrashed(true)",'synthetic upload cleanup');
 need(live,"'Is Voided': 'Yes'",'acceptance document cleanup');
 
+const sandbox={console};
+vm.runInNewContext(aiPublic,sandbox);
+const omitted={draft:{suggestedLines:[{description:'6-inch white gutters replacement',quantity:44,unit:'linear foot',rate:15}]}};
+const preserved=sandbox.boQuoteBuilderPreserveRequiredScope_(omitted,{notes:'Scope: Replace existing gutters with 6-inch white gutters and add leaf guard.'});
+const leafLine=preserved.draft.suggestedLines.find(line=>/(leaf|gutter)\s*guard/i.test(line.description||''));
+if(!leafLine)throw new Error('Typed leaf guard scope was not added when AI omitted it.');
+if(Number(leafLine.quantity)!==44||leafLine.unit!=='linear foot')throw new Error('Leaf guard did not inherit the drafted gutter-run quantity and unit for owner review.');
+if(!/manual_entry_required/.test(leafLine.priceStatus||''))throw new Error('Typed leaf guard line did not remain price-review controlled.');
+
+const alreadyPresent={draft:{suggestedLines:[{description:'Install gutter guard',quantity:44,unit:'linear foot',rate:0}]}};
+sandbox.boQuoteBuilderPreserveRequiredScope_(alreadyPresent,{notes:'Scope: Add leaf guard.'});
+if(alreadyPresent.draft.suggestedLines.length!==1)throw new Error('Existing gutter guard line was duplicated.');
+
+const assumptionOnly={draft:{suggestedLines:[]}};
+sandbox.boQuoteBuilderPreserveRequiredScope_(assumptionOnly,{notes:'Known dimensions and assumptions: Door with window is 36 inches by 80 inches.'});
+if(assumptionOnly.draft.suggestedLines.length)throw new Error('A measurement assumption was incorrectly converted into required work.');
+
 scripts(recovery).forEach(body=>new Function(body));
 scripts(edit).forEach(body=>new Function(body));
 new Function(live);
-console.log('PASS — native visible Android file controls, immediate single-request private uploads, actual photo analysis, combined Price Book gutter/downspout scope pricing, saved-draft editing, Android return recovery, and live production acceptance are wired without programmatic picker clicks.');
+console.log('PASS — native Android photo controls, real photo analysis, typed leaf guard preservation, combined gutter/downspout pricing, saved-draft editing, Android return recovery, and live production acceptance are wired without programmatic picker clicks.');
