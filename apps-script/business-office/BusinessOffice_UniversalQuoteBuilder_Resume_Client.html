@@ -46,3 +46,20 @@ scan();
 window.H38_UQB_RESUME={run:runToCompletion,scan:scan};
 })();
 </script>
+
+<script>
+(function(){
+'use strict';
+if(window.H38_SITE_MEASUREMENT_LOADER)return;
+window.H38_SITE_MEASUREMENT_LOADER=true;
+function install(bundle){
+  if(!bundle||window.H38_SITE_MEASUREMENT)return;
+  var holder=document.createElement('div');holder.innerHTML=(bundle.styles||'')+(bundle.core||'')+(bundle.forms||'');
+  Array.prototype.slice.call(holder.querySelectorAll('style')).forEach(function(node){document.head.appendChild(node);});
+  Array.prototype.slice.call(holder.children).forEach(function(node){if(node.tagName!=='SCRIPT'&&node.tagName!=='STYLE')document.body.appendChild(node);});
+  Array.prototype.slice.call(holder.querySelectorAll('script')).forEach(function(node){var script=document.createElement('script');script.textContent=node.textContent;document.body.appendChild(script);});
+}
+function fail(error){var toast=document.getElementById('qbToast');if(toast){toast.textContent='Measurements could not load: '+((error&&error.message)||String(error));toast.style.background='#7a1515';toast.classList.add('show');}}
+google.script.run.withSuccessHandler(install).withFailureHandler(fail).boSiteMeasurementClientBundle();
+})();
+</script>

@@ -40,7 +40,7 @@ check_file_contains software.html 'Three software levels' 'Software product stru
 check_file_contains software.html 'AI prepares; people approve' 'Software control boundary'
 check_file_contains project-services.html 'Planning support does not replace licensed or field verification.' 'Project-service professional boundary'
 check_file_contains quote-builder-demo.html 'Nothing leaves this page' 'Interactive demo privacy boundary'
-check_file_contains quote-builder-demo.html 'Not a real customer quote or authorization to proceed.' 'Interactive demo authorization boundary'
+check_file_contains quote-builder-demo.html 'send a quote, charge a card, or submit information to Highway 38.' 'Interactive demo authorization boundary'
 check_file_contains implementation.html 'Discover and preserve' 'Implementation preservation phase'
 check_file_contains implementation.html 'Acceptance evidence' 'Implementation acceptance evidence'
 check_file_contains security-reliability.html 'Controlled external actions' 'Security external-action controls'
