@@ -48,7 +48,7 @@ need(edit,"direct('boQuoteBuilderUpdateEditableQuote'",'saved draft update');
 
 need(aiPublic,'boQuoteBuilderPreserveRequiredScope_','server-side typed scope preservation');
 need(aiPublic,'Explicitly entered by the user and preserved as required scope','typed scope evidence');
-need(aiPublic,"/\\b(?:leaf|gutter)\\s*guards?\\b/",'leaf guard and gutter guard normalization');
+need(aiPublic,'gutterguard','leaf guard and gutter guard normalization');
 need(aiPublic,"return 'linear foot'",'gutter guard unit selection');
 
 need(live,'function boQuoteBuilderRunMobileProductionAcceptance()','live production acceptance entry');
