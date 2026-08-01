@@ -15,13 +15,18 @@ const raw=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Android_
 const chunk=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_ChunkUpload.gs');
 const stage=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_PhotoStage.gs');
 const ai=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Visual.gs');
+const editClient=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html');
+const editServer=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs');
 
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')",'mobile AI include');
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')",'quote-details recovery include');
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Android_RawUpload')",'final Android raw-upload include');
+need(index,"boInclude_('BusinessOffice_QuoteBuilder_EditExisting_Client')",'saved quote editor include');
 if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_GenericCustomer_Client')"))throw new Error('Mobile AI fix must load after the generic customer layer.');
 if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')"))throw new Error('Quote details recovery must load after the mobile AI layer.');
-if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Android_RawUpload')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')"))throw new Error('Android raw upload must be the final Quote Builder behavior layer.');
+if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Android_RawUpload')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')"))throw new Error('Android raw upload must load after quote details recovery.');
+if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_EditExisting_Client')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Android_RawUpload')"))throw new Error('Saved quote editor must load after the final Android behavior layer.');
+
 need(fix,'(hover:none) and (pointer:coarse)','mobile pointer detection beyond viewport width');
 need(fix,'#qbNav.nav{position:sticky!important','mobile horizontal navigation override');
 need(fix,'.table-wrap tbody{display:grid!important','mobile quote-table cards');
@@ -57,27 +62,31 @@ need(recovery,'The draft is saved, but full details did not load.','saved-draft 
 need(recovery,'window.qbOpenSavedQuote=openSavedQuote','explicit owner-controlled detail opening');
 
 need(raw,'const CHUNK_BYTES=786432','bounded raw photo chunk size');
-need(raw,"document.addEventListener('change'",'original File objects captured before picker cleanup');
-need(raw,'file.slice(start,end)','phone reads one raw photo chunk at a time');
+need(raw,"input.dataset.h38PersistentPermission='1'",'persistent Android file permission input');
+need(raw,'pickerInputs.push(input);input.click()','picker input retained after selection');
+need(raw,'rawFiles.push({file:file,input:input})','original File and owning input retained together');
+need(raw,'file.slice(index*CHUNK_BYTES','phone reads one raw photo chunk at a time');
 need(raw,'reader.readAsDataURL(blob)','only one small chunk is encoded per request');
 need(raw,"direct('boQuoteBuilderAiChunkBegin'",'raw photo upload session start');
 need(raw,"direct('boQuoteBuilderAiChunkPart'",'sequential raw photo chunk upload');
 need(raw,"direct('boQuoteBuilderAiChunkFinish'",'server-verified raw photo finalization');
 need(raw,"direct('boQuoteBuilderAiChunkAbort'",'failed raw upload cleanup');
-need(raw,"status('Releasing photo previews before upload",'decoded preview release before uploading');
-need(raw,'clearLegacyPending();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))','browser receives two frames to release preview memory');
-need(raw,"button.removeAttribute('onclick')",'legacy inline Build Quote handler removed');
-need(raw,'event.stopImmediatePropagation()','legacy same-element handler blocked');
+need(raw,"#qbQuotePhotoPanel{display:none!important}",'legacy photo preview panel hidden on phone');
+need(raw,'permission held until upload finishes','lightweight filename-only queue');
+need(raw,"button.removeAttribute('onclick')",'legacy inline button handlers removed');
+need(raw,'event.stopImmediatePropagation()','legacy same-element handlers blocked');
 need(raw,'photoDocumentIds:ids','AI receives only lightweight staged document IDs');
 need(raw,"api('quoteBuilderLastCreatedQuote')",'saved quote handoff uses canonical remembered quote');
 need(raw,"direct('boQuoteBuilderAttachStagedAiPhotos'",'staged private photos linked after save');
 need(raw,"direct('boQuoteBuilderAutoLocalPrice'",'raw workflow keeps automatic local-price research');
 need(raw,'applyLines(draft)','raw workflow populates quote lines');
+need(raw,"clearRawFiles();status('Quote draft prepared",'picker permissions released only after successful analysis');
 reject(raw,'document.createElement(\'canvas\')','final Android handler must not allocate a canvas');
 reject(raw,'createImageBitmap','final Android handler must not decode a full bitmap');
 reject(raw,'.toDataURL(','final Android handler must not create a full photo data URL');
 reject(raw,'await fetch(','final Android handler must not fetch blob previews');
 reject(raw,'response.blob()','final Android handler must not fetch blob previews');
+reject(raw,'clearLegacyPending','final Android handler must not destroy the file permission through the legacy queue');
 reject(raw,'busy(true)','final Android handler must not use the full-screen overlay');
 
 need(chunk,'function boQuoteBuilderAiChunkBegin(payload)','server raw-upload session entry point');
@@ -96,7 +105,7 @@ need(chunk,"boProof_('ATTACH STAGED AI PHOTOS'",'saved quote attachment proof re
 
 need(stage,'function boQuoteBuilderStageAiPhoto(payload)','public server staging entry point');
 need(stage,"boGuardApiRequest_('prepareAiQuoteDraft'",'staging request guard');
-need(stage,"/^image\\/(jpeg|png|webp)$/.test(mimeType)",'supported AI photo types');
+need(stage,"/^image\/(jpeg|png|webp)$/.test(mimeType)",'supported AI photo types');
 need(stage,'bytes.length <= H38_BO.MAX_UPLOAD_BYTES','server upload limit');
 need(stage,"row.SHA256 === hash",'duplicate photo reuse');
 need(stage,"'Source Type': 'Quote Builder AI'",'private staged photo record');
@@ -112,10 +121,34 @@ need(ai,'photoDocumentIds:stagedPhotos.documentIds','draft evidence stores file 
 need(ai,'photoCount:stagedPhotos.documentIds.length','draft stores count instead of base64 data');
 reject(ai,'photos:payload.photos || []','raw image data must not be written to the Activity sheet');
 
+need(editClient,'window.qbEditExisting=async function','saved quote editor entry point');
+need(editClient,"direct('boQuoteBuilderEditableQuote'",'editable quote load');
+need(editClient,"direct('boQuoteBuilderUpdateEditableQuote'",'editable quote save');
+need(editClient,'Save Quote Changes','clear saved quote edit action');
+need(editClient,'dataset.qbEditId=quoteId','dashboard Edit action');
+need(editClient,"dataset.qbDetailEdit='1'",'quote-detail Edit Quote action');
+need(editClient,'ctx.permissions&&ctx.permissions.edit','role-aware edit controls');
+need(editClient,'returned to Draft. Nothing was sent.','owner-controlled edit confirmation');
+
+need(editServer,'function boQuoteBuilderEditableQuote(payload)','editable quote server load');
+need(editServer,'function boQuoteBuilderUpdateEditableQuote(payload)','editable quote server save');
+need(editServer,"boQuoteBuilderRequireAction_('Edit')",'quote edit permission enforcement');
+need(editServer,"['Accepted', 'Converted', 'Voided']",'final quote in-place edit protection');
+need(editServer,'This quote changed after you opened it.','concurrent edit protection');
+need(editServer,"Status: 'Draft'",'edited quote returns to Draft');
+need(editServer,"'Approval Status': 'Owner Approval Required'",'approval reset after edit');
+need(editServer,"'Send Allowed': 'No'",'sending disabled after edit');
+need(editServer,"'Customer Action': 'Not Sent'",'customer release reset after edit');
+need(editServer,'lineSnapshot.sheet.deleteRow(row.__rowNumber)','old quote lines replaced');
+need(editServer,'boQuoteBuilderAppendBatch_(refreshedLines, submitted)','edited quote lines saved');
+need(editServer,"boProof_('EDIT QUOTE'",'saved quote edit proof record');
+
 scripts(fix).forEach(body=>new Function(body));
 scripts(recovery).forEach(body=>new Function(body));
 scripts(raw).forEach(body=>new Function(body));
+scripts(editClient).forEach(body=>new Function(body));
 new Function(chunk);
 new Function(stage);
 new Function(ai);
-console.log('PASS — simple phone quote, raw chunked Android uploads without phone image decoding, private server staging, lightweight saved-quote completion, bounded detail recovery, scope-driven pricing, and owner-review controls verified.');
+new Function(editServer);
+console.log('PASS — simple phone quote, persistent Android file permission, raw chunked uploads without phone image decoding, private server staging, editable saved quotes, bounded detail recovery, scope-driven pricing, and owner-review controls verified.');
