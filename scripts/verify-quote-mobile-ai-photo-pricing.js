@@ -10,11 +10,14 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
 const fix=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AI_Fix.html');
+const recovery=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html');
 const stage=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_PhotoStage.gs');
 const ai=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Visual.gs');
 
-need(index,"boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')",'final mobile AI include');
-if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_GenericCustomer_Client')"))throw new Error('Mobile AI fix must load last.');
+need(index,"boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')",'mobile AI include');
+need(index,"boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')",'final quote-details recovery include');
+if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_GenericCustomer_Client')"))throw new Error('Mobile AI fix must load after the generic customer layer.');
+if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Details_Recovery')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')"))throw new Error('Quote details recovery must load after the mobile AI layer.');
 need(fix,'(hover:none) and (pointer:coarse)','mobile pointer detection beyond viewport width');
 need(fix,'#qbNav.nav{position:sticky!important','mobile horizontal navigation override');
 need(fix,'.table-wrap tbody{display:grid!important','mobile quote-table cards');
@@ -54,6 +57,13 @@ need(fix,'ensureSuggestedLines(draft,basis)','scope fallback creates a searchabl
 need(fix,'applyLines(draft)','AI results populate the current quote');
 reject(fix,"Select a customer before building the AI draft.",'customer blocker in final handler');
 
+need(recovery,'const DETAIL_TIMEOUT_MS=18000','bounded quote-details request');
+need(recovery,'data-qb-saved-summary="1"','lightweight saved-quote completion');
+need(recovery,"if(!manual&&$('aiResult'))return Promise.resolve(savedSummary(quoteId))",'automatic AI completion avoids heavy detail navigation');
+need(recovery,"callWithTimeout('quoteBuilderQuoteDetails'",'manual quote detail request with timeout');
+need(recovery,'The draft is saved, but full details did not load.','saved-draft recovery message');
+need(recovery,'window.qbOpenSavedQuote=openSavedQuote','explicit owner-controlled detail opening');
+
 need(stage,'function boQuoteBuilderStageAiPhoto(payload)','public server staging entry point');
 need(stage,"boGuardApiRequest_('prepareAiQuoteDraft'",'staging request guard');
 need(stage,"/^image\\/(jpeg|png|webp)$/.test(mimeType)",'supported AI photo types');
@@ -73,6 +83,7 @@ need(ai,'photoCount:stagedPhotos.documentIds.length','draft stores count instead
 reject(ai,'photos:payload.photos || []','raw image data must not be written to the Activity sheet');
 
 scripts(fix).forEach(body=>new Function(body));
+scripts(recovery).forEach(body=>new Function(body));
 new Function(stage);
 new Function(ai);
-console.log('PASS — simple phone quote, sequential low-memory uploads, server-staged AI photos, scope-driven pricing, and owner-review controls verified.');
+console.log('PASS — simple phone quote, sequential low-memory uploads, server-staged AI photos, lightweight saved-quote completion, bounded detail recovery, scope-driven pricing, and owner-review controls verified.');
