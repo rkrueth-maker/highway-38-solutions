@@ -95,6 +95,7 @@ for source in "$REPO_ROOT"/apps-script/business-office/*.gs; do
   rm -f "$HARNESS/$base.js" "$HARNESS/$base.gs"
   cp "$source" "$HARNESS/$base.gs"
 done
+rm -f "$HARNESS/BusinessOffice_00_Pack.js" "$HARNESS/BusinessOffice_00_Pack.gs"
 rm -f "$HARNESS/BusinessOffice_Sync.js" "$HARNESS/BusinessOffice_Sync.gs"
 cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$HARNESS/BusinessOffice_Sync.gs"
 rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.js" "$HARNESS/BusinessOffice_CabinAutoSeed.gs"
@@ -112,9 +113,9 @@ web=Path(sys.argv[1]); auth=Path(sys.argv[2]); harness=Path(sys.argv[3]); token=
 web.write_text(web.read_text().replace('function doGet() {','function boMobileAcceptanceDoGet_() {'))
 auth_text=auth.read_text()
 old="return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();"
-new="return (boAuthText_(Session.getActiveUser().getEmail()) || boAuthText_(Session.getEffectiveUser().getEmail())).toLowerCase();"
+new="return 'rkrueth@gmail.com';"
 if old not in auth_text:
-    raise SystemExit('Could not patch temporary owner identity fallback.')
+    raise SystemExit('Could not patch temporary owner identity.')
 auth.write_text(auth_text.replace(old,new,1))
 text=harness.read_text()
 text=text.replace("const H38_BO_ACCEPTANCE_TOKEN_PROPERTY = 'H38_BUSINESS_OFFICE_ACCEPTANCE_TOKEN';", "const H38_BO_ACCEPTANCE_TOKEN = '"+token+"';")
