@@ -1,7 +1,14 @@
 /** Raw-file chunk staging for Android Quote Builder photo analysis. */
 
+var H38_QB_AI_CACHE_SEGMENT_CHARS = 80000;
+var H38_QB_AI_CACHE_BATCH_SIZE = 20;
+
 function boQuoteBuilderAiChunkKey_(sessionId) {
   return 'H38QB_AI_CHUNK:' + boNormalizeText_(sessionId);
+}
+
+function boQuoteBuilderAiChunkPartKey_(sessionId, index, segment) {
+  return ['H38QB_AI_PART', boNormalizeText_(sessionId), Number(index), Number(segment)].join(':');
 }
 
 function boQuoteBuilderAiChunkSession_(sessionId) {
@@ -18,10 +25,58 @@ function boQuoteBuilderStoreAiChunk_(session) {
   return session;
 }
 
-function boQuoteBuilderTrashAiChunks_(session) {
-  Object.keys((session && session.parts) || {}).forEach(function (key) {
-    try { DriveApp.getFileById(session.parts[key]).setTrashed(true); } catch (error) { console.log('H38 AI chunk cleanup: ' + error.message); }
+function boQuoteBuilderAiChunkCacheKeys_(session, index) {
+  const meta = session && session.parts && session.parts[String(index)];
+  if (!meta || !Number(meta.segments)) return [];
+  const keys = [];
+  for (let segment = 0; segment < Number(meta.segments); segment += 1) {
+    keys.push(boQuoteBuilderAiChunkPartKey_(session.sessionId, index, segment));
+  }
+  return keys;
+}
+
+function boQuoteBuilderCacheAiChunk_(session, index, data) {
+  const cache = CacheService.getUserCache();
+  const entries = {};
+  let segment = 0;
+  for (let offset = 0; offset < data.length; offset += H38_QB_AI_CACHE_SEGMENT_CHARS) {
+    entries[boQuoteBuilderAiChunkPartKey_(session.sessionId, index, segment)] = data.slice(offset, offset + H38_QB_AI_CACHE_SEGMENT_CHARS);
+    segment += 1;
+  }
+  const keys = Object.keys(entries);
+  for (let start = 0; start < keys.length; start += H38_QB_AI_CACHE_BATCH_SIZE) {
+    const batch = {};
+    keys.slice(start, start + H38_QB_AI_CACHE_BATCH_SIZE).forEach(function (key) { batch[key] = entries[key]; });
+    cache.putAll(batch, 1800);
+  }
+  session.parts[String(index)] = { segments: segment, length: data.length, storage: 'user_cache' };
+  return session;
+}
+
+function boQuoteBuilderReadAiChunk_(session, index) {
+  const keys = boQuoteBuilderAiChunkCacheKeys_(session, index);
+  boAssert_(keys.length, 'Photo chunk ' + (Number(index) + 1) + ' is missing.');
+  const cache = CacheService.getUserCache();
+  const values = cache.getAll(keys);
+  const chunks = keys.map(function (key) {
+    boAssert_(Object.prototype.hasOwnProperty.call(values, key), 'A temporary photo segment expired. Choose the photo again.');
+    return values[key];
   });
+  const data = chunks.join('');
+  const expected = Number(session.parts[String(index)].length || 0);
+  boAssert_(!expected || data.length === expected, 'A temporary photo segment was incomplete. Choose the photo again.');
+  return data;
+}
+
+function boQuoteBuilderTrashAiChunks_(session) {
+  const keys = [];
+  Object.keys((session && session.parts) || {}).forEach(function (index) {
+    boQuoteBuilderAiChunkCacheKeys_(session, index).forEach(function (key) { keys.push(key); });
+  });
+  if (keys.length) {
+    try { CacheService.getUserCache().removeAll(keys); }
+    catch (error) { console.log('H38 AI chunk cleanup: ' + error.message); }
+  }
 }
 
 function boQuoteBuilderAiChunkBegin(payload) {
@@ -61,15 +116,13 @@ function boQuoteBuilderAiChunkPart(payload) {
     const index = Number(payload.index);
     const data = String(payload.data || '');
     boAssert_(Number.isInteger(index) && index >= 0 && index < session.chunkCount, 'Invalid photo chunk index.');
-    boAssert_(data && data.length <= 1100000, 'Photo chunk exceeds the safe request size.');
+    boAssert_(data && data.length <= 9000000, 'Photo chunk exceeds the safe request size.');
     if (index < session.chunkCount - 1) boAssert_(data.indexOf('=') < 0, 'A non-final photo chunk was padded unexpectedly.');
     if (session.parts[String(index)]) return { sessionId: session.sessionId, index: index, duplicatePrevented: true };
-    const folder = DriveApp.getFolderById(boGetFolderId_(H38_BO.DOCUMENT_FOLDER_PROPERTY));
-    const part = folder.createFile(Utilities.newBlob(data, 'text/plain', '.h38-ai-' + session.sessionId + '-' + index + '.part'));
-    part.setDescription('Temporary private Quote Builder AI photo part. Customer: ' + session.customerId);
-    session.parts[String(index)] = part.getId();
+
+    boQuoteBuilderCacheAiChunk_(session, index, data);
     boQuoteBuilderStoreAiChunk_(session);
-    return { sessionId: session.sessionId, index: index, received: Object.keys(session.parts).length };
+    return { sessionId: session.sessionId, index: index, received: Object.keys(session.parts).length, storage: 'user_cache' };
   }, 'Customer', payload && payload.customerId);
 }
 
@@ -82,8 +135,7 @@ function boQuoteBuilderAiChunkFinish(payload) {
       boAssert_(Object.keys(session.parts).length === session.chunkCount, 'The photo upload is incomplete. Choose the photo again.');
       let base64Data = '';
       for (let index = 0; index < session.chunkCount; index += 1) {
-        boAssert_(session.parts[String(index)], 'Photo chunk ' + (index + 1) + ' is missing.');
-        base64Data += DriveApp.getFileById(session.parts[String(index)]).getBlob().getDataAsString('UTF-8');
+        base64Data += boQuoteBuilderReadAiChunk_(session, index);
       }
       const bytes = Utilities.base64Decode(base64Data);
       boAssert_(bytes.length === session.sizeBytes, 'The uploaded photo did not pass completeness verification.');
@@ -93,7 +145,7 @@ function boQuoteBuilderAiChunkFinish(payload) {
         mimeType: session.mimeType,
         base64Data: 'data:' + session.mimeType + ';base64,' + base64Data
       });
-      boProof_('RAW CHUNKED AI QUOTE PHOTO', 'Customer', session.customerId, 'PASS', staged.documentId + '; ' + session.chunkCount + ' chunks verified.', session.startedBy);
+      boProof_('RAW CHUNKED AI QUOTE PHOTO', 'Customer', session.customerId, 'PASS', staged.documentId + '; ' + session.chunkCount + ' cached chunks verified.', session.startedBy);
       return staged;
     }, 'Customer', session.customerId);
   } finally {
