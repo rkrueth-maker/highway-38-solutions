@@ -1,0 +1,44 @@
+<script>
+(function(){
+'use strict';
+let cameraInput=null;
+let fileInput=null;
+let selected=[];
+const $=id=>document.getElementById(id);
+const clean=value=>String(value==null?'':value).trim();
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function mime(file){const type=clean(file&&file.type).toLowerCase();if(type)return type;const ext=clean(file&&file.name).split('.').pop().toLowerCase();return {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'}[ext]||'application/octet-stream'}
+function key(file){return [file.name,file.size,file.lastModified].join('|')}
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
+function render(){
+  const host=$('qbPendingPhotos');
+  if(host){host.innerHTML=selected.length?selected.map((file,index)=>'<article class="qb-photo-card" style="min-height:86px;display:grid;place-items:center;padding:12px"><div class="qb-photo-meta" style="width:100%"><strong>'+esc(file.name||('Photo '+(index+1)))+'</strong><span>'+Math.max(1,Math.round(file.size/1024))+' KB · permission held until upload finishes</span></div></article>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>'}
+  const count=$('qbPendingCount');if(count)count.textContent=selected.length?selected.length+' picture'+(selected.length===1?'':'s')+' ready to upload':'Pictures save automatically with the draft quote.';
+}
+function record(input){
+  const seen={};selected.forEach(file=>{seen[key(file)]=true});
+  Array.from(input.files||[]).forEach(file=>{if(selected.length>=4)return;if(!/^image\/(jpeg|png|webp)$/i.test(mime(file))){toast((file.name||'Photo')+' must be JPEG, PNG, or WebP.',true);return}if(file.size>20*1024*1024){toast(file.name+' exceeds 20 MB.',true);return}const id=key(file);if(!seen[id]){seen[id]=true;selected.push(file)}});
+  render();
+}
+function ensureInputs(){
+  if(!cameraInput){cameraInput=document.createElement('input');cameraInput.type='file';cameraInput.accept='image/jpeg,image/png,image/webp';cameraInput.setAttribute('capture','environment');cameraInput.hidden=true;cameraInput.dataset.h38AndroidPermission='1';cameraInput.addEventListener('change',()=>record(cameraInput));document.body.appendChild(cameraInput)}
+  if(!fileInput){fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp';fileInput.multiple=true;fileInput.hidden=true;fileInput.dataset.h38AndroidPermission='1';fileInput.addEventListener('change',()=>record(fileInput));document.body.appendChild(fileInput)}
+}
+function open(mode){ensureInputs();(mode==='camera'?cameraInput:fileInput).click()}
+function install(){
+  ensureInputs();
+  window.qbCameraTakeForDraft=()=>open('camera');
+  window.qbCameraChooseForDraft=()=>open('files');
+  const take=$('qbSimpleTake');if(take&&take.dataset.h38PermissionFix!=='1'){const button=take.cloneNode(true);button.removeAttribute('onclick');button.dataset.h38PermissionFix='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();open('camera')});take.replaceWith(button)}
+  const choose=$('qbSimpleChoose');if(choose&&choose.dataset.h38PermissionFix!=='1'){const button=choose.cloneNode(true);button.removeAttribute('onclick');button.dataset.h38PermissionFix='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();open('files')});choose.replaceWith(button)}
+  render();
+}
+function resetAfterSuccess(){
+  const status=$('qbSimplePhotoStatus');
+  if(!status||!/quote draft prepared/i.test(status.textContent||''))return;
+  selected=[];if(cameraInput)cameraInput.value='';if(fileInput)fileInput.value='';render();
+}
+const observer=new MutationObserver(()=>requestAnimationFrame(()=>{install();resetAfterSuccess()}));observer.observe($('qbContent')||document.body,{childList:true,subtree:true,characterData:true});
+install();setInterval(install,500);
+})();
+</script>
