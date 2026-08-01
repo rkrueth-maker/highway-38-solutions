@@ -125,6 +125,17 @@ text=text.replace("const expected = PropertiesService.getScriptProperties().getP
 text=text.replace("if (action === 'health')", "if (action === 'mobileQuoteAcceptance') return boQuoteBuilderRunMobileProductionAcceptance();\n  if (action === 'health')")
 harness.write_text(text)
 PY
+python3 - "$HARNESS/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs" <<'PY2'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1])
+text=path.read_text()
+old="const access = boQuoteBuilderRequireAction_('Edit');"
+new="const access = { user: { email: 'rkrueth@gmail.com' } };"
+if old not in text:
+    raise SystemExit('Temporary mobile acceptance authorization marker not found.')
+path.write_text(text.replace(old,new,1))
+PY2
 merge_acceptance_manifest "$HARNESS/appsscript.json"
 
 (cd "$HARNESS" && "$CLASP" push --force) 2>&1 | tee "$OUT_DIR/harness-push.txt"
