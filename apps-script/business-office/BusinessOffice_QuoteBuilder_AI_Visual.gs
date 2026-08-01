@@ -10,8 +10,10 @@ function boBuildAiQuoteDraft_(payload) {
   return boSafeExecute_('Build AI quote draft', function () {
     const access = boQuoteBuilderRequireAction_('Create');
     payload = payload || {};
+    const hasDirectPhotos = payload.photos && payload.photos.length;
+    const hasStagedPhotos = payload.photoDocumentIds && payload.photoDocumentIds.length;
     boAssert_(payload.customerId, 'Customer selection is required.');
-    boAssert_(payload.notes || (payload.photos && payload.photos.length), 'Field notes or photos are required.');
+    boAssert_(payload.notes || hasDirectPhotos || hasStagedPhotos, 'Field notes or photos are required.');
 
     const key = boAiOpenAiKey_();
     if (!key) {
@@ -35,9 +37,15 @@ function boBuildAiQuoteDraft_(payload) {
       'All output is an internal draft requiring owner review.'
     ].join(' ');
     const content = [{type:'input_text',text:instructions+'\nFIELD NOTES:\n'+String(payload.notes||'')+'\nPRICE BOOK JSON:\n'+JSON.stringify(priceBook)}];
-    (payload.photos || []).slice(0,6).forEach(function (photo) {
+    (payload.photos || []).slice(0,4).forEach(function (photo) {
       const url = typeof photo === 'string' ? photo : (photo.dataUrl || photo.url || '');
       if (url) content.push({type:'input_image',image_url:url,detail:'high'});
+    });
+    const stagedPhotos = typeof boQuoteBuilderAiPhotoInputs_ === 'function'
+      ? boQuoteBuilderAiPhotoInputs_(payload)
+      : { urls:[], documentIds:[], totalBytes:0 };
+    stagedPhotos.urls.forEach(function (url) {
+      content.push({type:'input_image',image_url:url,detail:'high'});
     });
     const response = boAiFetchJson_('https://api.openai.com/v1/responses', {
       model:PropertiesService.getScriptProperties().getProperty('H38_AI_TEXT_MODEL') || 'gpt-4.1-mini',
@@ -58,7 +66,10 @@ function boBuildAiQuoteDraft_(payload) {
       Status:'Owner Review Required',
       Summary:draft.projectTitle || payload.projectTitle || 'AI-assisted field quote draft',
       Details:JSON.stringify({
-        notes:payload.notes || '', photos:payload.photos || [], projectTitle:draft.projectTitle || '', scope:draft.scope || '',
+        notes:payload.notes || '',
+        photoDocumentIds:stagedPhotos.documentIds,
+        photoCount:stagedPhotos.documentIds.length + Math.min((payload.photos || []).length, 4),
+        projectTitle:draft.projectTitle || '', scope:draft.scope || '',
         suggestedLines:Array.isArray(draft.suggestedLines)?draft.suggestedLines:[], assumptions:Array.isArray(draft.assumptions)?draft.assumptions:[],
         exclusions:Array.isArray(draft.exclusions)?draft.exclusions:[], missingInformation:Array.isArray(draft.missingInformation)?draft.missingInformation:[],
         photoObservations:Array.isArray(draft.photoObservations)?draft.photoObservations:[], pricingRule:'AI did not approve pricing. Owner confirmation is required.'
