@@ -105,11 +105,17 @@ rm -f "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.js" "$HARNESS/Business
 rm -f "$HARNESS/BusinessOffice_AcceptanceHarness.js" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 cp "$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Highway38AcceptanceHarness.gs" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 
-python3 - "$HARNESS/BusinessOffice_Web.gs" "$HARNESS/BusinessOffice_AcceptanceHarness.gs" "$TOKEN" <<'PY'
+python3 - "$HARNESS/BusinessOffice_Web.gs" "$HARNESS/BusinessOffice_Auth.gs" "$HARNESS/BusinessOffice_AcceptanceHarness.gs" "$TOKEN" <<'PY'
 from pathlib import Path
 import sys
-web=Path(sys.argv[1]); harness=Path(sys.argv[2]); token=sys.argv[3]
+web=Path(sys.argv[1]); auth=Path(sys.argv[2]); harness=Path(sys.argv[3]); token=sys.argv[4]
 web.write_text(web.read_text().replace('function doGet() {','function boMobileAcceptanceDoGet_() {'))
+auth_text=auth.read_text()
+old="return boAuthText_(Session.getActiveUser().getEmail()).toLowerCase();"
+new="return (boAuthText_(Session.getActiveUser().getEmail()) || boAuthText_(Session.getEffectiveUser().getEmail())).toLowerCase();"
+if old not in auth_text:
+    raise SystemExit('Could not patch temporary owner identity fallback.')
+auth.write_text(auth_text.replace(old,new,1))
 text=harness.read_text()
 text=text.replace("const H38_BO_ACCEPTANCE_TOKEN_PROPERTY = 'H38_BUSINESS_OFFICE_ACCEPTANCE_TOKEN';", "const H38_BO_ACCEPTANCE_TOKEN = '"+token+"';")
 text=text.replace("const expected = PropertiesService.getScriptProperties().getProperty(H38_BO_ACCEPTANCE_TOKEN_PROPERTY) || '';", "const expected = H38_BO_ACCEPTANCE_TOKEN;")
