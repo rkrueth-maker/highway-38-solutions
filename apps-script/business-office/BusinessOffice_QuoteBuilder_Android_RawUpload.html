@@ -1,0 +1,104 @@
+<script>
+(function(){
+'use strict';
+const GENERIC_CUSTOMER='CUST-H38-GENERIC-QUOTE';
+const CHUNK_BYTES=786432;
+const MAX_FILE_BYTES=20*1024*1024;
+let rawFiles=[];
+let stagedDocumentIds=[];
+let running=false;
+let saveWrapped=false;
+const $=id=>document.getElementById(id);
+const clean=value=>String(value==null?'':value).trim();
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
+const api=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
+function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
+function customerId(){return clean($('customer')&&$('customer').value)||clean($('aiCustomer')&&$('aiCustomer').value)||clean($('qbCustomerId')&&$('qbCustomerId').value)||GENERIC_CUSTOMER}
+function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||'Photo-based field quote'}
+function labeled(id,label){const node=$(id),value=clean(node&&node.value);return value?label+': '+value:''}
+function notes(){return [labeled('qbFieldNarration','Field description'),labeled('scope','Scope'),labeled('assumptions','Known dimensions and assumptions'),labeled('internalNotes','Internal notes'),labeled('customerNotes','Customer notes'),labeled('aiNotes','Field notes')].filter(Boolean).join('\n')}
+function fileMime(file){const type=clean(file&&file.type).toLowerCase();if(type)return type;const ext=clean(file&&file.name).split('.').pop().toLowerCase();return {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'}[ext]||'application/octet-stream'}
+function addRawFiles(files){
+  const seen={};rawFiles.forEach(file=>{seen[[file.name,file.size,file.lastModified].join('|')]=true});
+  files.filter(file=>file&&/^image\/(jpeg|png|webp)$/i.test(fileMime(file))).forEach(file=>{const key=[file.name,file.size,file.lastModified].join('|');if(!seen[key]&&rawFiles.length<4){seen[key]=true;rawFiles.push(file)}});
+}
+document.addEventListener('change',event=>{const input=event.target;if(!input||input.tagName!=='INPUT'||input.type!=='file')return;addRawFiles(Array.from(input.files||[]))},true);
+document.addEventListener('click',event=>{const remove=event.target&&event.target.closest?event.target.closest('#qbPendingPhotos .qb-photo-remove'):null;if(!remove)return;const card=remove.closest('.qb-photo-card'),cards=Array.from(document.querySelectorAll('#qbPendingPhotos .qb-photo-card')),index=cards.indexOf(card);if(index>=0&&index<rawFiles.length)rawFiles.splice(index,1)},true);
+function readChunk(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||''),comma=value.indexOf(',');resolve(comma>=0?value.slice(comma+1):value)};reader.onerror=()=>reject(reader.error||new Error('A photo chunk could not be read.'));reader.readAsDataURL(blob)})}
+async function uploadFile(file,position,total){
+  const mimeType=fileMime(file);
+  if(!/^image\/(jpeg|png|webp)$/.test(mimeType))throw new Error((file.name||'Photo')+' must be JPEG, PNG, or WebP.');
+  if(!file.size||file.size>MAX_FILE_BYTES)throw new Error((file.name||'Photo')+' exceeds the 20 MB upload limit.');
+  const chunkCount=Math.ceil(file.size/CHUNK_BYTES);
+  const started=await direct('boQuoteBuilderAiChunkBegin',{customerId:customerId(),fileName:file.name||('quote-photo-'+position+'.jpg'),mimeType:mimeType,sizeBytes:file.size,chunkCount:chunkCount});
+  try{
+    for(let index=0;index<chunkCount;index++){
+      status('Uploading photo '+position+' of '+total+' — part '+(index+1)+' of '+chunkCount+'…',false);
+      const start=index*CHUNK_BYTES,end=Math.min(file.size,start+CHUNK_BYTES);
+      let data=await readChunk(file.slice(start,end));
+      await direct('boQuoteBuilderAiChunkPart',{sessionId:started.sessionId,index:index,data:data});
+      data='';
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    return await direct('boQuoteBuilderAiChunkFinish',{sessionId:started.sessionId});
+  }catch(error){
+    try{await direct('boQuoteBuilderAiChunkAbort',{sessionId:started.sessionId})}catch(ignore){}
+    throw error;
+  }
+}
+async function uploadAll(){
+  const files=rawFiles.slice(0,4),ids=[];
+  for(let index=0;index<files.length;index++){
+    const saved=await uploadFile(files[index],index+1,files.length);
+    if(saved&&saved.documentId)ids.push(saved.documentId);
+    await new Promise(resolve=>setTimeout(resolve,35));
+  }
+  if(files.length&&!ids.length)throw new Error('The selected photos could not be uploaded. Choose them again and retry.');
+  return ids;
+}
+function parseDraft(result){if(result&&result.draft)return result.draft;try{return JSON.parse(result&&result.staged&&result.staged.Details||'{}')}catch(error){return {}}}
+function rateMissing(line){return line.rate===''||line.rate==null||!Number.isFinite(Number(line.rate))||Number(line.rate)<=0}
+function priceQuery(line,draft,basis){const primary=clean(line.searchQuery||line.description||line.catalogId||draft.projectTitle||basis),context=clean(draft.scope||basis);return clean([primary,context].filter(Boolean).join('. Work scope: ')).slice(0,500)}
+function ensureLines(draft,basis){if(Array.isArray(draft.suggestedLines)&&draft.suggestedLines.length)return;const description=clean(draft.scope||basis).replace(/^(Scope|Field description):\s*/i,'').slice(0,220);draft.suggestedLines=description?[{description:description,quantity:1,unit:'job',rate:'',searchQuery:description,evidence:'Derived from the entered scope and notes; owner review required.'}]:[]}
+async function priceLines(draft,basis){
+  ensureLines(draft,basis);let researched=0;const seen={};
+  for(const line of draft.suggestedLines||[]){if(!rateMissing(line)||researched>=4)continue;const query=priceQuery(line,draft,basis),key=query.toLowerCase();if(!query||seen[key])continue;seen[key]=true;try{const result=await direct('boQuoteBuilderAutoLocalPrice',{query:query,taxable:false}),item=result&&result.item;if(item){line.catalogId=item['Product / Service ID']||result.catalogId||line.catalogId||'';line.description=line.description||item['Customer Description']||item.Name||query;line.unit=item.Unit||line.unit||'each';line.rate=Number(item['Standard Selling Price']||item.Price||0);line.priceStatus='automatic_local_typical_owner_review';researched++}}catch(error){line.priceStatus='local_price_lookup_failed'}}
+  return researched;
+}
+function setIfBlank(id,value){const node=$(id);if(node&&clean(value)&&!clean(node.value)){node.value=Array.isArray(value)?value.join('\n'):value;node.dispatchEvent(new Event('input',{bubbles:true}))}}
+function existingDescriptions(){return Array.from(document.querySelectorAll('#lines .description input')).map(input=>clean(input.value).toLowerCase()).filter(Boolean)}
+function applyLines(draft){
+  const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];if(!lines.length||typeof window.qbAddLine!=='function')return 0;
+  const existing=existingDescriptions(),first=document.querySelector('#lines .description input'),removeBlank=!!(first&&!clean(first.value));let added=0;
+  lines.forEach(line=>{const description=clean(line.description||line.catalogId);if(!description||existing.includes(description.toLowerCase()))return;window.qbAddLine({catalogId:line.catalogId||'',description:description,quantity:Number(line.quantity)||1,unit:line.unit||'each',rate:Number(line.rate)||0,discount:0,taxable:false,taxRate:0,notes:clean([line.evidence,line.priceStatus==='automatic_local_typical_owner_review'?'Automatically researched typical local rate; owner review required.':''].filter(Boolean).join(' '))});existing.push(description.toLowerCase());added++});
+  if(removeBlank&&added&&typeof window.qbRemoveLine==='function')window.qbRemoveLine(0);return added;
+}
+function render(draft,added,researched){
+  let host=$('qbAiResult');if(!host){host=document.createElement('div');host.id='qbAiResult';host.className='qb-ai-result';const panel=$('qbSimplePhotoQuote');if(panel)panel.appendChild(host)}if(!host)return;
+  const observations=Array.isArray(draft.photoObservations)?draft.photoObservations:[],missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[],lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
+  host.hidden=false;host.innerHTML='<strong>'+esc(draft.projectTitle||'Photo quote draft')+'</strong>'+(draft.scope?'<p>'+esc(draft.scope)+'</p>':'')+(observations.length?'<p><strong>Photos show:</strong> '+esc(observations.join(' • '))+'</p>':'')+(lines.length?'<p><strong>Added:</strong> '+lines.map(line=>esc(line.description||line.catalogId||'Review item')).join(' • ')+'</p>':'')+(missing.length?'<p><strong>Confirm:</strong> '+esc(missing.join(' • '))+'</p>':'')+'<p>'+added+' quote item'+(added===1?'':'s')+' added; '+researched+' missing price'+(researched===1?'':'s')+' researched.</p>';
+}
+function clearLegacyPending(){let guard=0;while(document.querySelector('#qbPendingPhotos .qb-photo-card')&&typeof window.qbSafeRemovePendingPhoto==='function'&&guard<8){window.qbSafeRemovePendingPhoto(0);guard++}}
+async function build(button){
+  if(running)return;running=true;const original=button.textContent;button.disabled=true;button.textContent='Uploading photos…';
+  try{
+    const basis=notes();if(!basis&&!rawFiles.length)throw new Error('Add a photo or enter the scope first.');
+    status('Releasing photo previews before upload…',false);clearLegacyPending();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const ids=await uploadAll();status('Analyzing the saved photos and matching the Price Book…',false);button.textContent='Analyzing…';
+    const result=await direct('boBuildAiQuoteDraft',{customerId:customerId(),projectTitle:projectTitle(),notes:basis||'Analyze the supplied jobsite photos and identify the visible work required. Do not invent measurements.',photoDocumentIds:ids});
+    const draft=parseDraft(result)||{};button.textContent='Finding prices…';const researched=await priceLines(draft,basis);setIfBlank('project',draft.projectTitle);setIfBlank('scope',draft.scope);setIfBlank('assumptions',draft.assumptions);setIfBlank('exclusions',draft.exclusions);const added=applyLines(draft);render(draft,added,researched);
+    stagedDocumentIds=ids.slice();rawFiles=[];status('Quote draft prepared. Review it, then save the draft quote.',false);toast('Quote draft prepared. Nothing was approved or sent.');
+  }catch(error){const message=clean(error&&error.message||error)||'The quote draft stopped safely.';status(message,true);toast(message,true)}finally{running=false;button.disabled=false;button.textContent=original}
+}
+function installBuildButton(){const old=$('qbSimpleBuild');if(!old||old.dataset.h38RawUpload==='1')return;const button=old.cloneNode(true);button.type='button';button.removeAttribute('onclick');button.dataset.h38RawUpload='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();build(event.currentTarget)},true);old.replaceWith(button)}
+function installSaveWrapper(){
+  if(saveWrapped||typeof window.qbSave!=='function')return;saveWrapped=true;const prior=window.qbSave;
+  window.qbSave=async function(event){const ids=stagedDocumentIds.slice(),started=Date.now();if(ids.length)clearLegacyPending();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await api('quoteBuilderLastCreatedQuote');if(created&&Number(created.createdMs||0)>=started){await direct('boQuoteBuilderAttachStagedAiPhotos',{quoteId:created.quoteId,documentIds:ids});stagedDocumentIds=[];toast(ids.length+' photo'+(ids.length===1?'':'s')+' attached to the saved quote.')}}catch(error){toast('The quote was saved, but the photo link needs review: '+clean(error&&error.message||error),true)}}return result};
+}
+function install(){installBuildButton();installSaveWrapper()}
+const observer=new MutationObserver(()=>requestAnimationFrame(install));observer.observe($('qbContent')||document.body,{childList:true,subtree:true});
+install();setTimeout(install,300);setTimeout(install,1200);
+})();
+</script>
