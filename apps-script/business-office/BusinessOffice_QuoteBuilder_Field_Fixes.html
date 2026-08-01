@@ -1,0 +1,129 @@
+<style>
+.qb-local-price{margin:14px 0;padding:15px;border:2px solid #b8ccd9;border-radius:14px;background:#f7fbfd}.qb-local-price h3{margin:0;color:var(--navy)}.qb-local-price p{margin:5px 0 12px;color:var(--muted);line-height:1.45}.qb-local-price-grid{display:grid;grid-template-columns:minmax(220px,2fr) minmax(180px,1fr) auto;gap:9px;align-items:end}.qb-local-price-result{margin-top:12px}.qb-local-price-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.qb-local-price-card{padding:12px;border:1px solid var(--border);border-radius:11px;background:#fff}.qb-local-price-card strong{display:block;font-size:1.35rem;color:var(--navy);margin:4px 0 9px}.qb-local-price-sources{margin:10px 0 0;padding-left:20px}.qb-local-price-sources li{margin:5px 0}.qb-local-price-sources a{color:var(--navy);font-weight:800}.qb-local-price-note{font-size:12px;color:var(--muted);margin-top:9px}.qb-safe-photo-choice{background:#e8eef4;color:var(--navy)}
+@media(max-width:760px){.qb-local-price-grid,.qb-local-price-cards{grid-template-columns:1fr}.qb-local-price-grid button{width:100%}}
+</style>
+<script>
+(function(){
+'use strict';
+const ctx=window.H38_QB_CONTEXT||{};
+const userKey=String(ctx.user&&ctx.user.id||ctx.user&&ctx.user.email||'user');
+const DRAFT_KEY='H38_QB_DRAFT_V2:'+userKey;
+const MARKET_KEY='H38_QB_LOCAL_MARKET:'+userKey;
+const DRAFT_FIELDS=['customer','project','quoteDate','expiration','terms','deposit','scope','assumptions','exclusions','customerNotes','internalNotes','qbFieldNarration'];
+const safePending=[];
+let safeCameraInput=null,safeFileInput=null,safeTarget='draft',safeQuoteId='',researchResult=null,installed=false,saving=false,discardNext=false;
+const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value||0));
+const validUrl=value=>/^https?:\/\//i.test(String(value||''));
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5400)}
+function busy(on){const node=$('qbOverlay');if(node)node.classList.toggle('show',!!on)}
+function api(action,args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}))}
+function direct(name,args){return new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[])})}
+function dataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+function mime(file){return file.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[String(file.name||'').split('.').pop().toLowerCase()]||'image/jpeg')}
+
+function captureDraft(){
+  if(!$('customer'))return;
+  const draft={};DRAFT_FIELDS.forEach(id=>{const node=$(id);if(node)draft[id]=node.value});
+  try{sessionStorage.setItem(DRAFT_KEY,JSON.stringify(draft))}catch(error){}
+}
+function restoreDraft(){
+  let draft={};try{draft=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'{}')}catch(error){draft={}}
+  DRAFT_FIELDS.forEach(id=>{const node=$(id);if(!node||draft[id]===undefined)return;if(id==='customer'&&draft[id]&&!Array.from(node.options||[]).some(option=>option.value===draft[id]))return;node.value=draft[id]});
+  if(typeof window.qbCalc==='function')window.qbCalc();
+}
+function clearDraft(){try{sessionStorage.removeItem(DRAFT_KEY)}catch(error){}}
+function wireDraftAutosave(){const form=$('customer')&&$('customer').form;if(!form||form.dataset.h38DraftMemory==='1')return;form.dataset.h38DraftMemory='1';form.addEventListener('input',captureDraft);form.addEventListener('change',captureDraft);restoreDraft()}
+
+function ensureSafeInputs(){
+  if(!safeCameraInput){
+    safeCameraInput=document.createElement('input');safeCameraInput.type='file';safeCameraInput.accept='image/*';safeCameraInput.setAttribute('capture','environment');safeCameraInput.hidden=true;
+    safeCameraInput.addEventListener('change',()=>{const files=Array.from(safeCameraInput.files||[]);safeCameraInput.value='';handleSafeFiles(files)});document.body.appendChild(safeCameraInput);
+  }
+  if(!safeFileInput){
+    safeFileInput=document.createElement('input');safeFileInput.type='file';safeFileInput.accept='image/*';safeFileInput.multiple=true;safeFileInput.removeAttribute('capture');safeFileInput.hidden=true;
+    safeFileInput.addEventListener('change',()=>{const files=Array.from(safeFileInput.files||[]);safeFileInput.value='';handleSafeFiles(files)});document.body.appendChild(safeFileInput);
+  }
+}
+function openSafePicker(mode,target,quoteId){ensureSafeInputs();safeTarget=target||'draft';safeQuoteId=quoteId||'';(mode==='camera'?safeCameraInput:safeFileInput).click()}
+async function handleSafeFiles(files){
+  const images=files.filter(file=>file&&String(file.type||'').indexOf('image/')===0);
+  if(!images.length)return;
+  for(const file of images)if(file.size>20*1024*1024){toast(file.name+' exceeds 20 MB.',true);return}
+  if(safeTarget==='quote'&&safeQuoteId){await saveSafeFiles(safeQuoteId,images);if(typeof window.qbDetails==='function')await window.qbDetails(safeQuoteId);return}
+  images.forEach(file=>safePending.push({file:file,url:URL.createObjectURL(file)}));renderSafePending()
+}
+function renderSafePending(){
+  const host=$('qbPendingPhotos');if(!host)return;
+  host.innerHTML=safePending.length?safePending.map((item,index)=>'<article class="qb-photo-card"><img src="'+esc(item.url)+'" alt="Quote picture '+(index+1)+'"><button class="qb-photo-remove" type="button" aria-label="Remove picture" onclick="qbSafeRemovePendingPhoto('+index+')">×</button><div class="qb-photo-meta"><strong>'+esc(item.file.name)+'</strong><span>'+Math.max(1,Math.round(item.file.size/1024))+' KB · saves with quote</span></div></article>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>';
+  const count=$('qbPendingCount');if(count)count.textContent=safePending.length?safePending.length+' picture'+(safePending.length===1?'':'s')+' ready to save':'Pictures save automatically with the draft quote.';
+}
+window.qbSafeRemovePendingPhoto=index=>{const item=safePending[index];if(item)URL.revokeObjectURL(item.url);safePending.splice(index,1);renderSafePending()};
+async function saveSafeFiles(quoteId,files){
+  busy(true);try{const saved=[];for(let i=0;i<files.length;i+=3){const group=files.slice(i,i+3);const results=await Promise.all(group.map(async file=>api('saveQuotePhoto',{payload:{quoteId:quoteId,fileName:file.name,mimeType:mime(file),base64Data:await dataUrl(file)}})));saved.push(...results)}toast(saved.length+' picture'+(saved.length===1?'':'s')+' saved with the quote.');return saved}finally{busy(false)}
+}
+function installSafeCameraGlobals(){
+  ensureSafeInputs();
+  window.qbCameraTakeForDraft=()=>openSafePicker('camera','draft','');
+  window.qbCameraChooseForDraft=()=>openSafePicker('files','draft','');
+  window.qbCameraTakeForQuote=quoteId=>openSafePicker('camera','quote',quoteId);
+  window.qbCameraChooseForQuote=quoteId=>openSafePicker('files','quote',quoteId);
+}
+function enhanceCameraControls(){
+  const aiFiles=$('aiFiles');if(aiFiles)aiFiles.removeAttribute('capture');
+  const draftActions=document.querySelector('#qbQuotePhotoPanel .qb-camera-actions');
+  if(draftActions&&!draftActions.querySelector('[data-safe-choose]'))draftActions.insertAdjacentHTML('beforeend','<button type="button" class="qb-safe-photo-choice" data-safe-choose="1" onclick="qbCameraChooseForDraft()">Choose Photos</button>');
+  const quotePanel=$('qbQuotePhotosPanel');
+  if(quotePanel&&!quotePanel.querySelector('[data-safe-choose]')){const head=quotePanel.querySelector('.qb-quote-photo-head');const take=head&&head.querySelector('button');const match=take&&String(take.getAttribute('onclick')||'').match(/qbCameraTakeForQuote\('([^']+)'\)/);if(head&&match)head.insertAdjacentHTML('beforeend','<button type="button" class="qb-safe-photo-choice" data-safe-choose="1" onclick="qbCameraChooseForQuote(\''+esc(match[1])+'\')">Choose Photos</button>')}
+  const mobile=$('qbMobileCapture');
+  if(mobile&&mobile.dataset.safeNative!=='1'){const replacement=mobile.cloneNode(true);replacement.dataset.safeNative='1';replacement.textContent='📷 Take Picture for Quote';replacement.addEventListener('click',()=>window.qbCameraTakeForDraft());mobile.replaceWith(replacement)}
+  renderSafePending();
+}
+
+function suggestedQuery(){
+  const search=$('priceSearch');if(search&&search.value.trim())return search.value.trim();
+  const lines=Array.from(document.querySelectorAll('#lines .line'));for(const line of lines){const description=line.querySelector('.description input'),numbers=line.querySelectorAll('input[type="number"]'),rate=numbers[2];if(description&&description.value.trim()&&(!rate||Number(rate.value||0)===0))return description.value.trim()}
+  return '';
+}
+function localMarket(){try{const stored=localStorage.getItem(MARKET_KEY);if(stored)return stored}catch(error){}return String(ctx.branding&&ctx.branding.businessName||'')==='Highway 38 Solutions'?'Grand Rapids, Minnesota':''}
+function localPriceMarkup(){return '<section id="qbLocalPricePanel" class="qb-local-price"><h3>Local price research</h3><p>No Price Book match? Research current local sources. Choosing a result adds it to this draft and remembers it in the Price Book for next time.</p><div class="qb-local-price-grid"><label>Item or service<input id="qbLocalPriceQuery" placeholder="Example: 3/4-inch Class 5 gravel per ton"></label><label>Local market<input id="qbLocalPriceMarket" placeholder="City, state, or ZIP"></label><button type="button" class="primary" id="qbLocalPriceSearch">Research Local Price</button></div><div id="qbLocalPriceResult" class="qb-local-price-result"></div><div class="qb-local-price-note">Research is a sourced draft estimate only. You choose the tier; H38 does not approve or send the final price automatically.</div></section>'}
+function injectLocalPrice(){
+  if($('qbLocalPricePanel'))return;
+  let anchor=null,mode='';
+  if($('priceSearch')){anchor=$('priceSearch').closest('.toolbar');mode='priceBook'}else if($('lines')){anchor=$('lines');mode='quote'}
+  if(!anchor)return;
+  anchor.insertAdjacentHTML('afterend',localPriceMarkup());
+  $('qbLocalPriceQuery').value=suggestedQuery();$('qbLocalPriceMarket').value=localMarket();$('qbLocalPriceSearch').addEventListener('click',researchLocalPrice);$('qbLocalPricePanel').dataset.mode=mode;
+}
+async function researchLocalPrice(){
+  const query=$('qbLocalPriceQuery').value.trim(),market=$('qbLocalPriceMarket').value.trim();
+  if(!query)return toast('Describe the item or service to research.',true);if(!market)return toast('Enter the local city, state, or ZIP.',true);
+  try{localStorage.setItem(MARKET_KEY,market)}catch(error){}
+  const host=$('qbLocalPriceResult');host.innerHTML='<div class="loading-card" style="min-height:90px">Researching current local sources…</div>';$('qbLocalPriceSearch').disabled=true;
+  try{researchResult=await direct('boQuoteBuilderResearchLocalPrice',[{query:query,market:market}]);renderResearchResult(researchResult)}catch(error){host.innerHTML='<div class="notice bad"><strong>Local price research stopped.</strong><br>'+esc(error&&error.message||String(error))+'</div>'}finally{$('qbLocalPriceSearch').disabled=false}
+}
+function renderResearchResult(result){
+  const sources=(result.sources||[]).filter(source=>validUrl(source.url));
+  const sourceHtml=sources.length?'<ul class="qb-local-price-sources">'+sources.map(source=>'<li><a href="'+esc(source.url)+'" target="_blank" rel="noopener">'+esc(source.title||source.seller||source.url)+'</a>'+(source.priceText?' — '+esc(source.priceText):'')+'</li>').join('')+'</ul>':'';
+  $('qbLocalPriceResult').innerHTML='<div class="notice good"><strong>'+esc(result.itemName)+'</strong><br>'+esc(result.description||'')+'<br><small>'+esc(result.market)+' · '+esc(result.asOfDate)+' · confidence '+esc(result.confidence)+'</small></div><div class="qb-local-price-cards">'+['low','typical','high'].map(tier=>'<article class="qb-local-price-card"><span>'+tier[0].toUpperCase()+tier.slice(1)+'</span><strong>'+money(result[tier])+' / '+esc(result.unit)+'</strong><button type="button" data-price-tier="'+tier+'">Use '+tier+' + remember</button></article>').join('')+'</div>'+sourceHtml+(result.notes?'<div class="qb-local-price-note">'+esc(result.notes)+'</div>':'');
+  document.querySelectorAll('[data-price-tier]').forEach(button=>button.addEventListener('click',()=>rememberPrice(button.dataset.priceTier,button)));
+}
+async function rememberPrice(tier,button){
+  if(!researchResult)return;button.disabled=true;busy(true);
+  try{const saved=await direct('boQuoteBuilderRememberLocalPrice',[{researchId:researchResult.researchId,tier:tier,taxable:false}]);toast((saved.updated?'Updated':'Saved')+' the researched price in the Price Book and added it to this quote.');if(typeof window.qbAddLine==='function')window.qbAddLine(saved.item)}catch(error){toast(error&&error.message||String(error),true);button.disabled=false}finally{busy(false)}
+}
+
+function enhance(){wireDraftAutosave();installSafeCameraGlobals();enhanceCameraControls();injectLocalPrice()}
+function install(){
+  if(installed||typeof window.qbOpen!=='function'||typeof window.qbSave!=='function'||typeof window.qbAddLine!=='function')return false;installed=true;
+  const baseAddLine=window.qbAddLine;window.qbAddLine=function(item){let value=item;if(item&&item.Name&&!item.Unit){const match=String(item.Name).match(/\s*\[per\s+([^\]]+)\]\s*$/i);if(match){value=Object.assign({},item,{Name:String(item.Name).replace(match[0],''),Unit:match[1]});if(!value['Customer Description'])value['Customer Description']=value.Name}}return baseAddLine.call(this,value)};
+  const baseOpen=window.qbOpen;window.qbOpen=async function(view){if($('customer')&&view!=='new'&&!saving&&!discardNext)captureDraft();if(discardNext){discardNext=false;clearDraft()}const result=await baseOpen.apply(this,arguments);setTimeout(enhance,0);return result};
+  const baseSave=window.qbSave;window.qbSave=async function(event){const saveStarted=Date.now(),files=safePending.map(item=>item.file);saving=true;try{const result=await baseSave.apply(this,arguments);if(!$('customer')){clearDraft();if(files.length){const created=await api('quoteBuilderLastCreatedQuote');if(created&&Number(created.createdMs||0)>=saveStarted){await saveSafeFiles(created.quoteId,files);safePending.forEach(item=>URL.revokeObjectURL(item.url));safePending.splice(0,safePending.length);if(typeof window.qbDetails==='function')await window.qbDetails(created.quoteId)}}}else captureDraft();return result}finally{saving=false}};
+  document.addEventListener('click',event=>{const button=event.target&&event.target.closest&&event.target.closest('button');if(button&&$('customer')&&String(button.textContent||'').trim()==='Cancel'){discardNext=true;clearDraft()}},true);
+  new MutationObserver(()=>setTimeout(enhance,0)).observe($('qbContent'),{childList:true,subtree:true});
+  enhance();return true;
+}
+let attempts=0;const timer=setInterval(()=>{attempts+=1;if(install()||attempts>120)clearInterval(timer)},50);
+})();
+</script>
