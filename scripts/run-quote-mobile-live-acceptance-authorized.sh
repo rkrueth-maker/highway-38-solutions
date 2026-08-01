@@ -105,6 +105,7 @@ rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.js" "$HARNESS/BusinessOffice_CabinA
 # Remove them from the temporary harness so the token-protected mobile acceptance endpoint is the only doPost.
 rm -f "$HARNESS/Unified_PublicIntake.js" "$HARNESS/Unified_PublicIntake.gs"
 rm -f "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.js" "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.gs"
+rm -f "$HARNESS/BusinessOffice_Highway38Acceptance.js" "$HARNESS/BusinessOffice_Highway38Acceptance.gs"
 rm -f "$HARNESS/BusinessOffice_AcceptanceHarness.js" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 cp "$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Highway38AcceptanceHarness.gs" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 
