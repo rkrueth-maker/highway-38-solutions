@@ -19,7 +19,7 @@ const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;
 const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
 const api=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
 function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
-function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
+function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(!node)return;const color=bad?'#8f1d1d':'var(--navy)';if(node.textContent!==message)node.textContent=message;if(node.style.color!==color)node.style.color=color}
 function customerId(){return clean($('customer')&&$('customer').value)||clean($('aiCustomer')&&$('aiCustomer').value)||clean($('qbCustomerId')&&$('qbCustomerId').value)||GENERIC_CUSTOMER}
 function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||'Photo-based field quote'}
 function labeled(id,label){const node=$(id),value=clean(node&&node.value);return value?label+': '+value:''}
@@ -36,7 +36,8 @@ function queueHost(){
 }
 function renderQueue(){
   const host=queueHost();if(!host)return;
-  host.innerHTML=rawFiles.length?rawFiles.map((entry,index)=>'<div class="qb-android-file"><div><strong>'+esc(entry.file.name||('Photo '+(index+1)))+'</strong><span>'+Math.max(1,Math.round(entry.file.size/1024))+' KB · permission held until upload finishes</span></div><button type="button" class="danger" data-qb-raw-remove="'+index+'">Remove</button></div>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>';
+  const html=rawFiles.length?rawFiles.map((entry,index)=>'<div class="qb-android-file"><div><strong>'+esc(entry.file.name||('Photo '+(index+1)))+'</strong><span>'+Math.max(1,Math.round(entry.file.size/1024))+' KB · permission held until upload finishes</span></div><button type="button" class="danger" data-qb-raw-remove="'+index+'">Remove</button></div>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>';
+  if(host.innerHTML!==html)host.innerHTML=html;
   if(rawFiles.length)status(rawFiles.length+' picture'+(rawFiles.length===1?'':'s')+' ready. Press Build Quote.',false);
 }
 function releaseInputIfUnused(input){
