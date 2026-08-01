@@ -10,6 +10,8 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
 const fix=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AI_Fix.html');
+const stage=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_PhotoStage.gs');
+const ai=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Visual.gs');
 
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')",'final mobile AI include');
 if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Mobile_AI_Fix')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_GenericCustomer_Client')"))throw new Error('Mobile AI fix must load last.');
@@ -33,22 +35,44 @@ need(fix,"labeled('scope','Scope')",'scope included in agent context');
 need(fix,"labeled('assumptions','Known dimensions and assumptions')",'known dimensions included in agent context');
 need(fix,"labeled('internalNotes','Internal notes')",'internal notes included in agent context');
 need(fix,"document.querySelectorAll('#qbPendingPhotos img",'displayed queued photos collected');
-need(fix,'context.drawImage(img,0,0,width,height)','displayed image drawn directly to canvas');
-need(fix,"canvas.toDataURL('image/jpeg',.82)",'phone photo converted without browser fetch');
-need(fix,'const max=1600','phone photo compression dimension');
+need(fix,"canvas.toDataURL('image/jpeg',.68)",'one-photo low-memory conversion');
+need(fix,'const max=1280','reduced phone photo staging dimension');
+need(fix,"setStatus('Uploading photo '",'visible sequential upload progress');
+need(fix,"direct('boQuoteBuilderStageAiPhoto'",'one-at-a-time server photo staging');
+need(fix,'base64Data=\'\'','large staging string released after each upload');
+need(fix,'await new Promise(resolve=>setTimeout(resolve,40))','phone event loop released between photos');
+need(fix,'photoDocumentIds:photoDocumentIds','AI receives lightweight document references');
+reject(fix,'photos:photos','mobile must not send all base64 photos in one AI request');
 reject(fix,'await fetch(','browser fetch must not read temporary photo previews');
 reject(fix,'response.blob()','blob fetch conversion removed');
-need(fix,"direct('boBuildAiQuoteDraft'",'visual AI endpoint receives prepared photos');
-need(fix,'photos:photos','prepared image data sent to AI');
+reject(fix,'busy(true)','full-screen working overlay removed from mobile build');
 need(fix,"direct('boQuoteBuilderAutoLocalPrice'",'automatic missing-price research');
 need(fix,'line.searchQuery||line.description','search derived from AI line or scope');
 need(fix,"draft.scope||basis",'scope and notes become pricing-search context');
 need(fix,"priceStatus='automatic_local_typical_owner_review'",'automatic price remains owner-review controlled');
 need(fix,'ensureSuggestedLines(draft,basis)','scope fallback creates a searchable quote line');
 need(fix,'applyLines(draft)','AI results populate the current quote');
-need(fix,"if(/failed to fetch/i.test(raw))",'old phone error translated if encountered elsewhere');
-reject(fix,"image_url:src",'raw preview URL sent directly to AI');
 reject(fix,"Select a customer before building the AI draft.",'customer blocker in final handler');
 
+need(stage,'function boQuoteBuilderStageAiPhoto(payload)','public server staging entry point');
+need(stage,"boGuardApiRequest_('prepareAiQuoteDraft'",'staging request guard');
+need(stage,"/^image\\/(jpeg|png|webp)$/.test(mimeType)",'supported AI photo types');
+need(stage,'bytes.length <= H38_BO.MAX_UPLOAD_BYTES','server upload limit');
+need(stage,"row.SHA256 === hash",'duplicate photo reuse');
+need(stage,"'Source Type': 'Quote Builder AI'",'private staged photo record');
+need(stage,'function boQuoteBuilderAiPhotoInputs_(payload)','server photo loading helper');
+need(stage,"DriveApp.getFileById(document['File ID']).getBlob()",'server reads saved photo');
+need(stage,'totalBytes <= 18 * 1024 * 1024','combined AI payload boundary');
+need(stage,"Utilities.base64Encode(bytes)",'server prepares OpenAI image data');
+
+need(ai,'const hasStagedPhotos = payload.photoDocumentIds','staged photo validation');
+need(ai,'boQuoteBuilderAiPhotoInputs_(payload)','AI engine loads staged files');
+need(ai,'stagedPhotos.urls.forEach','AI content receives server-prepared photos');
+need(ai,'photoDocumentIds:stagedPhotos.documentIds','draft evidence stores file references');
+need(ai,'photoCount:stagedPhotos.documentIds.length','draft stores count instead of base64 data');
+reject(ai,'photos:payload.photos || []','raw image data must not be written to the Activity sheet');
+
 scripts(fix).forEach(body=>new Function(body));
-console.log('PASS — simple phone photo quote, fetch-free canvas image conversion, collapsed advanced fields, scope-and-notes search, automatic local-price fallback, and friendly error handling verified.');
+new Function(stage);
+new Function(ai);
+console.log('PASS — simple phone quote, sequential low-memory uploads, server-staged AI photos, scope-driven pricing, and owner-review controls verified.');
