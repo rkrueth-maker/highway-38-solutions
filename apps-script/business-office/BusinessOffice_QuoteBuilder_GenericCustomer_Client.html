@@ -1,0 +1,16 @@
+<script>
+(function(){
+'use strict';
+let requested=false;
+function ensureGeneric(){
+  if(requested)return;
+  requested=true;
+  google.script.run
+    .withSuccessHandler(()=>{})
+    .withFailureHandler(()=>{requested=false;})
+    .boQuoteBuilderEnsureGenericCustomer();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureGeneric);else ensureGeneric();
+setTimeout(ensureGeneric,1000);
+})();
+</script>
