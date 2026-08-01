@@ -1,0 +1,39 @@
+name: Apply mobile acceptance pack fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-mobile-acceptance-pack.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/authorized-mobile-live-acceptance
+      - name: Add Highway 38 pack to temporary acceptance assembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('scripts/run-quote-mobile-live-acceptance-authorized.sh')
+          text=path.read_text()
+          marker='rm -f "$HARNESS/BusinessOffice_00_Pack.js" "$HARNESS/BusinessOffice_00_Pack.gs"\n'
+          addition=marker+'rm -f "$HARNESS/BusinessOffice_Pack.js" "$HARNESS/BusinessOffice_Pack.gs"\ncp "$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Pack.gs" "$HARNESS/BusinessOffice_Pack.gs"\n'
+          if addition in text:
+              raise SystemExit(0)
+          if marker not in text:
+              raise SystemExit('Pack insertion marker not found')
+          path.write_text(text.replace(marker,addition,1))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/run-quote-mobile-live-acceptance-authorized.sh
+          git commit -m 'Include Highway 38 pack in mobile live acceptance'
+          git push origin HEAD:agent/authorized-mobile-live-acceptance
