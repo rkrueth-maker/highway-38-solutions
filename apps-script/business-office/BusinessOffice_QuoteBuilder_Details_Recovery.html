@@ -95,3 +95,123 @@ const timer=setInterval(()=>{attempts+=1;install();if(attempts>=60)clearInterval
 install();
 })();
 </script>
+
+
+<style>
+.qb-native-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.qb-native-picker{display:grid;gap:5px;padding:9px;border:1px solid #b8cad7;border-radius:10px;background:#fff;color:var(--navy);font-weight:800;font-size:12px}
+.qb-native-picker input[type=file]{display:block;width:100%;min-height:42px;margin:0;padding:4px;border:0;background:#fff;font-size:11px}
+.qb-native-picker input[type=file]::file-selector-button{min-height:38px;margin-right:7px;border:0;border-radius:8px;padding:7px 9px;background:#e8eef4;color:var(--navy);font-weight:800}
+.qb-native-build{grid-column:1/-1;background:linear-gradient(135deg,var(--navy),#0f2d49);color:#fff;min-height:48px}
+.qb-native-help{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35}
+.qb-native-queue{display:grid;gap:7px;margin-top:9px}
+.qb-native-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #b8cad7;border-radius:9px;background:#fff}
+.qb-native-entry[data-status="uploading"]{border-color:#e85d18;background:#fff8f2}
+.qb-native-entry[data-status="uploaded"]{border-color:#5d9b72;background:#f2fbf5}
+.qb-native-entry[data-status="error"]{border-color:#b94040;background:#fff4f4}
+.qb-native-entry strong,.qb-native-entry span{display:block;overflow-wrap:anywhere}
+.qb-native-entry span{font-size:10px;color:var(--muted);margin-top:3px}
+.qb-native-entry button{min-height:36px;padding:6px 9px;flex:0 0 auto}
+.qb-native-result{margin-top:10px;padding:10px;border-radius:9px;background:#f2fbf5;border:1px solid #9ac7a8;font-size:12px;line-height:1.4}
+@media(max-width:900px),(hover:none) and (pointer:coarse){
+  .qb-native-actions{grid-template-columns:1fr 1fr}
+  .qb-native-picker{padding:8px}
+}
+</style>
+<script>
+(function(){
+'use strict';
+const GENERIC_CUSTOMER='CUST-H38-GENERIC-QUOTE';
+const MAX_FILE_BYTES=20*1024*1024;
+const MAX_PHOTOS=4;
+const UPLOAD_TIMEOUT_MS=120000;
+const ANALYSIS_TIMEOUT_MS=180000;
+const PRICE_TIMEOUT_MS=65000;
+const LOAD_TIMEOUT_MS=30000;
+let entries=[];
+let stagedIds=[];
+let uploadQueue=Promise.resolve();
+let running=false;
+let saveWrapped=false;
+let installedPanel=null;
+const $=id=>document.getElementById(id);
+const clean=value=>String(value==null?'':value).trim();
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=value=>{const n=Number(String(value==null?'':value).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0};
+const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
+const api=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
+function withTimeout(promise,ms,label){let timer;return Promise.race([promise,new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error(label+' timed out. The draft remains saved.')),ms)})]).finally(()=>clearTimeout(timer))}
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
+function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(!node)return;node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}
+function customerId(){return clean($('customer')&&$('customer').value)||clean($('aiCustomer')&&$('aiCustomer').value)||clean($('qbCustomerId')&&$('qbCustomerId').value)||GENERIC_CUSTOMER}
+function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||'Photo-based field quote'}
+function labeled(id,label){const node=$(id),value=clean(node&&node.value);return value?label+': '+value:''}
+function basisNotes(){return [labeled('qbFieldNarration','Field description'),labeled('scope','Scope'),labeled('assumptions','Known dimensions and assumptions'),labeled('internalNotes','Internal notes'),labeled('customerNotes','Customer notes'),labeled('aiNotes','Field notes')].filter(Boolean).join('\n')}
+function analysisNotes(basis){return clean([basis,'ESTIMATING METHOD FOR THIS INTERNAL DRAFT: Use a supplied known dimension only when that reference object is clearly visible in the same photo plane. Estimate visible lengths proportionally only when supportable, label every derived quantity approximate, state the reference basis and confidence, and request confirmation when perspective or visibility is unreliable. Identify visible required components and create practical editable quote lines. Do not invent hidden conditions, exact measurements, final prices, permits, promises, or unsupported work.'].filter(Boolean).join('\n'))}
+function fileMime(file){const type=clean(file&&file.type).toLowerCase();if(type)return type;const ext=clean(file&&file.name).split('.').pop().toLowerCase();return {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'}[ext]||'application/octet-stream'}
+function fileKey(file){return [file.name,file.size,file.lastModified].join('|')}
+function readDataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||new Error('Android could not read the selected picture.'));reader.readAsDataURL(file)})}
+function queueHost(){let host=$('qbNativeQueue');if(host)return host;const panel=$('qbSimplePhotoQuote');if(!panel)return null;host=document.createElement('div');host.id='qbNativeQueue';host.className='qb-native-queue';const statusNode=$('qbSimplePhotoStatus');if(statusNode)statusNode.insertAdjacentElement('beforebegin',host);else panel.appendChild(host);return host}
+function entryText(entry){if(entry.status==='uploaded')return 'uploaded safely — ready for analysis';if(entry.status==='uploading')return 'uploading now — keep Quote Builder open';if(entry.status==='error')return clean(entry.error)||'upload failed';return 'waiting to upload'}
+function renderQueue(){const host=queueHost();if(!host)return;host.innerHTML=entries.length?entries.map((entry,index)=>'<div class="qb-native-entry" data-status="'+esc(entry.status)+'"><div><strong>'+esc(entry.name)+'</strong><span>'+Math.max(1,Math.round(entry.size/1024))+' KB · '+esc(entryText(entry))+'</span></div><button type="button" class="danger" data-qb-native-remove="'+index+'" '+(entry.status==='uploading'?'disabled':'')+'>Remove</button></div>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>';const uploading=entries.filter(e=>e.status==='uploading'||e.status==='queued').length,failed=entries.filter(e=>e.status==='error').length,uploaded=entries.filter(e=>e.status==='uploaded').length;if(uploading)status('Uploading '+uploading+' picture'+(uploading===1?'':'s')+'. Keep Quote Builder open.',false);else if(failed)status(failed+' picture'+(failed===1?' needs':'s need')+' to be selected again.',true);else if(uploaded)status(uploaded+' picture'+(uploaded===1?' is':'s are')+' uploaded safely. Press Build Quote.',false);else status('Ready for photos.',false)}
+function removeEntry(index){const entry=entries[index];if(!entry||entry.status==='uploading')return;if(entry.documentId)stagedIds=stagedIds.filter(id=>id!==entry.documentId);entries.splice(index,1);renderQueue()}
+document.addEventListener('click',event=>{const button=event.target&&event.target.closest&&event.target.closest('[data-qb-native-remove]');if(!button)return;event.preventDefault();event.stopImmediatePropagation();removeEntry(Number(button.dataset.qbNativeRemove))},true);
+async function uploadSelected(input){
+  const file=input&&input.files&&input.files[0];
+  if(!file)return;
+  const mimeType=fileMime(file),key=fileKey(file);
+  if(entries.length>=MAX_PHOTOS){input.value='';return toast('Use no more than four pictures for one quote.',true)}
+  if(entries.some(entry=>entry.key===key)){input.value='';return toast(file.name+' is already added.',true)}
+  if(!/^image\/(jpeg|png|webp)$/i.test(mimeType)){input.value='';return toast((file.name||'Picture')+' must be JPEG, PNG, or WebP.',true)}
+  if(!file.size||file.size>MAX_FILE_BYTES){input.value='';return toast((file.name||'Picture')+' exceeds the 20 MB upload limit.',true)}
+  const entry={key:key,name:file.name||('quote-photo-'+(entries.length+1)+'.jpg'),size:file.size,mimeType:mimeType,status:'queued',documentId:'',error:'',input:input,dataPromise:null};
+  entry.dataPromise=withTimeout(readDataUrl(file),LOAD_TIMEOUT_MS,'Reading '+entry.name);
+  entries.push(entry);
+  renderQueue();
+  uploadQueue=uploadQueue.then(async()=>{
+    entry.status='uploading';renderQueue();
+    let base64Data='';
+    try{
+      base64Data=await entry.dataPromise;
+      const saved=await withTimeout(direct('boQuoteBuilderStageAiPhoto',{customerId:customerId(),fileName:entry.name,mimeType:mimeType,base64Data:base64Data}),UPLOAD_TIMEOUT_MS,'Uploading '+entry.name);
+      entry.documentId=saved&&saved.documentId||'';
+      if(!entry.documentId)throw new Error('The upload did not return a saved document.');
+      if(stagedIds.indexOf(entry.documentId)<0)stagedIds.push(entry.documentId);
+      entry.status='uploaded';entry.error='';
+    }catch(error){
+      entry.status='error';entry.error=clean(error&&error.message||error)||'The picture could not be uploaded.';
+      toast(entry.name+': '+entry.error,true);
+    }finally{
+      base64Data='';
+      entry.dataPromise=null;
+      try{input.value=''}catch(ignore){}
+      renderQueue();
+    }
+  }).catch(error=>toast(clean(error&&error.message||error)||'Picture upload stopped safely.',true));
+  await uploadQueue;
+}
+function parseDraft(result){if(result&&result.draft)return result.draft;try{return JSON.parse(result&&result.staged&&result.staged.Details||'{}')}catch(error){return {}}}
+function rateMissing(line){return line.rate===''||line.rate==null||!Number.isFinite(Number(line.rate))||Number(line.rate)<=0}
+function priceQuery(line,draft,basis){const primary=clean(line.searchQuery||line.description||line.catalogId||draft.projectTitle||basis),context=clean(draft.scope||basis);return clean([primary,context].filter(Boolean).join('. Work scope: ')).slice(0,500)}
+function ensureLines(draft,basis){if(Array.isArray(draft.suggestedLines)&&draft.suggestedLines.length)return;const description=clean(draft.scope||basis).replace(/^(Scope|Field description):\s*/i,'').slice(0,220);draft.suggestedLines=description?[{description:description,quantity:1,unit:'job',rate:'',searchQuery:description,evidence:'Derived from entered scope; owner review required.'}]:[]}
+async function resolveLinePrice(payload){try{return await direct('boQuoteBuilderResolveLinePrice',payload)}catch(error){const message=clean(error&&error.message||error);if(/function not found|script function not found|boQuoteBuilderResolveLinePrice/i.test(message))return direct('boQuoteBuilderAutoLocalPrice',payload);throw error}}
+async function priceLines(draft,basis){ensureLines(draft,basis);const stats={matched:0,researched:0,unpriced:0};const seen={};let lookups=0;for(const line of draft.suggestedLines||[]){if(!rateMissing(line))continue;if(lookups>=6){stats.unpriced++;continue}const query=priceQuery(line,draft,basis),key=query.toLowerCase();if(!query||seen[key]){stats.unpriced++;continue}seen[key]=true;lookups++;try{const result=await withTimeout(resolveLinePrice({query:query,catalogId:line.catalogId||'',description:line.description||'',unit:line.unit||'',taxable:false}),PRICE_TIMEOUT_MS,'Price lookup'),item=result&&result.item;if(!item){stats.unpriced++;continue}const rate=Number(item['Standard Selling Price']||item.Price||0);line.catalogId=item['Product / Service ID']||result.catalogId||line.catalogId||'';line.description=line.description||item['Customer Description']||item.Name||query;line.unit=item.Unit||line.unit||'each';line.rate=rate;line.priceStatus=result.source==='price_book_match'?'price_book_match_owner_review':'automatic_local_typical_owner_review';if(rate>0){if(result.source==='price_book_match')stats.matched++;else stats.researched++}else stats.unpriced++}catch(error){line.priceStatus='price_lookup_failed_owner_review';stats.unpriced++}}return stats}
+function setIfBlank(id,value){const node=$(id);if(node&&clean(value)&&!clean(node.value)){node.value=Array.isArray(value)?value.join('\n'):value;node.dispatchEvent(new Event('input',{bubbles:true}))}}
+function lineCards(){return Array.from(document.querySelectorAll('#lines .line'))}
+function findExisting(description){const wanted=clean(description).toLowerCase();return lineCards().find(card=>{const input=card.querySelector('.description input');return clean(input&&input.value).toLowerCase()===wanted})}
+function fillExisting(card,line){let changed=false;const fields=card.querySelectorAll('input');const quantity=fields[1],unit=fields[2],rate=fields[3];if(quantity&&num(quantity.value)<=0&&Number(line.quantity)>0){quantity.value=Number(line.quantity);quantity.dispatchEvent(new Event('input',{bubbles:true}));changed=true}if(unit&&!clean(unit.value)&&clean(line.unit)){unit.value=line.unit;unit.dispatchEvent(new Event('input',{bubbles:true}));changed=true}if(rate&&num(rate.value)<=0&&Number(line.rate)>0){rate.value=Number(line.rate);rate.dispatchEvent(new Event('input',{bubbles:true}));changed=true}return changed}
+function applyLines(draft){const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];if(!lines.length||typeof window.qbAddLine!=='function')return {added:0,updated:0};let added=0,updated=0;const first=document.querySelector('#lines .description input'),removeBlank=!!(first&&!clean(first.value));const seen={};lines.forEach(line=>{const description=clean(line.description||line.catalogId);if(!description||seen[description.toLowerCase()])return;seen[description.toLowerCase()]=true;const existing=findExisting(description);if(existing){if(fillExisting(existing,line))updated++;return}window.qbAddLine({catalogId:line.catalogId||'',description:description,quantity:Number(line.quantity)||1,unit:line.unit||'each',rate:Number(line.rate)||0,discount:0,taxable:false,taxRate:0,notes:clean(line.evidence||'')});added++});if(removeBlank&&added&&typeof window.qbRemoveLine==='function')window.qbRemoveLine(0);return {added:added,updated:updated}}
+function renderResult(draft,changes,stats){let host=$('qbNativeResult');if(!host){host=document.createElement('div');host.id='qbNativeResult';host.className='qb-native-result';const panel=$('qbSimplePhotoQuote');if(panel)panel.appendChild(host)}if(!host)return;const observations=Array.isArray(draft.photoObservations)?draft.photoObservations:[],missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[];host.innerHTML='<strong>'+esc(draft.projectTitle||'Photo quote draft')+'</strong>'+(draft.scope?'<p>'+esc(draft.scope)+'</p>':'')+(observations.length?'<p><strong>Photos show:</strong> '+esc(observations.join(' • '))+'</p>':'')+(missing.length?'<p><strong>Confirm:</strong> '+esc(missing.join(' • '))+'</p>':'')+'<p>'+changes.added+' line'+(changes.added===1?'':'s')+' added; '+changes.updated+' existing line'+(changes.updated===1?'':'s')+' updated; '+stats.matched+' Price Book match'+(stats.matched===1?'':'es')+'; '+stats.researched+' local rate'+(stats.researched===1?'':'s')+' researched; '+stats.unpriced+' need'+(stats.unpriced===1?'s':'')+' price review.</p>'}
+async function build(button){if(running)return;running=true;const original=button.textContent;button.disabled=true;try{button.textContent='Waiting for photos…';await uploadQueue;const failed=entries.filter(e=>e.status==='error');if(failed.length)throw new Error('Remove the failed picture and select it again.');const basis=basisNotes(),ids=stagedIds.slice(0,MAX_PHOTOS);if(!basis&&!ids.length)throw new Error('Add a picture or enter the scope first.');button.textContent='Analyzing photos…';status('Analyzing saved photos and matching the Price Book…',false);const result=await withTimeout(direct('boBuildAiQuoteDraft',{customerId:customerId(),projectTitle:projectTitle(),notes:analysisNotes(basis),photoDocumentIds:ids}),ANALYSIS_TIMEOUT_MS,'Photo analysis');const draft=parseDraft(result)||{};button.textContent='Finding prices…';const stats=await priceLines(draft,basis);setIfBlank('project',draft.projectTitle);setIfBlank('scope',draft.scope);setIfBlank('assumptions',draft.assumptions);setIfBlank('exclusions',draft.exclusions);const changes=applyLines(draft);renderResult(draft,changes,stats);status('Quote draft prepared. Review measurements, quantities and prices, then save.',false);toast('Quote draft prepared. Nothing was approved or sent.')}catch(error){const message=clean(error&&error.message||error)||'The quote draft stopped safely.';status(message,true);toast(message,true)}finally{running=false;button.disabled=false;button.textContent=original}}
+async function attach(quoteId){const ids=stagedIds.slice();if(!quoteId||!ids.length)return {attached:0};await withTimeout(direct('boQuoteBuilderAttachStagedAiPhotos',{quoteId:quoteId,documentIds:ids}),60000,'Attaching saved photos');resetNative(false);toast(ids.length+' photo'+(ids.length===1?'':'s')+' attached to the saved quote.');return {attached:ids.length,documentIds:ids}}
+function resetNative(render){entries=[];stagedIds=[];uploadQueue=Promise.resolve();if(render!==false)renderQueue();status('Ready for photos.',false)}
+function installPanel(){const panel=$('qbSimplePhotoQuote');if(!panel)return;if(installedPanel===panel&&panel.dataset.h38NativePhoto==='1')return;installedPanel=panel;panel.dataset.h38NativePhoto='1';const actions=panel.querySelector('.qb-simple-photo-actions');if(!actions)return;actions.className='qb-native-actions';actions.innerHTML='<label class="qb-native-picker"><span>Take a picture</span><input id="qbNativeCamera" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label><label class="qb-native-picker"><span>Choose one picture</span><input id="qbNativeGallery" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="qb-native-help">Add one picture at a time. Each picture uploads immediately; add up to four.</p><button type="button" id="qbNativeBuild" class="qb-native-build">Build Quote</button>';const camera=$('qbNativeCamera'),gallery=$('qbNativeGallery'),button=$('qbNativeBuild');camera.addEventListener('change',()=>uploadSelected(camera));gallery.addEventListener('change',()=>uploadSelected(gallery));button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();build(button)},true);renderQueue()}
+function installSaveWrapper(){if(saveWrapped||typeof window.qbSave!=='function')return;saveWrapped=true;const prior=window.qbSave;window.qbSave=async function(){const ids=stagedIds.slice(),started=Date.now();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await withTimeout(api('quoteBuilderLastCreatedQuote'),30000,'Finding the saved quote');if(created&&Number(created.createdMs||0)>=started)await attach(created.quoteId)}catch(error){toast('The quote saved, but its photo link needs review: '+clean(error&&error.message||error),true)}}return result}}
+function installGlobals(){const priorReset=window.qbResetStagedPhotoState;if(!window.qbResetStagedPhotoState||!window.qbResetStagedPhotoState.__h38Native){const wrapped=function(){try{if(typeof priorReset==='function')priorReset()}catch(error){}resetNative()};wrapped.__h38Native=true;window.qbResetStagedPhotoState=wrapped}window.qbAttachStagedPhotosToQuote=attach;window.qbQuoteBuilderStagedPhotoIds=()=>stagedIds.slice();window.qbCameraTakeForDraft=()=>{const input=$('qbNativeCamera');if(input){input.focus();toast('Use the camera file control shown on the page.',false)}};window.qbCameraChooseForDraft=()=>{const input=$('qbNativeGallery');if(input){input.focus();toast('Use the picture file control shown on the page.',false)}}}
+function install(){installGlobals();installSaveWrapper();installPanel()}
+const observer=new MutationObserver(()=>requestAnimationFrame(install));observer.observe(document.body,{childList:true,subtree:true});
+window.addEventListener('pageshow',()=>setTimeout(install,0));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(install,0)});
+setTimeout(install,0);setTimeout(install,500);setTimeout(install,1500);
+})();
+</script>
