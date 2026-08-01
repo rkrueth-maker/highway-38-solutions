@@ -25,6 +25,7 @@ function addRawFiles(files){
   files.filter(file=>file&&/^image\/(jpeg|png|webp)$/i.test(fileMime(file))).forEach(file=>{const key=[file.name,file.size,file.lastModified].join('|');if(!seen[key]&&rawFiles.length<4){seen[key]=true;rawFiles.push(file)}});
 }
 document.addEventListener('change',event=>{const input=event.target;if(!input||input.tagName!=='INPUT'||input.type!=='file')return;addRawFiles(Array.from(input.files||[]))},true);
+document.addEventListener('click',event=>{const remove=event.target&&event.target.closest?event.target.closest('#qbPendingPhotos .qb-photo-remove'):null;if(!remove)return;const card=remove.closest('.qb-photo-card'),cards=Array.from(document.querySelectorAll('#qbPendingPhotos .qb-photo-card')),index=cards.indexOf(card);if(index>=0&&index<rawFiles.length)rawFiles.splice(index,1)},true);
 function readChunk(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||''),comma=value.indexOf(',');resolve(comma>=0?value.slice(comma+1):value)};reader.onerror=()=>reject(reader.error||new Error('A photo chunk could not be read.'));reader.readAsDataURL(blob)})}
 async function uploadFile(file,position,total){
   const mimeType=fileMime(file);
@@ -84,13 +85,14 @@ async function build(button){
   if(running)return;running=true;const original=button.textContent;button.disabled=true;button.textContent='Uploading photos…';
   try{
     const basis=notes();if(!basis&&!rawFiles.length)throw new Error('Add a photo or enter the scope first.');
+    status('Releasing photo previews before upload…',false);clearLegacyPending();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const ids=await uploadAll();status('Analyzing the saved photos and matching the Price Book…',false);button.textContent='Analyzing…';
     const result=await direct('boBuildAiQuoteDraft',{customerId:customerId(),projectTitle:projectTitle(),notes:basis||'Analyze the supplied jobsite photos and identify the visible work required. Do not invent measurements.',photoDocumentIds:ids});
     const draft=parseDraft(result)||{};button.textContent='Finding prices…';const researched=await priceLines(draft,basis);setIfBlank('project',draft.projectTitle);setIfBlank('scope',draft.scope);setIfBlank('assumptions',draft.assumptions);setIfBlank('exclusions',draft.exclusions);const added=applyLines(draft);render(draft,added,researched);
-    stagedDocumentIds=ids.slice();rawFiles=[];clearLegacyPending();status('Quote draft prepared. Review it, then save the draft quote.',false);toast('Quote draft prepared. Nothing was approved or sent.');
+    stagedDocumentIds=ids.slice();rawFiles=[];status('Quote draft prepared. Review it, then save the draft quote.',false);toast('Quote draft prepared. Nothing was approved or sent.');
   }catch(error){const message=clean(error&&error.message||error)||'The quote draft stopped safely.';status(message,true);toast(message,true)}finally{running=false;button.disabled=false;button.textContent=original}
 }
-function installBuildButton(){const old=$('qbSimpleBuild');if(!old||old.dataset.h38RawUpload==='1')return;const button=old.cloneNode(true);button.dataset.h38RawUpload='1';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();build(event.currentTarget)});old.replaceWith(button)}
+function installBuildButton(){const old=$('qbSimpleBuild');if(!old||old.dataset.h38RawUpload==='1')return;const button=old.cloneNode(true);button.type='button';button.removeAttribute('onclick');button.dataset.h38RawUpload='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();build(event.currentTarget)},true);old.replaceWith(button)}
 function installSaveWrapper(){
   if(saveWrapped||typeof window.qbSave!=='function')return;saveWrapped=true;const prior=window.qbSave;
   window.qbSave=async function(event){const ids=stagedDocumentIds.slice(),started=Date.now();if(ids.length)clearLegacyPending();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await api('quoteBuilderLastCreatedQuote');if(created&&Number(created.createdMs||0)>=started){await direct('boQuoteBuilderAttachStagedAiPhotos',{quoteId:created.quoteId,documentIds:ids});stagedDocumentIds=[];toast(ids.length+' photo'+(ids.length===1?'':'s')+' attached to the saved quote.')}}catch(error){toast('The quote was saved, but the photo link needs review: '+clean(error&&error.message||error),true)}}return result};
