@@ -107,6 +107,7 @@ function boQuoteBuilderRememberLocalPrice(payload) {
         Name: displayName,
         Description: research.description || displayName,
         'Customer Description': research.description || displayName,
+        Category: 'Locally Researched Prices',
         Unit: unit,
         'Standard Selling Price': selectedRate,
         Price: selectedRate,
@@ -115,6 +116,48 @@ function boQuoteBuilderRememberLocalPrice(payload) {
       }
     };
   }, 'Price Book', payload && payload.researchId);
+}
+
+function boQuoteBuilderExtractResponseText_(json) {
+  if (!json) return '';
+  if (typeof json.output_text === 'string' && json.output_text.trim()) return json.output_text.trim();
+  const chunks = [];
+  (json.output || []).forEach(function (item) {
+    if (typeof item.text === 'string' && item.text.trim()) chunks.push(item.text);
+    if (typeof item.content === 'string' && item.content.trim()) chunks.push(item.content);
+    (Array.isArray(item.content) ? item.content : []).forEach(function (part) {
+      if (typeof part.text === 'string' && part.text.trim()) chunks.push(part.text);
+      else if (part.json) chunks.push(typeof part.json === 'string' ? part.json : JSON.stringify(part.json));
+      else if (typeof part.content === 'string' && part.content.trim()) chunks.push(part.content);
+    });
+  });
+  return chunks.join('\n').trim();
+}
+
+function boQuoteBuilderParseLocalPriceJson_(text) {
+  const cleaned = String(text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  if (!cleaned) return null;
+  try { return JSON.parse(cleaned); } catch (error) {}
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (error) {}
+  }
+  return null;
+}
+
+function boQuoteBuilderLocalPriceFetch_(request, key) {
+  const response = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + key },
+    payload: JSON.stringify(request),
+    muteHttpExceptions: true
+  });
+  const code = response.getResponseCode();
+  const raw = response.getContentText();
+  boAssert_(code >= 200 && code < 300, 'Local price research failed (' + code + '): ' + raw.slice(0, 500));
+  return JSON.parse(raw);
 }
 
 function boQuoteBuilderLocalPriceOpenAi_(query, market) {
@@ -155,31 +198,39 @@ function boQuoteBuilderLocalPriceOpenAi_(query, market) {
       }
     }
   };
+  const model = props.getProperty('H38_AI_PRICING_MODEL') || props.getProperty('H38_AI_TEXT_MODEL') || 'gpt-4.1-mini';
+  const instructions = 'Research current public local pricing for the requested material, product, rental, or installed service. Use web search. Prefer official retailer, supplier, rental-company, manufacturer, contractor, or service-provider pages. Keep low, typical, and high prices on the same clearly stated unit and in USD before tax. Do not invent a price without sources. If exact local sources are limited, use the nearest regional sources, explain that in notes, and lower confidence. Return only the required structured result. URLs must be sources actually consulted.';
+  const input = JSON.stringify({ requestedItemOrService: query, requestedMarket: market, currentDate: today });
   const request = {
-    model: props.getProperty('OPENAI_MODEL') || 'gpt-5-mini',
-    instructions: 'Research current public local pricing for the requested material, product, rental, or service. Use web search. Prefer official retailer, supplier, rental-company, manufacturer, or service-provider pages. Keep low, typical, and high prices on the same clearly stated unit and in USD before tax. Do not invent a price without sources. If exact local sources are limited, use the nearest regional sources, explain that in notes, and lower confidence. Return only the required structured result. URLs must be sources actually consulted.',
-    input: JSON.stringify({ requestedItemOrService: query, requestedMarket: market, currentDate: today }),
+    model: model,
+    instructions: instructions,
+    input: input,
     tools: [{ type: 'web_search', search_context_size: 'medium' }],
     include: ['web_search_call.action.sources'],
     text: { format: { type: 'json_schema', name: 'local_price_research', strict: true, schema: schema } },
-    max_output_tokens: 1600,
+    max_output_tokens: 4000,
     store: false
   };
-  const response = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
-    method: 'post',
-    contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + key },
-    payload: JSON.stringify(request),
-    muteHttpExceptions: true
-  });
-  const code = response.getResponseCode();
-  const raw = response.getContentText();
-  boAssert_(code >= 200 && code < 300, 'Local price research failed (' + code + ').');
-  const json = JSON.parse(raw);
-  const text = boNormalizeText_(json.output_text || (typeof boAiExtractText_ === 'function' ? boAiExtractText_(json) : ''));
-  boAssert_(text, 'Local price research returned no structured result.');
-  let data;
-  try { data = JSON.parse(text); } catch (error) { throw new Error('Local price research returned invalid structured data.'); }
+  let json = boQuoteBuilderLocalPriceFetch_(request, key);
+  let text = boQuoteBuilderExtractResponseText_(json);
+  let data = boQuoteBuilderParseLocalPriceJson_(text);
+
+  if (!data) {
+    const fallback = {
+      model: model,
+      instructions: instructions + ' Return exactly one JSON object and no markdown. The object keys must be itemName, description, unit, low, typical, high, currency, market, asOfDate, confidence, notes, assumptions, and sources.',
+      input: input,
+      tools: [{ type: 'web_search', search_context_size: 'medium' }],
+      include: ['web_search_call.action.sources'],
+      max_output_tokens: 5000,
+      store: false
+    };
+    json = boQuoteBuilderLocalPriceFetch_(fallback, key);
+    text = boQuoteBuilderExtractResponseText_(json);
+    data = boQuoteBuilderParseLocalPriceJson_(text);
+  }
+
+  boAssert_(data, 'Local price research returned no usable structured result.');
   return boQuoteBuilderNormalizeLocalPrice_(data, market, today, json);
 }
 
