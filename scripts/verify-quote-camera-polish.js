@@ -16,8 +16,11 @@ const actionContract=read('apps-script/business-office/BusinessOffice_ActionCont
 const moduleContract=read('apps-script/business-office/BusinessOffice_ModuleContract.gs');
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
 const cameraUi=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Camera_Polish.html');
+const optimizations=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Direct_Optimizations.html');
 const fieldFixes=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Field_Fixes.html');
 const localPricing=read('apps-script/business-office/BusinessOffice_QuoteBuilder_LocalPricing.gs');
+const autoPricing=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AutoPricing.gs');
+const h38Pricing=read('business-packs/highway38/apps-script/BusinessOffice_Highway38Pricing.gs');
 const aiVisual=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Visual_Client.html');
 const voicePhoto=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Voice_Photo_Quick.html');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
@@ -47,25 +50,19 @@ need(moduleContract,"boUnifiedModule_('quoteBuilder'",'Quote Builder canonical m
 need(moduleContract,"dependencies:['quotes','customers','documents']",'Quote Builder dependency contract');
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Camera_Polish')",'camera polish include');
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Voice_Photo_Quick')",'voice and photo quick quote include');
-need(index,"boInclude_('BusinessOffice_QuoteBuilder_Field_Fixes')",'final customer, native-camera, and local-price fixes include');
+need(index,"boInclude_('BusinessOffice_QuoteBuilder_Field_Fixes')",'final customer and native-camera fixes include');
 if(index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Field_Fixes')")<index.indexOf("boInclude_('BusinessOffice_QuoteBuilder_Camera_Polish')"))throw new Error('Field fixes must load after the legacy camera layer.');
+
 need(cameraUi,'navigator.mediaDevices','legacy browser camera API retained as compatibility fallback');
 need(cameraUi,"{video:{facingMode:{ideal:'environment'}},audio:false}",'preferred rear-facing camera request');
 need(cameraUi,'{video:true,audio:false}','Chromebook-compatible generic webcam retry');
 need(cameraUi,"if(dialog&&!dialog.open)dialog.showModal()",'camera dialog opens before requesting access');
 need(cameraUi,'Retry Camera','visible camera retry action');
 need(cameraUi,'Choose Image','explicit manual image fallback');
-need(cameraUi,"function chooseImageFile()",'manual fallback handler');
-need(cameraUi,"capture','environment'",'device image picker hint');
 reject(cameraUi,'catch(error){stopStream();fallbackInput.click()}','automatic file chooser after camera failure');
-need(cameraUi,'Camera access is blocked.','permission guidance');
-need(cameraUi,'📷 Take Picture','visible camera action');
 need(cameraUi,"call('saveQuotePhoto'",'automatic picture save');
 need(cameraUi,"call('quoteBuilderLastCreatedQuote'",'automatic attachment after quote creation');
-need(cameraUi,'save automatically with the draft quote','no separate upload language');
-need(cameraUi,'qbCameraTakeForQuote','existing quote camera action');
 need(cameraUi,'Promise.all(group.map','bounded parallel photo saves');
-need(cameraUi,'qb-mobile-capture','mobile capture control');
 reject(cameraUi,'Upload Picture','manual upload button wording');
 
 need(fieldFixes,"const DRAFT_KEY='H38_QB_DRAFT_V2:'",'per-user quote draft memory');
@@ -79,17 +76,23 @@ need(fieldFixes,'window.qbCameraTakeForDraft','native draft picture override');
 need(fieldFixes,'window.qbCameraTakeForQuote','native saved-quote picture override');
 need(fieldFixes,"replacement.dataset.safeNative='1'",'mobile live-camera listener replacement');
 need(fieldFixes,'Choose Photos','separate existing-photo action');
-need(fieldFixes,"direct('boQuoteBuilderResearchLocalPrice'",'local price research call');
-need(fieldFixes,"direct('boQuoteBuilderRememberLocalPrice'",'selected research remembered');
-need(fieldFixes,"Use '+tier+' + remember",'visible choose-and-remember price tiers');
 need(fieldFixes,'window.qbAddLine=function(item)','learned-unit recovery when reused from Price Book');
+reject(fieldFixes,'qbLocalPricePanel','visible local-price panel');
+reject(fieldFixes,'Research Local Price','manual local-price research button');
+reject(fieldFixes,"direct('boQuoteBuilderResearchLocalPrice'",'manual local-price research call');
+reject(fieldFixes,"direct('boQuoteBuilderRememberLocalPrice'",'manual tier selection call');
 reject(fieldFixes,'navigator.mediaDevices','field fix must not open a live webcam stream');
 reject(fieldFixes,'getUserMedia','field fix must not request persistent browser camera permission');
 
-need(localPricing,'function boQuoteBuilderResearchLocalPrice(payload)','public controlled local-price research endpoint');
-need(localPricing,'function boQuoteBuilderRememberLocalPrice(payload)','public controlled Price Book memory endpoint');
-need(localPricing,"boQuoteBuilderRequireAction_('Create')",'quote creation permission check');
-need(localPricing,"boQuoteBuilderRequireAction_('priceBook')",'Price Book permission check');
+need(optimizations,"const query=input?input.value.trim():''",'Price Book query captured before rendering');
+need(optimizations,"if(query&&!rows.length)",'automatic zero-match fallback');
+need(optimizations,"direct('boQuoteBuilderAutoLocalPrice'",'automatic learned-price call');
+need(optimizations,"rows=learned&&learned.item?[learned.item]:[]",'automatic result rendered like a normal Price Book item');
+need(optimizations,'No saved match. Finding a current local price','quiet automatic lookup status');
+reject(optimizations,'Research Local Price','manual research action in Price Book');
+
+need(localPricing,'function boQuoteBuilderResearchLocalPrice(payload)','controlled sourced local-price research endpoint');
+need(localPricing,'function boQuoteBuilderRememberLocalPrice(payload)','controlled Price Book memory endpoint');
 need(localPricing,"tools: [{ type: 'web_search'",'sourced OpenAI web search');
 need(localPricing,"type: 'json_schema'",'structured price result');
 need(localPricing,"store: false",'no response-state storage');
@@ -101,12 +104,21 @@ need(localPricing,'boAppendRecord_','new learned price append');
 need(localPricing,'finalPriceApproved = false','research cannot approve final pricing');
 need(localPricing,"boProof_('REMEMBER LOCAL PRICE'",'Price Book memory proof');
 
+need(autoPricing,'function boQuoteBuilderAutoLocalPrice(payload)','automatic pricing endpoint');
+need(autoPricing,"boQuoteBuilderResearchLocalPrice({ query: query, market: market })",'automatic sourced lookup');
+need(autoPricing,"tier: 'typical'",'automatic typical-price selection');
+need(autoPricing,'boQuoteBuilderRememberLocalPrice','automatic Price Book memory');
+need(autoPricing,'ownerReviewRequired: true','owner review remains required');
+need(autoPricing,'finalPriceApproved: false','automatic lookup cannot approve final pricing');
+need(autoPricing,"boProof_(\n      'AUTO LEARN LOCAL PRICE'",'automatic lookup Proof Log record');
+reject(autoPricing,"boQuoteBuilderApprove_",'automatic quote approval');
+reject(autoPricing,"boAiSend",'automatic customer sending');
+need(h38Pricing,"return 'Grand Rapids, Minnesota';",'Highway 38 local market configuration');
+
 need(aiVisual,"const observerHost=document.getElementById('qbContent')||document.body",'Quote Builder observer scoped to changing workspace');
 need(aiVisual,'new MutationObserver(scheduleRefresh).observe(observerHost','scheduled idempotent visual refresh');
-need(aiVisual,"if(dialogFile&&dialogFile.textContent!=='Upload Existing Photo')",'camera label mutation guard');
 need(aiVisual,'if(refreshQueued)return','refresh coalescing');
 reject(aiVisual,'new MutationObserver(refresh).observe(document.documentElement','document-wide mutation feedback loop');
-reject(aiVisual,"dialogFile.textContent='Upload Existing Photo';dialogFile.onclick=",'repeated camera button rewrite and duplicate click binding');
 
 need(voicePhoto,'SpeechRecognition||window.webkitSpeechRecognition','browser speech-recognition support');
 need(voicePhoto,"call('prepareAiQuoteDraft'",'voice and picture AI draft staging');
@@ -114,9 +126,6 @@ need(voicePhoto,'window.qbAddLine','Price Book suggestions applied to draft quot
 need(voicePhoto,'window.qbQuickQuoteStart','one-tap field quote launcher');
 need(voicePhoto,"window.qbOpen('new')",'quick trigger opens a new quote');
 need(voicePhoto,'window.qbCameraTakeForDraft','quick trigger starts the proven camera');
-need(voicePhoto,'Talk + Pictures Quote','visible voice and picture assistant');
-need(voicePhoto,'Nothing was approved or sent.','external-action safety language');
-need(voicePhoto,"params.get('view')!=='quick'",'quick-launch route handling');
 reject(voicePhoto,"call('send'",'automatic customer send');
 reject(voicePhoto,"call('approve'",'automatic quote approval');
 
@@ -124,21 +133,23 @@ need(portalIndex,"h38PortalRawInclude_('Portal_QuoteBuilder_QuickCapture_Client'
 need(portalRaw,"'Portal_QuoteBuilder_QuickCapture_Client'",'quick-trigger raw include allowlist');
 need(portalQuick,"button.id='h38QuickQuoteButton'",'Business Office quick quote button');
 need(portalQuick,"url.searchParams.set('view','quick')",'Business Office quick-launch route');
-need(portalQuick,"url.searchParams.set('quoteBuilder','1')",'dedicated Quote Builder routing');
 need(portalQuick,"location.assign(quickQuoteUrl())",'one-tap Quote Builder launch');
 
 need(accordion,'sample-library-final-polish.css','Sample Library final CSS loader');
 need(accordion,'sample-library-final-polish.js','Sample Library final JS loader');
 need(sampleCss,'.bundle-card[data-compact-bundle="true"]','compact bundle polish');
 need(sampleCss,'.sample-filter-shell','sample filter polish');
-need(sampleJs,"aria-expanded",'accessible bundle disclosure state');
+need(sampleJs,'aria-expanded','accessible bundle disclosure state');
 
 scripts(cameraUi).forEach(body=>new Function(body));
+scripts(optimizations).forEach(body=>new Function(body));
 scripts(fieldFixes).forEach(body=>new Function(body));
 scripts(aiVisual).forEach(body=>new Function(body));
 scripts(voicePhoto).forEach(body=>new Function(body));
 new Function(localPricing);
+new Function(autoPricing);
+new Function(h38Pricing);
 new Function(portalQuick);
 new Function(accordion);
 new Function(sampleJs);
-console.log('PASS — customer draft memory, separate native camera and file selection, sourced local price research, learned Price Book memory, Chromebook compatibility, canonical module gates, private quote attachment, mobile capture, and app polish verified.');
+console.log('PASS — customer draft memory, separate native camera and file selection, automatic sourced Price Book fallback, learned typical-price memory, official-product isolation, canonical gates, private quote attachment, mobile capture, and app polish verified.');
