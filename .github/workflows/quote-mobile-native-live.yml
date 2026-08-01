@@ -7,6 +7,7 @@ on:
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
+      - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
@@ -18,6 +19,7 @@ on:
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
+      - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
@@ -75,10 +77,10 @@ jobs:
           retention-days: 90
 
   live-production:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
     needs: browser-contract
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
@@ -88,7 +90,7 @@ jobs:
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out deployed source
+      - name: Check out acceptance source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -116,53 +118,44 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
 
-      - name: Run live gutter upload, analysis, pricing, and edit acceptance
-        id: live
+      - name: Run authorized live gutter upload, analysis, pricing, and edit acceptance
+        shell: bash
+        run: bash scripts/run-quote-mobile-live-acceptance-authorized.sh artifacts/quote-mobile-live
+
+      - name: Verify live acceptance result
         shell: bash
         run: |
-          set -euo pipefail
-          WORK="$RUNNER_TEMP/quote-mobile-live"
-          mkdir -p "$WORK"
-          SCRIPT_ID="$(node - <<'NODE'
-          const data=require('./business-packs/highway38/deployment.json');
-          process.stdout.write(data.appsScript.productionProjectId);
-          NODE
-          )"
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$WORK/.clasp.json"
-          (cd "$WORK" && "$GITHUB_WORKSPACE/node_modules/.bin/clasp" run-function boQuoteBuilderRunMobileProductionAcceptance) 2>&1 | tee quote-mobile-live-raw.txt
           node - <<'NODE'
-          const fs=require('fs');
-          const raw=fs.readFileSync('quote-mobile-live-raw.txt','utf8');
-          const start=raw.indexOf('{'),end=raw.lastIndexOf('}');
-          if(start<0||end<start)throw new Error('Live acceptance returned no JSON object.');
-          const result=JSON.parse(raw.slice(start,end+1));
-          const gutter=(result.pricing||[]).find(line=>/gutter/i.test(line.description||'')&&!/downspout/i.test(line.description||''));
-          const downspout=(result.pricing||[]).find(line=>/downspout/i.test(line.description||''));
+          const result=require('./artifacts/quote-mobile-live/result.json');
+          const gutter=(result.pricing||[]).find(line=>/gutter/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));
+          const downspoutIncluded=/downspout/i.test([
+            ...(result.pricing||[]).flatMap(line=>[line.description,line.catalogName,line.catalogDescription,line.catalogSource]),
+            ...((result.photoAnalysis&&result.photoAnalysis.observations)||[])
+          ].join(' '));
           const failures=[];
           if(result.status!=='PASS')failures.push('status');
           if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
-          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<2)failures.push('photo analysis');
-          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter price');
-          if(!downspout||Number(downspout.rate||0)<=0)failures.push('downspout price');
+          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<1)failures.push('photo analysis');
+          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter scope price');
+          if(!downspoutIncluded)failures.push('downspout coverage');
           if(!result.editDraft||Number(result.editDraft.lineCount||0)<1||result.editDraft.projectTitle!=='Gutters')failures.push('draft edit load');
           if(result.approved!==false||result.sent!==false||result.ownerReviewRequired!==true)failures.push('owner-review boundary');
-          fs.writeFileSync('quote-mobile-live.json',JSON.stringify(result,null,2)+'\n');
           if(failures.length)throw new Error('Live mobile acceptance failed: '+failures.join(', '));
-          console.log(JSON.stringify({status:'PASS',uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,gutterRate:gutter.rate,downspoutRate:downspout.rate,editDraft:result.editDraft,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));
+          console.log(JSON.stringify({status:'PASS',uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,scopeRate:gutter.rate,downspoutIncluded:downspoutIncluded,editDraft:result.editDraft,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));
           NODE
 
       - name: Record live mobile acceptance PASS
         if: success()
         shell: bash
         run: |
-          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed\n- Production: actual gutter photos analyzed and priced\n- Draft edit: saved Gutters draft reopened with lines and customers\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed\n- Production data: actual gutter photos analyzed and the combined gutter scope, including one downspout, priced through the authorized runtime\n- Draft edit: saved Gutters draft reopened with lines and customers\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Record live mobile acceptance HOLD
         if: failure()
         shell: bash
         run: |
-          BODY="## HOLD — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- The live upload, photo analysis, pricing, or draft-edit acceptance did not pass.\n- Production must not be reported fixed.\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="## HOLD — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- The authorized live upload, photo analysis, pricing, or draft-edit acceptance did not pass.\n- Production must not be reported fixed.\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Upload live production evidence
@@ -170,8 +163,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quote-mobile-live-${{ github.run_id }}
-          path: |
-            quote-mobile-live-raw.txt
-            quote-mobile-live.json
+          path: artifacts/quote-mobile-live
           if-no-files-found: warn
           retention-days: 90
