@@ -96,6 +96,8 @@ for source in "$REPO_ROOT"/apps-script/business-office/*.gs; do
   cp "$source" "$HARNESS/$base.gs"
 done
 rm -f "$HARNESS/BusinessOffice_00_Pack.js" "$HARNESS/BusinessOffice_00_Pack.gs"
+rm -f "$HARNESS/BusinessOffice_Pack.js" "$HARNESS/BusinessOffice_Pack.gs"
+cp "$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Pack.gs" "$HARNESS/BusinessOffice_Pack.gs"
 rm -f "$HARNESS/BusinessOffice_Sync.js" "$HARNESS/BusinessOffice_Sync.gs"
 cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$HARNESS/BusinessOffice_Sync.gs"
 rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.js" "$HARNESS/BusinessOffice_CabinAutoSeed.gs"
