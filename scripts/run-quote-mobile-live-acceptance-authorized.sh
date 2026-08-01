@@ -136,6 +136,25 @@ if old not in text:
     raise SystemExit('Temporary mobile acceptance authorization marker not found.')
 path.write_text(text.replace(old,new,1))
 PY2
+python3 - "$HARNESS/BusinessOffice_QuoteBuilder_Direct.gs" <<'PY3'
+from pathlib import Path
+import re,sys
+path=Path(sys.argv[1])
+text=path.read_text()
+pattern=r"function boQuoteBuilderRequireAction_\(action\) \{.*?\n\}"
+replacement="""function boQuoteBuilderRequireAction_(action) {
+  return {
+    user: { id: 'USER-OWNER-001', email: 'rkrueth@gmail.com', displayName: 'Rick Krueth', role: 'Owner', owner: true },
+    permissions: { view:true, create:true, edit:true, approve:true, customers:true, priceBook:true, templates:true, documents:true },
+    branding: boBranding_(),
+    boundaries: { customerReleaseRequiresOwnerApproval:true, externalActionsEnabled:false, aiCanApproveOrPrice:false }
+  };
+}"""
+updated,count=re.subn(pattern,replacement,text,count=1,flags=re.S)
+if count!=1:
+    raise SystemExit('Shared Quote Builder authorization function not found in temporary harness.')
+path.write_text(updated)
+PY3
 merge_acceptance_manifest "$HARNESS/appsscript.json"
 
 (cd "$HARNESS" && "$CLASP" push --force) 2>&1 | tee "$OUT_DIR/harness-push.txt"
