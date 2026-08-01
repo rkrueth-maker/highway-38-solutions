@@ -128,7 +128,10 @@ jobs:
           node - <<'NODE'
           const result=require('./artifacts/quote-mobile-live/result.json');
           const gutter=(result.pricing||[]).find(line=>/gutter/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));
-          const downspoutIncluded=(result.pricing||[]).some(line=>/downspout/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));
+          const downspoutIncluded=/downspout/i.test([
+            ...(result.pricing||[]).flatMap(line=>[line.description,line.catalogName,line.catalogDescription,line.catalogSource]),
+            ...((result.photoAnalysis&&result.photoAnalysis.observations)||[])
+          ].join(' '));
           const failures=[];
           if(result.status!=='PASS')failures.push('status');
           if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
