@@ -44,9 +44,14 @@ printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$BACKUP/.clasp.json"
 grep -F "$DEPLOYMENT_ID" "$OUT_DIR/deployments-before.txt" >/dev/null
 
 cp -a "$BACKUP/." "$HARNESS/"
-cp "$REPO_ROOT"/apps-script/business-office/*.gs "$HARNESS/"
-cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$HARNESS/"
-rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.gs"
+for source in "$REPO_ROOT"/apps-script/business-office/*.gs; do
+  base="$(basename "$source" .gs)"
+  rm -f "$HARNESS/$base.js" "$HARNESS/$base.gs"
+  cp "$source" "$HARNESS/$base.gs"
+done
+rm -f "$HARNESS/BusinessOffice_Sync.js" "$HARNESS/BusinessOffice_Sync.gs"
+cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$HARNESS/BusinessOffice_Sync.gs"
+rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.js" "$HARNESS/BusinessOffice_CabinAutoSeed.gs"
 
 python3 - "$HARNESS/BusinessOffice_Web.gs" <<'PY'
 from pathlib import Path
