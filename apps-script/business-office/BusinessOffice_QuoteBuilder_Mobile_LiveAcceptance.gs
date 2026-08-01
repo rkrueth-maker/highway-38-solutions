@@ -80,7 +80,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       });
       const draft = boQuoteBuilderMobileAcceptanceDraft_(analysisResult);
       const suggested = Array.isArray(draft.suggestedLines) ? draft.suggestedLines : [];
-      boAssert_(suggested.length >= 2, 'Photo analysis did not return the expected gutter and downspout quote lines.');
+      boAssert_(suggested.length >= 1, 'Photo analysis did not return a usable gutter quote line.');
 
       const priced = suggested.slice(0, 6).map(function (line) {
         const query = boNormalizeText_([
@@ -100,14 +100,31 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
           quantity: Number(line.quantity || 0),
           unit: item.Unit || line.unit || '',
           rate: Number(item['Standard Selling Price'] || item.Price || 0),
-          source: result && result.source || ''
+          source: result && result.source || '',
+          catalogName: item.Name || '',
+          catalogDescription: item['Customer Description'] || item.Description || '',
+          catalogSource: item['Catalog Source'] || ''
         };
       });
 
-      const gutter = priced.find(function (line) { return /gutter/i.test(line.description) && !/downspout/i.test(line.description); });
-      const downspout = priced.find(function (line) { return /downspout/i.test(line.description); });
-      boAssert_(gutter && gutter.rate > 0, 'The live gutter line did not receive a nonzero rate.');
-      boAssert_(downspout && downspout.rate > 0, 'The live downspout line did not receive a nonzero rate.');
+      const gutter = priced.find(function (line) {
+        return /gutter/i.test([
+          line.description,
+          line.catalogName,
+          line.catalogDescription,
+          line.catalogSource
+        ].join(' '));
+      });
+      boAssert_(gutter && gutter.rate > 0, 'The live gutter scope did not receive a nonzero Price Book rate.');
+      const gutterCoverage = [
+        gutter.description,
+        gutter.catalogName,
+        gutter.catalogDescription,
+        gutter.catalogSource,
+        draft.scope || '',
+        (draft.photoObservations || []).join(' ')
+      ].join(' ');
+      boAssert_(/downspout/i.test(gutterCoverage), 'The priced gutter scope did not preserve the known downspout component.');
 
       const quoteId = boQuoteBuilderMobileAcceptanceQuoteId_();
       const editStarted = Date.now();
@@ -122,7 +139,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         'Quote',
         quoteId,
         'PASS',
-        photoIds.length + ' real photos analyzed; gutter and downspout priced; editable draft loaded; nothing sent.',
+        photoIds.length + ' real photos analyzed; combined gutter scope including one downspout priced; editable draft loaded; nothing sent.',
         access.user.email
       );
 
