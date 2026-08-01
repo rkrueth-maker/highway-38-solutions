@@ -1,0 +1,39 @@
+name: Apply mobile acceptance duplicate cleanup
+
+on:
+  push:
+    branches: [agent/authorized-mobile-live-acceptance]
+    paths:
+      - '.github/workflows/apply-mobile-acceptance-remove-duplicate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/authorized-mobile-live-acceptance
+      - name: Remove old acceptance handler from temporary assembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('scripts/run-quote-mobile-live-acceptance-authorized.sh')
+          text=path.read_text()
+          marker='rm -f "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.js" "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.gs"\n'
+          addition=marker+'rm -f "$HARNESS/BusinessOffice_Highway38Acceptance.js" "$HARNESS/BusinessOffice_Highway38Acceptance.gs"\n'
+          if addition not in text:
+              if marker not in text:
+                  raise SystemExit('Acceptance cleanup marker not found')
+              path.write_text(text.replace(marker,addition,1))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/run-quote-mobile-live-acceptance-authorized.sh
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Remove duplicate handler from temporary mobile acceptance'
+          git push origin HEAD:agent/authorized-mobile-live-acceptance
