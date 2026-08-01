@@ -1,0 +1,93 @@
+<style>
+.qb-edit-banner{background:#fff2c7;border:1px solid #e4ca73;border-radius:9px;padding:10px;margin-bottom:12px;line-height:1.4}
+.qb-edit-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}.qb-edit-status>div{background:#f7fafc;border:1px solid var(--border);border-radius:9px;padding:9px}
+@media(max-width:900px),(hover:none) and (pointer:coarse){.qb-edit-status{grid-template-columns:1fr}.qb-edit-form .line{grid-template-columns:repeat(2,minmax(0,1fr))!important}.qb-edit-form .line .description{grid-column:1/-1!important}.qb-edit-form .line button.danger{grid-column:1/-1!important;width:100%!important}}
+</style>
+<script>
+(function(){
+'use strict';
+const ctx=window.H38_QB_CONTEXT||{};
+const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const js=value=>String(value==null?'':value).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
+const clean=value=>String(value==null?'':value).trim();
+const num=value=>{const n=Number(String(value==null?'':value).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0};
+const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(value));
+const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
+let editState=null;
+let wrappedDetails=null;
+let wrappedSaved=null;
+function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
+function loading(message){const host=$('qbContent');if(host)host.innerHTML='<div class="panel loading-card">'+esc(message||'Loading…')+'</div>'}
+function customerOptions(customers,selected){return (customers||[]).map(customer=>'<option value="'+esc(customer.customerId)+'" '+(customer.customerId===selected?'selected':'')+'>'+esc(customer.displayName||customer.customerId)+'</option>').join('')}
+function blankLine(){return {lineId:'',catalogId:'',description:'',quantity:1,unit:'each',rate:0,discount:0,taxable:false,taxRate:0,notes:''}}
+function renderEditLines(){
+  const host=$('qbEditLines');if(!host||!editState)return;
+  host.innerHTML=editState.lines.map((line,index)=>'<div class="line"><label class="description">Description *<input required value="'+esc(line.description||'')+'" oninput="qbEditLine('+index+',\'description\',this.value)"></label><label>Qty<input type="number" min="0" step="0.01" value="'+esc(line.quantity)+'" oninput="qbEditLine('+index+',\'quantity\',this.value)"></label><label>Unit<input value="'+esc(line.unit||'each')+'" oninput="qbEditLine('+index+',\'unit\',this.value)"></label><label>Rate<input type="number" min="0" step="0.01" value="'+esc(line.rate||0)+'" oninput="qbEditLine('+index+',\'rate\',this.value)"></label><label>Discount<input type="number" min="0" step="0.01" value="'+esc(line.discount||0)+'" oninput="qbEditLine('+index+',\'discount\',this.value)"></label><label>Taxable<input type="checkbox" '+(line.taxable?'checked':'')+' onchange="qbEditLine('+index+',\'taxable\',this.checked)"></label><button type="button" class="danger" onclick="qbEditRemoveLine('+index+')">Remove</button></div>').join('');
+  calculateEdit();
+}
+function calculateEdit(){
+  if(!editState)return;
+  let subtotal=0,tax=0;
+  editState.lines.forEach(line=>{const base=Math.max(0,num(line.quantity)*num(line.rate)-num(line.discount));subtotal+=base;if(line.taxable){let rate=num(line.taxRate);if(rate>1)rate/=100;tax+=base*rate}});
+  const deposit=$('qbEditDeposit')?num($('qbEditDeposit').value):0;
+  const host=$('qbEditTotals');if(host)host.innerHTML='<div class="total-row"><span>Subtotal</span><strong>'+money(subtotal)+'</strong></div><div class="total-row"><span>Tax</span><strong>'+money(tax)+'</strong></div><div class="total-row"><span>Deposit</span><strong>'+money(deposit)+'</strong></div><div class="total-row final"><span>Total</span><strong>'+money(subtotal+tax)+'</strong></div>';
+}
+window.qbEditLine=function(index,key,value){if(!editState||!editState.lines[index])return;editState.lines[index][key]=key==='taxable'?!!value:value;calculateEdit()};
+window.qbEditAddLine=function(){if(!editState)return;editState.lines.push(blankLine());renderEditLines()};
+window.qbEditRemoveLine=function(index){if(!editState)return;editState.lines.length===1?editState.lines=[blankLine()]:editState.lines.splice(index,1);renderEditLines()};
+function renderEdit(bundle){
+  editState={bundle:bundle,quote:bundle.quote||{},lines:(bundle.lines||[]).map(line=>Object.assign(blankLine(),line))};
+  if(!editState.lines.length)editState.lines=[blankLine()];
+  const quote=editState.quote;
+  const host=$('qbContent');if(!host)return;
+  host.innerHTML='<div class="shell"><div class="hero"><div><small>HIGHWAY 38 QUOTE BUILDER</small><h2>Edit '+esc(quote.quoteNumber||'saved quote')+'</h2><p>Update the existing internal quote. Saving returns it to Draft and requires owner review.</p></div><div class="actions"><button type="button" class="secondary" onclick="qbDetails(\''+js(quote.quoteId)+'\')">Cancel</button><button type="button" class="secondary" onclick="qbOpen(\'dashboard\')">Dashboard</button></div></div><form class="panel qb-edit-form" onsubmit="qbSaveExistingQuote(event)"><div class="qb-edit-banner"><strong>Owner-controlled edit:</strong> This changes the saved internal quote, resets approval, and does not send anything to the customer.</div><div class="qb-edit-status"><div><strong>Current status</strong><br>'+esc(quote.status||'Draft')+'</div><div><strong>Approval</strong><br>'+esc(quote.approvalStatus||'Owner Approval Required')+'</div></div><div class="form-grid"><label>Customer *<select id="qbEditCustomer" required>'+customerOptions(bundle.customers,quote.customerId)+'</select></label><label>Project title *<input id="qbEditProject" required value="'+esc(quote.projectTitle||'')+'"></label><label>Quote date<input id="qbEditQuoteDate" type="date" value="'+esc(quote.quoteDate||'')+'"></label><label>Expiration date<input id="qbEditExpiration" type="date" value="'+esc(quote.expirationDate||'')+'"></label><label>Payment terms<input id="qbEditTerms" value="'+esc(quote.paymentTerms||'Net 15')+'"></label><label>Deposit<input id="qbEditDeposit" type="number" min="0" step="0.01" value="'+esc(quote.deposit||0)+'" oninput="qbEditCalc()"></label><label class="full">Scope<textarea id="qbEditScope">'+esc(quote.scope||'')+'</textarea></label><label class="full">Assumptions<textarea id="qbEditAssumptions">'+esc(quote.assumptions||'')+'</textarea></label><label class="full">Exclusions<textarea id="qbEditExclusions">'+esc(quote.exclusions||'')+'</textarea></label><label class="full">Customer notes<textarea id="qbEditCustomerNotes">'+esc(quote.customerNotes||'')+'</textarea></label><label class="full">Internal notes<textarea id="qbEditInternalNotes">'+esc(quote.internalNotes||'')+'</textarea></label></div><div class="toolbar" style="justify-content:space-between;margin-top:16px"><h3>Quote lines</h3><button type="button" class="secondary" onclick="qbEditAddLine()">Add Line</button></div><div id="qbEditLines" class="lines"></div><div id="qbEditTotals" class="totals"></div><div class="notice" style="background:var(--warn)"><strong>Internal draft only.</strong> Saving does not approve or send the quote.</div><div class="toolbar"><button class="primary" type="submit">Save Quote Changes</button><button type="button" class="secondary" onclick="qbDetails(\''+js(quote.quoteId)+'\')">Cancel</button></div></form></div>';
+  renderEditLines();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+window.qbEditCalc=calculateEdit;
+window.qbEditExisting=async function(quoteId){
+  if(!(ctx.permissions&&ctx.permissions.edit))return toast('Your role does not allow quote editing.',true);
+  loading('Loading editable quote…');
+  try{renderEdit(await direct('boQuoteBuilderEditableQuote',{quoteId:quoteId}))}
+  catch(error){const message=clean(error&&error.message||error)||'The quote could not be opened for editing.';const host=$('qbContent');if(host)host.innerHTML='<div class="panel notice bad"><strong>Quote edit stopped safely.</strong><br>'+esc(message)+'<div class="toolbar" style="margin-top:12px"><button type="button" class="secondary" onclick="qbOpen(\'dashboard\')">Dashboard</button></div></div>';toast(message,true)}
+};
+window.qbSaveExistingQuote=async function(event){
+  if(event)event.preventDefault();if(!editState)return;
+  const lines=editState.lines.map(line=>({lineId:line.lineId||'',catalogId:line.catalogId||'',description:clean(line.description),quantity:num(line.quantity),unit:clean(line.unit)||'each',rate:num(line.rate),discount:num(line.discount),taxable:!!line.taxable,taxRate:num(line.taxRate),accountCode:line.accountCode||'4000',jobCostCategory:line.jobCostCategory||'Service Revenue',notes:line.notes||''})).filter(line=>line.description&&line.quantity>0);
+  if(!$('qbEditCustomer').value||!clean($('qbEditProject').value)||!lines.length)return toast('Choose a customer, enter a project title, and keep at least one quote line.',true);
+  const button=event&&event.submitter;if(button){button.disabled=true;button.textContent='Saving changes…'}
+  try{
+    const result=await direct('boQuoteBuilderUpdateEditableQuote',{quoteId:editState.quote.quoteId,editToken:editState.bundle.editToken,customerId:$('qbEditCustomer').value,projectTitle:clean($('qbEditProject').value),quoteDate:$('qbEditQuoteDate').value,expirationDate:$('qbEditExpiration').value,paymentTerms:$('qbEditTerms').value,deposit:num($('qbEditDeposit').value),scope:$('qbEditScope').value,assumptions:$('qbEditAssumptions').value,exclusions:$('qbEditExclusions').value,customerNotes:$('qbEditCustomerNotes').value,internalNotes:$('qbEditInternalNotes').value,lines:lines});
+    editState=null;toast('Quote '+(result.quoteNumber||'')+' updated and returned to Draft. Nothing was sent.');
+    const host=$('qbContent');if(host)host.innerHTML='<div class="shell"><section class="panel"><div class="notice good"><strong>Quote changes saved.</strong><br>'+esc(result.quoteNumber||'The quote')+' is back in Draft and requires owner review.</div><div class="toolbar" style="margin-top:12px"><button type="button" class="primary" onclick="qbDetails(\''+js(result.quoteId)+'\')">Open Quote</button><button type="button" class="secondary" onclick="qbRefresh()">Dashboard</button></div></section></div>';
+  }catch(error){toast(clean(error&&error.message||error)||'The quote could not be saved.',true)}finally{if(button){button.disabled=false;button.textContent='Save Quote Changes'}}
+};
+function addDashboardEditButtons(){
+  if(!(ctx.permissions&&ctx.permissions.edit))return;
+  document.querySelectorAll('#qbContent button[onclick*="qbDetails("]').forEach(openButton=>{
+    const raw=openButton.getAttribute('onclick')||'',match=raw.match(/qbDetails\('([^']+)'\)/);if(!match)return;
+    const quoteId=match[1],parent=openButton.parentElement;if(!parent||parent.querySelector('[data-qb-edit-id="'+quoteId.replace(/"/g,'')+'"]'))return;
+    const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.dataset.qbEditId=quoteId;edit.textContent='Edit';edit.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();window.qbEditExisting(quoteId)});openButton.insertAdjacentElement('afterend',edit);
+  });
+}
+function injectDetailEdit(quoteId){
+  if(!(ctx.permissions&&ctx.permissions.edit)||!quoteId)return;
+  const actions=document.querySelector('#qbContent .hero .actions');if(!actions||actions.querySelector('[data-qb-detail-edit]'))return;
+  const edit=document.createElement('button');edit.type='button';edit.className='primary';edit.dataset.qbDetailEdit='1';edit.textContent='Edit Quote';edit.addEventListener('click',()=>window.qbEditExisting(quoteId));actions.insertBefore(edit,actions.firstChild);
+}
+function wrapDetails(){
+  const current=window.qbDetails;
+  if(typeof current==='function'&&current!==wrappedDetails&&!current.__h38ExistingEdit){
+    const prior=current;wrappedDetails=function(quoteId){const result=prior.apply(this,arguments);return Promise.resolve(result).then(value=>{setTimeout(()=>injectDetailEdit(quoteId),0);return value})};wrappedDetails.__h38ExistingEdit=true;wrappedDetails.__h38DetailsRecovery=true;wrappedDetails.__h38Prior=prior;window.qbDetails=wrappedDetails;
+  }
+  const currentSaved=window.qbOpenSavedQuote;
+  if(typeof currentSaved==='function'&&currentSaved!==wrappedSaved&&!currentSaved.__h38ExistingEdit){
+    const priorSaved=currentSaved;wrappedSaved=function(quoteId){const result=priorSaved.apply(this,arguments);return Promise.resolve(result).then(value=>{setTimeout(()=>injectDetailEdit(quoteId),0);return value})};wrappedSaved.__h38ExistingEdit=true;wrappedSaved.__h38Prior=priorSaved;window.qbOpenSavedQuote=wrappedSaved;
+  }
+}
+function install(){wrapDetails();addDashboardEditButtons()}
+const observer=new MutationObserver(()=>requestAnimationFrame(install));observer.observe($('qbContent')||document.body,{childList:true,subtree:true});
+install();setInterval(install,600);
+})();
+</script>

@@ -1,3 +1,7 @@
+<style>
+@media(max-width:900px),(hover:none) and (pointer:coarse){#qbQuotePhotoPanel{display:none!important}}
+.qb-android-queue{display:grid;gap:7px;margin-top:9px}.qb-android-file{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #b8cad7;border-radius:9px;background:#fff}.qb-android-file strong,.qb-android-file span{display:block;overflow-wrap:anywhere}.qb-android-file span{font-size:10px;color:var(--muted);margin-top:3px}.qb-android-file button{flex:0 0 auto;min-height:36px;padding:6px 9px}
+</style>
 <script>
 (function(){
 'use strict';
@@ -5,6 +9,7 @@ const GENERIC_CUSTOMER='CUST-H38-GENERIC-QUOTE';
 const CHUNK_BYTES=786432;
 const MAX_FILE_BYTES=20*1024*1024;
 let rawFiles=[];
+let pickerInputs=[];
 let stagedDocumentIds=[];
 let running=false;
 let saveWrapped=false;
@@ -14,21 +19,54 @@ const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;
 const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
 const api=(action,args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}));
 function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6500)}
-function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
+function status(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(!node)return;const color=bad?'#8f1d1d':'var(--navy)';if(node.textContent!==message)node.textContent=message;if(node.style.color!==color)node.style.color=color}
 function customerId(){return clean($('customer')&&$('customer').value)||clean($('aiCustomer')&&$('aiCustomer').value)||clean($('qbCustomerId')&&$('qbCustomerId').value)||GENERIC_CUSTOMER}
 function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||'Photo-based field quote'}
 function labeled(id,label){const node=$(id),value=clean(node&&node.value);return value?label+': '+value:''}
 function notes(){return [labeled('qbFieldNarration','Field description'),labeled('scope','Scope'),labeled('assumptions','Known dimensions and assumptions'),labeled('internalNotes','Internal notes'),labeled('customerNotes','Customer notes'),labeled('aiNotes','Field notes')].filter(Boolean).join('\n')}
 function fileMime(file){const type=clean(file&&file.type).toLowerCase();if(type)return type;const ext=clean(file&&file.name).split('.').pop().toLowerCase();return {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'}[ext]||'application/octet-stream'}
-function addRawFiles(files){
-  const seen={};rawFiles.forEach(file=>{seen[[file.name,file.size,file.lastModified].join('|')]=true});
-  files.filter(file=>file&&/^image\/(jpeg|png|webp)$/i.test(fileMime(file))).forEach(file=>{const key=[file.name,file.size,file.lastModified].join('|');if(!seen[key]&&rawFiles.length<4){seen[key]=true;rawFiles.push(file)}});
+function fileKey(file){return [file.name,file.size,file.lastModified].join('|')}
+function queueHost(){
+  let host=$('qbAndroidRawQueue');
+  if(host)return host;
+  const panel=$('qbSimplePhotoQuote');if(!panel)return null;
+  host=document.createElement('div');host.id='qbAndroidRawQueue';host.className='qb-android-queue';
+  const statusNode=$('qbSimplePhotoStatus');if(statusNode)statusNode.insertAdjacentElement('beforebegin',host);else panel.appendChild(host);
+  return host;
 }
-document.addEventListener('change',event=>{const input=event.target;if(!input||input.tagName!=='INPUT'||input.type!=='file')return;addRawFiles(Array.from(input.files||[]))},true);
-document.addEventListener('click',event=>{const remove=event.target&&event.target.closest?event.target.closest('#qbPendingPhotos .qb-photo-remove'):null;if(!remove)return;const card=remove.closest('.qb-photo-card'),cards=Array.from(document.querySelectorAll('#qbPendingPhotos .qb-photo-card')),index=cards.indexOf(card);if(index>=0&&index<rawFiles.length)rawFiles.splice(index,1)},true);
-function readChunk(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||''),comma=value.indexOf(',');resolve(comma>=0?value.slice(comma+1):value)};reader.onerror=()=>reject(reader.error||new Error('A photo chunk could not be read.'));reader.readAsDataURL(blob)})}
-async function uploadFile(file,position,total){
-  const mimeType=fileMime(file);
+function renderQueue(){
+  const host=queueHost();if(!host)return;
+  const html=rawFiles.length?rawFiles.map((entry,index)=>'<div class="qb-android-file"><div><strong>'+esc(entry.file.name||('Photo '+(index+1)))+'</strong><span>'+Math.max(1,Math.round(entry.file.size/1024))+' KB · permission held until upload finishes</span></div><button type="button" class="danger" data-qb-raw-remove="'+index+'">Remove</button></div>').join(''):'<div class="qb-status-line">No pictures selected yet.</div>';
+  if(host.innerHTML!==html)host.innerHTML=html;
+  if(rawFiles.length)status(rawFiles.length+' picture'+(rawFiles.length===1?'':'s')+' ready. Press Build Quote.',false);
+}
+function releaseInputIfUnused(input){
+  if(!input||rawFiles.some(entry=>entry.input===input))return;
+  const index=pickerInputs.indexOf(input);if(index>=0)pickerInputs.splice(index,1);
+  try{input.value='';input.remove()}catch(error){}
+}
+function removeRawFile(index){const entry=rawFiles[index];if(!entry)return;rawFiles.splice(index,1);releaseInputIfUnused(entry.input);renderQueue();if(!rawFiles.length)status('Ready for photos.',false)}
+document.addEventListener('click',event=>{const button=event.target&&event.target.closest&&event.target.closest('[data-qb-raw-remove]');if(!button)return;event.preventDefault();event.stopImmediatePropagation();removeRawFile(Number(button.dataset.qbRawRemove))},true);
+function addInputFiles(input){
+  const seen={};rawFiles.forEach(entry=>{seen[fileKey(entry.file)]=true});
+  Array.from(input.files||[]).forEach(file=>{
+    if(rawFiles.length>=4)return;
+    const mimeType=fileMime(file),key=fileKey(file);
+    if(!/^image\/(jpeg|png|webp)$/i.test(mimeType)){toast((file.name||'Photo')+' must be JPEG, PNG, or WebP.',true);return}
+    if(!file.size||file.size>MAX_FILE_BYTES){toast((file.name||'Photo')+' exceeds the 20 MB upload limit.',true);return}
+    if(!seen[key]){seen[key]=true;rawFiles.push({file:file,input:input})}
+  });
+  if(!rawFiles.some(entry=>entry.input===input))releaseInputIfUnused(input);
+  renderQueue();
+}
+function openPicker(mode){
+  const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.dataset.h38PersistentPermission='1';
+  if(mode==='camera')input.setAttribute('capture','environment');else input.multiple=true;
+  input.addEventListener('change',()=>addInputFiles(input),{once:true});document.body.appendChild(input);pickerInputs.push(input);input.click();
+}
+function readChunk(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||''),comma=value.indexOf(',');resolve(comma>=0?value.slice(comma+1):value)};reader.onerror=()=>reject(reader.error||new Error('Android could not read the selected photo. Choose it again and keep Quote Builder open until the upload finishes.'));reader.readAsDataURL(blob)})}
+async function uploadFile(entry,position,total){
+  const file=entry.file,mimeType=fileMime(file);
   if(!/^image\/(jpeg|png|webp)$/.test(mimeType))throw new Error((file.name||'Photo')+' must be JPEG, PNG, or WebP.');
   if(!file.size||file.size>MAX_FILE_BYTES)throw new Error((file.name||'Photo')+' exceeds the 20 MB upload limit.');
   const chunkCount=Math.ceil(file.size/CHUNK_BYTES);
@@ -36,28 +74,24 @@ async function uploadFile(file,position,total){
   try{
     for(let index=0;index<chunkCount;index++){
       status('Uploading photo '+position+' of '+total+' — part '+(index+1)+' of '+chunkCount+'…',false);
-      const start=index*CHUNK_BYTES,end=Math.min(file.size,start+CHUNK_BYTES);
-      let data=await readChunk(file.slice(start,end));
+      let data=await readChunk(file.slice(index*CHUNK_BYTES,Math.min(file.size,(index+1)*CHUNK_BYTES)));
       await direct('boQuoteBuilderAiChunkPart',{sessionId:started.sessionId,index:index,data:data});
-      data='';
-      await new Promise(resolve=>setTimeout(resolve,25));
+      data='';await new Promise(resolve=>setTimeout(resolve,25));
     }
     return await direct('boQuoteBuilderAiChunkFinish',{sessionId:started.sessionId});
-  }catch(error){
-    try{await direct('boQuoteBuilderAiChunkAbort',{sessionId:started.sessionId})}catch(ignore){}
-    throw error;
-  }
+  }catch(error){try{await direct('boQuoteBuilderAiChunkAbort',{sessionId:started.sessionId})}catch(ignore){}throw error}
 }
 async function uploadAll(){
-  const files=rawFiles.slice(0,4),ids=[];
-  for(let index=0;index<files.length;index++){
-    const saved=await uploadFile(files[index],index+1,files.length);
+  const entries=rawFiles.slice(0,4),ids=[];
+  for(let index=0;index<entries.length;index++){
+    const saved=await uploadFile(entries[index],index+1,entries.length);
     if(saved&&saved.documentId)ids.push(saved.documentId);
     await new Promise(resolve=>setTimeout(resolve,35));
   }
-  if(files.length&&!ids.length)throw new Error('The selected photos could not be uploaded. Choose them again and retry.');
+  if(entries.length&&!ids.length)throw new Error('The selected photos could not be uploaded. Choose them again and retry.');
   return ids;
 }
+function clearRawFiles(){rawFiles=[];pickerInputs.slice().forEach(input=>{try{input.value='';input.remove()}catch(error){}});pickerInputs=[];renderQueue()}
 function parseDraft(result){if(result&&result.draft)return result.draft;try{return JSON.parse(result&&result.staged&&result.staged.Details||'{}')}catch(error){return {}}}
 function rateMissing(line){return line.rate===''||line.rate==null||!Number.isFinite(Number(line.rate))||Number(line.rate)<=0}
 function priceQuery(line,draft,basis){const primary=clean(line.searchQuery||line.description||line.catalogId||draft.projectTitle||basis),context=clean(draft.scope||basis);return clean([primary,context].filter(Boolean).join('. Work scope: ')).slice(0,500)}
@@ -80,24 +114,29 @@ function render(draft,added,researched){
   const observations=Array.isArray(draft.photoObservations)?draft.photoObservations:[],missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[],lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
   host.hidden=false;host.innerHTML='<strong>'+esc(draft.projectTitle||'Photo quote draft')+'</strong>'+(draft.scope?'<p>'+esc(draft.scope)+'</p>':'')+(observations.length?'<p><strong>Photos show:</strong> '+esc(observations.join(' • '))+'</p>':'')+(lines.length?'<p><strong>Added:</strong> '+lines.map(line=>esc(line.description||line.catalogId||'Review item')).join(' • ')+'</p>':'')+(missing.length?'<p><strong>Confirm:</strong> '+esc(missing.join(' • '))+'</p>':'')+'<p>'+added+' quote item'+(added===1?'':'s')+' added; '+researched+' missing price'+(researched===1?'':'s')+' researched.</p>';
 }
-function clearLegacyPending(){let guard=0;while(document.querySelector('#qbPendingPhotos .qb-photo-card')&&typeof window.qbSafeRemovePendingPhoto==='function'&&guard<8){window.qbSafeRemovePendingPhoto(0);guard++}}
 async function build(button){
   if(running)return;running=true;const original=button.textContent;button.disabled=true;button.textContent='Uploading photos…';
   try{
     const basis=notes();if(!basis&&!rawFiles.length)throw new Error('Add a photo or enter the scope first.');
-    status('Releasing photo previews before upload…',false);clearLegacyPending();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const ids=await uploadAll();status('Analyzing the saved photos and matching the Price Book…',false);button.textContent='Analyzing…';
     const result=await direct('boBuildAiQuoteDraft',{customerId:customerId(),projectTitle:projectTitle(),notes:basis||'Analyze the supplied jobsite photos and identify the visible work required. Do not invent measurements.',photoDocumentIds:ids});
     const draft=parseDraft(result)||{};button.textContent='Finding prices…';const researched=await priceLines(draft,basis);setIfBlank('project',draft.projectTitle);setIfBlank('scope',draft.scope);setIfBlank('assumptions',draft.assumptions);setIfBlank('exclusions',draft.exclusions);const added=applyLines(draft);render(draft,added,researched);
-    stagedDocumentIds=ids.slice();rawFiles=[];status('Quote draft prepared. Review it, then save the draft quote.',false);toast('Quote draft prepared. Nothing was approved or sent.');
+    stagedDocumentIds=ids.slice();clearRawFiles();status('Quote draft prepared. Review it, then save the draft quote.',false);toast('Quote draft prepared. Nothing was approved or sent.');
   }catch(error){const message=clean(error&&error.message||error)||'The quote draft stopped safely.';status(message,true);toast(message,true)}finally{running=false;button.disabled=false;button.textContent=original}
 }
-function installBuildButton(){const old=$('qbSimpleBuild');if(!old||old.dataset.h38RawUpload==='1')return;const button=old.cloneNode(true);button.type='button';button.removeAttribute('onclick');button.dataset.h38RawUpload='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();build(event.currentTarget)},true);old.replaceWith(button)}
+function replaceButton(id,handler,marker){const old=$(id);if(!old||old.dataset[marker]==='1')return;const button=old.cloneNode(true);button.type='button';button.removeAttribute('onclick');button.dataset[marker]='1';button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();handler(event.currentTarget)},true);old.replaceWith(button)}
+function installControls(){
+  window.qbCameraTakeForDraft=()=>openPicker('camera');window.qbCameraChooseForDraft=()=>openPicker('files');
+  replaceButton('qbSimpleTake',()=>openPicker('camera'),'h38PersistentPicker');
+  replaceButton('qbSimpleChoose',()=>openPicker('files'),'h38PersistentPicker');
+  replaceButton('qbSimpleBuild',button=>build(button),'h38RawUpload');
+  renderQueue();
+}
 function installSaveWrapper(){
   if(saveWrapped||typeof window.qbSave!=='function')return;saveWrapped=true;const prior=window.qbSave;
-  window.qbSave=async function(event){const ids=stagedDocumentIds.slice(),started=Date.now();if(ids.length)clearLegacyPending();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await api('quoteBuilderLastCreatedQuote');if(created&&Number(created.createdMs||0)>=started){await direct('boQuoteBuilderAttachStagedAiPhotos',{quoteId:created.quoteId,documentIds:ids});stagedDocumentIds=[];toast(ids.length+' photo'+(ids.length===1?'':'s')+' attached to the saved quote.')}}catch(error){toast('The quote was saved, but the photo link needs review: '+clean(error&&error.message||error),true)}}return result};
+  window.qbSave=async function(event){const ids=stagedDocumentIds.slice(),started=Date.now();const result=await prior.apply(this,arguments);if(ids.length){try{const created=await api('quoteBuilderLastCreatedQuote');if(created&&Number(created.createdMs||0)>=started){await direct('boQuoteBuilderAttachStagedAiPhotos',{quoteId:created.quoteId,documentIds:ids});stagedDocumentIds=[];toast(ids.length+' photo'+(ids.length===1?'':'s')+' attached to the saved quote.')}}catch(error){toast('The quote was saved, but the photo link needs review: '+clean(error&&error.message||error),true)}}return result};
 }
-function install(){installBuildButton();installSaveWrapper()}
+function install(){installControls();installSaveWrapper()}
 const observer=new MutationObserver(()=>requestAnimationFrame(install));observer.observe($('qbContent')||document.body,{childList:true,subtree:true});
 install();setTimeout(install,300);setTimeout(install,1200);
 })();
