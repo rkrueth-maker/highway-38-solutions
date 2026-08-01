@@ -77,7 +77,7 @@ jobs:
           retention-days: 90
 
   live-production:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
     needs: browser-contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -90,7 +90,7 @@ jobs:
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out deployed source
+      - name: Check out acceptance source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -145,7 +145,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed\n- Production: actual gutter photos analyzed and priced through the authorized runtime\n- Draft edit: saved Gutters draft reopened with lines and customers\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed\n- Production data: actual gutter photos analyzed and priced through the authorized runtime\n- Draft edit: saved Gutters draft reopened with lines and customers\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Record live mobile acceptance HOLD
