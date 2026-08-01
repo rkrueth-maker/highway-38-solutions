@@ -1,6 +1,6 @@
 <style>
-/* Final mobile-first Quote Builder overrides. Pointer detection also catches mobile browsers
-   that report a desktop-sized Apps Script viewport. */
+/* Phone-first Quote Builder. The Apps Script wrapper can report a wide viewport,
+   so coarse-pointer detection is required in addition to width. */
 @media (max-width:900px), (hover:none) and (pointer:coarse){
   html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
   body{padding-bottom:18px!important}
@@ -8,7 +8,7 @@
   .brand{min-width:0!important}.brand img{width:34px!important;height:34px!important}.brand h1{font-size:16px!important;line-height:1.12!important;white-space:normal!important}.brand small,.user{display:none!important}
   .top-actions{gap:5px!important}.qb-office-return{min-height:38px!important;padding:7px 9px!important;font-size:12px!important}
   .app{display:block!important;width:100%!important;min-width:0!important;min-height:0!important}
-  #qbNav.nav{position:sticky!important;top:58px!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:19!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:4px!important;padding:6px 8px!important;overflow-x:auto!important;overflow-y:hidden!important;border-right:0!important;border-bottom:1px solid var(--border)!important;background:#fff!important;scrollbar-width:none!important}
+  #qbNav.nav{position:sticky!important;top:58px!important;z-index:19!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:4px!important;padding:6px 8px!important;overflow-x:auto!important;overflow-y:hidden!important;border-right:0!important;border-bottom:1px solid var(--border)!important;background:#fff!important;scrollbar-width:none!important}
   #qbNav.nav::-webkit-scrollbar{display:none!important}
   #qbNav.nav button[data-popout-nav],#qbNav.nav button{position:relative!important;flex:0 0 auto!important;width:auto!important;min-width:44px!important;height:42px!important;min-height:42px!important;padding:7px 9px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;border-radius:9px!important}
   #qbNav.nav .nav-icon{font-size:17px!important}#qbNav.nav .nav-text{position:static!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;clip:auto!important;white-space:nowrap!important;font-size:11px!important}
@@ -22,94 +22,90 @@
   .grid{display:block!important}.stack{display:grid!important;gap:8px!important;margin-top:8px!important}.pipeline{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}.stage{padding:7px!important}.stage span{font-size:10px!important}.stage strong{font-size:18px!important}
   .form-grid{grid-template-columns:1fr!important;gap:8px!important}.full{grid-column:auto!important}label{font-size:12px!important}input,select,textarea{min-height:42px!important;margin-top:4px!important;padding:8px!important}textarea{min-height:76px!important}
   .toolbar,.actions{gap:6px!important}.toolbar button{min-height:40px!important;padding:8px 10px!important;font-size:12px!important}
-  .table-wrap{overflow:visible!important;border:0!important;background:transparent!important}.table-wrap table{display:block!important;width:100%!important;min-width:0!important}.table-wrap thead{display:none!important}.table-wrap tbody{display:grid!important;gap:7px!important}.table-wrap tr{display:block!important;width:100%!important;padding:9px!important;border:1px solid var(--border)!important;border-radius:9px!important;background:#fff!important}.table-wrap td{display:block!important;width:100%!important;padding:2px 0!important;border:0!important;white-space:normal!important;overflow-wrap:anywhere!important;font-size:12px!important}.table-wrap td .toolbar{margin-top:7px!important}
+  .table-wrap{overflow:visible!important;border:0!important;background:transparent!important}.table-wrap table{display:block!important;width:100%!important;min-width:0!important}.table-wrap thead{display:none!important}.table-wrap tbody{display:grid!important;gap:7px!important}.table-wrap tr{display:block!important;width:100%!important;padding:9px!important;border:1px solid var(--border)!important;border-radius:9px!important;background:#fff!important}.table-wrap td{display:block!important;width:100%!important;padding:2px 0!important;border:0!important;white-space:normal!important;overflow-wrap:anywhere!important;font-size:12px!important}
   .line{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;padding:8px!important}.line .description{grid-column:1/-1!important}.line button.danger{grid-column:1/-1!important;width:100%!important}.totals{width:100%!important;margin:8px 0 0!important}.total-row{padding:5px 0!important}
   .catalog{grid-template-columns:1fr!important}.catalog-card{padding:10px!important}.price{font-size:18px!important}
-  .qb-field-assistant{padding:10px!important;margin-top:9px!important;border-radius:11px!important}.qb-field-assistant-grid{display:block!important}.qb-field-assistant textarea{min-height:88px!important}.qb-field-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}.qb-field-actions button{width:100%!important;min-width:0!important;padding:8px 5px!important;font-size:11px!important}.qb-field-status{font-size:11px!important}
-  .qb-camera-panel{display:block!important;padding:10px!important}.qb-camera-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}.qb-camera-actions button{width:100%!important;min-width:0!important;padding:8px 5px!important;font-size:11px!important}.qb-photo-queue,.qb-saved-photos{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}.qb-photo-card img{height:92px!important}.qb-photo-card .qb-photo-meta{padding:6px!important;font-size:10px!important}
-  .qb-ai-panel{padding:10px!important;margin-top:9px!important}.qb-ai-actions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}.qb-ai-actions button{width:100%!important}.qb-ai-warning{font-size:11px!important}.qb-ai-result{font-size:12px!important;max-height:none!important;white-space:normal!important}
-  .qb-quick-quote-trigger{left:10px!important;right:10px!important;bottom:10px!important;width:calc(100% - 20px)!important;min-height:48px!important;padding:10px!important}.toast{left:10px!important;right:10px!important;bottom:66px!important;max-width:none!important;max-height:34vh!important;overflow:auto!important;padding:10px!important;font-size:12px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
-  body:has(#project) .qb-quick-quote-trigger,body:has(#project) .qb-mobile-capture{display:none!important}
+  .qb-mobile-hidden{display:none!important}
+  .qb-mobile-advanced-field{display:none!important}.qb-mobile-show-advanced .qb-mobile-advanced-field{display:block!important}
+  #qbQuotePhotoPanel .qb-camera-actions{display:none!important}
+  .qb-simple-photo-quote{grid-column:1/-1;margin-top:9px;padding:12px;border:2px solid #8fb4cf;border-radius:12px;background:linear-gradient(135deg,#f5fbff,#e9f4fb)}
+  .qb-simple-photo-quote h3{margin:0;color:var(--navy);font-size:18px}.qb-simple-photo-quote p{margin:5px 0 10px;color:var(--muted);font-size:12px;line-height:1.4}
+  .qb-simple-photo-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.qb-simple-photo-actions button{width:100%!important;min-width:0!important;padding:9px 6px!important;font-size:12px!important}
+  .qb-simple-photo-actions .qb-simple-build{grid-column:1/-1;background:linear-gradient(135deg,var(--navy),#0f2d49);color:#fff;min-height:48px!important;font-size:14px!important}
+  .qb-simple-photo-status{min-height:18px;margin-top:8px;font-size:11px;font-weight:800;color:var(--navy)}
+  .qb-simple-more{display:block;width:100%;margin-top:7px;background:transparent;color:var(--navy);border:1px solid #b8cad7;font-size:11px!important}
+  .qb-photo-queue,.qb-saved-photos{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}.qb-photo-card img{height:92px!important}.qb-photo-card .qb-photo-meta{padding:6px!important;font-size:10px!important}
+  .qb-ai-result{font-size:12px!important;max-height:none!important;white-space:normal!important}
+  .qb-quick-quote-trigger,.qb-mobile-capture{display:none!important}
+  .toast{left:10px!important;right:10px!important;bottom:10px!important;max-width:none!important;max-height:34vh!important;overflow:auto!important;padding:10px!important;font-size:12px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
 }
 </style>
 <script>
 (function(){
 'use strict';
 const GENERIC_CUSTOMER='CUST-H38-GENERIC-QUOTE';
-let running=false;
+const PHONE_QUERY='(max-width:900px), (hover:none) and (pointer:coarse)';
+let running=false,observer=null;
 const $=id=>document.getElementById(id);
 const clean=value=>String(value==null?'':value).trim();
 const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const direct=(name,payload)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name](payload)});
+function isPhone(){return window.matchMedia&&window.matchMedia(PHONE_QUERY).matches}
 function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),6000)}
 function busy(on){const node=$('qbOverlay');if(node)node.classList.toggle('show',!!on)}
 function friendlyError(error){
   const raw=clean(error&&error.message||error);
-  if(/image_url|invalid.*image|invalid.*url/i.test(raw))return 'The picture could not be prepared for analysis. Remove it, add it again, and retry.';
-  if(/payload|too large|request entity/i.test(raw))return 'The pictures are too large to analyze together. Try fewer pictures or retake them at normal phone quality.';
-  return raw.replace(/^Error:\s*/i,'').replace(/\s*\{[\s\S]*$/,'').slice(0,260)||'The AI draft stopped safely. Please retry.';
+  if(/failed to fetch/i.test(raw))return 'The temporary photo preview could not be read. Remove that photo, choose it again, and retry.';
+  if(/image_url|invalid.*image|invalid.*url/i.test(raw))return 'One picture could not be prepared for analysis. Remove it, choose it again, and retry.';
+  if(/payload|too large|request entity/i.test(raw))return 'The pictures are too large to analyze together. Try fewer pictures.';
+  return raw.replace(/^Error:\s*/i,'').replace(/\s*\{[\s\S]*$/,'').slice(0,220)||'The quote draft stopped safely. Please retry.';
 }
-function fieldStatus(message,bad){const node=$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
+function setStatus(message,bad){const node=$('qbSimplePhotoStatus')||$('qbFieldStatus');if(node){node.textContent=message;node.style.color=bad?'#8f1d1d':'var(--navy)'}}
 function customerId(){return clean($('customer')&&$('customer').value)||clean($('aiCustomer')&&$('aiCustomer').value)||clean($('qbCustomerId')&&$('qbCustomerId').value)||GENERIC_CUSTOMER}
-function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||clean($('qbProjectTitle')&&$('qbProjectTitle').value)||'Photo-based field quote'}
+function projectTitle(){return clean($('project')&&$('project').value)||clean($('aiTitle')&&$('aiTitle').value)||'Photo-based field quote'}
 function labeled(id,label){const node=$(id),value=clean(node&&node.value);return value?label+': '+value:''}
-function combinedNotes(){
-  return [
-    labeled('qbFieldNarration','Field description'),
-    labeled('scope','Scope'),
-    labeled('assumptions','Known dimensions and assumptions'),
-    labeled('internalNotes','Internal notes'),
-    labeled('customerNotes','Customer notes'),
-    labeled('aiNotes','Field notes')
-  ].filter(Boolean).join('\n');
+function combinedNotes(){return [labeled('qbFieldNarration','Field description'),labeled('scope','Scope'),labeled('assumptions','Known dimensions and assumptions'),labeled('internalNotes','Internal notes'),labeled('customerNotes','Customer notes'),labeled('aiNotes','Field notes')].filter(Boolean).join('\n')}
+function photoElements(){
+  const unique=[];
+  document.querySelectorAll('#qbPendingPhotos img,.qb-photo-queue img,.qb-saved-photos img,.qb-saved-photo img').forEach(img=>{if(unique.indexOf(img)<0)unique.push(img)});
+  return unique.slice(0,6);
 }
-function photoSources(){
-  const found=[];
-  document.querySelectorAll('#qbPendingPhotos img,.qb-photo-queue img,.qb-saved-photos img,.qb-saved-photo img').forEach(img=>{const src=img.currentSrc||img.src||'';if(src&&found.indexOf(src)<0)found.push(src)});
-  return found.slice(0,6);
+function imageReady(img){
+  if(img.complete&&img.naturalWidth>0)return Promise.resolve();
+  if(typeof img.decode==='function')return img.decode();
+  return new Promise((resolve,reject)=>{const done=()=>{cleanup();img.naturalWidth>0?resolve():reject(new Error('Picture did not load.'))};const fail=()=>{cleanup();reject(new Error('Picture did not load.'))};const cleanup=()=>{img.removeEventListener('load',done);img.removeEventListener('error',fail)};img.addEventListener('load',done);img.addEventListener('error',fail);setTimeout(fail,5000)});
 }
-function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)})}
-function canvasBlob(canvas,type,quality){return new Promise(resolve=>canvas.toBlob(resolve,type,quality))}
-async function compressBlob(blob){
-  if(!blob||!/^image\//i.test(blob.type||''))return blobToDataUrl(blob);
-  let bitmap=null;
-  try{if(typeof createImageBitmap==='function')bitmap=await createImageBitmap(blob)}catch(error){bitmap=null}
-  if(!bitmap)return blobToDataUrl(blob);
-  const max=1600,scale=Math.min(1,max/Math.max(bitmap.width,bitmap.height));
-  const width=Math.max(1,Math.round(bitmap.width*scale)),height=Math.max(1,Math.round(bitmap.height*scale));
-  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(bitmap,0,0,width,height);if(bitmap.close)bitmap.close();
-  const output=await canvasBlob(canvas,'image/jpeg',.82);return blobToDataUrl(output||blob);
-}
-async function validImageInput(src){
-  if(/^https?:\/\//i.test(src))return src;
-  if(!/^(blob:|data:image\/)/i.test(src))return '';
-  const response=await fetch(src);if(!response.ok)throw new Error('The selected picture could not be read.');
-  return compressBlob(await response.blob());
+async function imageToDataUrl(img){
+  await imageReady(img);
+  const max=1600,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const width=Math.max(1,Math.round(img.naturalWidth*scale)),height=Math.max(1,Math.round(img.naturalHeight*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext('2d');context.drawImage(img,0,0,width,height);
+  return canvas.toDataURL('image/jpeg',.82);
 }
 async function preparedPhotos(){
-  const sources=photoSources(),photos=[];
-  for(const src of sources){const value=await validImageInput(src);if(value)photos.push(value)}
+  const elements=photoElements(),photos=[];
+  for(const img of elements){try{const data=imageToDataUrl(img);photos.push(await data)}catch(error){console.warn('H38_QB_PHOTO_SKIPPED',error&&error.message||String(error))}}
+  if(elements.length&&!photos.length)throw new Error('The selected photos are no longer available. Remove them, choose them again, and retry.');
   return photos;
 }
-function parseDraft(result){
-  if(result&&result.draft)return result.draft;
-  const staged=result&&result.staged;try{return JSON.parse(staged&&staged.Details||'{}')}catch(error){return {}}
-}
+function parseDraft(result){if(result&&result.draft)return result.draft;try{return JSON.parse(result&&result.staged&&result.staged.Details||'{}')}catch(error){return {}}}
 function rateMissing(line){return line.rate===''||line.rate==null||!Number.isFinite(Number(line.rate))||Number(line.rate)<=0}
-function priceQuery(line,draft,basis){
-  const primary=clean(line.searchQuery||line.description||line.catalogId||draft.projectTitle);
-  const context=clean(draft.scope||basis);
-  return clean([primary,context].filter(Boolean).join('. Work scope: ')).slice(0,500);
+function priceQuery(line,draft,basis){const primary=clean(line.searchQuery||line.description||line.catalogId||draft.projectTitle||basis);const context=clean(draft.scope||basis);return clean([primary,context].filter(Boolean).join('. Work scope: ')).slice(0,500)}
+function ensureSuggestedLines(draft,basis){
+  if(Array.isArray(draft.suggestedLines)&&draft.suggestedLines.length)return;
+  const description=clean(draft.scope||basis).replace(/^(Scope|Field description):\s*/i,'').slice(0,220);
+  draft.suggestedLines=description?[{description:description,quantity:1,unit:'job',rate:'',priceStatus:'manual_entry_required',searchQuery:description,evidence:'Derived from the entered scope and notes; owner review required.'}]:[];
 }
 async function priceMissingLines(draft,basis){
-  const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
-  let researched=0;const seen={};
+  ensureSuggestedLines(draft,basis);
+  const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];let researched=0;const seen={};
   for(const line of lines){
     if(!rateMissing(line)||researched>=4)continue;
-    const query=priceQuery(line,draft,basis);const key=query.toLowerCase();if(!query||seen[key])continue;seen[key]=true;
+    const query=priceQuery(line,draft,basis),key=query.toLowerCase();if(!query||seen[key])continue;seen[key]=true;
     try{
-      const result=await direct('boQuoteBuilderAutoLocalPrice',{query:query,taxable:false});const item=result&&result.item;
-      if(item){line.catalogId=item['Product / Service ID']||result.catalogId||line.catalogId||'';line.description=line.description||item['Customer Description']||item.Name||query;line.unit=item.Unit||line.unit||'each';line.rate=Number(item['Standard Selling Price']||item.Price||0);line.priceStatus='automatic_local_typical_owner_review';line.evidence=clean([line.evidence,'Typical local rate researched automatically from the scope/notes; owner review required.'].filter(Boolean).join(' '));researched++}
+      const result=await direct('boQuoteBuilderAutoLocalPrice',{query:query,taxable:false}),item=result&&result.item;
+      if(item){line.catalogId=item['Product / Service ID']||result.catalogId||line.catalogId||'';line.description=line.description||item['Customer Description']||item.Name||query;line.unit=item.Unit||line.unit||'each';line.rate=Number(item['Standard Selling Price']||item.Price||0);line.priceStatus='automatic_local_typical_owner_review';line.evidence=clean([line.evidence,'Typical local rate researched automatically from the scope and notes; owner review required.'].filter(Boolean).join(' '));researched++}
     }catch(error){line.priceStatus='local_price_lookup_failed';line.pricingNote=friendlyError(error)}
   }
   return researched;
@@ -118,28 +114,49 @@ function setValueIfBlank(id,value){const node=$(id);if(node&&clean(value)&&!clea
 function existingDescriptions(){return Array.from(document.querySelectorAll('#lines .description input')).map(input=>clean(input.value).toLowerCase()).filter(Boolean)}
 function applyLines(draft){
   const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];if(!lines.length||typeof window.qbAddLine!=='function')return 0;
-  const existing=existingDescriptions();const first=document.querySelector('#lines .description input');const removeBlank=!!(first&&!clean(first.value));let added=0;
+  const existing=existingDescriptions(),first=document.querySelector('#lines .description input'),removeBlank=!!(first&&!clean(first.value));let added=0;
   lines.forEach(line=>{const description=clean(line.description||line.catalogId);if(!description||existing.indexOf(description.toLowerCase())>=0)return;window.qbAddLine({catalogId:line.catalogId||'',description:description,quantity:Number(line.quantity)||1,unit:line.unit||'each',rate:Number(line.rate)||0,discount:0,taxable:false,taxRate:0,notes:clean([line.evidence,line.priceStatus==='automatic_local_typical_owner_review'?'Automatically researched typical local rate; owner review required.':''].filter(Boolean).join(' '))});existing.push(description.toLowerCase());added++});
   if(removeBlank&&added&&typeof window.qbRemoveLine==='function')window.qbRemoveLine(0);return added;
 }
 function renderResult(draft,added,researched){
-  let host=$('qbAiResult');if(!host){host=document.createElement('div');host.id='qbAiResult';host.className='qb-ai-result';const panel=document.querySelector('.qb-ai-panel')||$('qbFieldAssistant');if(panel)panel.appendChild(host)}
+  let host=$('qbAiResult');if(!host){host=document.createElement('div');host.id='qbAiResult';host.className='qb-ai-result';const panel=$('qbSimplePhotoQuote');if(panel)panel.appendChild(host)}
   if(!host)return;host.hidden=false;
-  const observations=Array.isArray(draft.photoObservations)?draft.photoObservations:[];const missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[];const lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
-  host.innerHTML='<strong>'+esc(draft.projectTitle||'Photo-based quote draft')+'</strong>'+(draft.scope?'<p>'+esc(draft.scope)+'</p>':'')+(observations.length?'<p><strong>Photos show:</strong></p><ul>'+observations.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul>':'')+(lines.length?'<p><strong>Quote items:</strong></p><ul>'+lines.map(line=>'<li>'+esc(line.description||line.catalogId||'Review item')+' — '+esc(line.quantity||1)+' '+esc(line.unit||'each')+(rateMissing(line)?' — price needs review':' @ $'+Number(line.rate).toFixed(2))+'</li>').join('')+'</ul>':'')+(missing.length?'<p><strong>Confirm:</strong></p><ul>'+missing.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul>':'')+'<p><strong>'+added+'</strong> item'+(added===1?'':'s')+' added to this quote. '+researched+' missing price'+(researched===1?' was':'s were')+' researched automatically.</p>';
+  const observations=Array.isArray(draft.photoObservations)?draft.photoObservations:[],missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[],lines=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
+  host.innerHTML='<strong>'+esc(draft.projectTitle||'Photo quote draft')+'</strong>'+(draft.scope?'<p>'+esc(draft.scope)+'</p>':'')+(observations.length?'<p><strong>Photos show:</strong> '+esc(observations.join(' • '))+'</p>':'')+(lines.length?'<p><strong>Added:</strong> '+lines.map(line=>esc(line.description||line.catalogId||'Review item')).join(' • ')+'</p>':'')+(missing.length?'<p><strong>Confirm:</strong> '+esc(missing.join(' • '))+'</p>':'')+'<p>'+added+' quote item'+(added===1?'':'s')+' added; '+researched+' missing price'+(researched===1?'':'s')+' researched.</p>';
 }
 async function buildUnified(button){
   if(running)return;running=true;busy(true);const original=button.textContent;button.disabled=true;button.textContent='Analyzing photos…';
   try{
-    const notes=combinedNotes(),photos=await preparedPhotos();if(!notes&&!photos.length)throw new Error('Add a picture or enter the scope/field description first.');
-    fieldStatus('Analyzing the actual pictures, reading the scope and notes, and matching the Price Book…',false);button.textContent='Matching prices…';
+    const notes=combinedNotes(),photos=await preparedPhotos();if(!notes&&!photos.length)throw new Error('Add a photo or enter the scope first.');
+    setStatus('Analyzing the photos and matching the Price Book…',false);
     const result=await direct('boBuildAiQuoteDraft',{customerId:customerId(),projectTitle:projectTitle(),notes:notes||'Analyze the supplied jobsite photos and identify the visible work required. Do not invent measurements.',photos:photos});
-    const draft=parseDraft(result)||{};button.textContent='Finding local prices…';const researched=await priceMissingLines(draft,notes);setValueIfBlank('project',draft.projectTitle);setValueIfBlank('scope',draft.scope);setValueIfBlank('assumptions',draft.assumptions);setValueIfBlank('exclusions',draft.exclusions);const added=applyLines(draft);renderResult(draft,added,researched);fieldStatus('Draft prepared from the pictures and scope. Review measurements, quantities, and prices, then save the internal quote.',false);toast('Photo-based quote draft prepared. Nothing was approved or sent.');
-  }catch(error){const message=friendlyError(error);fieldStatus('Draft generation stopped: '+message,true);toast(message,true)}finally{running=false;busy(false);button.disabled=false;button.textContent=original}
+    const draft=parseDraft(result)||{};button.textContent='Finding prices…';const researched=await priceMissingLines(draft,notes);setValueIfBlank('project',draft.projectTitle);setValueIfBlank('scope',draft.scope);setValueIfBlank('assumptions',draft.assumptions);setValueIfBlank('exclusions',draft.exclusions);const added=applyLines(draft);renderResult(draft,added,researched);setStatus('Quote draft prepared. Review measurements, quantities, and prices, then save it.',false);toast('Quote draft prepared. Nothing was approved or sent.');
+  }catch(error){const message=friendlyError(error);setStatus(message,true);toast(message,true)}finally{running=false;busy(false);button.disabled=false;button.textContent=original}
 }
+function labelName(label){const clone=label.cloneNode(true);clone.querySelectorAll('input,select,textarea,button,small,span').forEach(node=>node.remove());return clean(clone.textContent)}
+function markAdvancedFields(){
+  document.querySelectorAll('#qbContent label').forEach(label=>{if(/^(Payment terms|Deposit|Exclusions|Customer notes|Internal notes)$/i.test(labelName(label)))label.classList.add('qb-mobile-advanced-field')});
+}
+function simplifyPhone(){
+  if(!isPhone()||!$('project'))return;
+  const field=$('qbFieldAssistant');if(field)field.classList.add('qb-mobile-hidden');
+  document.querySelectorAll('.qb-ai-panel').forEach(panel=>panel.classList.add('qb-mobile-hidden'));
+  markAdvancedFields();
+  const photoPanel=$('qbQuotePhotoPanel');if(!photoPanel||$('qbSimplePhotoQuote'))return;
+  const panel=document.createElement('section');panel.id='qbSimplePhotoQuote';panel.className='qb-simple-photo-quote';
+  panel.innerHTML='<h3>Build quote from photos</h3><p>Enter the scope and any known measurement above. Add photos, then press Build Quote. H38 will identify the work, match the Price Book, and find missing local prices.</p><div class="qb-simple-photo-actions"><button type="button" id="qbSimpleTake" class="camera-action">📷 Take Picture</button><button type="button" id="qbSimpleChoose" class="secondary">Choose Photos</button><button type="button" id="qbSimpleBuild" class="qb-simple-build">Build Quote</button></div><button type="button" id="qbSimpleMore" class="qb-simple-more">Show more quote fields</button><div id="qbSimplePhotoStatus" class="qb-simple-photo-status">Ready for photos.</div>';
+  photoPanel.insertAdjacentElement('beforebegin',panel);
+  $('qbSimpleTake').addEventListener('click',()=>typeof window.qbCameraTakeForDraft==='function'&&window.qbCameraTakeForDraft());
+  $('qbSimpleChoose').addEventListener('click',()=>typeof window.qbCameraChooseForDraft==='function'&&window.qbCameraChooseForDraft());
+  $('qbSimpleBuild').addEventListener('click',event=>buildUnified(event.currentTarget));
+  $('qbSimpleMore').addEventListener('click',event=>{const showing=document.body.classList.toggle('qb-mobile-show-advanced');event.currentTarget.textContent=showing?'Hide extra quote fields':'Show more quote fields'});
+}
+function polish(){simplifyPhone()}
 document.addEventListener('click',event=>{
   const button=event.target&&event.target.closest&&event.target.closest('#qbBuildAiDraft,#qbBuildFieldDraft');if(!button)return;
   event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();buildUnified(button);
 },true);
+const host=$('qbContent')||document.body;observer=new MutationObserver(()=>requestAnimationFrame(polish));observer.observe(host,{childList:true,subtree:true});
+document.addEventListener('DOMContentLoaded',polish);polish();setTimeout(polish,400);setTimeout(polish,1400);
 })();
 </script>
