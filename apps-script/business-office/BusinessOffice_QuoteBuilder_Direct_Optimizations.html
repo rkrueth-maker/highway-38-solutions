@@ -8,6 +8,7 @@ const money=value=>{const number=Number(String(value==null?'':value).replace(/[$
 function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),4200)}
 function busy(on){const node=$('qbOverlay');if(node)node.classList.toggle('show',!!on)}
 function call(action,args){return new Promise((resolve,reject)=>{google.script.run.withSuccessHandler(resolve).withFailureHandler(error=>{toast(error.message||String(error),true);reject(error)}).boApi({action:action,args:args||{}})})}
+function direct(name,args){return new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[])})}
 function dataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
 function mime(file){if(file.type)return file.type;const ext=String(file.name||'').split('.').pop().toLowerCase();return {pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[ext]||'application/octet-stream'}
 function renderOptimizedPriceBook(items){
@@ -27,11 +28,17 @@ function install(){
     const started=performance.now();
     if(host)host.innerHTML='<div class="empty">Searching Price Book…</div>';
     try{
-      const rows=await call('quoteBuilderPriceBook',{options:{query:query}});
+      let rows=await call('quoteBuilderPriceBook',{options:{query:query}});
+      if(query&&!rows.length){
+        if(host)host.innerHTML='<div class="empty">No saved match. Finding a current local price…</div>';
+        const learned=await direct('boQuoteBuilderAutoLocalPrice',[{query:query}]);
+        rows=learned&&learned.item?[learned.item]:[];
+        if(rows.length)toast((learned.updated?'Updated':'Added')+' the current price in the Price Book.');
+      }
       renderOptimizedPriceBook(rows);
       const perf=$('qbPerf');if(perf)perf.textContent='price search rendered in '+Math.round(performance.now()-started)+' ms';
-      console.log('H38_QB_CLIENT_TIMING',{stage:'price_search',durationMs:Math.round(performance.now()-started),query:query,rows:rows.length});
-    }catch(error){if(host)host.innerHTML='<div class="notice bad">Price Book search stopped safely.</div>'}
+      console.log('H38_QB_CLIENT_TIMING',{stage:'price_search',durationMs:Math.round(performance.now()-started),query:query,rows:rows.length,automaticLookup:!!(query&&rows.length)});
+    }catch(error){if(host)host.innerHTML='<div class="notice bad"><strong>Price lookup stopped safely.</strong><br>'+esc(error.message||String(error))+'</div>';toast(error.message||String(error),true)}
   };
   window.qbPriceClear=function(){window.qbOpen('priceBook')};
   window.qbPrepareAi=async function(event){

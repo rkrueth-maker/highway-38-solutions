@@ -1,6 +1,5 @@
 <style>
-.qb-local-price{margin:14px 0;padding:15px;border:2px solid #b8ccd9;border-radius:14px;background:#f7fbfd}.qb-local-price h3{margin:0;color:var(--navy)}.qb-local-price p{margin:5px 0 12px;color:var(--muted);line-height:1.45}.qb-local-price-grid{display:grid;grid-template-columns:minmax(220px,2fr) minmax(180px,1fr) auto;gap:9px;align-items:end}.qb-local-price-result{margin-top:12px}.qb-local-price-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.qb-local-price-card{padding:12px;border:1px solid var(--border);border-radius:11px;background:#fff}.qb-local-price-card strong{display:block;font-size:1.35rem;color:var(--navy);margin:4px 0 9px}.qb-local-price-sources{margin:10px 0 0;padding-left:20px}.qb-local-price-sources li{margin:5px 0}.qb-local-price-sources a{color:var(--navy);font-weight:800}.qb-local-price-note{font-size:12px;color:var(--muted);margin-top:9px}.qb-safe-photo-choice{background:#e8eef4;color:var(--navy)}
-@media(max-width:760px){.qb-local-price-grid,.qb-local-price-cards{grid-template-columns:1fr}.qb-local-price-grid button{width:100%}}
+.qb-safe-photo-choice{background:#e8eef4;color:var(--navy)}
 </style>
 <script>
 (function(){
@@ -8,18 +7,14 @@
 const ctx=window.H38_QB_CONTEXT||{};
 const userKey=String(ctx.user&&ctx.user.id||ctx.user&&ctx.user.email||'user');
 const DRAFT_KEY='H38_QB_DRAFT_V2:'+userKey;
-const MARKET_KEY='H38_QB_LOCAL_MARKET:'+userKey;
 const DRAFT_FIELDS=['customer','project','quoteDate','expiration','terms','deposit','scope','assumptions','exclusions','customerNotes','internalNotes','qbFieldNarration'];
 const safePending=[];
-let safeCameraInput=null,safeFileInput=null,safeTarget='draft',safeQuoteId='',researchResult=null,installed=false,saving=false,discardNext=false;
+let safeCameraInput=null,safeFileInput=null,safeTarget='draft',safeQuoteId='',installed=false,saving=false,discardNext=false;
 const $=id=>document.getElementById(id);
-const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value||0));
-const validUrl=value=>/^https?:\/\//i.test(String(value||''));
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 function toast(message,bad){const node=$('qbToast');if(!node)return;node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5400)}
 function busy(on){const node=$('qbOverlay');if(node)node.classList.toggle('show',!!on)}
 function api(action,args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).boApi({action:action,args:args||{}}))}
-function direct(name,args){return new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);runner[name].apply(runner,args||[])})}
 function dataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
 function mime(file){return file.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[String(file.name||'').split('.').pop().toLowerCase()]||'image/jpeg')}
 
@@ -81,40 +76,7 @@ function enhanceCameraControls(){
   renderSafePending();
 }
 
-function suggestedQuery(){
-  const search=$('priceSearch');if(search&&search.value.trim())return search.value.trim();
-  const lines=Array.from(document.querySelectorAll('#lines .line'));for(const line of lines){const description=line.querySelector('.description input'),numbers=line.querySelectorAll('input[type="number"]'),rate=numbers[2];if(description&&description.value.trim()&&(!rate||Number(rate.value||0)===0))return description.value.trim()}
-  return '';
-}
-function localMarket(){try{const stored=localStorage.getItem(MARKET_KEY);if(stored)return stored}catch(error){}return String(ctx.branding&&ctx.branding.businessName||'')==='Highway 38 Solutions'?'Grand Rapids, Minnesota':''}
-function localPriceMarkup(){return '<section id="qbLocalPricePanel" class="qb-local-price"><h3>Local price research</h3><p>No Price Book match? Research current local sources. Choosing a result adds it to this draft and remembers it in the Price Book for next time.</p><div class="qb-local-price-grid"><label>Item or service<input id="qbLocalPriceQuery" placeholder="Example: 3/4-inch Class 5 gravel per ton"></label><label>Local market<input id="qbLocalPriceMarket" placeholder="City, state, or ZIP"></label><button type="button" class="primary" id="qbLocalPriceSearch">Research Local Price</button></div><div id="qbLocalPriceResult" class="qb-local-price-result"></div><div class="qb-local-price-note">Research is a sourced draft estimate only. You choose the tier; H38 does not approve or send the final price automatically.</div></section>'}
-function injectLocalPrice(){
-  if($('qbLocalPricePanel'))return;
-  let anchor=null,mode='';
-  if($('priceSearch')){anchor=$('priceSearch').closest('.toolbar');mode='priceBook'}else if($('lines')){anchor=$('lines');mode='quote'}
-  if(!anchor)return;
-  anchor.insertAdjacentHTML('afterend',localPriceMarkup());
-  $('qbLocalPriceQuery').value=suggestedQuery();$('qbLocalPriceMarket').value=localMarket();$('qbLocalPriceSearch').addEventListener('click',researchLocalPrice);$('qbLocalPricePanel').dataset.mode=mode;
-}
-async function researchLocalPrice(){
-  const query=$('qbLocalPriceQuery').value.trim(),market=$('qbLocalPriceMarket').value.trim();
-  if(!query)return toast('Describe the item or service to research.',true);if(!market)return toast('Enter the local city, state, or ZIP.',true);
-  try{localStorage.setItem(MARKET_KEY,market)}catch(error){}
-  const host=$('qbLocalPriceResult');host.innerHTML='<div class="loading-card" style="min-height:90px">Researching current local sources…</div>';$('qbLocalPriceSearch').disabled=true;
-  try{researchResult=await direct('boQuoteBuilderResearchLocalPrice',[{query:query,market:market}]);renderResearchResult(researchResult)}catch(error){host.innerHTML='<div class="notice bad"><strong>Local price research stopped.</strong><br>'+esc(error&&error.message||String(error))+'</div>'}finally{$('qbLocalPriceSearch').disabled=false}
-}
-function renderResearchResult(result){
-  const sources=(result.sources||[]).filter(source=>validUrl(source.url));
-  const sourceHtml=sources.length?'<ul class="qb-local-price-sources">'+sources.map(source=>'<li><a href="'+esc(source.url)+'" target="_blank" rel="noopener">'+esc(source.title||source.seller||source.url)+'</a>'+(source.priceText?' — '+esc(source.priceText):'')+'</li>').join('')+'</ul>':'';
-  $('qbLocalPriceResult').innerHTML='<div class="notice good"><strong>'+esc(result.itemName)+'</strong><br>'+esc(result.description||'')+'<br><small>'+esc(result.market)+' · '+esc(result.asOfDate)+' · confidence '+esc(result.confidence)+'</small></div><div class="qb-local-price-cards">'+['low','typical','high'].map(tier=>'<article class="qb-local-price-card"><span>'+tier[0].toUpperCase()+tier.slice(1)+'</span><strong>'+money(result[tier])+' / '+esc(result.unit)+'</strong><button type="button" data-price-tier="'+tier+'">Use '+tier+' + remember</button></article>').join('')+'</div>'+sourceHtml+(result.notes?'<div class="qb-local-price-note">'+esc(result.notes)+'</div>':'');
-  document.querySelectorAll('[data-price-tier]').forEach(button=>button.addEventListener('click',()=>rememberPrice(button.dataset.priceTier,button)));
-}
-async function rememberPrice(tier,button){
-  if(!researchResult)return;button.disabled=true;busy(true);
-  try{const saved=await direct('boQuoteBuilderRememberLocalPrice',[{researchId:researchResult.researchId,tier:tier,taxable:false}]);toast((saved.updated?'Updated':'Saved')+' the researched price in the Price Book and added it to this quote.');if(typeof window.qbAddLine==='function')window.qbAddLine(saved.item)}catch(error){toast(error&&error.message||String(error),true);button.disabled=false}finally{busy(false)}
-}
-
-function enhance(){wireDraftAutosave();installSafeCameraGlobals();enhanceCameraControls();injectLocalPrice()}
+function enhance(){wireDraftAutosave();installSafeCameraGlobals();enhanceCameraControls()}
 function install(){
   if(installed||typeof window.qbOpen!=='function'||typeof window.qbSave!=='function'||typeof window.qbAddLine!=='function')return false;installed=true;
   const baseAddLine=window.qbAddLine;window.qbAddLine=function(item){let value=item;if(item&&item.Name&&!item.Unit){const match=String(item.Name).match(/\s*\[per\s+([^\]]+)\]\s*$/i);if(match){value=Object.assign({},item,{Name:String(item.Name).replace(match[0],''),Unit:match[1]});if(!value['Customer Description'])value['Customer Description']=value.Name}}return baseAddLine.call(this,value)};
