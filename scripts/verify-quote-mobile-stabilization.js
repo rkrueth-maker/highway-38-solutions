@@ -11,6 +11,7 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 const raw=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Android_RawUpload.html');
 const edit=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html');
 const resolver=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs');
+const localPricing=read('apps-script/business-office/BusinessOffice_QuoteBuilder_LocalPricing.gs');
 need(raw,'const ANALYSIS_TIMEOUT_MS=150000','bounded mobile AI analysis');
 need(raw,"withTimeout(direct('boQuoteBuilderAiChunkPart'",'bounded chunk requests');
 need(raw,'ESTIMATING METHOD FOR THIS INTERNAL DRAFT','reference-object measurement guidance');
@@ -41,26 +42,45 @@ need(edit,'await window.qbAttachStagedPhotosToQuote(result.quoteId)','new photos
 need(edit,'await window.qbEditExisting(result.quoteId)','saved edit remains in Quote Builder');
 need(edit,"window.qbResetStagedPhotoState==='function'",'stale photo state cleared when reopening or leaving drafts');
 need(resolver,'function boQuoteBuilderResolveLinePrice(payload)','server price resolver');
-need(resolver,'boQuoteBuilderPriceBook_({})','existing Price Book searched first');
+need(resolver,'function boQuoteBuilderNormalizeMobilePriceItem_(item)','production Price Book schema normalization');
+need(resolver,"item['Product / Service ID'] || item['Catalog ID']",'canonical and production catalog IDs supported');
+need(resolver,"item.Category || item.Family || item['Record Type']",'production family/category support');
+need(resolver,"item['Standard Selling Price'] || item.Price",'canonical and production prices supported');
+need(resolver,"boQuoteBuilderSnapshot_(H38_BO_SHEETS.PRODUCTS",'raw production products searched');
 need(resolver,"source:'price_book_match'",'existing match result');
 need(resolver,"source = 'local_research'",'local research only after no match');
 need(resolver,"boProof_('AUTO MATCH PRICE BOOK'",'Price Book match proof');
 need(resolver,'finalPriceApproved:false','no automatic price approval');
 need(resolver,'ownerReviewRequired:true','owner review preserved');
+need(localPricing,'function boQuoteBuilderExtractResponseText_(json)','raw Responses API output extraction');
+need(localPricing,"part.json",'structured response content support');
+need(localPricing,"props.getProperty('H38_AI_PRICING_MODEL')",'dedicated pricing model override');
+need(localPricing,"props.getProperty('H38_AI_TEXT_MODEL') || 'gpt-4.1-mini'",'reliable text model fallback');
+need(localPricing,'max_output_tokens: 4000','expanded structured research output budget');
+need(localPricing,'max_output_tokens: 5000','expanded fallback research output budget');
+need(localPricing,"Return exactly one JSON object and no markdown",'unstructured retry when strict response is empty');
+need(localPricing,"boAssert_(data, 'Local price research returned no usable structured result.')",'truthful failure after both attempts');
+need(localPricing,"'Catalog ID'",'learned price saved into production product schema');
+need(localPricing,"Category: 'Locally Researched Prices'",'learned price returned as a normal quote item');
+const productionRows=[
+  {'Catalog ID':'LOCAL-GUTTER','Record Type':'Learned Price','Name':'6 inch seamless gutter replacement [per ft]','Family':'Locally Researched Prices','Price':'15.75','Active':'Yes','Catalog Source':JSON.stringify({unit:'ft',description:'Remove and replace 6 inch white seamless gutter'})},
+  {'Catalog ID':'LOCAL-DOWNSPOUT','Record Type':'Learned Price','Name':'Downspout installation [per each]','Family':'Locally Researched Prices','Price':'210.00','Active':'Yes','Catalog Source':JSON.stringify({unit:'each',description:'Install one downspout with outlet and elbows'})},
+  {'Catalog ID':'LOCAL-DOOR','Record Type':'Learned Price','Name':'Exterior door repair [per each]','Family':'Carpentry','Price':'325.00','Active':'Yes','Catalog Source':JSON.stringify({unit:'each',description:'Repair an exterior door'})}
+];
 const context={
   boNormalizeText_:value=>String(value==null?'':value).trim(),
-  boQuoteBuilderPriceBook_:()=>[
-    {'Product / Service ID':'GUTTER-6','Name':'6 inch seamless gutter','Customer Description':'White seamless gutter installed','Category':'Exterior','Unit':'linear ft','Standard Selling Price':'14.50'},
-    {'Product / Service ID':'DOOR-REPAIR','Name':'Exterior door repair','Customer Description':'Repair an exterior door','Category':'Carpentry','Unit':'each','Standard Selling Price':'325.00'},
-    {'Product / Service ID':'DOWNSPOUT','Name':'Downspout assembly','Customer Description':'Downspout, elbows and outlet','Category':'Exterior','Unit':'each','Standard Selling Price':'185.00'}
-  ]
+  H38_BO_SHEETS:{PRODUCTS:'BO Products & Services'},
+  boQuoteBuilderPriceBook_:()=>[],
+  boQuoteBuilderSnapshot_:()=>({rows:productionRows})
 };
 vm.runInNewContext(resolver,context);
-const gutter=context.boQuoteBuilderExistingLinePrice_({description:'Install 6-inch white gutters',query:'Install 6-inch white gutters. Work scope: door with window is 36 inches by 80 inches',unit:'linear ft'});
-if(!gutter||gutter.item['Product / Service ID']!=='GUTTER-6')throw new Error('Gutter line did not choose the gutter Price Book item.');
-const downspout=context.boQuoteBuilderExistingLinePrice_({description:'Install one downspout with elbows and outlet',query:'Install one downspout with elbows and outlet. Work scope: door with window is 36 inches by 80 inches',unit:'each'});
-if(!downspout||downspout.item['Product / Service ID']!=='DOWNSPOUT')throw new Error('Downspout line did not choose the downspout Price Book item.');
+const gutter=context.boQuoteBuilderExistingLinePrice_({description:'6 inch white gutter replacement - approximate length 40 ft',query:'6 inch white gutter replacement. Work scope: door with window is 36 inches by 80 inches',unit:'ft'});
+if(!gutter||gutter.item['Product / Service ID']!=='LOCAL-GUTTER'||Number(gutter.item.Price)!==15.75)throw new Error('Production-schema learned gutter price did not populate.');
+const downspout=context.boQuoteBuilderExistingLinePrice_({description:'Downspout installation - 1 downspout',query:'Downspout installation. Work scope: door with window is 36 inches by 80 inches',unit:'each'});
+if(!downspout||downspout.item['Product / Service ID']!=='LOCAL-DOWNSPOUT'||Number(downspout.item.Price)!==210)throw new Error('Production-schema learned downspout price did not populate.');
+if(gutter.item['Product / Service ID']==='LOCAL-DOOR'||downspout.item['Product / Service ID']==='LOCAL-DOOR')throw new Error('Door reference contaminated gutter pricing.');
 scripts(raw).forEach(body=>new Function(body));
 scripts(edit).forEach(body=>new Function(body));
 new Function(resolver);
-console.log('PASS — Android photos begin bounded streaming upload while picker permission is fresh, saved drafts reopen in the full Quote Builder for reprocessing, pricing stays Price Book-first, and owner-review boundaries remain enforced.');
+new Function(localPricing);
+console.log('PASS — Android photo uploads, saved-draft reprocessing, production-schema learned prices, robust sourced local research, Price Book-first matching, and owner-review boundaries verified.');
