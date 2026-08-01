@@ -3,12 +3,10 @@ name: Apply mobile acceptance catalog semantics
 on:
   push:
     branches: [agent/authorized-mobile-live-acceptance]
-    paths:
-      - '.github/workflows/apply-mobile-acceptance-catalog-semantics.yml'
+    paths: ['.github/workflows/apply-mobile-acceptance-catalog-semantics.yml']
   pull_request:
     branches: [main]
-    paths:
-      - '.github/workflows/apply-mobile-acceptance-catalog-semantics.yml'
+    paths: ['.github/workflows/apply-mobile-acceptance-catalog-semantics.yml']
 
 permissions:
   contents: write
@@ -20,95 +18,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/authorized-mobile-live-acceptance
-      - name: Align live acceptance with combined gutter catalog item
+      - name: Align acceptance with combined gutter catalog item
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-
-          acceptance=Path('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs')
-          text=acceptance.read_text()
-          text=text.replace(
-            "boAssert_(suggested.length >= 2, 'Photo analysis did not return the expected gutter and downspout quote lines.');",
-            "boAssert_(suggested.length >= 1, 'Photo analysis did not return a usable gutter quote line.');"
-          )
-          old_return="""        return {
-          description: line.description || item['Customer Description'] || item.Name || query,
-          quantity: Number(line.quantity || 0),
-          unit: item.Unit || line.unit || '',
-          rate: Number(item['Standard Selling Price'] || item.Price || 0),
-          source: result && result.source || ''
-        };"""
-          new_return="""        return {
-          description: line.description || item['Customer Description'] || item.Name || query,
-          quantity: Number(line.quantity || 0),
-          unit: item.Unit || line.unit || '',
-          rate: Number(item['Standard Selling Price'] || item.Price || 0),
-          source: result && result.source || '',
-          catalogName: item.Name || '',
-          catalogDescription: item['Customer Description'] || item.Description || '',
-          catalogSource: item['Catalog Source'] || ''
-        };"""
-          if old_return not in text:
-            raise SystemExit('Pricing return block not found')
-          text=text.replace(old_return,new_return,1)
-          old_assert="""      const gutter = priced.find(function (line) { return /gutter/i.test(line.description) && !/downspout/i.test(line.description); });
+          a=Path('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs')
+          s=a.read_text()
+          s=s.replace("boAssert_(suggested.length >= 2, 'Photo analysis did not return the expected gutter and downspout quote lines.');","boAssert_(suggested.length >= 1, 'Photo analysis did not return a usable gutter quote line.');")
+          s=s.replace("source: result && result.source || ''\n        };","source: result && result.source || '',\n          catalogName: item.Name || '',\n          catalogDescription: item['Customer Description'] || item.Description || '',\n          catalogSource: item['Catalog Source'] || ''\n        };",1)
+          old="""      const gutter = priced.find(function (line) { return /gutter/i.test(line.description) && !/downspout/i.test(line.description); });
       const downspout = priced.find(function (line) { return /downspout/i.test(line.description); });
       boAssert_(gutter && gutter.rate > 0, 'The live gutter line did not receive a nonzero rate.');
       boAssert_(downspout && downspout.rate > 0, 'The live downspout line did not receive a nonzero rate.');"""
-          new_assert="""      const gutter = priced.find(function (line) {
-        return /gutter/i.test([
-          line.description,
-          line.catalogName,
-          line.catalogDescription,
-          line.catalogSource
-        ].join(' '));
+          new="""      const gutter = priced.find(function (line) {
+        return /gutter/i.test([line.description, line.catalogName, line.catalogDescription, line.catalogSource].join(' '));
       });
       boAssert_(gutter && gutter.rate > 0, 'The live gutter scope did not receive a nonzero Price Book rate.');
-      const gutterCoverage = [
-        gutter.description,
-        gutter.catalogName,
-        gutter.catalogDescription,
-        gutter.catalogSource,
-        draft.scope || '',
-        (draft.photoObservations || []).join(' ')
-      ].join(' ');
+      const gutterCoverage = [gutter.description, gutter.catalogName, gutter.catalogDescription, gutter.catalogSource, draft.scope || '', (draft.photoObservations || []).join(' ')].join(' ');
       boAssert_(/downspout/i.test(gutterCoverage), 'The priced gutter scope did not preserve the known downspout component.');"""
-          if old_assert not in text:
-            raise SystemExit('Separate gutter/downspout assertion block not found')
-          text=text.replace(old_assert,new_assert,1)
-          acceptance.write_text(text)
+          if old in s: s=s.replace(old,new,1)
+          elif new not in s: raise SystemExit('acceptance assertion block not found')
+          a.write_text(s)
 
-          workflow=Path('.github/workflows/quote-mobile-native-live.yml')
-          text=workflow.read_text()
-          old_verify="""          const gutter=(result.pricing||[]).find(line=>/gutter/i.test(line.description||'')&&!/downspout/i.test(line.description||''));
-          const downspout=(result.pricing||[]).find(line=>/downspout/i.test(line.description||''));
-          const failures=[];
-          if(result.status!=='PASS')failures.push('status');
-          if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
-          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<2)failures.push('photo analysis');
-          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter price');
-          if(!downspout||Number(downspout.rate||0)<=0)failures.push('downspout price');
-          if(!result.editDraft||Number(result.editDraft.lineCount||0)<1||result.editDraft.projectTitle!=='Gutters')failures.push('draft edit load');
-          if(result.approved!==false||result.sent!==false||result.ownerReviewRequired!==true)failures.push('owner-review boundary');
-          if(failures.length)throw new Error('Live mobile acceptance failed: '+failures.join(', '));
-          console.log(JSON.stringify({status:'PASS',uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,gutterRate:gutter.rate,downspoutRate:downspout.rate,editDraft:result.editDraft,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));"""
-          new_verify="""          const gutter=(result.pricing||[]).find(line=>/gutter/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));
-          const downspoutIncluded=!!gutter&&/downspout/i.test([gutter.description,gutter.catalogName,gutter.catalogDescription,gutter.catalogSource].join(' '));
-          const failures=[];
-          if(result.status!=='PASS')failures.push('status');
-          if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
-          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<1)failures.push('photo analysis');
-          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter scope price');
-          if(!downspoutIncluded)failures.push('downspout coverage');
-          if(!result.editDraft||Number(result.editDraft.lineCount||0)<1||result.editDraft.projectTitle!=='Gutters')failures.push('draft edit load');
-          if(result.approved!==false||result.sent!==false||result.ownerReviewRequired!==true)failures.push('owner-review boundary');
-          if(failures.length)throw new Error('Live mobile acceptance failed: '+failures.join(', '));
-          console.log(JSON.stringify({status:'PASS',uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,scopeRate:gutter.rate,downspoutIncluded:downspoutIncluded,editDraft:result.editDraft,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));"""
-          if old_verify not in text:
-            raise SystemExit('Workflow verification block not found')
-          workflow.write_text(text.replace(old_verify,new_verify,1))
+          w=Path('.github/workflows/quote-mobile-native-live.yml')
+          s=w.read_text()
+          s=s.replace("const gutter=(result.pricing||[]).find(line=>/gutter/i.test(line.description||'')&&!/downspout/i.test(line.description||''));\n          const downspout=(result.pricing||[]).find(line=>/downspout/i.test(line.description||''));","const gutter=(result.pricing||[]).find(line=>/gutter/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));\n          const downspoutIncluded=!!gutter&&/downspout/i.test([gutter.description,gutter.catalogName,gutter.catalogDescription,gutter.catalogSource].join(' '));")
+          s=s.replace("Number(result.photoAnalysis.lineCount||0)<2","Number(result.photoAnalysis.lineCount||0)<1")
+          s=s.replace("failures.push('gutter price');\n          if(!downspout||Number(downspout.rate||0)<=0)failures.push('downspout price');","failures.push('gutter scope price');\n          if(!downspoutIncluded)failures.push('downspout coverage');")
+          s=s.replace("gutterRate:gutter.rate,downspoutRate:downspout.rate","scopeRate:gutter.rate,downspoutIncluded:downspoutIncluded")
+          w.write_text(s)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
