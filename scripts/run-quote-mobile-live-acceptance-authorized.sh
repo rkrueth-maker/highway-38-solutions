@@ -98,6 +98,10 @@ done
 rm -f "$HARNESS/BusinessOffice_Sync.js" "$HARNESS/BusinessOffice_Sync.gs"
 cp "$REPO_ROOT/apps-script/business-office-sync/BusinessOffice_Sync.gs" "$HARNESS/BusinessOffice_Sync.gs"
 rm -f "$HARNESS/BusinessOffice_CabinAutoSeed.js" "$HARNESS/BusinessOffice_CabinAutoSeed.gs"
+# The unified production project contains public-intake and old acceptance doPost handlers.
+# Remove them from the temporary harness so the token-protected mobile acceptance endpoint is the only doPost.
+rm -f "$HARNESS/Unified_PublicIntake.js" "$HARNESS/Unified_PublicIntake.gs"
+rm -f "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.js" "$HARNESS/BusinessOffice_Highway38AcceptanceHarness.gs"
 rm -f "$HARNESS/BusinessOffice_AcceptanceHarness.js" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 cp "$REPO_ROOT/business-packs/highway38/apps-script/BusinessOffice_Highway38AcceptanceHarness.gs" "$HARNESS/BusinessOffice_AcceptanceHarness.gs"
 
