@@ -12,6 +12,7 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 const recovery=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html');
 const live=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs');
 const edit=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html');
+const editServer=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs');
 const aiPublic=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs');
 const priceResolve=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs');
 
@@ -46,6 +47,10 @@ need(edit,"direct('boQuoteBuilderEditableQuote'",'saved draft server load');
 need(edit,'Edit and reprocess','saved draft returns to builder');
 need(edit,'id="qbSimplePhotoQuote"','photo reprocessing in edit mode');
 need(edit,"direct('boQuoteBuilderUpdateEditableQuote'",'saved draft update');
+need(editServer,'boQuoteBuilderDeleteQuoteLineRows_','exact saved-line replacement helper');
+need(editServer,"headers.indexOf('Quote ID')",'real Quote ID column lookup');
+need(editServer,'rowNumbers.sort(function (a, b) { return b - a; })','bottom-up physical row deletion');
+reject(editServer,'deleteRow(row.__rowNumber)','filtered snapshot row deletion');
 
 need(aiPublic,'boQuoteBuilderPreserveRequiredScope_','server-side typed scope preservation');
 need(aiPublic,'Explicitly entered by the user and preserved as required scope','typed scope evidence');
@@ -138,4 +143,5 @@ scripts(recovery).forEach(body=>new Function(body));
 scripts(edit).forEach(body=>new Function(body));
 new Function(live);
 new Function(priceResolve);
+new Function(editServer);
 console.log('PASS — native Android photo controls, real photo analysis, typed leaf guard and visible downspout preservation, component-specific Price Book matching, saved-draft reprocessing, Android return recovery, and live production acceptance are wired without programmatic picker clicks.');
