@@ -1,14 +1,17 @@
 <style>
 .qb-ai-panel{margin-top:14px;padding:15px;border:1px solid #b9ccda;border-radius:14px;background:linear-gradient(135deg,#f8fbfd,#edf5f9)}
-.qb-ai-panel h3{margin:0 0 5px;color:var(--navy)}.qb-ai-panel p{margin:4px 0;color:var(--muted);line-height:1.45}.qb-ai-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.qb-ai-actions button{flex:0 1 auto}.qb-ai-result{margin-top:12px;padding:12px;border-radius:10px;background:#fff;border:1px solid var(--border);white-space:pre-wrap;line-height:1.45}.qb-ai-warning{margin-top:10px;padding:10px;border-left:4px solid #d9a400;background:#fff7d8;font-size:12px}.qb-ai-visual{margin-top:12px}.qb-ai-visual img{display:block;width:min(100%,760px);border-radius:12px;border:1px solid var(--border)}.qb-ai-label{font-weight:900;color:#7a3d00;margin-top:7px}.qb-upload-input{display:none}@media(max-width:760px){.qb-ai-actions button{width:100%}}
+.qb-ai-panel h3{margin:0 0 5px;color:var(--navy)}.qb-ai-panel p{margin:4px 0;color:var(--muted);line-height:1.45}.qb-ai-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.qb-ai-actions button{flex:0 1 auto}.qb-ai-result{margin-top:12px;padding:12px;border-radius:10px;background:#fff;border:1px solid var(--border);white-space:pre-wrap;line-height:1.45}.qb-ai-warning{margin-top:10px;padding:10px;border-left:4px solid #d9a400;background:#fff7d8;font-size:12px}.qb-ai-visual{margin-top:12px}.qb-ai-visual img{display:block;width:min(100%,760px);border-radius:12px;border:1px solid var(--border)}.qb-ai-label{font-weight:900;color:#7a3d00;margin-top:7px}.qb-upload-input{display:none}.qb-mobile-ai-visual-action{display:none}
+@media(max-width:900px),(hover:none) and (pointer:coarse){.qb-ai-actions button{width:100%}.qb-mobile-ai-visual-action{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}.qb-mobile-ai-visual-action>button{width:100%;min-height:46px;background:#e8eef4;color:var(--navy)}.qb-mobile-ai-visual-action .qb-ai-visual{margin-top:10px}.qb-mobile-ai-visual-action .qb-ai-visual p{font-size:12px;line-height:1.4;color:var(--muted)}}
 </style>
 <script>
 (function(){
 'use strict';
-let uploadInput=null,selectedVisualPhoto='',refreshQueued=false;
+let uploadInput=null,selectedVisualPhoto='',refreshQueued=false,visualRunning=false;
+const PHONE_QUERY='(max-width:900px), (hover:none) and (pointer:coarse)';
 const call=(action,args)=>new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);const payload=(args&&args.payload)||{};if(action==='buildAiQuoteDraft')return runner.boBuildAiQuoteDraft(payload);if(action==='createAiCompletionVisual')return runner.boCreateAiCompletionVisual(payload);return runner.boApi({action:action,args:args||{}});});
 const toast=(message,bad)=>{const node=document.getElementById('qbToast');if(node){node.textContent=message;node.style.background=bad?'#8f1d1d':'#162331';node.classList.add('show');setTimeout(()=>node.classList.remove('show'),5000)}};
 const text=(selector)=>{const el=document.querySelector(selector);return el?String(el.value||el.textContent||'').trim():''};
+const isPhone=()=>window.matchMedia&&window.matchMedia(PHONE_QUERY).matches;
 function ensureUploadInput(){
   if(uploadInput)return uploadInput;
   uploadInput=document.createElement('input');uploadInput.type='file';uploadInput.accept='image/*';uploadInput.multiple=true;uploadInput.className='qb-upload-input';
@@ -29,16 +32,17 @@ function splitCameraAndUpload(){
   const dialogFile=document.getElementById('qbCameraFile');
   if(dialogFile&&dialogFile.textContent!=='Upload Existing Photo')dialogFile.textContent='Upload Existing Photo';
 }
-function currentPhotos(){
-  const urls=[];document.querySelectorAll('#qbPendingPhotos img,.qb-photo-queue img,.qb-saved-photos img').forEach(img=>{if(img.src&&urls.indexOf(img.src)<0)urls.push(img.src)});return urls;
+function currentPhotoElements(){
+  const images=[];document.querySelectorAll('#qbPendingPhotos img,.qb-photo-queue img,.qb-saved-photos img,.qb-saved-photo img').forEach(img=>{if(images.indexOf(img)<0)images.push(img)});return images;
 }
+function currentPhotos(){return currentPhotoElements().map(img=>img.src).filter(Boolean);}
 function currentCustomerId(){
-  const selectors=['#qbCustomerId','#customerId','select[name="customerId"]','[data-field="customerId"] select'];
+  const selectors=['#qbCustomerId','#customer','#aiCustomer','#customerId','select[name="customerId"]','[data-field="customerId"] select'];
   for(const s of selectors){const el=document.querySelector(s);if(el&&el.value)return el.value;}
   const selected=document.querySelector('[data-customer-id].selected,[data-customer-id][aria-selected="true"]');return selected?selected.getAttribute('data-customer-id'):'';
 }
-function currentNotes(){return text('#qbFieldNotes')||text('#fieldNotes')||text('#qbScope')||text('textarea[name="scope"]')||text('textarea');}
-function currentTitle(){return text('#qbProjectTitle')||text('#projectTitle')||text('input[name="projectTitle"]')||'Field quote';}
+function currentNotes(){return text('#qbFieldNotes')||text('#qbFieldNarration')||text('#fieldNotes')||text('#scope')||text('#qbScope')||text('textarea[name="scope"]')||text('textarea');}
+function currentTitle(){return text('#project')||text('#aiTitle')||text('#qbProjectTitle')||text('#projectTitle')||text('input[name="projectTitle"]')||'Field quote';}
 function addAiPanel(){
   const content=document.getElementById('qbContent');if(!content||content.querySelector('.qb-ai-panel'))return;
   const camera=document.querySelector('.qb-camera-panel');if(!camera)return;
@@ -46,6 +50,15 @@ function addAiPanel(){
   camera.insertAdjacentElement('afterend',panel);
   document.getElementById('qbBuildAiDraft').addEventListener('click',buildDraft);
   document.getElementById('qbCreateAiVisual').addEventListener('click',createVisual);
+}
+function addMobileVisualAction(){
+  if(!isPhone())return;
+  const result=document.getElementById('qbAiResult');
+  if(!result||result.hidden||!String(result.textContent||'').trim()||document.getElementById('qbMobileAiVisualAction'))return;
+  const action=document.createElement('div');action.id='qbMobileAiVisualAction';action.className='qb-mobile-ai-visual-action';
+  action.innerHTML='<button type="button" id="qbMobileCreateAiVisual">🖼️ Generate AI Image</button><div id="qbMobileAiVisual" class="qb-ai-visual"></div>';
+  result.insertAdjacentElement('afterend',action);
+  document.getElementById('qbMobileCreateAiVisual').addEventListener('click',createVisual);
 }
 async function buildDraft(){
   const customerId=currentCustomerId(),notes=currentNotes(),photos=currentPhotos();
@@ -56,7 +69,7 @@ async function buildDraft(){
     const result=await call('buildAiQuoteDraft',{payload:{customerId:customerId,projectTitle:currentTitle(),notes:notes,photos:photos}});
     const draft=result&&result.draft;const box=document.getElementById('qbAiResult');box.hidden=false;
     if(draft){box.textContent='PROJECT: '+(draft.projectTitle||'')+'\n\nSCOPE\n'+(draft.scope||'')+'\n\nMISSING INFORMATION\n'+((draft.missingInformation||[]).map(x=>'• '+x).join('\n')||'None listed')+'\n\nSUGGESTED ITEMS\n'+((draft.suggestedLines||[]).map(x=>'• '+(x.description||'')+' — '+(x.quantity||'quantity needed')+' '+(x.unit||'')+(x.rate!==''?' @ '+x.rate:' — manual price required')).join('\n')||'No matches');applyDraft(draft);}else box.textContent=(result&&result.message)||'Owner-review draft staged.';
-    toast((result&&result.message)||'AI draft prepared for owner review.');
+    addMobileVisualAction();toast((result&&result.message)||'AI draft prepared for owner review.');
   }catch(error){toast(error&&error.message||String(error),true)}finally{button.disabled=false;button.textContent='✨ Build Quote with AI';}
 }
 function applyDraft(draft){
@@ -65,19 +78,40 @@ function applyDraft(draft){
   window.H38_QB_LAST_AI_DRAFT=draft;
   if(typeof window.qbApplyAiDraft==='function')window.qbApplyAiDraft(draft);
 }
-async function createVisual(){
-  const photos=currentPhotos();if(!photos.length)return toast('Take or upload a jobsite photo first.',true);
-  const customerId=currentCustomerId();if(!customerId)return toast('Select a customer first.',true);
-  const instructions=window.prompt('Describe exactly what the completed work should look like. Include materials, colors, layout, and what must remain unchanged.');if(!instructions)return;
-  selectedVisualPhoto=photos[0];
-  const button=document.getElementById('qbCreateAiVisual');button.disabled=true;button.textContent='Creating visual…';
-  try{
-    const result=await call('createAiCompletionVisual',{payload:{customerId:customerId,projectTitle:currentTitle(),imageDataUrl:selectedVisualPhoto,instructions:instructions}});
-    const host=document.getElementById('qbAiVisual');host.innerHTML='<img src="'+result.visualUrl+'" alt="AI proposed completion concept"><div class="qb-ai-label">'+result.label+'</div><p>Stored for owner review. It is not included in the customer proposal until explicitly approved.</p>';
-    toast('Completion concept created for owner review.');
-  }catch(error){toast(error&&error.message||String(error),true)}finally{button.disabled=false;button.textContent='🖼️ Create Completion Visual';}
+function waitForImage(img){
+  if(img.complete&&img.naturalWidth>0)return Promise.resolve();
+  if(typeof img.decode==='function')return img.decode();
+  return new Promise((resolve,reject)=>{const done=()=>{cleanup();img.naturalWidth>0?resolve():reject(new Error('The selected photo did not load.'))};const fail=()=>{cleanup();reject(new Error('The selected photo did not load.'))};const cleanup=()=>{img.removeEventListener('load',done);img.removeEventListener('error',fail)};img.addEventListener('load',done);img.addEventListener('error',fail);setTimeout(fail,8000)});
 }
-function refresh(){splitCameraAndUpload();addAiPanel();}
+async function prepareVisualImage(img){
+  if(!img)throw new Error('Take or choose a jobsite photo first.');
+  const source=String(img.src||'');if(/^data:image\//i.test(source))return source;
+  await waitForImage(img);
+  const max=1280,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  const context=canvas.getContext('2d');context.drawImage(img,0,0,canvas.width,canvas.height);
+  const dataUrl=canvas.toDataURL('image/jpeg',.74);canvas.width=1;canvas.height=1;return dataUrl;
+}
+function renderVisual(result){
+  const host=document.getElementById('qbMobileAiVisual')||document.getElementById('qbAiVisual');if(!host)return;
+  host.innerHTML='';const image=document.createElement('img');image.src=result.visualUrl;image.alt='AI proposed completion concept';host.appendChild(image);
+  const label=document.createElement('div');label.className='qb-ai-label';label.textContent=result.label||'AI PROPOSED COMPLETION CONCEPT — NOT PROOF OF COMPLETION';host.appendChild(label);
+  const note=document.createElement('p');note.textContent='Stored for owner review. It is not included in the customer proposal until explicitly approved.';host.appendChild(note);
+}
+async function createVisual(event){
+  if(visualRunning)return;
+  const photos=currentPhotoElements();if(!photos.length)return toast('Take or choose a jobsite photo first.',true);
+  const customerId=currentCustomerId();if(!customerId)return toast('Select a customer first.',true);
+  const instructions=window.prompt('Describe exactly what the completed work should look like. Include materials, colors, layout, and what must remain unchanged.',currentNotes());if(!instructions)return;
+  const button=event&&event.currentTarget?event.currentTarget:(document.getElementById('qbMobileCreateAiVisual')||document.getElementById('qbCreateAiVisual'));const original=button?button.textContent:'Generate AI Image';
+  visualRunning=true;if(button){button.disabled=true;button.textContent='Creating AI image…'}
+  try{
+    selectedVisualPhoto=await prepareVisualImage(photos[0]);
+    const result=await call('createAiCompletionVisual',{payload:{customerId:customerId,projectTitle:currentTitle(),imageDataUrl:selectedVisualPhoto,instructions:instructions}});
+    selectedVisualPhoto='';if(!result||!result.visualUrl)throw new Error('The AI image was not returned.');renderVisual(result);toast('AI completion concept created for owner review.');
+  }catch(error){toast(error&&error.message||String(error),true)}finally{selectedVisualPhoto='';visualRunning=false;if(button){button.disabled=false;button.textContent=original}}
+}
+function refresh(){splitCameraAndUpload();addAiPanel();addMobileVisualAction();}
 function scheduleRefresh(){
   if(refreshQueued)return;
   refreshQueued=true;
