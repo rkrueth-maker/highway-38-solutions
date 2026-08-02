@@ -11,6 +11,7 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 
 const recovery=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html');
 const live=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs');
+const acceptanceRecovery=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs');
 const edit=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html');
 const editServer=read('apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs');
 const aiPublic=read('apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs');
@@ -64,6 +65,8 @@ need(priceResolve,'boQuoteBuilderPriceSemantics_','line-specific price semantics
 need(priceResolve,'boQuoteBuilderPriceSemanticsCompatible_','incompatible Price Book rejection');
 need(priceResolve,"dominant = 'gutter_guard'",'leaf-guard semantic priority');
 need(priceResolve,"dominant = 'downspout'",'downspout semantic priority');
+need(priceResolve,"'Catalog ID': id",'production Catalog ID normalization');
+need(priceResolve,'boQuoteBuilderSnapshot_(H38_BO_SHEETS.PRODUCTS','production Price Book precedence');
 
 need(live,'function boQuoteBuilderRunMobileProductionAcceptance()','live production acceptance entry');
 need(live,'const targetUploadBytes = 4800000','normal phone-photo-sized live upload fixture');
@@ -81,7 +84,19 @@ need(live,"approved: false",'no automatic approval');
 need(live,"sent: false",'no automatic send');
 need(live,"setTrashed(true)",'synthetic upload cleanup');
 need(live,"'Is Voided': 'Yes'",'acceptance document cleanup');
-need(live,'boQuoteBuilderMobileAcceptanceRestorePayload_','acceptance quote restoration');
+need(live,'boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_','prior failed-run recovery');
+need(live,'boQuoteBuilderMobileAcceptanceCaptureQuoteState_','exact quote-state capture');
+need(live,'boQuoteBuilderMobileAcceptanceRestoreQuoteState_','exact quote-state restoration');
+need(live,'originalQuoteState','raw pre-acceptance state retention');
+
+need(acceptanceRecovery,'function boQuoteBuilderMobileAcceptanceCaptureQuoteState_','raw quote-state capture helper');
+need(acceptanceRecovery,'function boQuoteBuilderMobileAcceptanceRestoreQuoteState_','zero-line-safe quote restore helper');
+need(acceptanceRecovery,'function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_','audit-backed failed-run recovery');
+need(acceptanceRecovery,"boAudit_('RESTORE'",'acceptance restore audit');
+need(acceptanceRecovery,'original zero-line Draft','strict prior failure proof');
+need(acceptanceRecovery,"boNormalizeText_(current.Status || 'Draft') === 'Draft'",'draft-only recovery boundary');
+need(acceptanceRecovery,"!== 'Approved'",'unapproved recovery boundary');
+need(acceptanceRecovery,"!== 'Sent'",'unsent recovery boundary');
 
 const aiSandbox={console};
 vm.runInNewContext(aiPublic,aiSandbox);
@@ -124,7 +139,7 @@ const priceSandbox={
   H38_BO_SHEETS:{PRODUCTS:'Products'},
   boNormalizeText_:value=>String(value==null?'':value).trim(),
   boQuoteBuilderPriceBook_:()=>priceBook,
-  boQuoteBuilderSnapshot_:()=>({rows:[]})
+  boQuoteBuilderSnapshot_:()=>({rows:priceBook})
 };
 vm.runInNewContext(priceResolve,priceSandbox);
 const leafMatch=priceSandbox.boQuoteBuilderExistingLinePrice_({description:'Leaf guard installation on all new gutter runs',query:'Leaf guard installation. Work scope: replace gutters and one downspout.',unit:'linear foot'});
@@ -142,6 +157,7 @@ if(falseDownspoutMatch)throw new Error('Downspout incorrectly reused the bare gu
 scripts(recovery).forEach(body=>new Function(body));
 scripts(edit).forEach(body=>new Function(body));
 new Function(live);
+new Function(acceptanceRecovery);
 new Function(priceResolve);
 new Function(editServer);
-console.log('PASS — native Android photo controls, real photo analysis, typed leaf guard and visible downspout preservation, component-specific Price Book matching, saved-draft reprocessing, Android return recovery, and live production acceptance are wired without programmatic picker clicks.');
+console.log('PASS — native Android photo controls, real photo analysis, typed leaf guard and visible downspout preservation, component-specific Price Book matching, saved-draft reprocessing, exact zero-line restoration, Android return recovery, and live production acceptance are wired without programmatic picker clicks.');
