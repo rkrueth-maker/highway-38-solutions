@@ -12,6 +12,7 @@ on:
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
       - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
+      - 'scripts/verify-quote-price-semantic-isolation.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
       - 'scripts/verify-quote-mobile-stabilization.js'
@@ -27,6 +28,7 @@ on:
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
       - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
+      - 'scripts/verify-quote-price-semantic-isolation.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
       - 'scripts/verify-quote-mobile-stabilization.js'
@@ -69,6 +71,9 @@ jobs:
 
       - name: Verify native mobile source contract
         run: node scripts/verify-quote-native-photo-workflow.js
+
+      - name: Verify price component isolation
+        run: node scripts/verify-quote-price-semantic-isolation.js
 
       - name: Run Android-sized native picker workflow
         run: node scripts/test-quote-native-photo-browser.js | tee quote-mobile-browser.json
