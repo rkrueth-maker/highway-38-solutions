@@ -13,12 +13,35 @@ const recoverySource = fs.readFileSync(path.join(root, 'apps-script/business-off
   'boQuoteBuilderMobileAcceptanceCaptureQuoteState_',
   'boQuoteBuilderMobileAcceptanceRestoreQuoteState_',
   'boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_',
+  'boQuoteBuilderMobileAcceptanceAuditColumnValue_',
+  'boQuoteBuilderMobileAcceptanceAuditPrevious_',
+  'boQuoteBuilderMobileAcceptanceAuditNew_',
   "boAudit_('RESTORE'",
   'original zero-line Draft'
 ].forEach(marker => {
   if (!recoverySource.includes(marker)) throw new Error(`Missing acceptance recovery contract: ${marker}`);
 });
 new Function(recoverySource);
+
+const recoverySandbox = { console };
+vm.runInNewContext(recoverySource, recoverySandbox);
+const previousAuditValue = [{ 'Quote Line ID':'QL-OLD', Description:'Old line' }];
+const newAuditValue = [{ 'Quote Line ID':'QL-NEW', Description:'New line' }];
+const arbitraryAuditHeaders = {};
+arbitraryAuditHeaders.__rowNumber = 42;
+for (let index = 0; index < 14; index += 1) {
+  arbitraryAuditHeaders[`Unrecognized Column ${index + 1}`] = '';
+}
+arbitraryAuditHeaders['Unrecognized Column 9'] = JSON.stringify(previousAuditValue);
+arbitraryAuditHeaders['Unrecognized Column 10'] = JSON.stringify(newAuditValue);
+const decodedPrevious = recoverySandbox.boQuoteBuilderMobileAcceptanceAuditPrevious_(arbitraryAuditHeaders, null);
+const decodedNew = recoverySandbox.boQuoteBuilderMobileAcceptanceAuditNew_(arbitraryAuditHeaders, null);
+if (JSON.stringify(decodedPrevious) !== JSON.stringify(previousAuditValue)) {
+  throw new Error('Audit recovery did not decode the before JSON from physical column 9.');
+}
+if (JSON.stringify(decodedNew) !== JSON.stringify(newAuditValue)) {
+  throw new Error('Audit recovery did not decode the after JSON from physical column 10.');
+}
 
 let productionRows = [
   {
@@ -137,4 +160,4 @@ if (researched.catalogId !== 'LOCAL-GUARD') throw new Error(`Local research lost
 if (researched.item['Product / Service ID'] !== 'LOCAL-GUARD') throw new Error('Local research item was not normalized to the quote-line catalog schema.');
 if (researched.ownerReviewRequired !== true || researched.finalPriceApproved !== false) throw new Error('Local research escaped owner review.');
 
-console.log('PASS — production Catalog IDs outrank blank legacy-view duplicates, source history cannot change component identity, researched Catalog IDs survive the mobile pricing handoff, and exact acceptance recovery is syntactically guarded.');
+console.log('PASS — production Catalog IDs outrank blank legacy-view duplicates, source history cannot change component identity, researched Catalog IDs survive the mobile pricing handoff, audit before/after JSON is read by physical column order, and exact acceptance recovery is guarded.');
