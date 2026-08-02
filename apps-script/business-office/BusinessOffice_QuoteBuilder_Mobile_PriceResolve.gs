@@ -23,6 +23,33 @@ function boQuoteBuilderPriceTokens_(value) {
   });
 }
 
+function boQuoteBuilderPriceSemantics_(value) {
+  const text = boQuoteBuilderPriceNormalize_(value)
+    .replace(/\b(?:leaf|gutter)\s*guards?\b|\bgutter\s*protection\b|\bleaf\s*protection\b/g, ' gutterguard ')
+    .replace(/\bdownspouts?\b|\bdrainpipes?\b/g, ' downspout ')
+    .replace(/\bguttering\b|\bgutters?\b/g, ' gutter ');
+  const gutterGuard = /\bgutterguard\b/.test(text);
+  const downspout = /\bdownspout\b/.test(text);
+  const gutter = /\bgutter\b/.test(text);
+  const downspoutIndex = text.indexOf('downspout');
+  const gutterIndex = text.indexOf('gutter');
+  let dominant = '';
+  if (gutterGuard) dominant = 'gutter_guard';
+  else if (downspout && gutter) dominant = downspoutIndex < gutterIndex ? 'downspout' : 'gutter';
+  else if (downspout) dominant = 'downspout';
+  else if (gutter) dominant = 'gutter';
+  return { gutterGuard:gutterGuard, downspout:downspout, gutter:gutter, dominant:dominant };
+}
+
+function boQuoteBuilderPriceSemanticsCompatible_(requested, item) {
+  requested = requested || {};
+  item = item || {};
+  if (requested.dominant === 'gutter_guard') return item.gutterGuard === true;
+  if (requested.dominant === 'downspout') return item.downspout === true;
+  if (requested.dominant === 'gutter') return item.gutter === true && item.gutterGuard !== true && item.dominant !== 'downspout';
+  return true;
+}
+
 function boQuoteBuilderPriceValue_(item) {
   return Number(String(item['Standard Selling Price'] || item.Price || 0).replace(/[$,]/g, '')) || 0;
 }
@@ -85,6 +112,7 @@ function boQuoteBuilderExistingLinePrice_(payload) {
   const normalizedQuery = boQuoteBuilderPriceNormalize_(query);
   const primaryTokens = boQuoteBuilderPriceTokens_(primary);
   const queryTokens = boQuoteBuilderPriceTokens_(query);
+  const requestedSemantics = boQuoteBuilderPriceSemantics_(primary || query);
   const items = boQuoteBuilderMobilePriceItems_();
   let best = null;
 
@@ -92,6 +120,10 @@ function boQuoteBuilderExistingLinePrice_(payload) {
     const price = boQuoteBuilderPriceValue_(item);
     if (!(price > 0)) return;
     const itemId = boNormalizeText_(item['Product / Service ID']).toLowerCase();
+    const searchableText = [
+      item['Product / Service ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit, item['Catalog Source']
+    ].join(' ');
+    if (!boQuoteBuilderPriceSemanticsCompatible_(requestedSemantics, boQuoteBuilderPriceSemantics_(searchableText))) return;
     if (requestedId && itemId === requestedId) {
       best = { item:item, score:1000, reason:'catalog_id' };
       return;
@@ -99,9 +131,7 @@ function boQuoteBuilderExistingLinePrice_(payload) {
     if (best && best.score >= 1000) return;
     const name = boQuoteBuilderPriceNormalize_(item.Name || '');
     const customerDescription = boQuoteBuilderPriceNormalize_(item['Customer Description'] || item.Description || '');
-    const searchable = boQuoteBuilderPriceNormalize_([
-      item['Product / Service ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit
-    ].join(' '));
+    const searchable = boQuoteBuilderPriceNormalize_(searchableText);
     if (!searchable) return;
     const itemTokens = boQuoteBuilderPriceTokens_(searchable);
     const nameTokens = boQuoteBuilderPriceTokens_(name);
