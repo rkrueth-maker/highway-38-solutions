@@ -120,6 +120,22 @@ function boQuoteBuilderNormalizeEditLine_(line, index, quoteId) {
   };
 }
 
+function boQuoteBuilderDeleteQuoteLineRows_(sheet, quoteId) {
+  const values = sheet.getDataRange().getDisplayValues();
+  if (!values.length) return [];
+  const headers = values[0].map(boNormalizeText_);
+  const quoteIdColumn = headers.indexOf('Quote ID');
+  boAssert_(quoteIdColumn >= 0, 'Quote Lines is missing the Quote ID column.');
+  const rowNumbers = [];
+  values.slice(1).forEach(function (row, index) {
+    if (boNormalizeText_(row[quoteIdColumn]) === quoteId) rowNumbers.push(index + 2);
+  });
+  rowNumbers.sort(function (a, b) { return b - a; }).forEach(function (rowNumber) {
+    sheet.deleteRow(rowNumber);
+  });
+  return rowNumbers;
+}
+
 function boQuoteBuilderUpdateEditableQuote(payload) {
   payload = payload || {};
   const quoteId = boNormalizeText_(payload.quoteId);
@@ -189,9 +205,8 @@ function boQuoteBuilderUpdateEditableQuote(payload) {
 
       const lineSnapshot = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTE_LINES, { includeVoided: true });
       const oldLines = lineSnapshot.rows.filter(function (row) { return row['Quote ID'] === quoteId; });
-      oldLines.slice().sort(function (a, b) { return b.__rowNumber - a.__rowNumber; }).forEach(function (row) {
-        lineSnapshot.sheet.deleteRow(row.__rowNumber);
-      });
+      const deletedRows = boQuoteBuilderDeleteQuoteLineRows_(lineSnapshot.sheet, quoteId);
+      boAssert_(deletedRows.length === oldLines.length, 'Quote lines changed while the draft was being replaced. Reopen the draft and try again.');
       const refreshedLines = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTE_LINES, { includeVoided: true });
       boQuoteBuilderAppendBatch_(refreshedLines, submitted);
       SpreadsheetApp.flush();
