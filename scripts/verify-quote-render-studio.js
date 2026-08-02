@@ -11,6 +11,8 @@ const scripts=text=>[...text.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(matc
 const index=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html');
 const client=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Render_Studio_Client.html');
 const server=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Render_Studio.gs');
+const proposalServer=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Render_Proposal.gs');
+const proposal=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Proposal.html');
 const mobile=read('apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AI_Fix.html');
 
 need(index,"boInclude_('BusinessOffice_QuoteBuilder_Render_Studio_Client')",'Render Studio client include');
@@ -47,11 +49,38 @@ need(server,'Preserve perspective, dimensions, openings, permanent structures','
 need(server,'function boApproveAiCompletionVisualForQuote','owner attachment server entry');
 need(server,"Status:'Owner Approved for Proposal'",'proposal approval status');
 need(server,'includeInProposal:true','proposal inclusion flag');
+need(server,'quoteVersion:quoteVersion','exact quote-version lock');
 need(server,'customerReleaseRequired:true','customer release boundary');
 need(server,'proofOfCompletion:false','not-proof boundary');
 need(server,'Nothing was sent.','no automatic send confirmation');
 need(server,"boProof_('APPROVE AI COMPLETION VISUAL'",'approval proof record');
 
+need(proposalServer,'function boCustomerProposalConcepts','token-scoped customer concept endpoint');
+need(proposalServer,'boQuoteCommercialFindByToken_','existing proposal-token validation');
+need(proposalServer,'state.share.approvedVersion === quoteVersion','proposal version lock');
+need(proposalServer,"['Shared','Viewed']",'customer proposal lifecycle boundary');
+need(proposalServer,"row.Status === H38_QB_RENDER_PROPOSAL.APPROVED_STATUS",'owner-approved status filter');
+need(proposalServer,'details.includeInProposal !== true','explicit proposal inclusion filter');
+need(proposalServer,'details.customerReleaseRequired !== true','customer release filter');
+need(proposalServer,'details.proofOfCompletion !== false','not-proof filter');
+need(proposalServer,'Number(details.quoteVersion || 0)','concept version comparison');
+need(proposalServer,'originalDataUrl:original.dataUrl','private original embedded for customer');
+need(proposalServer,'visualDataUrl:visual.dataUrl','private concept embedded for customer');
+need(proposalServer,'MAX_IMAGE_BYTES:3145728','bounded proposal images');
+need(proposalServer,'return [{','latest single approved concept');
+
+need(proposal,'Proposed completion concept','proposal concept section');
+need(proposal,'Before — original jobsite photo','proposal before image');
+need(proposal,'Proposed appearance concept','proposal rendered image');
+need(proposal,'The written scope and quote lines control the work.','written-scope priority');
+need(proposal,'not a measurement, blueprint, engineering approval','proposal concept boundary');
+need(proposal,'boCustomerProposalConcepts(token)','customer token concept load');
+need(proposal,"boOwnerProposalConcepts(quote['Quote ID'])",'owner preview concept load');
+need(proposal,'.concept-card{break-inside:avoid}','print PDF concept protection');
+need(proposal,'Download / Print PDF','existing customer PDF control');
+
 scripts(client).forEach(body=>new Function(body));
+scripts(proposal).slice(1).forEach(body=>new Function(body));
 new Function(server);
-console.log('PASS — H38 Render Studio uses the existing Quote Builder and image engine with structured styles, materials, protected areas, one-to-three concepts, before/after review, and explicit owner-approved saved-quote attachment without automatic sending.');
+new Function(proposalServer);
+console.log('PASS — H38 Render Studio uses the existing Quote Builder and image engine with guided concepts, before/after review, explicit owner attachment, exact quote-version locking, token-scoped customer release, and printed proposal inclusion without automatic sending.');
