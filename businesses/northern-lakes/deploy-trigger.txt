@@ -2,12 +2,12 @@ Authorized production deployment trigger
 UTC date: 2026-08-02
 Target: existing dedicated Northern Lakes Business Office project and deployment
 Business ID: NLPS
-Release: recognize the upgraded 88-sheet existing workbook, restore existing Drive/workbook links, hide the clean installer after configuration, and preserve all current files and records
+Release: reduce the Northern Lakes customer first-sign-in authorization request to the active Office permissions only; remove disabled Gmail integration scopes from the customer deployment
 Drive setup account: northernlakesproperty@gmail.com
 H38 support owners: rkrueth@gmail.com, mandakw55@gmail.com
 External actions: disabled and approval gated
 ALLOW_FIRST_INSTALL=FALSE
-Authorization: Rick Krueth reported the live Northern Lakes office was not loading its existing files and authorized correction
-Protection: update the existing Northern Lakes project and deployment in place; preserve the current workbook, Drive folders, prior deployment ID, users, records, proof, and old storage references; do not create another project, deployment, workbook, or folder tree
-Source baseline: a1e47153f22110066fc0f59b981dc9c6febff047
-Trigger sequence: 4
+Authorization: Rick Krueth reported the Northern Lakes customer still receives an error and authorized correction of the existing customer deployment
+Protection: update the existing Northern Lakes project and deployment in place; preserve the current workbook, Drive folders, deployment ID, users, records, proof, and archived references; do not create another project, deployment, workbook, or folder tree
+Source baseline: 251de07c7f6648022c56bb1a943252993a64bbeb
+Trigger sequence: 5
