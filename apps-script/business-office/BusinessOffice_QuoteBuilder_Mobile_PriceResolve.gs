@@ -73,6 +73,7 @@ function boQuoteBuilderNormalizeMobilePriceItem_(item) {
   const status = boNormalizeText_(item.Status || (boNormalizeText_(item.Active).toLowerCase() === 'no' ? 'Inactive' : 'Active')) || 'Active';
   return {
     'Product / Service ID': id,
+    'Catalog ID': id,
     Name: name,
     Description: description,
     'Customer Description': description,
@@ -87,19 +88,34 @@ function boQuoteBuilderNormalizeMobilePriceItem_(item) {
 
 function boQuoteBuilderMobilePriceItems_() {
   const items = [];
-  const seen = {};
+  const byId = {};
+  const byIdentity = {};
   function add(item) {
     const normalized = boQuoteBuilderNormalizeMobilePriceItem_(item);
     if (!(boQuoteBuilderPriceValue_(normalized) > 0) || boNormalizeText_(normalized.Status).toLowerCase() === 'inactive') return;
-    const key = boNormalizeText_(normalized['Product / Service ID']).toLowerCase() || [
-      boQuoteBuilderPriceNormalize_(normalized.Name), boQuoteBuilderPriceNormalize_(normalized.Unit)
+    const id = boNormalizeText_(normalized['Product / Service ID']).toLowerCase();
+    const identity = [
+      boQuoteBuilderPriceNormalize_(normalized.Name),
+      boQuoteBuilderPriceNormalize_(normalized.Unit),
+      boQuoteBuilderPriceValue_(normalized)
     ].join('|');
-    if (!key || seen[key]) return;
-    seen[key] = true;
+    if (id && Object.prototype.hasOwnProperty.call(byId, id)) return;
+    if (identity && Object.prototype.hasOwnProperty.call(byIdentity, identity)) {
+      const index = byIdentity[identity];
+      const existingId = boNormalizeText_(items[index] && items[index]['Product / Service ID']);
+      if (!existingId && id) {
+        items[index] = normalized;
+        byId[id] = index;
+      }
+      return;
+    }
+    const index = items.length;
     items.push(normalized);
+    if (id) byId[id] = index;
+    if (identity) byIdentity[identity] = index;
   }
-  try { (boQuoteBuilderPriceBook_({}) || []).forEach(add); } catch (error) {}
   try { boQuoteBuilderSnapshot_(H38_BO_SHEETS.PRODUCTS, { includeVoided:true }).rows.forEach(add); } catch (error) {}
+  try { (boQuoteBuilderPriceBook_({}) || []).forEach(add); } catch (error) {}
   return items;
 }
 
@@ -119,9 +135,9 @@ function boQuoteBuilderExistingLinePrice_(payload) {
   items.forEach(function (item) {
     const price = boQuoteBuilderPriceValue_(item);
     if (!(price > 0)) return;
-    const itemId = boNormalizeText_(item['Product / Service ID']).toLowerCase();
+    const itemId = boNormalizeText_(item['Product / Service ID'] || item['Catalog ID']).toLowerCase();
     const searchableText = [
-      item['Product / Service ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit
+      item['Product / Service ID'] || item['Catalog ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit
     ].join(' ');
     if (!boQuoteBuilderPriceSemanticsCompatible_(requestedSemantics, boQuoteBuilderPriceSemantics_(searchableText))) return;
     if (requestedId && itemId === requestedId) {
@@ -170,13 +186,14 @@ function boQuoteBuilderResolveLinePrice(payload) {
     boAssert_(query || payload.catalogId, 'A quote line description or catalog ID is required.');
     const match = boQuoteBuilderExistingLinePrice_(payload);
     if (match) {
-      boProof_('AUTO MATCH PRICE BOOK', 'Price Book', match.item['Product / Service ID'] || 'MATCH', 'PASS',
+      const catalogId = boNormalizeText_(match.item['Product / Service ID'] || match.item['Catalog ID']);
+      boProof_('AUTO MATCH PRICE BOOK', 'Price Book', catalogId || 'MATCH', 'PASS',
         'score=' + match.score + '; reason=' + match.reason + '; query=' + query, boGetActiveEmail_());
       return {
         source:'price_book_match',
         matched:true,
         researched:false,
-        catalogId:match.item['Product / Service ID'] || '',
+        catalogId:catalogId,
         item:match.item,
         matchScore:match.score,
         matchReason:match.reason,
@@ -189,6 +206,9 @@ function boQuoteBuilderResolveLinePrice(payload) {
       market:payload.market || '',
       taxable:payload.taxable === true
     });
+    const normalizedLearnedItem = boQuoteBuilderNormalizeMobilePriceItem_(learned.item || {});
+    learned.item = normalizedLearnedItem;
+    learned.catalogId = boNormalizeText_(learned.catalogId || normalizedLearnedItem['Product / Service ID'] || normalizedLearnedItem['Catalog ID']);
     learned.source = 'local_research';
     learned.matched = false;
     learned.researched = true;
