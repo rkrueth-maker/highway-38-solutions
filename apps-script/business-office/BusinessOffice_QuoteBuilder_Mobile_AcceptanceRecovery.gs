@@ -80,7 +80,7 @@ function boQuoteBuilderMobileAcceptanceAuditColumnValue_(row, names, zeroBasedCo
 function boQuoteBuilderMobileAcceptanceAuditPrevious_(row, fallback) {
   return boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditColumnValue_(
     row,
-    ['Previous Values','Previous Value','Previous JSON','Before JSON','Old Values','Before Values'],
+    ['Previous Values','Previous Value','Previous Values JSON','Previous JSON','Before JSON','Old Values','Before Values'],
     8
   ), fallback);
 }
@@ -88,7 +88,7 @@ function boQuoteBuilderMobileAcceptanceAuditPrevious_(row, fallback) {
 function boQuoteBuilderMobileAcceptanceAuditNew_(row, fallback) {
   return boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditColumnValue_(
     row,
-    ['New Values','New Value','New JSON','After JSON','Updated Values','After Values'],
+    ['New Values','New Value','New Values JSON','New JSON','After JSON','Updated Values','After Values'],
     9
   ), fallback);
 }
@@ -104,9 +104,34 @@ function boQuoteBuilderMobileAcceptanceAuditSignature_(line) {
   ].join('|');
 }
 
+function boQuoteBuilderMobileAcceptanceAuditContentSignature_(line) {
+  line = line || {};
+  return [
+    boNormalizeText_(line['Product / Service ID'] || line.catalogId),
+    boNormalizeText_(line.Description || line.description),
+    Number(line.Quantity || line.quantity || 0),
+    boNormalizeText_(line.Unit || line.unit),
+    Number(String(line.Rate || line.rate || 0).replace(/[$,]/g, '')) || 0,
+    Number(String(line.Discount || line.discount || 0).replace(/[$,]/g, '')) || 0,
+    boNormalizeText_(line.Taxable == null ? line.taxable : line.Taxable).toLowerCase(),
+    Number(String(line['Tax Rate'] || line.taxRate || 0).replace(/[$,%]/g, '')) || 0,
+    boNormalizeText_(line['Account Code'] || line.accountCode),
+    boNormalizeText_(line['Job Cost Category'] || line.jobCostCategory),
+    boNormalizeText_(line.Notes || line.notes),
+    boNormalizeText_(line.Status || 'Active'),
+    boNormalizeText_(line['Is Voided'] || 'No')
+  ].join('|');
+}
+
 function boQuoteBuilderMobileAcceptanceAuditLinesEqual_(left, right) {
   const a = (left || []).map(boQuoteBuilderMobileAcceptanceAuditSignature_).sort();
   const b = (right || []).map(boQuoteBuilderMobileAcceptanceAuditSignature_).sort();
+  return a.length === b.length && a.every(function (value, index) { return value === b[index]; });
+}
+
+function boQuoteBuilderMobileAcceptanceAuditLineContentEqual_(left, right) {
+  const a = (left || []).map(boQuoteBuilderMobileAcceptanceAuditContentSignature_).sort();
+  const b = (right || []).map(boQuoteBuilderMobileAcceptanceAuditContentSignature_).sort();
   return a.length === b.length && a.every(function (value, index) { return value === b[index]; });
 }
 
@@ -159,6 +184,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
       newComponents:boQuoteBuilderMobileAcceptanceAuditComponentCounts_(Array.isArray(latestNew) ? latestNew : []),
       currentCount:currentLines.length,
       currentMatchesNew:boQuoteBuilderMobileAcceptanceAuditLinesEqual_(currentLines, Array.isArray(latestNew) ? latestNew : []),
+      currentContentMatchesNew:boQuoteBuilderMobileAcceptanceAuditLineContentEqual_(currentLines, Array.isArray(latestNew) ? latestNew : []),
       draft:!!currentQuote && boNormalizeText_(currentQuote.Status || 'Draft') === 'Draft',
       approved:!!currentQuote && boNormalizeText_(currentQuote['Approval Status'] || 'Owner Approval Required') === 'Approved',
       sent:!!currentQuote && boNormalizeText_(currentQuote['Customer Action'] || 'Not Sent') === 'Sent',
@@ -171,7 +197,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
     if (candidates.length < 24) candidates.push(summary);
 
     if (!quoteId || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestPrevious) || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestNew)) continue;
-    if (!currentQuote || !summary.draft || summary.approved || summary.sent || !summary.currentMatchesNew) continue;
+    if (!currentQuote || !summary.draft || summary.approved || summary.sent || !summary.currentContentMatchesNew) continue;
 
     let firstLineAuditIndex = -1;
     for (let priorIndex = latestIndex - 1; priorIndex >= start; priorIndex -= 1) {
@@ -182,7 +208,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
       if (boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(prior, ['Source'])) !== 'Quote Builder owner edit') continue;
       const priorPrevious = boQuoteBuilderMobileAcceptanceAuditPrevious_(prior, []);
       const priorNew = boQuoteBuilderMobileAcceptanceAuditNew_(prior, []);
-      if (Array.isArray(priorPrevious) && priorPrevious.length === 0 && boQuoteBuilderMobileAcceptanceAuditLinesEqual_(priorNew, latestPrevious)) {
+      if (Array.isArray(priorPrevious) && priorPrevious.length === 0 && boQuoteBuilderMobileAcceptanceAuditLineContentEqual_(priorNew, latestPrevious)) {
         firstLineAuditIndex = priorIndex;
         summary.firstZeroLineAuditFound = true;
         break;
@@ -204,7 +230,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
     if (!originalQuote || boNormalizeText_(originalQuote['Quote ID']) !== quoteId) continue;
 
     boQuoteBuilderMobileAcceptanceRestoreQuoteState_({ quote:originalQuote, lines:[] });
-    boProof_('RECOVER PRIOR MOBILE ACCEPTANCE CLEANUP', 'Quote', quoteId, 'PASS', 'Audit chain proved original zero-line Draft and exact current acceptance lines.', boGetActiveEmail_());
+    boProof_('RECOVER PRIOR MOBILE ACCEPTANCE CLEANUP', 'Quote', quoteId, 'PASS', 'Audit chain proved original zero-line Draft and exact current acceptance line content.', boGetActiveEmail_());
     return {
       recovered:true,
       quoteId:quoteId,
