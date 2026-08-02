@@ -121,7 +121,7 @@ function boQuoteBuilderExistingLinePrice_(payload) {
     if (!(price > 0)) return;
     const itemId = boNormalizeText_(item['Product / Service ID']).toLowerCase();
     const searchableText = [
-      item['Product / Service ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit, item['Catalog Source']
+      item['Product / Service ID'], item.Name, item['Customer Description'], item.Description, item.Category, item.Unit
     ].join(' ');
     if (!boQuoteBuilderPriceSemanticsCompatible_(requestedSemantics, boQuoteBuilderPriceSemantics_(searchableText))) return;
     if (requestedId && itemId === requestedId) {
