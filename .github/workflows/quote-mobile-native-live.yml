@@ -138,7 +138,7 @@ jobs:
         run: |
           node - <<'NODE'
           const result=require('./artifacts/quote-mobile-live/result.json');
-          const text=line=>[line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ');
+          const text=line=>String(line.description||'').trim()||[line.catalogName,line.catalogDescription].join(' ');
           const component=line=>{
             const value=text(line);
             if(/(?:leaf|gutter)\s*guards?|gutter\s*protection|leaf\s*protection/i.test(value))return 'gutter_guard';
