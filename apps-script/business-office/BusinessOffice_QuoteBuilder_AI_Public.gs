@@ -37,29 +37,83 @@ function boQuoteBuilderPreserveRequiredScope_(result, payload) {
     added.push(line.description);
   });
 
+  const observedAdded = boQuoteBuilderPreserveObservedGutterComponents_(draft, required, lines);
   draft.suggestedLines = lines;
   draft.requiredScopeItems = required;
   draft.requiredScopeAdded = added;
+  draft.observedScopeAdded = observedAdded;
   result.draft = draft;
 
   if (result.staged) {
     stagedDetails.suggestedLines = lines;
     stagedDetails.requiredScopeItems = required;
     stagedDetails.requiredScopeAdded = added;
+    stagedDetails.observedScopeAdded = observedAdded;
     result.staged.Details = JSON.stringify(stagedDetails);
     const activityId = result.staged['Activity ID'] || '';
-    if (activityId && added.length && typeof boUpdateRecord_ === 'function' && typeof H38_BO_SHEETS !== 'undefined') {
+    if (activityId && (added.length || observedAdded.length) && typeof boUpdateRecord_ === 'function' && typeof H38_BO_SHEETS !== 'undefined') {
       try {
         boUpdateRecord_(H38_BO_SHEETS.ACTIVITY, activityId, {
           Details:result.staged.Details,
           Status:'Owner Review Required'
-        }, 'Preserve explicitly typed Quote Builder scope');
+        }, 'Preserve required and visible Quote Builder scope');
       } catch (error) {
-        console.log('Typed scope activity update: ' + error.message);
+        console.log('Required scope activity update: ' + error.message);
       }
     }
   }
   return result;
+}
+
+function boQuoteBuilderPreserveObservedGutterComponents_(draft, required, lines) {
+  draft = draft || {};
+  required = required || [];
+  lines = lines || [];
+  const requested = required.join(' ');
+  const requestedCanonical = boQuoteBuilderScopeCanonicalText_(requested);
+  const replacementScope = /\b(?:replace|install|provide|supply|furnish|new)\b/i.test(requested) && /\bgutter\b/.test(requestedCanonical);
+  if (!replacementScope) return [];
+
+  const observations = Array.isArray(draft.photoObservations) ? draft.photoObservations : [];
+  const rawObservations = observations.join(' ');
+  if (/\b(?:no|without)\s+(?:visible\s+)?downspouts?\b/i.test(rawObservations)) return [];
+  if (!/\b(?:downspouts?|drainpipes?)\b/i.test(rawObservations)) return [];
+  if (boQuoteBuilderHasDedicatedDownspoutLine_(lines)) return [];
+
+  const quantity = boQuoteBuilderObservedDownspoutCount_(observations);
+  const description = quantity === 1
+    ? 'Include one visible downspout with the new gutter system'
+    : 'Include ' + quantity + ' visible downspouts with the new gutter system';
+  lines.push({
+    catalogId:'',
+    description:description,
+    quantity:quantity,
+    unit:'each',
+    rate:'',
+    priceStatus:'manual_entry_required',
+    confidence:'medium',
+    evidence:'A downspout is visible in the supplied photos and is preserved as a separate owner-review component of the gutter replacement.',
+    searchQuery:description
+  });
+  return [description];
+}
+
+function boQuoteBuilderHasDedicatedDownspoutLine_(lines) {
+  return (lines || []).some(function (line) {
+    const text = boQuoteBuilderScopeCanonicalText_(line && (line.description || line.searchQuery || ''));
+    const downspoutIndex = text.indexOf('downspout');
+    const gutterIndex = text.indexOf('gutter');
+    return downspoutIndex >= 0 && (gutterIndex < 0 || downspoutIndex < gutterIndex);
+  });
+}
+
+function boQuoteBuilderObservedDownspoutCount_(observations) {
+  const text = (observations || []).join(' ').toLowerCase();
+  const digit = text.match(/\b(\d{1,2})\s+(?:visible\s+)?downspouts?\b/);
+  if (digit) return Math.max(1, Math.min(20, Number(digit[1]) || 1));
+  const words = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
+  const word = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:visible\s+)?downspouts?\b/);
+  return word ? words[word[1]] : 1;
 }
 
 function boQuoteBuilderRequiredScopeItems_(payload) {
