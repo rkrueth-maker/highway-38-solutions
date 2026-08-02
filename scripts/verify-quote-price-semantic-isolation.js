@@ -8,7 +8,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'), 'utf8');
 
-let priceBook = [
+let productionRows = [
   {
     'Catalog ID': 'CAT-GUTTER',
     Name: '6-inch white gutters replacement',
@@ -39,18 +39,36 @@ let priceBook = [
   }
 ];
 
+let legacyView = productionRows.map(item => ({
+  'Product / Service ID': '',
+  Name: item.Name,
+  Description: item.Description || '',
+  'Customer Description': item['Customer Description'] || '',
+  Category: item.Family,
+  Unit: item.Unit,
+  'Standard Selling Price': item.Price,
+  Price: item.Price,
+  Status: 'Active'
+}));
+
 const sandbox = {
   console,
   H38_BO_SHEETS: { PRODUCTS: 'Products' },
   boNormalizeText_: value => String(value == null ? '' : value).trim(),
-  boQuoteBuilderPriceBook_: () => priceBook,
-  boQuoteBuilderSnapshot_: () => ({ rows: [] })
+  boQuoteBuilderPriceBook_: () => legacyView,
+  boQuoteBuilderSnapshot_: () => ({ rows: productionRows }),
+  boSafeExecute_: (_source, callback) => callback(),
+  boQuoteBuilderRequireAction_: () => ({}),
+  boAssert_: (condition, message) => { if (!condition) throw new Error(message); },
+  boProof_: () => {},
+  boGetActiveEmail_: () => 'test@example.com',
+  boQuoteBuilderAutoLocalPrice: () => ({})
 };
 vm.runInNewContext(source, sandbox);
 
 function match(payload) {
   const result = sandbox.boQuoteBuilderExistingLinePrice_(payload);
-  return result && result.item && result.item['Product / Service ID'];
+  return result && result.item && (result.item['Product / Service ID'] || result.item['Catalog ID']);
 }
 
 const guard = match({
@@ -73,7 +91,8 @@ if (guard !== 'CAT-GUARD') throw new Error(`Leaf guard matched ${guard || 'nothi
 if (downspout !== 'CAT-DOWN') throw new Error(`Downspout matched ${downspout || 'nothing'} instead of CAT-DOWN.`);
 if (gutter !== 'CAT-GUTTER') throw new Error(`Gutter matched ${gutter || 'nothing'} instead of CAT-GUTTER.`);
 
-priceBook = [priceBook[0]];
+productionRows = [productionRows[0]];
+legacyView = [legacyView[0]];
 if (match({ description: 'Leaf guard installation', query: 'Leaf guard installation', unit: 'linear foot' })) {
   throw new Error('Catalog Source history caused a gutter item to masquerade as leaf guard.');
 }
@@ -81,4 +100,29 @@ if (match({ description: 'Downspout installation', query: 'Downspout installatio
   throw new Error('Catalog Source history caused a gutter item to masquerade as a downspout.');
 }
 
-console.log('PASS — product identity ignores project/source history and keeps gutter, downspout, and leaf-guard prices distinct.');
+productionRows = [];
+legacyView = [];
+sandbox.boQuoteBuilderAutoLocalPrice = () => ({
+  saved: true,
+  catalogId: '',
+  item: {
+    'Catalog ID': 'LOCAL-GUARD',
+    Name: 'Leaf guard installation',
+    Family: 'Locally Researched Prices',
+    Price: 9.25,
+    Active: 'Yes',
+    Unit: 'linear foot'
+  },
+  finalPriceApproved: false,
+  ownerReviewRequired: true
+});
+const researched = sandbox.boQuoteBuilderResolveLinePrice({
+  description: 'Leaf guard installation',
+  query: 'Leaf guard installation',
+  unit: 'linear foot'
+});
+if (researched.catalogId !== 'LOCAL-GUARD') throw new Error(`Local research lost Catalog ID: ${researched.catalogId || 'blank'}.`);
+if (researched.item['Product / Service ID'] !== 'LOCAL-GUARD') throw new Error('Local research item was not normalized to the quote-line catalog schema.');
+if (researched.ownerReviewRequired !== true || researched.finalPriceApproved !== false) throw new Error('Local research escaped owner review.');
+
+console.log('PASS — production Catalog IDs outrank blank legacy-view duplicates, source history cannot change component identity, and researched Catalog IDs survive the mobile pricing handoff.');
