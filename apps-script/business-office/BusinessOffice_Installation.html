@@ -28,14 +28,14 @@
     <div class="grid">
       <div class="item"><b>Complete Business Office</b><span>Today, Customers, Work, Money, Documents, Growth, Office, Quote Builder, H38 AI, users, approvals, logs and backups.</span></div>
       <div class="item"><b>Dedicated Drive storage</b><span>A new Northern Lakes root folder with separate operating, restricted, training, backup and archive areas.</span></div>
-      <div class="item"><b>Clean 81-sheet core workbook</b><span>No H38 records and no old Northern Lakes demo records are copied.</span></div>
+      <div class="item"><b>Clean 81-sheet core workbook</b><span>No H38 records and no old Northern Lakes demo records are copied. Later Core Engine upgrades may add sheets without replacing this workbook.</span></div>
       <div class="item"><b>Training examples</b><span>Separate SAMPLE sheets for customers, quotes, jobs, time, expenses, invoices, equipment, communication, marketing, proof and task assignment.</span></div>
       <div class="item"><b>Automatic record folders</b><span>Customer and job folder structures are created as records are saved.</span></div>
-      <div class="item"><b>Upgrade protection</b><span>The existing Northern Lakes project and deployment stay in place while the shared Core Engine can be upgraded later.</span></div>
+      <div class="item"><b>Upgrade protection</b><span>The existing Northern Lakes project, deployment, workbook and Drive folders stay in place while the shared Core Engine is upgraded.</span></div>
     </div>
   </section>
 
-  <section id="installCard" class="card">
+  <section id="installCard" class="card hidden">
     <h2>Create the clean office</h2>
     <p>The previous office is disconnected from active use but its IDs are preserved in <b>99 — Archived Old Office</b>. Nothing is permanently deleted by this installer.</p>
     <label for="parentFolder">Parent Google Drive folder</label>
@@ -55,8 +55,9 @@
   </section>
 
   <section id="completeCard" class="card hidden">
-    <h2>Installation active</h2>
+    <h2>Existing office connected</h2>
     <div id="completeStatus" class="status ok">Northern Lakes is ready.</div>
+    <p id="completeHelp">The existing Northern Lakes workbook and Drive folders are active. This page will not create another office.</p>
     <div class="result-links">
       <a id="officeLink" class="btn primary" target="_top">Open Northern Lakes Office</a>
       <a id="driveLink" class="btn" target="_blank" rel="noopener">Open Northern Lakes Drive</a>
@@ -71,34 +72,35 @@
   function renderStatus(status){
     setupState=status||{};
     var account=document.getElementById('accountStatus');
-    account.className='status '+(status.canInstall?'ok':status.signedIn?'hold':'bad');
+    account.className='status '+(status.configured||status.canInstall?'ok':status.signedIn?'hold':'bad');
     account.textContent=status.activeEmail?'Signed in as '+status.activeEmail:'No Google account email was detected.';
-    setText('accountHelp',status.canInstall?'Correct setup account. Drive files will be created in this account.':'Sign out of other Google accounts or switch to '+status.requiredSetupEmail+' before installing.');
-    document.getElementById('installButton').disabled=!status.canInstall;
+    setText('accountHelp',status.configured?'The existing Northern Lakes files are connected.':status.canInstall?'Correct setup account. Drive files will be created in this account.':'Sign out of other Google accounts or switch to '+status.requiredSetupEmail+' before installing.');
+    document.getElementById('installButton').disabled=!status.canInstall||status.configured;
+    show('installCard',!status.configured);
     if(status.configured){
       show('completeCard',true);
       document.getElementById('officeLink').href=status.officeUrl||location.href.replace(/[?&]setup=1/,'');
       document.getElementById('driveLink').href=status.rootFolderUrl||'#';
       document.getElementById('sheetLink').href=status.spreadsheetUrl||'#';
-      setText('completeStatus','Clean Northern Lakes installation is active · '+(status.generation||'configured'));
+      setText('completeStatus','Northern Lakes existing files are active · '+(status.sheetCount||'81+')+' workbook sheets · '+(status.generation||'configured'));
+      setText('completeHelp',status.note||'The existing Northern Lakes workbook and Drive folders are active. This page will not create another office.');
+      setText('progress','');
+      setText('error','');
     }else show('completeCard',false);
   }
   function loadStatus(){
-    setText('error','');setText('progress','Checking setup status…');
+    setText('error','');setText('progress','Checking the existing Northern Lakes workbook and Drive folders…');
     google.script.run.withSuccessHandler(function(value){setText('progress','');renderStatus(value);})
-      .withFailureHandler(function(error){setText('progress','');setText('error',error&&error.message?error.message:String(error));})
-      .boNorthernLakesSetupStatus();
+      .withFailureHandler(function(error){setText('progress','');setText('error',error&&error.message?error.message:String(error));show('installCard',true);})
+      .boNorthernLakesExistingOfficeStatus();
   }
   function installOffice(){
-    if(!setupState||!setupState.canInstall)return;
+    if(!setupState||!setupState.canInstall||setupState.configured)return;
     var button=document.getElementById('installButton');
     button.disabled=true;setText('error','');setText('progress','Creating the folder structure, clean workbook, examples, archive reference and manifest. Keep this tab open…');
-    google.script.run.withSuccessHandler(function(value){
-      setText('progress','Installation completed and validated.');
-      renderStatus({
-        canInstall:true,signedIn:true,activeEmail:setupState.activeEmail,requiredSetupEmail:setupState.requiredSetupEmail,
-        configured:true,generation:value.generation,officeUrl:value.officeUrl,rootFolderUrl:value.rootFolderUrl,spreadsheetUrl:value.spreadsheetUrl
-      });
+    google.script.run.withSuccessHandler(function(){
+      setText('progress','Installation completed. Verifying the connected files…');
+      loadStatus();
     }).withFailureHandler(function(error){
       button.disabled=false;setText('progress','Installation stopped. No external customer action occurred.');
       setText('error',error&&error.message?error.message:String(error));

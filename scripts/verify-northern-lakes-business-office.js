@@ -10,6 +10,7 @@ function requireFile(name){const file=path.join(root,name);if(!fs.existsSync(fil
 function verifyScriptSyntax(name){const source=requireFile(name);if(!source)return;try{new vm.Script(source,{filename:name});}catch(error){fail('syntax error in '+name+': '+error.message);}}
 const pack=requireFile('BusinessOffice_00_Pack.gs');
 const setup=requireFile('BusinessOffice_NorthernLakesSetup.gs');
+const existingStatus=requireFile('BusinessOffice_NorthernLakesExistingOfficeStatus.gs');
 const fast=requireFile('BusinessOffice_NorthernLakesFastProvisioning.gs');
 const setupPage=requireFile('BusinessOffice_Installation.html');
 const unified=requireFile('Unified_AppShell.gs');
@@ -55,6 +56,11 @@ const required=[
   [setup,/previousInstallationPreserved:true/,'old office preservation proof'],
   [setup,/nlpsFastCreateCoreWorkbook_/,'fast core workbook connected'],
   [setup,/nlpsFastCreateExamples_/,'fast examples connected'],
+  [existingStatus,/function boNorthernLakesExistingOfficeStatus\(/,'existing-office status endpoint'],
+  [existingStatus,/sheetCount >= result\.minimumSheetCount/,'upgraded workbook minimum-sheet acceptance'],
+  [existingStatus,/missingRequiredSheets\.length === 0/,'required-sheet validation'],
+  [existingStatus,/existing_files_connected/,'existing file connection status'],
+  [existingStatus,/function boNorthernLakesExistingOfficeAcceptance\(/,'live existing-office acceptance endpoint'],
   [fast,/Sheets\.Spreadsheets\.create/,'Sheets API workbook creation'],
   [fast,/Sheets\.Spreadsheets\.Values\.batchUpdate/,'batched sheet values'],
   [fast,/schema\.sheets\.length===81/,'fast 81-sheet validation'],
@@ -63,6 +69,9 @@ const required=[
   [setupPage,/Create Clean Northern Lakes Office/,'owner setup action'],
   [setupPage,/Parent Google Drive folder/,'Drive folder selection'],
   [setupPage,/northernlakesproperty@gmail\.com/,'required signed-in setup account'],
+  [setupPage,/boNorthernLakesExistingOfficeStatus/,'setup page reads upgraded existing-office status'],
+  [setupPage,/show\('installCard',!status\.configured\)/,'configured office hides clean installer'],
+  [setupPage,/Existing office connected/,'existing office recovery action'],
   [unified,/typeof boSetupEntryAllowed_==='function'/,'pack-controlled setup route'],
   [unified,/boRenderInstallationPage_/,'setup page renderer'],
   [unified,/function getSupportAccount\(email\)/,'unified support authentication'],
@@ -92,6 +101,32 @@ required.forEach(([source,pattern,label])=>{if(!pattern.test(source))fail('missi
 const assembledFiles=fs.readdirSync(root);
 assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).forEach(verifyScriptSyntax);
 if(/H38_BUSINESS_OFFICE_SPREADSHEET_ID|H38_BUSINESS_OFFICE_DEPLOYMENT_ID/.test(pack))fail('Highway 38 storage or deployment key leaked into Northern Lakes pack');
-if(/1QBG_2j-CSOpo00nkK1-K9VQGGBNv5N7v|1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4/.test(pack+setup))fail('Retired Northern Lakes storage was hard-coded into the clean installation');
+if(/1QBG_2j-CSOpo00nkK1-K9VQGGBNv5N7v|1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4/.test(pack+setup+existingStatus))fail('Retired or live Northern Lakes storage was hard-coded into source');
 if((setup.match(/name:'SAMPLE —/g)||[]).length!==13)fail('expected exactly 13 training example sheet definitions');
-if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,ownerPreview:true,supportAccess:{provider:'Highway 38 Solutions',accounts:['rkrueth@gmail.com','mandakw55@gmail.com'],signedInRequired:true,customerVisible:true,revocable:true},syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
+
+try{
+  const requiredSheets=['BO Businesses','BO Users','BO Customers','BO Quotes','BO Quote Lines','BO Jobs','BO Documents','BO Settings','BO Proof Log','BO Error Log','BO Products & Services','BO Setup Checklist'];
+  const upgradedNames=requiredSheets.concat(Array.from({length:76},(_,index)=>'Upgrade Sheet '+(index+1)));
+  const sandbox={
+    SpreadsheetApp:{openById:()=>({getSheets:()=>upgradedNames.map(name=>({getName:()=>name}))})},
+    DriveApp:{getFolderById:()=>({getName:()=>'Northern Lakes Business Office'})},
+    console
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(existingStatus,sandbox,{filename:'BusinessOffice_NorthernLakesExistingOfficeStatus.gs'});
+  const health=sandbox.nlpsExistingOfficeHealth_('existing-sheet','existing-folder','clean-core-v1');
+  if(!health.configured)fail('88-sheet upgraded Northern Lakes workbook was not recognized as configured');
+  if(health.sheetCount!==88)fail('upgraded workbook sheet count was not retained');
+  if(health.missingRequiredSheets.length)fail('required upgraded workbook sheets were reported missing');
+  const missingSandbox={
+    SpreadsheetApp:{openById:()=>({getSheets:()=>Array.from({length:88},(_,index)=>({getName:()=>index===0?'BO Businesses':'Other '+index}))})},
+    DriveApp:{getFolderById:()=>({getName:()=>'Northern Lakes Business Office'})},
+    console
+  };
+  vm.createContext(missingSandbox);
+  vm.runInContext(existingStatus,missingSandbox,{filename:'BusinessOffice_NorthernLakesExistingOfficeStatus.gs'});
+  const missing=missingSandbox.nlpsExistingOfficeHealth_('existing-sheet','existing-folder','clean-core-v1');
+  if(missing.configured||!missing.missingRequiredSheets.length)fail('missing required sheets did not block existing-office status');
+}catch(error){fail('existing-office compatibility regression failed: '+error.message);}
+
+if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,upgradedWorkbookSheetsSupported:true,liveObservedWorkbookSheets:88,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,ownerPreview:true,supportAccess:{provider:'Highway 38 Solutions',accounts:['rkrueth@gmail.com','mandakw55@gmail.com'],signedInRequired:true,customerVisible:true,revocable:true},syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
