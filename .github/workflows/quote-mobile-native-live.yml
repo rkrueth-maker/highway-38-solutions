@@ -4,11 +4,16 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
       - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
+      - 'scripts/verify-quote-price-semantic-isolation.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
       - 'scripts/verify-quote-mobile-stabilization.js'
@@ -16,11 +21,16 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'
+      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs'
       - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
       - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
       - 'scripts/verify-quote-native-photo-workflow.js'
+      - 'scripts/verify-quote-price-semantic-isolation.js'
       - 'scripts/test-quote-native-photo-browser.js'
       - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
       - 'scripts/verify-quote-mobile-stabilization.js'
@@ -63,6 +73,9 @@ jobs:
 
       - name: Verify native mobile source contract
         run: node scripts/verify-quote-native-photo-workflow.js
+
+      - name: Verify price component isolation
+        run: node scripts/verify-quote-price-semantic-isolation.js
 
       - name: Run Android-sized native picker workflow
         run: node scripts/test-quote-native-photo-browser.js | tee quote-mobile-browser.json
@@ -118,7 +131,7 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
 
-      - name: Run authorized live gutter upload, analysis, pricing, and edit acceptance
+      - name: Run authorized live gutter upload, analysis, pricing, save, edit, and reprocess acceptance
         shell: bash
         run: bash scripts/run-quote-mobile-live-acceptance-authorized.sh artifacts/quote-mobile-live
 
@@ -127,35 +140,51 @@ jobs:
         run: |
           node - <<'NODE'
           const result=require('./artifacts/quote-mobile-live/result.json');
-          const gutter=(result.pricing||[]).find(line=>/gutter/i.test([line.description,line.catalogName,line.catalogDescription,line.catalogSource].join(' ')));
-          const downspoutIncluded=/downspout/i.test([
-            ...(result.pricing||[]).flatMap(line=>[line.description,line.catalogName,line.catalogDescription,line.catalogSource]),
-            ...((result.photoAnalysis&&result.photoAnalysis.observations)||[])
-          ].join(' '));
+          const text=line=>String(line.description||'').trim()||[line.catalogName,line.catalogDescription].join(' ');
+          const component=line=>{
+            const value=text(line);
+            if(/(?:leaf|gutter)\s*guards?|gutter\s*protection|leaf\s*protection/i.test(value))return 'gutter_guard';
+            const normalized=value.toLowerCase().replace(/\bdownspouts?\b|\bdrainpipes?\b/g,' downspout ').replace(/\bguttering\b|\bgutters?\b/g,' gutter ');
+            const d=normalized.indexOf('downspout'),g=normalized.indexOf('gutter');
+            if(d>=0&&g>=0)return d<g?'downspout':'gutter';
+            if(d>=0)return 'downspout';
+            if(g>=0)return 'gutter';
+            return '';
+          };
+          const pricing=result.pricing||[];
+          const gutter=pricing.find(line=>component(line)==='gutter');
+          const downspout=pricing.find(line=>component(line)==='downspout');
+          const leafGuard=pricing.find(line=>component(line)==='gutter_guard');
           const failures=[];
           if(result.status!=='PASS')failures.push('status');
           if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
-          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<1)failures.push('photo analysis');
-          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter scope price');
-          if(!downspoutIncluded)failures.push('downspout coverage');
-          if(!result.editDraft||Number(result.editDraft.lineCount||0)<1||result.editDraft.projectTitle!=='Gutters')failures.push('draft edit load');
+          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<3)failures.push('three-component photo analysis');
+          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter price');
+          if(!downspout||Number(downspout.rate||0)<=0)failures.push('downspout price');
+          if(!leafGuard||Number(leafGuard.rate||0)<=0)failures.push('leaf-guard price');
+          if(gutter&&leafGuard&&gutter.catalogId===leafGuard.catalogId)failures.push('leaf guard reused gutter catalog');
+          if(gutter&&downspout&&gutter.catalogId===downspout.catalogId)failures.push('downspout reused gutter catalog');
+          if(!result.editDraft||Number(result.editDraft.lineCount||0)<3||result.editDraft.projectTitle!=='Gutters')failures.push('saved draft edit load');
+          if(!result.reprocess||result.reprocess.duplicateComponents!==false)failures.push('duplicate-free reprocess');
+          const counts=result.reprocess&&result.reprocess.componentCounts||{};
+          if(counts.gutter!==1||counts.downspout!==1||counts.gutter_guard!==1)failures.push('reprocess component counts');
           if(result.approved!==false||result.sent!==false||result.ownerReviewRequired!==true)failures.push('owner-review boundary');
           if(failures.length)throw new Error('Live mobile acceptance failed: '+failures.join(', '));
-          console.log(JSON.stringify({status:'PASS',uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,scopeRate:gutter.rate,downspoutIncluded:downspoutIncluded,editDraft:result.editDraft,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));
+          console.log(JSON.stringify({status:'PASS',priorFailureRecovery:result.priorFailureRecovery,originalState:result.originalState,uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,gutterRate:gutter.rate,downspoutRate:downspout.rate,leafGuardRate:leafGuard.rate,catalogIds:{gutter:gutter.catalogId,downspout:downspout.catalogId,leafGuard:leafGuard.catalogId},editDraft:result.editDraft,reprocess:result.reprocess,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));
           NODE
 
       - name: Record live mobile acceptance PASS
         if: success()
         shell: bash
         run: |
-          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed\n- Production data: actual gutter photos analyzed and the combined gutter scope, including one downspout, priced through the authorized runtime\n- Draft edit: saved Gutters draft reopened with lines and customers\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed twice without duplicate lines\n- Production data: actual gutter photos produced separate gutter, downspout, and leaf-guard quote components\n- Pricing: each component received its own matching or researched owner-review rate; leaf guard and downspout did not reuse the gutter catalog item\n- Draft edit: saved Gutters draft was updated, reopened, reprocessed, and restored after acceptance\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Record live mobile acceptance HOLD
         if: failure()
         shell: bash
         run: |
-          BODY="## HOLD — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- The authorized live upload, photo analysis, pricing, or draft-edit acceptance did not pass.\n- Production must not be reported fixed.\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="## HOLD — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- The authorized live upload, component preservation, distinct pricing, saved-draft edit, or duplicate-free reprocess acceptance did not pass.\n- Production must not be reported fixed.\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
 
       - name: Upload live production evidence
