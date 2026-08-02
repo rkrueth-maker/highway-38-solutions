@@ -48,13 +48,16 @@ function boQuoteBuilderMobileAcceptanceFind_(lines, component) {
 
 function boQuoteBuilderMobileAcceptanceAssertComponents_(lines, label) {
   const counts = { gutter:0, downspout:0, gutter_guard:0 };
+  const summary = [];
   (lines || []).forEach(function (line) {
     const component = boQuoteBuilderMobileAcceptanceComponent_(line);
     if (component && Object.prototype.hasOwnProperty.call(counts, component)) counts[component] += 1;
+    summary.push((component || 'other') + ': ' + boNormalizeText_(line && (line.description || line.catalogName || line.catalogDescription || 'Unnamed line')));
   });
-  boAssert_(counts.gutter === 1, label + ' must contain exactly one gutter component; found ' + counts.gutter + '.');
-  boAssert_(counts.downspout === 1, label + ' must contain exactly one downspout component; found ' + counts.downspout + '.');
-  boAssert_(counts.gutter_guard === 1, label + ' must contain exactly one leaf-guard component; found ' + counts.gutter_guard + '.');
+  const detail = summary.length ? ' Lines: ' + summary.join(' | ') : '';
+  boAssert_(counts.gutter === 1, label + ' must contain exactly one gutter component; found ' + counts.gutter + '.' + detail);
+  boAssert_(counts.downspout === 1, label + ' must contain exactly one downspout component; found ' + counts.downspout + '.' + detail);
+  boAssert_(counts.gutter_guard === 1, label + ' must contain exactly one leaf-guard component; found ' + counts.gutter_guard + '.' + detail);
   return counts;
 }
 
