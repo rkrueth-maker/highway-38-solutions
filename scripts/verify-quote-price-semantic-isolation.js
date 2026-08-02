@@ -7,6 +7,18 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'), 'utf8');
+const recoverySource = fs.readFileSync(path.join(root, 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs'), 'utf8');
+
+[
+  'boQuoteBuilderMobileAcceptanceCaptureQuoteState_',
+  'boQuoteBuilderMobileAcceptanceRestoreQuoteState_',
+  'boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_',
+  "boAudit_('RESTORE'",
+  'original zero-line Draft'
+].forEach(marker => {
+  if (!recoverySource.includes(marker)) throw new Error(`Missing acceptance recovery contract: ${marker}`);
+});
+new Function(recoverySource);
 
 let productionRows = [
   {
@@ -125,4 +137,4 @@ if (researched.catalogId !== 'LOCAL-GUARD') throw new Error(`Local research lost
 if (researched.item['Product / Service ID'] !== 'LOCAL-GUARD') throw new Error('Local research item was not normalized to the quote-line catalog schema.');
 if (researched.ownerReviewRequired !== true || researched.finalPriceApproved !== false) throw new Error('Local research escaped owner review.');
 
-console.log('PASS — production Catalog IDs outrank blank legacy-view duplicates, source history cannot change component identity, and researched Catalog IDs survive the mobile pricing handoff.');
+console.log('PASS — production Catalog IDs outrank blank legacy-view duplicates, source history cannot change component identity, researched Catalog IDs survive the mobile pricing handoff, and exact acceptance recovery is syntactically guarded.');
