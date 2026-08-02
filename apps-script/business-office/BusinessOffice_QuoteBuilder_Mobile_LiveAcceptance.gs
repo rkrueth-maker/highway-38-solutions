@@ -9,6 +9,55 @@ function boQuoteBuilderMobileAcceptanceDraft_(result) {
   }
 }
 
+function boQuoteBuilderMobileAcceptanceText_(value) {
+  if (Array.isArray(value)) return value.join('\n');
+  return String(value == null ? '' : value);
+}
+
+function boQuoteBuilderMobileAcceptanceLineText_(line) {
+  line = line || {};
+  return [
+    line.description || '',
+    line.searchQuery || '',
+    line.evidence || '',
+    line.catalogName || '',
+    line.catalogDescription || '',
+    line.catalogSource || ''
+  ].join(' ');
+}
+
+function boQuoteBuilderMobileAcceptanceComponent_(line) {
+  const text = boQuoteBuilderMobileAcceptanceLineText_(line);
+  if (/(?:leaf|gutter)\s*guards?|gutter\s*protection|leaf\s*protection/i.test(text)) return 'gutter_guard';
+  const normalized = text.toLowerCase()
+    .replace(/\bdownspouts?\b|\bdrainpipes?\b/g, ' downspout ')
+    .replace(/\bguttering\b|\bgutters?\b/g, ' gutter ');
+  const downspoutIndex = normalized.indexOf('downspout');
+  const gutterIndex = normalized.indexOf('gutter');
+  if (downspoutIndex >= 0 && gutterIndex >= 0) return downspoutIndex < gutterIndex ? 'downspout' : 'gutter';
+  if (downspoutIndex >= 0) return 'downspout';
+  if (gutterIndex >= 0) return 'gutter';
+  return '';
+}
+
+function boQuoteBuilderMobileAcceptanceFind_(lines, component) {
+  return (lines || []).find(function (line) {
+    return boQuoteBuilderMobileAcceptanceComponent_(line) === component;
+  }) || null;
+}
+
+function boQuoteBuilderMobileAcceptanceAssertComponents_(lines, label) {
+  const counts = { gutter:0, downspout:0, gutter_guard:0 };
+  (lines || []).forEach(function (line) {
+    const component = boQuoteBuilderMobileAcceptanceComponent_(line);
+    if (component && Object.prototype.hasOwnProperty.call(counts, component)) counts[component] += 1;
+  });
+  boAssert_(counts.gutter === 1, label + ' must contain exactly one gutter component; found ' + counts.gutter + '.');
+  boAssert_(counts.downspout === 1, label + ' must contain exactly one downspout component; found ' + counts.downspout + '.');
+  boAssert_(counts.gutter_guard === 1, label + ' must contain exactly one leaf-guard component; found ' + counts.gutter_guard + '.');
+  return counts;
+}
+
 function boQuoteBuilderMobileAcceptancePhotoIds_() {
   const names = ['1000007797.jpg', '1000007798.jpg'];
   const rows = boQuoteBuilderSnapshot_(H38_BO_SHEETS.DOCUMENTS, { includeVoided: true }).rows
@@ -35,7 +84,9 @@ function boQuoteBuilderMobileAcceptanceQuoteId_() {
     .filter(function (row) {
       return row['Is Voided'] !== 'Yes' &&
         row['Project Title'] === 'Gutters' &&
-        boQuoteBuilderEditableStatus_(row.Status);
+        boNormalizeText_(row.Status || 'Draft') === 'Draft' &&
+        boNormalizeText_(row['Approval Status'] || 'Owner Approval Required') !== 'Approved' &&
+        boNormalizeText_(row['Customer Action'] || 'Not Sent') !== 'Sent';
     })
     .sort(function (a, b) {
       return String(b['Updated Time'] || b['Created Time'] || '').localeCompare(String(a['Updated Time'] || a['Created Time'] || ''));
@@ -44,12 +95,115 @@ function boQuoteBuilderMobileAcceptanceQuoteId_() {
   return rows[0]['Quote ID'];
 }
 
+function boQuoteBuilderMobileAcceptancePriceLines_(draft) {
+  const suggested = Array.isArray(draft && draft.suggestedLines) ? draft.suggestedLines : [];
+  return suggested.slice(0, 8).map(function (line) {
+    const query = boNormalizeText_(line.searchQuery || line.description || line.catalogId || '');
+    const result = boQuoteBuilderResolveLinePrice({
+      query: query,
+      catalogId: line.catalogId || '',
+      description: line.description || '',
+      unit: line.unit || '',
+      taxable: false
+    });
+    const item = result && result.item || {};
+    return {
+      catalogId: result && result.catalogId || item['Product / Service ID'] || '',
+      description: line.description || item['Customer Description'] || item.Name || query,
+      quantity: Number(line.quantity || 0),
+      unit: item.Unit || line.unit || '',
+      rate: Number(item['Standard Selling Price'] || item.Price || 0),
+      source: result && result.source || '',
+      matched: result && result.matched === true,
+      researched: result && result.researched === true,
+      ownerReviewRequired: result && result.ownerReviewRequired === true,
+      finalPriceApproved: result && result.finalPriceApproved === true,
+      catalogName: item.Name || '',
+      catalogDescription: item['Customer Description'] || item.Description || '',
+      catalogSource: item['Catalog Source'] || '',
+      notes: line.evidence || ''
+    };
+  });
+}
+
+function boQuoteBuilderMobileAcceptanceAssertPricing_(priced, label) {
+  boQuoteBuilderMobileAcceptanceAssertComponents_(priced, label);
+  const gutter = boQuoteBuilderMobileAcceptanceFind_(priced, 'gutter');
+  const downspout = boQuoteBuilderMobileAcceptanceFind_(priced, 'downspout');
+  const leafGuard = boQuoteBuilderMobileAcceptanceFind_(priced, 'gutter_guard');
+  boAssert_(gutter && gutter.rate > 0, label + ' gutter line did not receive a nonzero reviewed rate.');
+  boAssert_(downspout && downspout.rate > 0, label + ' downspout line did not receive a nonzero reviewed rate.');
+  boAssert_(leafGuard && leafGuard.rate > 0, label + ' leaf-guard line did not receive a nonzero reviewed rate.');
+  boAssert_(leafGuard.catalogId && leafGuard.catalogId !== gutter.catalogId, label + ' leaf guard reused the gutter catalog item.');
+  boAssert_(downspout.catalogId && downspout.catalogId !== gutter.catalogId, label + ' downspout reused the gutter catalog item.');
+  boAssert_(leafGuard.ownerReviewRequired && downspout.ownerReviewRequired && gutter.ownerReviewRequired, label + ' pricing escaped owner review.');
+  boAssert_(leafGuard.finalPriceApproved === false && downspout.finalPriceApproved === false && gutter.finalPriceApproved === false, label + ' pricing was automatically approved.');
+  return { gutter:gutter, downspout:downspout, leafGuard:leafGuard };
+}
+
+function boQuoteBuilderMobileAcceptanceUpdatePayload_(editable, draft, priced) {
+  const quote = editable.quote || {};
+  return {
+    quoteId: quote.quoteId,
+    editToken: editable.editToken,
+    customerId: quote.customerId,
+    projectTitle: quote.projectTitle || draft.projectTitle || 'Gutters',
+    quoteDate: quote.quoteDate || '',
+    expirationDate: quote.expirationDate || '',
+    paymentTerms: quote.paymentTerms || 'Net 15',
+    scope: boQuoteBuilderMobileAcceptanceText_(draft.scope || quote.scope || ''),
+    assumptions: boQuoteBuilderMobileAcceptanceText_(draft.assumptions || quote.assumptions || ''),
+    exclusions: boQuoteBuilderMobileAcceptanceText_(draft.exclusions || quote.exclusions || ''),
+    customerNotes: quote.customerNotes || '',
+    internalNotes: quote.internalNotes || '',
+    deposit: Number(quote.deposit || 0),
+    lines: (priced || []).map(function (line) {
+      return {
+        catalogId: line.catalogId || '',
+        description: line.description || '',
+        quantity: Number(line.quantity || 0),
+        unit: line.unit || 'each',
+        rate: Number(line.rate || 0),
+        discount: 0,
+        taxable: false,
+        taxRate: 0,
+        accountCode: '4000',
+        jobCostCategory: 'Service Revenue',
+        notes: line.notes || 'Owner review required.'
+      };
+    })
+  };
+}
+
+function boQuoteBuilderMobileAcceptanceRestorePayload_(current, original) {
+  const quote = original.quote || {};
+  return {
+    quoteId: quote.quoteId,
+    editToken: current.editToken,
+    customerId: quote.customerId,
+    projectTitle: quote.projectTitle,
+    quoteDate: quote.quoteDate || '',
+    expirationDate: quote.expirationDate || '',
+    paymentTerms: quote.paymentTerms || 'Net 15',
+    scope: quote.scope || '',
+    assumptions: quote.assumptions || '',
+    exclusions: quote.exclusions || '',
+    customerNotes: quote.customerNotes || '',
+    internalNotes: quote.internalNotes || '',
+    deposit: Number(quote.deposit || 0),
+    lines: original.lines || []
+  };
+}
+
 function boQuoteBuilderRunMobileProductionAcceptance() {
   return boSafeExecute_('Quote Builder mobile production acceptance', function () {
     const access = boQuoteBuilderRequireAction_('Edit');
     const started = Date.now();
     let syntheticDocumentId = '';
     let syntheticFileId = '';
+    let quoteId = '';
+    let originalEditable = null;
+    let quoteModified = false;
     try {
       const targetUploadBytes = 4800000;
       const uniqueText = new Array(targetUploadBytes + 1).join('A') + new Date().toISOString();
@@ -66,8 +220,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       boAssert_(Number(staged.sizeBytes || 0) >= targetUploadBytes, 'The live upload acceptance did not preserve a normal phone-photo-sized payload.');
 
       const photoIds = boQuoteBuilderMobileAcceptancePhotoIds_();
-      const analysisStarted = Date.now();
-      const analysisResult = boBuildAiQuoteDraft({
+      const analysisPayload = {
         customerId: 'CUST-H38-GENERIC-QUOTE',
         projectTitle: 'Gutters',
         notes: [
@@ -77,78 +230,47 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
           'Internal owner-review draft only. Do not approve or send.'
         ].join('\n'),
         photoDocumentIds: photoIds
-      });
-      const draft = boQuoteBuilderMobileAcceptanceDraft_(analysisResult);
-      const suggested = Array.isArray(draft.suggestedLines) ? draft.suggestedLines : [];
-      boAssert_(suggested.length >= 2, 'Photo analysis did not return usable gutter and typed-scope quote lines.');
-      const leafGuard = suggested.find(function (line) {
-        return /(?:leaf|gutter)\s*guard|gutter\s*protection/i.test([
-          line.description || '',
-          line.searchQuery || '',
-          line.evidence || ''
-        ].join(' '));
-      });
-      boAssert_(leafGuard, 'The explicitly typed leaf guard scope was omitted from the live quote draft.');
+      };
 
-      const priced = suggested.slice(0, 6).map(function (line) {
-        const query = boNormalizeText_([
-          line.searchQuery || line.description || line.catalogId || '',
-          draft.scope || 'Replace existing gutters with 6-inch white gutters, one downspout, and leaf guard.'
-        ].filter(Boolean).join('. Work scope: '));
-        const result = boQuoteBuilderResolveLinePrice({
-          query: query,
-          catalogId: line.catalogId || '',
-          description: line.description || '',
-          unit: line.unit || '',
-          taxable: false
-        });
-        const item = result && result.item || {};
-        return {
-          description: line.description || item['Customer Description'] || item.Name || query,
-          quantity: Number(line.quantity || 0),
-          unit: item.Unit || line.unit || '',
-          rate: Number(item['Standard Selling Price'] || item.Price || 0),
-          source: result && result.source || '',
-          catalogName: item.Name || '',
-          catalogDescription: item['Customer Description'] || item.Description || '',
-          catalogSource: item['Catalog Source'] || ''
-        };
-      });
+      const analysisStarted = Date.now();
+      const firstResult = boBuildAiQuoteDraft(analysisPayload);
+      const firstDraft = boQuoteBuilderMobileAcceptanceDraft_(firstResult);
+      const firstSuggested = Array.isArray(firstDraft.suggestedLines) ? firstDraft.suggestedLines : [];
+      boQuoteBuilderMobileAcceptanceAssertComponents_(firstSuggested, 'First photo analysis');
+      const firstPricing = boQuoteBuilderMobileAcceptancePriceLines_(firstDraft);
+      const firstComponents = boQuoteBuilderMobileAcceptanceAssertPricing_(firstPricing, 'First pricing pass');
 
-      const gutter = priced.find(function (line) {
-        const text = [
-          line.description,
-          line.catalogName,
-          line.catalogDescription,
-          line.catalogSource
-        ].join(' ');
-        return /gutter/i.test(text) && !/(?:leaf|gutter)\s*guard|gutter\s*protection/i.test(text);
-      });
-      boAssert_(gutter && gutter.rate > 0, 'The live gutter scope did not receive a nonzero Price Book rate.');
-      const gutterCoverage = [
-        gutter.description,
-        gutter.catalogName,
-        gutter.catalogDescription,
-        gutter.catalogSource,
-        draft.scope || '',
-        (draft.photoObservations || []).join(' ')
-      ].join(' ');
-      boAssert_(/downspout/i.test(gutterCoverage), 'The priced gutter scope did not preserve the known downspout component.');
+      quoteId = boQuoteBuilderMobileAcceptanceQuoteId_();
+      originalEditable = boQuoteBuilderEditableQuote({ quoteId: quoteId });
+      boAssert_(originalEditable && originalEditable.quote && originalEditable.quote.quoteId === quoteId, 'The saved draft did not open for the save acceptance.');
+      boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(originalEditable, firstDraft, firstPricing));
+      quoteModified = true;
 
-      const quoteId = boQuoteBuilderMobileAcceptanceQuoteId_();
-      const editStarted = Date.now();
-      const editable = boQuoteBuilderEditableQuote({ quoteId: quoteId });
-      boAssert_(editable && editable.quote && editable.quote.quoteId === quoteId, 'The saved draft did not reopen in the editable Quote Builder.');
-      boAssert_(editable.quote.projectTitle === 'Gutters', 'The saved gutter project title was not restored.');
-      boAssert_(Array.isArray(editable.lines) && editable.lines.length, 'The saved quote lines were not restored for editing.');
-      boAssert_(Array.isArray(editable.customers) && editable.customers.length, 'Customer choices were not restored for editing.');
+      const firstReopen = boQuoteBuilderEditableQuote({ quoteId: quoteId });
+      boQuoteBuilderMobileAcceptanceAssertComponents_(firstReopen.lines, 'First saved draft reopen');
+      boAssert_(firstReopen.quote.projectTitle === 'Gutters', 'The saved gutter project title was not restored.');
+      boAssert_(Array.isArray(firstReopen.customers) && firstReopen.customers.length, 'Customer choices were not restored for editing.');
+
+      const reprocessStarted = Date.now();
+      const secondResult = boBuildAiQuoteDraft(analysisPayload);
+      const secondDraft = boQuoteBuilderMobileAcceptanceDraft_(secondResult);
+      const secondSuggested = Array.isArray(secondDraft.suggestedLines) ? secondDraft.suggestedLines : [];
+      boQuoteBuilderMobileAcceptanceAssertComponents_(secondSuggested, 'Reprocessed photo analysis');
+      const secondPricing = boQuoteBuilderMobileAcceptancePriceLines_(secondDraft);
+      const secondComponents = boQuoteBuilderMobileAcceptanceAssertPricing_(secondPricing, 'Reprocessed pricing pass');
+      boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(firstReopen, secondDraft, secondPricing));
+
+      const finalReopen = boQuoteBuilderEditableQuote({ quoteId: quoteId });
+      const finalCounts = boQuoteBuilderMobileAcceptanceAssertComponents_(finalReopen.lines, 'Reprocessed saved draft');
+      boAssert_(finalReopen.quote.projectTitle === 'Gutters', 'The reprocessed draft did not retain the project title.');
+      boAssert_(Array.isArray(finalReopen.customers) && finalReopen.customers.length, 'The reprocessed draft did not retain customer choices.');
 
       boProof_(
         'QUOTE BUILDER MOBILE LIVE ACCEPTANCE',
         'Quote',
         quoteId,
         'PASS',
-        photoIds.length + ' real photos analyzed; typed leaf guard preserved; gutter scope including one downspout priced; editable draft loaded; nothing sent.',
+        photoIds.length + ' real photos analyzed; gutter, downspout, and leaf guard separately priced; saved draft reopened and reprocessed without duplicate components; nothing approved or sent.',
         access.user.email
       );
 
@@ -163,20 +285,30 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         photoAnalysis: {
           documentIds: photoIds,
           durationMs: Date.now() - analysisStarted,
-          projectTitle: draft.projectTitle || '',
-          observations: draft.photoObservations || [],
-          lineCount: suggested.length,
+          projectTitle: firstDraft.projectTitle || '',
+          observations: firstDraft.photoObservations || [],
+          lineCount: firstSuggested.length,
           requiredScopePreserved: true,
-          requiredScopeLine: leafGuard.description || leafGuard.searchQuery || 'Leaf guard'
+          requiredScopeLine: firstComponents.leafGuard.description || 'Leaf guard',
+          observedDownspoutPreserved: true,
+          downspoutLine: firstComponents.downspout.description || 'Downspout'
         },
-        pricing: priced,
+        pricing: firstPricing,
         editDraft: {
           quoteId: quoteId,
-          quoteNumber: editable.quote.quoteNumber,
-          projectTitle: editable.quote.projectTitle,
-          lineCount: editable.lines.length,
-          customerCount: editable.customers.length,
-          durationMs: Date.now() - editStarted
+          quoteNumber: finalReopen.quote.quoteNumber,
+          projectTitle: finalReopen.quote.projectTitle,
+          lineCount: finalReopen.lines.length,
+          customerCount: finalReopen.customers.length
+        },
+        reprocess: {
+          durationMs: Date.now() - reprocessStarted,
+          lineCount: finalReopen.lines.length,
+          componentCounts: finalCounts,
+          gutterCatalogId: secondComponents.gutter.catalogId,
+          downspoutCatalogId: secondComponents.downspout.catalogId,
+          leafGuardCatalogId: secondComponents.leafGuard.catalogId,
+          duplicateComponents: false
         },
         ownerReviewRequired: true,
         approved: false,
@@ -184,8 +316,18 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         durationMs: Date.now() - started
       };
     } finally {
+      const cleanupErrors = [];
+      if (quoteModified && quoteId && originalEditable) {
+        try {
+          const current = boQuoteBuilderEditableQuote({ quoteId: quoteId });
+          boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceRestorePayload_(current, originalEditable));
+        } catch (error) {
+          cleanupErrors.push('quote restore: ' + error.message);
+        }
+      }
       if (syntheticFileId) {
-        try { DriveApp.getFileById(syntheticFileId).setTrashed(true); } catch (error) { console.log('Mobile acceptance file cleanup: ' + error.message); }
+        try { DriveApp.getFileById(syntheticFileId).setTrashed(true); }
+        catch (error) { cleanupErrors.push('temporary file cleanup: ' + error.message); }
       }
       if (syntheticDocumentId) {
         try {
@@ -195,9 +337,10 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
             'Approval Status': 'Not Applicable'
           }, 'Quote Builder mobile acceptance cleanup');
         } catch (error) {
-          console.log('Mobile acceptance document cleanup: ' + error.message);
+          cleanupErrors.push('temporary document cleanup: ' + error.message);
         }
       }
+      if (cleanupErrors.length) throw new Error('Mobile acceptance cleanup failed: ' + cleanupErrors.join('; '));
     }
   }, 'Quote', 'GUTTERS-MOBILE-ACCEPTANCE');
 }
