@@ -153,6 +153,12 @@ function boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(lines) {
   return counts.gutter === 1 && counts.downspout === 1 && counts.gutter_guard === 1 && counts.other === 0;
 }
 
+function boQuoteBuilderMobileAcceptanceAuditLooksLikeFirstPass_(lines) {
+  if (!Array.isArray(lines) || lines.length < 2 || lines.length > 3) return false;
+  const counts = boQuoteBuilderMobileAcceptanceAuditComponentCounts_(lines);
+  return counts.gutter === 1 && counts.gutter_guard === 1 && counts.downspout <= 1 && counts.other === 0;
+}
+
 function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
   const auditRows = boQuoteBuilderSnapshot_(H38_BO_SHEETS.AUDIT_LOG, { includeVoided:true }).rows;
   if (!auditRows.length) return { recovered:false, auditRowCount:0, scannedRows:0, candidates:[] };
@@ -196,7 +202,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
     };
     if (candidates.length < 24) candidates.push(summary);
 
-    if (!quoteId || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestPrevious) || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestNew)) continue;
+    if (!quoteId || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestNew)) continue;
     if (!currentQuote || !summary.draft || summary.approved || summary.sent || !summary.currentContentMatchesNew) continue;
 
     let firstLineAuditIndex = -1;
@@ -208,7 +214,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
       if (boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(prior, ['Source'])) !== 'Quote Builder owner edit') continue;
       const priorPrevious = boQuoteBuilderMobileAcceptanceAuditPrevious_(prior, []);
       const priorNew = boQuoteBuilderMobileAcceptanceAuditNew_(prior, []);
-      if (Array.isArray(priorPrevious) && priorPrevious.length === 0 && boQuoteBuilderMobileAcceptanceAuditLineContentEqual_(priorNew, latestPrevious)) {
+      if (Array.isArray(priorPrevious) && priorPrevious.length === 0 && boQuoteBuilderMobileAcceptanceAuditLooksLikeFirstPass_(priorNew)) {
         firstLineAuditIndex = priorIndex;
         summary.firstZeroLineAuditFound = true;
         break;
@@ -230,7 +236,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
     if (!originalQuote || boNormalizeText_(originalQuote['Quote ID']) !== quoteId) continue;
 
     boQuoteBuilderMobileAcceptanceRestoreQuoteState_({ quote:originalQuote, lines:[] });
-    boProof_('RECOVER PRIOR MOBILE ACCEPTANCE CLEANUP', 'Quote', quoteId, 'PASS', 'Audit chain proved original zero-line Draft and exact current acceptance line content.', boGetActiveEmail_());
+    boProof_('RECOVER PRIOR MOBILE ACCEPTANCE CLEANUP', 'Quote', quoteId, 'PASS', 'Audit chain proved original zero-line Draft and later acceptance line content.', boGetActiveEmail_());
     return {
       recovered:true,
       quoteId:quoteId,
