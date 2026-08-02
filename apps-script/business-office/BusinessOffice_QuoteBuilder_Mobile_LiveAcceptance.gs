@@ -106,7 +106,7 @@ function boQuoteBuilderMobileAcceptancePriceLines_(draft) {
     });
     const item = result && result.item || {};
     return {
-      catalogId: result && result.catalogId || item['Product / Service ID'] || '',
+      catalogId: result && result.catalogId || item['Product / Service ID'] || item['Catalog ID'] || '',
       description: line.description || item['Customer Description'] || item.Name || query,
       quantity: Number(line.quantity || 0),
       unit: item.Unit || line.unit || '',
@@ -176,34 +176,16 @@ function boQuoteBuilderMobileAcceptanceUpdatePayload_(editable, draft, priced) {
   };
 }
 
-function boQuoteBuilderMobileAcceptanceRestorePayload_(current, original) {
-  const quote = original.quote || {};
-  return {
-    quoteId: quote.quoteId,
-    editToken: current.editToken,
-    customerId: quote.customerId,
-    projectTitle: quote.projectTitle,
-    quoteDate: quote.quoteDate || '',
-    expirationDate: quote.expirationDate || '',
-    paymentTerms: quote.paymentTerms || 'Net 15',
-    scope: quote.scope || '',
-    assumptions: quote.assumptions || '',
-    exclusions: quote.exclusions || '',
-    customerNotes: quote.customerNotes || '',
-    internalNotes: quote.internalNotes || '',
-    deposit: Number(quote.deposit || 0),
-    lines: original.lines || []
-  };
-}
-
 function boQuoteBuilderRunMobileProductionAcceptance() {
   return boSafeExecute_('Quote Builder mobile production acceptance', function () {
     const access = boQuoteBuilderRequireAction_('Edit');
+    const recoveredPriorFailure = boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_();
     const started = Date.now();
     let syntheticDocumentId = '';
     let syntheticFileId = '';
     let quoteId = '';
     let originalEditable = null;
+    let originalQuoteState = null;
     let quoteModified = false;
     try {
       const targetUploadBytes = 4800000;
@@ -242,6 +224,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       const firstComponents = boQuoteBuilderMobileAcceptanceAssertPricing_(firstPricing, 'First pricing pass');
 
       quoteId = boQuoteBuilderMobileAcceptanceQuoteId_();
+      originalQuoteState = boQuoteBuilderMobileAcceptanceCaptureQuoteState_(quoteId);
       originalEditable = boQuoteBuilderEditableQuote({ quoteId: quoteId });
       boAssert_(originalEditable && originalEditable.quote && originalEditable.quote.quoteId === quoteId, 'The saved draft did not open for the save acceptance.');
       boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(originalEditable, firstDraft, firstPricing));
@@ -277,6 +260,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
 
       return {
         status: 'PASS',
+        priorFailureRecovery: recoveredPriorFailure,
         photoUpload: {
           mode: 'single_request_immediate_file_read',
           syntheticDocumentId: syntheticDocumentId,
@@ -311,6 +295,9 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
           leafGuardCatalogId: secondComponents.leafGuard.catalogId,
           duplicateComponents: false
         },
+        originalState: {
+          lineCount: originalQuoteState && originalQuoteState.lines ? originalQuoteState.lines.length : 0
+        },
         ownerReviewRequired: true,
         approved: false,
         sent: false,
@@ -318,10 +305,9 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       };
     } finally {
       const cleanupErrors = [];
-      if (quoteModified && quoteId && originalEditable) {
+      if (quoteModified && originalQuoteState) {
         try {
-          const current = boQuoteBuilderEditableQuote({ quoteId: quoteId });
-          boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceRestorePayload_(current, originalEditable));
+          boQuoteBuilderMobileAcceptanceRestoreQuoteState_(originalQuoteState);
         } catch (error) {
           cleanupErrors.push('quote restore: ' + error.message);
         }
