@@ -6,6 +6,7 @@ PACK_SOURCE="${2:?business pack Apps Script file is required}"
 REPO_ROOT="${3:-${GITHUB_WORKSPACE:-$(cd "$(dirname "$0")/.." && pwd)}}"
 PACK_DIR="$(cd "$(dirname "$PACK_SOURCE")" && pwd)"
 PACK_BASENAME="$(basename "$PACK_SOURCE")"
+PACK_MANIFEST="$PACK_DIR/appsscript.json"
 
 [[ -f "$PACK_SOURCE" ]] || { echo "HOLD — business pack not found: $PACK_SOURCE"; exit 2; }
 mkdir -p "$DESTINATION"
@@ -30,6 +31,12 @@ shopt -u nullglob
 
 cp "$REPO_ROOT"/apps-script/business-office/BusinessOffice_*.html "$DESTINATION/"
 cp "$REPO_ROOT/apps-script/business-office/appsscript.json" "$DESTINATION/"
+# Customer installations may define a narrower manifest so first sign-in does
+# not request integrations that are disabled for that business. This replaces
+# only the assembled manifest; it does not alter the reusable core manifest.
+if [[ -f "$PACK_MANIFEST" ]]; then
+  cp "$PACK_MANIFEST" "$DESTINATION/appsscript.json"
+fi
 
 [[ -f "$DESTINATION/BusinessOffice_00_Pack.gs" ]] || { echo "HOLD — generated business pack is missing"; exit 3; }
 PACK_DECLARATIONS="$(grep -R -l 'var BO_EMBEDDED_BUSINESS_PACK\|const BO_EMBEDDED_BUSINESS_PACK' "$DESTINATION"/BusinessOffice_*.gs | wc -l | tr -d ' ')"
