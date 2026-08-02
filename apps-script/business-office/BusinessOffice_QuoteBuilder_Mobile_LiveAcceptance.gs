@@ -176,6 +176,74 @@ function boQuoteBuilderMobileAcceptanceUpdatePayload_(editable, draft, priced) {
   };
 }
 
+function boQuoteBuilderMobileAcceptanceEditableSignature_(editable) {
+  editable = editable || {};
+  const quote = editable.quote || {};
+  const lines = Array.isArray(editable.lines) ? editable.lines : [];
+  return JSON.stringify({
+    quote:{
+      quoteId:quote.quoteId || '',
+      customerId:quote.customerId || '',
+      projectTitle:quote.projectTitle || '',
+      quoteDate:quote.quoteDate || '',
+      expirationDate:quote.expirationDate || '',
+      status:quote.status || '',
+      approvalStatus:quote.approvalStatus || '',
+      paymentTerms:quote.paymentTerms || '',
+      scope:quote.scope || '',
+      assumptions:quote.assumptions || '',
+      exclusions:quote.exclusions || '',
+      customerNotes:quote.customerNotes || '',
+      internalNotes:quote.internalNotes || '',
+      deposit:Number(quote.deposit || 0)
+    },
+    lines:lines.map(function (line) {
+      return [
+        line.lineId || '', line.catalogId || '', line.description || '', Number(line.quantity || 0), line.unit || '',
+        Number(line.rate || 0), Number(line.discount || 0), line.taxable === true, Number(line.taxRate || 0),
+        line.accountCode || '', line.jobCostCategory || '', line.notes || ''
+      ];
+    })
+  });
+}
+
+function boQuoteBuilderMobileAcceptanceAssertEditableStable_(expected, current, label) {
+  boAssert_(
+    boQuoteBuilderMobileAcceptanceEditableSignature_(expected) === boQuoteBuilderMobileAcceptanceEditableSignature_(current),
+    label + ' changed while the acceptance analysis was running. The draft was not overwritten.'
+  );
+}
+
+function boQuoteBuilderMobileAcceptanceSaveWithFreshToken_(expected, draft, priced, label) {
+  const quoteId = expected && expected.quote && expected.quote.quoteId;
+  boAssert_(quoteId, label + ' is missing its Quote ID.');
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const current = boQuoteBuilderEditableQuote({ quoteId:quoteId });
+    boQuoteBuilderMobileAcceptanceAssertEditableStable_(expected, current, label);
+    try {
+      return boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(current, draft, priced));
+    } catch (error) {
+      lastError = error;
+      if (!/changed after you opened it/i.test(String(error && error.message || error)) || attempt >= 1) break;
+    }
+  }
+  throw new Error(label + ' failed: ' + String(lastError && lastError.message || lastError || 'Unknown save error'));
+}
+
+function boQuoteBuilderMobileAcceptanceRecoverySummary_(recovery) {
+  recovery = recovery || {};
+  return {
+    recovered:recovery.recovered === true,
+    quoteId:recovery.quoteId || '',
+    restoredLineCount:Number(recovery.restoredLineCount || 0),
+    auditRowCount:Number(recovery.auditRowCount || 0),
+    scannedRows:Number(recovery.scannedRows || 0),
+    candidateCount:Array.isArray(recovery.candidates) ? recovery.candidates.length : 0,
+    candidates:Array.isArray(recovery.candidates) ? recovery.candidates.slice(0, 6) : []
+  };
+}
+
 function boQuoteBuilderRunMobileProductionAcceptance() {
   return boSafeExecute_('Quote Builder mobile production acceptance', function () {
     const access = boQuoteBuilderRequireAction_('Edit');
@@ -184,7 +252,6 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
     let syntheticDocumentId = '';
     let syntheticFileId = '';
     let quoteId = '';
-    let originalEditable = null;
     let originalQuoteState = null;
     let quoteModified = false;
     try {
@@ -225,9 +292,9 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
 
       quoteId = boQuoteBuilderMobileAcceptanceQuoteId_();
       originalQuoteState = boQuoteBuilderMobileAcceptanceCaptureQuoteState_(quoteId);
-      originalEditable = boQuoteBuilderEditableQuote({ quoteId: quoteId });
+      const originalEditable = boQuoteBuilderEditableQuote({ quoteId:quoteId });
       boAssert_(originalEditable && originalEditable.quote && originalEditable.quote.quoteId === quoteId, 'The saved draft did not open for the save acceptance.');
-      boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(originalEditable, firstDraft, firstPricing));
+      boQuoteBuilderMobileAcceptanceSaveWithFreshToken_(originalEditable, firstDraft, firstPricing, 'First saved-draft write');
       quoteModified = true;
 
       const firstReopen = boQuoteBuilderEditableQuote({ quoteId: quoteId });
@@ -242,7 +309,7 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
       boQuoteBuilderMobileAcceptanceAssertComponents_(secondSuggested, 'Reprocessed photo analysis');
       const secondPricing = boQuoteBuilderMobileAcceptancePriceLines_(secondDraft);
       const secondComponents = boQuoteBuilderMobileAcceptanceAssertPricing_(secondPricing, 'Reprocessed pricing pass');
-      boQuoteBuilderUpdateEditableQuote(boQuoteBuilderMobileAcceptanceUpdatePayload_(firstReopen, secondDraft, secondPricing));
+      boQuoteBuilderMobileAcceptanceSaveWithFreshToken_(firstReopen, secondDraft, secondPricing, 'Reprocessed saved-draft write');
 
       const finalReopen = boQuoteBuilderEditableQuote({ quoteId: quoteId });
       const finalCounts = boQuoteBuilderMobileAcceptanceAssertComponents_(finalReopen.lines, 'Reprocessed saved draft');
@@ -303,6 +370,8 @@ function boQuoteBuilderRunMobileProductionAcceptance() {
         sent: false,
         durationMs: Date.now() - started
       };
+    } catch (error) {
+      throw new Error(String(error && error.message || error) + ' | priorRecovery=' + JSON.stringify(boQuoteBuilderMobileAcceptanceRecoverySummary_(recoveredPriorFailure)));
     } finally {
       const cleanupErrors = [];
       if (quoteModified && originalQuoteState) {
