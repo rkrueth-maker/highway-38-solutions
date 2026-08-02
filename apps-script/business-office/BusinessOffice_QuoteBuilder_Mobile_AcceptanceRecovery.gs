@@ -86,43 +86,64 @@ function boQuoteBuilderMobileAcceptanceAuditLinesEqual_(left, right) {
   return a.length === b.length && a.every(function (value, index) { return value === b[index]; });
 }
 
-function boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(lines) {
-  if (!Array.isArray(lines) || lines.length !== 3) return false;
-  const counts = { gutter:0, downspout:0, gutter_guard:0 };
-  lines.forEach(function (line) {
+function boQuoteBuilderMobileAcceptanceAuditComponentCounts_(lines) {
+  const counts = { gutter:0, downspout:0, gutter_guard:0, other:0 };
+  (lines || []).forEach(function (line) {
     const component = boQuoteBuilderMobileAcceptanceComponent_({
-      description:line.Description || line.description || ''
+      description:line && (line.Description || line.description || '')
     });
     if (component && Object.prototype.hasOwnProperty.call(counts, component)) counts[component] += 1;
+    else counts.other += 1;
   });
-  return counts.gutter === 1 && counts.downspout === 1 && counts.gutter_guard === 1;
+  return counts;
+}
+
+function boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(lines) {
+  if (!Array.isArray(lines) || lines.length !== 3) return false;
+  const counts = boQuoteBuilderMobileAcceptanceAuditComponentCounts_(lines);
+  return counts.gutter === 1 && counts.downspout === 1 && counts.gutter_guard === 1 && counts.other === 0;
 }
 
 function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
   const auditRows = boQuoteBuilderSnapshot_(H38_BO_SHEETS.AUDIT_LOG, { includeVoided:true }).rows;
-  if (!auditRows.length) return { recovered:false };
-  const start = Math.max(0, auditRows.length - 80);
+  if (!auditRows.length) return { recovered:false, auditRowCount:0, scannedRows:0, candidates:[] };
+  const scanLimit = 1000;
+  const start = Math.max(0, auditRows.length - scanLimit);
+  const quotes = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTES, { includeVoided:true }).rows;
+  const quoteLines = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTE_LINES, { includeVoided:true }).rows;
+  const candidates = [];
+
   for (let latestIndex = auditRows.length - 1; latestIndex >= start; latestIndex -= 1) {
     const latest = auditRows[latestIndex];
     const latestAction = boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Action']));
     const latestType = boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Record Type']));
     const latestSource = boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Source']));
     if (latestAction !== 'REPLACE' || latestType !== H38_BO_SHEETS.QUOTE_LINES || latestSource !== 'Quote Builder owner edit') continue;
+
     const quoteId = boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Record ID']));
     const latestPrevious = boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Previous Values']), []);
     const latestNew = boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['New Values']), []);
-    if (!quoteId || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestPrevious) || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestNew)) continue;
+    const currentQuote = quotes.find(function (row) { return row['Quote ID'] === quoteId; }) || null;
+    const currentLines = quoteLines.filter(function (row) { return row['Quote ID'] === quoteId; });
+    const summary = {
+      quoteId:quoteId,
+      time:boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(latest, ['Time','Timestamp','Created Time'])),
+      previousCount:Array.isArray(latestPrevious) ? latestPrevious.length : -1,
+      newCount:Array.isArray(latestNew) ? latestNew.length : -1,
+      previousComponents:boQuoteBuilderMobileAcceptanceAuditComponentCounts_(Array.isArray(latestPrevious) ? latestPrevious : []),
+      newComponents:boQuoteBuilderMobileAcceptanceAuditComponentCounts_(Array.isArray(latestNew) ? latestNew : []),
+      currentCount:currentLines.length,
+      currentMatchesNew:boQuoteBuilderMobileAcceptanceAuditLinesEqual_(currentLines, Array.isArray(latestNew) ? latestNew : []),
+      draft:!!currentQuote && boNormalizeText_(currentQuote.Status || 'Draft') === 'Draft',
+      approved:!!currentQuote && boNormalizeText_(currentQuote['Approval Status'] || 'Owner Approval Required') === 'Approved',
+      sent:!!currentQuote && boNormalizeText_(currentQuote['Customer Action'] || 'Not Sent') === 'Sent',
+      firstZeroLineAuditFound:false,
+      originalQuoteAuditFound:false
+    };
+    if (candidates.length < 24) candidates.push(summary);
 
-    const currentQuote = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTES, { includeVoided:true }).rows.find(function (row) {
-      return row['Quote ID'] === quoteId;
-    });
-    if (!currentQuote || boNormalizeText_(currentQuote.Status || 'Draft') !== 'Draft') continue;
-    if (boNormalizeText_(currentQuote['Approval Status'] || 'Owner Approval Required') === 'Approved') continue;
-    if (boNormalizeText_(currentQuote['Customer Action'] || 'Not Sent') === 'Sent') continue;
-    const currentLines = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTE_LINES, { includeVoided:true }).rows.filter(function (row) {
-      return row['Quote ID'] === quoteId;
-    });
-    if (!boQuoteBuilderMobileAcceptanceAuditLinesEqual_(currentLines, latestNew)) continue;
+    if (!quoteId || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestPrevious) || !boQuoteBuilderMobileAcceptanceAuditHasThreeComponents_(latestNew)) continue;
+    if (!currentQuote || !summary.draft || summary.approved || summary.sent || !summary.currentMatchesNew) continue;
 
     let firstLineAuditIndex = -1;
     for (let priorIndex = latestIndex - 1; priorIndex >= start; priorIndex -= 1) {
@@ -135,6 +156,7 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
       const priorNew = boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditValue_(prior, ['New Values']), []);
       if (Array.isArray(priorPrevious) && priorPrevious.length === 0 && boQuoteBuilderMobileAcceptanceAuditLinesEqual_(priorNew, latestPrevious)) {
         firstLineAuditIndex = priorIndex;
+        summary.firstZeroLineAuditFound = true;
         break;
       }
     }
@@ -148,12 +170,26 @@ function boQuoteBuilderMobileAcceptanceRecoverPriorFailedRun_() {
       if (boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(quoteAudit, ['Record ID'])) !== quoteId) continue;
       if (boNormalizeText_(boQuoteBuilderMobileAcceptanceAuditValue_(quoteAudit, ['Source'])) !== 'Quote Builder owner edit') continue;
       originalQuote = boQuoteBuilderMobileAcceptanceParseAuditJson_(boQuoteBuilderMobileAcceptanceAuditValue_(quoteAudit, ['Previous Values']), null);
+      summary.originalQuoteAuditFound = !!originalQuote;
       break;
     }
     if (!originalQuote || boNormalizeText_(originalQuote['Quote ID']) !== quoteId) continue;
+
     boQuoteBuilderMobileAcceptanceRestoreQuoteState_({ quote:originalQuote, lines:[] });
     boProof_('RECOVER PRIOR MOBILE ACCEPTANCE CLEANUP', 'Quote', quoteId, 'PASS', 'Audit chain proved original zero-line Draft and exact current acceptance lines.', boGetActiveEmail_());
-    return { recovered:true, quoteId:quoteId, restoredLineCount:0 };
+    return {
+      recovered:true,
+      quoteId:quoteId,
+      restoredLineCount:0,
+      auditRowCount:auditRows.length,
+      scannedRows:auditRows.length - start,
+      candidates:candidates
+    };
   }
-  return { recovered:false };
+  return {
+    recovered:false,
+    auditRowCount:auditRows.length,
+    scannedRows:auditRows.length - start,
+    candidates:candidates
+  };
 }
