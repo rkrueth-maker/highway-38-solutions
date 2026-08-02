@@ -16,14 +16,9 @@ function boQuoteBuilderMobileAcceptanceText_(value) {
 
 function boQuoteBuilderMobileAcceptanceLineText_(line) {
   line = line || {};
-  return [
-    line.description || '',
-    line.searchQuery || '',
-    line.evidence || '',
-    line.catalogName || '',
-    line.catalogDescription || '',
-    line.catalogSource || ''
-  ].join(' ');
+  const primary = boNormalizeText_(line.description || line.searchQuery || '');
+  if (primary) return primary;
+  return [line.catalogName || '', line.catalogDescription || ''].join(' ');
 }
 
 function boQuoteBuilderMobileAcceptanceComponent_(line) {
@@ -137,8 +132,11 @@ function boQuoteBuilderMobileAcceptanceAssertPricing_(priced, label) {
   boAssert_(gutter && gutter.rate > 0, label + ' gutter line did not receive a nonzero reviewed rate.');
   boAssert_(downspout && downspout.rate > 0, label + ' downspout line did not receive a nonzero reviewed rate.');
   boAssert_(leafGuard && leafGuard.rate > 0, label + ' leaf-guard line did not receive a nonzero reviewed rate.');
-  boAssert_(leafGuard.catalogId && leafGuard.catalogId !== gutter.catalogId, label + ' leaf guard reused the gutter catalog item.');
-  boAssert_(downspout.catalogId && downspout.catalogId !== gutter.catalogId, label + ' downspout reused the gutter catalog item.');
+  const identity = ' gutter=' + gutter.catalogId + ' [' + boNormalizeText_(gutter.catalogName || gutter.description) + ']' +
+    '; downspout=' + downspout.catalogId + ' [' + boNormalizeText_(downspout.catalogName || downspout.description) + ']' +
+    '; leafGuard=' + leafGuard.catalogId + ' [' + boNormalizeText_(leafGuard.catalogName || leafGuard.description) + ']';
+  boAssert_(leafGuard.catalogId && leafGuard.catalogId !== gutter.catalogId, label + ' leaf guard reused the gutter catalog item.' + identity);
+  boAssert_(downspout.catalogId && downspout.catalogId !== gutter.catalogId, label + ' downspout reused the gutter catalog item.' + identity);
   boAssert_(leafGuard.ownerReviewRequired && downspout.ownerReviewRequired && gutter.ownerReviewRequired, label + ' pricing escaped owner review.');
   boAssert_(leafGuard.finalPriceApproved === false && downspout.finalPriceApproved === false && gutter.finalPriceApproved === false, label + ' pricing was automatically approved.');
   return { gutter:gutter, downspout:downspout, leafGuard:leafGuard };
