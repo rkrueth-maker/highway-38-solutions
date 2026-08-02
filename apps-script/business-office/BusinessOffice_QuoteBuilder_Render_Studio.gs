@@ -40,9 +40,10 @@ function boApproveAiCompletionVisualForQuote(payload) {
     boAssert_(payload.activityId, 'Choose a generated concept first.');
     boAssert_(payload.quoteId, 'Save the quote before attaching a concept.');
     boAssert_(payload.visualFileId, 'The generated concept file is missing.');
+    const quoteVersion = boRenderStudioQuoteVersion_(String(payload.quoteId));
     const label = String(payload.label || 'AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.');
     const file = DriveApp.getFileById(String(payload.visualFileId));
-    file.setDescription(label+'\nOwner approved for Quote '+payload.quoteId+' proposal review. This remains a concept, not proof of completed work.');
+    file.setDescription(label+'\nOwner approved for Quote '+payload.quoteId+' version '+quoteVersion+' proposal review. This remains a concept, not proof of completed work.');
     const details = {
       label:label,
       instructions:String(payload.instructions || ''),
@@ -50,6 +51,7 @@ function boApproveAiCompletionVisualForQuote(payload) {
       visualFileId:String(payload.visualFileId || ''),
       includeInProposal:true,
       quoteId:String(payload.quoteId),
+      quoteVersion:quoteVersion,
       renderRequest:payload.renderRequest || {},
       approvedBy:access.user.email || access.user.id || '',
       approvedTime:boNow_(),
@@ -61,18 +63,27 @@ function boApproveAiCompletionVisualForQuote(payload) {
       'Record ID':String(payload.quoteId),
       Status:'Owner Approved for Proposal',
       Details:JSON.stringify(details)
-    }, 'Attach approved AI concept to saved quote');
-    boProof_('APPROVE AI COMPLETION VISUAL', 'Quote', String(payload.quoteId), 'PASS', String(payload.activityId), access.user.email);
+    }, 'Attach approved AI concept to saved quote version');
+    boProof_('APPROVE AI COMPLETION VISUAL', 'Quote', String(payload.quoteId), 'PASS', String(payload.activityId)+'; version '+quoteVersion, access.user.email);
     return {
       activityId:String(payload.activityId),
       quoteId:String(payload.quoteId),
+      quoteVersion:quoteVersion,
       visualFileId:String(payload.visualFileId),
       includeInProposal:true,
       status:'Owner Approved for Proposal',
       label:label,
-      message:'The selected AI concept is attached to the saved quote for proposal review. Nothing was sent.'
+      message:'The selected AI concept is attached to this saved quote version for proposal review. Nothing was sent.'
     };
   }, 'Quote', payload.quoteId);
+}
+
+function boRenderStudioQuoteVersion_(quoteId) {
+  const quote = boQuoteBuilderSnapshot_(H38_BO_SHEETS.QUOTES, {includeVoided:true}).rows.find(function (row) {
+    return row['Quote ID'] === quoteId && row['Is Voided'] !== 'Yes' && row.Status !== 'Voided';
+  });
+  boAssert_(quote, 'The saved quote was not found.');
+  return Number(quote['Revision Number'] || 1);
 }
 
 function boRenderStudioNormalizeRequest_(payload) {
