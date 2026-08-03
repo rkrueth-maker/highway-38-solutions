@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process');
 const root=path.resolve(__dirname,'..'),failures=[],checks=[];
-const file=rel=>path.join(root,rel);const read=rel=>{if(!fs.existsSync(file(rel)))throw new Error(`Missing required file: ${rel}`);return fs.readFileSync(file(rel),'utf8')};
+const file=rel=>path.join(root,rel);const read=rel=>{if(!fs.existsSync(file(rel)))throw new Error(`Missing required file: ${rel}`);return fs.readFileSync(file(rel),'utf8'};
 const check=(name,value,detail='')=>{checks.push({name,pass:!!value});if(!value)failures.push(`${name}${detail?`: ${detail}`:''}`)};const has=(source,tokens)=>tokens.every(token=>source.includes(token));
 const joined=(dir,prefix,suffix)=>fs.readdirSync(file(dir)).filter(name=>name.startsWith(prefix)&&name.endsWith(suffix)).sort().map(name=>read(path.join(dir,name))).join('\n');
 const appFiles=Array.from({length:18},(_,index)=>`commercial-app/app-${String(index+1).padStart(2,'0')}.js`);
@@ -23,7 +23,7 @@ check('full Office navigation is present',has(app,['Today','Customers','Work','Q
 check('standalone product shells share records',has(app,['Standalone Quote Builder','Field & Crew','Inventory & Fleet','Social Control']));
 check('mobile layout stacks and uses bottom navigation',has(styles,['@media(max-width:760px)','.main-nav{position:fixed','bottom:0','grid-template-columns:1fr','.actions>*{flex:1 1 100%}']));
 check('installable mobile metadata exists',has(index,['mobile-web-app-capable','apple-mobile-web-app-capable','viewport-fit=cover','manifest.webmanifest']));
-check('service worker refreshes completed shell',has(serviceWorker,["h38-commercial-office-v3",'app-01.js','app-18.js','skipWaiting','clients.claim']));
+check('service worker refreshes completed shell',has(serviceWorker,["h38-business-office-v4",'app-01.js','app-18.js','skipWaiting','clients.claim','fetch(event.request)']));
 const auth=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionAuthorization_','.gs'),core=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionCore_','.gs'),ops=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionOperations_','.gs'),communications=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionCommunications_','.gs'),socialAi=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionSocialAI_','.gs'),sync=joined('apps-script/commercial-office-beta','CommercialBeta_CompletionSync_','.gs');
 check('multi-user role enforcement',has(auth,['cbCompletionBusinessUser_','cbCompletionVisibleBusinesses_','cbCompletionCan_','manageUsers','manageFinancial','manageSocial','manageCommunications']));
 check('complete bootstrap returns workspaces',has(core,['cbCompletionBootstrap_','cbCompletionProductShells_','data.quotes','data.measurements','data.conversations','data.socialPosts','data.aiRecommendations','data.syncConflicts']));
