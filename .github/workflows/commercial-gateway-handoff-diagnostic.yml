@@ -7,13 +7,19 @@ on:
     paths:
       - scripts/diagnose-commercial-gateway-handoff.js
       - .github/workflows/commercial-gateway-handoff-diagnostic.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/diagnose-commercial-gateway-handoff.js
+      - .github/workflows/commercial-gateway-handoff-diagnostic.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: commercial-gateway-handoff-diagnostic
+  group: commercial-gateway-handoff-diagnostic-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
