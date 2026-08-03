@@ -1,12 +1,8 @@
 {
-  "status": "PASS",
-  "runId": "30789491669",
-  "event": "push",
-  "sourceSha": "6feb27964ecb091b228274aa8c1c9114a29e597b",
+  "status": "RUNNING",
+  "runId": "30789523608",
+  "event": "issues",
+  "sourceSha": "4a3fd23aeab588a9ec732efbb0535aab26c799ed",
   "betaBranch": "agent/commercial-google-native-beta",
-  "verify": "success",
-  "installClasp": "success",
-  "credentials": "success",
-  "deploy": "success",
-  "finishedAt": "2026-08-03T06:14:18Z"
+  "startedAt": "2026-08-03T06:14:31Z"
 }
