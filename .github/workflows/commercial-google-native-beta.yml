@@ -69,6 +69,7 @@ jobs:
           node scripts/verify-commercial-startup.js
           node --check scripts/ensure-commercial-apps-script-api.js
           node --check scripts/inspect-commercial-apps-script-settings.js
+          node --check scripts/inspect-commercial-standard-cloud-projects.js
 
       - id: install_clasp
         name: Install Apps Script deployment tool
@@ -106,6 +107,12 @@ jobs:
           npx playwright install --with-deps chromium
           node scripts/inspect-commercial-apps-script-settings.js "$HOME/.clasprc.json" 1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf
 
+      - id: cloud_project_inventory
+        name: Inventory manageable standard Cloud projects
+        if: always() && steps.apps_script_api.outcome != 'success'
+        shell: bash
+        run: node scripts/inspect-commercial-standard-cloud-projects.js "$HOME/.clasprc.json"
+
       - name: Hold deployment until Cloud project is manageable
         if: always() && steps.apps_script_api.outcome != 'success'
         shell: bash
@@ -138,6 +145,7 @@ jobs:
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
           APPS_SCRIPT_API_OUTCOME: ${{ steps.apps_script_api.outcome }}
           CLOUD_LINK_INSPECTION_OUTCOME: ${{ steps.cloud_link_inspection.outcome }}
+          CLOUD_PROJECT_INVENTORY_OUTCOME: ${{ steps.cloud_project_inventory.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
         run: |
@@ -157,6 +165,7 @@ jobs:
             "credentials": "${CREDENTIALS_OUTCOME}",
             "appsScriptApi": "${APPS_SCRIPT_API_OUTCOME}",
             "cloudLinkInspection": "${CLOUD_LINK_INSPECTION_OUTCOME}",
+            "cloudProjectInventory": "${CLOUD_PROJECT_INVENTORY_OUTCOME}",
             "deploy": "${DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
