@@ -61,8 +61,12 @@ jobs:
           node-version: '24'
 
       - id: verify
-        name: Verify isolated commercial beta source
-        run: node scripts/verify-commercial-google-native-beta.js
+        name: Verify isolated commercial beta source and startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-commercial-google-native-beta.js
+          node scripts/verify-commercial-startup.js
 
       - id: install_clasp
         name: Install Apps Script deployment tool
@@ -85,9 +89,21 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
 
       - id: deploy
-        name: Create or update separate beta project and deployment
+        name: Update existing beta project and deployment
         shell: bash
         run: bash scripts/deploy-commercial-google-native-beta.sh
+
+      - id: startup_acceptance
+        name: Run authorized signed-in startup acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT="${RUNNER_TEMP}/commercial-google-native-beta-${GITHUB_RUN_ID}/project"
+          test -f "$PROJECT/.clasp.json"
+          mkdir -p artifacts/commercial-google-native-beta
+          cd "$PROJECT"
+          timeout 120s clasp run-function cbStartupAcceptance --nondev 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
+          grep -q 'PASS' "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
 
       - name: Persist workflow and deployment outcome
         if: always()
@@ -97,10 +113,11 @@ jobs:
           INSTALL_CLASP_OUTCOME: ${{ steps.install_clasp.outcome }}
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
         run: |
           set -euo pipefail
           FINAL_STATUS=FAIL
-          if [[ "${DEPLOY_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          if [[ "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
           mkdir -p commercial-beta
           cat > commercial-beta/workflow-status.json <<JSON
           {
@@ -113,6 +130,7 @@ jobs:
             "installClasp": "${INSTALL_CLASP_OUTCOME}",
             "credentials": "${CREDENTIALS_OUTCOME}",
             "deploy": "${DEPLOY_OUTCOME}",
+            "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           JSON

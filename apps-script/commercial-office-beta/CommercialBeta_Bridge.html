@@ -1,8 +1,31 @@
-<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Secure Business Connection</title></head><body><main style="max-width:520px;margin:48px auto;padding:22px;text-align:center;font:16px system-ui"><h1 style="font-size:1.35rem">Secure connection</h1><p id="status">Connecting your Business Office…</p><p style="color:#607285">Return to the Highway 38 Business Office tab. This window will close automatically when the embedded connection is available.</p></main><script>
+<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Secure Business Connection</title></head><body><main style="max-width:520px;margin:48px auto;padding:22px;text-align:center;font:16px system-ui"><h1 style="font-size:1.35rem">Secure connection</h1><p id="status">Checking your authorized business…</p><p id="detail" style="color:#607285">Return to the Highway 38 Business Office tab. Keep this secure window open while using the Office.</p></main><script>
 var ALLOWED_ORIGINS=<?!= allowedOriginsJson ?>;
+var REQUESTED_BUSINESS_ID=<?!= requestedBusinessIdJson ?>;
 function allowed(origin){return ALLOWED_ORIGINS.indexOf(origin)>=0;}
 function reply(target,origin,payload){try{target.postMessage(payload,origin);}catch(error){}}
-window.addEventListener('message',function(event){if(!allowed(event.origin))return;var message=event.data||{};if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;var runner=google.script.run.withSuccessHandler(function(result){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:error&&error.message?error.message:String(error)});});if(message.action==='sessionAccess')runner.cbSessionAccess();else runner.cbApi({action:message.action,args:message.args||{}});});
-function announce(){ALLOWED_ORIGINS.forEach(function(origin){if(window.parent&&window.parent!==window)reply(window.parent,origin,{type:'H38_BRIDGE_READY',version:'1.2.0'});if(window.opener)reply(window.opener,origin,{type:'H38_BRIDGE_READY',version:'1.2.0'});});document.getElementById('status').textContent='Secure connection ready. Return to Business Office.';}
-announce();setTimeout(announce,500);setTimeout(announce,1500);
+function broadcast(payload){ALLOWED_ORIGINS.forEach(function(origin){if(window.parent&&window.parent!==window)reply(window.parent,origin,payload);if(window.opener)reply(window.opener,origin,payload);});}
+function errorText(error){return error&&error.message?error.message:String(error||'Secure connection failed.');}
+window.addEventListener('message',function(event){if(!allowed(event.origin))return;var message=event.data||{};if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;google.script.run.withSuccessHandler(function(result){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});});
+function announce(){broadcast({type:'H38_BRIDGE_READY',version:'2.0.0'});}
+function start(){
+  document.getElementById('status').textContent='Checking your authorized business…';
+  google.script.run.withSuccessHandler(function(startup){
+    broadcast({type:'H38_BRIDGE_BOOTSTRAP',startup:startup});
+    if(!startup||!startup.selectedBusinessId){document.getElementById('status').textContent='Choose a business in Business Office.';return;}
+    document.getElementById('status').textContent='Business Office opened.';
+    document.getElementById('detail').textContent='Loading the latest records in the background. Return to Business Office and keep this secure window open.';
+    google.script.run.withSuccessHandler(function(snapshot){
+      broadcast({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:startup.selectedBusinessId,snapshot:snapshot});
+      document.getElementById('status').textContent='Latest records loaded.';
+      document.getElementById('detail').textContent='Return to Business Office. Keep this secure window open so saves and synchronization stay connected.';
+    }).withFailureHandler(function(error){
+      broadcast({type:'H38_BRIDGE_REFRESH_ERROR',businessId:startup.selectedBusinessId,error:errorText(error)});
+      document.getElementById('status').textContent='Business Office is open.';
+      document.getElementById('detail').textContent='The latest-record refresh failed: '+errorText(error)+' Return to Business Office and use Retry sync. Keep this window open.';
+    }).cbFullStartupRefresh(startup.selectedBusinessId);
+  }).withFailureHandler(function(error){
+    var message=errorText(error);broadcast({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:message});document.getElementById('status').textContent='Sign-in could not finish.';document.getElementById('detail').textContent=message;
+  }).cbStartupBootstrap(REQUESTED_BUSINESS_ID);
+}
+announce();setTimeout(announce,400);start();
 </script></body></html>

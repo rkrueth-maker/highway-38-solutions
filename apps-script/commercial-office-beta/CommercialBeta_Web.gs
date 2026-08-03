@@ -5,7 +5,7 @@ function doGet(event){
     if(cbText_(parameters.bridge)==='1'){
       cbCompletionSignedIn_();
       var bridge=HtmlService.createTemplateFromFile('CommercialBeta_Bridge');
-      bridge.allowedOriginsJson=JSON.stringify(CB_CONFIG.pwaAllowedOrigins);
+      bridge.allowedOriginsJson=JSON.stringify(CB_CONFIG.pwaAllowedOrigins);bridge.requestedBusinessIdJson=JSON.stringify(businessId);
       return bridge.evaluate().setTitle('H38 Secure Bridge').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');
     }
     if(forceInstaller){
@@ -32,6 +32,8 @@ function cbBusinessUrls_(items){var serviceUrl=ScriptApp.getService().getUrl()||
 function cbApi(request){
   var payload=request||{},action=cbText_(payload.action),args=payload.args||{};
   try{
+    if(action==='startupBootstrap')return cbStartupBootstrap(cbText_(args.businessId));
+    if(action==='fullStartupRefresh')return cbFullStartupRefresh(cbText_(args.businessId));
     if(action==='listBusinesses'||action==='visibleBusinesses')return cbCompletionVisibleBusinesses_();
     if(action==='completionBootstrap'||action==='pwaBootstrap')return cbCompletionBootstrap_(cbText_(args.businessId));
     if(action==='completionSync'||action==='syncOperations')return cbCompletionSyncOperations_(args);
