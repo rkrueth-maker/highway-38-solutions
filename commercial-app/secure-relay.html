@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Highway 38 Secure Relay</title>
+</head>
+<body>
+<script>
+'use strict';
+(function(){
+  const params=new URLSearchParams(location.search);
+  const channelId=String(params.get('channel')||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,120);
+  if(!channelId)return;
+  const channelName=`h38-secure-${channelId}`;
+  const bridgeToOfficeKey=`h38-bridge-to-office:${channelId}`;
+  const officeToBridgeKey=`h38-office-to-bridge:${channelId}`;
+  const broadcast='BroadcastChannel' in window?new BroadcastChannel(channelName):null;
+  const envelope=(direction,payload)=>({channelId,direction,payload,id:(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`),sentAt:Date.now()});
+  function postParent(payload){
+    try{window.parent.postMessage({type:'H38_RELAY_TO_BRIDGE',channelId,payload},'*');}catch(error){}
+  }
+  function publishToOffice(payload){
+    const message=envelope('bridge-to-office',payload);
+    if(broadcast){broadcast.postMessage(message);return;}
+    try{localStorage.setItem(bridgeToOfficeKey,JSON.stringify(message));}catch(error){}
+  }
+  if(broadcast)broadcast.onmessage=event=>{
+    const message=event.data||{};
+    if(message.channelId!==channelId)return;
+    if(message.direction==='office-to-bridge')postParent(message.payload||{});
+  };
+  addEventListener('storage',event=>{
+    if(event.key!==officeToBridgeKey||!event.newValue)return;
+    try{const message=JSON.parse(event.newValue);if(message.channelId===channelId&&message.direction==='office-to-bridge')postParent(message.payload||{});}catch(error){}
+  });
+  addEventListener('message',event=>{
+    if(event.source!==window.parent)return;
+    const message=event.data||{};
+    if(message.type!=='H38_RELAY_TO_APP'||message.channelId!==channelId)return;
+    publishToOffice(message.payload||{});
+  });
+  try{window.parent.postMessage({type:'H38_RELAY_READY',channelId},'*');}catch(error){}
+  const ready=envelope('relay-ready',{type:'H38_RELAY_READY'});
+  if(broadcast)broadcast.postMessage(ready);
+  else try{localStorage.setItem(bridgeToOfficeKey,JSON.stringify(ready));}catch(error){}
+})();
+</script>
+</body>
+</html>
