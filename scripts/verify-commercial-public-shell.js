@@ -4,7 +4,7 @@
 const [baseArg='https://highway38solutions.com/commercial-app/']=process.argv.slice(2);
 const base=new URL(baseArg);
 const allowedHosts=new Set(['highway38solutions.com','www.highway38solutions.com']);
-const BUILD='20260803-1220';
+const BUILD='20260803-1250';
 
 function fail(message,details={}){console.error(JSON.stringify({status:'FAIL',message,...details},null,2));process.exit(1);}
 async function fetchLive(relativePath){
@@ -17,16 +17,18 @@ function requireTokens(label,text,tokens){const missing=tokens.filter(token=>!te
 
 (async()=>{
   const index=await fetchLive('./');
-  requireTokens('Public Office HTML',index.text,[`window.H38_BUILD='${BUILD}'`,'window.H38_BRIDGE_CHANNEL','window.h38WithBridgeChannel','id="businessSelect" aria-label="Business" hidden disabled','watchdogSecureSignInButton','target="h38-secure-signin"',`startup-relay-patch.js?build=${BUILD}`,'<title>Highway 38 Business Office</title>']);
+  requireTokens('Public Office HTML',index.text,[`window.H38_BUILD='${BUILD}'`,'window.H38_BRIDGE_CHANNEL','window.h38WithBridgeChannel','id="businessSelect" aria-label="Business" hidden disabled','watchdogSecureSignInButton','target="h38-secure-signin"',`db.js?build=${BUILD}`,`bridge.js?build=${BUILD}`,`startup-relay-patch.js?build=${BUILD}`,'<title>Highway 38 Business Office</title>']);
+  const db=await fetchLive('./db.js');
+  requireTokens('Public isolated database helper',db.text,["'use strict'",'(()=>{','window.H38DB={put,get,all,remove,clearAll,newId}','})();']);
   const startup=await fetchLive('./startup-fix.js');
   requireTokens('Public startup controller',startup.text,['state.bridge=new H38Bridge','withStartupTimeout','state.canSwitchBusinesses=startup.canSwitchBusinesses===true','refreshing latest records',"'sign-in-timeout'","'popup-blocked'"]);
   const patch=await fetchLive('./startup-relay-patch.js');
   requireTokens('Public relay startup patch',patch.text,[`const relayBuild='${BUILD}'`,'h38WithBridgeChannel','serviceWorker.register','relay-connected']);
   const bridge=await fetchLive('./bridge.js');
-  requireTokens('Public secure bridge client',bridge.text,['BroadcastChannel','receiveRelay','office-to-bridge','bridge-to-office',"message.type==='H38_BRIDGE_BOOTSTRAP'","this.transport='relay'"]);
+  requireTokens('Public isolated secure bridge client',bridge.text,["'use strict'",'(()=>{','class H38Bridge','window.H38Bridge=H38Bridge','BroadcastChannel','receiveRelay','office-to-bridge','bridge-to-office',"message.type==='H38_BRIDGE_BOOTSTRAP'","this.transport='relay'",'})();']);
   const relay=await fetchLive('./secure-relay.html');
   requireTokens('Public same-origin secure relay',relay.text,['H38_RELAY_TO_BRIDGE','H38_RELAY_TO_APP','relay-ready','BroadcastChannel','office-to-bridge','bridge-to-office']);
   const worker=await fetchLive('./service-worker.js');
-  requireTokens('Public service worker',worker.text,[`h38-business-office-v6-${BUILD}`,'secure-relay.html','startup-relay-patch.js',"cache:'no-store'",'self.skipWaiting()','self.clients.claim()']);
-  console.log(JSON.stringify({status:'PASS',acceptance:'PUBLIC_HIGHWAY38_DOMAIN_RELAY_STARTUP',publicUrl:index.finalUrl.toString(),build:BUILD,htmlStatus:index.response.status,startupController:true,secureBridgeClient:true,sameOriginRelay:true,perTabRelayChannel:true,serviceWorker:true,ownerSwitcherHiddenByDefault:true,deterministicRecovery:true},null,2));
-})().catch(error=>fail('Live custom-domain relay startup verification crashed.',{error:error.message}));
+  requireTokens('Public service worker',worker.text,[`h38-business-office-v7-${BUILD}`,'secure-relay.html','startup-relay-patch.js',"cache:'no-store'",'self.skipWaiting()','self.clients.claim()']);
+  console.log(JSON.stringify({status:'PASS',acceptance:'PUBLIC_HIGHWAY38_DOMAIN_ISOLATED_RELAY_STARTUP',publicUrl:index.finalUrl.toString(),build:BUILD,htmlStatus:index.response.status,globalRuntimeIsolated:true,startupController:true,secureBridgeClient:true,sameOriginRelay:true,perTabRelayChannel:true,serviceWorker:true,ownerSwitcherHiddenByDefault:true,deterministicRecovery:true},null,2));
+})().catch(error=>fail('Live custom-domain isolated relay startup verification crashed.',{error:error.message}));
