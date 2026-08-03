@@ -13,37 +13,45 @@ const SESSION_VERSION = 1;
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_SESSION_MS = 50 * 60 * 1000;
 
-function hostnameOf(origin: string | null): string {
-  try { return origin ? new URL(origin).hostname : ""; } catch { return ""; }
+function normalizedOrigin(origin: string | null): string {
+  return String(origin || "").trim().replace(/\/+$/, "");
+}
+function isHttpOrigin(origin: string | null): boolean {
+  return /^https?:\/\/[^/\s]+$/i.test(normalizedOrigin(origin));
 }
 function isGoogleScriptHost(host: string): boolean {
-  return host === "script.google.com" ||
-    host === "script.googleusercontent.com" ||
-    host.endsWith(".script.googleusercontent.com") ||
-    host.endsWith("-script.googleusercontent.com");
+  const value = String(host || "").toLowerCase();
+  return value === "script.google.com" ||
+    value === "script.googleusercontent.com" ||
+    value.endsWith(".script.googleusercontent.com") ||
+    value.endsWith("-script.googleusercontent.com");
 }
 function isGoogleScriptOrigin(origin: string | null): boolean {
-  return isGoogleScriptHost(hostnameOf(origin));
+  try {
+    const url = new URL(normalizedOrigin(origin));
+    return url.protocol === "https:" && isGoogleScriptHost(url.hostname);
+  } catch {
+    return false;
+  }
 }
 function isHighwayOrigin(origin: string | null): boolean {
-  return !!origin && HIGHWAY_ORIGINS.has(origin);
+  return HIGHWAY_ORIGINS.has(normalizedOrigin(origin));
 }
 function isApprovedResponseHost(host: string): boolean {
   return isGoogleScriptHost(host);
 }
 function corsHeaders(origin: string | null): HeadersInit {
-  const headers: Record<string, string> = {
+  const requested = normalizedOrigin(origin);
+  const allowed = isHttpOrigin(requested) ? requested : "https://highway38solutions.com";
+  return {
+    "access-control-allow-origin": allowed,
     "access-control-allow-headers": "authorization, content-type, x-h38-request-id",
     "access-control-allow-methods": "GET, POST, OPTIONS",
-    "access-control-max-age": "86400",
+    "access-control-max-age": "600",
     "cache-control": "no-store",
     "content-type": "application/json; charset=utf-8",
     "vary": "Origin",
   };
-  if (isHighwayOrigin(origin) || isGoogleScriptOrigin(origin)) {
-    headers["access-control-allow-origin"] = String(origin);
-  }
-  return headers;
 }
 function json(origin: string | null, status: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), { status, headers: corsHeaders(origin) });
@@ -92,7 +100,11 @@ async function sealSession(payload: GatewaySession): Promise<string> {
 async function openSession(token: string): Promise<GatewaySession> {
   const parts = String(token || "").split(".");
   if (parts.length !== 2) throw new Error("Gateway session is invalid.");
-  const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv: decodeBase64Url(parts[0]) }, await encryptionKey(), decodeBase64Url(parts[1]));
+  const plaintext = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: decodeBase64Url(parts[0]) },
+    await encryptionKey(),
+    decodeBase64Url(parts[1]),
+  );
   const payload = JSON.parse(new TextDecoder().decode(plaintext)) as GatewaySession;
   if (payload.v !== SESSION_VERSION || !payload.email || !payload.accessToken) throw new Error("Gateway session is incomplete.");
   if (payload.expiresAt <= Date.now()) throw new Error("Gateway session expired. Reopen Business Office securely.");
@@ -100,7 +112,10 @@ async function openSession(token: string): Promise<GatewaySession> {
   return payload;
 }
 async function googleTokenInfo(accessToken: string): Promise<Record<string, unknown>> {
-  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(20000) });
+  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(20000),
+  });
   const text = await response.text();
   let payload: Record<string, unknown> = {};
   try { payload = text ? JSON.parse(text) : {}; } catch { payload = {}; }
@@ -133,7 +148,14 @@ async function bootstrap(origin: string | null, body: Record<string, unknown>): 
   const expiresAt = Math.min(issuedAt + MAX_SESSION_MS, issuedAt + expiresIn * 1000 - 60_000);
   if (expiresAt <= issuedAt + 60_000) return json(origin, 401, { status: "FAIL", error: "Google authorization expires too soon. Reopen Business Office securely." });
   const gatewaySession = await sealSession({ v: SESSION_VERSION, email, accessToken, issuedAt, expiresAt, scriptId, deploymentUrl });
-  return json(origin, 200, { status: "PASS", transport: "supabase-gateway", gatewaySession, email, issuedAt: new Date(issuedAt).toISOString(), expiresAt: new Date(expiresAt).toISOString() });
+  return json(origin, 200, {
+    status: "PASS",
+    transport: "supabase-gateway",
+    gatewaySession,
+    email,
+    issuedAt: new Date(issuedAt).toISOString(),
+    expiresAt: new Date(expiresAt).toISOString(),
+  });
 }
 async function readBackendJson(response: Response): Promise<Record<string, unknown>> {
   const text = await response.text();
@@ -148,7 +170,12 @@ async function callAppsScript(session: GatewaySession, action: string, args: unk
   for (let attempt = 0; attempt < 4; attempt++) {
     const response = await fetch(target.toString(), {
       method: "POST",
-      headers: { authorization: `Bearer ${session.accessToken}`, "content-type": "application/json; charset=utf-8", accept: "application/json", "x-h38-gateway": "supabase-v3" },
+      headers: {
+        authorization: `Bearer ${session.accessToken}`,
+        "content-type": "application/json; charset=utf-8",
+        accept: "application/json",
+        "x-h38-gateway": "supabase-v3",
+      },
       body: JSON.stringify({ gateway: "H38_SUPABASE_GATEWAY_V1", action, args: args ?? {} }),
       redirect: "manual",
       signal: AbortSignal.timeout(120000),
@@ -180,10 +207,19 @@ async function apiRequest(origin: string | null, request: Request, body: Record<
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("origin");
   if (request.method === "OPTIONS") {
-    if (!(isHighwayOrigin(origin) || isGoogleScriptOrigin(origin))) return new Response(null, { status: 403, headers: corsHeaders(origin) });
+    if (!isHttpOrigin(origin)) return new Response(null, { status: 403, headers: corsHeaders(origin) });
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
   }
-  if (request.method === "GET") return json(origin, 200, { status: "PASS", service: "h38-office-gateway", transport: "supabase-gateway", version: "2.0.1", browserReceivesGoogleToken: false, existingAppsScriptDeployment: true, googlePageBootstrap: true });
+  if (request.method === "GET") return json(origin, 200, {
+    status: "PASS",
+    service: "h38-office-gateway",
+    transport: "supabase-gateway",
+    version: "3.0.1",
+    browserReceivesGoogleToken: false,
+    existingAppsScriptDeployment: true,
+    googlePageBootstrap: true,
+    dynamicCorsTransport: true,
+  });
   if (request.method !== "POST") return json(origin, 405, { status: "FAIL", error: "Method not allowed." });
   const length = Number(request.headers.get("content-length") || 0);
   if (length > MAX_BODY_BYTES) return json(origin, 413, { status: "FAIL", error: "Request is too large." });
