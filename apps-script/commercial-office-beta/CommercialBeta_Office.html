@@ -23,7 +23,7 @@
     (function(){
       var PWA_BASE=<?!= JSON.stringify(pwaUrl) ?>;
       var BUSINESS_ID=<?!= JSON.stringify(businessId) ?>;
-      var BUILD='20260803-1530';
+      var BUILD='20260803-1700';
       var status=document.getElementById('status');
       var button=document.getElementById('continueButton');
       function errorText(error){return error&&error.message?error.message:String(error||'Secure Office authorization failed.');}
@@ -46,11 +46,12 @@
         button.textContent='Open Business Office';
         button.setAttribute('aria-disabled','false');
         button.dataset.ready='true';
-        status.textContent='Authorized. Press Open Business Office to continue in this tab.';
+        status.textContent='Authorized. Secure gateway ready. Press Open Business Office.';
         try{button.focus({preventScroll:true});}catch(error){button.focus();}
       }
       google.script.run.withSuccessHandler(function(handoff){
-        if(!handoff||handoff.status!=='PASS'||!handoff.accessToken||!handoff.startup)throw new Error('Google returned an incomplete Office handoff.');
+        if(!handoff||handoff.status!=='PASS'||handoff.handoffType!=='H38_GATEWAY_HANDOFF'||!handoff.gatewaySession||!handoff.gatewayUrl||!handoff.startup)throw new Error('Google returned an incomplete secure gateway handoff.');
+        if(Object.prototype.hasOwnProperty.call(handoff,'accessToken')||handoff.browserReceivesGoogleToken!==false)throw new Error('Secure gateway refused a browser-visible Google token.');
         readyToOpen(destinationFor(handoff));
       }).withFailureHandler(function(error){
         status.textContent='Business Office authorization could not finish.';
@@ -60,7 +61,7 @@
         button.href=location.href;
         button.target='_top';
         var detail=document.createElement('p');detail.className='error';detail.textContent=errorText(error);button.insertAdjacentElement('afterend',detail);
-      }).cbPwaExecutionHandoff(BUSINESS_ID);
+      }).cbPwaGatewayHandoff(BUSINESS_ID);
     })();
   </script>
 </body>
