@@ -68,6 +68,7 @@ jobs:
           node scripts/verify-commercial-google-native-beta.js
           node scripts/verify-commercial-startup.js
           node --check scripts/ensure-commercial-apps-script-api.js
+          node --check scripts/inspect-commercial-apps-script-settings.js
 
       - id: install_clasp
         name: Install Apps Script deployment tool
@@ -91,16 +92,36 @@ jobs:
 
       - id: apps_script_api
         name: Ensure Apps Script API is enabled
+        continue-on-error: true
         shell: bash
         run: node scripts/ensure-commercial-apps-script-api.js "$HOME/.clasprc.json" 891330876039
 
+      - id: cloud_link_inspection
+        name: Inspect existing Apps Script project settings
+        if: always() && steps.apps_script_api.outcome != 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node scripts/inspect-commercial-apps-script-settings.js "$HOME/.clasprc.json" 1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf
+
+      - name: Hold deployment until Cloud project is manageable
+        if: always() && steps.apps_script_api.outcome != 'success'
+        shell: bash
+        run: |
+          echo 'HOLD — the existing Apps Script project is still attached to a Cloud project that this owner credential cannot administer.'
+          exit 1
+
       - id: deploy
         name: Update existing beta project and deployment
+        if: steps.apps_script_api.outcome == 'success'
         shell: bash
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
       - id: startup_acceptance
         name: Run browser and authorized deployed startup acceptance
+        if: steps.apps_script_api.outcome == 'success' && steps.deploy.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -116,6 +137,7 @@ jobs:
           INSTALL_CLASP_OUTCOME: ${{ steps.install_clasp.outcome }}
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
           APPS_SCRIPT_API_OUTCOME: ${{ steps.apps_script_api.outcome }}
+          CLOUD_LINK_INSPECTION_OUTCOME: ${{ steps.cloud_link_inspection.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
         run: |
@@ -134,6 +156,7 @@ jobs:
             "installClasp": "${INSTALL_CLASP_OUTCOME}",
             "credentials": "${CREDENTIALS_OUTCOME}",
             "appsScriptApi": "${APPS_SCRIPT_API_OUTCOME}",
+            "cloudLinkInspection": "${CLOUD_LINK_INSPECTION_OUTCOME}",
             "deploy": "${DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
