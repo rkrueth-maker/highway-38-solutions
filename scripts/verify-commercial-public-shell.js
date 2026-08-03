@@ -12,7 +12,7 @@ function fail(message, details = {}) {
 
 async function fetchLive(relativePath) {
   const target = new URL(relativePath, base);
-  target.searchParams.set('acceptanceBuild', '20260803-1035');
+  target.searchParams.set('acceptanceBuild', '20260803-1140');
   const response = await fetch(target, {
     headers: {
       accept: 'text/html,application/javascript,text/javascript,*/*;q=0.8',
@@ -49,16 +49,20 @@ function requireTokens(label, text, tokens) {
 (async () => {
   const index = await fetchLive('./');
   requireTokens('Public Office HTML', index.text, [
-    "window.H38_BUILD='20260803-1035'",
+    "window.H38_BUILD='20260803-1140'",
+    "window.H38_SECURE_AUTH_URL='https://script.google.com/macros/s/",
     'id="businessSelect" aria-label="Business" hidden disabled',
     'watchdogSecureSignInButton',
-    'startup-fix.js?build=20260803-1035',
+    'target="h38-secure-signin"',
+    'startup-fix.js?build=20260803-1140',
     '<title>Highway 38 Business Office</title>'
   ]);
 
   const startup = await fetchLive('./startup-fix.js');
   requireTokens('Public startup controller', startup.text, [
-    "const H38_STARTUP_BUILD='20260803-1035'",
+    "const H38_STARTUP_BUILD='20260803-1140'",
+    'state.bridge=new H38Bridge',
+    'withStartupTimeout',
     'state.canSwitchBusinesses=startup.canSwitchBusinesses===true',
     'refreshing latest records',
     "'sign-in-timeout'",
@@ -67,6 +71,7 @@ function requireTokens(label, text, tokens) {
 
   const bridge = await fetchLive('./bridge.js');
   requireTokens('Public secure bridge client', bridge.text, [
+    'window.open(authUrl',
     "message.type==='H38_BRIDGE_BOOTSTRAP'",
     "message.type==='H38_BRIDGE_FULL_SNAPSHOT'",
     "this.onStatus('sign-in-timeout')"
@@ -74,7 +79,7 @@ function requireTokens(label, text, tokens) {
 
   const worker = await fetchLive('./service-worker.js');
   requireTokens('Public service worker', worker.text, [
-    "h38-business-office-v4-20260803-1035",
+    "h38-business-office-v5-20260803-1140",
     "cache:'no-store'",
     'self.skipWaiting()',
     'self.clients.claim()'
@@ -84,10 +89,12 @@ function requireTokens(label, text, tokens) {
     status: 'PASS',
     acceptance: 'PUBLIC_HIGHWAY38_DOMAIN_STARTUP',
     publicUrl: index.finalUrl.toString(),
-    build: '20260803-1035',
+    build: '20260803-1140',
     htmlStatus: index.response.status,
     startupController: true,
     secureBridgeClient: true,
+    browserSafeSignInLink: true,
+    bridgeBeforeLocalCache: true,
     serviceWorker: true,
     ownerSwitcherHiddenByDefault: true,
     deterministicRecovery: true

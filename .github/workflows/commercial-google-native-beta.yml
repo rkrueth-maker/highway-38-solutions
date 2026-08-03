@@ -94,9 +94,13 @@ jobs:
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
       - id: startup_acceptance
-        name: Run authorized deployed web-app startup acceptance
+        name: Run browser and authorized deployed startup acceptance
         shell: bash
-        run: bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+          bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
 
       - name: Persist workflow and deployment outcome
         if: always()
