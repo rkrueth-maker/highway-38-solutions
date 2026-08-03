@@ -1,12 +1,12 @@
 /** Highway 38 reusable Commercial Office platform configuration. */
 var CB_CONFIG=Object.freeze({
-  version:'1.0.0',
+  version:'1.0.1',
   schemaVersion:3,
   environment:'commercial-google-native-beta',
-  title:'Highway 38 Commercial Office',
+  title:'Highway 38 Business Office',
   rootFolderName:'Highway 38 Commercial Office Beta',
   controlWorkbookName:'Highway 38 Commercial Office Beta — Control Data',
-  pwaUrl:'https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/',
+  pwaUrl:'https://highway38solutions.com/commercial-app/',
   defaultTimeZone:'America/Chicago',
   defaultCurrency:'USD',
   ownerEmails:Object.freeze(['rkrueth@gmail.com']),
@@ -16,7 +16,7 @@ var CB_CONFIG=Object.freeze({
   modules:Object.freeze([
     'core','users','customers','requests','work','quotes','measure','schedule','documents','approvals','inventory','assets','fleet','maintenance','purchasing','field','capture','communications','email','sms','portal','money','social','ai','voice','offline','reports','settings'
   ]),
-  pwaAllowedOrigins:Object.freeze(['https://rkrueth-maker.github.io','http://localhost:8000','http://127.0.0.1:8000']),
+  pwaAllowedOrigins:Object.freeze(['https://highway38solutions.com','https://www.highway38solutions.com','http://localhost:8000','http://127.0.0.1:8000']),
   externalActionsEnabled:false,
   productionMigrationEnabled:false,
   automaticCustomerSending:false,
