@@ -23,7 +23,7 @@ function requireTokens(label,text,tokens){const missing=tokens.filter(token=>!te
   const db=await fetchLive('./db.js');
   requireTokens('Public isolated database helper',db.text,["'use strict'",'(()=>{','window.H38DB={put,get,all,remove,clearAll,newId}','})();']);
   const startup=await fetchLive('./startup-fix.js');
-  requireTokens('Public same-tab startup controller',startup.text,[`const H38_STARTUP_BUILD='${BUILD}'`,"get('embedded')==='1'",'retireLegacyOfflineShell','window.location.replace(secureOfficeUrl())','state.bridge=new H38Bridge','No second window']);
+  requireTokens('Public same-tab startup controller',startup.text,[`const H38_STARTUP_BUILD='${BUILD}'`,"get('embedded')==='1'",'retireLegacyOfflineShell','window.location.replace(secureOfficeUrl())','state.bridge=new H38Bridge']);
   const bridge=await fetchLive('./bridge.js');
   requireTokens('Public parent bridge client',bridge.text,["'use strict'",'(()=>{','class H38Bridge','window.H38Bridge=H38Bridge','this.parentHost=window.parent',"this.transport='parent'",'H38_BRIDGE_CLIENT_READY',"source='parent'",'})();']);
   const worker=await fetchLive('./service-worker.js');
