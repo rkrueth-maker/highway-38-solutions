@@ -7,6 +7,8 @@ on:
       - agent/commercial-google-native-beta
     paths:
       - commercial-beta/deploy-request.json
+  issues:
+    types: [opened]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +20,7 @@ concurrency:
 
 jobs:
   verify-and-deploy:
+    if: github.event_name != 'issues' || github.event.issue.title == 'Launch Commercial Google-Native Office Beta'
     runs-on: ubuntu-latest
     env:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
