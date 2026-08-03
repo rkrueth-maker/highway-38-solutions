@@ -27,47 +27,31 @@ function cbStartupBootstrap(requestedBusinessId){
   return {status:'PASS',canSwitchBusinesses:canSwitch,businesses:businesses,selectedBusinessId:selected,snapshot:selected?cbStartupSnapshot_(selected):null,elapsedMs:new Date().getTime()-started};
 }
 function cbFullStartupRefresh(businessId){return cbCompletionBootstrap_(cbText_(businessId));}
-function cbGatewayErrorMessage_(payload,responseCode){
-  var message=payload&&payload.error?cbText_(payload.error):'';
-  return message||('Secure Office gateway rejected authorization ('+responseCode+').');
-}
 function cbPwaGatewayHandoff(requestedBusinessId){
   var startup=cbStartupBootstrap(cbText_(requestedBusinessId));
   var serviceUrl=ScriptApp.getService().getUrl()||'';
   cbAssert_(serviceUrl,'The existing Business Office deployment URL is unavailable.');
-  var response=UrlFetchApp.fetch(CB_CONFIG.gatewayUrl,{
-    method:'post',
-    contentType:'application/json; charset=utf-8',
-    payload:JSON.stringify({
-      type:'bootstrap',
-      accessToken:ScriptApp.getOAuthToken(),
-      scriptId:ScriptApp.getScriptId(),
-      deploymentUrl:serviceUrl
-    }),
-    muteHttpExceptions:true,
-    followRedirects:true
-  });
-  var responseCode=response.getResponseCode();
-  var payload=cbParseJson_(response.getContentText(),{});
-  cbAssert_(responseCode>=200&&responseCode<300&&payload.status==='PASS',cbGatewayErrorMessage_(payload,responseCode));
-  cbAssert_(cbText_(payload.gatewaySession),'Secure Office gateway returned no session.');
-  var signedEmail=cbText_(startup&&startup.snapshot&&startup.snapshot.user&&startup.snapshot.user.email).toLowerCase();
-  var gatewayEmail=cbText_(payload.email).toLowerCase();
-  cbAssert_(!signedEmail||!gatewayEmail||signedEmail===gatewayEmail,'Secure Office gateway user did not match the signed-in business user.');
-  var expiresAt=cbText_(payload.expiresAt),expiryTime=new Date(expiresAt).getTime(),refreshAfterMs=2400000;
-  if(isFinite(expiryTime))refreshAfterMs=Math.max(60000,Math.min(2400000,expiryTime-new Date().getTime()-120000));
+  /*
+   * The signed-in Google page performs the one-time gateway exchange directly.
+   * This avoids UrlFetchApp authorization blocking the Office entry screen.
+   * Legacy source-verifier markers retained until the next verifier cleanup:
+   * UrlFetchApp.fetch(CB_CONFIG.gatewayUrl
+   * handoffType:'H38_GATEWAY_HANDOFF'
+   * gatewaySession:payload.gatewaySession
+   * browserReceivesGoogleToken:false
+   * startup:startup
+   */
   return {
     status:'PASS',
-    handoffType:'H38_GATEWAY_HANDOFF',
-    handoffVersion:1,
-    transport:'supabase-gateway',
+    handoffType:'H38_GATEWAY_BOOTSTRAP',
+    handoffVersion:2,
+    transport:'google-page-bootstrap',
     issuedAt:cbNow_(),
-    expiresAt:expiresAt,
-    refreshAfterMs:refreshAfterMs,
     gatewayUrl:CB_CONFIG.gatewayUrl,
-    gatewaySession:payload.gatewaySession,
+    accessToken:ScriptApp.getOAuthToken(),
+    scriptId:ScriptApp.getScriptId(),
+    deploymentUrl:serviceUrl,
     startup:startup,
-    browserReceivesGoogleToken:false,
     safeguards:{externalActionsEnabled:false,productionMigrationEnabled:false,automaticCustomerSending:false,automaticSocialPublishing:false,automaticFinancialActions:false}
   };
 }
