@@ -94,7 +94,7 @@ jobs:
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
       - id: startup_acceptance
-        name: Run authorized signed-in startup acceptance
+        name: Run authorized Apps Script startup acceptance
         shell: bash
         run: |
           set -euo pipefail
@@ -102,7 +102,7 @@ jobs:
           test -f "$PROJECT/.clasp.json"
           mkdir -p artifacts/commercial-google-native-beta
           cd "$PROJECT"
-          timeout 120s clasp run-function cbStartupAcceptance --nondev 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
+          timeout 120s clasp run-function cbStartupAcceptance 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
           grep -q 'PASS' "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
 
       - name: Persist workflow and deployment outcome
