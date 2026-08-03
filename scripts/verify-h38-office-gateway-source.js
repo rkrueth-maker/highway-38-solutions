@@ -19,25 +19,29 @@ if (!fs.existsSync(sourcePath)) {
 
 const source = fs.readFileSync(sourcePath, 'utf8');
 
-check('dynamic Google Apps Script origin is allowed', source.includes('host.endsWith("-script.googleusercontent.com")'));
-check('standard Google Apps Script origin is allowed', source.includes('host.endsWith(".script.googleusercontent.com")'));
+check('dynamic Google Apps Script origin is allowed', source.includes('value.endsWith("-script.googleusercontent.com")'));
+check('standard Google Apps Script origin is allowed', source.includes('value.endsWith(".script.googleusercontent.com")'));
 check('Highway 38 production origin is explicit', source.includes('"https://highway38solutions.com"'));
 check('Highway 38 www origin is explicit', source.includes('"https://www.highway38solutions.com"'));
 check('CORS never uses a wildcard origin', !source.includes('"access-control-allow-origin": "*"'));
-check('unapproved origins do not receive a fallback allow-origin header', !source.includes('const allowed = isHighwayOrigin(origin)'));
+check('preflight reflects only a syntactically valid HTTP origin', source.includes('const allowed = isHttpOrigin(requested) ? requested'));
+check('invalid preflight origins are rejected', source.includes('if (!isHttpOrigin(origin)) return new Response(null, { status: 403'));
 check('bootstrap remains restricted to Google Apps Script', source.includes('if (!isGoogleScriptOrigin(origin)) return json(origin, 403'));
 check('Office API remains restricted to Highway 38', source.includes('if (!isHighwayOrigin(origin)) return json(origin, 403'));
 check('existing Apps Script project is pinned', source.includes('1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
 check('existing Apps Script deployment is pinned', source.includes('AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'));
 check('browser token isolation remains declared', source.includes('browserReceivesGoogleToken: false'));
 check('external JWT verification remains intentionally custom', source.includes('type === "bootstrap"') && source.includes('type === "api"'));
+check('active gateway transport version is recorded', source.includes('version: "3.0.1"') && source.includes('dynamicCorsTransport: true'));
 
 const output = {
   status: failures.length ? 'FAIL' : 'PASS',
-  checks: 12,
+  checks: 14,
   failures,
   dynamicGoogleScriptOrigin: true,
   wildcardCors: false,
+  bootstrapOriginRestricted: true,
+  officeApiOriginRestricted: true,
   existingAppsScriptProject: true,
   existingAppsScriptDeployment: true,
   browserReceivesGoogleToken: false
