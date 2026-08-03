@@ -22,7 +22,14 @@
       var frame=document.getElementById('officeFrame');
       var loading=document.getElementById('loading');
       var status=document.getElementById('status');
-      var bootstrapping=false;
+      var startupStarted=false;
+      var startupResult=null;
+      var startupError='';
+      var snapshotResult=null;
+      var snapshotBusinessId='';
+      var childReady=false;
+      var officeRendered=false;
+      var replayTimer=0;
       var target=new URL(PWA_BASE);
       target.searchParams.set('embedded','1');
       target.searchParams.set('shell','office');
@@ -30,32 +37,81 @@
       if(BUSINESS_ID)target.searchParams.set('businessId',BUSINESS_ID);
       frame.src=target.toString();
 
-      function send(payload){try{frame.contentWindow.postMessage(payload,origin);}catch(error){}}
+      function trustedChildOrigin(value){
+        try{var host=(new URL(value)).hostname;return host==='highway38solutions.com'||host==='www.highway38solutions.com';}catch(error){return false;}
+      }
+      function send(payload){try{frame.contentWindow.postMessage(payload,'*');return true;}catch(error){return false;}}
       function errorText(error){return error&&error.message?error.message:String(error||'Secure Office request failed.');}
+      function deliverStartup(){
+        send({type:'H38_BRIDGE_READY',version:'4.1.0',transport:'same-tab-parent'});
+        if(startupError){send({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:startupError});return;}
+        if(!startupResult)return;
+        send({type:'H38_BRIDGE_BOOTSTRAP',startup:startupResult});
+        if(snapshotResult&&snapshotBusinessId){send({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:snapshotBusinessId,snapshot:snapshotResult});}
+      }
+      function startReplay(){
+        clearInterval(replayTimer);
+        replayTimer=setInterval(function(){
+          if(officeRendered){clearInterval(replayTimer);return;}
+          deliverStartup();
+        },750);
+      }
       function runApi(message){
         if(!message||message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;
         google.script.run.withSuccessHandler(function(result){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});
       }
-      function bootstrap(){
-        if(bootstrapping)return;bootstrapping=true;status.textContent='Checking your authorized business…';
-        google.script.run.withSuccessHandler(function(startup){
-          send({type:'H38_BRIDGE_READY',version:'4.0.0',transport:'same-tab-parent'});
-          send({type:'H38_BRIDGE_BOOTSTRAP',startup:startup});
-          loading.classList.add('hidden');
-          if(!startup||!startup.selectedBusinessId)return;
-          google.script.run.withSuccessHandler(function(snapshot){send({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:startup.selectedBusinessId,snapshot:snapshot});}).withFailureHandler(function(error){send({type:'H38_BRIDGE_REFRESH_ERROR',businessId:startup.selectedBusinessId,error:errorText(error)});}).cbFullStartupRefresh(startup.selectedBusinessId);
+      function startFullRefresh(startup){
+        if(!startup||!startup.selectedBusinessId)return;
+        snapshotBusinessId=startup.selectedBusinessId;
+        google.script.run.withSuccessHandler(function(snapshot){
+          snapshotResult=snapshot;
+          deliverStartup();
         }).withFailureHandler(function(error){
-          var message=errorText(error);status.textContent='Business Office could not open.';status.className='error';status.nextElementSibling.textContent=message;send({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:message});bootstrapping=false;
+          send({type:'H38_BRIDGE_REFRESH_ERROR',businessId:snapshotBusinessId,error:errorText(error)});
+        }).cbFullStartupRefresh(snapshotBusinessId);
+      }
+      function bootstrap(){
+        if(startupStarted){deliverStartup();return;}
+        startupStarted=true;
+        status.textContent='Checking your authorized business…';
+        google.script.run.withSuccessHandler(function(startup){
+          startupResult=startup;
+          status.textContent='Authorized business found · opening Office…';
+          deliverStartup();
+          startReplay();
+          startFullRefresh(startup);
+        }).withFailureHandler(function(error){
+          startupError=errorText(error);
+          status.textContent='Business Office could not open.';
+          status.className='error';
+          status.nextElementSibling.textContent=startupError;
+          deliverStartup();
+          startReplay();
         }).cbStartupBootstrap(BUSINESS_ID);
       }
       window.addEventListener('message',function(event){
-        if(event.source!==frame.contentWindow||event.origin!==origin)return;
+        if(event.source!==frame.contentWindow||!trustedChildOrigin(event.origin))return;
         var message=event.data||{};
-        if(message.type==='H38_BRIDGE_CLIENT_READY'){bootstrap();return;}
-        if(message.type==='H38_OFFICE_RENDERED'){loading.classList.add('hidden');return;}
+        if(message.type==='H38_BRIDGE_CLIENT_READY'){
+          childReady=true;
+          deliverStartup();
+          bootstrap();
+          return;
+        }
+        if(message.type==='H38_OFFICE_RENDERED'){
+          officeRendered=true;
+          clearInterval(replayTimer);
+          loading.classList.add('hidden');
+          return;
+        }
         runApi(message);
       });
-      frame.addEventListener('load',function(){send({type:'H38_BRIDGE_READY',version:'4.0.0',transport:'same-tab-parent'});window.setTimeout(bootstrap,250);});
+      frame.addEventListener('load',function(){
+        childReady=false;
+        send({type:'H38_BRIDGE_READY',version:'4.1.0',transport:'same-tab-parent'});
+        window.setTimeout(bootstrap,250);
+      });
+      window.setTimeout(function(){if(!officeRendered)startReplay();},1500);
     })();
   </script>
 </body>
