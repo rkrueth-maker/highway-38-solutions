@@ -8,7 +8,7 @@ on:
     paths:
       - commercial-beta/deploy-request.json
   issues:
-    types: [opened]
+    types: [opened, reopened]
   workflow_dispatch:
 
 permissions:
@@ -35,17 +35,41 @@ jobs:
           ref: agent/commercial-google-native-beta
           fetch-depth: 0
 
+      - name: Record workflow start
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p commercial-beta
+          cat > commercial-beta/workflow-status.json <<JSON
+          {
+            "status": "RUNNING",
+            "runId": "${GITHUB_RUN_ID}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "sourceSha": "${GITHUB_SHA}",
+            "betaBranch": "agent/commercial-google-native-beta",
+            "startedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commercial-beta/workflow-status.json
+          git commit -m "Record commercial beta workflow start"
+          git push origin HEAD:agent/commercial-google-native-beta
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Verify isolated commercial beta source
+      - id: verify
+        name: Verify isolated commercial beta source
         run: node scripts/verify-commercial-google-native-beta.js
 
-      - name: Install Apps Script deployment tool
+      - id: install_clasp
+        name: Install Apps Script deployment tool
         run: npm install --global @google/clasp@3.1.0
 
-      - name: Load encrypted Google credential
+      - id: credentials
+        name: Load encrypted Google credential
         shell: bash
         run: |
           set -euo pipefail
@@ -60,21 +84,46 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
 
-      - name: Create or update separate beta project and deployment
+      - id: deploy
+        name: Create or update separate beta project and deployment
         shell: bash
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
-      - name: Persist beta deployment identity on the isolated branch
+      - name: Persist workflow and deployment outcome
+        if: always()
         shell: bash
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          INSTALL_CLASP_OUTCOME: ${{ steps.install_clasp.outcome }}
+          CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
         run: |
           set -euo pipefail
+          FINAL_STATUS=FAIL
+          if [[ "${DEPLOY_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          mkdir -p commercial-beta
+          cat > commercial-beta/workflow-status.json <<JSON
+          {
+            "status": "${FINAL_STATUS}",
+            "runId": "${GITHUB_RUN_ID}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "sourceSha": "${GITHUB_SHA}",
+            "betaBranch": "agent/commercial-google-native-beta",
+            "verify": "${VERIFY_OUTCOME}",
+            "installClasp": "${INSTALL_CLASP_OUTCOME}",
+            "credentials": "${CREDENTIALS_OUTCOME}",
+            "deploy": "${DEPLOY_OUTCOME}",
+            "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add commercial-beta/deployment-state.json
+          git add commercial-beta/workflow-status.json
+          if [[ -f commercial-beta/deployment-state.json ]]; then git add commercial-beta/deployment-state.json; fi
           if git diff --cached --quiet; then
-            echo "Deployment state unchanged."
+            echo "Workflow state unchanged."
           else
-            git commit -m "Record commercial beta deployment state"
+            git commit -m "Record commercial beta workflow outcome"
             git push origin HEAD:agent/commercial-google-native-beta
           fi
 
@@ -84,5 +133,5 @@ jobs:
         with:
           name: commercial-google-native-beta-${{ github.run_id }}
           path: artifacts/commercial-google-native-beta/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
