@@ -8,7 +8,7 @@
   <meta name="referrer" content="no-referrer">
   <title>Opening <?= businessName ?> — Highway 38 Business Office</title>
   <style>
-    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:22px}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:50px;margin-top:18px;padding:12px 20px;border:0;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-weight:900;cursor:pointer}.primary[aria-disabled="true"]{opacity:.55;pointer-events:none}.muted{color:#607285}.error{color:#9a2c2c;white-space:pre-wrap}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:22px}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:54px;margin-top:18px;padding:13px 22px;border:0;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-size:17px;font-weight:900;cursor:pointer}.primary[aria-disabled="true"]{opacity:.55;pointer-events:none}.muted{color:#607285}.error{color:#9a2c2c;white-space:pre-wrap}
   </style>
 </head>
 <body>
@@ -16,8 +16,8 @@
     <div class="mark">H38</div>
     <h1>Opening <?= businessName ?></h1>
     <p id="status">Checking your authorized business…</p>
-    <a id="continueButton" class="primary" href="<?= pwaUrl ?>" target="_top" aria-disabled="true">Continue to Business Office</a>
-    <p class="muted">The Google authorization step closes when the Office opens. No second window is used.</p>
+    <a id="continueButton" class="primary" href="<?= pwaUrl ?>" target="_top" aria-disabled="true">Preparing Business Office…</a>
+    <p class="muted">Press the button once when it is ready. The Office opens in this same tab; no second window is used.</p>
   </main>
   <script>
     (function(){
@@ -41,16 +41,17 @@
         target.hash='h38='+utf8Base64Url(handoff);
         return target.toString();
       }
-      function openTop(target){
+      function readyToOpen(target){
         button.href=target;
+        button.textContent='Open Business Office';
         button.setAttribute('aria-disabled','false');
-        status.textContent='Authorized · returning to Highway 38 Business Office…';
-        try{var opened=window.open(target,'_top');if(opened)return;}catch(error){}
-        try{button.click();}catch(error){}
+        button.dataset.ready='true';
+        status.textContent='Authorized. Press Open Business Office to continue in this tab.';
+        try{button.focus({preventScroll:true});}catch(error){button.focus();}
       }
       google.script.run.withSuccessHandler(function(handoff){
         if(!handoff||handoff.status!=='PASS'||!handoff.accessToken||!handoff.startup)throw new Error('Google returned an incomplete Office handoff.');
-        openTop(destinationFor(handoff));
+        readyToOpen(destinationFor(handoff));
       }).withFailureHandler(function(error){
         status.textContent='Business Office authorization could not finish.';
         status.className='error';
