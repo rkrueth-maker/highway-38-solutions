@@ -67,6 +67,7 @@ jobs:
           set -euo pipefail
           node scripts/verify-commercial-google-native-beta.js
           node scripts/verify-commercial-startup.js
+          node --check scripts/ensure-commercial-apps-script-api.js
 
       - id: install_clasp
         name: Install Apps Script deployment tool
@@ -87,6 +88,11 @@ jobs:
           else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+
+      - id: apps_script_api
+        name: Ensure Apps Script API is enabled
+        shell: bash
+        run: node scripts/ensure-commercial-apps-script-api.js "$HOME/.clasprc.json" 891330876039
 
       - id: deploy
         name: Update existing beta project and deployment
@@ -109,12 +115,13 @@ jobs:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           INSTALL_CLASP_OUTCOME: ${{ steps.install_clasp.outcome }}
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
+          APPS_SCRIPT_API_OUTCOME: ${{ steps.apps_script_api.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
         run: |
           set -euo pipefail
           FINAL_STATUS=FAIL
-          if [[ "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          if [[ "${APPS_SCRIPT_API_OUTCOME}" == "success" && "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
           mkdir -p commercial-beta
           cat > commercial-beta/workflow-status.json <<JSON
           {
@@ -126,6 +133,7 @@ jobs:
             "verify": "${VERIFY_OUTCOME}",
             "installClasp": "${INSTALL_CLASP_OUTCOME}",
             "credentials": "${CREDENTIALS_OUTCOME}",
+            "appsScriptApi": "${APPS_SCRIPT_API_OUTCOME}",
             "deploy": "${DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
