@@ -1,0 +1,14 @@
+{
+  "requestVersion": 1,
+  "requestedAt": "2026-08-03T04:08:00Z",
+  "requestedBy": "Rick Krueth",
+  "projectTitle": "Highway 38 Commercial Office Beta",
+  "scriptId": "",
+  "deploymentId": "",
+  "mode": "CREATE_SEPARATE_BETA_ONCE",
+  "sourceBranch": "agent/commercial-google-native-beta",
+  "sourceBaseline": "95bce5a837e21140726fd9abe415e13cece35f03",
+  "productionDeploymentIdsMayChange": false,
+  "productionDataMayMigrate": false,
+  "externalActionsEnabled": false
+}
