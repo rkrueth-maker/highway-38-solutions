@@ -31,7 +31,21 @@ function doGet(event){
     return installer.evaluate().setTitle(CB_CONFIG.title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
   }catch(error){return HtmlService.createHtmlOutput('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commercial Office</title><main style="max-width:720px;margin:60px auto;padding:24px;font:16px system-ui"><h1>Commercial Office</h1><p>Sign in with an authorized business account.</p><pre style="white-space:pre-wrap">'+cbEscapeHtml_(error.message||String(error))+'</pre></main>');}
 }
-function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];});}
+function cbGatewayOutput_(payload){return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);}
+function doPost(event){
+  var action='',args={};
+  try{
+    var raw=event&&event.postData?event.postData.contents:'',payload=cbParseJson_(raw,{});
+    cbAssert_(payload&&payload.gateway==='H38_SUPABASE_GATEWAY_V1','Secure Office gateway marker is invalid.');
+    action=cbText_(payload.action);args=payload.args||{};
+    cbAssert_(/^[A-Za-z][A-Za-z0-9]{0,79}$/.test(action),'Secure Office action is invalid.');
+    return cbGatewayOutput_({status:'PASS',result:cbApi({action:action,args:args})});
+  }catch(error){
+    try{cbError_(cbText_(args&&args.businessId),action||'gatewayPost',error);}catch(ignore){}
+    return cbGatewayOutput_({status:'FAIL',error:error&&error.message?error.message:String(error)});
+  }
+}
+function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[character];});}
 function cbBusinessUrls_(items){var serviceUrl=ScriptApp.getService().getUrl()||'';return(items||[]).map(function(item){item.businessUrl=serviceUrl+'?businessId='+encodeURIComponent(item.businessId);return item;});}
 function cbApi(request){
   var payload=request||{},action=cbText_(payload.action),args=payload.args||{};
