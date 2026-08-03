@@ -1,0 +1,60 @@
+{
+  "status": "DIAGNOSTIC",
+  "launcherUrl": "https://highway38solutions.com/open-business-office.html?gatewayDiagnostic=20260803-1700",
+  "startedAt": "2026-08-03T23:46:25.845Z",
+  "pageUrl": "https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700",
+  "title": "Commercial Office — Highway 38 Solutions",
+  "frames": [
+    {
+      "url": "https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700",
+      "body": "This application was created by a Google Apps Script user Report abuse Learn more",
+      "status": "",
+      "continueButton": null
+    },
+    {
+      "url": "https://n-3gmobqeecjlrkme5bsdfmdvumr73lit57xn465a-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true",
+      "body": "",
+      "status": "",
+      "continueButton": null
+    },
+    {
+      "url": "https://n-3gmobqeecjlrkme5bsdfmdvumr73lit57xn465a-0lu-script.googleusercontent.com/blank",
+      "body": "H38 Opening Highway 38 Solutions Business Office authorization could not finish. Retry authorization The requested Business Office backend is not approved. Press the button once when it is ready. The Office opens in this same tab. No second window is used.",
+      "status": "Business Office authorization could not finish.",
+      "continueButton": {
+        "text": "Retry authorization",
+        "ariaDisabled": "false",
+        "dataReady": "",
+        "href": "https://n-3gmobqeecjlrkme5bsdfmdvumr73lit57xn465a-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true"
+      }
+    }
+  ],
+  "gatewayResponses": [
+    {
+      "status": 403,
+      "method": "POST",
+      "url": "/functions/v1/h38-office-gateway",
+      "requestOrigin": "https://n-3gmobqeecjlrkme5bsdfmdvumr73lit57xn465a-0lu-script.googleusercontent.com",
+      "responseAllowOrigin": "https://n-3gmobqeecjlrkme5bsdfmdvumr73lit57xn465a-0lu-script.googleusercontent.com",
+      "body": "{\"status\":\"FAIL\",\"error\":\"The requested Business Office backend is not approved.\"}"
+    }
+  ],
+  "consoleMessages": [
+    "warning:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Unrecognized feature: 'local-network-access'.",
+    "warning:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Unrecognized feature: 'web-share'.",
+    "warning:about:blank:An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: camera is not allowed in this document.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: microphone is not allowed in this document.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: usb is not allowed in this document.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: camera is not allowed in this document.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: microphone is not allowed in this document.",
+    "error:https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700:Potential permissions policy violation: usb is not allowed in this document.",
+    "info:https://script.google.com/static/macros/client/js/1008762462-warden_bin_i18n_warden.js:Net state changed from IDLE to BUSY",
+    "info:https://script.google.com/static/macros/client/js/1008762462-warden_bin_i18n_warden.js:Net state changed from BUSY to IDLE",
+    "error:https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway:Failed to load resource: the server responded with a status of 403 ()"
+  ],
+  "pageErrors": [],
+  "secondaryPages": [],
+  "screenshotCreated": true,
+  "finishedAt": "2026-08-03T23:48:01.609Z"
+}
