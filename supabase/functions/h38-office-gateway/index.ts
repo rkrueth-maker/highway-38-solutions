@@ -194,14 +194,16 @@ async function callAppsScript(session: GatewaySession, action: string, args: unk
 }
 async function apiRequest(origin: string | null, request: Request, body: Record<string, unknown>): Promise<Response> {
   if (!isHighwayOrigin(origin)) return json(origin, 403, { status: "FAIL", error: "Business Office API requests must originate from Highway 38." });
+  const bodySession = String(body.gatewaySession || "").trim();
   const authorization = request.headers.get("authorization") || "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
-  if (!match) return json(origin, 401, { status: "FAIL", error: "Gateway session is missing." });
-  const session = await openSession(match[1]);
+  const sessionToken = bodySession || (match ? match[1] : "");
+  if (!sessionToken) return json(origin, 401, { status: "FAIL", error: "Gateway session is missing." });
+  const session = await openSession(sessionToken);
   const action = String(body.action || "").trim();
   if (!/^[A-Za-z][A-Za-z0-9]{0,79}$/.test(action)) return json(origin, 400, { status: "FAIL", error: "Business Office action is invalid." });
   const result = await callAppsScript(session, action, body.args ?? {});
-  return json(origin, 200, result);
+  return json(origin, 200, { status: "PASS", result });
 }
 
 Deno.serve(async (request: Request) => {
@@ -214,11 +216,12 @@ Deno.serve(async (request: Request) => {
     status: "PASS",
     service: "h38-office-gateway",
     transport: "supabase-gateway",
-    version: "3.0.2",
+    version: "3.0.3",
     browserReceivesGoogleToken: false,
     existingAppsScriptDeployment: true,
     googlePageBootstrap: true,
     dynamicCorsTransport: true,
+    opaqueSessionInRequestBody: true,
   });
   if (request.method !== "POST") return json(origin, 405, { status: "FAIL", error: "Method not allowed." });
   const length = Number(request.headers.get("content-length") || 0);
