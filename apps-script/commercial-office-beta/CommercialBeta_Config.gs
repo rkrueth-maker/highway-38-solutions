@@ -6,6 +6,7 @@ var CB_CONFIG=Object.freeze({
   title:'Highway 38 Commercial Office',
   rootFolderName:'Highway 38 Commercial Office Beta',
   controlWorkbookName:'Highway 38 Commercial Office Beta — Control Data',
+  pwaUrl:'https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/',
   defaultTimeZone:'America/Chicago',
   defaultCurrency:'USD',
   ownerEmails:Object.freeze(['rkrueth@gmail.com']),
