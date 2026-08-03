@@ -94,16 +94,9 @@ jobs:
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
       - id: startup_acceptance
-        name: Run authorized Apps Script startup acceptance
+        name: Run authorized deployed web-app startup acceptance
         shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT="${RUNNER_TEMP}/commercial-google-native-beta-${GITHUB_RUN_ID}/project"
-          test -f "$PROJECT/.clasp.json"
-          mkdir -p artifacts/commercial-google-native-beta
-          cd "$PROJECT"
-          timeout 120s clasp run-function cbStartupAcceptance 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
-          grep -q 'PASS' "$GITHUB_WORKSPACE/artifacts/commercial-google-native-beta/startup-acceptance.txt"
+        run: bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
 
       - name: Persist workflow and deployment outcome
         if: always()
