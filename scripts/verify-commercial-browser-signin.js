@@ -5,9 +5,10 @@ const fs=require('fs');
 const path=require('path');
 const {chromium}=require('playwright');
 
-const BUILD='20260803-1250';
+const BUILD='20260803-1405';
 const [publicArg='https://highway38solutions.com/commercial-app/',deploymentArg,credentialsArg]=process.argv.slice(2);
 const publicUrl=new URL(publicArg);
+const launcherUrl=new URL('/open-business-office.html',publicUrl);
 const credentialsPath=credentialsArg||path.join(process.env.HOME||'','.clasprc.json');
 
 function fail(message,details={}){console.error(JSON.stringify({status:'FAIL',message,...details},null,2));process.exitCode=1;}
@@ -18,8 +19,8 @@ function findByKey(value,keys,seen=new Set()){
   return'';
 }
 function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
-if(!deploymentArg)throw new Error('Deployment URL is required for browser relay acceptance.');
-if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for browser relay acceptance.');
+if(!deploymentArg)throw new Error('Deployment URL is required for same-tab browser acceptance.');
+if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for same-tab browser acceptance.');
 let credentials={};
 try{credentials=JSON.parse(fs.readFileSync(credentialsPath,'utf8'));}catch(error){throw new Error(`Authorized Google credential file is not valid JSON: ${error.message}`);}
 let accessToken=findByKey(credentials,['access_token','accessToken']);
@@ -32,75 +33,77 @@ async function refreshAccessToken(){
   const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'})});
   if(!response.ok)return false;const payload=await response.json();if(!payload.access_token)return false;accessToken=payload.access_token;return true;
 }
-async function textOf(page,selector,limit=500){if(!page||page.isClosed())return'';return(((await page.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
-function attachDiagnostics(page,label,consoleMessages,pageErrors){
-  page.on('console',message=>consoleMessages.push(`${label}:${message.type()}:${message.text()}`));
-  page.on('pageerror',error=>pageErrors.push(`${label}:${error.message}`));
+async function textOf(frame,selector,limit=500){if(!frame)return'';return(((await frame.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
+async function waitForOfficeFrame(page){
+  const deadline=Date.now()+90000;
+  while(Date.now()<deadline){
+    const frame=page.frames().find(candidate=>{try{const url=new URL(candidate.url());return (url.hostname==='highway38solutions.com'||url.hostname==='www.highway38solutions.com')&&url.pathname.includes('/commercial-app/')&&url.searchParams.get('embedded')==='1';}catch(error){return false;}});
+    if(frame)return frame;
+    await page.waitForTimeout(250);
+  }
+  throw new Error('The authenticated Google host did not load the embedded Highway 38 Office.');
 }
-async function collectDiagnostics(page,popup,channelId,consoleMessages,pageErrors){
-  const popupFrames=popup&&!popup.isClosed()?popup.frames().map(frame=>frame.url()).slice(0,20):[];
-  return{channelIdPresent:Boolean(channelId),mainUrl:page&&!page.isClosed()?page.url():'',mainContent:await textOf(page,'#mainContent'),businessStatus:await textOf(page,'#businessStatus'),navButtonCount:page&&!page.isClosed()?await page.locator('#mainNav button').count().catch(()=>0):0,popupUrl:popup&&!popup.isClosed()?popup.url():'',popupStatus:await textOf(popup,'#status'),popupDetail:await textOf(popup,'#detail'),popupFrames,relayFramePresent:popupFrames.some(url=>url.includes('/commercial-app/secure-relay.html')),openerSevered:popup&&!popup.isClosed()?await popup.evaluate(()=>window.opener===null).catch(()=>null):null,consoleMessages:consoleMessages.slice(-30),pageErrors:pageErrors.slice(-30)};
+async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageErrors,secondaryPages){
+  return{
+    hostUrl:page&&!page.isClosed()?page.url():'',
+    hostTitle:page&&!page.isClosed()?await page.title().catch(()=>''):'',
+    hostFrames:page&&!page.isClosed()?page.frames().map(frame=>frame.url()).slice(0,20):[],
+    officeUrl:officeFrame?officeFrame.url():'',
+    mainContent:await textOf(officeFrame,'#mainContent'),
+    businessStatus:await textOf(officeFrame,'#businessStatus'),
+    navButtonCount:officeFrame?await officeFrame.locator('#mainNav button').count().catch(()=>0):0,
+    secondaryPageCount:Math.max(0,context.pages().length-1),
+    secondaryPages:secondaryPages.slice(-10),
+    consoleMessages:consoleMessages.slice(-30),
+    pageErrors:pageErrors.slice(-30)
+  };
 }
 
 (async()=>{
   if(!(await refreshAccessToken())&&!accessToken)throw new Error('The existing Google credential does not contain a usable access token.');
   const browser=await chromium.launch({headless:true});
-  let page=null,popup=null,channelId='',visibleSelector='';
-  const consoleMessages=[],pageErrors=[];
+  let page=null,officeFrame=null;
+  const consoleMessages=[],pageErrors=[],secondaryPages=[];
   try{
     const context=await browser.newContext();
-    await context.addInitScript(()=>{
-      if(location.hostname==='highway38solutions.com'||location.hostname==='www.highway38solutions.com'){
-        const stalledIndexedDb={open(){return{};}};try{Object.defineProperty(window,'indexedDB',{configurable:true,value:stalledIndexedDb});}catch(error){window.indexedDB=stalledIndexedDb;}
-      }
-      if(location.hostname==='script.google.com'||location.hostname==='script.googleusercontent.com'||location.hostname.endsWith('.script.googleusercontent.com')){try{window.opener=null;}catch(error){}}
-    });
-    let authorizeStarted=false;
+    context.on('page',opened=>{if(page&&opened!==page)secondaryPages.push(opened.url()||'about:blank');});
     await context.route('**/*',async route=>{
       const request=route.request();let parsed;try{parsed=new URL(request.url());}catch(error){await route.continue();return;}
       if(!isScriptHost(parsed.hostname)){await route.continue();return;}
-      if(!authorizeStarted){await route.abort();return;}
       await route.continue({headers:{...request.headers(),authorization:`Bearer ${accessToken}`}});
     });
 
-    page=await context.newPage();attachDiagnostics(page,'office',consoleMessages,pageErrors);
-    const target=new URL(publicUrl);target.searchParams.set('browserAcceptanceBuild',BUILD);
+    page=await context.newPage();
+    page.on('console',message=>consoleMessages.push(`${message.type()}:${message.location().url||page.url()}:${message.text()}`));
+    page.on('pageerror',error=>pageErrors.push(`${error.message}`));
+    const target=new URL(launcherUrl);target.searchParams.set('browserAcceptanceBuild',BUILD);
     await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:30000});
-    await page.waitForTimeout(1000);
-    const initialOfficeErrors=pageErrors.filter(message=>message.startsWith('office:'));
-    if(initialOfficeErrors.length)throw new Error(`Office runtime failed before sign-in: ${initialOfficeErrors.join(' | ')}`);
-    const selector='#secureSignInButton, #watchdogSecureSignInButton';
-    await page.waitForSelector(selector,{state:'visible',timeout:22000});
-    visibleSelector=await page.locator('#secureSignInButton').isVisible().catch(()=>false)?'#secureSignInButton':'#watchdogSecureSignInButton';
-    channelId=await page.evaluate(()=>window.H38_BRIDGE_CHANNEL||'');
-    const directHref=await page.locator(visibleSelector).getAttribute('href');
-    if(!channelId||!directHref||!directHref.includes(`channel=${encodeURIComponent(channelId)}`))throw new Error('The visible secure sign-in link is missing its per-tab relay channel.');
-
-    authorizeStarted=true;
-    const popupPromise=page.waitForEvent('popup',{timeout:10000});
-    await page.click(visibleSelector);
-    popup=await popupPromise;attachDiagnostics(popup,'popup',consoleMessages,pageErrors);
-    await popup.waitForLoadState('domcontentloaded',{timeout:30000});
-    await page.waitForFunction(()=>{
-      const main=(document.getElementById('mainContent')?.textContent||'').trim();
+    await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
+    officeFrame=await waitForOfficeFrame(page);
+    await officeFrame.waitForFunction(()=>{
       const status=(document.getElementById('businessStatus')?.textContent||'').trim();
-      const waiting=/Sign in to open Business Office|Opening Highway 38 Business Office|Finish secure sign-in/.test(main);
-      return !waiting&&(/Office open|latest records loaded/i.test(status)||document.querySelectorAll('#mainNav button').length>3);
+      return /Office open|latest records loaded/i.test(status)&&document.querySelectorAll('#mainNav button').length>3;
     },undefined,{timeout:90000,polling:250});
 
-    const officeErrors=pageErrors.filter(message=>message.startsWith('office:'));
-    if(officeErrors.length)throw new Error(`Office runtime reported page errors: ${officeErrors.join(' | ')}`);
-    const popupHost=new URL(popup.url()).hostname;
-    const popupStatus=await textOf(popup,'#status');
-    const businessStatus=await textOf(page,'#businessStatus');
-    const officeText=await textOf(page,'#mainContent',240);
-    const relayFramePresent=popup.frames().some(frame=>frame.url().includes('/commercial-app/secure-relay.html')&&frame.url().includes(`channel=${encodeURIComponent(channelId)}`));
-    const openerSevered=await popup.evaluate(()=>window.opener===null).catch(()=>false);
-    if(!isScriptHost(popupHost))throw new Error(`Authorized popup ended on unexpected host: ${popupHost}`);
-    if(!relayFramePresent)throw new Error('The authorized popup did not load the same-origin Highway 38 relay.');
-    if(!openerSevered)throw new Error('The browser acceptance did not sever window.opener, so it did not reproduce the recorded failure.');
+    const apiResult=await officeFrame.evaluate(()=>new Promise((resolve,reject)=>{
+      const requestId=`acceptance-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const timer=setTimeout(()=>{removeEventListener('message',listener);reject(new Error('Parent API acceptance timed out.'));},30000);
+      function listener(event){const message=event.data||{};if(message.type!=='H38_BRIDGE_RESPONSE'||message.requestId!==requestId)return;clearTimeout(timer);removeEventListener('message',listener);message.ok?resolve(message.result):reject(new Error(message.error||'Parent API request failed.'));}
+      addEventListener('message',listener);parent.postMessage({type:'H38_BRIDGE_REQUEST',requestId,action:'visibleBusinesses',args:{}},'*');
+    }));
 
-    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_ISOLATED_RELAY_BOOTSTRAP_WITH_OPENER_SEVERED',build:BUILD,publicUrl:target.toString(),deploymentUrl:deploymentArg,clickedSelector:visibleSelector,channelPresent:true,popupHost,popupStatus,businessStatus,officeText,relayFramePresent:true,openerSevered:true,indexedDbWasStalled:true,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
-  }catch(error){const diagnostics=await collectDiagnostics(page,popup,channelId,consoleMessages,pageErrors);fail('Browser-level authorized isolated relay acceptance failed.',{error:error.message,build:BUILD,clickedSelector:visibleSelector,...diagnostics});}
+    const hostName=new URL(page.url()).hostname;
+    const officeErrors=pageErrors.filter(Boolean);
+    const secondaryPageCount=Math.max(0,context.pages().length-1);
+    const businessStatus=await textOf(officeFrame,'#businessStatus');
+    const officeText=await textOf(officeFrame,'#mainContent',260);
+    const navButtonCount=await officeFrame.locator('#mainNav button').count();
+    if(!isScriptHost(hostName))throw new Error(`Same-tab Office ended on unexpected host: ${hostName}`);
+    if(secondaryPageCount!==0)throw new Error(`The Office opened ${secondaryPageCount} extra browser window(s).`);
+    if(officeErrors.length)throw new Error(`Office runtime reported page errors: ${officeErrors.join(' | ')}`);
+    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The authenticated parent API did not return an authorized business list.');
+
+    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_SAME_TAB_PARENT_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,hostUrl:page.url(),hostName,officeUrl:officeFrame.url(),businessStatus,officeText,navButtonCount,sameTabParentTransport:true,parentApiBusinessCount:apiResult.length,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
+  }catch(error){const diagnostics=page?await collectDiagnostics(page,officeFrame,context,consoleMessages,pageErrors,secondaryPages):{};fail('Browser-level authorized same-tab Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
   finally{await browser.close();}
 })();
