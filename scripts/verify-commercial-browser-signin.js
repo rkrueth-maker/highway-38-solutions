@@ -47,6 +47,7 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
   return{
     hostUrl:page&&!page.isClosed()?page.url():'',
     hostTitle:page&&!page.isClosed()?await page.title().catch(()=>''):'',
+    hostFrames:page&&!page.isClosed()?page.frames().map(frame=>frame.url()).slice(0,20):[],
     officeUrl:officeFrame?officeFrame.url():'',
     mainContent:await textOf(officeFrame,'#mainContent'),
     businessStatus:await textOf(officeFrame,'#businessStatus'),
@@ -78,7 +79,6 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
     const target=new URL(launcherUrl);target.searchParams.set('browserAcceptanceBuild',BUILD);
     await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:30000});
     await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
-    await page.waitForSelector('#officeFrame',{state:'attached',timeout:60000});
     officeFrame=await waitForOfficeFrame(page);
     await officeFrame.waitForFunction(()=>{
       const status=(document.getElementById('businessStatus')?.textContent||'').trim();
