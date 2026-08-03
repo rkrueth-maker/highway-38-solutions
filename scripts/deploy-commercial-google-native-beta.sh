@@ -47,13 +47,21 @@ fi
 
 test -n "$DEPLOYMENT_ID"
 URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/exec"
-HTTP_STATUS="$(curl -L -sS -o "$EVIDENCE/response.html" -w '%{http_code}' "$URL" || true)"
-printf '%s' "$HTTP_STATUS" > "$EVIDENCE/http-status.txt"
-[[ "$HTTP_STATUS" != "404" && "$HTTP_STATUS" != "000" ]]
+HTTP_STATUS="000"
+for ATTEMPT in $(seq 1 18); do
+  HTTP_STATUS="$(curl -L -sS -o "$EVIDENCE/response.html" -w '%{http_code}' "$URL" || true)"
+  printf '%s' "$HTTP_STATUS" > "$EVIDENCE/http-status.txt"
+  printf '%s\n' "attempt=${ATTEMPT} status=${HTTP_STATUS}" >> "$EVIDENCE/http-attempts.txt"
+  if [[ "$HTTP_STATUS" != "404" && "$HTTP_STATUS" != "000" ]]; then break; fi
+  sleep 5
+done
+
+DEPLOY_STATUS="DEPLOYED"
+if [[ "$HTTP_STATUS" == "404" || "$HTTP_STATUS" == "000" ]]; then DEPLOY_STATUS="DEPLOYED_PENDING_PROPAGATION"; fi
 
 cat > "$STATE" <<JSON
 {
-  "status": "DEPLOYED",
+  "status": "${DEPLOY_STATUS}",
   "environment": "commercial-google-native-beta",
   "sourceCommit": "${GITHUB_SHA:-local}",
   "branch": "${GITHUB_REF_NAME:-agent/commercial-google-native-beta}",
@@ -62,6 +70,7 @@ cat > "$STATE" <<JSON
   "deploymentId": "${DEPLOYMENT_ID}",
   "url": "${URL}",
   "httpStatus": "${HTTP_STATUS}",
+  "httpAttempts": "${ATTEMPT}",
   "separateAppsScriptProject": true,
   "separateDeployment": true,
   "productionDeploymentIdsChanged": false,
@@ -73,3 +82,4 @@ JSON
 
 cp "$STATE" "$EVIDENCE/deployment-state.json"
 cat "$STATE"
+[[ "$HTTP_STATUS" != "000" ]]
