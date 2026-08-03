@@ -1,6 +1,6 @@
 /** Highway 38 reusable Commercial Office platform configuration. */
 var CB_CONFIG=Object.freeze({
-  version:'1.0.1',
+  version:'1.0.0',
   schemaVersion:3,
   environment:'commercial-google-native-beta',
   title:'Highway 38 Business Office',
