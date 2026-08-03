@@ -28,17 +28,19 @@ check('preflight reflects only a syntactically valid HTTP origin', source.includ
 check('invalid preflight origins are rejected', source.includes('if (!isHttpOrigin(origin)) return new Response(null, { status: 403'));
 check('bootstrap remains restricted to Google Apps Script', source.includes('if (!isGoogleScriptOrigin(origin)) return json(origin, 403'));
 check('Office API remains restricted to Highway 38', source.includes('if (!isHighwayOrigin(origin)) return json(origin, 403'));
-check('existing Apps Script project is pinned', source.includes('1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
+check('existing Apps Script project is pinned exactly', source.includes('1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
+check('transcription-damaged Apps Script project ID is absent', !source.includes('1nNYrjaH4kwCWQ2SGWMbXgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
 check('existing Apps Script deployment is pinned', source.includes('AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'));
 check('browser token isolation remains declared', source.includes('browserReceivesGoogleToken: false'));
 check('external JWT verification remains intentionally custom', source.includes('type === "bootstrap"') && source.includes('type === "api"'));
-check('active gateway transport version is recorded', source.includes('version: "3.0.1"') && source.includes('dynamicCorsTransport: true'));
+check('active gateway transport version is recorded', source.includes('version: "3.0.2"') && source.includes('dynamicCorsTransport: true'));
 
 const output = {
   status: failures.length ? 'FAIL' : 'PASS',
-  checks: 14,
+  checks: 15,
   failures,
   dynamicGoogleScriptOrigin: true,
+  exactAppsScriptProjectId: true,
   wildcardCors: false,
   bootstrapOriginRestricted: true,
   officeApiOriginRestricted: true,
