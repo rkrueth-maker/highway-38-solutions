@@ -52,7 +52,7 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
     mainContent:await textOf(officeFrame,'#mainContent'),
     businessStatus:await textOf(officeFrame,'#businessStatus'),
     navButtonCount:officeFrame?await officeFrame.locator('#mainNav button').count().catch(()=>0):0,
-    secondaryPageCount:Math.max(0,context.pages().length-1),
+    secondaryPageCount:context?Math.max(0,context.pages().length-1):0,
     secondaryPages:secondaryPages.slice(-10),
     consoleMessages:consoleMessages.slice(-30),
     pageErrors:pageErrors.slice(-30)
@@ -62,10 +62,10 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
 (async()=>{
   if(!(await refreshAccessToken())&&!accessToken)throw new Error('The existing Google credential does not contain a usable access token.');
   const browser=await chromium.launch({headless:true});
-  let page=null,officeFrame=null;
+  let context=null,page=null,officeFrame=null;
   const consoleMessages=[],pageErrors=[],secondaryPages=[];
   try{
-    const context=await browser.newContext();
+    context=await browser.newContext();
     context.on('page',opened=>{if(page&&opened!==page)secondaryPages.push(opened.url()||'about:blank');});
     await context.route('**/*',async route=>{
       const request=route.request();let parsed;try{parsed=new URL(request.url());}catch(error){await route.continue();return;}
