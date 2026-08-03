@@ -82,7 +82,7 @@
       try{
         const response=await fetch(this.session.gatewayUrl,{
           method:'POST',mode:'cors',cache:'no-store',credentials:'omit',signal:controller.signal,
-          headers:{authorization:`Bearer ${this.session.gatewaySession}`,'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
+          headers:{'x-h38-gateway-session':this.session.gatewaySession,'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
           body:JSON.stringify({type:'api',action,args:args||{}})
         });
         let payload={};try{payload=await response.json();}catch(error){}
