@@ -1,5 +1,10 @@
-const CACHE='h38-commercial-office-v3';
+const CACHE='h38-business-office-v4';
 const CORE=['./','./index.html','./styles.css','./app-01.js','./app-02.js','./app-03.js','./app-04.js','./app-05.js','./app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js','./app-11.js','./app-12.js','./app-13.js','./app-14.js','./app-15.js','./app-16.js','./app-17.js','./app-18.js','./db.js','./bridge.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match('./index.html'))));});
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  event.respondWith(fetch(event.request).then(response=>{
+    const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;
+  }).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html'))));
+});
