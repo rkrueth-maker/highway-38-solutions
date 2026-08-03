@@ -35,6 +35,23 @@ async function refreshAccessToken(){
   if(!response.ok)return false;const payload=await response.json();if(!payload.access_token)return false;accessToken=payload.access_token;return true;
 }
 async function textOf(page,selector,limit=500){if(!page||page.isClosed())return'';return(((await page.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
+async function clickAuthorizedOfficeButton(page){
+  const deadline=Date.now()+90000;
+  while(Date.now()<deadline){
+    for(const frame of page.frames()){
+      const button=frame.locator('#continueButton');
+      if(!(await button.count().catch(()=>0)))continue;
+      const disabled=await button.getAttribute('aria-disabled').catch(()=>'true');
+      const ready=await button.getAttribute('data-ready').catch(()=>'');
+      if(disabled==='false'&&ready==='true'){
+        await button.click({timeout:15000});
+        return;
+      }
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error('The authorized Google page did not present the same-tab Open Business Office button.');
+}
 async function collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses){
   const session=page&&!page.isClosed()?await page.evaluate(()=>({present:!!window.H38_EXECUTION_SESSION,apiDeploymentId:window.H38_EXECUTION_SESSION?.apiDeploymentId||'',scriptId:window.H38_EXECUTION_SESSION?.scriptId||'',tokenLength:String(window.H38_EXECUTION_SESSION?.accessToken||'').length,hash:location.hash})).catch(()=>({})):{};
   return{
@@ -73,6 +90,8 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     page.on('pageerror',error=>pageErrors.push(`${error.message}`));
     const target=new URL(launcherUrl);target.searchParams.set('browserAcceptanceBuild',BUILD);
     await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:30000});
+    await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
+    await clickAuthorizedOfficeButton(page);
     await page.waitForURL(url=>{try{const parsed=new URL(url);return isHighwayHost(parsed.hostname)&&parsed.pathname.includes('/commercial-app/');}catch(error){return false;}},{timeout:90000});
     await page.waitForFunction(()=>{
       const status=(document.getElementById('businessStatus')?.textContent||'').trim();
@@ -97,7 +116,7 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     if(!permissions.topLevel||!permissions.hashCleared||!permissions.sessionPresent||permissions.transport!=='execution-api')throw new Error(`The top-level execution session is incomplete: ${JSON.stringify(permissions)}`);
     if(!permissions.mediaDevices||!permissions.cameraAllowed||!permissions.microphoneAllowed)throw new Error(`The top-level Office still blocks field permissions: ${JSON.stringify(permissions)}`);
 
-    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_EXECUTION_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,executionApiBusinessCount:apiResult.length,executionApiResponses:executionResponses,topLevelOffice:true,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
+    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_EXECUTION_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,authorizationContinueClick:true,executionApiBusinessCount:apiResult.length,executionApiResponses:executionResponses,topLevelOffice:true,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
   }catch(error){const diagnostics=page?await collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses):{};fail('Browser-level authorized top-level Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
   finally{await browser.close();}
 })();
