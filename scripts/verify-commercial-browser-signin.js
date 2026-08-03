@@ -5,7 +5,8 @@ const fs=require('fs');
 const path=require('path');
 const {chromium}=require('playwright');
 
-const BUILD='20260803-1530';
+const BUILD='20260803-1700';
+const GATEWAY_HOST='jqukmwtsgcsaruucnqja.supabase.co';
 const [publicArg='https://highway38solutions.com/commercial-app/',deploymentArg,credentialsArg]=process.argv.slice(2);
 const publicUrl=new URL(publicArg);
 const launcherUrl=new URL('/open-business-office.html',publicUrl);
@@ -20,8 +21,8 @@ function findByKey(value,keys,seen=new Set()){
 }
 function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
 function isHighwayHost(hostname){return hostname==='highway38solutions.com'||hostname==='www.highway38solutions.com';}
-if(!deploymentArg)throw new Error('Deployment URL is required for top-level browser acceptance.');
-if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for top-level browser acceptance.');
+if(!deploymentArg)throw new Error('Deployment URL is required for gateway browser acceptance.');
+if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for gateway browser acceptance.');
 let credentials={};
 try{credentials=JSON.parse(fs.readFileSync(credentialsPath,'utf8'));}catch(error){throw new Error(`Authorized Google credential file is not valid JSON: ${error.message}`);}
 let accessToken=findByKey(credentials,['access_token','accessToken']);
@@ -36,7 +37,7 @@ async function refreshAccessToken(){
 }
 async function textOf(page,selector,limit=500){if(!page||page.isClosed())return'';return(((await page.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
 async function clickAuthorizedOfficeButton(page){
-  const deadline=Date.now()+90000;
+  const deadline=Date.now()+120000;
   while(Date.now()<deadline){
     for(const frame of page.frames()){
       const button=frame.locator('#continueButton');
@@ -50,10 +51,33 @@ async function clickAuthorizedOfficeButton(page){
     }
     await page.waitForTimeout(250);
   }
-  throw new Error('The authorized Google page did not present the same-tab Open Business Office button.');
+  throw new Error('The authorized Google page did not present the secure gateway Open Business Office button.');
 }
-async function collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses){
-  const session=page&&!page.isClosed()?await page.evaluate(()=>({present:!!window.H38_EXECUTION_SESSION,apiDeploymentId:window.H38_EXECUTION_SESSION?.apiDeploymentId||'',scriptId:window.H38_EXECUTION_SESSION?.scriptId||'',tokenLength:String(window.H38_EXECUTION_SESSION?.accessToken||'').length,hash:location.hash})).catch(()=>({})):{};
+async function browserSecurityState(page){
+  if(!page||page.isClosed())return{};
+  return page.evaluate(()=>{
+    const policy=document.permissionsPolicy||document.featurePolicy||null;
+    const values=[];for(let index=0;index<sessionStorage.length;index++){const key=sessionStorage.key(index);values.push({key,value:sessionStorage.getItem(key)||''});}
+    const serialized=JSON.stringify(values);
+    const gateway=window.H38_GATEWAY_SESSION||null;
+    return{
+      mediaDevices:!!navigator.mediaDevices,
+      cameraAllowed:policy&&policy.allowsFeature?policy.allowsFeature('camera'):true,
+      microphoneAllowed:policy&&policy.allowsFeature?policy.allowsFeature('microphone'):true,
+      topLevel:window.top===window,
+      hashCleared:location.hash==='',
+      transport:window.H38_ACTIVE_BRIDGE?.transport||'',
+      gatewaySessionPresent:!!gateway?.gatewaySession,
+      gatewayUrl:String(gateway?.gatewayUrl||''),
+      gatewayOpaqueLength:String(gateway?.gatewaySession||'').length,
+      executionSessionPresent:!!window.H38_EXECUTION_SESSION,
+      accessTokenPropertyPresent:!!gateway&&Object.prototype.hasOwnProperty.call(gateway,'accessToken'),
+      browserGoogleTokenPresent:/ya29\.|"accessToken"\s*:|Bearer\s+ya29\./i.test(serialized),
+      sessionKeys:values.map(item=>item.key)
+    };
+  }).catch(()=>({}));
+}
+async function collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,gatewayResponses){
   return{
     currentUrl:page&&!page.isClosed()?page.url():'',
     title:page&&!page.isClosed()?await page.title().catch(()=>''):'',
@@ -61,8 +85,8 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     mainContent:await textOf(page,'#mainContent'),
     businessStatus:await textOf(page,'#businessStatus'),
     navButtonCount:page&&!page.isClosed()?await page.locator('#mainNav button').count().catch(()=>0):0,
-    executionSession:session,
-    executionResponses:executionResponses.slice(-10),
+    browserSecurity:await browserSecurityState(page),
+    gatewayResponses:gatewayResponses.slice(-20),
     secondaryPageCount:context?Math.max(0,context.pages().length-1):0,
     secondaryPages:secondaryPages.slice(-10),
     consoleMessages:consoleMessages.slice(-30),
@@ -74,7 +98,7 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
   if(!(await refreshAccessToken())&&!accessToken)throw new Error('The existing Google credential does not contain a usable access token.');
   const browser=await chromium.launch({headless:true});
   let context=null,page=null;
-  const consoleMessages=[],pageErrors=[],secondaryPages=[],executionResponses=[];
+  const consoleMessages=[],pageErrors=[],secondaryPages=[],gatewayResponses=[];
   try{
     context=await browser.newContext();
     context.on('page',opened=>{if(page&&opened!==page)secondaryPages.push(opened.url()||'about:blank');});
@@ -83,7 +107,7 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
       if(!isScriptHost(parsed.hostname)){await route.continue();return;}
       await route.continue({headers:{...request.headers(),authorization:`Bearer ${accessToken}`}});
     });
-    context.on('response',response=>{try{const url=new URL(response.url());if(url.hostname==='script.googleapis.com')executionResponses.push({status:response.status(),url:url.pathname});}catch(error){}});
+    context.on('response',response=>{try{const url=new URL(response.url());if(url.hostname===GATEWAY_HOST)gatewayResponses.push({status:response.status(),method:response.request().method(),url:url.pathname});}catch(error){}});
 
     page=await context.newPage();
     page.on('console',message=>consoleMessages.push(`${message.type()}:${message.location().url||page.url()}:${message.text()}`));
@@ -96,13 +120,10 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     await page.waitForFunction(()=>{
       const status=(document.getElementById('businessStatus')?.textContent||'').trim();
       return /Office open|latest records loaded/i.test(status)&&document.querySelectorAll('#mainNav button').length>3&&!!window.H38_ACTIVE_BRIDGE?.ready;
-    },undefined,{timeout:90000,polling:250});
+    },undefined,{timeout:120000,polling:250});
 
-    const apiResult=await page.evaluate(()=>window.H38_ACTIVE_BRIDGE.request('visibleBusinesses',{},60000));
-    const permissions=await page.evaluate(()=>{
-      const policy=document.permissionsPolicy||document.featurePolicy||null;
-      return{mediaDevices:!!navigator.mediaDevices,cameraAllowed:policy&&policy.allowsFeature?policy.allowsFeature('camera'):true,microphoneAllowed:policy&&policy.allowsFeature?policy.allowsFeature('microphone'):true,topLevel:window.top===window,hashCleared:location.hash==='',sessionPresent:!!window.H38_EXECUTION_SESSION?.accessToken,transport:window.H38_ACTIVE_BRIDGE?.transport||''};
-    });
+    const apiResult=await page.evaluate(()=>window.H38_ACTIVE_BRIDGE.request('visibleBusinesses',{},90000));
+    const security=await browserSecurityState(page);
     const current=new URL(page.url());
     const officeErrors=pageErrors.filter(Boolean);
     const secondaryPageCount=Math.max(0,context.pages().length-1);
@@ -112,11 +133,14 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     if(!isHighwayHost(current.hostname)||!current.pathname.includes('/commercial-app/'))throw new Error(`Office did not return to the Highway 38 top-level app: ${page.url()}`);
     if(secondaryPageCount!==0)throw new Error(`The Office opened ${secondaryPageCount} extra browser window(s).`);
     if(officeErrors.length)throw new Error(`Office runtime reported page errors: ${officeErrors.join(' | ')}`);
-    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The Google execution API did not return an authorized business list.');
-    if(!permissions.topLevel||!permissions.hashCleared||!permissions.sessionPresent||permissions.transport!=='execution-api')throw new Error(`The top-level execution session is incomplete: ${JSON.stringify(permissions)}`);
-    if(!permissions.mediaDevices||!permissions.cameraAllowed||!permissions.microphoneAllowed)throw new Error(`The top-level Office still blocks field permissions: ${JSON.stringify(permissions)}`);
+    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The secure gateway did not return an authorized business list.');
+    if(!security.topLevel||!security.hashCleared||!security.gatewaySessionPresent||security.transport!=='supabase-gateway')throw new Error(`The top-level gateway session is incomplete: ${JSON.stringify(security)}`);
+    if(security.executionSessionPresent||security.accessTokenPropertyPresent||security.browserGoogleTokenPresent)throw new Error(`A Google OAuth token or legacy execution session reached the browser: ${JSON.stringify(security)}`);
+    if(!String(security.gatewayUrl||'').includes(`${GATEWAY_HOST}/functions/v1/h38-office-gateway`))throw new Error(`The Office is using an unexpected gateway: ${security.gatewayUrl}`);
+    if(!security.mediaDevices||!security.cameraAllowed||!security.microphoneAllowed)throw new Error(`The top-level Office blocks field permissions: ${JSON.stringify(security)}`);
+    if(!gatewayResponses.some(item=>item.method==='POST'&&item.status>=200&&item.status<300))throw new Error('No successful live Supabase gateway POST was observed.');
 
-    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_EXECUTION_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,authorizationContinueClick:true,executionApiBusinessCount:apiResult.length,executionApiResponses:executionResponses,topLevelOffice:true,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
-  }catch(error){const diagnostics=page?await collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses):{};fail('Browser-level authorized top-level Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
+    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_GATEWAY_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,authorizationContinueClick:true,gatewayBusinessCount:apiResult.length,gatewayResponses,topLevelOffice:true,supabaseGatewayTransport:true,browserGoogleTokenPresent:false,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
+  }catch(error){const diagnostics=page?await collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,gatewayResponses):{};fail('Browser-level authorized gateway Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
   finally{await browser.close();}
 })();

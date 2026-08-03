@@ -16,13 +16,14 @@
     <h1>Opening Business Office</h1>
     <p id="status">Clearing the obsolete Office connection and opening Google authorization in this tab.</p>
     <a id="continueButton" class="primary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Continue securely</a>
-    <p class="muted">Google returns to Highway 38 automatically. No second window remains open.</p>
+    <p class="muted">Google prepares a secure gateway session, then you return to Highway 38 in this tab. No second window remains open.</p>
   </main>
   <script>
     (async function(){
-      var destination='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1530';
+      var destination='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1700';
       document.getElementById('continueButton').href=destination;
       try{
+        sessionStorage.removeItem('h38-gateway-session-v1');
         sessionStorage.removeItem('h38-execution-session-v1');
         if('serviceWorker' in navigator){
           var registrations=await navigator.serviceWorker.getRegistrations();
@@ -32,9 +33,9 @@
           var keys=await caches.keys();
           await Promise.all(keys.filter(function(key){return key.indexOf('h38-business-office-')===0;}).map(function(key){return caches.delete(key);}));
         }
-        document.getElementById('status').textContent='Opening Google authorization in this tab…';
+        document.getElementById('status').textContent='Opening Google authorization and secure gateway in this tab…';
       }catch(error){
-        document.getElementById('status').textContent='Opening Google authorization. The old Office connection will be ignored.';
+        document.getElementById('status').textContent='Opening secure authorization. The old Office connection will be ignored.';
       }
       window.location.replace(destination);
     })();

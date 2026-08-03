@@ -1,6 +1,7 @@
 'use strict';
 (()=>{
-  const SESSION_KEY='h38-execution-session-v1';
+  const SESSION_KEY='h38-gateway-session-v1';
+  const LEGACY_SESSION_KEY='h38-execution-session-v1';
   const AUTH_ENTRY='/open-business-office.html';
   function decodeBase64Url(value){
     const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -21,40 +22,49 @@
       return null;
     }
   }
+  function normalizedSession(handoff){
+    if(!handoff||handoff.handoffType!=='H38_GATEWAY_HANDOFF'||!handoff.gatewaySession||!handoff.gatewayUrl||!handoff.startup)return null;
+    if(Object.prototype.hasOwnProperty.call(handoff,'accessToken')||handoff.browserReceivesGoogleToken!==false)return null;
+    return{
+      gatewaySession:String(handoff.gatewaySession),
+      gatewayUrl:String(handoff.gatewayUrl),
+      issuedAt:String(handoff.issuedAt||new Date().toISOString()),
+      expiresAt:String(handoff.expiresAt||''),
+      refreshAfterMs:Number(handoff.refreshAfterMs||2400000),
+      startup:handoff.startup,
+      safeguards:handoff.safeguards||{},
+      browserReceivesGoogleToken:false,
+      transport:'supabase-gateway'
+    };
+  }
   function readSession(){
-    const handoff=consumeHashHandoff();
-    if(handoff&&handoff.handoffType==='H38_EXECUTION_HANDOFF'&&handoff.accessToken&&handoff.startup){
-      const session={
-        accessToken:String(handoff.accessToken),
-        apiDeploymentId:String(handoff.apiDeploymentId||''),
-        scriptId:String(handoff.scriptId||''),
-        issuedAt:String(handoff.issuedAt||new Date().toISOString()),
-        refreshAfterMs:Number(handoff.refreshAfterMs||600000),
-        startup:handoff.startup,
-        safeguards:handoff.safeguards||{}
-      };
-      try{sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(error){}
+    const handoff=consumeHashHandoff(),session=normalizedSession(handoff);
+    if(session){
+      try{sessionStorage.removeItem(LEGACY_SESSION_KEY);sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(error){}
       return session;
     }
     try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');}catch(error){return null;}
   }
-  function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch(error){}}
-  function executionError(payload,status){
-    const detail=payload?.error?.details?.[0]?.errorMessage||payload?.error?.message||payload?.message||'';
-    const error=new Error(detail||`Google execution request failed (${status||'unknown'}).`);
+  function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);sessionStorage.removeItem(LEGACY_SESSION_KEY);}catch(error){}}
+  function expired(session){const time=new Date(session?.expiresAt||0).getTime();return Number.isFinite(time)&&time>0&&time<=Date.now()+30000;}
+  function gatewayError(payload,status){
+    const detail=payload?.error||payload?.message||'';
+    const error=new Error(detail||`Secure Office gateway request failed (${status||'unknown'}).`);
     error.status=status||0;error.payload=payload;return error;
   }
   class H38Bridge{
     constructor(frame,url,onStatus,onBootstrap,onFullSnapshot,onError){
       this.frame=frame;this.url=url;this.onStatus=onStatus||(()=>{});this.onBootstrap=onBootstrap||(()=>{});this.onFullSnapshot=onFullSnapshot||(()=>{});this.onError=onError||(()=>{});
-      this.session=readSession();this.ready=false;this.bootstrapped=false;this.transport='execution-api';
-      window.H38_EXECUTION_SESSION=this.session;
+      this.session=readSession();this.ready=false;this.bootstrapped=false;this.transport='supabase-gateway';
+      window.H38_GATEWAY_SESSION=this.session;window.H38_EXECUTION_SESSION=null;
     }
     setUrl(url){this.url=url;}
     authorize(){clearSession();location.assign(AUTH_ENTRY);return true;}
     connect(){
-      this.session=readSession()||this.session;window.H38_EXECUTION_SESSION=this.session;
-      if(!this.session?.accessToken||!this.session?.startup){this.ready=false;this.onStatus('sign-in-required');return;}
+      this.session=readSession()||this.session;window.H38_GATEWAY_SESSION=this.session;window.H38_EXECUTION_SESSION=null;
+      if(!this.session?.gatewaySession||!this.session?.gatewayUrl||!this.session?.startup||expired(this.session)){
+        if(expired(this.session))clearSession();this.ready=false;this.onStatus(expired(this.session)?'auth-expired':'sign-in-required');return;
+      }
       this.ready=true;this.onStatus('connected');
       queueMicrotask(()=>{
         if(this.bootstrapped)return;
@@ -63,37 +73,27 @@
         this.onStatus('bootstrapped');
       });
     }
-    async callDeployment(deploymentId,action,args,timeout){
-      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeout);
+    async request(action,args={},timeout=120000){
+      if(!this.ready||!this.session?.gatewaySession||expired(this.session)){
+        if(expired(this.session)){clearSession();this.ready=false;this.onStatus('auth-expired');}
+        const error=new Error('Secure Office gateway session is not ready.');error.code='AUTH_REQUIRED';throw error;
+      }
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
       try{
-        const response=await fetch(`https://script.googleapis.com/v1/scripts/${encodeURIComponent(deploymentId)}:run`,{
+        const response=await fetch(this.session.gatewayUrl,{
           method:'POST',mode:'cors',cache:'no-store',credentials:'omit',signal:controller.signal,
-          headers:{authorization:`Bearer ${this.session.accessToken}`,'content-type':'application/json'},
-          body:JSON.stringify({function:'cbApi',parameters:[{action,args:args||{}}],devMode:false})
+          headers:{authorization:`Bearer ${this.session.gatewaySession}`,'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
+          body:JSON.stringify({type:'api',action,args:args||{}})
         });
         let payload={};try{payload=await response.json();}catch(error){}
-        if(!response.ok)throw executionError(payload,response.status);
-        if(payload.error)throw executionError(payload,response.status);
-        if(payload.done===false)throw new Error(`${action} did not finish.`);
-        if(!payload.response||!Object.prototype.hasOwnProperty.call(payload.response,'result'))throw new Error(`${action} returned no result.`);
-        return payload.response.result;
+        if(!response.ok||payload.status==='FAIL')throw gatewayError(payload,response.status);
+        if(!Object.prototype.hasOwnProperty.call(payload,'result'))throw new Error(`${action} returned no result.`);
+        return payload.result;
+      }catch(error){
+        if(error?.status===401){clearSession();this.ready=false;this.onStatus('auth-expired');this.onError('authorization',error.message||String(error));}
+        else this.onError('request',error?.message||String(error));
+        throw error;
       }finally{clearTimeout(timer);}
-    }
-    async request(action,args={},timeout=120000){
-      if(!this.ready||!this.session?.accessToken){const error=new Error('Secure Google session is not ready.');error.code='AUTH_REQUIRED';throw error;}
-      const candidates=[this.session.apiDeploymentId,this.session.scriptId].filter((value,index,array)=>value&&array.indexOf(value)===index);
-      let lastError=null;
-      for(let index=0;index<candidates.length;index++){
-        try{return await this.callDeployment(candidates[index],action,args,timeout);}
-        catch(error){
-          lastError=error;
-          if(error.status===401){clearSession();this.ready=false;this.onStatus('auth-expired');break;}
-          if(error.status!==404||index===candidates.length-1)break;
-        }
-      }
-      const message=lastError?.message||'Secure Google request failed.';
-      this.onError(lastError?.status===401?'authorization':'request',message);
-      throw lastError||new Error(message);
     }
   }
   window.H38Bridge=H38Bridge;
