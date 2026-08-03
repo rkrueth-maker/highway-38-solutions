@@ -2,7 +2,17 @@ class H38Bridge{
   constructor(frame,url,onStatus,onBootstrap,onFullSnapshot,onError){this.frame=frame;this.url=url;this.onStatus=onStatus||(()=>{});this.onBootstrap=onBootstrap||(()=>{});this.onFullSnapshot=onFullSnapshot||(()=>{});this.onError=onError||(()=>{});this.ready=false;this.bootstrapped=false;this.pending=new Map();this.popup=null;this.transport=null;this.listener=event=>this.receive(event);addEventListener('message',this.listener);}
   setUrl(url){this.url=url;this.ready=false;this.bootstrapped=false;this.transport=null;this.connect();}
   connect(){if(!this.url)return;this.ready=false;this.bootstrapped=false;if(!this.popup||this.popup.closed)this.transport=null;this.onStatus('connecting');this.frame.src=this.url+(this.url.includes('?')?'&':'?')+'v='+Date.now();clearTimeout(this.timer);this.timer=setTimeout(()=>{if(!this.bootstrapped)this.onStatus('sign-in-required');},8000);}
-  authorize(){if(!this.url)return;if(this.popup&&!this.popup.closed){this.popup.focus();this.onStatus('authorizing');return;}const authUrl=this.url+(this.url.includes('?')?'&':'?')+'authorize=1&v='+Date.now();this.onStatus('authorizing');this.popup=window.open(authUrl,'h38-secure-signin','popup=yes,width=520,height=720');if(!this.popup){this.onStatus('popup-blocked');return;}clearTimeout(this.authTimer);this.authTimer=setTimeout(()=>{if(!this.bootstrapped)this.onStatus('sign-in-timeout');},45000);}
+  authorize(){
+    if(!this.url)return false;
+    if((!this.popup||this.popup.closed)&&window.h38SecurePopup&&!window.h38SecurePopup.closed)this.popup=window.h38SecurePopup;
+    if(this.popup&&!this.popup.closed){try{this.popup.focus();}catch(error){}this.onStatus('authorizing');return true;}
+    const authUrl=this.url+(this.url.includes('?')?'&':'?')+'authorize=1&v='+Date.now();
+    let popup=null;
+    try{popup=window.open(authUrl,'h38-secure-signin','popup=yes,width=520,height=720,resizable=yes,scrollbars=yes');}catch(error){}
+    if(!popup){this.onStatus('popup-blocked');return false;}
+    this.popup=popup;window.h38SecurePopup=popup;try{popup.focus();}catch(error){}
+    this.onStatus('authorizing');clearTimeout(this.authTimer);this.authTimer=setTimeout(()=>{if(!this.bootstrapped)this.onStatus('sign-in-timeout');},45000);return true;
+  }
   useTransport(fromFrame,fromPopup){if(fromFrame){this.transport=this.frame.contentWindow;}else if(fromPopup){this.transport=this.popup;}this.ready=true;}
   receive(event){const fromFrame=event.source===this.frame.contentWindow,fromPopup=this.popup&&event.source===this.popup;if(!fromFrame&&!fromPopup)return;const message=event.data||{};
     if(message.type==='H38_BRIDGE_READY'){this.useTransport(fromFrame,fromPopup);this.onStatus('connected');return;}
