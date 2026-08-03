@@ -13,8 +13,13 @@ class H38Bridge{
     this.popup=popup;window.h38SecurePopup=popup;try{popup.focus();}catch(error){}
     this.onStatus('authorizing');clearTimeout(this.authTimer);this.authTimer=setTimeout(()=>{if(!this.bootstrapped)this.onStatus('sign-in-timeout');},45000);return true;
   }
+  trustedOrigin(origin){try{const host=new URL(origin).hostname;return host==='script.google.com'||host==='script.googleusercontent.com'||host.endsWith('.script.googleusercontent.com');}catch(error){return false;}}
   useTransport(fromFrame,fromPopup){if(fromFrame){this.transport=this.frame.contentWindow;}else if(fromPopup){this.transport=this.popup;}this.ready=true;}
-  receive(event){const fromFrame=event.source===this.frame.contentWindow,fromPopup=this.popup&&event.source===this.popup;if(!fromFrame&&!fromPopup)return;const message=event.data||{};
+  receive(event){
+    const message=event.data||{};let fromFrame=event.source===this.frame.contentWindow,fromPopup=this.popup&&event.source===this.popup;
+    const trustedDirectWindow=!fromFrame&&!fromPopup&&String(message.type||'').startsWith('H38_BRIDGE_')&&this.trustedOrigin(event.origin||'');
+    if(trustedDirectWindow){this.popup=event.source;window.h38SecurePopup=event.source;fromPopup=true;}
+    if(!fromFrame&&!fromPopup)return;
     if(message.type==='H38_BRIDGE_READY'){this.useTransport(fromFrame,fromPopup);this.onStatus('connected');return;}
     if(message.type==='H38_BRIDGE_BOOTSTRAP'){this.useTransport(fromFrame,fromPopup);this.bootstrapped=true;clearTimeout(this.timer);clearTimeout(this.authTimer);this.onBootstrap(message.startup||{});this.onStatus('bootstrapped');return;}
     if(message.type==='H38_BRIDGE_FULL_SNAPSHOT'){this.onFullSnapshot(message.snapshot||{},message.businessId||'');return;}
