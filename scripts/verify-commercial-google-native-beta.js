@@ -10,7 +10,7 @@ const required = [
   'apps-script/commercial-office-beta/CommercialBeta_Config.gs',
   'apps-script/commercial-office-beta/CommercialBeta_Data.gs',
   'apps-script/commercial-office-beta/CommercialBeta_Installer.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_Office.gs',
+  'apps-script/commercial-office-beta/CommercialBeta_WorkspaceService.gs',
   'apps-script/commercial-office-beta/CommercialBeta_Web.gs',
   'apps-script/commercial-office-beta/CommercialBeta_Index.html',
   'apps-script/commercial-office-beta/CommercialBeta_Office.html',
@@ -49,7 +49,7 @@ const installer = read('apps-script/commercial-office-beta/CommercialBeta_Instal
 for (const token of ['LockService.getScriptLock', 'cbExistingInstallation_', 'productionDataMigrated:false', 'externalActionsEnabled:false', 'cbVerifyBusiness_', 'Core Data', 'Inventory Data', 'Asset Data']) assert(installer.includes(token), `Installer safety contract is missing: ${token}`);
 assert(!installer.includes('boQuoteBuilder'), 'Commercial beta installer must not duplicate or modify the production Quote Builder.');
 
-const office = read('apps-script/commercial-office-beta/CommercialBeta_Office.gs');
+const office = read('apps-script/commercial-office-beta/CommercialBeta_WorkspaceService.gs');
 for (const token of ['cbBusinessContext_', "SpreadsheetApp.openById(row['Core Spreadsheet ID'])", "SpreadsheetApp.openById(row['Inventory Spreadsheet ID'])", "SpreadsheetApp.openById(row['Asset Spreadsheet ID'])", 'cbOfficeSnapshot_', 'cbAddCustomer_', 'cbAddJob_', 'cbAddInventoryItem_', 'cbPostInventoryTransaction_', 'cbAddAsset_', 'Append-only inventory transaction recorded']) assert(office.includes(token), `Connected business service is missing: ${token}`);
 assert(!office.includes('productionMigrationEnabled:true'), 'Connected workspace must not enable production migration.');
 
