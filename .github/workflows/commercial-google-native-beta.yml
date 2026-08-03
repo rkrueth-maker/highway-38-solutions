@@ -3,6 +3,7 @@ name: Deploy Commercial Google-Native Office Beta
 on:
   push:
     branches:
+      - main
       - agent/commercial-google-native-beta
     paths:
       - commercial-beta/deploy-request.json
