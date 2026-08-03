@@ -59,7 +59,7 @@ async function init(){
   const requestedBusinessId=(query.get('businessId')||'').trim();let fastBusinessId=requestedBusinessId;
   if(!fastBusinessId){try{fastBusinessId=localStorage.getItem('h38-selected-business')||'';}catch(error){}}
   setFastBusinessId(fastBusinessId);
-  state.bridge=new H38Bridge($('bridgeFrame'),' ',handleBridgeStatus,handleStartupBootstrap,handleFullSnapshot,handleBridgeError);
+  state.bridge=new H38Bridge($('bridgeFrame'),' ',handleBridgeStatus,handleStartupBootstrap,handleFullSnapshot,handleBridgeError);window.H38_ACTIVE_BRIDGE=state.bridge;
   bindGlobal();bindStartupControls();renderNav();network();if(state.snapshot)openPage(state.page,false);else renderWelcome('connecting');
   state.bridge.connect();addEventListener('online',network);addEventListener('offline',network);armStartupWatchdog();
   hydrateLocalStartup(requestedBusinessId).catch(error=>console.warn(error.message||String(error)));
