@@ -7,7 +7,7 @@ class H38Bridge{
   receive(event){const fromFrame=event.source===this.frame.contentWindow,fromPopup=this.popup&&event.source===this.popup;if(!fromFrame&&!fromPopup)return;const message=event.data||{};
     if(message.type==='H38_BRIDGE_READY'){this.useTransport(fromFrame,fromPopup);this.onStatus('connected');return;}
     if(message.type==='H38_BRIDGE_BOOTSTRAP'){this.useTransport(fromFrame,fromPopup);this.bootstrapped=true;clearTimeout(this.timer);clearTimeout(this.authTimer);this.onBootstrap(message.startup||{});this.onStatus('bootstrapped');return;}
-    if(message.type==='H38_BRIDGE_FULL_SNAPSHOT'){this.onFullSnapshot(message.snapshot||{},message.businessId||'');if(fromPopup){try{if(this.popup&&!this.popup.closed)this.popup.close();}catch(error){}}return;}
+    if(message.type==='H38_BRIDGE_FULL_SNAPSHOT'){this.onFullSnapshot(message.snapshot||{},message.businessId||'');return;}
     if(message.type==='H38_BRIDGE_BOOTSTRAP_ERROR'){clearTimeout(this.timer);clearTimeout(this.authTimer);this.onError('startup',message.error||'Secure startup failed.');this.onStatus('startup-error');return;}
     if(message.type==='H38_BRIDGE_REFRESH_ERROR'){this.onError('refresh',message.error||'Latest-record refresh failed.');return;}
     if(message.type!=='H38_BRIDGE_RESPONSE')return;const pending=this.pending.get(message.requestId);if(!pending)return;this.pending.delete(message.requestId);clearTimeout(pending.timer);message.ok?pending.resolve(message.result):pending.reject(new Error(message.error||'Secure connection request failed.'));
