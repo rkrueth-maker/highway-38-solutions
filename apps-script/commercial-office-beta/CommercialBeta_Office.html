@@ -5,113 +5,61 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
-  <title><?= businessName ?> — Highway 38 Business Office</title>
+  <meta name="referrer" content="no-referrer">
+  <title>Opening <?= businessName ?> — Highway 38 Business Office</title>
   <style>
-    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef3f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}#officeFrame{display:block;width:100%;height:100%;border:0;background:#eef3f7}.loading{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:22px;background:#eef3f7;transition:opacity .18s ease}.loading.hidden{opacity:0;pointer-events:none}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center;color:#152536}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.muted{color:#607285}.error{color:#9a2c2c;white-space:pre-wrap}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:22px}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:50px;margin-top:18px;padding:12px 20px;border:0;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-weight:900;cursor:pointer}.primary[aria-disabled="true"]{opacity:.55;pointer-events:none}.muted{color:#607285}.error{color:#9a2c2c;white-space:pre-wrap}
   </style>
 </head>
 <body>
-  <iframe id="officeFrame" title="Highway 38 Business Office" allow="microphone; camera; geolocation"></iframe>
-  <div id="loading" class="loading"><main class="card"><div class="mark">H38</div><h1>Opening <?= businessName ?></h1><p id="status">Loading your secure Business Office in this tab…</p><p class="muted">No second window is required.</p></main></div>
+  <main class="card">
+    <div class="mark">H38</div>
+    <h1>Opening <?= businessName ?></h1>
+    <p id="status">Checking your authorized business…</p>
+    <a id="continueButton" class="primary" href="<?= pwaUrl ?>" target="_top" aria-disabled="true">Continue to Business Office</a>
+    <p class="muted">The Google authorization step closes when the Office opens. No second window is used.</p>
+  </main>
   <script>
     (function(){
       var PWA_BASE=<?!= JSON.stringify(pwaUrl) ?>;
       var BUSINESS_ID=<?!= JSON.stringify(businessId) ?>;
-      var BUILD='20260803-1405';
-      var origin=(new URL(PWA_BASE)).origin;
-      var frame=document.getElementById('officeFrame');
-      var loading=document.getElementById('loading');
+      var BUILD='20260803-1530';
       var status=document.getElementById('status');
-      var startupStarted=false;
-      var startupResult=null;
-      var startupError='';
-      var snapshotResult=null;
-      var snapshotBusinessId='';
-      var childReady=false;
-      var officeRendered=false;
-      var replayTimer=0;
-      var target=new URL(PWA_BASE);
-      target.searchParams.set('embedded','1');
-      target.searchParams.set('shell','office');
-      target.searchParams.set('build',BUILD);
-      if(BUSINESS_ID)target.searchParams.set('businessId',BUSINESS_ID);
-      frame.src=target.toString();
-
-      function trustedChildOrigin(value){
-        try{var host=(new URL(value)).hostname;return host==='highway38solutions.com'||host==='www.highway38solutions.com';}catch(error){return false;}
+      var button=document.getElementById('continueButton');
+      function errorText(error){return error&&error.message?error.message:String(error||'Secure Office authorization failed.');}
+      function utf8Base64Url(value){
+        var bytes=new TextEncoder().encode(JSON.stringify(value));
+        var binary='';
+        for(var index=0;index<bytes.length;index+=32768){binary+=String.fromCharCode.apply(null,bytes.subarray(index,index+32768));}
+        return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       }
-      function send(payload){try{frame.contentWindow.postMessage(payload,'*');return true;}catch(error){return false;}}
-      function errorText(error){return error&&error.message?error.message:String(error||'Secure Office request failed.');}
-      function deliverStartup(){
-        send({type:'H38_BRIDGE_READY',version:'4.1.0',transport:'same-tab-parent'});
-        if(startupError){send({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:startupError});return;}
-        if(!startupResult)return;
-        send({type:'H38_BRIDGE_BOOTSTRAP',startup:startupResult});
-        if(snapshotResult&&snapshotBusinessId){send({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:snapshotBusinessId,snapshot:snapshotResult});}
+      function destinationFor(handoff){
+        var target=new URL(PWA_BASE);
+        target.searchParams.set('handoff','1');
+        target.searchParams.set('build',BUILD);
+        if(handoff.startup&&handoff.startup.selectedBusinessId)target.searchParams.set('businessId',handoff.startup.selectedBusinessId);
+        target.hash='h38='+utf8Base64Url(handoff);
+        return target.toString();
       }
-      function startReplay(){
-        clearInterval(replayTimer);
-        replayTimer=setInterval(function(){
-          if(officeRendered){clearInterval(replayTimer);return;}
-          deliverStartup();
-        },750);
+      function openTop(target){
+        button.href=target;
+        button.setAttribute('aria-disabled','false');
+        status.textContent='Authorized · returning to Highway 38 Business Office…';
+        try{var opened=window.open(target,'_top');if(opened)return;}catch(error){}
+        try{button.click();}catch(error){}
       }
-      function runApi(message){
-        if(!message||message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;
-        google.script.run.withSuccessHandler(function(result){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});
-      }
-      function startFullRefresh(startup){
-        if(!startup||!startup.selectedBusinessId)return;
-        snapshotBusinessId=startup.selectedBusinessId;
-        google.script.run.withSuccessHandler(function(snapshot){
-          snapshotResult=snapshot;
-          deliverStartup();
-        }).withFailureHandler(function(error){
-          send({type:'H38_BRIDGE_REFRESH_ERROR',businessId:snapshotBusinessId,error:errorText(error)});
-        }).cbFullStartupRefresh(snapshotBusinessId);
-      }
-      function bootstrap(){
-        if(startupStarted){deliverStartup();return;}
-        startupStarted=true;
-        status.textContent='Checking your authorized business…';
-        google.script.run.withSuccessHandler(function(startup){
-          startupResult=startup;
-          status.textContent='Authorized business found · opening Office…';
-          deliverStartup();
-          startReplay();
-          startFullRefresh(startup);
-        }).withFailureHandler(function(error){
-          startupError=errorText(error);
-          status.textContent='Business Office could not open.';
-          status.className='error';
-          status.nextElementSibling.textContent=startupError;
-          deliverStartup();
-          startReplay();
-        }).cbStartupBootstrap(BUSINESS_ID);
-      }
-      window.addEventListener('message',function(event){
-        if(event.source!==frame.contentWindow||(event.origin!==origin&&!trustedChildOrigin(event.origin)))return;
-        var message=event.data||{};
-        if(message.type==='H38_BRIDGE_CLIENT_READY'){
-          childReady=true;
-          deliverStartup();
-          bootstrap();
-          return;
-        }
-        if(message.type==='H38_OFFICE_RENDERED'){
-          officeRendered=true;
-          clearInterval(replayTimer);
-          loading.classList.add('hidden');
-          return;
-        }
-        runApi(message);
-      });
-      frame.addEventListener('load',function(){
-        childReady=false;
-        send({type:'H38_BRIDGE_READY',version:'4.1.0',transport:'same-tab-parent'});
-        window.setTimeout(bootstrap,250);
-      });
-      window.setTimeout(function(){if(!officeRendered)startReplay();},1500);
+      google.script.run.withSuccessHandler(function(handoff){
+        if(!handoff||handoff.status!=='PASS'||!handoff.accessToken||!handoff.startup)throw new Error('Google returned an incomplete Office handoff.');
+        openTop(destinationFor(handoff));
+      }).withFailureHandler(function(error){
+        status.textContent='Business Office authorization could not finish.';
+        status.className='error';
+        button.setAttribute('aria-disabled','false');
+        button.textContent='Retry authorization';
+        button.href=location.href;
+        button.target='_top';
+        var detail=document.createElement('p');detail.className='error';detail.textContent=errorText(error);button.insertAdjacentElement('afterend',detail);
+      }).cbPwaExecutionHandoff(BUSINESS_ID);
     })();
   </script>
 </body>
