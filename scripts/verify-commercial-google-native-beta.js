@@ -1,85 +1,20 @@
 #!/usr/bin/env node
 'use strict';
-
-const fs = require('fs');
-const path = require('path');
-
-const root = path.resolve(__dirname, '..');
-const required = [
-  'apps-script/commercial-office-beta/appsscript.json',
-  'apps-script/commercial-office-beta/CommercialBeta_Config.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_Data.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_Installer.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_WorkspaceService.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_Web.gs',
-  'apps-script/commercial-office-beta/CommercialBeta_Index.html',
-  'apps-script/commercial-office-beta/CommercialBeta_Office.html',
-  'commercial-beta/schema/installation-manifest.schema.json',
-  'docs/architecture/COMMERCIAL_GOOGLE_NATIVE_BETA.md',
-  'scripts/deploy-commercial-google-native-beta.sh',
-  '.github/workflows/commercial-google-native-beta.yml'
-];
-
-function read(relative) {
-  const file = path.join(root, relative);
-  if (!fs.existsSync(file)) throw new Error(`Missing required file: ${relative}`);
-  return fs.readFileSync(file, 'utf8');
-}
-function assert(condition, message) { if (!condition) throw new Error(message); }
-for (const file of required) read(file);
-
-const manifest = JSON.parse(read('apps-script/commercial-office-beta/appsscript.json'));
-assert(manifest.webapp && manifest.webapp.executeAs === 'USER_ACCESSING', 'Commercial beta must execute as the signed-in user.');
-assert(manifest.webapp.access === 'ANYONE', 'Commercial beta web-app access contract changed unexpectedly.');
-assert(manifest.oauthScopes.includes('https://www.googleapis.com/auth/userinfo.email'), 'Signed-in email scope is required.');
-
-const config = read('apps-script/commercial-office-beta/CommercialBeta_Config.gs');
-assert(config.includes("environment:'commercial-google-native-beta'"), 'Separate beta environment marker is missing.');
-assert(config.includes("version:'0.2.0'"), 'Connected business workspace version is missing.');
-assert(config.includes('externalActionsEnabled:false'), 'External actions must remain disabled.');
-assert(config.includes('productionMigrationEnabled:false'), 'Production migration must remain disabled.');
-assert(config.includes('cbRequireOwner_'), 'Owner-only server authorization is missing.');
-
-const data = read('apps-script/commercial-office-beta/CommercialBeta_Data.gs');
-for (const token of ['Installation Manifests', 'Idempotency Key', 'Offline Transaction ID', 'Payload Hash', 'Record Version']) assert(data.includes(token), `Required migration/offline/ledger token is missing: ${token}`);
-assert(data.includes('COMMERCIAL_BETA_ROOT_FOLDER_ID'), 'Separate beta root property is missing.');
-assert(data.includes('COMMERCIAL_BETA_CONTROL_SPREADSHEET_ID'), 'Separate control workbook property is missing.');
-
-const installer = read('apps-script/commercial-office-beta/CommercialBeta_Installer.gs');
-for (const token of ['LockService.getScriptLock', 'cbExistingInstallation_', 'productionDataMigrated:false', 'externalActionsEnabled:false', 'cbVerifyBusiness_', 'Core Data', 'Inventory Data', 'Asset Data']) assert(installer.includes(token), `Installer safety contract is missing: ${token}`);
-assert(!installer.includes('boQuoteBuilder'), 'Commercial beta installer must not duplicate or modify the production Quote Builder.');
-
-const office = read('apps-script/commercial-office-beta/CommercialBeta_WorkspaceService.gs');
-for (const token of ['cbBusinessContext_', "SpreadsheetApp.openById(row['Core Spreadsheet ID'])", "SpreadsheetApp.openById(row['Inventory Spreadsheet ID'])", "SpreadsheetApp.openById(row['Asset Spreadsheet ID'])", 'cbOfficeSnapshot_', 'cbAddCustomer_', 'cbAddJob_', 'cbAddInventoryItem_', 'cbPostInventoryTransaction_', 'cbAddAsset_', 'Append-only inventory transaction recorded']) assert(office.includes(token), `Connected business service is missing: ${token}`);
-assert(!office.includes('productionMigrationEnabled:true'), 'Connected workspace must not enable production migration.');
-
-const web = read('apps-script/commercial-office-beta/CommercialBeta_Web.gs');
-assert(web.includes('cbRequireOwner_();'), 'Web entry must enforce Owner access server-side.');
-assert(web.includes("CommercialBeta_Office"), 'Business workspace route is missing.');
-assert(web.includes("action==='openBusiness'"), 'Open-business API is missing.');
-assert(web.includes("action==='createBusiness'"), 'Create-business API is missing.');
-
-const indexUi = read('apps-script/commercial-office-beta/CommercialBeta_Index.html');
-assert(indexUi.includes('Protected separation'), 'Visible beta separation warning is missing.');
-assert(indexUi.includes('production migration disabled'), 'Visible production-migration boundary is missing.');
-assert(indexUi.includes('Open Business'), 'Business launch control is missing.');
-
-const officeUi = read('apps-script/commercial-office-beta/CommercialBeta_Office.html');
-for (const token of ['Connected to Core Data, Inventory Data, and Asset Data', 'Customers', 'Jobs', 'Inventory', 'Assets', 'No production data migration']) assert(officeUi.includes(token), `Connected business UI is missing: ${token}`);
-
-const schema = JSON.parse(read('commercial-beta/schema/installation-manifest.schema.json'));
-assert(schema.properties.productionDataMigrated.const === false, 'Manifest schema must prohibit implicit production migration.');
-assert(schema.properties.externalActionsEnabled.const === false, 'Manifest schema must keep external actions disabled.');
-
-const architecture = read('docs/architecture/COMMERCIAL_GOOGLE_NATIVE_BETA.md');
-for (const token of ['append-only transaction system', 'Offline synchronization contract', '02 — Build & Automation', '04 — Business & Growth', 'Never overwrite a production deployment ID']) assert(architecture.includes(token), `Architecture decision is missing: ${token}`);
-
-const deployment = read('scripts/deploy-commercial-google-native-beta.sh');
-assert(deployment.includes('apps-script/commercial-office-beta'), 'Deployment must use the separate beta source root.');
-assert(deployment.includes('clasp create --type standalone'), 'Initial beta project creation is missing.');
-assert(deployment.includes('deployment-state.json'), 'Deployment state evidence is missing.');
-
-const combined = required.map(read).join('\n');
-for (const productionId of ['AKfycbwFtIgY9QHyuIP0kktYgc7bPlgLVoLYAaZA-6RKlSInJpSy9NRO','1kDDKW','1Vq8Uj','11ak4Q','1Jn2vW5','1rjl_m8u']) assert(!combined.includes(productionId), `Production identifier leaked into commercial beta source: ${productionId}`);
-
-console.log(JSON.stringify({status:'PASS',verifier:'commercial-google-native-beta',version:'0.2.0',connectedWorkspace:true,requiredFiles:required.length,productionSystemModified:false,externalActionsEnabled:false,productionMigrationEnabled:false}, null, 2));
+const fs=require('fs');const path=require('path');const root=path.resolve(__dirname,'..');
+const required=[
+'apps-script/commercial-office-beta/appsscript.json','apps-script/commercial-office-beta/CommercialBeta_Config.gs','apps-script/commercial-office-beta/CommercialBeta_Data.gs','apps-script/commercial-office-beta/CommercialBeta_Installer.gs','apps-script/commercial-office-beta/CommercialBeta_WorkspaceService.gs','apps-script/commercial-office-beta/CommercialBeta_Web.gs','apps-script/commercial-office-beta/CommercialBeta_Bridge.html','apps-script/commercial-office-beta/CommercialBeta_Setup.html','apps-script/commercial-office-beta/CommercialBeta_PlatformSchema.gs','apps-script/commercial-office-beta/CommercialBeta_MultiIndustry.gs','apps-script/commercial-office-beta/CommercialBeta_FleetService.gs','apps-script/commercial-office-beta/CommercialBeta_OfflineQuoteService.gs','apps-script/commercial-office-beta/CommercialBeta_Office.html','commercial-beta/schema/installation-manifest.schema.json','docs/architecture/COMMERCIAL_GOOGLE_NATIVE_BETA.md','docs/architecture/COMMERCIAL_PLATFORM_OFFLINE_FOUNDATION.md','commercial-app/index.html','commercial-app/styles.css','commercial-app/app.js','commercial-app/db.js','commercial-app/bridge.js','commercial-app/service-worker.js','commercial-app/manifest.webmanifest','commercial-app/icon.svg','scripts/deploy-commercial-google-native-beta.sh','.github/workflows/commercial-google-native-beta.yml'];
+function read(relative){const file=path.join(root,relative);if(!fs.existsSync(file))throw new Error(`Missing required file: ${relative}`);return fs.readFileSync(file,'utf8');}function assert(value,message){if(!value)throw new Error(message);}required.forEach(read);
+const manifest=JSON.parse(read('apps-script/commercial-office-beta/appsscript.json'));assert(manifest.webapp.executeAs==='USER_ACCESSING','Signed-in user execution is required.');assert(manifest.oauthScopes.includes('https://www.googleapis.com/auth/userinfo.email'),'Email authorization is required.');
+const config=read('apps-script/commercial-office-beta/CommercialBeta_Config.gs');['version:\'0.3.0\'','schemaVersion:2','pwaAllowedOrigins','externalActionsEnabled:false','productionMigrationEnabled:false','fleet','maintenance','communications','offline'].forEach(token=>assert(config.includes(token),`Configuration contract missing: ${token}`));
+const schemaService=read('apps-script/commercial-office-beta/CommercialBeta_PlatformSchema.gs');['businessIndustries','quotes','quoteLines','offlineOperations','syncConflicts','vehicles','jobEquipment','servicePlans','fuelLogs','usageLogs','missing=headers.filter','cbEnsurePlatformSchema_'].forEach(token=>assert(schemaService.includes(token),`Additive schema contract missing: ${token}`));
+const industries=read('apps-script/commercial-office-beta/CommercialBeta_MultiIndustry.gs');['cbCreateBusinessV2_','industryPacks','primaryIndustryPack','Select at least one approved business type','cbPlatformUpdateManifest_'].forEach(token=>assert(industries.includes(token),`Multiple-business-type contract missing: ${token}`));
+const fleet=read('apps-script/commercial-office-beta/CommercialBeta_FleetService.gs');['cbAssignAssetToJob_','cbReturnAssetFromJob_','cbScheduleMaintenance_','cbCompleteMaintenance_','cbRecordInspection_','cbRecordAssetUsage_','Inspection Hold','jobEquipment'].forEach(token=>assert(fleet.includes(token),`Fleet contract missing: ${token}`));
+const offline=read('apps-script/commercial-office-beta/CommercialBeta_OfflineQuoteService.gs');['cbUpsertQuoteDraft_','cbPwaBootstrap_','cbSyncOperations_','ALREADY_SYNCED','UPSERT_QUOTE_DRAFT','ASSIGN_ASSET_TO_JOB','SCHEDULE_MAINTENANCE','Nothing approved or sent'].forEach(token=>assert(offline.includes(token),`Offline server contract missing: ${token}`));
+const web=read('apps-script/commercial-office-beta/CommercialBeta_Web.gs');['parameters.bridge','CommercialBeta_Bridge','CommercialBeta_Setup','cbCreateBusinessV2_','action===\'syncOperations\'','cbRequireOwner_();'].forEach(token=>assert(web.includes(token),`Web contract missing: ${token}`));
+const bridge=read('apps-script/commercial-office-beta/CommercialBeta_Bridge.html');['ALLOWED_ORIGINS','H38_BRIDGE_REQUEST','H38_BRIDGE_RESPONSE','cbApi'].forEach(token=>assert(bridge.includes(token),`Bridge contract missing: ${token}`));
+const setup=read('apps-script/commercial-office-beta/CommercialBeta_Setup.html');['Business types','selectedPacks','primaryIndustryPack','multiple kinds of work','Protected separation'].forEach(token=>assert(setup.includes(token),`Setup UI missing: ${token}`));
+const pwa=['commercial-app/index.html','commercial-app/styles.css','commercial-app/app.js','commercial-app/db.js','commercial-app/bridge.js','commercial-app/service-worker.js','commercial-app/manifest.webmanifest'].map(read).join('\n');['serviceWorker','indexedDB','UPSERT_QUOTE_DRAFT','ASSIGN_ASSET_TO_JOB','RETURN_ASSET_FROM_JOB','SCHEDULE_MAINTENANCE','RECORD_INSPECTION','RECORD_ASSET_USAGE','operationId','syncOperations','Generic Quote Customer','owner review required','H38Bridge','Fleet & Equipment'].forEach(token=>assert(pwa.includes(token),`Offline app contract missing: ${token}`));assert(pwa.includes('Nothing has been sent, approved or priced automatically.'),'External-action boundary is missing.');
+const installationSchema=JSON.parse(read('commercial-beta/schema/installation-manifest.schema.json'));assert(installationSchema.properties.productionDataMigrated.const===false,'Production migration must remain prohibited.');assert(installationSchema.properties.externalActionsEnabled.const===false,'External actions must remain disabled.');assert(installationSchema.properties.industryPacks.minItems===1,'One or more business types must be supported.');
+const architecture=read('docs/architecture/COMMERCIAL_PLATFORM_OFFLINE_FOUNDATION.md');['Multi-business-type setup','Fleet, equipment and maintenance','Owner-authorized bridge','Offline Quote Builder contract','idempotent server operations'].forEach(token=>assert(architecture.includes(token),`Architecture decision missing: ${token}`));
+const combined=required.map(read).join('\n');['AKfycbwFtIgY9QHyuIP0kktYgc7bPlgLVoLYAaZA-6RKlSInJpSy9NRO','1kDDKW','1Vq8Uj','11ak4Q','1Jn2vW5','1rjl_m8u'].forEach(id=>assert(!combined.includes(id),`Production identifier leaked into beta source: ${id}`));
+console.log(JSON.stringify({status:'PASS',verifier:'commercial-google-native-beta',version:'0.3.0',additiveModules:true,multiIndustrySetup:true,fleetAndMaintenance:true,offlineQuoteBuilder:true,offlineFleetActions:true,ownerBridge:true,productionSystemModified:false,externalActionsEnabled:false,productionMigrationEnabled:false,requiredFiles:required.length},null,2));

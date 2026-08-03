@@ -1,0 +1,7 @@
+<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>H38 Offline Bridge</title></head><body><p id="status" style="font:14px system-ui">Connecting H38 offline app…</p><script>
+var ALLOWED_ORIGINS=<?!= allowedOriginsJson ?>;
+function allowed(origin){return ALLOWED_ORIGINS.indexOf(origin)>=0;}
+function reply(target,origin,payload){target.postMessage(payload,origin);}
+window.addEventListener('message',function(event){if(!allowed(event.origin))return;var message=event.data||{};if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;google.script.run.withSuccessHandler(function(result){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:error&&error.message?error.message:String(error)});}).cbApi({action:message.action,args:message.args||{}});});
+ALLOWED_ORIGINS.forEach(function(origin){try{window.parent.postMessage({type:'H38_BRIDGE_READY',version:'0.3.0'},origin);}catch(error){}});document.getElementById('status').textContent='H38 secure bridge ready.';
+</script></body></html>
