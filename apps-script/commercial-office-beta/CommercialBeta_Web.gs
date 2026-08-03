@@ -2,6 +2,10 @@
 function doGet(event){
   try{
     var parameters=event&&event.parameter?event.parameter:{},serviceUrl=ScriptApp.getService().getUrl()||'',businessId=cbText_(parameters.businessId),forceInstaller=cbText_(parameters.install)==='1';
+    if(cbText_(parameters.acceptance)==='startup'){
+      var acceptance=cbStartupAcceptance();
+      return ContentService.createTextOutput(cbJson_(acceptance)).setMimeType(ContentService.MimeType.JSON);
+    }
     if(cbText_(parameters.bridge)==='1'){
       cbCompletionSignedIn_();
       var bridge=HtmlService.createTemplateFromFile('CommercialBeta_Bridge');
