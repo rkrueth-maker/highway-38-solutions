@@ -90,7 +90,7 @@
         }).cbStartupBootstrap(BUSINESS_ID);
       }
       window.addEventListener('message',function(event){
-        if(event.source!==frame.contentWindow||!trustedChildOrigin(event.origin))return;
+        if(event.source!==frame.contentWindow||(event.origin!==origin&&!trustedChildOrigin(event.origin)))return;
         var message=event.data||{};
         if(message.type==='H38_BRIDGE_CLIENT_READY'){
           childReady=true;
