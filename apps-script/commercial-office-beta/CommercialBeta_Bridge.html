@@ -1,19 +1,55 @@
 <!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Secure Business Connection</title></head><body><main style="max-width:520px;margin:48px auto;padding:22px;text-align:center;font:16px system-ui"><h1 style="font-size:1.35rem">Secure connection</h1><p id="status">Checking your authorized business…</p><p id="detail" style="color:#607285">Return to the Highway 38 Business Office tab. Keep this secure window open while using the Office.</p></main><script>
 var ALLOWED_ORIGINS=<?!= allowedOriginsJson ?>;
 var REQUESTED_BUSINESS_ID=<?!= requestedBusinessIdJson ?>;
+var RELAY_ORIGIN='https://highway38solutions.com',RELAY_CHANNEL='',RELAY_ENABLED=false,relayResolved=false;
+var relayFrame=null,relayReady=false,relayQueue=[];
 function allowed(origin){return ALLOWED_ORIGINS.indexOf(origin)>=0;}
 function reply(target,origin,payload){try{target.postMessage(payload,origin);}catch(error){}}
-function broadcast(payload){ALLOWED_ORIGINS.forEach(function(origin){if(window.parent&&window.parent!==window)reply(window.parent,origin,payload);if(window.opener)reply(window.opener,origin,payload);});}
+function relaySend(payload){
+  if(!relayResolved){relayQueue.push(payload);if(relayQueue.length>20)relayQueue.shift();return;}
+  if(!RELAY_ENABLED)return;
+  if(!relayReady||!relayFrame||!relayFrame.contentWindow){relayQueue.push(payload);if(relayQueue.length>20)relayQueue.shift();return;}
+  reply(relayFrame.contentWindow,RELAY_ORIGIN,{type:'H38_RELAY_TO_APP',channelId:RELAY_CHANNEL,payload:payload});
+}
+function broadcast(payload){
+  ALLOWED_ORIGINS.forEach(function(origin){if(window.parent&&window.parent!==window)reply(window.parent,origin,payload);if(window.opener)reply(window.opener,origin,payload);});
+  relaySend(payload);
+}
+function flushRelay(){var queued=relayQueue.slice();relayQueue=[];queued.forEach(relaySend);}
 function errorText(error){return error&&error.message?error.message:String(error||'Secure connection failed.');}
-window.addEventListener('message',function(event){if(!allowed(event.origin))return;var message=event.data||{};if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;google.script.run.withSuccessHandler(function(result){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});});
-function announce(){broadcast({type:'H38_BRIDGE_READY',version:'2.0.0'});}
+function runRequest(message,respond){
+  if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;
+  google.script.run.withSuccessHandler(function(result){respond({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){respond({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});
+}
+window.addEventListener('message',function(event){
+  var message=event.data||{};
+  if(RELAY_ENABLED&&relayFrame&&event.source===relayFrame.contentWindow&&event.origin===RELAY_ORIGIN){
+    if(message.type==='H38_RELAY_READY'&&message.channelId===RELAY_CHANNEL){relayReady=true;flushRelay();return;}
+    if(message.type==='H38_RELAY_TO_BRIDGE'&&message.channelId===RELAY_CHANNEL){runRequest(message.payload||{},relaySend);return;}
+    return;
+  }
+  if(!allowed(event.origin))return;
+  runRequest(message,function(payload){reply(event.source,event.origin,payload);});
+});
+function initRelay(){
+  if(!RELAY_ENABLED||!RELAY_CHANNEL)return;
+  relayFrame=document.createElement('iframe');relayFrame.title='Secure Highway 38 return connection';relayFrame.src=RELAY_ORIGIN+'/commercial-app/secure-relay.html?channel='+encodeURIComponent(RELAY_CHANNEL);relayFrame.style.cssText='position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;border:0';document.body.appendChild(relayFrame);
+}
+function configureRelay(location){
+  var parameters=location&&location.parameter?location.parameter:{};
+  RELAY_CHANNEL=String(parameters.channel||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,120);
+  RELAY_ENABLED=String(parameters.authorize||'')==='1'&&!!RELAY_CHANNEL;
+  relayResolved=true;
+  if(RELAY_ENABLED)initRelay();else relayQueue=[];
+}
+function announce(){broadcast({type:'H38_BRIDGE_READY',version:'3.0.0',relay:RELAY_ENABLED});}
 function start(){
   document.getElementById('status').textContent='Checking your authorized business…';
   google.script.run.withSuccessHandler(function(startup){
     broadcast({type:'H38_BRIDGE_BOOTSTRAP',startup:startup});
     if(!startup||!startup.selectedBusinessId){document.getElementById('status').textContent='Choose a business in Business Office.';return;}
     document.getElementById('status').textContent='Business Office opened.';
-    document.getElementById('detail').textContent='Loading the latest records in the background. Return to Business Office and keep this secure window open.';
+    document.getElementById('detail').textContent='Returning your authorized business to the Office. Keep this secure window open.';
     google.script.run.withSuccessHandler(function(snapshot){
       broadcast({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:startup.selectedBusinessId,snapshot:snapshot});
       document.getElementById('status').textContent='Latest records loaded.';
@@ -27,5 +63,5 @@ function start(){
     var message=errorText(error);broadcast({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:message});document.getElementById('status').textContent='Sign-in could not finish.';document.getElementById('detail').textContent=message;
   }).cbStartupBootstrap(REQUESTED_BUSINESS_ID);
 }
-announce();setTimeout(announce,400);start();
+google.script.url.getLocation(configureRelay);announce();setTimeout(announce,400);start();
 </script></body></html>
