@@ -1,4 +1,4 @@
-const RETIRED_BUILD='20260803-1405';
+const RETIRED_BUILD='20260803-1530';
 self.addEventListener('install',event=>{event.waitUntil(self.skipWaiting());});
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
