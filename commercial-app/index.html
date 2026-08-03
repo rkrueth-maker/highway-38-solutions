@@ -1,12 +1,59 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b2438"><title>H38 Commercial App</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"></head><body>
-<header><div><h1>H38 Commercial App</h1><p>Offline-first Business Office and Quote Builder foundation</p></div><div id="networkBadge" class="badge">Checking connection</div></header>
-<main><section class="status-grid"><div class="status-card"><span>Business</span><strong id="businessStatus">Not selected</strong></div><div class="status-card"><span>Bridge</span><strong id="bridgeStatus">Connecting</strong></div><div class="status-card"><span>Pending sync</span><strong id="pendingCount">0</strong></div><div class="status-card"><span>Drafts saved</span><strong id="draftCount">0</strong></div></section>
-<section class="card"><h2>Connect business</h2><p class="muted">The app shell and saved drafts work without service. When online, the owner-authorized bridge connects to the existing Commercial Office beta without exposing business data publicly.</p><div class="form-row"><label>Business<select id="businessSelect"><option value="">Connect to load businesses</option></select></label><button id="loadBusinessButton">Load business</button><button id="syncButton" class="secondary">Sync now</button><a class="button-link" target="_blank" rel="noopener" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec">Open secure sign-in</a></div><div id="syncMessage" class="notice">Nothing has been sent, approved or priced automatically.</div></section>
-<nav><button class="active" data-page="quotes">Quote Builder</button><button data-page="drafts">Saved Drafts</button><button data-page="field">Field Pack</button><button data-page="fleet">Fleet & Equipment</button><button data-page="settings">Offline Settings</button></nav>
-<section id="page-quotes" class="page active"><div class="two-column"><article class="card"><h2>Build quote draft</h2><p class="muted">The draft is saved to this device first. Cached prices remain owner-review required.</p><label>Customer<select id="customerSelect"><option value="">Generic Quote Customer</option></select></label><label>Project title<input id="projectTitle" placeholder="Deck repair, gutter replacement…"></label><label>Scope<textarea id="scope" placeholder="Describe the work and known conditions"></textarea></label><label>Measurements and site notes<textarea id="measurementNotes" placeholder="Direct measurements, photo references and assumptions"></textarea></label><h3>Add line</h3><div class="line-form"><input id="lineDescription" placeholder="Material or labor"><input id="lineQuantity" type="number" step="0.01" value="1" aria-label="Quantity"><input id="lineUnit" value="each" aria-label="Unit"><input id="linePrice" type="number" step="0.01" placeholder="Unit price" aria-label="Unit price"><button id="addLineButton">Add</button></div><div id="lineList" class="list"></div><div class="total"><span>Draft total</span><strong id="draftTotal">$0.00</strong></div><div class="actions"><button id="saveDraftButton">Save to device</button><button id="newDraftButton" class="secondary">New draft</button></div></article>
-<article class="card"><h2>Cached Price Book</h2><p class="muted">Online refresh copies server price records to this device. Offline searches use the last snapshot and clearly retain its timestamp.</p><input id="priceSearch" placeholder="Search cached items"><div id="priceSnapshotLabel" class="notice">No price snapshot downloaded.</div><div id="priceBookList" class="list"></div></article></div></section>
-<section id="page-drafts" class="page"><article class="card"><h2>Saved drafts</h2><div id="draftList" class="list"></div></article></section>
-<section id="page-field" class="page"><div class="two-column"><article class="card"><h2>Offline field pack</h2><p class="muted">Important customers, jobs, equipment and maintenance records from the last successful refresh remain available here.</p><h3>Jobs</h3><div id="fieldJobs" class="list"></div></article><article class="card"><h2>Assigned equipment and maintenance</h2><div id="fieldAssets" class="list"></div></article></div></section>
-<section id="page-fleet" class="page"><div class="two-column"><article class="card"><h2>Assign or return equipment</h2><p class="muted">Actions save to this device first and remain visibly queued until the secure business connection confirms them.</p><label>Equipment<select id="fleetAsset"></select></label><label>Job<select id="fleetJob"></select></label><label>Condition / notes<input id="fleetCondition" placeholder="Good, fueled, attachment included…"></label><div class="actions"><button id="assignAssetButton">Assign to job</button><button id="returnAssetButton" class="secondary">Return equipment</button></div><h3>Record usage</h3><div class="three"><label>Meter hours<input id="usageMeter" type="number" step="0.1"></label><label>Mileage<input id="usageMileage" type="number" step="1"></label><label>Usage type<input id="usageType" value="Job"></label></div><label>Usage notes<input id="usageNotes" placeholder="Hours, fuel, damage or operating notes"></label><button id="recordUsageButton">Save usage</button></article><article class="card"><h2>Maintenance and inspection</h2><label>Equipment<select id="serviceAsset"></select></label><div class="two"><label>Maintenance type<input id="maintenanceType" placeholder="Oil change, repair, annual service"></label><label>Due date<input id="maintenanceDue" type="date"></label></div><label>Priority<select id="maintenancePriority"><option>Normal</option><option>High</option><option>Urgent</option></select></label><label>Maintenance notes<textarea id="maintenanceNotes"></textarea></label><button id="scheduleMaintenanceButton">Schedule maintenance</button><h3>Inspection</h3><div class="two"><label>Inspection type<input id="inspectionType" value="Pre-use"></label><label>Result<select id="inspectionResult"><option>Pass</option><option>Needs Attention</option><option>Fail</option></select></label></div><label>Inspection notes<textarea id="inspectionNotes"></textarea></label><button id="recordInspectionButton">Save inspection</button></article></div><article class="card"><h2>Fleet and equipment status</h2><div id="fleetList" class="list"></div><h3>Queued field actions</h3><div id="fleetQueue" class="list"></div></article></section>
-<section id="page-settings" class="page"><article class="card"><h2>Offline settings</h2><label>Bridge URL<input id="bridgeUrl"></label><p class="muted">This must remain the existing Commercial Office beta deployment with <code>?bridge=1</code>. No new Apps Script project or deployment is required.</p><div class="actions"><button id="saveSettingsButton">Save settings</button><button id="clearLocalButton" class="danger">Clear this device</button></div></article></section></main>
-<iframe id="bridgeFrame" title="H38 secure data bridge" hidden></iframe><script type="module" src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b2438">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Installable online and offline Highway 38 Commercial Office">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>H38 Commercial Office</title>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">H38</div><div><strong>Commercial Office</strong><small id="shellLabel">Full Business Office</small></div></div>
+    <div class="top-actions">
+      <span id="networkBadge" class="badge offline">Offline</span>
+      <span id="syncBadge" class="badge neutral">0 pending</span>
+      <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to H38">🎙️</button>
+      <button id="syncButton" class="icon-button" type="button" aria-label="Synchronize">↻</button>
+    </div>
+  </header>
+  <section class="business-bar">
+    <select id="businessSelect" aria-label="Business"><option value="">Select business</option></select>
+    <button id="loadBusinessButton" type="button">Open</button>
+    <span id="businessStatus">Sign in through the secure bridge.</span>
+  </section>
+  <div class="app-shell">
+    <nav id="mainNav" class="main-nav" aria-label="Commercial Office navigation"></nav>
+    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Commercial Office…</h1><p>The app will use a cached business pack when service is unavailable.</p></section></main>
+  </div>
+  <div id="toast" class="toast hidden" role="status"></div>
+  <dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog>
+  <iframe id="bridgeFrame" class="bridge-frame" title="Secure Google bridge"></iframe>
+  <script src="./db.js"></script>
+  <script src="./bridge.js"></script>
+  <script src="./app-01.js"></script>
+  <script src="./app-02.js"></script>
+  <script src="./app-03.js"></script>
+  <script src="./app-04.js"></script>
+  <script src="./app-05.js"></script>
+  <script src="./app-06.js"></script>
+  <script src="./app-07.js"></script>
+  <script src="./app-08.js"></script>
+  <script src="./app-09.js"></script>
+  <script src="./app-10.js"></script>
+  <script src="./app-11.js"></script>
+  <script src="./app-12.js"></script>
+  <script src="./app-13.js"></script>
+  <script src="./app-14.js"></script>
+  <script src="./app-15.js"></script>
+  <script src="./app-16.js"></script>
+  <script src="./app-17.js"></script>
+  <script src="./app-18.js"></script>
+</body>
+</html>
