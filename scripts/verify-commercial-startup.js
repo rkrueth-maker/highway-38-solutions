@@ -11,6 +11,7 @@ const bridge=read('commercial-app/bridge.js');
 const startup=read('commercial-app/startup-fix.js');
 const worker=read('commercial-app/service-worker.js');
 const deployedAcceptance=read('scripts/verify-commercial-webapp-startup.js');
+const acceptanceRunner=read('scripts/run-commercial-webapp-startup-acceptance.sh');
 const workflow=read('.github/workflows/commercial-google-native-beta.yml');
 for(const rel of ['commercial-app/bridge.js','commercial-app/startup-fix.js','commercial-app/service-worker.js','scripts/verify-commercial-webapp-startup.js']){const result=cp.spawnSync(process.execPath,['--check',path.join(root,rel)],{encoding:'utf8'});check(`syntax ${rel}`,result.status===0,(result.stderr||result.stdout||'').trim());}
 for(const rel of ['apps-script/commercial-office-beta/CommercialBeta_CompletionStartup_01.gs','apps-script/commercial-office-beta/CommercialBeta_Web.gs']){try{new vm.Script(read(rel),{filename:rel});check(`syntax ${rel}`,true);}catch(error){check(`syntax ${rel}`,false,error.message);}}
@@ -27,7 +28,8 @@ check('new build invalidates prior cache',index.includes('20260803-1035')&&worke
 check('server routes explicit startup operations',web.includes("action==='startupBootstrap'")&&web.includes("action==='fullStartupRefresh'")&&web.includes('requestedBusinessIdJson'));
 check('owner-only deployed acceptance endpoint exists',web.includes("parameters.acceptance)==='startup'")&&web.includes('cbStartupAcceptance()')&&startupServer.includes('cbRequireOwner_()'));
 check('deployed acceptance rejects login redirects',deployedAcceptance.includes('redirected to Google sign-in')&&deployedAcceptance.includes("payload.status !== 'PASS'")&&deployedAcceptance.includes('authorization: `Bearer ${accessToken}`'));
-check('workflow tests deployed URL instead of API executable',workflow.includes('verify-commercial-webapp-startup.js')&&!workflow.includes('clasp run-function'));
+check('acceptance runner is pinned to existing deployment',acceptanceRunner.includes('AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow')&&acceptanceRunner.includes('verify-commercial-webapp-startup.js'));
+check('workflow tests deployed URL instead of API executable',workflow.includes('run-commercial-webapp-startup-acceptance.sh')&&!workflow.includes('clasp run-function'));
 const listeners=[];const frameWindow={},popup={closed:false,focus(){}};const context={window:{},crypto:{randomUUID:()=> 'REQ-1'},setTimeout,clearTimeout,addEventListener:(name,fn)=>{if(name==='message')listeners.push(fn);},Error};context.window=context;vm.runInNewContext(bridge,context,{filename:'bridge.js'});let bootstrapSeen=false,fullSeen=false;const frame={contentWindow:frameWindow,src:''};const instance=new context.H38Bridge(frame,'https://example.test/bridge',()=>{},()=>{bootstrapSeen=true;},()=>{fullSeen=true;},()=>{});instance.popup=popup;instance.receive({source:popup,data:{type:'H38_BRIDGE_BOOTSTRAP',startup:{status:'PASS'}}});instance.receive({source:popup,data:{type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:'BUS-1',snapshot:{status:'PASS'}}});check('bridge consumes startup and full snapshot events',bootstrapSeen&&fullSeen&&instance.ready&&instance.bootstrapped);
-const output={status:failures.length?'FAIL':'PASS',checks:16,failures,fastSignedInStartup:true,ownerOnlyBusinessSwitcher:true,officeBeforeFullRefresh:true,deployedWebAppAcceptance:true};
+const output={status:failures.length?'FAIL':'PASS',checks:17,failures,fastSignedInStartup:true,ownerOnlyBusinessSwitcher:true,officeBeforeFullRefresh:true,deployedWebAppAcceptance:true};
 if(failures.length){console.error(JSON.stringify(output,null,2));process.exit(1);}console.log(JSON.stringify(output,null,2));
