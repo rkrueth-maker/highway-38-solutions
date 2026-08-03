@@ -1,6 +1,6 @@
 'use strict';
 (function(){
-  const relayBuild='20260803-1220';
+  const relayBuild='20260803-1250';
   const priorSecureAuthUrl=typeof secureAuthUrl==='function'?secureAuthUrl:null;
   if(priorSecureAuthUrl){
     secureAuthUrl=function(){
