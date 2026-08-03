@@ -49,19 +49,72 @@
         status.textContent='Authorized. Secure gateway ready. Press Open Business Office.';
         try{button.focus({preventScroll:true});}catch(error){button.focus();}
       }
-      google.script.run.withSuccessHandler(function(handoff){
-        if(!handoff||handoff.status!=='PASS'||handoff.handoffType!=='H38_GATEWAY_HANDOFF'||!handoff.gatewaySession||!handoff.gatewayUrl||!handoff.startup)throw new Error('Google returned an incomplete secure gateway handoff.');
-        if(Object.prototype.hasOwnProperty.call(handoff,'accessToken')||handoff.browserReceivesGoogleToken!==false)throw new Error('Secure gateway refused a browser-visible Google token.');
-        readyToOpen(destinationFor(handoff));
-      }).withFailureHandler(function(error){
+      function gatewayError(payload,response){
+        if(payload&&payload.error)return String(payload.error);
+        return 'Secure Office gateway rejected authorization ('+String(response&&response.status||0)+').';
+      }
+      async function exchangeGateway(bootstrap){
+        if(!bootstrap||bootstrap.status!=='PASS'||bootstrap.handoffType!=='H38_GATEWAY_BOOTSTRAP'||!bootstrap.accessToken||!bootstrap.gatewayUrl||!bootstrap.scriptId||!bootstrap.deploymentUrl||!bootstrap.startup)throw new Error('Google returned an incomplete secure gateway bootstrap.');
+        var controller=new AbortController();
+        var timer=setTimeout(function(){controller.abort();},45000);
+        var accessToken=bootstrap.accessToken;
+        bootstrap.accessToken='';
+        try{
+          var response=await fetch(bootstrap.gatewayUrl,{
+            method:'POST',
+            headers:{'content-type':'application/json; charset=utf-8','accept':'application/json'},
+            body:JSON.stringify({type:'bootstrap',accessToken:accessToken,scriptId:bootstrap.scriptId,deploymentUrl:bootstrap.deploymentUrl}),
+            credentials:'omit',
+            cache:'no-store',
+            signal:controller.signal
+          });
+          accessToken='';
+          var payload={};
+          try{payload=await response.json();}catch(error){payload={};}
+          if(!response.ok||payload.status!=='PASS'||!payload.gatewaySession)throw new Error(gatewayError(payload,response));
+          var signedEmail=String(bootstrap.startup&&bootstrap.startup.snapshot&&bootstrap.startup.snapshot.user&&bootstrap.startup.snapshot.user.email||'').toLowerCase();
+          var gatewayEmail=String(payload.email||'').toLowerCase();
+          if(signedEmail&&gatewayEmail&&signedEmail!==gatewayEmail)throw new Error('Secure Office gateway user did not match the signed-in business user.');
+          var expiryTime=new Date(payload.expiresAt||'').getTime();
+          var refreshAfterMs=2400000;
+          if(isFinite(expiryTime))refreshAfterMs=Math.max(60000,Math.min(2400000,expiryTime-Date.now()-120000));
+          return {
+            status:'PASS',
+            handoffType:'H38_GATEWAY_HANDOFF',
+            handoffVersion:2,
+            transport:'supabase-gateway',
+            issuedAt:new Date().toISOString(),
+            expiresAt:String(payload.expiresAt||''),
+            refreshAfterMs:refreshAfterMs,
+            gatewayUrl:bootstrap.gatewayUrl,
+            gatewaySession:payload.gatewaySession,
+            startup:bootstrap.startup,
+            browserReceivesGoogleToken:false,
+            safeguards:bootstrap.safeguards||{}
+          };
+        }finally{
+          clearTimeout(timer);
+          accessToken='';
+          bootstrap.accessToken='';
+        }
+      }
+      google.script.run.withSuccessHandler(function(bootstrap){
+        exchangeGateway(bootstrap).then(function(handoff){
+          if(!handoff||handoff.status!=='PASS'||handoff.handoffType!=='H38_GATEWAY_HANDOFF'||!handoff.gatewaySession||!handoff.gatewayUrl||!handoff.startup)throw new Error('Google returned an incomplete secure gateway handoff.');
+          if(Object.prototype.hasOwnProperty.call(handoff,'accessToken')||handoff.browserReceivesGoogleToken!==false)throw new Error('Secure gateway refused a browser-visible Google token.');
+          readyToOpen(destinationFor(handoff));
+        }).catch(showFailure);
+      }).withFailureHandler(showFailure).cbPwaGatewayHandoff(BUSINESS_ID);
+      function showFailure(error){
         status.textContent='Business Office authorization could not finish.';
         status.className='error';
         button.setAttribute('aria-disabled','false');
         button.textContent='Retry authorization';
         button.href=location.href;
         button.target='_top';
-        var detail=document.createElement('p');detail.className='error';detail.textContent=errorText(error);button.insertAdjacentElement('afterend',detail);
-      }).cbPwaGatewayHandoff(BUSINESS_ID);
+        var existing=document.getElementById('errorDetail');if(existing)existing.remove();
+        var detail=document.createElement('p');detail.id='errorDetail';detail.className='error';detail.textContent=errorText(error);button.insertAdjacentElement('afterend',detail);
+      }
     })();
   </script>
 </body>
