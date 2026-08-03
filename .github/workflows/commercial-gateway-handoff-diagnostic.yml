@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
 
@@ -36,6 +36,8 @@ jobs:
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -66,6 +68,40 @@ jobs:
       - name: Capture authorized Google handoff state
         shell: bash
         run: node scripts/diagnose-commercial-gateway-handoff.js "$HOME/.clasprc.json"
+
+      - name: Persist sanitized diagnostic result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="artifacts/commercial-google-native-beta/gateway-handoff-diagnostic.json"
+          if [[ ! -f "${REPORT}" ]]; then
+            echo "No sanitized diagnostic report was produced."
+            exit 0
+          fi
+          RESULT_TMP="$(mktemp)"
+          cp "${REPORT}" "${RESULT_TMP}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin agent/capture-gateway-handoff-error
+            git reset --hard origin/agent/capture-gateway-handoff-error
+            mkdir -p diagnostics
+            cp "${RESULT_TMP}" diagnostics/gateway-handoff-latest.json
+            git add diagnostics/gateway-handoff-latest.json
+            if git diff --cached --quiet; then
+              echo "Sanitized diagnostic result is already current."
+              break
+            fi
+            git commit -m "Record sanitized gateway diagnostic result"
+            if git push origin HEAD:agent/capture-gateway-handoff-error; then
+              break
+            fi
+            if [[ "${attempt}" == "3" ]]; then
+              echo "Unable to persist sanitized diagnostic after ${attempt} attempts."
+              exit 1
+            fi
+          done
 
       - name: Post sanitized diagnostic summary
         if: always()
