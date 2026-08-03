@@ -1,6 +1,6 @@
 {
-  "requestVersion": 9,
-  "requestedAt": "2026-08-03T10:10:00Z",
+  "requestVersion": 10,
+  "requestedAt": "2026-08-03T10:13:00Z",
   "requestedBy": "Rick Krueth",
   "projectTitle": "Highway 38 Commercial Office Beta",
   "scriptId": "1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf",
@@ -10,6 +10,8 @@
   "sourceBaseline": "77ccb2b16143e7d9b2b92229d833ff230b3d1979",
   "fullMobileOffice": true,
   "obsoleteFiveTabShellRemoved": true,
+  "selectedBusinessDeepLink": true,
+  "mobileInstallablePwa": true,
   "productionDeploymentIdsMayChange": false,
   "productionDataMayMigrate": false,
   "h38ProductionDataLoadAuthorized": false,
