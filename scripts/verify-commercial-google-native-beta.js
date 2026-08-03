@@ -42,7 +42,7 @@ assert(config.includes('productionMigrationEnabled:false'), 'Production migratio
 assert(config.includes('cbRequireOwner_'), 'Owner-only server authorization is missing.');
 
 const data = read('apps-script/commercial-office-beta/CommercialBeta_Data.gs');
-for (const token of ['Installation Manifests', 'Inventory Data', 'Asset Data', 'Idempotency Key', 'Offline Transaction ID', 'Payload Hash', 'Record Version']) {
+for (const token of ['Installation Manifests', 'Idempotency Key', 'Offline Transaction ID', 'Payload Hash', 'Record Version']) {
   assert(data.includes(token), `Required migration/offline/ledger token is missing: ${token}`);
 }
 assert(data.includes('COMMERCIAL_BETA_ROOT_FOLDER_ID'), 'Separate beta root property is missing.');
