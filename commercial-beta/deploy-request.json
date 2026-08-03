@@ -1,6 +1,6 @@
 {
-  "requestVersion": 17,
-  "requestedAt": "2026-08-03T15:59:00Z",
+  "requestVersion": 18,
+  "requestedAt": "2026-08-03T16:04:00Z",
   "requestedBy": "Platform owner",
   "projectTitle": "Highway 38 Business Office",
   "scriptId": "1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf",
@@ -16,6 +16,7 @@
   "assignedBusinessAutoOpen": true,
   "authenticatedPopupTransport": true,
   "authorizedStartupAcceptanceRequired": true,
+  "authorizedStartupRuntimeMode": "development-head",
   "cacheRefreshBuild": "20260803-1035",
   "removePublicGitHubUrl": true,
   "productionDeploymentIdsMayChange": false,
