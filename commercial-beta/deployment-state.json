@@ -1,18 +1,23 @@
 {
   "status": "DEPLOYED",
   "environment": "commercial-google-native-beta",
-  "sourceCommit": "8f289ba02a03e628a1a29ab15ae7e9acb889e913",
-  "branch": "main",
+  "sourceCommit": "174e243a878b8ab34480e89664659c961f51ff18",
+  "implementationCommit": "77ccb2b16143e7d9b2b92229d833ff230b3d1979",
+  "branch": "agent/commercial-google-native-beta",
   "projectTitle": "Highway 38 Commercial Office Beta",
   "scriptId": "1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf",
   "deploymentId": "AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow",
   "url": "https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec",
   "httpStatus": "200",
   "httpAttempts": "1",
+  "fullMobileOffice": true,
+  "obsoleteFiveTabShellRemoved": true,
+  "selectedBusinessDeepLink": true,
+  "mobileInstallablePwa": true,
   "separateAppsScriptProject": true,
   "separateDeployment": true,
   "productionDeploymentIdsChanged": false,
   "productionDataMigrated": false,
   "externalActionsEnabled": false,
-  "deployedAt": "2026-08-03T06:16:22Z"
+  "deployedAt": "2026-08-03T10:13:11Z"
 }
