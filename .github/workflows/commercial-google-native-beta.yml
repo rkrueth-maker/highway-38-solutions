@@ -29,6 +29,7 @@ jobs:
       CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      H38_GATEWAY_URL: https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,6 +48,7 @@ jobs:
             "event": "${GITHUB_EVENT_NAME}",
             "sourceSha": "${GITHUB_SHA}",
             "betaBranch": "agent/commercial-google-native-beta",
+            "transport": "supabase-gateway",
             "startedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           JSON
@@ -61,15 +63,30 @@ jobs:
           node-version: '24'
 
       - id: verify
-        name: Verify isolated commercial beta source and startup
+        name: Verify isolated commercial beta gateway source and startup
         shell: bash
         run: |
           set -euo pipefail
           node scripts/verify-commercial-google-native-beta.js
           node scripts/verify-commercial-startup.js
-          node --check scripts/ensure-commercial-apps-script-api.js
-          node --check scripts/inspect-commercial-apps-script-settings.js
-          node --check scripts/inspect-commercial-standard-cloud-projects.js
+
+      - id: gateway_health
+        name: Verify secure Supabase gateway health
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/commercial-google-native-beta
+          HTTP_STATUS="$(curl -sS --max-time 30 -o artifacts/commercial-google-native-beta/gateway-health.json -w '%{http_code}' "${H38_GATEWAY_URL}")"
+          printf '%s' "${HTTP_STATUS}" > artifacts/commercial-google-native-beta/gateway-health-status.txt
+          node - "${HTTP_STATUS}" artifacts/commercial-google-native-beta/gateway-health.json <<'NODE'
+          const fs=require('fs');
+          const status=Number(process.argv[2]);
+          const file=process.argv[3];
+          const payload=JSON.parse(fs.readFileSync(file,'utf8'));
+          if(status<200||status>=300)throw new Error(`Gateway health returned HTTP ${status}.`);
+          if(payload.status!=='PASS'||payload.service!=='h38-office-gateway'||payload.transport!=='supabase-gateway'||payload.browserReceivesGoogleToken!==false||payload.existingAppsScriptDeployment!==true){throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);}
+          console.log(JSON.stringify({status:'PASS',httpStatus:status,service:payload.service,transport:payload.transport,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
+          NODE
 
       - id: install_clasp
         name: Install Apps Script deployment tool
@@ -91,44 +108,13 @@ jobs:
           chmod 600 "$HOME/.clasprc.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
 
-      - id: apps_script_api
-        name: Ensure Apps Script API is enabled
-        continue-on-error: true
-        shell: bash
-        run: node scripts/ensure-commercial-apps-script-api.js "$HOME/.clasprc.json" 891330876039
-
-      - id: cloud_link_inspection
-        name: Inspect existing Apps Script project settings
-        if: always() && steps.apps_script_api.outcome != 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
-          node scripts/inspect-commercial-apps-script-settings.js "$HOME/.clasprc.json" 1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf
-
-      - id: cloud_project_inventory
-        name: Inventory manageable standard Cloud projects
-        if: always() && steps.apps_script_api.outcome != 'success'
-        shell: bash
-        run: node scripts/inspect-commercial-standard-cloud-projects.js "$HOME/.clasprc.json"
-
-      - name: Hold deployment until Cloud project is manageable
-        if: always() && steps.apps_script_api.outcome != 'success'
-        shell: bash
-        run: |
-          echo 'HOLD — the existing Apps Script project is still attached to a Cloud project that this owner credential cannot administer.'
-          exit 1
-
       - id: deploy
         name: Update existing beta project and deployment
-        if: steps.apps_script_api.outcome == 'success'
         shell: bash
         run: bash scripts/deploy-commercial-google-native-beta.sh
 
       - id: startup_acceptance
-        name: Run browser and authorized deployed startup acceptance
-        if: steps.apps_script_api.outcome == 'success' && steps.deploy.outcome == 'success'
+        name: Run gateway browser and authorized deployed startup acceptance
         shell: bash
         run: |
           set -euo pipefail
@@ -141,17 +127,15 @@ jobs:
         shell: bash
         env:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          GATEWAY_HEALTH_OUTCOME: ${{ steps.gateway_health.outcome }}
           INSTALL_CLASP_OUTCOME: ${{ steps.install_clasp.outcome }}
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
-          APPS_SCRIPT_API_OUTCOME: ${{ steps.apps_script_api.outcome }}
-          CLOUD_LINK_INSPECTION_OUTCOME: ${{ steps.cloud_link_inspection.outcome }}
-          CLOUD_PROJECT_INVENTORY_OUTCOME: ${{ steps.cloud_project_inventory.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
         run: |
           set -euo pipefail
           FINAL_STATUS=FAIL
-          if [[ "${APPS_SCRIPT_API_OUTCOME}" == "success" && "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
           mkdir -p commercial-beta
           cat > commercial-beta/workflow-status.json <<JSON
           {
@@ -160,12 +144,11 @@ jobs:
             "event": "${GITHUB_EVENT_NAME}",
             "sourceSha": "${GITHUB_SHA}",
             "betaBranch": "agent/commercial-google-native-beta",
+            "transport": "supabase-gateway",
             "verify": "${VERIFY_OUTCOME}",
+            "gatewayHealth": "${GATEWAY_HEALTH_OUTCOME}",
             "installClasp": "${INSTALL_CLASP_OUTCOME}",
             "credentials": "${CREDENTIALS_OUTCOME}",
-            "appsScriptApi": "${APPS_SCRIPT_API_OUTCOME}",
-            "cloudLinkInspection": "${CLOUD_LINK_INSPECTION_OUTCOME}",
-            "cloudProjectInventory": "${CLOUD_PROJECT_INVENTORY_OUTCOME}",
             "deploy": "${DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
