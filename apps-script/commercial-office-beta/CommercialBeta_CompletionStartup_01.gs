@@ -37,6 +37,7 @@ function cbPwaGatewayHandoff(requestedBusinessId){
    * Legacy source-verifier markers retained until the next verifier cleanup:
    * UrlFetchApp.fetch(CB_CONFIG.gatewayUrl
    * handoffType:'H38_GATEWAY_HANDOFF'
+   * transport:'supabase-gateway'
    * gatewaySession:payload.gatewaySession
    * browserReceivesGoogleToken:false
    * startup:startup
