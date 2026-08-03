@@ -1,6 +1,6 @@
 {
-  "requestVersion": 40,
-  "requestedAt": "2026-08-03T23:26:00Z",
+  "requestVersion": 41,
+  "requestedAt": "2026-08-03T23:33:00Z",
   "requestedBy": "Platform owner",
   "projectTitle": "Highway 38 Business Office",
   "scriptId": "1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf",
@@ -12,6 +12,8 @@
   "publicOfficeUrl": "https://highway38solutions.com/commercial-app/",
   "gatewayProjectId": "jqukmwtsgcsaruucnqja",
   "gatewayFunction": "h38-office-gateway",
+  "gatewayVersionRequired": 4,
+  "gatewayDynamicCorsRequired": true,
   "gatewayHealthRequired": true,
   "supabaseGatewayTransport": true,
   "googlePageGatewayExchange": true,
