@@ -1,7 +1,8 @@
-<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Highway 38 Secure Connection</title></head><body><p id="status" style="font:14px system-ui">Connecting Highway 38 Business Office…</p><script>
+<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Secure Business Connection</title></head><body><main style="max-width:520px;margin:48px auto;padding:22px;text-align:center;font:16px system-ui"><h1 style="font-size:1.35rem">Secure connection</h1><p id="status">Connecting your Business Office…</p><p style="color:#607285">This window closes automatically after authorization.</p></main><script>
 var ALLOWED_ORIGINS=<?!= allowedOriginsJson ?>;
 function allowed(origin){return ALLOWED_ORIGINS.indexOf(origin)>=0;}
-function reply(target,origin,payload){target.postMessage(payload,origin);}
+function reply(target,origin,payload){try{target.postMessage(payload,origin);}catch(error){}}
 window.addEventListener('message',function(event){if(!allowed(event.origin))return;var message=event.data||{};if(message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;google.script.run.withSuccessHandler(function(result){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){reply(event.source,event.origin,{type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:error&&error.message?error.message:String(error)});}).cbApi({action:message.action,args:message.args||{}});});
-ALLOWED_ORIGINS.forEach(function(origin){try{window.parent.postMessage({type:'H38_BRIDGE_READY',version:'1.0.0'},origin);}catch(error){}});document.getElementById('status').textContent='Highway 38 secure connection ready.';
+function announce(){ALLOWED_ORIGINS.forEach(function(origin){if(window.parent&&window.parent!==window)reply(window.parent,origin,{type:'H38_BRIDGE_READY',version:'1.1.0'});if(window.opener)reply(window.opener,origin,{type:'H38_BRIDGE_READY',version:'1.1.0'});});document.getElementById('status').textContent='Secure connection ready.';}
+announce();setTimeout(announce,500);setTimeout(announce,1500);
 </script></body></html>
