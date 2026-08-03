@@ -214,7 +214,7 @@ Deno.serve(async (request: Request) => {
     status: "PASS",
     service: "h38-office-gateway",
     transport: "supabase-gateway",
-    version: "3.0.1",
+    version: "3.0.2",
     browserReceivesGoogleToken: false,
     existingAppsScriptDeployment: true,
     googlePageBootstrap: true,
