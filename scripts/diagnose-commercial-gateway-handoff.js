@@ -109,7 +109,7 @@ async function frameState(frame){
     page.on('pageerror',error=>report.pageErrors.push(redact(error.message,1500)));
     await page.goto(launcherUrl,{waitUntil:'domcontentloaded',timeout:30000});
     await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
-    await page.waitForTimeout(30000);
+    await page.waitForTimeout(12000);
     await Promise.allSettled(gatewayResponseReads);
     report.pageUrl=redact(page.url(),900);
     report.title=redact(await page.title().catch(()=>''),500);
