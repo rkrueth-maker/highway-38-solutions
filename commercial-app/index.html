@@ -8,52 +8,63 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Installable online and offline Highway 38 Business Office">
-  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="manifest" href="./manifest.webmanifest?build=20260803-0934">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?build=20260803-0934">
   <title>Highway 38 Business Office</title>
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><div class="brand-mark">H38</div><div><strong>Business Office</strong><small id="shellLabel">Full Business Office</small></div></div>
     <div class="top-actions">
-      <span id="networkBadge" class="badge offline">Offline</span>
+      <span id="networkBadge" class="badge offline">Checking</span>
       <span id="syncBadge" class="badge neutral">0 pending</span>
       <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to H38">🎙️</button>
       <button id="syncButton" class="icon-button" type="button" aria-label="Synchronize">↻</button>
     </div>
   </header>
   <section class="business-bar">
-    <select id="businessSelect" aria-label="Business"><option value="">Select business</option></select>
-    <button id="loadBusinessButton" type="button">Open</button>
+    <select id="businessSelect" aria-label="Business" hidden disabled><option value="">Select business</option></select>
+    <button id="loadBusinessButton" type="button" hidden disabled>Open</button>
     <span id="businessStatus">Connecting securely…</span>
   </section>
   <div class="app-shell">
     <nav id="mainNav" class="main-nav" aria-label="Business Office navigation"></nav>
-    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Highway 38 Business Office…</h1><p>Connecting to your business securely.</p></section></main>
+    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Highway 38 Business Office…</h1><p>Connecting to your business securely.</p><div class="welcome-actions"><button id="earlySecureSignInButton" class="primary" type="button">Sign in securely</button><button id="earlyRetryButton" class="secondary" type="button">Retry connection</button></div></section></main>
   </div>
   <div id="toast" class="toast hidden" role="status"></div>
   <dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog>
   <iframe id="bridgeFrame" class="bridge-frame" title="Secure Google connection"></iframe>
-  <script src="./db.js"></script>
-  <script src="./bridge.js"></script>
-  <script src="./app-01.js"></script>
-  <script src="./app-02.js"></script>
-  <script src="./app-03.js"></script>
-  <script src="./app-04.js"></script>
-  <script src="./app-05.js"></script>
-  <script src="./app-06.js"></script>
-  <script src="./app-07.js"></script>
-  <script src="./app-08.js"></script>
-  <script src="./app-09.js"></script>
-  <script src="./app-10.js"></script>
-  <script src="./app-11.js"></script>
-  <script src="./app-12.js"></script>
-  <script src="./app-13.js"></script>
-  <script src="./app-14.js"></script>
-  <script src="./app-15.js"></script>
-  <script src="./app-16.js"></script>
-  <script src="./app-17.js"></script>
-  <script src="./app-18.js"></script>
+  <script>
+    window.H38_BUILD='20260803-0934';
+    window.setTimeout(function(){
+      var main=document.getElementById('mainContent');
+      if(!main||!/Opening|Connecting/.test(main.textContent))return;
+      main.innerHTML='<section class="welcome"><h1>Sign in to open Business Office</h1><p>The secure connection did not finish. Tap Sign in securely, then return to this tab.</p><div class="welcome-actions"><button id="watchdogSecureSignInButton" class="primary" type="button">Sign in securely</button><button id="watchdogRetryButton" class="secondary" type="button">Retry connection</button></div></section>';
+      document.getElementById('watchdogSecureSignInButton').onclick=function(){if(window.h38Authorize)window.h38Authorize();};
+      document.getElementById('watchdogRetryButton').onclick=function(){location.reload();};
+    },9000);
+  </script>
+  <script src="./db.js?build=20260803-0934"></script>
+  <script src="./bridge.js?build=20260803-0934"></script>
+  <script src="./app-01.js?build=20260803-0934"></script>
+  <script src="./app-02.js?build=20260803-0934"></script>
+  <script src="./app-03.js?build=20260803-0934"></script>
+  <script src="./app-04.js?build=20260803-0934"></script>
+  <script src="./app-05.js?build=20260803-0934"></script>
+  <script src="./app-06.js?build=20260803-0934"></script>
+  <script src="./app-07.js?build=20260803-0934"></script>
+  <script src="./app-08.js?build=20260803-0934"></script>
+  <script src="./app-09.js?build=20260803-0934"></script>
+  <script src="./app-10.js?build=20260803-0934"></script>
+  <script src="./app-11.js?build=20260803-0934"></script>
+  <script src="./app-12.js?build=20260803-0934"></script>
+  <script src="./app-13.js?build=20260803-0934"></script>
+  <script src="./app-14.js?build=20260803-0934"></script>
+  <script src="./app-15.js?build=20260803-0934"></script>
+  <script src="./app-16.js?build=20260803-0934"></script>
+  <script src="./app-17.js?build=20260803-0934"></script>
+  <script src="./startup-fix.js?build=20260803-0934"></script>
+  <script src="./app-18.js?build=20260803-0934"></script>
 </body>
 </html>
