@@ -1,15 +1,8 @@
 {
-  "status": "FAIL",
-  "runId": "30855642996",
+  "status": "RUNNING",
+  "runId": "30856253795",
   "event": "push",
-  "sourceSha": "f5fe99982a3e663196562715ad296fd22d3ad30b",
+  "sourceSha": "2706643dd985edf932d8ad71762a50c8eb952b24",
   "betaBranch": "agent/commercial-google-native-beta",
-  "verify": "success",
-  "installClasp": "success",
-  "credentials": "success",
-  "appsScriptApi": "failure",
-  "cloudLinkInspection": "success",
-  "deploy": "skipped",
-  "startupAcceptance": "skipped",
-  "finishedAt": "2026-08-03T21:42:10Z"
+  "startedAt": "2026-08-03T21:50:05Z"
 }
