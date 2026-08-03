@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm'),cp=require('child_process');
 const root=path.resolve(__dirname,'..'),failures=[],checks=[];
-const file=rel=>path.join(root,rel);const read=rel=>{if(!fs.existsSync(file(rel)))throw new Error(`Missing required file: ${rel}`);return fs.readFileSync(file(rel),'utf8'};
+const file=rel=>path.join(root,rel);const read=rel=>{if(!fs.existsSync(file(rel)))throw new Error(`Missing required file: ${rel}`);return fs.readFileSync(file(rel),'utf8')};
 const check=(name,value,detail='')=>{checks.push({name,pass:!!value});if(!value)failures.push(`${name}${detail?`: ${detail}`:''}`)};const has=(source,tokens)=>tokens.every(token=>source.includes(token));
 const joined=(dir,prefix,suffix)=>fs.readdirSync(file(dir)).filter(name=>name.startsWith(prefix)&&name.endsWith(suffix)).sort().map(name=>read(path.join(dir,name))).join('\n');
 const appFiles=Array.from({length:18},(_,index)=>`commercial-app/app-${String(index+1).padStart(2,'0')}.js`);
