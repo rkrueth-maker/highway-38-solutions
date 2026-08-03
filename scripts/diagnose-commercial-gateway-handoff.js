@@ -27,7 +27,12 @@ function redact(value,limit=5000){
     .trim()
     .slice(0,limit);
 }
-function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
+function isScriptHost(hostname){
+  return hostname==='script.google.com'||
+    hostname==='script.googleusercontent.com'||
+    hostname.endsWith('.script.googleusercontent.com')||
+    hostname.endsWith('-script.googleusercontent.com');
+}
 async function readJson(response){const text=await response.text();try{return text?JSON.parse(text):{};}catch(error){return{};}}
 async function refreshAccessToken(credentials){
   let token=findByKey(credentials,['access_token','accessToken']);
@@ -63,6 +68,7 @@ async function frameState(frame){
 (async()=>{
   fs.mkdirSync(evidenceDir,{recursive:true});
   const report={status:'DIAGNOSTIC',launcherUrl,startedAt:new Date().toISOString(),pageUrl:'',title:'',frames:[],gatewayResponses:[],consoleMessages:[],pageErrors:[],secondaryPages:[],screenshotCreated:false};
+  const gatewayResponseReads=[];
   let browser;
   try{
     if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found.');
@@ -71,7 +77,26 @@ async function frameState(frame){
     browser=await chromium.launch({headless:true});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     context.on('page',opened=>report.secondaryPages.push(redact(opened.url()||'about:blank',900)));
-    context.on('response',response=>{try{const url=new URL(response.url());if(url.hostname===gatewayHost)report.gatewayResponses.push({status:response.status(),method:response.request().method(),url:redact(url.pathname,500)});}catch(error){}});
+    context.on('response',response=>{
+      const read=(async()=>{
+        try{
+          const url=new URL(response.url());
+          if(url.hostname!==gatewayHost)return;
+          let body='';
+          try{body=redact(await response.text(),1800);}catch(error){body=`[BODY_UNAVAILABLE:${redact(error.message||String(error),300)}]`;}
+          const request=response.request();
+          report.gatewayResponses.push({
+            status:response.status(),
+            method:request.method(),
+            url:redact(url.pathname,500),
+            requestOrigin:redact(request.headers().origin||'',900),
+            responseAllowOrigin:redact(response.headers()['access-control-allow-origin']||'',900),
+            body
+          });
+        }catch(error){}
+      })();
+      gatewayResponseReads.push(read);
+    });
     await context.route('**/*',async route=>{
       const request=route.request();let parsed;
       try{parsed=new URL(request.url());}catch(error){await route.continue();return;}
@@ -85,6 +110,7 @@ async function frameState(frame){
     await page.goto(launcherUrl,{waitUntil:'domcontentloaded',timeout:30000});
     await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
     await page.waitForTimeout(30000);
+    await Promise.allSettled(gatewayResponseReads);
     report.pageUrl=redact(page.url(),900);
     report.title=redact(await page.title().catch(()=>''),500);
     for(const frame of page.frames())report.frames.push(await frameState(frame));
@@ -92,6 +118,7 @@ async function frameState(frame){
     report.screenshotCreated=true;
   }catch(error){report.error=redact(error.message||String(error),2000);}
   finally{
+    await Promise.allSettled(gatewayResponseReads);
     if(browser)await browser.close();
     report.finishedAt=new Date().toISOString();
     fs.writeFileSync(path.join(evidenceDir,'gateway-handoff-diagnostic.json'),JSON.stringify(report,null,2)+'\n');
