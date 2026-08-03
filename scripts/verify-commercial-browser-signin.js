@@ -19,6 +19,14 @@ function findByKey(value,keys,seen=new Set()){
   for(const child of Object.values(value)){const found=findByKey(child,keys,seen);if(found)return found;}
   return'';
 }
+function redactGatewayText(value){
+  return String(value||'')
+    .replace(/ya29\.[A-Za-z0-9._-]+/g,'[REDACTED_TOKEN]')
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi,'Bearer [REDACTED]')
+    .replace(/"gatewaySession"\s*:\s*"[^"]+"/gi,'"gatewaySession":"[REDACTED]"')
+    .replace(/"accessToken"\s*:\s*"[^"]+"/gi,'"accessToken":"[REDACTED]"')
+    .slice(0,1200);
+}
 function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
 function isHighwayHost(hostname){return hostname==='highway38solutions.com'||hostname==='www.highway38solutions.com';}
 if(!deploymentArg)throw new Error('Deployment URL is required for gateway browser acceptance.');
@@ -107,7 +115,15 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
       if(!isScriptHost(parsed.hostname)){await route.continue();return;}
       await route.continue({headers:{...request.headers(),authorization:`Bearer ${accessToken}`}});
     });
-    context.on('response',response=>{try{const url=new URL(response.url());if(url.hostname===GATEWAY_HOST)gatewayResponses.push({status:response.status(),method:response.request().method(),url:url.pathname});}catch(error){}});
+    context.on('response',async response=>{
+      try{
+        const url=new URL(response.url());
+        if(url.hostname!==GATEWAY_HOST)return;
+        let body='';
+        try{body=redactGatewayText(await response.text());}catch(error){body=`[BODY_UNAVAILABLE:${String(error&&error.message||error).slice(0,160)}]`;}
+        gatewayResponses.push({status:response.status(),method:response.request().method(),url:url.pathname,body});
+      }catch(error){}
+    });
 
     page=await context.newPage();
     page.on('console',message=>consoleMessages.push(`${message.type()}:${message.location().url||page.url()}:${message.text()}`));
