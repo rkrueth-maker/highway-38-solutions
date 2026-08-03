@@ -1,0 +1,84 @@
+name: Deploy Commercial Google-Native Office Beta
+
+on:
+  push:
+    branches:
+      - agent/commercial-google-native-beta
+    paths:
+      - commercial-beta/deploy-request.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: commercial-google-native-office-beta
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/commercial-google-native-beta
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify isolated commercial beta source
+        run: node scripts/verify-commercial-google-native-beta.js
+
+      - name: Install Apps Script deployment tool
+        run: npm install --global @google/clasp@3.1.0
+
+      - name: Load encrypted Google credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'HOLD — no encrypted Google credential is configured.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
+
+      - name: Create or update separate beta project and deployment
+        shell: bash
+        run: bash scripts/deploy-commercial-google-native-beta.sh
+
+      - name: Persist beta deployment identity on the isolated branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commercial-beta/deployment-state.json
+          if git diff --cached --quiet; then
+            echo "Deployment state unchanged."
+          else
+            git commit -m "Record commercial beta deployment state"
+            git push origin HEAD:agent/commercial-google-native-beta
+          fi
+
+      - name: Upload deployment and rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commercial-google-native-beta-${{ github.run_id }}
+          path: artifacts/commercial-google-native-beta/
+          if-no-files-found: error
+          retention-days: 90
