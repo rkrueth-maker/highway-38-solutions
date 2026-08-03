@@ -10,5 +10,5 @@ BROWSER_ARTIFACT_PATH="${4:-artifacts/commercial-google-native-beta/browser-sign
 
 mkdir -p "$(dirname "$ARTIFACT_PATH")"
 node scripts/verify-commercial-public-shell.js "$PUBLIC_URL" | tee "$PUBLIC_ARTIFACT_PATH"
-node scripts/verify-commercial-browser-signin.js "$PUBLIC_URL" | tee "$BROWSER_ARTIFACT_PATH"
+node scripts/verify-commercial-browser-signin.js "$PUBLIC_URL" "$DEPLOYMENT_URL" "$CREDENTIALS_PATH" | tee "$BROWSER_ARTIFACT_PATH"
 node scripts/verify-commercial-webapp-startup.js "$DEPLOYMENT_URL" "$CREDENTIALS_PATH" | tee "$ARTIFACT_PATH"
