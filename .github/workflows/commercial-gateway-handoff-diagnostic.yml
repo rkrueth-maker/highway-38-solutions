@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: commercial-gateway-handoff-diagnostic-${{ github.ref }}
@@ -64,6 +66,43 @@ jobs:
       - name: Capture authorized Google handoff state
         shell: bash
         run: node scripts/diagnose-commercial-gateway-handoff.js "$HOME/.clasprc.json"
+
+      - name: Post sanitized diagnostic summary
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPORT="artifacts/commercial-google-native-beta/gateway-handoff-diagnostic.json"
+          COMMENT="${RUNNER_TEMP}/gateway-diagnostic-comment.md"
+          if [[ ! -f "${REPORT}" ]]; then
+            printf 'Protected gateway diagnostic run `%s` produced no JSON report.\n' "${GITHUB_RUN_ID}" > "${COMMENT}"
+          else
+            node - "${REPORT}" "${COMMENT}" "${GITHUB_RUN_ID}" <<'NODE'
+          const fs=require('fs');
+          const [input,output,runId]=process.argv.slice(2);
+          const report=JSON.parse(fs.readFileSync(input,'utf8'));
+          const compact={
+            runId,
+            startedAt:report.startedAt||'',
+            finishedAt:report.finishedAt||'',
+            error:report.error||'',
+            gatewayResponses:report.gatewayResponses||[],
+            frames:(report.frames||[]).map(frame=>({
+              url:frame.url||'',
+              status:frame.status||'',
+              continueButton:frame.continueButton||null,
+              body:String(frame.body||'').slice(0,1800)
+            })),
+            pageErrors:report.pageErrors||[],
+            consoleMessages:(report.consoleMessages||[]).slice(-12)
+          };
+          const body=['### Protected gateway diagnostic', '', '```json', JSON.stringify(compact,null,2), '```', '', 'OAuth tokens and long opaque values were redacted before this comment was created.'].join('\n');
+          fs.writeFileSync(output,body+'\n');
+          NODE
+          fi
+          gh pr comment 486 --repo "${GITHUB_REPOSITORY}" --body-file "${COMMENT}"
 
       - name: Upload sanitized handoff evidence
         if: always()
