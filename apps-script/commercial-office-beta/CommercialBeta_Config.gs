@@ -1,6 +1,6 @@
 /** Highway 38 Commercial Office Beta — isolated Google-native configuration. */
 var CB_CONFIG=Object.freeze({
-  version:'0.1.0',
+  version:'0.2.0',
   schemaVersion:1,
   environment:'commercial-google-native-beta',
   title:'Highway 38 Commercial Office Beta',
