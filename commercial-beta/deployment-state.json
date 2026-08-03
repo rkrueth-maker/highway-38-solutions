@@ -1,7 +1,7 @@
 {
   "status": "DEPLOYED",
   "environment": "commercial-google-native-beta",
-  "sourceCommit": "693c253f04af2ee54d1717738eb8f84a52a799b5",
+  "sourceCommit": "bddf4e05a4db18a9d8dc3ba30c37b67b7b2b11a1",
   "branch": "agent/commercial-google-native-beta",
   "projectTitle": "Highway 38 Business Office",
   "scriptId": "1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf",
@@ -14,5 +14,5 @@
   "productionDeploymentIdsChanged": false,
   "productionDataMigrated": false,
   "externalActionsEnabled": false,
-  "deployedAt": "2026-08-03T18:01:35Z"
+  "deployedAt": "2026-08-03T19:30:07Z"
 }
