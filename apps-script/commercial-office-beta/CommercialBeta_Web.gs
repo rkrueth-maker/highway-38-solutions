@@ -2,12 +2,32 @@
 function doGet(event){
   try{
     var parameters=event&&event.parameter?event.parameter:{},serviceUrl=ScriptApp.getService().getUrl()||'',businessId=cbText_(parameters.businessId),forceInstaller=cbText_(parameters.install)==='1';
-    if(cbText_(parameters.bridge)==='1'){cbCompletionSignedIn_();var bridge=HtmlService.createTemplateFromFile('CommercialBeta_Bridge');bridge.allowedOriginsJson=JSON.stringify(CB_CONFIG.pwaAllowedOrigins);return bridge.evaluate().setTitle('H38 Secure Bridge').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');}
-    cbRequireOwner_();if(!forceInstaller&&!businessId){var installed=cbPlatformBusinessList_();if(installed.length===1)businessId=installed[0].businessId;}if(businessId)cbBusinessRow_(businessId);
-    var template=HtmlService.createTemplateFromFile(businessId?'CommercialBeta_Office':'CommercialBeta_Setup');template.businessId=businessId;template.homeUrl=serviceUrl+'?install=1';template.industryPacksJson=JSON.stringify(CB_CONFIG.industryPacks);return template.evaluate().setTitle(businessId?'Commercial Office — '+cbBusinessRow_(businessId)['Business Name']:CB_CONFIG.title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
+    if(cbText_(parameters.bridge)==='1'){
+      cbCompletionSignedIn_();
+      var bridge=HtmlService.createTemplateFromFile('CommercialBeta_Bridge');
+      bridge.allowedOriginsJson=JSON.stringify(CB_CONFIG.pwaAllowedOrigins);
+      return bridge.evaluate().setTitle('H38 Secure Bridge').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');
+    }
+    if(forceInstaller){
+      cbRequireOwner_();
+      var setup=HtmlService.createTemplateFromFile('CommercialBeta_Setup');
+      setup.businessId='';setup.homeUrl=serviceUrl+'?install=1';setup.industryPacksJson=JSON.stringify(CB_CONFIG.industryPacks);
+      return setup.evaluate().setTitle(CB_CONFIG.title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
+    }
+    var visible=cbCompletionVisibleBusinesses_(),businessRow=null;
+    if(businessId){var context=cbCompletionContext_(businessId,'');businessRow=context.row;}
+    else if(visible.length===1){businessId=visible[0].businessId;businessRow=cbBusinessRow_(businessId);}
+    if(visible.length||businessRow){
+      var office=HtmlService.createTemplateFromFile('CommercialBeta_Office');
+      office.businessId=businessId;office.businessName=businessRow?businessRow['Business Name']:'Commercial Office';office.homeUrl=serviceUrl+'?install=1';office.pwaUrl=CB_CONFIG.pwaUrl;
+      return office.evaluate().setTitle('Commercial Office — '+office.businessName).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
+    }
+    cbRequireOwner_();
+    var installer=HtmlService.createTemplateFromFile('CommercialBeta_Setup');installer.businessId='';installer.homeUrl=serviceUrl+'?install=1';installer.industryPacksJson=JSON.stringify(CB_CONFIG.industryPacks);
+    return installer.evaluate().setTitle(CB_CONFIG.title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
   }catch(error){return HtmlService.createHtmlOutput('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commercial Office</title><main style="max-width:720px;margin:60px auto;padding:24px;font:16px system-ui"><h1>Commercial Office</h1><p>Sign in with an authorized business account.</p><pre style="white-space:pre-wrap">'+cbEscapeHtml_(error.message||String(error))+'</pre></main>');}
 }
-function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[character];});}
+function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];});}
 function cbBusinessUrls_(items){var serviceUrl=ScriptApp.getService().getUrl()||'';return(items||[]).map(function(item){item.businessUrl=serviceUrl+'?businessId='+encodeURIComponent(item.businessId);return item;});}
 function cbApi(request){
   var payload=request||{},action=cbText_(payload.action),args=payload.args||{};
