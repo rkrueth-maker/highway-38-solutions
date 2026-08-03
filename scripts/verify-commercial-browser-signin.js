@@ -5,7 +5,7 @@ const fs=require('fs');
 const path=require('path');
 const {chromium}=require('playwright');
 
-const BUILD='20260803-1405';
+const BUILD='20260803-1530';
 const [publicArg='https://highway38solutions.com/commercial-app/',deploymentArg,credentialsArg]=process.argv.slice(2);
 const publicUrl=new URL(publicArg);
 const launcherUrl=new URL('/open-business-office.html',publicUrl);
@@ -19,8 +19,9 @@ function findByKey(value,keys,seen=new Set()){
   return'';
 }
 function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
-if(!deploymentArg)throw new Error('Deployment URL is required for same-tab browser acceptance.');
-if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for same-tab browser acceptance.');
+function isHighwayHost(hostname){return hostname==='highway38solutions.com'||hostname==='www.highway38solutions.com';}
+if(!deploymentArg)throw new Error('Deployment URL is required for top-level browser acceptance.');
+if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for top-level browser acceptance.');
 let credentials={};
 try{credentials=JSON.parse(fs.readFileSync(credentialsPath,'utf8'));}catch(error){throw new Error(`Authorized Google credential file is not valid JSON: ${error.message}`);}
 let accessToken=findByKey(credentials,['access_token','accessToken']);
@@ -33,25 +34,18 @@ async function refreshAccessToken(){
   const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'})});
   if(!response.ok)return false;const payload=await response.json();if(!payload.access_token)return false;accessToken=payload.access_token;return true;
 }
-async function textOf(frame,selector,limit=500){if(!frame)return'';return(((await frame.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
-async function waitForOfficeFrame(page){
-  const deadline=Date.now()+90000;
-  while(Date.now()<deadline){
-    const frame=page.frames().find(candidate=>{try{const url=new URL(candidate.url());return (url.hostname==='highway38solutions.com'||url.hostname==='www.highway38solutions.com')&&url.pathname.includes('/commercial-app/')&&url.searchParams.get('embedded')==='1';}catch(error){return false;}});
-    if(frame)return frame;
-    await page.waitForTimeout(250);
-  }
-  throw new Error('The authenticated Google host did not load the embedded Highway 38 Office.');
-}
-async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageErrors,secondaryPages){
+async function textOf(page,selector,limit=500){if(!page||page.isClosed())return'';return(((await page.locator(selector).textContent().catch(()=>''))||'').trim()).slice(0,limit);}
+async function collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses){
+  const session=page&&!page.isClosed()?await page.evaluate(()=>({present:!!window.H38_EXECUTION_SESSION,apiDeploymentId:window.H38_EXECUTION_SESSION?.apiDeploymentId||'',scriptId:window.H38_EXECUTION_SESSION?.scriptId||'',tokenLength:String(window.H38_EXECUTION_SESSION?.accessToken||'').length,hash:location.hash})).catch(()=>({})):{};
   return{
-    hostUrl:page&&!page.isClosed()?page.url():'',
-    hostTitle:page&&!page.isClosed()?await page.title().catch(()=>''):'',
-    hostFrames:page&&!page.isClosed()?page.frames().map(frame=>frame.url()).slice(0,20):[],
-    officeUrl:officeFrame?officeFrame.url():'',
-    mainContent:await textOf(officeFrame,'#mainContent'),
-    businessStatus:await textOf(officeFrame,'#businessStatus'),
-    navButtonCount:officeFrame?await officeFrame.locator('#mainNav button').count().catch(()=>0):0,
+    currentUrl:page&&!page.isClosed()?page.url():'',
+    title:page&&!page.isClosed()?await page.title().catch(()=>''):'',
+    frames:page&&!page.isClosed()?page.frames().map(frame=>frame.url()).slice(0,20):[],
+    mainContent:await textOf(page,'#mainContent'),
+    businessStatus:await textOf(page,'#businessStatus'),
+    navButtonCount:page&&!page.isClosed()?await page.locator('#mainNav button').count().catch(()=>0):0,
+    executionSession:session,
+    executionResponses:executionResponses.slice(-10),
     secondaryPageCount:context?Math.max(0,context.pages().length-1):0,
     secondaryPages:secondaryPages.slice(-10),
     consoleMessages:consoleMessages.slice(-30),
@@ -62,8 +56,8 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
 (async()=>{
   if(!(await refreshAccessToken())&&!accessToken)throw new Error('The existing Google credential does not contain a usable access token.');
   const browser=await chromium.launch({headless:true});
-  let context=null,page=null,officeFrame=null;
-  const consoleMessages=[],pageErrors=[],secondaryPages=[];
+  let context=null,page=null;
+  const consoleMessages=[],pageErrors=[],secondaryPages=[],executionResponses=[];
   try{
     context=await browser.newContext();
     context.on('page',opened=>{if(page&&opened!==page)secondaryPages.push(opened.url()||'about:blank');});
@@ -72,38 +66,38 @@ async function collectDiagnostics(page,officeFrame,context,consoleMessages,pageE
       if(!isScriptHost(parsed.hostname)){await route.continue();return;}
       await route.continue({headers:{...request.headers(),authorization:`Bearer ${accessToken}`}});
     });
+    context.on('response',response=>{try{const url=new URL(response.url());if(url.hostname==='script.googleapis.com')executionResponses.push({status:response.status(),url:url.pathname});}catch(error){}});
 
     page=await context.newPage();
     page.on('console',message=>consoleMessages.push(`${message.type()}:${message.location().url||page.url()}:${message.text()}`));
     page.on('pageerror',error=>pageErrors.push(`${error.message}`));
     const target=new URL(launcherUrl);target.searchParams.set('browserAcceptanceBuild',BUILD);
     await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:30000});
-    await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
-    officeFrame=await waitForOfficeFrame(page);
-    await officeFrame.waitForFunction(()=>{
+    await page.waitForURL(url=>{try{const parsed=new URL(url);return isHighwayHost(parsed.hostname)&&parsed.pathname.includes('/commercial-app/');}catch(error){return false;}},{timeout:90000});
+    await page.waitForFunction(()=>{
       const status=(document.getElementById('businessStatus')?.textContent||'').trim();
-      return /Office open|latest records loaded/i.test(status)&&document.querySelectorAll('#mainNav button').length>3;
+      return /Office open|latest records loaded/i.test(status)&&document.querySelectorAll('#mainNav button').length>3&&!!window.H38_ACTIVE_BRIDGE?.ready;
     },undefined,{timeout:90000,polling:250});
 
-    const apiResult=await officeFrame.evaluate(()=>new Promise((resolve,reject)=>{
-      const requestId=`acceptance-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const timer=setTimeout(()=>{removeEventListener('message',listener);reject(new Error('Parent API acceptance timed out.'));},30000);
-      function listener(event){const message=event.data||{};if(message.type!=='H38_BRIDGE_RESPONSE'||message.requestId!==requestId)return;clearTimeout(timer);removeEventListener('message',listener);message.ok?resolve(message.result):reject(new Error(message.error||'Parent API request failed.'));}
-      addEventListener('message',listener);parent.postMessage({type:'H38_BRIDGE_REQUEST',requestId,action:'visibleBusinesses',args:{}},'*');
-    }));
-
-    const hostName=new URL(page.url()).hostname;
+    const apiResult=await page.evaluate(()=>window.H38_ACTIVE_BRIDGE.request('visibleBusinesses',{},60000));
+    const permissions=await page.evaluate(()=>{
+      const policy=document.permissionsPolicy||document.featurePolicy||null;
+      return{mediaDevices:!!navigator.mediaDevices,cameraAllowed:policy&&policy.allowsFeature?policy.allowsFeature('camera'):true,microphoneAllowed:policy&&policy.allowsFeature?policy.allowsFeature('microphone'):true,topLevel:window.top===window,hashCleared:location.hash==='',sessionPresent:!!window.H38_EXECUTION_SESSION?.accessToken,transport:window.H38_ACTIVE_BRIDGE?.transport||''};
+    });
+    const current=new URL(page.url());
     const officeErrors=pageErrors.filter(Boolean);
     const secondaryPageCount=Math.max(0,context.pages().length-1);
-    const businessStatus=await textOf(officeFrame,'#businessStatus');
-    const officeText=await textOf(officeFrame,'#mainContent',260);
-    const navButtonCount=await officeFrame.locator('#mainNav button').count();
-    if(!isScriptHost(hostName))throw new Error(`Same-tab Office ended on unexpected host: ${hostName}`);
+    const businessStatus=await textOf(page,'#businessStatus');
+    const officeText=await textOf(page,'#mainContent',260);
+    const navButtonCount=await page.locator('#mainNav button').count();
+    if(!isHighwayHost(current.hostname)||!current.pathname.includes('/commercial-app/'))throw new Error(`Office did not return to the Highway 38 top-level app: ${page.url()}`);
     if(secondaryPageCount!==0)throw new Error(`The Office opened ${secondaryPageCount} extra browser window(s).`);
     if(officeErrors.length)throw new Error(`Office runtime reported page errors: ${officeErrors.join(' | ')}`);
-    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The authenticated parent API did not return an authorized business list.');
+    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The Google execution API did not return an authorized business list.');
+    if(!permissions.topLevel||!permissions.hashCleared||!permissions.sessionPresent||permissions.transport!=='execution-api')throw new Error(`The top-level execution session is incomplete: ${JSON.stringify(permissions)}`);
+    if(!permissions.mediaDevices||!permissions.cameraAllowed||!permissions.microphoneAllowed)throw new Error(`The top-level Office still blocks field permissions: ${JSON.stringify(permissions)}`);
 
-    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_SAME_TAB_PARENT_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,hostUrl:page.url(),hostName,officeUrl:officeFrame.url(),businessStatus,officeText,navButtonCount,sameTabParentTransport:true,parentApiBusinessCount:apiResult.length,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
-  }catch(error){const diagnostics=page?await collectDiagnostics(page,officeFrame,context,consoleMessages,pageErrors,secondaryPages):{};fail('Browser-level authorized same-tab Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
+    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_EXECUTION_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,executionApiBusinessCount:apiResult.length,executionApiResponses:executionResponses,topLevelOffice:true,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
+  }catch(error){const diagnostics=page?await collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,executionResponses):{};fail('Browser-level authorized top-level Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
   finally{await browser.close();}
 })();

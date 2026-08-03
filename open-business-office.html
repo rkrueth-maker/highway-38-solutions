@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
+  <meta name="referrer" content="no-referrer">
   <title>Opening Highway 38 Business Office</title>
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:18px;padding:11px 18px;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-weight:900}.muted{color:#607285}
@@ -13,15 +14,16 @@
   <main class="card">
     <div class="mark">H38</div>
     <h1>Opening Business Office</h1>
-    <p id="status">Removing the obsolete cached Office and opening the secure Google Office in this tab.</p>
+    <p id="status">Clearing the obsolete Office connection and opening Google authorization in this tab.</p>
     <a id="continueButton" class="primary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Continue securely</a>
-    <p class="muted">No second window remains open.</p>
+    <p class="muted">Google returns to Highway 38 automatically. No second window remains open.</p>
   </main>
   <script>
     (async function(){
-      var destination='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1405';
+      var destination='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1&officeBuild=20260803-1530';
       document.getElementById('continueButton').href=destination;
       try{
+        sessionStorage.removeItem('h38-execution-session-v1');
         if('serviceWorker' in navigator){
           var registrations=await navigator.serviceWorker.getRegistrations();
           await Promise.all(registrations.filter(function(registration){return registration.scope.indexOf('/commercial-app/')>=0;}).map(function(registration){return registration.unregister();}));
@@ -30,10 +32,9 @@
           var keys=await caches.keys();
           await Promise.all(keys.filter(function(key){return key.indexOf('h38-business-office-')===0;}).map(function(key){return caches.delete(key);}));
         }
-        try{sessionStorage.removeItem('h38-secure-channel');}catch(error){}
-        document.getElementById('status').textContent='Opening the secure Business Office in this tab…';
+        document.getElementById('status').textContent='Opening Google authorization in this tab…';
       }catch(error){
-        document.getElementById('status').textContent='Opening the secure Business Office. The old cache will be ignored.';
+        document.getElementById('status').textContent='Opening Google authorization. The old Office connection will be ignored.';
       }
       window.location.replace(destination);
     })();

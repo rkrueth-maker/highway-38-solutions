@@ -27,6 +27,23 @@ function cbStartupBootstrap(requestedBusinessId){
   return {status:'PASS',canSwitchBusinesses:canSwitch,businesses:businesses,selectedBusinessId:selected,snapshot:selected?cbStartupSnapshot_(selected):null,elapsedMs:new Date().getTime()-started};
 }
 function cbFullStartupRefresh(businessId){return cbCompletionBootstrap_(cbText_(businessId));}
+function cbPwaExecutionHandoff(requestedBusinessId){
+  var startup=cbStartupBootstrap(cbText_(requestedBusinessId));
+  var properties=cbProperties_();
+  var deploymentId=cbText_(properties.getProperty('COMMERCIAL_BETA_API_DEPLOYMENT_ID'))||cbText_(properties.getProperty('COMMERCIAL_BETA_DEPLOYMENT_ID'))||'AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow';
+  return {
+    status:'PASS',
+    handoffType:'H38_EXECUTION_HANDOFF',
+    handoffVersion:1,
+    issuedAt:cbNow_(),
+    refreshAfterMs:600000,
+    scriptId:ScriptApp.getScriptId(),
+    apiDeploymentId:deploymentId,
+    accessToken:ScriptApp.getOAuthToken(),
+    startup:startup,
+    safeguards:{externalActionsEnabled:false,productionMigrationEnabled:false,automaticCustomerSending:false,automaticSocialPublishing:false,automaticFinancialActions:false}
+  };
+}
 function cbStartupAcceptance(){
   cbRequireOwner_();var started=new Date().getTime(),businesses=cbCompletionVisibleBusinesses_();cbAssert_(businesses.length,'Startup acceptance requires an active business.');
   var result=cbStartupBootstrap(businesses[0].businessId);cbAssert_(result.snapshot&&result.snapshot.business&&result.snapshot.user,'Fast startup did not return an authorized Office snapshot.');
