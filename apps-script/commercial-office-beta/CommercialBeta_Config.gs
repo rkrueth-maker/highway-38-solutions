@@ -7,6 +7,7 @@ var CB_CONFIG=Object.freeze({
   rootFolderName:'Highway 38 Commercial Office Beta',
   controlWorkbookName:'Highway 38 Commercial Office Beta — Control Data',
   pwaUrl:'https://highway38solutions.com/commercial-app/',
+  gatewayUrl:'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway',
   defaultTimeZone:'America/Chicago',
   defaultCurrency:'USD',
   ownerEmails:Object.freeze(['rkrueth@gmail.com']),

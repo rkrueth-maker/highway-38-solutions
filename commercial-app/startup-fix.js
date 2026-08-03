@@ -1,5 +1,5 @@
 'use strict';
-const H38_STARTUP_BUILD='20260803-1530';
+const H38_STARTUP_BUILD='20260803-1700';
 const H38_LOCAL_STARTUP_TIMEOUT=3000;
 let h38StartupWatchdog=0;
 state.canSwitchBusinesses=false;
@@ -48,7 +48,7 @@ async function hydrateLocalStartup(requestedBusinessId){
   }
   try{
     if(!state.snapshot)await withStartupTimeout(loadCached(),'loading saved business pack',4000);
-    if(state.snapshot){$('businessStatus').textContent=state.bridgeReady?`${state.snapshot.business.businessName} · secure session connected`:`${state.snapshot.business.businessName} · saved offline business pack`;openPage(state.page,false);}
+    if(state.snapshot){$('businessStatus').textContent=state.bridgeReady?`${state.snapshot.business.businessName} · secure gateway connected`:`${state.snapshot.business.businessName} · saved offline business pack`;openPage(state.page,false);}
   }catch(error){console.warn(error.message);}
   withStartupTimeout(updatePending(),'counting saved work',4000).catch(error=>console.warn(error.message));
   if(!state.snapshot&&!state.bridgeReady)renderWelcome('unavailable');
@@ -66,7 +66,7 @@ async function init(){
 }
 function handleBridgeStatus(status){
   state.bridgeReady=['connected','bootstrapped'].includes(status)||!!state.bridge?.ready;
-  if(status==='connected'){$('businessStatus').textContent='Secure Google session connected · opening Office…';return;}
+  if(status==='connected'){$('businessStatus').textContent='Secure gateway connected · opening Office…';return;}
   if(status==='bootstrapped'){clearTimeout(h38StartupWatchdog);return;}
   if(status==='auth-expired'){
     state.bridgeReady=false;$('businessStatus').textContent=state.snapshot?'Office open offline · secure session expired.':'Secure session expired.';
@@ -117,7 +117,7 @@ function renderWelcome(mode='connecting',detailOverride=''){
   if(state.snapshot)return;
   const unavailable=['unavailable','error'].includes(mode),choose=mode==='choose';
   const title=unavailable?'Open Business Office securely':choose?'Choose a business':'Opening Business Office…';
-  const detail=detailOverride||(unavailable?'Sign in with Google in this tab. Highway 38 returns here automatically; no second window stays open.':choose?'Use the owner-only business selector above.':'Reading the secure authorization handoff.');
+  const detail=detailOverride||(unavailable?'Sign in with Google in this tab. Highway 38 returns here through the secure gateway; no second window stays open.':choose?'Use the owner-only business selector above.':'Reading the secure gateway handoff.');
   const actions=choose?'':`<div class="welcome-actions"><button id="retryConnectionButton" class="primary" type="button">Open secure Office</button></div>`;
   $('mainContent').innerHTML=`<section class="welcome"><h1>${esc(title)}</h1><p>${esc(detail)}</p>${actions}<div class="notice">Nothing is sent, paid, purchased, approved, or published automatically.</div></section>`;
   if(!choose)$('retryConnectionButton').onclick=window.h38Authorize;
