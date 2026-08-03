@@ -27,7 +27,7 @@ function doGet(event){
     return installer.evaluate().setTitle(CB_CONFIG.title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover');
   }catch(error){return HtmlService.createHtmlOutput('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commercial Office</title><main style="max-width:720px;margin:60px auto;padding:24px;font:16px system-ui"><h1>Commercial Office</h1><p>Sign in with an authorized business account.</p><pre style="white-space:pre-wrap">'+cbEscapeHtml_(error.message||String(error))+'</pre></main>');}
 }
-function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[character];});}
+function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];});}
 function cbBusinessUrls_(items){var serviceUrl=ScriptApp.getService().getUrl()||'';return(items||[]).map(function(item){item.businessUrl=serviceUrl+'?businessId='+encodeURIComponent(item.businessId);return item;});}
 function cbApi(request){
   var payload=request||{},action=cbText_(payload.action),args=payload.args||{};
