@@ -67,6 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/verify-h38-office-gateway-source.js
           node scripts/verify-commercial-google-native-beta.js
           node scripts/verify-commercial-startup.js
 
