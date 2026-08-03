@@ -1,9 +1,9 @@
 {
   "status": "RUNNING",
-  "runId": "30862720813",
+  "runId": "30862979026",
   "event": "push",
-  "sourceSha": "000599ef14c2841660fabeccbe4239896826e5b8",
+  "sourceSha": "bddc31af3062e71359e34287beb934fa901d4a8b",
   "betaBranch": "agent/commercial-google-native-beta",
   "transport": "supabase-gateway",
-  "startedAt": "2026-08-03T23:37:33Z"
+  "startedAt": "2026-08-03T23:41:31Z"
 }
