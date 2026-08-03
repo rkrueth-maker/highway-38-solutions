@@ -1,8 +1,12 @@
 {
-  "status": "RUNNING",
+  "status": "PASS",
   "runId": "30785962610",
   "event": "push",
   "sourceSha": "9537fd043866e5e078cc5bbce3c3ad53b561a794",
   "betaBranch": "agent/commercial-google-native-beta",
-  "startedAt": "2026-08-03T05:01:06Z"
+  "verify": "success",
+  "installClasp": "success",
+  "credentials": "success",
+  "deploy": "success",
+  "finishedAt": "2026-08-03T05:01:22Z"
 }
