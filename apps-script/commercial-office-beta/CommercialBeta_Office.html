@@ -5,31 +5,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
-  <title>Opening Commercial Office</title>
+  <title><?= businessName ?> — Highway 38 Business Office</title>
   <style>
-    :root{--navy:#0b2438;--blue:#174a70;--bg:#eef3f7;--card:#fff;--text:#152536;--muted:#607285;--line:#d6e0e8;--good:#176b3a}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#eaf1f6,#f8fbfd);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(720px,100%);background:var(--card);border:1px solid var(--line);border-radius:22px;padding:clamp(22px,5vw,42px);box-shadow:0 18px 55px rgba(20,53,78,.14)}.brand{display:flex;align-items:center;gap:14px}.mark{display:grid;place-items:center;width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-weight:950}.brand h1{margin:0;font-size:clamp(1.45rem,5vw,2.2rem)}.brand p{margin:4px 0 0;color:var(--muted)}.status{margin:24px 0;padding:14px;border-radius:13px;background:#e3f6e9;color:var(--good);font-weight:850}.modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:18px 0}.modules span{padding:10px;border:1px solid var(--line);border-radius:11px;background:#f8fafc;font-size:.84rem;font-weight:800}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.actions a{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:11px 16px;border-radius:12px;text-decoration:none;font-weight:900}.primary{background:var(--blue);color:#fff}.secondary{border:1px solid var(--line);color:var(--navy);background:#fff}.small{color:var(--muted);font-size:.82rem;line-height:1.45}@media(max-width:560px){body{padding:10px}.card{border-radius:16px;padding:20px}.actions a{width:100%}.modules{grid-template-columns:1fr 1fr}}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef3f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}#officeFrame{display:block;width:100%;height:100%;border:0;background:#eef3f7}.loading{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:22px;background:#eef3f7;transition:opacity .18s ease}.loading.hidden{opacity:0;pointer-events:none}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center;color:#152536}.mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:17px;background:#0b2438;color:#fff;font-weight:950}.muted{color:#607285}.error{color:#9a2c2c;white-space:pre-wrap}
   </style>
 </head>
 <body>
-  <main class="card">
-    <div class="brand"><div class="mark">H38</div><div><h1><?= businessName ?></h1><p>Full mobile Business Office</p></div></div>
-    <div class="status">Opening the complete online/offline Office…</div>
-    <div class="modules" aria-label="Included workspaces">
-      <span>Today & Work</span><span>Customers</span><span>Quote Builder</span><span>Measure</span><span>Schedule</span><span>Messages</span><span>Field Capture</span><span>Inventory</span><span>Fleet & Maintenance</span><span>Money</span><span>Documents</span><span>Social Control</span><span>H38 AI & Voice</span><span>Settings</span>
-    </div>
-    <p class="small">The Google deployment remains the secure data bridge. The installable Office provides the full mobile interface and offline operation.</p>
-    <div class="actions"><a id="openOffice" class="primary" href="#">Open full Business Office</a><a class="secondary" href="<?= homeUrl ?>">Business setup</a></div>
-  </main>
+  <iframe id="officeFrame" title="Highway 38 Business Office" allow="microphone; camera; geolocation"></iframe>
+  <div id="loading" class="loading"><main class="card"><div class="mark">H38</div><h1>Opening <?= businessName ?></h1><p id="status">Loading your secure Business Office in this tab…</p><p class="muted">No second window is required.</p></main></div>
   <script>
     (function(){
-      var base=<?!= JSON.stringify(pwaUrl) ?>;
-      var businessId=<?!= JSON.stringify(businessId) ?>;
-      var target=base+(base.indexOf('?')>=0?'&':'?')+'shell=office'+(businessId?'&businessId='+encodeURIComponent(businessId):'');
-      document.getElementById('openOffice').href=target;
-      window.setTimeout(function(){window.location.replace(target);},120);
+      var PWA_BASE=<?!= JSON.stringify(pwaUrl) ?>;
+      var BUSINESS_ID=<?!= JSON.stringify(businessId) ?>;
+      var BUILD='20260803-1405';
+      var origin=(new URL(PWA_BASE)).origin;
+      var frame=document.getElementById('officeFrame');
+      var loading=document.getElementById('loading');
+      var status=document.getElementById('status');
+      var bootstrapping=false;
+      var target=new URL(PWA_BASE);
+      target.searchParams.set('embedded','1');
+      target.searchParams.set('shell','office');
+      target.searchParams.set('build',BUILD);
+      if(BUSINESS_ID)target.searchParams.set('businessId',BUSINESS_ID);
+      frame.src=target.toString();
+
+      function send(payload){try{frame.contentWindow.postMessage(payload,origin);}catch(error){}}
+      function errorText(error){return error&&error.message?error.message:String(error||'Secure Office request failed.');}
+      function runApi(message){
+        if(!message||message.type!=='H38_BRIDGE_REQUEST'||!message.requestId)return;
+        google.script.run.withSuccessHandler(function(result){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:true,result:result});}).withFailureHandler(function(error){send({type:'H38_BRIDGE_RESPONSE',requestId:message.requestId,ok:false,error:errorText(error)});}).cbApi({action:message.action,args:message.args||{}});
+      }
+      function bootstrap(){
+        if(bootstrapping)return;bootstrapping=true;status.textContent='Checking your authorized business…';
+        google.script.run.withSuccessHandler(function(startup){
+          send({type:'H38_BRIDGE_READY',version:'4.0.0',transport:'same-tab-parent'});
+          send({type:'H38_BRIDGE_BOOTSTRAP',startup:startup});
+          loading.classList.add('hidden');
+          if(!startup||!startup.selectedBusinessId)return;
+          google.script.run.withSuccessHandler(function(snapshot){send({type:'H38_BRIDGE_FULL_SNAPSHOT',businessId:startup.selectedBusinessId,snapshot:snapshot});}).withFailureHandler(function(error){send({type:'H38_BRIDGE_REFRESH_ERROR',businessId:startup.selectedBusinessId,error:errorText(error)});}).cbFullStartupRefresh(startup.selectedBusinessId);
+        }).withFailureHandler(function(error){
+          var message=errorText(error);status.textContent='Business Office could not open.';status.className='error';status.nextElementSibling.textContent=message;send({type:'H38_BRIDGE_BOOTSTRAP_ERROR',error:message});bootstrapping=false;
+        }).cbStartupBootstrap(BUSINESS_ID);
+      }
+      window.addEventListener('message',function(event){
+        if(event.source!==frame.contentWindow||event.origin!==origin)return;
+        var message=event.data||{};
+        if(message.type==='H38_BRIDGE_CLIENT_READY'){bootstrap();return;}
+        if(message.type==='H38_OFFICE_RENDERED'){loading.classList.add('hidden');return;}
+        runApi(message);
+      });
+      frame.addEventListener('load',function(){send({type:'H38_BRIDGE_READY',version:'4.0.0',transport:'same-tab-parent'});window.setTimeout(bootstrap,250);});
     })();
   </script>
-  <noscript><p><a href="<?= pwaUrl ?>">Open the full Commercial Office</a></p></noscript>
 </body>
 </html>
