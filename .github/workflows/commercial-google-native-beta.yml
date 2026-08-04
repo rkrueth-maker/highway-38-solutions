@@ -40,8 +40,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p commercial-beta
-          cat > commercial-beta/workflow-status.json <<JSON
+          STATUS_TMP="$(mktemp)"
+          cat > "${STATUS_TMP}" <<JSON
           {
             "status": "RUNNING",
             "runId": "${GITHUB_RUN_ID}",
@@ -54,9 +54,25 @@ jobs:
           JSON
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add commercial-beta/workflow-status.json
-          git commit -m "Record commercial beta workflow start"
-          git push origin HEAD:agent/commercial-google-native-beta
+          for attempt in 1 2 3; do
+            git fetch origin agent/commercial-google-native-beta
+            git reset --hard origin/agent/commercial-google-native-beta
+            mkdir -p commercial-beta
+            cp "${STATUS_TMP}" commercial-beta/workflow-status.json
+            git add commercial-beta/workflow-status.json
+            if git diff --cached --quiet; then
+              echo "Workflow start state is already current."
+              break
+            fi
+            git commit -m "Record commercial beta workflow start"
+            if git push origin HEAD:agent/commercial-google-native-beta; then
+              break
+            fi
+            if [[ "${attempt}" == "3" ]]; then
+              echo "Unable to record workflow start after ${attempt} attempts."
+              exit 1
+            fi
+          done
 
       - uses: actions/setup-node@v4
         with:
@@ -67,6 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/verify-h38-office-gateway-source.js
           node scripts/verify-commercial-google-native-beta.js
           node scripts/verify-commercial-startup.js
 
@@ -84,8 +101,8 @@ jobs:
           const file=process.argv[3];
           const payload=JSON.parse(fs.readFileSync(file,'utf8'));
           if(status<200||status>=300)throw new Error(`Gateway health returned HTTP ${status}.`);
-          if(payload.status!=='PASS'||payload.service!=='h38-office-gateway'||payload.transport!=='supabase-gateway'||payload.browserReceivesGoogleToken!==false||payload.existingAppsScriptDeployment!==true){throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);}
-          console.log(JSON.stringify({status:'PASS',httpStatus:status,service:payload.service,transport:payload.transport,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
+          if(payload.status!=='PASS'||payload.service!=='h38-office-gateway'||payload.transport!=='supabase-gateway'||payload.browserReceivesGoogleToken!==false||payload.existingAppsScriptDeployment!==true||payload.opaqueSessionInRequestBody!==true){throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);}
+          console.log(JSON.stringify({status:'PASS',httpStatus:status,service:payload.service,transport:payload.transport,opaqueSessionInRequestBody:true,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
           NODE
 
       - id: install_clasp
@@ -136,8 +153,8 @@ jobs:
           set -euo pipefail
           FINAL_STATUS=FAIL
           if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
-          mkdir -p commercial-beta
-          cat > commercial-beta/workflow-status.json <<JSON
+          STATE_TMP="$(mktemp -d)"
+          cat > "${STATE_TMP}/workflow-status.json" <<JSON
           {
             "status": "${FINAL_STATUS}",
             "runId": "${GITHUB_RUN_ID}",
@@ -154,16 +171,34 @@ jobs:
             "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           JSON
+          if [[ -f commercial-beta/deployment-state.json ]]; then
+            cp commercial-beta/deployment-state.json "${STATE_TMP}/deployment-state.json"
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add commercial-beta/workflow-status.json
-          if [[ -f commercial-beta/deployment-state.json ]]; then git add commercial-beta/deployment-state.json; fi
-          if git diff --cached --quiet; then
-            echo "Workflow state unchanged."
-          else
+          for attempt in 1 2 3; do
+            git fetch origin agent/commercial-google-native-beta
+            git reset --hard origin/agent/commercial-google-native-beta
+            mkdir -p commercial-beta
+            cp "${STATE_TMP}/workflow-status.json" commercial-beta/workflow-status.json
+            git add commercial-beta/workflow-status.json
+            if [[ -f "${STATE_TMP}/deployment-state.json" ]]; then
+              cp "${STATE_TMP}/deployment-state.json" commercial-beta/deployment-state.json
+              git add commercial-beta/deployment-state.json
+            fi
+            if git diff --cached --quiet; then
+              echo "Workflow outcome state is already current."
+              break
+            fi
             git commit -m "Record commercial beta workflow outcome"
-            git push origin HEAD:agent/commercial-google-native-beta
-          fi
+            if git push origin HEAD:agent/commercial-google-native-beta; then
+              break
+            fi
+            if [[ "${attempt}" == "3" ]]; then
+              echo "Unable to persist workflow outcome after ${attempt} attempts."
+              exit 1
+            fi
+          done
 
       - name: Upload deployment and rollback evidence
         if: always()
