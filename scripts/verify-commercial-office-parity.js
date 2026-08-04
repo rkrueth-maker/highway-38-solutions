@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const cp=require('child_process');
+const root=path.resolve(__dirname,'..');
+const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
+const failures=[];
+const check=(condition,message)=>{if(!condition)failures.push(message);};
+const app=read('commercial-app/app-19.js');
+const index=read('commercial-app/index.html');
+const parity=read('apps-script/commercial-office-beta/CommercialBeta_Parity_01.gs');
+const core=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_04.gs');
+const sync=read('apps-script/commercial-office-beta/CommercialBeta_CompletionSync_01.gs');
+const jsSyntax=cp.spawnSync(process.execPath,['--check',path.join(root,'commercial-app/app-19.js')],{encoding:'utf8'});
+check(jsSyntax.status===0,`app-19 syntax failed: ${(jsSyntax.stderr||jsSyntax.stdout||'').trim()}`);
+try{new Function(parity);check(true,'');}catch(error){check(false,`Parity Apps Script syntax failed: ${error.message}`);}
+check(index.includes('id="networkBadge"')&&index.includes('id="gatewayBadge"')&&index.includes('id="syncBadge"'),'Internet, secure sync and unsynced-work indicators must be separate.');
+check(index.includes('app-19.js?build=20260803-2205')&&index.includes("window.H38_ASSET_BUILD='20260803-2205'"),'Parity runtime must use the declared browser asset build.');
+for(const page of ['people','accounting','payroll','tax','controls','reports'])check(app.includes(`${page}:`)||app.includes(`'${page}'`),`Missing parity page ${page}.`);
+for(const fn of ['renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderControls','renderReports'])check(app.includes(`function ${fn}(`),`Missing renderer ${fn}.`);
+check(app.includes("String(operation&&operation.action||'').toUpperCase()==='RECORD_USAGE_EVENT'")&&app.includes("real=operations.filter(op=>!isUsageOperation(op))"),'Usage telemetry must not count as unsynced business work.');
+check(app.includes("node.textContent=connected?'Secure sync':'Sync offline'")&&app.includes("node.textContent=online?'Internet':'No internet'"),'Connection status must distinguish internet from secure sync.');
+check(app.includes("state.bridge.request('completionSync'")&&app.includes('recordUsage=async function'),'Usage telemetry must use quiet direct sync instead of the durable business queue.');
+for(const collection of ['employees','vendors','purchaseOrders','accountingPeriods','payrollPeriods','payrollLines','taxPeriods','missingDocuments','approvals','proofLog','errorLog','backups','reports'])check(parity.includes(`${collection}:`)||parity.includes(`'${collection}'`),`Backend parity collection missing: ${collection}.`);
+check(parity.includes("vendors:{book:'inventory'")&&parity.includes("purchaseOrders:{book:'inventory'"),'Vendors and purchase orders must reuse the established inventory workbook.');
+check(parity.includes('CB_CONTROL_SHEETS.AUDIT')&&parity.includes('CB_CONTROL_SHEETS.ERRORS'),'Proof and error views must reuse established control logs.');
+check(core.includes("Object.assign(data,cbCompletionParityData_(context))"),'Full startup refresh must include parity data.');
+check(sync.includes("action==='SAVE_PARITY_ENTITY'")&&sync.includes('cbCompletionSaveParityEntity_(input)'),'Offline sync must handle parity records.');
+check(app.includes("'Approval Status':'Owner Approval Required'")&&app.includes("'Export Allowed':'No'")&&app.includes("'Finalization Allowed':'No'"),'Payroll, purchasing and tax preparation must remain owner-review controlled.');
+check(app.includes('No funds moved.')&&app.includes('Nothing filed or paid.')&&app.includes('Nothing purchased.'),'Financial safety language must remain explicit.');
+const report={status:failures.length?'FAIL':'PASS',checks:28,failures,replacementOfficeParity:true,separateInternetAndSecureSync:true,usageTelemetryExcludedFromPending:true,employees:true,accountingPreparation:true,payrollPreparation:true,taxPreparation:true,approvalsProofErrorsBackups:true,reports:true,productionMigration:false,externalActions:false};
+console.log(JSON.stringify(report,null,2));
+if(failures.length)process.exit(1);

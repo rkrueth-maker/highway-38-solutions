@@ -32,12 +32,14 @@ jobs:
           node --check commercial-app/app-06.js
           node --check commercial-app/app-07.js
           node --check commercial-app/app-16.js
+          node --check commercial-app/app-19.js
           node --check scripts/verify-commercial-system.js
           node --check scripts/verify-commercial-release-pipeline.js
           node --check scripts/verify-commercial-google-native-beta.js
           node --check scripts/verify-commercial-browser-signin.js
           node --check scripts/verify-commercial-public-shell.js
           node --check scripts/verify-commercial-shell-focus.js
+          node --check scripts/verify-commercial-office-parity.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
 
@@ -49,6 +51,9 @@ jobs:
 
       - name: Verify focused Quote Builder and global AI shell
         run: node scripts/verify-commercial-shell-focus.js
+
+      - name: Verify replacement Office parity
+        run: node scripts/verify-commercial-office-parity.js
 
       - name: Run commercial verification and capture report
         id: commercial

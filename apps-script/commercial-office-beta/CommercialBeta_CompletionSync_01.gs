@@ -41,6 +41,7 @@ function cbCompletionApplyOperation_(context,operation){
   else if(action==='SAVE_SETTING')result=cbCompletionSaveSetting_(input);
   else if(action==='SAVE_USER')result=cbCompletionSaveUser_(input);
   else if(action==='SAVE_ENTITY')result=cbCompletionSaveEntity_(input);
+  else if(action==='SAVE_PARITY_ENTITY')result=cbCompletionSaveParityEntity_(input);
   else if(action==='ARCHIVE_ENTITY')result=cbCompletionArchiveEntity_(input);
   else if(action==='RECORD_USAGE_EVENT')result=cbCompletionRecordUsageEvent_(input);
   else throw new Error('Unsupported offline operation: '+action);
