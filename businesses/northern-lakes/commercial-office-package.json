@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "packageVersion": "nlpm-commercial-office-trial-v1",
+  "status": "prepared-not-deployed",
+  "businessId": "NLPS",
+  "businessName": "Northern Lakes Property Maintenance LLC",
+  "existingAppsScriptProjectId": "1_RbfPyqgg-VWNHVLWQLKh7PFBNs1XnBSYRZ969raabhen7LuWgQjAnlX",
+  "existingAppsScriptDeploymentId": "AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL",
+  "supabaseProjectId": "jqukmwtsgcsaruucnqja",
+  "gatewayFunction": "nlpm-office-gateway",
+  "pwaUrl": "https://highway38solutions.com/businesses/northern-lakes/commercial-app/",
+  "launcherUrl": "https://highway38solutions.com/businesses/northern-lakes/business-office.html",
+  "ownerEmails": [
+    "northernlakesproperty@gmail.com",
+    "rkrueth@gmail.com",
+    "mandakw55@gmail.com"
+  ],
+  "isolation": {
+    "dedicatedAppsScriptProject": true,
+    "dedicatedAppsScriptDeployment": true,
+    "dedicatedGatewayFunction": true,
+    "dedicatedBrowserDatabase": "nlpm-commercial-offline",
+    "dedicatedSessionKey": "nlpm-gateway-session-v1",
+    "productionDataMigration": false,
+    "previousUnifiedProjectPreservedForRollback": true
+  },
+  "safety": {
+    "externalActionsEnabled": false,
+    "automaticCustomerSending": false,
+    "automaticSocialPublishing": false,
+    "automaticFinancialActions": false,
+    "createAppsScriptProjectAllowed": false,
+    "createAppsScriptDeploymentAllowed": false,
+    "deploymentRequiresExplicitPermission": true
+  }
+}
