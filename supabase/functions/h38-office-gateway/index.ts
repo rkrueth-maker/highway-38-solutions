@@ -157,26 +157,41 @@ async function bootstrap(origin: string | null, body: Record<string, unknown>): 
     expiresAt: new Date(expiresAt).toISOString(),
   });
 }
-async function readBackendJson(response: Response): Promise<Record<string, unknown>> {
+async function readBackendResult(response: Response, host: string): Promise<unknown> {
   const text = await response.text();
+  const contentType = response.headers.get("content-type") || "unknown content type";
   let payload: Record<string, unknown> = {};
-  try { payload = text ? JSON.parse(text) : {}; } catch { throw new Error(`Apps Script returned a non-JSON response (${response.status}).`); }
-  if (!response.ok) throw new Error(String(payload.error || `Apps Script request failed (${response.status}).`));
-  return payload;
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Apps Script returned a non-JSON response (${response.status}; ${contentType}; ${host}).`);
+  }
+  if (!response.ok || payload.status === "FAIL") {
+    throw new Error(String(payload.error || `Apps Script request failed (${response.status}).`));
+  }
+  if (!Object.prototype.hasOwnProperty.call(payload, "result")) {
+    throw new Error("Apps Script response did not include a result.");
+  }
+  return payload.result;
 }
-async function callAppsScript(session: GatewaySession, action: string, args: unknown): Promise<Record<string, unknown>> {
+async function callAppsScript(session: GatewaySession, action: string, args: unknown): Promise<unknown> {
   let target = new URL(session.deploymentUrl);
   target.searchParams.set("gateway", "1");
-  for (let attempt = 0; attempt < 4; attempt++) {
+  const requestBody = JSON.stringify({ gateway: "H38_SUPABASE_GATEWAY_V1", action, args: args ?? {} });
+  let method = "POST";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const isPost = method === "POST";
     const response = await fetch(target.toString(), {
-      method: "POST",
-      headers: {
+      method,
+      headers: isPost ? {
         authorization: `Bearer ${session.accessToken}`,
         "content-type": "application/json; charset=utf-8",
         accept: "application/json",
-        "x-h38-gateway": "supabase-v3",
+        "x-h38-gateway": "supabase-v4",
+      } : {
+        accept: "application/json",
       },
-      body: JSON.stringify({ gateway: "H38_SUPABASE_GATEWAY_V1", action, args: args ?? {} }),
+      body: isPost ? requestBody : undefined,
       redirect: "manual",
       signal: AbortSignal.timeout(120000),
     });
@@ -185,10 +200,11 @@ async function callAppsScript(session: GatewaySession, action: string, args: unk
       if (!location) throw new Error(`Apps Script redirect ${response.status} did not include a destination.`);
       const next = new URL(location, target);
       if (!isApprovedResponseHost(next.hostname)) throw new Error("Apps Script redirected to an unapproved host.");
+      if (response.status === 301 || response.status === 302 || response.status === 303) method = "GET";
       target = next;
       continue;
     }
-    return readBackendJson(response);
+    return readBackendResult(response, target.hostname);
   }
   throw new Error("Apps Script exceeded the approved redirect limit.");
 }
@@ -216,24 +232,28 @@ Deno.serve(async (request: Request) => {
     status: "PASS",
     service: "h38-office-gateway",
     transport: "supabase-gateway",
-    version: "3.0.3",
+    version: "3.0.4",
     browserReceivesGoogleToken: false,
     existingAppsScriptDeployment: true,
     googlePageBootstrap: true,
     dynamicCorsTransport: true,
     opaqueSessionInRequestBody: true,
+    contentRedirectUsesGet: true,
+    appsScriptEnvelopeUnwrapped: true,
   });
   if (request.method !== "POST") return json(origin, 405, { status: "FAIL", error: "Method not allowed." });
   const length = Number(request.headers.get("content-length") || 0);
   if (length > MAX_BODY_BYTES) return json(origin, 413, { status: "FAIL", error: "Request is too large." });
+  let requestType = "unknown";
   try {
     const body = await request.json() as Record<string, unknown>;
-    const type = String(body.type || "api");
-    if (type === "bootstrap") return bootstrap(origin, body);
-    if (type === "api") return apiRequest(origin, request, body);
+    requestType = String(body.type || "api");
+    if (requestType === "bootstrap") return bootstrap(origin, body);
+    if (requestType === "api") return apiRequest(origin, request, body);
     return json(origin, 400, { status: "FAIL", error: "Gateway request type is invalid." });
   } catch (error) {
     const message = safeMessage(error instanceof Error ? error.message : error);
+    console.error(JSON.stringify({ event: "h38_gateway_error", requestType, origin: normalizedOrigin(origin), error: message }));
     const expired = /expired|authorization|session/i.test(message);
     return json(origin, expired ? 401 : 500, { status: "FAIL", error: message });
   }
