@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "sourcePage": "contractor-quote-complete.html",
+  "recordPolicy": {
+    "customerName": "Generic Quote Customer",
+    "status": "Demo — Owner Review",
+    "preserveAfterAcceptance": true,
+    "demoRecord": true,
+    "externalActionsEnabled": false,
+    "approved": false,
+    "sent": false,
+    "fundsMoved": false
+  },
+  "quotes": [
+    {
+      "key": "flower",
+      "quoteId": "H38-DEMO-WEB-FLOWER",
+      "quoteNumber": "Q-DEMO-001",
+      "title": "[DEMO] Website Example — Flower Garden Transformation",
+      "publicTitle": "Flower Garden Transformation",
+      "total": 3950,
+      "scope": "Install a defined foundation-side flower garden with layout, sod removal, amendment, edging, cold-hardy plants, mulch, cleanup, and restoration.",
+      "measurements": ["Garden area: approximately 240 sq ft", "Plant allowance: 25–30 plants", "Mulch coverage: approximately 240 sq ft"],
+      "lines": [
+        {"description": "Layout — Site layout and bed shaping", "quantity": 1, "unit": "LS", "unitPrice": 200},
+        {"description": "Sod removal — Remove and dispose of sod", "quantity": 240, "unit": "sq ft", "unitPrice": 2},
+        {"description": "Soil amendment — Topsoil and amendment allowance", "quantity": 4.5, "unit": "cu yd", "unitPrice": 80},
+        {"description": "Plants — Cold-hardy plant allowance", "quantity": 1, "unit": "allowance", "unitPrice": 1150},
+        {"description": "Stone edging — Natural-stone curved bed edge shown in concept", "quantity": 1, "unit": "LS", "unitPrice": 1100},
+        {"description": "Mulch and cleanup — Mulch, finish grading, cleanup", "quantity": 1, "unit": "LS", "unitPrice": 660}
+      ]
+    },
+    {
+      "key": "drive",
+      "quoteId": "H38-DEMO-WEB-DRIVE",
+      "quoteNumber": "Q-DEMO-002",
+      "title": "[DEMO] Website Example — Class 5 Driveway",
+      "publicTitle": "Class 5 Driveway",
+      "total": 6425,
+      "scope": "Supply, place, crown, grade, and compact Class 5 aggregate for a residential driveway.",
+      "measurements": ["Length: approximately 80 ft", "Width: approximately 12 ft", "Compacted depth: approximately 4 in"],
+      "lines": [
+        {"description": "Mobilization — Equipment delivery and setup", "quantity": 1, "unit": "LS", "unitPrice": 650},
+        {"description": "Subgrade shaping — Prepare driveway path", "quantity": 960, "unit": "sq ft", "unitPrice": 1.25},
+        {"description": "Class 5 aggregate — Delivered material allowance", "quantity": 16, "unit": "cu yd", "unitPrice": 165},
+        {"description": "Grading and compaction — Spread, crown, grade, compact", "quantity": 1, "unit": "LS", "unitPrice": 1535},
+        {"description": "Cleanup — Edge shaping and cleanup", "quantity": 1, "unit": "LS", "unitPrice": 400}
+      ]
+    },
+    {
+      "key": "pond",
+      "quoteId": "H38-DEMO-WEB-POND",
+      "quoteNumber": "Q-DEMO-003",
+      "title": "[DEMO] Website Example — Backyard Pond & Water Feature",
+      "publicTitle": "Backyard Pond & Water Feature",
+      "total": 9875,
+      "scope": "Construct a small backyard pond with excavation, liner, circulation, stone edge, planting, testing, and startup.",
+      "measurements": ["Footprint: approximately 10 ft × 14 ft", "Maximum depth: up to 30 in", "Surface area: approximately 140 sq ft"],
+      "lines": [
+        {"description": "Layout and protection — Mark pond and protect access", "quantity": 1, "unit": "LS", "unitPrice": 500},
+        {"description": "Excavation — Excavate and shape basin", "quantity": 1, "unit": "LS", "unitPrice": 2400},
+        {"description": "Liner system — Underlayment and EPDM liner", "quantity": 1, "unit": "system", "unitPrice": 1900},
+        {"description": "Pump and filtration — Circulation package", "quantity": 1, "unit": "system", "unitPrice": 2200},
+        {"description": "Stone and planting — Edge stone and planting", "quantity": 1, "unit": "LS", "unitPrice": 1675},
+        {"description": "Startup and cleanup — Fill, test, restore area", "quantity": 1, "unit": "LS", "unitPrice": 1200}
+      ]
+    },
+    {
+      "key": "clear",
+      "quoteId": "H38-DEMO-WEB-CLEAR",
+      "quoteNumber": "Q-DEMO-004",
+      "title": "[DEMO] Website Example — Lot Clearing & Grading",
+      "publicTitle": "Lot Clearing & Grading",
+      "total": 5950,
+      "scope": "Clear selected vegetation and rough-grade a defined residential work area.",
+      "measurements": ["Target area: defined residential work zone", "Vegetation: light to moderate", "Grading: rough site preparation"],
+      "lines": [
+        {"description": "Mobilization — Equipment delivery and setup", "quantity": 1, "unit": "LS", "unitPrice": 900},
+        {"description": "Clearing — Selected tree and brush clearing", "quantity": 1, "unit": "LS", "unitPrice": 2300},
+        {"description": "Stump removal — Targeted grubbing", "quantity": 1, "unit": "LS", "unitPrice": 1200},
+        {"description": "Rough grading — Shape approved work area", "quantity": 1, "unit": "LS", "unitPrice": 1150},
+        {"description": "Cleanup — Consolidate debris and demobilize", "quantity": 1, "unit": "LS", "unitPrice": 400}
+      ]
+    },
+    {
+      "key": "deck",
+      "quoteId": "H38-DEMO-WEB-DECK",
+      "quoteNumber": "Q-DEMO-005",
+      "title": "[DEMO] Website Example — 8' × 12' Pressure-Treated Deck",
+      "publicTitle": "8' × 12' Pressure-Treated Deck",
+      "total": 5842,
+      "scope": "Build an attached pressure-treated deck with frost-depth footings, framing, decking, stairs, guard rail, connectors, cleanup, and restoration.",
+      "measurements": ["Deck footprint: 8 ft × 12 ft", "Area: 96 sq ft", "Footings: frost-depth, final count by field layout", "Stair and guard dimensions verified before build"],
+      "lines": [
+        {"description": "Layout and mobilization — Layout, protection, and setup", "quantity": 1, "unit": "LS", "unitPrice": 450},
+        {"description": "Footings — Frost-depth footing allowance", "quantity": 4, "unit": "each", "unitPrice": 285},
+        {"description": "Framing — Beams, joists, ledger, hardware", "quantity": 1, "unit": "LS", "unitPrice": 1450},
+        {"description": "Decking — Pressure-treated deck surface", "quantity": 96, "unit": "sq ft", "unitPrice": 12},
+        {"description": "Stairs and railing — Stair and guard package", "quantity": 1, "unit": "LS", "unitPrice": 1250},
+        {"description": "Cleanup — Final cleanup and restoration", "quantity": 1, "unit": "LS", "unitPrice": 400}
+      ]
+    },
+    {
+      "key": "irrigation",
+      "quoteId": "H38-DEMO-WEB-IRRIGATION",
+      "quoteNumber": "Q-DEMO-006",
+      "title": "[DEMO] Website Example — Four-Zone Residential Irrigation System",
+      "publicTitle": "Four-Zone Residential Irrigation System",
+      "total": 3642.5,
+      "scope": "Install four irrigation zones with backflow protection, controller, sensor, valves, piping, heads, drip areas, testing, restoration, and training.",
+      "measurements": ["Zones: 4", "Coverage: lawn and selected planting areas", "Controller: smart-capable", "Backflow and rain sensor included"],
+      "lines": [
+        {"description": "Design and layout — Zone layout and field verification", "quantity": 1, "unit": "LS", "unitPrice": 350},
+        {"description": "Backflow and valves — Backflow, manifold, and valves", "quantity": 1, "unit": "system", "unitPrice": 825},
+        {"description": "Piping — Mainline and lateral piping allowance", "quantity": 1, "unit": "LS", "unitPrice": 925},
+        {"description": "Heads and drip — Sprinklers and drip components", "quantity": 1, "unit": "LS", "unitPrice": 850},
+        {"description": "Controller and sensor — Controller, rain sensor, programming", "quantity": 1, "unit": "system", "unitPrice": 492.5},
+        {"description": "Testing and restoration — Flush, test, train, restore", "quantity": 1, "unit": "LS", "unitPrice": 200}
+      ]
+    },
+    {
+      "key": "kitchen",
+      "quoteId": "H38-DEMO-WEB-KITCHEN",
+      "quoteNumber": "Q-DEMO-007",
+      "title": "[DEMO] Website Example — Mid-Range Kitchen Remodel",
+      "publicTitle": "Mid-Range Kitchen Remodel",
+      "total": 18765,
+      "scope": "Complete a mid-range kitchen remodel including demolition, cabinets, quartz countertops, plumbing, backsplash, flooring, electrical, appliances, paint, trim, commissioning, and closeout.",
+      "measurements": ["Cabinet layout: field verified", "Countertops: quartz allowance", "Flooring and backsplash: mid-range allowance", "Plumbing and electrical: final scope after inspection"],
+      "lines": [
+        {"description": "Protection and demolition — Protect adjacent areas and remove selected finishes", "quantity": 1, "unit": "LS", "unitPrice": 2250},
+        {"description": "Cabinets — Mid-range cabinet allowance and installation", "quantity": 1, "unit": "allowance", "unitPrice": 6500},
+        {"description": "Countertops — Quartz allowance and installation", "quantity": 1, "unit": "allowance", "unitPrice": 3250},
+        {"description": "Plumbing and electrical — Fixture, circuit, and connection allowance", "quantity": 1, "unit": "LS", "unitPrice": 2500},
+        {"description": "Backsplash and flooring — Mid-range finish allowance", "quantity": 1, "unit": "LS", "unitPrice": 2150},
+        {"description": "Paint, trim, closeout — Finish work and commissioning", "quantity": 1, "unit": "LS", "unitPrice": 2115}
+      ]
+    }
+  ]
+}

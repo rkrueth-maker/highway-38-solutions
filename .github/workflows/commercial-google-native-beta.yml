@@ -68,6 +68,7 @@ jobs:
           node scripts/verify-h38-office-gateway-source.js | tee artifacts/commercial-google-native-beta/gateway-source-verification.json
           node scripts/verify-commercial-google-native-beta.js | tee artifacts/commercial-google-native-beta/commercial-verification.json
           node scripts/verify-commercial-office-parity.js | tee artifacts/commercial-google-native-beta/office-parity-verification.json
+          node scripts/verify-commercial-delivery-contract.js | tee artifacts/commercial-google-native-beta/delivery-contract-verification.json
           node scripts/verify-commercial-startup.js | tee artifacts/commercial-google-native-beta/startup-verification.json
 
       - name: Require scoped Supabase deployment credential
@@ -139,6 +140,19 @@ jobs:
           npx playwright install --with-deps chromium
           bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
 
+      - id: delivery_acceptance
+        name: Reproduce website quotes in the new Office and preserve DEMO examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-commercial-delivery-acceptance.js \
+            "https://highway38solutions.com/" \
+            "https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec" \
+            "$HOME/.clasprc.json" \
+            "commercial-beta/website-demo-quotes.json" \
+            "artifacts/commercial-google-native-beta/delivery-acceptance" \
+            | tee artifacts/commercial-google-native-beta/delivery-acceptance.txt
+
       - name: Write final release report
         if: always()
         shell: bash
@@ -149,11 +163,12 @@ jobs:
           CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
           APPS_SCRIPT_DEPLOY_OUTCOME: ${{ steps.apps_script_deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
+          DELIVERY_ACCEPTANCE_OUTCOME: ${{ steps.delivery_acceptance.outcome }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/commercial-google-native-beta
           FINAL_STATUS=FAIL
-          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_DEPLOY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${CREDENTIALS_OUTCOME}" == "success" && "${APPS_SCRIPT_DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_DEPLOY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${CREDENTIALS_OUTCOME}" == "success" && "${APPS_SCRIPT_DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" && "${DELIVERY_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
           cat > artifacts/commercial-google-native-beta/release-report.json <<JSON
           {
             "status": "${FINAL_STATUS}",
@@ -167,6 +182,9 @@ jobs:
             "credentials": "${CREDENTIALS_OUTCOME}",
             "appsScriptDeploy": "${APPS_SCRIPT_DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
+            "deliveryAcceptance": "${DELIVERY_ACCEPTANCE_OUTCOME}",
+            "websiteDemoQuotesPreserved": true,
+            "approvedLogoRequired": true,
             "existingSupabaseProject": "${SUPABASE_PROJECT_ID}",
             "existingGatewayFunction": "${H38_GATEWAY_FUNCTION}",
             "replacementOfficeParityVerified": true,
@@ -186,6 +204,9 @@ jobs:
             echo "- Source: \`${GITHUB_REF_NAME}@${GITHUB_SHA}\`"
             echo "- Supabase project/function: \`${SUPABASE_PROJECT_ID}/${H38_GATEWAY_FUNCTION}\`"
             echo "- Replacement Office parity guard: **required**"
+            echo "- Website-to-Office quote delivery acceptance: **${DELIVERY_ACCEPTANCE_OUTCOME}**"
+            echo "- Preserved website DEMO records: **required**"
+            echo "- Approved Highway 38 logo: **required**"
             echo "- Existing Apps Script project/deployment only: **yes**"
             echo "- Branch status commits: **none**"
             echo "- External actions enabled: **no**"
