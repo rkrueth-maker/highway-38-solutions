@@ -22,6 +22,9 @@ check(index.includes('id="globalAiButton"')&&index.includes('id="globalAiDialog"
 check(index.includes('ai-drawer.css?build='),'Commercial shell must load the H38 AI drawer stylesheet.');
 check(app16.includes('function openGlobalAi()')&&app16.includes('function aiContext()')&&app16.includes('context,aiConversationId'),'H38 AI drawer must send active page and quote context.');
 check(drawerCss.includes('dialog.ai-drawer')&&drawerCss.includes('@media(max-width:760px)'),'H38 AI drawer must be responsive.');
-const report={status:failures.length?'FAIL':'PASS',checks:10,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true};
+const handoffBuild=(index.match(/window\.H38_BUILD='([^']+)'/)||[])[1]||'';
+const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
+check(handoffBuild==='20260803-1700'&&/^\d{8}-\d{4}$/.test(assetBuild)&&['db.js','bridge.js','startup-fix.js'].every(file=>index.includes(`${file}?build=${assetBuild}`)),'Secure handoff and browser asset builds must be declared and validated independently.');
+const report={status:failures.length?'FAIL':'PASS',checks:11,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true,handoffBuild,assetBuild};
 console.log(JSON.stringify(report,null,2));
 if(failures.length)process.exit(1);
