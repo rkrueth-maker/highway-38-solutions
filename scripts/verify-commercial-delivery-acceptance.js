@@ -57,47 +57,87 @@ async function refreshAccessToken(credentials){
   assert(accessToken,'The existing Google credential does not contain a usable access token.');
   return accessToken;
 }
+async function publicPageState(page){
+  return page.evaluate(()=>({
+    url:location.href,
+    documentTitle:document.title,
+    readyState:document.readyState,
+    title:(document.getElementById('title')?.textContent||'').trim(),
+    quoteNumber:(document.getElementById('number')?.textContent||'').trim(),
+    base:(document.getElementById('base')?.textContent||'').trim(),
+    tableTotal:(document.getElementById('tableTotal')?.textContent||'').trim(),
+    lineCount:document.querySelectorAll('#items tr').length,
+    pickerCount:document.querySelectorAll('#picker a').length,
+    logoSrc:document.querySelector('header .brand img')?.getAttribute('src')||'',
+    logoAlt:document.querySelector('header .brand img')?.getAttribute('alt')||'',
+    bodyText:(document.body?.innerText||'').slice(0,2000)
+  })).catch(error=>({evaluationError:error.message,url:page.url()}));
+}
+async function capturePublicFailure(page,label,details){
+  const safe=String(label).replace(/[^a-z0-9_-]+/gi,'-').toLowerCase();
+  const state=await publicPageState(page);
+  await page.screenshot({path:path.join(outDir,`public-${safe}.png`),fullPage:true}).catch(()=>{});
+  fs.writeFileSync(path.join(outDir,`public-${safe}.html`),await page.content().catch(()=>''));
+  fs.writeFileSync(path.join(outDir,`public-${safe}.json`),JSON.stringify({...details,state},null,2)+'\n');
+  return state;
+}
+async function loadPublicQuote(page,quote,pageErrors,consoleMessages){
+  let last={};
+  for(let attempt=1;attempt<=3;attempt++){
+    const url=new URL('/contractor-quote-complete.html',publicBase);
+    url.searchParams.set('example',quote.key);
+    url.searchParams.set('deliveryAcceptanceTime',`${Date.now()}-${attempt}`);
+    let response=null;
+    try{
+      response=await page.goto(url.toString(),{waitUntil:'domcontentloaded',timeout:45000});
+      await page.waitForFunction(expected=>document.getElementById('title')?.textContent.trim()===expected,quote.publicTitle,{timeout:20000,polling:250});
+      const state=await publicPageState(page);
+      assert(response&&response.status()>=200&&response.status()<300,`Public quote ${quote.key} returned HTTP ${response&&response.status()}.`);
+      return{...state,httpStatus:response.status(),attempt};
+    }catch(error){
+      last={attempt,error:error.message,httpStatus:response&&response.status()||0,url:page.url(),pageErrors:[...pageErrors],consoleMessages:[...consoleMessages]};
+      if(attempt<3)await page.waitForTimeout(attempt*2500);
+    }
+  }
+  const state=await capturePublicFailure(page,quote.key,last);
+  throw new Error(`Public quote ${quote.key} did not render after 3 cache-busted attempts: ${JSON.stringify({...last,state}).slice(0,2500)}`);
+}
 async function verifyPublicWebsite(context,config){
   const page=await context.newPage();
-  const results=[];
+  const results=[],pageErrors=[],consoleMessages=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  page.on('console',message=>{if(message.type()==='error'||message.type()==='warning')consoleMessages.push(`${message.type()}:${message.text()}`);});
   try{
     for(const quote of config.quotes){
-      const url=new URL('/contractor-quote-complete.html',publicBase);url.searchParams.set('example',quote.key);
-      await page.goto(url.toString(),{waitUntil:'domcontentloaded',timeout:45000});
-      await page.waitForFunction(expected=>document.getElementById('title')?.textContent.trim()===expected,quote.publicTitle,{timeout:30000});
-      const publicResult=await page.evaluate(({title,total,lineCount,logo})=>{
-        const money=text=>Number(String(text||'').replace(/[^0-9.-]/g,''));
-        const brand=document.querySelector('header .brand img');
-        return{
-          title:(document.getElementById('title')?.textContent||'').trim(),
-          base:money(document.getElementById('base')?.textContent),
-          tableTotal:money(document.getElementById('tableTotal')?.textContent),
-          lineCount:document.querySelectorAll('#items tr').length,
-          logoSrc:brand?.getAttribute('src')||'',
-          logoAlt:brand?.getAttribute('alt')||'',
-          expected:{title,total,lineCount,logo}
-        };
-      },{title:quote.publicTitle,total:quote.total,lineCount:quote.lines.length,logo:APPROVED_LOGO});
+      pageErrors.length=0;consoleMessages.length=0;
+      const publicResult=await loadPublicQuote(page,quote,pageErrors,consoleMessages);
       assert(publicResult.title===quote.publicTitle,`Public quote ${quote.key} title changed.`);
-      assert(closeEnough(publicResult.base,quote.total)&&closeEnough(publicResult.tableTotal,quote.total),`Public quote ${quote.key} no longer calculates the advertised total.`);
+      assert(closeEnough(numberFromMoney(publicResult.base),quote.total)&&closeEnough(numberFromMoney(publicResult.tableTotal),quote.total),`Public quote ${quote.key} no longer calculates the advertised total.`);
       assert(publicResult.lineCount===quote.lines.length,`Public quote ${quote.key} line count changed.`);
+      assert(publicResult.pickerCount===config.quotes.length,`Public quote ${quote.key} no longer exposes all seven examples.`);
       assert(publicResult.logoSrc.includes('assets/highway38-logo.png')&&publicResult.logoAlt==='Highway 38 Solutions',`Public quote ${quote.key} is not using the approved logo.`);
-      results.push({key:quote.key,status:'PASS',total:publicResult.tableTotal,lineCount:publicResult.lineCount});
+      assert(!pageErrors.length,`Public quote ${quote.key} reported browser errors: ${pageErrors.join(' | ')}`);
+      results.push({key:quote.key,status:'PASS',total:numberFromMoney(publicResult.tableTotal),lineCount:publicResult.lineCount,httpStatus:publicResult.httpStatus,attempt:publicResult.attempt});
     }
     const demoUrl=new URL('/quote-builder-demo.html',publicBase);
-    await page.goto(demoUrl.toString(),{waitUntil:'domcontentloaded',timeout:45000});
+    demoUrl.searchParams.set('deliveryAcceptanceTime',String(Date.now()));
+    const demoResponse=await page.goto(demoUrl.toString(),{waitUntil:'domcontentloaded',timeout:45000});
+    assert(demoResponse&&demoResponse.status()>=200&&demoResponse.status()<300,`The public interactive Quote Builder returned HTTP ${demoResponse&&demoResponse.status()}.`);
     const presetButtons=page.locator('[data-preset]');
     assert(await presetButtons.count()===3,'The public interactive Quote Builder must retain all three advertised presets.');
     for(const preset of ['landscape','drainage','seasonal']){
       const button=page.locator(`[data-preset="${preset}"]`);await button.click();
-      await page.waitForFunction(key=>document.querySelector(`[data-preset="${key}"]`)?.getAttribute('aria-pressed')==='true',preset);
+      await page.waitForFunction(key=>document.querySelector(`[data-preset="${key}"]`)?.getAttribute('aria-pressed')==='true',preset,{timeout:20000,polling:250});
       const rows=await page.locator('#lineRows tr, .line-table tbody tr').count();
       const totalText=await page.locator('.total-row.grand').last().textContent().catch(()=>'');
       assert(rows>0&&numberFromMoney(totalText)>0,`Public interactive preset ${preset} did not produce a quote.`);
       const previewText=await page.locator('.quote-paper').textContent();
       assert(!/Internal markup percentage/i.test(previewText),`Public interactive preset ${preset} exposed internal markup.`);
     }
-    return{status:'PASS',quotes:results,interactivePresets:3};
+    return{status:'PASS',quotes:results,interactivePresets:3,cacheBusted:true,retriesAllowed:3};
+  }catch(error){
+    await capturePublicFailure(page,'interactive-or-final',{error:error.message,pageErrors,consoleMessages});
+    throw error;
   }finally{await page.close();}
 }
 async function clickAuthorizedOfficeButton(page){
@@ -122,7 +162,7 @@ async function officeRequest(page,action,args={},timeout=120000){return page.eva
 async function verifyOfficeDelivery(context,accessToken,config){
   const page=await context.newPage();
   const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
-  const target=new URL(launcherUrl);target.searchParams.set('deliveryAcceptance','1');
+  const target=new URL(launcherUrl);target.searchParams.set('deliveryAcceptance','1');target.searchParams.set('deliveryAcceptanceTime',String(Date.now()));
   await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:45000});
   await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
   await clickAuthorizedOfficeButton(page);
