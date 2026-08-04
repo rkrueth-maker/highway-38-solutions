@@ -1,0 +1,45 @@
+name: Release 73 Status Probe
+
+on:
+  push:
+    branches:
+      - agent/release-73-status-probe
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read exact Commercial Office release status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow commercial-google-native-beta.yml \
+            --branch main \
+            --limit 10 \
+            --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url,displayTitle,event \
+            | tee release-73-status.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const runs=JSON.parse(fs.readFileSync('release-73-status.json','utf8'));
+          const target=runs.find(run=>run.headSha==='daeaa884e6bfbb8dfce85083f9a94c9d5620bb8a');
+          if(!target)throw new Error('Release 73 workflow run was not found.');
+          console.log('RELEASE_73_EXACT_STATUS='+JSON.stringify(target));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-73-status
+          path: release-73-status.json
+      - name: Emit diagnostic notification
+        if: always()
+        run: |
+          echo 'Intentional diagnostic failure so the exact run ID can be inspected through the connected GitHub tool.'
+          exit 1
