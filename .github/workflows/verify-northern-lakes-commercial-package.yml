@@ -1,0 +1,62 @@
+name: Verify Northern Lakes Commercial Office Package
+
+on:
+  pull_request:
+    paths:
+      - 'businesses/northern-lakes/**'
+      - 'scripts/build-northern-lakes-commercial-office.js'
+      - 'scripts/verify-northern-lakes-commercial-package.js'
+      - 'supabase/functions/nlpm-office-gateway/**'
+      - 'supabase/config.toml'
+      - 'portal.html'
+      - 'sign-in.html'
+      - '.github/workflows/verify-northern-lakes-commercial-package.yml'
+      - '.github/workflows/deploy-northern-lakes-commercial-office.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'businesses/northern-lakes/**'
+      - 'scripts/build-northern-lakes-commercial-office.js'
+      - 'scripts/verify-northern-lakes-commercial-package.js'
+      - 'supabase/functions/nlpm-office-gateway/**'
+      - 'supabase/config.toml'
+      - 'portal.html'
+      - 'sign-in.html'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify prepared package boundaries
+        run: node scripts/verify-northern-lakes-commercial-package.js
+      - name: Build exact Apps Script package
+        run: node scripts/build-northern-lakes-commercial-office.js "$RUNNER_TEMP/nlpm-commercial-office"
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check businesses/northern-lakes/app-launch.js
+          node --check businesses/northern-lakes/commercial-app/db.js
+          node --check businesses/northern-lakes/commercial-app/bridge.js
+          node --check businesses/northern-lakes/commercial-app/startup-fix.js
+          node --check businesses/northern-lakes/commercial-app/brand-patch.js
+      - name: Check built Apps Script syntax
+        run: |
+          node - "$RUNNER_TEMP/nlpm-commercial-office" <<'NODE'
+          const fs=require('fs'),path=require('path'),vm=require('vm'),root=process.argv[2];
+          for(const name of fs.readdirSync(root).filter(name=>/\.(?:gs|js)$/.test(name))){
+            const source=fs.readFileSync(path.join(root,name),'utf8');
+            new vm.Script(source,{filename:name});
+          }
+          console.log('PASS — built Northern Lakes Apps Script source is syntax clean.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: northern-lakes-commercial-office-package-${{ github.run_id }}
+          path: ${{ runner.temp }}/nlpm-commercial-office/
+          retention-days: 30

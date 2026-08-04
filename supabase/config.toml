@@ -1,2 +1,5 @@
 [functions.h38-office-gateway]
 verify_jwt = false
+
+[functions.nlpm-office-gateway]
+verify_jwt = false

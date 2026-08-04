@@ -11,6 +11,7 @@ const read=relativePath=>fs.readFileSync(path.join(root,relativePath),'utf8');
 const assert=(name,condition,evidence='')=>{(condition?passes:failures).push({name,evidence});console[condition?'log':'error'](`${condition?'PASS':'FAIL'}: ${name}${evidence?` — ${evidence}`:''}`);};
 
 const portal=read('portal.html');
+const launcher=read('open-business-office.html');
 const publicShell=read('assets/js/h38-site-v2.js');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalRawIncludes=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
@@ -34,7 +35,8 @@ const pack=read('business-packs/highway38/apps-script/BusinessOffice_Pack.gs');
 const deploySource=read('scripts/deploy-unified-owner-portal-web.sh');
 const shellBuilder=read('scripts/build-unified-apps-script-shell.js');
 
-const ownerAppUrl='https://script.google.com/macros/s/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/exec';
+const currentDeploymentId='AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow';
+const retiredDeploymentId='AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg';
 const registryContext={boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'assertion failed');}};
 vm.createContext(registryContext);
 new vm.Script(moduleContractSource,{filename:'BusinessOffice_ModuleContract.gs'}).runInContext(registryContext);
@@ -48,12 +50,16 @@ const rawFragmentNames=[...portalIndex.matchAll(/h38PortalRawInclude_\('([^']+)'
 const missingRawAllowlistEntries=rawFragmentNames.filter(name=>!portalRawIncludes.includes(`'${name}'`));
 
 assert('website unified Business Office gateway exists',/<title>Highway 38 Business Office \| Highway 38 Solutions<\/title>/.test(portal));
-assert('public portal is one automatic secure gateway',portal.includes(`var secure='${ownerAppUrl}'`)&&/location\.replace\(target\)/.test(portal));
+assert('public portal automatically routes to the secure launcher',portal.includes("const target='open-business-office.html'")&&/location\.replace\(target\)/.test(portal));
+assert('secure launcher owns the accepted H38 deployment',launcher.includes(currentDeploymentId)&&!/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/.test(portal+launcher));
 assert('public portal contains no obsolete workspace chooser',!/owner-tabs|owner-area-strip|Choose where to open|Enter Command Center|Enter Business Office|class="choices"/.test(portal));
 assert('public portal contains one fallback Business Office action',(portal.match(/id="secureFallback"/g)||[]).length===1&&/Open Business Office/.test(portal));
-assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal));
-assert('public portal preserves upload and business-office deep links',/upload:'documents'/.test(portal)&&/'business-office':'requests'/.test(portal));
-assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal));
+assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher));
+assert('public portal preserves upload and business-office deep links',/upload:'documents'/.test(portal)&&/'business-office':'requests'/.test(portal)&&/params\.set\('page'/.test(portal));
+assert('secure launcher forwards only approved route parameters',/\['page','shell','businessId'\]/.test(launcher)&&/destination\.searchParams\.set\(key,value\)/.test(launcher));
+const opensCurrentTab=/window\.location\.replace\(destination\.toString\(\)\)/.test(launcher)||(/destination=destination\.toString\(\)/.test(launcher)&&/window\.location\.replace\(destination\)/.test(launcher));
+assert('secure launcher clears retired browser sessions and opens in this tab',launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')")&&opensCurrentTab);
+assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher));
 
 assert('secure app contains no nested Business Office iframe',!/businessWorkspace|businessFrame|<iframe\b/i.test(portalIndex));
 assert('secure app includes native Business Office styles and client',/Portal_Business_Styles/.test(portalIndex)&&/Portal_Business_Client/.test(portalIndex));
@@ -62,8 +68,8 @@ assert('legacy portal control and product clients are absent',!/(Portal_ControlP
 assert('secure app uses one package-controlled manifest',/function h38PortalUnifiedBootstrap\(\)/.test(unifiedServer)&&/moduleContractVersion/.test(unifiedServer));
 assert('unified manifest declares native Business Office rendering',/nativeBusinessOffice:\s*true/.test(unifiedServer)&&/businessDefinitions/.test(unifiedServer));
 assert('canonical contract owns all module metadata',/function boGetUnifiedModuleContract_\(/.test(moduleContractSource)&&/boGetUnifiedModuleContract_\(/.test(moduleRegistrySource));
-assert('central registry exposes Today Customers Work Money Documents Growth and Office',['Today','Customers','Work','Money','Documents','Growth','Office'].every(label=>moduleGroups.some(group=>group.label===label)),moduleGroups.map(group=>group.label).join(', '));
-assert('central registry has no Control group',!moduleGroups.some(group=>group.id==='control'||group.label==='Control'));
+assert('central registry exposes seven workspace groups',['Today','Customers','Work','Money','Documents','Growth','Office'].every(label=>moduleGroups.some(group=>group.label===label)),moduleGroups.map(group=>group.label).join(', '));
+assert('central registry has no retired Control group',!moduleGroups.some(group=>group.id==='control'||group.label==='Control'));
 assert('representative Business Office routes are present',representativeBusinessRoutes.every(key=>routeKeys.includes(key)),representativeBusinessRoutes.join(', '));
 assert('retired Product Controls route is absent',!routeKeys.includes('bo:setup'));
 assert('Office owns Apps & Modules',moduleItems.some(item=>item.groupId==='office'&&item.key==='moduleManager'&&item.label==='Apps & Modules'));
@@ -101,6 +107,6 @@ for(const file of rootHtmlFiles){const html=read(file);for(const match of html.m
 assert('all static Owner Login and Owner Portal links target portal.html',badOwnerLinks.length===0,badOwnerLinks.length?JSON.stringify(badOwnerLinks):`${ownerLinks.length} inspected`);
 assert('public static pages contain no direct spreadsheet links',sheetLinks.length===0,sheetLinks.length?JSON.stringify(sheetLinks):`${rootHtmlFiles.length} HTML files inspected`);
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1},passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1,currentDeploymentId,retiredDeploymentRemoved:!portal.includes(retiredDeploymentId)&&!launcher.includes(retiredDeploymentId)},passes,failures};
 const outDir=path.join(root,'artifacts','owner-portal-routing');fs.mkdirSync(outDir,{recursive:true});fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(`\nRESULT: ${result.status} (${passes.length} pass, ${failures.length} fail)`);process.exit(failures.length?1:0);
