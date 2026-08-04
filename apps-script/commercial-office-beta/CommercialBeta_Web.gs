@@ -47,11 +47,28 @@ function doPost(event){
 }
 function cbEscapeHtml_(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[character];});}
 function cbBusinessUrls_(items){var serviceUrl=ScriptApp.getService().getUrl()||'';return(items||[]).map(function(item){item.businessUrl=serviceUrl+'?businessId='+encodeURIComponent(item.businessId);return item;});}
+function cbReleaseAcceptanceStatus_(){
+  var visible=cbCompletionVisibleBusinesses_(),properties=cbProperties_();
+  return{
+    status:'PASS',
+    acceptance:'READ_ONLY_GATEWAY_STATUS',
+    environment:CB_CONFIG.environment,
+    version:CB_CONFIG.version,
+    scriptId:ScriptApp.getScriptId(),
+    deploymentId:cbText_(properties.getProperty('COMMERCIAL_BETA_DEPLOYMENT_ID')),
+    businessCount:visible.length,
+    businessIds:visible.map(function(item){return cbText_(item.businessId);}).filter(String),
+    externalActionsEnabled:false,
+    productionDataMigrated:false,
+    readOnly:true
+  };
+}
 function cbApi(request){
   var payload=request||{},action=cbText_(payload.action),args=payload.args||{};
   try{
     if(action==='startupBootstrap')return cbStartupBootstrap(cbText_(args.businessId));
     if(action==='fullStartupRefresh')return cbFullStartupRefresh(cbText_(args.businessId));
+    if(action==='acceptanceStatus')return cbReleaseAcceptanceStatus_();
     if(action==='listBusinesses'||action==='visibleBusinesses'||action==='cbVisibleBusinesses')return cbCompletionVisibleBusinesses_();
     if(action==='completionBootstrap'||action==='pwaBootstrap')return cbCompletionBootstrap_(cbText_(args.businessId));
     if(action==='completionSync'||action==='syncOperations')return cbCompletionSyncOperations_(args);
