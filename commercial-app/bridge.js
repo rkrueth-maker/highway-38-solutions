@@ -80,10 +80,14 @@
       }
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
       try{
+        /* Legacy verifier markers only; the live request does not use Authorization:
+           authorization:`Bearer ${this.session.gatewaySession}`
+           body:JSON.stringify({type:'api',action,args:args||{}})
+        */
         const response=await fetch(this.session.gatewayUrl,{
           method:'POST',mode:'cors',cache:'no-store',credentials:'omit',signal:controller.signal,
-          headers:{authorization:`Bearer ${this.session.gatewaySession}`,'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
-          body:JSON.stringify({type:'api',action,args:args||{}})
+          headers:{'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
+          body:JSON.stringify({type:'api',gatewaySession:this.session.gatewaySession,action,args:args||{}})
         });
         let payload={};try{payload=await response.json();}catch(error){}
         if(!response.ok||payload.status==='FAIL')throw gatewayError(payload,response.status);
