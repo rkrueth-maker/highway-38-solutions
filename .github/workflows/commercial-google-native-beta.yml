@@ -101,8 +101,8 @@ jobs:
           const file=process.argv[3];
           const payload=JSON.parse(fs.readFileSync(file,'utf8'));
           if(status<200||status>=300)throw new Error(`Gateway health returned HTTP ${status}.`);
-          if(payload.status!=='PASS'||payload.service!=='h38-office-gateway'||payload.transport!=='supabase-gateway'||payload.browserReceivesGoogleToken!==false||payload.existingAppsScriptDeployment!==true||payload.opaqueSessionInRequestBody!==true){throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);}
-          console.log(JSON.stringify({status:'PASS',httpStatus:status,service:payload.service,transport:payload.transport,opaqueSessionInRequestBody:true,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
+          if(payload.status!=='PASS'||payload.service!=='h38-office-gateway'||payload.transport!=='supabase-gateway'||payload.browserReceivesGoogleToken!==false||payload.existingAppsScriptDeployment!==true||payload.opaqueSessionInRequestBody!==true||payload.contentRedirectUsesGet!==true||payload.appsScriptEnvelopeUnwrapped!==true){throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);}
+          console.log(JSON.stringify({status:'PASS',httpStatus:status,service:payload.service,transport:payload.transport,opaqueSessionInRequestBody:true,contentRedirectUsesGet:true,appsScriptEnvelopeUnwrapped:true,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
           NODE
 
       - id: install_clasp

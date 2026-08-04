@@ -38,7 +38,7 @@ check('transcription-damaged Apps Script project ID is absent', !source.includes
 check('existing Apps Script deployment is pinned', source.includes('AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'));
 check('browser token isolation remains declared', source.includes('browserReceivesGoogleToken: false'));
 check('external JWT verification remains intentionally custom', source.includes('type === "bootstrap"') && source.includes('type === "api"'));
-check('active gateway transport version is recorded', source.includes('version: "3.0.3"') && source.includes('dynamicCorsTransport: true'));
+check('active gateway transport version is recorded', source.includes('version: "3.0.4"') && source.includes('dynamicCorsTransport: true'));
 check('gateway accepts encrypted session from JSON body', source.includes('const bodySession = String(body.gatewaySession || "").trim()'));
 check('gateway API keeps Authorization fallback only inside the function', source.includes('const sessionToken = bodySession || (match ? match[1] : "")'));
 check('gateway API returns an explicit result envelope', source.includes('return json(origin, 200, { status: "PASS", result })'));
@@ -46,10 +46,18 @@ check('gateway health declares body transport', source.includes('opaqueSessionIn
 check('browser sends encrypted session in JSON body', executableBridge.includes("gatewaySession:this.session.gatewaySession"));
 check('browser does not send opaque session in Authorization header', !executableBridge.includes('authorization:`Bearer ${this.session.gatewaySession}`'));
 check('browser never stores a Google access token', !executableBridge.includes('accessToken:this.session') && executableBridge.includes('browserReceivesGoogleToken:false'));
+check('initial Apps Script request is POST', source.includes('let method = "POST"'));
+check('ContentService redirects switch to GET', source.includes('if (response.status === 301 || response.status === 302 || response.status === 303) method = "GET"'));
+check('redirected GET sends no request body', source.includes('body: isPost ? requestBody : undefined'));
+check('redirected GET sends no Google authorization header', source.includes('headers: isPost ? {') && source.includes('} : {\n        accept: "application/json",\n      }'));
+check('Apps Script response envelope is unwrapped once', source.includes('return payload.result'));
+check('missing Apps Script result is rejected', source.includes('Apps Script response did not include a result.'));
+check('gateway logs sanitized runtime errors', source.includes('event: "h38_gateway_error"') && source.includes('error: message'));
+check('gateway health declares ContentService handling', source.includes('contentRedirectUsesGet: true') && source.includes('appsScriptEnvelopeUnwrapped: true'));
 
 const output = {
   status: failures.length ? 'FAIL' : 'PASS',
-  checks: 22,
+  checks: 30,
   failures,
   dynamicGoogleScriptOrigin: true,
   exactAppsScriptProjectId: true,
@@ -58,6 +66,8 @@ const output = {
   officeApiOriginRestricted: true,
   opaqueSessionInRequestBody: true,
   opaqueSessionInAuthorizationHeader: false,
+  contentRedirectUsesGet: true,
+  appsScriptEnvelopeUnwrapped: true,
   existingAppsScriptProject: true,
   existingAppsScriptDeployment: true,
   browserReceivesGoogleToken: false
