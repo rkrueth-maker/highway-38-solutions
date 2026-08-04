@@ -23,7 +23,7 @@ function declaredBuild(text,name){const match=text.match(new RegExp(`window\\.${
   const index=await fetchLive('./');
   const handoffBuild=declaredBuild(index.text,'H38_BUILD');
   const assetBuild=declaredBuild(index.text,'H38_ASSET_BUILD');
-  if(handoffBuild!==HANDOFF_BUILD)fail('Public Office secure handoff build changed unexpectedly.',{expected:HandoffBuild=HANDOFF_BUILD,actual:handoffBuild});
+  if(handoffBuild!==HANDOFF_BUILD)fail('Public Office secure handoff build changed unexpectedly.',{expected:HANDOFF_BUILD,actual:handoffBuild});
   if(!/^\d{8}-\d{4}$/.test(assetBuild))fail('Public Office did not declare a valid browser asset build.',{assetBuild});
   requireTokens('Public Office HTML',index.text,[`window.H38_BUILD='${HANDOFF_BUILD}'`,`window.H38_ASSET_BUILD='${assetBuild}'`,'H38_GATEWAY_HANDOFF_PRESENT','H38_EXECUTION_HANDOFF_PRESENT=false','id="businessSelect" aria-label="Business" hidden disabled',`db.js?build=${assetBuild}`,`bridge.js?build=${assetBuild}`,`startup-fix.js?build=${assetBuild}`,'<title>Highway 38 Business Office</title>']);
   const db=await fetchLive('./db.js');
