@@ -54,6 +54,11 @@ function renderQuotePreview(){
 const h38DeliveryBaseRenderQuotes=renderQuotes;
 renderQuotes=function(){
   h38DeliveryBaseRenderQuotes();
+  const customer=$('quoteCustomer');
+  if(customer&&!customer.value){
+    const generic=Array.from(customer.options).find(option=>option.textContent.trim()==='Generic Quote Customer');
+    if(generic){customer.value=generic.value;state.quote.customerId=generic.value;}
+  }
   const tools=document.querySelector('.page-tools');
   if(tools&&state.quote&&state.quote.quoteId&&Array.isArray(state.quote.lines)&&state.quote.lines.length){
     const button=document.createElement('button');
