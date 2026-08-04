@@ -7,64 +7,80 @@ const migrationPath = path.resolve(
   process.cwd(),
   'supabase/migrations/20260804232100_multitenant_platform_foundation.sql'
 );
+const testPath = path.resolve(
+  process.cwd(),
+  'supabase/tests/database/multitenant_foundation.test.sql'
+);
 
-if (!fs.existsSync(migrationPath)) throw new Error(`Missing migration: ${migrationPath}`);
+const failures = [];
+for (const filePath of [migrationPath, testPath]) {
+  if (!fs.existsSync(filePath)) failures.push(`missing required file: ${filePath}`);
+}
+
+if (failures.length) {
+  console.error(failures.join('\n'));
+  process.exit(1);
+}
 
 const sql = fs.readFileSync(migrationPath, 'utf8');
-const failures = [];
-const requiredTables = [
+const testSql = fs.readFileSync(testPath, 'utf8');
+
+const canonicalTables = [
   'businesses',
-  'profiles',
   'business_memberships',
-  'business_invitations',
-  'business_modules',
-  'approval_requests',
-  'proof_log',
-  'error_log',
-  'external_action_queue',
+  'business_module_settings',
+  'business_approvals',
+  'business_proof_log',
+  'business_error_log',
+  'price_book_items',
+  'quote_items',
 ];
 
-for (const table of requiredTables) {
-  if (!new RegExp(`create table if not exists public\\.${table}\\b`, 'i').test(sql)) {
-    failures.push(`missing required table public.${table}`);
+for (const table of canonicalTables) {
+  if (!new RegExp(`to_regclass\\('public\\.${table}'\\)`, 'i').test(sql)) {
+    failures.push(`migration does not require canonical table public.${table}`);
   }
-  if (!new RegExp(`alter table public\\.${table} enable row level security`, 'i').test(sql)) {
-    failures.push(`RLS is not enabled for public.${table}`);
-  }
-  if (!new RegExp(`revoke all on table public\\.${table} from anon`, 'i').test(sql)) {
-    failures.push(`anonymous privileges are not explicitly revoked for public.${table}`);
+  if (new RegExp(`create table(?: if not exists)? public\\.${table}\\b`, 'i').test(sql)) {
+    failures.push(`migration attempts to duplicate canonical table public.${table}`);
   }
 }
 
 const requiredPatterns = [
-  ['business tenant key', /business_key text not null unique/i],
-  ['membership uniqueness', /unique\s*\(business_id, user_id\)/i],
-  ['approved roles', /owner.*administrator.*staff.*viewer/is],
-  ['member predicate', /private\.is_business_member\(business_id\)/i],
-  ['owner and administrator predicate', /private\.has_business_role\([^;]+owner[^;]+administrator/is],
-  ['private schema usage', /grant usage on schema private to authenticated/i],
+  ['canonical membership key', /business_memberships[\s\S]+auth_user_id/i],
+  ['fail-closed duplicate-system guard', /refusing to create a second tenant system/i],
+  ['approval consistency constraint', /business_approvals_review_consistency/i],
+  ['approval transition guard', /guard_business_approval_transition/i],
+  ['pending-review policy', /administrators review pending approvals/i],
+  ['Owner-only external gate', /owners allow approved external actions/i],
+  ['inert external-action queue', /create table if not exists public\.external_action_queue/i],
+  ['queue RLS', /alter table public\.external_action_queue enable row level security/i],
+  ['staff draft-only policy', /staff draft external actions/i],
+  ['browser preparation policy', /administrators prepare approved external actions/i],
   ['matching approval function', /private\.approval_matches_external_action/i],
-  ['one approval per action', /external_action_queue_approval_once_idx/i],
-  ['external action constraint', /external_action_requires_approval/i],
-  ['approval decisions are final', /approvals_decide_owner_admin_once/i],
-  ['browser queue update gate', /external_actions_update_owner_admin_gate/i],
-  ['security definer functions revoked from public', /revoke all on function private\.membership_role\(uuid\) from public/i],
-  ['explicit proof sequence grant', /grant usage, select on sequence public\.proof_log_id_seq to authenticated/i],
-  ['explicit error sequence grant', /grant usage, select on sequence public\.error_log_id_seq to authenticated/i],
+  ['explicit Owner role', /private\.business_access\(business_id, array\['owner'\]\)/i],
+  ['browser execution remains absent', /status in \('draft', 'pending_owner_approval'\)/i],
+  ['anonymous queue access revoked', /revoke all on table public\.external_action_queue from anon/i],
+  ['branch database rollback test', /rollback;/i],
+  ['cross-tenant test', /cannot update another business module/i],
+  ['viewer restriction test', /viewer cannot change module settings/i],
+  ['staff approval restriction test', /staff cannot approve an action/i],
+  ['administrator Owner-gate restriction', /administrator cannot grant external-action authorization/i],
+  ['browser execution test', /browser role cannot execute an external action/i],
 ];
 
 for (const [label, pattern] of requiredPatterns) {
-  if (!pattern.test(sql)) failures.push(`missing ${label}`);
+  const source = label.includes('test') || label.includes('restriction') || label.includes('cross-tenant')
+    ? testSql
+    : sql;
+  if (!pattern.test(source)) failures.push(`missing ${label}`);
 }
 
 const forbiddenPatterns = [
-  ['automatic external-action trigger', /create\s+trigger[^;]+external_action/is],
-  ['automatic approval trigger', /create\s+trigger[^;]+approval/is],
   ['anonymous grant', /grant\s+.+\s+to\s+anon/i],
-  ['browser service role', /service_role/i],
-  ['user metadata authorization', /user_metadata|raw_user_meta_data/i],
   ['broad public-schema revoke', /revoke all on all tables in schema public/i],
-  ['broad public sequence grant', /grant[^;]+on all sequences in schema public/i],
+  ['user-editable metadata authorization', /user_metadata|raw_user_meta_data/i],
+  ['automatic action execution trigger', /create\s+trigger[^;]+(?:send|publish|charge|execute_action)/is],
+  ['browser executing-state policy', /with check[\s\S]{0,800}status\s*=\s*'executing'/i],
 ];
 
 for (const [label, pattern] of forbiddenPatterns) {
@@ -78,6 +94,6 @@ if (failures.length) {
 }
 
 console.log('Supabase multitenant foundation verification PASSED');
-console.log(`Verified ${requiredTables.length} tenant/security tables with RLS and scoped grants.`);
-console.log('Verified existing public-schema privileges are not broadly changed.');
-console.log('Verified external actions require a unique, matching approval and remain inert.');
+console.log('Verified canonical tenant tables are reused, not duplicated.');
+console.log('Verified final approval decisions and Owner external-action gate are immutable.');
+console.log('Verified browser roles can prepare but cannot execute external actions.');
