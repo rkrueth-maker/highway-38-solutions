@@ -8,6 +8,8 @@ on:
       - 'apps-script/integrated-backend/**'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'business-packs/highway38/**'
+      - 'supabase/**'
+      - 'docs/architecture/SUPABASE_BUSINESS_OFFICE_MIGRATION.md'
       - 'docs/business-office/**'
       - 'docs/quote-builder/**'
       - 'scripts/assemble-business-office-app.sh'
@@ -15,6 +17,7 @@ on:
       - 'scripts/verify-ai-approval-and-deployment.js'
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
+      - 'scripts/verify-supabase-business-office-foundation.js'
       - 'scripts/verify-universal-quote-builder.js'
       - 'scripts/verify-universal-quote-builder-complete.js'
       - 'scripts/verify-unified-app-architecture.js'
@@ -46,6 +49,8 @@ on:
       - 'apps-script/integrated-backend/**'
       - 'apps-script/core-engine/owner-portal-next/**'
       - 'business-packs/highway38/**'
+      - 'supabase/**'
+      - 'docs/architecture/SUPABASE_BUSINESS_OFFICE_MIGRATION.md'
       - 'docs/business-office/**'
       - 'docs/quote-builder/**'
       - 'scripts/assemble-business-office-app.sh'
@@ -53,6 +58,7 @@ on:
       - 'scripts/verify-ai-approval-and-deployment.js'
       - 'scripts/verify-business-office.js'
       - 'scripts/verify-final-pricing-and-cabin.js'
+      - 'scripts/verify-supabase-business-office-foundation.js'
       - 'scripts/verify-universal-quote-builder.js'
       - 'scripts/verify-universal-quote-builder-complete.js'
       - 'scripts/verify-unified-app-architecture.js'
@@ -148,6 +154,9 @@ jobs:
       - name: Verify Supabase Customer Portal
         run: node scripts/verify-customer-portal-supabase.js
 
+      - name: Verify Supabase Business Office foundation
+        run: node scripts/verify-supabase-business-office-foundation.js
+
       - name: Verify complete unified application UX
         run: node scripts/verify-unified-app-ux-complete.js
 
@@ -178,5 +187,6 @@ jobs:
             artifacts/universal-quote-builder-complete/verification.json
             artifacts/unified-app-ux/verification.json
             artifacts/ai-approval/verification.json
+            launch-control/evidence/supabase-business-office-foundation-verification.json
           if-no-files-found: warn
           retention-days: 90
