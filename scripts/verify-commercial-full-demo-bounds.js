@@ -2,6 +2,7 @@
 'use strict';
 const fs=require('fs');
 const path=require('path');
+const vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const batches=read('apps-script/commercial-office-beta/CommercialBeta_FullDemo_03.gs');
@@ -18,7 +19,17 @@ check('bounded core route is owner-only and fail-closed',batches.includes("phase
 check('each step remains non-external',batches.includes('approved:false')&&batches.includes('sent:false')&&batches.includes('published:false')&&batches.includes('fundsMoved:false')&&batches.includes('externalActionsEnabled:false'));
 check('acceptance wrapper requires all three bounded steps',wrapper.includes("const coreSteps=['records','quote','evidence']")&&wrapper.includes("phase:'core-step'")&&wrapper.includes("result.core.measurements===2&&result.core.cadFiles>=1"));
 check('acceptance wrapper replaces the reviewed monolithic loop',wrapper.includes('.replace(oldCoreLoop,newCoreLoop)')&&wrapper.includes("patched.includes(\"phase:'core-step'\")")&&wrapper.includes("patched.includes(\"phase:'core',projectKey\")"));
+let replacementWorks=false;
+try{
+  const declarations=wrapper.match(/const oldCoreLoop=`[\s\S]*?`;\nconst newCoreLoop=`[\s\S]*?`;/);
+  if(declarations){
+    const loops=vm.runInNewContext(`${declarations[0]}\n({oldCoreLoop,newCoreLoop});`);
+    const simulated=live.replace(loops.oldCoreLoop,loops.newCoreLoop);
+    replacementWorks=simulated!==live&&simulated.includes("phase:'core-step'")&&!simulated.includes("phase:'core',projectKey");
+  }
+}catch(error){replacementWorks=false;}
+check('fail-closed compatibility replacement matches current runner exactly',replacementWorks);
 check('reviewed runner still contains exact compatibility source',live.includes("const seedEvidence={coreProjects:[],corePackages:[],catalog:[],operations:[],finance:[]};")&&live.includes("phase:'core',projectKey"));
 check('bounded evidence keeps real CAD and verification-required measurements',batches.includes('cbDemo8CadPlans_(project)')&&batches.includes("'Method':'AI-assisted photo estimate'")&&batches.includes("'Confidence':'Needs verification'"));
-console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',gatewayLimitMs:120000,coreSteps:['records','quote','evidence'],idempotent:true,externalActionsEnabled:false,checks,failures},null,2));
+console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',gatewayLimitMs:120000,coreSteps:['records','quote','evidence'],compatibilityReplacementMatched:replacementWorks,idempotent:true,externalActionsEnabled:false,checks,failures},null,2));
 if(failures.length)process.exit(1);
