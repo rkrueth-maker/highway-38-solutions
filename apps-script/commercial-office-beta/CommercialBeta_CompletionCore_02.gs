@@ -6,8 +6,21 @@ function cbCompletionProviderSeed_(context,type,name,propertyPrefix,capabilities
     cbPlatformUpdateRow_(context.core,'providers',row.__row,{'Provider Name':name,'Connection Status':connectionStatus,'Capabilities JSON':capabilitiesJson,'Last Check Time':now,'Last Error':'','Status':'Active','Updated Time':now,'Record Version':Math.max(1,Number(row['Record Version']||1))+1});
   }else cbAppend_(context.core,'providers',{'Provider ID':id,'Business ID':context.row['Business ID'],'Provider Type':type,'Provider Name':name,'Connection Status':connectionStatus,'Capabilities JSON':capabilitiesJson,'Settings JSON':'{}','Last Check Time':now,'Last Error':'','Status':'Active','Updated Time':now,'Record Version':1});
 }
+function cbCompletionEnsureGenericQuoteCustomer_(context){
+  var businessId=cbText_(context.row['Business ID']),name='Generic Quote Customer',now=cbNow_(),rows=cbRows_(context.core,'customers');
+  var id='CUSTOMER-GENERIC-QUOTE-'+businessId.replace(/[^A-Za-z0-9]/g,'').slice(-12).toUpperCase();
+  var row=rows.find(function(item){return cbText_(item['Business ID'])===businessId&&item['Customer ID']===id;})||rows.find(function(item){return cbText_(item['Business ID'])===businessId&&cbText_(item['Customer Name']).toLowerCase()===name.toLowerCase();});
+  if(row){
+    if(cbText_(row['Customer Name'])===name&&cbText_(row.Status)==='Active')return cbText_(row['Customer ID']);
+    cbPlatformUpdateRow_(context.core,'customers',row.__row,{'Customer Name':name,'Status':'Active','Updated Time':now,'Record Version':Math.max(1,Number(row['Record Version']||1))+1});
+    return cbText_(row['Customer ID']);
+  }
+  cbAppend_(context.core,'customers',{'Customer ID':id,'Business ID':businessId,'Customer Name':name,'Email':'','Phone':'','Status':'Active','Created Time':now,'Updated Time':now,'Record Version':1});
+  return id;
+}
 function cbCompletionSeedDefaults_(context){
   var businessId=context.row['Business ID'],now=cbNow_();
+  cbCompletionEnsureGenericQuoteCustomer_(context);
   var general=cbRows_(context.core,'conversations').find(function(row){return row['Business ID']===businessId&&row['Conversation Type']==='Channel'&&row.Subject==='General';});
   if(!general){var conversationId=cbUuid_('CONVERSATION');cbAppend_(context.core,'conversations',{'Conversation ID':conversationId,'Business ID':businessId,'Conversation Type':'Channel','Subject':'General','Related Record Type':'Business','Related Record ID':businessId,'Participant IDs JSON':'[]','Status':'Active','Created Time':now,'Updated Time':now,'Record Version':1});}
   cbCompletionProviderSeed_(context,'email','Email Provider','COMMERCIAL_BETA_EMAIL',['inbox','threads','drafts','attachments']);
