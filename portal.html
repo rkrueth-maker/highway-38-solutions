@@ -13,11 +13,14 @@
 <body>
   <main class="card">
     <img class="logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
-    <h1>Opening the new Business Office</h1>
-    <p>The retired Office route now continues only through the secure Commercial Office launcher.</p>
+    <h1>Opening Highway 38 Business Office</h1>
+    <p>Owner Access now continues only through the secure Commercial Office launcher.</p>
     <a id="continueLink" class="primary" href="open-business-office.html">Continue securely</a>
     <p class="muted">No legacy Office deployment is opened from this page.</p>
   </main>
-  <script>location.replace('open-business-office.html'+location.search);</script>
+  <script>
+    const target='open-business-office.html'+location.search;
+    location.replace(target);
+  </script>
 </body>
 </html>
