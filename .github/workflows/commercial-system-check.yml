@@ -36,6 +36,7 @@ jobs:
           node --check scripts/verify-commercial-release-pipeline.js
           node --check scripts/verify-commercial-google-native-beta.js
           node --check scripts/verify-commercial-browser-signin.js
+          node --check scripts/verify-commercial-public-shell.js
           node --check scripts/verify-commercial-shell-focus.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
