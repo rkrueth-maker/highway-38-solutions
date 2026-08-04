@@ -10,8 +10,10 @@ function cbCompletionApplyOperation_(context,operation){
   else if(action==='SAVE_TASK')result=cbCompletionSaveTask_(input);
   else if(action==='SAVE_SCHEDULE')result=cbCompletionSaveSchedule_(input);
   else if(action==='SAVE_MEASUREMENT')result=cbCompletionSaveMeasurement_(input);
+  else if(action==='AI_MEASURE_PHOTO')result=cbCompletionAiMeasurePhoto_(input);
   else if(action==='RECORD_TIME')result=cbCompletionRecordTime_(input);
   else if(action==='SAVE_QUOTE'||action==='UPSERT_QUOTE_DRAFT')result=cbCompletionSaveQuote_(input);
+  else if(action==='AI_BUILD_QUOTE_DRAFT')result=cbCompletionAiBuildQuoteDraft_(input);
   else if(action==='POST_INVENTORY')result=cbCompletionPostInventory_(input);
   else if(action==='ASSIGN_ASSET'||action==='ASSIGN_ASSET_TO_JOB')result=cbCompletionAssignAsset_(input);
   else if(action==='RETURN_ASSET'||action==='RETURN_ASSET_FROM_JOB')result=cbCompletionReturnAsset_(input);
@@ -48,7 +50,7 @@ function cbCompletionApplyOperation_(context,operation){
   return result||{status:'PASS'};
 }
 function cbCompletionResultRecordId_(result,operation){
-  var keys=['recordId','customerId','propertyId','requestId','jobId','taskId','quoteId','scheduleEventId','measurementId','timeEntryId','transactionId','assignmentId','maintenanceId','inspectionId','usageId','invoiceId','paymentId','expenseId','documentId','conversationId','messageId','emailMessageId','smsMessageId','portalMessageId','socialPostId','socialMetricId','campaignId','featureRequestId','voiceQueueId','userId'];
+  var keys=['recordId','customerId','propertyId','requestId','jobId','taskId','quoteId','scheduleEventId','measurementId','timeEntryId','transactionId','assignmentId','maintenanceId','inspectionId','usageId','invoiceId','paymentId','expenseId','documentId','conversationId','aiConversationId','messageId','emailMessageId','smsMessageId','portalMessageId','socialPostId','socialMetricId','campaignId','featureRequestId','voiceQueueId','userId'];
   for(var i=0;i<keys.length;i+=1)if(result&&result[keys[i]])return result[keys[i]];return cbText_(operation.recordId);
 }
 function cbCompletionSyncOne_(context,operation){

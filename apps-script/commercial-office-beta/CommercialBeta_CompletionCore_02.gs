@@ -26,18 +26,20 @@ function cbCompletionSeedDefaults_(context){
   cbCompletionProviderSeed_(context,'email','Email Provider','COMMERCIAL_BETA_EMAIL',['inbox','threads','drafts','attachments']);
   cbCompletionProviderSeed_(context,'sms','Business SMS Provider','COMMERCIAL_BETA_SMS',['inbox','outbox','media','consent','delivery']);
   cbCompletionProviderSeed_(context,'social','Social Publishing Provider','COMMERCIAL_BETA_SOCIAL',['drafts','schedule','publish','analytics']);
-  cbCompletionProviderSeed_(context,'ai','AI Provider','COMMERCIAL_BETA_AI',['questions','guidance','recommendations','voice']);
+  cbCompletionProviderSeed_(context,'ai','AI Provider','COMMERCIAL_BETA_AI',['questions','guidance','recommendations','voice','quote-drafting','photo-measuring']);
   var knowledge=cbRows_(context.core,'aiKnowledge');
   var defaults=[
     ['getting-started','Getting started','Start with Today, add customers and work, build quotes, schedule jobs, capture field proof, then invoice and close out.','core'],
     ['offline','Working offline','Download or refresh a business snapshot before leaving service. Drafts, notes, photos, messages, measurements, equipment actions and selected records stay on the device until synchronized.','offline'],
-    ['quotes','Quote Builder','Quote Builder uses the shared customer, project, price book, document, approval and communication records. Cached prices always remain owner-review required.','quotes'],
+    ['quotes','Quote Builder','Quote Builder searches the Price Catalog first, then uses scope, photos, CAD documents and measurement notes to stage owner-review quote lines. Nothing is automatically approved or sent.','quotes'],
+    ['measure','AI-assisted measuring','CAD-source and direct/device dimensions remain separate from AI photo estimates. AI photo measuring requires a known-size reference and every result remains Needs verification until confirmed in the field.','measure'],
+    ['cad','CAD files','DXF and supported CAD attachments are stored in Documents and linked to the quote or job. CAD dimensions are source data only when the drawing itself supplies them; verify field and engineering requirements.','documents'],
     ['communications','Communications','Internal messages, email drafts, business text drafts and portal messages stay visibly separated. External messages require a connected provider and authorized release.','communications'],
     ['social','Social Control','Create content, attach assets, request review, approve, schedule, record manual publication proof and track results. The platform never publishes automatically unless a provider is connected and the owner explicitly releases that capability.','social'],
     ['fleet','Fleet and maintenance','Assign vehicles, trailers, tools and equipment to jobs; record inspections, usage, fuel, maintenance, downtime and return condition.','fleet'],
     ['voice','Voice and driving mode','Voice can read work, capture notes and prepare drafts. Pricing, approvals, sending, payments, deletion and settings changes wait for parked review.','voice']
   ];
-  defaults.forEach(function(item){if(!knowledge.some(function(row){return row['Knowledge ID']==='KNOWLEDGE-'+item[0];}))cbAppend_(context.core,'aiKnowledge',{'Knowledge ID':'KNOWLEDGE-'+item[0],'Business ID':businessId,'Topic':item[0],'Title':item[1],'Content':item[2],'Module Key':item[3],'Role IDs JSON':'[]','Source':'H38 Platform','Version':CB_CONFIG.version,'Status':'Active','Updated Time':now,'Record Version':1});});
+  defaults.forEach(function(item){var id='KNOWLEDGE-'+item[0],existing=knowledge.find(function(row){return row['Knowledge ID']===id;});if(existing)cbPlatformUpdateRow_(context.core,'aiKnowledge',existing.__row,{'Title':item[1],'Content':item[2],'Module Key':item[3],'Status':'Active','Updated Time':now,'Record Version':Math.max(1,Number(existing['Record Version']||1))+1});else cbAppend_(context.core,'aiKnowledge',{'Knowledge ID':id,'Business ID':businessId,'Topic':item[0],'Title':item[1],'Content':item[2],'Module Key':item[3],'Role IDs JSON':'[]','Source':'H38 Platform','Version':CB_CONFIG.version,'Status':'Active','Updated Time':now,'Record Version':1});});
   var quick=cbRows_(context.core,'quickActions');
   [['new-quote','New quote','quotes'],['add-customer','Add customer','customers'],['take-photo','Take job photo','field'],['new-message','New message','messages'],['record-expense','Record expense','money'],['assign-equipment','Assign equipment','fleet'],['new-social','Create social draft','social']].forEach(function(item,index){if(!quick.some(function(row){return row['Action Key']===item[0];}))cbAppend_(context.core,'quickActions',{'Quick Action ID':cbUuid_('QUICK-ACTION'),'Business ID':businessId,'Action Key':item[0],'Label':item[1],'Page Key':item[2],'Role IDs JSON':'[]','Configuration JSON':'{}','Sort Order':index+1,'Status':'Active','Created Time':now,'Updated Time':now,'Record Version':1});});
 }
@@ -49,6 +51,7 @@ function cbCompletionProductShells_(){return{
   social:['today','messages','social','ai','settings']
 };}
 function cbCompletionQuoteView_(context){
-  var quotes=cbRows_(context.core,'quotes'),lines=cbRows_(context.core,'quoteLines'),grouped={};lines.forEach(function(line){var id=line['Quote ID'];if(!grouped[id])grouped[id]=[];grouped[id].push(cbCompletionCleanRow_(line));});
-  return quotes.slice().reverse().slice(0,400).map(function(row){var out=cbCompletionCleanRow_(row);out.lines=grouped[row['Quote ID']]||[];return out;});
+  var quotes=cbRows_(context.core,'quotes'),lines=cbRows_(context.core,'quoteLines'),grouped={};
+  lines.forEach(function(line){var id=line['Quote ID'],revision=String(line['Quote Revision']||1);if(!grouped[id])grouped[id]={};if(!grouped[id][revision])grouped[id][revision]=[];grouped[id][revision].push(cbCompletionCleanRow_(line));});
+  return quotes.slice().reverse().slice(0,400).map(function(row){var out=cbCompletionCleanRow_(row),revision=String(row.Revision||1),versions=grouped[row['Quote ID']]||{};out.lines=versions[revision]||[];out.availableRevisions=Object.keys(versions).map(Number).sort(function(a,b){return b-a;});return out;});
 }

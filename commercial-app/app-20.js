@@ -51,6 +51,63 @@ function renderQuotePreview(){
   $('printQuoteButton').onclick=()=>window.print();
 }
 
+async function h38BuildAiQuoteDraft(){
+  const customer=$('quoteCustomer');
+  const projectTitle=$('quoteTitle');
+  const scope=$('quoteScope');
+  const measurements=$('quoteMeasurements');
+  if(!navigator.onLine||!state.bridgeReady){toast('AI quote drafting needs an online secure Office connection.',true);return;}
+  if(!customer||!customer.value){toast('Select a customer first.',true);return;}
+  if(!String(scope?.value||'').trim()&&!String(measurements?.value||'').trim()){toast('Add scope, site notes, measurements or a saved quote photo first.',true);return;}
+  const button=$('h38AiQuoteDraftButton');if(button){button.disabled=true;button.textContent='Working…';}
+  try{
+    const result=await state.bridge.request('aiBuildQuoteDraft',{businessId:state.businessId,customerId:customer.value,quoteId:state.quote?.quoteId||'',projectTitle:projectTitle?.value||'',scope:scope?.value||'',measurementNotes:measurements?.value||'',notes:'Use linked quote photos and CAD documents when available. Price Catalog must be searched first.'},180000);
+    if(result.status!=='PASS')throw new Error(result.message||'AI quote draft did not complete.');
+    const draft=result.draft||{},suggested=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
+    state.quote.projectTitle=draft.projectTitle||projectTitle?.value||state.quote.projectTitle||'';
+    state.quote.scope=draft.scope||scope?.value||state.quote.scope||'';
+    state.quote.customerId=customer.value;
+    state.quote.lines=suggested.map(line=>({quoteLineId:newId('QUOTE-LINE'),description:String(line.description||'Suggested work item'),quantity:Math.max(0.01,num(line.quantity||1)),unit:String(line.unit||'each'),unitPrice:num(line.rate||line.unitPrice||0),priceSource:line.catalogId?'Price Catalog + AI assistance':'AI suggestion — manual price required',priceStatus:'Owner review required'}));
+    state.quote.measurementNotes=[measurements?.value||'',...(draft.photoObservations||[]).map(item=>`AI photo observation: ${item}`),...(draft.missingInformation||[]).map(item=>`Needs confirmation: ${item}`)].filter(Boolean).join('\n');
+    toast(`${result.provider||'AI'} draft loaded. Price Catalog searched first; nothing approved or sent.`);
+    renderQuotes();
+  }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='✨ Build with H38 AI';}}
+}
+function h38CadUpload(){
+  const quoteId=state.quote?.quoteId||'';
+  if(!quoteId){toast('Save the quote before linking a CAD file.',true);return;}
+  $('h38CadInput')?.click();
+}
+async function h38RunAiMeasurement(){
+  const quoteId=state.quote?.quoteId||'';
+  if(!quoteId){toast('Save or open a quote before AI-assisted measuring.',true);return;}
+  if(!navigator.onLine||!state.bridgeReady){toast('AI-assisted measuring needs an online secure Office connection.',true);return;}
+  const name=String($('h38AiMeasurementName')?.value||'').trim(),referenceSize=num($('h38AiReferenceSize')?.value),referenceUnit=String($('h38AiReferenceUnit')?.value||'').trim(),notes=String($('h38AiMeasurementNotes')?.value||'').trim();
+  if(!name||referenceSize<=0||!referenceUnit){toast('Enter the requested measurement and a known reference size and unit.',true);return;}
+  const button=$('h38AiMeasureButton');if(button){button.disabled=true;button.textContent='Estimating…';}
+  try{
+    const result=await state.bridge.request('aiMeasurePhoto',{businessId:state.businessId,quoteId,measurementName:name,measurementType:'Length',referenceSize,referenceUnit,notes},180000);
+    if(result.status==='HOLD'){toast(result.message||'AI measurement is on hold.',true);return;}
+    if(result.status!=='PASS')throw new Error(result.message||'AI measurement failed.');
+    toast(`AI estimate: ${result.value} ${result.unit}. Field verification required.`);
+    await loadBusiness(state.businessId,true);renderMeasure();
+  }catch(error){toast(error.message||String(error),true);}
+  finally{if(button){button.disabled=false;button.textContent='✨ Estimate from quote photo';}}
+}
+function h38AddQuoteAiTools(){
+  const tools=document.querySelector('.page-tools');if(!tools)return;
+  if(!$('h38AiQuoteDraftButton')){const ai=document.createElement('button');ai.id='h38AiQuoteDraftButton';ai.type='button';ai.textContent='✨ Build with H38 AI';ai.onclick=h38BuildAiQuoteDraft;tools.prepend(ai);}
+  if(!$('h38CadButton')){const cad=document.createElement('button');cad.id='h38CadButton';cad.type='button';cad.className='secondary';cad.textContent='📐 Add CAD';cad.onclick=h38CadUpload;tools.appendChild(cad);const input=document.createElement('input');input.id='h38CadInput';input.type='file';input.className='hidden';input.accept='.dxf,.dwg,.dwt,.dws,application/dxf,application/acad,image/vnd.dxf';input.onchange=event=>handleAttachmentFiles(event.target.files,'Quote',state.quote?.quoteId||'LOCAL-QUOTE','Internal');tools.appendChild(input);}
+}
+function h38AddMeasureAiPanel(){
+  const main=$('mainContent');if(!main||$('h38AiMeasurePanel'))return;
+  const panel=document.createElement('section');panel.id='h38AiMeasurePanel';panel.className='card';panel.innerHTML=`<h2>✨ AI-assisted photo measuring</h2><p class="muted">Uses the latest image linked to this saved quote and a known-size reference. Every result is an estimate marked <strong>Needs verification</strong>. CAD dimensions remain separate source data.</p><div class="three"><div><label>Measurement needed</label><input id="h38AiMeasurementName" placeholder="Driveway width"></div><div><label>Known reference size</label><input id="h38AiReferenceSize" type="number" min="0.01" step="0.01" placeholder="12"></div><div><label>Reference unit</label><input id="h38AiReferenceUnit" placeholder="in"></div></div><label>Photo context</label><textarea id="h38AiMeasurementNotes" placeholder="Reference object, camera angle, points to estimate, and assumptions"></textarea><div class="actions"><button id="h38AiMeasureButton" type="button">✨ Estimate from quote photo</button><button id="h38MeasureCadButton" type="button" class="secondary">📐 Add CAD file</button><input id="h38MeasureCadInput" type="file" class="hidden" accept=".dxf,.dwg,.dwt,.dws,application/dxf,application/acad,image/vnd.dxf"></div><div class="notice warn">AI photo estimates cannot replace direct, device, CAD-source, engineering or field-verified dimensions for ordering, permits or critical construction.</div>`;
+  main.prepend(panel);
+  $('h38AiMeasureButton').onclick=h38RunAiMeasurement;
+  $('h38MeasureCadButton').onclick=()=>{if(!state.quote?.quoteId){toast('Save the quote before linking CAD.',true);return;}$('h38MeasureCadInput').click();};
+  $('h38MeasureCadInput').onchange=event=>handleAttachmentFiles(event.target.files,'Quote',state.quote?.quoteId||'LOCAL-QUOTE','Internal');
+}
+
 const h38DeliveryBaseRenderQuotes=renderQuotes;
 renderQuotes=function(){
   h38DeliveryBaseRenderQuotes();
@@ -59,11 +116,14 @@ renderQuotes=function(){
     const generic=Array.from(customer.options).find(option=>option.textContent.trim()==='Generic Quote Customer');
     if(generic){customer.value=generic.value;state.quote.customerId=generic.value;}
   }
+  h38AddQuoteAiTools();
   const tools=document.querySelector('.page-tools');
   if(tools&&state.quote&&state.quote.quoteId&&Array.isArray(state.quote.lines)&&state.quote.lines.length){
     const button=document.createElement('button');
     button.id='previewQuoteButton';button.type='button';button.className='secondary';button.textContent='Preview / Print PDF';button.onclick=renderQuotePreview;tools.appendChild(button);
   }
 };
+const h38DeliveryBaseRenderMeasure=renderMeasure;
+renderMeasure=function(){h38DeliveryBaseRenderMeasure();h38AddMeasureAiPanel();};
 
 document.body.dataset.approvedLogo='assets/highway38-logo.png?v=20260720-exact-0cbc4514';

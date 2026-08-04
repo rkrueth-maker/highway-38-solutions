@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: JavaScript syntax checks
+      - name: JavaScript and Apps Script syntax checks
         run: |
           node --check catalog-data.js
           node --check commercial.js
@@ -43,10 +43,22 @@ jobs:
           node --check scripts/verify-commercial-office-parity.js
           node --check scripts/verify-commercial-delivery-contract.js
           node --check scripts/verify-commercial-delivery-acceptance.js
+          node --check scripts/verify-commercial-full-demo-contract.js
+          node --check scripts/verify-commercial-full-demo-acceptance.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
-          cp apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs /tmp/CommercialBeta_CompletionCore_02.js
-          node --check /tmp/CommercialBeta_CompletionCore_02.js
+          for source in \
+            apps-script/commercial-office-beta/CommercialBeta_Web.gs \
+            apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs \
+            apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_02.gs \
+            apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs \
+            apps-script/commercial-office-beta/CommercialBeta_AIQuoteMeasure_01.gs \
+            apps-script/commercial-office-beta/CommercialBeta_FullDemo_01.gs \
+            apps-script/commercial-office-beta/CommercialBeta_FullDemo_02.gs; do
+            target="/tmp/$(basename "${source}" .gs).js"
+            cp "${source}" "${target}"
+            node --check "${target}"
+          done
 
       - name: Verify commercial release pipeline boundaries
         run: node scripts/verify-commercial-release-pipeline.js
@@ -62,6 +74,9 @@ jobs:
 
       - name: Verify website-to-Office quote delivery contract
         run: node scripts/verify-commercial-delivery-contract.js
+
+      - name: Verify all eight examples CAD AI and module coverage
+        run: node scripts/verify-commercial-full-demo-contract.js
 
       - name: Run commercial verification and capture report
         id: commercial
