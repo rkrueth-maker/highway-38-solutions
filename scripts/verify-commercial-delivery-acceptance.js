@@ -42,7 +42,7 @@ function validateConfig(config){
   assert(config.recordPolicy&&config.recordPolicy.customerName==='Generic Quote Customer','Demo quotes must use Generic Quote Customer.');
   assert(config.recordPolicy.preserveAfterAcceptance===true,'Demo records must remain after acceptance.');
   assert(config.recordPolicy.externalActionsEnabled===false&&config.recordPolicy.approved===false&&config.recordPolicy.sent===false&&config.recordPolicy.fundsMoved===false,'Demo quote safety policy is invalid.');
-  assert(Array.isArray(config.quotes)&&config.quotes.length===7,'Exactly seven approved website quote examples are required.');
+  assert(Array.isArray(config.quotes)&&config.quotes.length===7,'Exactly seven standard website quote examples are required before the eighth cabin package acceptance.');
   const ids=new Set(),numbers=new Set();
   for(const quote of config.quotes){
     assert(/^H38-DEMO-WEB-/.test(quote.quoteId),`Quote ${quote.key} does not use a stable demo ID.`);
@@ -136,7 +136,7 @@ async function verifyPublicWebsite(context,config){
       const result=await loadPublicQuote(page,quote);
       assert(closeEnough(numberFromMoney(result.base),quote.total)&&closeEnough(numberFromMoney(result.tableTotal),quote.total),`Public quote ${quote.key} no longer calculates the advertised total.`);
       assert(result.lineCount===quote.lines.length,`Public quote ${quote.key} line count changed.`);
-      assert(result.pickerCount===config.quotes.length,`Public quote ${quote.key} no longer exposes all seven examples.`);
+      assert(result.pickerCount===config.quotes.length,`Public quote ${quote.key} no longer exposes all seven standard examples.`);
       assert(result.logoSrc.includes('assets/highway38-logo.png')&&result.logoAlt==='Highway 38 Solutions',`Public quote ${quote.key} is not using the approved logo.`);
       assert(pageErrors.length===0,`Public quote ${quote.key} reported browser errors: ${pageErrors.join(' | ')}`);
       results.push({key:quote.key,status:'PASS',total:numberFromMoney(result.tableTotal),lineCount:result.lineCount,httpStatus:result.httpStatus,attempt:result.attempt});
@@ -176,6 +176,28 @@ async function clickAuthorizedOfficeButton(page){
   throw new Error('The authorized Google page did not present the secure Open Business Office button.');
 }
 async function officeRequest(page,action,args={},timeout=120000){return page.evaluate(async({action,args,timeout})=>window.H38_ACTIVE_BRIDGE.request(action,args,timeout),{action,args,timeout});}
+async function deliverySnapshot(page,businessId){
+  let lastError='';
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const snapshot=await officeRequest(page,'deliveryAcceptanceSnapshot',{businessId},90000);
+      assert(snapshot?.status==='PASS'&&snapshot.acceptance==='DELIVERY_ACCEPTANCE_SNAPSHOT','The scoped delivery snapshot contract failed.');
+      assert(snapshot.readOnly===true&&snapshot.externalActionsEnabled===false&&snapshot.productionDataMigrated===false,'The scoped delivery snapshot lost its safety boundary.');
+      assert(Array.isArray(snapshot.customers)&&Array.isArray(snapshot.quotes),'The scoped delivery snapshot is incomplete.');
+      return{...snapshot,attempt};
+    }catch(error){lastError=error.message;if(attempt<3)await page.waitForTimeout(attempt*2000);}
+  }
+  throw new Error(`Scoped delivery snapshot failed after three attempts: ${lastError}`);
+}
+async function applyDeliverySnapshot(page,businessId,snapshot){
+  await page.evaluate(({businessId,snapshot})=>{
+    if(!window.state||!state.snapshot)throw new Error('The Office snapshot is unavailable.');
+    state.businessId=businessId;
+    state.snapshot={...state.snapshot,customers:snapshot.customers,quotes:snapshot.quotes};
+    state.quote={quoteId:'',lines:[]};
+    openPage('quotes',false);
+  },{businessId,snapshot:{customers:snapshot.customers,quotes:snapshot.quotes}});
+}
 async function openQuoteThroughUi(page,quote){
   mark(`OFFICE_OPEN_QUOTE_${quote.key.toUpperCase()}`,{quoteId:quote.quoteId});
   const button=page.locator(`[data-open-quote="${quote.quoteId}"]`);
@@ -215,8 +237,8 @@ async function verifyOfficeDelivery(context,config){
     const acceptance=await officeRequest(page,'acceptanceStatus',{},90000);
     assert(acceptance.status==='PASS'&&acceptance.readOnly===true&&acceptance.externalActionsEnabled===false,'Office safety acceptance failed before quote delivery testing.');
     const businessId=await page.locator('#businessSelect').inputValue();assert(businessId,'The new Office did not select a business.');
-    mark('OFFICE_LOAD_EXISTING_RECORDS',{businessId});
-    let snapshot=await officeRequest(page,'completionBootstrap',{businessId},120000);
+    mark('OFFICE_LOAD_SCOPED_QUOTE_RECORDS',{businessId});
+    let snapshot=await deliverySnapshot(page,businessId);
     const generic=(snapshot.customers||[]).find(row=>String(value(row,'Customer Name','name')).trim()==='Generic Quote Customer');assert(generic,'Generic Quote Customer was not found.');
     const genericId=rowId(generic,'Customer ID','customerId');const created=[],preserved=[];
     for(const quote of config.quotes){
@@ -226,8 +248,8 @@ async function verifyOfficeDelivery(context,config){
       const result=await officeRequest(page,'saveQuote',{businessId,quoteId:quote.quoteId,quoteNumber:quote.quoteNumber,customerId:genericId,projectTitle:quote.title,scope:`DEMO RECORD — NO FUNDS MOVED. Fictional website example preserved for delivery acceptance.\n\n${quote.scope}`,measurementNotes:`Approved public website example. Verify all real dimensions, site conditions, costs, taxes, utilities, permits, specifications and customer terms.\n${quote.measurements.join('\n')}`,status:config.recordPolicy.status,tax:0,lines:quote.lines.map((line,index)=>({...line,quoteLineId:`${quote.quoteId}-LINE-${String(index+1).padStart(3,'0')}`,lineType:'Demo Website Example',priceSource:'Approved public website example',priceStatus:'Owner review required'}))},120000);
       assert(result?.status==='PASS'&&result.quoteId===quote.quoteId&&closeEnough(result.total,quote.total),`New Office failed to save website quote ${quote.key}.`);created.push(quote.quoteId);
     }
-    mark('OFFICE_VERIFY_PERSISTED_RECORDS');
-    snapshot=await officeRequest(page,'completionBootstrap',{businessId},120000);const verified=[];
+    mark('OFFICE_VERIFY_SCOPED_PERSISTED_RECORDS');
+    snapshot=await deliverySnapshot(page,businessId);const verified=[];
     for(const quote of config.quotes){
       const row=(snapshot.quotes||[]).find(item=>rowId(item,'Quote ID','quoteId')===quote.quoteId);assert(row,`Preserved demo quote ${quote.quoteId} is missing after refresh.`);
       assert(rowId(row,'Customer ID','customerId')===genericId,`Demo quote ${quote.key} is not tied to Generic Quote Customer.`);
@@ -237,10 +259,10 @@ async function verifyOfficeDelivery(context,config){
       assert(closeEnough(lines.reduce((sum,line)=>sum+Number(value(line,'Quantity','quantity')||0)*Number(value(line,'Unit Price','unitPrice')||0),0),quote.total),`Demo quote ${quote.key} line calculation failed in the new Office.`);
       verified.push({key:quote.key,quoteId:quote.quoteId,total:quote.total,lineCount:lines.length});
     }
-    writeJson('persisted-records-result.json',{status:'PASS',businessId,genericId,created,preserved,verified});
-    mark('OFFICE_RENDER_QUOTE_LIST');
-    await page.evaluate(async id=>{await loadBusiness(id,true);openPage('quotes',false);},businessId);
-    await page.locator('#quoteCustomer').waitFor({state:'visible',timeout:90000});
+    writeJson('persisted-records-result.json',{status:'PASS',businessId,genericId,created,preserved,verified,snapshotAttempt:snapshot.attempt});
+    mark('OFFICE_RENDER_QUOTE_LIST_FROM_SCOPED_SNAPSHOT');
+    await applyDeliverySnapshot(page,businessId,snapshot);
+    await page.locator('#quoteCustomer').waitFor({state:'visible',timeout:30000});
     assert(String(await page.locator('#quoteCustomer option:checked').textContent()).trim()==='Generic Quote Customer','New quote did not automatically select Generic Quote Customer.');
     const visibleIds=await page.locator('[data-open-quote]').evaluateAll(buttons=>buttons.map(button=>button.getAttribute('data-open-quote')));
     for(const quote of config.quotes)assert(visibleIds.includes(quote.quoteId),`Preserved demo quote ${quote.key} is not visible in the new Office list.`);
@@ -264,7 +286,7 @@ async function verifyOfficeDelivery(context,config){
     }
     assert(pageErrors.length===0,`Office runtime reported errors: ${pageErrors.join(' | ')}`);
     const finalAcceptance=await officeRequest(page,'acceptanceStatus',{},90000);assert(finalAcceptance.externalActionsEnabled===false,'External actions became enabled during delivery acceptance.');
-    const result={status:'PASS',businessId,genericCustomerId:genericId,created,preserved,verified,pdfs,approved:false,sent:false,fundsMoved:false,externalActionsEnabled:false};writeJson('office-delivery-result.json',result);return result;
+    const result={status:'PASS',businessId,genericCustomerId:genericId,created,preserved,verified,pdfs,scopedSnapshot:true,fullOfficeRefreshRepeated:false,approved:false,sent:false,fundsMoved:false,externalActionsEnabled:false};writeJson('office-delivery-result.json',result);return result;
   }finally{await page.close();activePage=null;}
 }
 

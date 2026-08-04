@@ -49,6 +49,7 @@ jobs:
           node --check /tmp/FormBuilder.js
           for source in \
             apps-script/commercial-office-beta/CommercialBeta_Web.gs \
+            apps-script/commercial-office-beta/CommercialBeta_DeliveryAcceptance_01.gs \
             apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs \
             apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_02.gs \
             apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs \
