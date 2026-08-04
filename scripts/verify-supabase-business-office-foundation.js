@@ -6,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const migrationPath = 'supabase/migrations/20260804_business_office_foundation.sql';
+const lockPath = 'supabase/migrations/20260804_lock_rls_auto_enable.sql';
+const performancePath = 'supabase/migrations/20260804_business_office_performance_hardening.sql';
 const architecturePath = 'docs/architecture/SUPABASE_BUSINESS_OFFICE_MIGRATION.md';
 const evidencePath = 'launch-control/evidence/supabase-business-office-foundation-verification.json';
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -18,11 +20,13 @@ const check = (name, condition, detail = '') => {
   console.log(`${condition ? 'PASS' : 'FAIL'}: ${name}${detail ? ` — ${detail}` : ''}`);
 };
 
-check(`file ${migrationPath}`, exists(migrationPath));
-check(`file ${architecturePath}`, exists(architecturePath));
+[migrationPath, lockPath, performancePath, architecturePath].forEach(file => check(`file ${file}`, exists(file)));
 
 const sql = exists(migrationPath) ? read(migrationPath) : '';
+const lockSql = exists(lockPath) ? read(lockPath) : '';
+const performanceSql = exists(performancePath) ? read(performancePath) : '';
 const architecture = exists(architecturePath) ? read(architecturePath) : '';
+const allSql = [sql, lockSql, performanceSql].join('\n');
 const newTables = [
   'businesses',
   'business_memberships',
@@ -68,11 +72,11 @@ check('tenant authorization uses a private membership predicate',
   sql.includes('revoke all on function private.business_access(uuid, text[]) from anon'));
 
 check('authorization does not rely on editable user metadata',
-  !/user_metadata|raw_user_meta_data/i.test(sql + architecture));
+  !/user_metadata|raw_user_meta_data/i.test(allSql + architecture));
 
 check('every business policy combines authentication with business authorization',
-  (sql.match(/to authenticated/g) || []).length >= 20 &&
-  (sql.match(/private\.business_access/g) || []).length >= 30);
+  (allSql.match(/to authenticated/g) || []).length >= 20 &&
+  (allSql.match(/private\.business_access/g) || []).length >= 30);
 
 check('invited business memberships activate through a private Auth trigger',
   sql.includes('private.link_invited_business_memberships') &&
@@ -121,11 +125,47 @@ check('private business storage is tenant-path isolated',
 check('foundation grants no business data access to anon',
   newTables.every(table => sql.includes(`revoke all on public.${table} from anon`)));
 
+check('automatic RLS helper is not browser executable',
+  ['public', 'anon', 'authenticated'].every(role =>
+    lockSql.includes(`revoke execute on function public.rls_auto_enable() from ${role}`)
+  ));
+
+check('overlapping customer/member policies are consolidated',
+  [
+    'customer or member reads accounts',
+    'customer or member reads jobs',
+    'customer or member reads quotes',
+    'customer or member reads invoices',
+    'customer or member reads messages',
+    'customer or member reads files',
+    'customer or member inserts messages',
+    'customer or member records portal events'
+  ].every(policy => performanceSql.includes(policy)) &&
+  performanceSql.includes('administrators insert module settings') &&
+  performanceSql.includes('administrators update module settings') &&
+  performanceSql.includes('administrators delete module settings'));
+
+check('operational foreign keys have covering indexes',
+  [
+    'business_approvals_requested_by_idx',
+    'business_approvals_reviewed_by_idx',
+    'business_error_log_actor_user_idx',
+    'business_error_log_resolved_by_idx',
+    'business_memberships_invited_by_idx',
+    'business_proof_log_actor_user_idx',
+    'customer_portal_events_customer_idx',
+    'price_book_items_approved_by_idx',
+    'price_book_items_created_by_idx',
+    'quote_items_approved_by_idx',
+    'quote_items_created_by_idx',
+    'quote_items_price_book_item_idx'
+  ].every(index => performanceSql.includes(index)));
+
 check('browser service-role secrets are absent',
-  !/service_role|sb_secret_|eyJ[A-Za-z0-9_-]{50,}/i.test(sql + architecture));
+  !/service_role|sb_secret_|eyJ[A-Za-z0-9_-]{50,}/i.test(allSql + architecture));
 
 check('Northern Lakes is not activated by the foundation migration',
-  !/northern[- ]lakes|nlpm/i.test(sql) &&
+  !/northern[- ]lakes|nlpm/i.test(allSql) &&
   architecture.includes('Northern Lakes remains unactivated'));
 
 check('Highway 38 is the only seeded business',
@@ -133,13 +173,13 @@ check('Highway 38 is the only seeded business',
   (sql.match(/insert into public\.businesses/g) || []).length === 1);
 
 check('migration is resumable and duplicate-resistant',
-  (sql.match(/if not exists/g) || []).length >= 20 &&
-  (sql.match(/on conflict/g) || []).length >= 2 &&
-  (sql.match(/drop policy if exists/g) || []).length >= 20);
+  (allSql.match(/if not exists/g) || []).length >= 20 &&
+  (allSql.match(/on conflict/g) || []).length >= 2 &&
+  (allSql.match(/drop policy if exists/g) || []).length >= 20);
 
-check('architecture keeps one product and the existing fallback',
+check('architecture keeps one product and the current fallback',
   architecture.includes('Highway 38 Business Office remains one authenticated product') &&
-  architecture.includes('existing Apps Script launcher remains the production fallback') &&
+  architecture.includes('current Apps Script launcher remains the production fallback') &&
   architecture.includes('does not receive a new Supabase project'));
 
 check('rollout is staged and destructive rollback is blocked',
@@ -150,7 +190,7 @@ const evidence = {
   status: failures.length ? 'HOLD' : 'PASS',
   generatedAt: new Date().toISOString(),
   scope: 'supabase-business-office-foundation',
-  migration: migrationPath,
+  migrations: [migrationPath, lockPath, performancePath],
   architecture: architecturePath,
   controls: {
     sharedPlatform: true,
@@ -165,7 +205,9 @@ const evidence = {
     automaticSends: false,
     externalActionsOccurred: false,
     northernLakesActivated: false,
-    appsScriptFallbackPreserved: true
+    appsScriptFallbackPreserved: true,
+    rlsHelperBrowserLocked: true,
+    overlappingPoliciesConsolidated: true
   },
   passed: passes.length,
   failed: failures.length,
