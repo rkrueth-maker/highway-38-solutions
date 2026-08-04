@@ -44,6 +44,7 @@ jobs:
           node --check scripts/verify-commercial-delivery-contract.js
           node --check scripts/verify-commercial-delivery-acceptance.js
           node --check scripts/verify-commercial-full-demo-contract.js
+          node --check scripts/verify-commercial-full-demo-bounds.js
           node --check scripts/verify-commercial-full-demo-acceptance.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
@@ -55,7 +56,8 @@ jobs:
             apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs \
             apps-script/commercial-office-beta/CommercialBeta_AIQuoteMeasure_01.gs \
             apps-script/commercial-office-beta/CommercialBeta_FullDemo_01.gs \
-            apps-script/commercial-office-beta/CommercialBeta_FullDemo_02.gs; do
+            apps-script/commercial-office-beta/CommercialBeta_FullDemo_02.gs \
+            apps-script/commercial-office-beta/CommercialBeta_FullDemo_03.gs; do
             target="/tmp/$(basename "${source}" .gs).js"
             cp "${source}" "${target}"
             node --check "${target}"
@@ -78,6 +80,9 @@ jobs:
 
       - name: Verify all eight examples CAD AI and module coverage
         run: node scripts/verify-commercial-full-demo-contract.js
+
+      - name: Verify bounded full-demo gateway batches
+        run: node scripts/verify-commercial-full-demo-bounds.js
 
       - name: Run commercial verification and capture report
         id: commercial
