@@ -1,0 +1,60 @@
+name: Release 74 Status Probe v2
+
+on:
+  push:
+    branches:
+      - agent/release-74-status-probe-v2
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Locate exact Commercial Office release run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: facef293d215cdf7668f57b52bb17b7913702661
+          TARGET_WORKFLOW: Deploy Commercial Google-Native Office Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${TARGET_SHA}&per_page=100" > /tmp/runs.json
+          run_json="$(jq -c --arg name "$TARGET_WORKFLOW" '[.workflow_runs[] | select(.name == $name)] | sort_by(.created_at) | last // empty' /tmp/runs.json)"
+          if [[ -z "$run_json" ]]; then
+            cat > /tmp/comment.md <<EOF
+          ## Release 74 status probe
+
+          - Target commit: \`${TARGET_SHA}\`
+          - Workflow: \`${TARGET_WORKFLOW}\`
+          - Result: no matching run was visible to the GitHub Actions API at probe time
+          - Production action: none; this probe was read-only
+          EOF
+          else
+            run_id="$(jq -r '.id' <<<"$run_json")"
+            status="$(jq -r '.status' <<<"$run_json")"
+            conclusion="$(jq -r '.conclusion // "pending"' <<<"$run_json")"
+            attempt="$(jq -r '.run_attempt' <<<"$run_json")"
+            created="$(jq -r '.created_at' <<<"$run_json")"
+            updated="$(jq -r '.updated_at' <<<"$run_json")"
+            url="$(jq -r '.html_url' <<<"$run_json")"
+            cat > /tmp/comment.md <<EOF
+          ## Release 74 status probe
+
+          - Target commit: \`${TARGET_SHA}\`
+          - Workflow: \`${TARGET_WORKFLOW}\`
+          - Run ID: \`${run_id}\`
+          - Status: \`${status}\`
+          - Conclusion: \`${conclusion}\`
+          - Attempt: \`${attempt}\`
+          - Created: \`${created}\`
+          - Updated: \`${updated}\`
+          - Evidence: ${url}
+          - Production action: none; this probe was read-only
+          EOF
+          fi
+          gh issue comment 31 --body-file /tmp/comment.md
