@@ -1,0 +1,39 @@
+name: Public Quote Live Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'contractor-quote-complete.html'
+      - 'commercial-beta/website-demo-quotes.json'
+      - 'scripts/diagnose-public-quote-live.js'
+      - 'scripts/verify-commercial-delivery-acceptance.js'
+      - '.github/workflows/public-quote-live-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Run live quote page diagnostic
+        run: node scripts/diagnose-public-quote-live.js
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-quote-live-diagnostic-${{ github.run_id }}
+          path: artifacts/public-quote-live-diagnostic/
+          if-no-files-found: error
+          retention-days: 30
