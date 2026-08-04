@@ -2,6 +2,7 @@
 'use strict';
 const fs=require('fs');
 const path=require('path');
+const vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const failures=[];const checks=[];
@@ -21,6 +22,23 @@ for(const quote of config.quotes||[]){
   check(`${quote.key} itemized total`,Math.abs(total-Number(quote.total||0))<0.01&&(quote.lines||[]).length>=5);
 }
 const index=read('commercial-app/index.html'),delivery=read('commercial-app/app-20.js'),deliveryCss=read('commercial-app/quote-delivery.css'),quoteWorkspace=read('commercial-app/app-07.js'),completionDefaults=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs'),completionBootstrap=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_04.gs'),scopedSnapshot=read('apps-script/commercial-office-beta/CommercialBeta_DeliveryAcceptance_01.gs'),web=read('apps-script/commercial-office-beta/CommercialBeta_Web.gs'),launcher=read('open-business-office.html'),handoff=read('apps-script/commercial-office-beta/CommercialBeta_Office.html'),setup=read('apps-script/commercial-office-beta/CommercialBeta_Setup.html'),live=read('scripts/verify-commercial-delivery-acceptance.js'),workflow=read('.github/workflows/commercial-google-native-beta.yml');
+function lexicalStateHandoffPasses(){
+  const sandbox={window:{},businessId:'BUS-TEST',snapshot:{customers:[{customerId:'CUSTOMER-TEST'}],quotes:[{quoteId:'QUOTE-TEST'}]}};
+  vm.createContext(sandbox);
+  try{
+    vm.runInContext(`
+      const state={businessId:'',snapshot:{business:{businessId:'BUS-TEST'},customers:[],quotes:[]},quote:{quoteId:'OLD',lines:[1]}};
+      function openPage(page,pushHistory){globalThis.rendered={page,pushHistory};}
+      if(typeof state==='undefined'||!state.snapshot)throw new Error('The Office snapshot is unavailable.');
+      state.businessId=businessId;
+      state.snapshot={...state.snapshot,customers:snapshot.customers,quotes:snapshot.quotes};
+      state.quote={quoteId:'',lines:[]};
+      openPage('quotes',false);
+      globalThis.handoff={businessId:state.businessId,customers:state.snapshot.customers,quotes:state.snapshot.quotes,quote:state.quote,rendered:globalThis.rendered};
+    `,sandbox);
+  }catch(error){return false;}
+  return sandbox.window.state===undefined&&sandbox.handoff?.businessId==='BUS-TEST'&&sandbox.handoff?.customers?.length===1&&sandbox.handoff?.quotes?.length===1&&sandbox.handoff?.quote?.quoteId===''&&sandbox.handoff?.rendered?.page==='quotes'&&sandbox.handoff?.rendered?.pushHistory===false;
+}
 check('Office header approved logo',index.includes(`../assets/${logo}`)&&index.includes('id="approvedOfficeLogo"')&&index.includes('alt="Highway 38 Solutions"'));
 check('Office installed icon approved logo',read('commercial-app/manifest.webmanifest').includes(`../assets/${logo}`));
 check('secure launcher approved logo',launcher.includes(`assets/${logo}`)&&launcher.includes('id="approvedLauncherLogo"'));
@@ -38,6 +56,7 @@ check('scoped snapshot is read-only and non-external',scopedSnapshot.includes('r
 check('secure API routes scoped delivery snapshot',web.includes("action==='deliveryAcceptanceSnapshot'")&&web.includes('cbDeliveryAcceptanceSnapshot_'));
 check('delivery script runs public website examples',live.includes('contractor-quote-complete.html')&&live.includes("['landscape','drainage','seasonal']"));
 check('delivery script uses scoped snapshots',live.includes("'deliveryAcceptanceSnapshot'")&&live.includes('async function deliverySnapshot')&&live.includes('async function applyDeliverySnapshot'));
+check('delivery script handles lexical Office state without a window alias',lexicalStateHandoffPasses()&&!live.includes('window.state')&&live.includes("typeof state==='undefined'")&&live.includes('state.snapshot={...state.snapshot,customers:snapshot.customers,quotes:snapshot.quotes}')&&live.includes("openPage('quotes',false)"));
 check('delivery script does not repeat full Office bootstrap',!live.includes("officeRequest(page,'completionBootstrap'")&&!live.includes('loadBusiness(id,true)')&&live.includes('fullOfficeRefreshRepeated:false'));
 check('delivery script retries scoped reads',live.includes('for(let attempt=1;attempt<=3;attempt++)')&&live.includes('Scoped delivery snapshot failed after three attempts'));
 check('delivery script preserves records',live.includes('preserved.push(quote.quoteId)')&&live.includes('demoRecordsPreserved:true'));

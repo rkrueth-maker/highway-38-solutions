@@ -40,8 +40,8 @@ function findByKey(object,keys,seen=new Set()){
 function validateConfig(config){
   assert(config&&config.schemaVersion===1,'Website demo quote config must use schemaVersion 1.');
   assert(config.recordPolicy&&config.recordPolicy.customerName==='Generic Quote Customer','Demo quotes must use Generic Quote Customer.');
-  assert(config.recordPolicy.preserveAfterAcceptance===true,'Demo records must remain after acceptance.');
-  assert(config.recordPolicy.externalActionsEnabled===false&&config.recordPolicy.approved===false&&config.recordPolicy.sent===false&&config.recordPolicy.fundsMoved===false,'Demo quote safety policy is invalid.');
+  assert(config.recordPolicy&&config.recordPolicy.preserveAfterAcceptance===true,'Demo records must remain after acceptance.');
+  assert(config.recordPolicy&&config.recordPolicy.externalActionsEnabled===false&&config.recordPolicy.approved===false&&config.recordPolicy.sent===false&&config.recordPolicy.fundsMoved===false,'Demo quote safety policy is invalid.');
   assert(Array.isArray(config.quotes)&&config.quotes.length===7,'Exactly seven standard website quote examples are required before the eighth cabin package acceptance.');
   const ids=new Set(),numbers=new Set();
   for(const quote of config.quotes){
@@ -69,18 +69,21 @@ async function refreshAccessToken(credentials){
 }
 async function pageState(page){
   if(!page||page.isClosed())return{url:'',closed:true};
-  return page.evaluate(()=>({
-    url:location.href,
-    title:document.title,
-    readyState:document.readyState,
-    businessStatus:(document.getElementById('businessStatus')?.textContent||'').trim(),
-    currentPage:window.state?.page||'',
-    currentQuoteId:window.state?.quote?.quoteId||'',
-    currentQuoteTitle:window.state?.quote?.projectTitle||'',
-    quoteTitleInput:document.getElementById('quoteTitle')?.value||'',
-    savedQuoteButtons:Array.from(document.querySelectorAll('[data-open-quote]')).map(button=>button.getAttribute('data-open-quote')).slice(0,150),
-    mainText:(document.getElementById('mainContent')?.innerText||document.body?.innerText||'').slice(0,4000)
-  })).catch(error=>({url:page.url(),evaluationError:error.message}));
+  return page.evaluate(()=>{
+    const officeState=typeof state==='undefined'?null:state;
+    return{
+      url:location.href,
+      title:document.title,
+      readyState:document.readyState,
+      businessStatus:(document.getElementById('businessStatus')?.textContent||'').trim(),
+      currentPage:officeState?.page||'',
+      currentQuoteId:officeState?.quote?.quoteId||'',
+      currentQuoteTitle:officeState?.quote?.projectTitle||'',
+      quoteTitleInput:document.getElementById('quoteTitle')?.value||'',
+      savedQuoteButtons:Array.from(document.querySelectorAll('[data-open-quote]')).map(button=>button.getAttribute('data-open-quote')).slice(0,150),
+      mainText:(document.getElementById('mainContent')?.innerText||document.body?.innerText||'').slice(0,4000)
+    };
+  }).catch(error=>({url:page.url(),evaluationError:error.message}));
 }
 async function captureFailure(error,extra={}){
   const safe=safeName(stage);
@@ -191,7 +194,7 @@ async function deliverySnapshot(page,businessId){
 }
 async function applyDeliverySnapshot(page,businessId,snapshot){
   await page.evaluate(({businessId,snapshot})=>{
-    if(!window.state||!state.snapshot)throw new Error('The Office snapshot is unavailable.');
+    if(typeof state==='undefined'||!state.snapshot)throw new Error('The Office snapshot is unavailable.');
     state.businessId=businessId;
     state.snapshot={...state.snapshot,customers:snapshot.customers,quotes:snapshot.quotes};
     state.quote={quoteId:'',lines:[]};
@@ -207,14 +210,17 @@ async function openQuoteThroughUi(page,quote){
   const deadline=Date.now()+30000;
   let current={};
   while(Date.now()<deadline){
-    current=await page.evaluate(()=>({
-      stateQuoteId:window.state?.quote?.quoteId||'',
-      stateTitle:window.state?.quote?.projectTitle||'',
-      statePage:window.state?.page||'',
-      inputTitle:document.getElementById('quoteTitle')?.value||'',
-      lineCount:document.querySelectorAll('#quoteLines .row').length,
-      total:(document.getElementById('quoteTotal')?.textContent||'').trim()
-    }));
+    current=await page.evaluate(()=>{
+      const officeState=typeof state==='undefined'?null:state;
+      return{
+        stateQuoteId:officeState?.quote?.quoteId||'',
+        stateTitle:officeState?.quote?.projectTitle||'',
+        statePage:officeState?.page||'',
+        inputTitle:document.getElementById('quoteTitle')?.value||'',
+        lineCount:document.querySelectorAll('#quoteLines .row').length,
+        total:(document.getElementById('quoteTotal')?.textContent||'').trim()
+      };
+    });
     if(current.stateQuoteId===quote.quoteId&&current.inputTitle===quote.title)return current;
     await page.waitForTimeout(250);
   }
