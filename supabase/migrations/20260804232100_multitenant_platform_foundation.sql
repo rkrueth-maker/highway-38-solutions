@@ -130,46 +130,49 @@ for each row execute function private.guard_business_approval_transition();
 
 drop policy if exists "administrators review approvals" on public.business_approvals;
 drop policy if exists "administrators review pending approvals" on public.business_approvals;
-create policy "administrators review pending approvals"
+drop policy if exists "owners allow approved external actions" on public.business_approvals;
+drop policy if exists "review and authorize approvals" on public.business_approvals;
+create policy "review and authorize approvals"
 on public.business_approvals for update
 to authenticated
 using (
-  status = 'pending'
-  and (select private.business_access(business_id, array['owner','administrator']))
+  (
+    status = 'pending'
+    and (select private.business_access(business_id, array['owner','administrator']))
+  )
+  or
+  (
+    status = 'approved'
+    and external_action_allowed = false
+    and (select private.business_access(business_id, array['owner']))
+  )
 )
 with check (
-  (select private.business_access(business_id, array['owner','administrator']))
-  and external_action_allowed = false
-  and (
-    (
-      status = 'pending'
-      and reviewed_by is null
-      and reviewed_at is null
-    )
-    or
-    (
-      status in ('approved', 'rejected', 'cancelled')
-      and reviewed_by = (select auth.uid())
-      and reviewed_at is not null
+  (
+    (select private.business_access(business_id, array['owner','administrator']))
+    and external_action_allowed = false
+    and (
+      (
+        status = 'pending'
+        and reviewed_by is null
+        and reviewed_at is null
+      )
+      or
+      (
+        status in ('approved', 'rejected', 'cancelled')
+        and reviewed_by = (select auth.uid())
+        and reviewed_at is not null
+      )
     )
   )
-);
-
-drop policy if exists "owners allow approved external actions" on public.business_approvals;
-create policy "owners allow approved external actions"
-on public.business_approvals for update
-to authenticated
-using (
-  status = 'approved'
-  and external_action_allowed = false
-  and (select private.business_access(business_id, array['owner']))
-)
-with check (
-  status = 'approved'
-  and external_action_allowed = true
-  and reviewed_by is not null
-  and reviewed_at is not null
-  and (select private.business_access(business_id, array['owner']))
+  or
+  (
+    status = 'approved'
+    and external_action_allowed = true
+    and reviewed_by is not null
+    and reviewed_at is not null
+    and (select private.business_access(business_id, array['owner']))
+  )
 );
 
 create table if not exists public.external_action_queue (
@@ -211,6 +214,9 @@ create unique index if not exists external_action_queue_approval_unique
 
 create index if not exists external_action_queue_business_status_idx
   on public.external_action_queue (business_id, status, created_at desc);
+
+create index if not exists external_action_queue_created_by_idx
+  on public.external_action_queue (created_by);
 
 comment on table public.external_action_queue is
   'Inert external-action records. No trigger, schedule, or browser policy executes an action.';
