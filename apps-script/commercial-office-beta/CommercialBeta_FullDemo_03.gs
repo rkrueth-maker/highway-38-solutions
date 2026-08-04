@@ -26,25 +26,32 @@ function cbDemo8SeedCoreQuote_(context,project){
   cbCompletionSaveQuote_({businessId:context.row['Business ID'],quoteId:quoteId,quoteNumber:project.number,customerId:customerId,propertyId:propertyId,jobId:jobId,projectTitle:'[DEMO] Website Example — '+project.title,scope:'DEMO RECORD — NO FUNDS MOVED. '+project.scope,measurementNotes:'CAD source dimensions are included in Documents. AI photo estimates remain unverified.',status:'Demo — Owner Review',tax:0,lines:project.lines.map(function(line,lineIndex){return{quoteLineId:cbDemo8Id_('QUOTE-LINE',key,String(lineIndex+1)),description:line[0],quantity:line[1],unit:line[2],unitPrice:line[3],lineType:'Demo Website Example',priceSource:'Demo starting Price Catalog',priceStatus:'Owner review required'};})});
   return{step:'quote',projects:0,quotes:1,cadFiles:0,measurements:0};
 }
-function cbDemo8SeedCoreEvidence_(context,project){
-  var key=project.key,jobId=cbDemo8Id_('JOB',key),quoteId=cbDemo8Id_('QUOTE',key),folder=cbDemo8Folder_(context),summary={step:'evidence',projects:0,quotes:0,cadFiles:0,measurements:0};
+function cbDemo8SeedCoreMeasurements_(context,project){
+  var key=project.key,jobId=cbDemo8Id_('JOB',key),quoteId=cbDemo8Id_('QUOTE',key),plans=cbDemo8CadPlans_(project),summary={step:'measurements',projects:0,quotes:0,cadFiles:0,measurements:0,cadPlanCount:plans.length};
   cbDemo8Upsert_(context,'core','measurements','Measurement ID',cbDemo8Id_('MEASUREMENT',key,'CAD'),{'Job ID':jobId,'Quote ID':quoteId,'Related Record Type':'Quote','Related Record ID':quoteId,'Measurement Name':'Primary CAD footprint','Measurement Type':'Area / footprint','Value':project.dims[0]*project.dims[1],'Unit':'sq ft','Method':'CAD source','Confidence':'Verified from demo CAD only','Reference Size':project.dims[0],'Reference Unit':'ft','Notes':'Controlled CAD example. Real field conditions and engineering remain subject to verification.','Status':'Demo Verified'});summary.measurements+=1;
   cbDemo8Upsert_(context,'core','measurements','Measurement ID',cbDemo8Id_('MEASUREMENT',key,'AI'),{'Job ID':jobId,'Quote ID':quoteId,'Related Record Type':'Quote','Related Record ID':quoteId,'Measurement Name':'AI-assisted visible dimension example','Measurement Type':'Length','Value':Math.round(project.dims[0]*0.97*10)/10,'Unit':'ft','Method':'AI-assisted photo estimate','Confidence':'Needs verification','Reference Size':12,'Reference Unit':'in','Notes':'AI ESTIMATE — FIELD VERIFICATION REQUIRED. Demonstrates reference-scaled photo measuring.','Status':'Needs Verification'});summary.measurements+=1;
   cbDemo8Upsert_(context,'core','measurementPoints','Measurement Point ID',cbDemo8Id_('POINT',key,'A'),{'Measurement ID':cbDemo8Id_('MEASUREMENT',key,'CAD'),'Point Label':'A','X':0,'Y':0,'Z':0,'Sequence':1,'Notes':'CAD origin'});
   cbDemo8Upsert_(context,'core','measurementPoints','Measurement Point ID',cbDemo8Id_('POINT',key,'B'),{'Measurement ID':cbDemo8Id_('MEASUREMENT',key,'CAD'),'Point Label':'B','X':project.dims[0],'Y':project.dims[1],'Z':0,'Sequence':2,'Notes':'Opposite CAD corner'});
-  cbDemo8CadPlans_(project).forEach(function(plan,planIndex){var file=cbDemo8CadFile_(folder,plan);cbDemo8Document_(context,project,quoteId,file,planIndex+1);summary.cadFiles+=1;});
-  cbAudit_(context.row['Business ID'],'SEED FULL DEMO CORE','Quote',quoteId,'PASS','Controlled project, quote, CAD and measurement examples seeded through bounded steps.');
   return summary;
+}
+function cbDemo8SeedCoreCad_(context,project,cadIndex){
+  var key=project.key,quoteId=cbDemo8Id_('QUOTE',key),plans=cbDemo8CadPlans_(project),index=Math.max(0,Number(cadIndex||0));
+  cbAssert_(index<plans.length,'A valid CAD plan index is required.');
+  var folder=cbDemo8Folder_(context),plan=plans[index],file=cbDemo8CadFile_(folder,plan);
+  cbDemo8Document_(context,project,quoteId,file,index+1);
+  cbAudit_(context.row['Business ID'],'SEED FULL DEMO CAD','Quote',quoteId,'PASS','Controlled CAD file '+file.getName()+' seeded through a single-file bounded step.');
+  return{step:'cad',projects:0,quotes:0,cadFiles:1,measurements:0,cadIndex:index,cadPlanCount:plans.length,fileName:file.getName()};
 }
 function cbCompletionSeedFullDemoBatch_(request){
   var input=request||{},context=cbCompletionContext_(input.businessId,'manageSettings');
   cbAssert_(context.user.owner===true,'Only the owner can load full demo examples.');
   cbCompletionEnsureParitySchema_(context);
-  var phase=cbText_(input.phase).toLowerCase(),coreStep=cbText_(input.step).toLowerCase(),projectKey=cbText_(input.projectKey).toUpperCase(),allProjects=cbDemo8Projects_(),allPackages=cbDemo8CabinPackages_(),project=projectKey?allProjects.find(function(item){return item.key===projectKey;}):null,projectIndex=project?allProjects.findIndex(function(item){return item.key===projectKey;}):-1,result={status:'PASS',phase:phase,step:coreStep,projectKey:projectKey,businessId:context.row['Business ID'],approved:false,sent:false,published:false,fundsMoved:false,externalActionsEnabled:false,productionDataMigrated:false};
+  var phase=cbText_(input.phase).toLowerCase(),coreStep=cbText_(input.step).toLowerCase(),cadIndex=Math.max(0,Number(input.cadIndex||0)),projectKey=cbText_(input.projectKey).toUpperCase(),allProjects=cbDemo8Projects_(),allPackages=cbDemo8CabinPackages_(),project=projectKey?allProjects.find(function(item){return item.key===projectKey;}):null,projectIndex=project?allProjects.findIndex(function(item){return item.key===projectKey;}):-1,result={status:'PASS',phase:phase,step:coreStep,cadIndex:cadIndex,projectKey:projectKey,businessId:context.row['Business ID'],approved:false,sent:false,published:false,fundsMoved:false,externalActionsEnabled:false,productionDataMigrated:false};
   if(phase==='core-step'&&project){
     if(coreStep==='records')result.core=cbDemo8SeedCoreRecords_(context,project,projectIndex);
     else if(coreStep==='quote')result.core=cbDemo8SeedCoreQuote_(context,project);
-    else if(coreStep==='evidence')result.core=cbDemo8SeedCoreEvidence_(context,project);
+    else if(coreStep==='measurements')result.core=cbDemo8SeedCoreMeasurements_(context,project);
+    else if(coreStep==='cad')result.core=cbDemo8SeedCoreCad_(context,project,cadIndex);
     else throw new Error('A valid bounded core step is required.');
   }else if(phase==='core'&&project){
     result.core=cbDemo8WithSelection_([project],[],function(){return cbDemo8SeedCore_(context);});
@@ -59,7 +66,7 @@ function cbCompletionSeedFullDemoBatch_(request){
       return cbDemo8SeedFinance_(context);
     });
   }else throw new Error('A valid full-demo batch phase and project key are required.');
-  cbAudit_(context.row['Business ID'],'SEED FULL DEMO BATCH','Business',context.row['Business ID'],'PASS','Phase '+phase+(coreStep?' step '+coreStep:'')+(projectKey?' project '+projectKey:'')+' completed. Controlled demo records only.');
+  cbAudit_(context.row['Business ID'],'SEED FULL DEMO BATCH','Business',context.row['Business ID'],'PASS','Phase '+phase+(coreStep?' step '+coreStep:'')+(coreStep==='cad'?' index '+cadIndex:'')+(projectKey?' project '+projectKey:'')+' completed. Controlled demo records only.');
   return result;
 }
 function cbFullDemoRows_(context,book,sheet,limit){return cbCompletionListRows_(context,book,sheet,limit||1000);}
