@@ -21,12 +21,13 @@
   </main>
   <script>
     (async function(){
-      var destination=new URL('https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec');
-      destination.searchParams.set('entry','1');
-      destination.searchParams.set('officeBuild','20260803-1700');
+      var destinationUrl=new URL('https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec');
+      destinationUrl.searchParams.set('entry','1');
+      destinationUrl.searchParams.set('officeBuild','20260803-1700');
       var incoming=new URLSearchParams(location.search);
-      ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
-      document.getElementById('continueButton').href=destination.toString();
+      ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destinationUrl.searchParams.set(key,value);});
+      var destination=destinationUrl.toString();
+      document.getElementById('continueButton').href=destination;
       try{
         sessionStorage.removeItem('h38-gateway-session-v1');
         sessionStorage.removeItem('h38-execution-session-v1');
@@ -42,7 +43,7 @@
       }catch(error){
         document.getElementById('status').textContent='Opening secure authorization. The old Office connection will be ignored.';
       }
-      window.location.replace(destination.toString());
+      window.location.replace(destination);
     })();
   </script>
 </body>
