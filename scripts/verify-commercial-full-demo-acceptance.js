@@ -60,16 +60,93 @@ const newPackageLoop=`    const packageBatchSize=1;
       assert(result.approved===false&&result.sent===false&&result.published===false&&result.fundsMoved===false&&result.externalActionsEnabled===false,'Cabin package batch crossed a safety boundary.');
       seedEvidence.corePackages.push(result);write(\`seed-core-packages-\${start+1}.json\`,result);
     }`;
+const oldSessionFunctions=`async function officeRequest(action,args={},timeout=105000){return page.evaluate(async({action,args,timeout})=>window.H38_ACTIVE_BRIDGE.request(action,args,timeout),{action,args,timeout});}
+async function retryRequest(action,args={},timeout=105000,attempts=3){
+  let lastError;
+  for(let attempt=1;attempt<=attempts;attempt++){
+    try{return await officeRequest(action,args,timeout);}catch(error){lastError=error;if(attempt<attempts)await page.waitForTimeout(attempt*2500);}
+  }
+  throw lastError;
+}`;
+const newSessionFunctions=`let officeSessionStartedAt=0;
+let acceptedBusinessId='';
+let sessionRenewalCount=0;
+const SESSION_RENEW_AFTER_MS=20*60*1000;
+function sessionError_(error){
+  return /secure office gateway session is not ready|secure session expired|office open offline|gateway session.+not ready/i.test(String(error&&error.message||error||''));
+}
+async function openAuthorizedOfficeSession_(reason='INITIAL'){
+  const target=new URL(launcherUrl);
+  target.searchParams.set('fullDemoAcceptance',String(Date.now()));
+  target.searchParams.set('sessionReason',String(reason).slice(0,80));
+  await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:45000});
+  await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
+  if(reason==='INITIAL')mark('AUTHORIZED_HANDOFF');
+  else mark(\`SESSION_RENEW_\${String(sessionRenewalCount+1).padStart(2,'0')}\`,{reason});
+  await clickAuthorizedOfficeButton();
+  await page.waitForURL(url=>{try{const parsed=new URL(url);return isHighwayHost(parsed.hostname)&&parsed.pathname.includes('/commercial-app/');}catch(error){return false;}},{timeout:90000});
+  await page.waitForFunction(()=>/Office open|latest records loaded/i.test(document.getElementById('businessStatus')?.textContent||'')&&!!window.H38_ACTIVE_BRIDGE?.ready,undefined,{timeout:180000,polling:250});
+  const currentBusinessId=await page.locator('#businessSelect').inputValue();
+  assert(currentBusinessId,'No business was selected.');
+  if(acceptedBusinessId)assert(currentBusinessId===acceptedBusinessId,\`Authorized session returned a different business: \${currentBusinessId}.\`);
+  else acceptedBusinessId=currentBusinessId;
+  officeSessionStartedAt=Date.now();
+  if(reason!=='INITIAL'){
+    sessionRenewalCount+=1;
+    write(\`session-renewal-\${String(sessionRenewalCount).padStart(2,'0')}.json\`,{
+      status:'PASS',
+      reason,
+      businessId:acceptedBusinessId,
+      renewedAt:new Date().toISOString(),
+      approved:false,
+      sent:false,
+      published:false,
+      fundsMoved:false,
+      externalActionsEnabled:false,
+      productionDataMigrated:false
+    });
+  }
+  return acceptedBusinessId;
+}
+async function ensureOfficeSession_(reason){
+  if(!officeSessionStartedAt||Date.now()-officeSessionStartedAt>=SESSION_RENEW_AFTER_MS){
+    await openAuthorizedOfficeSession_(reason||'PROACTIVE_RENEWAL');
+  }
+}
+async function officeRequest(action,args={},timeout=150000){return page.evaluate(async({action,args,timeout})=>window.H38_ACTIVE_BRIDGE.request(action,args,timeout),{action,args,timeout});}
+async function retryRequest(action,args={},timeout=150000,attempts=3){
+  let lastError;
+  for(let attempt=1;attempt<=attempts;attempt++){
+    try{
+      await ensureOfficeSession_(\`BEFORE_\${action}\`);
+      return await officeRequest(action,args,timeout);
+    }catch(error){
+      lastError=error;
+      if(sessionError_(error)&&attempt<attempts){
+        await openAuthorizedOfficeSession_(\`RECOVER_\${action}_ATTEMPT_\${attempt}\`);
+        continue;
+      }
+      if(attempt<attempts)await page.waitForTimeout(attempt*2500);
+    }
+  }
+  throw lastError;
+}`;
+const oldInitialLaunch=`    mark('LAUNCH');
+    const target=new URL(launcherUrl);target.searchParams.set('fullDemoAcceptance',String(Date.now()));
+    await page.goto(target.toString(),{waitUntil:'domcontentloaded',timeout:45000});
+    await page.waitForURL(url=>{try{return isScriptHost(new URL(url).hostname);}catch(error){return false;}},{timeout:60000});
+    mark('AUTHORIZED_HANDOFF');await clickAuthorizedOfficeButton();
+    await page.waitForURL(url=>{try{const parsed=new URL(url);return isHighwayHost(parsed.hostname)&&parsed.pathname.includes('/commercial-app/');}catch(error){return false;}},{timeout:90000});
+    mark('OFFICE_READY');
+    await page.waitForFunction(()=>/Office open|latest records loaded/i.test(document.getElementById('businessStatus')?.textContent||'')&&!!window.H38_ACTIVE_BRIDGE?.ready,undefined,{timeout:180000,polling:250});
+    const businessId=await page.locator('#businessSelect').inputValue();assert(businessId,'No business was selected.');`;
+const newInitialLaunch=`    mark('LAUNCH');
+    const businessId=await openAuthorizedOfficeSession_('INITIAL');
+    mark('OFFICE_READY',{businessId,sessionRenewalCount});`;
 
 let patched=source
-  .replace(
-    'async function officeRequest(action,args={},timeout=105000)',
-    'async function officeRequest(action,args={},timeout=150000)'
-  )
-  .replace(
-    'async function retryRequest(action,args={},timeout=105000,attempts=3)',
-    'async function retryRequest(action,args={},timeout=150000,attempts=3)'
-  )
+  .replace(oldSessionFunctions,newSessionFunctions)
+  .replace(oldInitialLaunch,newInitialLaunch)
   .replace(oldCoreLoop,newCoreLoop)
   .replace(oldPackageLoop,newPackageLoop);
 
@@ -79,10 +156,15 @@ if(
   !patched.includes("const coreSteps=['records','quote','measurements']")||
   !patched.includes('const packageBatchSize=1;')||
   !patched.includes("phase:'core-packages',start,count:packageBatchSize},150000,2")||
+  !patched.includes('SESSION_RENEW_AFTER_MS=20*60*1000')||
+  !patched.includes('openAuthorizedOfficeSession_')||
+  !patched.includes('sessionError_')||
+  !patched.includes("const businessId=await openAuthorizedOfficeSession_('INITIAL')")||
   patched.includes("phase:'core',projectKey")||
-  patched.includes('for(let start=0;start<21;start+=3)')
+  patched.includes('for(let start=0;start<21;start+=3)')||
+  patched.includes('const target=new URL(launcherUrl);target.searchParams.set')
 ){
-  throw new Error('Full-demo acceptance split-evidence and single-package compatibility patch did not match the reviewed runner.');
+  throw new Error('Full-demo acceptance bounded batching and session-renewal compatibility patch did not match the reviewed runner.');
 }
 
 const runner=new Module(target,module);
@@ -93,3 +175,4 @@ runner._compile(patched,target);
 // Static contract compatibility marker: require('./verify-commercial-full-demo-acceptance-v2.js')
 // Controlled bounded core markers: records, quote, measurements, and one CAD file per request.
 // Controlled cabin package marker: one sub-quote per request.
+// Controlled secure-session marker: proactively renew and recover the authorized gateway session without changing business or safety boundaries.
