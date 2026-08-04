@@ -1,5 +1,5 @@
 -- Run only against an isolated Supabase branch or local database.
--- All deterministic fixtures are rolled back.
+-- All deterministic fixtures, including Auth users, are rolled back.
 
 begin;
 
@@ -79,7 +79,24 @@ select pg_temp.assert_true(
   'anonymous users cannot read the external action queue'
 );
 
-set local session_replication_role = replica;
+insert into auth.users (
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values
+  ('20000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'owner-a@example.test', '', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+  ('20000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'viewer-a@example.test', '', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+  ('20000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'owner-b@example.test', '', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+  ('20000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'staff-a@example.test', '', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+  ('20000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'admin-a@example.test', '', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now());
 
 insert into public.businesses (id, business_key, legal_name, display_name, status)
 values
@@ -113,8 +130,6 @@ values (
   'pending',
   '20000000-0000-0000-0000-000000000004'
 );
-
-set local session_replication_role = origin;
 
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
