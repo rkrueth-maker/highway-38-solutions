@@ -30,7 +30,7 @@ check('Highway 38 production origin is explicit', source.includes('"https://high
 check('Highway 38 www origin is explicit', source.includes('"https://www.highway38solutions.com"'));
 check('CORS never uses a wildcard origin', !source.includes('"access-control-allow-origin": "*"'));
 check('preflight reflects only a syntactically valid HTTP origin', source.includes('const allowed = isHttpOrigin(requested) ? requested'));
-check('invalid preflight origins are rejected', source.includes('if (!isHttpOrigin(origin)) return new Response(null, { status: 403'));
+check('invalid preflight origins are rejected', /if\s*\(\s*!isHttpOrigin\(origin\)\s*\)\s*return\s+new Response\(null,\s*\{\s*status:\s*403\b/.test(source));
 check('bootstrap remains restricted to Google Apps Script', source.includes('if (!isGoogleScriptOrigin(origin)) return json(origin, 403'));
 check('Office API remains restricted to Highway 38', source.includes('if (!isHighwayOrigin(origin)) return json(origin, 403'));
 check('existing Apps Script project is pinned exactly', source.includes('1nNYrjaH4kwCWQ2SGWMbXGxpkDgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
