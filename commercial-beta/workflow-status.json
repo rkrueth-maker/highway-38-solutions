@@ -1,9 +1,15 @@
 {
-  "status": "RUNNING",
+  "status": "FAIL",
   "runId": "30865409056",
   "event": "push",
   "sourceSha": "6c5d25555bb4e86ea3d5ff7f6de4a8db07ea0c65",
   "betaBranch": "agent/commercial-google-native-beta",
   "transport": "supabase-gateway",
-  "startedAt": "2026-08-04T00:23:23Z"
+  "verify": "success",
+  "gatewayHealth": "success",
+  "installClasp": "success",
+  "credentials": "success",
+  "deploy": "success",
+  "startupAcceptance": "failure",
+  "finishedAt": "2026-08-04T00:24:06Z"
 }
