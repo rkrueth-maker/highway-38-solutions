@@ -29,8 +29,13 @@ jobs:
           node --check commercial.js
           node --check sample-print.js
           node --check scripts/verify-commercial-system.js
+          node --check scripts/verify-commercial-release-pipeline.js
+          node --check scripts/verify-commercial-browser-signin.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
+
+      - name: Verify commercial release pipeline boundaries
+        run: node scripts/verify-commercial-release-pipeline.js
 
       - name: Run commercial verification and capture report
         id: commercial
