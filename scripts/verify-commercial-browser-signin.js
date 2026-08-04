@@ -138,7 +138,7 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
       return /Office open|latest records loaded/i.test(status)&&document.querySelectorAll('#mainNav button').length>3&&!!window.H38_ACTIVE_BRIDGE?.ready;
     },undefined,{timeout:120000,polling:250});
 
-    const apiResult=await page.evaluate(()=>window.H38_ACTIVE_BRIDGE.request('visibleBusinesses',{},90000));
+    const apiResult=await page.evaluate(()=>window.H38_ACTIVE_BRIDGE.request('acceptanceStatus',{},90000));
     const security=await browserSecurityState(page);
     const current=new URL(page.url());
     const officeErrors=pageErrors.filter(Boolean);
@@ -149,14 +149,14 @@ async function collectDiagnostics(page,context,consoleMessages,pageErrors,second
     if(!isHighwayHost(current.hostname)||!current.pathname.includes('/commercial-app/'))throw new Error(`Office did not return to the Highway 38 top-level app: ${page.url()}`);
     if(secondaryPageCount!==0)throw new Error(`The Office opened ${secondaryPageCount} extra browser window(s).`);
     if(officeErrors.length)throw new Error(`Office runtime reported page errors: ${officeErrors.join(' | ')}`);
-    if(!Array.isArray(apiResult)||!apiResult.length)throw new Error('The secure gateway did not return an authorized business list.');
+    if(!apiResult||apiResult.status!=='PASS'||apiResult.acceptance!=='READ_ONLY_GATEWAY_STATUS'||apiResult.readOnly!==true||apiResult.externalActionsEnabled!==false||!Number.isFinite(Number(apiResult.businessCount))||Number(apiResult.businessCount)<1)throw new Error(`The secure gateway did not return the read-only authorized acceptance status: ${JSON.stringify(apiResult)}`);
     if(!security.topLevel||!security.hashCleared||!security.gatewaySessionPresent||security.transport!=='supabase-gateway')throw new Error(`The top-level gateway session is incomplete: ${JSON.stringify(security)}`);
     if(security.executionSessionPresent||security.accessTokenPropertyPresent||security.browserGoogleTokenPresent)throw new Error(`A Google OAuth token or legacy execution session reached the browser: ${JSON.stringify(security)}`);
     if(!String(security.gatewayUrl||'').includes(`${GATEWAY_HOST}/functions/v1/h38-office-gateway`))throw new Error(`The Office is using an unexpected gateway: ${security.gatewayUrl}`);
     if(!security.mediaDevices||!security.cameraAllowed||!security.microphoneAllowed)throw new Error(`The top-level Office blocks field permissions: ${JSON.stringify(security)}`);
     if(!gatewayResponses.some(item=>item.method==='POST'&&item.status>=200&&item.status<300))throw new Error('No successful live Supabase gateway POST was observed.');
 
-    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_GATEWAY_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,authorizationContinueClick:true,gatewayBusinessCount:apiResult.length,gatewayResponses,topLevelOffice:true,supabaseGatewayTransport:true,browserGoogleTokenPresent:false,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
+    console.log(JSON.stringify({status:'PASS',acceptance:'BROWSER_AUTHORIZED_TOP_LEVEL_GATEWAY_OFFICE',build:BUILD,launcherUrl:target.toString(),deploymentUrl:deploymentArg,officeUrl:page.url(),businessStatus,officeText,navButtonCount,authorizationContinueClick:true,gatewayBusinessCount:Number(apiResult.businessCount),readOnlyGatewayAcceptance:true,gatewayResponses,topLevelOffice:true,supabaseGatewayTransport:true,browserGoogleTokenPresent:false,cameraAllowed:true,microphoneAllowed:true,secondaryPageCount:0,persistentAuthWindow:false,officeRuntimeErrors:0,officeReceivedBootstrap:true},null,2));
   }catch(error){const diagnostics=page?await collectDiagnostics(page,context,consoleMessages,pageErrors,secondaryPages,gatewayResponses):{};fail('Browser-level authorized gateway Office acceptance failed.',{error:error.message,build:BUILD,...diagnostics});}
   finally{await browser.close();}
 })();
