@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/release-74-status-probe-v2
+  pull_request:
+    branches:
+      - main
 
 permissions:
   actions: read
@@ -57,4 +60,5 @@ jobs:
           - Production action: none; this probe was read-only
           EOF
           fi
-          gh issue comment 31 --body-file /tmp/comment.md
+          cat /tmp/comment.md
+          gh issue comment 31 --body-file /tmp/comment.md || true
