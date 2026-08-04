@@ -45,6 +45,8 @@ jobs:
           node --check scripts/verify-commercial-delivery-acceptance.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
           node --check /tmp/FormBuilder.js
+          cp apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs /tmp/CommercialBeta_CompletionCore_02.js
+          node --check /tmp/CommercialBeta_CompletionCore_02.js
 
       - name: Verify commercial release pipeline boundaries
         run: node scripts/verify-commercial-release-pipeline.js
