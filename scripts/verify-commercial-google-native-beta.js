@@ -19,8 +19,19 @@ for(const rel of appFiles.concat(['commercial-app/db.js','commercial-app/bridge.
   const result=cp.spawnSync(process.execPath,['--check',file(rel)],{encoding:'utf8'});check(`syntax ${rel}`,result.status===0,(result.stderr||result.stdout||'').trim());
 }
 const config=read(required[0]),web=read(required[1]),office=read(required[2]),launcher=read('open-business-office.html'),index=read('commercial-app/index.html'),startup=read('commercial-app/startup-fix.js'),styles=read('commercial-app/styles.css'),worker=read('commercial-app/service-worker.js'),dbClient=read('commercial-app/db.js'),bridge=read('commercial-app/bridge.js'),startupServer=read('apps-script/commercial-office-beta/CommercialBeta_CompletionStartup_01.gs'),manifest=JSON.parse(read('apps-script/commercial-office-beta/appsscript.json')),app=appFiles.map(read).join('\n');
-check('complete platform configuration',has(config,["version:'1.0.0'",'schemaVersion:3','pwaUrl:',"gatewayUrl:'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway'","'quotes'","'measure'","'communications'","'fleet'","'money'","'social'","'ai'","'voice'","'offline'"]));
-check('external safeguards remain locked',has(config,['externalActionsEnabled:false','productionMigrationEnabled:false','automaticCustomerSending:false','automaticSocialPublishing:false','automaticFinancialActions:false']));
+let platformConfig=null;
+try{
+  const context={};
+  vm.createContext(context);
+  new vm.Script(config,{filename:required[0]}).runInContext(context);
+  platformConfig=context.CB_CONFIG||null;
+}catch(error){
+  check('parse platform configuration',false,error.message);
+}
+const requiredModules=['quotes','measure','communications','fleet','money','social','ai','voice','offline'];
+const missingModules=requiredModules.filter(module=>!Array.isArray(platformConfig&&platformConfig.modules)||!platformConfig.modules.includes(module));
+check('complete platform configuration',!!platformConfig&&platformConfig.version==='1.0.0'&&platformConfig.schemaVersion===3&&platformConfig.pwaUrl==='https://highway38solutions.com/commercial-app/'&&platformConfig.gatewayUrl==='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway'&&missingModules.length===0,missingModules.length?`missing modules ${missingModules.join(',')}`:'');
+check('external safeguards remain locked',!!platformConfig&&platformConfig.externalActionsEnabled===false&&platformConfig.productionMigrationEnabled===false&&platformConfig.automaticCustomerSending===false&&platformConfig.automaticSocialPublishing===false&&platformConfig.automaticFinancialActions===false);
 check('Google page creates user-activated opaque gateway handoff',has(office,['cbPwaGatewayHandoff','H38_GATEWAY_HANDOFF','gatewaySession','gatewayUrl','browserReceivesGoogleToken','id="continueButton"','target="_top"',"button.textContent='Open Business Office'","button.dataset.ready='true'","target.hash='h38='",'No second window is used.'])&&!office.includes('officeFrame')&&!office.includes('window.open('));
 check('server exchanges Google token only with gateway',has(startupServer,['function cbPwaGatewayHandoff(','ScriptApp.getOAuthToken()','UrlFetchApp.fetch(CB_CONFIG.gatewayUrl',"handoffType:'H38_GATEWAY_HANDOFF'","transport:'supabase-gateway'",'gatewaySession:payload.gatewaySession','browserReceivesGoogleToken:false','startup:startup'])&&!startupServer.includes("handoffType:'H38_EXECUTION_HANDOFF'"));
 check('existing deployment exposes controlled gateway JSON route',has(web,['function doPost(event)','H38_SUPABASE_GATEWAY_V1','cbGatewayOutput_','cbApi({action:action,args:args})',"status:'PASS',result:","status:'FAIL',error:"]));
