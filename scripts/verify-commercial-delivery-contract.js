@@ -20,7 +20,7 @@ for(const quote of config.quotes||[]){
   const total=(quote.lines||[]).reduce((sum,line)=>sum+Number(line.quantity||0)*Number(line.unitPrice||0),0);
   check(`${quote.key} itemized total`,Math.abs(total-Number(quote.total||0))<0.01&&(quote.lines||[]).length>=5);
 }
-const index=read('commercial-app/index.html'),delivery=read('commercial-app/app-20.js'),deliveryCss=read('commercial-app/quote-delivery.css'),launcher=read('open-business-office.html'),handoff=read('apps-script/commercial-office-beta/CommercialBeta_Office.html'),setup=read('apps-script/commercial-office-beta/CommercialBeta_Setup.html'),live=read('scripts/verify-commercial-delivery-acceptance.js'),workflow=read('.github/workflows/commercial-google-native-beta.yml');
+const index=read('commercial-app/index.html'),delivery=read('commercial-app/app-20.js'),deliveryCss=read('commercial-app/quote-delivery.css'),quoteWorkspace=read('commercial-app/app-07.js'),launcher=read('open-business-office.html'),handoff=read('apps-script/commercial-office-beta/CommercialBeta_Office.html'),setup=read('apps-script/commercial-office-beta/CommercialBeta_Setup.html'),live=read('scripts/verify-commercial-delivery-acceptance.js'),workflow=read('.github/workflows/commercial-google-native-beta.yml');
 check('Office header approved logo',index.includes(`../assets/${logo}`)&&index.includes('id="approvedOfficeLogo"')&&index.includes('alt="Highway 38 Solutions"'));
 check('Office installed icon approved logo',read('commercial-app/manifest.webmanifest').includes(`../assets/${logo}`));
 check('secure launcher approved logo',launcher.includes(`assets/${logo}`)&&launcher.includes('id="approvedLauncherLogo"'));
@@ -29,10 +29,14 @@ check('setup approved logo',setup.includes(`https://highway38solutions.com/asset
 check('printable preview approved logo',delivery.includes(`const H38_APPROVED_LOGO='/assets/${logo}'`)&&delivery.includes('class="quote-logo"')&&delivery.includes('Print / Save PDF'));
 check('print layout exists',deliveryCss.includes('@media print')&&deliveryCss.includes('.quote-document'));
 check('Generic customer auto selection',delivery.includes("option.textContent.trim()==='Generic Quote Customer'"));
+check('saved quote reopening stays in Quote Builder',quoteWorkspace.includes("state.page='quotes';state.quote=")&&quoteWorkspace.includes('renderQuotes();return true;'));
 check('delivery script runs public website examples',live.includes('contractor-quote-complete.html')&&live.includes("['landscape','drainage','seasonal']"));
 check('delivery script preserves records',live.includes('preserved.push(quote.quoteId)')&&live.includes('demoRecordsPreserved:true'));
 check('delivery script makes no delete or archive calls',!/\b(delete|archive)(Quote|Entity|Record)?\b/i.test(live));
 check('delivery script enforces safety',live.includes("externalActionsEnabled===false")&&live.includes('automaticApproval:false')&&live.includes('automaticSend:false')&&live.includes('fundsMoved:false'));
+check('delivery script records staged evidence',live.includes("stages.ndjson")&&live.includes("failure.json")&&live.includes("persisted-records-result.json")&&live.includes("office-delivery-result.json"));
+check('delivery script verifies visible quote buttons',live.includes('visibleIds.includes(quote.quoteId)')&&live.includes('openQuoteThroughUi'));
+check('delivery script generates all branded PDFs',live.includes('page.pdf')&&live.includes('bytes>10000')&&live.includes('quotePreviewDocument'));
 check('release workflow invokes delivery acceptance',workflow.includes('verify-commercial-delivery-acceptance.js'));
 console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',checks,failures},null,2));
 if(failures.length)process.exit(1);
