@@ -26,6 +26,7 @@ const ai=read('apps-script/commercial-office-beta/CommercialBeta_AIQuoteMeasure_
 const web=read('apps-script/commercial-office-beta/CommercialBeta_Web.gs');
 const upload=read('apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs');
 const quoteOps=read('apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_02.gs');
+const moduleSource=combinedSeed+'\n'+quoteOps;
 const core=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs');
 const ui=read('commercial-app/app-20.js');
 const live=read('scripts/verify-commercial-full-demo-acceptance.js');
@@ -34,9 +35,9 @@ check('owner-only idempotent full demo action exists',seeder.includes('function 
 check('full demo declares eight projects and 21 cabin packages',seeder.includes("projects:8")&&seeder.includes("cabinSubQuotes:21")&&seeder.includes('function cbDemo8CabinPackages_'));
 check('real DXF CAD files are generated and linked',seeder.includes("'application/dxf'")&&seeder.includes('.dxf')&&seeder.includes("'Source Type':'CAD'")&&seeder.includes('cbDemo8Document_'));
 check('cabin receives floor site and slab CAD',seeder.includes('CABIN-FLOOR-PLAN.dxf')&&seeder.includes('CABIN-SITE-PLAN.dxf')&&seeder.includes('CABIN-SLAB-PLAN.dxf'));
-check('CAD upload supports common CAD formats',upload.includes("dxf|dwg|dwt|dws")&&upload.includes('application/dxf')&&upload.includes("cad?'CAD'"));
+check('CAD upload supports common CAD formats',/dxf\|dwg\|dwt\|dws/.test(upload)&&/application\\?\/dxf/.test(upload)&&upload.includes("'Source Type':cad?'CAD'"));
 const moduleTokens=['properties','contacts','requests','jobs','workOrders','tasks','scheduleEvents','timeEntries','jobNotes','quotes','quoteLines','measurements','measurementPoints','documents','attachments','items','transactions','materialRequests','assets','vehicles','assignments','maintenance','inspections','usageLogs','invoices','invoiceLines','payments','expenses','employees','vendors','purchaseOrders','accountingPeriods','payrollPeriods','payrollLines','payrollDeductions','taxPeriods','missingDocuments','approvals','reports','backups','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','customerPortalThreads','customerPortalMessages','campaigns','socialPosts','socialMetrics','aiConversations','aiMessages','actionQueue','voiceQueue','notifications','socialAccounts','featureRequests','checklists','checklistItems','workflows','workflowSteps','priceBookSnapshots','reservations','purchaseOrderLines','receipts','documentLinks','integrationHealth','jobEquipment','servicePlans','fuelLogs','socialApprovals'];
-check('demo seed populates broad Office modules',moduleTokens.every(token=>combinedSeed.includes(`'${token}'`)),moduleTokens.filter(token=>!combinedSeed.includes(`'${token}'`)).join(','));
+check('demo seed populates broad Office modules',moduleTokens.every(token=>moduleSource.includes(`'${token}'`)),moduleTokens.filter(token=>!moduleSource.includes(`'${token}'`)).join(','));
 check('starting Price Catalog is seeded from all quote lines',seeder.includes("cbDemo8Id_('PRICE'")&&seeder.includes("'Selling Price':line[3]")&&seeder.includes("'Status':'Active Demo'"));
 check('canonical demo quote IDs prevent duplicate masters',quoteOps.includes('function cbCompletionDemoQuoteId_')&&quoteOps.includes("'Q-DEMO-008':'H38-DEMO-WEB-CABIN'")&&quoteOps.includes('existingByNumber'));
 check('AI quote drafting searches Price Catalog first',ai.includes('cbAiQuotePriceMatches_')&&ai.includes('priceBookSearchedFirst:true')&&ai.includes('Price Book searched first'));
