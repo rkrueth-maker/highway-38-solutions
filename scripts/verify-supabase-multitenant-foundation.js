@@ -8,13 +8,10 @@ const migrationPath = path.resolve(
   'supabase/migrations/20260804232100_multitenant_platform_foundation.sql'
 );
 
-if (!fs.existsSync(migrationPath)) {
-  throw new Error(`Missing migration: ${migrationPath}`);
-}
+if (!fs.existsSync(migrationPath)) throw new Error(`Missing migration: ${migrationPath}`);
 
 const sql = fs.readFileSync(migrationPath, 'utf8');
 const failures = [];
-
 const requiredTables = [
   'businesses',
   'profiles',
@@ -34,18 +31,26 @@ for (const table of requiredTables) {
   if (!new RegExp(`alter table public\\.${table} enable row level security`, 'i').test(sql)) {
     failures.push(`RLS is not enabled for public.${table}`);
   }
+  if (!new RegExp(`revoke all on table public\\.${table} from anon`, 'i').test(sql)) {
+    failures.push(`anonymous privileges are not explicitly revoked for public.${table}`);
+  }
 }
 
 const requiredPatterns = [
   ['business tenant key', /business_key text not null unique/i],
-  ['membership user and business uniqueness', /unique\s*\(business_id, user_id\)/i],
+  ['membership uniqueness', /unique\s*\(business_id, user_id\)/i],
   ['approved roles', /owner.*administrator.*staff.*viewer/is],
-  ['authenticated tenant predicate', /private\.is_business_member\(business_id\)/i],
-  ['owner/admin predicate', /private\.has_business_role\([^;]+owner[^;]+administrator/is],
-  ['no anonymous table access', /revoke all on all tables in schema public from anon/i],
-  ['external action approval link', /approval_request_id uuid references public\.approval_requests/i],
-  ['external action safety constraint', /external_action_requires_approval/i],
-  ['no service-role browser guidance', /revoke all on function private\.membership_role\(uuid\) from public/i],
+  ['member predicate', /private\.is_business_member\(business_id\)/i],
+  ['owner and administrator predicate', /private\.has_business_role\([^;]+owner[^;]+administrator/is],
+  ['private schema usage', /grant usage on schema private to authenticated/i],
+  ['matching approval function', /private\.approval_matches_external_action/i],
+  ['one approval per action', /external_action_queue_approval_once_idx/i],
+  ['external action constraint', /external_action_requires_approval/i],
+  ['approval decisions are final', /approvals_decide_owner_admin_once/i],
+  ['browser queue update gate', /external_actions_update_owner_admin_gate/i],
+  ['security definer functions revoked from public', /revoke all on function private\.membership_role\(uuid\) from public/i],
+  ['explicit proof sequence grant', /grant usage, select on sequence public\.proof_log_id_seq to authenticated/i],
+  ['explicit error sequence grant', /grant usage, select on sequence public\.error_log_id_seq to authenticated/i],
 ];
 
 for (const [label, pattern] of requiredPatterns) {
@@ -58,6 +63,8 @@ const forbiddenPatterns = [
   ['anonymous grant', /grant\s+.+\s+to\s+anon/i],
   ['browser service role', /service_role/i],
   ['user metadata authorization', /user_metadata|raw_user_meta_data/i],
+  ['broad public-schema revoke', /revoke all on all tables in schema public/i],
+  ['broad public sequence grant', /grant[^;]+on all sequences in schema public/i],
 ];
 
 for (const [label, pattern] of forbiddenPatterns) {
@@ -71,6 +78,6 @@ if (failures.length) {
 }
 
 console.log('Supabase multitenant foundation verification PASSED');
-console.log(`Verified ${requiredTables.length} tenant/security tables with RLS.`);
-console.log('Verified anonymous access remains revoked.');
-console.log('Verified external actions remain approval-gated and inert.');
+console.log(`Verified ${requiredTables.length} tenant/security tables with RLS and scoped grants.`);
+console.log('Verified existing public-schema privileges are not broadly changed.');
+console.log('Verified external actions require a unique, matching approval and remain inert.');
