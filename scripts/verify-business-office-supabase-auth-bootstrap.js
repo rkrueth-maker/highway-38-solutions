@@ -27,6 +27,7 @@ const launcher = exists(launcherPath) ? read(launcherPath) : '';
 const client = exists(clientPath) ? read(clientPath) : '';
 const config = exists(configPath) ? read(configPath) : '';
 const all = [launcher, client, config].join('\n');
+const magicLinkCallSites = (client.match(/safeRun\(sendMagicLink\)/g) || []).length;
 
 check('normal Business Office path remains the current Google launcher',
   launcher.includes("if(preview)openSupabasePreview();") &&
@@ -56,10 +57,11 @@ check('password login is supported without local credential storage',
   !/localStorage\.setItem\([^)]*(password|credential|token)/i.test(client));
 
 check('magic link is user-triggered and cannot create an account',
-  client.includes("magic.addEventListener('click'") &&
+  client.includes("magic.addEventListener('click', () => safeRun(sendMagicLink))") &&
   client.includes('auth.signInWithOtp') &&
   client.includes('shouldCreateUser: false') &&
-  !/safeRun\(sendMagicLink\)/.test(client.replace("magic.addEventListener('click', () => safeRun(sendMagicLink));", '')));
+  magicLinkCallSites === 1,
+  `click-bound call sites: ${magicLinkCallSites}`);
 
 check('tenant membership and enabled modules are database-authorized',
   client.includes("from('business_office_my_businesses')") &&
