@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const failures=[];const checks=[];
+function check(name,condition,detail=''){checks.push({name,status:condition?'PASS':'FAIL'});if(!condition)failures.push(detail?`${name}: ${detail}`:name);}
+const seven=JSON.parse(read('commercial-beta/website-demo-quotes.json'));
+const cabin=JSON.parse(read('commercial-beta/cabin-demo-project.json'));
+check('seven standard public examples remain',Array.isArray(seven.quotes)&&seven.quotes.length===7);
+check('eighth cabin example exists',cabin.key==='cabin'&&cabin.quoteNumber==='Q-DEMO-008'&&cabin.quoteId==='H38-DEMO-WEB-CABIN');
+check('all eight website examples are represented',seven.quotes.length+1===8);
+const cabinLineTotal=cabin.lines.reduce((sum,line)=>sum+Number(line.quantity||0)*Number(line.unitPrice||0),0);
+const cabinPackageTotal=cabin.subQuotes.reduce((sum,line)=>sum+Number(line.total||0),0);
+check('cabin master total reconciles',cabinLineTotal===572550&&cabin.total===572550,`${cabinLineTotal}`);
+check('cabin direct subtotal reconciles',cabinPackageTotal===520500&&cabin.directSubtotal===520500,`${cabinPackageTotal}`);
+check('all 21 cabin sub-quotes exist',cabin.subQuotes.length===21&&new Set(cabin.subQuotes.map(row=>row.quoteId)).size===21);
+const all=[...seven.quotes,cabin];
+check('quote numbers cover Q-DEMO-001 through Q-DEMO-008',all.map(row=>row.quoteNumber).join(',')==='Q-DEMO-001,Q-DEMO-002,Q-DEMO-003,Q-DEMO-004,Q-DEMO-005,Q-DEMO-006,Q-DEMO-007,Q-DEMO-008');
+for(const quote of all){const total=(quote.lines||[]).reduce((sum,line)=>sum+Number(line.quantity||0)*Number(line.unitPrice||0),0);check(`${quote.key} total reconciles`,Math.abs(total-Number(quote.total||0))<0.01,`${total}`);}
+const seeder=read('apps-script/commercial-office-beta/CommercialBeta_FullDemo_01.gs');
+const ai=read('apps-script/commercial-office-beta/CommercialBeta_AIQuoteMeasure_01.gs');
+const web=read('apps-script/commercial-office-beta/CommercialBeta_Web.gs');
+const upload=read('apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs');
+const core=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs');
+const ui=read('commercial-app/app-20.js');
+check('owner-only idempotent full demo action exists',seeder.includes('function cbCompletionSeedFullDemoOffice_')&&seeder.includes("context.user.owner===true")&&seeder.includes('function cbDemo8Upsert_'));
+check('full demo declares eight projects and 21 cabin packages',seeder.includes("projects:8")&&seeder.includes("cabinSubQuotes:21")&&seeder.includes('function cbDemo8CabinPackages_'));
+check('real DXF CAD files are generated and linked',seeder.includes("'application/dxf'")&&seeder.includes("'.dxf'")&&seeder.includes("'Source Type':'CAD'")&&seeder.includes('cbDemo8Document_'));
+check('cabin receives floor site and slab CAD',seeder.includes('CABIN-FLOOR-PLAN.dxf')&&seeder.includes('CABIN-SITE-PLAN.dxf')&&seeder.includes('CABIN-SLAB-PLAN.dxf'));
+check('CAD upload supports common CAD formats',upload.includes("dxf|dwg|dwt|dws")&&upload.includes('application/dxf')&&upload.includes("cad?'CAD'"));
+const moduleTokens=['properties','contacts','requests','jobs','workOrders','tasks','scheduleEvents','timeEntries','jobNotes','quotes','quoteLines','measurements','measurementPoints','documents','attachments','items','transactions','materialRequests','assets','vehicles','assignments','maintenance','inspections','usageLogs','invoices','invoiceLines','payments','expenses','employees','vendors','purchaseOrders','accountingPeriods','payrollPeriods','payrollLines','payrollDeductions','taxPeriods','missingDocuments','approvals','reports','backups','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','customerPortalThreads','customerPortalMessages','campaigns','socialPosts','socialMetrics','aiConversations','aiMessages','actionQueue','voiceQueue','notifications'];
+check('demo seeder populates broad Office modules',moduleTokens.every(token=>seeder.includes(`'${token}'`)),moduleTokens.filter(token=>!seeder.includes(`'${token}'`)).join(','));
+check('starting Price Catalog is seeded from all quote lines',seeder.includes("cbDemo8Id_('PRICE'")&&seeder.includes("'Selling Price':line[3]")&&seeder.includes("'Status':'Active Demo'"));
+check('AI quote drafting searches Price Catalog first',ai.includes('cbAiQuotePriceMatches_')&&ai.includes('priceBookSearchedFirst:true')&&ai.includes('Price Book searched first'));
+check('AI quote drafting uses linked photos and CAD context',ai.includes('cbAiQuotePhotoInputs_')&&ai.includes('cbAiQuoteCadContext_')&&ai.includes("type:'input_image'"));
+check('AI photo measurement requires a known reference',ai.includes("A known reference size and unit are required")&&ai.includes("Method':'AI-assisted photo estimate'")&&ai.includes("Confidence':'Needs verification'"));
+check('AI and full demo actions are secure API routes',web.includes("action==='aiBuildQuoteDraft'")&&web.includes("action==='aiMeasurePhoto'")&&web.includes("action==='seedFullDemoOffice'"));
+check('Quote Builder exposes AI CAD and photo measure controls',ui.includes('Build with H38 AI')&&ui.includes('Add CAD')&&ui.includes('AI-assisted photo measuring')&&ui.includes('Estimate from quote photo'));
+check('Quote Builder sends no automatic approval or send',ui.includes('nothing approved or sent')&&ai.includes('automaticApproval:false')&&ai.includes('automaticSend:false'));
+check('latest quote revision is shown without duplicate historical lines',core.includes('availableRevisions')&&core.includes("versions[revision]||[]"));
+check('demo remains non-external',seeder.includes('approved:false')&&seeder.includes('sent:false')&&seeder.includes('published:false')&&seeder.includes('fundsMoved:false')&&seeder.includes('externalActionsEnabled:false')&&seeder.includes('productionDataMigrated:false'));
+console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',examples:8,cabinSubQuotes:21,cadFilesRequired:true,priceCatalogRequired:true,aiQuoteBuilderRequired:true,aiPhotoMeasureRequired:true,checks,failures},null,2));
+if(failures.length)process.exit(1);
