@@ -47,7 +47,8 @@ if (!accessToken && !(refreshToken && clientId && clientSecret)) {
 function isScriptHost(hostname) {
   return hostname === 'script.google.com' ||
     hostname === 'script.googleusercontent.com' ||
-    hostname.endsWith('.script.googleusercontent.com');
+    hostname.endsWith('.script.googleusercontent.com') ||
+    hostname.endsWith('-script.googleusercontent.com');
 }
 
 async function refreshAccessToken() {
