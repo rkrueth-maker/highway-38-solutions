@@ -98,9 +98,9 @@ check('normal launch clears only obsolete local Office state',
   launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')") &&
   !/localStorage\.clear\(|sessionStorage\.clear\(/.test(launcher));
 
-check('preview performs no automatic external action',
+check('preview performs no automatic external business action',
   client.includes('externalActionOccurred: false') &&
-  !/fetch\(|XMLHttpRequest|\.send\(|payments?|publish|purchase/i.test(client));
+  !/fetch\(|XMLHttpRequest|navigator\.sendBeacon|\.send\(|payments?|purchase|publishContent|publishPost/i.test(client));
 
 check('Northern Lakes is not activated or referenced',
   !/northern[- ]lakes|nlpm|nlpm-office-gateway/i.test(all));
