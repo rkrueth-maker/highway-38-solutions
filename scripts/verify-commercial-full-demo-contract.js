@@ -21,7 +21,8 @@ check('quote numbers cover Q-DEMO-001 through Q-DEMO-008',all.map(row=>row.quote
 for(const quote of all){const total=(quote.lines||[]).reduce((sum,line)=>sum+Number(line.quantity||0)*Number(line.unitPrice||0),0);check(`${quote.key} total reconciles`,Math.abs(total-Number(quote.total||0))<0.01,`${total}`);}
 const seeder=read('apps-script/commercial-office-beta/CommercialBeta_FullDemo_01.gs');
 const extras=read('apps-script/commercial-office-beta/CommercialBeta_FullDemo_02.gs');
-const combinedSeed=seeder+'\n'+extras;
+const batches=read('apps-script/commercial-office-beta/CommercialBeta_FullDemo_03.gs');
+const combinedSeed=seeder+'\n'+extras+'\n'+batches;
 const ai=read('apps-script/commercial-office-beta/CommercialBeta_AIQuoteMeasure_01.gs');
 const web=read('apps-script/commercial-office-beta/CommercialBeta_Web.gs');
 const upload=read('apps-script/commercial-office-beta/CommercialBeta_CompletionOperations_04.gs');
@@ -29,7 +30,8 @@ const quoteOps=read('apps-script/commercial-office-beta/CommercialBeta_Completio
 const moduleSource=combinedSeed+'\n'+quoteOps;
 const core=read('apps-script/commercial-office-beta/CommercialBeta_CompletionCore_02.gs');
 const ui=read('commercial-app/app-20.js');
-const live=read('scripts/verify-commercial-full-demo-acceptance.js');
+const wrapper=read('scripts/verify-commercial-full-demo-acceptance.js');
+const live=read('scripts/verify-commercial-full-demo-acceptance-v2.js');
 const workflow=read('.github/workflows/commercial-google-native-beta.yml');
 check('owner-only idempotent full demo action exists',seeder.includes('function cbCompletionSeedFullDemoOffice_')&&seeder.includes("context.user.owner===true")&&seeder.includes('function cbDemo8Upsert_'));
 check('full demo declares eight projects and 21 cabin packages',seeder.includes("projects:8")&&seeder.includes("cabinSubQuotes:21")&&seeder.includes('function cbDemo8CabinPackages_'));
@@ -46,13 +48,20 @@ check('canonical demo quote IDs prevent duplicate masters',quoteOps.includes('fu
 check('AI quote drafting searches Price Catalog first',ai.includes('cbAiQuotePriceMatches_')&&ai.includes('priceBookSearchedFirst:true')&&ai.includes('Price Book searched first'));
 check('AI quote drafting uses linked photos and CAD context',ai.includes('cbAiQuotePhotoInputs_')&&ai.includes('cbAiQuoteCadContext_')&&ai.includes("type:'input_image'"));
 check('AI photo measurement requires a known reference',ai.includes("A known reference size and unit are required")&&ai.includes("Method':'AI-assisted photo estimate'")&&ai.includes("Confidence':'Needs verification'"));
-check('AI and full demo actions are secure API routes',web.includes("action==='aiBuildQuoteDraft'")&&web.includes("action==='aiMeasurePhoto'")&&web.includes("action==='seedFullDemoOffice'")&&web.includes("action==='seedFullDemoExtras'"));
+check('resumable batch and scoped snapshot actions exist',batches.includes('function cbCompletionSeedFullDemoBatch_')&&batches.includes('function cbFullDemoAcceptanceSnapshot_')&&batches.includes("phase==='core-packages'")&&batches.includes("group==='communications'"));
+check('batch and snapshot actions are owner-only and non-external',batches.includes("context.user.owner===true")&&batches.includes('approved:false')&&batches.includes('sent:false')&&batches.includes('externalActionsEnabled:false')&&batches.includes('readOnly:true'));
+check('AI and full demo actions are secure API routes',web.includes("action==='aiBuildQuoteDraft'")&&web.includes("action==='aiMeasurePhoto'")&&web.includes("action==='seedFullDemoBatch'")&&web.includes("action==='fullDemoAcceptanceSnapshot'")&&web.includes("action==='seedFullDemoExtras'"));
 check('Quote Builder exposes AI CAD and photo measure controls',ui.includes('Build with H38 AI')&&ui.includes('Add CAD')&&ui.includes('AI-assisted photo measuring')&&ui.includes('Estimate from quote photo'));
 check('Quote Builder sends no automatic approval or send',ui.includes('nothing approved or sent')&&ai.includes('automaticApproval:false')&&ai.includes('automaticSend:false'));
 check('latest quote revision is shown without duplicate historical lines',core.includes('availableRevisions')&&core.includes("versions[revision]||[]"));
-check('live acceptance seeds all phases and extras',live.includes("['core','catalog','operations','finance']")&&live.includes("'seedFullDemoExtras'")&&live.includes('FULL_EIGHT_EXAMPLE_OFFICE_DELIVERY'));
+check('full-demo wrapper routes to resumable runner',wrapper.includes("require('./verify-commercial-full-demo-acceptance-v2.js')"));
+check('live acceptance uses bounded idempotent batches',live.includes("'seedFullDemoBatch'")&&live.includes("phase:'core-packages'")&&live.includes("for(const phase of ['catalog','operations','finance'])")&&!live.includes("'seedFullDemoOffice'"));
+check('live acceptance uses scoped snapshots without monolithic bootstrap',live.includes("'fullDemoAcceptanceSnapshot'")&&live.includes("['projects','quotes','communications','catalog','assets','finance','social']")&&!live.includes("'completionBootstrap'")&&!live.includes('loadBusiness(id,true)'));
+check('live acceptance verifies assigned quote workflow tasks',live.includes('Expected 16 quote-created demo tasks')&&live.includes('A quote workflow task is unassigned')&&live.includes('Quote-to-task workflow must contain four steps')&&live.includes('Owner approves before sending'));
+check('live acceptance verifies draft email population and proof recipient boundary',live.includes('Eight draft email examples were not populated')&&live.includes("proofSendAuthorizedRecipient:'rkrueth@gmail.com'")&&live.includes('automaticSend:false'));
 check('live acceptance verifies CAD AI modules and 22 cabin PDFs',live.includes('cadDocuments.length>=10')&&live.includes("'aiBuildQuoteDraft'")&&live.includes("'aiMeasurePhoto'")&&live.includes('pdfs.length===22'));
-check('release workflow invokes full demo acceptance',workflow.includes('verify-commercial-full-demo-acceptance.js'));
+check('live acceptance handles lexical Office state',live.includes("typeof state==='undefined'")&&!live.includes('window.state'));
+check('release workflow invokes full demo acceptance wrapper',workflow.includes('verify-commercial-full-demo-acceptance.js'));
 check('demo remains non-external',combinedSeed.includes('approved:false')&&combinedSeed.includes('sent:false')&&combinedSeed.includes('published:false')&&combinedSeed.includes('fundsMoved:false')&&combinedSeed.includes('externalActionsEnabled:false')&&combinedSeed.includes('productionDataMigrated:false'));
-console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',examples:8,cabinSubQuotes:21,cabinPdfProofs:22,cadFilesRequired:true,priceCatalogRequired:true,aiQuoteBuilderRequired:true,aiPhotoMeasureRequired:true,checks,failures},null,2));
+console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',examples:8,cabinSubQuotes:21,cabinPdfProofs:22,cadFilesRequired:true,priceCatalogRequired:true,assignedTasksRequired:16,quoteWorkflowStepsRequired:4,emailDraftsRequired:8,proofEmailRecipient:'rkrueth@gmail.com',aiQuoteBuilderRequired:true,aiPhotoMeasureRequired:true,resumableBatchesRequired:true,scopedSnapshotsRequired:true,checks,failures},null,2));
 if(failures.length)process.exit(1);
