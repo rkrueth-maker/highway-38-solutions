@@ -45,6 +45,21 @@ const newCoreLoop=`    const seedEvidence={coreProjects:[],corePackages:[],catal
       }
       seedEvidence.coreProjects.push({projectKey,steps:projectResults,cadPlans:cadResults});
     }`;
+const oldPackageLoop=`    for(let start=0;start<21;start+=3){
+      mark(\`SEED_CORE_PACKAGES_\${String(start+1).padStart(2,'0')}\`,{start,count:3});
+      const result=await retryRequest('seedFullDemoBatch',{businessId,phase:'core-packages',start,count:3});
+      assert(result.status==='PASS'&&result.core?.quotes===Math.min(3,21-start),'Cabin package batch failed.');
+      assert(result.sent===false&&result.externalActionsEnabled===false,'Cabin package batch crossed a safety boundary.');
+      seedEvidence.corePackages.push(result);write(\`seed-core-packages-\${start+1}.json\`,result);
+    }`;
+const newPackageLoop=`    const packageBatchSize=1;
+    for(let start=0;start<21;start+=packageBatchSize){
+      mark(\`SEED_CORE_PACKAGES_\${String(start+1).padStart(2,'0')}\`,{start,count:packageBatchSize});
+      const result=await retryRequest('seedFullDemoBatch',{businessId,phase:'core-packages',start,count:packageBatchSize},150000,2);
+      assert(result.status==='PASS'&&result.core?.quotes===Math.min(packageBatchSize,21-start),'Cabin package batch failed.');
+      assert(result.approved===false&&result.sent===false&&result.published===false&&result.fundsMoved===false&&result.externalActionsEnabled===false,'Cabin package batch crossed a safety boundary.');
+      seedEvidence.corePackages.push(result);write(\`seed-core-packages-\${start+1}.json\`,result);
+    }`;
 
 let patched=source
   .replace(
@@ -55,10 +70,19 @@ let patched=source
     'async function retryRequest(action,args={},timeout=105000,attempts=3)',
     'async function retryRequest(action,args={},timeout=150000,attempts=3)'
   )
-  .replace(oldCoreLoop,newCoreLoop);
+  .replace(oldCoreLoop,newCoreLoop)
+  .replace(oldPackageLoop,newPackageLoop);
 
-if(patched===source||!patched.includes("step:'cad'")||!patched.includes("const coreSteps=['records','quote','measurements']")||patched.includes("phase:'core',projectKey")){
-  throw new Error('Full-demo acceptance split-evidence compatibility patch did not match the reviewed runner.');
+if(
+  patched===source||
+  !patched.includes("step:'cad'")||
+  !patched.includes("const coreSteps=['records','quote','measurements']")||
+  !patched.includes('const packageBatchSize=1;')||
+  !patched.includes("phase:'core-packages',start,count:packageBatchSize},150000,2")||
+  patched.includes("phase:'core',projectKey")||
+  patched.includes('for(let start=0;start<21;start+=3)')
+){
+  throw new Error('Full-demo acceptance split-evidence and single-package compatibility patch did not match the reviewed runner.');
 }
 
 const runner=new Module(target,module);
@@ -68,3 +92,4 @@ runner._compile(patched,target);
 
 // Static contract compatibility marker: require('./verify-commercial-full-demo-acceptance-v2.js')
 // Controlled bounded core markers: records, quote, measurements, and one CAD file per request.
+// Controlled cabin package marker: one sub-quote per request.
