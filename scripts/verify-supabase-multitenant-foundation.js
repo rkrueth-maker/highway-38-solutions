@@ -50,15 +50,14 @@ const requiredPatterns = [
   ['fail-closed duplicate-system guard', /refusing to create a second tenant system/i],
   ['approval consistency constraint', /business_approvals_review_consistency/i],
   ['approval transition guard', /guard_business_approval_transition/i],
-  ['pending-review policy', /administrators review pending approvals/i],
-  ['Owner-only external gate', /owners allow approved external actions/i],
+  ['single review and Owner-authorization policy', /create policy "review and authorize approvals"/i],
+  ['Owner-only external branch', /status = 'approved'[\s\S]+external_action_allowed = false[\s\S]+array\['owner'\]/i],
   ['inert external-action queue', /create table if not exists public\.external_action_queue/i],
   ['queue RLS', /alter table public\.external_action_queue enable row level security/i],
   ['staff draft-only policy', /staff draft external actions/i],
   ['browser preparation policy', /administrators prepare approved external actions/i],
   ['matching approval function', /private\.approval_matches_external_action/i],
-  ['explicit Owner role', /private\.business_access\(business_id, array\['owner'\]\)/i],
-  ['browser execution remains absent', /status in \('draft', 'pending_owner_approval'\)/i],
+  ['queue creator foreign-key index', /external_action_queue_created_by_idx/i],
   ['anonymous queue access revoked', /revoke all on table public\.external_action_queue from anon/i],
   ['branch database rollback test', /rollback;/i],
   ['cross-tenant test', /cannot update another business module/i],
@@ -66,6 +65,7 @@ const requiredPatterns = [
   ['staff approval restriction test', /staff cannot approve an action/i],
   ['administrator Owner-gate restriction', /administrator cannot grant external-action authorization/i],
   ['browser execution test', /browser role cannot execute an external action/i],
+  ['final approval immutability test', /final approval and Owner gate are immutable/i],
 ];
 
 for (const [label, pattern] of requiredPatterns) {
@@ -73,6 +73,13 @@ for (const [label, pattern] of requiredPatterns) {
     ? testSql
     : sql;
   if (!pattern.test(source)) failures.push(`missing ${label}`);
+}
+
+const approvalUpdatePolicies = (
+  sql.match(/create policy\s+"[^"]+"\s+on public\.business_approvals for update/gi) || []
+).length;
+if (approvalUpdatePolicies !== 1) {
+  failures.push(`expected one business_approvals UPDATE policy, found ${approvalUpdatePolicies}`);
 }
 
 const forbiddenPatterns = [
@@ -95,5 +102,5 @@ if (failures.length) {
 
 console.log('Supabase multitenant foundation verification PASSED');
 console.log('Verified canonical tenant tables are reused, not duplicated.');
-console.log('Verified final approval decisions and Owner external-action gate are immutable.');
+console.log('Verified one approval policy covers review and the Owner-only external gate.');
 console.log('Verified browser roles can prepare but cannot execute external actions.');
