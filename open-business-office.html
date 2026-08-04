@@ -5,30 +5,87 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
   <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <title>Opening Highway 38 Business Office</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.approved-logo{display:block;width:96px;height:96px;object-fit:contain;margin:0 auto 18px}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:18px;padding:11px 18px;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-weight:900}.muted{color:#607285}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14)}.approved-logo{display:block;width:96px;height:96px;object-fit:contain;margin:0 auto 18px}.card>h1,.card>.intro{text-align:center}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:11px 18px;border:0;border-radius:12px;text-decoration:none;font:inherit;font-weight:900;cursor:pointer}.primary{background:#174a70;color:#fff}.secondary{border:1px solid #b8c7d2;background:#fff;color:#174a70}.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}.muted{color:#607285}.status{margin:18px 0;padding:12px 14px;border-radius:12px;background:#eef4f8;color:#31485b;text-align:left}.status.ok{background:#e8f7ef;color:#195d3b}.status.bad{background:#fff0ef;color:#852c24}.panel{margin-top:18px;padding:20px;border:1px solid #d6e0e8;border-radius:16px;background:#f9fbfc}.panel h2{margin:0 0 8px}.panel p{margin:8px 0}.panel label{display:block;margin-top:14px;text-align:left}.panel label span{display:block;margin-bottom:6px;font-weight:800}.panel input{width:100%;min-height:48px;padding:10px 12px;border:1px solid #aebfcb;border-radius:10px;background:#fff;color:#152536;font:inherit}.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.fact{padding:12px;border-radius:12px;background:#eef4f8}.fact span{display:block;color:#607285;font-size:.86rem}.fact strong{display:block;margin-top:3px;overflow-wrap:anywhere}.fallback{display:block;margin:18px auto 0;text-align:center;color:#174a70;font-weight:800}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #f2b53f;outline-offset:3px}[hidden]{display:none!important}@media(max-width:520px){.card{padding:22px 18px}.facts{grid-template-columns:1fr}.actions>*{width:100%}}
   </style>
 </head>
 <body>
   <main class="card">
     <img id="approvedLauncherLogo" class="approved-logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
-    <h1>Opening Business Office</h1>
-    <p id="status">Clearing the obsolete Office connection and opening Google authorization in this tab.</p>
-    <a id="continueButton" class="primary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Continue securely</a>
-    <p class="muted">Google prepares a secure gateway session, then you return to Highway 38 in this tab. No second window remains open.</p>
+    <h1 id="launcherTitle">Opening Business Office</h1>
+    <p id="launcherIntro" class="intro muted">Preparing secure access.</p>
+    <p id="status" class="status" aria-live="polite">Clearing the obsolete Office connection and opening Google authorization in this tab.</p>
+
+    <div id="legacyLaunch" class="actions">
+      <a id="continueButton" class="primary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Continue securely</a>
+    </div>
+
+    <section id="officeAuthLogin" class="panel" hidden>
+      <h2>Sign in with Supabase</h2>
+      <p>Use the account connected to your Highway 38 Business Office membership.</p>
+      <form id="officeAuthForm">
+        <label><span>Email address</span><input id="officeAuthEmail" type="email" autocomplete="email" required></label>
+        <label><span>Password</span><input id="officeAuthPassword" type="password" autocomplete="current-password"></label>
+        <div class="actions">
+          <button class="primary" type="submit">Sign in</button>
+          <button id="officeAuthMagicLink" class="secondary" type="button">Email secure sign-in link</button>
+        </div>
+      </form>
+      <p class="muted">Passwords go directly to Supabase Auth and are never stored in this webpage or repository. An email is sent only when you press the email-link button.</p>
+    </section>
+
+    <section id="officeAuthReady" class="panel" hidden>
+      <h2>Business Office access verified</h2>
+      <div class="facts">
+        <div class="fact"><span>Business</span><strong id="officeAuthBusinessName">Highway 38 Solutions</strong></div>
+        <div class="fact"><span>Role</span><strong id="officeAuthRole">Owner</strong></div>
+        <div class="fact"><span>Signed in as</span><strong id="officeAuthEmailDisplay"></strong></div>
+        <div class="fact"><span>Access</span><strong id="officeAuthModules">0 enabled modules</strong></div>
+      </div>
+      <p class="muted">This preview verifies Supabase Auth and tenant access. Unmigrated modules still open through the existing Google Business Office.</p>
+      <div class="actions">
+        <a id="officeAuthContinue" class="primary" href="#">Open current Business Office</a>
+        <button id="officeAuthSignOut" class="secondary" type="button">Sign out</button>
+      </div>
+    </section>
+
+    <section id="officeAuthHold" class="panel" hidden>
+      <h2>Supabase access is on hold</h2>
+      <p>The new sign-in stopped before opening business records. The current Google Office remains available below.</p>
+    </section>
+
+    <a id="legacyFallback" class="fallback" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1" hidden>Use current Google sign-in</a>
+    <p id="legacyNote" class="muted intro">Google prepares a secure gateway session, then you return to Highway 38 in this tab. No second window remains open.</p>
   </main>
   <script>
-    (async function(){
+    (function(){
+      'use strict';
+
+      var incoming=new URLSearchParams(location.search);
+      var preview=String(incoming.get('auth')||'').toLowerCase()==='supabase';
       var destination=new URL('https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec');
       destination.searchParams.set('entry','1');
       destination.searchParams.set('officeBuild','20260803-1700');
-      var incoming=new URLSearchParams(location.search);
       ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
       destination=destination.toString();
       document.getElementById('continueButton').href=destination;
-      try{
+      document.getElementById('legacyFallback').href=destination;
+
+      function loadScript(src){
+        return new Promise(function(resolve,reject){
+          var script=document.createElement('script');
+          script.src=src;
+          script.async=false;
+          script.onload=resolve;
+          script.onerror=function(){reject(new Error('A secure sign-in resource did not load.'));};
+          document.head.appendChild(script);
+        });
+      }
+
+      async function clearLegacyConnection(){
         sessionStorage.removeItem('h38-gateway-session-v1');
         sessionStorage.removeItem('h38-execution-session-v1');
         if('serviceWorker' in navigator){
@@ -39,11 +96,40 @@
           var keys=await caches.keys();
           await Promise.all(keys.filter(function(key){return key.indexOf('h38-business-office-')===0;}).map(function(key){return caches.delete(key);}));
         }
-        document.getElementById('status').textContent='Opening Google authorization and secure gateway in this tab…';
-      }catch(error){
-        document.getElementById('status').textContent='Opening secure authorization. The old Office connection will be ignored.';
       }
-      window.location.replace(destination);
+
+      async function openLegacy(){
+        try{
+          await clearLegacyConnection();
+          document.getElementById('status').textContent='Opening Google authorization and secure gateway in this tab…';
+        }catch(error){
+          document.getElementById('status').textContent='Opening secure authorization. The old Office connection will be ignored.';
+        }
+        window.location.replace(destination);
+      }
+
+      async function openSupabasePreview(){
+        document.title='Supabase Sign-In Preview | Highway 38 Business Office';
+        document.getElementById('launcherTitle').textContent='Business Office sign-in preview';
+        document.getElementById('launcherIntro').textContent='Verify the new Supabase account and business-role connection without changing the normal Office login.';
+        document.getElementById('legacyLaunch').hidden=true;
+        document.getElementById('legacyNote').hidden=true;
+        document.getElementById('legacyFallback').hidden=false;
+        document.getElementById('status').textContent='Loading the Supabase sign-in preview…';
+        try{
+          await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8');
+          await loadScript('customer-portal-config.js?v=20260804-business-office-auth');
+          await loadScript('business-office-auth-bootstrap.js?v=20260804-business-office-auth');
+        }catch(error){
+          console.error(error);
+          document.getElementById('officeAuthHold').hidden=false;
+          document.getElementById('status').className='status bad';
+          document.getElementById('status').textContent=error&&error.message?error.message:'The Supabase sign-in preview did not load.';
+        }
+      }
+
+      if(preview)openSupabasePreview();
+      else openLegacy();
     })();
   </script>
 </body>
