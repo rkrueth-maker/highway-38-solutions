@@ -18,6 +18,7 @@ concurrency:
 jobs:
   verify-deploy-and-accept:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
       CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
@@ -69,6 +70,7 @@ jobs:
           node scripts/verify-commercial-google-native-beta.js | tee artifacts/commercial-google-native-beta/commercial-verification.json
           node scripts/verify-commercial-office-parity.js | tee artifacts/commercial-google-native-beta/office-parity-verification.json
           node scripts/verify-commercial-delivery-contract.js | tee artifacts/commercial-google-native-beta/delivery-contract-verification.json
+          node scripts/verify-commercial-full-demo-contract.js | tee artifacts/commercial-google-native-beta/full-demo-contract-verification.json
           node scripts/verify-commercial-startup.js | tee artifacts/commercial-google-native-beta/startup-verification.json
 
       - name: Require scoped Supabase deployment credential
@@ -141,7 +143,7 @@ jobs:
           bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
 
       - id: delivery_acceptance
-        name: Reproduce website quotes in the new Office and preserve DEMO examples
+        name: Reproduce standard website quotes in the new Office and preserve DEMO examples
         shell: bash
         run: |
           set -euo pipefail
@@ -152,6 +154,18 @@ jobs:
             "commercial-beta/website-demo-quotes.json" \
             "artifacts/commercial-google-native-beta/delivery-acceptance" \
             | tee artifacts/commercial-google-native-beta/delivery-acceptance.txt
+
+      - id: full_demo_acceptance
+        name: Populate all eight examples, CAD, AI, modules and cabin PDF proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-commercial-full-demo-acceptance.js \
+            "https://highway38solutions.com/" \
+            "$HOME/.clasprc.json" \
+            "commercial-beta/cabin-demo-project.json" \
+            "artifacts/commercial-google-native-beta/full-demo-acceptance" \
+            | tee artifacts/commercial-google-native-beta/full-demo-acceptance.txt
 
       - name: Write final release report
         if: always()
@@ -164,11 +178,12 @@ jobs:
           APPS_SCRIPT_DEPLOY_OUTCOME: ${{ steps.apps_script_deploy.outcome }}
           STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
           DELIVERY_ACCEPTANCE_OUTCOME: ${{ steps.delivery_acceptance.outcome }}
+          FULL_DEMO_ACCEPTANCE_OUTCOME: ${{ steps.full_demo_acceptance.outcome }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/commercial-google-native-beta
           FINAL_STATUS=FAIL
-          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_DEPLOY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${CREDENTIALS_OUTCOME}" == "success" && "${APPS_SCRIPT_DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" && "${DELIVERY_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
+          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_DEPLOY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${CREDENTIALS_OUTCOME}" == "success" && "${APPS_SCRIPT_DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" && "${DELIVERY_ACCEPTANCE_OUTCOME}" == "success" && "${FULL_DEMO_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
           cat > artifacts/commercial-google-native-beta/release-report.json <<JSON
           {
             "status": "${FINAL_STATUS}",
@@ -183,7 +198,15 @@ jobs:
             "appsScriptDeploy": "${APPS_SCRIPT_DEPLOY_OUTCOME}",
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "deliveryAcceptance": "${DELIVERY_ACCEPTANCE_OUTCOME}",
-            "websiteDemoQuotesPreserved": true,
+            "fullDemoAcceptance": "${FULL_DEMO_ACCEPTANCE_OUTCOME}",
+            "websiteExamples": 8,
+            "cabinSubQuotes": 21,
+            "cabinPdfProofs": 22,
+            "cadFilesRequired": true,
+            "priceCatalogRequired": true,
+            "aiQuoteBuilderRequired": true,
+            "aiPhotoMeasureRequired": true,
+            "demoRecordsPreserved": true,
             "approvedLogoRequired": true,
             "existingSupabaseProject": "${SUPABASE_PROJECT_ID}",
             "existingGatewayFunction": "${H38_GATEWAY_FUNCTION}",
@@ -203,9 +226,12 @@ jobs:
             echo "- Status: **${FINAL_STATUS}**"
             echo "- Source: \`${GITHUB_REF_NAME}@${GITHUB_SHA}\`"
             echo "- Supabase project/function: \`${SUPABASE_PROJECT_ID}/${H38_GATEWAY_FUNCTION}\`"
-            echo "- Replacement Office parity guard: **required**"
-            echo "- Website-to-Office quote delivery acceptance: **${DELIVERY_ACCEPTANCE_OUTCOME}**"
-            echo "- Preserved website DEMO records: **required**"
+            echo "- Public examples preserved: **8**"
+            echo "- Cabin package: **21 sub-quotes + 22 PDF proofs**"
+            echo "- CAD files in Documents: **required**"
+            echo "- Price Catalog-first AI Quote Builder: **required**"
+            echo "- AI photo measurement with field verification: **required**"
+            echo "- Full module population acceptance: **${FULL_DEMO_ACCEPTANCE_OUTCOME}**"
             echo "- Approved Highway 38 logo: **required**"
             echo "- Existing Apps Script project/deployment only: **yes**"
             echo "- Branch status commits: **none**"
