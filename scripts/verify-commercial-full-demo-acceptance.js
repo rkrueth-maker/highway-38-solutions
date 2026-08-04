@@ -16,20 +16,34 @@ const oldCoreLoop=`    const seedEvidence={coreProjects:[],corePackages:[],catal
       seedEvidence.coreProjects.push(result);write(\`seed-core-\${projectKey.toLowerCase()}.json\`,result);
     }`;
 const newCoreLoop=`    const seedEvidence={coreProjects:[],corePackages:[],catalog:[],operations:[],finance:[]};
-    const coreSteps=['records','quote','evidence'];
+    const coreSteps=['records','quote','measurements'];
     for(const projectKey of PROJECT_KEYS){
       const projectResults=[];
+      let cadPlanCount=0;
       for(const step of coreSteps){
         mark(\`SEED_CORE_\${projectKey}_\${step.toUpperCase()}\`);
         const result=await retryRequest('seedFullDemoBatch',{businessId,phase:'core-step',step,projectKey},150000,2);
         assert(result.status==='PASS'&&result.phase==='core-step'&&result.step===step&&result.core?.step===step,\`Bounded core \${step} batch \${projectKey} failed.\`);
         if(step==='records')assert(result.core.projects===1,\`Core records batch \${projectKey} did not create the project records.\`);
         if(step==='quote')assert(result.core.quotes===1,\`Core quote batch \${projectKey} did not create the canonical quote.\`);
-        if(step==='evidence')assert(result.core.measurements===2&&result.core.cadFiles>=1,\`Core evidence batch \${projectKey} did not create measurements and CAD.\`);
+        if(step==='measurements'){
+          assert(result.core.measurements===2,\`Core measurement batch \${projectKey} did not create both measurement examples.\`);
+          cadPlanCount=Number(result.core.cadPlanCount||0);
+          assert(cadPlanCount>=1,\`Core measurement batch \${projectKey} did not report its CAD plan count.\`);
+        }
         assert(result.approved===false&&result.sent===false&&result.published===false&&result.fundsMoved===false&&result.externalActionsEnabled===false,\`Bounded core \${step} batch \${projectKey} crossed a safety boundary.\`);
         projectResults.push(result);write(\`seed-core-\${projectKey.toLowerCase()}-\${step}.json\`,result);
       }
-      seedEvidence.coreProjects.push({projectKey,steps:projectResults});
+      const cadResults=[];
+      for(let cadIndex=0;cadIndex<cadPlanCount;cadIndex++){
+        mark(\`SEED_CORE_\${projectKey}_CAD_\${cadIndex+1}\`);
+        const result=await retryRequest('seedFullDemoBatch',{businessId,phase:'core-step',step:'cad',projectKey,cadIndex},150000,2);
+        assert(result.status==='PASS'&&result.phase==='core-step'&&result.step==='cad'&&result.core?.step==='cad',\`Bounded CAD batch \${projectKey} #\${cadIndex+1} failed.\`);
+        assert(result.core.cadFiles===1&&Number(result.core.cadIndex)===cadIndex,\`Bounded CAD batch \${projectKey} #\${cadIndex+1} did not create exactly one expected CAD file.\`);
+        assert(result.approved===false&&result.sent===false&&result.published===false&&result.fundsMoved===false&&result.externalActionsEnabled===false,\`Bounded CAD batch \${projectKey} #\${cadIndex+1} crossed a safety boundary.\`);
+        cadResults.push(result);write(\`seed-core-\${projectKey.toLowerCase()}-cad-\${cadIndex+1}.json\`,result);
+      }
+      seedEvidence.coreProjects.push({projectKey,steps:projectResults,cadPlans:cadResults});
     }`;
 
 let patched=source
@@ -43,8 +57,8 @@ let patched=source
   )
   .replace(oldCoreLoop,newCoreLoop);
 
-if(patched===source||!patched.includes("phase:'core-step'")||patched.includes("phase:'core',projectKey")){
-  throw new Error('Full-demo acceptance bounded-batch compatibility patch did not match the reviewed runner.');
+if(patched===source||!patched.includes("step:'cad'")||!patched.includes("const coreSteps=['records','quote','measurements']")||patched.includes("phase:'core',projectKey")){
+  throw new Error('Full-demo acceptance split-evidence compatibility patch did not match the reviewed runner.');
 }
 
 const runner=new Module(target,module);
@@ -53,4 +67,4 @@ runner.paths=Module._nodeModulePaths(path.dirname(target));
 runner._compile(patched,target);
 
 // Static contract compatibility marker: require('./verify-commercial-full-demo-acceptance-v2.js')
-// Controlled bounded core marker: phase:'core-step' with records, quote, and evidence steps.
+// Controlled bounded core markers: records, quote, measurements, and one CAD file per request.
