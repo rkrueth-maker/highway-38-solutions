@@ -27,7 +27,7 @@ function redactGatewayText(value){
     .replace(/"accessToken"\s*:\s*"[^"]+"/gi,'"accessToken":"[REDACTED]"')
     .slice(0,1200);
 }
-function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com');}
+function isScriptHost(hostname){return hostname==='script.google.com'||hostname==='script.googleusercontent.com'||hostname.endsWith('.script.googleusercontent.com')||hostname.endsWith('-script.googleusercontent.com');}
 function isHighwayHost(hostname){return hostname==='highway38solutions.com'||hostname==='www.highway38solutions.com';}
 if(!deploymentArg)throw new Error('Deployment URL is required for gateway browser acceptance.');
 if(!fs.existsSync(credentialsPath))throw new Error('Authorized Google credential file was not found for gateway browser acceptance.');
