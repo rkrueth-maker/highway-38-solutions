@@ -126,4 +126,7 @@ renderQuotes=function(){
 const h38DeliveryBaseRenderMeasure=renderMeasure;
 renderMeasure=function(){h38DeliveryBaseRenderMeasure();h38AddMeasureAiPanel();};
 
+if(!Object.prototype.hasOwnProperty.call(window,'state')){
+  Object.defineProperty(window,'state',{configurable:true,enumerable:false,get:()=>state});
+}
 document.body.dataset.approvedLogo='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
