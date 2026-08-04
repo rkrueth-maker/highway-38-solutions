@@ -29,6 +29,7 @@ check('setup approved logo',setup.includes(`https://highway38solutions.com/asset
 check('printable preview approved logo',delivery.includes(`const H38_APPROVED_LOGO='/assets/${logo}'`)&&delivery.includes('class="quote-logo"')&&delivery.includes('Print / Save PDF'));
 check('print layout exists',deliveryCss.includes('@media print')&&deliveryCss.includes('.quote-document'));
 check('Generic customer auto selection',delivery.includes("option.textContent.trim()==='Generic Quote Customer'"));
+check('Office state has read-only browser getter',delivery.includes("Object.defineProperty(window,'state'")&&delivery.includes('get:()=>state')&&!delivery.includes('window.state=state'));
 check('backend seeds Generic Quote Customer',completionDefaults.includes('function cbCompletionEnsureGenericQuoteCustomer_(context)')&&completionDefaults.includes("name='Generic Quote Customer'")&&completionDefaults.includes("'Status':'Active'")&&completionDefaults.includes('cbCompletionEnsureGenericQuoteCustomer_(context);'));
 check('Generic customer seed is deterministic and idempotent',completionDefaults.includes("'CUSTOMER-GENERIC-QUOTE-'")&&completionDefaults.includes("cbText_(item['Customer Name']).toLowerCase()===name.toLowerCase()")&&completionDefaults.includes("return cbText_(row['Customer ID'])"));
 check('bootstrap runs defaults before customer snapshot',completionBootstrap.indexOf('cbCompletionSeedDefaults_(context)')>=0&&completionBootstrap.indexOf('cbCompletionSeedDefaults_(context)')<completionBootstrap.indexOf('data.customers='));
@@ -47,5 +48,5 @@ check('delivery script records staged evidence',live.includes("stages.ndjson")&&
 check('delivery script verifies visible quote buttons',live.includes('visibleIds.includes(quote.quoteId)')&&live.includes('openQuoteThroughUi'));
 check('delivery script generates all branded PDFs',live.includes('page.pdf')&&live.includes('bytes>10000')&&live.includes('quotePreviewDocument'));
 check('release workflow invokes delivery acceptance',workflow.includes('verify-commercial-delivery-acceptance.js'));
-console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',scopedSnapshotRequired:true,repeatedFullBootstrapAllowed:false,checks,failures},null,2));
+console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',scopedSnapshotRequired:true,readOnlyStateGetterRequired:true,repeatedFullBootstrapAllowed:false,checks,failures},null,2));
 if(failures.length)process.exit(1);
