@@ -14,6 +14,26 @@ begin
 end
 $$;
 
+create or replace function pg_temp.assert_affected(
+  command text,
+  expected_count bigint,
+  message text
+)
+returns void
+language plpgsql
+as $$
+declare
+  affected_count bigint;
+begin
+  execute command;
+  get diagnostics affected_count = row_count;
+  if affected_count <> expected_count then
+    raise exception 'multitenant acceptance failed: % (expected %, got %)',
+      message, expected_count, affected_count;
+  end if;
+end
+$$;
+
 select pg_temp.assert_true(
   (select count(*) = 9
    from pg_class c
@@ -96,54 +116,43 @@ values (
 
 set local session_replication_role = origin;
 
--- Business A owner sees and changes only Business A.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
 select pg_temp.assert_true((select count(*) = 1 from public.businesses), 'owner sees only own business');
 select pg_temp.assert_true((select count(*) = 1 from public.business_module_settings), 'owner sees only own module settings');
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_module_settings set enabled = true
+select pg_temp.assert_affected(
+  $$update public.business_module_settings set enabled = true
     where business_id = '10000000-0000-0000-0000-000000000002'
-      and module_key = 'b-module'
-    returning 1
-  ) select count(*) = 0 from changed),
+      and module_key = 'b-module'$$,
+  0,
   'owner cannot update another business module'
 );
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_module_settings set enabled = true
+select pg_temp.assert_affected(
+  $$update public.business_module_settings set enabled = true
     where business_id = '10000000-0000-0000-0000-000000000001'
-      and module_key = 'a-module'
-    returning 1
-  ) select count(*) = 1 from changed),
+      and module_key = 'a-module'$$,
+  1,
   'owner can update own module setting'
 );
 
 reset role;
 
--- Viewer remains read-only.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000002', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_module_settings set enabled = false
+select pg_temp.assert_affected(
+  $$update public.business_module_settings set enabled = false
     where business_id = '10000000-0000-0000-0000-000000000001'
-      and module_key = 'a-module'
-    returning 1
-  ) select count(*) = 0 from changed),
+      and module_key = 'a-module'$$,
+  0,
   'viewer cannot change module settings'
 );
 
 reset role;
 
--- Staff may draft an inert action but cannot approve it.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000004', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
@@ -161,109 +170,86 @@ values (
   '20000000-0000-0000-0000-000000000004'
 );
 
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_approvals
+select pg_temp.assert_affected(
+  $$update public.business_approvals
     set status = 'approved',
         reviewed_by = '20000000-0000-0000-0000-000000000004',
         reviewed_at = now()
-    where id = '30000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 0 from changed),
+    where id = '30000000-0000-0000-0000-000000000001'$$,
+  0,
   'staff cannot approve an action'
 );
 
 reset role;
 
--- Owner links the matching pending request and reviews it.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
-select pg_temp.assert_true(
-  (with changed as (
-    update public.external_action_queue
+select pg_temp.assert_affected(
+  $$update public.external_action_queue
     set status = 'pending_owner_approval',
         approval_id = '30000000-0000-0000-0000-000000000001'
-    where id = '40000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 1 from changed),
+    where id = '40000000-0000-0000-0000-000000000001'$$,
+  1,
   'owner can link the matching pending approval'
 );
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_approvals
+select pg_temp.assert_affected(
+  $$update public.business_approvals
     set status = 'approved',
         reviewed_by = '20000000-0000-0000-0000-000000000001',
         reviewed_at = now()
-    where id = '30000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 1 from changed),
+    where id = '30000000-0000-0000-0000-000000000001'$$,
+  1,
   'owner can review the pending request'
 );
 
 reset role;
 
--- Administrator cannot grant the separate Owner-only external-action gate.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000005', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_approvals
+select pg_temp.assert_affected(
+  $$update public.business_approvals
     set external_action_allowed = true
-    where id = '30000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 0 from changed),
+    where id = '30000000-0000-0000-0000-000000000001'$$,
+  0,
   'administrator cannot grant external-action authorization'
 );
 
 reset role;
 
--- Owner grants the separate gate and may prepare, but not execute, the action.
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_approvals
+select pg_temp.assert_affected(
+  $$update public.business_approvals
     set external_action_allowed = true
-    where id = '30000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 1 from changed),
+    where id = '30000000-0000-0000-0000-000000000001'$$,
+  1,
   'owner can grant the separate external-action authorization'
 );
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.external_action_queue
+select pg_temp.assert_affected(
+  $$update public.external_action_queue
     set status = 'approved'
-    where id = '40000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 1 from changed),
+    where id = '40000000-0000-0000-0000-000000000001'$$,
+  1,
   'owner can prepare the inert action after explicit authorization'
 );
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.external_action_queue
+select pg_temp.assert_affected(
+  $$update public.external_action_queue
     set status = 'executing'
-    where id = '40000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 0 from changed),
+    where id = '40000000-0000-0000-0000-000000000001'$$,
+  0,
   'browser role cannot execute an external action'
 );
-
-select pg_temp.assert_true(
-  (with changed as (
-    update public.business_approvals
+select pg_temp.assert_affected(
+  $$update public.business_approvals
     set status = 'rejected'
-    where id = '30000000-0000-0000-0000-000000000001'
-    returning 1
-  ) select count(*) = 0 from changed),
+    where id = '30000000-0000-0000-0000-000000000001'$$,
+  0,
   'final approval and Owner gate are immutable'
 );
 
