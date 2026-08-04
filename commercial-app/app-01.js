@@ -4,7 +4,8 @@ const H38Bridge=window.H38Bridge;
 const SECURE_OFFICE_URL='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec';
 const BRIDGE_URL=SECURE_OFFICE_URL+'?bridge=1';
 const PAGE_DEFS={today:['🏠','Today'],customers:['👥','Customers'],work:['🧰','Work'],quotes:['🧾','Quotes'],measure:['📐','Measure'],schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Field'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],money:['💵','Money'],documents:['📁','Documents'],social:['📣','Social'],ai:['✨','H38 AI'],settings:['⚙️','Settings']};
-const SHELL_PAGES={office:Object.keys(PAGE_DEFS),quote:['today','customers','quotes','measure','messages','documents','ai','settings'],field:['today','work','measure','schedule','messages','field','fleet','documents','ai'],inventory:['today','work','messages','inventory','fleet','documents','ai'],social:['today','messages','social','ai','settings']};
+const OFFICE_PAGES=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
+const SHELL_PAGES={office:OFFICE_PAGES,quote:['quotes'],field:['today','work','measure','schedule','messages','field','fleet','documents','ai'],inventory:['today','work','messages','inventory','fleet','documents','ai'],social:['today','messages','social','ai','settings']};
 const SHELL_LABELS={office:'Full Business Office',quote:'Standalone Quote Builder',field:'Field & Crew',inventory:'Inventory & Fleet',social:'Social Control'};
 const state={shell:'office',page:'today',businessId:'',snapshot:null,bridge:null,bridgeReady:false,quote:{quoteId:'',lines:[]},selectedConversation:'',messageTab:'internal',aiConversationId:'',aiChat:[],drivingMode:false,listening:false};
 const $=id=>document.getElementById(id);
@@ -25,6 +26,7 @@ async function init(){
   const settings=await get('meta','settings')||{id:'settings',bridgeUrl:BRIDGE_URL,drivingMode:false};state.drivingMode=!!settings.drivingMode;
   const requestedBusinessId=(query.get('businessId')||'').trim(),cachedBusinessId=(await get('meta','selectedBusiness'))?.businessId||'';state.businessId=requestedBusinessId||cachedBusinessId;
   if(requestedBusinessId)await put('meta',{id:'selectedBusiness',businessId:requestedBusinessId});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
   bindGlobal();renderNav();network();await loadCached();await updatePending();
   state.bridge=new H38Bridge($('bridgeFrame'),BRIDGE_URL,handleBridgeStatus);state.bridge.connect();
   addEventListener('online',()=>{network();if(!state.bridgeReady)state.bridge?.connect();});addEventListener('offline',network);
@@ -37,7 +39,7 @@ async function handleBridgeStatus(status){
   if(status==='authorizing'){$('businessStatus').textContent='Complete Google sign-in, then return here.';renderWelcome('authorizing');return;}
   $('businessStatus').textContent='Secure sign-in is required.';renderWelcome('unavailable');
 }
-function bindGlobal(){$('loadBusinessButton').onclick=()=>state.bridgeReady?loadBusiness($('businessSelect').value,false):state.bridge.authorize();$('syncButton').onclick=()=>state.bridgeReady?sync(true):state.bridge.authorize();$('voiceButton').onclick=toggleVoice;document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&navigator.onLine&&!state.bridgeReady)state.bridge?.connect();});}
+function bindGlobal(){$('loadBusinessButton').onclick=()=>state.bridgeReady?loadBusiness($('businessSelect').value,false):state.bridge.authorize();$('syncButton').onclick=()=>state.bridgeReady?sync(true):state.bridge.authorize();$('voiceButton').onclick=toggleVoice;$('globalAiButton').onclick=openGlobalAi;document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&navigator.onLine&&!state.bridgeReady)state.bridge?.connect();});}
 function can(capability){const user=state.snapshot?.user;if(!user)return true;if(user.owner||user.permissions?.all===true)return true;return user.permissions?.[capability]===true;}
 function allowedPages(){const requirements={customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],settings:['manageSettings','manageUsers']};return SHELL_PAGES[state.shell].filter(page=>!requirements[page]||requirements[page].some(can));}
 function renderNav(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>`<button type="button" data-page="${key}" class="${key===state.page?'active':''}"><span class="nav-icon">${PAGE_DEFS[key][0]}</span><span>${PAGE_DEFS[key][1]}</span></button>`).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));}
