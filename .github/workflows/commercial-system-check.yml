@@ -34,6 +34,7 @@ jobs:
           node --check commercial-app/app-16.js
           node --check scripts/verify-commercial-system.js
           node --check scripts/verify-commercial-release-pipeline.js
+          node --check scripts/verify-commercial-google-native-beta.js
           node --check scripts/verify-commercial-browser-signin.js
           node --check scripts/verify-commercial-shell-focus.js
           cp apps-script/commercial-intake/FormBuilder.gs /tmp/FormBuilder.js
@@ -41,6 +42,9 @@ jobs:
 
       - name: Verify commercial release pipeline boundaries
         run: node scripts/verify-commercial-release-pipeline.js
+
+      - name: Verify deployable Google-native beta source
+        run: node scripts/verify-commercial-google-native-beta.js
 
       - name: Verify focused Quote Builder and global AI shell
         run: node scripts/verify-commercial-shell-focus.js
