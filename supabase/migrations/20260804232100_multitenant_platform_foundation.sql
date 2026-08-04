@@ -1,6 +1,6 @@
 -- Highway 38 Business Office multitenant foundation.
--- This migration is intentionally schema-only. It does not migrate, delete,
--- approve, send, publish, charge, or otherwise mutate existing Apps Script data.
+-- Schema-only: no production records are migrated, deleted, approved, sent,
+-- published, charged, or otherwise acted on by this migration.
 
 begin;
 
@@ -98,7 +98,9 @@ create table if not exists public.approval_requests (
   constraint approval_decision_consistency check (
     (status = 'pending' and decided_by is null and decided_at is null)
     or
-    (status <> 'pending')
+    (status in ('approved', 'rejected') and decided_by is not null and decided_at is not null)
+    or
+    (status in ('cancelled', 'expired') and decided_at is not null)
   )
 );
 
@@ -148,13 +150,19 @@ create table if not exists public.external_action_queue (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint external_action_requires_approval check (
-    status in ('draft', 'pending_owner_approval', 'cancelled')
-    or approval_request_id is not null
+    (status = 'draft' and approval_request_id is null)
+    or status = 'cancelled'
+    or (status in ('pending_owner_approval', 'approved', 'executing', 'completed', 'failed')
+        and approval_request_id is not null)
   )
 );
 
+create unique index if not exists external_action_queue_approval_once_idx
+  on public.external_action_queue (approval_request_id)
+  where approval_request_id is not null;
+
 comment on table public.external_action_queue is
-  'External actions remain inert until an explicit owner approval is linked. No trigger executes actions.';
+  'External actions are inert records. Browser users cannot execute them; service execution must re-check an approved, matching owner decision.';
 
 create or replace function private.membership_role(target_business_id uuid)
 returns text
@@ -171,9 +179,6 @@ as $$
   limit 1
 $$;
 
-revoke all on function private.membership_role(uuid) from public;
-grant execute on function private.membership_role(uuid) to authenticated;
-
 create or replace function private.is_business_member(target_business_id uuid)
 returns boolean
 language sql
@@ -184,10 +189,10 @@ as $$
   select private.membership_role(target_business_id) is not null
 $$;
 
-revoke all on function private.is_business_member(uuid) from public;
-grant execute on function private.is_business_member(uuid) to authenticated;
-
-create or replace function private.has_business_role(target_business_id uuid, allowed_roles text[])
+create or replace function private.has_business_role(
+  target_business_id uuid,
+  allowed_roles text[]
+)
 returns boolean
 language sql
 stable
@@ -197,8 +202,42 @@ as $$
   select coalesce(private.membership_role(target_business_id) = any(allowed_roles), false)
 $$;
 
+create or replace function private.approval_matches_external_action(
+  target_business_id uuid,
+  target_approval_id uuid,
+  target_action_type text,
+  target_record_type text,
+  target_record_id uuid,
+  required_status text
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select exists (
+    select 1
+    from public.approval_requests ar
+    where ar.id = target_approval_id
+      and ar.business_id = target_business_id
+      and ar.action_type = target_action_type
+      and ar.record_type = target_record_type
+      and ar.record_id is not distinct from target_record_id
+      and ar.status = required_status
+  )
+$$;
+
+revoke all on function private.membership_role(uuid) from public;
+revoke all on function private.is_business_member(uuid) from public;
 revoke all on function private.has_business_role(uuid, text[]) from public;
+revoke all on function private.approval_matches_external_action(uuid, uuid, text, text, uuid, text) from public;
+
+grant usage on schema private to authenticated;
+grant execute on function private.membership_role(uuid) to authenticated;
+grant execute on function private.is_business_member(uuid) to authenticated;
 grant execute on function private.has_business_role(uuid, text[]) to authenticated;
+grant execute on function private.approval_matches_external_action(uuid, uuid, text, text, uuid, text) to authenticated;
 
 alter table public.businesses enable row level security;
 alter table public.profiles enable row level security;
@@ -299,15 +338,21 @@ with check (
   and decided_at is null
 );
 
-create policy approvals_update_owner_admin
+create policy approvals_decide_owner_admin_once
 on public.approval_requests for update
 to authenticated
-using (private.has_business_role(business_id, array['owner','administrator']))
+using (
+  status = 'pending'
+  and private.has_business_role(business_id, array['owner','administrator'])
+)
 with check (
   private.has_business_role(business_id, array['owner','administrator'])
   and (
-    status = 'pending'
-    or decided_by = (select auth.uid())
+    (status = 'pending' and decided_by is null and decided_at is null)
+    or (status in ('approved','rejected')
+        and decided_by = (select auth.uid())
+        and decided_at is not null)
+    or (status = 'cancelled' and decided_at is not null)
   )
 );
 
@@ -321,7 +366,7 @@ on public.proof_log for insert
 to authenticated
 with check (
   private.is_business_member(business_id)
-  and (actor_user_id is null or actor_user_id = (select auth.uid()))
+  and actor_user_id = (select auth.uid())
 );
 
 create policy errors_select_admin
@@ -338,7 +383,7 @@ to authenticated
 with check (
   business_id is not null
   and private.is_business_member(business_id)
-  and (actor_user_id is null or actor_user_id = (select auth.uid()))
+  and actor_user_id = (select auth.uid())
 );
 
 create policy external_actions_select_member
@@ -352,19 +397,51 @@ to authenticated
 with check (
   created_by = (select auth.uid())
   and private.is_business_member(business_id)
-  and status in ('draft', 'pending_owner_approval')
+  and status = 'draft'
+  and approval_request_id is null
 );
 
-create policy external_actions_update_owner_admin
+create policy external_actions_update_owner_admin_gate
 on public.external_action_queue for update
 to authenticated
-using (private.has_business_role(business_id, array['owner','administrator']))
-with check (private.has_business_role(business_id, array['owner','administrator']));
+using (
+  status in ('draft', 'pending_owner_approval')
+  and private.has_business_role(business_id, array['owner','administrator'])
+)
+with check (
+  private.has_business_role(business_id, array['owner','administrator'])
+  and (
+    (status = 'draft' and approval_request_id is null)
+    or status = 'cancelled'
+    or (
+      status = 'pending_owner_approval'
+      and private.approval_matches_external_action(
+        business_id, approval_request_id, action_type, record_type, record_id, 'pending'
+      )
+    )
+    or (
+      status = 'approved'
+      and private.approval_matches_external_action(
+        business_id, approval_request_id, action_type, record_type, record_id, 'approved'
+      )
+    )
+  )
+);
 
--- Keep service-level writes explicit. No anonymous table access is granted.
-revoke all on all tables in schema public from anon;
+-- Scope grants only to the new foundation objects. Do not alter privileges on
+-- any pre-existing Customer Portal or gateway tables in the public schema.
+revoke all on table public.businesses from anon;
+revoke all on table public.profiles from anon;
+revoke all on table public.business_memberships from anon;
+revoke all on table public.business_invitations from anon;
+revoke all on table public.business_modules from anon;
+revoke all on table public.approval_requests from anon;
+revoke all on table public.proof_log from anon;
+revoke all on table public.error_log from anon;
+revoke all on table public.external_action_queue from anon;
+
 grant usage on schema public to authenticated;
-grant select, insert, update on public.businesses to authenticated;
+grant select, update on public.businesses to authenticated;
 grant select, insert, update on public.profiles to authenticated;
 grant select, insert, update on public.business_memberships to authenticated;
 grant select, insert, update on public.business_invitations to authenticated;
@@ -373,6 +450,7 @@ grant select, insert, update on public.approval_requests to authenticated;
 grant select, insert on public.proof_log to authenticated;
 grant select, insert on public.error_log to authenticated;
 grant select, insert, update on public.external_action_queue to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
+grant usage, select on sequence public.proof_log_id_seq to authenticated;
+grant usage, select on sequence public.error_log_id_seq to authenticated;
 
 commit;
