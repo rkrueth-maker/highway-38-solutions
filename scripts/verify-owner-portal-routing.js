@@ -57,7 +57,8 @@ assert('public portal contains one fallback Business Office action',(portal.matc
 assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher));
 assert('public portal preserves upload and business-office deep links',/upload:'documents'/.test(portal)&&/'business-office':'requests'/.test(portal)&&/params\.set\('page'/.test(portal));
 assert('secure launcher forwards only approved route parameters',/\['page','shell','businessId'\]/.test(launcher)&&/destination\.searchParams\.set\(key,value\)/.test(launcher));
-assert('secure launcher clears retired browser sessions and opens in this tab',launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&/window\.location\.replace\(destination\.toString\(\)\)/.test(launcher));
+const opensCurrentTab=/window\.location\.replace\(destination\.toString\(\)\)/.test(launcher)||(/destination=destination\.toString\(\)/.test(launcher)&&/window\.location\.replace\(destination\)/.test(launcher));
+assert('secure launcher clears retired browser sessions and opens in this tab',launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')")&&opensCurrentTab);
 assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher));
 
 assert('secure app contains no nested Business Office iframe',!/businessWorkspace|businessFrame|<iframe\b/i.test(portalIndex));
