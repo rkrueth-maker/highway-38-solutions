@@ -37,7 +37,7 @@ check('existing Apps Script project is pinned exactly', source.includes('1nNYrja
 check('transcription-damaged Apps Script project ID is absent', !source.includes('1nNYrjaH4kwCWQ2SGWMbXgLWXXEa_vGSec9N1DjSVLzAl1Z1fxhf'));
 check('existing Apps Script deployment is pinned', source.includes('AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'));
 check('browser token isolation remains declared', source.includes('browserReceivesGoogleToken: false'));
-check('external JWT verification remains intentionally custom', source.includes('type === "bootstrap"') && source.includes('type === "api"'));
+check('gateway request types remain explicitly routed', source.includes('requestType === "bootstrap"') && source.includes('requestType === "api"'));
 check('active gateway transport version is recorded', source.includes('version: "3.0.4"') && source.includes('dynamicCorsTransport: true'));
 check('gateway accepts encrypted session from JSON body', source.includes('const bodySession = String(body.gatewaySession || "").trim()'));
 check('gateway API keeps Authorization fallback only inside the function', source.includes('const sessionToken = bodySession || (match ? match[1] : "")'));
