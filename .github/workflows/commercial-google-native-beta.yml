@@ -67,6 +67,7 @@ jobs:
           node scripts/verify-commercial-release-pipeline.js | tee artifacts/commercial-google-native-beta/release-verification.json
           node scripts/verify-h38-office-gateway-source.js | tee artifacts/commercial-google-native-beta/gateway-source-verification.json
           node scripts/verify-commercial-google-native-beta.js | tee artifacts/commercial-google-native-beta/commercial-verification.json
+          node scripts/verify-commercial-office-parity.js | tee artifacts/commercial-google-native-beta/office-parity-verification.json
           node scripts/verify-commercial-startup.js | tee artifacts/commercial-google-native-beta/startup-verification.json
 
       - name: Require scoped Supabase deployment credential
@@ -168,6 +169,7 @@ jobs:
             "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
             "existingSupabaseProject": "${SUPABASE_PROJECT_ID}",
             "existingGatewayFunction": "${H38_GATEWAY_FUNCTION}",
+            "replacementOfficeParityVerified": true,
             "newAppsScriptProjectCreated": false,
             "newAppsScriptDeploymentCreated": false,
             "statusCommitsWritten": false,
@@ -183,6 +185,7 @@ jobs:
             echo "- Status: **${FINAL_STATUS}**"
             echo "- Source: \`${GITHUB_REF_NAME}@${GITHUB_SHA}\`"
             echo "- Supabase project/function: \`${SUPABASE_PROJECT_ID}/${H38_GATEWAY_FUNCTION}\`"
+            echo "- Replacement Office parity guard: **required**"
             echo "- Existing Apps Script project/deployment only: **yes**"
             echo "- Branch status commits: **none**"
             echo "- External actions enabled: **no**"
