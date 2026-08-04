@@ -52,7 +52,7 @@ function cbApi(request){
   try{
     if(action==='startupBootstrap')return cbStartupBootstrap(cbText_(args.businessId));
     if(action==='fullStartupRefresh')return cbFullStartupRefresh(cbText_(args.businessId));
-    if(action==='listBusinesses'||action==='visibleBusinesses')return cbCompletionVisibleBusinesses_();
+    if(action==='listBusinesses'||action==='visibleBusinesses'||action==='cbVisibleBusinesses')return cbCompletionVisibleBusinesses_();
     if(action==='completionBootstrap'||action==='pwaBootstrap')return cbCompletionBootstrap_(cbText_(args.businessId));
     if(action==='completionSync'||action==='syncOperations')return cbCompletionSyncOperations_(args);
     if(action==='communicationSummary')return cbCompletionCommunicationSummary_(cbText_(args.businessId));
