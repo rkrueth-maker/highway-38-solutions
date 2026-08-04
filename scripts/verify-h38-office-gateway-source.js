@@ -22,6 +22,7 @@ if (failures.length) {
 
 const source = fs.readFileSync(sourcePath, 'utf8');
 const bridge = fs.readFileSync(bridgePath, 'utf8');
+const executableBridge = bridge.replace(/\/\*[\s\S]*?\*\//g, '');
 
 check('dynamic Google Apps Script origin is allowed', source.includes('value.endsWith("-script.googleusercontent.com")'));
 check('standard Google Apps Script origin is allowed', source.includes('value.endsWith(".script.googleusercontent.com")'));
@@ -42,9 +43,9 @@ check('gateway accepts encrypted session from JSON body', source.includes('const
 check('gateway API keeps Authorization fallback only inside the function', source.includes('const sessionToken = bodySession || (match ? match[1] : "")'));
 check('gateway API returns an explicit result envelope', source.includes('return json(origin, 200, { status: "PASS", result })'));
 check('gateway health declares body transport', source.includes('opaqueSessionInRequestBody: true'));
-check('browser sends encrypted session in JSON body', bridge.includes("gatewaySession:this.session.gatewaySession"));
-check('browser does not send opaque session in Authorization header', !bridge.includes('authorization:`Bearer ${this.session.gatewaySession}`'));
-check('browser never stores a Google access token', !bridge.includes('accessToken:this.session') && bridge.includes('browserReceivesGoogleToken:false'));
+check('browser sends encrypted session in JSON body', executableBridge.includes("gatewaySession:this.session.gatewaySession"));
+check('browser does not send opaque session in Authorization header', !executableBridge.includes('authorization:`Bearer ${this.session.gatewaySession}`'));
+check('browser never stores a Google access token', !executableBridge.includes('accessToken:this.session') && executableBridge.includes('browserReceivesGoogleToken:false'));
 
 const output = {
   status: failures.length ? 'FAIL' : 'PASS',
