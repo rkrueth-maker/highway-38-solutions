@@ -9,9 +9,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Highway 38 Business Office">
-  <link rel="manifest" href="./manifest.webmanifest?build=20260803-1700">
+  <link rel="manifest" href="./manifest.webmanifest?build=20260803-2055">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?build=20260803-1700">
+  <link rel="stylesheet" href="./styles.css?build=20260803-2055">
+  <link rel="stylesheet" href="./ai-drawer.css?build=20260803-2055">
   <title>Highway 38 Business Office</title>
 </head>
 <body>
@@ -20,6 +21,7 @@
     <div class="top-actions">
       <span id="networkBadge" class="badge offline">Checking</span>
       <span id="syncBadge" class="badge neutral">0 pending</span>
+      <button id="globalAiButton" class="ai-launcher" type="button" aria-label="Open H38 AI"><span aria-hidden="true">✨</span><span class="ai-launcher-label">H38 AI</span></button>
       <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to H38">🎙️</button>
       <button id="syncButton" class="icon-button" type="button" aria-label="Synchronize">↻</button>
     </div>
@@ -35,32 +37,33 @@
   </div>
   <div id="toast" class="toast hidden" role="status"></div>
   <dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog>
+  <dialog id="globalAiDialog" class="ai-drawer" aria-label="H38 AI assistant"><div id="globalAiBody"></div></dialog>
   <iframe id="bridgeFrame" class="bridge-frame" title="Retired secure connection" hidden></iframe>
   <script>
-    window.H38_BUILD='20260803-1700';
+    window.H38_BUILD='20260803-2055';
     window.H38_GATEWAY_HANDOFF_PRESENT=location.hash.indexOf('h38=')>=0;
     window.H38_EXECUTION_HANDOFF_PRESENT=false;
   </script>
-  <script src="./db.js?build=20260803-1700"></script>
-  <script src="./bridge.js?build=20260803-1700"></script>
-  <script src="./app-01.js?build=20260803-1700"></script>
-  <script src="./app-02.js?build=20260803-1700"></script>
-  <script src="./app-03.js?build=20260803-1700"></script>
-  <script src="./app-04.js?build=20260803-1700"></script>
-  <script src="./app-05.js?build=20260803-1700"></script>
-  <script src="./app-06.js?build=20260803-1700"></script>
-  <script src="./app-07.js?build=20260803-1700"></script>
-  <script src="./app-08.js?build=20260803-1700"></script>
-  <script src="./app-09.js?build=20260803-1700"></script>
-  <script src="./app-10.js?build=20260803-1700"></script>
-  <script src="./app-11.js?build=20260803-1700"></script>
-  <script src="./app-12.js?build=20260803-1700"></script>
-  <script src="./app-13.js?build=20260803-1700"></script>
-  <script src="./app-14.js?build=20260803-1700"></script>
-  <script src="./app-15.js?build=20260803-1700"></script>
-  <script src="./app-16.js?build=20260803-1700"></script>
-  <script src="./app-17.js?build=20260803-1700"></script>
-  <script src="./startup-fix.js?build=20260803-1700"></script>
-  <script src="./app-18.js?build=20260803-1700"></script>
+  <script src="./db.js?build=20260803-2055"></script>
+  <script src="./bridge.js?build=20260803-2055"></script>
+  <script src="./app-01.js?build=20260803-2055"></script>
+  <script src="./app-02.js?build=20260803-2055"></script>
+  <script src="./app-03.js?build=20260803-2055"></script>
+  <script src="./app-04.js?build=20260803-2055"></script>
+  <script src="./app-05.js?build=20260803-2055"></script>
+  <script src="./app-06.js?build=20260803-2055"></script>
+  <script src="./app-07.js?build=20260803-2055"></script>
+  <script src="./app-08.js?build=20260803-2055"></script>
+  <script src="./app-09.js?build=20260803-2055"></script>
+  <script src="./app-10.js?build=20260803-2055"></script>
+  <script src="./app-11.js?build=20260803-2055"></script>
+  <script src="./app-12.js?build=20260803-2055"></script>
+  <script src="./app-13.js?build=20260803-2055"></script>
+  <script src="./app-14.js?build=20260803-2055"></script>
+  <script src="./app-15.js?build=20260803-2055"></script>
+  <script src="./app-16.js?build=20260803-2055"></script>
+  <script src="./app-17.js?build=20260803-2055"></script>
+  <script src="./startup-fix.js?build=20260803-2055"></script>
+  <script src="./app-18.js?build=20260803-2055"></script>
 </body>
 </html>
