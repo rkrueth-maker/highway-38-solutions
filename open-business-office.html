@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b2438">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta http-equiv="refresh" content="0;url=commercial-app/">
+  <meta http-equiv="refresh" content="0;url=commercial-app/index.html">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <title>Opening Highway 38 Business Office</title>
   <style>
@@ -18,13 +18,13 @@
     <img class="approved-logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
     <h1>Opening Business Office</h1>
     <p>Opening the standard Supabase Business Office in this tab.</p>
-    <a id="continueButton" class="primary" href="commercial-app/">Open Business Office</a>
+    <a id="continueButton" class="primary" href="commercial-app/index.html">Open Business Office</a>
     <p class="muted">The former Google Office is retained only as a controlled rollback route.</p>
   </main>
   <script>
     (function(){
       var incoming=new URLSearchParams(location.search);
-      var destination=new URL('commercial-app/',location.href);
+      var destination=new URL('commercial-app/index.html',location.href);
       ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
       if(location.hash)destination.hash=location.hash;
       document.getElementById('continueButton').href=destination.toString();
