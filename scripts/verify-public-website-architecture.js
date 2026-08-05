@@ -154,8 +154,12 @@ if(privateGateway){
   check('owner gateway exists',exists(privateGateway.path),privateGateway.path);
   if(exists(privateGateway.path)){
     const html=read(privateGateway.path);
+    const standardLauncher=exists('open-business-office.html')?read('open-business-office.html'):'';
+    const rollbackLauncher=exists('legacy-business-office.html')?read('legacy-business-office.html'):'';
     check('owner gateway remains noindex',/noindex,nofollow/.test(html));
-    check('owner gateway redirects to existing Apps Script',/script\.google\.com\/macros\/s\//.test(html)&&/location\.replace\(target\)/.test(html));
+    check('owner gateway routes to standard Office',html.includes("const target='open-business-office.html'")&&/location\.replace\(target\)/.test(html));
+    check('standard Office launcher opens Supabase Business Office',/commercial-app\/index\.html/.test(standardLauncher)&&/location\.replace\(destination\.toString\(\)\)/.test(standardLauncher)&&!/script\.google\.com\/macros\/s\//.test(standardLauncher));
+    check('Google Office remains explicit rollback only',/script\.google\.com\/macros\/s\//.test(rollbackLauncher)&&/This is not the standard Business Office\./.test(rollbackLauncher)&&!/location\.replace\(|location\.assign\(/.test(rollbackLauncher));
   }
 }
 
