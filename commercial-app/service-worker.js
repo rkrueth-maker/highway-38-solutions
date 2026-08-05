@@ -8,6 +8,7 @@ const SHELL=[
   './supabase-runtime-globals.js','./supabase-data.js','./supabase-client-branding.js',
   './supabase-operation-coverage.js','./supabase-ai-fallback.js','./supabase-storage-provider.js',
   './supabase-client-installer.js','./supabase-portal-hydration.js','./supabase-final-startup.js',
+  './supabase-client-quote-branding.js',
   './app-01.js','./app-02.js','./app-03.js','./app-04.js','./app-05.js',
   './app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js',
   './app-11.js','./app-12.js','./app-13.js','./app-14.js','./app-15.js',
