@@ -23,22 +23,17 @@ function show(value,kind){
   const node=ensureStatus();
   if(!node)return;
   node.hidden=false;
-  node.className=`notice${kind==='error'?' warn':''}`;
-  node.textContent=text(value);
+  const nextClass=`notice${kind==='error'?' warn':''}`;
+  if(node.className!==nextClass)node.className=nextClass;
+  const nextText=text(value);
+  if(node.textContent!==nextText)node.textContent=nextText;
   node.dataset.state=kind||'pending';
-}
-function wire(){
-  const current=button();
-  if(!current)return;
-  current.textContent='✨ Build Quote';
-  current.dataset.h38LiveHandler='quote-ai-v2-capture';
-  ensureStatus();
 }
 async function runBuild(){
   if(running){show('Build Quote is already running.','pending');return;}
   running=true;
   const current=button();
-  if(current){current.disabled=true;current.textContent='Starting…';}
+  if(current){current.disabled=true;current.textContent='Starting…';current.dataset.h38LiveHandler='quote-ai-v3-capture';}
   show('Build Quote started. Saving the draft and preparing the AI request…','pending');
   const originalToast=window.toast;
   let capturedError='';
@@ -56,7 +51,8 @@ async function runBuild(){
     if(typeof build!=='function')throw new Error('Build Quote is not loaded. Close this Business Office window, reopen it, and try again.');
     await build();
     if(capturedError)throw new Error(capturedError);
-    const lines=window.state&&state.quote&&Array.isArray(state.quote.lines)?state.quote.lines:[];
+    const quote=window.state&&window.state.quote;
+    const lines=quote&&Array.isArray(quote.lines)?quote.lines:[];
     if(!lines.length)throw new Error('The AI request finished without creating quote lines. The draft remains saved and Owner review is still required.');
     show(capturedSuccess||`AI draft loaded with ${lines.length} editable quote line${lines.length===1?'':'s'}. Owner review is required.`,'success');
   }catch(error){
@@ -67,7 +63,7 @@ async function runBuild(){
   }finally{
     if(typeof originalToast==='function')window.toast=originalToast;
     const latest=button();
-    if(latest){latest.disabled=false;latest.textContent='✨ Build Quote';latest.dataset.h38LiveHandler='quote-ai-v2-capture';}
+    if(latest){latest.disabled=false;latest.textContent='✨ Build Quote';latest.dataset.h38LiveHandler='quote-ai-v3-capture';}
     running=false;
   }
 }
@@ -77,11 +73,8 @@ document.addEventListener('click',event=>{
   event.preventDefault();
   event.stopPropagation();
   if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();
+  target.dataset.h38LiveHandler='quote-ai-v3-capture';
   void runBuild();
 },true);
-const previousRenderQuotes=window.renderQuotes;
-if(typeof previousRenderQuotes==='function')window.renderQuotes=function(){previousRenderQuotes();wire();};
-new MutationObserver(wire).observe(document.documentElement,{childList:true,subtree:true});
-wire();
-window.H38_QUOTE_AI_CLICK_GUARD={enabled:true,build:'20260805-1655',capturePhase:true,inlineStatus:true,silentFailureBlocked:true,run:runBuild};
+window.H38_QUOTE_AI_CLICK_GUARD={enabled:true,build:'20260805-1725',capturePhase:true,inlineStatus:true,silentFailureBlocked:true,recursiveObserver:false,run:runBuild};
 })();
