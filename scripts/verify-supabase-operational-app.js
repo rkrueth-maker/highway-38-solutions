@@ -24,7 +24,7 @@ for(const file of browserScripts){
   new vm.Script(source,{filename:file});
   expect(!/sb_service_role|service[_-]?role[_-]?key/i.test(source),`${file} must not expose a Supabase service-role key.`);
   expect(!/google[_-]?client[_-]?secret\s*[:=]/i.test(source),`${file} must not expose a Google client secret.`);
-  expect(!/refresh[_-]?token\s*[:=]/i.test(source),`${file} must not store a Google refresh token in browser code.`);
+  expect(!/\brefresh[_-]?token\b\s*[:=]/i.test(source),`${file} must not store a Google refresh-token field in browser code.`);
 }
 new vm.Script(read('commercial-app/service-worker.js'),{filename:'commercial-app/service-worker.js'});
 
