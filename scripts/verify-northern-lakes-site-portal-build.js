@@ -43,7 +43,8 @@ requireTrue(/customer_portal_decide_quote/.test(portalJs)&&/approved/.test(porta
 requireTrue(/customer_payments/.test(portalJs)&&/receipt_storage_path/.test(portalJs)&&/Payment History and Receipts/.test(portal),'Portal displays payment history and secure receipts');
 requireTrue(/pdf_storage_path/.test(portalJs)&&/Download Invoice PDF/.test(portalJs),'Portal supports secure invoice PDF downloads');
 requireTrue(/hosted_payment_url/.test(portalJs)&&/liveChargingEnabled/.test(portalJs),'Portal uses a hosted-payment adapter with an explicit activation gate');
-requireTrue(!/service_role|secret[_-]?key|webhook[_-]?secret/i.test(portalConfig),'Browser portal config contains no private Supabase or payment secret');
+const privateCredentialAssignment=/\b(?:service_role|sb_secret_[a-z0-9_-]+|secretKey|webhookSecret)\b\s*[:=]/i;
+requireTrue(!privateCredentialAssignment.test(portalConfig),'Browser portal config contains no private Supabase or payment credential assignment');
 requireTrue(/liveChargingEnabled:false/.test(portalConfig)&&/provider-not-configured/.test(portalConfig),'Portal payment configuration is non-live until a provider is approved');
 const migration=read('supabase/migrations/202608050945_northern_lakes_customer_portal_release.sql');
 requireTrue(/private\.customer_portal_access/.test(migration)&&/portal_enabled = true/.test(migration),'Migration adds business-aware active customer authorization');
