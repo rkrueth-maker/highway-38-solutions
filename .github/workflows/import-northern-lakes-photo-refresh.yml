@@ -32,20 +32,18 @@ jobs:
 
           root=Path('businesses/northern-lakes/assets')
           sources={
-            'service-source/cabin-care.jpg':'Lake house.jpg',
-            'service-source/driveway-drainage.jpg':'Two-track gravel driveway.jpg',
-            'service-source/commercial-property-care.jpg':'Commercial Facilities Maintenance Montgomery County Md.jpg',
-            'service-source/rental-resort-support.jpg':'Quileute Oceanside Resort Cabin.JPG',
+            'service-source/cabin-care.jpg':'Quileute Oceanside Resort Cabin.JPG',
+            'service-source/rental-resort-support.jpg':'Lake house.jpg',
             'service-source/senior-property-maintenance.jpg':'Gfp-house-on-a-nice-lawn.jpg',
-            'service-source/brush-clearing.jpg':'Bush clearing.jpg',
-            'service-source/storm-cleanup.jpg':'Clearing fallen trees (37055332426).jpg',
-            'service-source/gutter-cleaning.jpg':'A man cleaning gutter.png',
+            'service-source/brush-clearing.jpg':'Clearing, Grubbing, and Grading (8938246).jpg',
+            'service-source/storm-cleanup.jpg':'Fallen tree across trail, Neuhof.jpg',
+            'service-source/gutter-cleaning.jpg':'Cleaned gutter.jpg',
             'service-source/pressure-washing.jpg':'Driveway-Cleaning-1-1.jpg',
             'service-source/firewood-delivery.jpg':'Stack of firewood.jpg',
-            'service-source/seasonal-yard-cleanup.jpg':'Yard cleaning using leaf rake.jpg',
-            'service-source/holiday-lights.jpg':'Christmas lights on a house.jpg',
+            'service-source/seasonal-yard-cleanup.jpg':'Leaves on lawn (Unsplash).jpg',
+            'service-source/holiday-lights.jpg':'Christmas lights in a garden 2.jpg',
             'service-source/outdoor-furniture.jpg':'Outdoor furniture.jpg',
-            'materials-source/sand.jpg':'Sand heap.JPG',
+            'materials-source/sand.jpg':'Washed sand stockpile (5081172874).jpg',
             'materials-source/topsoil.jpg':'628 REG TOPSOIL (7).JPG',
           }
           headers={'User-Agent':'Highway38Solutions/1.0 (website asset import; contact highway38solutions@gmail.com)'}
@@ -88,5 +86,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add businesses/northern-lakes/assets/service-source businesses/northern-lakes/assets/materials-source/sand.jpg businesses/northern-lakes/assets/materials-source/topsoil.jpg
           git diff --cached --quiet && exit 0
-          git commit -m 'Import distinct Northern Lakes service and material photos'
+          git commit -m 'Import improved Northern Lakes service and material photos'
           git push origin HEAD:agent/fix-northern-lakes-photo-library-owner-links
