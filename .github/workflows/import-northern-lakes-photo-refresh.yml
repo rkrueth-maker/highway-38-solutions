@@ -28,7 +28,7 @@ jobs:
           from pathlib import Path
           from urllib.parse import quote
           import io, requests
-          from PIL import Image, ImageOps
+          from PIL import Image, ImageOps, ImageDraw
 
           root=Path('businesses/northern-lakes/assets')
           sources={
@@ -49,6 +49,7 @@ jobs:
             'materials-source/topsoil.jpg':'628 REG TOPSOIL (7).JPG',
           }
           headers={'User-Agent':'Highway38Solutions/1.0 (website asset import; contact highway38solutions@gmail.com)'}
+          prepared=[]
           for rel,name in sources.items():
             url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+quote(name, safe='')+'?width=1800'
             r=requests.get(url,headers=headers,timeout=60)
@@ -59,9 +60,28 @@ jobs:
             out=root/rel
             out.parent.mkdir(parents=True,exist_ok=True)
             im.save(out,'JPEG',quality=88,optimize=True,progressive=True)
+            prepared.append((rel,im.copy()))
             print(rel, im.size, len(r.content))
+
+          thumb=(480,300); label_h=42; cols=3
+          rows=(len(prepared)+cols-1)//cols
+          sheet=Image.new('RGB',(cols*thumb[0],rows*(thumb[1]+label_h)),'white')
+          draw=ImageDraw.Draw(sheet)
+          for i,(rel,im) in enumerate(prepared):
+            x=(i%cols)*thumb[0]; y=(i//cols)*(thumb[1]+label_h)
+            sheet.paste(im.resize(thumb,Image.Resampling.LANCZOS),(x,y))
+            draw.rectangle((x,y+thumb[1],x+thumb[0],y+thumb[1]+label_h),fill='white')
+            draw.text((x+10,y+thumb[1]+12),rel,fill='black')
+          Path('artifacts').mkdir(exist_ok=True)
+          sheet.save('artifacts/northern-lakes-photo-refresh-contact-sheet.jpg','JPEG',quality=90)
           PY
           python /tmp/import_nl_photos.py
+      - name: Upload visual review sheet
+        uses: actions/upload-artifact@v4
+        with:
+          name: northern-lakes-photo-refresh-contact-sheet
+          path: artifacts/northern-lakes-photo-refresh-contact-sheet.jpg
+          retention-days: 14
       - name: Commit imported photos
         run: |
           git config user.name 'github-actions[bot]'
