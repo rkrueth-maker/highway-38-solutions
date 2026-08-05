@@ -37,7 +37,7 @@ requireTrue(/does not authorize scheduling, prices, charges or payment/i.test(qu
 const portal=read('businesses/northern-lakes/customer-portal.html');
 const portalJs=read('businesses/northern-lakes/customer-portal.js');
 const portalConfig=read('businesses/northern-lakes/customer-portal-config.js');
-requireTrue(/Customer Sign In/.test(portal)&&/owner-login\.html/.test(portal),'Customer Sign In is separate from Owner Login');
+requireTrue(/Customer Sign In/.test(portal)&&/owner-access\.html/.test(portal),'Customer Sign In is separate from current Owner Access');
 requireTrue(/supabase-js@2/.test(portal)&&/signInWithOtp/.test(portalJs)&&/signInWithPassword/.test(portalJs),'Portal supports Supabase password and secure-link authentication');
 requireTrue(/\.eq\('business_id',config\.businessId\)/.test(portalJs)&&/\.eq\('tenant_key',config\.businessKey\)/.test(portalJs),'Portal constrains account loading to Northern Lakes business and tenant');
 requireTrue(/customer_portal_decide_quote/.test(portalJs)&&/approved/.test(portalJs)&&/revision_requested/.test(portalJs)&&/declined/.test(portalJs),'Portal supports approve, revise and decline estimate decisions');
@@ -52,6 +52,18 @@ requireTrue(/private\.customer_portal_access/.test(migration)&&/portal_enabled =
 requireTrue(/customer_payments/.test(migration)&&/enable row level security/.test(migration)&&/to authenticated/i.test(migration),'Payment history table has RLS and explicit authenticated policies');
 requireTrue(/customerPortalReleaseEnabled/.test(migration)&&/directPaymentProcessing.*false/s.test(migration),'Migration releases portal while retaining the direct-payment lock');
 requireTrue(/customer downloads own portal objects/.test(migration)&&/customer_portal_access/.test(migration),'Private storage downloads use authenticated customer ownership');
+
+const ownerAccess=read('businesses/northern-lakes/owner-access.html');
+const ownerLoginCompat=read('businesses/northern-lakes/owner-login.html');
+const ownerPortalCompat=read('businesses/northern-lakes/owner-portal.html');
+requireTrue(/Send secure activation email/.test(ownerAccess)&&/Open Owner Workspace/.test(ownerAccess)&&/Open Quote Builder/.test(ownerAccess),'Current owner-access page exposes Supabase activation, workspace and Quote Builder');
+requireTrue(/owner-access\.html\?v=owner-access-20260805-v2/.test(ownerLoginCompat)&&/owner-access\.html\?v=owner-access-20260805-v2/.test(ownerPortalCompat),'Legacy owner routes redirect to the uncached current owner-access page');
+requireTrue(!/script\.google\.com\/macros|Open Owner Portal|Open legacy/i.test(publicText),'Active Northern Lakes pages contain no old Apps Script owner links or old owner-portal controls');
+const catalogImages=[...catalogText.matchAll(/id:'([^']+)'[^\n]*image:A\+'([^']+)'/g)].map(match=>match[2]);
+requireTrue(catalogImages.length===requiredServices.length&&new Set(catalogImages).size===catalogImages.length,'Every Northern Lakes catalog service uses a distinct active image path');
+for(const image of catalogImages.filter(value=>value.startsWith('service-source/'))){const file=path.join(site,'assets',image);requireTrue(fs.existsSync(file)&&fs.statSync(file).size>50000,`Distinct service photo is durable and full-size: ${image}`);}
+requireTrue(runtime.ownerActivationUrl.includes('owner-access.html?v=owner-access-20260805-v2'),'Deployment manifest points to the current uncached owner-access URL');
+
 const homepage=read('businesses/northern-lakes/index.html');
 requireTrue(/Duramax/i.test(homepage)&&/BOSS V-plow/i.test(homepage),'Homepage opening keeps the approved Duramax and BOSS plow contract');
 requireTrue(/data-featured-services/.test(homepage)&&/Customer Sign In/.test(homepage),'Homepage features catalog services and customer sign-in');

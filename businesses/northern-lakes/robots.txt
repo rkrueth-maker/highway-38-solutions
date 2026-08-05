@@ -7,3 +7,4 @@ Disallow: /business-office.html
 Disallow: /app-data/
 
 Sitemap: https://rkrueth-maker.github.io/highway-38-solutions/businesses/northern-lakes/sitemap.xml
+Disallow: /businesses/northern-lakes/owner-access.html
