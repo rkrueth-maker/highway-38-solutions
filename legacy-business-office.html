@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b2438">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+  <title>Google Office Rollback | Highway 38 Solutions</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(660px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.approved-logo{display:block;width:96px;height:96px;object-fit:contain;margin:0 auto 18px}.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:11px 18px;border-radius:12px;text-decoration:none;font-weight:900}.primary{background:#174a70;color:#fff}.secondary{border:1px solid #b7c7d4;background:#fff;color:#174a70}.warning{padding:14px;border-radius:12px;background:#fff4d6;color:#5c4300;text-align:left}.muted{color:#607285}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <img class="approved-logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
+    <h1>Google Office rollback</h1>
+    <div class="warning"><strong>This is not the standard Business Office.</strong> Use it only when the Supabase Business Office cannot be opened and a controlled rollback is necessary.</div>
+    <p id="status">Nothing opens automatically from this page.</p>
+    <div class="actions">
+      <a id="standardOffice" class="primary" href="commercial-app/">Return to standard Office</a>
+      <a id="continueButton" class="secondary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Open Google rollback</a>
+    </div>
+    <p class="muted">The existing Apps Script project and deployment remain unchanged. No new deployment is created.</p>
+  </main>
+  <script>
+    (async function(){
+      var incoming=new URLSearchParams(location.search);
+      var standard=new URL('commercial-app/',location.href);
+      var rollback=new URL('https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec');
+      rollback.searchParams.set('entry','1');
+      rollback.searchParams.set('officeBuild','20260805-supabase-standard');
+      ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value){standard.searchParams.set(key,value);rollback.searchParams.set(key,value);}});
+      document.getElementById('standardOffice').href=standard.toString();
+      document.getElementById('continueButton').href=rollback.toString();
+      try{
+        sessionStorage.removeItem('h38-gateway-session-v1');
+        sessionStorage.removeItem('h38-execution-session-v1');
+        document.getElementById('status').textContent='Rollback is ready only if you choose it below.';
+      }catch(error){
+        document.getElementById('status').textContent='Rollback remains available by explicit choice.';
+      }
+    })();
+  </script>
+</body>
+</html>
