@@ -20,6 +20,9 @@ const db=read('commercial-app/db.js');
 const cache=read('commercial-app/auth-cache-guard.js');
 const startup=read('commercial-app/supabase-startup.js');
 const index=read('commercial-app/index.html');
+const standardLauncher=read('open-business-office.html');
+const rollbackLauncher=read('legacy-business-office.html');
+const portal=read('portal.html');
 const migration=read('supabase/migrations/20260805004500_business_office_auth_resolution.sql');
 const hardening=read('supabase/migrations/20260805010000_harden_business_office_auth_state.sql');
 const databaseTest=read('supabase/tests/database/business_office_auth_resolution.test.sql');
@@ -28,13 +31,33 @@ const runtimeTest=read('scripts/verify-supabase-business-office-auth-runtime.js'
 ['commercial-app/supabase-config.js','commercial-app/supabase-auth.js','commercial-app/auth-session-guard.js','commercial-app/db.js','commercial-app/auth-cache-guard.js','commercial-app/supabase-startup.js','scripts/verify-supabase-business-office-auth-runtime.js'].forEach(syntax);
 
 includes(config,[
-  "projectRef: 'uvcqnkjidllhdmjnqshk'",
-  "url: 'https://uvcqnkjidllhdmjnqshk.supabase.co'",
+  "stage: 'supabase-auth-production-standard'",
+  'standardOffice: true',
+  "projectRef: 'jqukmwtsgcsaruucnqja'",
+  "url: 'https://jqukmwtsgcsaruucnqja.supabase.co'",
+  "fallbackUrl: '../legacy-business-office.html'",
+  "authRedirectUrl: 'https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/'",
   'productionPromotionAuthorized: false',
   'northernLakesEnabled: false',
   'externalActionsEnabled: false'
-],'preview config');
-excludes(config,['jqukmwtsgcsaruucnqja','service_role','SUPABASE_SERVICE_ROLE_KEY'],'preview config');
+],'production standard config');
+excludes(config,['uvcqnkjidllhdmjnqshk','service_role','SUPABASE_SERVICE_ROLE_KEY'],'production standard config');
+
+includes(standardLauncher,[
+  'commercial-app/',
+  'Opening the standard Supabase Business Office',
+  'location.replace(destination.toString())'
+],'standard Office launcher');
+excludes(standardLauncher,['script.google.com/macros','AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'],'standard Office launcher');
+includes(rollbackLauncher,[
+  'Google Office rollback',
+  'This is not the standard Business Office.',
+  'Nothing opens automatically from this page.',
+  'commercial-app/',
+  'AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow'
+],'explicit rollback launcher');
+check(!rollbackLauncher.includes('window.location.replace'),'rollback launcher requires an explicit user choice');
+includes(portal,['url=open-business-office.html','location.replace(target)'],'portal standard route');
 
 includes(index,[
   '<title>Highway 38 Business Office</title>',
@@ -175,6 +198,8 @@ console.log(JSON.stringify({
   status:'PASS',
   acceptance:'SUPABASE_BUSINESS_OFFICE_AUTH_SOURCE',
   checkCount:checks.length,
+  standardOffice:'supabase',
+  googleOffice:'explicit-rollback-only',
   canonicalMemberships:true,
   publicResolverSecurityInvoker:true,
   privateCurrentUserResolver:true,
