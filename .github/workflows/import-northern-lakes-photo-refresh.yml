@@ -22,70 +22,51 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install --quiet pillow requests
-      - name: Download, crop and optimize licensed catalog photos
+      - name: Import cleanouts and Minnesota holiday-light photos
         run: |
-          cat > /tmp/import_nl_photos.py <<'PY'
+          cat > /tmp/import_nl_final.py <<'PY'
           from pathlib import Path
           from urllib.parse import quote
-          import io, requests
+          import io, time, requests
           from PIL import Image, ImageOps, ImageDraw
-
           root=Path('businesses/northern-lakes/assets')
           sources={
-            'service-source/cabin-care.jpg':'Quileute Oceanside Resort Cabin.JPG',
-            'service-source/rental-resort-support.jpg':'Lake house.jpg',
-            'service-source/senior-property-maintenance.jpg':'Gfp-house-on-a-nice-lawn.jpg',
-            'service-source/brush-clearing.jpg':'Clearing, Grubbing, and Grading (8938246).jpg',
-            'service-source/storm-cleanup.jpg':'Fallen tree across trail, Neuhof.jpg',
             'service-source/cleanouts-hauling.jpg':'Dump trailer getting loaded.jpg',
-            'service-source/gutter-cleaning.jpg':'Cleaned gutter.jpg',
-            'service-source/pressure-washing.jpg':'Driveway-Cleaning-1-1.jpg',
-            'service-source/firewood-delivery.jpg':'Stack of firewood.jpg',
-            'service-source/seasonal-yard-cleanup.jpg':'Leaves on lawn (Unsplash).jpg',
             'service-source/holiday-lights.jpg':'New Hope Minnesota Home Holiday Lights (31814199660).jpg',
-            'service-source/outdoor-furniture.jpg':'Outdoor furniture.jpg',
-            'materials-source/sand.jpg':'Washed sand stockpile (5081172874).jpg',
-            'materials-source/topsoil.jpg':'628 REG TOPSOIL (7).JPG',
           }
           headers={'User-Agent':'Highway38Solutions/1.0 (website asset import; contact highway38solutions@gmail.com)'}
           prepared=[]
           for rel,name in sources.items():
             url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+quote(name, safe='')+'?width=1800'
-            r=requests.get(url,headers=headers,timeout=60)
+            for attempt in range(4):
+              r=requests.get(url,headers=headers,timeout=60)
+              if r.status_code!=429: break
+              time.sleep(12*(attempt+1))
             r.raise_for_status()
             im=Image.open(io.BytesIO(r.content)).convert('RGB')
             im=ImageOps.exif_transpose(im)
             im=ImageOps.fit(im,(1600,1000),method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
-            out=root/rel
-            out.parent.mkdir(parents=True,exist_ok=True)
+            out=root/rel; out.parent.mkdir(parents=True,exist_ok=True)
             im.save(out,'JPEG',quality=88,optimize=True,progressive=True)
             prepared.append((rel,im.copy()))
-            print(rel, im.size, len(r.content))
-
-          thumb=(480,300); label_h=42; cols=3
-          rows=(len(prepared)+cols-1)//cols
-          sheet=Image.new('RGB',(cols*thumb[0],rows*(thumb[1]+label_h)),'white')
-          draw=ImageDraw.Draw(sheet)
+            time.sleep(4)
+          sheet=Image.new('RGB',(960,342),'white'); draw=ImageDraw.Draw(sheet)
           for i,(rel,im) in enumerate(prepared):
-            x=(i%cols)*thumb[0]; y=(i//cols)*(thumb[1]+label_h)
-            sheet.paste(im.resize(thumb,Image.Resampling.LANCZOS),(x,y))
-            draw.rectangle((x,y+thumb[1],x+thumb[0],y+thumb[1]+label_h),fill='white')
-            draw.text((x+10,y+thumb[1]+12),rel,fill='black')
+            x=i*480; sheet.paste(im.resize((480,300),Image.Resampling.LANCZOS),(x,0)); draw.text((x+10,312),rel,fill='black')
           Path('artifacts').mkdir(exist_ok=True)
-          sheet.save('artifacts/northern-lakes-photo-refresh-contact-sheet.jpg','JPEG',quality=90)
+          sheet.save('artifacts/northern-lakes-final-two-photos.jpg','JPEG',quality=90)
           PY
-          python /tmp/import_nl_photos.py
-      - name: Upload visual review sheet
-        uses: actions/upload-artifact@v4
+          python /tmp/import_nl_final.py
+      - uses: actions/upload-artifact@v4
         with:
-          name: northern-lakes-photo-refresh-contact-sheet
-          path: artifacts/northern-lakes-photo-refresh-contact-sheet.jpg
+          name: northern-lakes-final-two-photos
+          path: artifacts/northern-lakes-final-two-photos.jpg
           retention-days: 14
-      - name: Commit imported photos
+      - name: Commit final two photos
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add businesses/northern-lakes/assets/service-source businesses/northern-lakes/assets/materials-source/sand.jpg businesses/northern-lakes/assets/materials-source/topsoil.jpg
+          git add businesses/northern-lakes/assets/service-source/cleanouts-hauling.jpg businesses/northern-lakes/assets/service-source/holiday-lights.jpg
           git diff --cached --quiet && exit 0
-          git commit -m 'Finalize Northern Lakes service and material photo set'
+          git commit -m 'Add distinct cleanouts and Minnesota holiday-light photos'
           git push origin HEAD:agent/fix-northern-lakes-photo-library-owner-links
