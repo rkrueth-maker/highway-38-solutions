@@ -59,15 +59,17 @@ for(const needle of [
 ])includes(operationalMigration,needle,`Operational migration is missing ${needle}`);
 expect(!/grant\s+.*business_storage_credentials/i.test(operationalMigration),'Credential access must not be granted to browser roles.');
 
+const hardeningMigration=read('supabase/migrations/20260805050500_harden_business_record_updates.sql');
+includes(hardeningMigration,'coalesce((select auth.uid()), old.updated_by)','Migration replay must preserve the existing updater without browser Auth context.');
+includes(hardeningMigration,"membership.role = 'viewer'",'Viewer must have an explicit read-only branch.');
+includes(hardeningMigration,'and p_write = false','Viewer must never receive operational write access.');
+
 const defaultsMigration=read('supabase/migrations/20260805051000_business_office_week_one_defaults.sql');
 for(const needle of [
   "'people'","'accounting'","'payroll-prep'","'tax-prep'","'controls'","'reports'",
   "'GENERIC-QUOTE-CUSTOMER'","'Generic Quote Customer'",
   "'google_records_imported', false","'external_actions_enabled', false"
 ])includes(defaultsMigration,needle,`Week-one defaults are missing ${needle}`);
-
-const hardeningMigration=read('supabase/migrations/20260805052000_harden_business_record_updates.sql');
-includes(hardeningMigration,'coalesce((select auth.uid()), old.updated_by)','Migration replay must preserve the existing updater without browser Auth context.');
 
 const data=read('commercial-app/supabase-data.js');
 for(const needle of [
