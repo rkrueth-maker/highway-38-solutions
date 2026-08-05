@@ -3,6 +3,7 @@
   const SESSION_KEY='h38-gateway-session-v1';
   const LEGACY_SESSION_KEY='h38-execution-session-v1';
   const AUTH_ENTRY='/open-business-office.html';
+  function supabaseMode(){return Boolean(window.H38SupabaseAuth&&window.H38SupabaseAuth.enabled);}
   function decodeBase64Url(value){
     const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
     const padded=normalized+'='.repeat((4-normalized.length%4)%4);
@@ -26,65 +27,64 @@
     if(!handoff||handoff.handoffType!=='H38_GATEWAY_HANDOFF'||!handoff.gatewaySession||!handoff.gatewayUrl||!handoff.startup)return null;
     if(Object.prototype.hasOwnProperty.call(handoff,'accessToken')||handoff.browserReceivesGoogleToken!==false)return null;
     return{
-      gatewaySession:String(handoff.gatewaySession),
-      gatewayUrl:String(handoff.gatewayUrl),
-      issuedAt:String(handoff.issuedAt||new Date().toISOString()),
-      expiresAt:String(handoff.expiresAt||''),
-      refreshAfterMs:Number(handoff.refreshAfterMs||2400000),
-      startup:handoff.startup,
-      safeguards:handoff.safeguards||{},
-      browserReceivesGoogleToken:false,
-      transport:'supabase-gateway'
+      gatewaySession:String(handoff.gatewaySession),gatewayUrl:String(handoff.gatewayUrl),issuedAt:String(handoff.issuedAt||new Date().toISOString()),
+      expiresAt:String(handoff.expiresAt||''),refreshAfterMs:Number(handoff.refreshAfterMs||2400000),startup:handoff.startup,
+      safeguards:handoff.safeguards||{},browserReceivesGoogleToken:false,transport:'supabase-gateway'
     };
   }
   function readSession(){
     const handoff=consumeHashHandoff(),session=normalizedSession(handoff);
-    if(session){
-      try{sessionStorage.removeItem(LEGACY_SESSION_KEY);sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(error){}
-      return session;
-    }
+    if(session){try{sessionStorage.removeItem(LEGACY_SESSION_KEY);sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(error){}return session;}
     try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');}catch(error){return null;}
   }
   function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);sessionStorage.removeItem(LEGACY_SESSION_KEY);}catch(error){}}
   function expired(session){const time=new Date(session?.expiresAt||0).getTime();return Number.isFinite(time)&&time>0&&time<=Date.now()+30000;}
-  function gatewayError(payload,status){
-    const detail=payload?.error||payload?.message||'';
-    const error=new Error(detail||`Secure Office gateway request failed (${status||'unknown'}).`);
-    error.status=status||0;error.payload=payload;return error;
-  }
+  function gatewayError(payload,status){const detail=payload?.error||payload?.message||'';const error=new Error(detail||`Secure Office gateway request failed (${status||'unknown'}).`);error.status=status||0;error.payload=payload;return error;}
   class H38Bridge{
     constructor(frame,url,onStatus,onBootstrap,onFullSnapshot,onError){
       this.frame=frame;this.url=url;this.onStatus=onStatus||(()=>{});this.onBootstrap=onBootstrap||(()=>{});this.onFullSnapshot=onFullSnapshot||(()=>{});this.onError=onError||(()=>{});
-      this.session=readSession();this.ready=false;this.bootstrapped=false;this.transport='supabase-gateway';
+      this.session=supabaseMode()?null:readSession();this.ready=false;this.bootstrapped=false;this.transport=supabaseMode()?'supabase-auth-dev':'supabase-gateway';
       window.H38_GATEWAY_SESSION=this.session;window.H38_EXECUTION_SESSION=null;
+      if(supabaseMode())window.addEventListener('h38:supabase-startup',event=>this.bootstrapSupabase(event.detail),{passive:true});
+      window.addEventListener('h38:auth-user-cleared',()=>{if(!supabaseMode())return;this.ready=false;this.bootstrapped=false;this.onStatus('sign-in-required');},{passive:true});
     }
     setUrl(url){this.url=url;}
-    authorize(){clearSession();location.assign(AUTH_ENTRY);return true;}
+    authorize(){
+      if(supabaseMode()){const auth=window.H38SupabaseAuth;auth.ready().then(()=>{if(!auth.getStartup())this.onStatus('sign-in-required');});return true;}
+      clearSession();location.assign(AUTH_ENTRY);return true;
+    }
+    bootstrapSupabase(startup){
+      if(!supabaseMode()||!startup)return;
+      this.ready=true;this.bootstrapped=true;this.session={startup,transport:'supabase-auth-dev'};
+      this.onStatus('connected');this.onBootstrap(startup);this.onStatus('bootstrapped');
+    }
     connect(){
+      if(supabaseMode()){
+        window.H38SupabaseAuth.ready().then(()=>{
+          const startup=window.H38SupabaseAuth.getStartup();
+          if(startup)this.bootstrapSupabase(startup);else this.onStatus('sign-in-required');
+        }).catch(error=>{this.ready=false;this.onStatus('sign-in-required');this.onError('authorization',error?.message||String(error));});
+        return;
+      }
       this.session=readSession()||this.session;window.H38_GATEWAY_SESSION=this.session;window.H38_EXECUTION_SESSION=null;
       if(!this.session?.gatewaySession||!this.session?.gatewayUrl||!this.session?.startup||expired(this.session)){
         if(expired(this.session))clearSession();this.ready=false;this.onStatus(expired(this.session)?'auth-expired':'sign-in-required');return;
       }
       this.ready=true;this.onStatus('connected');
-      queueMicrotask(()=>{
-        if(this.bootstrapped)return;
-        this.bootstrapped=true;
-        this.onBootstrap(this.session.startup||{});
-        this.onStatus('bootstrapped');
-      });
+      queueMicrotask(()=>{if(this.bootstrapped)return;this.bootstrapped=true;this.onBootstrap(this.session.startup||{});this.onStatus('bootstrapped');});
     }
     async request(action,args={},timeout=120000){
+      if(supabaseMode()){
+        const error=new Error(`Supabase Auth development mode has authenticated the user, but ${action} remains behind the existing authorized gateway until its tenant-safe API is migrated.`);
+        error.code='SUPABASE_DATA_API_NOT_MIGRATED';this.onError('request',error.message);throw error;
+      }
       if(!this.ready||!this.session?.gatewaySession||expired(this.session)){
         if(expired(this.session)){clearSession();this.ready=false;this.onStatus('auth-expired');}
         const error=new Error('Secure Office gateway session is not ready.');error.code='AUTH_REQUIRED';throw error;
       }
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
       try{
-        const response=await fetch(this.session.gatewayUrl,{
-          method:'POST',mode:'cors',cache:'no-store',credentials:'omit',signal:controller.signal,
-          headers:{'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},
-          body:JSON.stringify({type:'api',gatewaySession:this.session.gatewaySession,action,args:args||{}})
-        });
+        const response=await fetch(this.session.gatewayUrl,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',signal:controller.signal,headers:{'content-type':'application/json','x-h38-request-id':crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`},body:JSON.stringify({type:'api',gatewaySession:this.session.gatewaySession,action,args:args||{}})});
         let payload={};try{payload=await response.json();}catch(error){}
         if(!response.ok||payload.status==='FAIL')throw gatewayError(payload,response.status);
         if(!Object.prototype.hasOwnProperty.call(payload,'result'))throw new Error(`${action} returned no result.`);
