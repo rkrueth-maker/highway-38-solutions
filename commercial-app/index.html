@@ -18,16 +18,16 @@
       location.replace('./recover.html' + location.search + location.hash);
     })();
   </script>
-  <link rel="manifest" href="./manifest.webmanifest?build=20260805-0600">
+  <link rel="manifest" href="./manifest.webmanifest?build=20260805-0700">
   <link rel="icon" type="image/png" href="../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
-  <link rel="stylesheet" href="./styles.css?build=20260805-0600">
-  <link rel="stylesheet" href="./ai-drawer.css?build=20260805-0600">
-  <link rel="stylesheet" href="./quote-delivery.css?build=20260805-0600">
+  <link rel="stylesheet" href="./styles.css?build=20260805-0700">
+  <link rel="stylesheet" href="./ai-drawer.css?build=20260805-0700">
+  <link rel="stylesheet" href="./quote-delivery.css?build=20260805-0700">
   <title>Highway 38 Business Office</title>
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><img id="approvedOfficeLogo" class="brand-logo" src="../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions"><div><strong>Business Office</strong><small id="shellLabel">Full Business Office</small></div></div>
+    <div class="brand"><img id="approvedOfficeLogo" class="brand-logo" src="../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions"><div><strong>Highway 38 Solutions</strong><small id="shellLabel">Business Office</small></div></div>
     <div class="top-actions">
       <span id="networkBadge" class="badge offline">Internet</span>
       <span id="gatewayBadge" class="badge offline">Sync offline</span>
@@ -45,7 +45,7 @@
   </section>
   <div class="app-shell">
     <nav id="mainNav" class="main-nav" aria-label="Business Office navigation"></nav>
-    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Highway 38 Business Office…</h1><p>Checking Supabase Auth and active business membership.</p><div class="welcome-actions"><a id="earlySecureSignInButton" class="primary" href="/open-business-office.html" target="_self">Sign in securely</a><button id="earlyRetryButton" class="secondary" type="button">Retry connection</button></div></section></main>
+    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Business Office…</h1><p>Checking Supabase Auth and active business membership.</p><div class="welcome-actions"><a id="earlySecureSignInButton" class="primary" href="/open-business-office.html" target="_self">Sign in securely</a><button id="earlyRetryButton" class="secondary" type="button">Retry connection</button></div></section></main>
   </div>
   <div id="toast" class="toast hidden" role="status"></div>
   <dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog>
@@ -53,45 +53,48 @@
   <iframe id="bridgeFrame" class="bridge-frame" title="Retired secure connection" hidden></iframe>
   <script>
     window.H38_BUILD='20260803-1700';
-    window.H38_ASSET_BUILD='20260805-0600';
+    window.H38_ASSET_BUILD='20260805-0700';
     window.H38_GATEWAY_HANDOFF_PRESENT=false;
     window.H38_EXECUTION_HANDOFF_PRESENT=false;
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./db.js?build=20260805-0600"></script>
-  <script src="./bridge.js?build=20260805-0600"></script>
-  <script src="./supabase-config.js?build=20260805-0600"></script>
-  <script src="./supabase-auth.js?build=20260805-0600"></script>
-  <script src="./auth-session-guard.js?build=20260805-0600"></script>
-  <script src="./app-01.js?build=20260805-0600"></script>
-  <script src="./app-02.js?build=20260805-0600"></script>
-  <script src="./app-03.js?build=20260805-0600"></script>
-  <script src="./app-04.js?build=20260805-0600"></script>
-  <script src="./app-05.js?build=20260805-0600"></script>
-  <script src="./app-06.js?build=20260805-0600"></script>
-  <script src="./app-07.js?build=20260805-0600"></script>
-  <script src="./app-08.js?build=20260805-0600"></script>
-  <script src="./app-09.js?build=20260805-0600"></script>
-  <script src="./app-10.js?build=20260805-0600"></script>
-  <script src="./app-11.js?build=20260805-0600"></script>
-  <script src="./app-12.js?build=20260805-0600"></script>
-  <script src="./app-13.js?build=20260805-0600"></script>
-  <script src="./app-14.js?build=20260805-0600"></script>
-  <script src="./app-15.js?build=20260805-0600"></script>
-  <script src="./app-16.js?build=20260805-0600"></script>
-  <script src="./app-17.js?build=20260805-0600"></script>
-  <script src="./supabase-runtime-globals.js?build=20260805-0600"></script>
-  <script src="./supabase-data.js?build=20260805-0600"></script>
-  <script src="./supabase-operation-coverage.js?build=20260805-0600"></script>
-  <script src="./supabase-ai-fallback.js?build=20260805-0600"></script>
-  <script src="./supabase-storage-provider.js?build=20260805-0600"></script>
-  <script src="./supabase-portal-hydration.js?build=20260805-0600"></script>
-  <script src="./auth-cache-guard.js?build=20260805-0600"></script>
-  <script src="./startup-fix.js?build=20260805-0600"></script>
-  <script src="./supabase-startup.js?build=20260805-0600"></script>
-  <script src="./app-19.js?build=20260805-0600"></script>
-  <script src="./supabase-final-startup.js?build=20260805-0600"></script>
-  <script src="./app-18.js?build=20260805-0600"></script>
-  <script src="./app-20.js?build=20260805-0600"></script>
+  <script src="./db.js?build=20260805-0700"></script>
+  <script src="./bridge.js?build=20260805-0700"></script>
+  <script src="./supabase-config.js?build=20260805-0700"></script>
+  <script src="./supabase-auth.js?build=20260805-0700"></script>
+  <script src="./supabase-invite-activation.js?build=20260805-0700"></script>
+  <script src="./auth-session-guard.js?build=20260805-0700"></script>
+  <script src="./app-01.js?build=20260805-0700"></script>
+  <script src="./app-02.js?build=20260805-0700"></script>
+  <script src="./app-03.js?build=20260805-0700"></script>
+  <script src="./app-04.js?build=20260805-0700"></script>
+  <script src="./app-05.js?build=20260805-0700"></script>
+  <script src="./app-06.js?build=20260805-0700"></script>
+  <script src="./app-07.js?build=20260805-0700"></script>
+  <script src="./app-08.js?build=20260805-0700"></script>
+  <script src="./app-09.js?build=20260805-0700"></script>
+  <script src="./app-10.js?build=20260805-0700"></script>
+  <script src="./app-11.js?build=20260805-0700"></script>
+  <script src="./app-12.js?build=20260805-0700"></script>
+  <script src="./app-13.js?build=20260805-0700"></script>
+  <script src="./app-14.js?build=20260805-0700"></script>
+  <script src="./app-15.js?build=20260805-0700"></script>
+  <script src="./app-16.js?build=20260805-0700"></script>
+  <script src="./app-17.js?build=20260805-0700"></script>
+  <script src="./supabase-runtime-globals.js?build=20260805-0700"></script>
+  <script src="./supabase-data.js?build=20260805-0700"></script>
+  <script src="./supabase-client-branding.js?build=20260805-0700"></script>
+  <script src="./supabase-operation-coverage.js?build=20260805-0700"></script>
+  <script src="./supabase-ai-fallback.js?build=20260805-0700"></script>
+  <script src="./supabase-storage-provider.js?build=20260805-0700"></script>
+  <script src="./supabase-client-installer.js?build=20260805-0700"></script>
+  <script src="./supabase-portal-hydration.js?build=20260805-0700"></script>
+  <script src="./auth-cache-guard.js?build=20260805-0700"></script>
+  <script src="./startup-fix.js?build=20260805-0700"></script>
+  <script src="./supabase-startup.js?build=20260805-0700"></script>
+  <script src="./app-19.js?build=20260805-0700"></script>
+  <script src="./supabase-final-startup.js?build=20260805-0700"></script>
+  <script src="./app-18.js?build=20260805-0700"></script>
+  <script src="./app-20.js?build=20260805-0700"></script>
 </body>
 </html>
