@@ -1,1 +1,49 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Owner Login | Northern Lakes</title><meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="app-ui.css?v=secure-shared-app-1"></head><body><main class="login-page"><section class="login-card"><div class="login-brand"><img src="assets/diamond-logo.png?v=rendered-photo-pass-20260726" alt="Northern Lakes diamond logo"><h2>Reliable. Honest. Hardworking.</h2><p>Private Northern Lakes business access through the shared Highway 38 application core.</p></div><div class="login-form"><div class="eyebrow">Secure owner access</div><h1>Open Northern Lakes Business Office.</h1><div class="notice" data-deployment-status>Checking secure Northern Lakes deployment…</div><p>Use the authorized Google account assigned to Northern Lakes. The live app enforces user roles, module access, approval gates, and isolated NLPS storage.</p><p><a class="btn" data-nl-app="owner" aria-disabled="true">Open Owner Workspace</a></p><p><a class="btn secondary" data-nl-app="quote" aria-disabled="true">Open Quote Builder</a></p><ul class="muted"><li>One connected Business Office</li><li>Quote Builder inside the shared app</li><li>Dedicated Northern Lakes data and storage</li><li>Approval controls on</li></ul><div class="notice"><strong>Owner controlled:</strong> opening the app does not send a quote, schedule work, charge a customer, post financial records, publish content, or start an external action.</div><p><a href="index.html">← Return to public website</a></p></div></section></main><script src="app-launch.js?v=20260720-secure-launch"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#113b2e">
+  <title>Owner Login | Northern Lakes</title>
+  <link rel="icon" type="image/png" href="assets/diamond-logo.png?v=rendered-photo-pass-20260726">
+  <link rel="stylesheet" href="app-ui.css?v=nlps-supabase-closed-beta-v1">
+</head>
+<body>
+<main class="login-page"><section class="login-card">
+  <div class="login-brand">
+    <img src="assets/diamond-logo.png?v=rendered-photo-pass-20260726" alt="Northern Lakes diamond logo">
+    <h2>Reliable. Honest. Hardworking.</h2>
+    <p>Private Northern Lakes access through the Supabase Business Office.</p>
+  </div>
+  <div class="login-form">
+    <div class="eyebrow">Secure owner access</div>
+    <h1>Activate or open Northern Lakes Business Office.</h1>
+    <div class="notice" data-deployment-status>Checking the Northern Lakes Supabase closed beta…</div>
+
+    <form id="nlInviteActivationForm">
+      <label for="nlInviteEmail">Invited email address</label>
+      <input id="nlInviteEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+      <p><button class="btn" type="submit">Send secure activation email</button></p>
+    </form>
+    <div id="nlInviteStatus" class="notice">Use the exact email invited to Northern Lakes. Highway 38 never sees or stores your password.</div>
+
+    <p><a class="btn" data-nl-app="owner" aria-disabled="true">Open Owner Workspace</a></p>
+    <p><a class="btn secondary" data-nl-app="quote" aria-disabled="true">Open Quote Builder</a></p>
+
+    <ul class="muted">
+      <li>Supabase Auth and tenant-isolated records</li>
+      <li>Tasks, schedules, field logs, photos and time</li>
+      <li>Private Supabase storage during the closed beta</li>
+      <li>Owner review required for every external action</li>
+    </ul>
+    <div class="notice"><strong>Owner controlled:</strong> opening the app does not send a quote, schedule work, charge a customer, post financial records, publish content or start an external action.</div>
+    <div class="notice"><strong>Supabase only:</strong> old Office versions are retired and are not available as fallback.</div>
+    <p><a href="index.html">← Return to public website</a></p>
+  </div>
+</section></main>
+<script src="../../commercial-app/supabase-config.js?build=20260805-0710"></script>
+<script src="invite-activation.js?v=nlps-supabase-closed-beta-v1"></script>
+<script src="app-launch.js?v=nlps-supabase-closed-beta-v1"></script>
+</body>
+</html>

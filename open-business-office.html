@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta http-equiv="refresh" content="0;url=commercial-app/index.html">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
-  <title>Opening Highway 38 Business Office</title>
+  <title>Opening Business Office</title>
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#eef3f7;color:#152536;font:16px system-ui,-apple-system,"Segoe UI",sans-serif}.card{width:min(620px,100%);padding:30px;border:1px solid #d6e0e8;border-radius:20px;background:#fff;box-shadow:0 18px 55px rgba(20,53,78,.14);text-align:center}.approved-logo{display:block;width:96px;height:96px;object-fit:contain;margin:0 auto 18px}.primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:18px;padding:11px 18px;border-radius:12px;background:#174a70;color:#fff;text-decoration:none;font-weight:900}.muted{color:#607285}
   </style>
@@ -17,15 +17,15 @@
   <main class="card">
     <img id="approvedLauncherLogo" class="approved-logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
     <h1>Opening Business Office</h1>
-    <p>Opening the standard Supabase Business Office in this tab.</p>
+    <p>Opening the Supabase Business Office in this tab.</p>
     <a id="continueButton" class="primary" href="commercial-app/index.html">Open Business Office</a>
-    <p class="muted">The former Google Office is retained only as a controlled rollback route.</p>
+    <p class="muted">Supabase is the only supported Office runtime.</p>
   </main>
   <script>
     (function(){
       var incoming=new URLSearchParams(location.search);
       var destination=new URL('commercial-app/index.html',location.href);
-      ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
+      ['page','shell','businessId','businessKey'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
       if(location.hash)destination.hash=location.hash;
       document.getElementById('continueButton').href=destination.toString();
       location.replace(destination.toString());
