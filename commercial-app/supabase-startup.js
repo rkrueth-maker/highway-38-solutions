@@ -98,6 +98,8 @@ bindGlobal=function(){
   };
   $('syncButton').onclick=()=>state.bridgeReady&&state.businessId?loadBusiness(state.businessId,false):window.h38Authorize();
   $('voiceButton').onclick=toggleVoice;
+  $('globalAiButton').onclick=openGlobalAi;
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&navigator.onLine&&!state.bridgeReady)state.bridge?.connect();});
 };
 
 init=async function(){
