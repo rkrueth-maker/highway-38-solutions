@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Highway 38 Business Office">
-  <link rel="manifest" href="./manifest.webmanifest?build=20260803-2205">
+  <link rel="manifest" href="./manifest.webmanifest?build=20260804-auth-dev">
   <link rel="icon" type="image/png" href="../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <link rel="stylesheet" href="./styles.css?build=20260803-2205">
   <link rel="stylesheet" href="./ai-drawer.css?build=20260803-2205">
@@ -42,13 +42,15 @@
   <dialog id="globalAiDialog" class="ai-drawer" aria-label="H38 AI assistant"><div id="globalAiBody"></div></dialog>
   <iframe id="bridgeFrame" class="bridge-frame" title="Retired secure connection" hidden></iframe>
   <script>
-    window.H38_BUILD='20260803-1700';
-    window.H38_ASSET_BUILD='20260803-2205';
+    window.H38_BUILD='20260804-auth-dev';
+    window.H38_ASSET_BUILD='20260804-auth-dev';
     window.H38_GATEWAY_HANDOFF_PRESENT=location.hash.indexOf('h38=')>=0;
     window.H38_EXECUTION_HANDOFF_PRESENT=false;
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/dist/umd/supabase.min.js" integrity="sha384-L4TBD-dev-pin-requires-release-verification" crossorigin="anonymous" onerror="this.removeAttribute('integrity');this.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/dist/umd/supabase.min.js'"></script>
+  <script src="./supabase-auth.js?build=20260804-auth-dev"></script>
   <script src="./db.js?build=20260803-2205"></script>
-  <script src="./bridge.js?build=20260803-2205"></script>
+  <script src="./bridge.js?build=20260804-auth-dev"></script>
   <script src="./app-01.js?build=20260803-2205"></script>
   <script src="./app-02.js?build=20260803-2205"></script>
   <script src="./app-03.js?build=20260803-2205"></script>
