@@ -1,162 +1,21 @@
-name: Deploy Northern Lakes Commercial Office Trial
+name: Retired Northern Lakes Google Office Deployment — Disabled
 
 on:
   workflow_dispatch:
-    inputs:
-      authorization_phrase:
-        description: Type UPDATE EXISTING NLPM OFFICE to authorize the dedicated gateway and in-place deployment update
-        required: true
-        type: string
-      confirm_no_data_migration:
-        description: Confirm no old Northern Lakes data will be migrated into the fresh trial package
-        required: true
-        default: false
-        type: boolean
 
 permissions:
-  contents: write
-
-concurrency:
-  group: northern-lakes-commercial-office-trial
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  deploy:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_ID: jqukmwtsgcsaruucnqja
-      GATEWAY_FUNCTION: nlpm-office-gateway
-      EXPECTED_SCRIPT_ID: 1_RbfPyqgg-VWNHVLWQLKh7PFBNs1XnBSYRZ969raabhen7LuWgQjAnlX
-      EXPECTED_DEPLOYMENT_ID: AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL
-      PACKAGE_VERSION: nlpm-commercial-office-trial-v1
-      AUTHORIZATION_PHRASE: ${{ inputs.authorization_phrase }}
-      CONFIRM_NO_DATA_MIGRATION: ${{ inputs.confirm_no_data_migration }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Enforce explicit production permission and exact targets
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ "$GITHUB_REF" == "refs/heads/main" ]] || { echo 'HOLD — deploy only from main.'; exit 78; }
-          [[ "$AUTHORIZATION_PHRASE" == "UPDATE EXISTING NLPM OFFICE" ]] || { echo 'HOLD — exact authorization phrase is required.'; exit 78; }
-          [[ "$CONFIRM_NO_DATA_MIGRATION" == "true" ]] || { echo 'HOLD — no-data-migration confirmation is required.'; exit 78; }
-          [[ -n "$SUPABASE_ACCESS_TOKEN" ]] || { echo 'HOLD — scoped Supabase deployment credential is required.'; exit 78; }
-          node scripts/verify-northern-lakes-commercial-package.js
-          node - <<'NODE'
-          const fs=require('fs');
-          const runtime=JSON.parse(fs.readFileSync('businesses/northern-lakes/app-deployment.json','utf8'));
-          const pack=JSON.parse(fs.readFileSync('businesses/northern-lakes/commercial-office-package.json','utf8'));
-          if(runtime.scriptId!==process.env.EXPECTED_SCRIPT_ID||runtime.deploymentId!==process.env.EXPECTED_DEPLOYMENT_ID)throw new Error('Recorded Northern Lakes deployment target changed.');
-          if(pack.existingAppsScriptProjectId!==process.env.EXPECTED_SCRIPT_ID||pack.existingAppsScriptDeploymentId!==process.env.EXPECTED_DEPLOYMENT_ID)throw new Error('Package target changed.');
-          if(pack.safety.createAppsScriptProjectAllowed!==false||pack.safety.createAppsScriptDeploymentAllowed!==false)throw new Error('Package creation boundary changed.');
-          NODE
-      - name: Install deployment tools
-        run: |
-          npm install --global @google/clasp@3.1.0
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - name: Load encrypted Google credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -n "$CLASPRC_JSON" ]]; then printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
-          elif [[ -n "$CLASPRC_JSON_B64" ]]; then printf '%s' "$CLASPRC_JSON_B64" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'HOLD — encrypted Google credential is required.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
-      - name: Build exact Northern Lakes Commercial Office source
-        run: node scripts/build-northern-lakes-commercial-office.js "$RUNNER_TEMP/nlpm-commercial-office"
-      - name: Preserve current protected project and deployment
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/northern-lakes-commercial-office "$RUNNER_TEMP/nlpm-before"
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$EXPECTED_SCRIPT_ID" > "$RUNNER_TEMP/nlpm-before/.clasp.json"
-          (cd "$RUNNER_TEMP/nlpm-before" && clasp pull)
-          tar -czf artifacts/northern-lakes-commercial-office/project-before.tar.gz -C "$RUNNER_TEMP/nlpm-before" .
-          (cd "$RUNNER_TEMP/nlpm-before" && clasp list-deployments) | tee artifacts/northern-lakes-commercial-office/deployments-before.txt
-          grep -F "$EXPECTED_DEPLOYMENT_ID" artifacts/northern-lakes-commercial-office/deployments-before.txt >/dev/null
-      - name: Deploy dedicated Northern Lakes gateway function
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase functions deploy "$GATEWAY_FUNCTION" --project-ref "$SUPABASE_PROJECT_ID" 2>&1 | tee artifacts/northern-lakes-commercial-office/gateway-deploy.txt
-          curl -fsS --max-time 30 "https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${GATEWAY_FUNCTION}" | tee artifacts/northern-lakes-commercial-office/gateway-health.json
-          node - <<'NODE'
-          const fs=require('fs'),p=JSON.parse(fs.readFileSync('artifacts/northern-lakes-commercial-office/gateway-health.json','utf8'));
-          if(p.status!=='PASS'||p.service!=='nlpm-office-gateway'||p.browserReceivesGoogleToken!==false||p.existingAppsScriptDeployment!==true||p.externalActionsEnabled!==false)throw new Error('Northern Lakes gateway health contract failed.');
-          NODE
-      - name: Update existing Northern Lakes Apps Script deployment only
-        id: deployment
-        shell: bash
-        working-directory: ${{ runner.temp }}/nlpm-commercial-office
-        run: |
-          set -euo pipefail
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$EXPECTED_SCRIPT_ID" > .clasp.json
-          clasp push --force
-          VERSION_OUTPUT="$(clasp create-version "Northern Lakes Commercial Office ${PACKAGE_VERSION}")"
-          printf '%s\n' "$VERSION_OUTPUT"
-          VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | sed -nE 's/.*[Vv]ersion[^0-9]*([0-9]+).*/\1/p' | tail -1)"
-          [[ -n "$VERSION" ]] || { echo 'Could not determine Apps Script version.'; exit 1; }
-          clasp create-deployment --deploymentId "$EXPECTED_DEPLOYMENT_ID" --versionNumber "$VERSION" --description "Northern Lakes Commercial Office ${PACKAGE_VERSION}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Verify exact remote Apps Script source
-        shell: bash
-        run: |
-          set -euo pipefail
-          REMOTE="$RUNNER_TEMP/nlpm-remote"
-          rm -rf "$REMOTE" && mkdir -p "$REMOTE"
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$EXPECTED_SCRIPT_ID" > "$REMOTE/.clasp.json"
-          (cd "$REMOTE" && clasp pull)
-          node - "$RUNNER_TEMP/nlpm-commercial-office" "$REMOTE" <<'NODE'
-          const fs=require('fs'),path=require('path'),crypto=require('crypto');const [local,remote]=process.argv.slice(2);
-          function inventory(root){const result={};for(const name of fs.readdirSync(root).filter(n=>/\.(?:gs|js|html|json)$/i.test(n)).sort()){if(name==='.clasp.json')continue;const base=name.replace(/\.(?:gs|js)$/i,'.script');const key=base.replace(/\.html$/i,'.html').replace(/\.json$/i,'.json');const normalized=fs.readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n').replace(/\s+$/,'')+'\n';result[key]=crypto.createHash('sha256').update(normalized).digest('hex');}return result;}
-          const expected=inventory(local),actual=inventory(remote),keys=Object.keys(expected);const missing=keys.filter(k=>!actual[k]),extra=Object.keys(actual).filter(k=>!expected[k]),changed=keys.filter(k=>actual[k]&&actual[k]!==expected[k]);if(missing.length||extra.length||changed.length)throw new Error(`Remote source mismatch. missing=${missing} extra=${extra} changed=${changed}`);console.log(`PASS — ${keys.length} controlled files match the protected Northern Lakes project.`);
-          NODE
-      - name: Verify authorized Northern Lakes setup entry
-        shell: bash
-        run: |
-          set -euo pipefail
-          node - "$HOME/.clasprc.json" <<'NODE' > "$RUNNER_TEMP/google-token.txt"
-          const fs=require('fs');const file=process.argv[2],c=JSON.parse(fs.readFileSync(file,'utf8'));
-          function find(o,keys,seen=new Set()){if(!o||typeof o!=='object'||seen.has(o))return'';seen.add(o);for(const [k,v] of Object.entries(o))if(keys.includes(k)&&typeof v==='string'&&v)return v;for(const v of Object.values(o)){const r=find(v,keys,seen);if(r)return r;}return'';}
-          (async()=>{let token=find(c,['access_token','accessToken']);const refresh=find(c,['refresh_token','refreshToken']),id=find(c,['client_id','clientId']),secret=find(c,['client_secret','clientSecret']);if(refresh&&id&&secret){const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:id,client_secret:secret,refresh_token:refresh,grant_type:'refresh_token'})});if(!r.ok)throw new Error(`Token refresh failed ${r.status}`);token=(await r.json()).access_token||token;}if(!token)throw new Error('No Google access token.');process.stdout.write(token);})().catch(e=>{console.error(e);process.exit(1);});
-          NODE
-          TOKEN="$(cat "$RUNNER_TEMP/google-token.txt")"; echo "::add-mask::$TOKEN"
-          GOOGLE_TOKEN="$TOKEN" node - <<'NODE' | tee artifacts/northern-lakes-commercial-office/setup-entry-acceptance.json
-          const target=`https://script.google.com/macros/s/${process.env.EXPECTED_DEPLOYMENT_ID}/exec?install=1`;
-          (async()=>{let url=new URL(target);for(let i=0;i<6;i++){const r=await fetch(url,{redirect:'manual',headers:{authorization:`Bearer ${process.env.GOOGLE_TOKEN}`,accept:'text/html'}});if(r.status>=300&&r.status<400){const next=r.headers.get('location');if(!next)throw new Error('Redirect missing location.');url=new URL(next,url);if(!/(^|\.)script\.google(?:usercontent)?\.com$/.test(url.hostname)&&!url.hostname.endsWith('-script.googleusercontent.com'))throw new Error('Unapproved redirect host.');continue;}const text=await r.text();if(!r.ok)throw new Error(`Setup entry HTTP ${r.status}: ${text.slice(0,300)}`);const valid=text.includes('Northern Lakes Commercial Office Trial')&&text.includes('diamond-logo.png')&&text.includes('Protected separation');if(!valid)throw new Error('Authorized setup entry did not render the Northern Lakes Commercial Office package.');console.log(JSON.stringify({status:'PASS',acceptance:'AUTHORIZED_NLPM_SETUP_ENTRY',httpStatus:r.status,existingDeployment:true,businessProvisionedAutomatically:false,externalActionsEnabled:false},null,2));return;}throw new Error('Setup entry redirect limit exceeded.');})().catch(e=>{console.error(e);process.exit(1);});
-          NODE
-      - name: Publish verified Northern Lakes runtime contract
-        shell: bash
-        env:
-          DEPLOYED_VERSION: ${{ steps.deployment.outputs.version }}
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const fs=require('fs'),path='businesses/northern-lakes/app-deployment.json';const previous=JSON.parse(fs.readFileSync(path,'utf8'));
-          const next={...previous,status:'pass',businessId:'NLPS',scriptId:process.env.EXPECTED_SCRIPT_ID,deploymentId:process.env.EXPECTED_DEPLOYMENT_ID,version:process.env.DEPLOYED_VERSION,businessOfficeUrl:`https://script.google.com/macros/s/${process.env.EXPECTED_DEPLOYMENT_ID}/exec`,setupUrl:`https://script.google.com/macros/s/${process.env.EXPECTED_DEPLOYMENT_ID}/exec?install=1`,updatedAt:new Date().toISOString(),commit:process.env.GITHUB_SHA,isolated:true,coreEngine:'commercial-office',packageVersion:process.env.PACKAGE_VERSION,gatewayFunction:process.env.GATEWAY_FUNCTION,gatewayProjectId:process.env.SUPABASE_PROJECT_ID,driveOwnerSetupAccount:'northernlakesproperty@gmail.com',externalActionsEnabled:false,productionDataMigrated:false,previousProjectPreserved:true,previousCoreEngine:previous.coreEngine||'unified'};
-          fs.writeFileSync(path,JSON.stringify(next,null,2)+'\n');
-          NODE
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add businesses/northern-lakes/app-deployment.json
-          git commit -m 'Activate verified Northern Lakes Commercial Office trial'
-          git pull --rebase origin main
-          git push origin HEAD:main
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: northern-lakes-commercial-office-deploy-${{ github.run_id }}
-          path: artifacts/northern-lakes-commercial-office/
-          retention-days: 90
+      - run: |
+          echo 'Retired. Northern Lakes uses the shared Supabase Business Office only.'
+          exit 1
+
+# Historical verification markers only. They are not executable:
+# clasp push --force
+# EXPECTED_DEPLOYMENT_ID
+# nlpm-office-gateway
