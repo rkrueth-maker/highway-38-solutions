@@ -17,60 +17,13 @@
   <title>Highway 38 Business Office</title>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><img id="approvedOfficeLogo" class="brand-logo" src="../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions"><div><strong>Business Office</strong><small id="shellLabel">Full Business Office</small></div></div>
-    <div class="top-actions">
-      <span id="networkBadge" class="badge offline">Internet</span>
-      <span id="gatewayBadge" class="badge offline">Sync offline</span>
-      <span id="syncBadge" class="badge neutral">All saved</span>
-      <button id="globalAiButton" class="ai-launcher" type="button" aria-label="Open H38 AI"><span aria-hidden="true">✨</span><span class="ai-launcher-label">H38 AI</span></button>
-      <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to H38">🎙️</button>
-      <button id="syncButton" class="icon-button" type="button" aria-label="Synchronize">↻</button>
-    </div>
-  </header>
-  <section class="business-bar">
-    <select id="businessSelect" aria-label="Business" hidden disabled><option value="">Select business</option></select>
-    <button id="loadBusinessButton" type="button" hidden disabled>Open</button>
-    <span id="businessStatus">Opening securely…</span>
-  </section>
-  <div class="app-shell">
-    <nav id="mainNav" class="main-nav" aria-label="Business Office navigation"></nav>
-    <main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Highway 38 Business Office…</h1><p>Reading the secure gateway handoff in this tab.</p><div class="welcome-actions"><a id="earlySecureSignInButton" class="primary" href="/open-business-office.html" target="_self">Open secure Office</a><button id="earlyRetryButton" class="secondary" type="button">Retry connection</button></div></section></main>
-  </div>
-  <div id="toast" class="toast hidden" role="status"></div>
-  <dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog>
-  <dialog id="globalAiDialog" class="ai-drawer" aria-label="H38 AI assistant"><div id="globalAiBody"></div></dialog>
-  <iframe id="bridgeFrame" class="bridge-frame" title="Retired secure connection" hidden></iframe>
-  <script>
-    window.H38_BUILD='20260804-auth-dev';
-    window.H38_ASSET_BUILD='20260804-auth-dev';
-    window.H38_GATEWAY_HANDOFF_PRESENT=location.hash.indexOf('h38=')>=0;
-    window.H38_EXECUTION_HANDOFF_PRESENT=false;
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/dist/umd/supabase.min.js" integrity="sha384-L4TBD-dev-pin-requires-release-verification" crossorigin="anonymous" onerror="this.removeAttribute('integrity');this.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/dist/umd/supabase.min.js'"></script>
-  <script src="./supabase-auth.js?build=20260804-auth-dev"></script>
-  <script src="./db.js?build=20260803-2205"></script>
-  <script src="./bridge.js?build=20260804-auth-dev"></script>
-  <script src="./app-01.js?build=20260803-2205"></script>
-  <script src="./app-02.js?build=20260803-2205"></script>
-  <script src="./app-03.js?build=20260803-2205"></script>
-  <script src="./app-04.js?build=20260803-2205"></script>
-  <script src="./app-05.js?build=20260803-2205"></script>
-  <script src="./app-06.js?build=20260803-2205"></script>
-  <script src="./app-07.js?build=20260803-2205"></script>
-  <script src="./app-08.js?build=20260803-2205"></script>
-  <script src="./app-09.js?build=20260803-2205"></script>
-  <script src="./app-10.js?build=20260803-2205"></script>
-  <script src="./app-11.js?build=20260803-2205"></script>
-  <script src="./app-12.js?build=20260803-2205"></script>
-  <script src="./app-13.js?build=20260803-2205"></script>
-  <script src="./app-14.js?build=20260803-2205"></script>
-  <script src="./app-15.js?build=20260803-2205"></script>
-  <script src="./app-16.js?build=20260803-2205"></script>
-  <script src="./app-17.js?build=20260803-2205"></script>
-  <script src="./startup-fix.js?build=20260803-2205"></script>
-  <script src="./app-19.js?build=20260803-2205"></script>
-  <script src="./app-18.js?build=20260803-2205"></script>
-  <script src="./app-20.js?build=20260803-2205"></script>
+  <header class="topbar"><div class="brand"><img id="approvedOfficeLogo" class="brand-logo" src="../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions"><div><strong>Business Office</strong><small id="shellLabel">Full Business Office</small></div></div><div class="top-actions"><span id="networkBadge" class="badge offline">Internet</span><span id="gatewayBadge" class="badge offline">Sync offline</span><span id="syncBadge" class="badge neutral">All saved</span><button id="globalAiButton" class="ai-launcher" type="button" aria-label="Open H38 AI"><span aria-hidden="true">✨</span><span class="ai-launcher-label">H38 AI</span></button><button id="voiceButton" class="icon-button" type="button" aria-label="Talk to H38">🎙️</button><button id="syncButton" class="icon-button" type="button" aria-label="Synchronize">↻</button></div></header>
+  <section class="business-bar"><select id="businessSelect" aria-label="Business" hidden disabled><option value="">Select business</option></select><button id="loadBusinessButton" type="button" hidden disabled>Open</button><span id="businessStatus">Opening securely…</span></section>
+  <div class="app-shell"><nav id="mainNav" class="main-nav" aria-label="Business Office navigation"></nav><main id="mainContent" tabindex="-1"><section class="welcome"><h1>Opening Highway 38 Business Office…</h1><p>Reading the secure gateway handoff in this tab.</p><div class="welcome-actions"><a id="earlySecureSignInButton" class="primary" href="/open-business-office.html" target="_self">Open secure Office</a><button id="earlyRetryButton" class="secondary" type="button">Retry connection</button></div></section></main></div>
+  <div id="toast" class="toast hidden" role="status"></div><dialog id="reviewDialog"><form method="dialog"><h2>Review required</h2><div id="reviewBody"></div><div class="actions"><button value="cancel" class="secondary">Close</button></div></form></dialog><dialog id="globalAiDialog" class="ai-drawer" aria-label="H38 AI assistant"><div id="globalAiBody"></div></dialog><iframe id="bridgeFrame" class="bridge-frame" title="Retired secure connection" hidden></iframe>
+  <script>window.H38_BUILD='20260804-auth-dev';window.H38_ASSET_BUILD='20260804-auth-dev';window.H38_GATEWAY_HANDOFF_PRESENT=location.hash.indexOf('h38=')>=0;window.H38_EXECUTION_HANDOFF_PRESENT=false;</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <script src="./supabase-auth.js?build=20260804-auth-dev"></script><script src="./db.js?build=20260803-2205"></script><script src="./bridge.js?build=20260804-auth-dev"></script>
+  <script src="./app-01.js?build=20260803-2205"></script><script src="./app-02.js?build=20260803-2205"></script><script src="./app-03.js?build=20260803-2205"></script><script src="./app-04.js?build=20260803-2205"></script><script src="./app-05.js?build=20260803-2205"></script><script src="./app-06.js?build=20260803-2205"></script><script src="./app-07.js?build=20260803-2205"></script><script src="./app-08.js?build=20260803-2205"></script><script src="./app-09.js?build=20260803-2205"></script><script src="./app-10.js?build=20260803-2205"></script><script src="./app-11.js?build=20260803-2205"></script><script src="./app-12.js?build=20260803-2205"></script><script src="./app-13.js?build=20260803-2205"></script><script src="./app-14.js?build=20260803-2205"></script><script src="./app-15.js?build=20260803-2205"></script><script src="./app-16.js?build=20260803-2205"></script><script src="./app-17.js?build=20260803-2205"></script><script src="./startup-fix.js?build=20260803-2205"></script><script src="./app-19.js?build=20260803-2205"></script><script src="./app-18.js?build=20260803-2205"></script><script src="./app-20.js?build=20260803-2205"></script>
 </body>
 </html>
