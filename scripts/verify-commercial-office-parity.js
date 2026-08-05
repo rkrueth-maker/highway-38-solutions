@@ -16,7 +16,8 @@ const jsSyntax=cp.spawnSync(process.execPath,['--check',path.join(root,'commerci
 check(jsSyntax.status===0,`app-19 syntax failed: ${(jsSyntax.stderr||jsSyntax.stdout||'').trim()}`);
 try{new Function(parity);check(true,'');}catch(error){check(false,`Parity Apps Script syntax failed: ${error.message}`);}
 check(index.includes('id="networkBadge"')&&index.includes('id="gatewayBadge"')&&index.includes('id="syncBadge"'),'Internet, secure sync and unsynced-work indicators must be separate.');
-check(index.includes('app-19.js?build=20260803-2205')&&index.includes("window.H38_ASSET_BUILD='20260803-2205'"),'Parity runtime must use the declared browser asset build.');
+const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
+check(/^\d{8}-\d{4}$/.test(assetBuild)&&index.includes(`app-19.js?build=${assetBuild}`),'Parity runtime must use the declared browser asset build.');
 for(const page of ['people','accounting','payroll','tax','controls','reports'])check(app.includes(`${page}:`)||app.includes(`'${page}'`),`Missing parity page ${page}.`);
 for(const fn of ['renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderControls','renderReports'])check(app.includes(`function ${fn}(`),`Missing renderer ${fn}.`);
 check(app.includes("String(operation&&operation.action||'').toUpperCase()==='RECORD_USAGE_EVENT'")&&app.includes("real=operations.filter(op=>!isUsageOperation(op))"),'Usage telemetry must not count as unsynced business work.');
@@ -29,6 +30,6 @@ check(core.includes("Object.assign(data,cbCompletionParityData_(context))"),'Ful
 check(sync.includes("action==='SAVE_PARITY_ENTITY'")&&sync.includes('cbCompletionSaveParityEntity_(input)'),'Offline sync must handle parity records.');
 check(app.includes("'Approval Status':'Owner Approval Required'")&&app.includes("'Export Allowed':'No'")&&app.includes("'Finalization Allowed':'No'"),'Payroll, purchasing and tax preparation must remain owner-review controlled.');
 check(app.includes('No funds moved.')&&app.includes('Nothing filed or paid.')&&app.includes('Nothing purchased.'),'Financial safety language must remain explicit.');
-const report={status:failures.length?'FAIL':'PASS',checks:28,failures,replacementOfficeParity:true,separateInternetAndSecureSync:true,usageTelemetryExcludedFromPending:true,employees:true,accountingPreparation:true,payrollPreparation:true,taxPreparation:true,approvalsProofErrorsBackups:true,reports:true,productionMigration:false,externalActions:false};
+const report={status:failures.length?'FAIL':'PASS',checks:28,failures,replacementOfficeParity:true,separateInternetAndSecureSync:true,usageTelemetryExcludedFromPending:true,employees:true,accountingPreparation:true,payrollPreparation:true,taxPreparation:true,approvalsProofErrorsBackups:true,reports:true,assetBuild,productionMigration:false,externalActions:false};
 console.log(JSON.stringify(report,null,2));
 if(failures.length)process.exit(1);
