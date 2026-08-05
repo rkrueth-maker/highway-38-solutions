@@ -95,14 +95,9 @@
     "bulkMessagingEnabled": false,
     "automaticTriggersEnabled": false,
     "ownerApprovalRequired": true,
-    "googleRecordsImported": false
-  },
-  "legacyGoogleOffice": {
-    "status": "rollback-only",
-    "deploymentId": "AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL",
-    "url": "https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec",
-    "automaticLaunch": false,
-    "modifiedBySupabaseRollout": false
+    "googleRecordsImported": false,
+    "legacyOfficeEnabled": false,
+    "legacyOfficeFallback": false
   },
   "release": {
     "stage": "closed-beta",
