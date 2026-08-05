@@ -1,1 +1,55 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Request an Estimate | Northern Lakes</title><meta name="description" content="Request a free estimate for Northern Lakes snow, lawn, property work, equipment rental, salt or materials services."><link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/businesses/northern-lakes/quote-request.html"><meta name="robots" content="index,follow"><link rel="stylesheet" href="app.css"><script defer src="site-shell.js?v=rendered-photo-pass-20260726"></script></head><body><main><section class="page-hero"><img src="assets/hero.svg?v=rendered-photo-pass-20260726" alt="Northern Lakes service truck"><div class="hero-inner"><div class="eyebrow">Request an Estimate</div><h1>Get Your Free Estimate Today.</h1><p>Tell us about your project and we'll get back to you with a free estimate.</p></div></section><section class="section"><div class="form-wrap"><div><div class="eyebrow">Start Your Request</div><h2>We Look Forward to Working With You.</h2><p>Include the property address, requested service and the work you need. Photos and supporting documents can be added through the customer portal during beta review.</p><div class="check-list"><span>Free Project Estimates</span><span>Residential &amp; Commercial</span><span>Owner-Reviewed Scope</span><span>No Automatic Charges</span></div><p><a class="nav-owner" href="customer-portal.html">Customer Portal</a></p></div><form id="quoteForm" class="form-panel"><div class="two"><div><label for="name">Name</label><input id="name" name="name" autocomplete="name" required></div><div><label for="phone">Phone</label><input id="phone" name="phone" autocomplete="tel" required></div></div><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><label for="service">Service Needed</label><select id="service" name="service" required><option value="">Choose service</option><option>Snow &amp; Ice Management</option><option>Lawn &amp; Landscaping</option><option>Property &amp; Outdoor Work</option><option>Equipment Rental</option><option>Salt &amp; Materials</option><option>Other</option></select><label for="address">Property Address</label><input id="address" name="address" autocomplete="street-address" required><label for="details">Describe Your Project</label><textarea id="details" name="details" required></textarea><label><input style="width:auto" type="checkbox" required> I understand this is a request for review and does not authorize charges or scheduling.</label><button class="btn" type="submit">Submit Request</button><div id="result" aria-live="polite"></div></form></div></section><section class="cta-band"><h2>We Look Forward to Working With You.</h2></section></main><script src="app-core.js"></script><script>document.querySelector('#quoteForm').addEventListener('submit',e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());let r;if(window.NLPS&&NLPS.createRequest){r=NLPS.createRequest(data)}else{r={...data,id:'NLR-'+Date.now().toString().slice(-8),status:'Owner review required',createdAt:new Date().toISOString()};const k='nlps_requests',rows=JSON.parse(localStorage.getItem(k)||'[]');rows.unshift(r);localStorage.setItem(k,JSON.stringify(rows))}result.innerHTML='<div class="notice"><strong>Request received.</strong><br>Confirmation: '+(window.NLPS?NLPS.escape(r.id):r.id)+'<br>Status: Owner review required.</div>';e.target.reset()});</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Request an Estimate | Northern Lakes</title>
+  <meta name="description" content="Request an owner-reviewed estimate for Northern Lakes property care, site work, cleanouts, equipment, materials or seasonal services.">
+  <link rel="canonical" href="https://highway38solutions.com/businesses/northern-lakes/quote-request.html">
+  <meta name="robots" content="index,follow">
+  <link rel="stylesheet" href="app.css?v=nl-catalog-20260805">
+  <link rel="stylesheet" href="service-catalog.css?v=nl-catalog-20260805">
+  <script defer src="service-catalog.js?v=nl-catalog-20260805"></script>
+  <script defer src="service-catalog-render.js?v=nl-catalog-20260805"></script>
+  <script defer src="site-shell.js?v=nl-catalog-20260805"></script>
+</head>
+<body>
+<main>
+  <section class="page-hero"><img src="assets/hero.svg?v=rendered-photo-pass-20260726" alt="Northern Lakes Chevrolet Silverado Duramax with BOSS plow"><div class="hero-inner"><div class="eyebrow">Request an Estimate</div><h1>Tell Us What the Property Needs.</h1><p>Northern Lakes reviews the property, scope, access, quantities and next steps before scheduling or charges.</p></div></section>
+  <section class="section"><div class="form-wrap"><div><div class="eyebrow">Start Your Request</div><h2>Clear details lead to a better estimate.</h2><p>Include the property address, requested service, known measurements, timing concerns and anything that affects access. Existing customers can sign in to view bills, estimates and records.</p><div class="check-list"><span>Residential &amp; Commercial</span><span>Owner-Reviewed Scope</span><span>No Automatic Scheduling</span><span>No Automatic Charges</span></div><p><a class="btn secondary" href="customer-portal.html">Customer sign in</a></p></div>
+  <form id="quoteForm" class="form-panel">
+    <div class="two"><div><label for="name">Name</label><input id="name" name="name" autocomplete="name" required></div><div><label for="phone">Phone</label><input id="phone" name="phone" autocomplete="tel" required></div></div>
+    <label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required>
+    <label for="service">Service Needed</label><select id="service" name="service" data-catalog-service-select required><option value="">Loading services…</option></select>
+    <div class="request-service-summary" data-selected-service-summary hidden></div>
+    <label for="address">Property Address</label><input id="address" name="address" autocomplete="street-address" required>
+    <label for="timing">Requested Timing</label><input id="timing" name="timing" placeholder="Example: before freeze-up or recurring monthly">
+    <label for="details">Describe the Property and Work</label><textarea id="details" name="details" required></textarea>
+    <label><input style="width:auto" type="checkbox" name="reviewAcknowledgement" value="yes" required> I understand this request does not authorize scheduling, prices, charges or payment.</label>
+    <button class="btn" type="submit">Submit for Owner Review</button><div id="result" aria-live="polite"></div>
+  </form></div></section>
+</main>
+<script src="app-core.js?v=nl-catalog-20260805"></script>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+ const form=document.querySelector('#quoteForm');const result=document.querySelector('#result');
+ form.addEventListener('submit',event=>{
+  event.preventDefault();
+  const data=Object.fromEntries(new FormData(form).entries());
+  const item=window.NL_SERVICE_CATALOG&&window.NL_SERVICE_CATALOG.byId(data.service);
+  data.serviceName=item?item.name:data.service;
+  data.catalogVersion='nl-catalog-20260805';
+  let record;
+  if(window.NLPS&&typeof window.NLPS.createRequest==='function')record=window.NLPS.createRequest(data);
+  else{
+   record={...data,id:'NLR-'+Date.now().toString().slice(-8),status:'Owner review required',createdAt:new Date().toISOString(),externalActionOccurred:false};
+   const key='nlps_requests';const rows=JSON.parse(localStorage.getItem(key)||'[]');rows.unshift(record);localStorage.setItem(key,JSON.stringify(rows));
+  }
+  result.innerHTML='<div class="notice"><strong>Request recorded for owner review.</strong><br>Confirmation: '+String(record.id).replace(/[&<>"']/g,'')+'<br>No schedule, price or charge was created.</div>';
+  form.reset();
+  const selected=new URLSearchParams(location.search).get('service');if(selected)form.service.value=selected;form.service.dispatchEvent(new Event('change'));
+ });
+});
+</script>
+</body>
+</html>
