@@ -92,8 +92,15 @@ includes(startup,[
   "snapshot.authorizationStatus!=='active'",
   "['membership-suspended','membership-revoked','membership-invited','no-membership']",
   "state.bridge.request('fullStartupRefresh'",
-  'Only active memberships returned by Supabase Auth are listed above.'
+  'Only active memberships returned by Supabase Auth are listed above.',
+  'function h38SetAuthorizedChrome(authorized)',
+  "if(nav&&!allowed)nav.innerHTML=''",
+  'h38SetAuthorizedChrome(false)',
+  'h38SetAuthorizedChrome(true)'
 ],'startup integration');
+const authInit=(startup.match(/init=async function\(\)\{([\s\S]*?)\n\};/)||[])[1]||'';
+check(!authInit.includes('renderNav();'),'pre-auth startup does not render Office navigation');
+check(authInit.includes('h38SetAuthorizedChrome(false);'),'pre-auth startup explicitly hides protected chrome');
 excludes(startup,["localStorage.getItem('h38-selected-business')",'completionSync'],'startup integration');
 
 includes(migration,[
@@ -149,6 +156,7 @@ console.log(JSON.stringify({
   privateCurrentUserResolver:true,
   userScopedOfflineCache:true,
   legacyUnscopedCacheRefused:true,
+  protectedNavigationBeforeAuth:true,
   oneBusinessOfficeShell:true,
   serviceRoleInBrowser:false,
   productionPromotionAuthorized:false,
