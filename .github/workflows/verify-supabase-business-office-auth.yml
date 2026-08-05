@@ -6,8 +6,7 @@ on:
       - 'commercial-app/**'
       - 'supabase/migrations/**'
       - 'supabase/tests/database/business_office_auth_resolution.test.sql'
-      - 'scripts/verify-supabase-business-office-auth.js'
-      - 'scripts/verify-supabase-business-office-auth-runtime.js'
+      - 'scripts/verify-supabase-business-office-auth*.js'
       - '.github/workflows/verify-supabase-business-office-auth.yml'
   workflow_dispatch:
 
@@ -29,3 +28,8 @@ jobs:
         run: node scripts/verify-supabase-business-office-auth.js
       - name: Exercise Supabase Auth bridge states
         run: node scripts/verify-supabase-business-office-auth-runtime.js
+      - name: Verify one rotating Auth client
+        run: |
+          node --check commercial-app/supabase-single-client.js
+          node --check commercial-app/supabase-session-recovery.js
+          node scripts/verify-supabase-business-office-auth-single-client.js
