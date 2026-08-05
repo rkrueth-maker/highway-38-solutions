@@ -19,4 +19,9 @@ jobs:
 # clasp push
 # deploy-commercial-google-native-beta.sh
 # h38-office-gateway
+# verify-h38-office-gateway-source.js
+# verify-commercial-startup.js
+# run-commercial-webapp-startup-acceptance.sh
 # verify-commercial-delivery-acceptance.js
+# verify-commercial-full-demo-acceptance.js
+# release-report.json
