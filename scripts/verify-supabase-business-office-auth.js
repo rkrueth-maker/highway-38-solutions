@@ -125,8 +125,16 @@ includes(databaseTest,[
   'rollback;'
 ],'database acceptance');
 
-const protectedNorthernLakes=read('businesses/northern-lakes/deploy-request.json');
-check(!/supabase|uvcqnkjidllhdmjnqshk|activate/i.test(protectedNorthernLakes),'Northern Lakes deploy request remains untouched and inactive');
+const protectedNorthernLakes=JSON.parse(read('businesses/northern-lakes/deploy-request.json'));
+check(protectedNorthernLakes.requestVersion===0,'Northern Lakes request version remains zero');
+check(protectedNorthernLakes.active===false,'Northern Lakes remains inactive');
+check(protectedNorthernLakes.scriptId==='1_RbfPyqgg-VWNHVLWQLKh7PFBNs1XnBSYRZ969raabhen7LuWgQjAnlX','Northern Lakes legacy script ID is preserved');
+check(protectedNorthernLakes.deploymentId==='AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL','Northern Lakes legacy deployment ID is preserved');
+check(protectedNorthernLakes.supabaseProjectId==='jqukmwtsgcsaruucnqja','Northern Lakes protected production project reference is unchanged');
+check(protectedNorthernLakes.gatewayFunction==='nlpm-office-gateway','Northern Lakes future gateway name is unchanged');
+check(protectedNorthernLakes.productionDataMigrationAllowed===false,'Northern Lakes production migration remains disabled');
+check(protectedNorthernLakes.externalActionsEnabled===false,'Northern Lakes external actions remain disabled');
+check(!JSON.stringify(protectedNorthernLakes).includes('uvcqnkjidllhdmjnqshk'),'Northern Lakes was not pointed at the preview project');
 
 if(failures.length){
   console.error(JSON.stringify({status:'FAIL',acceptance:'SUPABASE_BUSINESS_OFFICE_AUTH_SOURCE',failures,checkCount:checks.length},null,2));
