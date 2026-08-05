@@ -11,14 +11,6 @@
   <meta name="description" content="Highway 38 Business Office">
   <script>
     (function () {
-      const canonical = new URL('https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/');
-      const liveCustomDomains = new Set(['highway38solutions.com', 'www.highway38solutions.com']);
-      if (liveCustomDomains.has(location.hostname)) {
-        canonical.search = location.search;
-        canonical.hash = location.hash;
-        location.replace(canonical.toString());
-        return;
-      }
       const params = new URLSearchParams(location.search);
       if (!params.has('code')) return;
       try { sessionStorage.setItem('h38:business-office-password-recovery', String(Date.now())); }
