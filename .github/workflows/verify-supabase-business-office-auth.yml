@@ -1,0 +1,31 @@
+name: Verify Supabase Business Office Auth
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/**'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/database/business_office_auth_resolution.test.sql'
+      - 'scripts/verify-supabase-business-office-auth.js'
+      - 'scripts/verify-supabase-business-office-auth-runtime.js'
+      - '.github/workflows/verify-supabase-business-office-auth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-auth-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Supabase Auth shell integration
+        run: node scripts/verify-supabase-business-office-auth.js
+      - name: Exercise Supabase Auth bridge states
+        run: node scripts/verify-supabase-business-office-auth-runtime.js

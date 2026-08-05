@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
   <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta http-equiv="refresh" content="0;url=commercial-app/index.html">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <title>Opening Highway 38 Business Office</title>
   <style>
@@ -15,35 +17,18 @@
   <main class="card">
     <img id="approvedLauncherLogo" class="approved-logo" src="assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
     <h1>Opening Business Office</h1>
-    <p id="status">Clearing the obsolete Office connection and opening Google authorization in this tab.</p>
-    <a id="continueButton" class="primary" href="https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec?entry=1">Continue securely</a>
-    <p class="muted">Google prepares a secure gateway session, then you return to Highway 38 in this tab. No second window remains open.</p>
+    <p>Opening the standard Supabase Business Office in this tab.</p>
+    <a id="continueButton" class="primary" href="commercial-app/index.html">Open Business Office</a>
+    <p class="muted">The former Google Office is retained only as a controlled rollback route.</p>
   </main>
   <script>
-    (async function(){
-      var destination=new URL('https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec');
-      destination.searchParams.set('entry','1');
-      destination.searchParams.set('officeBuild','20260803-1700');
+    (function(){
       var incoming=new URLSearchParams(location.search);
+      var destination=new URL('commercial-app/index.html',location.href);
       ['page','shell','businessId'].forEach(function(key){var value=(incoming.get(key)||'').trim();if(value)destination.searchParams.set(key,value);});
-      destination=destination.toString();
-      document.getElementById('continueButton').href=destination;
-      try{
-        sessionStorage.removeItem('h38-gateway-session-v1');
-        sessionStorage.removeItem('h38-execution-session-v1');
-        if('serviceWorker' in navigator){
-          var registrations=await navigator.serviceWorker.getRegistrations();
-          await Promise.all(registrations.filter(function(registration){return registration.scope.indexOf('/commercial-app/')>=0;}).map(function(registration){return registration.unregister();}));
-        }
-        if('caches' in window){
-          var keys=await caches.keys();
-          await Promise.all(keys.filter(function(key){return key.indexOf('h38-business-office-')===0;}).map(function(key){return caches.delete(key);}));
-        }
-        document.getElementById('status').textContent='Opening Google authorization and secure gateway in this tab…';
-      }catch(error){
-        document.getElementById('status').textContent='Opening secure authorization. The old Office connection will be ignored.';
-      }
-      window.location.replace(destination);
+      if(location.hash)destination.hash=location.hash;
+      document.getElementById('continueButton').href=destination.toString();
+      location.replace(destination.toString());
     })();
   </script>
 </body>
