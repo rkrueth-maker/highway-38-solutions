@@ -1,165 +1,20 @@
-name: Fix Owner Portal Release Readiness
+name: Retired Owner Portal Release Deployment — Disabled
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps-script/core-engine/owner-portal-next/Portal_Production.js'
-      - 'apps-script/core-engine/owner-portal-next/Portal_SelfTest.js'
-      - 'scripts/verify-owner-portal-next.js'
-      - '.github/workflows/fix-owner-portal-release-readiness.yml'
   workflow_dispatch:
-
-concurrency:
-  group: owner-portal-release-readiness-production
-  cancel-in-progress: false
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
-  patch-deploy-and-accept:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    env:
-      H38_BOUND_SCRIPT_ID: 13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-
-      H38_EXISTING_DEPLOYMENT_ID: AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg
-      H38_PRODUCTION_SPREADSHEET_ID: 1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo
-      H38_APPROVED_RELEASE: production-2026-07-12-hard-rule-owner-portal
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
     steps:
-      - name: Check out exact main source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - run: |
+          echo 'Retired. Supabase is the only supported Business Office runtime.'
+          exit 1
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install clasp
-        run: npm install --global @google/clasp
-
-      - name: Verify narrow release-readiness correction
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-owner-portal-next.js
-          node scripts/verify-owner-portal-hard-rule.js
-          node scripts/verify-owner-portal-html-includes.js
-          grep -F "RELEASE: '${H38_APPROVED_RELEASE}'" apps-script/core-engine/owner-portal-next/Portal_Config.js
-          ! grep -F "H38_PORTAL_NEXT.RELEASE.indexOf('integrated-business-os')" apps-script/core-engine/owner-portal-next/Portal_Production.js
-          ! grep -F "H38_PORTAL_NEXT.RELEASE.indexOf('integrated-business-os')" apps-script/core-engine/owner-portal-next/Portal_SelfTest.js
-
-      - name: Load encrypted clasp credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$CLASPRC_JSON" || { echo 'Missing CLASPRC_JSON repository secret.'; exit 78; }
-          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('clasp credential loaded.');"
-
-      - name: Back up version 12 and update existing deployment
-        shell: bash
-        run: |
-          set -euo pipefail
-          WORK="$RUNNER_TEMP/h38-release-readiness"
-          BACKUP="$WORK/backup"
-          PROJECT="$WORK/project"
-          EVIDENCE="$GITHUB_WORKSPACE/deployment-evidence"
-          mkdir -p "$BACKUP" "$PROJECT" "$EVIDENCE"
-
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > "$BACKUP/.clasp.json"
-          (cd "$BACKUP" && clasp pull)
-          tar -czf "$EVIDENCE/bound-project-version-12-backup.tar.gz" -C "$BACKUP" .
-          sha256sum "$EVIDENCE/bound-project-version-12-backup.tar.gz" | tee "$EVIDENCE/bound-project-version-12-backup.sha256"
-
-          printf '{"scriptId":"%s","rootDir":"."}\n' "$H38_BOUND_SCRIPT_ID" > "$PROJECT/.clasp.json"
-          cp apps-script/core-engine/owner-portal-next/*.js "$PROJECT/"
-          cp apps-script/core-engine/owner-portal-next/*.html "$PROJECT/"
-          cp apps-script/core-engine/owner-portal-next/appsscript.json "$PROJECT/"
-
-          (cd "$PROJECT" && clasp list-deployments) | tee "$EVIDENCE/deployments-before.txt"
-          PREVIOUS_VERSION="$(awk -v id="$H38_EXISTING_DEPLOYMENT_ID" '$0 ~ id {for(i=1;i<=NF;i++) if($i ~ /^@[0-9]+$/){gsub("@","",$i); print $i; exit}}' "$EVIDENCE/deployments-before.txt")"
-          test "$PREVIOUS_VERSION" = "12" || { echo "HOLD — expected version 12, found ${PREVIOUS_VERSION:-unknown}."; exit 1; }
-          BEFORE_COUNT="$(awk '/^Found [0-9]+ deployments\./ {print $2; exit}' "$EVIDENCE/deployments-before.txt")"
-          printf '%s\n' "$PREVIOUS_VERSION" > "$EVIDENCE/previous-version.txt"
-          printf '%s\n' "$BEFORE_COUNT" > "$EVIDENCE/deployment-count-before.txt"
-
-          (cd "$PROJECT" && clasp push --force) | tee "$EVIDENCE/clasp-push.txt"
-          (cd "$PROJECT" && clasp create-version "Highway 38 Owner Portal release readiness fix ${GITHUB_SHA}") | tee "$EVIDENCE/create-version.txt"
-          NEW_VERSION="$(awk '/Created version/ {print $3; exit}' "$EVIDENCE/create-version.txt")"
-          test -n "$NEW_VERSION" && test "$NEW_VERSION" -gt "$PREVIOUS_VERSION"
-          printf '%s\n' "$NEW_VERSION" > "$EVIDENCE/new-version.txt"
-
-          (cd "$PROJECT" && clasp update-deployment "$H38_EXISTING_DEPLOYMENT_ID" --versionNumber "$NEW_VERSION" --description "Highway 38 Owner Portal release readiness fix ${GITHUB_SHA}") | tee "$EVIDENCE/update-deployment.txt"
-          (cd "$PROJECT" && clasp list-deployments) | tee "$EVIDENCE/deployments-after.txt"
-          grep -F "$H38_EXISTING_DEPLOYMENT_ID @${NEW_VERSION}" "$EVIDENCE/deployments-after.txt"
-          AFTER_COUNT="$(awk '/^Found [0-9]+ deployments\./ {print $2; exit}' "$EVIDENCE/deployments-after.txt")"
-          test "$AFTER_COUNT" = "$BEFORE_COUNT" || { echo 'HOLD — deployment count changed.'; exit 1; }
-          printf '%s\n' "$AFTER_COUNT" > "$EVIDENCE/deployment-count-after.txt"
-
-          (cd "$PROJECT" && clasp run-function h38PortalApplyReleaseReadinessFix) | tee "$EVIDENCE/self-test-output.txt"
-
-      - name: Validate production acceptance result
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs=require('fs');
-          const raw=fs.readFileSync('deployment-evidence/self-test-output.txt','utf8');
-          const start=raw.indexOf('{');
-          const end=raw.lastIndexOf('}');
-          if(start<0||end<start) throw new Error('No structured self-test result returned by clasp.');
-          const result=JSON.parse(raw.slice(start,end+1));
-          fs.writeFileSync('deployment-evidence/owner-portal-release-readiness-result.json',JSON.stringify(result,null,2)+'\n');
-          const failed=[];
-          if(result.status!=='PASS') failed.push('overall status');
-          if(!result.productionReadiness||result.productionReadiness.status!=='PASS') failed.push('production readiness');
-          if(!result.selfTest||result.selfTest.status!=='PASS') failed.push('self-test');
-          if(!result.releaseSettingAfter||result.releaseSettingAfter.value!=='production-2026-07-12-hard-rule-owner-portal') failed.push('release setting');
-          if(result.externalActionsOccurred!==false) failed.push('fix external action result');
-          if(!result.selfTest||result.selfTest.externalActionsOccurred!==false) failed.push('self-test external action result');
-          if(failed.length) throw new Error('Acceptance HOLD: '+failed.join(', '));
-          console.log('OVERALL PASS; PRODUCTION READINESS PASS; SELF-TEST PASS; EXTERNAL ACTIONS OCCURRED FALSE');
-          NODE
-
-      - name: Record deployment evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          EVIDENCE="$GITHUB_WORKSPACE/deployment-evidence"
-          mkdir -p "$EVIDENCE"
-          BACKUP_SHA="$(cut -d' ' -f1 "$EVIDENCE/bound-project-version-12-backup.sha256" 2>/dev/null || true)"
-          PREVIOUS_VERSION="$(cat "$EVIDENCE/previous-version.txt" 2>/dev/null || true)"
-          NEW_VERSION="$(cat "$EVIDENCE/new-version.txt" 2>/dev/null || true)"
-          printf '{"status":"%s","sourceCommit":"%s","approvedRelease":"%s","existingDeploymentId":"%s","previousVersion":"%s","newVersion":"%s","version12PreservedAsRollback":true,"backupSha256":"%s","createdNewProject":false,"createdSecondDeployment":false,"externalActionsEnabled":false,"externalActionsOccurred":false}\n' \
-            "${{ job.status }}" "$GITHUB_SHA" "$H38_APPROVED_RELEASE" "$H38_EXISTING_DEPLOYMENT_ID" "$PREVIOUS_VERSION" "$NEW_VERSION" "$BACKUP_SHA" \
-            > "$EVIDENCE/owner-portal-release-readiness-deployment.json"
-
-      - name: Upload rollback and acceptance evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owner-portal-release-readiness-${{ github.run_id }}
-          path: deployment-evidence/
-          if-no-files-found: warn
-          retention-days: 90
-
-      - name: Close Issue 33 and update Command Center after full PASS
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          NEW_VERSION="$(cat deployment-evidence/new-version.txt)"
-          BACKUP_SHA="$(cut -d' ' -f1 deployment-evidence/bound-project-version-12-backup.sha256)"
-          BODY="Narrow Owner Portal release-readiness correction completed from commit ${GITHUB_SHA}. Exact approved release validation is active, the Portal Settings release record equals ${H38_APPROVED_RELEASE}, and the existing deployment advanced from version 12 to version ${NEW_VERSION} with version 12 retained as rollback. Overall self-test PASS; production readiness PASS; external actions occurred false. Existing project and deployment ID preserved; deployment count unchanged. No redesign, customer-portal activation, feature expansion, or external-action activation. Rollback SHA-256: ${BACKUP_SHA}. Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue comment 33 --repo "$GITHUB_REPOSITORY" --body "$BODY"
-          gh issue close 33 --repo "$GITHUB_REPOSITORY" --reason completed
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY Issue #33 is closed under the posted acceptance criteria."
+# Historical non-executable markers:
+# clasp push --force
+# update-deployment
