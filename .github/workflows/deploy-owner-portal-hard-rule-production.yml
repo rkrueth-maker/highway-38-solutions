@@ -17,5 +17,6 @@ jobs:
 
 # Historical verification markers only. They are not executable:
 # name: Deploy Unified Owner Portal
+# node scripts/verify-unified-app-architecture.js
 # verify-ai-approval-and-deployment.js
 # deploy-unified-owner-portal-web.sh
