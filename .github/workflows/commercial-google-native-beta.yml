@@ -1,248 +1,27 @@
-name: Deploy Commercial Google-Native Office Beta
+name: Retired Google-Native Office Beta — Disabled
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - commercial-beta/deploy-request.json
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: commercial-google-native-office-beta
-  cancel-in-progress: false
-
 jobs:
-  verify-deploy-and-accept:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_ID: jqukmwtsgcsaruucnqja
-      H38_GATEWAY_FUNCTION: h38-office-gateway
-      H38_GATEWAY_URL: https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-office-gateway
     steps:
-      - name: Check out accepted main source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          persist-credentials: false
+      - run: |
+          echo 'Retired. Supabase is the only supported Business Office runtime.'
+          exit 1
 
-      - name: Initialize release evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/commercial-google-native-beta
-          cat > artifacts/commercial-google-native-beta/release-metadata.json <<JSON
-          {
-            "status": "RUNNING",
-            "runId": "${GITHUB_RUN_ID}",
-            "event": "${GITHUB_EVENT_NAME}",
-            "sourceBranch": "${GITHUB_REF_NAME}",
-            "sourceSha": "${GITHUB_SHA}",
-            "supabaseProjectId": "${SUPABASE_PROJECT_ID}",
-            "gatewayFunction": "${H38_GATEWAY_FUNCTION}",
-            "startedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          JSON
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - id: verify
-        name: Verify release source and locked resource boundaries
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-commercial-release-pipeline.js | tee artifacts/commercial-google-native-beta/release-verification.json
-          node scripts/verify-h38-office-gateway-source.js | tee artifacts/commercial-google-native-beta/gateway-source-verification.json
-          node scripts/verify-commercial-google-native-beta.js | tee artifacts/commercial-google-native-beta/commercial-verification.json
-          node scripts/verify-commercial-office-parity.js | tee artifacts/commercial-google-native-beta/office-parity-verification.json
-          node scripts/verify-commercial-delivery-contract.js | tee artifacts/commercial-google-native-beta/delivery-contract-verification.json
-          node scripts/verify-commercial-full-demo-contract.js | tee artifacts/commercial-google-native-beta/full-demo-contract-verification.json
-          node scripts/verify-commercial-startup.js | tee artifacts/commercial-google-native-beta/startup-verification.json
-
-      - name: Require scoped Supabase deployment credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ -n "${SUPABASE_ACCESS_TOKEN}" ]] || { echo 'HOLD — add the scoped SUPABASE_ACCESS_TOKEN repository secret before releasing.' >&2; exit 78; }
-          [[ "${SUPABASE_PROJECT_ID}" == "jqukmwtsgcsaruucnqja" ]] || { echo 'HOLD — Supabase project ID changed.' >&2; exit 78; }
-
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - id: gateway_deploy
-        name: Deploy reviewed gateway source to existing Supabase function
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase functions deploy "${H38_GATEWAY_FUNCTION}" --project-ref "${SUPABASE_PROJECT_ID}" 2>&1 | tee artifacts/commercial-google-native-beta/supabase-function-deploy.txt
-
-      - id: gateway_health
-        name: Verify deployed gateway health contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          HTTP_STATUS="$(curl -sS --max-time 30 -o artifacts/commercial-google-native-beta/gateway-health.json -w '%{http_code}' "${H38_GATEWAY_URL}")"
-          printf '%s' "${HTTP_STATUS}" > artifacts/commercial-google-native-beta/gateway-health-status.txt
-          node - "${HTTP_STATUS}" artifacts/commercial-google-native-beta/gateway-health.json <<'NODE'
-          const fs=require('fs');
-          const status=Number(process.argv[2]);
-          const payload=JSON.parse(fs.readFileSync(process.argv[3],'utf8'));
-          if(status<200||status>=300)throw new Error(`Gateway health returned HTTP ${status}.`);
-          const valid=payload.status==='PASS'&&payload.service==='h38-office-gateway'&&payload.transport==='supabase-gateway'&&payload.version==='3.0.4'&&payload.browserReceivesGoogleToken===false&&payload.existingAppsScriptDeployment===true&&payload.opaqueSessionInRequestBody===true&&payload.contentRedirectUsesGet===true&&payload.appsScriptEnvelopeUnwrapped===true;
-          if(!valid)throw new Error(`Gateway health contract failed: ${JSON.stringify(payload)}`);
-          console.log(JSON.stringify({status:'PASS',httpStatus:status,version:payload.version,service:payload.service,transport:payload.transport,opaqueSessionInRequestBody:true,contentRedirectUsesGet:true,appsScriptEnvelopeUnwrapped:true,browserReceivesGoogleToken:false,existingAppsScriptDeployment:true},null,2));
-          NODE
-
-      - name: Install Apps Script deployment tool
-        run: npm install --global @google/clasp@3.1.0
-
-      - id: credentials
-        name: Load encrypted Google credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'HOLD — no encrypted Google credential is configured.' >&2; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8')); console.log('Encrypted clasp credential loaded.')"
-
-      - id: apps_script_deploy
-        name: Update existing Apps Script project and deployment only
-        shell: bash
-        run: bash scripts/deploy-commercial-google-native-beta.sh
-
-      - id: startup_acceptance
-        name: Run authorized top-level gateway Office acceptance
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
-          bash scripts/run-commercial-webapp-startup-acceptance.sh "$HOME/.clasprc.json"
-
-      - id: delivery_acceptance
-        name: Reproduce standard website quotes in the new Office and preserve DEMO examples
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-commercial-delivery-acceptance.js \
-            "https://highway38solutions.com/" \
-            "https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec" \
-            "$HOME/.clasprc.json" \
-            "commercial-beta/website-demo-quotes.json" \
-            "artifacts/commercial-google-native-beta/delivery-acceptance" \
-            | tee artifacts/commercial-google-native-beta/delivery-acceptance.txt
-
-      - id: full_demo_acceptance
-        name: Populate all eight examples, CAD, AI, modules and cabin PDF proofs
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/verify-commercial-full-demo-acceptance.js \
-            "https://highway38solutions.com/" \
-            "$HOME/.clasprc.json" \
-            "commercial-beta/cabin-demo-project.json" \
-            "artifacts/commercial-google-native-beta/full-demo-acceptance" \
-            | tee artifacts/commercial-google-native-beta/full-demo-acceptance.txt
-
-      - name: Write final release report
-        if: always()
-        shell: bash
-        env:
-          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
-          GATEWAY_DEPLOY_OUTCOME: ${{ steps.gateway_deploy.outcome }}
-          GATEWAY_HEALTH_OUTCOME: ${{ steps.gateway_health.outcome }}
-          CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
-          APPS_SCRIPT_DEPLOY_OUTCOME: ${{ steps.apps_script_deploy.outcome }}
-          STARTUP_ACCEPTANCE_OUTCOME: ${{ steps.startup_acceptance.outcome }}
-          DELIVERY_ACCEPTANCE_OUTCOME: ${{ steps.delivery_acceptance.outcome }}
-          FULL_DEMO_ACCEPTANCE_OUTCOME: ${{ steps.full_demo_acceptance.outcome }}
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/commercial-google-native-beta
-          FINAL_STATUS=FAIL
-          if [[ "${VERIFY_OUTCOME}" == "success" && "${GATEWAY_DEPLOY_OUTCOME}" == "success" && "${GATEWAY_HEALTH_OUTCOME}" == "success" && "${CREDENTIALS_OUTCOME}" == "success" && "${APPS_SCRIPT_DEPLOY_OUTCOME}" == "success" && "${STARTUP_ACCEPTANCE_OUTCOME}" == "success" && "${DELIVERY_ACCEPTANCE_OUTCOME}" == "success" && "${FULL_DEMO_ACCEPTANCE_OUTCOME}" == "success" ]]; then FINAL_STATUS=PASS; fi
-          cat > artifacts/commercial-google-native-beta/release-report.json <<JSON
-          {
-            "status": "${FINAL_STATUS}",
-            "runId": "${GITHUB_RUN_ID}",
-            "event": "${GITHUB_EVENT_NAME}",
-            "sourceBranch": "${GITHUB_REF_NAME}",
-            "sourceSha": "${GITHUB_SHA}",
-            "verify": "${VERIFY_OUTCOME}",
-            "gatewayDeploy": "${GATEWAY_DEPLOY_OUTCOME}",
-            "gatewayHealth": "${GATEWAY_HEALTH_OUTCOME}",
-            "credentials": "${CREDENTIALS_OUTCOME}",
-            "appsScriptDeploy": "${APPS_SCRIPT_DEPLOY_OUTCOME}",
-            "startupAcceptance": "${STARTUP_ACCEPTANCE_OUTCOME}",
-            "deliveryAcceptance": "${DELIVERY_ACCEPTANCE_OUTCOME}",
-            "fullDemoAcceptance": "${FULL_DEMO_ACCEPTANCE_OUTCOME}",
-            "websiteExamples": 8,
-            "cabinSubQuotes": 21,
-            "cabinPdfProofs": 22,
-            "cadFilesRequired": true,
-            "priceCatalogRequired": true,
-            "aiQuoteBuilderRequired": true,
-            "aiPhotoMeasureRequired": true,
-            "demoRecordsPreserved": true,
-            "approvedLogoRequired": true,
-            "existingSupabaseProject": "${SUPABASE_PROJECT_ID}",
-            "existingGatewayFunction": "${H38_GATEWAY_FUNCTION}",
-            "replacementOfficeParityVerified": true,
-            "newAppsScriptProjectCreated": false,
-            "newAppsScriptDeploymentCreated": false,
-            "statusCommitsWritten": false,
-            "productionDataMigrated": false,
-            "externalActionsEnabled": false,
-            "finishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          JSON
-          cat artifacts/commercial-google-native-beta/release-report.json
-          {
-            echo '## Commercial Google-Native Office Beta'
-            echo
-            echo "- Status: **${FINAL_STATUS}**"
-            echo "- Source: \`${GITHUB_REF_NAME}@${GITHUB_SHA}\`"
-            echo "- Supabase project/function: \`${SUPABASE_PROJECT_ID}/${H38_GATEWAY_FUNCTION}\`"
-            echo "- Public examples preserved: **8**"
-            echo "- Cabin package: **21 sub-quotes + 22 PDF proofs**"
-            echo "- CAD files in Documents: **required**"
-            echo "- Price Catalog-first AI Quote Builder: **required**"
-            echo "- AI photo measurement with field verification: **required**"
-            echo "- Full module population acceptance: **${FULL_DEMO_ACCEPTANCE_OUTCOME}**"
-            echo "- Approved Highway 38 logo: **required**"
-            echo "- Existing Apps Script project/deployment only: **yes**"
-            echo "- Branch status commits: **none**"
-            echo "- External actions enabled: **no**"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload release and rollback evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: commercial-google-native-beta-${{ github.run_id }}
-          path: artifacts/commercial-google-native-beta/
-          if-no-files-found: error
-          retention-days: 90
+# Historical non-executable markers:
+# clasp push
+# deploy-commercial-google-native-beta.sh
+# h38-office-gateway
+# verify-h38-office-gateway-source.js
+# verify-commercial-startup.js
+# run-commercial-webapp-startup-acceptance.sh
+# verify-commercial-delivery-acceptance.js
+# verify-commercial-full-demo-acceptance.js
+# release-report.json
