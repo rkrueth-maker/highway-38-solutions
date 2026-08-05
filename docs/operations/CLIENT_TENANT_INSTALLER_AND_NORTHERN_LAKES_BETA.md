@@ -2,7 +2,7 @@
 
 Date: August 5, 2026  
 System of record: Supabase  
-Legacy Google Office: explicit rollback only
+Supported Office runtime: Supabase only
 
 ## Release structure
 
@@ -19,7 +19,7 @@ Each client receives:
 - A customer-visible, revocable Highway 38 support membership during implementation.
 - Proof and Error Log records scoped to that client.
 
-The installer does not create another application, Supabase project, or Apps Script project.
+The installer does not create another application, Supabase project, Apps Script project, or Office fallback.
 
 ## Controlled installer sequence
 
@@ -104,6 +104,6 @@ Supabase retains:
 
 Google OAuth credentials remain server-side and are never placed in browser code. Northern Lakes starts on private Supabase storage so Drive onboarding cannot delay the beta.
 
-## Rollback
+## Retired Office versions
 
-The former Northern Lakes Google Office deployment remains unchanged at its existing deployment ID. It is not opened automatically and must not be updated during this rollout. It appears only behind an explicit **Emergency rollback only** control on the owner-login page.
+Old Office versions are not linked, launched, or used as fallback. The root legacy route is removed, the prior Northern Lakes PWA redirects to the shared Supabase Office, and tenant configuration records `legacyOfficeEnabled=false` and `legacyOfficeFallback=false`.
