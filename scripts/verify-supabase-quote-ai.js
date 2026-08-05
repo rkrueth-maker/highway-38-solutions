@@ -19,7 +19,8 @@ const checks=[
  ['Saved quote syncs before AI',provider.includes("await window.sync(false)")],
  ['Capture-phase click bypasses stale onclick handlers',live.includes("document.addEventListener('click'")&&live.includes('stopImmediatePropagation')&&live.includes("closest('#h38AiQuoteDraftButton')")],
  ['Every build tap gets persistent inline status',live.includes('h38QuoteBuildStatus')&&live.includes('Build Quote started.')&&live.includes('aria-live')],
- ['Silent safeAction dependency is no longer used by final handler',!live.includes('safeAction')&&live.includes('quote-ai-v2-capture')],
+ ['Silent safeAction dependency is no longer used by final handler',!live.includes('safeAction')&&live.includes('quote-ai-v3-capture')],
+ ['Recursive page observer is forbidden',!live.includes('MutationObserver')&&live.includes('recursiveObserver:false')],
  ['Browser preflight reflects requested headers',edge.includes('access-control-request-headers')&&edge.includes('quote-ai-cors-preflight')&&edge.includes('preflight: true')],
  ['Preflight returns an observable success response',edge.includes('request.method === "OPTIONS"')&&edge.includes('return json(request, 200')],
  ['AI provider loads after fallback',index.indexOf('supabase-ai-fallback.js')<index.indexOf('supabase-quote-ai.js')],
@@ -32,4 +33,4 @@ const checks=[
 let failures=0;
 for(const[name,pass]of checks){console.log(`${pass?'PASS':'FAIL'} ${name}`);if(!pass)failures++;}
 if(failures){console.error(`${failures} Quote AI verification checks failed.`);process.exit(1);}
-console.log('Authenticated Supabase Quote AI click, CORS, and provider checks passed.');
+console.log('Authenticated Supabase Quote AI click, CORS, provider, and freeze checks passed.');
