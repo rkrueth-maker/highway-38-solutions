@@ -12,17 +12,13 @@
   "googleDriveSupported": true,
   "googleDriveConnected": false,
   "systemOfRecord": "supabase",
+  "legacyOfficeEnabled": false,
+  "legacyOfficeFallback": false,
   "externalActionsEnabled": false,
   "automaticCustomerSending": false,
   "automaticFinancialActions": false,
   "automaticSocialPublishing": false,
   "googleRecordsImported": false,
   "isolated": true,
-  "updatedAt": "2026-08-05T07:00:00Z",
-  "legacyGoogleOffice": {
-    "status": "rollback-only",
-    "deploymentId": "AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL",
-    "url": "https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec",
-    "changed": false
-  }
+  "updatedAt": "2026-08-05T07:10:00Z"
 }
