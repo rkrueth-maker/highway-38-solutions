@@ -1,6 +1,8 @@
 -- Highway 38 Business Office operational Supabase layer.
 -- Additive only. No Google record import, external action, automatic approval,
 -- customer send, payment, purchase, publishing, payroll, tax filing, or Northern Lakes activation.
+-- Supabase remains the system of record. File storage may be Supabase Storage or a
+-- separately authorized client-owned Google Drive connection; no OAuth secrets are stored here.
 
 create table if not exists public.business_records (
   id uuid primary key default gen_random_uuid(),
@@ -29,6 +31,31 @@ create index if not exists business_records_collection_updated_idx
 create index if not exists business_records_payload_gin_idx
   on public.business_records using gin (payload jsonb_path_ops);
 
+create table if not exists public.business_storage_settings (
+  business_id uuid primary key references public.businesses(id) on delete cascade,
+  provider text not null default 'supabase'
+    check (provider in ('supabase', 'google_drive')),
+  connection_status text not null default 'connected'
+    check (connection_status in ('not_configured', 'connecting', 'connected', 'disabled', 'error')),
+  provider_account_email text,
+  root_folder_id text,
+  config jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(config) = 'object')
+    check (not (config ?| array['access_token', 'refresh_token', 'client_secret', 'service_role_key'])),
+  connected_by uuid references auth.users(id) on delete set null,
+  connected_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (
+    provider <> 'google_drive'
+    or connection_status <> 'connected'
+    or (root_folder_id is not null and char_length(root_folder_id) > 4)
+  )
+);
+
+comment on table public.business_storage_settings is
+  'Non-secret per-business file provider selection. Google OAuth credentials belong in a server-side vault and are never exposed to browser roles.';
+
 create or replace function private.touch_business_record()
 returns trigger
 language plpgsql
@@ -53,29 +80,85 @@ begin
 end
 $$;
 
+create or replace function private.touch_business_storage_setting()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public, private
+as $$
+begin
+  if new.business_id <> old.business_id then
+    raise exception 'Business storage identity is immutable';
+  end if;
+  new.updated_at := now();
+  return new;
+end
+$$;
+
+create or replace function private.business_record_access(
+  p_business_id uuid,
+  p_collection text,
+  p_write boolean default false
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public, private
+as $$
+  select exists (
+    select 1
+    from public.business_memberships membership
+    where membership.business_id = p_business_id
+      and membership.auth_user_id = (select auth.uid())
+      and membership.status = 'active'
+      and (
+        membership.role in ('owner', 'administrator')
+        or (
+          membership.role = 'staff'
+          and p_collection not in (
+            'payments', 'expenses', 'invoices', 'settings', 'providers',
+            'approvals', 'proofLog', 'errorLog', 'socialAccounts'
+          )
+        )
+      )
+  )
+$$;
+
 revoke all on function private.touch_business_record() from public;
 revoke all on function private.touch_business_record() from anon;
 revoke all on function private.touch_business_record() from authenticated;
+revoke all on function private.touch_business_storage_setting() from public;
+revoke all on function private.touch_business_storage_setting() from anon;
+revoke all on function private.touch_business_storage_setting() from authenticated;
+revoke all on function private.business_record_access(uuid, text, boolean) from public;
+revoke all on function private.business_record_access(uuid, text, boolean) from anon;
+grant execute on function private.business_record_access(uuid, text, boolean) to authenticated;
 
 drop trigger if exists business_records_touch on public.business_records;
 create trigger business_records_touch
 before update on public.business_records
 for each row execute function private.touch_business_record();
 
+drop trigger if exists business_storage_settings_touch on public.business_storage_settings;
+create trigger business_storage_settings_touch
+before update on public.business_storage_settings
+for each row execute function private.touch_business_storage_setting();
+
 alter table public.business_records enable row level security;
+alter table public.business_storage_settings enable row level security;
 
 drop policy if exists "members read business records" on public.business_records;
 create policy "members read business records"
 on public.business_records for select
 to authenticated
-using ((select private.business_access(business_id, null)));
+using ((select private.business_record_access(business_id, collection, false)));
 
 drop policy if exists "staff create business records" on public.business_records;
 create policy "staff create business records"
 on public.business_records for insert
 to authenticated
 with check (
-  (select private.business_access(business_id, array['owner', 'administrator', 'staff']))
+  (select private.business_record_access(business_id, collection, true))
   and created_by = (select auth.uid())
   and updated_by = (select auth.uid())
   and record_status = 'active'
@@ -85,14 +168,29 @@ drop policy if exists "staff update business records" on public.business_records
 create policy "staff update business records"
 on public.business_records for update
 to authenticated
-using ((select private.business_access(business_id, array['owner', 'administrator', 'staff'])))
+using ((select private.business_record_access(business_id, collection, true)))
 with check (
-  (select private.business_access(business_id, array['owner', 'administrator', 'staff']))
+  (select private.business_record_access(business_id, collection, true))
   and updated_by = (select auth.uid())
 );
 
+drop policy if exists "members read business storage settings" on public.business_storage_settings;
+create policy "members read business storage settings"
+on public.business_storage_settings for select
+to authenticated
+using ((select private.business_access(business_id, array['owner', 'administrator', 'staff'])));
+
+drop policy if exists "administrators manage business storage settings" on public.business_storage_settings;
+create policy "administrators manage business storage settings"
+on public.business_storage_settings for all
+to authenticated
+using ((select private.business_access(business_id, array['owner', 'administrator'])))
+with check ((select private.business_access(business_id, array['owner', 'administrator'])));
+
 revoke all on table public.business_records from anon;
+revoke all on table public.business_storage_settings from anon;
 grant select, insert, update on table public.business_records to authenticated;
+grant select, insert, update on table public.business_storage_settings to authenticated;
 
 create or replace function private.business_storage_access(
   p_object_name text,
@@ -175,6 +273,27 @@ with check (
   and (select private.business_storage_access(name, array['owner', 'administrator', 'staff']))
 );
 
+insert into public.business_storage_settings (
+  business_id,
+  provider,
+  connection_status,
+  config,
+  connected_at
+)
+select
+  b.id,
+  'supabase',
+  'connected',
+  jsonb_build_object(
+    'bucket', 'business-office-files',
+    'client_google_drive_supported', true,
+    'oauth_secrets_in_browser', false
+  ),
+  now()
+from public.businesses b
+where b.business_key = 'highway38'
+on conflict (business_id) do nothing;
+
 insert into public.business_module_settings (business_id, module_key, enabled, config)
 select b.id, module_key, true, '{}'::jsonb
 from public.businesses b
@@ -205,7 +324,9 @@ select
   'PASS',
   jsonb_build_object(
     'records_table', 'business_records',
-    'storage_bucket', 'business-office-files',
+    'default_storage_provider', 'supabase',
+    'optional_client_storage_provider', 'google_drive',
+    'oauth_secrets_stored_in_browser', false,
     'google_data_imported', false,
     'external_actions_enabled', false,
     'northern_lakes_enabled', false
