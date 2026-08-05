@@ -37,7 +37,7 @@
   },
   "urls": {
     "website": "https://highway38solutions.com/businesses/northern-lakes/",
-    "ownerActivation": "https://highway38solutions.com/businesses/northern-lakes/owner-login.html",
+    "ownerActivation": "https://highway38solutions.com/businesses/northern-lakes/owner-access.html?v=owner-access-20260805-v2",
     "businessOffice": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes",
     "quoteBuilder": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes&shell=quote",
     "customerPortal": "https://highway38solutions.com/businesses/northern-lakes/customer-portal.html"
@@ -99,7 +99,12 @@
   "authorization": {
     "provider": "supabase-auth",
     "invitationClaim": "exact-email",
-    "roles": ["owner", "administrator", "staff", "viewer"],
+    "roles": [
+      "owner",
+      "administrator",
+      "staff",
+      "viewer"
+    ],
     "offlineAuthorizationWindowHours": 12,
     "onlineSuspensionOverridesCache": true
   },

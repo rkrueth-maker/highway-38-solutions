@@ -7,6 +7,7 @@ on:
       - 'business-packs/northern-lakes/supabase-business-pack.json'
       - 'supabase/migrations/202608050945_northern_lakes_customer_portal_release.sql'
       - 'scripts/verify-northern-lakes-site-portal-build.js'
+      - 'scripts/verify-northern-lakes-photo-owner-links.js'
       - 'scripts/audit-northern-lakes-rendered-photos.js'
       - '.github/workflows/verify-northern-lakes-site-portal.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'business-packs/northern-lakes/supabase-business-pack.json'
       - 'supabase/migrations/202608050945_northern_lakes_customer_portal_release.sql'
       - 'scripts/verify-northern-lakes-site-portal-build.js'
+      - 'scripts/verify-northern-lakes-photo-owner-links.js'
       - 'scripts/audit-northern-lakes-rendered-photos.js'
       - '.github/workflows/verify-northern-lakes-site-portal.yml'
   workflow_dispatch:
@@ -34,7 +36,10 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Verify service, branding, payment and security contracts
-        run: node scripts/verify-northern-lakes-site-portal-build.js
+        run: |
+          node scripts/verify-northern-lakes-photo-owner-links.js
+          node scripts/verify-northern-lakes-site-portal-build.js
+          node scripts/verify-northern-lakes-commercial-package.js
       - name: Install browser dependencies
         run: |
           npm ci

@@ -43,6 +43,7 @@ const noLegacy=read('commercial-app/supabase-no-legacy-office.js');
 const deployment=json('businesses/northern-lakes/app-deployment.json');
 const pack=json('business-packs/northern-lakes/supabase-business-pack.json');
 const ownerLogin=read('businesses/northern-lakes/owner-login.html');
+const ownerAccess=read('businesses/northern-lakes/owner-access.html');
 const businessOffice=read('businesses/northern-lakes/business-office.html');
 const retiredNlOffice=read('businesses/northern-lakes/commercial-app/index.html');
 const launch=read('businesses/northern-lakes/app-launch.js');
@@ -144,7 +145,7 @@ check('runtime blocks all legacy Office controls',has(noLegacy,[
 
 check('Northern Lakes runtime points only to Supabase',deployment.coreEngine==='supabase-operational'&&deployment.systemOfRecord==='supabase'&&deployment.businessKey==='northern-lakes'&&deployment.storageProvider==='supabase'&&deployment.legacyOfficeEnabled===false&&deployment.legacyOfficeFallback===false);
 check('Northern Lakes business pack disables legacy Office',pack.package.systemOfRecord==='supabase'&&pack.release.stage==='closed-beta'&&pack.safeguards.legacyOfficeEnabled===false&&pack.safeguards.legacyOfficeFallback===false);
-check('Northern Lakes owner page has no rollback',ownerLogin.includes('Send secure activation email')&&ownerLogin.includes('old Office versions are retired')&&!/script\.google\.com|rollback/i.test(ownerLogin));
+check('Northern Lakes owner page has no rollback',ownerAccess.includes('Send secure activation email')&&ownerAccess.includes('Old Google Apps Script Office versions and old portal links are retired.')&&!/script\.google\.com|rollback/i.test(ownerAccess)&&ownerLogin.includes('owner-access.html?v=owner-access-20260805-v2'));
 check('Northern Lakes launch pages use Supabase only',businessOffice.includes('Supabase Business Office')&&launch.includes("config.coreEngine==='supabase-operational'")&&!/script\.google\.com|rollback/i.test(launch));
 check('old Northern Lakes Office redirects to current Supabase Office',retiredNlOffice.includes('old Office build is retired')&&retiredNlOffice.includes('businessKey=northern-lakes')&&!retiredNlOffice.includes('H38_GATEWAY_HANDOFF_PRESENT'));
 
