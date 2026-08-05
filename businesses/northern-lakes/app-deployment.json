@@ -7,6 +7,14 @@
   "businessOfficeUrl": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes",
   "quoteBuilderUrl": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes&shell=quote",
   "ownerActivationUrl": "https://highway38solutions.com/businesses/northern-lakes/owner-login.html",
+  "customerPortalUrl": "https://highway38solutions.com/businesses/northern-lakes/customer-portal.html",
+  "customerPortalReleaseEnabled": true,
+  "customerPortalAuthentication": "supabase-auth",
+  "customerPortalIsolation": "business-and-customer-rls",
+  "paymentAdapter": "hosted-payment-url",
+  "liveChargingEnabled": false,
+  "paymentProvider": "not-configured",
+  "canonicalLogoPath": "businesses/northern-lakes/assets/diamond-logo.png",
   "supabaseProjectRef": "jqukmwtsgcsaruucnqja",
   "storageProvider": "supabase",
   "googleDriveSupported": true,
@@ -20,5 +28,5 @@
   "automaticSocialPublishing": false,
   "googleRecordsImported": false,
   "isolated": true,
-  "updatedAt": "2026-08-05T07:10:00Z"
+  "updatedAt": "2026-08-05T09:20:00Z"
 }
