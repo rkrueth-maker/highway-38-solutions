@@ -8,11 +8,11 @@ const root=path.resolve(__dirname,'..');
 const failures=[];
 const passes=[];
 const read=relativePath=>fs.readFileSync(path.join(root,relativePath),'utf8');
+const exists=relativePath=>fs.existsSync(path.join(root,relativePath));
 const assert=(name,condition,evidence='')=>{(condition?passes:failures).push({name,evidence});console[condition?'log':'error'](`${condition?'PASS':'FAIL'}: ${name}${evidence?` — ${evidence}`:''}`);};
 
 const portal=read('portal.html');
 const launcher=read('open-business-office.html');
-const rollback=read('legacy-business-office.html');
 const publicShell=read('assets/js/h38-site-v2.js');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalRawIncludes=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
@@ -36,7 +36,6 @@ const pack=read('business-packs/highway38/apps-script/BusinessOffice_Pack.gs');
 const deploySource=read('scripts/deploy-unified-owner-portal-web.sh');
 const shellBuilder=read('scripts/build-unified-apps-script-shell.js');
 
-const rollbackDeploymentId='AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow';
 const retiredDeploymentId='AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg';
 const registryContext={boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'assertion failed');}};
 vm.createContext(registryContext);
@@ -52,17 +51,18 @@ const missingRawAllowlistEntries=rawFragmentNames.filter(name=>!portalRawInclude
 
 assert('website unified Business Office gateway exists',/<title>Highway 38 Business Office \| Highway 38 Solutions<\/title>/.test(portal));
 assert('public portal automatically routes to the secure launcher',portal.includes("const target='open-business-office.html'")&&/location\.replace\(target\)/.test(portal));
-assert('standard launcher opens the Supabase Business Office',launcher.includes('commercial-app/index.html')&&/location\.replace\(destination\.toString\(\)\)/.test(launcher)&&!launcher.includes('script.google.com')&&!launcher.includes(rollbackDeploymentId));
-assert('Google deployment is explicit rollback only',rollback.includes(rollbackDeploymentId)&&rollback.includes('This is not the standard Business Office.')&&rollback.includes('Nothing opens automatically from this page.')&&!/location\.replace\(|location\.assign\(/.test(rollback));
-assert('retired deployment is absent from every Office doorway',!`${portal}\n${launcher}\n${rollback}`.includes(retiredDeploymentId));
+assert('standard launcher opens the Supabase Business Office',launcher.includes('commercial-app/index.html')&&/location\.replace\(destination\.toString\(\)\)/.test(launcher)&&!launcher.includes('script.google.com'));
+assert('legacy Business Office public route is removed',!exists('legacy-business-office.html'));
+assert('standard launcher declares Supabase as the only runtime',launcher.includes('Supabase is the only supported Office runtime.'));
+assert('retired deployment is absent from every Office doorway',!`${portal}\n${launcher}`.includes(retiredDeploymentId));
 assert('public portal contains no obsolete workspace chooser',!/owner-tabs|owner-area-strip|Choose where to open|Enter Command Center|Enter Business Office|class="choices"/.test(portal));
-assert('public portal contains one fallback Business Office action',(portal.match(/id="secureFallback"/g)||[]).length===1&&/Open Business Office/.test(portal));
-assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher+rollback));
+assert('public portal contains one Business Office recovery action',(portal.match(/id="secureFallback"/g)||[]).length===1&&/Open Business Office/.test(portal));
+assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher));
 assert('public portal preserves upload and business-office deep links',/upload:'documents'/.test(portal)&&/'business-office':'requests'/.test(portal)&&/params\.set\('page'/.test(portal));
-assert('secure launcher forwards only approved route parameters',/\['page','shell','businessId'\]/.test(launcher)&&/destination\.searchParams\.set\(key,value\)/.test(launcher));
+assert('secure launcher forwards approved route parameters',/\['page','shell','businessId','businessKey'\]/.test(launcher)&&/destination\.searchParams\.set\(key,value\)/.test(launcher));
 assert('standard launcher preserves current Supabase session',!launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&!launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')"));
-assert('rollback clears retired gateway sessions before optional use',rollback.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&rollback.includes("sessionStorage.removeItem('h38-execution-session-v1')"));
-assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher+rollback));
+assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher));
+assert('portal and launcher expose no Google Office URL',!/script\.google\.com\/macros/i.test(portal+launcher));
 
 assert('secure app contains no nested Business Office iframe',!/businessWorkspace|businessFrame|<iframe\b/i.test(portalIndex));
 assert('secure app includes native Business Office styles and client',/Portal_Business_Styles/.test(portalIndex)&&/Portal_Business_Client/.test(portalIndex));
@@ -86,7 +86,7 @@ assert('product client has no page-wide observer',!/MutationObserver/.test(produ
 assert('native Business Office server adapter lists saves opens and uploads records',['h38PortalBusinessModule','h38PortalBusinessSave','h38PortalBusinessWorkspace','h38PortalBusinessUpload'].every(name=>nativeBusinessServer.includes(`function ${name}`)));
 assert('native Business Office client renders tables details forms and upload',['boNativeRenderTable','openBusinessRecord','openBusinessRecordForm','openBusinessUpload'].every(name=>nativeBusinessClient.includes(`function ${name}`)));
 assert('Business Office authentication defines unified user guard',/function boGetCurrentUser_\(\)/.test(businessAuth)&&/function boGetActiveEmail_\(\)/.test(businessAuth));
-assert('standalone Portal auth bridge publishes guarded fallback functions',/global\.boGetCurrentUser_ = function/.test(portalAuthBridge)&&/global\.boGetRole_ = function/.test(portalAuthBridge));
+assert('standalone Portal auth bridge publishes guarded compatibility functions',/global\.boGetCurrentUser_ = function/.test(portalAuthBridge)&&/global\.boGetRole_ = function/.test(portalAuthBridge));
 assert('combined shell owns self-contained authentication',/var H38_PORTAL_AUTH_BRIDGE = \(function\(\)\{/.test(unifiedAppShell)&&!/globalThis|boNormalizeText_|boReadTable_|boAssert_/.test(unifiedAppShell));
 assert('combined shell owns route and capability selection',/function h38UnifiedShellCapabilityOwner_/.test(unifiedAppShell)&&/function doGet\(event\)/.test(unifiedAppShell));
 assert('Business Office package modules are enforced server-side',/boGuardApiRequest_\(action,args\)/.test(businessWeb)&&/MODULE NOT INCLUDED/.test(businessGate)&&/boModulesForApiAction_/.test(businessGate));
@@ -94,15 +94,15 @@ assert('native adapter enforces package modules',/boAssertModuleEnabled_\(module
 assert('Business Office compatibility client is assembled once',(businessClientManifest.match(/BusinessOffice_Unified_Client/g)||[]).length===1&&/boRenderClientIncludes_\(\)/.test(businessWeb)&&/h38-embedded-business-office/.test(businessUnified));
 assert('Documents and OCR keep upload inside unified app',/Upload PDF \/ Take Picture/.test(nativeBusinessClient)&&/capture="environment"/.test(nativeBusinessClient));
 assert('complete package explicitly enables core modules',/package:Object\.freeze\(\{id:'complete-business-system'/.test(pack)&&/commandCenter:true/.test(pack)&&/documents:true/.test(pack));
-assert('production deployment builds checked-in unified shell',/build-unified-apps-script-shell\.js/.test(deploySource)&&/Unified_AppShell\.gs/.test(deploySource)&&/Portal_Business\.js/.test(deploySource)&&/BusinessOffice_Auth\.gs/.test(deploySource));
-assert('production deployment verifies exact remote source',/REMOTE_VERIFY/.test(deploySource)&&/remote-source-verification\.txt/.test(deploySource)&&/controlled-source-local\.json/.test(deploySource)&&/controlled-source-remote\.json/.test(deploySource));
-assert('production deployment removes legacy combined auth bridge',/test ! -e "\$PROJECT\/Portal_00_BusinessAuth\.js"/.test(deploySource)&&/fs\.unlinkSync\(legacyPortalBridge\)/.test(shellBuilder));
+assert('checked-in historical deployment tooling still builds exact source',/build-unified-apps-script-shell\.js/.test(deploySource)&&/Unified_AppShell\.gs/.test(deploySource)&&/Portal_Business\.js/.test(deploySource)&&/BusinessOffice_Auth\.gs/.test(deploySource));
+assert('historical deployment tooling verifies exact remote source',/REMOTE_VERIFY/.test(deploySource)&&/remote-source-verification\.txt/.test(deploySource)&&/controlled-source-local\.json/.test(deploySource)&&/controlled-source-remote\.json/.test(deploySource));
+assert('historical deployment tooling removes old combined auth bridge',/test ! -e "\$PROJECT\/Portal_00_BusinessAuth\.js"/.test(deploySource)&&/fs\.unlinkSync\(legacyPortalBridge\)/.test(shellBuilder));
 
 assert('canonical public shell routes Owner links to portal.html',/function routeOwnerLinks\(\)/.test(publicShell)&&/link\.href='portal\.html'/.test(publicShell)&&/link\.removeAttribute\('target'\)/.test(publicShell));
 assert('Business Office dashboard uses calculated owner metrics',/return boGetOwnerDashboard_\(\);/.test(businessCore));
 assert('dashboard contains no Open source records action',!/Open source records/i.test(businessUi));
 assert('administrative spreadsheet link is explicit and confirmed',/Administrative spreadsheet/.test(businessUi)&&/Open the administrative spreadsheet outside the Owner Portal\?/.test(businessUi));
-assert('Business Office web app does not redirect to spreadsheet',!/docs\.google\.com\/spreadsheets|SpreadsheetApp\.getActiveSpreadsheet\(\)\.getUrl\(\)/i.test(businessWeb));
+assert('Business Office web source does not redirect to spreadsheet',!/docs\.google\.com\/spreadsheets|SpreadsheetApp\.getActiveSpreadsheet\(\)\.getUrl\(\)/i.test(businessWeb));
 
 const rootHtmlFiles=fs.readdirSync(root).filter(name=>name.endsWith('.html'));
 const ownerLinks=[],badOwnerLinks=[],sheetLinks=[];
@@ -110,6 +110,6 @@ for(const file of rootHtmlFiles){const html=read(file);for(const match of html.m
 assert('all static Owner Login and Owner Portal links target portal.html',badOwnerLinks.length===0,badOwnerLinks.length?JSON.stringify(badOwnerLinks):`${ownerLinks.length} inspected`);
 assert('public static pages contain no direct spreadsheet links',sheetLinks.length===0,sheetLinks.length?JSON.stringify(sheetLinks):`${rootHtmlFiles.length} HTML files inspected`);
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1,standardOffice:'supabase-auth',rollbackDeploymentId,retiredDeploymentRemoved:!`${portal}\n${launcher}\n${rollback}`.includes(retiredDeploymentId)},passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1,standardOffice:'supabase-only',legacyOfficeRoute:false,retiredDeploymentRemoved:!`${portal}\n${launcher}`.includes(retiredDeploymentId)},passes,failures};
 const outDir=path.join(root,'artifacts','owner-portal-routing');fs.mkdirSync(outDir,{recursive:true});fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(`\nRESULT: ${result.status} (${passes.length} pass, ${failures.length} fail)`);process.exit(failures.length?1:0);
