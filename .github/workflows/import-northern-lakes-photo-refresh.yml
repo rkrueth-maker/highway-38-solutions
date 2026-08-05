@@ -1,0 +1,72 @@
+name: Import Northern Lakes photo refresh
+
+on:
+  push:
+    branches:
+      - agent/fix-northern-lakes-photo-library-owner-links
+    paths:
+      - .github/workflows/import-northern-lakes-photo-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-northern-lakes-photo-library-owner-links
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet pillow requests
+      - name: Download, crop and optimize licensed catalog photos
+        run: |
+          cat > /tmp/import_nl_photos.py <<'PY'
+          from pathlib import Path
+          from urllib.parse import quote
+          import io, requests
+          from PIL import Image, ImageOps
+
+          root=Path('businesses/northern-lakes/assets')
+          sources={
+            'service-source/cabin-care.jpg':'Lake house.jpg',
+            'service-source/driveway-drainage.jpg':'Two-track gravel driveway.jpg',
+            'service-source/commercial-property-care.jpg':'Commercial Facilities Maintenance Montgomery County Md.jpg',
+            'service-source/rental-resort-support.jpg':'Quileute Oceanside Resort Cabin.JPG',
+            'service-source/senior-property-maintenance.jpg':'Gfp-house-on-a-nice-lawn.jpg',
+            'service-source/brush-clearing.jpg':'Bush clearing.jpg',
+            'service-source/storm-cleanup.jpg':'Clearing fallen trees (37055332426).jpg',
+            'service-source/gutter-cleaning.jpg':'A man cleaning gutter.png',
+            'service-source/pressure-washing.jpg':'Driveway-Cleaning-1-1.jpg',
+            'service-source/firewood-delivery.jpg':'Stack of firewood.jpg',
+            'service-source/seasonal-yard-cleanup.jpg':'Yard cleaning using leaf rake.jpg',
+            'service-source/holiday-lights.jpg':'Christmas lights on a house.jpg',
+            'service-source/outdoor-furniture.jpg':'Outdoor furniture.jpg',
+            'materials-source/sand.jpg':'Sand heap.JPG',
+            'materials-source/topsoil.jpg':'628 REG TOPSOIL (7).JPG',
+          }
+          headers={'User-Agent':'Highway38Solutions/1.0 (website asset import; contact highway38solutions@gmail.com)'}
+          for rel,name in sources.items():
+            url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+quote(name, safe='')+'?width=1800'
+            r=requests.get(url,headers=headers,timeout=60)
+            r.raise_for_status()
+            im=Image.open(io.BytesIO(r.content)).convert('RGB')
+            im=ImageOps.exif_transpose(im)
+            im=ImageOps.fit(im,(1600,1000),method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
+            out=root/rel
+            out.parent.mkdir(parents=True,exist_ok=True)
+            im.save(out,'JPEG',quality=88,optimize=True,progressive=True)
+            print(rel, im.size, len(r.content))
+          PY
+          python /tmp/import_nl_photos.py
+      - name: Commit imported photos
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add businesses/northern-lakes/assets/service-source businesses/northern-lakes/assets/materials-source/sand.jpg businesses/northern-lakes/assets/materials-source/topsoil.jpg
+          git diff --cached --quiet && exit 0
+          git commit -m 'Import distinct Northern Lakes service and material photos'
+          git push origin HEAD:agent/fix-northern-lakes-photo-library-owner-links
