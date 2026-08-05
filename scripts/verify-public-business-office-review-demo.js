@@ -38,11 +38,11 @@ async function renderCheck(){
  await page.goto('http://127.0.0.1:4173/business-office-review-demo.html',{waitUntil:'networkidle'});
  check('rendered H38 title',await page.title()==='Highway 38 Business Office — Public Review Demo');
  check('rendered H38 logo',await page.locator('.brand-logo').getAttribute('src')==='assets/highway38-logo.png?v=20260720-exact-0cbc4514');
- const expected=['Today','Customers','Work','Quotes','Schedule','Messages','Field','Inventory','Fleet','Money','Documents','Social','H38 AI','Settings'];
+ const expected=[['today','Today'],['customers','Customers'],['work','Work'],['quotes','Quotes'],['schedule','Schedule'],['messages','Messages'],['field','Field'],['inventory','Inventory'],['fleet','Fleet'],['money','Money'],['documents','Documents'],['social','Social'],['ai','H38 AI'],['settings','Settings']];
  const labels=await page.locator('#mainNav button span:last-child').allTextContents();
- check('rendered current navigation',JSON.stringify(labels)===JSON.stringify(expected));
- for(const label of expected){
-  await page.getByRole('button',{name:label,exact:true}).click();
+ check('rendered current navigation',JSON.stringify(labels)===JSON.stringify(expected.map(item=>item[1])));
+ for(const [key,label] of expected){
+  await page.locator(`#mainNav button[data-page="${key}"]`).click();
   await page.waitForTimeout(25);
   const heading=await page.locator('#mainContent h1').first().textContent();
   check(`rendered page ${label}`,String(heading||'').trim()===label);
