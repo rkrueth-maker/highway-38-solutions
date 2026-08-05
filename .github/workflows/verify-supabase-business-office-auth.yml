@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/tests/database/business_office_auth_resolution.test.sql'
       - 'scripts/verify-supabase-business-office-auth.js'
+      - 'scripts/verify-supabase-business-office-auth-runtime.js'
       - '.github/workflows/verify-supabase-business-office-auth.yml'
   workflow_dispatch:
 
@@ -26,3 +27,5 @@ jobs:
           node-version: '22'
       - name: Verify Supabase Auth shell integration
         run: node scripts/verify-supabase-business-office-auth.js
+      - name: Exercise Supabase Auth bridge states
+        run: node scripts/verify-supabase-business-office-auth-runtime.js
