@@ -10,12 +10,12 @@ function listText(dir){const out=[];for(const entry of fs.readdirSync(dir,{withF
 const publicFiles=listText(site);
 const publicText=publicFiles.map(file=>`\n/* ${path.relative(root,file)} */\n${fs.readFileSync(file,'utf8')}`).join('\n');
 requireTrue(!/\b(?:dock|docks|docking)\b|boat[ -]?lift/i.test(publicText),'No dock or boat-lift service language exists in active Northern Lakes public files');
-requireTrue(!/diamond-logo\.svg|leather[-_ ]?patch|horizontal[-_ ]?wordmark|logo[-_ ]?sheet|tree[-_ ]?reflection/i.test(publicText),'Active public files reference no alternate Northern Lakes logo variants');
-requireTrue((publicText.match(/diamond-logo\.png/g)||[]).length>=6,'Canonical approved PNG logo is used across active public surfaces');
+requireTrue(!/diamond-logo\.png|leather[-_ ]?patch|horizontal[-_ ]?wordmark|logo[-_ ]?sheet|tree[-_ ]?reflection/i.test(publicText),'Active public files reference no logo collection or alternate Northern Lakes logo variants');
+requireTrue((publicText.match(/diamond-logo\.svg/g)||[]).length>=6,'Approved single diamond SVG logo is used across active public surfaces');
 const manifest=read('businesses/northern-lakes/manifest.webmanifest');
-requireTrue(/diamond-logo\.png/.test(manifest)&&!/image\/svg\+xml/.test(manifest),'PWA manifest uses the canonical approved PNG logo');
+requireTrue(/diamond-logo\.svg/.test(manifest)&&/image\/svg\+xml/.test(manifest)&&!/diamond-logo\.png/.test(manifest),'PWA manifest uses the approved single SVG logo');
 const pack=JSON.parse(read('business-packs/northern-lakes/supabase-business-pack.json'));
-requireTrue(pack.branding?.canonicalLogoPath==='businesses/northern-lakes/assets/diamond-logo.png'&&pack.branding?.singleApprovedLogo===true,'Supabase business pack declares one canonical approved logo');
+requireTrue(pack.branding?.canonicalLogoPath==='businesses/northern-lakes/assets/diamond-logo.svg'&&pack.branding?.singleApprovedLogo===true,'Supabase business pack declares one canonical approved single logo');
 requireTrue(pack.customerPortal?.enabled===true&&pack.release?.customerPortalReleaseEnabled===true,'Northern Lakes customer portal is released in the active Supabase pack');
 requireTrue(pack.customerPortal?.liveChargingEnabled===false&&pack.safeguards?.directPaymentProcessing===false,'Live payment charging and direct payment processing remain disabled');
 requireTrue(pack.safeguards?.externalActionsEnabled===false&&pack.safeguards?.automaticCustomerSending===false,'External actions and automatic customer sending remain disabled');
