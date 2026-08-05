@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20260805-1700';
+const CACHE_NAME='h38-business-office-20260805-1725';
 const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const LIVE_FIRST=new Set(['index.html','supabase-quote-ai.js','quote-mobile-stabilization.js','quote-ai-live-fix.js']);
 const SHELL=[
