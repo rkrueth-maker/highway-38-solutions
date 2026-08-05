@@ -63,5 +63,8 @@ jobs:
           node -e "const p=JSON.parse(require('fs').readFileSync('/tmp/h38-invalid-post.json','utf8')); if(p.status!=='FAIL'||!/Auth session/i.test(p.message||'')) throw new Error('Authenticated Quote AI POST did not reach the function.');"
       - name: Preserve Supabase Auth and active-business controls
         run: |
+          node --check commercial-app/supabase-single-client.js
+          node --check commercial-app/supabase-session-recovery.js
           node scripts/verify-supabase-business-office-auth.js
           node scripts/verify-supabase-business-office-auth-runtime.js
+          node scripts/verify-supabase-business-office-auth-single-client.js
