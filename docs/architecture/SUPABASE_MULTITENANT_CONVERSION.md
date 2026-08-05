@@ -129,13 +129,16 @@ A module may treat Supabase as its permanent record owner only after:
 - All tenant-owned foundation tables have RLS enabled.
 - Anonymous access remains revoked.
 - Cross-business reads and writes fail.
-- Viewer cannot alter module configuration or memberships.
+- Viewer cannot alter business module configuration.
 - Staff cannot approve an action.
 - Administrator cannot grant the Owner-only external-action gate.
 - Owner authorization is separate from ordinary approval.
 - Browser roles cannot execute an external action.
 - Final approvals cannot be changed.
+- Branch fixtures include temporary Auth users and roll back completely.
 - Security advisors have no unresolved critical findings.
+- Any advisor warnings introduced by this migration are corrected before merge.
+- Existing customer-portal advisor warnings are recorded separately and are not silently changed in this foundation PR.
 - Existing production IDs, records, and Google files remain unchanged.
 
 ## First implementation scope
