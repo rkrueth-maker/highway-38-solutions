@@ -1,5 +1,6 @@
-const CACHE_NAME='h38-business-office-20260805-1720';
+const CACHE_NAME='h38-business-office-20260805-1700';
 const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+const LIVE_FIRST=new Set(['index.html','supabase-quote-ai.js','quote-mobile-stabilization.js','quote-ai-live-fix.js']);
 const SHELL=[
   './','./index.html','./recover.html','./manifest.webmanifest',
   './styles.css','./ai-drawer.css','./quote-delivery.css',
@@ -20,6 +21,7 @@ self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')&&key!==CACHE_NAME).map(key=>caches.delete(key)));await self.clients.claim();})());});
 self.addEventListener('fetch',event=>{
   const request=event.request;if(request.method!=='GET')return;const url=new URL(request.url),sameOrigin=url.origin===self.location.origin,isSupabaseClient=request.url===SUPABASE_CDN;if(!sameOrigin&&!isSupabaseClient)return;
-  if(sameOrigin&&request.mode==='navigate'){event.respondWith((async()=>{try{const response=await fetch(request,{cache:'no-store'}),cache=await caches.open(CACHE_NAME);cache.put('./index.html',response.clone()).catch(()=>{});return response;}catch(error){return(await caches.match('./index.html',{ignoreSearch:true}))||Response.error();}})());return;}
+  const file=url.pathname.split('/').pop()||'index.html';
+  if(sameOrigin&&(request.mode==='navigate'||LIVE_FIRST.has(file))){event.respondWith((async()=>{try{const response=await fetch(request,{cache:'no-store'}),cache=await caches.open(CACHE_NAME);cache.put(request.mode==='navigate'?'./index.html':request,response.clone()).catch(()=>{});return response;}catch(error){return(await caches.match(request.mode==='navigate'?'./index.html':request,{ignoreSearch:true}))||Response.error();}})());return;}
   event.respondWith((async()=>{const cached=await caches.match(request,{ignoreSearch:true});if(cached)return cached;try{const response=await fetch(request,{cache:'no-store'});if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;}catch(error){return Response.error();}})());
 });
