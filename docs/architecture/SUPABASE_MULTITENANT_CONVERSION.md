@@ -141,6 +141,35 @@ A module may treat Supabase as its permanent record owner only after:
 - Existing customer-portal advisor warnings are recorded separately and are not silently changed in this foundation PR.
 - Existing production IDs, records, and Google files remain unchanged.
 
+## Isolated branch evidence — August 4, 2026
+
+Supabase development branch:
+
+- branch name: `supabase-multitenant-foundation`
+- project reference: `uvcqnkjidllhdmjnqshk`
+- parent production reference: `jqukmwtsgcsaruucnqja`
+- final migration recorded as `20260805000050_multitenant_platform_foundation`
+- production migration not applied
+
+Verified on the isolated branch:
+
+- migration applied successfully on top of `20260804225947_business_office_foundation`
+- exactly one authenticated UPDATE policy owns approval review and Owner authorization
+- `external_action_queue` has RLS and covering indexes
+- Owner sees only the permitted business
+- cross-business module update is denied
+- Viewer update is denied
+- Staff approval is denied
+- Administrator Owner-gate authorization is denied
+- Owner approval and separate authorization succeed
+- browser transition to `executing` is denied
+- final approval and authorization are immutable
+- test transaction rolled back with zero temporary Auth users, businesses, or queue rows retained
+- no critical Supabase security advisor findings
+- advisor warnings introduced during development were corrected
+
+Pre-existing Customer Portal `SECURITY DEFINER` warnings and older performance notices remain separately reviewable. They were not changed in this foundation scope.
+
 ## First implementation scope
 
 This pull request is foundation hardening and isolated-branch validation only. It must not:
