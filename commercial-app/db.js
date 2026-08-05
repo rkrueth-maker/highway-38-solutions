@@ -26,7 +26,12 @@
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value))throw new Error('A valid authenticated user is required for offline storage.');
     return value;
   }
-  function setUserScope(userId){activeScope=`user:${normalizedUserId(userId)}`;return activeScope;}
+  function setUserScope(userId){
+    const nextScope=`user:${normalizedUserId(userId)}`;
+    if(activeScope&&activeScope!==nextScope)window.dispatchEvent(new CustomEvent('h38:auth-cleared'));
+    activeScope=nextScope;
+    return activeScope;
+  }
   function clearUserScope(){activeScope='';}
   function getUserScope(){return activeScope.replace(/^user:/,'');}
   function isGlobal(store,id){return store==='meta'&&GLOBAL_META_IDS.has(String(id));}
