@@ -12,6 +12,7 @@ const assert=(name,condition,evidence='')=>{(condition?passes:failures).push({na
 
 const portal=read('portal.html');
 const launcher=read('open-business-office.html');
+const rollback=read('legacy-business-office.html');
 const publicShell=read('assets/js/h38-site-v2.js');
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const portalRawIncludes=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
@@ -35,7 +36,7 @@ const pack=read('business-packs/highway38/apps-script/BusinessOffice_Pack.gs');
 const deploySource=read('scripts/deploy-unified-owner-portal-web.sh');
 const shellBuilder=read('scripts/build-unified-apps-script-shell.js');
 
-const currentDeploymentId='AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow';
+const rollbackDeploymentId='AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow';
 const retiredDeploymentId='AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg';
 const registryContext={boAssert_:(condition,message)=>{if(!condition)throw new Error(message||'assertion failed');}};
 vm.createContext(registryContext);
@@ -51,15 +52,17 @@ const missingRawAllowlistEntries=rawFragmentNames.filter(name=>!portalRawInclude
 
 assert('website unified Business Office gateway exists',/<title>Highway 38 Business Office \| Highway 38 Solutions<\/title>/.test(portal));
 assert('public portal automatically routes to the secure launcher',portal.includes("const target='open-business-office.html'")&&/location\.replace\(target\)/.test(portal));
-assert('secure launcher owns the accepted H38 deployment',launcher.includes(currentDeploymentId)&&!/AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/.test(portal+launcher));
+assert('standard launcher opens the Supabase Business Office',launcher.includes('commercial-app/index.html')&&/location\.replace\(destination\.toString\(\)\)/.test(launcher)&&!launcher.includes('script.google.com')&&!launcher.includes(rollbackDeploymentId));
+assert('Google deployment is explicit rollback only',rollback.includes(rollbackDeploymentId)&&rollback.includes('This is not the standard Business Office.')&&rollback.includes('Nothing opens automatically from this page.')&&!/location\.replace\(|location\.assign\(/.test(rollback));
+assert('retired deployment is absent from every Office doorway',!`${portal}\n${launcher}\n${rollback}`.includes(retiredDeploymentId));
 assert('public portal contains no obsolete workspace chooser',!/owner-tabs|owner-area-strip|Choose where to open|Enter Command Center|Enter Business Office|class="choices"/.test(portal));
 assert('public portal contains one fallback Business Office action',(portal.match(/id="secureFallback"/g)||[]).length===1&&/Open Business Office/.test(portal));
-assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher));
+assert('public portal contains no private application iframe',!/<iframe\b/i.test(portal+launcher+rollback));
 assert('public portal preserves upload and business-office deep links',/upload:'documents'/.test(portal)&&/'business-office':'requests'/.test(portal)&&/params\.set\('page'/.test(portal));
 assert('secure launcher forwards only approved route parameters',/\['page','shell','businessId'\]/.test(launcher)&&/destination\.searchParams\.set\(key,value\)/.test(launcher));
-const opensCurrentTab=/window\.location\.replace\(destination\.toString\(\)\)/.test(launcher)||(/destination=destination\.toString\(\)/.test(launcher)&&/window\.location\.replace\(destination\)/.test(launcher));
-assert('secure launcher clears retired browser sessions and opens in this tab',launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')")&&opensCurrentTab);
-assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher));
+assert('standard launcher preserves current Supabase session',!launcher.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&!launcher.includes("sessionStorage.removeItem('h38-execution-session-v1')"));
+assert('rollback clears retired gateway sessions before optional use',rollback.includes("sessionStorage.removeItem('h38-gateway-session-v1')")&&rollback.includes("sessionStorage.removeItem('h38-execution-session-v1')"));
+assert('portal contains no spreadsheet destination',!/docs\.google\.com\/spreadsheets/i.test(portal+launcher+rollback));
 
 assert('secure app contains no nested Business Office iframe',!/businessWorkspace|businessFrame|<iframe\b/i.test(portalIndex));
 assert('secure app includes native Business Office styles and client',/Portal_Business_Styles/.test(portalIndex)&&/Portal_Business_Client/.test(portalIndex));
@@ -107,6 +110,6 @@ for(const file of rootHtmlFiles){const html=read(file);for(const match of html.m
 assert('all static Owner Login and Owner Portal links target portal.html',badOwnerLinks.length===0,badOwnerLinks.length?JSON.stringify(badOwnerLinks):`${ownerLinks.length} inspected`);
 assert('public static pages contain no direct spreadsheet links',sheetLinks.length===0,sheetLinks.length?JSON.stringify(sheetLinks):`${rootHtmlFiles.length} HTML files inspected`);
 
-const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1,currentDeploymentId,retiredDeploymentRemoved:!portal.includes(retiredDeploymentId)&&!launcher.includes(retiredDeploymentId)},passes,failures};
+const result={status:failures.length?'HOLD':'PASS',sourceCommit:process.env.GITHUB_SHA||'',inspected:{rootHtmlFiles:rootHtmlFiles.length,ownerLinks:ownerLinks.length,rawFragments:rawFragmentNames,representativeBusinessRoutes,unifiedApp:true,nativeBusinessOffice:true,moduleContractVersion:contract.version,startupRpcBudget:1,standardOffice:'supabase-auth',rollbackDeploymentId,retiredDeploymentRemoved:!`${portal}\n${launcher}\n${rollback}`.includes(retiredDeploymentId)},passes,failures};
 const outDir=path.join(root,'artifacts','owner-portal-routing');fs.mkdirSync(outDir,{recursive:true});fs.writeFileSync(path.join(outDir,'verification.json'),JSON.stringify(result,null,2)+'\n');
 console.log(`\nRESULT: ${result.status} (${passes.length} pass, ${failures.length} fail)`);process.exit(failures.length?1:0);
