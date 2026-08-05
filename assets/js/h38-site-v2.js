@@ -3,8 +3,9 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-07-29-visual-scan-v1';
+  const VERSION='2026-08-05-public-office-demo-links-v1';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
+  const OFFICE_DEMO='business-office-review-demo.html';
   const registry={
     version:VERSION,
     logo:LOGO,
@@ -12,6 +13,7 @@
       {href:'software.html',label:'Software'},
       {href:'project-services.html',label:'Project Services'},
       {href:'quote-builder.html#examples',label:'Project Examples'},
+      {href:OFFICE_DEMO,label:'Office Demo'},
       {href:'pricing.html',label:'Pricing'},
       {href:'about.html',label:'About'},
       {href:'portal.html',label:'Owner Access'},
@@ -19,7 +21,7 @@
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['Business Software','software.html'],['Project Services','project-services.html'],['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples']]},
+      {heading:'Explore',links:[['Business Software','software.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Services','project-services.html'],['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples']]},
       {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
@@ -43,8 +45,35 @@
   function wireMenu(){const button=document.querySelector('.pi-menu'),nav=document.querySelector('.pi-links');if(!button||!nav)return;button.addEventListener('click',()=>{const open=nav.classList.toggle('open');button.setAttribute('aria-expanded',String(open));});nav.addEventListener('click',event=>{if(event.target.closest('a')){nav.classList.remove('open');button.setAttribute('aria-expanded','false');}});}
   function routeExampleLinks(){document.querySelectorAll('a[href^="sample-library-now.html"],a[href^="universal-quote-builder.html"]').forEach(link=>{link.href='quote-builder.html#examples';});}
   function routeOwnerLinks(){document.querySelectorAll('a[href*="script.google.com/macros/s/"]').forEach(link=>{if(link.hasAttribute('data-owner-app'))return;if(!/owner\s+(portal|login|access)/i.test((link.textContent||'').replace(/\s+/g,' ').trim()))return;link.href='portal.html';link.removeAttribute('target');link.removeAttribute('rel');});}
+  function makeOfficeDemoLink(label,className){const link=document.createElement('a');link.href=OFFICE_DEMO;link.textContent=label;link.className=className;link.dataset.publicOfficeDemoLink='1';return link;}
+  function mountOfficeDemoLinks(){
+    const page=currentPage();
+    if(page==='index.html'){
+      const heroActions=document.querySelector('.pi-hero .pi-actions');
+      if(heroActions&&!document.querySelector('[data-public-office-demo-home]')){
+        const link=makeOfficeDemoLink('View the Public Business Office Demo →','pi-link');
+        link.dataset.publicOfficeDemoHome='1';
+        link.style.display='inline-flex';
+        link.style.marginTop='14px';
+        heroActions.insertAdjacentElement('afterend',link);
+      }
+    }
+    if(page==='software.html'||page==='business-systems.html'){
+      const heroActions=document.querySelector('.pi-hero .pi-actions');
+      if(heroActions&&!heroActions.querySelector('[data-public-office-demo-link]')){
+        heroActions.appendChild(makeOfficeDemoLink('View Public Office Demo','pi-btn secondary'));
+      }
+    }
+    if(page==='business-systems.html'){
+      const actionRows=[...document.querySelectorAll('main .pi-actions')];
+      const finalActions=actionRows[actionRows.length-1];
+      if(finalActions&&!finalActions.querySelector('[data-public-office-demo-link]')){
+        finalActions.appendChild(makeOfficeDemoLink('Explore Read-Only Demo','pi-btn secondary'));
+      }
+    }
+  }
   function optimizeImages(){const images=[...document.querySelectorAll('main img,article img,section img,footer img,header img')];let primaryAssigned=false;images.forEach(img=>{const src=img.getAttribute('src')||'';img.decoding='async';if(src.startsWith('assets/highway38-logo.png')){img.loading='eager';img.addEventListener('error',()=>{img.hidden=true;},{once:true});return;}const hero=!!img.closest('.pi-hero-media,.workflow-hero-panel,.hero-media,.hero');if(hero&&!primaryAssigned){img.loading='eager';img.fetchPriority='high';primaryAssigned=true;}else img.loading='lazy';});}
   function ensureSkipLink(){const main=document.querySelector('main');if(!main)return;if(!main.id)main.id='main';if(document.querySelector('.skip-link'))return;const link=document.createElement('a');link.className='skip-link';link.href='#main';link.textContent='Skip to main content';document.body.insertBefore(link,document.body.firstChild);}
-  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;}
+  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
