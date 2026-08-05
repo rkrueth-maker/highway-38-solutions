@@ -15,6 +15,7 @@ function syntax(file){try{new vm.Script(read(file),{filename:file});check(true,`
 
 const config=read('commercial-app/supabase-config.js');
 const auth=read('commercial-app/supabase-auth.js');
+const sessionGuard=read('commercial-app/auth-session-guard.js');
 const db=read('commercial-app/db.js');
 const cache=read('commercial-app/auth-cache-guard.js');
 const startup=read('commercial-app/supabase-startup.js');
@@ -22,8 +23,9 @@ const index=read('commercial-app/index.html');
 const migration=read('supabase/migrations/20260805004500_business_office_auth_resolution.sql');
 const hardening=read('supabase/migrations/20260805010000_harden_business_office_auth_state.sql');
 const databaseTest=read('supabase/tests/database/business_office_auth_resolution.test.sql');
+const runtimeTest=read('scripts/verify-supabase-business-office-auth-runtime.js');
 
-['commercial-app/supabase-config.js','commercial-app/supabase-auth.js','commercial-app/db.js','commercial-app/auth-cache-guard.js','commercial-app/supabase-startup.js'].forEach(syntax);
+['commercial-app/supabase-config.js','commercial-app/supabase-auth.js','commercial-app/auth-session-guard.js','commercial-app/db.js','commercial-app/auth-cache-guard.js','commercial-app/supabase-startup.js','scripts/verify-supabase-business-office-auth-runtime.js'].forEach(syntax);
 
 includes(config,[
   "projectRef: 'uvcqnkjidllhdmjnqshk'",
@@ -40,12 +42,14 @@ includes(index,[
   'id="businessSelect"',
   'supabase-config.js',
   'supabase-auth.js',
+  'auth-session-guard.js',
   'auth-cache-guard.js',
   'supabase-startup.js',
   'authSignOutButton'
 ],'existing shell');
 check((index.match(/id="mainContent"/g)||[]).length===1,'one Business Office main shell');
-check(index.indexOf('supabase-auth.js')<index.indexOf('app-01.js'),'Auth bridge overrides before app startup');
+check(index.indexOf('supabase-auth.js')<index.indexOf('auth-session-guard.js'),'session guard loads after Auth implementation');
+check(index.indexOf('auth-session-guard.js')<index.indexOf('app-01.js'),'Auth guards load before app startup');
 check(index.indexOf('auth-cache-guard.js')>index.indexOf('app-17.js'),'cache guard loads after legacy cache function');
 check(index.indexOf('supabase-startup.js')>index.indexOf('startup-fix.js'),'Supabase startup extends existing startup');
 excludes(index,['businesses/northern-lakes','nlpm-office-gateway'],'existing shell');
@@ -67,9 +71,17 @@ includes(auth,[
 excludes(auth,['service_role','SUPABASE_SERVICE_ROLE_KEY','user_metadata.role','raw_user_meta_data.role'],'Auth client');
 check(!/from\(['"]businesses['"]\).*eq\(['"]id['"],\s*(requested|businessId)/s.test(auth),'browser does not authorize by direct business lookup');
 
+includes(sessionGuard,[
+  'activeBusinessCount > 0',
+  "selectedBusinessId: scopedUserId && activeBusinessCount > 0",
+  "window.H38DB?.getUserScope?.()"
+],'Auth session guard');
+
 includes(db,[
   "const DB_VERSION=4",
-  "activeScope=`user:${normalizedUserId(userId)}`",
+  "const nextScope=`user:${normalizedUserId(userId)}`",
+  "activeScope&&activeScope!==nextScope",
+  "new CustomEvent('h38:auth-cleared')",
   "if(!activeScope)throw new Error('Authenticated user scope is required before storing tenant data.')",
   'value.__h38Scope!==expected',
   'legacyDataPresent',
@@ -95,6 +107,7 @@ includes(startup,[
   'Only active memberships returned by Supabase Auth are listed above.',
   'function h38SetAuthorizedChrome(authorized)',
   "if(nav&&!allowed)nav.innerHTML=''",
+  "$('globalAiButton').onclick=openGlobalAi",
   'h38SetAuthorizedChrome(false)',
   'h38SetAuthorizedChrome(true)'
 ],'startup integration');
@@ -132,6 +145,17 @@ includes(databaseTest,[
   'rollback;'
 ],'database acceptance');
 
+includes(runtimeTest,[
+  "acceptance:'SUPABASE_BUSINESS_OFFICE_AUTH_RUNTIME'",
+  'oneBusinessAutomaticSelection:true',
+  'forgedBusinessRejected:true',
+  'suspendedMembershipDenied:true',
+  'userSwitchClearsVisibleTenant:true',
+  'multiBusinessRequiresValidSelection:true',
+  'selectedBusinessNamespacedByUser:true',
+  'signOutClearsScope:true'
+],'runtime acceptance');
+
 const protectedNorthernLakes=JSON.parse(read('businesses/northern-lakes/deploy-request.json'));
 check(protectedNorthernLakes.requestVersion===0,'Northern Lakes request version remains zero');
 check(protectedNorthernLakes.active===false,'Northern Lakes remains inactive');
@@ -156,6 +180,7 @@ console.log(JSON.stringify({
   privateCurrentUserResolver:true,
   userScopedOfflineCache:true,
   legacyUnscopedCacheRefused:true,
+  sameDeviceUserSwitchGuarded:true,
   protectedNavigationBeforeAuth:true,
   oneBusinessOfficeShell:true,
   serviceRoleInBrowser:false,
