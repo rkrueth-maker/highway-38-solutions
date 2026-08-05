@@ -8,6 +8,7 @@ let db=null;
 function text(value){return String(value==null?'':value);}
 function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-supabase-quote-ai'}}}));}
 async function quoteAi(args,timeout){
+  if(typeof window.sync==='function')await window.sync(false);
   const {data,error}=await client().auth.getSession();
   if(error)throw error;
   const session=data.session;
