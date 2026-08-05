@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b2438">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Reset Business Office password</title>
+  <link rel="icon" type="image/png" href="../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#10243a;background:#eef5f9}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:#eef5f9}
+    header{display:flex;align-items:center;gap:16px;padding:14px 18px;background:#0b3654;color:#fff}
+    header img{width:76px;height:76px;border-radius:15px;background:#fff;object-fit:contain}
+    header strong{font-size:1.45rem}
+    main{max-width:720px;margin:0 auto;padding:72px 18px}
+    section{background:#fff;border:1px solid #d7e3eb;border-radius:22px;padding:28px;box-shadow:0 16px 40px rgba(11,36,56,.08)}
+    h1{margin:0 0 14px;font-size:clamp(2rem,8vw,3rem);line-height:1.05}
+    p{font-size:1.08rem;line-height:1.55}
+    form{display:grid;gap:16px;margin-top:24px}
+    label{display:grid;gap:8px;font-weight:750}
+    input{width:100%;padding:16px;border:2px solid #b9cbd8;border-radius:14px;font:inherit;font-size:1.08rem}
+    button,a{display:inline-flex;justify-content:center;align-items:center;min-height:54px;padding:12px 20px;border-radius:14px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}
+    button{border:0;background:#155b87;color:#fff}
+    a{border:1px solid #c9d8e2;color:#17334a;background:#f7fafc}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+    .notice{margin-top:20px;padding:15px 17px;border-radius:14px;background:#edf4f8}
+    .notice.warn{background:#fff2c9;color:#5a4100}
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions">
+    <strong>Business Office</strong>
+  </header>
+  <main>
+    <section>
+      <h1>Set a new password</h1>
+      <p id="recoveryIntro">Securely checking the newest Supabase password-reset link.</p>
+      <form id="recoveryForm" hidden>
+        <label>
+          <span>New password</span>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="10" required>
+        </label>
+        <label>
+          <span>Confirm new password</span>
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" required>
+        </label>
+        <button type="submit">Save new password</button>
+      </form>
+      <div id="recoveryActions" class="actions" hidden>
+        <a href="./">Return to Business Office</a>
+      </div>
+      <div id="recoveryNotice" class="notice" role="status">Do not close this page while the recovery link is being verified.</div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js?build=20260805-0405"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const callbackHadCode = new URLSearchParams(location.search).has('code');
+      const markerKey = 'h38:business-office-password-recovery';
+      const marker = Number(sessionStorage.getItem(markerKey) || 0);
+      const recentCallback = callbackHadCode && marker > 0 && Date.now() - marker < 10 * 60 * 1000;
+      const config = window.H38_BUSINESS_OFFICE_SUPABASE || {};
+      const form = document.getElementById('recoveryForm');
+      const notice = document.getElementById('recoveryNotice');
+      const intro = document.getElementById('recoveryIntro');
+      const actions = document.getElementById('recoveryActions');
+      let client = null;
+      let recoveryReady = false;
+
+      function configured() {
+        return config.enabled === true &&
+          /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(String(config.url || '')) &&
+          /^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(String(config.publishableKey || '')) &&
+          config.productionPromotionAuthorized === false &&
+          config.northernLakesEnabled === false &&
+          config.externalActionsEnabled === false;
+      }
+
+      function message(text, bad) {
+        notice.textContent = text;
+        notice.className = 'notice' + (bad ? ' warn' : '');
+      }
+
+      function showForm() {
+        recoveryReady = true;
+        form.hidden = false;
+        actions.hidden = true;
+        intro.textContent = 'Choose a new password for the Highway 38 Business Office Owner account.';
+        message('Use at least 10 characters. The password goes directly to Supabase Auth and is never stored in this page.', false);
+        document.getElementById('newPassword').focus();
+      }
+
+      function fail(text) {
+        recoveryReady = false;
+        form.hidden = true;
+        actions.hidden = false;
+        intro.textContent = 'This password-reset link cannot be completed on this page.';
+        message(text, true);
+      }
+
+      async function boot() {
+        if (!recentCallback) {
+          fail('Open the newest reset email in the same browser and device where Reset password was requested. One-time recovery links cannot be reused on another device.');
+          return;
+        }
+        if (!configured() || !window.supabase || typeof window.supabase.createClient !== 'function') {
+          fail('The secure Supabase recovery configuration did not load. No password was changed.');
+          return;
+        }
+
+        client = window.supabase.createClient(config.url, config.publishableKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            flowType: 'pkce'
+          },
+          global: { headers: { 'x-client-info': 'highway-38-business-office-password-recovery' } }
+        });
+
+        client.auth.onAuthStateChange((event, session) => {
+          if (event === 'PASSWORD_RECOVERY' && session && session.user) showForm();
+        });
+
+        const result = await client.auth.getSession();
+        if (result.error) throw result.error;
+        if (result.data && result.data.session && result.data.session.user) {
+          showForm();
+          return;
+        }
+        fail('The recovery code was invalid, expired, already opened, or opened on a different device. Request one new link and open it only on that same device.');
+      }
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!recoveryReady || !client) return;
+        try {
+          const password = String(document.getElementById('newPassword').value || '');
+          const confirmation = String(document.getElementById('confirmPassword').value || '');
+          if (password.length < 10) throw new Error('Use at least 10 characters.');
+          if (password !== confirmation) throw new Error('The two passwords do not match.');
+          message('Saving the new password securely…', false);
+          const result = await client.auth.updateUser({ password });
+          if (result.error) throw result.error;
+          sessionStorage.removeItem(markerKey);
+          history.replaceState({}, document.title, './recover.html');
+          form.hidden = true;
+          actions.hidden = false;
+          intro.textContent = 'Password updated';
+          message('Your password was updated. Return to the Business Office to continue with the current verified session.', false);
+        } catch (error) {
+          message(String(error && error.message ? error.message : error || 'The password could not be updated.').slice(0, 500), true);
+        }
+      });
+
+      boot().catch(error => fail(String(error && error.message ? error.message : error || 'The recovery link could not be verified.').slice(0, 500)));
+    })();
+  </script>
+</body>
+</html>
