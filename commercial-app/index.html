@@ -12,8 +12,8 @@
   <script>
     (function () {
       const canonical = new URL('https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/');
-      const canonicalPath = '/highway-38-solutions/commercial-app/';
-      if (location.origin !== canonical.origin || !location.pathname.startsWith(canonicalPath)) {
+      const liveCustomDomains = new Set(['highway38solutions.com', 'www.highway38solutions.com']);
+      if (liveCustomDomains.has(location.hostname)) {
         canonical.search = location.search;
         canonical.hash = location.hash;
         location.replace(canonical.toString());
