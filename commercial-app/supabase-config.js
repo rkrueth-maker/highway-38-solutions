@@ -2,8 +2,8 @@
  * Browser-safe configuration for the standard Highway 38 Business Office.
  *
  * The publishable key is safe for browser use because tenant-owned records are
- * protected by Supabase Auth and Row Level Security. Never put a service-role
- * key, database password, or other private secret in browser code.
+ * protected by Supabase Auth and Row Level Security. Never put a privileged
+ * Supabase server key, database password, or other private secret in browser code.
  */
 window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
   enabled: true,
