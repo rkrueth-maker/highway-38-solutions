@@ -1,0 +1,53 @@
+name: Verify public Business Office review demo
+
+on:
+  pull_request:
+    paths:
+      - business-office-review-demo.html
+      - business-office-review-demo.css
+      - business-office-review-demo.js
+      - scripts/verify-public-business-office-review-demo.js
+      - commercial-app/styles.css
+      - assets/highway38-logo.png
+      - .github/workflows/verify-public-business-office-review-demo.yml
+  push:
+    branches: [main]
+    paths:
+      - business-office-review-demo.html
+      - business-office-review-demo.css
+      - business-office-review-demo.js
+      - scripts/verify-public-business-office-review-demo.js
+      - commercial-app/styles.css
+      - assets/highway38-logo.png
+      - .github/workflows/verify-public-business-office-review-demo.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Start local review server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/public-office-demo-server.log 2>&1 &
+          echo $! > /tmp/public-office-demo-server.pid
+          sleep 2
+      - name: Verify current H38 read-only office demo
+        run: node scripts/verify-public-business-office-review-demo.js --render
+      - name: Upload desktop and mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-business-office-review-demo-${{ github.run_id }}
+          path: artifacts/public-office-demo
+          if-no-files-found: error
+          retention-days: 30
