@@ -40,7 +40,9 @@ jobs:
       - name: Verify Supabase operational app
         run: node scripts/verify-supabase-operational-app.js
       - name: Verify Android Quote Builder stabilization
-        run: node scripts/verify-supabase-quote-mobile-stabilization.js
+        run: |
+          node --check commercial-app/quote-mobile-stabilization.js
+          node scripts/verify-supabase-quote-mobile-stabilization.js
       - name: Preserve Supabase Auth and active-business controls
         run: |
           node scripts/verify-supabase-business-office-auth.js
