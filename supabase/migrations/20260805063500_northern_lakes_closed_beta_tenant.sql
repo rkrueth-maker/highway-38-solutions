@@ -35,7 +35,7 @@ begin
       'currency', 'USD',
       'industryPack', 'property-maintenance',
       'industryPacks', jsonb_build_array('property-maintenance', 'snow-removal', 'lawn-care', 'grading'),
-      'logoUrl', 'https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.png?v=rendered-photo-pass-20260726',
+      'logoUrl', 'https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.svg?v=rendered-photo-pass-20260726',
       'primaryColor', '#113b2e',
       'secondaryColor', '#f4efe5',
       'accentColor', '#9a632f',
