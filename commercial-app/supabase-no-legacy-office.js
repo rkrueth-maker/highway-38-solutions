@@ -1,0 +1,64 @@
+(function () {
+  'use strict';
+
+  const BLOCKED_PATTERNS = [
+    /legacy-business-office\.html/i,
+    /script\.google\.com\/macros\/s\//i,
+    /Google Office fallback/i,
+    /Google Office rollback/i,
+    /legacy Google Office/i
+  ];
+
+  function blocked(value) {
+    const text = String(value == null ? '' : value);
+    return BLOCKED_PATTERNS.some(pattern => pattern.test(text));
+  }
+
+  function removeLegacyControls(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('a,button,details').forEach(node => {
+      const href = node.getAttribute && node.getAttribute('href');
+      if (blocked(href) || blocked(node.textContent)) node.remove();
+    });
+  }
+
+  document.addEventListener('click', event => {
+    const link = event.target && event.target.closest ? event.target.closest('a') : null;
+    if (!link) return;
+    if (blocked(link.href) || blocked(link.textContent)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
+  const observer = new MutationObserver(records => {
+    records.forEach(record => record.addedNodes.forEach(node => {
+      if (node.nodeType === 1) removeLegacyControls(node);
+    }));
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  removeLegacyControls(document);
+
+  if (window.H38Bridge && window.H38Bridge.prototype) {
+    const previousRequest = window.H38Bridge.prototype.request;
+    if (typeof previousRequest === 'function') {
+      window.H38Bridge.prototype.request = async function () {
+        try {
+          return await previousRequest.apply(this, arguments);
+        } catch (error) {
+          const message = String(error && error.message || error || 'Business Office request failed.');
+          if (blocked(message)) throw new Error('This action is unavailable in the Supabase Business Office.');
+          throw error;
+        }
+      };
+    }
+  }
+
+  window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
+    enabled: true,
+    publicRouteRemoved: true,
+    automaticFallback: false,
+    manualFallback: false,
+    supportedRuntime: 'supabase'
+  });
+})();
