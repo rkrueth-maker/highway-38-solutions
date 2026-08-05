@@ -170,6 +170,18 @@ Verified on the isolated branch:
 
 Pre-existing Customer Portal `SECURITY DEFINER` warnings and older performance notices remain separately reviewable. They were not changed in this foundation scope.
 
+## Promotion boundary
+
+The isolated branch deployment is complete. Promotion to production is a separate operation and must not occur merely because this branch passed.
+
+Before production promotion:
+
+1. all exact-head GitHub validation must pass;
+2. the pull request must accurately describe the canonical extension and evidence;
+3. production backup and rollback evidence must be recorded;
+4. no live login, customer records, or external action may be activated by the promotion;
+5. Northern Lakes remains inactive until the shared Auth and tenant-resolution stage is implemented and accepted.
+
 ## First implementation scope
 
 This pull request is foundation hardening and isolated-branch validation only. It must not:
