@@ -9,6 +9,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Highway 38 Business Office">
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      if (!params.has('code')) return;
+      try { sessionStorage.setItem('h38:business-office-password-recovery', String(Date.now())); }
+      catch (error) {}
+      location.replace('./recover.html' + location.search + location.hash);
+    })();
+  </script>
   <link rel="manifest" href="./manifest.webmanifest?build=20260805-0105">
   <link rel="icon" type="image/png" href="../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <link rel="stylesheet" href="./styles.css?build=20260805-0105">
