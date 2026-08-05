@@ -1,0 +1,100 @@
+name: Import Northern Lakes material photos
+
+on:
+  push:
+    branches:
+      - agent/build-northern-lakes-site-portal
+    paths:
+      - '.github/workflows/import-northern-lakes-material-photos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-material-photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out build branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/build-northern-lakes-site-portal
+          fetch-depth: 0
+      - name: Install image tooling
+        run: python3 -m pip install --disable-pip-version-check pillow
+      - name: Download and optimize durable local assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p businesses/northern-lakes/assets/materials-source /tmp/nl-materials
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Sand_Pile.jpg' -o /tmp/nl-materials/sand.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/6/63/Winter_road_salt.jpg' -o /tmp/nl-materials/road-salt.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/d/dd/Sand_%26_salt_pile_for_residents%2C_January_2025%2C_Charlton%2C_Massachusetts.jpg' -o /tmp/nl-materials/sand-salt-mix.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/0/02/Gravel.jpg' -o /tmp/nl-materials/gravel.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/8/89/Topsoil1230.JPG' -o /tmp/nl-materials/topsoil.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/6/60/Mulch_piles_-_geograph.org.uk_-_2872997.jpg' -o /tmp/nl-materials/mulch.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Anorthosite_%26_nelsonite_gravel_pile_%28Sybille_Canyon%2C_Laramie_Range%2C_Wyoming%2C_USA%29.jpg' -o /tmp/nl-materials/decorative-rock.jpg
+          curl -L --fail --retry 4 --retry-all-errors 'https://upload.wikimedia.org/wikipedia/commons/2/25/Front-end_loader_empties_debris_into_dump_truck._-_52749508246.jpg' -o /tmp/nl-materials/material-delivery.jpg
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps
+          source=Path('/tmp/nl-materials')
+          dest=Path('businesses/northern-lakes/assets/materials-source')
+          dest.mkdir(parents=True, exist_ok=True)
+          for item in source.glob('*.jpg'):
+              with Image.open(item) as image:
+                  image=ImageOps.exif_transpose(image).convert('RGB')
+                  image=ImageOps.fit(image,(1600,1000),method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
+                  image.save(dest/item.name,'JPEG',quality=86,optimize=True,progressive=True)
+                  print(item.name, image.size)
+          PY
+          cat > businesses/northern-lakes/assets/MATERIAL_PHOTO_CREDITS.md <<'EOF'
+          # Northern Lakes material-photo credits
+
+          These photos are illustrative catalog images and are not represented as completed Northern Lakes jobs.
+
+          - `materials-source/sand.jpg` — “Sand Pile,” CMetz18, CC BY-SA 4.0, Wikimedia Commons.
+          - `materials-source/road-salt.jpg` — “Winter road salt,” U.S. Air National Guard, public domain, Wikimedia Commons.
+          - `materials-source/sand-salt-mix.jpg` — “Sand & salt pile for residents,” Peter Cooper Jr., CC0, Wikimedia Commons.
+          - `materials-source/gravel.jpg` — “Gravel,” Sergei S. Scurfield, CC BY-SA 3.0, Wikimedia Commons.
+          - `materials-source/topsoil.jpg` — “Topsoil1230,” CC BY-SA 3.0/GFDL, Wikimedia Commons.
+          - `materials-source/mulch.jpg` — “Mulch piles,” Stephen Craven, CC BY-SA 2.0, Wikimedia Commons.
+          - `materials-source/decorative-rock.jpg` — “Anorthosite & nelsonite gravel pile,” James St. John, CC BY 2.0, Wikimedia Commons.
+          - `materials-source/material-delivery.jpg` — “Front-end loader empties debris into dump truck,” Cape Hatteras National Seashore/NPS, public domain, Wikimedia Commons.
+
+          All catalog images were center-cropped and resized for consistent website presentation. License and source pages remain available through Wikimedia Commons.
+          EOF
+      - name: Verify each photo is distinct and usable
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import hashlib
+          files=sorted(Path('businesses/northern-lakes/assets/materials-source').glob('*.jpg'))
+          assert len(files)==8, files
+          hashes=[]
+          for path in files:
+              data=path.read_bytes()
+              assert len(data)>50000, (path,len(data))
+              with Image.open(path) as im:
+                  assert im.size==(1600,1000), (path,im.size)
+              hashes.append(hashlib.sha256(data).hexdigest())
+          assert len(set(hashes))==8
+          print('Verified',len(files),'distinct 1600x1000 material photos')
+          PY
+      - name: Commit imported assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add businesses/northern-lakes/assets/materials-source businesses/northern-lakes/assets/MATERIAL_PHOTO_CREDITS.md
+          if git diff --cached --quiet; then
+            echo 'Material photos already imported.'
+            exit 0
+          fi
+          git commit -m 'Add distinct Northern Lakes material photos'
+          git push origin HEAD:agent/build-northern-lakes-site-portal
