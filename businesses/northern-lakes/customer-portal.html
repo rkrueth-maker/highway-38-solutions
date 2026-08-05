@@ -1,1 +1,46 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Customer Portal | Northern Lakes</title><meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="app-ui.css?v=secure-customer-hold-1"></head><body><main class="login-page"><section class="login-card"><div class="login-brand"><img src="assets/diamond-logo.png?v=rendered-photo-pass-20260726" alt="Northern Lakes diamond logo"><h2>Northern Lakes Customer Portal</h2><p>Secure customer access is issued only after an account is activated.</p></div><div class="login-form"><div class="eyebrow">Customer access</div><h1>Your private records are not published here.</h1><div class="notice"><strong>Secure activation required.</strong> This public page does not contain sample customer names, estimates, invoices, messages, files, or account balances.</div><p>Use the private sign-in link provided by Northern Lakes, or submit a new service request below.</p><p><a class="btn" href="quote-request.html">Request an Estimate</a></p><p><a class="btn secondary" href="contact.html">Contact Northern Lakes</a></p><p><a href="index.html">← Return to public website</a></p></div></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#113b2e">
+  <title>Customer Sign In | Northern Lakes</title>
+  <link rel="icon" type="image/png" href="assets/diamond-logo.png?v=nl-site-portal-20260805">
+  <link rel="stylesheet" href="customer-portal.css?v=nl-site-portal-20260805">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="customer-portal-config.js?v=nl-site-portal-20260805" defer></script>
+  <script src="customer-portal.js?v=nl-site-portal-20260805" defer></script>
+</head>
+<body>
+  <div class="portal-top"><div class="portal-top__inner"><span>Secure Northern Lakes customer records</span><span>Owner and staff access is separate.</span></div></div>
+  <header class="portal-header"><div class="portal-header__inner"><a class="portal-brand" href="index.html"><img src="assets/diamond-logo.png?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><span><strong>NORTHERN LAKES</strong><span>Customer Portal</span></span></a><div class="portal-header__actions"><a class="btn secondary" href="quote-request.html">Request Service</a><a class="btn secondary" href="owner-login.html">Owner Login</a><button id="signOutButton" class="btn danger" type="button" hidden>Sign Out</button></div></div></header>
+  <main class="portal-shell">
+    <div id="portalNotice" class="portal-notice" aria-live="polite">Checking secure customer access…</div>
+    <section id="portalHold" class="portal-panel" hidden><h1>Customer Portal Temporarily Unavailable</h1><p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p><a class="btn" href="contact.html">Contact Northern Lakes</a></section>
+    <section id="portalLogin" class="portal-login" hidden>
+      <div class="portal-login__brand"><img src="assets/diamond-logo.png?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><div class="eyebrow">Secure customer access</div><h1>Your Estimates, Bills and Property Records.</h1><p>Sign in with the email connected to your Northern Lakes customer account. Customers see only records specifically assigned to their own account.</p></div>
+      <div class="portal-login__form"><div class="eyebrow">Customer Sign In</div><h2>Access your private account.</h2><p>Use a password or request a one-time secure sign-in link.</p><form id="loginForm"><label for="portalEmail">Email address</label><input id="portalEmail" type="email" autocomplete="email" required><label for="portalPassword">Password</label><input id="portalPassword" type="password" autocomplete="current-password"><div class="login-actions"><button class="btn" type="submit">Sign In</button><button id="magicLinkButton" class="btn secondary" type="button">Email Secure Link</button></div></form><p class="privacy-note">Passwords are handled by Supabase Auth and are never stored in this page or repository. A sign-in account must already be activated by Northern Lakes.</p><p><a href="index.html">← Return to Northern Lakes website</a></p></div>
+    </section>
+    <section id="portalApp" class="portal-app" hidden>
+      <nav class="portal-side" aria-label="Customer portal sections"><h2>Customer Account</h2><a href="#accountSummary">Account Summary</a><a href="#quotesPanel">Estimates</a><a href="#invoicesPanel">Invoices</a><a href="#paymentsPanel">Payments &amp; Receipts</a><a href="#jobsPanel">Property Work</a><a href="#filesPanel">Files &amp; Photos</a><a href="#messagesPanel">Messages</a><button type="button" data-sign-out>Sign Out</button></nav>
+      <div class="portal-main">
+        <header class="portal-greeting" id="accountSummary"><div><div class="eyebrow">Northern Lakes customer account</div><h1>Welcome, <span id="customerName">Customer</span>.</h1><p id="customerCode"></p></div><button id="refreshPortal" class="btn secondary" type="button">Refresh Records</button></header>
+        <section class="portal-metrics" aria-label="Account summary"><article class="metric"><span>Current Balance</span><strong id="metricBalance">$0.00</strong></article><article class="metric"><span>Open Invoices</span><strong id="metricInvoices">0</strong></article><article class="metric"><span>Estimates to Review</span><strong id="metricQuotes">0</strong></article><article class="metric"><span>Active Property Work</span><strong id="metricJobs">0</strong></article></section>
+        <p id="paymentModeNotice" class="payment-status"><strong>Online payment status</strong><span>Checking payment configuration…</span></p>
+        <div class="portal-grid">
+          <section id="quotesPanel" class="portal-panel full"><h2>Estimates and Decisions</h2><p>Review the complete posted terms before approving, declining or requesting a revision. A decision does not charge a card or begin work automatically.</p><div id="quotesList" class="portal-list"></div></section>
+          <section id="invoicesPanel" class="portal-panel"><h2>Invoices and Bills</h2><div id="invoicesList" class="portal-list"></div></section>
+          <section id="paymentsPanel" class="portal-panel"><h2>Payment History and Receipts</h2><div id="paymentsList" class="portal-list"></div></section>
+          <section id="jobsPanel" class="portal-panel"><h2>Property Work</h2><div id="jobsList" class="portal-list"></div></section>
+          <section id="filesPanel" class="portal-panel"><h2>Files, Bills and Shared Photos</h2><div id="filesList" class="portal-list"></div></section>
+          <section id="messagesPanel" class="portal-panel full"><h2>Send a Question for Review</h2><p>Messages are recorded in the Northern Lakes review queue. No automatic text or email is sent.</p><form id="messageForm" class="portal-message"><label for="messageJob">Related property work</label><select id="messageJob"><option value="">General account question</option></select><label for="messageBody">Message</label><textarea id="messageBody" maxlength="2000" required></textarea><div class="item-actions"><button class="btn" type="submit">Record Message for Review</button></div></form></section>
+        </div>
+        <p class="security-note"><strong>Private-account boundary:</strong> This portal uses the signed-in Supabase user, Northern Lakes business ID and server-enforced Row Level Security. Browser URL values do not select another customer account.</p>
+      </div>
+    </section>
+  </main>
+  <nav class="mobile-nav" aria-label="Customer portal mobile navigation"><a href="#accountSummary">Home</a><a href="#quotesPanel">Estimates</a><a href="#invoicesPanel">Bills</a><a href="#filesPanel">Files</a><a href="#messagesPanel">Message</a></nav>
+  <dialog id="quoteDialog" class="dialog"><div class="dialog__head"><h2 id="quoteDialogTitle">Estimate Review</h2><button id="closeQuoteDialog" class="btn" type="button">Close</button></div><div id="quoteDialogBody" class="dialog__body"></div><div class="dialog__actions"><button id="quoteApprove" class="btn" type="button">Approve Reviewed Estimate</button><button id="quoteRevision" class="btn secondary" type="button">Request Revision</button><button id="quoteDecline" class="btn danger" type="button">Decline Estimate</button></div></dialog>
+</body>
+</html>
