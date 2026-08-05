@@ -20,6 +20,10 @@ permissions:
   contents: write
   pull-requests: read
 
+concurrency:
+  group: safe-agent-branch-hygiene
+  cancel-in-progress: false
+
 jobs:
   cleanup:
     name: delete safely merged agent branches
@@ -31,9 +35,9 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            const repositoryName = `${owner}/${repo}`;
             const dryRun = context.eventName === 'workflow_dispatch'
-              ? core.getInput('dry_run') === 'true'
-              : false;
+              && String(context.payload.inputs?.dry_run || 'false') === 'true';
 
             const repository = await github.rest.repos.get({ owner, repo });
             const defaultBranch = repository.data.default_branch;
@@ -41,6 +45,28 @@ jobs:
               github.rest.repos.listBranches,
               { owner, repo, per_page: 100 }
             );
+
+            const openPulls = await github.paginate(
+              github.rest.pulls.list,
+              { owner, repo, state: 'open', per_page: 100 }
+            );
+            const openPullByBranch = new Map();
+            for (const pull of openPulls) {
+              if (pull.head.repo?.full_name === repositoryName) {
+                openPullByBranch.set(pull.head.ref, pull.number);
+              }
+            }
+
+            const closedPulls = await github.paginate(
+              github.rest.pulls.list,
+              { owner, repo, state: 'closed', base: defaultBranch, per_page: 100 }
+            );
+            const exactMergedHeads = new Map();
+            for (const pull of closedPulls) {
+              if (pull.merged_at && pull.head.repo?.full_name === repositoryName) {
+                exactMergedHeads.set(`${pull.head.ref}\u0000${pull.head.sha}`, pull.number);
+              }
+            }
 
             const deleted = [];
             const eligible = [];
@@ -59,19 +85,8 @@ jobs:
                 continue;
               }
 
-              const openPulls = await github.paginate(
-                github.rest.pulls.list,
-                {
-                  owner,
-                  repo,
-                  state: 'open',
-                  head: `${owner}:${name}`,
-                  per_page: 100
-                }
-              );
-
-              if (openPulls.length > 0) {
-                preserved.push([name, `open-pr-${openPulls[0].number}`]);
+              if (openPullByBranch.has(name)) {
+                preserved.push([name, `open-pr-${openPullByBranch.get(name)}`]);
                 continue;
               }
 
@@ -93,24 +108,9 @@ jobs:
               }
 
               if (!safeReason) {
-                const closedPulls = await github.paginate(
-                  github.rest.pulls.list,
-                  {
-                    owner,
-                    repo,
-                    state: 'closed',
-                    head: `${owner}:${name}`,
-                    base: defaultBranch,
-                    per_page: 100
-                  }
-                );
-
-                const exactMergedPull = closedPulls.find(
-                  pull => pull.merged_at && pull.head.sha === branch.commit.sha
-                );
-
-                if (exactMergedPull) {
-                  safeReason = `exact-head-of-merged-pr-${exactMergedPull.number}`;
+                const mergedPullNumber = exactMergedHeads.get(`${name}\u0000${branch.commit.sha}`);
+                if (mergedPullNumber) {
+                  safeReason = `exact-head-of-merged-pr-${mergedPullNumber}`;
                 }
               }
 
@@ -137,16 +137,23 @@ jobs:
               }
             }
 
+            const deletedTable = deleted.length > 0
+              ? [
+                  [{ data: 'Deleted branch', header: true }, { data: 'Reason', header: true }],
+                  ...deleted.map(([name, reason]) => [name, reason])
+                ]
+              : [
+                  [{ data: 'Deleted branch', header: true }, { data: 'Reason', header: true }],
+                  ['None', dryRun ? 'dry run' : 'no branch met the safety rules']
+                ];
+
             await core.summary
               .addHeading('Safe agent branch hygiene')
               .addRaw(`Mode: ${dryRun ? 'dry run' : 'delete'}\n\n`)
               .addRaw(`Eligible: ${eligible.length}\n\n`)
               .addRaw(`Deleted: ${deleted.length}\n\n`)
               .addRaw(`Preserved: ${preserved.length}\n\n`)
-              .addTable([
-                [{ data: 'Deleted branch', header: true }, { data: 'Reason', header: true }],
-                ...deleted.map(([name, reason]) => [name, reason])
-              ])
+              .addTable(deletedTable)
               .write();
 
             core.info(JSON.stringify({
