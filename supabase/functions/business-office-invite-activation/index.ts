@@ -50,7 +50,8 @@ function genericSuccess(origin: string | null): Response {
   return json(origin, 200, {
     status: "PASS",
     message: "If this email has a pending Business Office invitation, a secure activation email has been sent. Use only the newest email and open it on the same device.",
-    externalActionConfirmed: false,
+    requestOutcomeDisclosed: false,
+    automaticBusinessActivation: false,
   });
 }
 
