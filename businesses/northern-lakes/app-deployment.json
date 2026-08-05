@@ -14,7 +14,7 @@
   "paymentAdapter": "hosted-payment-url",
   "liveChargingEnabled": false,
   "paymentProvider": "not-configured",
-  "canonicalLogoPath": "businesses/northern-lakes/assets/diamond-logo.png",
+  "canonicalLogoPath": "businesses/northern-lakes/assets/diamond-logo.svg",
   "supabaseProjectRef": "jqukmwtsgcsaruucnqja",
   "storageProvider": "supabase",
   "googleDriveSupported": true,

@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#113b2e">
   <title>Customer Sign In | Northern Lakes</title>
-  <link rel="icon" type="image/png" href="assets/diamond-logo.png?v=nl-site-portal-20260805">
+  <link rel="icon" type="image/svg+xml" href="assets/diamond-logo.svg?v=nl-site-portal-20260805">
   <link rel="stylesheet" href="customer-portal.css?v=nl-site-portal-20260805">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="customer-portal-config.js?v=nl-site-portal-20260805" defer></script>
@@ -14,12 +14,12 @@
 </head>
 <body>
   <div class="portal-top"><div class="portal-top__inner"><span>Secure Northern Lakes customer records</span><span>Owner and staff access is separate.</span></div></div>
-  <header class="portal-header"><div class="portal-header__inner"><a class="portal-brand" href="index.html"><img src="assets/diamond-logo.png?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><span><strong>NORTHERN LAKES</strong><span>Customer Portal</span></span></a><div class="portal-header__actions"><a class="btn secondary" href="quote-request.html">Request Service</a><a class="btn secondary" href="owner-login.html">Owner Login</a><button id="signOutButton" class="btn danger" type="button" hidden>Sign Out</button></div></div></header>
+  <header class="portal-header"><div class="portal-header__inner"><a class="portal-brand" href="index.html"><img src="assets/diamond-logo.svg?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><span><strong>NORTHERN LAKES</strong><span>Customer Portal</span></span></a><div class="portal-header__actions"><a class="btn secondary" href="quote-request.html">Request Service</a><a class="btn secondary" href="owner-login.html">Owner Login</a><button id="signOutButton" class="btn danger" type="button" hidden>Sign Out</button></div></div></header>
   <main class="portal-shell">
     <div id="portalNotice" class="portal-notice" aria-live="polite">Checking secure customer access…</div>
     <section id="portalHold" class="portal-panel" hidden><h1>Customer Portal Temporarily Unavailable</h1><p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p><a class="btn" href="contact.html">Contact Northern Lakes</a></section>
     <section id="portalLogin" class="portal-login" hidden>
-      <div class="portal-login__brand"><img src="assets/diamond-logo.png?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><div class="eyebrow">Secure customer access</div><h1>Your Estimates, Bills and Property Records.</h1><p>Sign in with the email connected to your Northern Lakes customer account. Customers see only records specifically assigned to their own account.</p></div>
+      <div class="portal-login__brand"><img src="assets/diamond-logo.svg?v=nl-site-portal-20260805" alt="Northern Lakes Property Maintenance LLC approved logo"><div class="eyebrow">Secure customer access</div><h1>Your Estimates, Bills and Property Records.</h1><p>Sign in with the email connected to your Northern Lakes customer account. Customers see only records specifically assigned to their own account.</p></div>
       <div class="portal-login__form"><div class="eyebrow">Customer Sign In</div><h2>Access your private account.</h2><p>Use a password or request a one-time secure sign-in link.</p><form id="loginForm"><label for="portalEmail">Email address</label><input id="portalEmail" type="email" autocomplete="email" required><label for="portalPassword">Password</label><input id="portalPassword" type="password" autocomplete="current-password"><div class="login-actions"><button class="btn" type="submit">Sign In</button><button id="magicLinkButton" class="btn secondary" type="button">Email Secure Link</button></div></form><p class="privacy-note">Passwords are handled by Supabase Auth and are never stored in this page or repository. A sign-in account must already be activated by Northern Lakes.</p><p><a href="index.html">← Return to Northern Lakes website</a></p></div>
     </section>
     <section id="portalApp" class="portal-app" hidden>
