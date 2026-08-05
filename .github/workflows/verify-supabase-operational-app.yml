@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'scripts/verify-supabase-operational-app.js'
+      - 'scripts/verify-supabase-quote-mobile-stabilization.js'
       - 'scripts/verify-supabase-business-office-auth*.js'
       - 'docs/architecture/SUPABASE_WEEK_ONE_APP_PARITY.md'
       - '.github/workflows/verify-supabase-operational-app.yml'
@@ -18,6 +19,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'scripts/verify-supabase-operational-app.js'
+      - 'scripts/verify-supabase-quote-mobile-stabilization.js'
       - 'scripts/verify-supabase-business-office-auth*.js'
       - 'docs/architecture/SUPABASE_WEEK_ONE_APP_PARITY.md'
       - '.github/workflows/verify-supabase-operational-app.yml'
@@ -37,6 +39,8 @@ jobs:
           node-version: '22'
       - name: Verify Supabase operational app
         run: node scripts/verify-supabase-operational-app.js
+      - name: Verify Android Quote Builder stabilization
+        run: node scripts/verify-supabase-quote-mobile-stabilization.js
       - name: Preserve Supabase Auth and active-business controls
         run: |
           node scripts/verify-supabase-business-office-auth.js
