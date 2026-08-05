@@ -113,12 +113,13 @@ $$;
 
 revoke all on function private.claim_current_business_invites() from public;
 revoke all on function private.claim_current_business_invites() from anon;
-revoke all on function private.claim_current_business_invites() from authenticated;
+grant execute on function private.claim_current_business_invites() to authenticated;
+grant execute on function private.claim_current_business_invites() to service_role;
 
 create or replace function public.business_office_auth_state()
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path = pg_catalog, auth, public, private
 as $$
 declare
@@ -132,11 +133,7 @@ begin
     raise exception 'Authentication is required.';
   end if;
 
-  select nullif(lower(btrim(coalesce(account.email, ''))), '')
-    into current_email
-    from auth.users account
-   where account.id = current_user_id;
-
+  current_email := nullif(lower(btrim(coalesce(auth.jwt() ->> 'email', ''))), '');
   claimed_count := private.claim_current_business_invites();
 
   select
@@ -211,6 +208,6 @@ grant execute on function public.business_office_auth_state() to authenticated;
 grant execute on function public.business_office_auth_state() to service_role;
 
 comment on function public.business_office_auth_state() is
-  'Returns only the signed-in user canonical Business Office memberships and safely claims exact-email pending invitations.';
+  'Invoker-scoped canonical membership resolver. The private helper claims only exact-email invitations for auth.uid().';
 
 commit;
