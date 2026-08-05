@@ -16,7 +16,9 @@
     "ownerEmail": "northernlakesproperty@gmail.com"
   },
   "branding": {
-    "logoUrl": "https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.png?v=rendered-photo-pass-20260726",
+    "logoUrl": "https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.png?v=nl-site-portal-20260805",
+    "canonicalLogoPath": "businesses/northern-lakes/assets/diamond-logo.png",
+    "singleApprovedLogo": true,
     "primaryColor": "#113b2e",
     "secondaryColor": "#f4efe5",
     "accentColor": "#9a632f",
@@ -66,11 +68,28 @@
     "tax-prep",
     "controls",
     "reports",
-    "storage-providers"
+    "storage-providers",
+    "customer-portal"
   ],
+  "customerPortal": {
+    "enabled": true,
+    "authentication": "supabase-auth",
+    "tenantKey": "northern-lakes",
+    "recordIsolation": "business-and-customer-rls",
+    "quotes": true,
+    "quoteDecisions": true,
+    "invoices": true,
+    "paymentHistory": true,
+    "receipts": true,
+    "privateFiles": true,
+    "hostedPaymentAdapter": true,
+    "liveChargingEnabled": false,
+    "paymentProvider": "not-configured"
+  },
   "storage": {
     "defaultProvider": "supabase",
     "bucket": "business-office-files",
+    "customerPortalBucket": "customer-portal",
     "private": true,
     "optionalProvider": "google_drive",
     "clientOwnedDrive": true,
@@ -101,7 +120,8 @@
   },
   "release": {
     "stage": "closed-beta",
-    "tenantStatusAtProvisioning": "provisioning",
+    "tenantStatusAtProvisioning": "active",
+    "customerPortalReleaseEnabled": true,
     "activationRequiresHighway38Owner": true,
     "invitationEmailRequiresUserRequest": true,
     "realWorkflowAcceptanceRequired": true
