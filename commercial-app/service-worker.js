@@ -1,16 +1,17 @@
-const CACHE_NAME='h38-business-office-20260805-0545';
+const CACHE_NAME='h38-business-office-20260805-0600';
+const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const SHELL=[
   './','./index.html','./recover.html','./manifest.webmanifest',
   './styles.css','./ai-drawer.css','./quote-delivery.css',
   './db.js','./bridge.js','./supabase-config.js','./supabase-auth.js',
   './auth-session-guard.js','./auth-cache-guard.js','./startup-fix.js','./supabase-startup.js',
   './supabase-runtime-globals.js','./supabase-data.js','./supabase-operation-coverage.js',
-  './supabase-storage-provider.js','./supabase-portal-hydration.js','./supabase-final-startup.js',
+  './supabase-ai-fallback.js','./supabase-storage-provider.js','./supabase-portal-hydration.js','./supabase-final-startup.js',
   './app-01.js','./app-02.js','./app-03.js','./app-04.js','./app-05.js',
   './app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js',
   './app-11.js','./app-12.js','./app-13.js','./app-14.js','./app-15.js',
   './app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js',
-  '../assets/highway38-logo.png'
+  '../assets/highway38-logo.png',SUPABASE_CDN
 ];
 
 self.addEventListener('install',event=>{
@@ -27,9 +28,13 @@ self.addEventListener('activate',event=>{
 
 self.addEventListener('fetch',event=>{
   const request=event.request;
-  if(request.method!=='GET'||new URL(request.url).origin!==self.location.origin)return;
+  if(request.method!=='GET')return;
+  const url=new URL(request.url);
+  const sameOrigin=url.origin===self.location.origin;
+  const isSupabaseClient=request.url===SUPABASE_CDN;
+  if(!sameOrigin&&!isSupabaseClient)return;
 
-  if(request.mode==='navigate'){
+  if(sameOrigin&&request.mode==='navigate'){
     event.respondWith((async()=>{
       try{
         const response=await fetch(request,{cache:'no-store'});
