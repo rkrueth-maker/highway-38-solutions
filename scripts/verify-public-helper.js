@@ -21,7 +21,7 @@ try{new vm.Script(helper,{filename:'assets/js/h38-helper.js'});check('helper Jav
 try{new vm.Script(shell,{filename:'assets/js/h38-site-v2.js'});check('public shell JavaScript parses',true);}catch(error){check('public shell JavaScript parses',false,error.message);}
 
 check('canonical shell loads one public helper asset',shell.includes("assets/js/h38-helper.js?v=")&&shell.includes("script[data-h38-public-helper]")&&shell.includes("helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsInput:false,privateDataAccess:false,externalActions:false}"));
-check('visual scan polish version is active',shell.includes("const VERSION='2026-07-29-visual-scan-v1'"));
+check('visual scan polish version is active',shell.includes("const VERSION='2026-08-05-public-office-demo-links-v1'")&&shell.includes('function optimizeImages()')&&shell.includes('imagePolicy:{changeSource:false,insertImages:false,fallbackImages:false,optimizeAttributes:true}'));
 check('helper identifies approved-information boundary',helper.includes('Answers use approved Highway 38 website information.')&&helper.includes('Nothing entered here is sent or saved.')&&helper.includes('Do not enter private customer information.'));
 check('helper covers approved product and service paths',['Quote Builder is $59 per month','Business Office is $249 per month','Custom Business System starts at $499 per month','Business Snapshot is a separate $299 one-time review','Smart Contact Website is a separate service priced at $1,995 setup plus $99 per month'].every(marker=>helper.includes(marker)));
 check('helper preserves human approval and external-action boundary',helper.includes('People remain responsible for final approval and controlled external actions.')&&helper.includes('The helper does not promise an integration, move money, send messages, or create commitments.'));
@@ -65,7 +65,7 @@ async function verifyLive(){
   if(!raw)return;
   const base=normalizeBase(raw);
   const assets=[
-    ['live public shell','assets/js/h38-site-v2.js',['assets/js/h38-helper.js?v=','approvedSiteInformationOnly:true','storesInput:false','externalActions:false','2026-07-29-visual-scan-v1']],
+    ['live public shell','assets/js/h38-site-v2.js',['assets/js/h38-helper.js?v=','approvedSiteInformationOnly:true','storesInput:false','externalActions:false','2026-08-05-public-office-demo-links-v1','business-office-review-demo.html']],
     ['live public helper','assets/js/h38-helper.js',['Ask the H38 Helper','Nothing entered here is sent or saved.','Which product fits my business?','Quote Builder is $59 per month']],
     ['live helper visual polish','assets/css/h38-site-v2.css',["content:'Help'",'grid-template-columns:repeat(2,minmax(0,1fr))','Swipe sideways to compare all three products.']]
   ];
