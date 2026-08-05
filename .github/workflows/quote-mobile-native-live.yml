@@ -1,197 +1,20 @@
-name: Quote Mobile Native Live Acceptance
+name: Retired Apps Script Quote Mobile Acceptance — Disabled
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
-      - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
-      - 'scripts/verify-quote-native-photo-workflow.js'
-      - 'scripts/verify-quote-price-semantic-isolation.js'
-      - 'scripts/test-quote-native-photo-browser.js'
-      - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
-      - 'scripts/verify-quote-mobile-stabilization.js'
-      - '.github/workflows/quote-mobile-native-live.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_AI_Public.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Details_Recovery.html'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_AcceptanceRecovery.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_LiveAcceptance.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_Mobile_PriceResolve.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting.gs'
-      - 'apps-script/business-office/BusinessOffice_QuoteBuilder_EditExisting_Client.html'
-      - 'scripts/run-quote-mobile-live-acceptance-authorized.sh'
-      - 'scripts/verify-quote-native-photo-workflow.js'
-      - 'scripts/verify-quote-price-semantic-isolation.js'
-      - 'scripts/test-quote-native-photo-browser.js'
-      - 'scripts/verify-quote-mobile-ai-photo-pricing.js'
-      - 'scripts/verify-quote-mobile-stabilization.js'
-      - '.github/workflows/quote-mobile-native-live.yml'
-  workflow_run:
-    workflows: ['Deploy Unified Owner Portal']
-    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
-  issues: write
-
-concurrency:
-  group: quote-mobile-native-live-${{ github.event.workflow_run.head_sha || github.sha }}
-  cancel-in-progress: false
 
 jobs:
-  browser-contract:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - name: Check out exact source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - run: |
+          echo 'Retired. Quote Builder acceptance now belongs to the Supabase Business Office.'
+          exit 1
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install browser test dependency
-        run: npm install --ignore-scripts --no-audit --no-fund
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Verify native mobile source contract
-        run: node scripts/verify-quote-native-photo-workflow.js
-
-      - name: Verify price component isolation
-        run: node scripts/verify-quote-price-semantic-isolation.js
-
-      - name: Run Android-sized native picker workflow
-        run: node scripts/test-quote-native-photo-browser.js | tee quote-mobile-browser.json
-
-      - name: Upload browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: quote-mobile-browser-${{ github.run_id }}
-          path: quote-mobile-browser.json
-          if-no-files-found: warn
-          retention-days: 90
-
-  live-production:
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
-    needs: browser-contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Check out acceptance source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install isolated Apps Script tool
-        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @google/clasp@3.3.0
-
-      - name: Load encrypted Google credential
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'No encrypted Google credential is configured.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
-
-      - name: Run authorized live gutter upload, analysis, pricing, save, edit, and reprocess acceptance
-        shell: bash
-        run: bash scripts/run-quote-mobile-live-acceptance-authorized.sh artifacts/quote-mobile-live
-
-      - name: Verify live acceptance result
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const result=require('./artifacts/quote-mobile-live/result.json');
-          const text=line=>String(line.description||'').trim()||[line.catalogName,line.catalogDescription].join(' ');
-          const component=line=>{
-            const value=text(line);
-            if(/(?:leaf|gutter)\s*guards?|gutter\s*protection|leaf\s*protection/i.test(value))return 'gutter_guard';
-            const normalized=value.toLowerCase().replace(/\bdownspouts?\b|\bdrainpipes?\b/g,' downspout ').replace(/\bguttering\b|\bgutters?\b/g,' gutter ');
-            const d=normalized.indexOf('downspout'),g=normalized.indexOf('gutter');
-            if(d>=0&&g>=0)return d<g?'downspout':'gutter';
-            if(d>=0)return 'downspout';
-            if(g>=0)return 'gutter';
-            return '';
-          };
-          const pricing=result.pricing||[];
-          const gutter=pricing.find(line=>component(line)==='gutter');
-          const downspout=pricing.find(line=>component(line)==='downspout');
-          const leafGuard=pricing.find(line=>component(line)==='gutter_guard');
-          const failures=[];
-          if(result.status!=='PASS')failures.push('status');
-          if(!result.photoUpload||Number(result.photoUpload.syntheticUploadBytes||0)<4800000)failures.push('phone-sized upload');
-          if(!result.photoAnalysis||Number(result.photoAnalysis.lineCount||0)<3)failures.push('three-component photo analysis');
-          if(!gutter||Number(gutter.rate||0)<=0)failures.push('gutter price');
-          if(!downspout||Number(downspout.rate||0)<=0)failures.push('downspout price');
-          if(!leafGuard||Number(leafGuard.rate||0)<=0)failures.push('leaf-guard price');
-          if(gutter&&leafGuard&&gutter.catalogId===leafGuard.catalogId)failures.push('leaf guard reused gutter catalog');
-          if(gutter&&downspout&&gutter.catalogId===downspout.catalogId)failures.push('downspout reused gutter catalog');
-          if(!result.editDraft||Number(result.editDraft.lineCount||0)<3||result.editDraft.projectTitle!=='Gutters')failures.push('saved draft edit load');
-          if(!result.reprocess||result.reprocess.duplicateComponents!==false)failures.push('duplicate-free reprocess');
-          const counts=result.reprocess&&result.reprocess.componentCounts||{};
-          if(counts.gutter!==1||counts.downspout!==1||counts.gutter_guard!==1)failures.push('reprocess component counts');
-          if(result.approved!==false||result.sent!==false||result.ownerReviewRequired!==true)failures.push('owner-review boundary');
-          if(failures.length)throw new Error('Live mobile acceptance failed: '+failures.join(', '));
-          console.log(JSON.stringify({status:'PASS',priorFailureRecovery:result.priorFailureRecovery,originalState:result.originalState,uploadBytes:result.photoUpload.syntheticUploadBytes,photoDocuments:result.photoAnalysis.documentIds,gutterRate:gutter.rate,downspoutRate:downspout.rate,leafGuardRate:leafGuard.rate,catalogIds:{gutter:gutter.catalogId,downspout:downspout.catalogId,leafGuard:leafGuard.catalogId},editDraft:result.editDraft,reprocess:result.reprocess,approved:result.approved,sent:result.sent,durationMs:result.durationMs},null,2));
-          NODE
-
-      - name: Record live mobile acceptance PASS
-        if: success()
-        shell: bash
-        run: |
-          BODY="## PASS — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- Browser: Android-sized native file-control workflow with a 4.8 MB photo passed twice without duplicate lines\n- Production data: actual gutter photos produced separate gutter, downspout, and leaf-guard quote components\n- Pricing: each component received its own matching or researched owner-review rate; leaf guard and downspout did not reuse the gutter catalog item\n- Draft edit: saved Gutters draft was updated, reopened, reprocessed, and restored after acceptance\n- Accepted production deployment ID remained unchanged\n- Approval/send: false; owner review still required\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
-
-      - name: Record live mobile acceptance HOLD
-        if: failure()
-        shell: bash
-        run: |
-          BODY="## HOLD — Quote Builder Android live acceptance\n\n- Source commit: ${{ github.event.workflow_run.head_sha || github.sha }}\n- The authorized live upload, component preservation, distinct pricing, saved-draft edit, or duplicate-free reprocess acceptance did not pass.\n- Production must not be reported fixed.\n- Evidence: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body "$BODY"
-
-      - name: Upload live production evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: quote-mobile-live-${{ github.run_id }}
-          path: artifacts/quote-mobile-live
-          if-no-files-found: warn
-          retention-days: 90
+# Historical non-executable markers:
+# run-quote-mobile-live-acceptance-authorized.sh
+# Deploy Unified Owner Portal
