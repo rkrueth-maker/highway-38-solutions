@@ -8,6 +8,7 @@ const read=relativePath=>fs.readFileSync(path.join(root,relativePath),'utf8');
 const fail=message=>{throw new Error(`Source-boundary verification failed: ${message}`);};
 const requireText=(source,marker,label)=>{if(!source.includes(marker))fail(`${label} is missing ${marker}`);};
 const forbidText=(source,marker,label)=>{if(source.includes(marker))fail(`${label} must not reference ${marker}`);};
+const executable=source=>source.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('#')).join('\n');
 
 const productionDeployPath='scripts/deploy-unified-owner-portal-web.sh';
 const productionDeploy=read(productionDeployPath);
@@ -15,8 +16,8 @@ const productionAssembler=read('scripts/assemble-business-office-app.sh');
 const reusableInstaller=read('scripts/build-business-office-installation.js');
 const reusableWeb=read('apps/business-office/BusinessOffice_Web.gs');
 const reusableRegistry=read('apps/business-office/BusinessOffice_ModuleRegistry.gs');
-const protectedWorkflowPath='.github/workflows/deploy-owner-portal-hard-rule-production.yml';
-const protectedWorkflow=read(protectedWorkflowPath);
+const retiredWorkflowPath='.github/workflows/deploy-owner-portal-hard-rule-production.yml';
+const retiredWorkflow=read(retiredWorkflowPath);
 const sharedContracts=[
   'apps-script/business-office/BusinessOffice_ModuleContract.gs',
   'apps-script/business-office/BusinessOffice_ActionContract.gs',
@@ -37,17 +38,41 @@ forbidText(reusableWeb,'function boGetModuleDefinitions_(){return{','apps/busine
 requireText(reusableRegistry,'compatibility','apps/business-office/BusinessOffice_ModuleRegistry.gs');
 forbidText(reusableRegistry,'primaryKey:','apps/business-office/BusinessOffice_ModuleRegistry.gs');
 
-requireText(protectedWorkflow,`run: bash ${productionDeployPath}`,protectedWorkflowPath);
-forbidText(protectedWorkflow,'clasp create-script',protectedWorkflowPath);
-forbidText(protectedWorkflow,'clasp create-deployment',protectedWorkflowPath);
+requireText(retiredWorkflow,'if: ${{ false }}',retiredWorkflowPath);
+requireText(retiredWorkflow,'Supabase is the only supported Business Office runtime.',retiredWorkflowPath);
+forbidText(executable(retiredWorkflow),`run: bash ${productionDeployPath}`,retiredWorkflowPath);
+forbidText(executable(retiredWorkflow),'clasp create-script',retiredWorkflowPath);
+forbidText(executable(retiredWorkflow),'clasp create-deployment',retiredWorkflowPath);
 
 const workflowDir=path.join(root,'.github','workflows');
 const deployExecutionPattern=new RegExp(`^\\s*run:\\s+bash\\s+${productionDeployPath.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*$`,'m');
-const deployingWorkflows=fs.readdirSync(workflowDir).filter(name=>/\.ya?ml$/i.test(name)).filter(name=>deployExecutionPattern.test(read(path.join('.github','workflows',name))));
-if(deployingWorkflows.length!==1||deployingWorkflows[0]!=='deploy-owner-portal-hard-rule-production.yml')fail(`expected one workflow to execute ${productionDeployPath}; found ${deployingWorkflows.join(', ')||'none'}`);
+const deployingWorkflows=fs.readdirSync(workflowDir)
+  .filter(name=>/\.ya?ml$/i.test(name))
+  .filter(name=>deployExecutionPattern.test(executable(read(path.join('.github','workflows',name)))));
+if(deployingWorkflows.length!==0)fail(`expected zero workflows to execute ${productionDeployPath}; found ${deployingWorkflows.join(', ')}`);
 
 const generatedRoots=['artifacts/business-office-separation/builds','artifacts/separate-business-office-platform/builds','dist/business-office'];
 for(const generatedRoot of generatedRoots){forbidText(productionDeploy,generatedRoot,productionDeployPath);forbidText(productionAssembler,generatedRoot,'scripts/assemble-business-office-app.sh');}
 
-const result={status:'PASS',productionSources:['apps-script/core-engine/owner-portal-next','apps-script/business-office','apps-script/business-office-sync','apps-script/unified-shell','business-packs/highway38'],sharedArchitectureContracts:sharedContracts,reusableInstallerSources:['packages','apps/business-office','business-packs'].concat(sharedContracts),generatedArtifactsAreDeploymentInputs:false,productionWorkflow:deployingWorkflows[0],externalActionsEnabled:false};
-const evidenceDir=path.join(root,'artifacts','source-boundaries');fs.mkdirSync(evidenceDir,{recursive:true});fs.writeFileSync(path.join(evidenceDir,'verification.json'),`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify(result,null,2));
+const result={
+  status:'PASS',
+  historicalGoogleSources:[
+    'apps-script/core-engine/owner-portal-next',
+    'apps-script/business-office',
+    'apps-script/business-office-sync',
+    'apps-script/unified-shell',
+    'business-packs/highway38'
+  ],
+  sharedArchitectureContracts:sharedContracts,
+  reusableInstallerSources:['packages','apps/business-office','business-packs'].concat(sharedContracts),
+  generatedArtifactsAreDeploymentInputs:false,
+  retiredDeploymentWorkflow:retiredWorkflowPath,
+  executableGoogleDeploymentWorkflows:deployingWorkflows,
+  supportedRuntime:'supabase',
+  legacyOfficeFallback:false,
+  externalActionsEnabled:false
+};
+const evidenceDir=path.join(root,'artifacts','source-boundaries');
+fs.mkdirSync(evidenceDir,{recursive:true});
+fs.writeFileSync(path.join(evidenceDir,'verification.json'),`${JSON.stringify(result,null,2)}\n`);
+console.log(JSON.stringify(result,null,2));
