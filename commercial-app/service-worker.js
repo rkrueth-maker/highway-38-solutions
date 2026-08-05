@@ -1,11 +1,11 @@
-const CACHE_NAME='h38-business-office-20260805-1725';
+const CACHE_NAME='h38-business-office-20260805-1745';
 const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-const LIVE_FIRST=new Set(['index.html','supabase-quote-ai.js','quote-mobile-stabilization.js','quote-ai-live-fix.js']);
+const LIVE_FIRST=new Set(['index.html','supabase-single-client.js','supabase-session-recovery.js','supabase-quote-ai.js','quote-mobile-stabilization.js','quote-ai-live-fix.js']);
 const SHELL=[
   './','./index.html','./recover.html','./manifest.webmanifest',
   './styles.css','./ai-drawer.css','./quote-delivery.css',
-  './db.js','./bridge.js','./supabase-config.js','./supabase-auth.js','./supabase-invite-activation.js',
-  './auth-session-guard.js','./auth-cache-guard.js','./startup-fix.js','./supabase-startup.js',
+  './db.js','./bridge.js','./supabase-config.js','./supabase-single-client.js','./supabase-auth.js','./supabase-invite-activation.js',
+  './auth-session-guard.js','./supabase-session-recovery.js','./auth-cache-guard.js','./startup-fix.js','./supabase-startup.js',
   './supabase-runtime-globals.js','./supabase-data.js','./supabase-client-branding.js',
   './supabase-operation-coverage.js','./supabase-ai-fallback.js','./supabase-storage-provider.js',
   './supabase-client-installer.js','./supabase-portal-hydration.js','./supabase-final-startup.js',
