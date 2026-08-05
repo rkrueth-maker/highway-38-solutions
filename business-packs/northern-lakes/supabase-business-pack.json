@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "packId": "northern-lakes-supabase",
+  "package": {
+    "id": "northern-lakes-closed-beta",
+    "name": "Northern Lakes Supabase Business Office",
+    "singleApp": true,
+    "systemOfRecord": "supabase"
+  },
+  "business": {
+    "businessKey": "northern-lakes",
+    "legacyId": "NLPS",
+    "legalName": "Northern Lakes Property Maintenance LLC",
+    "displayName": "Northern Lakes Property Maintenance LLC",
+    "timeZone": "America/Chicago",
+    "ownerEmail": "northernlakesproperty@gmail.com"
+  },
+  "branding": {
+    "logoUrl": "https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.png?v=rendered-photo-pass-20260726",
+    "primaryColor": "#113b2e",
+    "secondaryColor": "#f4efe5",
+    "accentColor": "#9a632f",
+    "neutralColor": "#20221f",
+    "publicEmail": "northernlakesproperty@gmail.com",
+    "publicPhone": "+1-218-326-2506"
+  },
+  "support": {
+    "enabled": true,
+    "provider": "Highway 38 Solutions",
+    "implementationAccount": "highway38solutions@gmail.com",
+    "additionalAccount": "mandakw55@gmail.com",
+    "customerVisible": true,
+    "auditRequired": true,
+    "revocable": true
+  },
+  "urls": {
+    "website": "https://highway38solutions.com/businesses/northern-lakes/",
+    "ownerActivation": "https://highway38solutions.com/businesses/northern-lakes/owner-login.html",
+    "businessOffice": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes",
+    "quoteBuilder": "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?businessKey=northern-lakes&shell=quote",
+    "customerPortal": "https://highway38solutions.com/businesses/northern-lakes/customer-portal.html"
+  },
+  "modules": [
+    "today",
+    "customers",
+    "jobs",
+    "tasks",
+    "quotes",
+    "measure",
+    "schedule",
+    "communications",
+    "field",
+    "daily-logs",
+    "checklists",
+    "time",
+    "inventory",
+    "fleet",
+    "money",
+    "documents",
+    "social",
+    "ai",
+    "settings",
+    "people",
+    "accounting",
+    "payroll-prep",
+    "tax-prep",
+    "controls",
+    "reports",
+    "storage-providers"
+  ],
+  "storage": {
+    "defaultProvider": "supabase",
+    "bucket": "business-office-files",
+    "private": true,
+    "optionalProvider": "google_drive",
+    "clientOwnedDrive": true,
+    "googleDriveConnected": false,
+    "oauthSecretsInBrowser": false
+  },
+  "authorization": {
+    "provider": "supabase-auth",
+    "invitationClaim": "exact-email",
+    "roles": ["owner", "administrator", "staff", "viewer"],
+    "offlineAuthorizationWindowHours": 12,
+    "onlineSuspensionOverridesCache": true
+  },
+  "safeguards": {
+    "externalActionsEnabled": false,
+    "automaticCustomerSending": false,
+    "automaticFinancialActions": false,
+    "automaticSocialPublishing": false,
+    "directPaymentProcessing": false,
+    "directPayrollFunding": false,
+    "directTaxFiling": false,
+    "bulkMessagingEnabled": false,
+    "automaticTriggersEnabled": false,
+    "ownerApprovalRequired": true,
+    "googleRecordsImported": false
+  },
+  "legacyGoogleOffice": {
+    "status": "rollback-only",
+    "deploymentId": "AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL",
+    "url": "https://script.google.com/macros/s/AKfycbzQVvg-1E0ofK5QuBseKjTdJ5NhEjtArvbHxVCO_W329BbZxfSO0F6ENJd5zgvMLGaL/exec",
+    "automaticLaunch": false,
+    "modifiedBySupabaseRollout": false
+  },
+  "release": {
+    "stage": "closed-beta",
+    "tenantStatusAtProvisioning": "provisioning",
+    "activationRequiresHighway38Owner": true,
+    "invitationEmailRequiresUserRequest": true,
+    "realWorkflowAcceptanceRequired": true
+  }
+}
