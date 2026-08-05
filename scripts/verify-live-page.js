@@ -80,13 +80,13 @@ const PAGE_CHECKS = [
     label: 'interactive Quote Builder demo',
     path: 'quote-builder-demo.html',
     required: [
-      'Interactive browser-only demonstration',
+      'Free landscaping quote builder example',
       'Nothing leaves this page',
-      'Quote inputs',
-      'Line items',
+      'Build the quote',
+      'Internal line-item setup',
       'Print / Save PDF',
       'Nothing was stored or sent.',
-      'Not a real customer quote or authorization to proceed.',
+      'Interactive Highway 38 demonstration. Not a real customer quote, contract, tax determination, plant warranty, promise of schedule, or authorization to proceed.',
     ],
   },
   {
