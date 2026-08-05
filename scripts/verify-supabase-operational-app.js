@@ -13,6 +13,7 @@ const browserScripts=[
   'commercial-app/supabase-runtime-globals.js',
   'commercial-app/supabase-data.js',
   'commercial-app/supabase-operation-coverage.js',
+  'commercial-app/supabase-ai-fallback.js',
   'commercial-app/supabase-storage-provider.js',
   'commercial-app/supabase-portal-hydration.js',
   'commercial-app/supabase-final-startup.js'
@@ -30,8 +31,9 @@ new vm.Script(read('commercial-app/service-worker.js'),{filename:'commercial-app
 const index=read('commercial-app/index.html');
 const ordered=[
   'supabase-auth.js','app-17.js','supabase-runtime-globals.js','supabase-data.js',
-  'supabase-operation-coverage.js','supabase-storage-provider.js','supabase-portal-hydration.js',
-  'supabase-startup.js','app-19.js','supabase-final-startup.js','app-18.js'
+  'supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js',
+  'supabase-portal-hydration.js','supabase-startup.js','app-19.js',
+  'supabase-final-startup.js','app-18.js'
 ];
 let last=-1;
 for(const name of ordered){
@@ -64,6 +66,9 @@ for(const needle of [
   "'google_records_imported', false","'external_actions_enabled', false"
 ])includes(defaultsMigration,needle,`Week-one defaults are missing ${needle}`);
 
+const hardeningMigration=read('supabase/migrations/20260805052000_harden_business_record_updates.sql');
+includes(hardeningMigration,'coalesce((select auth.uid()), old.updated_by)','Migration replay must preserve the existing updater without browser Auth context.');
+
 const data=read('commercial-app/supabase-data.js');
 for(const needle of [
   "startupMode = 'SUPABASE_OPERATIONAL_APP'",
@@ -87,6 +92,10 @@ for(const action of [
 for(const phrase of ['Draft — Not Sent','Draft — Not Released','No quote was changed or approved'])
   includes(coverage,phrase,`Operation safeguards are missing ${phrase}`);
 
+const aiFallback=read('commercial-app/supabase-ai-fallback.js');
+for(const needle of ["action==='aiAsk'",'H38 local guidance','cloudProviderConnected:false','externalActionsEnabled:false'])
+  includes(aiFallback,needle,`Safe AI fallback is missing ${needle}`);
+
 const storage=read('commercial-app/supabase-storage-provider.js');
 for(const needle of [
   "supported:['supabase','google_drive']",
@@ -105,7 +114,8 @@ includes(portal,'googleRecordsImported:false','Portal hydration must remain read
 
 const serviceWorker=read('commercial-app/service-worker.js');
 includes(serviceWorker,"const CACHE_NAME='h38-business-office-",'Installable app cache is missing.');
-for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js'])
+includes(serviceWorker,"const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'",'Offline shell must cache the browser Supabase client.');
+for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js'])
   includes(serviceWorker,`'./${file}'`,`Offline app shell must cache ${file}`);
 expect(!serviceWorker.includes('registration.unregister()'),'The operational PWA service worker must not unregister itself.');
 
