@@ -15,6 +15,7 @@ requireTrue((publicText.match(/diamond-logo\.svg/g)||[]).length>=6,'Approved sin
 const manifest=read('businesses/northern-lakes/manifest.webmanifest');
 requireTrue(/diamond-logo\.svg/.test(manifest)&&/image\/svg\+xml/.test(manifest)&&!/diamond-logo\.png/.test(manifest),'PWA manifest uses the approved single SVG logo');
 const pack=JSON.parse(read('business-packs/northern-lakes/supabase-business-pack.json'));
+const runtime=JSON.parse(read('businesses/northern-lakes/app-deployment.json'));
 requireTrue(pack.branding?.canonicalLogoPath==='businesses/northern-lakes/assets/diamond-logo.svg'&&pack.branding?.singleApprovedLogo===true,'Supabase business pack declares one canonical approved single logo');
 requireTrue(pack.customerPortal?.enabled===true&&pack.release?.customerPortalReleaseEnabled===true,'Northern Lakes customer portal is released in the active Supabase pack');
 requireTrue(pack.customerPortal?.liveChargingEnabled===false&&pack.safeguards?.directPaymentProcessing===false,'Live payment charging and direct payment processing remain disabled');
