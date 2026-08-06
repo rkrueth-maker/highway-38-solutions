@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: highway-38-pages-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -119,6 +119,9 @@ jobs:
       - name: Deploy Pages artifact
         id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000
+          error_count: 30
 
       - name: Verify live deployment source and direct assets
         shell: bash
