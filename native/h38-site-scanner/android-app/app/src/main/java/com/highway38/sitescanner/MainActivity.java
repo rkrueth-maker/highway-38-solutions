@@ -6,8 +6,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.autofill.AutofillManager;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -20,12 +23,15 @@ import android.widget.Toast;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class MainActivity extends Activity {
-    static final String BUSINESS_OFFICE_URL = "https://highway38solutions.com/commercial-app/?nativeScanner=1";
+    static final String BUSINESS_OFFICE_URL =
+            "https://highway38solutions.com/commercial-app/?nativeScanner=1&fieldMode=1";
     static final int REQUEST_NATIVE_SCAN = 3801;
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
@@ -41,7 +47,13 @@ public final class MainActivity extends Activity {
         configureSystemBars();
 
         webView = new WebView(this);
+        webView.setId(View.generateViewId());
         webView.setBackgroundColor(Color.rgb(238, 243, 247));
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+        }
         webView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -59,8 +71,14 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.2.0"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.3.0"
         );
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
+            WebSettingsCompat.setWebAuthenticationSupport(
+                    settings,
+                    WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP
+            );
+        }
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -136,6 +154,19 @@ public final class MainActivity extends Activity {
         }
     }
 
+    void requestWebAutofill() {
+        runOnUiThread(() -> {
+            if (webView == null) return;
+            webView.requestFocus(View.FOCUS_DOWN);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                AutofillManager manager = getSystemService(AutofillManager.class);
+                if (manager != null && manager.isEnabled()) {
+                    manager.requestAutofill(webView);
+                }
+            }
+        });
+    }
+
     private void configureSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         getWindow().setStatusBarColor(Color.rgb(11, 36, 56));
@@ -159,7 +190,7 @@ public final class MainActivity extends Activity {
                 + "else{pending.reject(new Error(payload||'Native scan failed.'));}"
                 + "};"
                 + "window.H38NativeScanner={"
-                + "getCapabilities:function(){try{return JSON.parse(AndroidH38Native.getCapabilities());}catch(e){return {platform:'android',arcore:false,depth:false};}},"
+                + "getCapabilities:function(){try{return JSON.parse(AndroidH38Native.getCapabilities());}catch(e){return {platform:'android',arcore:false,depth:false,autofill:false};}},"
                 + "start:function(options){return new Promise(function(resolve,reject){"
                 + "var requestId='NATIVE-'+Date.now()+'-'+Math.random().toString(16).slice(2);"
                 + "window.__h38NativePending[requestId]={resolve:resolve,reject:reject};"

@@ -50,6 +50,7 @@ public final class NativeScannerBridge {
             result.put("depth", depth);
             result.put("lidar", false);
             result.put("roomPlan", false);
+            result.put("autofill", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O);
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
             result.put("androidApi", Build.VERSION.SDK_INT);
@@ -58,12 +59,18 @@ public final class NativeScannerBridge {
                 result.put("platform", "android");
                 result.put("arcore", false);
                 result.put("depth", false);
+                result.put("autofill", false);
                 result.put("error", error.getMessage());
             } catch (Exception ignored) {
-                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false}";
+                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false,\"autofill\":false}";
             }
         }
         return result.toString();
+    }
+
+    @JavascriptInterface
+    public void requestAutofill() {
+        activity.requestWebAutofill();
     }
 
     @JavascriptInterface
