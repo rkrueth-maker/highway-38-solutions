@@ -44,7 +44,8 @@
 .scanner-guide-note{margin:.7rem 0 0;color:#587181;font-size:.82rem;line-height:1.4}
 .scanner-history-details,.scanner-measurement-options{margin-top:.9rem;border:1px solid #d6e0e8;border-radius:10px;background:#f8fafc;padding:.2rem .7rem .7rem}
 .scanner-history-details summary,.scanner-measurement-options summary{padding:.65rem 0;color:#17354c;font-weight:900;cursor:pointer}
-.scanner-original-unit-field{display:none!important}
+.scanner-original-unit-field,.scanner-auto-mode,.scanner-empty-start-card{display:none!important}
+.scanner-project-card>.actions:empty{display:none}
 .scanner-us-measure-field input{font-size:1.05rem;min-height:50px}
 .scanner-evidence-card .scanner-capture-actions{display:grid;grid-template-columns:1fr 1fr}
 .scanner-evidence-card .scanner-capture-actions #scannerNativeCapture{display:none!important}
@@ -75,6 +76,7 @@ body.scanner-no-measurements .scanner-after-measure{display:none!important}
   body.scanner-focus-mode .scanner-project-card .scanner-context{margin-bottom:.45rem;padding:.65rem}
   body.scanner-focus-mode .scanner-main{gap:.7rem}
   body.scanner-focus-mode .scanner-simple-guide{order:-1}
+  body.scanner-focus-mode .scanner-compact-status{display:none!important}
 }
 @media(max-width:620px){
   .scanner-launch-card,.scanner-status-card,.scanner-measure-row{align-items:stretch;flex-direction:column}
