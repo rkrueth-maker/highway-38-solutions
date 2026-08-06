@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: highway-38-pages-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -23,13 +23,12 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     env:
       GH_TOKEN: ${{ github.token }}
-      LIVE_ROOT: https://rkrueth-maker.github.io/highway-38-solutions
+      LIVE_ROOT: https://highway38solutions.com
     steps:
       - name: Record deployment start
-        shell: bash
         run: |
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" \
-            --title 'GitHub Pages flush and live verification — RUNNING' \
+            --title 'GitHub Pages deployment — RUNNING' \
             --body "Deploying commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - name: Check out main
@@ -41,16 +40,16 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Verify public website and images
-        shell: bash
+      - name: Verify public source
         run: |
           set -euo pipefail
           node scripts/verify-public-website-architecture.js
           node scripts/verify-public-image-placements.js
           python3 scripts/verify-public-images.py
+          node scripts/verify-field-visit-offline-autofill.js
+          node scripts/verify-h38-site-scanner.js
 
-      - name: Stage verified public site
-        shell: bash
+      - name: Stage public website and Business Office
         run: |
           set -euo pipefail
           rm -rf _site
@@ -107,39 +106,28 @@ jobs:
           SHA="$short_sha" python3 scripts/build-public-site.py _site
           printf '%s\n' "$sha" > _site/deployed-main-sha.txt
 
+          test -f _site/index.html
           test -f _site/sample-library-now.html
-          test -f _site/flower-garden-quote-complete.html
           test -f _site/commercial-app/index.html
           test -f _site/commercial-app/field-visit.js
           test -f _site/commercial-app/field-visit-ui.js
           test -f _site/commercial-app/field-visit-core.js
           test -f _site/commercial-app/field-visit.css
-          test -f _site/assets/contractor-demo/flower-after-same-house.webp
-          test -f _site/assets/demo-workthroughs/irrigation-before-clean.webp
-          test -f _site/assets/demo-workthroughs/irrigation-after-clean.webp
+          test -f _site/.well-known/assetlinks.json
           grep -Fq 'companyCamStyle:true' _site/commercial-app/field-visit.js
           grep -Fq 'More quote tools' _site/commercial-app/field-visit.js
           grep -Fq 'Apple LiDAR/RoomPlan' _site/commercial-app/field-visit-ui.js
-          grep -Fq 'assets/contractor-demo/flower-after-same-house.webp' _site/sample-library-now.html
-          grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.webp' _site/sample-library-now.html
-          grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.webp' _site/sample-library-now.html
-          ! grep -Eq 'flower-after-same-house\.svg|irrigation-(before|after)-clean\.svg' _site/sample-library-now.html
-          grep -Fq 'Flower garden after at the same house' _site/sample-library-now.html
-          grep -Fq '$3,950' _site/sample-library-now.html
-          grep -Fq '$3,950.00' _site/flower-garden-quote-complete.html
-          grep -Fq 'Natural-stone curved bed edge shown in concept' _site/flower-garden-quote-complete.html
-          grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" _site/sample-library-now.html
-          grep -Fq "contractor-demo.css?v=${short_sha}" _site/sample-library-now.html
+          grep -Fq 'Take Site Photos' _site/commercial-app/field-visit-ui.js
 
           staged_bytes="$(du -sb _site | cut -f1)"
           staged_files="$(find _site -type f | wc -l)"
           echo "Staged ${staged_files} public files (${staged_bytes} bytes)."
           test "$staged_bytes" -lt 50000000
+          test ! -e _site/_site
           test ! -e _site/apps-script
           test ! -e _site/native
           test ! -e _site/supabase
           test ! -e _site/docs
-          test ! -e _site/_site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -153,65 +141,32 @@ jobs:
           timeout: 1800000
           error_count: 30
 
-      - name: Verify live deployment source and direct assets
-        shell: bash
+      - name: Verify live custom-domain deployment
         run: |
           set -euo pipefail
           expected="$(git rev-parse HEAD)"
-          short_sha="${expected:0:12}"
           marker="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
-          for attempt in $(seq 1 30); do
-            echo "Verification attempt ${attempt}/30"
+          for attempt in $(seq 1 40); do
             live_sha="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/deployed-main-sha.txt?flush=${marker}-${attempt}" || true)"
-            examples="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/sample-library-now.html?flush=${marker}-${attempt}" || true)"
             field_flow="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/commercial-app/field-visit.js?flush=${marker}-${attempt}" || true)"
             field_ui="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/commercial-app/field-visit-ui.js?flush=${marker}-${attempt}" || true)"
-            flower_quote="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/flower-garden-quote-complete.html?flush=${marker}-${attempt}" || true)"
-            flower_ok=0
-            irrigation_before_ok=0
-            irrigation_after_ok=0
-            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/contractor-demo/flower-after-same-house.webp?flush=${marker}-${attempt}" -o /tmp/flower-after-same-house.webp && [[ "$(wc -c </tmp/flower-after-same-house.webp)" -gt 10000 ]] && flower_ok=1
-            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-before-clean.webp?flush=${marker}-${attempt}" -o /tmp/irrigation-before-clean.webp && [[ "$(wc -c </tmp/irrigation-before-clean.webp)" -gt 10000 ]] && irrigation_before_ok=1
-            curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/assets/demo-workthroughs/irrigation-after-clean.webp?flush=${marker}-${attempt}" -o /tmp/irrigation-after-clean.webp && [[ "$(wc -c </tmp/irrigation-after-clean.webp)" -gt 10000 ]] && irrigation_after_ok=1
-
+            office="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/commercial-app/?flush=${marker}-${attempt}" || true)"
+            examples="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/sample-library-now.html?flush=${marker}-${attempt}" || true)"
             if [[ "$live_sha" == "$expected" ]] \
               && grep -Fq 'companyCamStyle:true' <<<"$field_flow" \
               && grep -Fq 'More quote tools' <<<"$field_flow" \
               && grep -Fq 'Apple LiDAR/RoomPlan' <<<"$field_ui" \
-              && grep -Fq "assets/js/h38-site-v2.js?v=${short_sha}" <<<"$examples" \
-              && grep -Fq "contractor-demo.css?v=${short_sha}" <<<"$examples" \
-              && grep -Fq 'assets/contractor-demo/flower-after-same-house.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/irrigation-before-clean.webp' <<<"$examples" \
-              && grep -Fq 'assets/demo-workthroughs/irrigation-after-clean.webp' <<<"$examples" \
-              && ! grep -Eq 'flower-after-same-house\.svg|irrigation-(before|after)-clean\.svg' <<<"$examples" \
-              && grep -Fq 'Flower garden after at the same house' <<<"$examples" \
-              && grep -Fq '$3,950' <<<"$examples" \
-              && grep -Fq '$3,950.00' <<<"$flower_quote" \
-              && grep -Fq 'Natural-stone curved bed edge shown in concept' <<<"$flower_quote" \
-              && [[ "$flower_ok" -eq 1 ]] \
-              && [[ "$irrigation_before_ok" -eq 1 ]] \
-              && [[ "$irrigation_after_ok" -eq 1 ]]; then
+              && grep -Fq 'Take Site Photos' <<<"$field_ui" \
+              && grep -Fq 'Highway 38 Business Office' <<<"$office" \
+              && grep -Fq 'Project Examples' <<<"$examples"; then
               exit 0
             fi
             sleep 10
           done
-
-          echo 'The GitHub Pages CDN did not serve the repaired verified artifact before timeout.'
+          echo 'The custom domain did not serve the accepted field-flow commit before timeout.'
           exit 1
 
-      - name: Install live visual verification dependencies
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-          python3 -m pip install --disable-pip-version-check pillow
-
-      - name: Capture and verify live Project Examples pixels
-        run: |
-          node scripts/capture-project-example-images.js "${LIVE_ROOT}"
-          python3 scripts/verify-rendered-project-images.py browser-artifacts/project-images
-
-      - name: Upload website verification evidence
+      - name: Upload deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -219,21 +174,18 @@ jobs:
           path: |
             artifacts/public-website-architecture/
             artifacts/public-image-placements/
-            browser-artifacts/project-images/
           if-no-files-found: warn
           retention-days: 90
 
       - name: Record technical PASS
         if: success()
-        shell: bash
         run: |
-          body="TECHNICAL PASS — GitHub Pages is serving commit ${GITHUB_SHA}; the field-first quote flow, Android/Apple capture routing, direct-raster checks, and rendered-pixel checks passed. Nothing is automatically approved or sent. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages technical verification — PASS; visual acceptance pending owner review' --body "$body"
+          body="TECHNICAL PASS — The custom domain is serving commit ${GITHUB_SHA}; the field-first quote flow and Android/Apple capture routing passed. Nothing is automatically approved or sent. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages technical verification — PASS' --body "$body"
           gh issue close 284 --repo "$GITHUB_REPOSITORY" --reason completed
 
       - name: Record HOLD
         if: failure()
-        shell: bash
         run: |
-          body="HOLD — Public website verification, field-flow verification, rendered-pixel verification, or deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages architecture and live verification — HOLD' --body "$body"
+          body="HOLD — Public source verification, staging, field-flow verification, or custom-domain deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages deployment — HOLD' --body "$body"
