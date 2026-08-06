@@ -7,6 +7,7 @@ This is the thin Android capture client for the existing Highway 38 Business Off
 - Starts a guided ARCore point-to-point measurement screen.
 - Uses Depth hit tests when available and falls back to ARCore planes or points.
 - Displays and saves length readings in feet and inches, rounded to the nearest 1/8 inch.
+- Uses a one-tap start: selecting **Measure with Camera** creates the scanner area and opens ARCore automatically.
 - Returns the shared `h38-site-scanner-v1` result to the active scanner session.
 - Labels all native values `DEVICE_CAPTURED`.
 - Corrects Android status-bar and navigation-bar insets so controls are not covered.
@@ -18,10 +19,11 @@ This is the thin Android capture client for the existing Highway 38 Business Off
 2. Install the v0.2.0 debug APK over the earlier test version.
 3. Sign into the Business Office.
 4. Open or save a draft quote.
-5. Select **Scan Project**, start an area, and press **Measure with Camera**.
-6. Move slowly while showing textured floor and wall areas until the screen says **Tracking ready**.
-7. Aim the `+` crosshair and press **Set First Point**.
-8. Aim at the other endpoint and press **Set Second Point**.
-9. Confirm the reading is shown like `8 ft 3 1/2 in`, then press **Save This Measurement**.
-10. Confirm `ARCORE_DEPTH` or `ARCORE_POINT_TO_POINT` and `DEVICE_CAPTURED` in the quote scanner.
-11. Compare the result against a tape or laser.
+5. Select **Scan Project** and choose what you are measuring.
+6. Press **Measure with Camera** once. The scanner area is created and the camera opens automatically.
+7. Move slowly while showing textured floor and wall areas until the screen says **Tracking ready**.
+8. Aim the `+` crosshair and press **Set First Point**.
+9. Aim at the other endpoint and press **Set Second Point**.
+10. Confirm the reading is shown like `8 ft 3 1/2 in`, then press **Save This Measurement**.
+11. Confirm `ARCORE_DEPTH` or `ARCORE_POINT_TO_POINT` and `DEVICE_CAPTURED` in the quote scanner.
+12. Compare the result against a tape or laser.
