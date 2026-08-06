@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "2026-07-29-competitive-readiness",
+  "version": "2026-08-05-custom-domain-social",
   "primary": [
-    {"path":"index.html","label":"Home","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/","shell":"canonical","visibility":"public"},
+    {"path":"index.html","label":"Home","canonical":"https://highway38solutions.com/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
     {"path":"solutions.html","label":"What We Do","shell":"canonical","visibility":"public"},
     {"path":"software.html","label":"Business Software","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/software.html","shell":"canonical","visibility":"public"},
