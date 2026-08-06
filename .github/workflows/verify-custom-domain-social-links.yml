@@ -7,6 +7,7 @@ on:
       - 'commercial-app/app-15.js'
       - 'commercial-app/supabase-config.js'
       - 'commercial-app/service-worker.js'
+      - 'scripts/config/public-website-routes.json'
       - 'scripts/verify-custom-domain-social-links.js'
       - '.github/workflows/verify-custom-domain-social-links.yml'
   push:
@@ -17,6 +18,7 @@ on:
       - 'commercial-app/app-15.js'
       - 'commercial-app/supabase-config.js'
       - 'commercial-app/service-worker.js'
+      - 'scripts/config/public-website-routes.json'
       - 'scripts/verify-custom-domain-social-links.js'
       - '.github/workflows/verify-custom-domain-social-links.yml'
 
