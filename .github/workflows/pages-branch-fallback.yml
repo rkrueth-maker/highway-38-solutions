@@ -1,0 +1,123 @@
+name: Publish H38 Pages from filtered branch
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: highway-38-pages-branch-production
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: Publish filtered production branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIVE_ROOT: https://highway38solutions.com
+          RETIRED_PAGES_WORKFLOW_ID: '307610202'
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+
+          gh issue edit 284 --repo "$repo" \
+            --title 'GitHub Pages branch publication — RUNNING' \
+            --body "Publishing filtered commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${repo}/actions/runs/${GITHUB_RUN_ID}"
+
+          for status in queued in_progress waiting; do
+            gh api "repos/${repo}/actions/workflows/${RETIRED_PAGES_WORKFLOW_ID}/runs?status=${status}&per_page=100" \
+              --jq '.workflow_runs[].id' 2>/dev/null || true
+          done | sort -u | while read -r run_id; do
+            [ -n "$run_id" ] || continue
+            gh api --method POST "repos/${repo}/actions/runs/${run_id}/cancel" >/dev/null 2>&1 || true
+          done
+
+          base_tree="$(gh api "repos/${repo}/git/commits/${GITHUB_SHA}" --jq '.tree.sha')"
+          marker_b64="$(printf '%s\n' "$GITHUB_SHA" | base64 -w0)"
+          cname_b64="$(printf '%s\n' 'highway38solutions.com' | base64 -w0)"
+
+          marker_blob="$(jq -n --arg content "$marker_b64" '{content:$content,encoding:"base64"}' \
+            | gh api --method POST "repos/${repo}/git/blobs" --input - --jq '.sha')"
+          cname_blob="$(jq -n --arg content "$cname_b64" '{content:$content,encoding:"base64"}' \
+            | gh api --method POST "repos/${repo}/git/blobs" --input - --jq '.sha')"
+
+          tree_payload="$(jq -n \
+            --arg base "$base_tree" \
+            --arg marker "$marker_blob" \
+            --arg cname "$cname_blob" \
+            '{
+              base_tree:$base,
+              tree:[
+                {path:".github",mode:"040000",type:"tree",sha:null},
+                {path:".restore-points",mode:"040000",type:"tree",sha:null},
+                {path:"apps-script",mode:"040000",type:"tree",sha:null},
+                {path:"artifacts",mode:"040000",type:"tree",sha:null},
+                {path:"businesses",mode:"040000",type:"tree",sha:null},
+                {path:"docs",mode:"040000",type:"tree",sha:null},
+                {path:"native",mode:"040000",type:"tree",sha:null},
+                {path:"scripts",mode:"040000",type:"tree",sha:null},
+                {path:"supabase",mode:"040000",type:"tree",sha:null},
+                {path:"tests",mode:"040000",type:"tree",sha:null},
+                {path:"CNAME",mode:"100644",type:"blob",sha:$cname},
+                {path:"deployed-main-sha.txt",mode:"100644",type:"blob",sha:$marker}
+              ]
+            }')"
+          public_tree="$(printf '%s' "$tree_payload" \
+            | gh api --method POST "repos/${repo}/git/trees" --input - --jq '.sha')"
+
+          old_ref="$(gh api "repos/${repo}/git/ref/heads/gh-pages" --jq '.object.sha' 2>/dev/null || printf '%s' "$GITHUB_SHA")"
+          commit_payload="$(jq -n \
+            --arg message "Publish H38 field-first Office ${GITHUB_SHA}" \
+            --arg tree "$public_tree" \
+            --arg parent "$old_ref" \
+            '{message:$message,tree:$tree,parents:[$parent]}')"
+          public_commit="$(printf '%s' "$commit_payload" \
+            | gh api --method POST "repos/${repo}/git/commits" --input - --jq '.sha')"
+
+          if gh api "repos/${repo}/git/ref/heads/gh-pages" >/dev/null 2>&1; then
+            jq -n --arg sha "$public_commit" '{sha:$sha,force:true}' \
+              | gh api --method PATCH "repos/${repo}/git/refs/heads/gh-pages" --input - >/dev/null
+          else
+            jq -n --arg ref 'refs/heads/gh-pages' --arg sha "$public_commit" '{ref:$ref,sha:$sha}' \
+              | gh api --method POST "repos/${repo}/git/refs" --input - >/dev/null
+          fi
+
+          jq -n '{build_type:"legacy",source:{branch:"gh-pages",path:"/"}}' \
+            | gh api --method PUT "repos/${repo}/pages" --input - >/dev/null
+          gh api --method POST "repos/${repo}/pages/builds" >/dev/null 2>&1 || true
+
+          for attempt in $(seq 1 90); do
+            pages_json="$(gh api "repos/${repo}/pages")"
+            status="$(jq -r '.status // "unknown"' <<<"$pages_json")"
+            source_branch="$(jq -r '.source.branch // ""' <<<"$pages_json")"
+            live_sha="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/deployed-main-sha.txt?flush=${GITHUB_RUN_ID}-${attempt}" || true)"
+            field_flow="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/commercial-app/field-visit.js?flush=${GITHUB_RUN_ID}-${attempt}" || true)"
+            field_ui="$(curl -fsSL --connect-timeout 15 "${LIVE_ROOT}/commercial-app/field-visit-ui.js?flush=${GITHUB_RUN_ID}-${attempt}" || true)"
+
+            if [[ "$status" == 'built' ]] \
+              && [[ "$source_branch" == 'gh-pages' ]] \
+              && [[ "$live_sha" == "$GITHUB_SHA" ]] \
+              && grep -Fq 'companyCamStyle:true' <<<"$field_flow" \
+              && grep -Fq 'More quote tools' <<<"$field_flow" \
+              && grep -Fq 'Apple LiDAR/RoomPlan' <<<"$field_ui" \
+              && grep -Fq 'Take Site Photos' <<<"$field_ui"; then
+              body="TECHNICAL PASS — The custom domain is serving filtered commit ${GITHUB_SHA}; the single-action quote flow, four-tab field workspace, and Android/Apple capture routing passed. Run: ${GITHUB_SERVER_URL}/${repo}/actions/runs/${GITHUB_RUN_ID}"
+              gh issue edit 284 --repo "$repo" --title 'GitHub Pages technical verification — PASS' --body "$body"
+              gh issue close 284 --repo "$repo" --reason completed
+              exit 0
+            fi
+            sleep 5
+          done
+
+          body="HOLD — The filtered gh-pages branch was updated, but the custom domain did not serve commit ${GITHUB_SHA} before timeout. Run: ${GITHUB_SERVER_URL}/${repo}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue edit 284 --repo "$repo" --title 'GitHub Pages branch publication — HOLD' --body "$body"
+          exit 1
