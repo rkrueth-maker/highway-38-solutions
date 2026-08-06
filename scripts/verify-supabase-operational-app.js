@@ -16,7 +16,8 @@ const browserScripts=[
   'commercial-app/supabase-ai-fallback.js',
   'commercial-app/supabase-storage-provider.js',
   'commercial-app/supabase-portal-hydration.js',
-  'commercial-app/supabase-final-startup.js'
+  'commercial-app/supabase-final-startup.js',
+  'commercial-app/site-scanner.js'
 ];
 
 for(const file of browserScripts){
@@ -117,7 +118,7 @@ includes(portal,'googleRecordsImported:false','Portal hydration must remain read
 const serviceWorker=read('commercial-app/service-worker.js');
 includes(serviceWorker,"const CACHE_NAME='h38-business-office-",'Installable app cache is missing.');
 includes(serviceWorker,"const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'",'Offline shell must cache the browser Supabase client.');
-for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js'])
+for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js','site-scanner.js'])
   includes(serviceWorker,`'./${file}'`,`Offline app shell must cache ${file}`);
 expect(!serviceWorker.includes('registration.unregister()'),'The operational PWA service worker must not unregister itself.');
 
@@ -133,4 +134,5 @@ const parity=read('docs/architecture/SUPABASE_WEEK_ONE_APP_PARITY.md');
 for(const needle of ['Supabase is the system of record','client may connect its own Google Drive','Deliberately not enabled','Northern Lakes activation'])
   includes(parity,needle,`Parity document is missing ${needle}`);
 
+require('./verify-h38-site-scanner.js');
 console.log('Supabase operational app verification passed.');

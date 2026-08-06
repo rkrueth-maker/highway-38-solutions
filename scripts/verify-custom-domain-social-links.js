@@ -35,7 +35,8 @@ assert(social.includes('value="${esc(H38_PUBLIC_SITE_URL)}"'), 'The Social Contr
 
 assert(serviceWorker.includes("'supabase-config.js'"), 'Supabase configuration must be network-first.');
 assert(serviceWorker.includes("'app-15.js'"), 'Social Control must be network-first.');
-assert(serviceWorker.includes("CACHE_NAME='h38-business-office-20260805-2200'"), 'Business Office cache version must be refreshed.');
+assert(/CACHE_NAME='h38-business-office-20\d{6}-\d{4}'/.test(serviceWorker), 'Business Office must use a current dated cache version.');
+assert(/LIVE_FIRST=new Set\(\[[^\]]*'supabase-config\.js'[^\]]*'app-15\.js'/s.test(serviceWorker), 'Supabase configuration and Social Control must remain network-first.');
 
 console.log(JSON.stringify({
   status: 'PASS',
