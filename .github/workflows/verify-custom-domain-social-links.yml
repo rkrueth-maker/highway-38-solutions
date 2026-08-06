@@ -1,0 +1,41 @@
+name: Verify custom-domain social links
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'commercial-app/app-15.js'
+      - 'commercial-app/supabase-config.js'
+      - 'commercial-app/service-worker.js'
+      - 'scripts/verify-custom-domain-social-links.js'
+      - '.github/workflows/verify-custom-domain-social-links.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'commercial-app/app-15.js'
+      - 'commercial-app/supabase-config.js'
+      - 'commercial-app/service-worker.js'
+      - 'scripts/verify-custom-domain-social-links.js'
+      - '.github/workflows/verify-custom-domain-social-links.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-custom-domain-social-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check JavaScript syntax
+        run: |
+          node --check commercial-app/app-15.js
+          node --check commercial-app/supabase-config.js
+          node --check commercial-app/service-worker.js
+          node --check scripts/verify-custom-domain-social-links.js
+      - name: Verify real-domain Facebook and social URLs
+        run: node scripts/verify-custom-domain-social-links.js
