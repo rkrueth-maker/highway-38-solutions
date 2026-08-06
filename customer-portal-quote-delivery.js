@@ -1,0 +1,11 @@
+(function(){
+'use strict';
+const config=window.H38_CUSTOMER_PORTAL_SUPABASE||{};
+let running=false;
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+async function decorate(){if(running||!window.H38_CUSTOMER_PORTAL)return;const portal=window.H38_CUSTOMER_PORTAL.getState?.();if(!portal?.client||!portal?.account)return;running=true;try{const{data,error}=await portal.client.from('customer_quotes').select('id,pdf_storage_path,status').eq('customer_id',portal.account.id);if(error)throw error;for(const row of data||[]){const card=document.querySelector(`[data-quote-id="${CSS.escape(row.id)}"]`);if(!card||!row.pdf_storage_path||card.querySelector('[data-quote-pdf]'))continue;const button=document.createElement('button');button.type='button';button.className='btn';button.dataset.quotePdf=row.pdf_storage_path;button.textContent='Download quote PDF';button.onclick=()=>void download(portal.client,row.pdf_storage_path);card.appendChild(button);}const requested=new URLSearchParams(location.search).get('quote');if(requested){const card=document.querySelector(`[data-quote-id="${CSS.escape(requested)}"]`);if(card){card.classList.add('is-requested-quote');card.scrollIntoView({behavior:'smooth',block:'center'});const review=card.querySelector('[data-review-quote]');if(review)review.focus({preventScroll:true});}}}catch(error){console.error('Quote delivery portal enhancement failed',error);}finally{running=false;}}
+async function download(client,path){const{data,error}=await client.storage.from(config.storageBucket||'customer-portal').createSignedUrl(path,120,{download:true});if(error)throw error;if(!data?.signedUrl)throw new Error('A secure PDF link was not created.');window.open(data.signedUrl,'_blank','noopener,noreferrer');}
+window.addEventListener('h38:portal-data',()=>void decorate());
+new MutationObserver(()=>void decorate()).observe(document.documentElement,{childList:true,subtree:true});
+window.H38_CUSTOMER_QUOTE_DELIVERY={enabled:true,build:'20260805-2050',privatePdf:true};
+})();
