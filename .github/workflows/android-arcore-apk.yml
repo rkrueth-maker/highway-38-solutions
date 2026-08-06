@@ -39,7 +39,7 @@ jobs:
         run: |
           APK='app/build/outputs/apk/debug/app-debug.apk'
           test -s "$APK"
-          apksigner verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           cp "$APK" "$GITHUB_WORKSPACE/H38-Site-Scanner-ARCore-Test.apk"
           sha256sum "$GITHUB_WORKSPACE/H38-Site-Scanner-ARCore-Test.apk" | tee "$GITHUB_WORKSPACE/H38-Site-Scanner-ARCore-Test.sha256"
       - uses: actions/upload-artifact@v4
