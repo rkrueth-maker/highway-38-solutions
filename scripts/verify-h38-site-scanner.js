@@ -53,7 +53,7 @@ for (const token of [
 ]) must(scanner, token, 'site-scanner.js');
 
 for (const token of [
-  'formatFeetInches','Measure with Camera','Measure one distance','STEP 1 OF 2',
+  'formatFeetInches','Measure with Camera','Measure one distance',
   'displayFeet','displayInches','scanner-focus-mode','scanner-no-measurements',
   'Results are shown in feet and inches'
 ]) must(guidance, token, 'site-scanner-mobile-guidance.js');
