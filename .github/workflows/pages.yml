@@ -16,20 +16,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    env:
-      GH_TOKEN: ${{ github.token }}
-      LIVE_ROOT: https://highway38solutions.com
     steps:
       - name: Record deployment start
         run: |
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" \
-            --title 'GitHub Pages deployment — RUNNING' \
-            --body "Deploying commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            --title 'GitHub Pages deployment — BUILDING' \
+            --body "Building commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Check out main
         uses: actions/checkout@v4
@@ -121,7 +117,7 @@ jobs:
 
           staged_bytes="$(du -sb _site | cut -f1)"
           staged_files="$(find _site -type f | wc -l)"
-          echo "Staged ${staged_files} public files (${staged_bytes} bytes)."
+          printf 'files=%s\nbytes=%s\n' "$staged_files" "$staged_bytes" | tee pages-build-report.txt
           test "$staged_bytes" -lt 50000000
           test ! -e _site/_site
           test ! -e _site/apps-script
@@ -134,6 +130,24 @@ jobs:
         with:
           path: _site
 
+      - name: Upload build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-build-${{ github.run_id }}
+          path: |
+            pages-build-report.txt
+            artifacts/public-website-architecture/
+            artifacts/public-image-placements/
+          if-no-files-found: warn
+          retention-days: 90
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy Pages artifact
         id: deploy
         uses: actions/deploy-pages@v4
@@ -141,7 +155,19 @@ jobs:
           timeout: 1800000
           error_count: 30
 
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out accepted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
       - name: Verify live custom-domain deployment
+        env:
+          LIVE_ROOT: https://highway38solutions.com
         run: |
           set -euo pipefail
           expected="$(git rev-parse HEAD)"
@@ -166,26 +192,22 @@ jobs:
           echo 'The custom domain did not serve the accepted field-flow commit before timeout.'
           exit 1
 
-      - name: Upload deployment evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-website-${{ github.run_id }}
-          path: |
-            artifacts/public-website-architecture/
-            artifacts/public-image-placements/
-          if-no-files-found: warn
-          retention-days: 90
-
       - name: Record technical PASS
-        if: success()
         run: |
           body="TECHNICAL PASS — The custom domain is serving commit ${GITHUB_SHA}; the field-first quote flow and Android/Apple capture routing passed. Nothing is automatically approved or sent. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages technical verification — PASS' --body "$body"
           gh issue close 284 --repo "$GITHUB_REPOSITORY" --reason completed
+        env:
+          GH_TOKEN: ${{ github.token }}
 
+  record-hold:
+    if: ${{ always() && (needs.build.result == 'failure' || needs.deploy.result == 'failure' || needs.verify-live.result == 'failure') }}
+    needs: [build, deploy, verify-live]
+    runs-on: ubuntu-latest
+    steps:
       - name: Record HOLD
-        if: failure()
         run: |
-          body="HOLD — Public source verification, staging, field-flow verification, or custom-domain deployment failed for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body="HOLD — Pages build=${{ needs.build.result }}, deploy=${{ needs.deploy.result }}, verify=${{ needs.verify-live.result }} for commit ${GITHUB_SHA}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           gh issue edit 284 --repo "$GITHUB_REPOSITORY" --title 'GitHub Pages deployment — HOLD' --body "$body"
+        env:
+          GH_TOKEN: ${{ github.token }}
