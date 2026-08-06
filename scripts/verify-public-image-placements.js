@@ -8,7 +8,7 @@ const manifest=JSON.parse(fs.readFileSync(path.join(root,'scripts/config/approve
 const failures=[],passes=[];
 function check(name,condition,detail=''){(condition?passes:failures).push({name,detail});console[condition?'log':'error'](`${condition?'PASS':'FAIL'}: ${name}${detail?` — ${detail}`:''}`);}
 function read(file){return fs.readFileSync(path.join(root,file),'utf8');}
-function count(text,needle){let total=0,index=0;while((index=text.indexOf(needle,index))>=0){total++;index+=needle.length;}return total;}
+function imageSources(html){return[...html.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map(match=>match[1].split('?')[0]);}
 
 check('placement manifest schema',manifest.schemaVersion===1,manifest.policyVersion||'');
 check('approved logo path matches asset manifest',manifest.logo.path==='assets/highway38-logo.png'&&manifest.logo.cacheKey==='20260720-exact-0cbc4514');
@@ -18,15 +18,19 @@ Object.entries(manifest.pages||{}).forEach(([page,placements])=>{
   check(`${page} exists`,fs.existsSync(file));
   if(!fs.existsSync(file))return;
   const html=fs.readFileSync(file,'utf8');
+  const pageImageSources=imageSources(html);
   const expectedCounts={};
   placements.forEach(item=>{
     expectedCounts[item.src]=(expectedCounts[item.src]||0)+1;
-    check(`${page} ${item.role} exact source`,html.includes(item.src),item.src);
-    if(item.cacheKey)check(`${page} ${item.role} exact cache key`,html.includes(`${item.src}?v=${item.cacheKey}`),`${item.src}?v=${item.cacheKey}`);
+    check(`${page} ${item.role} exact source`,pageImageSources.includes(item.src),item.src);
+    if(item.cacheKey)check(`${page} ${item.role} exact cache key`,html.includes(`src="${item.src}?v=${item.cacheKey}"`)||html.includes(`src='${item.src}?v=${item.cacheKey}'`),`${item.src}?v=${item.cacheKey}`);
     check(`${page} ${item.role} exact alt`,html.includes(`alt="${item.alt}"`)||html.includes(`alt='${item.alt}'`),item.alt);
     check(`${item.src} exists`,fs.existsSync(path.join(root,item.src)),item.src);
   });
-  Object.entries(expectedCounts).forEach(([src,expected])=>check(`${page} preserves ${src} occurrence count`,count(html,src)===expected,`${count(html,src)}/${expected}`));
+  Object.entries(expectedCounts).forEach(([src,expected])=>{
+    const actual=pageImageSources.filter(value=>value===src).length;
+    check(`${page} preserves ${src} occurrence count`,actual===expected,`${actual}/${expected}`);
+  });
   const imageTags=[...html.matchAll(/<img\b[^>]*>/gi)].map(match=>match[0]);
   check(`${page} images have alt text`,imageTags.every(tag=>/\balt=["'][^"']*["']/.test(tag)),`${imageTags.length} images`);
 });
