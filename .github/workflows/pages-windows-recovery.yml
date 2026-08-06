@@ -1,7 +1,12 @@
-name: Recover H38 Pages
+name: Deploy H38 Pages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pages-windows-recovery.yml
 
 permissions:
   contents: read
@@ -10,15 +15,16 @@ permissions:
 
 env:
   PAGES_SOURCE_REF: gh-pages
+  EXPECTED_PAGES_COMMIT: e5fd3568f7901fb11924500f816b68e281c7a458
 
 concurrency:
-  group: h38-pages-windows-recovery
+  group: h38-pages-production
   cancel-in-progress: true
 
 jobs:
   publish:
     name: Publish clean gh-pages tree
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -33,8 +39,7 @@ jobs:
         shell: bash
         run: |
           actual="$(git rev-parse HEAD)"
-          expected="02038a0491b9a65998112659f607040eaf3520a3"
-          if [ "$actual" != "$expected" ]; then
+          if [ "$actual" != "$EXPECTED_PAGES_COMMIT" ]; then
             echo "Unexpected gh-pages commit: $actual"
             exit 1
           fi
