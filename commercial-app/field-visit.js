@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260806-1122',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
+const BUILD='20260806-1835',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
 const native=/H38SiteScannerAndroid/.test(navigator.userAgent),apple=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
 if(native)document.documentElement.classList.add('h38-native-shell');
 if(apple)document.documentElement.classList.add('h38-apple-device');
@@ -37,7 +37,14 @@ function entries(){
   if(isLegacy&&!S.open){open({quoteId:C.t(window.state?.quote?.quoteId),customerId:C.t(window.state?.quote?.customerId)});return}
   if(new URLSearchParams(location.search).get('nativeScanner')==='1'&&!S.auto&&!S.open){S.auto=true;setTimeout(()=>open(),120)}
 }
-function start(){const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
-window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true};
+function loadGuidance(){
+  if(!document.querySelector('link[data-h38-field-guidance]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='./field-visit-guidance.css?build=20260806-1835';link.dataset.h38FieldGuidance='1';document.head.appendChild(link);
+  }
+  if(window.H38_FIELD_VISIT_GUIDANCE||document.querySelector('script[data-h38-field-guidance]'))return;
+  const script=document.createElement('script');script.src='./field-visit-guidance.js?build=20260806-1835';script.dataset.h38FieldGuidance='1';document.head.appendChild(script);
+}
+function start(){loadGuidance();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
+window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
