@@ -12,7 +12,7 @@ env:
   PAGES_SOURCE_REF: gh-pages
 
 concurrency:
-  group: h38-pages-recovery
+  group: h38-pages-windows-recovery
   cancel-in-progress: true
 
 jobs:
