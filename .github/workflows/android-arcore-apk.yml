@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build-apk:
@@ -94,3 +95,4 @@ jobs:
           TAG='h38-site-scanner-android-v0.3.0'
           gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
           gh release create "$TAG" H38-Site-Scanner-Field-Offline-v0.3.0.apk H38-Site-Scanner-Field-Offline-v0.3.0.sha256 H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title 'H38 Field Office and Site Scanner v0.3.0' --notes 'Owner test build with focused five-step field visits, offline-first entry and sync, Android credential autofill support, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent. Version 0.2.0 must be uninstalled once because it used a different debug signing certificate.'
+          gh workflow run pages.yml --ref main
