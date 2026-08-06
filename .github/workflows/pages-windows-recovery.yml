@@ -1,0 +1,59 @@
+name: Recover H38 Pages on Windows runner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pages-windows-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  PAGES_SOURCE_REF: gh-pages
+
+concurrency:
+  group: h38-pages-windows-recovery
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish clean gh-pages tree
+    runs-on: windows-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout clean publication branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PAGES_SOURCE_REF }}
+          fetch-depth: 1
+
+      - name: Switch Pages to workflow deployment
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $body = @{ build_type = "workflow" } | ConvertTo-Json -Compress
+          Invoke-RestMethod -Method Put -Uri "https://api.github.com/repos/${{ github.repository }}/pages" -Headers $headers -Body $body -ContentType "application/json"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy production Pages site
+        id: deployment
+        uses: actions/deploy-pages@v4
