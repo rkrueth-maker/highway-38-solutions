@@ -2,6 +2,7 @@ name: Recover H38 Pages on Windows runner
 
 on:
   schedule:
+    - cron: '32 21 6 8 *'
     - cron: '*/5 * * * *'
   issues:
     types: [opened]
