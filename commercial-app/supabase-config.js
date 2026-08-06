@@ -12,7 +12,7 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
   projectRef: 'jqukmwtsgcsaruucnqja',
   url: 'https://jqukmwtsgcsaruucnqja.supabase.co',
   publishableKey: 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1',
-  authRedirectUrl: 'https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/',
+  authRedirectUrl: 'https://highway38solutions.com/commercial-app/',
   offlineAuthorizationMaxAgeMs: 12 * 60 * 60 * 1000,
   productionPromotionAuthorized: false,
   northernLakesEnabled: false,

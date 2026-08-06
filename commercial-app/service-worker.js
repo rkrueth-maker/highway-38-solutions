@@ -1,6 +1,6 @@
-const CACHE_NAME='h38-business-office-20260805-2050';
+const CACHE_NAME='h38-business-office-20260805-2200';
 const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-const LIVE_FIRST=new Set(['index.html','supabase-single-client.js','supabase-session-recovery.js','supabase-quote-ai.js','supabase-quote-ai-auth-fix.js','quote-mobile-stabilization.js','quote-ai-live-fix.js','quote-photo-restore.js','supabase-quote-delivery.js']);
+const LIVE_FIRST=new Set(['index.html','supabase-config.js','supabase-single-client.js','supabase-session-recovery.js','supabase-quote-ai.js','supabase-quote-ai-auth-fix.js','quote-mobile-stabilization.js','quote-ai-live-fix.js','quote-photo-restore.js','supabase-quote-delivery.js','app-15.js']);
 const SHELL=[
   './','./index.html','./recover.html','./manifest.webmanifest',
   './styles.css','./ai-drawer.css','./quote-delivery.css',

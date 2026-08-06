@@ -44,15 +44,44 @@ function luhnValid(digits) {
   return sum % 10 === 0;
 }
 
+function isPlausibleMigrationTimestamp(digits) {
+  if (!/^20\d{12}$/.test(digits)) return false;
+  const year = Number(digits.slice(0, 4));
+  const month = Number(digits.slice(4, 6));
+  const day = Number(digits.slice(6, 8));
+  const hour = Number(digits.slice(8, 10));
+  const minute = Number(digits.slice(10, 12));
+  const second = Number(digits.slice(12, 14));
+  const value = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  return value.getUTCFullYear() === year
+    && value.getUTCMonth() + 1 === month
+    && value.getUTCDate() === day
+    && value.getUTCHours() === hour
+    && value.getUTCMinutes() === minute
+    && value.getUTCSeconds() === second;
+}
+
+function isMigrationFilenameCandidate(body, candidateStart, rawCandidate, digits) {
+  if (digits.length !== 14 || !isPlausibleMigrationTimestamp(digits)) return false;
+  const suffix = body.slice(candidateStart + rawCandidate.length, candidateStart + rawCandidate.length + 160);
+  return /^_[a-z0-9_]+\.sql\b/i.test(suffix);
+}
+
 function hasPaymentCardCandidate(body) {
   const candidatePattern = /(?:^|[^A-Za-z0-9])(\d{13,19}|(?:\d{4}[ -]){2,4}\d{3,4}|\d{4}[ -]\d{6}[ -]\d{5})(?![A-Za-z0-9])/g;
   let match;
   while ((match = candidatePattern.exec(body)) !== null) {
-    const digits = match[1].replace(/\D/g, '');
+    const rawCandidate = match[1];
+    const digits = rawCandidate.replace(/\D/g, '');
+    const candidateStart = match.index + match[0].indexOf(rawCandidate);
+    if (isMigrationFilenameCandidate(body, candidateStart, rawCandidate, digits)) continue;
     if (digits.length >= 13 && digits.length <= 19 && luhnValid(digits)) return true;
   }
   return false;
 }
+
+check('payment-card scanner still detects a Luhn-valid number', hasPaymentCardCandidate(['4111','1111','1111','1111'].join('')));
+check('Supabase migration timestamps are not treated as cards', !hasPaymentCardCandidate('supabase/migrations/' + ['20260805','004500'].join('') + '_business_office_auth_resolution.sql'));
 
 check('launch manifest exists', fs.existsSync(MANIFEST));
 let manifest = null;

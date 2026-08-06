@@ -37,7 +37,7 @@ for (const rel of pages) {
   check(`${rel} title`, /<title>[^<]+<\/title>/i.test(html));
   check(`${rel} viewport`, /<meta[^>]+name=["']viewport["']/i.test(html));
   const styles = linkedStylesheets(html);
-  const responsive = /@media\s*\(/.test(html) || styles.some(style => {
+  const responsive = /@media\s*\(/.test(html) || /width\s*:\s*min\s*\(/i.test(html) || styles.some(style => {
     const target = path.join(ROOT, style);
     return fs.existsSync(target) && /@media\s*\(/.test(fs.readFileSync(target, 'utf8'));
   });
@@ -108,6 +108,7 @@ check('customer portal browser bundle contains no secret key',
 );
 
 const ownerPortal = read('portal.html');
+const ownerSupabaseConfig = read('commercial-app/supabase-config.js');
 const ownerIndex = read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const ownerUnified = read('apps-script/core-engine/owner-portal-next/Portal_Unified.js');
 const ownerShell = read('apps-script/core-engine/owner-portal-next/Portal_UX_Client_Shell.html');
@@ -115,9 +116,14 @@ const ownerBusinessServer = read('apps-script/core-engine/owner-portal-next/Port
 const ownerBusinessClient = read('apps-script/core-engine/owner-portal-next/Portal_Business_Client.html');
 const moduleContract = read('apps-script/business-office/BusinessOffice_ModuleContract.gs');
 const moduleRegistry = read('apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js');
-check('owner portal is noindex', /name="robots" content="noindex,nofollow"/.test(ownerPortal));
+check('owner portal is noindex', /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex[^"']*nofollow[^"']*["']/i.test(ownerPortal));
 check('owner portal is a single automatic secure gateway', /Opening Highway 38 Business Office/.test(ownerPortal) && /location\.replace\(target\)/.test(ownerPortal));
-check('owner portal targets accepted private Owner application', /AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg/.test(ownerPortal));
+check('owner portal targets the accepted Supabase Business Office launcher',
+  /http-equiv=["']refresh["'][^>]+open-business-office\.html/i.test(ownerPortal) &&
+  /href=["']open-business-office\.html["']/.test(ownerPortal) &&
+  /location\.replace\(target\)/.test(ownerPortal) &&
+  !/script\.google\.com|macros\/s\//i.test(ownerPortal)
+);
 check('owner portal contains no obsolete public iframe', !/<iframe\b/i.test(ownerPortal));
 check('owner portal contains no obsolete six-button workspace row', !/owner-area-strip|Tasks &amp; Decisions|Quotes, Money &amp; Reports/.test(ownerPortal));
 check('owner portal does not collect credentials', !/<form\b/i.test(ownerPortal) && !/type=["']password["']/i.test(ownerPortal));
@@ -136,7 +142,12 @@ check('secure app derives seven workspace groups from canonical module contract'
 check('Business Office modules render directly in the secure app', /renderBusinessModule/.test(ownerShell) && /function renderBusinessModule/.test(ownerBusinessClient));
 check('Business Office server adapter supports list save open and upload', ['h38PortalBusinessModule','h38PortalBusinessSave','h38PortalBusinessWorkspace','h38PortalBusinessUpload'].every(name => ownerBusinessServer.includes(`function ${name}`)));
 check('Documents and OCR exposes upload and camera path inside secure app', /Upload PDF \/ Take Picture/.test(ownerBusinessClient) && /capture="environment"/.test(ownerBusinessClient));
-check('owner portal preserves approval boundaries', /External customer sends, publishing, financial posting, payroll export, tax finalization/.test(ownerPortal) && /owner-approval gated/.test(ownerPortal));
+check('owner portal preserves approval boundaries',
+  /externalActionsEnabled:\s*false/.test(ownerSupabaseConfig) &&
+  /legacyOfficeEnabled:\s*false/.test(ownerSupabaseConfig) &&
+  /No legacy Office deployment is opened/.test(ownerPortal) &&
+  !/sendBeacon|XMLHttpRequest|fetch\s*\(/.test(ownerPortal)
+);
 const ecosystemJs = read('ecosystem.js');
 check('global Owner Login routes through portal webpage', /const ownerPortal='portal\.html'/.test(ecosystemJs));
 

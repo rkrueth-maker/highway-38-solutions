@@ -39,12 +39,13 @@ check(has(config,[
   'standardOffice: true',
   "projectRef: 'jqukmwtsgcsaruucnqja'",
   "url: 'https://jqukmwtsgcsaruucnqja.supabase.co'",
-  "authRedirectUrl: 'https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/'",
+  "authRedirectUrl: 'https://highway38solutions.com/commercial-app/'",
   'clientTenantsEnabled: true',
   'legacyOfficeEnabled: false',
   'externalActionsEnabled: false'
 ]),'Supabase-only production configuration is incomplete.');
 check(!config.includes('fallbackUrl'),'Supabase configuration must not contain a legacy fallback URL.');
+check(!config.includes('rkrueth-maker.github.io'),'Production Supabase configuration must use the Highway 38 custom domain.');
 check(!/service_role|SUPABASE_SERVICE_ROLE_KEY/.test(config),'Privileged Supabase credentials must not be in browser config.');
 
 check(!exists('legacy-business-office.html'),'The legacy Business Office route must be removed.');
