@@ -4,6 +4,7 @@
   const BUILD = '20260806-0605';
   const MAIN_ID = 'mainContent';
   let scheduled = false;
+  let pendingNativeLaunchAt = 0;
 
   function text(value) {
     return String(value == null ? '' : value);
@@ -83,41 +84,54 @@
     });
   }
 
-  function createGuide(main, nativeButton, hasMeasurements) {
+  function armOneTapSessionStart(button) {
+    if (!button || button.dataset.oneTapScanBound === 'true') return;
+    button.dataset.oneTapScanBound = 'true';
+    button.addEventListener('click', () => {
+      pendingNativeLaunchAt = Date.now();
+    }, true);
+  }
+
+  function createGuide(main, nativeButton, startButton, hasMeasurements) {
     let guide = document.getElementById('scannerSimpleGuide');
     if (!guide) {
       guide = document.createElement('section');
       guide.id = 'scannerSimpleGuide';
       guide.className = 'card scanner-simple-guide';
-      const statusCard = main.querySelector('.scanner-status-card');
-      if (statusCard) statusCard.insertAdjacentElement('afterend', guide);
-      else main.querySelector('.scanner-main')?.prepend(guide);
+      main.querySelector('.scanner-main')?.prepend(guide);
     }
 
-    guide.innerHTML = `<div class="scanner-step-heading">
-      <span class="scanner-step-number">${hasMeasurements ? '✓' : '1'}</span>
-      <div>
-        <strong>${hasMeasurements ? 'Measurement saved' : 'Measure one distance'}</strong>
-        <p>${hasMeasurements
-          ? 'Measure another wall or opening, or continue to photos and notes below.'
-          : 'The camera will guide you through two points. Measure one wall, opening, or edge at a time.'}</p>
+    const actionMode = nativeButton ? 'native' : 'new-session';
+    const state = `${hasMeasurements ? 'saved' : 'ready'}-${actionMode}`;
+    if (guide.dataset.state !== state) {
+      guide.dataset.state = state;
+      guide.innerHTML = `<div class="scanner-step-heading">
+        <span class="scanner-step-number">${hasMeasurements ? '✓' : '1'}</span>
+        <div>
+          <strong>${hasMeasurements ? 'Measurement saved' : 'Measure with the camera'}</strong>
+          <p>${hasMeasurements
+            ? 'Measure another wall, opening, or edge, or continue to photos and notes below.'
+            : 'Choose what you are measuring above, then the camera will guide you through two points.'}</p>
+        </div>
       </div>
-    </div>
-    <ol class="scanner-three-directions">
-      <li>Move the phone slowly until it says <strong>Tracking ready</strong>.</li>
-      <li>Aim the center crosshair and set the <strong>first point</strong>.</li>
-      <li>Aim at the other end, set the <strong>second point</strong>, then use the measurement.</li>
-    </ol>
-    <div id="scannerGuideAction" class="scanner-guide-action"></div>
-    <p class="scanner-guide-note">Results are shown in feet and inches. Check important dimensions with a tape or laser before final work.</p>`;
+      <ol class="scanner-three-directions">
+        <li>Move the phone slowly until it says <strong>Tracking ready</strong>.</li>
+        <li>Aim the center <strong>+</strong> and set the <strong>first point</strong>.</li>
+        <li>Aim at the other end, set the <strong>second point</strong>, then save it.</li>
+      </ol>
+      <div id="scannerGuideAction" class="scanner-guide-action"></div>
+      <p class="scanner-guide-note">One tap starts the area and opens the camera. Results are shown in feet and inches. Check important dimensions with a tape or laser.</p>`;
+    }
 
     const action = guide.querySelector('#scannerGuideAction');
-    if (nativeButton && action) {
-      nativeButton.textContent = hasMeasurements ? 'Measure Another Distance' : 'Measure with Camera';
-      nativeButton.classList.remove('secondary');
-      nativeButton.classList.add('scanner-primary-measure');
-      action.appendChild(nativeButton);
-    }
+    const actionButton = nativeButton || startButton;
+    if (!action || !actionButton) return;
+
+    if (!nativeButton) armOneTapSessionStart(actionButton);
+    actionButton.textContent = hasMeasurements ? 'Measure Another Distance' : 'Measure with Camera';
+    actionButton.classList.remove('secondary');
+    actionButton.classList.add('scanner-primary-measure');
+    if (actionButton.parentElement !== action) action.appendChild(actionButton);
   }
 
   function simplifySessionHistory(sidebar) {
@@ -128,14 +142,14 @@
     const details = document.createElement('details');
     details.className = 'scanner-history-details';
     const summary = document.createElement('summary');
-    summary.textContent = 'Previous scans';
+    summary.textContent = 'Previous measured areas';
     details.appendChild(summary);
     details.appendChild(list);
     if (heading) heading.replaceWith(details);
     else sidebar.appendChild(details);
   }
 
-  function simplifyManualMeasurement(main) {
+  function simplifyManualMeasurement() {
     const form = document.getElementById('scannerMeasurementForm');
     if (!form || form.dataset.feetInchesReady === 'true') return;
     form.dataset.feetInchesReady = 'true';
@@ -154,7 +168,7 @@
       feetWrap.innerHTML = '<label>Feet</label><input name="displayFeet" type="number" min="0" step="1" inputmode="numeric" value="0">';
       const inchesWrap = document.createElement('div');
       inchesWrap.className = 'scanner-us-measure-field';
-      inchesWrap.innerHTML = '<label>Inches</label><input name="displayInches" type="number" min="0" step="0.125" inputmode="decimal" placeholder="0 or 3 1/2">';
+      inchesWrap.innerHTML = '<label>Inches</label><input name="displayInches" type="number" min="0" step="0.125" inputmode="decimal" placeholder="0 or 3.5">';
       firstGroup.append(feetWrap, inchesWrap);
 
       form.addEventListener('submit', () => {
@@ -174,7 +188,7 @@
       const advanced = document.createElement('details');
       advanced.className = 'scanner-measurement-options';
       const summary = document.createElement('summary');
-      summary.textContent = 'Source, confidence, coordinates, and notes';
+      summary.textContent = 'Advanced measurement details';
       advanced.appendChild(summary);
       advancedGroups.forEach(group => advanced.appendChild(group));
       if (notesLabel) advanced.appendChild(notesLabel);
@@ -189,7 +203,9 @@
     main.querySelectorAll('.scanner-main > section.card').forEach(section => {
       const heading = section.querySelector('h2');
       const label = text(heading?.textContent).trim();
-      if (label.startsWith('1. Capture')) {
+      if (label === 'Start a site capture') {
+        section.classList.add('scanner-empty-start-card');
+      } else if (label.startsWith('1. Capture')) {
         section.classList.add('scanner-evidence-card');
         heading.textContent = '2. Add photos and notes (optional)';
         section.querySelector('#scannerPhotoButton')?.replaceChildren(document.createTextNode('Add a Site Photo'));
@@ -211,11 +227,31 @@
     });
   }
 
+  function hideAutomaticCaptureMode() {
+    const mode = document.getElementById('scannerCaptureMode');
+    if (!mode) return;
+    mode.classList.add('scanner-auto-mode');
+    if (mode.previousElementSibling?.tagName === 'LABEL') {
+      mode.previousElementSibling.classList.add('scanner-auto-mode');
+    }
+  }
+
+  function launchNativeAfterSessionCreation(nativeButton) {
+    if (!pendingNativeLaunchAt || !nativeButton) return;
+    if (Date.now() - pendingNativeLaunchAt > 10000) {
+      pendingNativeLaunchAt = 0;
+      return;
+    }
+    pendingNativeLaunchAt = 0;
+    setTimeout(() => nativeButton.click(), 80);
+  }
+
   function enhanceScanner() {
     scheduled = false;
     const main = document.getElementById(MAIN_ID);
     if (!main || !isScannerPage(main)) {
       document.body.classList.remove('scanner-focus-mode', 'scanner-no-measurements');
+      pendingNativeLaunchAt = 0;
       return;
     }
 
@@ -227,7 +263,7 @@
     const title = main.querySelector('.page-head h1');
     if (title) title.textContent = 'Site Measure';
     const intro = main.querySelector('.page-head p');
-    if (intro) intro.textContent = 'Measure one wall, opening, or edge at a time. The app saves each reading to this quote.';
+    if (intro) intro.textContent = 'Choose the project type, then measure one wall, opening, or edge at a time.';
     const back = document.getElementById('scannerBack');
     if (back) back.textContent = '← Back to Quote';
 
@@ -235,19 +271,21 @@
     if (sidebar) {
       sidebar.classList.add('scanner-project-card');
       const heading = sidebar.querySelector('h2');
-      if (heading) heading.textContent = 'Project setup';
-      const start = document.getElementById('scannerNewSession');
-      if (start) start.textContent = 'Start New Area';
+      if (heading) heading.textContent = '1. What are you measuring?';
       simplifySessionHistory(sidebar);
     }
+
+    hideAutomaticCaptureMode();
+    labelCards(main);
 
     const statusCard = main.querySelector('.scanner-status-card');
     statusCard?.classList.add('scanner-compact-status');
     const nativeButton = document.getElementById('scannerNativeCapture');
-    createGuide(main, nativeButton, hasMeasurements);
-    labelCards(main);
-    simplifyManualMeasurement(main);
+    const startButton = document.getElementById('scannerNewSession');
+    createGuide(main, nativeButton, startButton, hasMeasurements);
+    simplifyManualMeasurement();
     formatMeasurementRows(main);
+    launchNativeAfterSessionCreation(nativeButton);
   }
 
   function scheduleEnhancement() {
