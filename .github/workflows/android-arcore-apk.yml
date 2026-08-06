@@ -56,6 +56,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         working-directory: ${{ github.workspace }}
         run: |
-          TAG='h38-site-scanner-android-v0.1.0'
+          TAG='h38-site-scanner-android-v0.2.0'
           gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" H38-Site-Scanner-ARCore-Test.apk H38-Site-Scanner-ARCore-Test.sha256 --title 'H38 Site Scanner Android ARCore Test v0.1.0' --notes 'Owner test build. Native values remain DEVICE_CAPTURED and require field verification.'
+          gh release create "$TAG" H38-Site-Scanner-ARCore-Test.apk H38-Site-Scanner-ARCore-Test.sha256 --title 'H38 Site Scanner Android ARCore Test v0.2.0' --notes 'Owner test build with feet-and-inches display, guided measuring, and corrected Android screen insets. Native values remain DEVICE_CAPTURED and require field verification.'

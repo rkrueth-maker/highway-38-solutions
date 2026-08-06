@@ -3,7 +3,7 @@
 .scanner-sidebar{position:sticky;top:1rem}
 .scanner-main{display:grid;gap:1rem;min-width:0}
 .scanner-context{display:grid;gap:.2rem;padding:.8rem;border-radius:.65rem;background:#f4f7f9;margin-bottom:.8rem}
-.scanner-session-list{display:grid;gap:.55rem;max-height:48vh;overflow:auto}
+.scanner-session-list{display:grid;gap:.55rem;max-height:48vh;overflow:auto;margin-top:.7rem}
 .scanner-session-row{display:grid;text-align:left;gap:.15rem;width:100%;padding:.7rem;border:1px solid #cbd6dc;background:#fff;color:#102b3f;border-radius:.65rem}
 .scanner-session-row.active{border-color:#1c6e91;box-shadow:0 0 0 2px rgba(28,110,145,.12)}
 .scanner-session-row span,.scanner-session-row small{font-size:.78rem;color:#587181}
@@ -17,7 +17,7 @@
 .scanner-reference svg line{stroke:#f0a73d;stroke-width:8}
 .scanner-reference svg text{fill:#fff;font:bold 42px sans-serif;stroke:#102b3f;stroke-width:2;paint-order:stroke}
 .scanner-measure-list{display:grid;gap:.5rem;margin-top:1rem}
-.scanner-measure-row{display:flex;justify-content:space-between;gap:1rem;padding:.7rem;border:1px solid #d7e0e5;border-radius:.65rem;background:#fff}
+.scanner-measure-row{display:flex;justify-content:space-between;gap:1rem;padding:.8rem;border:1px solid #d7e0e5;border-radius:.65rem;background:#fff}
 .scanner-measure-row>div{display:grid;gap:.2rem}
 .scanner-measure-row>div:last-child{justify-items:end}
 .scanner-measure-row.warning{border-left:5px solid #b46a20;background:#fffaf3}
@@ -33,17 +33,60 @@
 .scanner-svg-preview svg{display:block;width:100%;min-width:620px;height:auto}
 .scanner-main .four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem}
 .scanner-main .hidden{display:none!important}
+.scanner-simple-guide{border:2px solid #1c6e91;background:linear-gradient(145deg,#f8fcff,#e8f3f8);box-shadow:0 14px 34px rgba(16,43,63,.12)}
+.scanner-step-heading{display:flex;align-items:flex-start;gap:.8rem}
+.scanner-step-heading strong{display:block;color:#102b3f;font-size:1.2rem}
+.scanner-step-heading p{margin:.25rem 0 0;color:#4f6878;line-height:1.4}
+.scanner-step-number{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:999px;background:#1c6e91;color:#fff;font-size:1.15rem;font-weight:950}
+.scanner-three-directions{display:grid;gap:.55rem;margin:1rem 0;padding-left:1.35rem;color:#17354c;line-height:1.4}
+.scanner-guide-action{display:grid;margin-top:.7rem}
+.scanner-guide-action .scanner-primary-measure{min-height:60px;border:0;border-radius:13px;background:#0b3955;color:#fff;font-size:1.08rem;font-weight:950;box-shadow:0 8px 18px rgba(11,57,85,.22)}
+.scanner-guide-note{margin:.7rem 0 0;color:#587181;font-size:.82rem;line-height:1.4}
+.scanner-history-details,.scanner-measurement-options{margin-top:.9rem;border:1px solid #d6e0e8;border-radius:10px;background:#f8fafc;padding:.2rem .7rem .7rem}
+.scanner-history-details summary,.scanner-measurement-options summary{padding:.65rem 0;color:#17354c;font-weight:900;cursor:pointer}
+.scanner-original-unit-field,.scanner-auto-mode,.scanner-empty-start-card{display:none!important}
+.scanner-project-card>.actions:empty{display:none}
+.scanner-us-measure-field input{font-size:1.05rem;min-height:50px}
+.scanner-evidence-card .scanner-capture-actions{display:grid;grid-template-columns:1fr 1fr}
+.scanner-evidence-card .scanner-capture-actions #scannerNativeCapture{display:none!important}
+.scanner-compact-status{padding:.8rem 1rem;box-shadow:none}
+.scanner-compact-status h2{font-size:1.02rem;margin-bottom:.2rem}
+.scanner-compact-status p{margin:.15rem 0;color:#587181;font-size:.84rem}
+.scanner-optional-card{border-style:dashed}
+body.scanner-no-measurements .scanner-after-measure{display:none!important}
 @media(max-width:900px){
   .scanner-layout{grid-template-columns:1fr}
   .scanner-sidebar{position:static}
   .scanner-session-list{max-height:none}
   .scanner-geometry-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media(max-width:760px){
+  body.scanner-focus-mode .topbar,body.scanner-focus-mode .business-bar,body.scanner-focus-mode .main-nav{display:none!important}
+  body.scanner-focus-mode .app-shell{display:block;min-height:100dvh}
+  body.scanner-focus-mode main{padding:max(12px,env(safe-area-inset-top)) 10px calc(18px + env(safe-area-inset-bottom));}
+  body.scanner-focus-mode .page-head{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem}
+  body.scanner-focus-mode .page-head h1{font-size:1.55rem}
+  body.scanner-focus-mode .page-head p{font-size:.92rem;line-height:1.35}
+  body.scanner-focus-mode .page-tools{width:100%;margin-top:0;order:-1}
+  body.scanner-focus-mode #scannerBack{min-height:44px;width:auto;flex:0 0 auto}
+  body.scanner-focus-mode .scanner-layout{gap:.7rem}
+  body.scanner-focus-mode .scanner-project-card{padding:12px;box-shadow:none}
+  body.scanner-focus-mode .scanner-project-card>h2{font-size:1rem}
+  body.scanner-focus-mode .scanner-project-card label{margin-top:.45rem}
+  body.scanner-focus-mode .scanner-project-card .scanner-context{margin-bottom:.45rem;padding:.65rem}
+  body.scanner-focus-mode .scanner-main{gap:.7rem}
+  body.scanner-focus-mode .scanner-simple-guide{order:-1}
+  body.scanner-focus-mode .scanner-compact-status{display:none!important}
+}
 @media(max-width:620px){
   .scanner-launch-card,.scanner-status-card,.scanner-measure-row{align-items:stretch;flex-direction:column}
   .scanner-main .three,.scanner-main .four{grid-template-columns:1fr}
+  #scannerMeasurementForm>.three:first-of-type{grid-template-columns:minmax(0,1fr) minmax(0,.65fr) minmax(0,.85fr)}
   .scanner-capture-actions,.scanner-main .actions{display:grid;grid-template-columns:1fr}
-  .scanner-capture-actions button,.scanner-main .actions button{width:100%}
+  .scanner-capture-actions button,.scanner-main .actions button{width:100%;min-height:50px}
+  .scanner-evidence-card .scanner-capture-actions{grid-template-columns:1fr}
   .scanner-measure-row>div:last-child{justify-items:start}
   .scanner-geometry-summary{grid-template-columns:1fr 1fr}
+  .scanner-simple-guide{padding:14px}
+  .scanner-three-directions{font-size:.92rem}
 }
