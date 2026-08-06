@@ -1,6 +1,8 @@
 name: Recover H38 Pages on Windows runner
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   issues:
     types: [opened]
   workflow_dispatch:
