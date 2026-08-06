@@ -1,6 +1,6 @@
 name: Recover H38 Pages on Windows runner
 
-# Recovery trigger: 2026-08-06 16:27 America/Chicago
+# Recovery trigger: 2026-08-06 16:30 America/Chicago
 on:
   push:
     branches: [main]
