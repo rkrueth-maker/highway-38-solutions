@@ -1,1 +1,0 @@
-"""ForgeIQ Shopify helper package."""
