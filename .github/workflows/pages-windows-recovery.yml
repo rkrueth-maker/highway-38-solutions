@@ -1,4 +1,4 @@
-name: Recover H38 Pages on Windows runner
+name: Recover H38 Pages
 
 on:
   workflow_dispatch:
@@ -12,13 +12,13 @@ env:
   PAGES_SOURCE_REF: gh-pages
 
 concurrency:
-  group: h38-pages-windows-recovery
+  group: h38-pages-recovery
   cancel-in-progress: true
 
 jobs:
   publish:
     name: Publish clean gh-pages tree
-    runs-on: windows-latest
+    runs-on: macos-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,12 +30,14 @@ jobs:
           fetch-depth: 1
 
       - name: Confirm clean publication commit
-        shell: pwsh
+        shell: bash
         run: |
-          $actual = git rev-parse HEAD
-          if ($actual -ne '02038a0491b9a65998112659f607040eaf3520a3') {
-            throw "Unexpected gh-pages commit: $actual"
-          }
+          actual="$(git rev-parse HEAD)"
+          expected="02038a0491b9a65998112659f607040eaf3520a3"
+          if [ "$actual" != "$expected" ]; then
+            echo "Unexpected gh-pages commit: $actual"
+            exit 1
+          fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
