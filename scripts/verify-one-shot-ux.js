@@ -40,7 +40,8 @@ check('homepage preserves neutral request solutions pricing and contact routes',
 check('homepage does not directly sell one authenticated software product',!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
 check('homepage may link product examples without turning them into the primary buyer path',home.includes('quote-builder.html#examples')&&home.includes('software.html'));
 check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']")&&publicShell.includes("{href:'software.html',label:'Software'}"));
-check('homepage uses verified local imagery',home.includes('assets/')&&!/https?:[^"']+\.(?:jpg|jpeg|png|webp)/i.test(home));
+const homepageImageSources=[...home.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match=>match[1]);
+check('homepage uses verified local imagery',homepageImageSources.length>0&&homepageImageSources.every(src=>!/^https?:/i.test(src)&&src.includes('assets/')));
 check('homepage removes obsolete mockup shells',!home.includes('approved-homepage-mockup.png')&&!home.includes('class="hotspot')&&!home.includes('approved-home__stage'));
 check('homepage does not restore retired product catalog as primary experience',!home.includes('Choose Your Path')&&!home.includes('Browse 15 products')&&!home.includes('9 bundles'));
 check('interactive quote demo remains browser-only',read('quote-builder-demo.html').includes('Nothing leaves this page')&&!/script\.google\.com|data-intake-endpoint/.test(read('quote-builder-demo.html')));
