@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "2026-08-05-custom-domain-social",
+  "version": "2026-08-06-competitive-readiness-custom-domain-social",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://highway38solutions.com/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
