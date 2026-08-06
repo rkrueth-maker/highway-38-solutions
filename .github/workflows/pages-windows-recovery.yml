@@ -29,18 +29,13 @@ jobs:
           ref: ${{ env.PAGES_SOURCE_REF }}
           fetch-depth: 1
 
-      - name: Switch Pages to workflow deployment
+      - name: Confirm clean publication commit
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $headers = @{
-            Authorization = "Bearer $env:GH_TOKEN"
-            Accept = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
+          $actual = git rev-parse HEAD
+          if ($actual -ne '02038a0491b9a65998112659f607040eaf3520a3') {
+            throw "Unexpected gh-pages commit: $actual"
           }
-          $body = @{ build_type = "workflow" } | ConvertTo-Json -Compress
-          Invoke-RestMethod -Method Put -Uri "https://api.github.com/repos/${{ github.repository }}/pages" -Headers $headers -Body $body -ContentType "application/json"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
