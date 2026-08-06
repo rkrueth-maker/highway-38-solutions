@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "licenseId": "LIC-SYNTHETIC-001",
+  "customerId": "CUSTOMER-SYNTHETIC-001",
+  "issuedAt": "2026-07-12T20:00:00.000Z",
+  "validFrom": "2026-07-12T20:00:00.000Z",
+  "validUntil": "2027-07-12T20:00:00.000Z",
+  "status": "ACTIVE",
+  "tier": "Control",
+  "tenantLimit": 2,
+  "seatLimit": 10,
+  "tenantKeys": ["synthetic-one", "synthetic-two"],
+  "releaseChannels": ["candidate", "stable"],
+  "modules": ["accounting", "contracts", "customers", "errors", "files", "invoices", "jobs", "leads", "payments", "proof", "quotes", "reports", "settings", "tasks", "website"],
+  "features": ["accounting-mapping", "backup-restore", "campaign-attribution", "multi-tenant-control", "provider-adapter-eligibility", "selected-record-workflows"],
+  "addOns": ["backup-recovery-service", "provider-adapter-configuration"],
+  "supportPlan": "Managed",
+  "commercialTermsVersion": "draft-1",
+  "metadata": {
+    "environment": "synthetic-test",
+    "ownerReviewRequired": true,
+    "externalActionsEnabled": false
+  }
+}

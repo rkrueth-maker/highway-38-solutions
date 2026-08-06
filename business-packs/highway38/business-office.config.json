@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "installationId": "highway38-production",
+  "package": {"id": "complete-business-system", "name": "Complete Business System", "singleApp": true},
+  "business": {"id": "H38", "legalName": "Highway 38 Solutions", "publicName": "Highway 38 Solutions"},
+  "branding": {"businessName": "Highway 38 Solutions", "businessOfficeName": "Highway 38 Business System", "logoPath": "assets/highway38-logo.png", "logoUrl": "https://rkrueth-maker.github.io/highway-38-solutions/assets/highway38-logo.png?v=20260720-exact-0cbc4514", "primaryColor": "#173a5e", "secondaryColor": "#326a9e", "documentFooter": "Highway 38 Business Office · Private preparation document", "originalFileDescription": "Private Highway 38 Business Office original."},
+  "contact": {"ownerEmailProperty": "H38_BUSINESS_OFFICE_OWNER_EMAIL", "publicEmail": "", "phone": "", "address": ""},
+  "regional": {"timeZone": "America/Chicago", "currency": "USD", "locale": "en-US"},
+  "resources": {"propertyKeys": {"BO_SPREADSHEET_ID": "H38_BUSINESS_OFFICE_SPREADSHEET_ID", "BO_DEFAULT_BUSINESS_ID": "H38_BUSINESS_OFFICE_DEFAULT_BUSINESS_ID", "BO_ROOT_FOLDER_ID": "H38_BUSINESS_OFFICE_ROOT_FOLDER_ID", "BO_DOCUMENT_FOLDER_ID": "H38_BUSINESS_OFFICE_DOCUMENT_FOLDER_ID", "BO_PDF_FOLDER_ID": "H38_BUSINESS_OFFICE_PDF_FOLDER_ID", "BO_EXPORT_FOLDER_ID": "H38_BUSINESS_OFFICE_EXPORT_FOLDER_ID", "BO_BACKUP_FOLDER_ID": "H38_BUSINESS_OFFICE_BACKUP_FOLDER_ID", "BO_INTAKE_SOURCE_SPREADSHEET_ID": "H38_BACKEND_SPREADSHEET_ID"}},
+  "website": {"publicUrl": "https://rkrueth-maker.github.io/highway-38-solutions/", "ownerPortalUrl": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html"},
+  "catalog": {"mode": "configured", "source": "BO Products & Services"},
+  "validation": {"enforceCatalogCounts": true, "expectedProductCount": 15, "expectedBundleCount": 9},
+  "approvalLanguage": {"required": "Owner Authorization Required", "ownerRequired": "Authenticated Owner authorization is required.", "dashboardReview": "Owner authorization is required before an implemented external action runs.", "decisionButton": "Owner decision"},
+  "tax": {"mode": "owner-authorized", "directFiling": true},
+  "roles": {"names": ["Owner", "Administrator", "Foreman", "Estimator", "Field Staff", "Staff", "Bookkeeper", "Payroll", "Viewer"]},
+  "modules": {"commandCenter": true, "website": true, "growth": true, "social": true, "advertising": true, "assignedTasks": true, "requests": true, "customers": true, "vendors": true, "quotes": true, "quoteBuilder": true, "workOrders": true, "jobs": true, "equipment": true, "purchaseOrders": true, "vendorBills": true, "receipts": true, "expenses": true, "invoices": true, "payments": true, "time": true, "employees": true, "payroll": true, "contractors": true, "tax": true, "documents": true, "accounting": true, "reports": true, "approvals": true, "backups": true, "setup": true},
+  "workflow": {
+    "closedEnvironment": true,
+    "externalActionsEnabled": true,
+    "ownerApprovalRequired": true,
+    "selectedRecordOnly": false,
+    "bulkExternalActionsEnabled": true,
+    "automaticExternalTriggersEnabled": true,
+    "liveActionTypes": ["email", "emailReply", "quoteDelivery", "customerPortalInvite", "schedulingNotification", "sms", "payment", "refund", "purchaseOrder", "vendorPayment", "payrollFunding", "taxFiling", "accountingPost", "socialPublish", "advertisingSpend", "bulkExecution", "automaticTrigger", "deployment"],
+    "approvalNotice": "Closed Highway 38 environment: the authenticated Owner may execute any implemented action. Provider credentials, role permissions, record validation, consent rules, duplicate protection, Proof Log, Audit, and Error Log still apply."
+  },
+  "social": {"provider": "none", "externalActionsEnabled": true, "ownerApprovalRequired": true, "selectedRecordOnly": false, "automaticPublishingEnabled": true, "bulkPublishingEnabled": true, "customerProofApprovalRequired": true},
+  "documents": {"defaultTypes": ["Equipment Record", "Equipment Asset Photo", "Equipment Checkout Photo", "Equipment Return Photo", "Equipment Inspection Photo", "Equipment Service Document"]},
+  "templates": {"quote": "default", "workOrder": "default", "invoice": "default", "expense": "default", "payroll": "default", "taxPreparation": "default"}
+}

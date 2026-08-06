@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "engine": {
+    "id": "business-os-core",
+    "name": "Business OS Core Engine",
+    "version": "1.0.0",
+    "releaseChannels": ["stable", "candidate", "development"],
+    "defaultReleaseChannel": "stable"
+  },
+  "tenant": {
+    "mode": "isolated",
+    "namespacePattern": "tenants/{tenantKey}",
+    "crossTenantReads": false,
+    "crossTenantWrites": false
+  },
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtection": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "ownerApprovalRequiredForExternalActions": true,
+    "externalActionsEnabled": false
+  },
+  "modules": [
+    {"id": "tasks", "name": "Tasks", "core": true},
+    {"id": "leads", "name": "Leads", "core": true},
+    {"id": "customers", "name": "Customers", "core": true},
+    {"id": "jobs", "name": "Jobs", "core": true},
+    {"id": "quotes", "name": "Quotes", "core": true},
+    {"id": "invoices", "name": "Invoices", "core": true},
+    {"id": "payments", "name": "Payments", "core": true},
+    {"id": "expenses", "name": "Expenses", "core": true},
+    {"id": "communications", "name": "Communications", "core": true},
+    {"id": "files", "name": "Files", "core": true},
+    {"id": "contracts", "name": "Contracts", "core": false},
+    {"id": "social", "name": "Social", "core": false},
+    {"id": "advertising", "name": "Advertising", "core": false},
+    {"id": "website", "name": "Website", "core": false},
+    {"id": "accounting", "name": "Accounting", "core": false},
+    {"id": "reports", "name": "Reports", "core": true},
+    {"id": "proof", "name": "Proof Log", "core": true},
+    {"id": "errors", "name": "Error Log", "core": true},
+    {"id": "settings", "name": "Settings", "core": true}
+  ],
+  "roles": {
+    "owner": ["*"],
+    "administrator": ["records.read", "records.write", "reports.read", "settings.read", "approvals.prepare"],
+    "operator": ["records.read", "records.write", "tasks.execute.selected", "proof.read"],
+    "reviewer": ["records.read", "approvals.review", "reports.read", "proof.read"],
+    "customer": ["customer.own.read", "customer.own.upload", "customer.own.quote.approve", "customer.own.invoice.read", "customer.own.payment.hosted", "customer.own.download", "customer.own.message"]
+  },
+  "featureFlags": {
+    "customerPortal": false,
+    "customerUploads": false,
+    "hostedPayments": false,
+    "outboundEmail": false,
+    "socialPublishing": false,
+    "advertisingLaunch": false,
+    "websiteDeployment": false,
+    "accountingApiSync": false,
+    "calendarSync": false,
+    "recurringContracts": true,
+    "providerNeutralCsv": true
+  },
+  "theme": {
+    "brandName": "Business OS",
+    "logo": "",
+    "accentColor": "#17324d",
+    "surfaceColor": "#ffffff",
+    "fontFamily": "system-ui"
+  },
+  "data": {
+    "recordTypes": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "social", "advertising", "website", "proof", "errors"],
+    "productionDemoIsolationRequired": true,
+    "defaultEnvironment": "production"
+  }
+}

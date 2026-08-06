@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "release": "revenue-growth-launch-readiness-2026-07-12",
+  "tenantKey": "highway-38",
+  "timezone": "America/Chicago",
+  "externalActionsEnabled": false,
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtectionRequired": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "providerHostedPaymentEntryOnly": true,
+    "rawCardDataAllowed": false,
+    "advertisingSpendEnabled": false,
+    "finalDeliveryEnabled": false
+  },
+  "providers": [
+    {
+      "slot": "email",
+      "currentMode": "draft-only",
+      "status": "BLOCKED_BY_PROVIDER_CONNECTION",
+      "credentialState": "NOT_CONFIGURED",
+      "liveExecution": false,
+      "fallback": "Generate owner-review drafts without sending.",
+      "exactConnectionStep": "Connect one approved production email provider using credentials stored outside the repository, verify the business sender identity, then pass success, failure, duplicate, timeout, and uncertain-result tests before owner release."
+    },
+    {
+      "slot": "payments",
+      "currentMode": "manual-record-only",
+      "status": "BLOCKED_BY_PROVIDER_CONNECTION",
+      "credentialState": "NOT_CONFIGURED",
+      "liveExecution": false,
+      "fallback": "Prepare approved payment-request records without creating a hosted link or processing money.",
+      "exactConnectionStep": "Connect one provider-hosted payment service with production credentials and webhook verification stored outside the repository, confirm payment entry remains on the provider page, then pass link, payment, partial payment, recurring billing, receipt, credit, refund, duplicate, timeout, and uncertain-result tests before owner release."
+    },
+    {
+      "slot": "accounting",
+      "currentMode": "approved-csv-export",
+      "status": "SAFE_INTERNAL_MODE",
+      "credentialState": "NOT_REQUIRED_FOR_CSV",
+      "liveExecution": false,
+      "fallback": "Use the versioned provider-neutral CSV export and owner-approved account map.",
+      "exactConnectionStep": "Approve the chart-of-accounts mapping and either select an accounting provider or approve CSV-only operation; an API connection must pass create, read-back, duplicate, mapping-error, timeout, uncertain-result, reconciliation, logging, and rollback tests."
+    },
+    {
+      "slot": "social",
+      "currentMode": "internal-schedule-only",
+      "status": "METRICOOL_CONNECTION_ERROR",
+      "credentialState": "CONNECTION_FAILED",
+      "liveExecution": false,
+      "observedConnection": {
+        "checkedOn": "2026-07-12",
+        "result": "ERROR",
+        "message": "We couldn't connect your account. Please try again.",
+        "brandId": null,
+        "blogId": null,
+        "timezoneConfirmed": false
+      },
+      "fallback": "Use the internal 30-day content bank and platform-ready drafts without scheduling or publishing.",
+      "exactConnectionStep": "Reconnect or authorize the Highway 38 brand in Metricool, rerun the brand-settings read, and record the returned brand ID, blog ID, networks, and timezone; if unavailable, connect approved native platform adapters one at a time and pass draft, schedule, publish, failure, duplicate, timeout, uncertain-result, inquiry-routing, logging, and rollback tests."
+    },
+    {
+      "slot": "website",
+      "currentMode": "review-only",
+      "status": "READY_FOR_OWNER_APPROVED_DEPLOYMENT",
+      "credentialState": "REPOSITORY_CONNECTED",
+      "liveExecution": false,
+      "fallback": "Prepare changes, tests, evidence, and rollback references without deploying.",
+      "exactConnectionStep": "Record the production commit as the rollback point, pass repository and live-route verification, obtain separate owner deployment approval, deploy only the selected change, then record production evidence and the tested rollback procedure."
+    },
+    {
+      "slot": "customer-auth-and-storage",
+      "currentMode": "not-activated",
+      "status": "BLOCKED_BY_PRODUCTION_INFRASTRUCTURE",
+      "credentialState": "NOT_CONFIGURED",
+      "liveExecution": false,
+      "fallback": "Keep the public customer portal truthfully not activated and use owner-controlled internal records.",
+      "exactConnectionStep": "Configure an authenticated private storage and identity provider with isolated customer-own rules, then pass cross-customer denial, object-reference denial, upload, access logging, deletion, backup, restore, session, logging, and rollback tests before activation."
+    }
+  ]
+}

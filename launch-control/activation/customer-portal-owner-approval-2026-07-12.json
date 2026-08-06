@@ -1,0 +1,15 @@
+{
+  "approvalId": "H38-CUSTOMER-PORTAL-ACTIVATION-2026-07-12",
+  "approvedBy": "Rick",
+  "approvedAt": "2026-07-12",
+  "instruction": "Activate go",
+  "scope": "Proceed through all verified customer portal activation gates and activate only when required production providers, credentials, runtime, isolation tests, rollback, and safety controls pass.",
+  "externalActions": {
+    "customerEmail": "REQUIRES_SEPARATE_VERIFIED_PROVIDER_GATE",
+    "paymentRequests": "REQUIRES_SEPARATE_VERIFIED_PROVIDER_GATE",
+    "paymentProcessing": "REQUIRES_SEPARATE_VERIFIED_PROVIDER_GATE",
+    "finalDelivery": "REQUIRES_SEPARATE_VERIFIED_PROVIDER_GATE"
+  },
+  "currentState": "OWNER_APPROVED_PROVIDER_CONNECTIONS_PENDING",
+  "activationRule": "Fail closed. Do not claim activation until live provider references and production verification evidence exist."
+}

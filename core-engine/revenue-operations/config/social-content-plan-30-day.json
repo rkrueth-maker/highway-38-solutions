@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "release": "social-content-bank-2026-07-12",
+  "status": "OWNER_REVIEW_REQUIRED",
+  "approvedPlatforms": ["facebook", "instagram", "linkedin", "google-business-profile", "youtube"],
+  "secondaryChannels": [],
+  "cadence": {
+    "facebook": "4 posts/week",
+    "instagram": "4 feed posts/week plus optional stories",
+    "linkedin": "3 posts/week",
+    "google-business-profile": "2 posts/week",
+    "youtube": "1 short or practical video/week"
+  },
+  "assetSpecifications": {
+    "facebook": {"primary": "1200x1500 portrait or 1200x630 landscape", "copyLimit": 700, "linkAllowed": true},
+    "instagram": {"primary": "1080x1350 portrait", "story": "1080x1920", "copyLimit": 500, "linkAllowed": false},
+    "linkedin": {"primary": "1200x627 landscape or document carousel", "copyLimit": 900, "linkAllowed": true},
+    "google-business-profile": {"primary": "1200x900 landscape", "copyLimit": 300, "linkAllowed": true},
+    "youtube": {"primary": "1920x1080 video or 1080x1920 Short", "thumbnail": "1280x720", "copyLimit": 1000, "linkAllowed": true}
+  },
+  "days": [
+    {"day":1,"theme":"Problem clarity","title":"Why a crowded garage is often a layout problem, not a storage-bin problem","format":"single-image","cta":"Use the free Shop Flow Scorecard","relatedProduct":"H38-P004"},
+    {"day":2,"theme":"Process","title":"What happens between a rough idea and an approved project packet","format":"carousel","cta":"Review Project Packet Lite","relatedProduct":"H38-P003"},
+    {"day":3,"theme":"Tool demo","title":"Three inputs that make a machining estimate more useful","format":"screen-recording","cta":"Open the Machining Quick Calculator","relatedProduct":"H38-P010"},
+    {"day":4,"theme":"Proof boundary","title":"Demonstration sample versus verified historical proof","format":"graphic","cta":"Visit the Proof Library","relatedProduct":"H38-P001"},
+    {"day":5,"theme":"Offer education","title":"When a Problem Snapshot is enough—and when it is not","format":"text-plus-diagram","cta":"Start with H38-P001","relatedProduct":"H38-P001"},
+    {"day":6,"theme":"Behind the system","title":"Why every customer-facing action stays under owner review","format":"short-video","cta":"See the operating controls","relatedProduct":"H38-P007"},
+    {"day":7,"theme":"Weekly recap","title":"Five questions to answer before moving tools or equipment","format":"checklist","cta":"Download the Project Scope Builder","relatedProduct":"H38-P003"},
+    {"day":8,"theme":"Garage planning","title":"Protect the vehicle lane before choosing storage","format":"before-after-diagram","cta":"Review Basic Layout Snapshot","relatedProduct":"H38-P002"},
+    {"day":9,"theme":"Workflow","title":"The hidden cost of walking, waiting, searching, and rehandling","format":"calculator-demo","cta":"Use the Bottleneck Cost Calculator","relatedProduct":"H38-P004"},
+    {"day":10,"theme":"Customer path","title":"Free tool to starter package to complete result","format":"funnel-diagram","cta":"See products and services","relatedProduct":"H38-P001"},
+    {"day":11,"theme":"Manufacturing","title":"What a vendor quote should say about acceptance criteria","format":"document-carousel","cta":"Download the quote checklist","relatedProduct":"H38-P010"},
+    {"day":12,"theme":"Privacy","title":"Nine things to check before sharing a project photo","format":"checklist","cta":"Download the Photo Privacy Review","relatedProduct":"H38-P006"},
+    {"day":13,"theme":"Automation","title":"Simple payback is the start of the decision, not the whole decision","format":"calculator-demo","cta":"Use the Automation Payback Estimator","relatedProduct":"H38-P010"},
+    {"day":14,"theme":"Weekly recap","title":"What was clarified this week: scope, proof, privacy, and payback","format":"recap","cta":"Choose one next step","relatedProduct":"H38-P001"},
+    {"day":15,"theme":"Shop flow","title":"A good layout protects flow, access, safety questions, and future changes","format":"annotated-layout","cta":"Review Shop Flow Review","relatedProduct":"H38-P004"},
+    {"day":16,"theme":"Business cleanup","title":"Seven statuses that prevent a lead from disappearing","format":"workflow-diagram","cta":"Review Business Cleanup Starter","relatedProduct":"H38-P005"},
+    {"day":17,"theme":"Bar feed","title":"Parts per bar versus parts per shift","format":"calculator-demo","cta":"Use the Bar-Feed Production Calculator","relatedProduct":"H38-P010"},
+    {"day":18,"theme":"Press feed","title":"Why theoretical strokes are not the same as good output","format":"calculator-demo","cta":"Use the Press-Feed Capacity Worksheet","relatedProduct":"H38-P011"},
+    {"day":19,"theme":"Contracts","title":"What bounded recurring support should include and exclude","format":"contract-outline","cta":"Review care-plan options","relatedProduct":"H38-P008"},
+    {"day":20,"theme":"Decision support","title":"Facts, assumptions, missing information, risks, and decisions","format":"five-box-framework","cta":"Start a Problem Snapshot","relatedProduct":"H38-P001"},
+    {"day":21,"theme":"Weekly recap","title":"Three calculators and one decision framework to keep","format":"resource-roundup","cta":"Open Highway 38 Tools","relatedProduct":"H38-P010"},
+    {"day":22,"theme":"Robot tending","title":"Ten readiness questions before discussing a robot","format":"scorecard-demo","cta":"Use Robot-Tending Readiness","relatedProduct":"H38-P015"},
+    {"day":23,"theme":"Website control","title":"Why a rollback reference is part of every approved site change","format":"process-graphic","cta":"See change-control approach","relatedProduct":"H38-P007"},
+    {"day":24,"theme":"Accounting","title":"Revenue is not cash and cash is not profit","format":"three-column-graphic","cta":"Review Business Cleanup Starter","relatedProduct":"H38-P005"},
+    {"day":25,"theme":"Customer intake","title":"The twelve questions that reduce rework before a project starts","format":"carousel","cta":"Start a request","relatedProduct":"H38-P003"},
+    {"day":26,"theme":"Proof","title":"How an anonymized reconstruction protects privacy without pretending to be customer work","format":"narrated-slide","cta":"Visit the Proof Library","relatedProduct":"H38-P006"},
+    {"day":27,"theme":"Pricing","title":"Price the finished outcome, inputs, exclusions, turnaround, and revisions","format":"pricing-framework","cta":"Review service details","relatedProduct":"H38-P001"},
+    {"day":28,"theme":"Weekly recap","title":"What to document before asking for a quote or layout","format":"checklist","cta":"Download the scope builder","relatedProduct":"H38-P003"},
+    {"day":29,"theme":"Business OS","title":"How selected-record controls reduce duplicate external actions","format":"workflow-demo","cta":"Explore the Business Concept Builder","relatedProduct":"H38-P007"},
+    {"day":30,"theme":"Month review","title":"Thirty days of practical systems: what to use next","format":"monthly-recap-video","cta":"Choose a free tool or starter package","relatedProduct":"H38-P001"}
+  ],
+  "publishingControls": {
+    "ownerApprovalRequired": true,
+    "selectedRecordOnly": true,
+    "bulkPublishing": false,
+    "automaticRetry": false,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "externalPublishingEnabled": false
+  },
+  "externalActionsOccurred": false
+}

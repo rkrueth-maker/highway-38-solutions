@@ -1,0 +1,525 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "status": "PASS",
+  "generatedAt": "2026-07-13T16:46:09.921Z",
+  "passed": 128,
+  "failed": 0,
+  "filesScanned": 558,
+  "publicTextFilesScanned": 411,
+  "digest": "72a9cdf985e28d16e9ba6de0a6cd382a12c0fd6210b2e97d82d324adc828e7b9",
+  "passes": [
+    {
+      "name": "launch manifest exists",
+      "detail": ""
+    },
+    {
+      "name": "launch manifest parses",
+      "detail": "complete-ecosystem-live-launch-2026-07-11"
+    },
+    {
+      "name": "master issue is 31",
+      "detail": "31"
+    },
+    {
+      "name": "execution branch is exact",
+      "detail": "complete-ecosystem-live-launch-2026-07-11"
+    },
+    {
+      "name": "six mandatory workstreams",
+      "detail": "6"
+    },
+    {
+      "name": "workstream issues exact",
+      "detail": ""
+    },
+    {
+      "name": "scope reduction blocked",
+      "detail": ""
+    },
+    {
+      "name": "silent omissions blocked",
+      "detail": ""
+    },
+    {
+      "name": "fake completion blocked",
+      "detail": ""
+    },
+    {
+      "name": "rollback required",
+      "detail": ""
+    },
+    {
+      "name": "public private data blocked",
+      "detail": ""
+    },
+    {
+      "name": "external owner release required",
+      "detail": ""
+    },
+    {
+      "name": "customer email locked",
+      "detail": ""
+    },
+    {
+      "name": "payment requests locked",
+      "detail": ""
+    },
+    {
+      "name": "payment processing locked",
+      "detail": ""
+    },
+    {
+      "name": "social publishing locked",
+      "detail": ""
+    },
+    {
+      "name": "advertising spend locked",
+      "detail": ""
+    },
+    {
+      "name": "final delivery locked",
+      "detail": ""
+    },
+    {
+      "name": "privacy and secret scan",
+      "detail": "411 public text candidates scanned"
+    },
+    {
+      "name": "required artifact launch-control/launch-manifest.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact launch-control/README.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact launch-control/rollback-register.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact launch-control/deployment-evidence.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact launch-control/blockers.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport 404.html",
+      "detail": ""
+    },
+    {
+      "name": "html title 404.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport about.html",
+      "detail": ""
+    },
+    {
+      "name": "html title about.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport ai-workflow.html",
+      "detail": ""
+    },
+    {
+      "name": "html title ai-workflow.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport approval-deposit-pack.html",
+      "detail": ""
+    },
+    {
+      "name": "html title approval-deposit-pack.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport automation-examples.html",
+      "detail": ""
+    },
+    {
+      "name": "html title automation-examples.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport backend-system.html",
+      "detail": ""
+    },
+    {
+      "name": "html title backend-system.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport business-os.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-os.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport catalog.html",
+      "detail": ""
+    },
+    {
+      "name": "html title catalog.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport custom-work-build.html",
+      "detail": ""
+    },
+    {
+      "name": "html title custom-work-build.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport customer-history-setup.html",
+      "detail": ""
+    },
+    {
+      "name": "html title customer-history-setup.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport ecosystem-status.html",
+      "detail": ""
+    },
+    {
+      "name": "html title ecosystem-status.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport examples.html",
+      "detail": ""
+    },
+    {
+      "name": "html title examples.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport faq.html",
+      "detail": ""
+    },
+    {
+      "name": "html title faq.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport final-acceptance.html",
+      "detail": ""
+    },
+    {
+      "name": "html title final-acceptance.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport forgeiq.html",
+      "detail": ""
+    },
+    {
+      "name": "html title forgeiq.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "html title free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport how-it-works.html",
+      "detail": ""
+    },
+    {
+      "name": "html title how-it-works.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title index.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport launch-plan.html",
+      "detail": ""
+    },
+    {
+      "name": "html title launch-plan.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport local-service-operating-system.html",
+      "detail": ""
+    },
+    {
+      "name": "html title local-service-operating-system.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport packages.html",
+      "detail": ""
+    },
+    {
+      "name": "html title packages.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport pricing.html",
+      "detail": ""
+    },
+    {
+      "name": "html title pricing.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport privacy.html",
+      "detail": ""
+    },
+    {
+      "name": "html title privacy.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport product.html",
+      "detail": ""
+    },
+    {
+      "name": "html title product.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport products.html",
+      "detail": ""
+    },
+    {
+      "name": "html title products.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport project-action-snapshot.html",
+      "detail": ""
+    },
+    {
+      "name": "html title project-action-snapshot.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport proof-builds.html",
+      "detail": ""
+    },
+    {
+      "name": "html title proof-builds.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport proof-center.html",
+      "detail": ""
+    },
+    {
+      "name": "html title proof-center.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport proof.html",
+      "detail": ""
+    },
+    {
+      "name": "html title proof.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport quote-sheet-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html title quote-sheet-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport real-proof-lab.html",
+      "detail": ""
+    },
+    {
+      "name": "html title real-proof-lab.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport request-form-lead-tracker.html",
+      "detail": ""
+    },
+    {
+      "name": "html title request-form-lead-tracker.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport resources.html",
+      "detail": ""
+    },
+    {
+      "name": "html title resources.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport revenue-operations-status.html",
+      "detail": ""
+    },
+    {
+      "name": "html title revenue-operations-status.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport sample-library-now.html",
+      "detail": ""
+    },
+    {
+      "name": "html title sample-library-now.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport sample-library.html",
+      "detail": ""
+    },
+    {
+      "name": "html title sample-library.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport sample-workbooks.html",
+      "detail": ""
+    },
+    {
+      "name": "html title sample-workbooks.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport services.html",
+      "detail": ""
+    },
+    {
+      "name": "html title services.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport shop-automation.html",
+      "detail": ""
+    },
+    {
+      "name": "html title shop-automation.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport solutions.html",
+      "detail": ""
+    },
+    {
+      "name": "html title solutions.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "html title start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport terms.html",
+      "detail": ""
+    },
+    {
+      "name": "html title terms.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport test-plan.html",
+      "detail": ""
+    },
+    {
+      "name": "html title test-plan.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport tests/fixtures/commercial-proof-generator.html",
+      "detail": ""
+    },
+    {
+      "name": "html title tests/fixtures/commercial-proof-generator.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport tool-center.html",
+      "detail": ""
+    },
+    {
+      "name": "html title tool-center.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport tools.html",
+      "detail": ""
+    },
+    {
+      "name": "html title tools.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport weekly-owner-dashboard.html",
+      "detail": ""
+    },
+    {
+      "name": "html title weekly-owner-dashboard.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport worked-examples.html",
+      "detail": ""
+    },
+    {
+      "name": "html title worked-examples.html",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

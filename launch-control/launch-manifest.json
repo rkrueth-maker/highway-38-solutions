@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "masterIssue": 31,
+  "repository": "rkrueth-maker/highway-38-solutions",
+  "executionBranch": "complete-ecosystem-live-launch-2026-07-11",
+  "completionState": "IN_PROGRESS",
+  "hardRules": {
+    "scopeReductionAllowed": false,
+    "silentOmissionsAllowed": false,
+    "fakeCompletionAllowed": false,
+    "criticalControlsWaivable": false,
+    "rollbackRequiredBeforeProductionWrite": true,
+    "verifiedComponentsMayDeployContinuously": true,
+    "publicPrivateDataAllowed": false,
+    "externalActionsRequireOwnerRelease": true
+  },
+  "privacyClassesBlockedFromPublic": [
+    "Clow",
+    "CSC",
+    "PST source data",
+    "customer private data",
+    "vendor private data",
+    "employee private data",
+    "private addresses",
+    "family private data"
+  ],
+  "workstreams": [
+    {"id": 32, "name": "Brand, website, services, tools, and customer path", "status": "IN_PROGRESS"},
+    {"id": 33, "name": "Owner Portal, customer portal, and operating workflows", "status": "IN_PROGRESS"},
+    {"id": 34, "name": "Proof, PST extraction, photos, calculators, and downloads", "status": "IN_PROGRESS"},
+    {"id": 35, "name": "Business Concept Builder and transferable Business OS", "status": "IN_PROGRESS"},
+    {"id": 36, "name": "Payments, contracts, social, communications, and accounting", "status": "IN_PROGRESS"},
+    {"id": 37, "name": "Integration, hard-rule QA, deployment, and final acceptance", "status": "IN_PROGRESS"}
+  ],
+  "requiredFinalEvidence": [
+    "liveUrls",
+    "testEvidence",
+    "deploymentRecords",
+    "rollbackPoints",
+    "privacyScan",
+    "exactRemainingBlockers"
+  ],
+  "externalFunctions": {
+    "customerEmail": "LOCKED",
+    "paymentRequests": "LOCKED",
+    "paymentProcessing": "LOCKED",
+    "socialPublishing": "LOCKED",
+    "advertisingSpend": "LOCKED",
+    "finalDelivery": "LOCKED",
+    "websiteDeployment": "CONTROLLED_BY_ISSUE_37"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "activationMode": "HOLD",
+  "runtime": {
+    "provider": "REPLACE_WITH_AUTHORIZED_SERVER_RUNTIME",
+    "baseUrl": "https://portal-runtime.example.invalid",
+    "healthUrl": "https://portal-runtime.example.invalid/health",
+    "deploymentId": "REPLACE_WITH_RUNTIME_DEPLOYMENT_ID",
+    "rollbackRef": "REPLACE_WITH_TESTED_ROLLBACK_REFERENCE"
+  },
+  "identity": {
+    "provider": "REPLACE_WITH_IDENTITY_PROVIDER",
+    "issuer": "https://identity.example.invalid/",
+    "jwksUrl": "https://identity.example.invalid/.well-known/jwks.json",
+    "requireTenantClaim": true,
+    "requireCustomerClaim": true,
+    "maxTokenAgeSeconds": 900
+  },
+  "storage": {
+    "provider": "REPLACE_WITH_PRIVATE_STORAGE_PROVIDER",
+    "denyPublicAccess": true,
+    "signedDownloads": true,
+    "quarantineNamespace": "tenants/{tenantKey}/customers/{customerId}/quarantine/",
+    "deliveryNamespace": "tenants/{tenantKey}/customers/{customerId}/deliverables/"
+  },
+  "malwareScanning": {
+    "provider": "REPLACE_WITH_MALWARE_SCANNER",
+    "quarantineRequired": true,
+    "cleanVerdictRequired": true,
+    "failClosed": true
+  },
+  "payments": {
+    "provider": "REPLACE_WITH_HOSTED_PAYMENT_PROVIDER",
+    "providerHostedOnly": true,
+    "rawCardDataAllowed": false,
+    "approvedHosts": [
+      "payments.example.invalid"
+    ]
+  },
+  "session": {
+    "secretEnvVar": "H38_CUSTOMER_PORTAL_SESSION_SECRET",
+    "minimumSecretBytes": 32,
+    "secureCookie": true,
+    "httpOnly": true,
+    "sameSite": "Lax",
+    "csrfProtection": true
+  },
+  "controls": {
+    "contentSecurityPolicy": true,
+    "rateLimiting": true,
+    "auditRetention": true,
+    "monitoring": true,
+    "automaticRetry": false,
+    "bulkExecution": false,
+    "proofLogRequired": true,
+    "errorLogRequired": true
+  },
+  "featureFlags": {
+    "customerPortal": false,
+    "externalActions": {
+      "emailSend": false,
+      "paymentRequest": false,
+      "paymentProcessing": false,
+      "finalDelivery": false,
+      "automaticPublication": false
+    }
+  }
+}

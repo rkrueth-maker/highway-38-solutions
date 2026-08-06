@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "strategy": "embedded-neutral-schema",
+  "schemaArtifact": "business-office.schema.json.gz.b64",
+  "requiredSheetCount": 81,
+  "containsLiveResourceIds": false,
+  "containsCustomerData": false,
+  "containsFinancialTransactions": false,
+  "provisioningRule": "Create a new workbook from the embedded neutral schema, create fresh installation resources, inject the business and owner rows, then deploy before any user access."
+}

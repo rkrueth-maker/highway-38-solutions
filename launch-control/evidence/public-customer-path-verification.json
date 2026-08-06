@@ -1,0 +1,1120 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-07-13T16:46:09.799Z",
+  "passed": 272,
+  "failed": 0,
+  "routes": [
+    "index.html",
+    "services.html",
+    "products.html",
+    "product.html",
+    "free-tools.html",
+    "proof.html",
+    "business-os.html",
+    "about.html",
+    "resources.html",
+    "start-request.html",
+    "portal.html"
+  ],
+  "controls": {
+    "catalogProducts": 15,
+    "catalogBundles": 9,
+    "serviceFamilies": 3,
+    "reusableProductDetails": true,
+    "intakePreselection": true,
+    "forgeIqRedirect": true,
+    "externalCheckout": false,
+    "rawCardFields": false
+  },
+  "passes": [
+    {
+      "name": "required public artifact: index.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: services.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: products.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: product.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: proof.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: business-os.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: about.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: resources.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: portal.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: favicon.svg",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: site.webmanifest",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: robots.txt",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: sitemap.xml",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: catalog-data.js",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: commercial.js",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: commercial-public.js",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: catalog-navigation.js",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: product-detail.js",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: catalog-family.css",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: brand/highway-38-mark.svg",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: brand/highway-38-solutions.svg",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: brand/highway-38-tools.svg",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: brand/highway-38-business-os.svg",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: brand/highway-38-supply-co.svg",
+      "detail": ""
+    },
+    {
+      "name": "catalog object exists",
+      "detail": ""
+    },
+    {
+      "name": "catalog has 15 products",
+      "detail": "15"
+    },
+    {
+      "name": "catalog has 9 bundles",
+      "detail": "9"
+    },
+    {
+      "name": "catalog has 3 service families",
+      "detail": "3"
+    },
+    {
+      "name": "product IDs exact",
+      "detail": ""
+    },
+    {
+      "name": "bundle IDs exact",
+      "detail": ""
+    },
+    {
+      "name": "catalog IDs unique",
+      "detail": ""
+    },
+    {
+      "name": "all products have controlled commercial fields",
+      "detail": ""
+    },
+    {
+      "name": "all bundles map to valid products",
+      "detail": ""
+    },
+    {
+      "name": "product wall replaced by family navigation",
+      "detail": ""
+    },
+    {
+      "name": "hidden commercial detail compatibility retained",
+      "detail": ""
+    },
+    {
+      "name": "all family render targets present",
+      "detail": ""
+    },
+    {
+      "name": "comparison matrix retained",
+      "detail": ""
+    },
+    {
+      "name": "bundles retained",
+      "detail": ""
+    },
+    {
+      "name": "help-me-choose route retained",
+      "detail": ""
+    },
+    {
+      "name": "products page has Open Graph metadata",
+      "detail": ""
+    },
+    {
+      "name": "reusable product detail mount exists",
+      "detail": ""
+    },
+    {
+      "name": "reusable product page loads catalog and renderer",
+      "detail": ""
+    },
+    {
+      "name": "product page has no checkout or payment form",
+      "detail": ""
+    },
+    {
+      "name": "catalog-navigation.js syntax",
+      "detail": ""
+    },
+    {
+      "name": "product-detail.js syntax",
+      "detail": ""
+    },
+    {
+      "name": "detail renderer accepts controlled product ID",
+      "detail": ""
+    },
+    {
+      "name": "detail renderer exposes complete commercial scope",
+      "detail": ""
+    },
+    {
+      "name": "detail renderer records analytics event",
+      "detail": ""
+    },
+    {
+      "name": "detail renderer has invalid-ID safe state",
+      "detail": ""
+    },
+    {
+      "name": "catalog navigation rewrites legacy detail links",
+      "detail": ""
+    },
+    {
+      "name": "intake supports product query preselection",
+      "detail": ""
+    },
+    {
+      "name": "intake supports bundle query preselection",
+      "detail": ""
+    },
+    {
+      "name": "intake builds customer request summary",
+      "detail": ""
+    },
+    {
+      "name": "intake avoids silent external submission",
+      "detail": ""
+    },
+    {
+      "name": "free tools route is functional",
+      "detail": ""
+    },
+    {
+      "name": "free tools includes downloads",
+      "detail": ""
+    },
+    {
+      "name": "free tools contains no actionable fake checkout",
+      "detail": ""
+    },
+    {
+      "name": "ForgeIQ redirects to Highway 38 Tools",
+      "detail": ""
+    },
+    {
+      "name": "four sub-brand assets exist and contain Highway 38",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes index.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes services.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes products.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes product.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes proof.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes business-os.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes about.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes resources.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes portal.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes reusable product route",
+      "detail": ""
+    },
+    {
+      "name": "no public LLC claim",
+      "detail": ""
+    },
+    {
+      "name": "no private employer names in public package",
+      "detail": ""
+    },
+    {
+      "name": "no raw card fields",
+      "detail": ""
+    },
+    {
+      "name": "no retired ForgeIQ brand in primary routes",
+      "detail": ""
+    },
+    {
+      "name": "no fake testimonials",
+      "detail": ""
+    },
+    {
+      "name": "index.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "index.html: title",
+      "detail": ""
+    },
+    {
+      "name": "index.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "index.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "index.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "index.html: local asset commercial-public.css",
+      "detail": "commercial-public.css"
+    },
+    {
+      "name": "index.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "index.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "index.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "index.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "index.html: local asset commercial-public.js",
+      "detail": "commercial-public.js"
+    },
+    {
+      "name": "index.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "index.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "index.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "index.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "index.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "index.html: local asset sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "index.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "index.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "index.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "index.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "index.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "index.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "index.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "index.html: local asset real-proof-lab.html",
+      "detail": "real-proof-lab.html"
+    },
+    {
+      "name": "index.html: local asset quote-sheet-builder.html",
+      "detail": "quote-sheet-builder.html"
+    },
+    {
+      "name": "index.html: local asset about.html",
+      "detail": "about.html"
+    },
+    {
+      "name": "index.html: local asset sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "index.html: local asset real-proof-lab.html",
+      "detail": "real-proof-lab.html"
+    },
+    {
+      "name": "index.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "index.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "index.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "services.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "services.html: title",
+      "detail": ""
+    },
+    {
+      "name": "services.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "services.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "services.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "services.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "services.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "services.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "services.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "services.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "services.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "services.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "services.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "services.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "services.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "services.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "services.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "services.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "services.html: local asset business-os.html",
+      "detail": "business-os.html"
+    },
+    {
+      "name": "products.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "products.html: title",
+      "detail": ""
+    },
+    {
+      "name": "products.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "products.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "products.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "products.html: local asset commercial-public.css",
+      "detail": "commercial-public.css"
+    },
+    {
+      "name": "products.html: local asset catalog-family.css",
+      "detail": "catalog-family.css"
+    },
+    {
+      "name": "products.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "products.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "products.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "products.html: local asset commercial.js",
+      "detail": "commercial.js"
+    },
+    {
+      "name": "products.html: local asset commercial-public.js",
+      "detail": "commercial-public.js"
+    },
+    {
+      "name": "products.html: local asset catalog-navigation.js",
+      "detail": "catalog-navigation.js"
+    },
+    {
+      "name": "products.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "products.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "products.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "product.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "product.html: title",
+      "detail": ""
+    },
+    {
+      "name": "product.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "product.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "product.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "product.html: local asset commercial-public.css",
+      "detail": "commercial-public.css"
+    },
+    {
+      "name": "product.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "product.html: local asset commercial.js",
+      "detail": "commercial.js"
+    },
+    {
+      "name": "product.html: local asset product-detail.js",
+      "detail": "product-detail.js"
+    },
+    {
+      "name": "product.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "product.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "product.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "product.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "product.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "free-tools.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: title",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "free-tools.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "free-tools.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "free-tools.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "free-tools.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "free-tools.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "free-tools.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "free-tools.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "free-tools.html: local asset tool-formulas.js",
+      "detail": "tool-formulas.js"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools.js",
+      "detail": "free-tools.js"
+    },
+    {
+      "name": "free-tools.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "free-tools.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "free-tools.html: local asset proof-system/public/tools-manifest.json",
+      "detail": "proof-system/public/tools-manifest.json"
+    },
+    {
+      "name": "free-tools.html: local asset downloads/h38-vendor-quote-completeness.csv",
+      "detail": "downloads/h38-vendor-quote-completeness.csv"
+    },
+    {
+      "name": "free-tools.html: local asset product.html",
+      "detail": "product.html"
+    },
+    {
+      "name": "free-tools.html: local asset downloads/h38-project-scope-builder.csv",
+      "detail": "downloads/h38-project-scope-builder.csv"
+    },
+    {
+      "name": "free-tools.html: local asset product.html",
+      "detail": "product.html"
+    },
+    {
+      "name": "free-tools.html: local asset downloads/h38-photo-privacy-review.csv",
+      "detail": "downloads/h38-photo-privacy-review.csv"
+    },
+    {
+      "name": "free-tools.html: local asset product.html",
+      "detail": "product.html"
+    },
+    {
+      "name": "proof.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "proof.html: title",
+      "detail": ""
+    },
+    {
+      "name": "proof.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "proof.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "proof.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "proof.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "proof.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "proof.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "proof.html: local asset proof-data.js",
+      "detail": "proof-data.js"
+    },
+    {
+      "name": "proof.html: local asset proof.js",
+      "detail": "proof.js"
+    },
+    {
+      "name": "proof.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "proof.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "proof.html: local asset downloads/h38-photo-privacy-review.csv",
+      "detail": "downloads/h38-photo-privacy-review.csv"
+    },
+    {
+      "name": "proof.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "proof.html: local asset downloads/README.md",
+      "detail": "downloads/README.md"
+    },
+    {
+      "name": "proof.html: local asset downloads/h38-photo-privacy-review.csv",
+      "detail": "downloads/h38-photo-privacy-review.csv"
+    },
+    {
+      "name": "proof.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "proof.html: local asset sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "proof.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "business-os.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "business-os.html: title",
+      "detail": ""
+    },
+    {
+      "name": "business-os.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "business-os.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "business-os.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "business-os.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "business-os.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "business-os.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "business-os.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "business-os.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "business-os.html: local asset business-concept-builder.html",
+      "detail": "business-concept-builder.html"
+    },
+    {
+      "name": "business-os.html: local asset portal.html",
+      "detail": "portal.html"
+    },
+    {
+      "name": "about.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "about.html: title",
+      "detail": ""
+    },
+    {
+      "name": "about.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "about.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "about.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "about.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "about.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "about.html: local asset commercial-evolution.css",
+      "detail": "commercial-evolution.css"
+    },
+    {
+      "name": "about.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "about.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "about.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "about.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "about.html: local asset commercial-evolution.js",
+      "detail": "commercial-evolution.js"
+    },
+    {
+      "name": "about.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "about.html: local asset real-proof-lab.html",
+      "detail": "real-proof-lab.html"
+    },
+    {
+      "name": "about.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "about.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "about.html: local asset sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "resources.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "resources.html: title",
+      "detail": ""
+    },
+    {
+      "name": "resources.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "resources.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "resources.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "resources.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "resources.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "resources.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "resources.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "resources.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "resources.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "resources.html: local asset sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "resources.html: local asset proof.html",
+      "detail": "proof.html"
+    },
+    {
+      "name": "resources.html: local asset business-concept-builder.html",
+      "detail": "business-concept-builder.html"
+    },
+    {
+      "name": "resources.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "resources.html: local asset how-it-works.html",
+      "detail": "how-it-works.html"
+    },
+    {
+      "name": "start-request.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html: title",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "start-request.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "start-request.html: local asset commercial-public.css",
+      "detail": "commercial-public.css"
+    },
+    {
+      "name": "start-request.html: local asset catalog-data.js",
+      "detail": "catalog-data.js"
+    },
+    {
+      "name": "start-request.html: local asset commercial.js",
+      "detail": "commercial.js"
+    },
+    {
+      "name": "start-request.html: local asset commercial-public.js",
+      "detail": "commercial-public.js"
+    },
+    {
+      "name": "start-request.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "start-request.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "start-request.html: local asset products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "portal.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "portal.html: title",
+      "detail": ""
+    },
+    {
+      "name": "portal.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "portal.html: local asset favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "portal.html: local asset commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "portal.html: local asset ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "portal.html: local asset ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "portal.html: local asset ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "portal.html: local asset brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "portal.html: local asset brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "portal.html: local asset customer-portal.html",
+      "detail": "customer-portal.html"
+    }
+  ],
+  "failures": []
+}

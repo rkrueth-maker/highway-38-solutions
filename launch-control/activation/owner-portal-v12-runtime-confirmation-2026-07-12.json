@@ -1,0 +1,21 @@
+{
+  "recordId": "H38-OWNER-PORTAL-V12-RUNTIME-CONFIRMATION-2026-07-12",
+  "status": "OWNER_RUNTIME_RENDER_CONFIRMED",
+  "ownerStatement": "works",
+  "portalVersion": 12,
+  "portalOpened": true,
+  "malformedHtmlExceptionResolved": true,
+  "productionRenderGate": "PASS",
+  "deploymentWorkflowRunId": 29210844902,
+  "deploymentWorkflowJobId": 86698180461,
+  "sourceCommit": "f72463f3554377c02250d13696bc8949d76d634c",
+  "rollbackSha256": "9030d0eae1b8b5311b8e7c41647fa82ad07dc408e1cb1124b763b5b41a3f9af3",
+  "externalActionsEnabled": false,
+  "externalActionsOccurred": false,
+  "remainingAcceptance": [
+    "Run the non-destructive Owner Portal self-test",
+    "Complete detailed desktop and mobile module acceptance",
+    "Retain final screenshots and acceptance evidence",
+    "Continue tracking separate customer portal production dependencies in Issue 33"
+  ]
+}

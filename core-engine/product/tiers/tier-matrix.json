@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "tiers": [
+    {
+      "id": "Core",
+      "name": "Core",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "reports", "proof", "errors", "settings"],
+      "externalActionEligibility": [],
+      "description": "Owner-controlled records, workspaces, money tracking, communications review, reporting, and logs."
+    },
+    {
+      "id": "Operations",
+      "name": "Operations",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "reports", "proof", "errors", "settings"],
+      "externalActionEligibility": ["hostedPayments", "outboundEmail", "calendarSync"],
+      "description": "Core plus contracts, recurring work, and provider connection eligibility after approval and testing."
+    },
+    {
+      "id": "Growth",
+      "name": "Growth",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "social", "advertising", "website", "reports", "proof", "errors", "settings"],
+      "externalActionEligibility": ["outboundEmail", "socialPublishing", "advertisingLaunch", "websiteDeployment", "calendarSync"],
+      "description": "Operations plus owner-controlled growth planning and approved publication/deployment eligibility."
+    },
+    {
+      "id": "Control",
+      "name": "Control",
+      "modules": ["tasks", "leads", "customers", "jobs", "quotes", "invoices", "payments", "expenses", "communications", "files", "contracts", "social", "advertising", "website", "accounting", "reports", "proof", "errors", "settings"],
+      "externalActionEligibility": ["customerPortal", "customerUploads", "hostedPayments", "outboundEmail", "socialPublishing", "advertisingLaunch", "websiteDeployment", "accountingApiSync", "calendarSync"],
+      "description": "Complete module set with tenant, provider, release, recovery, and compliance controls. Eligibility never self-enables execution."
+    }
+  ],
+  "addOns": [
+    "additional tenant",
+    "custom Business Pack",
+    "white-label theme",
+    "provider adapter configuration",
+    "data migration",
+    "customer portal configuration",
+    "backup and recovery service",
+    "release management"
+  ],
+  "supportContracts": [
+    "maintenance",
+    "managed updates",
+    "provider monitoring",
+    "quarterly controls review"
+  ]
+}

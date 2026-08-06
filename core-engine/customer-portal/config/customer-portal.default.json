@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "portal": {
+    "id": "customer-portal-core",
+    "version": "1.0.0",
+    "status": "NOT_ACTIVATED",
+    "environment": "production"
+  },
+  "security": {
+    "tenantIsolationRequired": true,
+    "customerOwnRecordsOnly": true,
+    "sessionTtlSeconds": 1800,
+    "clockSkewSeconds": 30,
+    "minimumSecretBytes": 32,
+    "singleUseApprovalTokens": true,
+    "duplicateProtectionRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "automaticRetry": false,
+    "bulkExecution": false
+  },
+  "permissions": {
+    "customer": [
+      "profile.own.read",
+      "jobs.own.read",
+      "quotes.own.read",
+      "quotes.own.approve",
+      "invoices.own.read",
+      "payments.own.hosted",
+      "files.own.upload",
+      "files.own.download",
+      "deliverables.own.download",
+      "revisions.own.request",
+      "messages.own.create",
+      "communications.own.read"
+    ]
+  },
+  "uploads": {
+    "maxBytes": 26214400,
+    "allowedMimeTypes": [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "text/plain",
+      "text/csv",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ],
+    "allowedExtensions": [
+      ".pdf",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+      ".txt",
+      ".csv",
+      ".docx",
+      ".xlsx"
+    ],
+    "quarantineRequired": true,
+    "virusScanRequired": true,
+    "publicAccess": false
+  },
+  "payments": {
+    "hostedProviderOnly": true,
+    "rawCardDataAllowed": false,
+    "allowedUrlSchemes": ["https:"],
+    "approvedProviders": []
+  },
+  "externalActions": {
+    "emailSend": false,
+    "paymentRequest": false,
+    "paymentProcessing": false,
+    "finalDelivery": false,
+    "automaticPublication": false
+  },
+  "privateFields": [
+    "internalNotes",
+    "internalCosts",
+    "errors",
+    "ownerApprovals",
+    "providerCredentials",
+    "paymentCredentials",
+    "privateFiles",
+    "otherCustomers",
+    "profitMargin",
+    "staffOnly"
+  ]
+}

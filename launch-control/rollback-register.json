@@ -1,0 +1,33 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "policy": "No production write without a verified rollback point.",
+  "records": [
+    {
+      "system": "Owner Portal bound Apps Script",
+      "status": "ACTIVE_BASELINE",
+      "rollbackType": "bound-project source archive plus prior deployment version",
+      "knownDeploymentId": "AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg",
+      "knownStableVersion": 9,
+      "backupPath": "/home/rkrueth/h38-integrated-business-os-20260711-234516/bound-project-backup.tar.gz",
+      "verification": "production self-test PASS; externalActionsOccurred=false"
+    },
+    {
+      "system": "GitHub Pages website",
+      "status": "REQUIRED_BEFORE_NEXT_DEPLOY",
+      "rollbackType": "pre-deployment commit SHA and GitHub Pages redeploy",
+      "rollbackRef": "Record exact current production commit in deployment-evidence.json before merge/deploy"
+    },
+    {
+      "system": "Customer Portal",
+      "status": "NOT_DEPLOYED",
+      "rollbackType": "revert release commit or remove navigation link",
+      "rollbackRef": "Pending first verified deployment"
+    },
+    {
+      "system": "Business Concept Builder",
+      "status": "NOT_DEPLOYED",
+      "rollbackType": "revert release commit or remove navigation link",
+      "rollbackRef": "Pending first verified deployment"
+    }
+  ]
+}

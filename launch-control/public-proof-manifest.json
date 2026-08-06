@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 2,
+  "release": "proof-evidence-system-2026-07-12-drive-pass-1",
+  "policy": "Only explicitly public-safe summaries, anonymized reconstructions and purpose-built demonstrations may be listed here. Private PST, source correspondence, former-employer records, customer, vendor, employee, address, family, proprietary, screen, plant-layout, pricing, production and unapproved-photo data are excluded.",
+  "items": [
+    {
+      "id": "PUBLIC-PROOF-LIBRARY",
+      "title": "Highway 38 Proof Library",
+      "type": "nine classified public-safe case studies",
+      "url": "proof.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "privacy-approved historical summaries, anonymized reconstructions and demonstrations"
+    },
+    {
+      "id": "PUBLIC-SAMPLE-LIBRARY",
+      "title": "Highway 38 Sample Library",
+      "type": "public sample collection",
+      "url": "sample-library-now.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "purpose-built public examples"
+    },
+    {
+      "id": "PUBLIC-SERVICE-CATALOG",
+      "title": "Products and Services",
+      "type": "public catalog",
+      "url": "products.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "approved public catalog"
+    },
+    {
+      "id": "PUBLIC-TOOL-CENTER",
+      "title": "Highway 38 Tools",
+      "type": "eight interactive calculators and three clean downloads",
+      "url": "free-tools.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "browser-only calculators and purpose-built CSV files"
+    },
+    {
+      "id": "PUBLIC-PLANNING-TOOL-CENTER",
+      "title": "Planning Tool Center",
+      "type": "interactive calculators",
+      "url": "tool-center.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "browser-only calculators"
+    },
+    {
+      "id": "PUBLIC-CONCEPT-BUILDER",
+      "title": "Business Concept Builder",
+      "type": "interactive planning tool",
+      "url": "business-concept-builder.html",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "browser-only planning tool"
+    },
+    {
+      "id": "PUBLIC-PHOTO-REVIEW-DOWNLOAD",
+      "title": "Photo Privacy Review CSV",
+      "type": "public planning download",
+      "url": "downloads/h38-photo-privacy-review.csv",
+      "privacyStatus": "PUBLIC_SAFE",
+      "sourceClass": "purpose-built blank template"
+    }
+  ],
+  "evidencePass": {
+    "id": "H38-PROOF-DRIVE-2026-07-12-01",
+    "publicCaseStudies": 9,
+    "publicRawImagesApproved": 0,
+    "rawPrivateEvidencePublished": false,
+    "externalActionsOccurred": false
+  },
+  "excludedClasses": [
+    "private PST extraction",
+    "private correspondence and attachments",
+    "former-employer source records",
+    "unredacted customer or vendor files",
+    "employee records",
+    "private addresses",
+    "family information",
+    "proprietary drawings, programs, pricing, production data, screens or plant layouts",
+    "unapproved photographs and videos"
+  ]
+}

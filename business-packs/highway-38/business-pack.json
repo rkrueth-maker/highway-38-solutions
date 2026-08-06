@@ -1,0 +1,85 @@
+{
+  "id": "highway-38",
+  "name": "Highway 38 Business Pack",
+  "version": "1.0.0",
+  "defaultTenantKey": "highway-38",
+  "defaultTier": "Control",
+  "externalActionsEnabled": false,
+  "theme": {
+    "brandName": "Highway 38 Solutions",
+    "logo": "brand/highway-38-mark.svg",
+    "accentColor": "#17324d",
+    "surfaceColor": "#ffffff",
+    "fontFamily": "system-ui"
+  },
+  "enabledModules": [
+    "tasks",
+    "leads",
+    "customers",
+    "jobs",
+    "quotes",
+    "invoices",
+    "payments",
+    "expenses",
+    "communications",
+    "files",
+    "contracts",
+    "social",
+    "advertising",
+    "website",
+    "accounting",
+    "reports",
+    "proof",
+    "errors",
+    "settings"
+  ],
+  "featureFlags": {
+    "customerPortal": false,
+    "customerUploads": false,
+    "hostedPayments": false,
+    "outboundEmail": false,
+    "socialPublishing": false,
+    "advertisingLaunch": false,
+    "websiteDeployment": false,
+    "accountingApiSync": false,
+    "calendarSync": false,
+    "recurringContracts": true,
+    "providerNeutralCsv": true
+  },
+  "catalog": {
+    "source": "catalog-data.js",
+    "products": 15,
+    "bundles": 9,
+    "catalogValidationRequired": true
+  },
+  "providers": [
+    {"slot": "catalog", "mode": "file", "provider": "approved-catalog"},
+    {"slot": "payment", "mode": "manual", "provider": null},
+    {"slot": "email", "mode": "draft-only", "provider": null},
+    {"slot": "accounting", "mode": "csv", "provider": null},
+    {"slot": "social", "mode": "internal-schedule", "provider": null},
+    {"slot": "website", "mode": "review-only", "provider": "repository"},
+    {"slot": "storage", "mode": "local", "provider": null},
+    {"slot": "calendar", "mode": "manual", "provider": null}
+  ],
+  "privacy": {
+    "publicPrivateSeparationRequired": true,
+    "customerIsolationRequired": true,
+    "privateSourceClasses": [
+      "PST archives",
+      "Clow or CSC source records",
+      "customer records",
+      "vendor records",
+      "employee records",
+      "private addresses",
+      "family information",
+      "unapproved photographs"
+    ]
+  },
+  "support": {
+    "approvalOwner": "Rick",
+    "customerFacingApprovalRequired": true,
+    "deploymentApprovalRequired": true,
+    "selectedRecordOnly": true
+  }
+}

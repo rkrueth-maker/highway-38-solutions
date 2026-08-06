@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "adapters": [
+    {
+      "slot": "catalog",
+      "interface": "CatalogAdapter",
+      "defaultMode": "file",
+      "supportedModes": ["file", "api"],
+      "requiredCapabilities": ["listProducts", "getProduct", "validateProduct"],
+      "liveExecution": false
+    },
+    {
+      "slot": "payment",
+      "interface": "PaymentAdapter",
+      "defaultMode": "manual",
+      "supportedModes": ["manual", "hosted-provider"],
+      "requiredCapabilities": ["createHostedRequest", "readStatus", "recordRefund", "reconcile"],
+      "liveExecution": false
+    },
+    {
+      "slot": "email",
+      "interface": "EmailAdapter",
+      "defaultMode": "draft-only",
+      "supportedModes": ["draft-only", "provider-send"],
+      "requiredCapabilities": ["createDraft", "sendApproved", "readThread", "deduplicate"],
+      "liveExecution": false
+    },
+    {
+      "slot": "accounting",
+      "interface": "AccountingAdapter",
+      "defaultMode": "csv",
+      "supportedModes": ["csv", "api"],
+      "requiredCapabilities": ["exportTransactions", "mapAccounts", "reconcile"],
+      "liveExecution": false
+    },
+    {
+      "slot": "social",
+      "interface": "SocialAdapter",
+      "defaultMode": "internal-schedule",
+      "supportedModes": ["internal-schedule", "provider-publish"],
+      "requiredCapabilities": ["createDraft", "scheduleApproved", "publishApproved", "readStatus"],
+      "liveExecution": false
+    },
+    {
+      "slot": "website",
+      "interface": "WebsiteAdapter",
+      "defaultMode": "review-only",
+      "supportedModes": ["review-only", "repository-deploy"],
+      "requiredCapabilities": ["prepareChange", "validate", "deployApproved", "rollback"],
+      "liveExecution": false
+    },
+    {
+      "slot": "storage",
+      "interface": "StorageAdapter",
+      "defaultMode": "local",
+      "supportedModes": ["local", "private-provider"],
+      "requiredCapabilities": ["putPrivate", "getAuthorized", "listAuthorized", "deleteAuthorized"],
+      "liveExecution": false
+    },
+    {
+      "slot": "calendar",
+      "interface": "CalendarAdapter",
+      "defaultMode": "manual",
+      "supportedModes": ["manual", "provider-sync"],
+      "requiredCapabilities": ["readAvailability", "createApproved", "updateApproved"],
+      "liveExecution": false
+    }
+  ],
+  "activationContract": {
+    "credentialsRequired": true,
+    "ownerApprovalRequired": true,
+    "selectedRecordRequired": true,
+    "duplicateLockRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "regressionTestRequired": true
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "rule": "A missing credential or approval blocks execution of that function; it does not remove the function from scope.",
+  "blockers": [
+    {
+      "area": "Live payment processing and payment links",
+      "status": "BLOCKED",
+      "required": ["selected payment provider", "approved merchant account", "API credentials or hosted payment-link configuration", "owner release of payment workflow"],
+      "safeCurrentMode": "manual payment recording and accounting export only"
+    },
+    {
+      "area": "Customer-facing email sends",
+      "status": "LOCKED",
+      "required": ["owner approval of exact send workflow", "recipient and template regression test", "duplicate-send prevention evidence"],
+      "safeCurrentMode": "draft and internal review"
+    },
+    {
+      "area": "Social publishing and scheduling provider",
+      "status": "BLOCKED",
+      "required": ["Metricool or approved provider credentials", "connected social accounts", "owner release of publish workflow"],
+      "safeCurrentMode": "content creation and internal scheduling records"
+    },
+    {
+      "area": "Advertising launch and spend",
+      "status": "LOCKED",
+      "required": ["approved platform accounts", "billing configuration", "campaign budget", "owner approval for exact campaign and spend"],
+      "safeCurrentMode": "campaign planning and internal approval"
+    },
+    {
+      "area": "Accounting API synchronization",
+      "status": "BLOCKED",
+      "required": ["selected accounting provider", "provider credentials", "chart-of-accounts mapping", "reconciliation test"],
+      "safeCurrentMode": "provider-neutral CSV export"
+    },
+    {
+      "area": "Private PST and photo evidence publication",
+      "status": "LOCKED",
+      "required": ["source-level privacy classification", "redaction review", "explicit public-safe approval per asset"],
+      "safeCurrentMode": "private extraction and evidence indexing only"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "recordedBeforeProductionMerge": true,
+  "websiteRepository": "rkrueth-maker/highway-38-solutions",
+  "productionBranch": "main",
+  "preLaunchCommit": "3bd325f",
+  "preLaunchDescription": "Show Owner Portal self-test progress and result",
+  "ownerPortalDeployment": {
+    "deploymentId": "AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg",
+    "version": 9,
+    "backup": "/home/rkrueth/h38-integrated-business-os-20260711-234516/bound-project-backup.tar.gz"
+  },
+  "rollbackProcedure": [
+    "Revert the release merge on main or reset the deployment source to preLaunchCommit through a reviewed pull request.",
+    "Allow GitHub Pages to redeploy the restored main commit.",
+    "Run live URL smoke tests and privacy checks after rollback.",
+    "For Owner Portal rollback, restore the archived bound-project source and redeploy the known stable deployment ID to version 9 or a verified replacement version."
+  ]
+}

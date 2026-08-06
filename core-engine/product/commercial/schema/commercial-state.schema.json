@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/business-os-commercial-state.schema.json",
+  "title": "Business OS Commercial State",
+  "type": "object",
+  "required": ["billing", "support", "audit", "controls"],
+  "properties": {
+    "billing": {
+      "type": "object",
+      "required": ["billingAccountId", "customerId", "credentialState", "executionState", "subscriptions", "invoices", "credits", "refunds", "processedProviderEvents", "uncertainEvents", "proofLog", "errorLog", "automaticRetry", "selectedRecordOnly", "externalActionsEnabled"],
+      "properties": {
+        "billingAccountId": {"type": "string", "minLength": 1},
+        "customerId": {"type": "string"},
+        "provider": {"type": ["string", "null"]},
+        "providerCustomerRef": {"type": ["string", "null"]},
+        "credentialState": {"const": "NOT_CONFIGURED"},
+        "executionState": {"const": "LOCKED"},
+        "subscriptions": {"type": "array"},
+        "invoices": {"type": "array"},
+        "credits": {"type": "array"},
+        "refunds": {"type": "array"},
+        "processedProviderEvents": {"type": "array"},
+        "uncertainEvents": {"type": "array"},
+        "proofLog": {"type": "array"},
+        "errorLog": {"type": "array"},
+        "automaticRetry": {"const": false},
+        "selectedRecordOnly": {"const": true},
+        "externalActionsEnabled": {"const": false}
+      }
+    },
+    "support": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["contractId", "licenseId", "planId", "status", "responseTargetHours", "includedRequests", "usedRequests", "overageDraftAmount", "ownerApproved", "externalActionsEnabled"],
+        "properties": {
+          "contractId": {"type": "string"},
+          "licenseId": {"type": "string"},
+          "planId": {"type": "string"},
+          "status": {"type": "string"},
+          "responseTargetHours": {"type": "number", "minimum": 1},
+          "includedRequests": {"type": "number", "minimum": 0},
+          "usedRequests": {"type": "number", "minimum": 0},
+          "overageDraftAmount": {"type": "number", "minimum": 0},
+          "ownerApproved": {"type": "boolean"},
+          "externalActionsEnabled": {"const": false}
+        }
+      }
+    },
+    "audit": {"type": "array"},
+    "controls": {
+      "type": "object",
+      "required": ["selectedRecordOnly", "bulkExecution", "automaticRetry", "ownerApprovalRequired", "proofLogRequired", "errorLogRequired", "externalActionsEnabled"],
+      "properties": {
+        "selectedRecordOnly": {"const": true},
+        "bulkExecution": {"const": false},
+        "automaticRetry": {"const": false},
+        "ownerApprovalRequired": {"const": true},
+        "proofLogRequired": {"const": true},
+        "errorLogRequired": {"const": true},
+        "externalActionsEnabled": {"const": false}
+      }
+    }
+  }
+}

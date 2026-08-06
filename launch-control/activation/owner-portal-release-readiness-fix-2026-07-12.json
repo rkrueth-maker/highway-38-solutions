@@ -1,0 +1,69 @@
+{
+  "packageId": "H38-OWNER-PORTAL-RELEASE-READINESS-FIX-2026-07-12",
+  "status": "DEPLOYED_VERSION_13_PENDING_OWNER_SESSION_SELF_TEST",
+  "scope": "NARROW_RELEASE_VALIDATION_AND_PORTAL_SETTINGS_RELEASE_RECORD_CORRECTION",
+  "sourceMergeCommit": "815c779e05ac1017294ffd9ef81b6fbf8e0840a5",
+  "approvedRelease": "production-2026-07-12-hard-rule-owner-portal",
+  "productionTarget": {
+    "boundScriptId": "13Bes6_rs3LD-Sch4Vi5DKssCnlU_qb4hzZpGpDVfoRELRak0htXEj7O-",
+    "existingDeploymentId": "AKfycbzr0hoImRF4iQ1gR90Cr17juP8PODkEWRorXxW6qralEYTGLhOU33E1wYEPU_3duQKpQg",
+    "productionSpreadsheetId": "1P5_7iUVf-yY9ffUEM7Iy5v10VsjE2LZdX7vNMcoQ1Uo",
+    "previousVersion": 12,
+    "currentVersion": 13,
+    "deploymentCountBefore": 6,
+    "deploymentCountAfter": 6
+  },
+  "sourceCorrection": {
+    "productionReadinessUsesExactApprovedRelease": true,
+    "selfTestUsesExactApprovedRelease": true,
+    "legacyIntegratedBusinessOsSubstringGateRemoved": true,
+    "portalSettingsReleaseRecordValue": "production-2026-07-12-hard-rule-owner-portal"
+  },
+  "rollbackEvidence": {
+    "version12BoundProjectBackupCreated": true,
+    "boundProjectBackupSha256": "c25e866be017429e5c07e33b01e67d82e78e0eb5dadbbff909b683f69322f4a4",
+    "productionWorkbookCopyId": "1sP5X7rR59Nb8LDgqLvsl0ynYn2uEjLUfEDyGoi-kjME",
+    "deploymentWorkflowRunId": 29211737986,
+    "deploymentArtifactDigest": "sha256:67fbee4ab29d86773660dbd373d808731fc887a7d59f25b224cdf553e66db966"
+  },
+  "safetyControls": {
+    "createdNewProject": false,
+    "createdSecondDeployment": false,
+    "externalActionsEnabled": false,
+    "externalActionsOccurred": false,
+    "selectedRecordOnlyPreserved": true,
+    "duplicateLocksPreserved": true,
+    "ownerApprovalGatesPreserved": true,
+    "proofAndErrorLogsPreserved": true
+  },
+  "acceptanceAttempts": [
+    {
+      "route": "CLASP_RUN_FUNCTION_STRUCTURED",
+      "runId": 29211871675,
+      "result": "NO_EXECUTABLE_RESULT",
+      "productionWriteOccurred": false
+    },
+    {
+      "route": "DIRECT_APPS_SCRIPT_EXECUTION_API",
+      "runId": 29212008204,
+      "httpStatus": 403,
+      "result": "PERMISSION_DENIED_BEFORE_FUNCTION_EXECUTION",
+      "artifactDigest": "sha256:f9f6e6ae0a494cd37e4a9f99cd145aa47f836a6251402b06ddf69e8ec75aee90",
+      "productionWriteOccurred": false
+    }
+  ],
+  "acceptanceStatus": {
+    "overallSelfTest": "PENDING_OWNER_SESSION",
+    "productionReadiness": "PENDING_OWNER_SESSION_SELF_TEST_OUTPUT",
+    "externalActionsOccurred": false,
+    "proofLogAcceptanceEntryPresent": false,
+    "issue33MayClose": false
+  },
+  "exactNextAction": "In the signed-in version-13 Owner Portal, open System Settings & Safety and run the non-destructive self-test. Close Issue #33 only if overall status is PASS, Production readiness is PASS, and externalActionsOccurred is false.",
+  "prohibitedScope": [
+    "No redesign",
+    "No customer portal activation",
+    "No feature expansion",
+    "No external action activation"
+  ]
+}

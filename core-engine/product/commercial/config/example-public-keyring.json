@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Synthetic verification example only. No production entitlement is granted.",
+  "keys": [
+    {
+      "keyId": "example-ed25519-2026-01",
+      "algorithm": "Ed25519",
+      "status": "ACTIVE",
+      "notBefore": "2026-01-01T00:00:00.000Z",
+      "retireAfter": null,
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA/7GM5ZlpC40MZNnyjVKRtEo0FGOWevYMajneOnL+TAg=\n-----END PUBLIC KEY-----\n"
+    }
+  ],
+  "privateKeysIncluded": false,
+  "productionReady": false
+}

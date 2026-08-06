@@ -1,0 +1,10 @@
+{
+  "licenseId": "EVAL-EXAMPLE-001",
+  "type": "evaluation",
+  "status": "ACTIVE",
+  "validUntil": null,
+  "tenantLimit": 2,
+  "assignedTenants": ["example-one"],
+  "allowedTiers": ["Core", "Operations", "Growth", "Control"],
+  "notes": "Example only. This file contains no signing secret and grants no production entitlement."
+}

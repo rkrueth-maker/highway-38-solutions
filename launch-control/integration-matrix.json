@@ -1,0 +1,48 @@
+{
+  "release": "complete-ecosystem-live-launch-2026-07-11",
+  "policy": "Integration presence and live execution are separate. A feature remains in scope when credentials are missing, but its live action stays blocked.",
+  "integrations": [
+    {
+      "id": "gmail",
+      "capability": "customer and internal communications",
+      "buildStatus": "OWNER_PORTAL_RECORDS_AND_REVIEW_READY",
+      "liveStatus": "LOCKED",
+      "liveRequirements": ["owner-approved exact send workflow", "recipient verification", "template regression test", "duplicate-send lock"]
+    },
+    {
+      "id": "payments",
+      "capability": "payment request, collection, refund, and reconciliation",
+      "buildStatus": "MANUAL_RECORD_AND_PROVIDER_ADAPTER_READY",
+      "liveStatus": "BLOCKED",
+      "liveRequirements": ["provider selection", "merchant account", "credentials", "hosted payment flow test", "owner release"]
+    },
+    {
+      "id": "metricool-social",
+      "capability": "social scheduling and publishing",
+      "buildStatus": "CONTENT_AND_INTERNAL_SCHEDULE_READY",
+      "liveStatus": "BLOCKED",
+      "liveRequirements": ["Metricool credentials", "connected accounts", "publication regression test", "owner release"]
+    },
+    {
+      "id": "advertising",
+      "capability": "campaign creation, launch, spend, and performance tracking",
+      "buildStatus": "PLANNING_AND_APPROVAL_RECORDS_READY",
+      "liveStatus": "LOCKED",
+      "liveRequirements": ["platform account", "billing", "campaign assets", "approved budget", "owner launch approval"]
+    },
+    {
+      "id": "accounting",
+      "capability": "payments, invoices, expenses, and accounting export",
+      "buildStatus": "PROVIDER_NEUTRAL_CSV_READY",
+      "liveStatus": "CSV_ACTIVE_API_BLOCKED",
+      "liveRequirements": ["provider selection", "credentials", "account mapping", "sample reconciliation"]
+    },
+    {
+      "id": "contracts",
+      "capability": "scope, terms, approvals, and signatures",
+      "buildStatus": "INTERNAL_DRAFT_TEMPLATE_READY",
+      "liveStatus": "REVIEW_REQUIRED",
+      "liveRequirements": ["business-policy finalization", "jurisdiction-specific legal review where appropriate", "approved signature method"]
+    }
+  ]
+}

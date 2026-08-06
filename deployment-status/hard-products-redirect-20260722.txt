@@ -1,0 +1,1 @@
+Force GitHub Pages publish of the absolute products.html redirect to pricing.html.
