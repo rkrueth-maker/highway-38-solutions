@@ -1,8 +1,0 @@
-Restore point created before live deployment repair and demo quote/PDF task and DIY instruction expansion.
-
-Baseline commit: f240b0f3b6fc661bf23df7bbc889dc0558fc8c25
-Date: 2026-07-22
-Scope after restore point:
-- Repair GitHub Pages live deployment behavior
-- Preserve approved demo images, pricing, project names, values, and portal architecture
-- Add task breakdowns and DIY instructions to the end of all seven demo quote/PDF examples

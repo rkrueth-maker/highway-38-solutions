@@ -1,1 +1,0 @@
-Northern Lakes signed-off visual release candidate. Merge to main for GitHub Pages deployment.
