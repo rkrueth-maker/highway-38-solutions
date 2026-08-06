@@ -16,11 +16,14 @@ const homepage = read('index.html');
 const config = read('commercial-app/supabase-config.js');
 const social = read('commercial-app/app-15.js');
 const serviceWorker = read('commercial-app/service-worker.js');
+const routes = JSON.parse(read('scripts/config/public-website-routes.json'));
+const homepageRoute = routes.primary.find(route => route.path === 'index.html');
 
 assert(homepage.includes(`<link rel="canonical" href="${publicDomain}">`), 'Homepage canonical URL must use highway38solutions.com.');
 assert(homepage.includes(`<meta property="og:url" content="${publicDomain}">`), 'Facebook Open Graph URL must use highway38solutions.com.');
 assert(homepage.includes('property="og:image" content="https://highway38solutions.com/'), 'Facebook preview image must use the custom domain.');
 assert(!homepage.includes(legacyDomain), 'Homepage metadata must not expose the GitHub Pages hostname.');
+assert(homepageRoute?.canonical === publicDomain, 'Public website route authority must recognize highway38solutions.com as the homepage canonical URL.');
 
 assert(config.includes(`authRedirectUrl: '${publicDomain}commercial-app/'`), 'Supabase Auth must return to the custom-domain Business Office.');
 assert(!config.includes(legacyDomain), 'Production Supabase configuration must not use the GitHub Pages hostname.');
@@ -37,6 +40,7 @@ assert(serviceWorker.includes("CACHE_NAME='h38-business-office-20260805-2200'"),
 console.log(JSON.stringify({
   status: 'PASS',
   canonicalUrl: publicDomain,
+  routeAuthorityCanonicalUrl: homepageRoute.canonical,
   facebookOpenGraphUrl: publicDomain,
   businessOfficeAuthRedirect: `${publicDomain}commercial-app/`,
   socialDraftDefault: publicDomain,
