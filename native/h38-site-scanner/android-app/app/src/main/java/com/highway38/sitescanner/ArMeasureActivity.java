@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -16,6 +17,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.ar.core.Anchor;
 import com.google.ar.core.ArCoreApk;
@@ -36,7 +40,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -44,6 +47,9 @@ import javax.microedition.khronos.opengles.GL10;
 
 public final class ArMeasureActivity extends Activity implements GLSurfaceView.Renderer {
     private static final int REQUEST_CAMERA = 3810;
+    private static final int NAVY = 0xFF102B3F;
+    private static final int BLUE = 0xFF145777;
+    private static final int GREEN = 0xFF176B3A;
     private final CameraBackgroundRenderer background = new CameraBackgroundRenderer();
     private final AtomicBoolean pointRequested = new AtomicBoolean(false);
 
@@ -62,10 +68,12 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
     private Anchor second;
     private String resultJson = "";
     private String optionsJson = "{}";
+    private String lastTrackingMessage = "";
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        configureSystemBars();
         String supplied = getIntent().getStringExtra("options");
         if (supplied != null) optionsJson = supplied;
 
@@ -81,47 +89,71 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
 
         TextView crosshair = new TextView(this);
         crosshair.setText("+");
-        crosshair.setTextSize(42);
+        crosshair.setTextSize(48);
         crosshair.setTextColor(Color.WHITE);
         crosshair.setGravity(Gravity.CENTER);
-        crosshair.setShadowLayer(5f, 0, 0, Color.BLACK);
-        FrameLayout.LayoutParams cross = new FrameLayout.LayoutParams(dp(80), dp(80));
+        crosshair.setShadowLayer(6f, 0, 0, Color.BLACK);
+        FrameLayout.LayoutParams cross = new FrameLayout.LayoutParams(dp(90), dp(90));
         cross.gravity = Gravity.CENTER;
         root.addView(crosshair, cross);
 
         LinearLayout top = panel();
-        TextView title = text("H38 ARCore Measure", 20, Color.WHITE);
+        TextView step = text("STEP 1 OF 2", 12, 0xFFFFD9B8);
+        step.setTypeface(null, android.graphics.Typeface.BOLD);
+        top.addView(step);
+        TextView title = text("Measure a Distance", 23, Color.WHITE);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         top.addView(title);
-        status = text("Starting ARCore…", 14, Color.WHITE);
+        status = text("Starting the camera…", 15, Color.WHITE);
+        status.setPadding(0, dp(4), 0, 0);
         top.addView(status);
-        result = text("Move slowly. Aim the crosshair at the first endpoint.", 14, 0xFFFFD9B8);
+        result = text("Move slowly and point at the floor, wall, or edge until tracking is ready.", 17, 0xFFFFE2C5);
+        result.setPadding(0, dp(8), 0, 0);
+        result.setLineSpacing(0, 1.12f);
         top.addView(result);
         FrameLayout.LayoutParams topParams = wrap();
         topParams.gravity = Gravity.TOP;
         root.addView(top, topParams);
 
         LinearLayout controls = panel();
-        capture = button("Set Point 1");
+        TextView direction = text("Aim the + at the first end of the distance.", 15, Color.WHITE);
+        direction.setGravity(Gravity.CENTER);
+        direction.setPadding(0, 0, 0, dp(7));
+        controls.addView(direction, full());
+
+        capture = primaryButton("Set First Point", BLUE);
         capture.setOnClickListener(v -> requestPoint());
-        controls.addView(capture, full());
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        Button reset = button("Reset");
-        reset.setOnClickListener(v -> reset());
-        row.addView(reset, weight());
-        use = button("Use Measurement");
+        controls.addView(capture, fullWithMargin());
+
+        use = primaryButton("Save This Measurement", GREEN);
         use.setEnabled(false);
         use.setOnClickListener(v -> finishWithResult());
-        row.addView(use, weight());
-        controls.addView(row, full());
-        TextView caution = text("DEVICE_CAPTURED only. Verify critical dimensions with a tape or laser.", 12, Color.WHITE);
+        controls.addView(use, fullWithMargin());
+
+        Button reset = button("Start Over");
+        reset.setOnClickListener(v -> reset());
+        controls.addView(reset, fullWithMargin());
+
+        TextView caution = text("Shown in feet and inches. Verify critical dimensions with a tape or laser.", 12, Color.WHITE);
         caution.setGravity(Gravity.CENTER);
+        caution.setPadding(0, dp(5), 0, 0);
         controls.addView(caution, full());
         FrameLayout.LayoutParams bottom = wrap();
         bottom.gravity = Gravity.BOTTOM;
         root.addView(controls, bottom);
         setContentView(root);
+    }
+
+    private void configureSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        getWindow().setStatusBarColor(NAVY);
+        getWindow().setNavigationBarColor(NAVY);
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(
+                getWindow(),
+                getWindow().getDecorView()
+        );
+        controller.setAppearanceLightStatusBars(false);
+        controller.setAppearanceLightNavigationBars(false);
     }
 
     @Override
@@ -148,19 +180,21 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
                 depthSupported = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC);
                 config.setDepthMode(depthSupported ? Config.DepthMode.AUTOMATIC : Config.DepthMode.DISABLED);
                 session.configure(config);
-            } catch (UnavailableException e) {
-                fail("ARCore is unavailable on this phone: " + e.getMessage());
+            } catch (UnavailableException error) {
+                fail("ARCore is unavailable on this phone: " + error.getMessage());
                 return;
-            } catch (Throwable e) {
-                fail("ARCore could not start: " + e.getMessage());
+            } catch (Throwable error) {
+                fail("ARCore could not start: " + error.getMessage());
                 return;
             }
         }
         try {
             session.resume();
             surface.onResume();
-            status.setText(depthSupported ? "ARCore tracking · Depth API available" : "ARCore tracking · point-to-point fallback");
-        } catch (CameraNotAvailableException e) {
+            status.setText(depthSupported
+                    ? "Depth measuring is available."
+                    : "Camera point-to-point measuring is available.");
+        } catch (CameraNotAvailableException error) {
             fail("The camera is being used by another app.");
         }
     }
@@ -202,34 +236,46 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
         if (active == null || cameraTexture < 0 || width == 0 || height == 0) return;
         try {
             active.setCameraTextureName(cameraTexture);
-            active.setDisplayGeometry(getWindowManager().getDefaultDisplay().getRotation(), width, height);
+            active.setDisplayGeometry(
+                    getWindowManager().getDefaultDisplay().getRotation(),
+                    width,
+                    height
+            );
             Frame frame = active.update();
             background.draw(frame);
             Camera camera = frame.getCamera();
             updateTracking(camera);
             if (pointRequested.compareAndSet(true, false)) captureCenter(frame, camera);
-        } catch (CameraNotAvailableException e) {
+        } catch (CameraNotAvailableException error) {
             runOnUiThread(() -> fail("Camera became unavailable."));
-        } catch (Throwable e) {
-            runOnUiThread(() -> Toast.makeText(this, "AR frame error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+        } catch (Throwable error) {
+            runOnUiThread(() -> Toast.makeText(
+                    this,
+                    "AR frame error: " + error.getMessage(),
+                    Toast.LENGTH_LONG
+            ).show());
         }
     }
 
     private void updateTracking(Camera camera) {
         String message;
         if (camera.getTrackingState() == TrackingState.TRACKING) {
-            message = depthSupported ? "Tracking ready · Depth available" : "Tracking ready · Depth unavailable";
+            message = depthSupported
+                    ? "Tracking ready · Depth available"
+                    : "Tracking ready · Camera fallback";
         } else if (camera.getTrackingState() == TrackingState.PAUSED) {
-            message = "Move slowly and show more floor or wall texture";
+            message = "Move slowly and show more floor or wall detail";
         } else {
-            message = "Tracking stopped — rescan this section";
+            message = "Tracking stopped · Move back to the work area";
         }
+        if (message.equals(lastTrackingMessage)) return;
+        lastTrackingMessage = message;
         runOnUiThread(() -> status.setText(message));
     }
 
     private void requestPoint() {
         if (session == null) {
-            Toast.makeText(this, "ARCore is not ready yet.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "The camera is not ready yet.", Toast.LENGTH_SHORT).show();
             return;
         }
         pointRequested.set(true);
@@ -237,7 +283,7 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
 
     private void captureCenter(Frame frame, Camera camera) {
         if (camera.getTrackingState() != TrackingState.TRACKING) {
-            toast("Tracking is not ready. Move slowly and try again.");
+            toast("Wait for Tracking ready, then try again.");
             return;
         }
         HitResult chosen = null;
@@ -253,11 +299,13 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
             }
             if (chosen == null && hit.getTrackable() instanceof Point) {
                 Point point = (Point) hit.getTrackable();
-                if (point.getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL) chosen = hit;
+                if (point.getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL) {
+                    chosen = hit;
+                }
             }
         }
         if (chosen == null) {
-            toast("No surface found at the crosshair. Move sideways slowly and try again.");
+            toast("No surface found at the +. Move sideways slowly and aim again.");
             return;
         }
         boolean depthHit = chosen.getTrackable() instanceof DepthPoint;
@@ -265,11 +313,12 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
         if (first == null) {
             first = anchor;
             runOnUiThread(() -> {
-                capture.setText("Set Point 2");
-                result.setText("Point 1 set. Aim the crosshair at the second endpoint.");
+                capture.setText("Set Second Point");
+                result.setText("First point saved. Aim the + at the other end of the distance.");
             });
             return;
         }
+
         detach(second);
         second = anchor;
         Pose start = first.getPose();
@@ -277,42 +326,66 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
         float meters = distance(start, end);
         String source = depthHit ? "ARCORE_DEPTH" : "ARCORE_POINT_TO_POINT";
         double confidence = depthHit ? 0.82 : 0.65;
+        double totalInches = roundToEighth(meters * 39.3700787402);
         try {
-            resultJson = buildResult(start, end, meters, source, confidence).toString();
-        } catch (Exception e) {
+            resultJson = buildResult(
+                    start,
+                    end,
+                    meters,
+                    totalInches,
+                    source,
+                    confidence
+            ).toString();
+        } catch (Exception error) {
             runOnUiThread(() -> fail("Could not create the measurement result."));
             return;
         }
-        float feet = meters * 3.28084f;
+        String display = formatFeetInches(totalInches);
         runOnUiThread(() -> {
-            result.setText(String.format(Locale.US, "%.3f m · %.2f ft · %s", meters, feet, source));
-            capture.setText("Replace Point 2");
+            result.setText(display);
+            result.setTextSize(27);
+            result.setTextColor(Color.WHITE);
+            result.setTypeface(null, android.graphics.Typeface.BOLD);
+            capture.setText("Replace Second Point");
             use.setEnabled(true);
         });
     }
 
-    private JSONObject buildResult(Pose start, Pose end, float meters, String source, double confidence) throws Exception {
+    private JSONObject buildResult(
+            Pose start,
+            Pose end,
+            float meters,
+            double totalInches,
+            String source,
+            double confidence
+    ) throws Exception {
         JSONObject options = new JSONObject(optionsJson);
-        String sessionId = options.optString("captureSessionId", "TEST-" + System.currentTimeMillis());
+        String sessionId = options.optString(
+                "captureSessionId",
+                "TEST-" + System.currentTimeMillis()
+        );
         JSONObject measurement = new JSONObject()
                 .put("id", "AR-" + System.nanoTime())
-                .put("label", "ARCore point-to-point")
+                .put("label", "Camera measurement")
                 .put("type", "Length")
-                .put("value", meters)
-                .put("unit", "m")
+                .put("value", totalInches)
+                .put("unit", "in")
+                .put("displayValue", formatFeetInches(totalInches))
+                .put("rawMeters", meters)
                 .put("source", source)
                 .put("confidence", confidence)
                 .put("verificationStatus", "DEVICE_CAPTURED")
                 .put("startPoint", point(start))
                 .put("endPoint", point(end))
-                .put("notes", "ARCore-derived. Field verification remains required for critical work.");
+                .put("notes", "ARCore-derived and displayed in feet and inches. Field verification remains required for critical work.");
         JSONObject device = new JSONObject()
                 .put("platform", "android")
                 .put("manufacturer", Build.MANUFACTURER)
                 .put("model", Build.MODEL)
                 .put("androidApi", Build.VERSION.SDK_INT)
                 .put("arcore", true)
-                .put("depth", depthSupported);
+                .put("depth", depthSupported)
+                .put("displayUnits", "feet-and-inches");
         return new JSONObject()
                 .put("version", "h38-site-scanner-v1")
                 .put("captureSessionId", sessionId)
@@ -338,15 +411,52 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
         return (float) Math.sqrt(x * x + y * y + z * z);
     }
 
+    private static double roundToEighth(double inches) {
+        return Math.round(inches * 8.0) / 8.0;
+    }
+
+    private static String formatFeetInches(double totalInches) {
+        int eighths = (int) Math.round(Math.max(0, totalInches) * 8.0);
+        int wholeInches = eighths / 8;
+        int remainder = eighths % 8;
+        int feet = wholeInches / 12;
+        int inches = wholeInches % 12;
+        StringBuilder display = new StringBuilder();
+        display.append(feet).append(" ft ").append(inches);
+        if (remainder > 0) {
+            int divisor = gcd(remainder, 8);
+            display.append(' ')
+                    .append(remainder / divisor)
+                    .append('/')
+                    .append(8 / divisor);
+        }
+        display.append(" in");
+        return display.toString();
+    }
+
+    private static int gcd(int a, int b) {
+        int left = Math.abs(a);
+        int right = Math.abs(b);
+        while (right != 0) {
+            int next = left % right;
+            left = right;
+            right = next;
+        }
+        return left == 0 ? 1 : left;
+    }
+
     private void reset() {
         detach(first);
         detach(second);
         first = null;
         second = null;
         resultJson = "";
-        capture.setText("Set Point 1");
+        capture.setText("Set First Point");
         use.setEnabled(false);
-        result.setText("Move slowly. Aim the crosshair at the first endpoint.");
+        result.setText("Move slowly and point at the floor, wall, or edge until tracking is ready.");
+        result.setTextSize(17);
+        result.setTextColor(0xFFFFE2C5);
+        result.setTypeface(null, android.graphics.Typeface.NORMAL);
     }
 
     private void finishWithResult() {
@@ -370,16 +480,19 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == REQUEST_CAMERA) {
-            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) startSession();
-            else fail("Camera permission is required for ARCore measurement.");
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+                startSession();
+            } else {
+                fail("Camera permission is required for measurement.");
+            }
         }
     }
 
     private LinearLayout panel() {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(14), dp(12), dp(14), dp(12));
-        panel.setBackgroundColor(0xDD102B3F);
+        panel.setPadding(dp(16), dp(13), dp(16), dp(13));
+        panel.setBackgroundColor(0xE6102B3F);
         return panel;
     }
 
@@ -396,26 +509,44 @@ public final class ArMeasureActivity extends Activity implements GLSurfaceView.R
         button.setText(value);
         button.setAllCaps(false);
         button.setTextSize(16);
-        button.setMinHeight(dp(52));
+        button.setMinHeight(dp(54));
+        return button;
+    }
+
+    private Button primaryButton(String value, int color) {
+        Button button = button(value);
+        button.setTextColor(Color.WHITE);
+        button.setTypeface(null, android.graphics.Typeface.BOLD);
+        button.setBackgroundTintList(ColorStateList.valueOf(color));
+        button.setMinHeight(dp(60));
         return button;
     }
 
     private FrameLayout.LayoutParams match() {
-        return new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        return new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        );
     }
 
     private FrameLayout.LayoutParams wrap() {
-        return new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        return new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
     }
 
     private LinearLayout.LayoutParams full() {
-        return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        return new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
     }
 
-    private LinearLayout.LayoutParams weight() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        p.setMargins(dp(3), dp(3), dp(3), dp(3));
-        return p;
+    private LinearLayout.LayoutParams fullWithMargin() {
+        LinearLayout.LayoutParams params = full();
+        params.setMargins(0, dp(4), 0, dp(4));
+        return params;
     }
 
     private int dp(int value) {
