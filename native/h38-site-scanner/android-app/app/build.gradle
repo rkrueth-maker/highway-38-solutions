@@ -10,8 +10,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 3
+        versionName '0.3.0'
     }
 
     buildTypes {
@@ -39,5 +39,8 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:1.15.0'
+    implementation 'androidx.credentials:credentials:1.6.0-beta02'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.6.0-beta02'
+    implementation 'androidx.webkit:webkit:1.14.0'
     implementation 'com.google.ar:core:1.54.0'
 }

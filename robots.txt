@@ -1,17 +1,21 @@
 User-agent: *
 Allow: /
+Allow: /.well-known/
 Disallow: /customer-portal.html
 
 User-agent: ChatGPT-User
 Allow: /
+Allow: /.well-known/
 Disallow: /customer-portal.html
 
 User-agent: GPTBot
 Allow: /
+Allow: /.well-known/
 Disallow: /customer-portal.html
 
 User-agent: OAI-SearchBot
 Allow: /
+Allow: /.well-known/
 Disallow: /customer-portal.html
 
-Sitemap: https://rkrueth-maker.github.io/highway-38-solutions/sitemap.xml
+Sitemap: https://highway38solutions.com/sitemap.xml
