@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.ViewGroup;
@@ -17,11 +18,14 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public final class MainActivity extends Activity {
-    static final String BUSINESS_OFFICE_URL = "https://highway38solutions.com/commercial-app/";
+    static final String BUSINESS_OFFICE_URL = "https://highway38solutions.com/commercial-app/?nativeScanner=1";
     static final int REQUEST_NATIVE_SCAN = 3801;
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
@@ -34,8 +38,10 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureSystemBars();
 
         webView = new WebView(this);
+        webView.setBackgroundColor(Color.rgb(238, 243, 247));
         webView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -49,8 +55,11 @@ public final class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
+        settings.setTextZoom(100);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.1.0"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.2.0"
         );
 
         CookieManager cookies = CookieManager.getInstance();
@@ -125,6 +134,18 @@ public final class MainActivity extends Activity {
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    private void configureSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        getWindow().setStatusBarColor(Color.rgb(11, 36, 56));
+        getWindow().setNavigationBarColor(Color.rgb(11, 36, 56));
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(
+                getWindow(),
+                getWindow().getDecorView()
+        );
+        controller.setAppearanceLightStatusBars(false);
+        controller.setAppearanceLightNavigationBars(false);
     }
 
     private void injectNativeScanner() {
