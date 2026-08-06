@@ -15,7 +15,7 @@ permissions:
 
 env:
   PAGES_SOURCE_REF: gh-pages
-  EXPECTED_PAGES_COMMIT: e5fd3568f7901fb11924500f816b68e281c7a458
+  EXPECTED_PAGES_COMMIT: 216f57f5f9427038c233e9fdaf41991e982ab84e
 
 concurrency:
   group: h38-pages-production
@@ -38,11 +38,17 @@ jobs:
       - name: Confirm clean publication commit
         shell: bash
         run: |
+          set -euo pipefail
           actual="$(git rev-parse HEAD)"
           if [ "$actual" != "$EXPECTED_PAGES_COMMIT" ]; then
             echo "Unexpected gh-pages commit: $actual"
             exit 1
           fi
+          grep -Fq "20260806-1835" commercial-app/field-visit.js
+          grep -Fq "field-visit-guidance.js" commercial-app/field-visit.js
+          grep -Fq "unknownsAreNeverGuessed:true" commercial-app/field-visit-guidance.js
+          grep -Fq "Cannot Measure — Mark Unknown" commercial-app/field-visit-guidance.js
+          grep -Fq "h38-business-office-20260806-1835" commercial-app/service-worker.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
