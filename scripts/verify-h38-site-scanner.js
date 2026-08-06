@@ -53,7 +53,8 @@ for (const token of [
 ]) must(scanner, token, 'site-scanner.js');
 
 for (const token of [
-  'formatFeetInches','Measure with Camera','Measure one distance',
+  'formatFeetInches','Measure with Camera','Measure with the camera',
+  'One tap starts the area and opens the camera',
   'displayFeet','displayInches','scanner-focus-mode','scanner-no-measurements',
   'Results are shown in feet and inches'
 ]) must(guidance, token, 'site-scanner-mobile-guidance.js');
@@ -113,6 +114,7 @@ console.log(JSON.stringify({
   feature: 'H38 Site Scanner',
   databaseAuthority: 'existing Supabase Business Office',
   browserFoundation: true,
+  oneTapScannerStart: true,
   guidedFeetAndInchesMobile: true,
   androidCaptureSource: true,
   androidSystemInsetsCorrected: true,
