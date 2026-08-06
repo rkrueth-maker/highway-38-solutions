@@ -28,7 +28,7 @@ const checks=[
  ['customer portal loads delivery enhancement',portalHtml.includes('customer-portal-quote-delivery.js?v=20260805-2050')],
  ['customer portal redirects on custom domain',portalConfig.includes("redirectUrl: 'https://highway38solutions.com/customer-portal.html'")],
  ['Business Office loads delivery script last',index.indexOf('quote-photo-restore.js')<index.indexOf('supabase-quote-delivery.js')&&index.indexOf('supabase-quote-delivery.js')<index.indexOf('supabase-no-legacy-office.js')],
- ['mobile cache is rotated and network-first',sw.includes("h38-business-office-20260805-2050")&&sw.includes("'supabase-quote-delivery.js'")],
+ ['mobile cache is rotated and network-first',sw.includes("h38-business-office-20260805-2200")&&sw.includes("'supabase-quote-delivery.js'")],
  ['retired Apps Script is not restored',!client.includes('google.script.run')&&!edge.includes('script.google.com')]
 ];
 let failed=0;for(const[name,pass]of checks){console.log(`${pass?'PASS':'FAIL'} ${name}`);if(!pass)failed++;}
