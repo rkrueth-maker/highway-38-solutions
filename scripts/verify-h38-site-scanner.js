@@ -98,7 +98,7 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.2.0','nativeScanner=1'
+  'H38SiteScannerAndroid/0.3.0','nativeScanner=1','fieldMode=1'
 ]) must(androidShell, token, 'Android app shell');
 for (const token of [
   'import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM',
