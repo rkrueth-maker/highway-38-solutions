@@ -8,6 +8,9 @@ const sw=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf
 const portal=fs.readFileSync(path.join(root,'customer-portal-quote-delivery.js'),'utf8');
 const portalHtml=fs.readFileSync(path.join(root,'customer-portal.html'),'utf8');
 const portalConfig=fs.readFileSync(path.join(root,'customer-portal-config.js'),'utf8');
+const sendCall=edge.lastIndexOf('await sendPortalEmail');
+const pendingFile=edge.indexOf('pending_delivery');
+const availableFile=edge.indexOf('available_to_customer: true',sendCall);
 const checks=[
  ['Approve & Send button is explicit',client.includes("textContent='✉️ Approve & Send Quote'")],
  ['owner checkbox gates confirmation',client.includes('confirmOwnerReview:true')&&client.includes('h38QuoteDeliveryConfirm')],
@@ -16,7 +19,7 @@ const checks=[
  ['exact revision and total are checked',edge.includes('expectedRevision')&&edge.includes('expectedTotal')&&edge.includes('The quote total changed')],
  ['owner or administrator role is required',edge.includes('Owner or Administrator permission is required')],
  ['private PDF is generated',edge.includes('PDFDocument.create')&&edge.includes('STORAGE_BUCKET = "customer-portal"')],
- ['PDF becomes customer available only after email',edge.indexOf('pending_delivery')<edge.indexOf('sendPortalEmail')&&edge.indexOf('sendPortalEmail')<edge.indexOf('available_to_customer: true')],
+ ['PDF becomes customer available only after email',pendingFile>=0&&sendCall>pendingFile&&availableFile>sendCall],
  ['Supabase secure invitation and magic link are supported',edge.includes('inviteUserByEmail')&&edge.includes('signInWithOtp')],
  ['business quote is locked as Presented',edge.includes('Status: "Presented"')&&edge.includes('"Locked Revision"')],
  ['Proof Log records external action',edge.includes('APPROVE_AND_SEND_QUOTE')&&edge.includes('external_action_occurred: true')],
