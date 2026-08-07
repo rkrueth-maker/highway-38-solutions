@@ -1,337 +1,45 @@
-(function () {
-  'use strict';
-
-  const BUILD = '20260807-1325';
-  const config = window.H38_CUSTOMER_PORTAL_SUPABASE || {};
-  const state = { client: null, session: null, account: null, jobs: [], quotes: [], invoices: [], files: [], selectedJobId: null };
-  let refreshPromise = null;
-  let sessionQueue = Promise.resolve();
-  let lastAppliedUserId = '';
-  let lastAppliedAt = 0;
-
-  const byId = id => document.getElementById(id);
-  const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[char]));
-  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
-  const configured = () => Boolean(
-    config.enabled === true &&
-    /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(String(config.url || '')) &&
-    String(config.publishableKey || '').length >= 20 &&
-    !/REPLACE_WITH|YOUR_PROJECT/i.test(String(config.url || '') + String(config.publishableKey || ''))
-  );
-
-  function notice(message, kind) {
-    const node = byId('portalNotice');
-    if (!node) return;
-    node.className = 'portal-notice ' + (kind || '');
-    node.innerHTML = message;
-  }
-
-  function setView(name) {
-    ['hold', 'login', 'app'].forEach(key => {
-      const node = byId('portal-' + key);
-      if (node) node.hidden = key !== name;
-    });
-  }
-
-  function safeError(error) {
-    console.error(error);
-    notice('<b>Secure portal notice:</b> ' + esc(error && error.message ? error.message : error), 'bad');
-  }
-
-  function withTimeout(promise, label, ms = 15000) {
-    let timer;
-    const timeout = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(label + ' timed out. Check the connection and press Refresh.')), ms);
-    });
-    return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
-  }
-
-  function currentRedirectUrl() {
-    if (config.redirectUrl) return config.redirectUrl;
-    const url = new URL(location.origin + location.pathname);
-    url.searchParams.set('v', BUILD);
-    return url.toString();
-  }
-
-  function loginEmail() {
-    return String(byId('portalEmail').value || '').trim().toLowerCase();
-  }
-
-  function initClient() {
-    if (!configured()) {
-      setView('hold');
-      notice('<b>Customer Portal is temporarily unavailable.</b> Secure configuration validation failed. No customer data is exposed.', 'hold');
-      return null;
-    }
-    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-      throw new Error('Supabase client library did not load.');
-    }
-    state.client = window.supabase.createClient(config.url, config.publishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      global: { headers: { 'x-client-info': 'highway-38-customer-portal-1325' } }
-    });
-    return state.client;
-  }
-
-  async function signInWithPassword(event) {
-    event.preventDefault();
-    const email = loginEmail();
-    const password = String(byId('portalPassword').value || '');
-    if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
-    if (!password) return notice('Enter your customer portal password or request a secure email link.', 'bad');
-    notice('Signing in securely…', '');
-    const { data, error } = await withTimeout(state.client.auth.signInWithPassword({ email, password }), 'Secure sign-in');
-    if (error) throw error;
-    byId('portalPassword').value = '';
-    if (data && data.session) await queueSession(data.session, 'password-sign-in');
-  }
-
-  async function sendMagicLink() {
-    const email = loginEmail();
-    if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
-    const { error } = await withTimeout(state.client.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: currentRedirectUrl(), shouldCreateUser: false }
-    }), 'Secure email link request');
-    if (error) throw error;
-    notice('<b>Check your email.</b> The secure sign-in link was requested. For privacy, the portal does not confirm whether an address is registered.', 'ok');
-  }
-
-  async function signOut() {
-    const { error } = await withTimeout(state.client.auth.signOut(), 'Sign out');
-    if (error) throw error;
-    state.session = null;
-    state.account = null;
-    state.jobs = [];
-    state.quotes = [];
-    state.invoices = [];
-    state.files = [];
-    state.selectedJobId = null;
-    lastAppliedUserId = '';
-    setView('login');
-    notice('Signed out.', 'ok');
-  }
-
-  async function loadAccount() {
-    const userId = state.session && state.session.user && state.session.user.id;
-    if (!userId) throw new Error('Secure customer session is missing a user.');
-    const request = state.client
-      .from('customer_accounts')
-      .select('id,customer_code,display_name,email,status')
-      .eq('auth_user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle();
-    const { data, error } = await withTimeout(request, 'Customer account lookup');
-    if (error) throw error;
-    if (!data) throw new Error('This login is not connected to an active Highway 38 customer account.');
-    state.account = data;
-    byId('customerName').textContent = data.display_name || data.customer_code || 'Customer';
-    byId('customerCode').textContent = data.customer_code || '';
-  }
-
-  async function queryOwn(table, columns, orderColumn) {
-    let request = state.client.from(table).select(columns).eq('customer_id', state.account.id);
-    if (orderColumn) request = request.order(orderColumn, { ascending: false });
-    const { data, error } = await withTimeout(request, table + ' lookup');
-    if (error) throw error;
-    return Array.isArray(data) ? data : [];
-  }
-
-  function selectedJob() {
-    return state.jobs.find(row => row.id === state.selectedJobId) || null;
-  }
-
-  function selectJob(jobId) {
-    const allowed = state.jobs.some(row => row.id === jobId);
-    state.selectedJobId = allowed ? jobId : (state.jobs[0] ? state.jobs[0].id : null);
-    dispatchPortalData();
-    return selectedJob();
-  }
-
-  function renderJobs(rows) {
-    byId('jobsList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item" data-job-id="${esc(row.id)}">
-        <div><strong>${esc(row.job_number || row.title || 'Project')}</strong><span>${esc(row.title || '')}</span></div>
-        <div><span class="portal-pill">${esc(row.status || 'Open')}</span><span>${esc(row.next_action || 'No next action posted')}</span></div>
-        <progress max="100" value="${Math.max(0, Math.min(100, Number(row.progress_percent || 0)))}"></progress>
-        <button class="btn" type="button" data-select-project="${esc(row.id)}">Show this project</button>
-      </article>`).join('') : '<p class="portal-empty">No active projects are posted.</p>';
-    byId('jobsList').querySelectorAll('[data-select-project]').forEach(button => {
-      button.addEventListener('click', () => selectJob(button.dataset.selectProject));
-    });
-  }
-
-  function renderQuotes(rows) {
-    byId('quotesList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item" data-quote-id="${esc(row.id)}">
-        <div><strong>${esc(row.quote_number || row.title || 'Quote')}</strong><span>${esc(row.title || '')}</span></div>
-        <div><strong>${money(row.amount)}</strong><span class="portal-pill">${esc(row.status || 'Draft')}</span></div>
-        ${row.status === 'presented' && !row.customer_decision ? `<button class="btn btn-primary" type="button" data-review-quote="${esc(row.id)}">Review complete quote</button>` : `<span>${esc(row.customer_decision ? 'Customer decision: ' + row.customer_decision : '')}</span>`}
-      </article>`).join('') : '<p class="portal-empty">No quotes are available.</p>';
-  }
-
-  function renderInvoices(rows) {
-    byId('invoicesList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item">
-        <div><strong>${esc(row.invoice_number || 'Invoice')}</strong><span>Due ${esc(row.due_date || 'not posted')}</span></div>
-        <div><strong>${money(row.balance_due)}</strong><span class="portal-pill">${esc(row.status || 'Open')}</span></div>
-        ${row.hosted_payment_url ? `<a class="btn" href="${esc(row.hosted_payment_url)}" target="_blank" rel="noopener noreferrer">Open hosted payment</a>` : ''}
-      </article>`).join('') : '<p class="portal-empty">No invoices are available.</p>';
-  }
-
-  function renderFiles(rows) {
-    byId('filesList').innerHTML = rows.length ? rows.map(row => `
-      <article class="portal-item" data-job-id="${esc(row.job_id || '')}">
-        <div><strong>${esc(row.file_name || 'File')}</strong><span>${esc(row.status || '')}</span></div>
-        <button class="btn" type="button" data-download-path="${esc(row.storage_path)}">Download</button>
-      </article>`).join('') : '<p class="portal-empty">No customer files are available.</p>';
-    byId('filesList').querySelectorAll('[data-download-path]').forEach(button => {
-      button.addEventListener('click', () => downloadFile(button.dataset.downloadPath));
-    });
-  }
-
-  async function approveQuote(quoteId, version) {
-    const quote = state.quotes.find(row => row.id === quoteId);
-    if (!quote) throw new Error('The selected quote is not available. Refresh and try again.');
-    if (!confirm('Approve this fully reviewed quote? This records your decision but does not charge a card or begin work automatically.')) return false;
-    const { data, error } = await withTimeout(state.client.rpc('customer_portal_approve_quote', {
-      p_quote_id: quoteId,
-      p_expected_version: Number(version || quote.version || 1)
-    }), 'Quote approval');
-    if (error) throw error;
-    notice('<b>Quote approval recorded.</b> Highway 38 will review the selected quote before any next action.', 'ok');
-    await refreshDashboard();
-    return data;
-  }
-
-  async function downloadFile(storagePath) {
-    const { data, error } = await withTimeout(state.client.storage
-      .from(config.storageBucket || 'customer-portal')
-      .createSignedUrl(storagePath, 120, { download: true }), 'Secure file link');
-    if (error) throw error;
-    if (!data || !data.signedUrl) throw new Error('A secure download URL was not created.');
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-  }
-
-  async function submitMessage(event) {
-    event.preventDefault();
-    const body = String(byId('messageBody').value || '').trim();
-    if (!body) return notice('Enter a message first.', 'bad');
-    if (body.length > 2000) return notice('Messages are limited to 2,000 characters.', 'bad');
-    if (state.jobs.length && !state.selectedJobId) return notice('Choose the project this message belongs to.', 'bad');
-    const { error } = await withTimeout(state.client.from('customer_messages').insert({
-      customer_id: state.account.id,
-      job_id: state.selectedJobId || null,
-      body,
-      direction: 'customer_to_business',
-      status: 'pending_owner_review'
-    }), 'Message save');
-    if (error) throw error;
-    byId('messageBody').value = '';
-    notice('<b>Message recorded for ' + esc(selectedJob()?.title || 'general account review') + '.</b> No automatic text or email was sent. Highway 38 will review it.', 'ok');
-  }
-
-  function dispatchPortalData() {
-    window.dispatchEvent(new CustomEvent('h38:portal-data', { detail: {
-      jobs: state.jobs.slice(),
-      quotes: state.quotes.slice(),
-      invoices: state.invoices.slice(),
-      files: state.files.slice(),
-      selectedJobId: state.selectedJobId
-    }}));
-  }
-
-  async function doRefreshDashboard() {
-    if (!state.account) return;
-    notice('Loading your customer records…', '');
-    const [jobs, quotes, invoices, files] = await Promise.all([
-      queryOwn('customer_jobs', 'id,job_number,title,status,next_action,due_date,expected_update_date,progress_percent', 'updated_at'),
-      queryOwn('customer_quotes', 'id,customer_id,job_id,quote_number,title,amount,status,version,customer_decision,decision_at,deliverables,timing,revision_allowance,exclusions,approval_consequence', 'updated_at'),
-      queryOwn('customer_invoices', 'id,invoice_number,total,balance_due,status,due_date,hosted_payment_url', 'updated_at'),
-      queryOwn('customer_files', 'id,job_id,file_name,storage_path,status,available_to_customer', 'updated_at')
-    ]);
-    state.jobs = jobs;
-    state.quotes = quotes;
-    state.invoices = invoices;
-    state.files = files.filter(row => row.available_to_customer === true);
-    if (!state.jobs.some(row => row.id === state.selectedJobId)) {
-      state.selectedJobId = state.jobs.find(row => !/complete|cancel/i.test(row.status || ''))?.id || state.jobs[0]?.id || null;
-    }
-    renderJobs(state.jobs);
-    renderQuotes(state.quotes);
-    renderInvoices(state.invoices);
-    renderFiles(state.files);
-    byId('metricJobs').textContent = jobs.filter(row => !/complete|cancel/i.test(row.status || '')).length;
-    byId('metricQuotes').textContent = quotes.filter(row => row.status === 'presented' && !row.customer_decision).length;
-    byId('metricBalance').textContent = money(invoices.reduce((sum, row) => sum + Number(row.balance_due || 0), 0));
-    dispatchPortalData();
-    notice('<b>Secure portal loaded.</b> Supabase Auth and Row Level Security limit this session to the connected customer account.', 'ok');
-  }
-
-  function refreshDashboard() {
-    if (refreshPromise) return refreshPromise;
-    refreshPromise = doRefreshDashboard().finally(() => { refreshPromise = null; });
-    return refreshPromise;
-  }
-
-  async function applySession(session, source) {
-    state.session = session;
-    if (!session) {
-      state.account = null;
-      lastAppliedUserId = '';
-      setView('login');
-      return;
-    }
-    const userId = String(session.user?.id || '');
-    if (!userId) throw new Error('Secure customer session is incomplete.');
-    const duplicate = state.account && userId === lastAppliedUserId && Date.now() - lastAppliedAt < 5000;
-    if (duplicate && source !== 'manual-refresh') return;
-    await loadAccount();
-    setView('app');
-    await refreshDashboard();
-    lastAppliedUserId = userId;
-    lastAppliedAt = Date.now();
-  }
-
-  function queueSession(session, source) {
-    sessionQueue = sessionQueue.catch(() => {}).then(() => applySession(session, source));
-    return sessionQueue;
-  }
-
-  async function boot() {
-    try {
-      if (!initClient()) return;
-      byId('loginForm').addEventListener('submit', event => signInWithPassword(event).catch(safeError));
-      byId('magicLinkButton').addEventListener('click', () => sendMagicLink().catch(safeError));
-      byId('signOutButton').addEventListener('click', () => signOut().catch(safeError));
-      byId('refreshPortal').addEventListener('click', () => refreshDashboard().catch(safeError));
-      byId('messageForm').addEventListener('submit', event => submitMessage(event).catch(safeError));
-      const { data, error } = await withTimeout(state.client.auth.getSession(), 'Secure session check');
-      if (error) throw error;
-      await queueSession(data.session, 'boot');
-      state.client.auth.onAuthStateChange((event, session) => {
-        if (event === 'TOKEN_REFRESHED') {
-          state.session = session;
-          return;
-        }
-        setTimeout(() => {
-          void queueSession(session, event || 'auth-change').catch(safeError);
-        }, 0);
-      });
-    } catch (error) {
-      safeError(error);
-      setView(configured() ? 'login' : 'hold');
-    }
-  }
-
-  window.H38_CUSTOMER_PORTAL = {
-    build: BUILD,
-    approveQuote: (quoteId, version) => approveQuote(quoteId, version).catch(safeError),
-    selectJob,
-    refresh: () => refreshDashboard().catch(safeError),
-    getState: () => ({ ...state, jobs: state.jobs.slice(), quotes: state.quotes.slice(), invoices: state.invoices.slice(), files: state.files.slice() })
-  };
-  document.addEventListener('DOMContentLoaded', boot);
+(function(){
+'use strict';
+const BUILD='20260807-1720';
+const config=window.H38_CUSTOMER_PORTAL_SUPABASE||{};
+const state={client:null,session:null,account:null,jobs:[],quotes:[],invoices:[],files:[],selectedJobId:null};
+let refreshPromise=null,sessionQueue=Promise.resolve(),bootStarted=false,lastAppliedUserId='',lastAppliedAt=0;
+const byId=id=>document.getElementById(id);
+const text=v=>String(v==null?'':v);
+const esc=v=>text(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0));
+const configured=()=>Boolean(config.enabled===true&&/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(text(config.url))&&text(config.publishableKey).length>=20&&!/REPLACE_WITH|YOUR_PROJECT/i.test(text(config.url)+text(config.publishableKey)));
+function notice(message,kind=''){const node=byId('portalNotice');if(!node)return;node.className='portal-notice '+kind;node.innerHTML=message;}
+function setView(name){['hold','login','app'].forEach(key=>{const node=byId('portal-'+key);if(node)node.hidden=key!==name;});}
+function safeError(error){console.error(error);notice('<b>Secure portal notice:</b> '+esc(error?.message||error),'bad');}
+function withTimeout(promise,label,ms=15000){let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' timed out. Check the connection and press Refresh.')),ms);});return Promise.race([Promise.resolve(promise),timeout]).finally(()=>clearTimeout(timer));}
+function initClient(){if (!configured()){setView('hold');notice('<b>Customer Portal is temporarily unavailable.</b> Secure configuration validation failed. No customer data is exposed.','hold');return null;}if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('Supabase client library did not load.');state.client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{headers:{'x-client-info':'highway-38-customer-portal-1720'}}});return state.client;}
+function loginEmail(){return text(byId('portalEmail')?.value).trim().toLowerCase();}
+function currentRedirectUrl(){return config.redirectUrl||new URL(location.origin+location.pathname).toString();}
+async function signInWithPassword(event){event.preventDefault();const email=loginEmail(),password=text(byId('portalPassword')?.value);if(!email)return notice('Enter the email address connected to your customer account.','bad');if(!password)return notice('Enter your customer portal password or request a secure email link.','bad');notice('Signing in securely…');const{data,error}=await withTimeout(state.client.auth.signInWithPassword({email,password}),'Secure sign-in');if(error)throw error;if(byId('portalPassword'))byId('portalPassword').value='';if(data?.session)await queueSession(data.session,'password-sign-in');}
+async function sendMagicLink(){const email=loginEmail();if(!email)return notice('Enter the email address connected to your customer account.','bad');const{error}=await withTimeout(state.client.auth.signInWithOtp({email,options:{emailRedirectTo:currentRedirectUrl(),shouldCreateUser:false}}),'Secure email link request');if(error)throw error;notice('<b>Check your email.</b> The secure sign-in link was requested.','ok');}
+async function signOut(){const{error}=await withTimeout(state.client.auth.signOut(),'Sign out');if(error)throw error;state.session=null;state.account=null;state.jobs=[];state.quotes=[];state.invoices=[];state.files=[];state.selectedJobId=null;lastAppliedUserId='';setView('login');notice('Signed out.','ok');}
+async function loadAccount(){const userId=state.session?.user?.id;if(!userId)throw new Error('Secure customer session is missing a user.');const request=state.client.from('customer_accounts').select('id,customer_code,display_name,email,status').eq('auth_user_id',userId).eq('status','active').maybeSingle();const{data,error}=await withTimeout(request,'Customer account lookup');if(error)throw error;if(!data)throw new Error('This login is not connected to an active Highway 38 customer account.');state.account=data;if(byId('customerName'))byId('customerName').textContent=data.display_name||data.customer_code||'Customer';if(byId('customerCode'))byId('customerCode').textContent=data.customer_code||'';}
+async function queryOwn(table,columns,orderColumn){let request=state.client.from(table).select(columns).eq('customer_id',state.account.id);if(orderColumn)request=request.order(orderColumn,{ascending:false});const{data,error}=await withTimeout(request,table+' lookup');if(error)throw error;return Array.isArray(data)?data:[];}
+function selectedJob(){return state.jobs.find(row=>row.id===state.selectedJobId)||null;}
+function selectJob(jobId){state.selectedJobId=state.jobs.some(row=>row.id===jobId)?jobId:(state.jobs[0]?.id||null);dispatchPortalData();return selectedJob();}
+function resolvePdfPath(quote){const direct=text(quote?.pdf_storage_path).trim();if(direct)return direct;const number=text(quote?.quote_number).trim();if(!number)return'';const file=state.files.find(row=>{const name=text(row?.file_name);return name===`${number}.pdf`||name.startsWith(`${number}-revision-`)||(name.includes(number)&&name.toLowerCase().endsWith('.pdf'));});return text(file?.storage_path);}
+async function openProposalPdf(path){if(!path)throw new Error('This quote does not have a customer PDF yet.');const target=window.open('about:blank','_blank');if(target)target.opener=null;try{const{data,error}=await withTimeout(state.client.storage.from(config.storageBucket||'customer-portal').createSignedUrl(path,300),'Secure proposal PDF');if(error)throw error;if(!data?.signedUrl)throw new Error('A secure PDF link was not created.');if(target&&!target.closed)target.location.replace(data.signedUrl);else window.location.assign(data.signedUrl);}catch(error){try{target?.close();}catch(_){}throw error;}}
+function renderJobs(rows){const node=byId('jobsList');if(!node)return;node.innerHTML=rows.length?rows.map(row=>`<article class="portal-item" data-job-id="${esc(row.id)}"><div><strong>${esc(row.job_number||row.title||'Project')}</strong><span>${esc(row.title||'')}</span></div><div><span class="portal-pill">${esc(row.status||'Open')}</span><span>${esc(row.next_action||'No next action posted')}</span></div><progress max="100" value="${Math.max(0,Math.min(100,Number(row.progress_percent||0)))}"></progress><button class="btn" type="button" data-select-project="${esc(row.id)}">Show this project</button></article>`).join(''):'<p class="portal-empty">No active projects are posted.</p>';node.querySelectorAll('[data-select-project]').forEach(button=>button.addEventListener('click',()=>selectJob(button.dataset.selectProject)));}
+function renderQuotes(rows){const node=byId('quotesList');if(!node)return;node.innerHTML=rows.length?rows.map(row=>{const path=resolvePdfPath(row);return`<article class="portal-item" data-quote-id="${esc(row.id)}"><div><strong>${esc(row.quote_number||row.title||'Quote')}</strong><span>${esc(row.title||'')}</span></div><div><strong>${money(row.amount)}</strong><span class="portal-pill">${esc(row.status||'Draft')}</span></div><div class="portal-actions">${path?`<button class="btn btn-primary" type="button" data-open-proposal-pdf="${esc(path)}">Open Proposal PDF</button>`:''}${row.status==='presented'&&!row.customer_decision?`<button class="btn" type="button" data-review-quote="${esc(row.id)}">Review complete quote</button>`:`<span>${esc(row.customer_decision?'Customer decision: '+row.customer_decision:'')}</span>`}</div></article>`;}).join(''):'<p class="portal-empty">No quotes are available.</p>';node.querySelectorAll('[data-open-proposal-pdf]').forEach(button=>button.addEventListener('click',()=>openProposalPdf(button.dataset.openProposalPdf).catch(safeError)));}
+function renderInvoices(rows){const node=byId('invoicesList');if(!node)return;node.innerHTML=rows.length?rows.map(row=>`<article class="portal-item"><div><strong>${esc(row.invoice_number||'Invoice')}</strong><span>Due ${esc(row.due_date||'not posted')}</span></div><div><strong>${money(row.balance_due)}</strong><span class="portal-pill">${esc(row.status||'Open')}</span></div>${row.hosted_payment_url?`<a class="btn" href="${esc(row.hosted_payment_url)}" target="_blank" rel="noopener noreferrer">Open hosted payment</a>`:''}</article>`).join(''):'<p class="portal-empty">No invoices are available.</p>';}
+async function downloadFile(path){const{data,error}=await withTimeout(state.client.storage.from(config.storageBucket||'customer-portal').createSignedUrl(path,120,{download:true}),'Secure file link');if(error)throw error;if(!data?.signedUrl)throw new Error('A secure download URL was not created.');window.open(data.signedUrl,'_blank','noopener,noreferrer');}
+function renderFiles(rows){const node=byId('filesList');if(!node)return;node.innerHTML=rows.length?rows.map(row=>`<article class="portal-item" data-job-id="${esc(row.job_id||'')}"><div><strong>${esc(row.file_name||'File')}</strong><span>${esc(row.status||'')}</span></div><button class="btn" type="button" data-download-path="${esc(row.storage_path)}">Download</button></article>`).join(''):'<p class="portal-empty">No customer files are available.</p>';node.querySelectorAll('[data-download-path]').forEach(button=>button.addEventListener('click',()=>downloadFile(button.dataset.downloadPath).catch(safeError)));}
+async function approveQuote(quoteId,version){const quote=state.quotes.find(row=>row.id===quoteId);if(!quote)throw new Error('The selected quote is not available. Refresh and try again.');if(!confirm('Approve this fully reviewed quote? This records your decision but does not charge a card or begin work automatically.'))return false;const{data,error}=await withTimeout(state.client.rpc('customer_portal_approve_quote',{p_quote_id:quoteId,p_expected_version:Number(version||quote.version||1)}),'Quote approval');if(error)throw error;notice('<b>Quote approval recorded.</b> Highway 38 will review it before any next action.','ok');await refreshDashboard();return data;}
+async function submitMessage(event){event.preventDefault();const body=text(byId('messageBody')?.value).trim();if(!body)return notice('Enter a message first.','bad');if(body.length>2000)return notice('Messages are limited to 2,000 characters.','bad');if(state.jobs.length&&!state.selectedJobId)return notice('Choose the project this message belongs to.','bad');const{error}=await withTimeout(state.client.from('customer_messages').insert({customer_id:state.account.id,job_id:state.selectedJobId||null,body,direction:'customer_to_business',status:'pending_owner_review'}),'Message save');if(error)throw error;if(byId('messageBody'))byId('messageBody').value='';notice('<b>Message recorded for '+esc(selectedJob()?.title||'general account review')+'.</b> No automatic text or email was sent.','ok');}
+function dispatchPortalData(){window.dispatchEvent(new CustomEvent('h38:portal-data',{detail:{jobs:state.jobs.slice(),quotes:state.quotes.slice(),invoices:state.invoices.slice(),files:state.files.slice(),selectedJobId:state.selectedJobId}}));}
+async function doRefreshDashboard(){if(!state.account)return;notice('Loading your customer records…');const[jobs,quotes,invoices,files]=await Promise.all([queryOwn('customer_jobs','id,job_number,title,status,next_action,due_date,expected_update_date,progress_percent','updated_at'),queryOwn('customer_quotes','id,customer_id,job_id,quote_number,title,amount,status,version,customer_decision,decision_at,deliverables,timing,revision_allowance,exclusions,approval_consequence,pdf_storage_path','updated_at'),queryOwn('customer_invoices','id,invoice_number,total,balance_due,status,due_date,hosted_payment_url','updated_at'),queryOwn('customer_files','id,job_id,file_name,storage_path,status,available_to_customer','updated_at')]);state.jobs=jobs;state.quotes=quotes;state.invoices=invoices;state.files=files.filter(row=>row.available_to_customer===true);if(!state.jobs.some(row=>row.id===state.selectedJobId))state.selectedJobId=state.jobs.find(row=>!/complete|cancel/i.test(row.status||''))?.id||state.jobs[0]?.id||null;renderJobs(state.jobs);renderQuotes(state.quotes);renderInvoices(state.invoices);renderFiles(state.files);if(byId('metricJobs'))byId('metricJobs').textContent=jobs.filter(row=>!/complete|cancel/i.test(row.status||'')).length;if(byId('metricQuotes'))byId('metricQuotes').textContent=quotes.filter(row=>row.status==='presented'&&!row.customer_decision).length;if(byId('metricBalance'))byId('metricBalance').textContent=money(invoices.reduce((sum,row)=>sum+Number(row.balance_due||0),0));dispatchPortalData();notice('<b>Secure portal loaded.</b>','ok');}
+function refreshDashboard(){if(refreshPromise)return refreshPromise;refreshPromise=doRefreshDashboard().finally(()=>{refreshPromise=null;});return refreshPromise;}
+async function applySession(session,source){state.session=session;if(!session){state.account=null;lastAppliedUserId='';setView('login');notice('Sign in to view your customer records.');return;}const userId=text(session.user?.id);if(!userId)throw new Error('Secure customer session is incomplete.');if(state.account&&userId===lastAppliedUserId&&Date.now()-lastAppliedAt<5000&&source!=='manual-refresh')return;await loadAccount();setView('app');await refreshDashboard();lastAppliedUserId=userId;lastAppliedAt=Date.now();}
+function queueSession(session,source){sessionQueue=sessionQueue.catch(()=>{}).then(()=>applySession(session,source));return sessionQueue;}
+function bindControls(){byId('loginForm')?.addEventListener('submit',event=>signInWithPassword(event).catch(safeError));byId('magicLinkButton')?.addEventListener('click',()=>sendMagicLink().catch(safeError));byId('signOutButton')?.addEventListener('click',()=>signOut().catch(safeError));byId('refreshPortal')?.addEventListener('click',()=>{if(state.account)refreshDashboard().catch(safeError);else boot().catch(safeError);});byId('messageForm')?.addEventListener('submit',event=>submitMessage(event).catch(safeError));}
+async function boot(){if(bootStarted)return;bootStarted=true;try{notice('Opening secure customer portal…');if(!initClient())return;bindControls();const{data,error}=await withTimeout(state.client.auth.getSession(),'Secure session check');if(error)throw error;await queueSession(data?.session||null,'boot');state.client.auth.onAuthStateChange((event,session)=>{if(event==='TOKEN_REFRESHED'){state.session=session;return;}setTimeout(()=>void queueSession(session,event||'auth-change').catch(safeError),0);});}catch(error){safeError(error);setView(configured()?'login':'hold');}finally{window.H38_CUSTOMER_PORTAL_BOOTED=true;}}
+window.H38_CUSTOMER_PORTAL={build:BUILD,approveQuote:(id,version)=>approveQuote(id,version).catch(safeError),selectJob,refresh:()=>refreshDashboard().catch(safeError),openProposalPdf:path=>openProposalPdf(path).catch(safeError),getState:()=>({...state,jobs:state.jobs.slice(),quotes:state.quotes.slice(),invoices:state.invoices.slice(),files:state.files.slice()})};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>void boot(),{once:true});else void boot();
+setTimeout(()=>{if(!window.H38_CUSTOMER_PORTAL_BOOTED&&!bootStarted)void boot();},750);
 })();
