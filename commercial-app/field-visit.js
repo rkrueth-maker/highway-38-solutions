@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260806-1835',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
+const BUILD='20260806-2048',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
 const native=/H38SiteScannerAndroid/.test(navigator.userAgent),apple=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
 if(native)document.documentElement.classList.add('h38-native-shell');
 if(apple)document.documentElement.classList.add('h38-apple-device');
@@ -30,12 +30,17 @@ function focusQuote(){
 }
 function entries(){
   const main=$('mainContent');if(!main||!window.state?.snapshot||!C.business())return;
-  const page=title(),isQuote=/Quote Builder/i.test(page),isLegacy=/Site Measure|H38 Site Scanner/i.test(page);
+  const page=title(),isQuote=/Quote Builder/i.test(page),isLegacy=/Site Measure|H38 Site Scanner/i.test(page),advanced=Number(window.H38_FIELD_VISIT_ADVANCED_UNTIL||0)>Date.now();
   if(isQuote)focusQuote();else document.body.classList.remove('field-quote-focused');
-  $('h38SiteScannerButton')?.classList.add('field-hide-legacy-scanner');
-  $('h38SiteScannerPanel')?.classList.add('field-hide-legacy-scanner');
-  if(isLegacy&&!S.open){open({quoteId:C.t(window.state?.quote?.quoteId),customerId:C.t(window.state?.quote?.customerId)});return}
-  if(new URLSearchParams(location.search).get('nativeScanner')==='1'&&!S.auto&&!S.open){S.auto=true;setTimeout(()=>open(),120)}
+  if(advanced){
+    $('h38SiteScannerButton')?.classList.remove('field-hide-legacy-scanner');
+    $('h38SiteScannerPanel')?.classList.remove('field-hide-legacy-scanner');
+  }else{
+    $('h38SiteScannerButton')?.classList.add('field-hide-legacy-scanner');
+    $('h38SiteScannerPanel')?.classList.add('field-hide-legacy-scanner');
+  }
+  if(isLegacy&&!S.open&&!advanced){open({quoteId:C.t(window.state?.quote?.quoteId),customerId:C.t(window.state?.quote?.customerId)});return}
+  if(new URLSearchParams(location.search).get('nativeScanner')==='1'&&!S.auto&&!S.open&&!advanced){S.auto=true;setTimeout(()=>open(),120)}
 }
 function loadGuidance(){
   if(!document.querySelector('link[data-h38-field-guidance]')){
@@ -44,7 +49,11 @@ function loadGuidance(){
   if(window.H38_FIELD_VISIT_GUIDANCE||document.querySelector('script[data-h38-field-guidance]'))return;
   const script=document.createElement('script');script.src='./field-visit-guidance.js?build=20260806-1835';script.dataset.h38FieldGuidance='1';document.head.appendChild(script);
 }
-function start(){loadGuidance();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
-window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true};
+function loadRecovery(){
+  if(window.H38_FIELD_VISIT_RECOVERY||document.querySelector('script[data-h38-field-recovery]'))return;
+  const script=document.createElement('script');script.src='./field-visit-recovery.js?build=20260806-2048';script.dataset.h38FieldRecovery='1';document.head.appendChild(script);
+}
+function start(){loadGuidance();loadRecovery();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
+window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true,queueRecovery:true};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
