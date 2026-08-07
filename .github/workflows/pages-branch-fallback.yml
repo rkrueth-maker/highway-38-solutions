@@ -112,11 +112,15 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ needs.prepare.outputs.public_commit }}"
-          grep -Fq "20260806-1835" commercial-app/field-visit.js
+          grep -Fq "20260806-2048" commercial-app/field-visit.js
           grep -Fq "field-visit-guidance.js" commercial-app/field-visit.js
+          grep -Fq "field-visit-recovery.js" commercial-app/field-visit.js
+          grep -Fq "20260806-2048" commercial-app/field-visit-recovery.js
+          grep -Fq "H38_SUPABASE_OPERATIONAL?.synchronize" commercial-app/field-visit-recovery.js
+          grep -Fq "H38_FIELD_VISIT_ADVANCED_UNTIL" commercial-app/field-visit-recovery.js
           grep -Fq "unknownsAreNeverGuessed:true" commercial-app/field-visit-guidance.js
           grep -Fq "Cannot Measure — Mark Unknown" commercial-app/field-visit-guidance.js
-          grep -Fq "h38-business-office-20260806-1835" commercial-app/service-worker.js
+          grep -Fq "h38-business-office-20260806-2048" commercial-app/service-worker.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
