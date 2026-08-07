@@ -13,7 +13,7 @@
     if (shared?.ensure) return shared.ensure();
     return window.supabase.createClient(config.url, config.publishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
-      global: { headers: { 'x-client-info': 'h38-quote-ai-shared-auth-v2' } }
+      global: { headers: { 'x-client-info': 'h38-quote-ai-shared-auth-v3' } }
     });
   }
   async function responsePayload(response) {
@@ -50,10 +50,10 @@
     }
     return session;
   }
-  async function postQuoteAi(args, timeout, forceRefresh) {
+  async function postQuoteAi(args, timeout, forceRefresh, requestAction) {
     const session = await validSession(forceRefresh);
     const controller = new AbortController();
-    const timeoutMs = Math.max(30000, Number(timeout) || 180000);
+    const timeoutMs = Math.max(30000, Number(timeout) || 145000);
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(`${config.url}/functions/v1/h38-quote-ai`, {
@@ -65,9 +65,9 @@
           'Authorization': `Bearer ${session.access_token}`,
           'apikey': config.publishableKey,
           'Content-Type': 'application/json',
-          'x-client-info': 'h38-quote-ai-shared-auth-v2'
+          'x-client-info': 'h38-quote-ai-shared-auth-v3'
         },
-        body: JSON.stringify({ action: 'buildQuote', ...(args || {}) }),
+        body: JSON.stringify({ action: requestAction || 'buildQuote', ...(args || {}) }),
         signal: controller.signal
       });
       const payload = await responsePayload(response);
@@ -76,37 +76,39 @@
       clearTimeout(timer);
     }
   }
-  async function directQuoteAi(args, timeout) {
+  async function directQuoteAi(args, timeout, requestAction) {
     if (typeof window.sync === 'function') await window.sync(false);
     let attempt;
     try {
-      attempt = await postQuoteAi(args, timeout, false);
-      if (attempt.response.status === 401) attempt = await postQuoteAi(args, timeout, true);
+      attempt = await postQuoteAi(args, timeout, false, requestAction);
+      if (attempt.response.status === 401) attempt = await postQuoteAi(args, timeout, true, requestAction);
       if (!attempt.response.ok || attempt.payload.status !== 'PASS') {
         throw new Error(text(attempt.payload.message || `Quote AI request failed (${attempt.response.status}).`));
       }
       return attempt.payload;
     } catch (error) {
       if (error && error.name === 'AbortError') {
-        throw new Error('Quote AI timed out. The saved draft and photos were not approved or sent.');
+        throw new Error('Quote AI operation timed out. The saved quote and photos were not approved or sent.');
       }
       throw error;
     }
   }
 
   Bridge.prototype.request = async function (action, args, timeout) {
-    if (action === 'aiBuildQuoteDraft') return directQuoteAi(args, timeout);
+    if (action === 'aiBuildQuoteDraft') return directQuoteAi(args, timeout, 'buildQuote');
+    if (action === 'aiRenderQuoteConcept') return directQuoteAi(args, timeout, 'renderConcept');
     return previousRequest.call(this, action, args, timeout);
   };
 
   window.H38_QUOTE_AI_AUTH_FIX = Object.freeze({
     enabled: true,
-    build: '20260806-2115',
+    build: '20260807-0955',
     transport: 'direct-fetch-shared-client',
     endpoint: 'h38-quote-ai',
     authorizationHeader: 'refreshed-user-bearer',
     retryOnUnauthorized: true,
     publishableKeyHeader: true,
+    separateRenderRequest: true,
     ownerReviewRequired: true,
     automaticApproval: false,
     automaticSending: false
