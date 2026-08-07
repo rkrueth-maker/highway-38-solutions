@@ -185,10 +185,16 @@ handleStartupBootstrap=async function(startup){
       return;
     }
     h38SetAuthorizedChrome(false);
-    if(state.canSwitchBusinesses){
-      state.snapshot=null;
-      $('businessStatus').textContent='Choose an active business.';
-      renderWelcome('choose');
+    const authorizedIds=new Set(businesses.map(b=>String(b.businessId||'')));
+    let preferredId=String(startup.selectedBusinessId||state.requestedBusinessId||state.businessId||'').trim();
+    if(!authorizedIds.has(preferredId))preferredId='';
+    if(!preferredId){
+      const highway38=businesses.find(b=>/highway\s*38/i.test(String(b.businessName||b.displayName||'')));
+      preferredId=String(highway38?.businessId||businesses[0]?.businessId||'').trim();
+    }
+    if(preferredId&&authorizedIds.has(preferredId)){
+      $('businessStatus').textContent='Opening authorized business…';
+      await loadBusiness(preferredId,true);
       return;
     }
     throw new Error('The active business could not be selected.');
@@ -233,7 +239,7 @@ renderWelcome=function(mode='connecting',detailOverride=''){
     return;
   }
   if(mode==='choose'){
-    $('mainContent').innerHTML='<section class="welcome"><h1>Choose a business</h1><p>Only active memberships returned by Supabase Auth are listed above.</p><div class="notice">A saved or URL business ID cannot grant access.</div></section>';
+    $('mainContent').innerHTML='<section class="welcome"><h1>Opening Business Office…</h1><p>Resolving your authorized Highway 38 business.</p></section>';
     return;
   }
   $('mainContent').innerHTML='<section class="welcome"><h1>Opening Business Office…</h1><p>Checking the Supabase Auth session and active business memberships.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
