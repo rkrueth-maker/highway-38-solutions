@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="platform-unified.css?v=20260719-product-unification">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="customer-portal-config.js?v=20260807-1435" defer></script>
-  <script src="customer-portal-supabase.js?v=20260807-1325" defer></script>
+  <script src="customer-portal-supabase.js?v=20260807-1720" defer></script>
   <script defer src="brand-global.js?v=20260719-product-unification"></script>
   <script defer src="public-expansion.js?v=20260717-one-shot"></script>
   <script defer src="platform-states.js?v=20260719-product-unification"></script>
@@ -30,7 +30,7 @@
   <nav class="site-nav" aria-label="Main navigation"></nav>
   <main id="main" class="customer-shell">
     <header class="customer-head"><div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div><div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div></header>
-    <div id="portalNotice" class="portal-notice" aria-live="polite">Checking secure portal configuration…</div>
+    <div id="portalNotice" class="portal-notice" aria-live="polite">Opening secure customer portal…</div>
     <section id="portal-hold" class="portal-panel" hidden><h2>Customer Portal temporarily unavailable</h2><p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p><p><strong>Highway 38 must verify the Supabase project, publishable key, authentication settings, and Row Level Security before access resumes.</strong></p></section>
     <section id="portal-login" class="portal-panel portal-login" hidden><h2>Sign in securely</h2><p>Use the email address and password connected to your Highway 38 customer account. A one-time email link is also available.</p><form id="loginForm"><label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label><label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password"></label><div class="portal-actions"><button class="btn btn-primary" type="submit">Sign in</button><button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button></div><p class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p></form></section>
     <section id="portal-app" hidden>
