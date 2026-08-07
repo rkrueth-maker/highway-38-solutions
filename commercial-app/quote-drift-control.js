@@ -1,0 +1,23 @@
+(function(){
+'use strict';
+const BUILD='20260807-0305';
+const text=v=>String(v==null?'':v),num=v=>Number.isFinite(Number(v))?Number(v):0;
+function money(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(v));}
+function total(lines){return(lines||[]).reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0);}
+function key(line){return text(line.description).trim().toLowerCase();}
+function compare(base,suggestions){const current=new Map((base||[]).map(line=>[key(line),line]));const proposed=new Map((suggestions||[]).map(line=>[key(line),line]));const additions=[],subtractions=[],changes=[];
+ for(const [k,line] of proposed){const old=current.get(k);if(!old){additions.push({description:line.description,quantity:line.quantity,unit:line.unit,unitPrice:line.unitPrice,impact:num(line.quantity)*num(line.unitPrice)});continue;}const oldTotal=num(old.quantity)*num(old.unitPrice),newTotal=num(line.quantity)*num(line.unitPrice);if(Math.abs(num(old.quantity)-num(line.quantity))>.001||Math.abs(num(old.unitPrice)-num(line.unitPrice))>.01){changes.push({description:line.description,fromQuantity:old.quantity,toQuantity:line.quantity,fromPrice:old.unitPrice,toPrice:line.unitPrice,impact:newTotal-oldTotal});}}
+ for(const [k,line] of current){if(!proposed.has(k))subtractions.push({description:line.description,quantity:line.quantity,unit:line.unit,unitPrice:line.unitPrice,impact:-(num(line.quantity)*num(line.unitPrice))});}
+ return{additions,subtractions,changes,netImpact:[...additions,...subtractions,...changes].reduce((sum,item)=>sum+num(item.impact),0)};}
+function ensurePanel(){let panel=document.getElementById('h38QuoteDriftPanel');if(panel)return panel;const main=document.getElementById('mainContent');if(!main)return null;panel=document.createElement('section');panel.id='h38QuoteDriftPanel';panel.className='card';panel.innerHTML='<h2>AI Estimate Drift Control</h2><p class="muted">Owner-only. Customer proposals and PDFs never show this section.</p><div id="h38QuoteDriftBody" class="list"></div>';main.prepend(panel);return panel;}
+function render(){const q=window.state?.quote||{},base=Array.isArray(q.lines)?q.lines:[],suggestions=Array.isArray(q.aiSuggestedLines)?q.aiSuggestedLines:[];if(!base.length&&!suggestions.length)return;const panel=ensurePanel();if(!panel)return;const body=panel.querySelector('#h38QuoteDriftBody');if(!suggestions.length){body.innerHTML='<div class="notice">No new AI comparison has been run. The current reviewed estimate remains locked.</div>';return;}const drift=compare(base,suggestions);const rows=[];
+ drift.additions.forEach(item=>rows.push(`<div class="row"><strong>Addition proposed</strong><span>${text(item.description)} · ${item.quantity} ${text(item.unit||'each')} · ${money(item.impact)}</span></div>`));
+ drift.subtractions.forEach(item=>rows.push(`<div class="row"><strong>Subtraction proposed</strong><span>${text(item.description)} · ${item.quantity} ${text(item.unit||'each')} · ${money(item.impact)}</span></div>`));
+ drift.changes.forEach(item=>rows.push(`<div class="row"><strong>Change proposed</strong><span>${text(item.description)} · qty ${item.fromQuantity} → ${item.toQuantity} · price ${money(item.fromPrice)} → ${money(item.toPrice)} · impact ${money(item.impact)}</span></div>`));
+ body.innerHTML=`<div class="notice"><strong>Current reviewed total:</strong> ${money(total(base))}<br><strong>AI net proposed drift:</strong> ${money(drift.netImpact)}<br>No line or total changes until the owner accepts them.</div>${rows.join('')||'<div class="notice">AI reached the same line-item conclusion. No additions, subtractions, quantity changes, or price changes were proposed.</div>'}`;
+ q.aiDriftControl={...drift,reviewedTotal:total(base),generatedAt:new Date().toISOString(),ownerApprovalRequired:true};}
+const baseRender=window.renderQuotes;if(typeof baseRender==='function')window.renderQuotes=function(){baseRender();render();};
+document.addEventListener('click',event=>{if(event.target?.closest?.('#previewQuoteButton,#printQuoteButton,#h38ApproveSendQuoteButton'))document.getElementById('h38QuoteDriftPanel')?.remove();},true);
+window.H38_QUOTE_DRIFT_CONTROL=Object.freeze({enabled:true,build:BUILD,ownerOnly:true,customerHidden:true,automaticChanges:false,render});
+setTimeout(render,0);
+})();
