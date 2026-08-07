@@ -8,6 +8,7 @@ const live=read('commercial-app/quote-ai-live-fix.js');
 const mobile=read('commercial-app/quote-mobile-stabilization.js');
 const index=read('commercial-app/index.html');
 const worker=read('commercial-app/service-worker.js');
+const captureSelector=live.includes("closest('#h38AiQuoteDraftButton')")||live.includes("closest?.('#h38AiQuoteDraftButton')");
 const checks=[
  ['OpenAI key remains server-side',edge.includes('Deno.env.get("OPENAI_API_KEY")')&&!provider.includes('OPENAI_API_KEY')],
  ['Responses API receives image inputs',edge.includes('https://api.openai.com/v1/responses')&&edge.includes('input_image')],
@@ -17,7 +18,7 @@ const checks=[
  ['Membership and role are validated',edge.includes('business_memberships')&&edge.includes('auth_user_id')&&edge.includes('administrator')],
  ['Provider uses Supabase Functions invoke',provider.includes("functions.invoke('h38-quote-ai'")&&provider.includes('functions.setAuth(session.access_token)')],
  ['Saved quote syncs before AI',provider.includes("await window.sync(false)")],
- ['Capture-phase click bypasses stale onclick handlers',live.includes("document.addEventListener('click'")&&live.includes('stopImmediatePropagation')&&live.includes("closest('#h38AiQuoteDraftButton')")],
+ ['Capture-phase click bypasses stale onclick handlers',live.includes("document.addEventListener('click'")&&live.includes('stopImmediatePropagation')&&captureSelector],
  ['Every build tap gets persistent inline status',live.includes('h38QuoteBuildStatus')&&live.includes('Build Quote started.')&&live.includes('aria-live')],
  ['Silent safeAction dependency is no longer used by final handler',!live.includes('safeAction')&&live.includes('quote-ai-v3-capture')],
  ['Recursive page observer is forbidden',!live.includes('MutationObserver')&&live.includes('recursiveObserver:false')],
