@@ -38,12 +38,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify field workflow, offline queue, and autofill contract
+      - name: Verify field workflow, offline queue, video walkthrough, and autofill contract
         run: node scripts/verify-field-visit-offline-autofill.js
       - name: Verify JavaScript syntax
         run: |
           node --check commercial-app/field-visit-core.js
           node --check commercial-app/field-visit-ui.js
+          node --check commercial-app/field-visit-video.js
           node --check commercial-app/field-visit.js
           node --check commercial-app/auth-autofill.js
           node --check commercial-app/service-worker.js
