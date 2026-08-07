@@ -11,6 +11,7 @@ window.rowId=function(row,...keys){return String(value(row,keys));};
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
   build:'20260806-2145',
-  purpose:'Expose the existing record-id helper safely to later browser modules.'
+  purpose:'Expose the existing record-id helper safely to later browser modules.',
+  productionVerification:'20260806-2145'
 });
 })();
