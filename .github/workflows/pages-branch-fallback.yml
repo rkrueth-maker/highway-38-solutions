@@ -128,10 +128,12 @@ jobs:
           grep -Fq "missingMeasurements" commercial-app/field-visit-photo-review.js
           grep -Fq "window.rowId=function" commercial-app/runtime-rowid-fix.js
           grep -Fq "runtime-rowid-fix.js?build=20260806-2145" commercial-app/index.html
+          grep -Fq "rowIdSelfHealing:true" commercial-app/quote-ai-live-fix.js
+          grep -Fq "quote-ai-v5-runtime-self-heal" commercial-app/quote-ai-live-fix.js
           grep -Fq "field-visit-measurement-fix.js" commercial-app/field-visit-recovery.js
           grep -Fq "unknownsAreNeverGuessed:true" commercial-app/field-visit-guidance.js
           grep -Fq "Cannot Measure — Mark Unknown" commercial-app/field-visit-guidance.js
-          grep -Fq "h38-business-office-20260806-2145" commercial-app/service-worker.js
+          grep -Fq "h38-business-office-20260806-2210" commercial-app/service-worker.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
