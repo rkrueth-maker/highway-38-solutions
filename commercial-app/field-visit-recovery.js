@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260806-2048';
+const BUILD='20260806-2100';
 const C=window.H38_FIELD_VISIT_CORE;
 const DB=window.H38DB;
 if(!C||!DB)return;
@@ -125,6 +125,15 @@ function interceptClick(event){
   if(target.closest('#scannerBack')||target.closest('#mainNav [data-page]'))window.H38_FIELD_VISIT_ADVANCED_UNTIL=0;
 }
 
+function loadMeasurementFix(){
+  if(window.H38_FIELD_VISIT_MEASUREMENT_FIX||document.querySelector('script[data-h38-field-measurement-fix]'))return;
+  const script=document.createElement('script');
+  script.src='./field-visit-measurement-fix.js?build=20260806-2100';
+  script.dataset.h38FieldMeasurementFix='1';
+  document.head.appendChild(script);
+}
+
 document.addEventListener('click',interceptClick,true);
+loadMeasurementFix();
 window.H38_FIELD_VISIT_RECOVERY={build:BUILD,syncNow,waitingOperations,databaseAuthority:'existing Supabase Business Office'};
 })();
