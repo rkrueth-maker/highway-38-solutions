@@ -1,9 +1,20 @@
 (function(){
 'use strict';
+const BUILD='20260806-2210';
 let running=false;
 function text(value){return String(value==null?'':value);}
 function message(error){return text(error&&error.message?error.message:error||'Build Quote failed.');}
 function button(){return document.getElementById('h38AiQuoteDraftButton');}
+function ensureRowId(){
+  if(typeof window.rowId==='function')return window.rowId;
+  window.rowId=function(row,...keys){
+    for(const key of keys){
+      if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return String(row[key]);
+    }
+    return '';
+  };
+  return window.rowId;
+}
 function ensureStatus(){
   let node=document.getElementById('h38QuoteBuildStatus');
   if(node)return node;
@@ -31,7 +42,7 @@ async function runBuild(){
   if(running){show('Build Quote is already running.','pending');return;}
   running=true;
   const current=button();
-  if(current){current.disabled=true;current.textContent='Preparing photos…';current.dataset.h38LiveHandler='quote-ai-v4-shared-auth';}
+  if(current){current.disabled=true;current.textContent='Preparing photos…';current.dataset.h38LiveHandler='quote-ai-v5-runtime-self-heal';}
   show('Build Quote started. Linking the Site Visit photos and checking the secure session…','pending');
   const originalToast=window.toast;
   let capturedError='',capturedSuccess='';
@@ -39,9 +50,12 @@ async function runBuild(){
     window.toast=function(value,isError){const msg=text(value);if(isError)capturedError=msg;else if(msg)capturedSuccess=msg;return originalToast.apply(this,arguments);};
   }
   try{
+    ensureRowId();
     const valid=await window.H38_SUPABASE_SESSION_RECOVERY?.validate?.();
     if(valid===false)throw new Error('Secure session expired. Sign in again before building the quote.');
+    ensureRowId();
     const linked=await window.H38_QUOTE_PHOTO_RESTORE?.ensureQuoteLinks?.();
+    ensureRowId();
     if(current)current.textContent='Building quote…';
     show(`${linked?`${linked} Site Visit photo link${linked===1?'':'s'} prepared. `:''}Analyzing the saved scope, measurements, photos and Price Book…`,'pending');
     const build=window.h38BuildAiQuoteDraft;
@@ -59,18 +73,19 @@ async function runBuild(){
   }finally{
     if(typeof originalToast==='function')window.toast=originalToast;
     const latest=button();
-    if(latest){latest.disabled=false;latest.textContent='✨ Build Quote';latest.dataset.h38LiveHandler='quote-ai-v4-shared-auth';}
+    if(latest){latest.disabled=false;latest.textContent='✨ Build Quote';latest.dataset.h38LiveHandler='quote-ai-v5-runtime-self-heal';}
     running=false;
   }
 }
+ensureRowId();
 document.addEventListener('click',event=>{
   const target=event.target&&event.target.closest?event.target.closest('#h38AiQuoteDraftButton'):null;
   if(!target)return;
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation?.();
-  target.dataset.h38LiveHandler='quote-ai-v4-shared-auth';
+  target.dataset.h38LiveHandler='quote-ai-v5-runtime-self-heal';
   void runBuild();
 },true);
-window.H38_QUOTE_AI_CLICK_GUARD={enabled:true,build:'20260806-2115',capturePhase:true,inlineStatus:true,silentFailureBlocked:true,sharedSessionValidation:true,siteVisitPhotoLinking:true,run:runBuild};
+window.H38_QUOTE_AI_CLICK_GUARD={enabled:true,build:BUILD,capturePhase:true,inlineStatus:true,silentFailureBlocked:true,sharedSessionValidation:true,siteVisitPhotoLinking:true,rowIdSelfHealing:true,automaticApproval:false,automaticCustomerSending:false,run:runBuild};
 })();
