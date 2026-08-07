@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260807-1810';
+const BUILD='20260807-1835';
 const text=v=>String(v==null?'':v);
 const num=v=>Number.isFinite(Number(v))?Number(v):0;
 const field=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -28,3 +28,4 @@ document.addEventListener('click',event=>{const button=event.target?.closest?.('
 const style=document.createElement('style');style.textContent='.h38-pdf-help{display:inline-block;max-width:420px;margin-left:8px;vertical-align:middle}.h38-pdf-actions{margin-top:10px}.h38-real-pdf-status a.btn{text-decoration:none}@media(max-width:640px){.h38-pdf-help{display:block;margin:6px 0 0}}@media print{.h38-pdf-help,.h38-real-pdf-status{display:none!important}}';document.head.appendChild(style);setTimeout(refresh,0);
 window.H38_QUOTE_FINAL_PHONE_FIX=Object.freeze({enabled:true,build:BUILD,ownerDirectPdfLookup:true,storedPdfFirst:true,actualPdfViewer:true,noWindowPrint:true,automaticImageOrientation:false,manualImageAuthority:true,automaticSending:false,openPdf,refresh,liveQuoteRecord,storedPdf});
 })();
+(function(){if(window.H38_LIVE_CUSTOMER_QUOTE)return;const script=document.createElement('script');script.src='./quote-live-customer-preview.js?build=20260807-1835';script.async=false;script.dataset.h38LiveQuoteLoader='true';document.head.appendChild(script);})();
