@@ -52,9 +52,7 @@ function bearer(request: Request): string {
 }
 function serviceClient() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase service configuration is unavailable.");
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 async function readJson(response: Response): Promise<JsonObject> {
   const raw = await response.text();
@@ -82,57 +80,24 @@ async function signedInUser(request: Request): Promise<AuthUser> {
   });
   const payload = await readJson(response);
   if (!response.ok || typeof payload.id !== "string" || !payload.id) {
-    console.warn(JSON.stringify({
-      event: "quote-ai-auth-rejected",
-      status: response.status,
-      errorCode: clean(payload.error_code || payload.code || "", 120),
-    }));
+    console.warn(JSON.stringify({ event: "quote-ai-auth-rejected", status: response.status, errorCode: clean(payload.error_code || payload.code || "", 120) }));
     throw new Error("Supabase Auth session is invalid or expired.");
   }
   return { id: payload.id as string, email: typeof payload.email === "string" ? payload.email : undefined };
 }
 async function membership(service: ReturnType<typeof serviceClient>, userId: string, businessId: string) {
-  const { data, error } = await service
-    .from("business_memberships")
-    .select("id, role, status")
-    .eq("business_id", businessId)
-    .eq("auth_user_id", userId)
-    .eq("status", "active")
-    .maybeSingle();
+  const { data, error } = await service.from("business_memberships").select("id, role, status").eq("business_id", businessId).eq("auth_user_id", userId).eq("status", "active").maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("The signed-in account is not an active member of this business.");
   if (!["owner", "administrator", "staff"].includes(String(data.role))) throw new Error("This role cannot build or edit quotes.");
   return data;
 }
-async function writeError(
-  service: ReturnType<typeof serviceClient>,
-  businessId: string,
-  userId: string | null,
-  message: string,
-  context: JsonObject,
-) {
+async function writeError(service: ReturnType<typeof serviceClient>, businessId: string, userId: string | null, message: string, context: JsonObject) {
   try {
-    await service.from("business_error_log").insert({
-      business_id: businessId,
-      actor_user_id: userId,
-      source: "supabase/functions/h38-quote-ai",
-      error_code: "QUOTE_AI_BUILD_FAILED",
-      message: clean(message),
-      severity: "error",
-      status: "open",
-      context,
-    });
+    await service.from("business_error_log").insert({ business_id: businessId, actor_user_id: userId, source: "supabase/functions/h38-quote-ai", error_code: "QUOTE_AI_BUILD_FAILED", message: clean(message), severity: "error", status: "open", context });
   } catch (_) {}
 }
-async function writeProof(
-  service: ReturnType<typeof serviceClient>,
-  businessId: string,
-  userId: string,
-  quoteId: string,
-  photoCount: number,
-  priceRows: number,
-  details: JsonObject = {},
-) {
+async function writeProof(service: ReturnType<typeof serviceClient>, businessId: string, userId: string, quoteId: string, photoCount: number, priceRows: number, details: JsonObject = {}) {
   await service.from("business_proof_log").insert({
     business_id: businessId,
     actor_user_id: userId,
@@ -140,19 +105,7 @@ async function writeProof(
     entity_type: "Quote",
     entity_id: null,
     result: "PASS",
-    details: {
-      quoteId,
-      provider: "OpenAI Responses API",
-      model: OPENAI_MODEL,
-      authentication: "direct-supabase-auth-rest",
-      photoCount,
-      priceBookRowsConsidered: priceRows,
-      ownerReviewRequired: true,
-      automaticApproval: false,
-      automaticCustomerSending: false,
-      automaticFinancialAction: false,
-      ...details,
-    },
+    details: { quoteId, provider: "OpenAI Responses API", model: OPENAI_MODEL, authentication: "direct-supabase-auth-rest", photoCount, priceBookRowsConsidered: priceRows, ownerReviewRequired: true, automaticApproval: false, automaticCustomerSending: false, automaticFinancialAction: false, ...details },
     external_action_occurred: false,
   });
 }
@@ -160,10 +113,7 @@ function quoteSchema() {
   return {
     type: "object",
     additionalProperties: false,
-    required: [
-      "projectTitle", "scope", "confidence", "photoObservations", "measurementBasis",
-      "assumptions", "missingInformation", "suggestedLines", "pricingSummary",
-    ],
+    required: ["projectTitle", "scope", "confidence", "photoObservations", "measurementBasis", "assumptions", "missingInformation", "suggestedLines", "pricingSummary"],
     properties: {
       projectTitle: { type: "string" },
       scope: { type: "string" },
@@ -179,14 +129,8 @@ function quoteSchema() {
           additionalProperties: false,
           required: ["description", "quantity", "unit", "rate", "catalogId", "priceSource", "confidence", "rationale"],
           properties: {
-            description: { type: "string" },
-            quantity: { type: "number" },
-            unit: { type: "string" },
-            rate: { type: "number" },
-            catalogId: { type: "string" },
-            priceSource: { type: "string", enum: ["price_book", "local_research", "manual_required"] },
-            confidence: { type: "string", enum: ["low", "medium", "high"] },
-            rationale: { type: "string" },
+            description: { type: "string" }, quantity: { type: "number" }, unit: { type: "string" }, rate: { type: "number" }, catalogId: { type: "string" },
+            priceSource: { type: "string", enum: ["price_book", "local_research", "manual_required"] }, confidence: { type: "string", enum: ["low", "medium", "high"] }, rationale: { type: "string" },
           },
         },
       },
@@ -213,29 +157,18 @@ function photoKey(payload: JsonObject): string {
   return `${name}|${Number.isFinite(size) ? size : 0}`;
 }
 async function quotePhotos(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string) {
-  const { data, error } = await service
-    .from("business_records")
-    .select("record_key, payload, updated_at")
-    .eq("business_id", businessId)
-    .eq("collection", "documents")
-    .eq("record_status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(120);
+  const { data, error } = await service.from("business_records").select("record_key, payload, updated_at").eq("business_id", businessId).eq("collection", "documents").eq("record_status", "active").order("updated_at", { ascending: false }).limit(120);
   if (error) throw error;
-
   const seen = new Set<string>();
   const rows = (data || []).filter((row: JsonObject) => {
     const payload = row.payload && typeof row.payload === "object" ? row.payload as JsonObject : {};
-    const matches = String(payload["Source Type"] || payload.sourceType || "").toLowerCase() === "quote" &&
-      String(payload["Source ID"] || payload.sourceId || "") === quoteId &&
-      String(payload["Mime Type"] || payload.mimeType || "").startsWith("image/");
+    const matches = String(payload["Source Type"] || payload.sourceType || "").toLowerCase() === "quote" && String(payload["Source ID"] || payload.sourceId || "") === quoteId && String(payload["Mime Type"] || payload.mimeType || "").startsWith("image/");
     if (!matches) return false;
     const key = photoKey(payload);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   }).slice(0, MAX_PHOTOS);
-
   const result: Array<{ type: string; image_url: string; detail: string }> = [];
   for (const row of rows) {
     const payload = row.payload as JsonObject;
@@ -248,14 +181,7 @@ async function quotePhotos(service: ReturnType<typeof serviceClient>, businessId
   return result;
 }
 async function quoteRenderSource(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string): Promise<RenderSource | null> {
-  const { data, error } = await service
-    .from("business_records")
-    .select("payload, updated_at")
-    .eq("business_id", businessId)
-    .eq("collection", "documents")
-    .eq("record_status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(120);
+  const { data, error } = await service.from("business_records").select("payload, updated_at").eq("business_id", businessId).eq("collection", "documents").eq("record_status", "active").order("updated_at", { ascending: false }).limit(120);
   if (error) throw error;
   for (const row of data || []) {
     const payload = row.payload && typeof row.payload === "object" ? row.payload as JsonObject : {};
@@ -271,37 +197,10 @@ async function quoteRenderSource(service: ReturnType<typeof serviceClient>, busi
   return null;
 }
 async function priceBook(service: ReturnType<typeof serviceClient>, businessId: string) {
-  const { data: tableRows, error: tableError } = await service
-    .from("price_book_items")
-    .select("id,item_code,category,description,unit,unit_cost,source_type,source_note,approval_status,updated_at")
-    .eq("business_id", businessId)
-    .eq("active", true)
-    .order("updated_at", { ascending: false })
-    .limit(MAX_PRICE_ROWS);
+  const { data: tableRows, error: tableError } = await service.from("price_book_items").select("id,item_code,category,description,unit,unit_cost,source_type,source_note,approval_status,updated_at").eq("business_id", businessId).eq("active", true).order("updated_at", { ascending: false }).limit(MAX_PRICE_ROWS);
   if (tableError) throw tableError;
-  if ((tableRows || []).length) {
-    return (tableRows || []).map((row: JsonObject) => ({
-      catalogId: row.id,
-      itemCode: row.item_code,
-      category: row.category,
-      description: row.description,
-      unit: row.unit,
-      rate: row.unit_cost,
-      sourceType: row.source_type,
-      sourceNote: row.source_note,
-      approvalStatus: row.approval_status,
-      updatedAt: row.updated_at,
-    }));
-  }
-
-  const { data, error } = await service
-    .from("business_records")
-    .select("collection, record_key, payload, updated_at")
-    .eq("business_id", businessId)
-    .in("collection", ["priceBook", "priceCatalog", "prices", "learnedPrices", "learnedPricing"])
-    .eq("record_status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(MAX_PRICE_ROWS);
+  if ((tableRows || []).length) return (tableRows || []).map((row: JsonObject) => ({ catalogId: row.id, itemCode: row.item_code, category: row.category, description: row.description, unit: row.unit, rate: row.unit_cost, sourceType: row.source_type, sourceNote: row.source_note, approvalStatus: row.approval_status, updatedAt: row.updated_at }));
+  const { data, error } = await service.from("business_records").select("collection, record_key, payload, updated_at").eq("business_id", businessId).in("collection", ["priceBook", "priceCatalog", "prices", "learnedPrices", "learnedPricing"]).eq("record_status", "active").order("updated_at", { ascending: false }).limit(MAX_PRICE_ROWS);
   if (error) throw error;
   return (data || []).map((row: JsonObject) => ({ collection: row.collection, recordKey: row.record_key, payload: row.payload }));
 }
@@ -309,16 +208,7 @@ function currentEstimate(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 80).map((item) => {
     const row = item && typeof item === "object" ? item as JsonObject : {};
-    return {
-      quoteLineId: clean(row.quoteLineId, 160),
-      description: clean(row.description, 500),
-      quantity: Number(row.quantity || 0),
-      unit: clean(row.unit, 80),
-      unitPrice: Number(row.unitPrice || 0),
-      extendedPrice: Number(row.extendedPrice || 0),
-      priceSource: clean(row.priceSource, 300),
-      priceStatus: clean(row.priceStatus, 160),
-    };
+    return { quoteLineId: clean(row.quoteLineId, 160), description: clean(row.description, 500), quantity: Number(row.quantity || 0), unit: clean(row.unit, 80), unitPrice: Number(row.unitPrice || 0), extendedPrice: Number(row.extendedPrice || 0), priceSource: clean(row.priceSource, 300), priceStatus: clean(row.priceStatus, 160) };
   }).filter((row) => row.description);
 }
 function renderPrompt(context: JsonObject, draft: JsonObject): string {
@@ -337,18 +227,11 @@ function renderPrompt(context: JsonObject, draft: JsonObject): string {
     "Show a plausible professionally completed result. Do not imply exact measurements, engineering approval, permit approval, pricing approval, or proof that work was completed.",
   ].join("\n");
 }
-async function createRenderConcept(
-  service: ReturnType<typeof serviceClient>,
-  businessId: string,
-  quoteId: string,
-  context: JsonObject,
-  draft: JsonObject,
-) {
+async function createRenderConcept(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string, context: JsonObject, draft: JsonObject, userId: string) {
   const source = await quoteRenderSource(service, businessId, quoteId);
   if (!source) return { status: "NO_SOURCE_PHOTO", concept: null };
   const { data: sourceBlob, error: sourceError } = await service.storage.from(source.bucket).download(source.path);
   if (sourceError || !sourceBlob) throw sourceError || new Error("Original quote photo could not be loaded for rendering.");
-
   const form = new FormData();
   form.append("model", OPENAI_IMAGE_MODEL);
   form.append("image", sourceBlob, "jobsite-original.jpg");
@@ -356,13 +239,7 @@ async function createRenderConcept(
   form.append("size", "1536x1024");
   form.append("quality", "medium");
   form.append("output_format", "jpeg");
-
-  const response = await fetch("https://api.openai.com/v1/images/edits", {
-    method: "POST",
-    headers: { authorization: `Bearer ${OPENAI_API_KEY}` },
-    body: form,
-    signal: AbortSignal.timeout(170000),
-  });
+  const response = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { authorization: `Bearer ${OPENAI_API_KEY}` }, body: form, signal: AbortSignal.timeout(135000) });
   const payload = await readJson(response);
   if (!response.ok) {
     const errorObject = payload.error && typeof payload.error === "object" ? payload.error as JsonObject : {};
@@ -371,63 +248,24 @@ async function createRenderConcept(
   const dataRows = Array.isArray(payload.data) ? payload.data as JsonObject[] : [];
   const b64 = dataRows[0] && typeof dataRows[0].b64_json === "string" ? dataRows[0].b64_json as string : "";
   if (!b64) throw new Error("OpenAI image edit returned no image.");
-
   const bytes = Uint8Array.from(atob(b64), (char) => char.charCodeAt(0));
   const renderId = `RENDER-${crypto.randomUUID()}`;
   const renderPath = `${businessId}/Quote/${quoteId}/rendered/${renderId}.jpg`;
-  const { error: uploadError } = await service.storage.from(STORAGE_BUCKET).upload(renderPath, bytes, {
-    contentType: "image/jpeg",
-    upsert: false,
-    cacheControl: "3600",
-  });
+  const { error: uploadError } = await service.storage.from(STORAGE_BUCKET).upload(renderPath, bytes, { contentType: "image/jpeg", upsert: false, cacheControl: "3600" });
   if (uploadError) throw uploadError;
-
   const [{ data: rendered }, { data: original }] = await Promise.all([
     service.storage.from(STORAGE_BUCKET).createSignedUrl(renderPath, 3600),
     service.storage.from(source.bucket).createSignedUrl(source.path, 3600),
   ]);
   if (!rendered?.signedUrl) throw new Error("Rendered concept was saved but could not be opened.");
-
   const documentId = `DOC-${crypto.randomUUID()}`;
   const record = {
-    "Document ID": documentId,
-    "Business ID": businessId,
-    "File Name": `${renderId}.jpg`,
-    "Mime Type": "image/jpeg",
-    "Source Type": "Quote Render",
-    "Source ID": quoteId,
-    "Access Classification": "Internal",
-    "Storage Bucket": STORAGE_BUCKET,
-    "Storage Path": renderPath,
-    "Status": "Owner Review Required",
-    "Created Time": new Date().toISOString(),
-    "Updated Time": new Date().toISOString(),
-    "Record Version": 1,
-    "Render Label": CONCEPT_LABEL,
-    "Include In Proposal": false,
-    "Proof Of Completion": false,
+    "Document ID": documentId, "Business ID": businessId, "File Name": `${renderId}.jpg`, "Mime Type": "image/jpeg", "Source Type": "Quote Render", "Source ID": quoteId,
+    "Access Classification": "Internal", "Storage Bucket": STORAGE_BUCKET, "Storage Path": renderPath, "Status": "Owner Review Required", "Created Time": new Date().toISOString(), "Updated Time": new Date().toISOString(), "Record Version": 1,
+    "Render Label": CONCEPT_LABEL, "Include In Proposal": false, "Proof Of Completion": false,
   };
-  await service.from("business_records").insert({
-    business_id: businessId,
-    collection: "documents",
-    record_key: documentId,
-    payload: record,
-    record_status: "active",
-  });
-
-  return {
-    status: "PASS",
-    concept: {
-      id: renderId,
-      url: rendered.signedUrl,
-      originalUrl: original?.signedUrl || "",
-      label: CONCEPT_LABEL,
-      approvedForProposal: false,
-      includeInProposal: false,
-      proofOfCompletion: false,
-      storagePath: renderPath,
-    },
-  };
+  await service.from("business_records").insert({ business_id: businessId, collection: "documents", record_key: documentId, payload: record, record_status: "active", created_by: userId, updated_by: userId });
+  return { status: "PASS", concept: { id: renderId, url: rendered.signedUrl, originalUrl: original?.signedUrl || "", label: CONCEPT_LABEL, approvedForProposal: false, includeInProposal: false, proofOfCompletion: false, storagePath: renderPath } };
 }
 async function buildQuote(request: Request, body: JsonObject): Promise<Response> {
   const service = serviceClient();
@@ -436,40 +274,23 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
   let userId: string | null = null;
   try {
     const origin = requestOrigin(request);
-    if (!ALLOWED_ORIGINS.has(origin)) {
-      return json(request, 403, { status: "FAIL", message: `Quote AI origin is not approved: ${origin || "missing origin"}.` });
-    }
-
+    if (!ALLOWED_ORIGINS.has(origin)) return json(request, 403, { status: "FAIL", message: `Quote AI origin is not approved: ${origin || "missing origin"}.` });
     const user = await signedInUser(request);
     userId = user.id;
     if (!businessId || !quoteId) throw new Error("Business and saved quote are required before AI drafting.");
     await membership(service, user.id, businessId);
     if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
-
-    console.log(JSON.stringify({
-      event: "quote-ai-post", origin, businessId, quoteId, userId: user.id,
-      authentication: "direct-supabase-auth-rest",
-    }));
-
+    console.log(JSON.stringify({ event: "quote-ai-post", origin, businessId, quoteId, userId: user.id, authentication: "direct-supabase-auth-rest" }));
     const [{ data: quoteRow, error: quoteError }, photos, prices] = await Promise.all([
-      service.from("business_records")
-        .select("record_key, payload")
-        .eq("business_id", businessId)
-        .eq("collection", "quotes")
-        .eq("record_key", quoteId)
-        .eq("record_status", "active")
-        .maybeSingle(),
-      quotePhotos(service, businessId, quoteId),
-      priceBook(service, businessId),
+      service.from("business_records").select("record_key, payload").eq("business_id", businessId).eq("collection", "quotes").eq("record_key", quoteId).eq("record_status", "active").maybeSingle(),
+      quotePhotos(service, businessId, quoteId), priceBook(service, businessId),
     ]);
     if (quoteError) throw quoteError;
     if (!quoteRow) throw new Error("The saved quote could not be found in the active business.");
-
     const quotePayload = quoteRow.payload && typeof quoteRow.payload === "object" ? quoteRow.payload as JsonObject : {};
     const baseline = currentEstimate(body.currentEstimate);
     const context: JsonObject = {
-      businessId,
-      quoteId,
+      businessId, quoteId,
       projectTitle: clean(body.projectTitle || quotePayload["Project Title"], 300),
       scope: clean(body.scope || quotePayload.Scope, 8000),
       measurementNotes: clean(body.measurementNotes || quotePayload["Measurement Notes"], 8000),
@@ -495,26 +316,11 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       "Do not invent concealed conditions or exact dimensions.",
       "Everything remains Owner-review required. Never approve, send, charge, purchase, schedule, or authorize work.",
     ].join(" ");
-
     const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        store: false,
-        tools: [{ type: "web_search" }],
-        input: [
-          { role: "developer", content: [{ type: "input_text", text: instructions }] },
-          { role: "user", content: [{ type: "input_text", text: JSON.stringify(context) }, ...photos] },
-        ],
-        text: {
-          format: { type: "json_schema", name: "h38_quote_draft", strict: true, schema: quoteSchema() },
-          verbosity: "low",
-        },
-      }),
-      signal: AbortSignal.timeout(170000),
+      method: "POST", headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({ model: OPENAI_MODEL, store: false, tools: [{ type: "web_search" }], input: [{ role: "developer", content: [{ type: "input_text", text: instructions }] }, { role: "user", content: [{ type: "input_text", text: JSON.stringify(context) }, ...photos] }], text: { format: { type: "json_schema", name: "h38_quote_draft", strict: true, schema: quoteSchema() }, verbosity: "low" } }),
+      signal: AbortSignal.timeout(135000),
     });
-
     const provider = await readJson(response);
     if (!response.ok) {
       const errorObject = provider.error && typeof provider.error === "object" ? provider.error as JsonObject : {};
@@ -522,95 +328,77 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
     }
     const structured = outputText(provider);
     if (!structured) throw new Error("OpenAI returned no structured quote draft.");
-
     let draft: JsonObject;
-    try { draft = JSON.parse(structured); }
-    catch (_) { throw new Error("OpenAI returned an unreadable quote draft."); }
-
-    let renderStatus = "NOT_REQUESTED";
-    let renderedConcepts: JsonObject[] = [];
-    if (photos.length) {
-      try {
-        const rendered = await createRenderConcept(service, businessId, quoteId, context, draft);
-        renderStatus = rendered.status;
-        if (rendered.concept) renderedConcepts = [rendered.concept as JsonObject];
-      } catch (renderError) {
-        renderStatus = `FAILED: ${clean(renderError instanceof Error ? renderError.message : renderError, 500)}`;
-        console.warn(JSON.stringify({ event: "quote-render-failed", businessId, quoteId, message: renderStatus }));
-      }
-    } else {
-      renderStatus = "NO_SOURCE_PHOTO";
-    }
-
+    try { draft = JSON.parse(structured); } catch (_) { throw new Error("OpenAI returned an unreadable quote draft."); }
     await writeProof(service, businessId, user.id, quoteId, photos.length, prices.length, {
-      ownerInstructionsIncluded: Boolean(clean(body.notes, 8000)),
-      currentEstimateLines: baseline.length,
-      renderStatus,
-      renderModel: OPENAI_IMAGE_MODEL,
+      ownerInstructionsIncluded: Boolean(clean(body.notes, 8000)), currentEstimateLines: baseline.length,
+      renderStatus: photos.length ? "READY_FOR_SEPARATE_RENDER" : "NO_SOURCE_PHOTO", renderModel: OPENAI_IMAGE_MODEL,
     });
     return json(request, 200, {
-      status: "PASS",
-      provider: `OpenAI ${OPENAI_MODEL}`,
-      authentication: "direct-supabase-auth-rest",
-      draft,
-      renderedConcepts,
-      renderStatus,
-      photoCount: photos.length,
-      priceBookRowsConsidered: prices.length,
-      ownerReviewRequired: true,
-      externalActionOccurred: false,
+      status: "PASS", provider: `OpenAI ${OPENAI_MODEL}`, authentication: "direct-supabase-auth-rest", draft,
+      renderStatus: photos.length ? "READY_FOR_SEPARATE_RENDER" : "NO_SOURCE_PHOTO", photoCount: photos.length,
+      priceBookRowsConsidered: prices.length, ownerReviewRequired: true, externalActionOccurred: false,
     });
   } catch (error) {
     const message = clean(error instanceof Error ? error.message : error, 1200) || "AI quote drafting failed.";
-    if (businessId) {
-      await writeError(service, businessId, userId, message, {
-        quoteId, authentication: "direct-supabase-auth-rest", ownerReviewRequired: true,
-      });
-    }
+    if (businessId) await writeError(service, businessId, userId, message, { quoteId, authentication: "direct-supabase-auth-rest", ownerReviewRequired: true });
     const authFailure = /auth|member|role/i.test(message);
     const configurationFailure = /API key|configuration/i.test(message);
-    return json(request, authFailure ? 401 : configurationFailure ? 503 : 500, {
-      status: "FAIL", message, ownerReviewRequired: true, externalActionOccurred: false,
+    return json(request, authFailure ? 401 : configurationFailure ? 503 : 500, { status: "FAIL", message, ownerReviewRequired: true, externalActionOccurred: false });
+  }
+}
+async function renderQuote(request: Request, body: JsonObject): Promise<Response> {
+  const service = serviceClient();
+  const businessId = clean(body.businessId, 100);
+  const quoteId = clean(body.quoteId, 160);
+  let userId: string | null = null;
+  try {
+    const origin = requestOrigin(request);
+    if (!ALLOWED_ORIGINS.has(origin)) return json(request, 403, { status: "FAIL", message: `Quote render origin is not approved: ${origin || "missing origin"}.` });
+    const user = await signedInUser(request);
+    userId = user.id;
+    if (!businessId || !quoteId) throw new Error("Business and saved quote are required before rendering.");
+    await membership(service, user.id, businessId);
+    if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
+    const context: JsonObject = {
+      businessId, quoteId, projectTitle: clean(body.projectTitle, 300), scope: clean(body.scope, 8000), measurementNotes: clean(body.measurementNotes, 8000), ownerInstructions: clean(body.notes, 8000), currentEstimate: currentEstimate(body.currentEstimate),
+    };
+    const draft: JsonObject = { suggestedLines: Array.isArray(body.suggestedLines) ? body.suggestedLines.slice(0, 80) : [] };
+    const rendered = await createRenderConcept(service, businessId, quoteId, context, draft, user.id);
+    await service.from("business_proof_log").insert({
+      business_id: businessId, actor_user_id: user.id, action_type: "CREATE_AI_QUOTE_RENDER", entity_type: "Quote", entity_id: quoteId,
+      result: rendered.concept ? "PASS" : "SKIP",
+      details: { quoteId, provider: "OpenAI Images API", model: OPENAI_IMAGE_MODEL, status: rendered.status, ownerReviewRequired: true, automaticApproval: false, automaticCustomerSending: false, proofOfCompletion: false },
+      external_action_occurred: false,
     });
+    return json(request, 200, { status: "PASS", renderStatus: rendered.status, renderedConcepts: rendered.concept ? [rendered.concept] : [], ownerReviewRequired: true, externalActionOccurred: false });
+  } catch (error) {
+    const message = clean(error instanceof Error ? error.message : error, 1200) || "AI quote rendering failed.";
+    if (businessId) await writeError(service, businessId, userId, message, { quoteId, operation: "renderConcept", authentication: "direct-supabase-auth-rest", ownerReviewRequired: true });
+    const authFailure = /auth|member|role/i.test(message);
+    const configurationFailure = /API key|configuration/i.test(message);
+    return json(request, authFailure ? 401 : configurationFailure ? 503 : 500, { status: "FAIL", message, ownerReviewRequired: true, externalActionOccurred: false });
   }
 }
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") {
-    console.log(JSON.stringify({
-      event: "quote-ai-cors-preflight",
-      origin: requestOrigin(request),
-      requestedHeaders: request.headers.get("access-control-request-headers") || "",
-    }));
+    console.log(JSON.stringify({ event: "quote-ai-cors-preflight", origin: requestOrigin(request), requestedHeaders: request.headers.get("access-control-request-headers") || "" }));
     return json(request, 200, { status: "PASS", preflight: true });
   }
   if (request.method === "GET") {
     return json(request, 200, {
-      status: "PASS",
-      service: "h38-quote-ai",
-      providerConfigured: Boolean(OPENAI_API_KEY),
-      model: OPENAI_MODEL,
-      imageModel: OPENAI_IMAGE_MODEL,
-      authentication: "direct Supabase Auth REST validation",
-      priceBookFirst: true,
-      localResearchFallback: true,
-      quotePhotoRestore: true,
-      ownerInstructionsIncluded: true,
-      currentEstimateComparison: true,
-      renderedConcepts: true,
-      duplicatePhotoSuppression: true,
-      ownerReviewRequired: true,
-      automaticApproval: false,
-      automaticSending: false,
+      status: "PASS", service: "h38-quote-ai", providerConfigured: Boolean(OPENAI_API_KEY), model: OPENAI_MODEL, imageModel: OPENAI_IMAGE_MODEL,
+      authentication: "direct Supabase Auth REST validation", priceBookFirst: true, localResearchFallback: true, quotePhotoRestore: true,
+      ownerInstructionsIncluded: true, currentEstimateComparison: true, renderedConcepts: true, separateRenderRequest: true,
+      duplicatePhotoSuppression: true, ownerReviewRequired: true, automaticApproval: false, automaticSending: false,
     });
   }
   if (request.method !== "POST") return json(request, 405, { status: "FAIL", message: "Method not allowed." });
-
   let body: JsonObject = {};
-  try { body = await request.json(); }
-  catch (_) { return json(request, 400, { status: "FAIL", message: "Request body must be JSON." }); }
-  if (String(body.action || "buildQuote") !== "buildQuote") {
-    return json(request, 400, { status: "FAIL", message: "Unsupported Quote AI action." });
-  }
-  return buildQuote(request, body);
+  try { body = await request.json(); } catch (_) { return json(request, 400, { status: "FAIL", message: "Request body must be JSON." }); }
+  const action = String(body.action || "buildQuote");
+  if (action === "buildQuote") return buildQuote(request, body);
+  if (action === "renderConcept") return renderQuote(request, body);
+  return json(request, 400, { status: "FAIL", message: "Unsupported Quote AI action." });
 });
