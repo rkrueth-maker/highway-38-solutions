@@ -2,7 +2,7 @@
 'use strict';
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 if(!cfg.enabled||!window.supabase||typeof window.renderQuotes!=='function')return;
-const BUCKET='business-office-files',MAX=10*1024*1024,EDITABLE=new Set(['','DRAFT','OWNER REVIEW REQUIRED','OWNER_REVIEW_REQUIRED']);
+const BUCKET='business-office-files',MAX=10*1024*1024,EDITABLE=new Set(['','DRAFT','OWNER REVIEW REQUIRED','OWNER_REVIEW_REQUIRED']),REVISABLE=new Set(['PRESENTED']);
 const picked=new Map();let seq=0,db=null;
 const baseRenderQuotes=window.renderQuotes,baseRenderMeasure=window.renderMeasure,baseOpenQuote=window.openQuote,baseAi=window.h38BuildAiQuoteDraft;
 const txt=v=>String(v==null?'':v);
@@ -11,7 +11,9 @@ function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publis
 async function actor(){const{data,error}=await client().auth.getSession();if(error)throw error;if(!data.session?.user)throw new Error('Sign in again before uploading quote photos.');return data.session.user;}
 function row(id){return records('quotes').find(r=>rowId(r,'Quote ID','quoteId')===txt(id));}
 function status(id){return txt(v(row(id),'Status','status')).trim();}
-function canEdit(s){return EDITABLE.has(txt(s).toUpperCase());}
+function canRevise(s){return REVISABLE.has(txt(s).toUpperCase());}
+function revisionUnlocked(id=state.quote?.quoteId){return Boolean(id&&state.quote?.revisionEditUnlocked===true&&txt(state.quote?.revisionEditQuoteId)===txt(id));}
+function canEdit(s,id=''){return EDITABLE.has(txt(s).toUpperCase())||(canRevise(s)&&revisionUnlocked(id));}
 function card(){return document.getElementById('quoteTitle')?.closest('.card')||document.querySelector('#mainContent .card');}
 function holder(){let n=document.getElementById('h38QuotePickerPermissionHolder');if(!n){n=document.createElement('div');n.id='h38QuotePickerPermissionHolder';n.hidden=true;n.setAttribute('aria-hidden','true');document.body.appendChild(n);}return n;}
 function capture(){
@@ -19,19 +21,25 @@ function capture(){
  if(c)state.quote.customerId=c.value;if(t)state.quote.projectTitle=t.value;if(s)state.quote.scope=s.value;if(m)state.quote.measurementNotes=m.value;
  document.querySelectorAll('#quoteLines [data-field]').forEach(i=>{const l=(state.quote.lines||[]).find(x=>x.quoteLineId===i.dataset.line);if(l)l[i.dataset.field]=['quantity','unitPrice'].includes(i.dataset.field)?num(i.value):i.value;});
 }
+function unlockRevision(){
+ const id=txt(state.quote?.quoteId),s=status(id);if(!id||!canRevise(s))return;
+ state.quote.revisionEditUnlocked=true;state.quote.revisionEditQuoteId=id;state.quote.revisionFromStatus=s;state.quote.revisionUnlockedAt=new Date().toISOString();
+ renderQuotes();requestAnimationFrame(()=>{card()?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('quoteTitle')?.focus({preventScroll:true});});
+ toast(`Revision editing unlocked for ${s}. Changes stay internal until you save the next revision and separately approve/send it.`);
+}
 function quoteRecord(){
- capture();const old=row(state.quote?.quoteId),oldStatus=txt(v(old,'Status','status'));if(old&&!canEdit(oldStatus))throw new Error(`${oldStatus||'This quote'} is locked. Duplicate it for a revision instead of changing it in place.`);
- const id=state.quote?.quoteId||newId('QUOTE'),number=txt(v(old,'Quote Number','quoteNumber')||state.quote?.quoteNumber||`LOCAL-${Date.now()}`);
+ capture();const old=row(state.quote?.quoteId),oldStatus=txt(v(old,'Status','status'));if(old&&!canEdit(oldStatus,state.quote?.quoteId))throw new Error(canRevise(oldStatus)?`${oldStatus} is protected. Tap Edit / Revise Quote before changing it.`:`${oldStatus||'This quote'} is locked and cannot be revised from this screen.`);
+ const id=state.quote?.quoteId||newId('QUOTE'),number=txt(v(old,'Quote Number','quoteNumber')||state.quote?.quoteNumber||`LOCAL-${Date.now()}`),previousRevision=old?Math.max(1,num(v(old,'Revision','revision')||state.quote?.revision||1)):0;
  const lines=(state.quote?.lines||[]).map(l=>({quoteLineId:l.quoteLineId||newId('QUOTE-LINE'),description:txt(l.description),quantity:num(l.quantity),unit:txt(l.unit)||'each',unitPrice:num(l.unitPrice),priceSource:txt(l.priceSource),priceStatus:txt(l.priceStatus)||'Owner review required'}));
- const subtotal=lines.reduce((n,l)=>n+num(l.quantity)*num(l.unitPrice),0),revision=old?Math.max(1,num(v(old,'Revision','revision')||state.quote?.revision||1)+1):1;
- return{'Quote ID':id,'Business ID':state.businessId,'Customer ID':state.quote?.customerId||'','Quote Number':number,'Project Title':txt(state.quote?.projectTitle).trim(),'Scope':txt(state.quote?.scope),'Measurement Notes':txt(state.quote?.measurementNotes),'Status':'Draft','Review Status':'Owner Review Required','Revision':revision,'Subtotal':subtotal,'Tax':num(v(old,'Tax','tax')),'Total':subtotal+num(v(old,'Tax','tax')),'Created Time':v(old,'Created Time','createdTime')||now(),'Updated Time':now(),'Record Version':Math.max(1,num(v(old,'Record Version','recordVersion')||1)),lines};
+ const subtotal=lines.reduce((n,l)=>n+num(l.quantity)*num(l.unitPrice),0),revision=old?previousRevision+1:1;
+ return{'Quote ID':id,'Business ID':state.businessId,'Customer ID':state.quote?.customerId||'','Quote Number':number,'Project Title':txt(state.quote?.projectTitle).trim(),'Scope':txt(state.quote?.scope),'Measurement Notes':txt(state.quote?.measurementNotes),'Status':'Draft','Review Status':'Owner Review Required','Revision':revision,'Previous Revision':previousRevision||'','Previous Status':oldStatus||'','Subtotal':subtotal,'Tax':num(v(old,'Tax','tax')),'Total':subtotal+num(v(old,'Tax','tax')),'Created Time':v(old,'Created Time','createdTime')||now(),'Updated Time':now(),'Record Version':Math.max(1,num(v(old,'Record Version','recordVersion')||1)),lines};
 }
 async function saveDraft(render=true,notice=true){
  const r=quoteRecord();if(!r['Customer ID'])throw new Error('Select a customer first.');if(!r['Project Title'])throw new Error('Project title is required.');
- const p={quoteId:r['Quote ID'],quoteNumber:r['Quote Number'],customerId:r['Customer ID'],projectTitle:r['Project Title'],scope:r.Scope,measurementNotes:r['Measurement Notes'],status:'Draft',revision:r.Revision,lines:r.lines,ownerReviewRequired:true,externalActionOccurred:false,__h38Record:{collection:'quotes',record:r}};
+ const p={quoteId:r['Quote ID'],quoteNumber:r['Quote Number'],customerId:r['Customer ID'],projectTitle:r['Project Title'],scope:r.Scope,measurementNotes:r['Measurement Notes'],status:'Draft',revision:r.Revision,previousRevision:r['Previous Revision'],previousStatus:r['Previous Status'],lines:r.lines,ownerReviewRequired:true,externalActionOccurred:false,__h38Record:{collection:'quotes',record:r}};
  await queueOperation('SAVE_QUOTE','Quote',r['Quote ID'],p,{collection:'quotes',record:r,idKeys:['Quote ID']});
  state.quote={quoteId:r['Quote ID'],quoteNumber:r['Quote Number'],customerId:r['Customer ID'],projectTitle:r['Project Title'],scope:r.Scope,measurementNotes:r['Measurement Notes'],revision:r.Revision,lines:r.lines};
- if(render)renderQuotes();if(notice)toast('Draft saved. Owner review is still required.');return r;
+ if(render)renderQuotes();if(notice)toast(r['Previous Revision']?`Revision ${r.Revision} saved as Draft. Owner review is still required and nothing was sent.`:'Draft saved. Owner review is still required.');return r;
 }
 async function logError(message,context){try{const u=await actor();await client().from('business_error_log').insert({business_id:state.businessId,actor_user_id:u.id,source:'commercial-app/quote-mobile-stabilization.js',error_code:'QUOTE_PHOTO_UPLOAD_FAILED',message:txt(message).slice(0,4000),severity:'error',status:'open',context:context||{}});}catch(e){}}
 async function metadata(u,id,quoteId,file,path){
@@ -59,13 +67,17 @@ function controls(){
  if(tools&&!document.getElementById('h38TakeQuotePhotoTop')){const c=document.createElement('button'),g=document.createElement('button');c.id='h38TakeQuotePhotoTop';c.type='button';c.className='secondary';c.textContent='📷 Take Picture';c.onclick=()=>pick('camera');g.id='h38ChooseQuotePhotosTop';g.type='button';g.className='secondary';g.textContent='🖼️ Choose Photos';g.onclick=()=>pick('gallery');if(buildBtn){buildBtn.after(g);buildBtn.after(c);}else{tools.prepend(g);tools.prepend(c);}}
  const photo=document.getElementById('quotePhotoButton');if(photo){photo.textContent='📷 Take Picture';photo.onclick=()=>pick('camera');}document.getElementById('quotePhotoInput')?.remove();if(photo&&!document.getElementById('h38ChooseQuotePhotosAction')){const g=document.createElement('button');g.id='h38ChooseQuotePhotosAction';g.type='button';g.className='secondary';g.textContent='🖼️ Choose Photos';g.onclick=()=>pick('gallery');photo.after(g);}
  const draft=card();if(draft&&!document.getElementById('h38QuotePhotoQueue')){const q=document.createElement('div');q.id='h38QuotePhotoQueue';q.innerHTML='<h3>Selected photos</h3><div class="notice">Selected file permission is held until upload finishes. Photos upload one at a time to private Supabase storage when you press Build Quote.</div><div id="h38SelectedQuotePhotos" class="list"></div>';draft.appendChild(q);}
- document.querySelectorAll('[data-open-quote]').forEach(b=>{const s=status(b.dataset.openQuote);b.textContent=canEdit(s)?'Open and Edit Draft':'Open Read-only';});
+ document.querySelectorAll('[data-open-quote]').forEach(b=>{const s=status(b.dataset.openQuote);b.textContent=canEdit(s,b.dataset.openQuote)?'Open and Edit Draft':canRevise(s)?'Open Quote':'Open Read-only';});
  const fresh=document.getElementById('newQuoteButton');if(fresh)fresh.onclick=()=>{if(pending()&&!confirm('Discard the selected photos and start a new draft?'))return;resetPicked();state.quote={quoteId:'',lines:[]};renderQuotes();window.scrollTo({top:0,behavior:'smooth'});};
- editLines();const active=state.quote?.quoteId||'',s=status(active);if(active&&!canEdit(s)){draft?.querySelectorAll('input,textarea,select,button').forEach(x=>x.disabled=true);const note=document.createElement('div');note.className='notice warn';note.textContent=`${s||'This quote'} is locked. Open it for review or duplicate it for a revision; it cannot be changed in place.`;draft?.prepend(note);if(buildBtn)buildBtn.disabled=true;}drawPicked();
+ editLines();const active=state.quote?.quoteId||'',s=status(active),unlocked=canEdit(s,active);
+ if(active&&canRevise(s)&&!revisionUnlocked(active)&&tools&&!document.getElementById('h38UnlockQuoteRevision')){const unlock=document.createElement('button');unlock.id='h38UnlockQuoteRevision';unlock.type='button';unlock.textContent='✏️ Edit / Revise Quote';unlock.onclick=unlockRevision;tools.prepend(unlock);}
+ if(active&&!unlocked){draft?.querySelectorAll('input,textarea,select,button').forEach(x=>x.disabled=true);const note=document.createElement('div');note.className='notice warn';note.textContent=canRevise(s)?`${s} is protected. Tap Edit / Revise Quote above to make changes as the next revision. Nothing is sent automatically.`:`${s||'This quote'} is locked and cannot be changed from this screen.`;draft?.prepend(note);if(buildBtn)buildBtn.disabled=true;}
+ if(active&&revisionUnlocked(active)){const note=document.createElement('div');note.className='notice';note.innerHTML=`<strong>Revision editing is unlocked.</strong> You are changing the next revision of this ${esc(s||'quote')}. Nothing is approved or sent automatically.`;draft?.prepend(note);const save=document.getElementById('saveQuoteButton');if(save)save.textContent='Save revision';}
+ drawPicked();
 }
 function measureControls(){const c=document.getElementById('measurePhotoButton');if(!c)return;c.textContent='📷 Take Picture';c.onclick=()=>pick('camera');document.getElementById('measurePhotoInput')?.remove();if(!document.getElementById('h38MeasureChoosePhotos')){const g=document.createElement('button');g.id='h38MeasureChoosePhotos';g.type='button';g.className='secondary';g.textContent='🖼️ Choose Photos';g.onclick=()=>pick('gallery');c.after(g);}}
 window.saveQuote=()=>saveDraft(true,true);
-window.openQuote=function(id){if(pending()&&!confirm('Discard the selected photos and open this saved quote?'))return false;resetPicked();const ok=baseOpenQuote(id);if(!ok)return false;requestAnimationFrame(()=>requestAnimationFrame(()=>{card()?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('quoteTitle')?.focus({preventScroll:true});toast(canEdit(status(id))?'Draft opened for editing.':'Quote opened read-only.');}));return true;};
+window.openQuote=function(id){if(pending()&&!confirm('Discard the selected photos and open this saved quote?'))return false;resetPicked();const ok=baseOpenQuote(id);if(!ok)return false;requestAnimationFrame(()=>requestAnimationFrame(()=>{card()?.scrollIntoView({behavior:'smooth',block:'start'});const s=status(id);if(canEdit(s,id)){document.getElementById('quoteTitle')?.focus({preventScroll:true});toast('Draft opened for editing.');}else if(canRevise(s))toast('Quote opened. Tap Edit / Revise Quote to change it.');else toast('Quote opened read-only.');}));return true;};
 window.renderQuoteLines=editLines;window.h38BuildAiQuoteDraft=build;window.renderQuotes=function(){baseRenderQuotes();controls();};window.renderMeasure=function(){baseRenderMeasure();measureControls();};
-window.H38_QUOTE_MOBILE_STABILIZATION={enabled:true,build:'20260805-1645',storage:'direct-supabase-file',maxPhotoBytes:MAX,safeguards:{fullPhotoBase64:false,canvasResize:false,persistentPickerPermission:true,automaticApproval:false,automaticSend:false}};
+window.H38_QUOTE_MOBILE_STABILIZATION={enabled:true,build:'20260807-1845',storage:'direct-supabase-file',maxPhotoBytes:MAX,manualRevisionUnlock:true,revisableStatuses:['Presented'],safeguards:{fullPhotoBase64:false,canvasResize:false,persistentPickerPermission:true,automaticApproval:false,automaticSend:false}};
 })();
