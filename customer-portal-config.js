@@ -8,7 +8,7 @@
 (function sanitizeCustomerPortalAuth() {
   'use strict';
 
-  const PORTAL_AUTH_KEY = 'h38-customer-portal-auth-v1';
+  const AUTH_KEY = /^sb-[a-z0-9-]+-auth-token(?:\.[0-9]+)?$/i;
   const AUTH_PARAMS = ['access_token', 'refresh_token', 'token', 'token_hash', 'expires_at', 'expires_in', 'provider_token', 'provider_refresh_token', 'type'];
 
   function isJwt(value) {
@@ -17,7 +17,8 @@
   }
 
   function storedAccessToken(value, depth) {
-    if (!value || depth > 4 || typeof value !== 'object') return '';
+    if (!value || depth > 4) return '';
+    if (typeof value !== 'object') return '';
     if (typeof value.access_token === 'string') return value.access_token;
     if (value.currentSession && typeof value.currentSession.access_token === 'string') return value.currentSession.access_token;
     if (value.session && typeof value.session.access_token === 'string') return value.session.access_token;
@@ -28,16 +29,27 @@
     return '';
   }
 
-  function cleanPortalStorage(storage) {
+  function cleanStorage(storage) {
     if (!storage) return 0;
-    const raw = storage.getItem(PORTAL_AUTH_KEY);
-    if (!raw) return 0;
-    try {
-      const parsed = JSON.parse(raw);
-      const token = storedAccessToken(parsed, 0);
-      if (token && isJwt(token)) return 0;
-    } catch (error) {}
-    try { storage.removeItem(PORTAL_AUTH_KEY); return 1; } catch (error) { return 0; }
+    const keys = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key && AUTH_KEY.test(key)) keys.push(key);
+    }
+    let removed = 0;
+    keys.forEach(key => {
+      try {
+        const parsed = JSON.parse(storage.getItem(key) || 'null');
+        const token = storedAccessToken(parsed, 0);
+        if (!token || !isJwt(token)) {
+          storage.removeItem(key);
+          removed += 1;
+        }
+      } catch (error) {
+        try { storage.removeItem(key); removed += 1; } catch (ignored) {}
+      }
+    });
+    return removed;
   }
 
   function cleanUrl() {
@@ -57,17 +69,15 @@
   }
 
   let removed = 0;
-  try { removed += cleanPortalStorage(window.localStorage); } catch (error) {}
-  try { removed += cleanPortalStorage(window.sessionStorage); } catch (error) {}
+  try { removed += cleanStorage(window.localStorage); } catch (error) {}
+  try { removed += cleanStorage(window.sessionStorage); } catch (error) {}
   const urlCleaned = cleanUrl();
 
   window.H38_CUSTOMER_PORTAL_AUTH_SANITIZER = Object.freeze({
     enabled: true,
-    build: '20260807-1415',
-    storageKey: PORTAL_AUTH_KEY,
+    build: '20260806-2315',
     removedMalformedSessions: removed,
     removedMalformedUrlAuth: urlCleaned,
-    preservesBusinessOfficeAuth: true,
     isJwt
   });
 })();
@@ -78,7 +88,6 @@ window.H38_CUSTOMER_PORTAL_SUPABASE = Object.freeze({
   publishableKey: 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1',
   redirectUrl: 'https://highway38solutions.com/customer-portal.html',
   storageBucket: 'customer-portal',
-  authStorageKey: 'h38-customer-portal-auth-v1',
   maxUploadBytes: 26214400,
   allowedMimeTypes: [
     'application/pdf',
@@ -91,17 +100,3 @@ window.H38_CUSTOMER_PORTAL_SUPABASE = Object.freeze({
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   ]
 });
-
-(function isolateCustomerPortalAuthStorage() {
-  'use strict';
-  const supabase = window.supabase;
-  const config = window.H38_CUSTOMER_PORTAL_SUPABASE;
-  if (!supabase || typeof supabase.createClient !== 'function' || !config?.authStorageKey || supabase.__h38CustomerPortalIsolated) return;
-  const create = supabase.createClient.bind(supabase);
-  supabase.createClient = function(url, key, options) {
-    const next = Object.assign({}, options || {});
-    next.auth = Object.assign({}, next.auth || {}, { storageKey: config.authStorageKey });
-    return create(url, key, next);
-  };
-  Object.defineProperty(supabase, '__h38CustomerPortalIsolated', { value: true });
-})();

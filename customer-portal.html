@@ -15,14 +15,14 @@
   <link rel="stylesheet" href="ux-unified-public.css?v=20260717-p0-refinement">
   <link rel="stylesheet" href="platform-unified.css?v=20260719-product-unification">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="customer-portal-config.js?v=20260807-1415" defer></script>
+  <script src="customer-portal-config.js?v=20260807-1435" defer></script>
   <script src="customer-portal-supabase.js?v=20260807-1325" defer></script>
   <script defer src="brand-global.js?v=20260719-product-unification"></script>
   <script defer src="public-expansion.js?v=20260717-one-shot"></script>
   <script defer src="platform-states.js?v=20260719-product-unification"></script>
   <script defer src="customer-portal-ux.js?v=20260717-p0-refinement"></script>
   <script defer src="customer-portal-quote-decisions.js?v=20260718-quote-decisions"></script>
-  <script defer src="customer-portal-quote-delivery.js?v=20260807-1415"></script>
+  <script defer src="customer-portal-quote-delivery.js?v=20260807-1435"></script>
   <script defer src="customer-portal-unification.js?v=20260719-product-unification"></script>
 </head>
 <body class="h38-site h38-one-shot h38-customer-portal" data-page="customer">
@@ -41,7 +41,7 @@
           <section id="actionRequired" aria-live="polite"></section>
           <div class="portal-metrics" aria-label="Customer account summary"><div class="portal-metric"><span>Active projects</span><strong id="metricJobs">0</strong></div><div class="portal-metric"><span>Quotes needing review</span><strong id="metricQuotes">0</strong></div><div class="portal-metric"><span>Outstanding balance</span><strong id="metricBalance">$0.00</strong></div></div>
           <div class="h38-customer-grid">
-            <div class="portal-stack"><section id="projects-section" class="portal-panel portal-section"><div class="portal-section-head"><h2>Current project</h2></div><div id="projectSelectorWrap" class="h38-project-selector" hidden><label for="projectSelector"><strong>Choose project</strong><select id="projectSelector"></select></label><button id="openSelectedProject" class="btn" type="button">Show project</button></div><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section><section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><p>Open the complete review before approving, requesting a change, or declining any quote.</p><div id="quotesList" class="portal-list"></div></section></div>
+            <div class="portal-stack"><section id="projects-section" class="portal-panel portal-section"><div class="portal-section-head"><h2>Current project</h2></div><div id="projectSelectorWrap" class="h38-project-selector" hidden><label for="projectSelectorWrap"><strong>Choose project</strong><select id="projectSelector"></select></label><button id="openSelectedProject" class="btn" type="button">Show project</button></div><div id="currentProject"></div><details><summary>All projects</summary><div id="jobsList" class="portal-list"></div></details></section><section id="quotes-section" class="portal-panel portal-section"><h2>Quotes and decisions</h2><p>Open the complete review before approving, requesting a change, or declining any quote.</p><div id="quotesList" class="portal-list"></div></section></div>
             <div class="portal-stack"><div class="h38-customer-subgrid"><section id="files-section" class="portal-panel portal-section"><h2>Recent files</h2><div id="filesList" class="portal-list"></div></section><section id="invoices-section" class="portal-panel portal-section"><h2>Invoices</h2><div id="invoicesList" class="portal-list"></div></section></div><section id="messages-section" class="portal-panel portal-section"><h2>Messages</h2><p>Ask a question about the selected project or request a quote change.</p><div id="messageProjectContext" class="h38-message-project"><span>Project:</span><strong>No project selected</strong></div><form id="messageForm" class="portal-message"><textarea id="messageBody" maxlength="2000" rows="5" placeholder="Write a project question or update"></textarea><button class="btn btn-primary" type="submit">Send message to Highway 38 review queue</button></form><p>Recorded messages enter the Highway 38 review queue. No automatic text or email is sent.</p></section></div>
           </div>
         </div>
