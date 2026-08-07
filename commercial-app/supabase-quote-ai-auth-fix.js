@@ -44,7 +44,7 @@
       session = refreshed.data.session;
     }
 
-    const verified = await api.auth.getUser(session.access_token);
+    const verified = await api.auth.getUser();
     if (verified.error || !verified.data?.user) {
       throw new Error(verified.error?.message || 'Secure session is invalid. Sign in again before building the quote.');
     }
@@ -102,7 +102,7 @@
 
   window.H38_QUOTE_AI_AUTH_FIX = Object.freeze({
     enabled: true,
-    build: '20260807-0955',
+    build: '20260807-1010',
     transport: 'direct-fetch-shared-client',
     endpoint: 'h38-quote-ai',
     authorizationHeader: 'refreshed-user-bearer',
