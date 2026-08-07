@@ -1,0 +1,10 @@
+@media print {
+  body.h38-printing > *:not(#h38SafePrintRoot) { display: none !important; }
+  body.h38-printing #h38SafePrintRoot { display: block !important; position: static !important; inset: auto !important; width: 100% !important; min-height: 0 !important; background: #fff !important; color: #111 !important; overflow: visible !important; }
+  body.h38-printing #h38SafePrintRoot .print-actions,
+  body.h38-printing #h38SafePrintRoot button,
+  body.h38-printing #h38SafePrintRoot [data-owner-only="true"] { display: none !important; }
+  body.h38-printing #h38SafePrintRoot img { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
+  @page { margin: 0.45in; }
+}
+#h38SafePrintRoot { display: none; }
