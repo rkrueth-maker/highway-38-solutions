@@ -8,6 +8,8 @@ on:
       - 'commercial-app/supabase-quote-ai*.js'
       - 'commercial-app/quote-mobile-stabilization.js'
       - 'commercial-app/quote-photo-restore.js'
+      - 'commercial-app/quote-final-phone-fix.js'
+      - 'commercial-app/quote-manual-image-controls.js'
       - 'supabase/functions/h38-quote-ai/**'
       - 'scripts/verify-quote-photo-restore-and-ai-auth.js'
       - '.github/workflows/verify-quote-photo-restore-and-ai-auth.yml'
@@ -20,6 +22,8 @@ on:
       - 'commercial-app/supabase-quote-ai*.js'
       - 'commercial-app/quote-mobile-stabilization.js'
       - 'commercial-app/quote-photo-restore.js'
+      - 'commercial-app/quote-final-phone-fix.js'
+      - 'commercial-app/quote-manual-image-controls.js'
       - 'supabase/functions/h38-quote-ai/**'
       - 'scripts/verify-quote-photo-restore-and-ai-auth.js'
       - '.github/workflows/verify-quote-photo-restore-and-ai-auth.yml'
@@ -41,6 +45,8 @@ jobs:
         run: |
           node --check commercial-app/supabase-quote-ai-auth-fix.js
           node --check commercial-app/quote-photo-restore.js
+          node --check commercial-app/quote-final-phone-fix.js
+          node --check commercial-app/quote-manual-image-controls.js
           node --check scripts/verify-quote-photo-restore-and-ai-auth.js
       - name: Verify persistence and authentication contracts
         run: node scripts/verify-quote-photo-restore-and-ai-auth.js
