@@ -1,8 +1,13 @@
 (function () {
   'use strict';
 
+  const BUILD = '20260807-1325';
   const config = window.H38_CUSTOMER_PORTAL_SUPABASE || {};
   const state = { client: null, session: null, account: null, jobs: [], quotes: [], invoices: [], files: [], selectedJobId: null };
+  let refreshPromise = null;
+  let sessionQueue = Promise.resolve();
+  let lastAppliedUserId = '';
+  let lastAppliedAt = 0;
 
   const byId = id => document.getElementById(id);
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
@@ -35,8 +40,19 @@
     notice('<b>Secure portal notice:</b> ' + esc(error && error.message ? error.message : error), 'bad');
   }
 
+  function withTimeout(promise, label, ms = 15000) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label + ' timed out. Check the connection and press Refresh.')), ms);
+    });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+  }
+
   function currentRedirectUrl() {
-    return config.redirectUrl || (location.origin + location.pathname);
+    if (config.redirectUrl) return config.redirectUrl;
+    const url = new URL(location.origin + location.pathname);
+    url.searchParams.set('v', BUILD);
+    return url.toString();
   }
 
   function loginEmail() {
@@ -54,7 +70,7 @@
     }
     state.client = window.supabase.createClient(config.url, config.publishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      global: { headers: { 'x-client-info': 'highway-38-customer-portal' } }
+      global: { headers: { 'x-client-info': 'highway-38-customer-portal-1325' } }
     });
     return state.client;
   }
@@ -66,25 +82,25 @@
     if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
     if (!password) return notice('Enter your customer portal password or request a secure email link.', 'bad');
     notice('Signing in securely…', '');
-    const { data, error } = await state.client.auth.signInWithPassword({ email, password });
+    const { data, error } = await withTimeout(state.client.auth.signInWithPassword({ email, password }), 'Secure sign-in');
     if (error) throw error;
     byId('portalPassword').value = '';
-    if (data && data.session) await applySession(data.session);
+    if (data && data.session) await queueSession(data.session, 'password-sign-in');
   }
 
   async function sendMagicLink() {
     const email = loginEmail();
     if (!email) return notice('Enter the email address connected to your customer account.', 'bad');
-    const { error } = await state.client.auth.signInWithOtp({
+    const { error } = await withTimeout(state.client.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: currentRedirectUrl(), shouldCreateUser: false }
-    });
+    }), 'Secure email link request');
     if (error) throw error;
     notice('<b>Check your email.</b> The secure sign-in link was requested. For privacy, the portal does not confirm whether an address is registered.', 'ok');
   }
 
   async function signOut() {
-    const { error } = await state.client.auth.signOut();
+    const { error } = await withTimeout(state.client.auth.signOut(), 'Sign out');
     if (error) throw error;
     state.session = null;
     state.account = null;
@@ -93,18 +109,21 @@
     state.invoices = [];
     state.files = [];
     state.selectedJobId = null;
+    lastAppliedUserId = '';
     setView('login');
     notice('Signed out.', 'ok');
   }
 
   async function loadAccount() {
     const userId = state.session && state.session.user && state.session.user.id;
-    const { data, error } = await state.client
+    if (!userId) throw new Error('Secure customer session is missing a user.');
+    const request = state.client
       .from('customer_accounts')
       .select('id,customer_code,display_name,email,status')
       .eq('auth_user_id', userId)
       .eq('status', 'active')
       .maybeSingle();
+    const { data, error } = await withTimeout(request, 'Customer account lookup');
     if (error) throw error;
     if (!data) throw new Error('This login is not connected to an active Highway 38 customer account.');
     state.account = data;
@@ -115,7 +134,7 @@
   async function queryOwn(table, columns, orderColumn) {
     let request = state.client.from(table).select(columns).eq('customer_id', state.account.id);
     if (orderColumn) request = request.order(orderColumn, { ascending: false });
-    const { data, error } = await request;
+    const { data, error } = await withTimeout(request, table + ' lookup');
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   }
@@ -177,10 +196,10 @@
     const quote = state.quotes.find(row => row.id === quoteId);
     if (!quote) throw new Error('The selected quote is not available. Refresh and try again.');
     if (!confirm('Approve this fully reviewed quote? This records your decision but does not charge a card or begin work automatically.')) return false;
-    const { data, error } = await state.client.rpc('customer_portal_approve_quote', {
+    const { data, error } = await withTimeout(state.client.rpc('customer_portal_approve_quote', {
       p_quote_id: quoteId,
       p_expected_version: Number(version || quote.version || 1)
-    });
+    }), 'Quote approval');
     if (error) throw error;
     notice('<b>Quote approval recorded.</b> Highway 38 will review the selected quote before any next action.', 'ok');
     await refreshDashboard();
@@ -188,9 +207,9 @@
   }
 
   async function downloadFile(storagePath) {
-    const { data, error } = await state.client.storage
+    const { data, error } = await withTimeout(state.client.storage
       .from(config.storageBucket || 'customer-portal')
-      .createSignedUrl(storagePath, 120, { download: true });
+      .createSignedUrl(storagePath, 120, { download: true }), 'Secure file link');
     if (error) throw error;
     if (!data || !data.signedUrl) throw new Error('A secure download URL was not created.');
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
@@ -202,13 +221,13 @@
     if (!body) return notice('Enter a message first.', 'bad');
     if (body.length > 2000) return notice('Messages are limited to 2,000 characters.', 'bad');
     if (state.jobs.length && !state.selectedJobId) return notice('Choose the project this message belongs to.', 'bad');
-    const { error } = await state.client.from('customer_messages').insert({
+    const { error } = await withTimeout(state.client.from('customer_messages').insert({
       customer_id: state.account.id,
       job_id: state.selectedJobId || null,
       body,
       direction: 'customer_to_business',
       status: 'pending_owner_review'
-    });
+    }), 'Message save');
     if (error) throw error;
     byId('messageBody').value = '';
     notice('<b>Message recorded for ' + esc(selectedJob()?.title || 'general account review') + '.</b> No automatic text or email was sent. Highway 38 will review it.', 'ok');
@@ -224,7 +243,7 @@
     }}));
   }
 
-  async function refreshDashboard() {
+  async function doRefreshDashboard() {
     if (!state.account) return;
     notice('Loading your customer records…', '');
     const [jobs, quotes, invoices, files] = await Promise.all([
@@ -251,16 +270,34 @@
     notice('<b>Secure portal loaded.</b> Supabase Auth and Row Level Security limit this session to the connected customer account.', 'ok');
   }
 
-  async function applySession(session) {
+  function refreshDashboard() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = doRefreshDashboard().finally(() => { refreshPromise = null; });
+    return refreshPromise;
+  }
+
+  async function applySession(session, source) {
     state.session = session;
     if (!session) {
       state.account = null;
+      lastAppliedUserId = '';
       setView('login');
       return;
     }
+    const userId = String(session.user?.id || '');
+    if (!userId) throw new Error('Secure customer session is incomplete.');
+    const duplicate = state.account && userId === lastAppliedUserId && Date.now() - lastAppliedAt < 5000;
+    if (duplicate && source !== 'manual-refresh') return;
     await loadAccount();
     setView('app');
     await refreshDashboard();
+    lastAppliedUserId = userId;
+    lastAppliedAt = Date.now();
+  }
+
+  function queueSession(session, source) {
+    sessionQueue = sessionQueue.catch(() => {}).then(() => applySession(session, source));
+    return sessionQueue;
   }
 
   async function boot() {
@@ -271,11 +308,17 @@
       byId('signOutButton').addEventListener('click', () => signOut().catch(safeError));
       byId('refreshPortal').addEventListener('click', () => refreshDashboard().catch(safeError));
       byId('messageForm').addEventListener('submit', event => submitMessage(event).catch(safeError));
-      const { data, error } = await state.client.auth.getSession();
+      const { data, error } = await withTimeout(state.client.auth.getSession(), 'Secure session check');
       if (error) throw error;
-      await applySession(data.session);
-      state.client.auth.onAuthStateChange((_event, session) => {
-        applySession(session).catch(safeError);
+      await queueSession(data.session, 'boot');
+      state.client.auth.onAuthStateChange((event, session) => {
+        if (event === 'TOKEN_REFRESHED') {
+          state.session = session;
+          return;
+        }
+        setTimeout(() => {
+          void queueSession(session, event || 'auth-change').catch(safeError);
+        }, 0);
       });
     } catch (error) {
       safeError(error);
@@ -284,8 +327,10 @@
   }
 
   window.H38_CUSTOMER_PORTAL = {
+    build: BUILD,
     approveQuote: (quoteId, version) => approveQuote(quoteId, version).catch(safeError),
     selectJob,
+    refresh: () => refreshDashboard().catch(safeError),
     getState: () => ({ ...state, jobs: state.jobs.slice(), quotes: state.quotes.slice(), invoices: state.invoices.slice(), files: state.files.slice() })
   };
   document.addEventListener('DOMContentLoaded', boot);

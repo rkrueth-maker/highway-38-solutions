@@ -92,8 +92,28 @@
     }
   }
 
+  function refreshServiceWorker() {
+    if (!('serviceWorker' in navigator) || !navigator.onLine) return;
+    const build = '20260807-1325';
+    const reloadKey = `h38:worker-reloaded:${build}`;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      try {
+        if (sessionStorage.getItem(reloadKey)) return;
+        sessionStorage.setItem(reloadKey, '1');
+      } catch (ignore) {}
+      location.reload();
+    });
+    navigator.serviceWorker.register(`./service-worker.js?build=${build}`, {
+      scope: './',
+      updateViaCache: 'none'
+    }).then(registration => registration.update()).catch(error => {
+      console.warn('Business Office service worker refresh failed', error);
+    });
+  }
+
   window.addEventListener('pageshow', () => { void validate('pageshow', true); });
-  window.addEventListener('online', () => { void validate('online', true); });
+  window.addEventListener('online', () => { void validate('online', true); refreshServiceWorker(); });
+  window.addEventListener('load', refreshServiceWorker, { once: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void validate('visible', false);
   });
@@ -107,10 +127,11 @@
 
   window.H38_SUPABASE_SESSION_RECOVERY = Object.freeze({
     enabled: true,
-    build: '20260805-1745',
+    build: '20260807-1325',
     validate: function () { return validate('manual', true); },
     singleClientRequired: true,
     clearsRevokedMembershipState: true,
-    preservesDrafts: true
+    preservesDrafts: true,
+    forcesCurrentServiceWorker: true
   });
 })();
