@@ -112,17 +112,26 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ needs.prepare.outputs.public_commit }}"
-          grep -Fq "20260806-2048" commercial-app/field-visit.js
-          grep -Fq "field-visit-guidance.js" commercial-app/field-visit.js
-          grep -Fq "field-visit-recovery.js" commercial-app/field-visit.js
-          grep -Fq "20260806-2100" commercial-app/field-visit-recovery.js
+          node --check commercial-app/runtime-rowid-fix.js
+          node --check commercial-app/field-visit.js
+          node --check commercial-app/field-visit-guidance.js
+          node --check commercial-app/field-visit-photo-review.js
+          node --check commercial-app/field-visit-recovery.js
+          node --check commercial-app/field-visit-measurement-fix.js
+          node --check commercial-app/quote-ai-live-fix.js
+          node --check commercial-app/service-worker.js
+          grep -Fq "20260806-2145" commercial-app/field-visit.js
+          grep -Fq "field-visit-photo-review.js" commercial-app/field-visit.js
+          grep -Fq "photoReviewBeforeMeasurements:true" commercial-app/field-visit-guidance.js
+          grep -Fq "Review Photos & Plan Measurements" commercial-app/field-visit-guidance.js
+          grep -Fq "h38-site-scanner" commercial-app/field-visit-photo-review.js
+          grep -Fq "missingMeasurements" commercial-app/field-visit-photo-review.js
+          grep -Fq "window.rowId=function" commercial-app/runtime-rowid-fix.js
+          grep -Fq "runtime-rowid-fix.js?build=20260806-2145" commercial-app/index.html
           grep -Fq "field-visit-measurement-fix.js" commercial-app/field-visit-recovery.js
-          grep -Fq "20260806-2100" commercial-app/field-visit-measurement-fix.js
-          grep -Fq "stopImmediatePropagation" commercial-app/field-visit-measurement-fix.js
-          grep -Fq "measurementIndex" commercial-app/field-visit-measurement-fix.js
           grep -Fq "unknownsAreNeverGuessed:true" commercial-app/field-visit-guidance.js
           grep -Fq "Cannot Measure — Mark Unknown" commercial-app/field-visit-guidance.js
-          grep -Fq "h38-business-office-20260806-2100" commercial-app/service-worker.js
+          grep -Fq "h38-business-office-20260806-2145" commercial-app/service-worker.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
