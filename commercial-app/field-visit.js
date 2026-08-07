@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260806-2145',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
+const BUILD='20260807-1345',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
 const native=/H38SiteScannerAndroid/.test(navigator.userAgent),apple=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
 if(native)document.documentElement.classList.add('h38-native-shell');
 if(apple)document.documentElement.classList.add('h38-apple-device');
@@ -21,7 +21,7 @@ function focusQuote(){
   let launch=$('h38FieldQuoteLaunch');
   if(!launch){
     launch=document.createElement('section');launch.id='h38FieldQuoteLaunch';launch.className='field-quote-launch';
-    launch.innerHTML=`<div><span class="field-kicker">FIELD-FIRST QUOTE</span><h2>Capture the job before building the quote</h2><p>Photos, measurements and notes stay together online or offline.</p></div><button id="h38StartFieldVisit" class="field-primary">📍 Start Site Visit</button><details class="field-quote-more"><summary>More quote tools</summary><div id="h38QuoteOverflow" class="field-quote-overflow"></div></details>`;
+    launch.innerHTML=`<div><span class="field-kicker">FIELD-FIRST QUOTE</span><h2>Capture the job before building the quote</h2><p>Photos, video walkthrough, measurements and notes stay together online or offline.</p></div><button id="h38StartFieldVisit" class="field-primary">📍 Start Site Visit</button><details class="field-quote-more"><summary>More quote tools</summary><div id="h38QuoteOverflow" class="field-quote-overflow"></div></details>`;
     const head=main.querySelector('.page-head');(head?.nextSibling?main.insertBefore(launch,head.nextSibling):main.prepend(launch));
     $('h38StartFieldVisit').onclick=()=>open({quoteId:C.t(window.state?.quote?.quoteId),customerId:C.t(window.state?.quote?.customerId)});
   }
@@ -57,7 +57,11 @@ function loadPhotoReview(){
   if(window.H38_FIELD_VISIT_PHOTO_REVIEW||document.querySelector('script[data-h38-field-photo-review]'))return;
   const script=document.createElement('script');script.src='./field-visit-photo-review.js?build=20260806-2145';script.dataset.h38FieldPhotoReview='1';document.head.appendChild(script);
 }
-function start(){loadGuidance();loadRecovery();loadPhotoReview();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
-window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true,photoReviewBeforeMeasurements:true,queueRecovery:true};
+function loadVideoWalkthrough(){
+  if(window.H38_FIELD_VISIT_VIDEO||document.querySelector('script[data-h38-field-video]'))return;
+  const script=document.createElement('script');script.src='./field-visit-video.js?build=20260807-1345';script.dataset.h38FieldVideo='1';document.head.appendChild(script);
+}
+function start(){loadGuidance();loadRecovery();loadPhotoReview();loadVideoWalkthrough();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
+window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true,photoReviewBeforeMeasurements:true,queueRecovery:true,videoWalkthrough:true,videoFramesForAiReview:true};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
