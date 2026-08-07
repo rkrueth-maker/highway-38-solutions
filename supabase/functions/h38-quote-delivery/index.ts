@@ -53,7 +53,7 @@ function reply(request: Request, status: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), { status, headers: corsHeaders(request) });
 }
 function bearer(request: Request): string {
-  const match = clean(request.headers.get("authorization"), 10000).match(/^Bearer\s+(.+)$/i);
+  const match = String(request.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : "";
 }
 function serviceClient() {
