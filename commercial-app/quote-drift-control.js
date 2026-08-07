@@ -1,7 +1,8 @@
 (function(){
 'use strict';
-const BUILD='20260807-0305';
+const BUILD='20260807-0505';
 const text=v=>String(v==null?'':v),num=v=>Number.isFinite(Number(v))?Number(v):0;
+function loadSafePrint(){if(!document.querySelector('link[data-h38-safe-print]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./print-safe.css?build=20260807-0505';link.dataset.h38SafePrint='true';document.head.appendChild(link);}if(!window.H38_SAFE_QUOTE_PRINT&&!document.querySelector('script[data-h38-safe-print]')){const script=document.createElement('script');script.src='./quote-print-safe.js?build=20260807-0505';script.async=false;script.dataset.h38SafePrint='true';document.head.appendChild(script);}}
 function money(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(v));}
 function total(lines){return(lines||[]).reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0);}
 function key(line){return text(line.description).trim().toLowerCase();}
@@ -19,5 +20,5 @@ function render(){const q=window.state?.quote||{},base=Array.isArray(q.lines)?q.
 const baseRender=window.renderQuotes;if(typeof baseRender==='function')window.renderQuotes=function(){baseRender();render();};
 document.addEventListener('click',event=>{if(event.target?.closest?.('#previewQuoteButton,#printQuoteButton,#h38ApproveSendQuoteButton'))document.getElementById('h38QuoteDriftPanel')?.remove();},true);
 window.H38_QUOTE_DRIFT_CONTROL=Object.freeze({enabled:true,build:BUILD,ownerOnly:true,customerHidden:true,automaticChanges:false,render});
-setTimeout(render,0);
+loadSafePrint();setTimeout(render,0);
 })();
