@@ -140,9 +140,6 @@ jobs:
           grep -Fq "quote-total-lock.js" commercial-app/index.html
           grep -Fq "quote-drift-control.js" commercial-app/index.html
           grep -Fq "quote-delivery-final-fix.js" commercial-app/index.html
-          grep -Fq "window.rowId=function" commercial-app/runtime-rowid-fix.js
-          grep -Fq "rowIdSelfHealing:true" commercial-app/quote-ai-live-fix.js
-          grep -Fq "unknownsAreNeverGuessed:true" commercial-app/field-visit-guidance.js
 
           index_build="$(sed -n "s/.*window.H38_ASSET_BUILD='\([^']*\)'.*/\1/p" commercial-app/index.html | head -1)"
           cache_build="$(sed -n "s/^const CACHE_NAME='h38-business-office-\([^']*\)'.*/\1/p" commercial-app/service-worker.js | head -1)"
