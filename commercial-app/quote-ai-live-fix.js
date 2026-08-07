@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260807-0945';
-const HANDLER='quote-ai-v6-split-render';
+const BUILD='20260807-1010';
+const HANDLER='quote-ai-v3-capture-split-render';
 let running=false;
 const text=value=>String(value==null?'':value);
 const clone=value=>JSON.parse(JSON.stringify(value==null?null:value));
