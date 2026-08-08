@@ -1,5 +1,6 @@
 'use strict';
 
+const H38_SUPABASE_STARTUP_BUILD='20260807-2132';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -16,6 +17,10 @@ const h38LegacyBindGlobal=bindGlobal;
 function h38SupabaseAuthEnabled(){return window.H38_SUPABASE_AUTH?.enabled===true;}
 function h38AuthUserId(){return window.H38DB?.getUserScope?.()||'';}
 function h38ScopedBusinessStorageKey(){const userId=h38AuthUserId();return userId?`h38-selected-business:${userId}`:'';}
+function h38RegisterOfficeServiceWorker(){
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).catch(error=>console.warn('Business Office service worker:',error.message||String(error)));
+}
 function h38SetAuthorizedChrome(authorized){
   const allowed=authorized===true&&!!state.snapshot;
   const nav=$('mainNav');
@@ -58,24 +63,28 @@ saveStartupSnapshot=function(snapshot,businessId){
   return snapshot;
 };
 
-hydrateLocalStartup=async function(){
+hydrateLocalStartup=async function(options={}){
   if(!h38SupabaseAuthEnabled())return h38LegacyHydrateLocalStartup.apply(this,arguments);
-  if(!h38AuthUserId()||navigator.onLine)return false;
+  const allowOnline=options?.allowOnline===true;
+  if(!h38AuthUserId()||(navigator.onLine&&!allowOnline))return false;
   try{const settings=await withStartupTimeout(get('meta','settings'),'loading local settings');if(settings)state.drivingMode=!!settings.drivingMode;}catch(error){console.warn(error.message);}
   try{
     const selected=await withStartupTimeout(get('meta','selectedBusiness'),'loading user-scoped business');
     setFastBusinessId(selected?.businessId||'');
   }catch(error){console.warn(error.message);}
   try{
-    if(!state.snapshot)await withStartupTimeout(loadCached(),'loading verified offline business pack',4000);
+    if(!state.snapshot)await withStartupTimeout(loadCached({allowOnline}),'loading verified business pack',4000);
     if(state.snapshot){
       h38SetAuthorizedChrome(true);
-      $('businessStatus').textContent=`${state.snapshot.business.businessName} · verified offline business pack`;
+      $('businessStatus').textContent=navigator.onLine
+        ?`${state.snapshot.business.businessName} · Office open · refreshing securely…`
+        :`${state.snapshot.business.businessName} · Offline · verified device cache`;
       openPage(state.page,false);
       await updatePending().catch(()=>{});
       return true;
     }
   }catch(error){console.warn(error.message);}
+  if(navigator.onLine)return false;
   state.snapshot=null;
   h38SetAuthorizedChrome(false);
   renderWelcome('unavailable','No recent user-scoped authorization is available for offline startup. Reconnect to verify this membership.');
@@ -105,7 +114,7 @@ bindGlobal=function(){
 init=async function(){
   if(!h38SupabaseAuthEnabled())return h38LegacyInit();
   setBusinessSwitcherVisible(false);
-  retireLegacyOfflineShell();
+  h38RegisterOfficeServiceWorker();
   const query=new URLSearchParams(location.search);
   state.shell=SHELL_PAGES[query.get('shell')]?query.get('shell'):'office';
   $('shellLabel').textContent=SHELL_LABELS[state.shell];
@@ -121,7 +130,7 @@ init=async function(){
   renderWelcome('connecting');
   state.bridge.connect();
   addEventListener('online',()=>{network();state.bridge?.connect();});
-  addEventListener('offline',()=>{network();state.bridge?.connect();});
+  addEventListener('offline',()=>{network();hydrateLocalStartup().catch(()=>{});});
   addEventListener('h38:auth-cleared',()=>h38SetAuthorizedChrome(false));
   armStartupWatchdog();
 };
@@ -129,12 +138,15 @@ init=async function(){
 handleBridgeStatus=function(status){
   if(!h38SupabaseAuthEnabled())return h38LegacyHandleBridgeStatus(status);
   state.bridgeReady=['connected','bootstrapped'].includes(status)&&!!state.bridge?.ready;
-  if(status==='connected'){$('businessStatus').textContent='Supabase Auth verified · resolving active business…';return;}
+  if(status==='connected'){
+    $('businessStatus').textContent='Secure session found · opening Office…';
+    hydrateLocalStartup({allowOnline:true}).catch(error=>console.warn(error.message||String(error)));
+    return;
+  }
   if(status==='bootstrapped'){clearTimeout(h38StartupWatchdog);return;}
   if(status==='offline-authenticated'){
     state.bridgeReady=false;
-    h38SetAuthorizedChrome(false);
-    $('businessStatus').textContent='Signed-in session found offline · checking verified device cache…';
+    $('businessStatus').textContent='Offline · opening verified device cache…';
     hydrateLocalStartup().catch(error=>renderWelcome('unavailable',error.message));
     return;
   }
@@ -179,7 +191,7 @@ handleStartupBootstrap=async function(startup){
     if(startup.selectedBusinessId)setFastBusinessId(startup.selectedBusinessId);
     if(startup.snapshot){
       saveStartupSnapshot(startup.snapshot,state.businessId);
-      $('businessStatus').textContent=`${startup.snapshot.business.businessName} · ${startup.snapshot.user.roleName} · Supabase Auth verified`;
+      $('businessStatus').textContent=`${startup.snapshot.business.businessName} · ${startup.snapshot.user.roleName} · Office online`;
       openPage(state.page,false);
       await updatePending().catch(()=>{});
       return;
@@ -207,10 +219,10 @@ handleFullSnapshot=async function(snapshot,businessId){
     const id=String(businessId||snapshot?.business?.businessId||'');
     if(!id||id!==state.businessId)return;
     saveStartupSnapshot(snapshot,id);
-    $('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · membership refreshed ${new Date().toLocaleTimeString()}`;
+    $('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · Office online`;
     openPage(state.page,false);
     await updatePending().catch(()=>{});
-    toast('Active membership refreshed.');
+    toast('Office refreshed.');
   }catch(error){handleBridgeError('refresh',error.message||String(error));}
 };
 
@@ -219,7 +231,11 @@ handleBridgeError=function(stage,message){
   const text=String(message||'Secure Supabase connection failed.');
   state.bridgeReady=false;
   if(!navigator.onLine){hydrateLocalStartup().catch(()=>renderWelcome('unavailable',text));return;}
-  if(['refresh','request'].includes(stage)&&state.snapshot){$('businessStatus').textContent='Office open · membership refresh needs retry.';toast(text,true);return;}
+  if(['authorization','refresh','request'].includes(stage)&&state.snapshot){
+    $('businessStatus').textContent='Office open · secure refresh needs retry.';
+    toast(text,true);
+    return;
+  }
   state.snapshot=null;
   state.businessId='';
   h38SetAuthorizedChrome(false);
@@ -239,10 +255,10 @@ renderWelcome=function(mode='connecting',detailOverride=''){
     return;
   }
   if(mode==='choose'){
-    $('mainContent').innerHTML='<section class="welcome"><h1>Opening Business Office…</h1><p>Resolving your authorized Highway 38 business.</p></section>';
+    $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized Highway 38 business.</p></section>';
     return;
   }
-  $('mainContent').innerHTML='<section class="welcome"><h1>Opening Business Office…</h1><p>Checking the Supabase Auth session and active business memberships.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
+  $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Restoring your last verified office and refreshing securely.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
 };
 
 loadBusiness=async function(businessId,quiet=false){
@@ -260,3 +276,13 @@ loadBusiness=async function(businessId,quiet=false){
     return false;
   }
 };
+
+window.H38_OFFICE_STARTUP=Object.freeze({
+  enabled:true,
+  build:H38_SUPABASE_STARTUP_BUILD,
+  onlineWarmOpen:true,
+  offlineVerifiedCache:true,
+  serviceWorkerEnabled:true,
+  membershipRevalidation:true,
+  deniedMembershipClosesCache:true
+});
