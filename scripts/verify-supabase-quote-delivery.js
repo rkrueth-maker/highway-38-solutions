@@ -13,6 +13,7 @@ const pendingFile=edge.indexOf('pending_delivery');
 const availableFile=edge.indexOf('available_to_customer: true',sendCall);
 const currentCache=/CACHE_NAME='h38-business-office-20\d{6}-\d{4}'/.test(sw);
 const deliveryNetworkFirst=/LIVE_FIRST=new Set\(\[[^\]]*'supabase-quote-delivery\.js'/s.test(sw);
+const portalDeliveryBuild=(portal.match(/const BUILD='([^']+)'/)||[])[1]||'';
 const checks=[
  ['Approve & Send button is explicit',client.includes("textContent='✉️ Approve & Send Quote'")],
  ['owner checkbox gates confirmation',client.includes('confirmOwnerReview:true')&&client.includes('h38QuoteDeliveryConfirm')],
@@ -26,8 +27,8 @@ const checks=[
  ['business quote is locked as Presented',edge.includes('Status: "Presented"')&&edge.includes('"Locked Revision"')],
  ['Proof Log records external action',edge.includes('APPROVE_AND_SEND_QUOTE')&&edge.includes('external_action_occurred: true')],
  ['no payment or work starts automatically',edge.includes('No payment is charged and work does not begin automatically')&&client.includes('No payment is charged and work does not start automatically')],
- ['customer portal exposes private PDF download',portal.includes('createSignedUrl')&&portal.includes('Download quote PDF')],
- ['customer portal loads delivery enhancement',portalHtml.includes('customer-portal-quote-delivery.js?v=20260805-2050')],
+ ['customer portal exposes private PDF download',portal.includes('createSignedUrl(path,300)')&&portal.includes('Open Proposal PDF')&&portal.includes("config.storageBucket||'customer-portal'")],
+ ['customer portal loads current delivery enhancement',Boolean(portalDeliveryBuild)&&portalHtml.includes(`customer-portal-quote-delivery.js?v=${portalDeliveryBuild}`)],
  ['customer portal redirects on custom domain',portalConfig.includes("redirectUrl: 'https://highway38solutions.com/customer-portal.html'")],
  ['Business Office loads delivery script last',index.indexOf('quote-photo-restore.js')<index.indexOf('supabase-quote-delivery.js')&&index.indexOf('supabase-quote-delivery.js')<index.indexOf('supabase-no-legacy-office.js')],
  ['mobile cache is current and delivery is network-first',currentCache&&deliveryNetworkFirst&&sw.includes("'./supabase-quote-delivery.js'")],
