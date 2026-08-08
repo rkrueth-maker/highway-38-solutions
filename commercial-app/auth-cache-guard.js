@@ -16,10 +16,13 @@ loadCached=async function(options={}){
   if(!authorization||authorization.userId!==userId||authorization.status!=='active'||authorization.businessId!==state.businessId||!fresh)return false;
   const snapshot=await get('snapshots',`business:${state.businessId}`);
   if(!snapshot||snapshot.authUserId!==userId||snapshot.authorizationStatus!=='active'||snapshot.business?.businessId!==state.businessId)return false;
-  state.snapshot=snapshot;
+  const currentCheckedAt=new Date(state.snapshot?.authorizationCheckedAt||0).getTime();
+  const cachedCheckedAt=new Date(snapshot.authorizationCheckedAt||snapshot.cachedAt||0).getTime();
+  const currentIsNewer=state.snapshot?.authUserId===userId&&state.snapshot?.business?.businessId===state.businessId&&Number.isFinite(currentCheckedAt)&&currentCheckedAt>=cachedCheckedAt;
+  if(!currentIsNewer)state.snapshot=snapshot;
   $('businessStatus').textContent=navigator.onLine
-    ?`${snapshot.business.businessName} · Office open · refreshing securely…`
-    :`${snapshot.business.businessName} · Offline · verified device cache ${new Date(snapshot.cachedAt||snapshot.authorizationCheckedAt).toLocaleString()}`;
+    ?`${state.snapshot.business.businessName} · Office open · refreshing securely…`
+    :`${state.snapshot.business.businessName} · Offline · verified device cache ${new Date(state.snapshot.cachedAt||state.snapshot.authorizationCheckedAt).toLocaleString()}`;
   $('businessSelect').value=state.businessId;
   return true;
 };
