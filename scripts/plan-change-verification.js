@@ -50,7 +50,7 @@ const publicPatterns=[
   /^scripts\/config\/(public-website-routes|approved-public-assets|approved-public-image-placements)\.json$/,
   /^scripts\/verify-public-/,
   /^scripts\/guard_deploy\.py$/,
-  /^\.github\/workflows\/pages\.yml$/
+  /^\.github\/workflows\/pages-branch-fallback\.yml$/
 ];
 const appPatterns=[
   /^apps-script\/business-office\//,
@@ -100,7 +100,7 @@ scopes.documentationOnly=files.length>0&&files.every(file=>matches(file,document
 scopes.workflowOnly=files.length>0&&files.every(file=>matches(file,workflowPatterns)||matches(file,documentationPatterns));
 
 const risk={
-  productionWorkflow:files.some(file=>/^\.github\/workflows\/(pages|deploy-owner-portal-hard-rule-production|business-office-authorized-acceptance)\.yml$/.test(file)),
+  productionWorkflow:files.some(file=>/^\.github\/workflows\/(pages-branch-fallback|deploy-owner-portal-hard-rule-production|business-office-authorized-acceptance)\.yml$/.test(file)),
   schemaOrDataOwner:files.some(file=>/Schema|Seeder|Migration|Config\.gs|ModuleContract|ActionContract|business-office\/.*\.gs$/.test(file)),
   approvedAssets:files.some(file=>/^assets\/(images|demo-workthroughs)\//.test(file)||/approved-public-(assets|image-placements)\.json$/.test(file)),
   publicRendering:files.some(file=>/\.html$/.test(file)||/^assets\/(css|js)\//.test(file)),
@@ -133,7 +133,7 @@ if(risk.longRunningData)expensiveChecks.push('resumable small-batch generation w
 if(risk.productionWorkflow)expensiveChecks.push('controlled workflow run with machine-readable PASS/HOLD evidence');
 
 const deploymentWorkflows=[];
-if(scopes.publicWebsite)deploymentWorkflows.push('.github/workflows/pages.yml');
+if(scopes.publicWebsite)deploymentWorkflows.push('.github/workflows/pages-branch-fallback.yml');
 if(scopes.authenticatedApp||scopes.customerPortal)deploymentWorkflows.push('.github/workflows/deploy-owner-portal-hard-rule-production.yml');
 
 const reusableEvidence=[];
