@@ -1,0 +1,40 @@
+name: Verify H38 Google Play Release
+
+on:
+  pull_request:
+    paths:
+      - 'privacy.html'
+      - 'account-deletion.html'
+      - 'commercial-app/play-compliance.js'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'native/h38-site-scanner/android-app/**'
+      - '.github/workflows/android-play-bundle.yml'
+      - 'scripts/verify-google-play-release.js'
+      - '.github/workflows/verify-google-play-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'privacy.html'
+      - 'account-deletion.html'
+      - 'commercial-app/play-compliance.js'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'native/h38-site-scanner/android-app/**'
+      - '.github/workflows/android-play-bundle.yml'
+      - 'scripts/verify-google-play-release.js'
+      - '.github/workflows/verify-google-play-release.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Google Play internal release contract
+        run: node scripts/verify-google-play-release.js

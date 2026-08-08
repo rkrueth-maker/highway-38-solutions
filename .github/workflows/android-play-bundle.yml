@@ -6,6 +6,11 @@ on:
     paths:
       - 'native/h38-site-scanner/android-app/**'
       - '.github/workflows/android-play-bundle.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'native/h38-site-scanner/android-app/**'
+      - '.github/workflows/android-play-bundle.yml'
 
 permissions:
   contents: read
@@ -28,7 +33,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Resolve Android version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(sed -n "s/^[[:space:]]*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -1)"
+          VERSION_CODE="$(sed -n 's/^[[:space:]]*versionCode \([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)"
+          test -n "$VERSION_NAME"
+          test -n "$VERSION_CODE"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
       - name: Configure release upload key when available
+        id: signing
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
@@ -47,10 +64,14 @@ jobs:
               echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
               echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
             } >> "$GITHUB_ENV"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo 'Play release signing secrets are not configured.' >&2
-            echo 'Required: H38_ANDROID_UPLOAD_KEYSTORE_B64, H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD, H38_ANDROID_UPLOAD_KEY_ALIAS, H38_ANDROID_UPLOAD_KEY_PASSWORD.' >&2
-            exit 1
+            echo 'signed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'signed=false' >> "$GITHUB_OUTPUT"
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              echo 'Play release signing secrets are not configured.' >&2
+              echo 'Required: H38_ANDROID_UPLOAD_KEYSTORE_B64, H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD, H38_ANDROID_UPLOAD_KEY_ALIAS, H38_ANDROID_UPLOAD_KEY_PASSWORD.' >&2
+              exit 1
+            fi
           fi
       - name: Build release App Bundle
         run: gradle --no-daemon --stacktrace :app:bundleRelease
@@ -59,18 +80,19 @@ jobs:
         run: |
           set -euo pipefail
           AAB='app/build/outputs/bundle/release/app-release.aab'
+          VERSION='${{ steps.version.outputs.version_name }}'
           test -s "$AAB"
           unzip -t "$AAB" >/dev/null
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
             jarsigner -verify -strict "$AAB"
           fi
-          cp "$AAB" "$GITHUB_WORKSPACE/H38-Business-Office-v0.5.0.aab"
-          sha256sum "$GITHUB_WORKSPACE/H38-Business-Office-v0.5.0.aab" > "$GITHUB_WORKSPACE/H38-Business-Office-v0.5.0.aab.sha256"
+          cp "$AAB" "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab"
+          sha256sum "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab" > "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-google-play-v0.5.0
+          name: h38-google-play-v${{ steps.version.outputs.version_name }}
           path: |
-            H38-Business-Office-v0.5.0.aab
-            H38-Business-Office-v0.5.0.aab.sha256
+            H38-Business-Office-v${{ steps.version.outputs.version_name }}.aab
+            H38-Business-Office-v${{ steps.version.outputs.version_name }}.aab.sha256
           if-no-files-found: error
           retention-days: 30

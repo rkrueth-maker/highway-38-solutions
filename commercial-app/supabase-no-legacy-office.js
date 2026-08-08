@@ -102,6 +102,15 @@
     }
   }
 
+  function loadPlayCompliance() {
+    if (!window.H38_PLAY_COMPLIANCE && !document.querySelector('script[data-h38-play-compliance]')) {
+      const script = document.createElement('script');
+      script.src = './play-compliance.js?build=20260807-2355';
+      script.dataset.h38PlayCompliance = '1';
+      document.body.appendChild(script);
+    }
+  }
+
   window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
     enabled: true,
     publicRouteRemoved: true,
@@ -113,4 +122,5 @@
   loadLifecycleAssistant();
   loadPersonalAssistant();
   loadOfficePolish();
+  loadPlayCompliance();
 })();
