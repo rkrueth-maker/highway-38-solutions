@@ -70,6 +70,22 @@
     }
   }
 
+  function loadPersonalAssistant() {
+    if (!document.querySelector('link[data-h38-personal-assistant]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = './personal-assistant.css?build=20260807-2245';
+      link.dataset.h38PersonalAssistant = '1';
+      document.head.appendChild(link);
+    }
+    if (!window.H38_PERSONAL_ASSISTANT && !document.querySelector('script[data-h38-personal-assistant]')) {
+      const script = document.createElement('script');
+      script.src = './personal-assistant.js?build=20260807-2245';
+      script.dataset.h38PersonalAssistant = '1';
+      document.body.appendChild(script);
+    }
+  }
+
   window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
     enabled: true,
     publicRouteRemoved: true,
@@ -79,4 +95,5 @@
   });
 
   loadLifecycleAssistant();
+  loadPersonalAssistant();
 })();
