@@ -1,0 +1,33 @@
+name: Verify Personal Assistant
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/personal-assistant.js'
+      - 'commercial-app/personal-assistant.css'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
+      - 'scripts/verify-personal-assistant.js'
+      - '.github/workflows/verify-personal-assistant.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/personal-assistant.js'
+      - 'commercial-app/personal-assistant.css'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
+      - 'scripts/verify-personal-assistant.js'
+      - '.github/workflows/verify-personal-assistant.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify private Personal Assistant contract
+        run: node scripts/verify-personal-assistant.js
