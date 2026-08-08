@@ -98,8 +98,10 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.3.0','nativeScanner=1','fieldMode=1'
+  'H38SiteScannerAndroid/0.5.0','https://highway38solutions.com/commercial-app/',
+  'window.H38NativeScanner','h38:native-scanner-ready'
 ]) must(androidShell, token, 'Android app shell');
+for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
   'import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM',
   'DEVICE_CAPTURED','captureSessionId'
@@ -118,6 +120,9 @@ console.log(JSON.stringify({
   guidedFeetAndInchesMobile: true,
   androidCaptureSource: true,
   androidSystemInsetsCorrected: true,
+  androidBusinessOfficeStartup: true,
+  androidVersion: '0.5.0',
+  retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,
   automaticApproval: false,
