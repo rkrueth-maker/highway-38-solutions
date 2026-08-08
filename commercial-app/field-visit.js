@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260807-1345',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
+const BUILD='20260807-2158',C=window.H38_FIELD_VISIT_CORE;if(!C)return;const S=C.state,$=C.$;
 const native=/H38SiteScannerAndroid/.test(navigator.userAgent),apple=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
 if(native)document.documentElement.classList.add('h38-native-shell');
 if(apple)document.documentElement.classList.add('h38-apple-device');
@@ -40,7 +40,6 @@ function entries(){
     $('h38SiteScannerPanel')?.classList.add('field-hide-legacy-scanner');
   }
   if(isLegacy&&!S.open&&!advanced){open({quoteId:C.t(window.state?.quote?.quoteId),customerId:C.t(window.state?.quote?.customerId)});return}
-  if(new URLSearchParams(location.search).get('nativeScanner')==='1'&&!S.auto&&!S.open&&!advanced){S.auto=true;setTimeout(()=>open(),120)}
 }
 function loadGuidance(){
   if(!document.querySelector('link[data-h38-field-guidance]')){
@@ -62,6 +61,6 @@ function loadVideoWalkthrough(){
   const script=document.createElement('script');script.src='./field-visit-video.js?build=20260807-1345';script.dataset.h38FieldVideo='1';document.head.appendChild(script);
 }
 function start(){loadGuidance();loadRecovery();loadPhotoReview();loadVideoWalkthrough();const main=$('mainContent');if(main)new MutationObserver(()=>requestAnimationFrame(entries)).observe(main,{childList:true,subtree:true});addEventListener('online',()=>{C.status();C.syncSoon()});addEventListener('offline',C.status);addEventListener('h38:native-scanner-ready',()=>{if(S.open)window.H38_FIELD_VISIT_UI.render()});addEventListener('h38:auth-cleared',close);setInterval(()=>C.pending().catch(()=>{}),5000);entries()}
-window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true,photoReviewBeforeMeasurements:true,queueRecovery:true,videoWalkthrough:true,videoFramesForAiReview:true};
+window.H38_FIELD_VISIT={build:BUILD,open,close,ingestNativeResult:C.ingest,refreshPending:C.pending,offlineFirst:true,databaseAuthority:'existing Supabase Business Office',nativeStartupAutoOpen:false,siteVisitRequiresExplicitAction:true,automaticApproval:false,automaticCustomerSending:false,companyCamStyle:true,appleCapture:true,guidedCapture:true,photoReviewBeforeMeasurements:true,queueRecovery:true,videoWalkthrough:true,videoFramesForAiReview:true};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
