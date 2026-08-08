@@ -54,6 +54,22 @@
     }
   }
 
+  function loadLifecycleAssistant() {
+    if (!document.querySelector('link[data-h38-job-lifecycle]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = './job-lifecycle.css?build=20260807-2225';
+      link.dataset.h38JobLifecycle = '1';
+      document.head.appendChild(link);
+    }
+    if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
+      const script = document.createElement('script');
+      script.src = './job-lifecycle.js?build=20260807-2225';
+      script.dataset.h38JobLifecycle = '1';
+      document.body.appendChild(script);
+    }
+  }
+
   window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
     enabled: true,
     publicRouteRemoved: true,
@@ -61,4 +77,6 @@
     manualFallback: false,
     supportedRuntime: 'supabase'
   });
+
+  loadLifecycleAssistant();
 })();
