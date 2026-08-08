@@ -64,14 +64,14 @@ jobs:
             }
           ]
           JSON
-          cp "$APK" "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.4.0.apk"
-          sha256sum "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.4.0.apk" | tee "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.4.0.sha256"
+          cp "$APK" "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.apk"
+          sha256sum "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.apk" | tee "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-site-scanner-field-offline-v0.4.0
+          name: h38-site-scanner-field-offline-v0.5.0
           path: |
-            H38-Site-Scanner-Field-Offline-v0.4.0.apk
-            H38-Site-Scanner-Field-Offline-v0.4.0.sha256
+            H38-Site-Scanner-Field-Offline-v0.5.0.apk
+            H38-Site-Scanner-Field-Offline-v0.5.0.sha256
             H38-Site-Scanner-ARCore-Test.certs.txt
             .well-known/assetlinks.json
           if-no-files-found: error
@@ -89,10 +89,10 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .well-known/assetlinks.json
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish Android credential association for v0.4.0 [skip android]'
+            git commit -m 'Publish Android credential association for v0.5.0 [skip android]'
             git push origin HEAD:main
           fi
-          TAG='h38-site-scanner-android-v0.4.0'
+          TAG='h38-site-scanner-android-v0.5.0'
           gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" H38-Site-Scanner-Field-Offline-v0.4.0.apk H38-Site-Scanner-Field-Offline-v0.4.0.sha256 H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title 'H38 Field Office and Site Scanner v0.4.0' --notes 'Owner test build with the approved Highway 38 launcher logo compiled into the Android APK, focused five-step field visits, offline-first entry and sync, Android credential autofill support, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent.'
+          gh release create "$TAG" H38-Site-Scanner-Field-Offline-v0.5.0.apk H38-Site-Scanner-Field-Offline-v0.5.0.sha256 H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title 'H38 Field Office and Site Scanner v0.5.0' --notes 'Owner test build opening the clean Highway 38 Business Office by default, preserving explicit owner controls, focused field visits, offline-first entry and sync, Android credential autofill support, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent.'
           gh workflow run pages.yml --ref main
