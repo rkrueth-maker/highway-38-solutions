@@ -193,8 +193,8 @@ Do not bypass a failing verifier. Correct the source, or correct a stale verifie
 
 ## 10. Deployment authority
 
-- Public website: `.github/workflows/pages.yml`.
-- Authenticated application: `.github/workflows/deploy-owner-portal-hard-rule-production.yml`.
+- Public website and GitHub Pages-hosted Business Office: `.github/workflows/pages-branch-fallback.yml`.
+- Apps Script Owner Portal deployment, when that target is explicitly changed: `.github/workflows/deploy-owner-portal-hard-rule-production.yml`.
 - Reusable package checks do not create or modify a production deployment.
 - A commit is not live merely because it was merged.
 - Record the exact source commit, workflow run, conclusion, deployed SHA or version, and live cache-busted verification.
