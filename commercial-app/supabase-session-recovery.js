@@ -94,7 +94,7 @@
 
   function refreshServiceWorker() {
     if (!('serviceWorker' in navigator) || !navigator.onLine) return;
-    const build = '20260807-1810';
+    const build = '20260807-2132';
     const reloadKey = `h38:worker-reloaded:${build}`;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       try {
@@ -127,7 +127,7 @@
 
   window.H38_SUPABASE_SESSION_RECOVERY = Object.freeze({
     enabled: true,
-    build: '20260807-1810',
+    build: '20260807-2132',
     validate: function () { return validate('manual', true); },
     singleClientRequired: true,
     clearsRevokedMembershipState: true,
