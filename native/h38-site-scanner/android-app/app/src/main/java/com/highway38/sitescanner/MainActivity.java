@@ -31,7 +31,7 @@ import java.util.List;
 
 public final class MainActivity extends Activity {
     static final String BUSINESS_OFFICE_URL =
-            "https://highway38solutions.com/commercial-app/?nativeScanner=1&fieldMode=1";
+            "https://highway38solutions.com/commercial-app/";
     static final int REQUEST_NATIVE_SCAN = 3801;
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
@@ -71,7 +71,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.3.0"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.0"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -147,11 +147,25 @@ public final class MainActivity extends Activity {
             }
         });
 
-        if (savedInstanceState == null) {
-            webView.loadUrl(BUSINESS_OFFICE_URL);
-        } else {
-            webView.restoreState(savedInstanceState);
+        boolean restored = false;
+        if (savedInstanceState != null) {
+            try {
+                restored = webView.restoreState(savedInstanceState) != null;
+            } catch (Exception ignored) {
+                restored = false;
+            }
         }
+        String restoredUrl = webView.getUrl();
+        if (!restored || restoredUrl == null || shouldResetRestoredUrl(restoredUrl)) {
+            webView.loadUrl(BUSINESS_OFFICE_URL);
+        }
+    }
+
+    private boolean shouldResetRestoredUrl(String url) {
+        String value = url == null ? "" : url.toLowerCase();
+        return value.contains("fieldmode=1")
+                || value.contains("/site-visit")
+                || value.contains("sitevisit=1");
     }
 
     void requestWebAutofill() {
