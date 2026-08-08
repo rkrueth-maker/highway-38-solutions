@@ -13,8 +13,8 @@ for(const s of ['companyCamStyle:true','appleCapture:true','field-quote-launch',
 for(const s of ['field-visit-app','field-bottom-nav','field-sync-status','field-capture-actions','field-device-card','field-quote-overflow','safe-area-inset-bottom'])must(css,s,'field CSS');
 for(const s of ["input.accept='video/*'","input.setAttribute('capture','environment')",'FRAME_POSITIONS=[0.08,0.28,0.5,0.72,0.92]','MAX_DURATION_SECONDS=90','MAX_OFFLINE_BYTES=40*1024*1024','walkthroughVideo:true','blobData:file',"Evidence Type':'Video Walkthrough",'business-office-files','C.photos(frames)','SAVE_SITE_WALKTHROUGH_VIDEO','framesUseExistingPhotoReview:true','privateEvidence:true','automaticApproval:false','automaticCustomerSending:false'])must(video,s,'video walkthrough');
 for(const s of ["email.name = 'username'","email.autocomplete = 'username'","password.autocomplete = 'current-password'",'requestAutofill','Use saved username and password'])must(auth,s,'autofill helper');
-for(const s of ['field-visit-core.js','field-visit-ui.js','field-visit.js','field-visit-video.js','auth-autofill.js',"h38-business-office-20260807-1810"])must(worker,s,'service worker');
-for(const s of ["const build = '20260807-1810'",'updateViaCache: \'none\'','forcesCurrentServiceWorker: true'])must(sessionRecovery,s,'service worker recovery');
+for(const s of ['field-visit-core.js','field-visit-ui.js','field-visit.js','field-visit-video.js','auth-autofill.js',"h38-business-office-20260807-2132"])must(worker,s,'service worker');
+for(const s of ["const build = '20260807-2132'",'updateViaCache: \'none\'','forcesCurrentServiceWorker: true'])must(sessionRecovery,s,'service worker recovery');
 for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','WebViewFeature.WEB_AUTHENTICATION','WEB_AUTHENTICATION_SUPPORT_FOR_APP','H38SiteScannerAndroid/0.3.0'])must(main,s,'Android shell');
 must(bridge,'public void requestAutofill()','Android bridge');
 for(const s of ["versionCode 4","versionName '0.4.0'","androidx.credentials:credentials:1.6.0-beta02","androidx.webkit:webkit:1.14.0"])must(gradle,s,'Android Gradle');

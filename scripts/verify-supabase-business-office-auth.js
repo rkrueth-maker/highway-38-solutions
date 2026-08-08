@@ -19,6 +19,7 @@ const sessionGuard=read('commercial-app/auth-session-guard.js');
 const db=read('commercial-app/db.js');
 const cache=read('commercial-app/auth-cache-guard.js');
 const startup=read('commercial-app/supabase-startup.js');
+const serviceWorker=read('commercial-app/service-worker.js');
 const index=read('commercial-app/index.html');
 const launcher=read('open-business-office.html');
 const portal=read('portal.html');
@@ -31,7 +32,8 @@ const runtimeTest=read('scripts/verify-supabase-business-office-auth-runtime.js'
   'commercial-app/supabase-config.js','commercial-app/supabase-auth.js',
   'commercial-app/supabase-no-legacy-office.js','commercial-app/auth-session-guard.js',
   'commercial-app/db.js','commercial-app/auth-cache-guard.js',
-  'commercial-app/supabase-startup.js','scripts/verify-supabase-business-office-auth-runtime.js'
+  'commercial-app/supabase-startup.js','commercial-app/service-worker.js',
+  'scripts/verify-supabase-business-office-auth-runtime.js'
 ].forEach(syntax);
 
 check(has(config,[
@@ -58,7 +60,7 @@ check(portal.includes('url=open-business-office.html')&&portal.includes('locatio
 
 check(has(index,[
   'id="mainContent"','id="businessSelect"','supabase-config.js','supabase-auth.js',
-  'auth-session-guard.js','auth-cache-guard.js','supabase-startup.js','authSignOutButton'
+  'auth-session-guard.js','auth-cache-guard.js?build=20260807-2132','supabase-startup.js?build=20260807-2132','authSignOutButton'
 ]),'Business Office shell or Auth scripts are incomplete.');
 check((index.match(/id="mainContent"/g)||[]).length===1,'Only one Business Office shell is allowed.');
 check(index.indexOf('supabase-auth.js')<index.indexOf('auth-session-guard.js'),'Session guard must load after Auth.');
@@ -81,16 +83,24 @@ check(has(db,[
   'value.__h38Scope!==expected','legacyDataPresent','clearCurrentScope'
 ]),'User-scoped IndexedDB controls are incomplete.');
 check(has(cache,[
-  'if(navigator.onLine)return false',"authorization.status!=='active'",
+  'const allowOnline=options?.allowOnline===true',
+  'if(navigator.onLine&&!allowOnline)return false',"authorization.status!=='active'",
   'authorization.businessId!==state.businessId','snapshot.authUserId!==userId',
-  "snapshot.authorizationStatus!=='active'"
-]),'Offline authorization cache guard is incomplete.');
+  "snapshot.authorizationStatus!=='active'",'onlineWarmOpen:true','offlineOpen:true'
+]),'Verified online/offline authorization cache guard is incomplete.');
 check(has(startup,[
   'state.requestedBusinessId',"startup?.user?.id!==userId",
   "snapshot.authorizationStatus!=='active'",
   "['membership-suspended','membership-revoked','membership-invited','no-membership']",
-  "state.bridge.request('fullStartupRefresh'",'h38SetAuthorizedChrome(false)','h38SetAuthorizedChrome(true)'
+  "state.bridge.request('fullStartupRefresh'",'h38SetAuthorizedChrome(false)','h38SetAuthorizedChrome(true)',
+  'h38RegisterOfficeServiceWorker','hydrateLocalStartup({allowOnline:true})','onlineWarmOpen:true',
+  'deniedMembershipClosesCache:true'
 ]),'Supabase startup authorization integration is incomplete.');
+check(!startup.includes('retireLegacyOfflineShell();'),'Supabase startup must not unregister the Business Office service worker/cache.');
+check(has(serviceWorker,[
+  "CACHE_NAME='h38-business-office-20260807-2132'",
+  "'auth-cache-guard.js'",'request.mode===\'navigate\'||LIVE_FIRST.has(file)'
+]),'Business Office service worker must keep the Office available offline while refreshing startup assets live.');
 
 check(has(migration,[
   'private.claim_current_business_invites()',
@@ -122,6 +132,6 @@ if(failures.length){
 console.log(JSON.stringify({
   status:'PASS',acceptance:'SUPABASE_ONLY_BUSINESS_OFFICE_AUTH',
   standardOffice:'supabase-only',legacyOfficeRoute:false,legacyFallback:false,
-  canonicalMemberships:true,userScopedOfflineCache:true,serviceRoleInBrowser:false,
-  clientTenantsEnabled:true,externalActionsEnabled:false
+  canonicalMemberships:true,userScopedOfflineCache:true,onlineWarmOpen:true,serviceWorkerOffline:true,
+  serviceRoleInBrowser:false,clientTenantsEnabled:true,externalActionsEnabled:false
 },null,2));
