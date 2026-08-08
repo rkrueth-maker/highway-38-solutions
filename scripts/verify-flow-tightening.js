@@ -6,6 +6,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const index=read('commercial-app/index.html');
 const js=read('commercial-app/flow-tightening.js');
 const css=read('commercial-app/flow-tightening.css');
+const worker=read('commercial-app/service-worker.js');
 const pass=(condition,message)=>{if(!condition)throw new Error(message);};
 
 new Function(js);
@@ -22,4 +23,7 @@ pass(js.includes('searchChanged:false')&&js.includes('quoteAiChanged:false'),'ac
 pass(!js.includes('nativeScanner=1&fieldMode=1'),'retired native startup mode must not return');
 pass(css.includes('flex:1 1 20%'),'mobile navigation is not fixed to five equal surfaces');
 pass(css.includes('.h38-tight-secondary{display:none!important}'),'mobile secondary create forms are not compressed');
+pass(worker.includes("const CACHE_NAME='h38-business-office-20260808-0216'"),'service worker cache was not advanced for the new shell');
+pass(worker.includes("'flow-tightening.js'")&&worker.includes("'flow-tightening.css'"),'flow tightening assets are not live-first offline assets');
+pass(worker.includes("'./flow-tightening.js'")&&worker.includes("'./flow-tightening.css'"),'flow tightening assets are not precached in the Office shell');
 console.log('PASS: H38 flow tightening verification');
