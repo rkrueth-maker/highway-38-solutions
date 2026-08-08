@@ -15,9 +15,10 @@ for(const s of ["input.accept='video/*'","input.setAttribute('capture','environm
 for(const s of ["email.name = 'username'","email.autocomplete = 'username'","password.autocomplete = 'current-password'",'requestAutofill','Use saved username and password'])must(auth,s,'autofill helper');
 for(const s of ['field-visit-core.js','field-visit-ui.js','field-visit.js','field-visit-video.js','auth-autofill.js',"h38-business-office-20260807-2132"])must(worker,s,'service worker');
 for(const s of ["const build = '20260807-2132'",'updateViaCache: \'none\'','forcesCurrentServiceWorker: true'])must(sessionRecovery,s,'service worker recovery');
-for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','WebViewFeature.WEB_AUTHENTICATION','WEB_AUTHENTICATION_SUPPORT_FOR_APP','H38SiteScannerAndroid/0.3.0'])must(main,s,'Android shell');
+for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','WebViewFeature.WEB_AUTHENTICATION','WEB_AUTHENTICATION_SUPPORT_FOR_APP','H38SiteScannerAndroid/0.5.0','https://highway38solutions.com/commercial-app/','shouldResetRestoredUrl'])must(main,s,'Android shell');
+absent(main,'nativeScanner=1&fieldMode=1','Android clean startup');
 must(bridge,'public void requestAutofill()','Android bridge');
-for(const s of ["versionCode 4","versionName '0.4.0'","androidx.credentials:credentials:1.6.0-beta02","androidx.webkit:webkit:1.14.0"])must(gradle,s,'Android Gradle');
+for(const s of ["versionCode 5","versionName '0.5.0'","androidx.credentials:credentials:1.6.0-beta02","androidx.webkit:webkit:1.14.0"])must(gradle,s,'Android Gradle');
 for(const s of ['asset_statements','android:autoVerify="true"','highway38solutions.com','/commercial-app/'])must(manifest,s,'Android manifest');
 must(strings,'https://highway38solutions.com/.well-known/assetlinks.json','asset statements');
 for(const s of ['delegate_permission/common.get_login_creds','com.highway38.sitescanner.test','sha256_cert_fingerprints','Publish owner test release and credential association'])must(workflow,s,'APK workflow');
@@ -26,4 +27,4 @@ must(robots,'Allow: /.well-known/','robots');must(robots,'Sitemap: https://highw
 const assetPath=path.join(root,'.well-known/assetlinks.json');
 if(fs.existsSync(assetPath)){const assets=read('.well-known/assetlinks.json');for(const s of ['delegate_permission/common.get_login_creds','com.highway38.sitescanner.test','sha256_cert_fingerprints'])must(assets,s,'asset links');JSON.parse(assets)}
 for(const f of [core,boot,video])for(const s of ['automaticApproval:true','automaticCustomerSending:true','service_role','SUPABASE_SERVICE_ROLE_KEY'])absent(f,s,'field runtime');
-console.log(JSON.stringify({status:'PASS',fieldVisitTabs:4,companyCamStyle:true,quotePrimaryActions:1,legacyScannerRedirected:true,offlineFirst:true,existingIndexedDb:true,existingSupabaseQueue:true,androidArcore:true,appleLidarAndRoomPlan:true,videoWalkthrough:true,walkthroughFramesForAi:5,walkthroughOriginalPrivate:true,walkthroughOfflineRetention:true,androidAutofill:true,digitalAssetLinksGeneratedFromFinalApk:true,automaticApproval:false,automaticCustomerSending:false},null,2));
+console.log(JSON.stringify({status:'PASS',fieldVisitTabs:4,companyCamStyle:true,quotePrimaryActions:1,legacyScannerRedirected:true,offlineFirst:true,existingIndexedDb:true,existingSupabaseQueue:true,androidArcore:true,appleLidarAndRoomPlan:true,videoWalkthrough:true,walkthroughFramesForAi:5,walkthroughOriginalPrivate:true,walkthroughOfflineRetention:true,androidAutofill:true,androidCleanOfficeStartup:true,digitalAssetLinksGeneratedFromFinalApk:true,automaticApproval:false,automaticCustomerSending:false},null,2));
