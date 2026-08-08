@@ -28,7 +28,7 @@ const required={
   routeRegistry:'scripts/config/public-website-routes.json',
   approvedAssets:'scripts/config/approved-public-assets.json',
   imagePlacements:'scripts/config/approved-public-image-placements.json',
-  pagesWorkflow:'.github/workflows/pages.yml',
+  pagesWorkflow:'.github/workflows/pages-branch-fallback.yml',
   appWorkflow:'.github/workflows/deploy-owner-portal-hard-rule-production.yml',
   governanceWorkflow:'.github/workflows/change-governance.yml',
   websiteVerifier:'scripts/verify-public-website-architecture.js',
@@ -79,7 +79,7 @@ if(failures.length===0){
   check('governance preserves records and deployment IDs',governance.includes('deployment IDs')&&governance.includes('Proof Log')&&governance.includes('audit history'));
   check('governance blocks duplicate architecture',/another authenticated application shell/.test(governance)&&/another public-site shell/.test(governance)&&/duplicate schemas/.test(governance));
   check('governance requires one app startup RPC',/one browser-to-server startup RPC/.test(governance));
-  check('governance names both deployment authorities',governance.includes('.github/workflows/pages.yml')&&governance.includes('.github/workflows/deploy-owner-portal-hard-rule-production.yml'));
+  check('governance names both deployment authorities',governance.includes('.github/workflows/pages-branch-fallback.yml')&&governance.includes('.github/workflows/deploy-owner-portal-hard-rule-production.yml'));
   check('performance and reliability rule changes are explicitly governed',governance.includes('Performance and reliability rule changes')&&/measurably improves speed or reliability/.test(governance)&&/does not destroy how the system works together/.test(governance));
   check('protected invariants cannot be weakened',/preserve authentication, authorization, customer isolation, records, IDs, approval gates, Proof Log, Error Log, backups, audit history, deployment IDs, and external-action controls/.test(governance));
   check('stale checks must be corrected not bypassed',/remove stale, duplicate, unrelated, or contradictory checks rather than bypassing a real defect/.test(governance)&&/A stale verifier may be corrected/.test(governance));
@@ -152,7 +152,8 @@ if(failures.length===0){
   check('governance workflow checks out comparison history',governanceWorkflow.includes('fetch-depth: 0'));
   check('governance workflow runs planner before verifier',governanceWorkflow.indexOf('node scripts/plan-change-verification.js')<governanceWorkflow.indexOf('node scripts/verify-change-governance.js'));
   check('governance workflow uploads plan and governance evidence',governanceWorkflow.includes('artifacts/change-plan/')&&governanceWorkflow.includes('artifacts/change-governance/'));
-  check('Pages production workflow runs the website architecture verifier',pagesWorkflow.includes('node scripts/verify-public-website-architecture.js'));
+  check('Pages production workflow owns filtered gh-pages publication',pagesWorkflow.includes('name: Publish H38 Pages')&&pagesWorkflow.includes('gh-pages')&&pagesWorkflow.includes('deployed-main-sha.txt'));
+  check('Pages production workflow verifies current Business Office target',pagesWorkflow.includes('Deploy exact filtered commit')&&pagesWorkflow.includes('commercial-app/index.html')&&pagesWorkflow.includes('commercial-app/service-worker.js'));
   check('website architecture verifier runs governance first',websiteVerifier.includes('verify-change-governance.js'));
   check('Business Office production workflow runs the app architecture verifier',appWorkflow.includes('node scripts/verify-unified-app-architecture.js'));
   check('app architecture verifier runs governance first',appVerifier.includes('verify-change-governance.js'));
