@@ -1,0 +1,51 @@
+
+.h38-life-today,.h38-life-work,.h38-life-money,.h38-life-assistant{margin:0 0 18px}
+.h38-life-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.h38-life-head h2{margin:.2rem 0}
+.h38-life-head p{margin:.2rem 0;color:var(--muted,#52616b)}
+.h38-life-kicker{font-size:.72rem;letter-spacing:.12em;font-weight:800;opacity:.72}
+.h38-life-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:16px}
+.h38-life-progress{display:grid;grid-template-columns:repeat(13,minmax(12px,1fr));gap:5px;margin:16px 0}
+.h38-life-progress span{display:grid;place-items:center;min-height:24px;border-radius:999px;background:rgba(90,105,118,.15);font-size:.68rem;font-weight:700}
+.h38-life-progress span.done{background:rgba(44,126,85,.18)}
+.h38-life-progress span.current{outline:2px solid currentColor;background:rgba(45,105,160,.16)}
+.h38-life-stage{font-size:.78rem;font-weight:700;white-space:nowrap}
+.h38-life-job-row{width:100%;text-align:left;border:0;cursor:pointer}
+.h38-life-next{padding:12px;border-radius:12px;background:rgba(75,96,115,.08)}
+.h38-life-next ul{margin:.55rem 0 0 1.1rem;padding:0}
+.h38-life-cost-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.h38-life-cost-grid>div{padding:10px;border-radius:10px;background:rgba(75,96,115,.08)}
+.h38-life-cost-grid strong,.h38-life-cost-grid span{display:block}
+.h38-life-cost-grid span{font-size:.72rem;opacity:.72;margin-top:3px}
+.h38-life-checklist{border:1px solid rgba(100,115,130,.2);border-radius:10px;margin:8px 0;overflow:hidden}
+.h38-life-checklist summary{display:flex;justify-content:space-between;gap:12px;padding:10px;cursor:pointer}
+.h38-life-checklist>div{padding:0 10px 10px}
+.h38-life-check{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(100,115,130,.12)}
+.h38-life-template-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.h38-life-template-actions button{font-size:.78rem}
+.good-text{color:#2f7653}
+.h38-office-search{width:min(760px,94vw);max-height:86vh;border:0;border-radius:16px;padding:0}
+.h38-office-search::backdrop{background:rgba(10,20,30,.58)}
+.h38-search-shell{padding:0;margin:0}
+.h38-search-shell header{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px;border-bottom:1px solid rgba(100,115,130,.18)}
+.h38-search-shell header strong,.h38-search-shell header small{display:block}
+.h38-search-shell header small{opacity:.72;margin-top:3px}
+#h38OfficeSearchInput{width:calc(100% - 32px);margin:16px;padding:13px}
+.h38-search-results{padding:0 16px 16px;max-height:60vh;overflow:auto}
+.h38-search-results button{display:block;width:100%;text-align:left;padding:11px;border:0;border-bottom:1px solid rgba(100,115,130,.13);background:transparent}
+.h38-search-results button:hover,.h38-search-results button:focus{background:rgba(75,96,115,.08)}
+.h38-search-results strong,.h38-search-results small{display:block}
+.h38-search-results small{opacity:.7;margin-top:3px}
+.h38-life-portal .stats{margin-bottom:8px}
+.h38-life-money input[type=file]{max-width:100%}
+@media(max-width:820px){
+ .h38-life-columns{grid-template-columns:1fr}
+ .h38-life-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .h38-life-progress{gap:3px}
+ .h38-life-progress span{min-height:20px;font-size:.6rem}
+}
+@media(max-width:520px){
+ .h38-life-cost-grid{grid-template-columns:1fr 1fr}
+ .h38-life-head>div:last-child{width:100%}
+ .h38-life-head select{width:100%}
+}
