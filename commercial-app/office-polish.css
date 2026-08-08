@@ -1,0 +1,19 @@
+.h38-office-search .h38-search-shell{display:flex;flex-direction:column;max-height:86vh;overflow:hidden;background:#fff;border-radius:inherit}
+.h38-search-shell header{position:sticky;top:0;z-index:3;background:#fff}
+.h38-search-close{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-width:86px;min-height:44px;padding:8px 12px!important;border:1px solid #d6e0e8!important;border-radius:10px!important;background:#edf2f6!important;color:#0b2438!important;font-size:1rem!important;font-weight:900;line-height:1}
+.h38-search-close span:first-child{font-size:1.45rem;line-height:.8}
+#h38OfficeSearchInput{font-size:16px;flex:0 0 auto}
+.h38-search-results{min-height:0;overscroll-behavior:contain}
+.h38-search-results button{min-height:48px;touch-action:manipulation}
+#h38OfficeSearchButton.h38-polish-touch,#personalAssistantButton.h38-polish-touch{min-width:44px;min-height:44px;touch-action:manipulation}
+@media(max-width:760px){
+ .h38-office-search{width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - 16px);margin:auto;border-radius:16px}
+ .h38-office-search .h38-search-shell{max-height:calc(100dvh - 16px)}
+ .h38-search-shell header{padding:12px;gap:10px}
+ .h38-search-shell header small{font-size:.74rem;line-height:1.25}
+ .h38-search-close{min-width:82px;min-height:48px}
+ #h38OfficeSearchInput{width:calc(100% - 24px);margin:12px;min-height:48px}
+ .h38-search-results{flex:1;max-height:none;padding:0 12px 12px}
+ .h38-search-results button{min-height:52px;padding:12px 10px}
+ .pa-toolbar button,.pa-filters button,.pa-item-actions button,.pa-business-actions button{min-height:44px;touch-action:manipulation}
+}
