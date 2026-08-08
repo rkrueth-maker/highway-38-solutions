@@ -97,8 +97,7 @@ check(has(startup,[
   'deniedMembershipClosesCache:true'
 ]),'Supabase startup authorization integration is incomplete.');
 check(!startup.includes('retireLegacyOfflineShell();'),'Supabase startup must not unregister the Business Office service worker/cache.');
-check(has(serviceWorker,[
-  "CACHE_NAME='h38-business-office-20260807-2132'",
+check(/CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(serviceWorker)&&has(serviceWorker,[
   "'auth-cache-guard.js'",'request.mode===\'navigate\'||LIVE_FIRST.has(file)'
 ]),'Business Office service worker must keep the Office available offline while refreshing startup assets live.');
 
