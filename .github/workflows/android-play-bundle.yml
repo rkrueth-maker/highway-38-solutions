@@ -84,7 +84,11 @@ jobs:
           test -s "$AAB"
           unzip -t "$AAB" >/dev/null
           if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
-            jarsigner -verify -strict "$AAB"
+            # Android upload/app-signing certificates are normally self-signed.
+            # `-strict` treats that expected certificate chain as an error even when
+            # the AAB signature is valid, so verify the JAR signature itself here.
+            jarsigner -verify -verbose -certs "$AAB" | tee "$RUNNER_TEMP/aab-signature-verification.txt"
+            grep -q 'jar verified.' "$RUNNER_TEMP/aab-signature-verification.txt"
           fi
           cp "$AAB" "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab"
           sha256sum "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab" > "$GITHUB_WORKSPACE/H38-Business-Office-v${VERSION}.aab.sha256"
