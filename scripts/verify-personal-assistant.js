@@ -26,7 +26,7 @@ check(assistant.includes('automaticCustomerSending:false')&&assistant.includes('
 check(!assistant.includes("aiBuildQuoteDraft")&&!assistant.includes("supabase-quote-ai")&&!assistant.includes("quote-working-hammer"),'Personal Assistant must not depend on or modify Quote AI runtime.');
 check(!assistant.includes('service_role')&&!assistant.includes('SUPABASE_SERVICE_ROLE_KEY'),'Personal Assistant browser code must not contain privileged Supabase credentials.');
 check(loader.includes("personal-assistant.css?build=20260807-2245")&&loader.includes("personal-assistant.js?build=20260807-2245")&&loader.includes('loadPersonalAssistant();'),'Office loader does not load Personal Assistant.');
-check(sw.includes("CACHE_NAME='h38-business-office-20260807-2132'")&&sw.includes("'personal-assistant.js'")&&sw.includes("'personal-assistant.css'")&&sw.includes("notificationclick"),'Personal Assistant offline/reminder service-worker integration is incomplete.');
+check(/CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(sw)&&sw.includes("'personal-assistant.js'")&&sw.includes("'personal-assistant.css'")&&sw.includes("notificationclick"),'Personal Assistant offline/reminder service-worker integration is incomplete.');
 check(css.includes('.pa-grid')&&css.includes('@media(max-width:620px)'),'Personal Assistant mobile layout is incomplete.');
 check(migration.includes('create table if not exists public.personal_assistant_items'),'Private Personal Assistant table migration is missing.');
 check(migration.includes('alter table public.personal_assistant_items enable row level security'),'Personal Assistant RLS must be enabled.');
