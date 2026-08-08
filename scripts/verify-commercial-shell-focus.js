@@ -8,6 +8,7 @@ const app06=read('commercial-app/app-06.js');
 const app07=read('commercial-app/app-07.js');
 const app16=read('commercial-app/app-16.js');
 const index=read('commercial-app/index.html');
+const worker=read('commercial-app/service-worker.js');
 const drawerCss=read('commercial-app/ai-drawer.css');
 const failures=[];
 const check=(condition,message)=>{if(!condition)failures.push(message);};
@@ -24,7 +25,8 @@ check(app16.includes('function openGlobalAi()')&&app16.includes('function aiCont
 check(drawerCss.includes('dialog.ai-drawer')&&drawerCss.includes('@media(max-width:760px)'),'H38 AI drawer must be responsive.');
 const handoffBuild=(index.match(/window\.H38_BUILD='([^']+)'/)||[])[1]||'';
 const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
-check(handoffBuild==='20260803-1700'&&/^\d{8}-\d{4}$/.test(assetBuild)&&['db.js','bridge.js','startup-fix.js'].every(file=>index.includes(`${file}?build=${assetBuild}`)),'Secure handoff and browser asset builds must be declared and validated independently.');
-const report={status:failures.length?'FAIL':'PASS',checks:11,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true,handoffBuild,assetBuild};
+const cacheBuild=(worker.match(/CACHE_NAME='h38-business-office-([^']+)'/)||[])[1]||'';
+check(handoffBuild==='20260803-1700'&&/^\d{8}-\d{4}$/.test(assetBuild)&&cacheBuild===assetBuild&&index.includes(`flow-tightening.css?build=${assetBuild}`)&&index.includes(`flow-tightening.js?build=${assetBuild}`),'Secure handoff and current browser asset builds must be declared and validated independently.');
+const report={status:failures.length?'FAIL':'PASS',checks:11,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true,handoffBuild,assetBuild,cacheBuild};
 console.log(JSON.stringify(report,null,2));
 if(failures.length)process.exit(1);
