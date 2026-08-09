@@ -1,19 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260808-0216';
-const PRIMARY=[
-  {key:'today',icon:'🏠',label:'Today'},
-  {key:'work',icon:'🧰',label:'Work'},
-  {action:'add',icon:'＋',label:'Add'},
-  {key:'customers',icon:'👥',label:'Customers'},
-  {action:'more',icon:'☰',label:'More'}
-];
-const MORE_GROUPS=[
-  {label:'Field & customer',keys:['quotes','schedule','messages','field','documents']},
-  {label:'Money',keys:['money','accounting','reports']},
-  {label:'Team & operations',keys:['people','inventory','fleet','payroll','tax','social']},
-  {label:'Office',keys:['controls','ai','settings']}
-];
+const BUILD='20260809-0235';
+const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
 const text=value=>String(value==null?'':value);
@@ -47,28 +35,12 @@ function jobForVisit(visit){
     return !!customerId&&cid===customerId&&sameTitle(value(row,'Project Title','projectTitle'),title);
   })||null;
 }
-function ensureDialogs(){
-  if(!document.getElementById('h38QuickAddDialog')){
-    const dialog=document.createElement('dialog');dialog.id='h38QuickAddDialog';dialog.className='h38-flow-dialog';dialog.innerHTML='<div class="h38-flow-dialog-head"><div><span>QUICK CREATE</span><h2>Add</h2></div><button type="button" data-h38-close aria-label="Close">×</button></div><div id="h38QuickAddBody"></div>';
-    document.body.appendChild(dialog);bindDialog(dialog);
-  }
-  if(!document.getElementById('h38MoreDialog')){
-    const dialog=document.createElement('dialog');dialog.id='h38MoreDialog';dialog.className='h38-flow-dialog';dialog.innerHTML='<div class="h38-flow-dialog-head"><div><span>BUSINESS OFFICE</span><h2>More</h2></div><button type="button" data-h38-close aria-label="Close">×</button></div><div id="h38MoreBody"></div>';
-    document.body.appendChild(dialog);bindDialog(dialog);
-  }
-}
-function bindDialog(dialog){
-  dialog.querySelector('[data-h38-close]').onclick=()=>dialog.close();
-  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
-}
 function openPageSafe(page,focusId){
   const pages=allowed();if(!pages.includes(page)){toastSafe(`${pageLabel(page)} is not available for this role.`,true);return;}
-  document.getElementById('h38QuickAddDialog')?.close();document.getElementById('h38MoreDialog')?.close();
   if(typeof window.openPage==='function')window.openPage(page);
   if(focusId)setTimeout(()=>{const node=document.getElementById(focusId);if(node){node.scrollIntoView({behavior:'smooth',block:'start'});node.querySelector?.('input,select,textarea,button')?.focus?.({preventScroll:true});}},30);
 }
 function startSiteVisit(customerId='',quoteId=''){
-  document.getElementById('h38QuickAddDialog')?.close();
   const job=selectedJob();
   const jid=job?recordId(job,'Job ID','jobId'):'';if(jid)preferredJobId=jid;
   const context=job&&window.H38_JOB_LIFECYCLE?.analyzeJob?window.H38_JOB_LIFECYCLE.analyzeJob(job):null;
@@ -77,40 +49,14 @@ function startSiteVisit(customerId='',quoteId=''){
   if(window.H38_FIELD_VISIT?.open){window.H38_FIELD_VISIT.open({customerId:c,quoteId:q});return;}
   openPageSafe('field');
 }
-function quickAddActions(){
-  const pages=new Set(allowed()),actions=[];
-  if(pages.has('field'))actions.push({icon:'📍',label:'Site Visit',detail:'Photos, video, measurements & notes',run:()=>startSiteVisit()});
-  if(pages.has('quotes'))actions.push({icon:'🧾',label:'Quote',detail:'Start or continue an estimate',run:()=>openPageSafe('quotes')});
-  if(pages.has('customers'))actions.push({icon:'👤',label:'Customer',detail:'Add a customer or property',run:()=>openPageSafe('customers','customerForm')});
-  if(pages.has('work'))actions.push({icon:'＋',label:'Request',detail:'Capture new work',run:()=>openPageSafe('work','requestForm')});
-  if(pages.has('work'))actions.push({icon:'✓',label:'Task',detail:'Assign or record work',run:()=>openPageSafe('work','taskForm')});
-  if(pages.has('money'))actions.push({icon:'🧾',label:'Receipt / Expense',detail:'Attach cost to a job',run:()=>openPageSafe('money','h38ReceiptForm')});
-  if(pages.has('money'))actions.push({icon:'🚗',label:'Mileage',detail:'Record a job trip',run:()=>openPageSafe('money','h38MileageForm')});
-  return actions;
-}
-function openQuickAdd(){
-  ensureDialogs();const body=document.getElementById('h38QuickAddBody'),actions=quickAddActions();
-  body.innerHTML='<p class="h38-flow-dialog-copy">Start with what you are doing. H38 will keep the related records together.</p><div class="h38-flow-menu-grid">'+actions.map((item,index)=>`<button type="button" data-h38-add="${index}"><span>${item.icon}</span><strong>${html(item.label)}</strong><small>${html(item.detail)}</small></button>`).join('')+'</div>';
-  body.querySelectorAll('[data-h38-add]').forEach(button=>button.onclick=()=>actions[Number(button.dataset.h38Add)]?.run());
-  document.getElementById('h38QuickAddDialog').showModal();
-}
-function openMore(){
-  ensureDialogs();const pages=new Set(allowed()),body=document.getElementById('h38MoreBody');
-  body.innerHTML=MORE_GROUPS.map(group=>{const keys=group.keys.filter(key=>pages.has(key));if(!keys.length)return'';return`<section class="h38-flow-menu-group"><h3>${html(group.label)}</h3><div class="h38-flow-menu-grid">${keys.map(key=>`<button type="button" data-h38-more="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></section>`;}).join('');
-  body.querySelectorAll('[data-h38-more]').forEach(button=>button.onclick=()=>openPageSafe(button.dataset.h38More));
-  document.getElementById('h38MoreDialog').showModal();
-}
 function compactRenderNav(baseRenderNav){
   const s=officeState();if(!s||s.shell!=='office'){baseRenderNav();return;}
   const pages=new Set(allowed()),nav=document.getElementById('mainNav');if(!nav)return;
-  nav.innerHTML=PRIMARY.map(item=>{
-    if(item.key&&!pages.has(item.key))return'';
-    const active=item.key?s.page===item.key:item.action==='more'&&!['today','work','customers'].includes(s.page);
-    return`<button type="button" ${item.key?`data-page="${item.key}"`:`data-h38-nav-action="${item.action}"`} class="${active?'active ':''}${item.action==='add'?'h38-nav-add':''}"><span class="nav-icon">${item.icon}</span><span>${item.label}</span></button>`;
-  }).join('');
+  const keys=NAV_ORDER.filter(key=>pages.has(key));
+  nav.classList.add('h38-operator-scroll-nav');
+  nav.innerHTML=keys.map(key=>`<button type="button" data-page="${html(key)}" class="${s.page===key?'active':''}"><span class="nav-icon">${pageIcon(key)}</span><span>${html(pageLabel(key))}</span></button>`).join('');
   nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage(button.dataset.page));
-  nav.querySelector('[data-h38-nav-action="add"]')?.addEventListener('click',openQuickAdd);
-  nav.querySelector('[data-h38-nav-action="more"]')?.addEventListener('click',openMore);
+  requestAnimationFrame(()=>nav.querySelector('[data-page].active')?.scrollIntoView({block:'nearest',inline:'nearest'}));
 }
 function moneyForJob(jobId){preferredJobId=text(jobId);openPageSafe('money');setTimeout(()=>{document.querySelectorAll('#h38ReceiptForm [name="jobId"],#h38MileageForm [name="jobId"]').forEach(select=>{if(Array.from(select.options).some(option=>option.value===preferredJobId))select.value=preferredJobId;});},40);}
 function quoteForJob(job,context){
@@ -202,7 +148,8 @@ function decorateFieldVisit(){
   summary.insertAdjacentElement('afterend',card);card.querySelector('button').onclick=createDailyLogDraft;
 }
 function install(){
-  if(installed)return;installed=true;document.body.classList.add('h38-flow-tightening');ensureDialogs();
+  if(installed)return;installed=true;document.body.classList.add('h38-flow-tightening');
+  if(!document.getElementById('h38ScrollableNavStyle')){const style=document.createElement('style');style.id='h38ScrollableNavStyle';style.textContent='@media(max-width:760px){body.h38-flow-tightening .main-nav.h38-operator-scroll-nav{display:flex!important;justify-content:flex-start!important;gap:4px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav::-webkit-scrollbar{display:none}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav button{flex:0 0 76px!important;min-width:76px!important;max-width:76px!important;padding:5px 3px!important;scroll-snap-align:start}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav .h38-nav-add,[data-h38-nav-action="add"],[data-h38-nav-action="more"]{display:none!important}}';document.head.appendChild(style);}
   if(typeof window.renderNav==='function'){
     const base=window.renderNav;window.renderNav=function(){return compactRenderNav(base);};window.renderNav();
   }
@@ -217,7 +164,7 @@ function install(){
   }
   const observer=new MutationObserver(()=>{decorateFieldVisit();if(officeState()?.page==='work')setTimeout(enhanceWork,0);});observer.observe(document.documentElement,{childList:true,subtree:true});
   if(officeState()?.page==='work')setTimeout(enhanceWork,0);if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:['Today','Work','Add','Customers','More'],jobHome:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'scrollable-allowed-pages',plusLauncher:false,moreLauncher:false,jobHome:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
