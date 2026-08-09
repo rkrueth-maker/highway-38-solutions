@@ -2,14 +2,12 @@ package com.highway38.sitescanner;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -103,7 +101,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.6"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.7"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -189,11 +187,19 @@ public final class MainActivity extends Activity {
                     if (fileChooserParams.isCaptureEnabled()
                             && acceptsVideo(fileChooserParams.getAcceptTypes())) {
                         pendingFileCapture = true;
+                        List<String> needed = new ArrayList<>();
                         if (checkSelfPermission(Manifest.permission.CAMERA)
                                 != PackageManager.PERMISSION_GRANTED) {
+                            needed.add(Manifest.permission.CAMERA);
+                        }
+                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            needed.add(Manifest.permission.RECORD_AUDIO);
+                        }
+                        if (!needed.isEmpty()) {
                             pendingWalkthroughPermissionResume = true;
                             requestPermissions(
-                                    new String[]{Manifest.permission.CAMERA},
+                                    needed.toArray(new String[0]),
                                     REQUEST_WALKTHROUGH_CAMERA_PERMISSION
                             );
                             return true;
@@ -230,18 +236,8 @@ public final class MainActivity extends Activity {
 
     private boolean launchWalkthroughVideoCapture() {
         try {
-            Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-            captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
-            captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
-            pendingCaptureUri = createWalkthroughVideoUri();
-            if (pendingCaptureUri != null) {
-                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, pendingCaptureUri);
-                captureIntent.addFlags(
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                                | Intent.FLAG_GRANT_READ_URI_PERMISSION
-                );
-                persistCaptureTracking(pendingCaptureUri, false);
-            }
+            Intent captureIntent = new Intent(this, WalkthroughCaptureActivity.class);
+            pendingCaptureUri = null;
             pendingFileCapture = true;
             pendingWalkthroughPermissionResume = false;
             startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
@@ -262,23 +258,6 @@ public final class MainActivity extends Activity {
         pendingWalkthroughPermissionResume = false;
         recoveredCaptureUri = null;
         Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-    }
-
-    private Uri createWalkthroughVideoUri() {
-        try {
-            ContentValues values = new ContentValues();
-            values.put(
-                    MediaStore.Video.Media.DISPLAY_NAME,
-                    "h38-site-walkthrough-" + System.currentTimeMillis() + ".mp4"
-            );
-            values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
-            return getContentResolver().insert(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    values
-            );
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 
     private void persistCaptureTracking(Uri uri, boolean ready) {
@@ -511,12 +490,16 @@ public final class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == REQUEST_WALKTHROUGH_CAMERA_PERMISSION) {
-            boolean granted = grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            boolean granted = grantResults.length > 0;
+            for (int result : grantResults) {
+                granted &= result == PackageManager.PERMISSION_GRANTED;
+            }
             if (granted && pendingWalkthroughPermissionResume && pendingFileCallback != null) {
                 launchWalkthroughVideoCapture();
             } else {
-                failPendingFileCapture("Camera permission is required to record the walkthrough.");
+                failPendingFileCapture(
+                        "Camera and microphone permissions are required to record the walkthrough."
+                );
             }
             return;
         }
