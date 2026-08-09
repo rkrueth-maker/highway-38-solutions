@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const voice=read('commercial-app/field-visit-transcription.js');
+const capture=read('commercial-app/field-visit-voice-capture.js');
+const edge=read('supabase/functions/h38-walkthrough-transcription/index.ts');
+const android=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
+const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
+const failures=[];
+const check=(name,ok)=>{if(!ok)failures.push(name);};
+check('voice client exposes status for any captured walkthrough',voice.includes("app.querySelector('[data-field-walkthrough-stage]')")&&voice.includes('fieldVoiceStatus'));
+check('voice client has explicit no-audio state',voice.includes("status='NO_AUDIO'")&&voice.includes('No usable microphone audio'));
+check('failed legacy walkthrough gets one automatic recovery attempt',voice.includes('recoveryAttempted')&&voice.includes("s.status==='FAILED'"));
+check('voice client sends dedicated audio attachment',voice.includes('audioAttachmentId')&&voice.includes('h38-walkthrough-voice-notes-v2'));
+check('voice capture creates separate microphone stream',capture.includes('new MediaStream(stream.getAudioTracks().map(track=>track.clone()))'));
+check('voice capture prefers opus webm',capture.includes("audio/webm;codecs=opus"));
+check('voice capture persists private audio evidence',capture.includes("'Evidence Type':'Walkthrough Voice Audio'")&&capture.includes('SAVE_SITE_WALKTHROUGH_VOICE_AUDIO'));
+check('voice capture never enables external actions',capture.includes('automaticApproval:false')&&capture.includes('automaticCustomerSending:false'));
+check('edge validates dedicated voice evidence',edge.includes('Walkthrough Voice Audio')&&edge.includes('requireEvidence'));
+check('edge preserves original video authority',edge.includes('Video Walkthrough')&&edge.includes('attachmentId:videoId'));
+check('edge retries legacy media with whisper',edge.includes('"whisper-1"')&&edge.includes('legacyVideoRecovery'));
+check('edge returns explicit no usable audio code',edge.includes('NO_USABLE_AUDIO'));
+check('edge keeps spoken measurements unverified',edge.includes('UNVERIFIED_SPOKEN')&&edge.includes('spokenMeasurementsFieldVerified:false'));
+check('android holds launch cover until page is visible',android.includes('onPageCommitVisible')&&android.includes('hideLaunchCover()')&&android.includes('buildLaunchCover()'));
+check('android launch cover matches office background',android.includes('OFFICE_BACKGROUND')&&android.includes('setBackgroundColor(OFFICE_BACKGROUND)'));
+check('android version bumped',gradle.includes('versionCode 6')&&gradle.includes("versionName '0.5.1'")&&android.includes('H38SiteScannerAndroid/0.5.1'));
+if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}console.log(JSON.stringify({status:'PASS',checks:16},null,2));
