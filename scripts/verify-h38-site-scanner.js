@@ -98,8 +98,9 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.5.0','https://highway38solutions.com/commercial-app/',
-  'window.H38NativeScanner','h38:native-scanner-ready'
+  'H38SiteScannerAndroid/0.5.1','https://highway38solutions.com/commercial-app/',
+  'window.H38NativeScanner','h38:native-scanner-ready','onPageCommitVisible',
+  'buildLaunchCover','hideLaunchCover'
 ]) must(androidShell, token, 'Android app shell');
 for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
@@ -121,7 +122,8 @@ console.log(JSON.stringify({
   androidCaptureSource: true,
   androidSystemInsetsCorrected: true,
   androidBusinessOfficeStartup: true,
-  androidVersion: '0.5.0',
+  androidStableLaunchCover: true,
+  androidVersion: '0.5.1',
   retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,
