@@ -16,6 +16,10 @@ permissions:
   contents: write
   actions: write
 
+concurrency:
+  group: h38-android-owner-test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -36,6 +40,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Resolve Android release version
+        run: |
+          set -euo pipefail
+          version_name="$(sed -n "s/^[[:space:]]*versionName[[:space:]]*'\([^']*\)'.*/\1/p" app/build.gradle | head -1)"
+          version_code="$(sed -n "s/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/p" app/build.gradle | head -1)"
+          test -n "$version_name"
+          test -n "$version_code"
+          echo "H38_ANDROID_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "H38_ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "H38_ANDROID_APK_NAME=H38-Site-Scanner-Field-Offline-v${version_name}.apk" >> "$GITHUB_ENV"
+          echo "H38_ANDROID_SHA_NAME=H38-Site-Scanner-Field-Offline-v${version_name}.sha256" >> "$GITHUB_ENV"
+          echo "H38_ANDROID_ARTIFACT_NAME=h38-site-scanner-field-offline-v${version_name}" >> "$GITHUB_ENV"
+          echo "H38_ANDROID_RELEASE_TAG=h38-site-scanner-android-v${version_name}" >> "$GITHUB_ENV"
+          printf 'Android owner-test release: %s (%s)\n' "$version_name" "$version_code"
       - name: Compile debug APK
         run: gradle --no-daemon --stacktrace :app:assembleDebug
       - name: Verify APK and create credential association
@@ -64,14 +82,14 @@ jobs:
             }
           ]
           JSON
-          cp "$APK" "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.apk"
-          sha256sum "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.apk" | tee "$GITHUB_WORKSPACE/H38-Site-Scanner-Field-Offline-v0.5.0.sha256"
+          cp "$APK" "$GITHUB_WORKSPACE/$H38_ANDROID_APK_NAME"
+          sha256sum "$GITHUB_WORKSPACE/$H38_ANDROID_APK_NAME" | tee "$GITHUB_WORKSPACE/$H38_ANDROID_SHA_NAME"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-site-scanner-field-offline-v0.5.0
+          name: ${{ env.H38_ANDROID_ARTIFACT_NAME }}
           path: |
-            H38-Site-Scanner-Field-Offline-v0.5.0.apk
-            H38-Site-Scanner-Field-Offline-v0.5.0.sha256
+            ${{ env.H38_ANDROID_APK_NAME }}
+            ${{ env.H38_ANDROID_SHA_NAME }}
             H38-Site-Scanner-ARCore-Test.certs.txt
             .well-known/assetlinks.json
           if-no-files-found: error
@@ -84,15 +102,17 @@ jobs:
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
-          test "$remote_sha" = "$GITHUB_SHA"
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            printf 'Refusing stale Android release: main moved from %s to %s.\n' "$GITHUB_SHA" "$remote_sha" >&2
+            exit 1
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .well-known/assetlinks.json
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish Android credential association for v0.5.0 [skip android]'
+            git commit -m "Publish Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
             git push origin HEAD:main
           fi
-          TAG='h38-site-scanner-android-v0.5.0'
-          gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" H38-Site-Scanner-Field-Offline-v0.5.0.apk H38-Site-Scanner-Field-Offline-v0.5.0.sha256 H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title 'H38 Field Office and Site Scanner v0.5.0' --notes 'Owner test build opening the clean Highway 38 Business Office by default, preserving explicit owner controls, focused field visits, offline-first entry and sync, Android credential autofill support, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent.'
-          gh workflow run pages.yml --ref main
+          gh release view "$H38_ANDROID_RELEASE_TAG" >/dev/null 2>&1 && gh release delete "$H38_ANDROID_RELEASE_TAG" --yes --cleanup-tag || true
+          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner test build opening the clean Highway 38 Business Office by default, preserving explicit owner controls, focused field visits, offline-first entry and sync, Android credential autofill support, stable startup handoff, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent."
+          gh workflow run pages-branch-fallback.yml --ref main
