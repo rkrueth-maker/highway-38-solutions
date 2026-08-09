@@ -18,6 +18,7 @@ import android.widget.TextView;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -49,10 +50,13 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private PreviewView previewView;
     private TextView statusView;
+    private Button lightButton;
     private Button finishButton;
+    private Camera camera;
     private VideoCapture<Recorder> videoCapture;
     private Recording activeRecording;
     private File outputFile;
+    private boolean torchOn;
     private boolean cancelled;
     private boolean finalized;
 
@@ -105,12 +109,20 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         cancelButton.setOnClickListener(v -> cancelCapture());
         controls.addView(cancelButton, new LinearLayout.LayoutParams(0, dp(56), 1f));
 
+        lightButton = new Button(this);
+        lightButton.setText("Light On");
+        lightButton.setEnabled(false);
+        lightButton.setOnClickListener(v -> toggleTorch());
+        LinearLayout.LayoutParams lightParams = new LinearLayout.LayoutParams(0, dp(56), 1f);
+        lightParams.leftMargin = dp(8);
+        controls.addView(lightButton, lightParams);
+
         finishButton = new Button(this);
         finishButton.setText("Stop & Use Video");
         finishButton.setEnabled(false);
         finishButton.setOnClickListener(v -> stopAndUseVideo());
         LinearLayout.LayoutParams finishParams = new LinearLayout.LayoutParams(0, dp(56), 2f);
-        finishParams.leftMargin = dp(10);
+        finishParams.leftMargin = dp(8);
         controls.addView(finishButton, finishParams);
 
         FrameLayout.LayoutParams controlsParams = new FrameLayout.LayoutParams(
@@ -123,11 +135,11 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     }
 
     private void ensurePermissionsAndStart() {
-        boolean camera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        boolean cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED;
-        boolean audio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        boolean audioPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED;
-        if (camera && audio) {
+        if (cameraPermission && audioPermission) {
             bindCamera();
             return;
         }
@@ -146,12 +158,13 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode != REQUEST_PERMISSIONS) return;
-        boolean camera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        boolean cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED;
-        boolean audio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        boolean audioPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED;
-        if (!camera || !audio) {
+        if (!cameraPermission || !audioPermission) {
             statusView.setText("Camera and microphone permission are both required.");
+            lightButton.setEnabled(false);
             finishButton.setEnabled(false);
             return;
         }
@@ -174,17 +187,44 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
                 videoCapture = VideoCapture.withOutput(recorder);
 
                 provider.unbindAll();
-                provider.bindToLifecycle(
+                camera = provider.bindToLifecycle(
                         this,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         preview,
                         videoCapture
                 );
+                boolean hasFlash = camera.getCameraInfo().hasFlashUnit();
+                lightButton.setEnabled(hasFlash);
+                lightButton.setText(hasFlash ? "Light On" : "No Light");
                 startRecording();
             } catch (Throwable error) {
                 fail("Could not start the H38 camera: " + safeMessage(error));
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void toggleTorch() {
+        Camera activeCamera = camera;
+        if (activeCamera == null || !activeCamera.getCameraInfo().hasFlashUnit()) return;
+        boolean requested = !torchOn;
+        lightButton.setEnabled(false);
+        activeCamera.getCameraControl().enableTorch(requested).addListener(() -> {
+            torchOn = Boolean.TRUE.equals(activeCamera.getCameraInfo().getTorchState().getValue())
+                    || requested;
+            runOnUiThread(() -> {
+                lightButton.setText(torchOn ? "Light Off" : "Light On");
+                lightButton.setEnabled(true);
+            });
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void turnTorchOff() {
+        Camera activeCamera = camera;
+        torchOn = false;
+        if (lightButton != null) lightButton.setText("Light On");
+        if (activeCamera != null && activeCamera.getCameraInfo().hasFlashUnit()) {
+            try { activeCamera.getCameraControl().enableTorch(false); } catch (Exception ignored) {}
+        }
     }
 
     private void startRecording() {
@@ -237,6 +277,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         if (finalized) return;
         finishButton.setEnabled(false);
         statusView.setText("Saving walkthrough into H38…");
+        turnTorchOff();
         if (activeRecording != null) {
             activeRecording.stop();
         } else if (outputFile != null && outputFile.exists()) {
@@ -249,6 +290,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         cancelled = true;
         finishButton.setEnabled(false);
         statusView.setText("Cancelling…");
+        turnTorchOff();
         if (activeRecording != null) {
             activeRecording.stop();
         } else {
@@ -276,6 +318,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
             return;
         }
         finalized = true;
+        turnTorchOff();
         handler.removeCallbacksAndMessages(null);
         Uri uri = FileProvider.getUriForFile(
                 this,
@@ -296,6 +339,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
 
     private void finishCancelled() {
         finalized = true;
+        turnTorchOff();
         handler.removeCallbacksAndMessages(null);
         deleteOutput();
         clearCaptureTracking();
@@ -305,6 +349,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
 
     private void fail(String message) {
         finalized = true;
+        turnTorchOff();
         handler.removeCallbacksAndMessages(null);
         if (activeRecording != null) {
             try { activeRecording.close(); } catch (Exception ignored) {}
@@ -313,6 +358,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         deleteOutput();
         clearCaptureTracking();
         statusView.setText(message);
+        lightButton.setEnabled(false);
         finishButton.setEnabled(false);
         setResult(RESULT_CANCELED);
         handler.postDelayed(this::finish, 1400);
@@ -350,6 +396,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
 
     @Override
     protected void onDestroy() {
+        turnTorchOff();
         handler.removeCallbacksAndMessages(null);
         if (!finalized && activeRecording != null) {
             try { activeRecording.close(); } catch (Exception ignored) {}
