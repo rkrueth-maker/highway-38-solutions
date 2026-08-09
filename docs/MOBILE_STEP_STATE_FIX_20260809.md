@@ -16,4 +16,5 @@ Acceptance target:
 5. On Android focus/pageshow/visibility return, the Site Visit is reopened on the recorded step before attachment processing completes.
 6. A successfully accepted walkthrough remains on Capture and moves the viewport to the next targeted action.
 7. Every explicit tab/Next transition aligns the selected step to the top rather than preserving a stale scroll position.
-8. Physical Android behavior remains final acceptance.
+8. Tapping the camera app's OK/check control must not leave the user at Today or require manually reopening Site Visit.
+9. Physical Android behavior remains final acceptance; CI, merge, build and deployment do not establish phone acceptance.
