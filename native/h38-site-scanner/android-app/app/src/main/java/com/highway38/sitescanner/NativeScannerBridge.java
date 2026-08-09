@@ -3,6 +3,7 @@ package com.highway38.sitescanner;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
@@ -78,6 +79,18 @@ public final class NativeScannerBridge {
     }
 
     @JavascriptInterface
+    public void disableWebAutofill() {
+        activity.runOnUiThread(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+                }
+            } catch (Throwable ignored) {
+            }
+        });
+    }
+
+    @JavascriptInterface
     public void rememberLogin(String username, String password) {
         activity.runOnUiThread(() -> {
             try {
@@ -102,7 +115,7 @@ public final class NativeScannerBridge {
         credentialRequestBusy = true;
         try {
             CredentialManager manager = CredentialManager.create(activity);
-            GetPasswordOption passwordOption = new GetPasswordOption(Collections.emptySet(), true, Collections.emptySet());
+            GetPasswordOption passwordOption = new GetPasswordOption(Collections.emptySet(), false, Collections.emptySet());
             GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(passwordOption).build();
             manager.getCredentialAsync(activity, request, null, activity.getMainExecutor(),
                     new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
@@ -116,18 +129,23 @@ public final class NativeScannerBridge {
                                 fillWebLogin(saved.getId(), saved.getPassword());
                                 return;
                             }
-                            activity.requestWebAutofill();
+                            notifySavedLoginUnavailable();
                         }
                         @Override
                         public void onError(GetCredentialException error) {
                             credentialRequestBusy = false;
-                            activity.requestWebAutofill();
+                            notifySavedLoginUnavailable();
                         }
                     });
         } catch (Throwable error) {
             credentialRequestBusy = false;
-            activity.requestWebAutofill();
+            notifySavedLoginUnavailable();
         }
+    }
+
+    private void notifySavedLoginUnavailable() {
+        String script = "window.dispatchEvent(new CustomEvent('h38:saved-login-unavailable'));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     private void fillWebLogin(String username, String password) {
