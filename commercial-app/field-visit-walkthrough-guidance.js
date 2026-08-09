@@ -7,7 +7,7 @@ const reviewer=window.H38_FIELD_VISIT_PHOTO_REVIEW;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 if(!C||!window.H38DB)return;
-let reviewBusy=false,syncBusy=false,syncTimer=0,lastAttemptKey='',dictationRecorder=null,dictationSyncBusy=false;
+let reviewBusy=false,syncBusy=false,syncTimer=0,lastAttemptKey='',dictationRecorder=null,dictationSyncBusy=false,lastSyncAt=0;
 const text=v=>String(v==null?'':v);
 const esc=v=>typeof C.esc==='function'?C.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const now=()=>new Date().toISOString();
@@ -31,7 +31,8 @@ async function syncAll(){
     await window.H38_FIELD_VISIT_VIDEO?.syncPending?.();
     await window.H38_FIELD_VISIT_VOICE_CAPTURE?.syncPending?.();
     await syncPendingDictation();
-    if(recovery?.syncNow)await recovery.syncNow();
+    const waiting=await recovery?.waitingOperations?.()||[];
+    if(waiting.length&&recovery?.syncNow&&Date.now()-lastSyncAt>1200){lastSyncAt=Date.now();await recovery.syncNow();}
     const left=await recovery?.waitingOperations?.()||[];
     await C.pending?.();
     return !left.length;
@@ -83,7 +84,6 @@ function install(){if(C.state.__walkthroughAiWrapped)return;const base=C.state.r
 window.H38_FIELD_VISIT_GUIDANCE={build:BUILD,setPhotoReviewState,failPhotoReview,applyPhotoReview,reanalyze:()=>maybeReview(true),dictateNote:startDictation,walkthroughFirst:true,voiceBeforeReview:true,automaticFieldSync:true,visiblePostWalkthroughActions:true};
 window.addEventListener('online',()=>{scheduleSync(50);void syncPendingDictation();});
 setInterval(()=>{if(C.state.open&&navigator.onLine){scheduleSync(0);void syncPendingDictation();}if(C.state.open)decorate();},1800);
-const observer=new MutationObserver(()=>{if(C.state.open)decorate();});observer.observe(document.documentElement,{childList:true,subtree:true});
 const style=document.createElement('style');style.textContent='.field-post-walkthrough{display:grid;gap:.8rem;border:2px solid #174a70;background:#f7fbfe;margin:.8rem 0}.field-post-actions{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}.field-post-status{display:grid;gap:.2rem;padding-top:.55rem;border-top:1px solid #d7e7f0}.field-post-status span{color:#425466;line-height:1.4}.field-dictate-dialog{width:min(92vw,460px);border:0;border-radius:16px;padding:0}.field-dictate-dialog::backdrop{background:rgba(4,17,27,.78)}.field-dictate-dialog>div{display:grid;gap:.9rem;padding:1.1rem}.field-dictate-dialog h2,.field-dictate-dialog p{margin:0}.field-dictate-dialog #fieldDictateTimer{font-weight:900;font-size:1.1rem}.field-voice-notes ul{margin:.3rem 0 0 1.2rem;padding:0;display:grid;gap:.35rem}@media(max-width:520px){.field-post-actions{grid-template-columns:1fr}}';document.head.appendChild(style);
 install();setTimeout(()=>{install();decorate();scheduleSync(0);void maybeReview();},300);
 })();
