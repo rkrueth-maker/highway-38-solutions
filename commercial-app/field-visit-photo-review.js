@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260806-2145';
+const BUILD='20260808-2145';
 const C=window.H38_FIELD_VISIT_CORE;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
@@ -40,7 +40,7 @@ async function drainQueue(){
   if(typeof window.H38_FIELD_VISIT_RECOVERY?.syncNow==='function')await window.H38_FIELD_VISIT_RECOVERY.syncNow();
   const waiting=typeof window.H38_FIELD_VISIT_RECOVERY?.waitingOperations==='function'
     ?await window.H38_FIELD_VISIT_RECOVERY.waitingOperations():[];
-  if(waiting.length)throw Error(`${waiting.length} saved item${waiting.length===1?' is':'s are'} still waiting to upload. Press Sync, keep the app open, then retry photo review.`);
+  if(waiting.length)throw Error(`${waiting.length} saved item${waiting.length===1?' is':'s are'} still waiting to upload. Keep the app open; H38 will retry automatically.`);
 }
 function aliasKey(original,quoteId){return`QUOTE-LINK-${text(original).replace(/[^A-Za-z0-9-]/g,'-')}-${text(quoteId).replace(/^QUOTE-/,'').slice(0,8)}`;}
 async function linkVisitPhotos(api,user,visit){
@@ -55,7 +55,7 @@ async function linkVisitPhotos(api,user,visit){
       text(value(payload,'Source ID','sourceId'))===visitId&&
       text(value(payload,'Mime Type','mimeType')).toLowerCase().startsWith('image/');
   });
-  if(!source.length)throw Error('The site photos have not reached private storage yet. Press Sync and retry the review.');
+  if(!source.length)throw Error('The walkthrough review frames have not reached private storage yet. H38 will retry after sync.');
   const records=source.map(row=>{
     const payload=row.payload||{},original=text(value(payload,'Document ID','documentId')||row.record_key),recordKey=aliasKey(original,quoteId);
     return{
@@ -83,6 +83,13 @@ function measurements(){
     confidence:Number(value(row,'Confidence','confidence')||0)
   }));
 }
+function transcript(visit){
+  return[
+    visit.walkthroughTranscript?`Walkthrough transcript:\n${text(visit.walkthroughTranscript)}`:'',
+    visit.notes?`Typed field notes:\n${text(visit.notes)}`:'',
+    visit.scope?`Entered scope:\n${text(visit.scope)}`:''
+  ].filter(Boolean).join('\n\n').slice(0,12000);
+}
 async function postReview(session,visit,forceRefresh){
   const active=forceRefresh?(await validSession(true)).session:session;
   const response=await fetch(`${cfg.url}/functions/v1/h38-site-scanner`,{
@@ -95,7 +102,7 @@ async function postReview(session,visit,forceRefresh){
       captureSessionId:visit.sessionId,
       projectType:visit.projectType,
       projectTitle:visit.projectTitle,
-      transcript:visit.notes||visit.scope||'',
+      transcript:transcript(visit),
       measurements:measurements()
     })
   });
@@ -122,8 +129,8 @@ async function run(){
   if(running)return;
   const guidance=window.H38_FIELD_VISIT_GUIDANCE,visit=C.state.visit;
   if(!guidance||!visit)return;
-  if(!navigator.onLine){guidance.failPhotoReview?.('Photo review needs an online connection. Your photos remain saved on this phone.');return;}
-  if(!visit.quoteId||!visit.sessionId){guidance.failPhotoReview?.('Save the Site Visit and quote before running photo review.');return;}
+  if(!navigator.onLine){guidance.failPhotoReview?.('Site review needs an online connection. Your evidence remains saved on this phone.');return;}
+  if(!visit.quoteId||!visit.sessionId){guidance.failPhotoReview?.('Save the Site Visit and quote before running site review.');return;}
   running=true;
   guidance.setPhotoReviewState?.('RUNNING');
   try{
@@ -132,14 +139,14 @@ async function run(){
     await linkVisitPhotos(api,user,visit);
     let attempt=await postReview(session,visit,false);
     if(attempt.response.status===401)attempt=await postReview(session,visit,true);
-    if(!attempt.response.ok||attempt.payload.status!=='PASS')throw Error(attempt.payload.message||`AI photo review failed (${attempt.response.status}).`);
+    if(!attempt.response.ok||attempt.payload.status!=='PASS')throw Error(attempt.payload.message||`AI site review failed (${attempt.response.status}).`);
     await saveReview(api,user,visit,attempt.payload.review||{},attempt.payload.provider,attempt.payload.model);
     guidance.applyPhotoReview?.(attempt.payload.review||{});
-    C.toast('Photo review complete. The next prompts are the measurements AI could not safely determine.');
+    C.toast('Walkthrough review complete. H38 is showing only the photos and measurements it still needs.');
   }catch(error){
     guidance.failPhotoReview?.(error?.message||String(error));
     C.toast(error?.message||String(error),true);
   }finally{running=false;}
 }
-window.H38_FIELD_VISIT_PHOTO_REVIEW={build:BUILD,run,linkVisitPhotos,automaticApproval:false,automaticCustomerSending:false,exactDimensionsInvented:false};
+window.H38_FIELD_VISIT_PHOTO_REVIEW={build:BUILD,run,linkVisitPhotos,walkthroughTranscriptIncluded:true,automaticApproval:false,automaticCustomerSending:false,exactDimensionsInvented:false};
 })();
