@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.autofill.AutofillManager;
@@ -19,6 +20,10 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.view.WindowCompat;
@@ -35,30 +40,42 @@ public final class MainActivity extends Activity {
     static final int REQUEST_NATIVE_SCAN = 3801;
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
+    private static final int OFFICE_BACKGROUND = Color.rgb(238, 243, 247);
 
     private WebView webView;
     private NativeScannerBridge nativeScannerBridge;
     private PermissionRequest pendingWebPermissionRequest;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private View launchCover;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         configureSystemBars();
 
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(OFFICE_BACKGROUND);
+        root.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
         webView = new WebView(this);
         webView.setId(View.generateViewId());
-        webView.setBackgroundColor(Color.rgb(238, 243, 247));
+        webView.setBackgroundColor(OFFICE_BACKGROUND);
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
         }
-        webView.setLayoutParams(new ViewGroup.LayoutParams(
+        webView.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
-        setContentView(webView);
+        root.addView(webView);
+        launchCover = buildLaunchCover();
+        root.addView(launchCover);
+        setContentView(root);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -71,7 +88,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.0"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.1"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -108,8 +125,15 @@ public final class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                injectNativeScanner();
+                hideLaunchCover();
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 injectNativeScanner();
+                hideLaunchCover();
             }
         });
 
@@ -158,7 +182,73 @@ public final class MainActivity extends Activity {
         String restoredUrl = webView.getUrl();
         if (!restored || restoredUrl == null || shouldResetRestoredUrl(restoredUrl)) {
             webView.loadUrl(BUSINESS_OFFICE_URL);
+        } else if (webView.getProgress() >= 100) {
+            webView.postDelayed(this::hideLaunchCover, 180);
         }
+    }
+
+    private View buildLaunchCover() {
+        FrameLayout cover = new FrameLayout(this);
+        cover.setBackgroundColor(OFFICE_BACKGROUND);
+        cover.setClickable(true);
+        cover.setFocusable(true);
+        cover.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER);
+        content.setPadding(dp(28), dp(28), dp(28), dp(28));
+        FrameLayout.LayoutParams contentParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+        );
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.highway38_logo);
+        logo.setContentDescription("Highway 38 Solutions");
+        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(dp(92), dp(92));
+        logoParams.bottomMargin = dp(18);
+        content.addView(logo, logoParams);
+
+        TextView title = new TextView(this);
+        title.setText("Highway 38 Solutions");
+        title.setTextColor(Color.rgb(11, 36, 56));
+        title.setTextSize(20);
+        title.setGravity(Gravity.CENTER);
+        content.addView(title);
+
+        TextView status = new TextView(this);
+        status.setText("Opening Business Office…");
+        status.setTextColor(Color.rgb(82, 97, 109));
+        status.setTextSize(14);
+        status.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        statusParams.topMargin = dp(8);
+        content.addView(status, statusParams);
+
+        cover.addView(content, contentParams);
+        return cover;
+    }
+
+    private void hideLaunchCover() {
+        View cover = launchCover;
+        if (cover == null || cover.getParent() == null) return;
+        launchCover = null;
+        cover.animate().alpha(0f).setDuration(140).withEndAction(() -> {
+            ViewGroup parent = (ViewGroup) cover.getParent();
+            if (parent != null) parent.removeView(cover);
+        }).start();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private boolean shouldResetRestoredUrl(String url) {

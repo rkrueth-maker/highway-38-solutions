@@ -9,9 +9,11 @@ on:
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
       - 'native/h38-site-scanner/android-app/**'
+      - 'supabase/functions/h38-walkthrough-transcription/**'
       - '.well-known/assetlinks.json'
       - 'robots.txt'
       - 'scripts/verify-field-visit-offline-autofill.js'
+      - 'scripts/verify-walkthrough-voice-recovery.js'
       - '.github/workflows/verify-field-visit-offline-autofill.yml'
   push:
     branches: [main]
@@ -22,9 +24,11 @@ on:
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
       - 'native/h38-site-scanner/android-app/**'
+      - 'supabase/functions/h38-walkthrough-transcription/**'
       - '.well-known/assetlinks.json'
       - 'robots.txt'
       - 'scripts/verify-field-visit-offline-autofill.js'
+      - 'scripts/verify-walkthrough-voice-recovery.js'
       - '.github/workflows/verify-field-visit-offline-autofill.yml'
 
 permissions:
@@ -40,6 +44,8 @@ jobs:
           node-version: '22'
       - name: Verify field workflow, offline queue, video walkthrough, and autofill contract
         run: node scripts/verify-field-visit-offline-autofill.js
+      - name: Verify walkthrough voice recovery and stable Android startup
+        run: node scripts/verify-walkthrough-voice-recovery.js
       - name: Verify JavaScript syntax
         run: |
           node --check commercial-app/field-visit-core.js
@@ -48,6 +54,8 @@ jobs:
           node --check commercial-app/field-visit.js
           node --check commercial-app/field-visit-recovery.js
           node --check commercial-app/field-visit-photo-review.js
+          node --check commercial-app/field-visit-transcription.js
+          node --check commercial-app/field-visit-voice-capture.js
           node --check commercial-app/field-visit-walkthrough-guidance.js
           node --check commercial-app/auth-autofill.js
           node --check commercial-app/service-worker.js

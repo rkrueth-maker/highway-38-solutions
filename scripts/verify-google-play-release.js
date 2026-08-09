@@ -23,11 +23,11 @@ must(loader,'play-compliance.js?build=20260807-2355','supported Office loader');
 must(sw,"'play-compliance.js'",'offline shell');
 must(sw,"'./play-compliance.js'",'offline shell');
 must(strings,'H38 Business Office','Android app label');
-for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 5',"versionName '0.5.0'"])must(gradle,marker,'Android release config');
+for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 6',"versionName '0.5.1'"])must(gradle,marker,'Android release config');
 for(const marker of ['android.permission.CAMERA','android.permission.INTERNET','android.permission.RECORD_AUDIO','android:usesCleartextTraffic="false"'])must(manifest,marker,'Android manifest');
-for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.0','shouldResetRestoredUrl'])must(main,marker,'Android Business Office shell');
+for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.1','shouldResetRestoredUrl','onPageCommitVisible','buildLaunchCover'])must(main,marker,'Android Business Office shell');
 absent(main,'nativeScanner=1&fieldMode=1','Android clean startup');
 for(const marker of ['Build H38 Google Play AAB','push:','branches: [main]','H38_ANDROID_UPLOAD_KEYSTORE_B64','bundleRelease','jarsigner -verify -verbose -certs','jar verified.','h38-google-play-v${{ steps.version.outputs.version_name }}'])must(workflow,marker,'Play AAB workflow');
 absent(workflow,'jarsigner -verify -strict','Play AAB signature verification');
 
-console.log('PASS — H38 Google Play internal release contract');
+console.log('PASS — H38 Google Play internal release contract 0.5.1');
