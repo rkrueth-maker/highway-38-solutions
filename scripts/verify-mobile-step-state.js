@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs');
+const auth=fs.readFileSync('commercial-app/auth-autofill.js','utf8');
+const guard=fs.readFileSync('commercial-app/android-native-walkthrough-guard.js','utf8');
+const shell=fs.readFileSync('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java','utf8');
+const bridge=fs.readFileSync('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java','utf8');
+const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
+const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} must not contain ${s}`)};
+for(const s of ['startupAutofill','startupAttempts < 4','chooseTarget(email,password)','Saved login is requested automatically','startup:true','retryFields:true'])must(auth,s,'auth autofill');
+for(const s of ['h38:field-visit-resume-step','remember(\'capture\')','restoreRemembered','core.state.open=true','renderTab(\'capture\',true)','visibilitychange','pageshow','stepLandingAligned:true','resumeStepPreserved:true','recoverAcceptedWalkthrough','activityRestartRecovery:true','workflow.captureFiles([file])'])must(guard,s,'Site Visit step state');
+for(const s of ['CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(shell,s,'Android lifecycle recovery');
+for(const s of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed'])must(bridge,s,'Android recovery bridge');
+absent(shell,'shouldResetRestoredUrl','retired restart-to-office path');
+console.log('PASS — startup autofill and Site Visit step state survive Android camera activity restart');

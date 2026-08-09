@@ -74,6 +74,16 @@ public final class NativeScannerBridge {
     }
 
     @JavascriptInterface
+    public String getRecoveredWalkthroughUrl() {
+        return activity.getRecoveredWalkthroughUrl();
+    }
+
+    @JavascriptInterface
+    public void confirmRecoveredWalkthroughConsumed() {
+        activity.runOnUiThread(activity::confirmRecoveredWalkthroughConsumed);
+    }
+
+    @JavascriptInterface
     public void start(String optionsJson, String requestId) {
         activity.runOnUiThread(() -> {
             try {
