@@ -24,14 +24,31 @@
       reusedCount += 1;
       return sharedClient;
     }
-    sharedClient = originalCreateClient(url, key, options);
+    const requested = options || {};
+    const requestedAuth = requested.auth || {};
+    sharedClient = originalCreateClient(url, key, {
+      ...requested,
+      auth: {
+        ...requestedAuth,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // Supabase admin invitation links do not support PKCE because the
+        // browser requesting an invite is commonly different from the browser
+        // accepting it. The Business Office uses one shared implicit-flow
+        // client so invite, recovery, and existing password sessions resolve
+        // through the same persisted session and exact-email membership claim.
+        flowType: 'implicit'
+      }
+    });
     createdCount += 1;
     return sharedClient;
   };
 
   window.H38_SUPABASE_SHARED_CLIENT = Object.freeze({
     enabled: true,
-    build: '20260805-1745',
+    build: '20260808-2308-invite-auth',
+    authFlow: 'implicit-invite-compatible',
     get: function () { return sharedClient; },
     ensure: function () {
       return sharedClient || sdk.createClient(config.url, config.publishableKey, {
@@ -39,7 +56,7 @@
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
-          flowType: 'pkce'
+          flowType: 'implicit'
         },
         global: { headers: { 'x-client-info': 'h38-business-office-shared-client' } }
       });
