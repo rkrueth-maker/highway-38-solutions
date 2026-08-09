@@ -1,15 +1,27 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-typing-first-login';
+  const BUILD = '20260809-local-login-button-truthful';
   let scheduled = false;
 
   function nativeBridge() {
-    return window.AndroidH38Native && typeof window.AndroidH38Native.requestAutofill === 'function'
-      ? window.AndroidH38Native : null;
+    return window.AndroidH38Native || null;
+  }
+
+  function hasLocalSavedLogin() {
+    const bridge = nativeBridge();
+    if (!bridge || typeof bridge.getCapabilities !== 'function') return false;
+    try {
+      const caps = JSON.parse(bridge.getCapabilities() || '{}');
+      return caps.localSavedLogin === true;
+    } catch (_) {
+      return false;
+    }
   }
 
   function requestAutofill() {
-    try { nativeBridge()?.requestAutofill(); } catch (_) {}
+    const bridge = nativeBridge();
+    if (!bridge || typeof bridge.requestAutofill !== 'function') return;
+    try { bridge.requestAutofill(); } catch (_) {}
   }
 
   function rememberLogin(email,password) {
@@ -24,8 +36,8 @@
   function enhance() {
     scheduled = false;
     const form = document.getElementById('h38AuthForm');
-    if (!form || form.dataset.autofillReady === 'true') return;
-    form.dataset.autofillReady = 'true';
+    if (!form || form.dataset.autofillReady === BUILD) return;
+    form.dataset.autofillReady = BUILD;
     form.setAttribute('autocomplete','on');
 
     const email = document.getElementById('h38AuthEmail');
@@ -44,10 +56,12 @@
       password.setAttribute('enterkeyhint','go');
     }
 
-    form.addEventListener('submit', () => rememberLogin(email,password));
+    form.addEventListener('submit', () => rememberLogin(email,password), {once:true});
 
-    if (!document.getElementById('h38UseSavedLogin')) {
-      const button = document.createElement('button');
+    let button = document.getElementById('h38UseSavedLogin');
+    const localSaved = hasLocalSavedLogin();
+    if (localSaved && !button) {
+      button = document.createElement('button');
       button.id = 'h38UseSavedLogin';
       button.type = 'button';
       button.className = 'secondary h38-saved-login';
@@ -56,6 +70,9 @@
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button);
       else form.appendChild(button);
+    } else if (!localSaved && button) {
+      button.remove();
+      button = null;
     }
 
     let help = document.getElementById('h38AutofillHelp');
@@ -63,9 +80,11 @@
       help = document.createElement('p');
       help.id = 'h38AutofillHelp';
       help.className = 'muted h38-autofill-help';
-      help.textContent = 'Type normally, or tap Use saved username and password when you want Android to fill it.';
       form.appendChild(help);
     }
+    help.textContent = localSaved
+      ? 'Saved login is available on this phone. Tap the saved-login button to fill both fields, then tap Sign in.'
+      : 'Enter your email and password, then tap Sign in. After a successful sign-in this phone can remember the login for next time.';
 
     window.addEventListener('h38:saved-login-filled', () => {
       if (help) help.textContent = 'Saved username and password filled. Tap Sign in.';
