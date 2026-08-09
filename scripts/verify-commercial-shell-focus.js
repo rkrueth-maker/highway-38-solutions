@@ -26,7 +26,9 @@ check(drawerCss.includes('dialog.ai-drawer')&&drawerCss.includes('@media(max-wid
 const handoffBuild=(index.match(/window\.H38_BUILD='([^']+)'/)||[])[1]||'';
 const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
 const cacheBuild=(worker.match(/CACHE_NAME='h38-business-office-([^']+)'/)||[])[1]||'';
-check(handoffBuild==='20260803-1700'&&/^\d{8}-\d{4}$/.test(assetBuild)&&/^\d{8}-\d{4}$/.test(cacheBuild)&&index.includes(`flow-tightening.css?build=${assetBuild}`)&&index.includes(`flow-tightening.js?build=${assetBuild}`),'Secure handoff, browser asset build, and service-worker cache build must each be explicitly declared and validated.');
-const report={status:failures.length?'FAIL':'PASS',checks:11,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true,handoffBuild,assetBuild,cacheBuild,assetAndCacheBuildsIndependent:true};
+const flowCssBuild=(index.match(/flow-tightening\.css\?build=([0-9-]+)/)||[])[1]||'';
+const flowJsBuild=(index.match(/flow-tightening\.js\?build=([0-9-]+)/)||[])[1]||'';
+check(handoffBuild==='20260803-1700'&&/^\d{8}-\d{4}$/.test(assetBuild)&&/^\d{8}-\d{4}$/.test(cacheBuild)&&/^\d{8}-\d{4}$/.test(flowCssBuild)&&flowCssBuild===flowJsBuild,'Secure handoff, browser asset build, service-worker cache build, and flow-tightening build must each be explicitly declared and internally valid.');
+const report={status:failures.length?'FAIL':'PASS',checks:11,failures,officeMeasureTopLevel:false,quoteShellPages:['quotes'],globalAiEverywhere:true,quoteMeasurementIntegrated:true,handoffBuild,assetBuild,cacheBuild,flowCssBuild,flowJsBuild,assetAndCacheBuildsIndependent:true};
 console.log(JSON.stringify(report,null,2));
 if(failures.length)process.exit(1);
