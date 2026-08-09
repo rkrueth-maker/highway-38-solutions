@@ -15,6 +15,7 @@ const absent = (content, token, label) => {
 const index = read('commercial-app/index.html');
 const scanner = read('commercial-app/site-scanner.js');
 const guidance = read('commercial-app/site-scanner-mobile-guidance.js');
+const nativeGuard = read('commercial-app/android-native-walkthrough-guard.js');
 const styles = read('commercial-app/site-scanner.css');
 const worker = read('commercial-app/service-worker.js');
 const migration = read('supabase/migrations/20260806090000_h38_site_scanner_foundation.sql');
@@ -28,7 +29,7 @@ const nativeReadme = read('native/h38-site-scanner/README.md');
 must(index, './site-scanner.css?build=20260806-0605', 'commercial app');
 must(index, './site-scanner.js?build=20260806-0605', 'commercial app');
 must(index, './site-scanner-mobile-guidance.js?build=20260806-0605', 'commercial app');
-must(index, './android-native-walkthrough-guard.js?build=20260809-1220', 'commercial app');
+must(index, './android-native-walkthrough-guard.js?build=20260809-1518', 'commercial app');
 must(index, './site-visit-top-action.js?build=20260809-1220', 'commercial app');
 if (index.indexOf('site-scanner.js') < index.indexOf('app-20.js')) {
   throw new Error('Site Scanner must load after the existing Quote Builder and Measure renderers.');
@@ -102,13 +103,15 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.5.4','https://highway38solutions.com/commercial-app/',
+  'H38SiteScannerAndroid/0.5.5','https://highway38solutions.com/commercial-app/',
   'window.H38NativeScanner','h38:native-scanner-ready','onPageCommitVisible',
   'buildLaunchCover','hideLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE',
   'MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','fileChooserParams.isCaptureEnabled()',
-  'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri'
+  'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri',
+  'REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture'
 ]) must(androidShell, token, 'Android app shell');
-absent(androidShell, 'Camera permission is required for the walkthrough.', 'native system camera capture');
+absent(androidShell, 'Camera permission is required for the walkthrough.', 'retired dead-end camera permission gate');
+for (const token of ['nextCaptureStep','returnToCapture:true','nextStepFocused:true','fieldPhotos']) must(nativeGuard, token, 'Android walkthrough return guard');
 for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
   'import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM',
@@ -132,8 +135,9 @@ console.log(JSON.stringify({
   androidStableLaunchCover: true,
   androidNativeWalkthroughVideoCapture: true,
   androidGuaranteedWalkthroughReturnUri: true,
-  androidSystemCameraPermissionGateRemoved: true,
-  androidVersion: '0.5.4',
+  androidCameraPermissionResume: true,
+  androidReturnToNextCaptureStep: true,
+  androidVersion: '0.5.5',
   retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,
