@@ -42,6 +42,7 @@ public final class MainActivity extends Activity {
     static final int REQUEST_NATIVE_SCAN = 3801;
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
+    private static final int REQUEST_WALKTHROUGH_CAMERA_PERMISSION = 3804;
     private static final int OFFICE_BACKGROUND = Color.rgb(238, 243, 247);
 
     private WebView webView;
@@ -49,6 +50,7 @@ public final class MainActivity extends Activity {
     private PermissionRequest pendingWebPermissionRequest;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingFileCapture;
+    private boolean pendingWalkthroughPermissionResume;
     private Uri pendingCaptureUri;
     private View launchCover;
 
@@ -92,7 +94,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.4"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.5"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -158,24 +160,22 @@ public final class MainActivity extends Activity {
                 }
                 pendingFileCallback = filePathCallback;
                 pendingFileCapture = false;
+                pendingWalkthroughPermissionResume = false;
                 pendingCaptureUri = null;
                 try {
                     if (fileChooserParams.isCaptureEnabled()
                             && acceptsVideo(fileChooserParams.getAcceptTypes())) {
-                        Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-                        captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
-                        captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
-                        pendingCaptureUri = createWalkthroughVideoUri();
-                        if (pendingCaptureUri != null) {
-                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, pendingCaptureUri);
-                            captureIntent.addFlags(
-                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                                            | Intent.FLAG_GRANT_READ_URI_PERMISSION
-                            );
-                        }
                         pendingFileCapture = true;
-                        startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
-                        return true;
+                        if (checkSelfPermission(Manifest.permission.CAMERA)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            pendingWalkthroughPermissionResume = true;
+                            requestPermissions(
+                                    new String[]{Manifest.permission.CAMERA},
+                                    REQUEST_WALKTHROUGH_CAMERA_PERMISSION
+                            );
+                            return true;
+                        }
+                        return launchWalkthroughVideoCapture();
                     }
                     startActivityForResult(
                             fileChooserParams.createIntent(),
@@ -183,14 +183,7 @@ public final class MainActivity extends Activity {
                     );
                     return true;
                 } catch (Exception error) {
-                    cleanupPendingCaptureUri();
-                    pendingFileCallback = null;
-                    pendingFileCapture = false;
-                    Toast.makeText(
-                            MainActivity.this,
-                            "Video capture is unavailable.",
-                            Toast.LENGTH_LONG
-                    ).show();
+                    failPendingFileCapture("Video capture is unavailable.");
                     return false;
                 }
             }
@@ -210,6 +203,40 @@ public final class MainActivity extends Activity {
         } else if (webView.getProgress() >= 100) {
             webView.postDelayed(this::hideLaunchCover, 180);
         }
+    }
+
+    private boolean launchWalkthroughVideoCapture() {
+        try {
+            Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+            captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
+            captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+            pendingCaptureUri = createWalkthroughVideoUri();
+            if (pendingCaptureUri != null) {
+                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, pendingCaptureUri);
+                captureIntent.addFlags(
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                | Intent.FLAG_GRANT_READ_URI_PERMISSION
+                );
+            }
+            pendingFileCapture = true;
+            pendingWalkthroughPermissionResume = false;
+            startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
+            return true;
+        } catch (Exception error) {
+            failPendingFileCapture("Video capture is unavailable.");
+            return false;
+        }
+    }
+
+    private void failPendingFileCapture(String message) {
+        cleanupPendingCaptureUri();
+        if (pendingFileCallback != null) {
+            pendingFileCallback.onReceiveValue(null);
+            pendingFileCallback = null;
+        }
+        pendingFileCapture = false;
+        pendingWalkthroughPermissionResume = false;
+        Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
     }
 
     private Uri createWalkthroughVideoUri() {
@@ -401,6 +428,18 @@ public final class MainActivity extends Activity {
             int[] grantResults
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_WALKTHROUGH_CAMERA_PERMISSION) {
+            boolean granted = grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted && pendingWalkthroughPermissionResume && pendingFileCallback != null) {
+                launchWalkthroughVideoCapture();
+            } else {
+                failPendingFileCapture("Camera permission is required to record the walkthrough.");
+            }
+            return;
+        }
+
         if (requestCode == REQUEST_WEB_PERMISSIONS
                 && pendingWebPermissionRequest != null) {
             boolean granted = true;
@@ -448,6 +487,7 @@ public final class MainActivity extends Activity {
             pendingFileCallback.onReceiveValue(results);
             pendingFileCallback = null;
             pendingFileCapture = false;
+            pendingWalkthroughPermissionResume = false;
             pendingCaptureUri = null;
         }
     }
@@ -488,6 +528,7 @@ public final class MainActivity extends Activity {
         }
         if (pendingFileCapture) cleanupPendingCaptureUri();
         pendingFileCapture = false;
+        pendingWalkthroughPermissionResume = false;
         pendingCaptureUri = null;
         if (webView != null) {
             webView.removeJavascriptInterface("AndroidH38Native");
