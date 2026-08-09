@@ -23,6 +23,7 @@ const edge = read('supabase/functions/h38-site-scanner/index.ts');
 const android = read('native/h38-site-scanner/android/H38SiteScannerBridge.kt');
 const androidApp = read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/ArMeasureActivity.java');
 const androidShell = read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
+const androidBridge = read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const ios = read('native/h38-site-scanner/ios/H38SiteScannerBridge.swift');
 const nativeReadme = read('native/h38-site-scanner/README.md');
 
@@ -45,6 +46,7 @@ must(worker, "'./site-visit-top-action.js'", 'service worker');
 must(worker, "'site-scanner.js'", 'live-first asset list');
 must(worker, "'site-scanner.css'", 'live-first asset list');
 must(worker, "'site-scanner-mobile-guidance.js'", 'live-first asset list');
+must(worker, "h38-business-office-20260809-1605", 'lifecycle recovery cache');
 
 for (const token of [
   'siteCaptureSessions','siteSpatialEntities','siteMeasurements','siteGeometryOutputs','siteAiReviews',
@@ -103,15 +105,19 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.5.5','https://highway38solutions.com/commercial-app/',
+  'H38SiteScannerAndroid/0.5.6','https://highway38solutions.com/commercial-app/',
   'window.H38NativeScanner','h38:native-scanner-ready','onPageCommitVisible',
   'buildLaunchCover','hideLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE',
   'MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','fileChooserParams.isCaptureEnabled()',
   'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri',
-  'REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture'
+  'REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture',
+  'CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri',
+  'openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'
 ]) must(androidShell, token, 'Android app shell');
+absent(androidShell, 'shouldResetRestoredUrl', 'retired Site Visit restore reset');
 absent(androidShell, 'Camera permission is required for the walkthrough.', 'retired dead-end camera permission gate');
-for (const token of ['nextCaptureStep','returnToCapture:true','nextStepFocused:true','fieldPhotos']) must(nativeGuard, token, 'Android walkthrough return guard');
+for (const token of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed']) must(androidBridge, token, 'Android JS bridge');
+for (const token of ['nextCaptureStep','returnToCapture:true','nextStepFocused:true','fieldPhotos','recoverAcceptedWalkthrough','activityRestartRecovery:true','recoveredVideoIngest:true','workflow.captureFiles([file])']) must(nativeGuard, token, 'Android walkthrough return guard');
 for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
   'import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM',
@@ -136,8 +142,10 @@ console.log(JSON.stringify({
   androidNativeWalkthroughVideoCapture: true,
   androidGuaranteedWalkthroughReturnUri: true,
   androidCameraPermissionResume: true,
+  androidActivityRestartRecovery: true,
+  androidRecoveredVideoIngest: true,
   androidReturnToNextCaptureStep: true,
-  androidVersion: '0.5.5',
+  androidVersion: '0.5.6',
   retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,
