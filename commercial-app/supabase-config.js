@@ -5,6 +5,30 @@
  * record layer are the only supported Office runtime. No legacy Office fallback
  * is exposed or used.
  */
+(function h38RepairStaleAuthCache(){
+  const build='20260809-1848';
+  const marker='h38:auth-cache-repair';
+  try{
+    if(sessionStorage.getItem(marker)===build)return;
+    sessionStorage.setItem(marker,build);
+  }catch(_){return;}
+  if(!('serviceWorker' in navigator)&&!('caches' in window))return;
+  try{document.documentElement.style.visibility='hidden';}catch(_){}
+  (async()=>{
+    try{
+      if('serviceWorker' in navigator){
+        const registrations=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg=>reg.unregister().catch(()=>false)));
+      }
+      if('caches' in window){
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(key=>caches.delete(key)));
+      }
+    }catch(_){}
+    location.reload();
+  })();
+})();
+
 window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
   enabled: true,
   stage: 'supabase-production-only',
