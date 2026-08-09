@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260809-1110';
-const REVISION='20260809-1110';
+const BUILD='20260809-1145';
+const REVISION='20260809-1145';
 const media=navigator.mediaDevices;
 if(!media?.getUserMedia)return;
 const nativeGetUserMedia=media.getUserMedia.bind(media);
@@ -13,6 +13,20 @@ media.getUserMedia=function(constraints){
   return nativeGetUserMedia(constraints);
 };
 function toast(message,bad){try{if(typeof window.toast==='function')window.toast(message,!!bad);else window.H38_FIELD_VISIT_CORE?.toast?.(message,!!bad);}catch(_){}}
+function nativeAndroidShell(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native||!!window.H38NativeScanner;}
+function openNativeWalkthroughCapture(){
+  clearHandoff(true);
+  const input=document.getElementById('fieldVideoInput');
+  if(!input){toast('The phone video recorder is still loading.',true);return false;}
+  try{
+    input.click();
+    toast('Opening the phone video recorder. Talk while you walk; H38 will use the audio saved in this video.');
+    return true;
+  }catch(error){
+    toast(error?.message||'The phone video recorder could not open.',true);
+    return false;
+  }
+}
 function audioSourceFailure(error){
   const name=String(error?.name||'');
   const message=String(error?.message||error||'');
@@ -116,6 +130,13 @@ function openAuthoritativeRecorder(){
 function handleWalkthrough(event){
   const button=event.target?.closest?.('#fieldWalkthrough');
   if(!button)return false;
+  if(nativeAndroidShell()){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.stopPropagation();
+    openNativeWalkthroughCapture();
+    return true;
+  }
   installForegroundSessionGate();
   primeCameraAndMic();
   event.preventDefault();
@@ -174,5 +195,5 @@ installForegroundSessionGate();
 const style=document.createElement('style');
 style.textContent='.h38-confirm-delete{background:#8f1f1f!important;color:#fff!important;border-color:#8f1f1f!important}html.h38-recorder-open,body.h38-recorder-open{overflow:hidden!important}';
 document.head.appendChild(style);
-window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,cameraFirstMicrophoneRecovery:true,separateSourceAcquisition:true,audioSourceRetry:true,foregroundRecorder:true,foregroundSessionGate:true,immediatePermissionRequest:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true};
+window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,nativeSystemVideoCapture:true,webRtcBypassedInNativeShell:true,cameraFirstMicrophoneRecovery:true,separateSourceAcquisition:true,audioSourceRetry:true,foregroundRecorder:true,foregroundSessionGate:true,immediatePermissionRequest:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true};
 })();
