@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260809-0440';
-const REVISION='20260809-0440';
+const BUILD='20260809-1110';
+const REVISION='20260809-1110';
 const media=navigator.mediaDevices;
 if(!media?.getUserMedia)return;
 const nativeGetUserMedia=media.getUserMedia.bind(media);
@@ -13,12 +13,46 @@ media.getUserMedia=function(constraints){
   return nativeGetUserMedia(constraints);
 };
 function toast(message,bad){try{if(typeof window.toast==='function')window.toast(message,!!bad);else window.H38_FIELD_VISIT_CORE?.toast?.(message,!!bad);}catch(_){}}
+function audioSourceFailure(error){
+  const name=String(error?.name||'');
+  const message=String(error?.message||error||'');
+  return name==='NotReadableError'||/audio source|could not start audio|device.*busy|track start/i.test(message);
+}
 function microphoneMessage(error){
   const name=String(error?.name||'');
   const message=String(error?.message||error||'');
-  if(name==='NotReadableError'||/audio source|could not start audio|device.*busy|track start/i.test(message))return 'Microphone is busy in another app. Close anything else using the microphone, then tap Start Video Walkthrough again.';
+  if(audioSourceFailure(error))return 'Microphone could not start on this phone. Close any screen recorder, phone call, voice recorder, or other app using the microphone, then tap Start Video Walkthrough again.';
   if(name==='NotAllowedError'||/permission|denied/i.test(message))return 'Camera and microphone permission are required. Allow access for Highway 38 Business Office, then try again.';
   return message||'Could not start the walkthrough camera and microphone.';
+}
+function mediaError(error){
+  const mapped=microphoneMessage(error);
+  if(mapped===String(error?.message||error||''))return error;
+  const wrapped=new Error(mapped);
+  try{wrapped.name=String(error?.name||'NotReadableError');wrapped.cause=error}catch(_){}
+  return wrapped;
+}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function acquireWalkthroughStream(){
+  let videoStream=null,audioStream=null;
+  try{
+    videoStream=await nativeGetUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(videoStream.getVideoTracks().length<1)throw Error('Camera video is required for the walkthrough.');
+    await wait(120);
+    try{
+      audioStream=await nativeGetUserMedia({video:false,audio:true});
+    }catch(firstAudioError){
+      if(!audioSourceFailure(firstAudioError))throw firstAudioError;
+      await wait(250);
+      audioStream=await nativeGetUserMedia({video:false,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    }
+    if(audioStream.getAudioTracks().length<1)throw Error('Microphone audio is required for the walkthrough.');
+    return new MediaStream([...videoStream.getVideoTracks(),...audioStream.getAudioTracks()]);
+  }catch(error){
+    stopStream(audioStream);
+    stopStream(videoStream);
+    throw mediaError(error);
+  }
 }
 function installForegroundSessionGate(){
   const workflow=window.H38_FIELD_VISIT_WORKFLOW,C=window.H38_FIELD_VISIT_CORE;
@@ -70,7 +104,7 @@ const recorderObserver=new MutationObserver(()=>foregroundRecorder());
 recorderObserver.observe(document.documentElement,{childList:true,subtree:true});
 function primeCameraAndMic(){
   clearHandoff(true);
-  handoffPromise=nativeGetUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:true});
+  handoffPromise=acquireWalkthroughStream();
   handoffTimer=setTimeout(()=>clearHandoff(true),30000);
 }
 function openAuthoritativeRecorder(){
@@ -140,5 +174,5 @@ installForegroundSessionGate();
 const style=document.createElement('style');
 style.textContent='.h38-confirm-delete{background:#8f1f1f!important;color:#fff!important;border-color:#8f1f1f!important}html.h38-recorder-open,body.h38-recorder-open{overflow:hidden!important}';
 document.head.appendChild(style);
-window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,restoredCombinedCameraMicRequest:true,foregroundRecorder:true,foregroundSessionGate:true,immediatePermissionRequest:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true};
+window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,cameraFirstMicrophoneRecovery:true,separateSourceAcquisition:true,audioSourceRetry:true,foregroundRecorder:true,foregroundSessionGate:true,immediatePermissionRequest:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true};
 })();
