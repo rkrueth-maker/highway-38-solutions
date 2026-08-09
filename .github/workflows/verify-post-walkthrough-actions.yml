@@ -3,6 +3,8 @@ name: Verify walkthrough video notes
 on:
   pull_request:
     paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/service-worker.js'
       - 'commercial-app/field-visit-voice-capture.js'
       - 'commercial-app/field-visit-transcription.js'
       - 'commercial-app/field-visit-walkthrough-guidance.js'
@@ -11,6 +13,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/service-worker.js'
       - 'commercial-app/field-visit-voice-capture.js'
       - 'commercial-app/field-visit-transcription.js'
       - 'commercial-app/field-visit-walkthrough-guidance.js'
