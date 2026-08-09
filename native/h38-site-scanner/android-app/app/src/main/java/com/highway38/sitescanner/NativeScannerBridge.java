@@ -26,43 +26,40 @@ import java.util.Collections;
 public final class NativeScannerBridge {
     private final MainActivity activity;
     private final WebView webView;
+    private final SecureLoginStore secureLoginStore;
     private String pendingRequestId = "";
     private boolean credentialRequestBusy;
 
     NativeScannerBridge(MainActivity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        this.secureLoginStore = new SecureLoginStore(activity);
     }
 
     @JavascriptInterface
     public String getCapabilities() {
         JSONObject result = new JSONObject();
         try {
-            ArCoreApk.Availability availability =
-                    ArCoreApk.getInstance().checkAvailability(activity);
+            ArCoreApk.Availability availability = ArCoreApk.getInstance().checkAvailability(activity);
             boolean supported = availability.isSupported();
             boolean depth = false;
-
             if (supported) {
                 Session session = null;
                 try {
                     session = new Session(activity);
-                    depth = session.isDepthModeSupported(
-                            Config.DepthMode.AUTOMATIC
-                    );
+                    depth = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC);
                 } catch (Throwable ignored) {
-                    // Capture start completes runtime installation/profile checks.
                 } finally {
                     if (session != null) session.close();
                 }
             }
-
             result.put("platform", "android");
             result.put("arcore", supported);
             result.put("depth", depth);
             result.put("lidar", false);
             result.put("roomPlan", false);
             result.put("autofill", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O);
+            result.put("localSavedLogin", secureLoginStore.load() != null);
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
             result.put("androidApi", Build.VERSION.SDK_INT);
@@ -81,51 +78,52 @@ public final class NativeScannerBridge {
     }
 
     @JavascriptInterface
+    public void rememberLogin(String username, String password) {
+        activity.runOnUiThread(() -> {
+            try {
+                secureLoginStore.save(username, password);
+            } catch (Throwable ignored) {
+            }
+        });
+    }
+
+    @JavascriptInterface
     public void requestAutofill() {
         activity.runOnUiThread(this::requestSavedPassword);
     }
 
     private void requestSavedPassword() {
+        JSONObject local = secureLoginStore.load();
+        if (local != null) {
+            fillWebLogin(local.optString("username"), local.optString("password"));
+            return;
+        }
         if (credentialRequestBusy) return;
         credentialRequestBusy = true;
         try {
             CredentialManager manager = CredentialManager.create(activity);
-            GetPasswordOption passwordOption = new GetPasswordOption(
-                    Collections.emptySet(),
-                    true,
-                    Collections.emptySet()
-            );
-            GetCredentialRequest request = new GetCredentialRequest.Builder()
-                    .addCredentialOption(passwordOption)
-                    .build();
-            manager.getCredentialAsync(
-                    activity,
-                    request,
-                    null,
-                    activity.getMainExecutor(),
+            GetPasswordOption passwordOption = new GetPasswordOption(Collections.emptySet(), true, Collections.emptySet());
+            GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(passwordOption).build();
+            manager.getCredentialAsync(activity, request, null, activity.getMainExecutor(),
                     new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
                         @Override
                         public void onResult(GetCredentialResponse result) {
                             credentialRequestBusy = false;
                             Credential credential = result.getCredential();
                             if (credential instanceof PasswordCredential) {
-                                PasswordCredential passwordCredential = (PasswordCredential) credential;
-                                fillWebLogin(
-                                        passwordCredential.getId(),
-                                        passwordCredential.getPassword()
-                                );
+                                PasswordCredential saved = (PasswordCredential) credential;
+                                try { secureLoginStore.save(saved.getId(), saved.getPassword()); } catch (Throwable ignored) {}
+                                fillWebLogin(saved.getId(), saved.getPassword());
                                 return;
                             }
                             activity.requestWebAutofill();
                         }
-
                         @Override
                         public void onError(GetCredentialException error) {
                             credentialRequestBusy = false;
                             activity.requestWebAutofill();
                         }
-                    }
-            );
+                    });
         } catch (Throwable error) {
             credentialRequestBusy = false;
             activity.requestWebAutofill();
@@ -139,26 +137,16 @@ public final class NativeScannerBridge {
                 + "if(!email||!pass)return false;"
                 + "email.value=" + JSONObject.quote(username == null ? "" : username) + ";"
                 + "pass.value=" + JSONObject.quote(password == null ? "" : password) + ";"
-                + "['input','change'].forEach(function(type){"
-                + "email.dispatchEvent(new Event(type,{bubbles:true}));"
-                + "pass.dispatchEvent(new Event(type,{bubbles:true}));"
-                + "});"
-                + "pass.focus();"
-                + "window.dispatchEvent(new CustomEvent('h38:saved-login-filled'));"
-                + "return true;"
-                + "})();";
+                + "['input','change'].forEach(function(type){email.dispatchEvent(new Event(type,{bubbles:true}));pass.dispatchEvent(new Event(type,{bubbles:true}));});"
+                + "pass.focus();window.dispatchEvent(new CustomEvent('h38:saved-login-filled'));return true;})();";
         webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     @JavascriptInterface
-    public String getRecoveredWalkthroughUrl() {
-        return activity.getRecoveredWalkthroughUrl();
-    }
+    public String getRecoveredWalkthroughUrl() { return activity.getRecoveredWalkthroughUrl(); }
 
     @JavascriptInterface
-    public void confirmRecoveredWalkthroughConsumed() {
-        activity.runOnUiThread(activity::confirmRecoveredWalkthroughConsumed);
-    }
+    public void confirmRecoveredWalkthroughConsumed() { activity.runOnUiThread(activity::confirmRecoveredWalkthroughConsumed); }
 
     @JavascriptInterface
     public void start(String optionsJson, String requestId) {
@@ -168,17 +156,10 @@ public final class NativeScannerBridge {
                 requireValue(options, "businessId");
                 requireValue(options, "quoteId");
                 requireValue(options, "captureSessionId");
-
                 pendingRequestId = requestId;
-                Intent intent = new Intent(
-                        activity,
-                        ArMeasureActivity.class
-                );
+                Intent intent = new Intent(activity, ArMeasureActivity.class);
                 intent.putExtra("options", options.toString());
-                activity.startActivityForResult(
-                        intent,
-                        MainActivity.REQUEST_NATIVE_SCAN
-                );
+                activity.startActivityForResult(intent, MainActivity.REQUEST_NATIVE_SCAN);
             } catch (Throwable error) {
                 finishRequest(false, error.getMessage());
             }
@@ -187,18 +168,10 @@ public final class NativeScannerBridge {
 
     void completeFromActivity(int resultCode, Intent data) {
         if (pendingRequestId.isEmpty()) return;
-        if (resultCode == Activity.RESULT_OK && data != null) {
-            finishRequest(true, data.getStringExtra("result"));
-        } else {
-            String message = data == null
-                    ? "Native capture was cancelled."
-                    : data.getStringExtra("error");
-            finishRequest(
-                    false,
-                    message == null
-                            ? "Native capture was cancelled."
-                            : message
-            );
+        if (resultCode == Activity.RESULT_OK && data != null) finishRequest(true, data.getStringExtra("result"));
+        else {
+            String message = data == null ? "Native capture was cancelled." : data.getStringExtra("error");
+            finishRequest(false, message == null ? "Native capture was cancelled." : message);
         }
     }
 
@@ -206,20 +179,11 @@ public final class NativeScannerBridge {
         String requestId = pendingRequestId;
         pendingRequestId = "";
         if (requestId == null || requestId.isEmpty()) return;
-
-        String script = "window.__h38NativeComplete("
-                + JSONObject.quote(requestId) + ","
-                + (ok ? "true" : "false") + ","
-                + JSONObject.quote(payload == null ? "" : payload)
-                + ");";
+        String script = "window.__h38NativeComplete(" + JSONObject.quote(requestId) + "," + (ok ? "true" : "false") + "," + JSONObject.quote(payload == null ? "" : payload) + ");";
         webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     private static void requireValue(JSONObject options, String key) {
-        if (options.optString(key).trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Native scan is missing " + key + "."
-            );
-        }
+        if (options.optString(key).trim().isEmpty()) throw new IllegalArgumentException("Native scan is missing " + key + ".");
     }
 }
