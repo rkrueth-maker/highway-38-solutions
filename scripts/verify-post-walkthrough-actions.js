@@ -17,14 +17,14 @@ for(const s of ['Dictate Note','h38-field-note-transcription','dictatedFieldNote
 for(const s of ['nativeGetUserMedia','audio:true','#fieldWalkthrough','immediatePermissionRequest:true','microphoneRequired:true','videoOnlyFallback:false'])must(cameraFix,s);
 must(index,'android-camera-direct-fix.js?build=20260809-0330');
 must(index,'field-visit-voice-capture.js?build=20260809-0213');
-must(index,'operator-direct-controls.js?build=20260809-0315');
+must(index,'operator-direct-controls.js?build=20260809-0245&rev=20260809-0315');
 const cameraPos=index.indexOf('android-camera-direct-fix.js?build=20260809-0330');
 const voicePos=index.indexOf('field-visit-voice-capture.js?build=20260809-0213');
 const transcriptPos=index.indexOf('field-visit-transcription.js?build=20260809-0048');
-const directPos=index.indexOf('operator-direct-controls.js?build=20260809-0315');
+const directPos=index.indexOf('operator-direct-controls.js?build=20260809-0245&rev=20260809-0315');
 const guidancePos=index.indexOf('field-visit-walkthrough-guidance.js?build=20260809-0048');
 if(!(cameraPos>0&&voicePos>cameraPos&&transcriptPos>voicePos&&directPos>transcriptPos&&guidancePos>directPos))throw new Error('walkthrough video-note runtime load order is wrong');
-for(const s of ["CACHE_NAME='h38-business-office-20260809-0330'",'android-camera-direct-fix.js','field-visit-voice-capture.js','field-visit-transcription.js','operator-direct-controls.js','field-visit-walkthrough-guidance.js'])must(sw,s);
+for(const s of ["CACHE_NAME='h38-business-office-20260809-0255'",'android-camera-direct-fix.js','field-visit-voice-capture.js','field-visit-transcription.js','operator-direct-controls.js','field-visit-walkthrough-guidance.js'])must(sw,s);
 for(const s of ['business_memberships','siteCaptureSessions','Walkthrough Voice Audio','gpt-4o-mini-transcribe','UNVERIFIED_SPOKEN','automaticApproval: false','automaticCustomerSending: false'])must(server,s);
 for(const runtime of [voice,transcription,guidance,cameraFix])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])mustNot(runtime,s);
 console.log(JSON.stringify({status:'PASS',oneWalkthroughVideo:true,speechFromSameRecording:true,microphoneRequired:true,videoOnlyFallback:false,androidPermissionFromTap:true,professionalNotes:true,rawTranscriptInternalOnly:true,automaticFieldSync:true,targetedNextNeed:true,separateDictationWorkflow:false,automaticApproval:false,automaticCustomerSending:false},null,2));
