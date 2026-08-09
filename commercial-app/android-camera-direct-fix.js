@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260809-0330';
-const REVISION='20260809-0355';
+const REVISION='20260809-0405';
 const media=navigator.mediaDevices;
 if(!media?.getUserMedia)return;
 const nativeGetUserMedia=media.getUserMedia.bind(media);
@@ -16,13 +16,23 @@ function toast(message,bad){try{if(typeof window.toast==='function')window.toast
 function microphoneMessage(error){
   const name=String(error?.name||'');
   const message=String(error?.message||error||'');
-  if(name==='NotReadableError'||/audio source|could not start audio|device.*busy|track start/i.test(message))return 'Microphone is busy in another app. Stop any screen recording or other app using the microphone, then tap Start Video Walkthrough again.';
+  if(name==='NotReadableError'||/audio source|could not start audio|device.*busy|track start/i.test(message))return 'The phone could not open the microphone. Close anything else using audio, then tap Start Video Walkthrough again.';
   if(name==='NotAllowedError'||/permission|denied/i.test(message))return 'Microphone permission is required. Allow microphone access for Highway 38 Business Office, then try again.';
   return message||'Could not start the walkthrough camera and microphone.';
 }
+async function acquireWalkthroughStream(){
+  let audioStream=null,videoStream=null;
+  try{
+    audioStream=await nativeGetUserMedia({audio:true,video:false});
+    if(audioStream.getAudioTracks().length<1)throw Error('Microphone audio is required for the walkthrough.');
+    videoStream=await nativeGetUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(videoStream.getVideoTracks().length<1)throw Error('Camera video is required for the walkthrough.');
+    return new MediaStream([...videoStream.getVideoTracks(),...audioStream.getAudioTracks()]);
+  }catch(error){stopStream(videoStream);stopStream(audioStream);throw error;}
+}
 function primeCameraAndMic(){
   clearHandoff(true);
-  handoffPromise=nativeGetUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:true});
+  handoffPromise=acquireWalkthroughStream();
   handoffTimer=setTimeout(()=>clearHandoff(true),30000);
 }
 function openAuthoritativeRecorder(){
@@ -89,5 +99,5 @@ window.addEventListener('click',event=>{
 const style=document.createElement('style');
 style.textContent='.h38-confirm-delete{background:#8f1f1f!important;color:#fff!important;border-color:#8f1f1f!important}';
 document.head.appendChild(style);
-window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,immediatePermissionRequest:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true,audioBusyDetection:true};
+window.H38_ANDROID_CAMERA_DIRECT_FIX={build:BUILD,revision:REVISION,immediatePermissionRequest:true,microphoneFirst:true,separateSourceAcquisition:true,singleWalkthroughLaunch:true,cameraRequired:true,microphoneRequired:true,videoOnlyFallback:false,inlineDraftDeleteConfirm:true,inlineQuoteDeleteConfirm:true};
 })();
