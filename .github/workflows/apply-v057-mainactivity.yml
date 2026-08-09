@@ -1,0 +1,33 @@
+name: Apply v0.5.7 in-app walkthrough shell patch
+
+on:
+  push:
+    branches:
+      - fix/in-app-walkthrough-camera-mic-v057
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[v057 patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/in-app-walkthrough-camera-mic-v057
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch MainActivity
+        run: python scripts/apply-v057-mainactivity.py
+      - name: Remove one-time patch machinery
+        run: rm scripts/apply-v057-mainactivity.py .github/workflows/apply-v057-mainactivity.yml
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Use in-app walkthrough recorder [v057 patched]"
+          git push origin HEAD:fix/in-app-walkthrough-camera-mic-v057
