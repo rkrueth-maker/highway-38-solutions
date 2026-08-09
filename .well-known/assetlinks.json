@@ -1,13 +1,10 @@
 [
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls",
-      "delegate_permission/common.get_login_creds"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls","delegate_permission/common.get_login_creds"],
     "target": {
       "namespace": "android_app",
       "package_name": "com.highway38.sitescanner.test",
-      "sha256_cert_fingerprints": ["6A:4D:58:A4:A4:35:29:FA:90:0C:42:76:61:6B:E1:5C:36:F0:D3:FF:75:CC:1A:1D:F5:69:70:EC:E0:A1:2D:93"]
+      "sha256_cert_fingerprints": ["D4:78:D0:32:2B:74:F0:59:FD:68:F3:6E:A3:15:B8:6F:F1:3D:04:58:75:A8:43:C6:BE:40:61:EE:CE:AA:9D:06"]
     }
   }
 ]
