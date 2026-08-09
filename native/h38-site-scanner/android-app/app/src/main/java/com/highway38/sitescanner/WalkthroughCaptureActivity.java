@@ -34,6 +34,9 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -64,6 +67,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
         buildUi();
@@ -101,27 +105,35 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER);
-        controls.setPadding(dp(12), dp(12), dp(12), dp(18));
-        controls.setBackgroundColor(0x99000000);
+        controls.setPadding(dp(12), dp(14), dp(12), dp(22));
+        controls.setMinimumHeight(dp(96));
+        controls.setBackgroundColor(0xB8000000);
 
         Button cancelButton = new Button(this);
         cancelButton.setText("Cancel");
+        cancelButton.setMinHeight(dp(68));
+        cancelButton.setPadding(dp(10), dp(10), dp(10), dp(10));
         cancelButton.setOnClickListener(v -> cancelCapture());
-        controls.addView(cancelButton, new LinearLayout.LayoutParams(0, dp(56), 1f));
+        controls.addView(cancelButton, new LinearLayout.LayoutParams(0, dp(68), 1f));
 
         lightButton = new Button(this);
         lightButton.setText("Light On");
         lightButton.setEnabled(false);
+        lightButton.setMinHeight(dp(68));
+        lightButton.setPadding(dp(10), dp(10), dp(10), dp(10));
         lightButton.setOnClickListener(v -> toggleTorch());
-        LinearLayout.LayoutParams lightParams = new LinearLayout.LayoutParams(0, dp(56), 1f);
+        LinearLayout.LayoutParams lightParams = new LinearLayout.LayoutParams(0, dp(68), 1f);
         lightParams.leftMargin = dp(8);
         controls.addView(lightButton, lightParams);
 
         finishButton = new Button(this);
         finishButton.setText("Start Recording");
         finishButton.setEnabled(false);
+        finishButton.setMinHeight(dp(68));
+        finishButton.setTextSize(16);
+        finishButton.setPadding(dp(12), dp(10), dp(12), dp(10));
         finishButton.setOnClickListener(v -> primaryAction());
-        LinearLayout.LayoutParams finishParams = new LinearLayout.LayoutParams(0, dp(56), 2f);
+        LinearLayout.LayoutParams finishParams = new LinearLayout.LayoutParams(0, dp(68), 2f);
         finishParams.leftMargin = dp(8);
         controls.addView(finishButton, finishParams);
 
@@ -131,7 +143,28 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
                 Gravity.BOTTOM
         );
         root.addView(controls, controlsParams);
+
+        final int baseTopMargin = dp(12);
+        final int baseBottomPadding = dp(22);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            int topInset = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout()
+            ).top;
+            int bottomInset = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout()
+            ).bottom;
+
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) statusView.getLayoutParams();
+            params.topMargin = baseTopMargin + topInset;
+            statusView.setLayoutParams(params);
+            controls.setPadding(dp(12), dp(14), dp(12), baseBottomPadding + bottomInset);
+            return insets;
+        });
+
         setContentView(root);
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void ensurePermissionsAndStart() {

@@ -6,16 +6,28 @@ import android.os.Build;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.GetPasswordOption;
+import androidx.credentials.PasswordCredential;
+import androidx.credentials.exceptions.GetCredentialException;
+
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Config;
 import com.google.ar.core.Session;
 
 import org.json.JSONObject;
 
+import java.util.Collections;
+
 public final class NativeScannerBridge {
     private final MainActivity activity;
     private final WebView webView;
     private String pendingRequestId = "";
+    private boolean credentialRequestBusy;
 
     NativeScannerBridge(MainActivity activity, WebView webView) {
         this.activity = activity;
@@ -70,7 +82,72 @@ public final class NativeScannerBridge {
 
     @JavascriptInterface
     public void requestAutofill() {
-        activity.requestWebAutofill();
+        activity.runOnUiThread(this::requestSavedPassword);
+    }
+
+    private void requestSavedPassword() {
+        if (credentialRequestBusy) return;
+        credentialRequestBusy = true;
+        try {
+            CredentialManager manager = CredentialManager.create(activity);
+            GetPasswordOption passwordOption = new GetPasswordOption(
+                    Collections.emptySet(),
+                    true,
+                    Collections.emptySet()
+            );
+            GetCredentialRequest request = new GetCredentialRequest.Builder()
+                    .addCredentialOption(passwordOption)
+                    .build();
+            manager.getCredentialAsync(
+                    activity,
+                    request,
+                    null,
+                    activity.getMainExecutor(),
+                    new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                        @Override
+                        public void onResult(GetCredentialResponse result) {
+                            credentialRequestBusy = false;
+                            Credential credential = result.getCredential();
+                            if (credential instanceof PasswordCredential) {
+                                PasswordCredential passwordCredential = (PasswordCredential) credential;
+                                fillWebLogin(
+                                        passwordCredential.getId(),
+                                        passwordCredential.getPassword()
+                                );
+                                return;
+                            }
+                            activity.requestWebAutofill();
+                        }
+
+                        @Override
+                        public void onError(GetCredentialException error) {
+                            credentialRequestBusy = false;
+                            activity.requestWebAutofill();
+                        }
+                    }
+            );
+        } catch (Throwable error) {
+            credentialRequestBusy = false;
+            activity.requestWebAutofill();
+        }
+    }
+
+    private void fillWebLogin(String username, String password) {
+        String script = "(function(){"
+                + "var email=document.getElementById('h38AuthEmail');"
+                + "var pass=document.getElementById('h38AuthPassword');"
+                + "if(!email||!pass)return false;"
+                + "email.value=" + JSONObject.quote(username == null ? "" : username) + ";"
+                + "pass.value=" + JSONObject.quote(password == null ? "" : password) + ";"
+                + "['input','change'].forEach(function(type){"
+                + "email.dispatchEvent(new Event(type,{bubbles:true}));"
+                + "pass.dispatchEvent(new Event(type,{bubbles:true}));"
+                + "});"
+                + "pass.focus();"
+                + "window.dispatchEvent(new CustomEvent('h38:saved-login-filled'));"
+                + "return true;"
+                + "})();";
+        webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     @JavascriptInterface

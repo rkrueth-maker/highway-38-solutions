@@ -16,25 +16,29 @@ const main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highw
 const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
 const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const guard=read('commercial-app/android-native-walkthrough-guard.js');
+const auth=read('commercial-app/auth-autofill.js');
 const workflow=read('.github/workflows/android-play-bundle.yml');
-new Function(play); new Function(guard);
+new Function(play); new Function(guard); new Function(auth);
 
 for(const marker of ['H38 Business Office','Supabase','OpenAI','Google Play','account-deletion.html','highway38solutions@gmail.com'])must(privacy,marker,'privacy policy');
 for(const marker of ['Delete H38 account','What is deleted','What may be retained','highway38solutions@gmail.com'])must(deletion,marker,'account deletion page');
 for(const marker of ['https://highway38solutions.com/privacy.html','https://highway38solutions.com/account-deletion.html','h38AccountPrivacyCard'])must(play,marker,'in-app compliance links');
 must(loader,'play-compliance.js?build=20260807-2355','supported Office loader');
 must(sw,"'play-compliance.js'",'offline shell');
+must(sw,'h38-business-office-20260809-1725','fresh phone repair cache');
 must(strings,'H38 Business Office','Android app label');
-for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 12',"versionName '0.5.7'",'androidx.camera:camera-video:1.5.3'])must(gradle,marker,'Android release config');
+for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 13',"versionName '0.5.8'",'androidx.credentials:credentials:1.6.0-beta02','androidx.camera:camera-video:1.5.3'])must(gradle,marker,'Android release config');
 for(const marker of ['android.permission.CAMERA','android.permission.INTERNET','android.permission.RECORD_AUDIO','android:usesCleartextTraffic="false"','.WalkthroughCaptureActivity','androidx.core.content.FileProvider'])must(manifest,marker,'Android manifest');
-for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.7','onPageCommitVisible','buildLaunchCover','WalkthroughCaptureActivity.class','Manifest.permission.RECORD_AUDIO','REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture','CAPTURE_RECOVERY_URL','persistCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(main,marker,'Android Business Office shell');
-for(const marker of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','withAudioEnabled()','FileOutputOptions','getFilesDir()','FileProvider.getUriForFile','Light On','Light Off','enableTorch','Stop & Use Video'])must(capture,marker,'in-app walkthrough recorder');
-for(const marker of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed'])must(bridge,marker,'Android native bridge');
-for(const marker of ['recoverAcceptedWalkthrough','activityRestartRecovery:true','recoveredVideoIngest:true','workflow.captureFiles([file])'])must(guard,marker,'Android walkthrough recovery guard');
+for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.8','onPageCommitVisible','buildLaunchCover','WalkthroughCaptureActivity.class','Manifest.permission.RECORD_AUDIO','REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture','CAPTURE_RECOVERY_URL','persistCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed','persistCaptureTracking(captured, true)','pendingFileCallback.onReceiveValue(new Uri[]{captured})'])must(main,marker,'Android Business Office shell');
+absent(main,'pendingFileCallback = null;\n                        clearCaptureTracking(false);','premature walkthrough recovery cleanup');
+for(const marker of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','withAudioEnabled()','FileOutputOptions','getFilesDir()','FileProvider.getUriForFile','Light On','Light Off','enableTorch','Stop & Use Video','ViewCompat.setOnApplyWindowInsetsListener','WindowInsetsCompat.Type.systemBars()','dp(68)'])must(capture,marker,'in-app walkthrough recorder');
+for(const marker of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed','CredentialManager','GetPasswordOption','PasswordCredential','fillWebLogin'])must(bridge,marker,'Android native bridge');
+for(const marker of ['recoverAcceptedWalkthrough','activityRestartRecovery:true','recoveredVideoIngest:true','workflow.captureFiles([file])','waitForWalkthroughIncrease','recoveryUntilAccepted:true','directReturnRaceRemoved:true'])must(guard,marker,'Android walkthrough recovery guard');
+for(const marker of ['Use saved username and password','lastNativeRequest','h38:saved-login-filled'])must(auth,marker,'Android saved login');
 for(const retired of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_OUTPUT','createWalkthroughVideoUri'])absent(main,retired,'retired external walkthrough camera');
 absent(main,'shouldResetRestoredUrl','retired Site Visit restore reset');
 absent(main,'nativeScanner=1&fieldMode=1','Android clean startup');
 for(const marker of ['Build H38 Google Play AAB','push:','branches: [main]','H38_ANDROID_UPLOAD_KEYSTORE_B64','bundleRelease','jarsigner -verify -verbose -certs','jar verified.','h38-google-play-v${{ steps.version.outputs.version_name }}'])must(workflow,marker,'Play AAB workflow');
 absent(workflow,'jarsigner -verify -strict','Play AAB signature verification');
 
-console.log('PASS — H38 Google Play internal release contract 0.5.7 with in-app camera + mic + torch');
+console.log('PASS — H38 Google Play internal release contract 0.5.8 with credential login, inset-safe camera controls, and confirmed walkthrough ingest');
