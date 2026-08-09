@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -88,10 +89,10 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         statusView = new TextView(this);
         statusView.setText("Starting camera + microphone…");
         statusView.setTextColor(Color.WHITE);
-        statusView.setTextSize(16);
+        statusView.setTextSize(17);
         statusView.setGravity(Gravity.CENTER);
-        statusView.setPadding(dp(18), dp(14), dp(18), dp(14));
-        statusView.setBackgroundColor(0x99000000);
+        statusView.setPadding(dp(18), dp(15), dp(18), dp(15));
+        statusView.setBackgroundColor(0xB8000000);
         FrameLayout.LayoutParams statusParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -103,49 +104,75 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         root.addView(statusView, statusParams);
 
         LinearLayout controls = new LinearLayout(this);
-        controls.setOrientation(LinearLayout.HORIZONTAL);
+        controls.setOrientation(LinearLayout.VERTICAL);
         controls.setGravity(Gravity.CENTER);
-        controls.setPadding(dp(12), dp(14), dp(12), dp(22));
-        controls.setMinimumHeight(dp(96));
-        controls.setBackgroundColor(0xB8000000);
-
-        Button cancelButton = new Button(this);
-        cancelButton.setText("Cancel");
-        cancelButton.setMinHeight(dp(68));
-        cancelButton.setPadding(dp(10), dp(10), dp(10), dp(10));
-        cancelButton.setOnClickListener(v -> cancelCapture());
-        controls.addView(cancelButton, new LinearLayout.LayoutParams(0, dp(68), 1f));
-
-        lightButton = new Button(this);
-        lightButton.setText("Light On");
-        lightButton.setEnabled(false);
-        lightButton.setMinHeight(dp(68));
-        lightButton.setPadding(dp(10), dp(10), dp(10), dp(10));
-        lightButton.setOnClickListener(v -> toggleTorch());
-        LinearLayout.LayoutParams lightParams = new LinearLayout.LayoutParams(0, dp(68), 1f);
-        lightParams.leftMargin = dp(8);
-        controls.addView(lightButton, lightParams);
+        controls.setPadding(dp(14), dp(14), dp(14), dp(26));
+        controls.setMinimumHeight(dp(178));
+        controls.setBackgroundColor(0xD6000000);
 
         finishButton = new Button(this);
         finishButton.setText("Start Recording");
         finishButton.setEnabled(false);
-        finishButton.setMinHeight(dp(68));
-        finishButton.setTextSize(16);
-        finishButton.setPadding(dp(12), dp(10), dp(12), dp(10));
-        finishButton.setOnClickListener(v -> primaryAction());
-        LinearLayout.LayoutParams finishParams = new LinearLayout.LayoutParams(0, dp(68), 2f);
-        finishParams.leftMargin = dp(8);
-        controls.addView(finishButton, finishParams);
+        finishButton.setMinHeight(dp(80));
+        finishButton.setTextSize(18);
+        finishButton.setPadding(dp(16), dp(14), dp(16), dp(14));
+        finishButton.setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            primaryAction();
+        });
+        controls.addView(finishButton, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(80)
+        ));
+
+        LinearLayout secondaryRow = new LinearLayout(this);
+        secondaryRow.setOrientation(LinearLayout.HORIZONTAL);
+        secondaryRow.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(72)
+        );
+        rowParams.topMargin = dp(10);
+        controls.addView(secondaryRow, rowParams);
+
+        Button cancelButton = new Button(this);
+        cancelButton.setText("Cancel");
+        cancelButton.setMinHeight(dp(72));
+        cancelButton.setTextSize(16);
+        cancelButton.setPadding(dp(12), dp(12), dp(12), dp(12));
+        cancelButton.setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            cancelCapture();
+        });
+        secondaryRow.addView(cancelButton, new LinearLayout.LayoutParams(0, dp(72), 1f));
+
+        lightButton = new Button(this);
+        lightButton.setText("Light On");
+        lightButton.setEnabled(false);
+        lightButton.setMinHeight(dp(72));
+        lightButton.setTextSize(16);
+        lightButton.setPadding(dp(12), dp(12), dp(12), dp(12));
+        lightButton.setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            toggleTorch();
+        });
+        LinearLayout.LayoutParams lightParams = new LinearLayout.LayoutParams(0, dp(72), 1f);
+        lightParams.leftMargin = dp(10);
+        secondaryRow.addView(lightButton, lightParams);
 
         FrameLayout.LayoutParams controlsParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM
         );
+        controlsParams.leftMargin = dp(8);
+        controlsParams.rightMargin = dp(8);
+        controlsParams.bottomMargin = dp(8);
         root.addView(controls, controlsParams);
 
         final int baseTopMargin = dp(12);
-        final int baseBottomPadding = dp(22);
+        final int baseBottomPadding = dp(26);
+        final int baseBottomMargin = dp(8);
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
             int topInset = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars()
@@ -154,12 +181,16 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
             int bottomInset = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars()
                             | WindowInsetsCompat.Type.displayCutout()
+                            | WindowInsetsCompat.Type.ime()
             ).bottom;
 
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) statusView.getLayoutParams();
             params.topMargin = baseTopMargin + topInset;
             statusView.setLayoutParams(params);
-            controls.setPadding(dp(12), dp(14), dp(12), baseBottomPadding + bottomInset);
+            controls.setPadding(dp(14), dp(14), dp(14), baseBottomPadding + bottomInset);
+            FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) controls.getLayoutParams();
+            cp.bottomMargin = baseBottomMargin;
+            controls.setLayoutParams(cp);
             return insets;
         });
 
@@ -229,7 +260,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
                 boolean hasFlash = camera.getCameraInfo().hasFlashUnit();
                 lightButton.setEnabled(hasFlash);
                 lightButton.setText(hasFlash ? "Light On" : "No Light");
-                statusView.setText("Camera + microphone ready. Turn the light on if needed, then start recording.");
+                statusView.setText("Camera + microphone ready. Tap the large Start Recording button.");
                 finishButton.setText("Start Recording");
                 finishButton.setEnabled(true);
             } catch (Throwable error) {
@@ -239,11 +270,8 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     }
 
     private void primaryAction() {
-        if (activeRecording == null && outputFile == null) {
-            startRecording();
-        } else {
-            stopAndUseVideo();
-        }
+        if (activeRecording == null && outputFile == null) startRecording();
+        else stopAndUseVideo();
     }
 
     private void toggleTorch() {
@@ -328,13 +356,11 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     private void stopAndUseVideo() {
         if (finalized || outputFile == null) return;
         finishButton.setEnabled(false);
+        finishButton.setText("Saving…");
         statusView.setText("Saving walkthrough into H38…");
         turnTorchOff();
-        if (activeRecording != null) {
-            activeRecording.stop();
-        } else if (outputFile.exists()) {
-            completeWithFile();
-        }
+        if (activeRecording != null) activeRecording.stop();
+        else if (outputFile.exists()) completeWithFile();
     }
 
     private void cancelCapture() {
@@ -343,11 +369,8 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         finishButton.setEnabled(false);
         statusView.setText("Cancelling…");
         turnTorchOff();
-        if (activeRecording != null) {
-            activeRecording.stop();
-        } else {
-            finishCancelled();
-        }
+        if (activeRecording != null) activeRecording.stop();
+        else finishCancelled();
     }
 
     private void finalizeCapture(VideoRecordEvent.Finalize event) {
