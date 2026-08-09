@@ -101,7 +101,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.7"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.8"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -178,10 +178,22 @@ public final class MainActivity extends Activity {
                     pendingFileCallback.onReceiveValue(null);
                 }
                 pendingFileCallback = filePathCallback;
+
+                if (recoveredCaptureUri != null) {
+                    pendingFileCallback.onReceiveValue(null);
+                    pendingFileCallback = null;
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Finishing the last recorded walkthrough first.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    injectNativeScanner();
+                    return true;
+                }
+
                 pendingFileCapture = false;
                 pendingWalkthroughPermissionResume = false;
                 pendingCaptureUri = null;
-                recoveredCaptureUri = null;
                 clearCaptureTracking(false);
                 try {
                     if (fileChooserParams.isCaptureEnabled()
@@ -550,17 +562,14 @@ public final class MainActivity extends Activity {
                 if (captured == null && data != null) captured = data.getData();
 
                 if (resultCode == RESULT_OK && captured != null) {
+                    pendingCaptureUri = captured;
+                    recoveredCaptureUri = captured;
+                    persistCaptureTracking(captured, true);
                     if (pendingFileCallback != null) {
                         pendingFileCallback.onReceiveValue(new Uri[]{captured});
                         pendingFileCallback = null;
-                        clearCaptureTracking(false);
-                        pendingCaptureUri = null;
-                    } else {
-                        pendingCaptureUri = captured;
-                        recoveredCaptureUri = captured;
-                        persistCaptureTracking(captured, true);
-                        injectNativeScanner();
                     }
+                    injectNativeScanner();
                 } else {
                     cleanupPendingCaptureUri();
                     if (pendingFileCallback != null) {
