@@ -8,7 +8,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:8000",
   "http://127.0.0.1:8000",
 ]);
-const REDIRECT_TO = "https://rkrueth-maker.github.io/highway-38-solutions/commercial-app/?invitation=1";
+const REDIRECT_TO = "https://highway38solutions.com/commercial-app/?invitation=1";
 const MAX_BODY_BYTES = 16 * 1024;
 const REQUEST_COOLDOWN_MS = 10 * 60 * 1000;
 
@@ -70,9 +70,10 @@ Deno.serve(async (request: Request) => {
     return json(origin, 200, {
       status: "PASS",
       service: "business-office-invite-activation",
-      version: "1.0.0",
+      version: "1.0.1",
       inviteOnly: true,
       passwordHandledByFunction: false,
+      redirectOrigin: new URL(REDIRECT_TO).origin,
       serviceRoleExposedToBrowser: false,
       automaticBusinessActivation: false,
       externalActionsEnabled: false,
