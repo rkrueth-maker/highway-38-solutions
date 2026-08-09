@@ -7,7 +7,7 @@ Observed on the physical Android recording:
 - Moving between Job, Capture, Notes and Review did not consistently land the viewport at the beginning of the selected step.
 - After the user accepted the system-camera recording, Android could recreate the H38 activity. The v0.5.5 shell explicitly treated Site Visit URLs as URLs that should be reset to the Business Office root, and its transient WebView file callback could be lost during that recreation.
 
-Acceptance target:
+Acceptance target for v0.5.6:
 
 1. Login form requests the saved credential provider automatically on startup and retries the actual missing field while the form settles. Manual saved-login remains only as a fallback.
 2. Before native walkthrough capture, Site Visit records the intended `capture` step.
