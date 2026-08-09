@@ -46,6 +46,9 @@ jobs:
           node --check commercial-app/field-visit-ui.js
           node --check commercial-app/field-visit-video.js
           node --check commercial-app/field-visit.js
+          node --check commercial-app/field-visit-recovery.js
+          node --check commercial-app/field-visit-photo-review.js
+          node --check commercial-app/field-visit-walkthrough-guidance.js
           node --check commercial-app/auth-autofill.js
           node --check commercial-app/service-worker.js
       - name: Verify Digital Asset Links JSON
