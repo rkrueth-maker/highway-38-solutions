@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-1705-native-credential';
+  const BUILD = '20260809-1829-local-secure-login';
   let scheduled = false;
   let lastNativeRequest = 0;
 
@@ -15,6 +15,15 @@
     lastNativeRequest = now;
     try { input?.focus?.({preventScroll:true}); } catch (_) { input?.focus?.(); }
     try { nativeBridge()?.requestAutofill(); } catch (_) {}
+  }
+
+  function rememberLogin(email,password) {
+    const bridge = nativeBridge();
+    if (!bridge || typeof bridge.rememberLogin !== 'function') return;
+    const username = String(email?.value || '').trim();
+    const secret = String(password?.value || '');
+    if (!username || !secret) return;
+    try { bridge.rememberLogin(username, secret); } catch (_) {}
   }
 
   function enhance() {
@@ -42,6 +51,8 @@
       password.addEventListener('focus', () => requestAutofill(password), {once:true});
     }
 
+    form.addEventListener('submit', () => rememberLogin(email,password));
+
     if (!document.getElementById('h38UseSavedLogin')) {
       const button = document.createElement('button');
       button.id = 'h38UseSavedLogin';
@@ -62,7 +73,7 @@
       help = document.createElement('p');
       help.id = 'h38AutofillHelp';
       help.className = 'muted h38-autofill-help';
-      help.textContent = 'Choose your saved Highway 38 login. Android fills both fields; you still control the Sign in button.';
+      help.textContent = 'Use your saved Highway 38 login, or sign in once and this Android phone will securely remember it for next time.';
       form.appendChild(help);
     }
 
