@@ -1,9 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260809-1545';
+const BUILD='20260809-1605';
 const RESUME_KEY='h38:field-visit-resume-step';
 let lastTab='';
 let resumeTimer=0;
+let recoveryBusy=false;
+let recoveryTimer=0;
 function nativeAndroid(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native||!!window.H38NativeScanner;}
 function C(){return window.H38_FIELD_VISIT_CORE;}
 function W(){return window.H38_FIELD_VISIT_WORKFLOW;}
@@ -17,7 +19,6 @@ function remembered(){
 function clearRemembered(){try{sessionStorage.removeItem(RESUME_KEY);}catch(_){ }}
 function clearOldError(){try{const core=C();if(core?.state){core.state.message='';const live=document.getElementById('fieldVisitLive');if(live)live.textContent='';}}catch(_){}}
 function alignStep(tab,instant){
-  const panel=document.querySelector(`.field-panel.${tab==='job'?'active':'active'}`);
   const active=document.querySelector('.field-panel.active');
   const target=active?.querySelector('.field-step-head,.field-hero')||active;
   if(!target)return false;
@@ -32,15 +33,51 @@ function renderTab(tab,forceOpen){
   requestAnimationFrame(()=>{if(!alignStep(tab,true))setTimeout(()=>alignStep(tab,true),120);});
   return true;
 }
+async function ensureSiteVisitOpen(){
+  if(C()?.state?.visit)return true;
+  try{await window.H38_FIELD_VISIT?.open?.();}catch(_){ }
+  return !!C()?.state?.visit;
+}
 function restoreRemembered(){
   if(!nativeAndroid())return;
   const keep=remembered();if(!keep)return;
   clearTimeout(resumeTimer);
-  resumeTimer=setTimeout(()=>{
-    const core=C();
-    if(!core?.state?.visit)return;
+  resumeTimer=setTimeout(async()=>{
+    if(!await ensureSiteVisitOpen())return;
     renderTab(keep.tab||'capture',true);
   },70);
+}
+function recoveredUrl(){
+  try{return String(window.H38NativeScanner?.getRecoveredWalkthroughUrl?.()||window.AndroidH38Native?.getRecoveredWalkthroughUrl?.()||'');}catch(_){return''}
+}
+async function recoverAcceptedWalkthrough(){
+  if(!nativeAndroid()||recoveryBusy)return;
+  const url=recoveredUrl();
+  if(!url)return;
+  const workflow=W();
+  if(!workflow?.captureFiles){scheduleRecovery();return;}
+  if(!await ensureSiteVisitOpen()){scheduleRecovery();return;}
+  recoveryBusy=true;
+  remember('capture');
+  renderTab('capture',true);
+  try{
+    const response=await fetch(url,{cache:'no-store',credentials:'same-origin'});
+    if(!response.ok)throw Error(`Recovered walkthrough could not be read (${response.status}).`);
+    const blob=await response.blob();
+    if(!blob.size)throw Error('Recovered walkthrough video was empty.');
+    const file=new File([blob],`h38-site-walkthrough-${Date.now()}.mp4`,{type:blob.type||'video/mp4',lastModified:Date.now()});
+    await workflow.captureFiles([file]);
+    try{window.H38NativeScanner?.confirmRecoveredWalkthroughConsumed?.();}catch(_){try{window.AndroidH38Native?.confirmRecoveredWalkthroughConsumed?.();}catch(__){}}
+    nextCaptureStep();
+  }catch(error){
+    toast(error?.message||String(error),true);
+  }finally{
+    recoveryBusy=false;
+  }
+}
+function scheduleRecovery(){
+  clearTimeout(recoveryTimer);
+  recoveryTimer=setTimeout(()=>{void recoverAcceptedWalkthrough();},180);
 }
 function openNativeCapture(){
   clearOldError();remember('capture');
@@ -115,10 +152,11 @@ window.addEventListener('click',event=>{
     if(tab)requestAnimationFrame(()=>{renderTab(tab,true);});
   }
 },true);
-for(const ev of ['focus','pageshow'])window.addEventListener(ev,restoreRemembered);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)restoreRemembered();});
-const observer=new MutationObserver(()=>{watchNativeReturn();bindStepLanding();restoreRemembered();});
+for(const ev of ['focus','pageshow'])window.addEventListener(ev,()=>{restoreRemembered();scheduleRecovery();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){restoreRemembered();scheduleRecovery();}});
+window.addEventListener('h38:native-scanner-ready',scheduleRecovery);
+const observer=new MutationObserver(()=>{watchNativeReturn();bindStepLanding();restoreRemembered();if(recoveredUrl())scheduleRecovery();});
 observer.observe(document.documentElement,{childList:true,subtree:true});
-watchNativeReturn();bindStepLanding();restoreRemembered();
-window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,webrtcBypassed:true,saveAndStartGuarded:true,returnToCapture:true,nextStepFocused:true,resumeStepPreserved:true,stepLandingAligned:true};
+watchNativeReturn();bindStepLanding();restoreRemembered();scheduleRecovery();
+window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,webrtcBypassed:true,saveAndStartGuarded:true,returnToCapture:true,nextStepFocused:true,resumeStepPreserved:true,stepLandingAligned:true,activityRestartRecovery:true,recoveredVideoIngest:true};
 })();
