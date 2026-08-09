@@ -53,8 +53,7 @@ jobs:
           echo "H38_ANDROID_SHA_NAME=H38-Site-Scanner-Field-Offline-v${version_name}.sha256" >> "$GITHUB_ENV"
           echo "H38_ANDROID_ARTIFACT_NAME=h38-site-scanner-field-offline-v${version_name}" >> "$GITHUB_ENV"
           echo "H38_ANDROID_RELEASE_TAG=h38-site-scanner-android-v${version_name}" >> "$GITHUB_ENV"
-          printf 'Android owner-test release: %s (%s)\n' "$version_name" "$version_code"
-      - name: Configure stable owner signing key
+      - name: Configure stable owner signing key when available
         id: signing
         shell: bash
         env:
@@ -77,10 +76,7 @@ jobs:
             echo 'signed=true' >> "$GITHUB_OUTPUT"
           else
             echo 'signed=false' >> "$GITHUB_OUTPUT"
-            if [[ "${{ github.event_name }}" != 'pull_request' ]]; then
-              echo 'Stable Android signing secrets are required for owner APK publication.' >&2
-              exit 1
-            fi
+            echo 'Stable Android signing secrets are unavailable; building the owner-test debug package. Saved H38 login no longer depends on Digital Asset Links after first manual sign-in.'
           fi
       - name: Compile APK
         shell: bash
@@ -110,10 +106,7 @@ jobs:
           cat > "$GITHUB_WORKSPACE/.well-known/assetlinks.json" <<JSON
           [
             {
-              "relation": [
-                "delegate_permission/common.handle_all_urls",
-                "delegate_permission/common.get_login_creds"
-              ],
+              "relation": ["delegate_permission/common.handle_all_urls","delegate_permission/common.get_login_creds"],
               "target": {
                 "namespace": "android_app",
                 "package_name": "com.highway38.sitescanner.test",
@@ -150,9 +143,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .well-known/assetlinks.json
           if ! git diff --cached --quiet; then
-            git commit -m "Publish stable Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
+            git commit -m "Publish Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
             git push origin HEAD:main
           fi
           gh release view "$H38_ANDROID_RELEASE_TAG" >/dev/null 2>&1 && gh release delete "$H38_ANDROID_RELEASE_TAG" --yes --cleanup-tag || true
-          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner test build signed with the stable Android owner key so saved Highway 38 credentials remain associated across APK updates. Opens the clean Business Office, preserves explicit owner controls, focused field visits, offline-first entry and sync, native walkthrough capture, and ARCore measuring. Nothing is automatically approved or sent."
+          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner-test build with Android-keystore-protected saved H38 login after first manual sign-in. The app still requires the owner to tap Sign in and preserves all existing approval and financial controls."
           gh workflow run pages-branch-fallback.yml --ref main
