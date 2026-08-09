@@ -92,7 +92,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.3"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.4"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -162,16 +162,6 @@ public final class MainActivity extends Activity {
                 try {
                     if (fileChooserParams.isCaptureEnabled()
                             && acceptsVideo(fileChooserParams.getAcceptTypes())) {
-                        if (checkSelfPermission(Manifest.permission.CAMERA)
-                                != PackageManager.PERMISSION_GRANTED) {
-                            pendingFileCallback = null;
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "Camera permission is required for the walkthrough.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                            return false;
-                        }
                         Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
                         captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
                         captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);

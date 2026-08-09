@@ -102,12 +102,13 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.5.3','https://highway38solutions.com/commercial-app/',
+  'H38SiteScannerAndroid/0.5.4','https://highway38solutions.com/commercial-app/',
   'window.H38NativeScanner','h38:native-scanner-ready','onPageCommitVisible',
   'buildLaunchCover','hideLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE',
   'MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','fileChooserParams.isCaptureEnabled()',
   'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri'
 ]) must(androidShell, token, 'Android app shell');
+absent(androidShell, 'Camera permission is required for the walkthrough.', 'native system camera capture');
 for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
   'import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM',
@@ -131,7 +132,8 @@ console.log(JSON.stringify({
   androidStableLaunchCover: true,
   androidNativeWalkthroughVideoCapture: true,
   androidGuaranteedWalkthroughReturnUri: true,
-  androidVersion: '0.5.3',
+  androidSystemCameraPermissionGateRemoved: true,
+  androidVersion: '0.5.4',
   retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,
