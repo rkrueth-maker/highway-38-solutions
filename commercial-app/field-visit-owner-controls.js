@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260809-0213';
+const BUILD='20260809-0230';
 const C=window.H38_FIELD_VISIT_CORE;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!C||!window.H38DB)return;
@@ -44,5 +44,6 @@ async function decorate(){if(decorating)return;const app=document.getElementById
 function installRender(){if(C.state.__ownerDeleteRenderWrapped)return;const base=C.state.render;if(typeof base!=='function')return;C.state.__ownerDeleteRenderWrapped=true;C.setRender(function(){base();void decorate();});void decorate();}
 const style=document.createElement('style');style.textContent=`.field-owner-manager{margin-top:.8rem}.field-owner-photo-list,.field-owner-draft-list{display:grid;gap:.55rem;margin-top:.7rem}.field-owner-photo,.field-owner-draft{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:.65rem;padding:.55rem;border:1px solid #dce6ec;border-radius:10px;background:#fff}.field-owner-draft{grid-template-columns:minmax(0,1fr) auto}.field-owner-photo img,.field-owner-photo-placeholder{width:58px;height:58px;border-radius:8px;object-fit:cover;background:#eef3f6;display:grid;place-items:center}.field-owner-photo>div,.field-owner-draft>div{display:grid;gap:.15rem;min-width:0}.field-owner-photo small,.field-owner-draft small,.field-owner-manager>small{color:#52616d}.field-owner-delete-photo,.field-owner-delete-draft{color:#a32828;font-weight:800}`;document.head.appendChild(style);
 addEventListener('online',()=>void flushTombstones());setInterval(()=>{installRecapture();if(navigator.onLine)void flushTombstones();},4000);setTimeout(()=>{installRender();installRecapture();if(navigator.onLine)void flushTombstones();},0);
+if(!document.querySelector('script[data-h38-operator-direct]')){const script=document.createElement('script');script.dataset.h38OperatorDirect='1';script.src='./operator-direct-controls.js?build=20260809-0230';document.head.appendChild(script);}
 window.H38_FIELD_VISIT_OWNER_CONTROLS={build:BUILD,deletePhoto,deleteDraft,flushTombstones,freshFramesOnReplacement:true,manualDetailPhotosPreserved:true,replacedFramesNotActive:true,legacyDraftIdentityCleanup:true,photoDeleteOwnerConfirmed:true,draftDeleteOwnerConfirmed:true,linkedQuoteDeleted:false,linkedCustomerDeleted:false,automaticApproval:false,automaticCustomerSending:false};
 })();
