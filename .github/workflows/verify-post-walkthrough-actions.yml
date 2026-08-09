@@ -1,17 +1,23 @@
-name: Verify post walkthrough actions
+name: Verify walkthrough video notes
 
 on:
   pull_request:
     paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/service-worker.js'
+      - 'commercial-app/field-visit-voice-capture.js'
+      - 'commercial-app/field-visit-transcription.js'
       - 'commercial-app/field-visit-walkthrough-guidance.js'
-      - 'supabase/functions/h38-field-note-transcription/**'
       - 'scripts/verify-post-walkthrough-actions.js'
       - '.github/workflows/verify-post-walkthrough-actions.yml'
   push:
     branches: [main]
     paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/service-worker.js'
+      - 'commercial-app/field-visit-voice-capture.js'
+      - 'commercial-app/field-visit-transcription.js'
       - 'commercial-app/field-visit-walkthrough-guidance.js'
-      - 'supabase/functions/h38-field-note-transcription/**'
       - 'scripts/verify-post-walkthrough-actions.js'
       - '.github/workflows/verify-post-walkthrough-actions.yml'
 
@@ -26,7 +32,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify post-walkthrough actions and dictation contract
+      - name: Verify walkthrough video to professional notes contract
         run: node scripts/verify-post-walkthrough-actions.js
-      - name: Verify guidance JavaScript syntax
-        run: node --check commercial-app/field-visit-walkthrough-guidance.js
+      - name: Verify walkthrough JavaScript syntax
+        run: |
+          node --check commercial-app/field-visit-voice-capture.js
+          node --check commercial-app/field-visit-transcription.js
+          node --check commercial-app/field-visit-walkthrough-guidance.js
