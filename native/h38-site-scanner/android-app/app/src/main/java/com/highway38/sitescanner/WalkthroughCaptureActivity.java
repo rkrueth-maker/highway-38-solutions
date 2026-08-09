@@ -118,9 +118,9 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         controls.addView(lightButton, lightParams);
 
         finishButton = new Button(this);
-        finishButton.setText("Stop & Use Video");
+        finishButton.setText("Start Recording");
         finishButton.setEnabled(false);
-        finishButton.setOnClickListener(v -> stopAndUseVideo());
+        finishButton.setOnClickListener(v -> primaryAction());
         LinearLayout.LayoutParams finishParams = new LinearLayout.LayoutParams(0, dp(56), 2f);
         finishParams.leftMargin = dp(8);
         controls.addView(finishButton, finishParams);
@@ -196,11 +196,21 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
                 boolean hasFlash = camera.getCameraInfo().hasFlashUnit();
                 lightButton.setEnabled(hasFlash);
                 lightButton.setText(hasFlash ? "Light On" : "No Light");
-                startRecording();
+                statusView.setText("Camera + microphone ready. Turn the light on if needed, then start recording.");
+                finishButton.setText("Start Recording");
+                finishButton.setEnabled(true);
             } catch (Throwable error) {
                 fail("Could not start the H38 camera: " + safeMessage(error));
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void primaryAction() {
+        if (activeRecording == null && outputFile == null) {
+            startRecording();
+        } else {
+            stopAndUseVideo();
+        }
     }
 
     private void toggleTorch() {
@@ -208,9 +218,14 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
         if (activeCamera == null || !activeCamera.getCameraInfo().hasFlashUnit()) return;
         boolean requested = !torchOn;
         lightButton.setEnabled(false);
-        activeCamera.getCameraControl().enableTorch(requested).addListener(() -> {
-            torchOn = Boolean.TRUE.equals(activeCamera.getCameraInfo().getTorchState().getValue())
-                    || requested;
+        ListenableFuture<Void> torchFuture = activeCamera.getCameraControl().enableTorch(requested);
+        torchFuture.addListener(() -> {
+            try {
+                torchFuture.get();
+                torchOn = requested;
+            } catch (Exception ignored) {
+                torchOn = !requested;
+            }
             runOnUiThread(() -> {
                 lightButton.setText(torchOn ? "Light Off" : "Light On");
                 lightButton.setEnabled(true);
@@ -228,7 +243,10 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     }
 
     private void startRecording() {
-        if (videoCapture == null || activeRecording != null) return;
+        if (videoCapture == null || activeRecording != null || outputFile != null) return;
+        finishButton.setEnabled(false);
+        finishButton.setText("Starting…");
+        statusView.setText("Starting camera + microphone recording…");
         File dir = new File(getFilesDir(), "walkthroughs");
         if (!dir.exists() && !dir.mkdirs()) {
             fail("Could not create the H38 walkthrough folder.");
@@ -254,6 +272,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     private void handleVideoEvent(VideoRecordEvent event) {
         if (event instanceof VideoRecordEvent.Start) {
             statusView.setText("Recording camera + microphone");
+            finishButton.setText("Stop & Use Video");
             finishButton.setEnabled(true);
             return;
         }
@@ -274,13 +293,13 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     }
 
     private void stopAndUseVideo() {
-        if (finalized) return;
+        if (finalized || outputFile == null) return;
         finishButton.setEnabled(false);
         statusView.setText("Saving walkthrough into H38…");
         turnTorchOff();
         if (activeRecording != null) {
             activeRecording.stop();
-        } else if (outputFile != null && outputFile.exists()) {
+        } else if (outputFile.exists()) {
             completeWithFile();
         }
     }
