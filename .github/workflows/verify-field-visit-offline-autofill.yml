@@ -42,7 +42,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify field workflow, offline queue, video walkthrough, and autofill contract
+      - name: Verify field workflow, offline queue, video walkthrough, owner cleanup, and autofill contract
         run: node scripts/verify-field-visit-offline-autofill.js
       - name: Verify walkthrough voice recovery and stable Android startup
         run: node scripts/verify-walkthrough-voice-recovery.js
@@ -56,6 +56,7 @@ jobs:
           node --check commercial-app/field-visit-photo-review.js
           node --check commercial-app/field-visit-transcription.js
           node --check commercial-app/field-visit-voice-capture.js
+          node --check commercial-app/field-visit-owner-controls.js
           node --check commercial-app/field-visit-walkthrough-guidance.js
           node --check commercial-app/auth-autofill.js
           node --check commercial-app/service-worker.js
