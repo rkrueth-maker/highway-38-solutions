@@ -57,7 +57,7 @@ const voicePos=index.indexOf('field-visit-voice-capture.js?build=20260809-0048')
 const transcriptPos=index.indexOf('field-visit-transcription.js?build=20260809-0048');
 const guidancePos=index.indexOf('field-visit-walkthrough-guidance.js?build=20260809-0048');
 if(!(voicePos>0&&transcriptPos>voicePos&&guidancePos>transcriptPos))throw new Error('walkthrough video-note runtime load order is wrong');
-for(const s of ["CACHE_NAME='h38-business-office-20260809-0213'",'field-visit-voice-capture.js','field-visit-transcription.js','field-visit-walkthrough-guidance.js'])must(sw,s);
+for(const s of ["CACHE_NAME='h38-business-office-20260809-0048'",'field-visit-voice-capture.js','field-visit-transcription.js','field-visit-walkthrough-guidance.js'])must(sw,s);
 for(const s of ['business_memberships','siteCaptureSessions','Walkthrough Voice Audio','gpt-4o-mini-transcribe','UNVERIFIED_SPOKEN','automaticApproval: false','automaticCustomerSending: false'])must(server,s);
 for(const runtime of [voice,transcription,guidance])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])mustNot(runtime,s);
 console.log(JSON.stringify({status:'PASS',oneWalkthroughVideo:true,speechFromSameRecording:true,microphoneRequired:true,videoOnlyFallback:false,professionalNotes:true,rawTranscriptInternalOnly:true,automaticFieldSync:true,targetedNextNeed:true,separateDictationWorkflow:false,automaticApproval:false,automaticCustomerSending:false},null,2));
