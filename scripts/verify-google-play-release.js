@@ -23,12 +23,12 @@ must(loader,'play-compliance.js?build=20260807-2355','supported Office loader');
 must(sw,"'play-compliance.js'",'offline shell');
 must(sw,"'./play-compliance.js'",'offline shell');
 must(strings,'H38 Business Office','Android app label');
-for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 9',"versionName '0.5.4'"])must(gradle,marker,'Android release config');
+for(const marker of ["applicationId 'com.highway38.sitescanner'",'targetSdk 35','versionCode 10',"versionName '0.5.5'"])must(gradle,marker,'Android release config');
 for(const marker of ['android.permission.CAMERA','android.permission.INTERNET','android.permission.RECORD_AUDIO','android:usesCleartextTraffic="false"'])must(manifest,marker,'Android manifest');
-for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.4','shouldResetRestoredUrl','onPageCommitVisible','buildLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','pendingCaptureUri','createWalkthroughVideoUri'])must(main,marker,'Android Business Office shell');
-absent(main,'Camera permission is required for the walkthrough.','native system camera capture');
+for(const marker of ['https://highway38solutions.com/commercial-app/','H38SiteScannerAndroid/0.5.5','shouldResetRestoredUrl','onPageCommitVisible','buildLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','pendingCaptureUri','createWalkthroughVideoUri','REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','launchWalkthroughVideoCapture'])must(main,marker,'Android Business Office shell');
+absent(main,'Camera permission is required for the walkthrough.','retired dead-end camera permission gate');
 absent(main,'nativeScanner=1&fieldMode=1','Android clean startup');
 for(const marker of ['Build H38 Google Play AAB','push:','branches: [main]','H38_ANDROID_UPLOAD_KEYSTORE_B64','bundleRelease','jarsigner -verify -verbose -certs','jar verified.','h38-google-play-v${{ steps.version.outputs.version_name }}'])must(workflow,marker,'Play AAB workflow');
 absent(workflow,'jarsigner -verify -strict','Play AAB signature verification');
 
-console.log('PASS — H38 Google Play internal release contract 0.5.4');
+console.log('PASS — H38 Google Play internal release contract 0.5.5');
