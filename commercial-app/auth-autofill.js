@@ -1,7 +1,8 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-1623-stable';
+  const BUILD = '20260809-1705-native-credential';
   let scheduled = false;
+  let lastNativeRequest = 0;
 
   function nativeBridge() {
     return window.AndroidH38Native && typeof window.AndroidH38Native.requestAutofill === 'function'
@@ -9,7 +10,10 @@
   }
 
   function requestAutofill(input) {
-    input?.focus?.();
+    const now = Date.now();
+    if (now - lastNativeRequest < 1400) return;
+    lastNativeRequest = now;
+    try { input?.focus?.({preventScroll:true}); } catch (_) { input?.focus?.(); }
     try { nativeBridge()?.requestAutofill(); } catch (_) {}
   }
 
@@ -44,7 +48,10 @@
       button.type = 'button';
       button.className = 'secondary h38-saved-login';
       button.textContent = '🔐 Use saved username and password';
-      button.addEventListener('click', () => requestAutofill(email || password));
+      button.addEventListener('click', () => {
+        lastNativeRequest = 0;
+        requestAutofill(email || password);
+      });
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button);
       else form.appendChild(button);
@@ -55,11 +62,15 @@
       help = document.createElement('p');
       help.id = 'h38AutofillHelp';
       help.className = 'muted h38-autofill-help';
-      help.textContent = 'Tap either field or Use saved username and password to open Google Password Manager or your selected autofill provider.';
+      help.textContent = 'Choose your saved Highway 38 login. Android fills both fields; you still control the Sign in button.';
       form.appendChild(help);
     }
 
-    setTimeout(() => requestAutofill(email), 200);
+    window.addEventListener('h38:saved-login-filled', () => {
+      if (help) help.textContent = 'Saved username and password filled. Tap Sign in.';
+    }, {once:true});
+
+    setTimeout(() => requestAutofill(email), 260);
   }
 
   function schedule() {
