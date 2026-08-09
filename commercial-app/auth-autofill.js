@@ -1,8 +1,9 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-login-invite-final';
+  const BUILD = '20260809-login-invite-typing-safe';
   let scheduled = false;
   let invitationTimer = 0;
+  let nativeAutofillDisabled = false;
 
   function nativeBridge() {
     return window.AndroidH38Native || null;
@@ -13,23 +14,22 @@
     return !!bridge && typeof bridge.requestAutofill === 'function';
   }
 
-  function requestAutofill(email) {
+  function disableWebAutofillInterference() {
+    if (nativeAutofillDisabled) return;
+    const bridge = nativeBridge();
+    if (!bridge || typeof bridge.disableWebAutofill !== 'function') return;
+    try {
+      bridge.disableWebAutofill();
+      nativeAutofillDisabled = true;
+    } catch (_) {}
+  }
+
+  function requestAutofill() {
     const bridge = nativeBridge();
     if (!bridge || typeof bridge.requestAutofill !== 'function') return;
-    try {
-      if (email) {
-        email.focus({preventScroll:true});
-        if (typeof email.setSelectionRange === 'function') {
-          const n = String(email.value || '').length;
-          email.setSelectionRange(n, n);
-        }
-      }
-    } catch (_) {
-      try { email?.focus?.(); } catch (_) {}
-    }
-    setTimeout(() => {
-      try { bridge.requestAutofill(); } catch (_) {}
-    }, 60);
+    disableWebAutofillInterference();
+    try { bridge.requestAutofill(); }
+    catch (_) { window.dispatchEvent(new CustomEvent('h38:saved-login-unavailable')); }
   }
 
   function rememberLogin(email,password) {
@@ -79,14 +79,13 @@
     let state = {};
     try { state = auth.getState() || {}; } catch (_) { return; }
     if (!state.userId) return;
-    if (!document.getElementById('h38RecoveryForm')) {
-      auth.render('recovery');
-    }
+    if (!document.getElementById('h38RecoveryForm')) auth.render('recovery');
     watchInvitationCompletion();
   }
 
   function enhance() {
     scheduled = false;
+    disableWebAutofillInterference();
     enforceInvitationPasswordSetup();
 
     const form = document.getElementById('h38AuthForm');
@@ -110,7 +109,7 @@
       password.setAttribute('enterkeyhint','go');
     }
 
-    form.addEventListener('submit', () => rememberLogin(email,password), {once:true});
+    form.addEventListener('submit', () => rememberLogin(email,password));
 
     let button = document.getElementById('h38UseSavedLogin');
     if (isAndroidApp() && !button) {
@@ -119,7 +118,7 @@
       button.type = 'button';
       button.className = 'secondary h38-saved-login';
       button.textContent = '🔐 Use saved username and password';
-      button.addEventListener('click', () => requestAutofill(email));
+      button.addEventListener('click', requestAutofill);
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button);
       else form.appendChild(button);
@@ -136,11 +135,15 @@
       form.appendChild(help);
     }
     help.textContent = isAndroidApp()
-      ? 'Tap Use saved username and password to ask Android for the saved Highway 38 login, or type normally.'
+      ? 'Type normally, or tap Use saved username and password. Saved login never auto-opens or auto-submits.'
       : 'Enter your email and password, then tap Sign in.';
 
     window.addEventListener('h38:saved-login-filled', () => {
       if (help) help.textContent = 'Saved username and password filled. Tap Sign in.';
+    });
+    window.addEventListener('h38:saved-login-unavailable', () => {
+      if (help) help.textContent = 'Android did not return a saved H38 credential. Type normally; after sign-in the app keeps an encrypted local copy for this button.';
+      try { email?.focus?.({preventScroll:true}); } catch (_) { try { email?.focus?.(); } catch (_) {} }
     });
   }
 
@@ -151,6 +154,7 @@
   }
 
   function start() {
+    disableWebAutofillInterference();
     const main = document.getElementById('mainContent');
     if (main) new MutationObserver(schedule).observe(main,{childList:true,subtree:true});
     if (invitationPending() && !invitationTimer) invitationTimer = setInterval(enforceInvitationPasswordSetup, 150);
