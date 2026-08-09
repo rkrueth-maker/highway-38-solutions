@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260808-2115';
+const BUILD='20260808-2145';
 const C=window.H38_FIELD_VISIT_CORE;
 const recovery=window.H38_FIELD_VISIT_RECOVERY;
 const reviewer=window.H38_FIELD_VISIT_PHOTO_REVIEW;
@@ -20,12 +20,12 @@ function photoRecommendations(review){
   if(!items.length&&confidence==='low')items.push('Take a clear close-up of the main work area or problem condition.');
   return unique(items).slice(0,4);
 }
-function evidenceKey(){const v=visit();if(!v)return'';return [v.sessionId,(v.videoAttachmentIds||[]).length,(v.walkthroughFrameIds||[]).length,(v.attachmentIds||[]).length,(v.measurementIds||[]).length,text(v.notes).length,text(v.scope).length].join('|')}
+function evidenceKey(){const v=visit();if(!v)return'';return [v.sessionId,(v.videoAttachmentIds||[]).length,(v.walkthroughFrameIds||[]).length,(v.attachmentIds||[]).length,(v.measurementIds||[]).length,text(v.notes).length,text(v.scope).length,text(v.walkthroughTranscriptAttachmentId),text(v.walkthroughTranscript).length].join('|')}
 async function persist(){const s=state();if(!s)return;s.updatedAt=new Date().toISOString();await C.saveDraft?.()}
-async function setPhotoReviewState(status){const s=state();if(!s)return;s.status=status==='RUNNING'?'ANALYZING':status;s.message=status==='RUNNING'?'H38 is reviewing the walkthrough frames, scope and saved measurements…':'';await persist();C.state.render?.()}
+async function setPhotoReviewState(status){const s=state();if(!s)return;s.status=status==='RUNNING'?'ANALYZING':status;s.message=status==='RUNNING'?'H38 is reviewing the walkthrough frames, voice notes, scope and saved measurements…':'';await persist();C.state.render?.()}
 async function failPhotoReview(message){const s=state();if(!s)return;s.status='FAILED';s.message=text(message);s.evidenceKey=evidenceKey();await persist();C.state.render?.()}
 async function applyPhotoReview(review){const s=state();if(!s)return;s.status='COMPLETE';s.message='Walkthrough review complete.';s.review=review||{};s.recommendedPhotos=photoRecommendations(review||{});s.missingMeasurements=unique(Array.isArray(review?.missingMeasurements)?review.missingMeasurements:[]).slice(0,8);s.evidenceKey=evidenceKey();lastAttemptKey=s.evidenceKey;await persist();C.state.render?.()}
-window.H38_FIELD_VISIT_GUIDANCE={build:BUILD,setPhotoReviewState,failPhotoReview,applyPhotoReview,walkthroughFirst:true};
+window.H38_FIELD_VISIT_GUIDANCE={build:BUILD,setPhotoReviewState,failPhotoReview,applyPhotoReview,walkthroughFirst:true,voiceBeforeReview:true};
 async function drain(){
   if(syncBusy||!navigator.onLine||!recovery?.syncNow)return false;
   const waiting=await recovery.waitingOperations?.()||[];
@@ -37,16 +37,23 @@ async function drain(){
 function scheduleSync(delay=500){clearTimeout(syncTimer);syncTimer=setTimeout(()=>void drain().then(ok=>{if(ok)void maybeReview()}),delay)}
 async function maybeReview(force=false){
   const v=visit(),s=state();if(!v||!s||reviewBusy||!reviewer?.run||!navigator.onLine)return;
-  const frames=(v.walkthroughFrameIds||[]).length,videos=(v.videoAttachmentIds||[]).length,key=evidenceKey();
+  const frames=(v.walkthroughFrameIds||[]).length,videos=(v.videoAttachmentIds||[]).length;
   if(!videos||!frames||!v.quoteId||!v.sessionId)return;
-  if(!force&&s.status==='COMPLETE'&&s.evidenceKey===key)return;
-  if(!force&&lastAttemptKey===key&&s.status==='ANALYZING')return;
-  lastAttemptKey=key;reviewBusy=true;s.status='SYNCING';s.message='Uploading walkthrough evidence before analysis…';await persist();C.state.render?.();
+  const beforeKey=evidenceKey();
+  if(!force&&s.status==='COMPLETE'&&s.evidenceKey===beforeKey&&v.walkthroughTranscriptStatus==='COMPLETE')return;
+  if(!force&&lastAttemptKey===beforeKey&&s.status==='ANALYZING')return;
+  reviewBusy=true;s.status='SYNCING';s.message='Uploading walkthrough evidence before voice and image analysis…';await persist();C.state.render?.();
   try{
     await window.H38_FIELD_VISIT_VIDEO?.syncPending?.();
     const synced=await drain();
     if(!synced)throw Error('Some walkthrough evidence is still waiting to sync. H38 will retry automatically while you stay online.');
-    s.status='ANALYZING';s.message='H38 is analyzing the walkthrough and deciding what still needs a photo or measurement.';await persist();C.state.render?.();
+    if(window.H38_FIELD_VISIT_TRANSCRIPTION?.ensure){
+      s.status='ANALYZING';s.message='H38 is turning the walkthrough voice into notes before reviewing the site.';await persist();C.state.render?.();
+      await window.H38_FIELD_VISIT_TRANSCRIPTION.ensure(false);
+    }
+    const key=evidenceKey();
+    if(!force&&s.status==='COMPLETE'&&s.evidenceKey===key)return;
+    lastAttemptKey=key;s.status='ANALYZING';s.message='H38 is analyzing the walkthrough, voice notes and measurements to decide what is still missing.';await persist();C.state.render?.();
     await reviewer.run();
   }catch(error){await failPhotoReview(error?.message||String(error))}
   finally{reviewBusy=false}
@@ -61,7 +68,6 @@ function guidanceCard(){
 }
 function decorate(){
   const app=document.getElementById('h38FieldVisitApp');if(!app)return;
-  const capture=app.querySelector('.field-panel.active')||app.querySelector('.field-panel');
   const stage=app.querySelector('[data-field-walkthrough-stage]');if(!stage)return;
   app.querySelector('#fieldWalkthroughAi')?.remove();stage.insertAdjacentHTML('afterend',guidanceCard());
   app.querySelector('#fieldAiRetry')?.addEventListener('click',()=>void maybeReview(true));
