@@ -4,6 +4,8 @@ const voice=fs.readFileSync('commercial-app/field-visit-voice-capture.js','utf8'
 const transcription=fs.readFileSync('commercial-app/field-visit-transcription.js','utf8');
 const guidance=fs.readFileSync('commercial-app/field-visit-walkthrough-guidance.js','utf8');
 const cameraFix=fs.readFileSync('commercial-app/android-camera-direct-fix.js','utf8');
+const nativeGuard=fs.readFileSync('commercial-app/android-native-walkthrough-guard.js','utf8');
+const topAction=fs.readFileSync('commercial-app/site-visit-top-action.js','utf8');
 const index=fs.readFileSync('commercial-app/index.html','utf8');
 const sw=fs.readFileSync('commercial-app/service-worker.js','utf8');
 const server=fs.readFileSync('supabase/functions/h38-walkthrough-transcription/index.ts','utf8');
@@ -17,7 +19,11 @@ for(const s of ['Professional walkthrough notes ready.','Walkthrough field notes
 for(const s of ['ensureVoiceCaptureLoaded','field-visit-voice-capture.js','await window.H38_FIELD_VISIT_VOICE_CAPTURE?.syncPending?.()','await waitForVideoNotes()','microphoneRequired:true','videoOnlyFallback:false','H38 will not continue with video only.','Notes from video','Photos still needed','Measurements still needed','automaticFieldSync:true','targetedNextNeed:true','reviewer.run()'])must(guidance,s);
 for(const s of ['Dictate Note','h38-field-note-transcription','dictatedFieldNoteAudio','syncPendingDictation'])mustNot(guidance,s);
 for(const s of ["const BUILD='20260809-1145'",'nativeAndroidShell','openNativeWalkthroughCapture','fieldVideoInput','nativeSystemVideoCapture:true','webRtcBypassedInNativeShell:true','cameraFirstMicrophoneRecovery:true','microphoneRequired:true','videoOnlyFallback:false'])must(cameraFix,s);
+for(const s of ['H38_ANDROID_NATIVE_WALKTHROUGH_GUARD','nativeEntryOnly:true','webrtcBypassed:true','saveAndStartGuarded:true','#fieldContext','#fieldWalkthrough','openNativeCapture'])must(nativeGuard,s);
+for(const s of ['H38_SITE_VISIT_TOP_ACTION','Start Site Visit','rowActionRemoved:true','keyboardSafe:true','[data-customer-site]'])must(topAction,s);
 must(index,'android-camera-direct-fix.js?build=20260809-1145');
+must(index,'android-native-walkthrough-guard.js?build=20260809-1220');
+must(index,'site-visit-top-action.js?build=20260809-1220');
 mustNot(index,'android-camera-direct-fix.js?build=20260809-1110');
 must(index,'field-visit-voice-capture.js?build=20260809-0213');
 must(index,'operator-direct-controls.js?build=20260809-0245&rev=20260809-0315');
@@ -27,9 +33,9 @@ const transcriptPos=index.indexOf('field-visit-transcription.js?build=20260809-0
 const directPos=index.indexOf('operator-direct-controls.js?build=20260809-0245&rev=20260809-0315');
 const guidancePos=index.indexOf('field-visit-walkthrough-guidance.js?build=20260809-0048');
 if(!(cameraPos>0&&voicePos>cameraPos&&transcriptPos>voicePos&&directPos>transcriptPos&&guidancePos>directPos))throw new Error('walkthrough video-note runtime load order is wrong');
-for(const s of ["CACHE_NAME='h38-business-office-20260809-0255'",'android-camera-direct-fix.js','field-visit-voice-capture.js','field-visit-transcription.js','operator-direct-controls.js','field-visit-walkthrough-guidance.js'])must(sw,s);
+for(const s of ["CACHE_NAME='h38-business-office-20260809-0255'",'android-camera-direct-fix.js','android-native-walkthrough-guard.js','field-visit-voice-capture.js','field-visit-transcription.js','operator-direct-controls.js','field-visit-walkthrough-guidance.js','site-visit-top-action.js'])must(sw,s);
 for(const s of ['business_memberships','siteCaptureSessions','Walkthrough Voice Audio','gpt-4o-mini-transcribe','UNVERIFIED_SPOKEN','automaticApproval: false','automaticCustomerSending: false','let source = video','if (audioId)','https://api.openai.com/v1/audio/transcriptions'])must(server,s);
-for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_DURATION_LIMIT','fileChooserParams.isCaptureEnabled()','acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','H38SiteScannerAndroid/0.5.2'])must(main,s);
-for(const s of ["versionCode 7","versionName '0.5.2'"])must(gradle,s);
-for(const runtime of [voice,transcription,guidance,cameraFix])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])mustNot(runtime,s);
-console.log(JSON.stringify({status:'PASS',oneWalkthroughVideo:true,speechFromSameRecording:true,microphoneRequired:true,videoOnlyFallback:false,androidNativeVideoCapture:true,webRtcBypassedInInstalledAndroidShell:true,videoContainerTranscriptionFallback:true,currentAndroidRecorderLoader:true,professionalNotes:true,rawTranscriptInternalOnly:true,automaticFieldSync:true,targetedNextNeed:true,separateDictationWorkflow:false,automaticApproval:false,automaticCustomerSending:false},null,2));
+for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','fileChooserParams.isCaptureEnabled()','acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri','H38SiteScannerAndroid/0.5.3'])must(main,s);
+for(const s of ["versionCode 8","versionName '0.5.3'"])must(gradle,s);
+for(const runtime of [voice,transcription,guidance,cameraFix,nativeGuard,topAction])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])mustNot(runtime,s);
+console.log(JSON.stringify({status:'PASS',oneWalkthroughVideo:true,speechFromSameRecording:true,microphoneRequired:true,videoOnlyFallback:false,androidNativeVideoCapture:true,androidGuaranteedReturnUri:true,webRtcBypassedInInstalledAndroidShell:true,saveAndStartBypassedInInstalledAndroidShell:true,videoContainerTranscriptionFallback:true,siteVisitTopAction:true,customerRowSiteVisitRemoved:true,currentAndroidRecorderLoader:true,professionalNotes:true,rawTranscriptInternalOnly:true,automaticFieldSync:true,targetedNextNeed:true,separateDictationWorkflow:false,automaticApproval:false,automaticCustomerSending:false},null,2));
