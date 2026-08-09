@@ -2,6 +2,7 @@
 'use strict';
 const BUILD='20260809-0048';
 const SPOKEN_VERIFICATION='UNVERIFIED_SPOKEN';
+const SPOKEN_VERIFICATION_LABEL='UNVERIFIED SPOKEN';
 const C=window.H38_FIELD_VISIT_CORE;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
@@ -30,6 +31,6 @@ function schedule(delay=500){clearTimeout(timer);timer=setTimeout(()=>void ensur
 function install(){if(C.state.__voiceNotesWrapped)return;const base=C.state.render;if(typeof base!=='function')return;C.state.__voiceNotesWrapped=true;C.setRender(function(){base();decorate()});decorate()}
 window.addEventListener('online',()=>schedule(100));setInterval(()=>{if(C.state.open&&navigator.onLine&&latestAttachment())schedule(0)},5000);
 const style=document.createElement('style');style.textContent='.field-voice-card,.field-voice-notes{display:grid;gap:.7rem;border:1px solid #c8dce8;background:#f8fbfd}.field-voice-warning{border-color:#d9b66f;background:#fffaf0}.field-voice-card div{display:grid;gap:.2rem}.field-voice-card small,.field-voice-notes small{color:#52616d}.field-voice-title{display:flex!important;gap:.65rem!important;align-items:flex-start}.field-voice-title>span{font-size:1.35rem}.field-voice-title h2{margin:0}.field-voice-notes>div:not(.field-voice-title){display:grid;gap:.3rem;padding-top:.55rem;border-top:1px solid #dce8ef}.field-voice-notes ul{margin:.15rem 0 .15rem 1.2rem;padding:0;display:grid;gap:.3rem}.field-voice-transcript{white-space:pre-wrap;line-height:1.45}';document.head.appendChild(style);
-window.H38_FIELD_VISIT_TRANSCRIPTION={build:BUILD,ensure,walkthroughVideoToProfessionalNotes:true,rawTranscriptPreserved:true,typedNotesOverwritten:false,spokenMeasurementsVerification:SPOKEN_VERIFICATION,spokenMeasurementsFieldVerified:false,automaticApproval:false,automaticCustomerSending:false};
+window.H38_FIELD_VISIT_TRANSCRIPTION={build:BUILD,ensure,walkthroughVideoToProfessionalNotes:true,rawTranscriptPreserved:true,typedNotesOverwritten:false,spokenMeasurementsVerification:SPOKEN_VERIFICATION,spokenMeasurementsVerificationLabel:SPOKEN_VERIFICATION_LABEL,spokenMeasurementsFieldVerified:false,automaticApproval:false,automaticCustomerSending:false};
 install();setTimeout(install,500);
 })();
