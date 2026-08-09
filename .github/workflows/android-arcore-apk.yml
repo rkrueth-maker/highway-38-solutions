@@ -54,12 +54,52 @@ jobs:
           echo "H38_ANDROID_ARTIFACT_NAME=h38-site-scanner-field-offline-v${version_name}" >> "$GITHUB_ENV"
           echo "H38_ANDROID_RELEASE_TAG=h38-site-scanner-android-v${version_name}" >> "$GITHUB_ENV"
           printf 'Android owner-test release: %s (%s)\n' "$version_name" "$version_code"
-      - name: Compile debug APK
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
-      - name: Verify APK and create credential association
+      - name: Configure stable owner signing key
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          APK='app/build/outputs/apk/debug/app-debug.apk'
+          if [[ -n "${KEYSTORE_B64:-}" ]]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/h38-owner-keystore.jks"
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+            chmod 600 "$KEYSTORE_PATH"
+            {
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH"
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+              echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo 'signed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'signed=false' >> "$GITHUB_OUTPUT"
+            if [[ "${{ github.event_name }}" != 'pull_request' ]]; then
+              echo 'Stable Android signing secrets are required for owner APK publication.' >&2
+              exit 1
+            fi
+          fi
+      - name: Compile APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
+            gradle --no-daemon --stacktrace :app:assembleOwner
+          else
+            gradle --no-daemon --stacktrace :app:assembleDebug
+          fi
+      - name: Verify APK and create credential association
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
+            APK='app/build/outputs/apk/owner/app-owner.apk'
+          else
+            APK='app/build/outputs/apk/debug/app-debug.apk'
+          fi
           CERTS="$GITHUB_WORKSPACE/H38-Site-Scanner-ARCore-Test.certs.txt"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee "$CERTS"
@@ -110,9 +150,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .well-known/assetlinks.json
           if ! git diff --cached --quiet; then
-            git commit -m "Publish Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
+            git commit -m "Publish stable Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
             git push origin HEAD:main
           fi
           gh release view "$H38_ANDROID_RELEASE_TAG" >/dev/null 2>&1 && gh release delete "$H38_ANDROID_RELEASE_TAG" --yes --cleanup-tag || true
-          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner test build opening the clean Highway 38 Business Office by default, preserving explicit owner controls, focused field visits, offline-first entry and sync, Android credential autofill support, stable startup handoff, and ARCore feet-and-inches measuring. Nothing is automatically approved or sent."
+          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner test build signed with the stable Android owner key so saved Highway 38 credentials remain associated across APK updates. Opens the clean Business Office, preserves explicit owner controls, focused field visits, offline-first entry and sync, native walkthrough capture, and ARCore measuring. Nothing is automatically approved or sent."
           gh workflow run pages-branch-fallback.yml --ref main
