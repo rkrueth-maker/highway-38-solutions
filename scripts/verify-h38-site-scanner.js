@@ -28,6 +28,8 @@ const nativeReadme = read('native/h38-site-scanner/README.md');
 must(index, './site-scanner.css?build=20260806-0605', 'commercial app');
 must(index, './site-scanner.js?build=20260806-0605', 'commercial app');
 must(index, './site-scanner-mobile-guidance.js?build=20260806-0605', 'commercial app');
+must(index, './android-native-walkthrough-guard.js?build=20260809-1220', 'commercial app');
+must(index, './site-visit-top-action.js?build=20260809-1220', 'commercial app');
 if (index.indexOf('site-scanner.js') < index.indexOf('app-20.js')) {
   throw new Error('Site Scanner must load after the existing Quote Builder and Measure renderers.');
 }
@@ -37,6 +39,8 @@ if (index.indexOf('site-scanner-mobile-guidance.js') < index.indexOf('site-scann
 must(worker, "'./site-scanner.js'", 'service worker');
 must(worker, "'./site-scanner.css'", 'service worker');
 must(worker, "'./site-scanner-mobile-guidance.js'", 'service worker');
+must(worker, "'./android-native-walkthrough-guard.js'", 'service worker');
+must(worker, "'./site-visit-top-action.js'", 'service worker');
 must(worker, "'site-scanner.js'", 'live-first asset list');
 must(worker, "'site-scanner.css'", 'live-first asset list');
 must(worker, "'site-scanner-mobile-guidance.js'", 'live-first asset list');
@@ -98,11 +102,11 @@ for (const token of [
 ]) must(androidApp, token, 'Android test app');
 for (const token of [
   'WindowCompat.setDecorFitsSystemWindows','setStatusBarColor','setNavigationBarColor',
-  'H38SiteScannerAndroid/0.5.2','https://highway38solutions.com/commercial-app/',
+  'H38SiteScannerAndroid/0.5.3','https://highway38solutions.com/commercial-app/',
   'window.H38NativeScanner','h38:native-scanner-ready','onPageCommitVisible',
   'buildLaunchCover','hideLaunchCover','MediaStore.ACTION_VIDEO_CAPTURE',
-  'MediaStore.EXTRA_DURATION_LIMIT','fileChooserParams.isCaptureEnabled()',
-  'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture'
+  'MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','fileChooserParams.isCaptureEnabled()',
+  'acceptsVideo(fileChooserParams.getAcceptTypes())','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri'
 ]) must(androidShell, token, 'Android app shell');
 for (const retired of ['nativeScanner=1','fieldMode=1']) absent(androidShell, retired, 'Android app shell');
 for (const token of [
@@ -126,7 +130,8 @@ console.log(JSON.stringify({
   androidBusinessOfficeStartup: true,
   androidStableLaunchCover: true,
   androidNativeWalkthroughVideoCapture: true,
-  androidVersion: '0.5.2',
+  androidGuaranteedWalkthroughReturnUri: true,
+  androidVersion: '0.5.3',
   retiredFieldModeStartup: false,
   appleLidarSource: true,
   ownerReviewRequired: true,

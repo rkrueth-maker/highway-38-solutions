@@ -2,6 +2,7 @@ package com.highway38.sitescanner;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -48,6 +49,7 @@ public final class MainActivity extends Activity {
     private PermissionRequest pendingWebPermissionRequest;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingFileCapture;
+    private Uri pendingCaptureUri;
     private View launchCover;
 
     @Override
@@ -90,7 +92,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.2"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.3"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -156,6 +158,7 @@ public final class MainActivity extends Activity {
                 }
                 pendingFileCallback = filePathCallback;
                 pendingFileCapture = false;
+                pendingCaptureUri = null;
                 try {
                     if (fileChooserParams.isCaptureEnabled()
                             && acceptsVideo(fileChooserParams.getAcceptTypes())) {
@@ -172,6 +175,14 @@ public final class MainActivity extends Activity {
                         Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
                         captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
                         captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+                        pendingCaptureUri = createWalkthroughVideoUri();
+                        if (pendingCaptureUri != null) {
+                            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, pendingCaptureUri);
+                            captureIntent.addFlags(
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                            | Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            );
+                        }
                         pendingFileCapture = true;
                         startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
                         return true;
@@ -182,6 +193,7 @@ public final class MainActivity extends Activity {
                     );
                     return true;
                 } catch (Exception error) {
+                    cleanupPendingCaptureUri();
                     pendingFileCallback = null;
                     pendingFileCapture = false;
                     Toast.makeText(
@@ -207,6 +219,33 @@ public final class MainActivity extends Activity {
             webView.loadUrl(BUSINESS_OFFICE_URL);
         } else if (webView.getProgress() >= 100) {
             webView.postDelayed(this::hideLaunchCover, 180);
+        }
+    }
+
+    private Uri createWalkthroughVideoUri() {
+        try {
+            ContentValues values = new ContentValues();
+            values.put(
+                    MediaStore.Video.Media.DISPLAY_NAME,
+                    "h38-site-walkthrough-" + System.currentTimeMillis() + ".mp4"
+            );
+            values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+            return getContentResolver().insert(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    values
+            );
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void cleanupPendingCaptureUri() {
+        Uri uri = pendingCaptureUri;
+        pendingCaptureUri = null;
+        if (uri == null) return;
+        try {
+            getContentResolver().delete(uri, null, null);
+        } catch (Exception ignored) {
         }
     }
 
@@ -403,18 +442,23 @@ public final class MainActivity extends Activity {
             Uri[] results = null;
             if (resultCode == RESULT_OK) {
                 if (pendingFileCapture) {
-                    Uri captured = data == null ? null : data.getData();
+                    Uri captured = pendingCaptureUri;
+                    if (captured == null && data != null) captured = data.getData();
                     if (captured != null) results = new Uri[]{captured};
+                    pendingCaptureUri = null;
                 } else {
                     results = WebChromeClient.FileChooserParams.parseResult(
                             resultCode,
                             data
                     );
                 }
+            } else if (pendingFileCapture) {
+                cleanupPendingCaptureUri();
             }
             pendingFileCallback.onReceiveValue(results);
             pendingFileCallback = null;
             pendingFileCapture = false;
+            pendingCaptureUri = null;
         }
     }
 
@@ -452,7 +496,9 @@ public final class MainActivity extends Activity {
             pendingFileCallback.onReceiveValue(null);
             pendingFileCallback = null;
         }
+        if (pendingFileCapture) cleanupPendingCaptureUri();
         pendingFileCapture = false;
+        pendingCaptureUri = null;
         if (webView != null) {
             webView.removeJavascriptInterface("AndroidH38Native");
             webView.destroy();
