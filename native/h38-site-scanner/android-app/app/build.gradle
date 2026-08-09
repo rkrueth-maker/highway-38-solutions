@@ -21,8 +21,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 11
-        versionName '0.5.6'
+        versionCode 12
+        versionName '0.5.7'
     }
 
     signingConfigs {
@@ -64,8 +64,13 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:1.15.0'
+    implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.credentials:credentials:1.6.0-beta02'
     implementation 'androidx.credentials:credentials-play-services-auth:1.6.0-beta02'
     implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'androidx.camera:camera-camera2:1.5.3'
+    implementation 'androidx.camera:camera-lifecycle:1.5.3'
+    implementation 'androidx.camera:camera-video:1.5.3'
+    implementation 'androidx.camera:camera-view:1.5.3'
     implementation 'com.google.ar:core:1.54.0'
 }

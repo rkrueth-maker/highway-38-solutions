@@ -23,6 +23,7 @@ const auth=read('commercial-app/auth-autofill.js');
 const worker=read('commercial-app/service-worker.js');
 const sessionRecovery=read('commercial-app/supabase-session-recovery.js');
 const main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
+const nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
 const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
 const manifest=read('native/h38-site-scanner/android-app/app/src/main/AndroidManifest.xml');
@@ -59,13 +60,15 @@ for(const s of ["email.name = 'username'","email.autocomplete = 'username'","pas
 for(const s of ["CACHE_NAME='h38-business-office-20260809-1605'","FIELD_RECOVERY_BUILD='20260809-1605'",'android-native-walkthrough-guard.js','site-visit-top-action.js'])must(worker,s,'service worker');
 for(const s of ["const build = '20260807-2132'",'updateViaCache: \'none\'','forcesCurrentServiceWorker: true'])must(sessionRecovery,s,'service worker recovery');
 
-for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','H38SiteScannerAndroid/0.5.6','MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_DURATION_LIMIT','MediaStore.EXTRA_OUTPUT','pendingFileCapture','pendingCaptureUri','createWalkthroughVideoUri','REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','requestPermissions(','launchWalkthroughVideoCapture','onRequestPermissionsResult','CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(main,s,'Android shell');
+for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','H38SiteScannerAndroid/0.5.7','pendingFileCapture','WalkthroughCaptureActivity.class','Manifest.permission.CAMERA','Manifest.permission.RECORD_AUDIO','REQUEST_WALKTHROUGH_CAMERA_PERMISSION','pendingWalkthroughPermissionResume','requestPermissions(','launchWalkthroughVideoCapture','onRequestPermissionsResult','CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(main,s,'Android shell');
+for(const s of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','VideoCapture.withOutput','withAudioEnabled()','FileOutputOptions','getFilesDir()','FileProvider.getUriForFile','Light On','Light Off','enableTorch','Stop & Use Video'])must(nativeCapture,s,'Android in-app walkthrough recorder');
+for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_OUTPUT','createWalkthroughVideoUri'])absent(main,s,'retired external camera handoff');
 absent(main,'shouldResetRestoredUrl','retired restart-to-office path');
 absent(main,'Camera permission is required for the walkthrough.','retired dead-end permission gate');
 absent(main,'nativeScanner=1&fieldMode=1','Android clean startup');
 for(const s of ['public void requestAutofill()','getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed'])must(bridge,s,'Android bridge');
-for(const s of ["versionCode 11","versionName '0.5.6'","androidx.credentials:credentials:1.6.0-beta02","androidx.webkit:webkit:1.14.0"])must(gradle,s,'Android Gradle');
-for(const s of ['asset_statements','android:autoVerify="true"','highway38solutions.com','/commercial-app/','android.permission.CAMERA','android.permission.RECORD_AUDIO','smallestScreenSize|uiMode'])must(manifest,s,'Android manifest');
+for(const s of ["versionCode 12","versionName '0.5.7'","androidx.credentials:credentials:1.6.0-beta02","androidx.webkit:webkit:1.14.0","androidx.camera:camera-video:1.5.3","androidx.camera:camera-view:1.5.3"])must(gradle,s,'Android Gradle');
+for(const s of ['asset_statements','android:autoVerify="true"','highway38solutions.com','/commercial-app/','android.permission.CAMERA','android.permission.RECORD_AUDIO','.WalkthroughCaptureActivity','androidx.core.content.FileProvider','smallestScreenSize|uiMode'])must(manifest,s,'Android manifest');
 must(strings,'https://highway38solutions.com/.well-known/assetlinks.json','asset statements');
 for(const s of ['delegate_permission/common.get_login_creds','com.highway38.sitescanner.test','sha256_cert_fingerprints','Publish owner test release and credential association'])must(workflow,s,'APK workflow');
 for(const s of ['import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM','DEVICE_CAPTURED'])must(ios,s,'Apple bridge');
@@ -73,4 +76,4 @@ must(robots,'Allow: /.well-known/','robots');
 
 for(const f of [core,boot,video,ui,recovery,photoReview,voice,voiceCapture,owner,walkthroughGuidance,nativeGuard,topAction])for(const s of ['automaticApproval:true','automaticCustomerSending:true','service_role','SUPABASE_SERVICE_ROLE_KEY'])absent(f,s,'field runtime');
 
-console.log(JSON.stringify({status:'PASS',fieldVisitTabs:4,offlineFirst:true,existingSupabaseQueue:true,walkthroughFirst:true,durableVideoBeforeProcessing:true,targetedPhotosAfterWalkthrough:true,walkthroughVoiceTranscription:true,microphoneRequired:true,videoOnlyFallback:false,androidNativeVideoCapture:true,androidGuaranteedReturnUri:true,androidCameraPermissionResume:true,androidActivityRestartRecovery:true,androidRecoveredVideoIngest:true,androidWebRtcBypassedForInstalledShell:true,androidReturnToCaptureAfterVideo:true,androidNextStepFocused:true,siteVisitTopAction:true,keyboardSafeSiteVisitStart:true,automaticApproval:false,automaticCustomerSending:false},null,2));
+console.log(JSON.stringify({status:'PASS',fieldVisitTabs:4,offlineFirst:true,existingSupabaseQueue:true,walkthroughFirst:true,durableVideoBeforeProcessing:true,targetedPhotosAfterWalkthrough:true,walkthroughVoiceTranscription:true,microphoneRequired:true,videoOnlyFallback:false,androidInAppVideoCapture:true,androidInAppMicrophone:true,androidTorchControl:true,androidPrivateWalkthroughStorage:true,externalCameraHandoff:false,androidCameraPermissionResume:true,androidActivityRestartRecovery:true,androidRecoveredVideoIngest:true,androidWebRtcBypassedForInstalledShell:true,androidReturnToCaptureAfterVideo:true,androidNextStepFocused:true,siteVisitTopAction:true,keyboardSafeSiteVisitStart:true,automaticApproval:false,automaticCustomerSending:false},null,2));

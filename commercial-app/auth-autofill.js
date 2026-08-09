@@ -1,9 +1,7 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-1545';
+  const BUILD = '20260809-1623-stable';
   let scheduled = false;
-  let startupAttempts = 0;
-  let startupTimer = 0;
 
   function nativeBridge() {
     return window.AndroidH38Native && typeof window.AndroidH38Native.requestAutofill === 'function'
@@ -11,42 +9,19 @@
   }
 
   function requestAutofill(input) {
-    try { input?.focus?.({preventScroll:true}); } catch (_) { input?.focus?.(); }
+    input?.focus?.();
     try { nativeBridge()?.requestAutofill(); } catch (_) {}
-  }
-
-  function chooseTarget(email,password) {
-    if (email && !String(email.value || '').trim()) return email;
-    if (password && !String(password.value || '')) return password;
-    return email || password;
-  }
-
-  function startupAutofill(email,password) {
-    clearTimeout(startupTimer);
-    const attempt = () => {
-      if (!document.getElementById('h38AuthForm')) return;
-      const target = chooseTarget(email,password);
-      if (!target) return;
-      requestAutofill(target);
-      startupAttempts += 1;
-      if (startupAttempts < 4 && (!String(email?.value || '').trim() || !String(password?.value || ''))) {
-        startupTimer = setTimeout(attempt, startupAttempts === 1 ? 350 : 700);
-      }
-    };
-    startupTimer = setTimeout(attempt, 120);
   }
 
   function enhance() {
     scheduled = false;
     const form = document.getElementById('h38AuthForm');
-    if (!form) return;
-
-    const email = document.getElementById('h38AuthEmail');
-    const password = document.getElementById('h38AuthPassword');
-    const firstSetup = form.dataset.autofillReady !== 'true';
+    if (!form || form.dataset.autofillReady === 'true') return;
     form.dataset.autofillReady = 'true';
     form.setAttribute('autocomplete','on');
 
+    const email = document.getElementById('h38AuthEmail');
+    const password = document.getElementById('h38AuthPassword');
     if (email) {
       email.name = 'username';
       email.autocomplete = 'username';
@@ -54,18 +29,13 @@
       email.setAttribute('autocapitalize','none');
       email.setAttribute('spellcheck','false');
       email.setAttribute('enterkeyhint','next');
-      if (firstSetup) email.addEventListener('focus', () => requestAutofill(email));
-      if (firstSetup) email.addEventListener('input', () => {
-        if (String(email.value || '').trim() && !String(password?.value || '')) {
-          setTimeout(() => requestAutofill(password), 80);
-        }
-      });
+      email.addEventListener('focus', () => requestAutofill(email), {once:true});
     }
     if (password) {
       password.name = 'password';
       password.autocomplete = 'current-password';
       password.setAttribute('enterkeyhint','go');
-      if (firstSetup) password.addEventListener('focus', () => requestAutofill(password));
+      password.addEventListener('focus', () => requestAutofill(password), {once:true});
     }
 
     if (!document.getElementById('h38UseSavedLogin')) {
@@ -74,7 +44,7 @@
       button.type = 'button';
       button.className = 'secondary h38-saved-login';
       button.textContent = '🔐 Use saved username and password';
-      button.addEventListener('click', () => requestAutofill(chooseTarget(email,password)));
+      button.addEventListener('click', () => requestAutofill(email || password));
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button);
       else form.appendChild(button);
@@ -85,14 +55,11 @@
       help = document.createElement('p');
       help.id = 'h38AutofillHelp';
       help.className = 'muted h38-autofill-help';
-      help.textContent = 'Saved login is requested automatically. Tap either field or Use saved username and password if your provider needs another prompt.';
+      help.textContent = 'Tap either field or Use saved username and password to open Google Password Manager or your selected autofill provider.';
       form.appendChild(help);
     }
 
-    if (firstSetup) {
-      startupAttempts = 0;
-      startupAutofill(email,password);
-    }
+    setTimeout(() => requestAutofill(email), 200);
   }
 
   function schedule() {
@@ -107,12 +74,10 @@
     document.addEventListener('focusin', event => {
       if (event.target?.id === 'h38AuthEmail' || event.target?.id === 'h38AuthPassword') schedule();
     });
-    window.addEventListener('pageshow',schedule);
-    window.addEventListener('focus',schedule);
     schedule();
   }
 
-  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill,startup:true,retryFields:true};
+  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();
