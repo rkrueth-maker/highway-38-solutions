@@ -21,8 +21,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 14
-        versionName '0.5.9'
+        versionCode 15
+        versionName '0.5.10'
     }
 
     signingConfigs {
@@ -44,18 +44,14 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
-            }
+            if (hasReleaseSigning) signingConfig signingConfigs.release
         }
         owner {
             initWith release
             applicationIdSuffix '.test'
             versionNameSuffix '-owner'
             matchingFallbacks = ['release']
-            if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
-            }
+            if (hasReleaseSigning) signingConfig signingConfigs.release
         }
     }
 
