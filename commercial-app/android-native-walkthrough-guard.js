@@ -1,15 +1,23 @@
 (function(){
 'use strict';
-const BUILD='20260809-1605';
+const BUILD='20260809-1725';
 const RESUME_KEY='h38:field-visit-resume-step';
 let lastTab='';
 let resumeTimer=0;
 let recoveryBusy=false;
 let recoveryTimer=0;
+let recoveryRetryAt=0;
+let directReturnBusy=false;
 function nativeAndroid(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native||!!window.H38NativeScanner;}
 function C(){return window.H38_FIELD_VISIT_CORE;}
 function W(){return window.H38_FIELD_VISIT_WORKFLOW;}
 function toast(message,bad){try{if(typeof window.toast==='function')window.toast(message,!!bad);else C()?.toast?.(message,!!bad);}catch(_){}}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+function walkthroughCount(){return (C()?.state?.visit?.videoAttachmentIds||[]).length;}
+function confirmConsumed(){
+  try{window.H38NativeScanner?.confirmRecoveredWalkthroughConsumed?.();return;}catch(_){}
+  try{window.AndroidH38Native?.confirmRecoveredWalkthroughConsumed?.();}catch(_){}
+}
 function remember(tab){
   try{sessionStorage.setItem(RESUME_KEY,JSON.stringify({tab:tab||'capture',time:Date.now()}));}catch(_){ }
 }
@@ -50,37 +58,61 @@ function restoreRemembered(){
 function recoveredUrl(){
   try{return String(window.H38NativeScanner?.getRecoveredWalkthroughUrl?.()||window.AndroidH38Native?.getRecoveredWalkthroughUrl?.()||'');}catch(_){return''}
 }
+async function waitForWalkthroughIncrease(before,timeoutMs){
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    if(walkthroughCount()>before)return true;
+    await wait(120);
+  }
+  return walkthroughCount()>before;
+}
 async function recoverAcceptedWalkthrough(){
   if(!nativeAndroid()||recoveryBusy)return;
+  if(directReturnBusy){scheduleRecovery(650);return;}
+  if(Date.now()<recoveryRetryAt){scheduleRecovery(Math.max(250,recoveryRetryAt-Date.now()));return;}
   const url=recoveredUrl();
   if(!url)return;
   const workflow=W();
-  if(!workflow?.captureFiles){scheduleRecovery();return;}
-  if(!await ensureSiteVisitOpen()){scheduleRecovery();return;}
+  if(!workflow?.captureFiles){scheduleRecovery(350);return;}
+  if(!await ensureSiteVisitOpen()){scheduleRecovery(350);return;}
   recoveryBusy=true;
   remember('capture');
   renderTab('capture',true);
+  const before=walkthroughCount();
   try{
+    toast('Finishing the recorded walkthrough…');
     const response=await fetch(url,{cache:'no-store',credentials:'same-origin'});
-    if(!response.ok)throw Error(`Recovered walkthrough could not be read (${response.status}).`);
+    if(!response.ok)throw Error(`Recorded walkthrough could not be read (${response.status}).`);
     const blob=await response.blob();
-    if(!blob.size)throw Error('Recovered walkthrough video was empty.');
+    if(!blob.size)throw Error('Recorded walkthrough video was empty.');
     const file=new File([blob],`h38-site-walkthrough-${Date.now()}.mp4`,{type:blob.type||'video/mp4',lastModified:Date.now()});
     await workflow.captureFiles([file]);
-    try{window.H38NativeScanner?.confirmRecoveredWalkthroughConsumed?.();}catch(_){try{window.AndroidH38Native?.confirmRecoveredWalkthroughConsumed?.();}catch(__){}}
+    const accepted=await waitForWalkthroughIncrease(before,3500);
+    if(!accepted)throw Error('H38 recorded the video but has not attached it to this Site Visit yet. The recording is kept for retry.');
+    confirmConsumed();
+    recoveryRetryAt=0;
+    toast('Walkthrough saved to this Site Visit.');
     nextCaptureStep();
   }catch(error){
+    recoveryRetryAt=Date.now()+5000;
     toast(error?.message||String(error),true);
   }finally{
     recoveryBusy=false;
   }
 }
-function scheduleRecovery(){
+function scheduleRecovery(delay){
   clearTimeout(recoveryTimer);
-  recoveryTimer=setTimeout(()=>{void recoverAcceptedWalkthrough();},180);
+  const requested=Number.isFinite(delay)?Math.max(0,delay):180;
+  const waitForRetry=Math.max(0,recoveryRetryAt-Date.now());
+  recoveryTimer=setTimeout(()=>{void recoverAcceptedWalkthrough();},Math.max(requested,waitForRetry));
 }
 function openNativeCapture(){
   clearOldError();remember('capture');
+  if(recoveredUrl()){
+    toast('Finishing the last recorded walkthrough first.');
+    scheduleRecovery(0);
+    return true;
+  }
   const input=document.getElementById('fieldVideoInput');
   if(!input){toast('The phone video recorder is still loading.',true);return false;}
   try{input.click();return true;}catch(error){toast(error?.message||'The phone video recorder could not open.',true);return false;}
@@ -102,15 +134,34 @@ function watchNativeReturn(){
   input.dataset.h38NextStepBound='1';
   input.addEventListener('change',()=>{
     remember('capture');
-    const before=(C()?.state?.visit?.videoAttachmentIds||[]).length;
-    renderTab('capture',true);
+    const before=walkthroughCount();
+    directReturnBusy=true;
+    toast('Saving walkthrough into this Site Visit…');
     let checks=0;
     const timer=setInterval(()=>{
       checks+=1;
-      const after=(C()?.state?.visit?.videoAttachmentIds||[]).length;
-      if(after>before){clearInterval(timer);nextCaptureStep();return;}
-      if(checks>=120){clearInterval(timer);renderTab('capture',true);}
-    },125);
+      const after=walkthroughCount();
+      if(after>before){
+        clearInterval(timer);
+        directReturnBusy=false;
+        confirmConsumed();
+        recoveryRetryAt=0;
+        toast('Walkthrough saved to this Site Visit.');
+        nextCaptureStep();
+        return;
+      }
+      if(checks>=80){
+        clearInterval(timer);
+        directReturnBusy=false;
+        renderTab('capture',true);
+        if(recoveredUrl()){
+          toast('The recording returned from the camera. H38 is finishing the save now.');
+          scheduleRecovery(80);
+        }else{
+          toast('The recording returned from the camera but was not attached to the Site Visit.',true);
+        }
+      }
+    },150);
   },true);
 }
 async function saveAndOpen(form){
@@ -158,5 +209,5 @@ window.addEventListener('h38:native-scanner-ready',scheduleRecovery);
 const observer=new MutationObserver(()=>{watchNativeReturn();bindStepLanding();restoreRemembered();if(recoveredUrl())scheduleRecovery();});
 observer.observe(document.documentElement,{childList:true,subtree:true});
 watchNativeReturn();bindStepLanding();restoreRemembered();scheduleRecovery();
-window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,webrtcBypassed:true,saveAndStartGuarded:true,returnToCapture:true,nextStepFocused:true,resumeStepPreserved:true,stepLandingAligned:true,activityRestartRecovery:true,recoveredVideoIngest:true};
+window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,webrtcBypassed:true,saveAndStartGuarded:true,returnToCapture:true,nextStepFocused:true,resumeStepPreserved:true,stepLandingAligned:true,activityRestartRecovery:true,recoveredVideoIngest:true,recoveryUntilAccepted:true,directReturnRaceRemoved:true};
 })();
