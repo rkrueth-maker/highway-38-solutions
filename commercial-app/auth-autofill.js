@@ -1,7 +1,8 @@
 (function () {
   'use strict';
-  const BUILD = '20260809-android-saved-login-manual';
+  const BUILD = '20260809-login-invite-final';
   let scheduled = false;
+  let invitationTimer = 0;
 
   function nativeBridge() {
     return window.AndroidH38Native || null;
@@ -40,8 +41,54 @@
     try { bridge.rememberLogin(username, secret); } catch (_) {}
   }
 
+  function invitationPending() {
+    try { return new URLSearchParams(location.search).get('invitation') === '1'; }
+    catch (_) { return false; }
+  }
+
+  function clearInvitationFlag() {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete('invitation');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+    } catch (_) {}
+  }
+
+  function watchInvitationCompletion() {
+    const notice = document.getElementById('h38AuthNotice');
+    if (!notice || notice.dataset.invitationWatch === BUILD) return;
+    notice.dataset.invitationWatch = BUILD;
+    const finishIfDone = () => {
+      const text = String(notice.textContent || '');
+      if (/Password updated\. Opening the Business Office/i.test(text)) clearInvitationFlag();
+    };
+    new MutationObserver(finishIfDone).observe(notice, {childList:true,subtree:true,characterData:true});
+    finishIfDone();
+  }
+
+  function enforceInvitationPasswordSetup() {
+    if (!invitationPending()) {
+      if (invitationTimer) {
+        clearInterval(invitationTimer);
+        invitationTimer = 0;
+      }
+      return;
+    }
+    const auth = window.H38_SUPABASE_AUTH;
+    if (!auth || typeof auth.getState !== 'function' || typeof auth.render !== 'function') return;
+    let state = {};
+    try { state = auth.getState() || {}; } catch (_) { return; }
+    if (!state.userId) return;
+    if (!document.getElementById('h38RecoveryForm')) {
+      auth.render('recovery');
+    }
+    watchInvitationCompletion();
+  }
+
   function enhance() {
     scheduled = false;
+    enforceInvitationPasswordSetup();
+
     const form = document.getElementById('h38AuthForm');
     if (!form || form.dataset.autofillReady === BUILD) return;
     form.dataset.autofillReady = BUILD;
@@ -106,6 +153,7 @@
   function start() {
     const main = document.getElementById('mainContent');
     if (main) new MutationObserver(schedule).observe(main,{childList:true,subtree:true});
+    if (invitationPending() && !invitationTimer) invitationTimer = setInterval(enforceInvitationPasswordSetup, 150);
     schedule();
   }
 
