@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +47,7 @@ public final class MainActivity extends Activity {
     private NativeScannerBridge nativeScannerBridge;
     private PermissionRequest pendingWebPermissionRequest;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private boolean pendingFileCapture;
     private View launchCover;
 
     @Override
@@ -88,7 +90,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.1"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.2"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -153,7 +155,27 @@ public final class MainActivity extends Activity {
                     pendingFileCallback.onReceiveValue(null);
                 }
                 pendingFileCallback = filePathCallback;
+                pendingFileCapture = false;
                 try {
+                    if (fileChooserParams.isCaptureEnabled()
+                            && acceptsVideo(fileChooserParams.getAcceptTypes())) {
+                        if (checkSelfPermission(Manifest.permission.CAMERA)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            pendingFileCallback = null;
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "Camera permission is required for the walkthrough.",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return false;
+                        }
+                        Intent captureIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+                        captureIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 90);
+                        captureIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+                        pendingFileCapture = true;
+                        startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
+                        return true;
+                    }
                     startActivityForResult(
                             fileChooserParams.createIntent(),
                             REQUEST_FILE_CHOOSER
@@ -161,9 +183,10 @@ public final class MainActivity extends Activity {
                     return true;
                 } catch (Exception error) {
                     pendingFileCallback = null;
+                    pendingFileCapture = false;
                     Toast.makeText(
                             MainActivity.this,
-                            "File picker is unavailable.",
+                            "Video capture is unavailable.",
                             Toast.LENGTH_LONG
                     ).show();
                     return false;
@@ -185,6 +208,15 @@ public final class MainActivity extends Activity {
         } else if (webView.getProgress() >= 100) {
             webView.postDelayed(this::hideLaunchCover, 180);
         }
+    }
+
+    private boolean acceptsVideo(String[] acceptTypes) {
+        if (acceptTypes == null) return false;
+        for (String type : acceptTypes) {
+            String value = type == null ? "" : type.trim().toLowerCase();
+            if (value.equals("video/*") || value.startsWith("video/")) return true;
+        }
+        return false;
     }
 
     private View buildLaunchCover() {
@@ -368,12 +400,21 @@ public final class MainActivity extends Activity {
 
         if (requestCode == REQUEST_FILE_CHOOSER
                 && pendingFileCallback != null) {
-            Uri[] results = WebChromeClient.FileChooserParams.parseResult(
-                    resultCode,
-                    data
-            );
+            Uri[] results = null;
+            if (resultCode == RESULT_OK) {
+                if (pendingFileCapture) {
+                    Uri captured = data == null ? null : data.getData();
+                    if (captured != null) results = new Uri[]{captured};
+                } else {
+                    results = WebChromeClient.FileChooserParams.parseResult(
+                            resultCode,
+                            data
+                    );
+                }
+            }
             pendingFileCallback.onReceiveValue(results);
             pendingFileCallback = null;
+            pendingFileCapture = false;
         }
     }
 
@@ -407,6 +448,11 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (pendingFileCallback != null) {
+            pendingFileCallback.onReceiveValue(null);
+            pendingFileCallback = null;
+        }
+        pendingFileCapture = false;
         if (webView != null) {
             webView.removeJavascriptInterface("AndroidH38Native");
             webView.destroy();
