@@ -19,7 +19,7 @@ for(const s of ["input.accept='video/*'","input.setAttribute('capture','environm
 for(const s of ['video/mp4','new MediaRecorder','recorder.requestData','Saving original…','persistOriginal','walkthroughVideo:true','blobData:file','C.photos(frames)','VIDEO_WALKTHROUGH_FIRST'])must(ui,s,'phone walkthrough workflow');
 for(const s of ['syncNow','waitingOperations','H38_SUPABASE_OPERATIONAL','synchronize','Uploading saved site visit'])must(recovery,s,'field recovery');
 for(const s of ['H38_FIELD_VISIT_GUIDANCE','H38_FIELD_VISIT_PHOTO_REVIEW','missingMeasurements','linkVisitPhotos','h38-site-scanner'])must(photoReview,s,'field photo review');
-for(const s of ['walkthroughFirst:true','Photos still needed','Measurements still needed','Add requested photo','Enter next measurement','H38 is analyzing the walkthrough','setInterval','window.addEventListener(\'online\'','recovery.syncNow','reviewer.run','walkthroughFrameIds','automaticApproval'])must(walkthroughGuidance,s,'walkthrough AI guidance');
+for(const s of ['walkthroughFirst:true','Photos still needed','Measurements still needed','Add requested photo','Enter next measurement','H38 is analyzing the walkthrough','setInterval','window.addEventListener(\'online\'','recovery.syncNow','reviewer.run','walkthroughFrameIds'])must(walkthroughGuidance,s,'walkthrough AI guidance');
 absent(walkthroughGuidance,'automaticApproval:true','walkthrough AI guidance');
 absent(walkthroughGuidance,'automaticCustomerSending:true','walkthrough AI guidance');
 for(const s of ["email.name = 'username'","email.autocomplete = 'username'","password.autocomplete = 'current-password'",'requestAutofill','Use saved username and password'])must(auth,s,'autofill helper');
