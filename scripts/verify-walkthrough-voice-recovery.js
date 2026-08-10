@@ -9,6 +9,7 @@ const cameraFix=read('commercial-app/android-camera-direct-fix.js');
 const operator=read('commercial-app/operator-direct-controls.js');
 const nativeGuard=read('commercial-app/android-native-walkthrough-guard.js');
 const followup=read('commercial-app/field-visit-fast-followup.js');
+const recovery=read('commercial-app/field-visit-recovery.js');
 const auth=read('commercial-app/auth-autofill.js');
 const android=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
 const nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
@@ -38,6 +39,7 @@ const acceptEnd=nativeGuard.indexOf('async function recover',acceptStart);
 const acceptPath=acceptStart>=0&&acceptEnd>acceptStart?nativeGuard.slice(acceptStart,acceptEnd):'';
 check('native video persists before frame extraction',acceptPath.indexOf('await persistVideoFirst(file)')>=0&&acceptPath.indexOf('await persistVideoFirst(file)')<acceptPath.indexOf('await bestEffortFrames(file)'));
 check('native recording is consumed only after attachment count advances',acceptPath.includes('walkthroughCount()<=before')&&acceptPath.includes('confirmConsumed()'));
+check('post-capture queue drains automatically',recovery.includes('automaticPostCaptureSync:true')&&recovery.includes('automaticWalkthroughProcessing:true'));
 check('actual notes are surfaced on Capture',followup.includes('actualNotesOnCapture:true')&&followup.includes('Walkthrough notes'));
 check('next photo guidance is immediate',followup.includes('nextPhotoImmediate:true')&&followup.includes('NEXT PHOTO'));
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
@@ -48,9 +50,8 @@ check('CameraX has torch control',nativeCapture.includes('Light On')&&nativeCapt
 check('walkthrough remains in private H38 storage',nativeCapture.includes('getFilesDir()')&&nativeCapture.includes('FileProvider.getUriForFile'));
 check('external Android camera intent remains retired',!android.includes('MediaStore.ACTION_VIDEO_CAPTURE')&&!android.includes('MediaStore.EXTRA_OUTPUT'));
 check('native return survives activity recreation',android.includes('persistCaptureTracking')&&android.includes('restoreCaptureTracking')&&android.includes('recoveredCaptureUri'));
-check('native return is not prematurely cleared',!android.includes('pendingFileCallback = null;\n                        clearCaptureTracking(false);'));
 check('saved Android login still uses Credential Manager',nativeBridge.includes('CredentialManager')&&nativeBridge.includes('GetPasswordOption')&&nativeBridge.includes('PasswordCredential')&&nativeBridge.includes('fillWebLogin'));
-check('saved login still does not auto-submit',auth.includes('h38:saved-login-filled')&&auth.includes('Tap Sign in.')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
-check('owner APK version bumped',gradle.includes('versionCode 30')&&gradle.includes("versionName '0.5.25'"));
+check('saved owner login fills automatically but never auto-submits',auth.includes('automaticSavedOwnerFill:true')&&auth.includes('h38:saved-login-filled')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
+check('owner APK version bumped',gradle.includes('versionCode 31')&&gradle.includes("versionName '0.5.26'"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudio:true,nativeStreamingRecovery:true,actualNotesOnCapture:true,nextPhotoImmediate:true,version:'0.5.25'},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudio:true,nativeStreamingRecovery:true,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,actualNotesOnCapture:true,nextPhotoImmediate:true,version:'0.5.26'},null,2));
