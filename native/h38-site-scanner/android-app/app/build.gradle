@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.16 traces the physical CameraX -> MainActivity -> WebView return boundary and preserves the Site Visit resume marker across WebView recreation.
+// v0.5.17 routes recovered private CameraX video through Android's service-worker request boundary so WebView recreation cannot strand the recording.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -22,8 +22,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 21
-        versionName '0.5.16'
+        versionCode 22
+        versionName '0.5.17'
     }
 
     signingConfigs {
