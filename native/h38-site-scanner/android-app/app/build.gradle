@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.21 keeps the physically working CameraX save/return path intact and makes post-walkthrough notes and next-photo guidance immediately useful while processing continues in the background.
+// v0.5.22 keeps the proven CameraX recorder but launches it directly through the native bridge, then shows a visible hammer while save/transcription/AI work is running.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -22,8 +22,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 26
-        versionName '0.5.21'
+        versionCode 27
+        versionName '0.5.22'
     }
 
     signingConfigs {

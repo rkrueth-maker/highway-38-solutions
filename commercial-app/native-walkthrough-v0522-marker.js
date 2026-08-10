@@ -1,0 +1,1 @@
+window.H38_NATIVE_WALKTHROUGH_V0522={directNativeLaunch:true,workingHammer:true,physicalPhoneAuthority:true};
