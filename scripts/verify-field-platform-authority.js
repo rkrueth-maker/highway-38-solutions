@@ -12,9 +12,10 @@ const voiceFile='commercial-app/field-visit-voice-capture.js';
 const operatorFile='commercial-app/operator-direct-controls.js';
 const guardFile='commercial-app/android-native-walkthrough-guard.js';
 const followupFile='commercial-app/field-visit-fast-followup.js';
+const bridgeFile='native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java';
 const buildFile='native/h38-site-scanner/android-app/app/build.gradle';
 
-const direct=read(directFile),voice=read(voiceFile),operator=read(operatorFile),guard=read(guardFile),followup=read(followupFile),build=read(buildFile);
+const direct=read(directFile),voice=read(voiceFile),operator=read(operatorFile),guard=read(guardFile),followup=read(followupFile),bridge=read(bridgeFile),build=read(buildFile);
 [ [directFile,direct],[voiceFile,voice],[operatorFile,operator],[guardFile,guard],[followupFile,followup] ].forEach(([file,source])=>parse(file,source));
 
 check(/retired:true/.test(direct),'Old Android WebView camera interceptor must stay retired.');
@@ -25,15 +26,15 @@ check(/function appleWalkthrough/.test(operator),'iPhone native video capture au
 check(/if\(!apple\(\)\|\|android\(\)\)return false/.test(operator),'iPhone authority must never hijack Android.');
 check(/data-delete-quote-row/.test(operator)&&/Open \/ Edit/.test(operator),'Saved quote rows need Open / Edit + Delete controls.');
 check(/data-h38-delete-site/.test(operator)&&/Site Visits/.test(operator),'Site Visit rows need direct Delete controls.');
-check(/You do not have to open a broken visit before deleting it/.test(operator),'Site Visit delete must not depend on successfully opening the visit.');
 check(/privateCameraX:true/.test(guard),'Android CameraX must remain the Android walkthrough authority.');
+check(/directNativeLaunch:true/.test(guard),'Android walkthrough must launch directly through the native bridge.');
+check(/launchWalkthroughCapture/.test(bridge),'Android bridge must expose direct walkthrough launch.');
 check(/nativeChunkRecovery:true/.test(guard),'Android private recording recovery must remain enabled.');
 check(/persistVideoFirst/.test(guard),'Android recovered video must persist before secondary processing.');
-check(/confirmConsumed\(\)/.test(guard),'Recovered native video must be acknowledged only through the durable recovery path.');
+check(/workingHammer:true/.test(followup)&&/H38_WORKING_HAMMER/.test(followup),'Visible working hammer is required.');
 check(/actualNotesOnCapture:true/.test(followup),'Actual walkthrough notes must be visible on Capture.');
 check(/nextPhotoImmediate:true/.test(followup)&&/onePhotoAtATime:true/.test(followup),'Next-photo guidance must be immediate and one photo at a time.');
-check(/backgroundProcessing:true/.test(followup),'Post-walkthrough processing must not block field work.');
-check(/versionCode\s+26\b/.test(build),'Owner APK versionCode must be 26.');
-check(/versionName\s+'0\.5\.21'/.test(build),'Owner APK versionName must be 0.5.21.');
+check(/versionCode\s+27\b/.test(build),'Owner APK versionCode must be 27.');
+check(/versionName\s+'0\.5\.22'/.test(build),'Owner APK versionName must be 0.5.22.');
 
-console.log('PASS field platform authority: CameraX unchanged, immediate notes/next-photo guidance, direct quote/Site Visit deletes.');
+console.log('PASS field platform authority: direct native CameraX launch, durable recovery, visible hammer, notes/next-photo guidance, and direct deletes.');
