@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.12 physical-phone repair: explicit saved-password fallback and native walkthrough recovery handshake.
+// v0.5.13 physical-phone repair: field-focused saved login and service-worker-free walkthrough recovery.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -22,8 +22,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 17
-        versionName '0.5.12'
+        versionCode 18
+        versionName '0.5.13'
     }
 
     signingConfigs {
@@ -75,7 +75,7 @@ dependencies {
     implementation 'androidx.credentials:credentials-play-services-auth:1.6.0-beta02'
     implementation 'androidx.webkit:webkit:1.14.0'
     implementation 'androidx.camera:camera-camera2:1.5.3'
-    implementation 'androidx.camera:camera-lifecycle:1.5.3'
+    implementation 'androidx.camera:camera-lifecycle:camera-lifecycle:1.5.3'
     implementation 'androidx.camera:camera-video:1.5.3'
     implementation 'androidx.camera:camera-view:1.5.3'
     implementation 'com.google.ar:core:1.54.0'
