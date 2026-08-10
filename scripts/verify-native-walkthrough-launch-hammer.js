@@ -2,12 +2,14 @@
 const fs=require('fs');
 const read=p=>fs.readFileSync(p,'utf8');
 const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
+const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
 const guard=read('commercial-app/android-native-walkthrough-guard.js');
 const followup=read('commercial-app/field-visit-fast-followup.js');
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
 const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 for(const s of ['launchWalkthroughCapture','getDeclaredMethod("launchWalkthroughVideoCapture")'])must(bridge,s,'native bridge');
 for(const s of ['directNativeLaunch:true','b.launchWalkthroughCapture()','readNativeFile','persistVideoFirst'])must(guard,s,'walkthrough guard');
+for(const s of ['handler.postDelayed(this::startRecording,120)','Stop & Use Video','🔨 H38 is saving walkthrough…'])must(capture,s,'CameraX auto-start');
 for(const s of ['H38_WORKING_HAMMER','workingHammer:true','@keyframes h38Hammer','H38 is creating notes and photo guidance'])must(followup,s,'working hammer');
-for(const s of ['versionCode 27',"versionName '0.5.22'"])must(gradle,s,'Android build');
-console.log('PASS native walkthrough launch + hammer v0.5.22');
+for(const s of ['versionCode 30',"versionName '0.5.25'"])must(gradle,s,'Android build');
+console.log('PASS native walkthrough auto-start + hammer v0.5.25');
