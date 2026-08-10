@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260810-durable-native-flow-0209';
+const BUILD='20260810-durable-native-flow-0218';
 const RESUME_KEY='h38:field-visit-resume-step';
 const NATIVE_CHUNK_BYTES=256*1024;
 const FRAME_POSITIONS=[0.05,0.16,0.27,0.38,0.5,0.62,0.73,0.84,0.95];
@@ -21,7 +21,6 @@ function bridge(){try{return window.AndroidH38Native||null;}catch(_){return null
 function confirmConsumed(){try{window.H38NativeScanner?.confirmRecoveredWalkthroughConsumed?.();return;}catch(_){}try{window.AndroidH38Native?.confirmRecoveredWalkthroughConsumed?.();}catch(_){}}
 function walkthroughCount(){return Array.isArray(C()?.state?.visit?.videoAttachmentIds)?C().state.visit.videoAttachmentIds.length:0;}
 function unlockCaptureTools(){
- if(!nativeAndroid())return;
  document.querySelectorAll('.field-targeted-actions').forEach(node=>node.removeAttribute('hidden'));
  const panel=document.querySelector('.field-panel.active .field-step-head p');
  if(panel&&/Photos stay unavailable/i.test(panel.textContent||''))panel.textContent='Start with a walkthrough when useful. Detail photos, measurements, notes and review stay available while you work.';
@@ -80,10 +79,10 @@ function scheduleRecovery(delay){clearTimeout(recoveryTimer);recoveryTimer=setTi
 function openCamera(){remember();unlockCaptureTools();if(recoveredUrl()){scheduleRecovery(0);return;}const input=document.getElementById('fieldVideoInput');if(!input){toast('The walkthrough camera is still loading.',true);return;}try{input.click();}catch(error){toast(error?.message||'The walkthrough camera could not open.',true);}}
 window.addEventListener('click',event=>{if(!nativeAndroid())return;const button=event.target?.closest?.('#fieldWalkthrough');if(button){event.preventDefault();event.stopImmediatePropagation();event.stopPropagation();openCamera();return;}const go=event.target?.closest?.('[data-go],[data-tab]');if(go){const tab=go.dataset.go||go.dataset.tab;if(tab!==lastTab){lastTab=tab;requestAnimationFrame(unlockCaptureTools);}}},true);
 window.addEventListener('change',event=>{if(!nativeAndroid()||event.target?.id!=='fieldVideoInput')return;event.stopImmediatePropagation();event.stopPropagation();const files=Array.from(event.target.files||[]);event.target.value='';if(files[0]){remember();void (async()=>{try{if(!await ensureSiteVisit())throw Error('The active Site Visit could not be restored.');await acceptFile(files[0]);}catch(error){toast(error?.message||String(error),true);if(recoveredUrl())scheduleRecovery(500);}})();}else if(recoveredUrl())scheduleRecovery(100);},true);
-for(const name of ['focus','pageshow'])window.addEventListener(name,()=>{if(remembered()){void ensureSiteVisit().then(()=>renderCapture());}unlockCaptureTools();if(recoveredUrl())scheduleRecovery(80);});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){unlockCaptureTools();if(recoveredUrl())scheduleRecovery(80);}});
-window.addEventListener('h38:native-scanner-ready',()=>{unlockCaptureTools();if(recoveredUrl())scheduleRecovery(80);});
-const observer=new MutationObserver(()=>{unlockCaptureTools();if(recoveredUrl())scheduleRecovery(120);});observer.observe(document.documentElement,{childList:true,subtree:true});
-unlockCaptureTools();if(recoveredUrl())scheduleRecovery(120);
-window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,videoPersistedBeforeDecode:true,captureToolsAlwaysAvailable:true,privateCameraX:true,activityRestartRecovery:true,nativeChunkRecovery:true,noMediaStore:true,noWebRTCWalkthrough:true};
+for(const name of ['focus','pageshow'])window.addEventListener(name,()=>{if(nativeAndroid()&&remembered()){void ensureSiteVisit().then(()=>renderCapture());}unlockCaptureTools();if(nativeAndroid()&&recoveredUrl())scheduleRecovery(80);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){unlockCaptureTools();if(nativeAndroid()&&recoveredUrl())scheduleRecovery(80);}});
+window.addEventListener('h38:native-scanner-ready',()=>{unlockCaptureTools();if(nativeAndroid()&&recoveredUrl())scheduleRecovery(80);});
+const observer=new MutationObserver(()=>{unlockCaptureTools();if(nativeAndroid()&&recoveredUrl())scheduleRecovery(120);});observer.observe(document.documentElement,{childList:true,subtree:true});
+unlockCaptureTools();if(nativeAndroid()&&recoveredUrl())scheduleRecovery(120);
+window.H38_ANDROID_NATIVE_WALKTHROUGH_GUARD={build:BUILD,nativeEntryOnly:true,videoPersistedBeforeDecode:true,captureToolsAlwaysAvailable:true,sharedAndroidIphoneFieldFlow:true,privateCameraX:true,activityRestartRecovery:true,nativeChunkRecovery:true,noMediaStore:true,noWebRTCWalkthrough:true};
 })();
