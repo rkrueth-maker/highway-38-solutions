@@ -17,6 +17,10 @@ check(/data-h38-delete-site/.test(operator),'Site Visit rows need direct Delete 
 check(/privateCameraX:true/.test(guard)&&/directNativeLaunch:true/.test(guard),'Android CameraX/native bridge must remain walkthrough authority.');
 check(/nativeStreamingRecovery:true/.test(guard)&&/nativeChunkRecovery:false/.test(guard),'Android recording recovery must stay native-stream based.');
 check(/persistVideoFirst/.test(guard),'Recovered video must persist before secondary processing.');
+check(/exactVisitReturnIdentity:true/.test(guard)&&/restoreExpectedSiteVisit/.test(guard),'Android return recovery must restore the exact originating Site Visit instead of whichever draft is newest.');
+check(/visitId:text\(visit\.visitId\)/.test(guard)&&/sessionId:text\(visit\.sessionId\)/.test(guard)&&/businessId:text\(core\?\.business/.test(guard),'Android launch context must pin business, Site Visit, and capture-session identity before CameraX opens.');
+check(/attachment-blocked-wrong-site-visit/.test(guard)&&/walkthrough was kept safely on this phone and was not attached to a different visit/.test(guard),'A returned walkthrough must fail safe instead of attaching to a mismatched Site Visit.');
+check(/returnDiagnostics:true/.test(guard)&&/before-native-launch/.test(guard)&&/native-result-recovery-start/.test(guard)&&/return-restore-exact-success/.test(guard),'Android return diagnostics must record pre-launch identity and post-return restoration decisions.');
 check(/launchWalkthroughCapture/.test(bridge),'Android bridge must expose walkthrough launch.');
 check(/handler\.postDelayed\(this::startRecording,120\)/.test(capture),'CameraX must auto-start after camera bind.');
 check(/workingHammer:true/.test(followup)&&/visibleSwingHammer:true/.test(followup)&&/actualNotesOnCapture:true/.test(followup),'Capture must retain visible swinging hammer and notes UX.');
@@ -25,4 +29,4 @@ check(/automaticPostCaptureSync:true/.test(recovery)&&/automaticWalkthroughProce
 check(/automaticSavedOwnerFill:true/.test(auth),'Android saved owner login must fill automatically without another credential-button tap.');
 check(/versionCode\s+31\b/.test(build),'Owner APK versionCode must remain 31 for this runtime-only repair.');
 check(/versionName\s+'0\.5\.26'/.test(build),'Owner APK versionName must remain 0.5.26 for this runtime-only repair.');
-console.log('PASS field platform authority: proven CameraX unchanged; same-video audio derivation, editable notes, visible hammer, and measurement verification are active.');
+console.log('PASS field platform authority: CameraX unchanged; exact Site Visit return identity is pinned, mismatches fail safe, and return diagnostics are active.');
