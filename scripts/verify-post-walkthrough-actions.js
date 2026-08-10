@@ -15,15 +15,16 @@ const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} unexpectedly contains ${s}`)};
 
 for(const s of ['retired:true','sameWalkthroughSpeech:true','microphoneRequired:true','videoOnlyFallback:false'])must(voice,s,'retired voice compatibility');
-absent(voice,'getUserMedia(','retired voice compatibility');
+absent(voice,'navigator.mediaDevices','retired voice compatibility');
 absent(voice,'new MediaRecorder','retired voice compatibility');
 for(const s of ['walkthroughVideoToProfessionalNotes:true','NO_AUDIO','Original transcript — internal evidence','spokenMeasurementsFieldVerified:false','h38-walkthrough-transcription'])must(transcription,s,'transcription');
 for(const s of ['let source = video','if (audioId)','NO_USABLE_AUDIO','https://api.openai.com/v1/audio/transcriptions','automaticApproval: false','automaticCustomerSending: false'])must(server,s,'transcription edge function');
 
 for(const s of ['retired:true','cameraAuthority:false','microphoneAuthority:false'])must(direct,s,'retired Android WebView camera');
-absent(direct,'getUserMedia','retired Android WebView camera');
-for(const s of ["androidWalkthroughAuthority:'android-native-walkthrough-guard'","iphoneWalkthroughAuthority:'native-video-input'",'webViewRecorderAuthority:false','data-delete-quote-row','data-h38-delete-site','Open / Edit'])must(operator,s,'operator flow');
-for(const s of ['H38_ANDROID_NATIVE_WALKTHROUGH_GUARD','privateCameraX:true','nativeChunkRecovery:true','noMediaStore:true','noWebRTCWalkthrough:true','persistVideoFirst','readNativeFile','confirmConsumed()'])must(nativeGuard,s,'native Android guard');
+absent(direct,'navigator.mediaDevices','retired Android WebView camera');
+absent(direct,'media.getUserMedia','retired Android WebView camera');
+for(const s of ["androidWalkthroughAuthority:'android-native-walkthrough-guard'",'webViewRecorderAuthority:false','data-delete-quote-row','data-h38-delete-site','Open / Edit'])must(operator,s,'operator flow');
+for(const s of ['H38_ANDROID_NATIVE_WALKTHROUGH_GUARD','mobileSaveAndStartOwned:true','mobileRecordAnotherOwned:true','privateCameraX:true','nativeChunkRecovery:true','noMediaStore:true','noWebRTCWalkthrough:true','persistVideoFirst','readNativeFile','confirmConsumed()'])must(nativeGuard,s,'native mobile guard');
 
 for(const s of ['WalkthroughCaptureActivity.class','pendingFileCapture','CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(main,s,'Android host');
 for(const s of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','VideoCapture.withOutput','withAudioEnabled()','getFilesDir()','FileProvider.getUriForFile','Stop & Use Video','Light On','Light Off','enableTorch'])must(capture,s,'CameraX activity');
