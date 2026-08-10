@@ -1,26 +1,25 @@
 (function(){
 'use strict';
-/*
- * Retired 2026-08-10 during the Site Visit recovery rebuild.
- *
- * Walkthrough speech now comes from the audio track in the same saved video.
- * Android records that video in the H38 CameraX activity. iPhone/iPad use the
- * native video capture sheet. The transcription service accepts the saved
- * walkthrough video directly and rejects recordings with no usable audio.
- *
- * This compatibility object remains because transcription code safely calls
- * syncPending() when older builds created a separate voice attachment.
- */
-async function syncPending(){return 0;}
-window.H38_FIELD_VISIT_VOICE_CAPTURE={
-  build:'20260810-retired-0236',
-  retired:true,
-  authoritativeRecorder:false,
-  sameWalkthroughSpeech:true,
-  microphoneRequired:true,
-  videoOnlyFallback:false,
-  syncPending,
-  automaticApproval:false,
-  automaticCustomerSending:false
-};
+const BUILD='20260810-same-video-audio-1842';
+const C=()=>window.H38_FIELD_VISIT_CORE;
+const TARGET_RATE=16000;
+let syncing=false,extracting=false,lastAutoVideo='';
+const text=v=>String(v==null?'':v),now=()=>new Date().toISOString();
+const safe=v=>text(v).replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,140)||'walkthrough-audio';
+const uid=p=>typeof window.newId==='function'?window.newId(p):`${p}-${crypto.randomUUID().toUpperCase()}`;
+function hammer(m){try{window.H38_WORKING_HAMMER?.start?.(m,'voice-audio')}catch(_){}}
+function unhammer(){try{window.H38_WORKING_HAMMER?.stop?.('voice-audio')}catch(_){}}
+function visit(){return C()?.state?.visit||null}
+function monoSamples(buffer){const channels=buffer.numberOfChannels,length=buffer.length,out=new Float32Array(length);for(let c=0;c<channels;c++){const src=buffer.getChannelData(c);for(let i=0;i<length;i++)out[i]+=src[i]/channels}return out}
+function resample(input,sourceRate,targetRate){if(sourceRate===targetRate)return input;const ratio=sourceRate/targetRate,length=Math.max(1,Math.round(input.length/ratio)),out=new Float32Array(length);for(let i=0;i<length;i++){const start=Math.floor(i*ratio),end=Math.min(input.length,Math.max(start+1,Math.floor((i+1)*ratio)));let sum=0;for(let j=start;j<end;j++)sum+=input[j];out[i]=sum/(end-start)}return out}
+function wavBlob(samples,rate){const buffer=new ArrayBuffer(44+samples.length*2),view=new DataView(buffer);const str=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i))};str(0,'RIFF');view.setUint32(4,36+samples.length*2,true);str(8,'WAVE');str(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,rate,true);view.setUint32(28,rate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);str(36,'data');view.setUint32(40,samples.length*2,true);let o=44;for(let i=0;i<samples.length;i++,o+=2){const s=Math.max(-1,Math.min(1,samples[i]));view.setInt16(o,s<0?s*0x8000:s*0x7fff,true)}return new Blob([buffer],{type:'audio/wav'})}
+async function decodeAudio(file){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)throw Error('This phone cannot prepare walkthrough audio.');const ctx=new AudioCtx();try{const decoded=await ctx.decodeAudioData(await file.arrayBuffer());if(!decoded?.length||!decoded?.numberOfChannels)throw Error('No usable microphone audio was found in this walkthrough.');return wavBlob(resample(monoSamples(decoded),decoded.sampleRate,TARGET_RATE),TARGET_RATE)}finally{try{await ctx.close()}catch(_){}}}
+async function ensureFromVideo(file,videoAttachmentId){const v=visit();if(!v||!file||!videoAttachmentId)return'';if(!v.walkthroughAudioByVideo)v.walkthroughAudioByVideo={};const existing=text(v.walkthroughAudioByVideo[videoAttachmentId]);if(existing)return existing;if(extracting)return'';extracting=true;hammer('H38 is preparing spoken notes…');try{const blob=await decodeAudio(file);const audioId=uid('WALKTHROUGH-AUDIO'),audioFile=new File([blob],`walkthrough-audio-${Date.now()}.wav`,{type:'audio/wav',lastModified:Date.now()}),item={id:audioId,attachmentId:audioId,businessId:text(C()?.business?.()),relatedRecordType:'Site Visit',relatedRecordId:v.visitId,quoteId:text(v.quoteId),captureSessionId:text(v.sessionId),fileName:safe(audioFile.name),mimeType:'audio/wav',fileSize:audioFile.size,captureTime:now(),visibility:'Internal',walkthroughVoiceAudio:true,sourceVideoAttachmentId:videoAttachmentId,syncStatus:'PENDING_AUDIO',blobData:audioFile};await window.H38DB.put('attachments',item);if(!Array.isArray(v.walkthroughAudioAttachmentIds))v.walkthroughAudioAttachmentIds=[];if(!v.walkthroughAudioAttachmentIds.includes(audioId))v.walkthroughAudioAttachmentIds.push(audioId);v.walkthroughAudioByVideo[videoAttachmentId]=audioId;await C()?.saveDraft?.();if(navigator.onLine)void syncPending();return audioId}catch(error){v.walkthroughAudioUnavailableByVideo=v.walkthroughAudioUnavailableByVideo||{};v.walkthroughAudioUnavailableByVideo[videoAttachmentId]=true;await C()?.saveDraft?.();throw error}finally{extracting=false;unhammer()}}
+async function session(){const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(!api)throw Error('The secure Business Office connection is not ready.');const result=await api.auth.getSession();if(result.error)throw result.error;if(!result.data?.session?.user)throw Error('Supabase Auth session is required.');return{api,user:result.data.session.user}}
+async function upload(item){const{api,user}=await session(),local=await window.H38DB.get('attachments',item.attachmentId||item.id),blob=local?.blobData||item.blobData;if(!(blob instanceof Blob))throw Error('The saved walkthrough audio data is unavailable.');const businessId=text(item.businessId),visitId=text(item.relatedRecordId),attachmentId=text(item.attachmentId||item.id),fileName=safe(item.fileName),path=`${businessId}/Site-Visit/${safe(visitId)}/${safe(attachmentId)}-${fileName}`;const saved=await api.storage.from('business-office-files').upload(path,blob,{contentType:item.mimeType||'audio/wav',upsert:true,cacheControl:'3600'});if(saved.error)throw saved.error;const record={'Document ID':attachmentId,'Business ID':businessId,'File Name':fileName,'Mime Type':item.mimeType||'audio/wav','File Size':Number(item.fileSize||blob.size||0),'Source Type':'Site Visit','Source ID':visitId,'Quote ID':text(item.quoteId),'Capture Session ID':text(item.captureSessionId),'Evidence Type':'Walkthrough Voice Audio','Source Video Attachment ID':text(item.sourceVideoAttachmentId),'Access Classification':'Internal','Storage Bucket':'business-office-files','Storage Path':path,'Status':'Available — Private','Created Time':item.captureTime||now(),'Updated Time':now(),'Record Version':1};const upsert=await api.from('business_records').upsert({business_id:businessId,collection:'documents',record_key:attachmentId,payload:record,record_status:'active',created_by:user.id,updated_by:user.id},{onConflict:'business_id,collection,record_key'});if(upsert.error)throw upsert.error;await window.H38DB.put('attachments',{...local,...item,id:attachmentId,attachmentId,syncStatus:'SYNCED',storageProvider:'supabase',storagePath:path,blobData:null});return true}
+async function syncPending(){if(syncing||!navigator.onLine)return 0;const businessId=text(C()?.business?.());if(!businessId)return 0;syncing=true;let done=0;try{const rows=await window.H38DB.all('attachments');for(const row of rows.filter(r=>r?.walkthroughVoiceAudio===true&&r.syncStatus!=='SYNCED'&&text(r.businessId)===businessId)){try{if(await upload(row))done++}catch(error){console.warn('Walkthrough voice audio upload:',error?.message||error)}}return done}finally{syncing=false}}
+async function autoPrepare(){const v=visit(),ids=v?.videoAttachmentIds||[],videoId=text(ids[ids.length-1]);if(!videoId||v?.walkthroughAudioByVideo?.[videoId]||extracting)return;if(lastAutoVideo===videoId&&v?.walkthroughAudioUnavailableByVideo?.[videoId])return;const local=await window.H38DB?.get?.('attachments',videoId);const file=local?.blobData;if(!(file instanceof Blob))return;lastAutoVideo=videoId;try{await ensureFromVideo(file,videoId)}catch(error){console.warn('Same-video audio auto preparation:',error?.message||error)}}
+window.addEventListener('online',()=>{void autoPrepare();void syncPending()});
+setInterval(()=>{if(C()?.state?.open){void autoPrepare();if(navigator.onLine)void syncPending()}},400);
+window.H38_FIELD_VISIT_VOICE_CAPTURE={build:BUILD,retiredRecorder:true,authoritativeRecorder:false,sameWalkthroughSpeech:true,microphoneRequired:true,videoOnlyFallback:false,derivedSameVideoAudio:true,targetSampleRate:TARGET_RATE,ensureFromVideo,syncPending,automaticApproval:false,automaticCustomerSending:false};
 })();
