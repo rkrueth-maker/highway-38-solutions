@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.19 persists the private CameraX walkthrough into the active Site Visit before any video decoding and keeps field capture controls available.
+// v0.5.20 removes competing WebView walkthrough launchers, leaves Android CameraX as the sole Android walkthrough authority, adds iPhone native video capture ownership, and restores direct quote/Site Visit management controls.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -22,8 +22,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 24
-        versionName '0.5.19'
+        versionCode 25
+        versionName '0.5.20'
     }
 
     signingConfigs {
