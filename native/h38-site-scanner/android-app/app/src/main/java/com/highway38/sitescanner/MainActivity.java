@@ -34,7 +34,9 @@ import androidx.webkit.WebViewFeature;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class MainActivity extends Activity {
     static final String BUSINESS_OFFICE_URL =
@@ -48,7 +50,7 @@ public final class MainActivity extends Activity {
     private static final String CAPTURE_URI_KEY = "pending_uri";
     private static final String CAPTURE_READY_KEY = "ready";
     private static final String CAPTURE_RECOVERY_URL =
-            BUSINESS_OFFICE_URL + "__native_walkthrough_recovery";
+            "https://appassets.androidplatform.net/h38-native/walkthrough.mp4";
 
     private WebView webView;
     private NativeScannerBridge nativeScannerBridge;
@@ -101,7 +103,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.8"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.13"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -337,7 +339,18 @@ public final class MainActivity extends Activity {
             if (stream == null) return null;
             String mime = getContentResolver().getType(uri);
             if (mime == null || mime.trim().isEmpty()) mime = "video/mp4";
-            return new WebResourceResponse(mime, null, stream);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Access-Control-Allow-Origin", "https://highway38solutions.com");
+            headers.put("Cache-Control", "no-store, no-cache, must-revalidate");
+            headers.put("Pragma", "no-cache");
+            return new WebResourceResponse(
+                    mime,
+                    null,
+                    200,
+                    "OK",
+                    headers,
+                    stream
+            );
         } catch (Exception ignored) {
             return null;
         }
@@ -419,7 +432,6 @@ public final class MainActivity extends Activity {
     void requestWebAutofill() {
         runOnUiThread(() -> {
             if (webView == null) return;
-            webView.requestFocus(View.FOCUS_DOWN);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 AutofillManager manager = getSystemService(AutofillManager.class);
                 if (manager != null && manager.isEnabled()) {
@@ -570,6 +582,8 @@ public final class MainActivity extends Activity {
                         pendingFileCallback = null;
                     }
                     injectNativeScanner();
+                    webView.postDelayed(this::injectNativeScanner, 250L);
+                    webView.postDelayed(this::injectNativeScanner, 900L);
                 } else {
                     cleanupPendingCaptureUri();
                     if (pendingFileCallback != null) {
