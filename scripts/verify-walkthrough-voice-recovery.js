@@ -21,7 +21,7 @@ const check=(name,ok)=>{if(!ok)failures.push(name);};
 check('voice client exposes status for captured walkthrough',voice.includes('fieldVoiceStatus')&&voice.includes('Notes from walkthrough video'));
 check('no-audio walkthrough is explicitly rejected',voice.includes("status='NO_AUDIO'")&&voice.includes('not accepted because microphone audio is required'));
 check('transcription accepts same saved video when no separate audio exists',voice.includes('Checking the saved walkthrough for usable microphone audio')&&voice.includes('audioAttachmentId||\'\''));
-check('retired separate voice recorder cannot reacquire microphone',capture.includes('retired:true')&&!capture.includes('getUserMedia(')&&!capture.includes('new MediaRecorder'));
+check('retired separate voice recorder cannot reacquire microphone',capture.includes('retired:true')&&!capture.includes('navigator.mediaDevices')&&!capture.includes('new MediaRecorder'));
 check('retired voice recorder preserves same-video contract',capture.includes('sameWalkthroughSpeech:true')&&capture.includes('microphoneRequired:true')&&capture.includes('videoOnlyFallback:false'));
 check('edge preserves original video authority',edge.includes('Video Walkthrough')&&compactEdge.includes('attachmentId:videoId'));
 check('edge transcribes original video when no separate audio attachment exists',edge.includes('let source = video')&&edge.includes('if (audioId)'));
@@ -33,8 +33,11 @@ check('operator does not hijack Android walkthrough',operator.includes("if(!appl
 check('iPhone uses native video input',operator.includes("iphoneWalkthroughAuthority:'native-video-input'")&&operator.includes("document.getElementById('fieldVideoInput')"));
 check('android guard is the native walkthrough authority',nativeGuard.includes('privateCameraX:true')&&nativeGuard.includes('noWebRTCWalkthrough:true'));
 check('native recovered video is streamed from private storage',nativeGuard.includes('readNativeFile')&&nativeGuard.includes('readRecoveredWalkthroughChunk'));
-check('native video persists before frame extraction',nativeGuard.includes('persistVideoFirst')&&nativeGuard.indexOf('await persistVideoFirst(file)')<nativeGuard.indexOf('bestEffortFrames(file)'));
-check('native recording is consumed only after attachment count advances',nativeGuard.includes('walkthroughCount()<=before')&&nativeGuard.includes('confirmConsumed()'));
+const acceptStart=nativeGuard.indexOf('async function acceptFile');
+const acceptEnd=nativeGuard.indexOf('async function recover',acceptStart);
+const acceptPath=acceptStart>=0&&acceptEnd>acceptStart?nativeGuard.slice(acceptStart,acceptEnd):'';
+check('native video persists before frame extraction',acceptPath.indexOf('await persistVideoFirst(file)')>=0&&acceptPath.indexOf('await persistVideoFirst(file)')<acceptPath.indexOf('await bestEffortFrames(file)'));
+check('native recording is consumed only after attachment count advances',acceptPath.includes('walkthroughCount()<=before')&&acceptPath.includes('confirmConsumed()'));
 
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
 check('CameraX records microphone in same video',nativeCapture.includes('withAudioEnabled()')&&nativeCapture.includes('VideoCapture.withOutput'));
