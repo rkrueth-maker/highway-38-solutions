@@ -6,6 +6,7 @@ const voice=read('commercial-app/field-visit-voice-capture.js');
 const operator=read('commercial-app/operator-direct-controls.js');
 const direct=read('commercial-app/android-camera-direct-fix.js');
 const nativeGuard=read('commercial-app/android-native-walkthrough-guard.js');
+const followup=read('commercial-app/field-visit-fast-followup.js');
 const server=read('supabase/functions/h38-walkthrough-transcription/index.ts');
 const main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
 const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
@@ -13,24 +14,19 @@ const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/hig
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
 const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} unexpectedly contains ${s}`)};
-
 for(const s of ['retired:true','sameWalkthroughSpeech:true','microphoneRequired:true','videoOnlyFallback:false'])must(voice,s,'retired voice compatibility');
-absent(voice,'navigator.mediaDevices','retired voice compatibility');
-absent(voice,'new MediaRecorder','retired voice compatibility');
+absent(voice,'navigator.mediaDevices','retired voice compatibility');absent(voice,'new MediaRecorder','retired voice compatibility');
 for(const s of ['walkthroughVideoToProfessionalNotes:true','NO_AUDIO','Original transcript — internal evidence','spokenMeasurementsFieldVerified:false','h38-walkthrough-transcription'])must(transcription,s,'transcription');
 for(const s of ['let source = video','if (audioId)','NO_USABLE_AUDIO','https://api.openai.com/v1/audio/transcriptions','automaticApproval: false','automaticCustomerSending: false'])must(server,s,'transcription edge function');
-
 for(const s of ['retired:true','cameraAuthority:false','microphoneAuthority:false'])must(direct,s,'retired Android WebView camera');
-absent(direct,'navigator.mediaDevices','retired Android WebView camera');
-absent(direct,'media.getUserMedia','retired Android WebView camera');
+absent(direct,'navigator.mediaDevices','retired Android WebView camera');absent(direct,'media.getUserMedia','retired Android WebView camera');
 for(const s of ["androidWalkthroughAuthority:'android-native-walkthrough-guard'",'webViewRecorderAuthority:false','data-delete-quote-row','data-h38-delete-site','Open / Edit'])must(operator,s,'operator flow');
 for(const s of ['H38_ANDROID_NATIVE_WALKTHROUGH_GUARD','mobileSaveAndStartOwned:true','mobileRecordAnotherOwned:true','privateCameraX:true','nativeChunkRecovery:true','noMediaStore:true','noWebRTCWalkthrough:true','persistVideoFirst','readNativeFile','confirmConsumed()'])must(nativeGuard,s,'native mobile guard');
-
+for(const s of ['H38_FIELD_VISIT_FAST_FOLLOWUP','actualNotesOnCapture:true','nextPhotoImmediate:true','onePhotoAtATime:true','backgroundProcessing:true','NEXT PHOTO'])must(followup,s,'post-walkthrough follow-up');
 for(const s of ['WalkthroughCaptureActivity.class','pendingFileCapture','CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','confirmRecoveredWalkthroughConsumed'])must(main,s,'Android host');
 for(const s of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','VideoCapture.withOutput','withAudioEnabled()','getFilesDir()','FileProvider.getUriForFile','Stop & Use Video','Light On','Light Off','enableTorch'])must(capture,s,'CameraX activity');
 for(const s of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed','CredentialManager','PasswordCredential','fillWebLogin'])must(bridge,s,'Android bridge');
-for(const s of ['versionCode 25',"versionName '0.5.20'",'androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android version');
+for(const s of ['versionCode 26',"versionName '0.5.21'",'androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android version');
 for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_OUTPUT','createWalkthroughVideoUri'])absent(main,s,'Android host');
-
-for(const runtime of [voice,transcription,operator,direct,nativeGuard])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])absent(runtime,s,'runtime safety');
-console.log(JSON.stringify({status:'PASS',androidAuthority:'CameraX only',iphoneAuthority:'native video input',sameVideoAudio:true,separateWebViewRecorder:false,durableNativeRecovery:true,directQuoteDelete:true,directSiteVisitDelete:true,version:'0.5.20',automaticApproval:false,automaticCustomerSending:false},null,2));
+for(const runtime of [voice,transcription,operator,direct,nativeGuard,followup])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])absent(runtime,s,'runtime safety');
+console.log(JSON.stringify({status:'PASS',androidAuthority:'CameraX only',iphoneAuthority:'native video input',sameVideoAudio:true,separateWebViewRecorder:false,durableNativeRecovery:true,actualNotesOnCapture:true,nextPhotoImmediate:true,backgroundProcessing:true,directQuoteDelete:true,directSiteVisitDelete:true,version:'0.5.21',automaticApproval:false,automaticCustomerSending:false},null,2));
