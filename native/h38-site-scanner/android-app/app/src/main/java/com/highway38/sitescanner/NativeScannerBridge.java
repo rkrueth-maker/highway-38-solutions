@@ -2,7 +2,11 @@ package com.highway38.sitescanner;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
+import android.net.Uri;
 import android.os.Build;
+import android.util.Base64;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -22,9 +26,15 @@ import com.google.ar.core.Session;
 
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.Collections;
 
 public final class NativeScannerBridge {
+    private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
+    private static final String CAPTURE_URI_KEY = "pending_uri";
+    private static final String CAPTURE_READY_KEY = "ready";
+    private static final int MAX_WALKTHROUGH_CHUNK_BYTES = 256 * 1024;
+
     private final MainActivity activity;
     private final WebView webView;
     private final SecureLoginStore secureLoginStore;
@@ -184,6 +194,86 @@ public final class NativeScannerBridge {
 
     @JavascriptInterface
     public String getRecoveredWalkthroughUrl() { return activity.getRecoveredWalkthroughUrl(); }
+
+    @JavascriptInterface
+    public String getRecoveredWalkthroughInfo() {
+        JSONObject result = new JSONObject();
+        try {
+            SharedPreferences prefs = activity.getSharedPreferences(CAPTURE_PREFS, Activity.MODE_PRIVATE);
+            boolean ready = prefs.getBoolean(CAPTURE_READY_KEY, false);
+            String value = prefs.getString(CAPTURE_URI_KEY, "");
+            if (!ready || value == null || value.trim().isEmpty()) {
+                result.put("ready", false);
+                return result.toString();
+            }
+            Uri uri = Uri.parse(value);
+            long size = -1L;
+            try (AssetFileDescriptor descriptor = activity.getContentResolver().openAssetFileDescriptor(uri, "r")) {
+                if (descriptor != null) size = descriptor.getLength();
+            }
+            if (size < 0L) {
+                try (InputStream stream = activity.getContentResolver().openInputStream(uri)) {
+                    if (stream != null) {
+                        long counted = 0L;
+                        byte[] buffer = new byte[64 * 1024];
+                        int read;
+                        while ((read = stream.read(buffer)) > 0) counted += read;
+                        size = counted;
+                    }
+                }
+            }
+            String mime = activity.getContentResolver().getType(uri);
+            if (mime == null || mime.trim().isEmpty()) mime = "video/mp4";
+            result.put("ready", size > 0L);
+            result.put("size", Math.max(0L, size));
+            result.put("mime", mime);
+            return result.toString();
+        } catch (Throwable error) {
+            try {
+                result.put("ready", false);
+                result.put("error", error.getMessage());
+            } catch (Throwable ignored) {
+            }
+            return result.toString();
+        }
+    }
+
+    @JavascriptInterface
+    public String readRecoveredWalkthroughChunk(long offset, int requestedBytes) {
+        if (offset < 0L) return "";
+        int wanted = Math.max(1, Math.min(requestedBytes, MAX_WALKTHROUGH_CHUNK_BYTES));
+        try {
+            SharedPreferences prefs = activity.getSharedPreferences(CAPTURE_PREFS, Activity.MODE_PRIVATE);
+            if (!prefs.getBoolean(CAPTURE_READY_KEY, false)) return "";
+            String value = prefs.getString(CAPTURE_URI_KEY, "");
+            if (value == null || value.trim().isEmpty()) return "";
+            Uri uri = Uri.parse(value);
+            try (InputStream stream = activity.getContentResolver().openInputStream(uri)) {
+                if (stream == null) return "";
+                long remainingSkip = offset;
+                while (remainingSkip > 0L) {
+                    long skipped = stream.skip(remainingSkip);
+                    if (skipped > 0L) {
+                        remainingSkip -= skipped;
+                        continue;
+                    }
+                    if (stream.read() < 0) return "";
+                    remainingSkip--;
+                }
+                byte[] buffer = new byte[wanted];
+                int total = 0;
+                while (total < wanted) {
+                    int read = stream.read(buffer, total, wanted - total);
+                    if (read < 0) break;
+                    total += read;
+                }
+                if (total < 1) return "";
+                return Base64.encodeToString(buffer, 0, total, Base64.NO_WRAP);
+            }
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
 
     @JavascriptInterface
     public void confirmRecoveredWalkthroughConsumed() { activity.runOnUiThread(activity::confirmRecoveredWalkthroughConsumed); }
