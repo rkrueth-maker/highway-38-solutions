@@ -111,6 +111,15 @@
     }
   }
 
+  function loadFastFieldFollowup() {
+    if (!window.H38_FIELD_VISIT_FAST_FOLLOWUP && !document.querySelector('script[data-h38-fast-field-followup]')) {
+      const script = document.createElement('script');
+      script.src = './field-visit-fast-followup.js?build=20260810-1025';
+      script.dataset.h38FastFieldFollowup = '1';
+      document.body.appendChild(script);
+    }
+  }
+
   window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
     enabled: true,
     publicRouteRemoved: true,
@@ -123,4 +132,5 @@
   loadPersonalAssistant();
   loadOfficePolish();
   loadPlayCompliance();
+  loadFastFieldFollowup();
 })();
