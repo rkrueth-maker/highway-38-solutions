@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.18 streams the recovered private CameraX video directly through the Android JS bridge, bypassing the web service-worker recovery boundary.
+// v0.5.19 persists the private CameraX walkthrough into the active Site Visit before any video decoding and keeps field capture controls available.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -22,8 +22,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 23
-        versionName '0.5.18'
+        versionCode 24
+        versionName '0.5.19'
     }
 
     signingConfigs {
