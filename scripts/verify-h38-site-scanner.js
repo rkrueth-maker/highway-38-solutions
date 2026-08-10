@@ -31,7 +31,7 @@ for(const token of ['CredentialManager','GetPasswordOption','PasswordCredential'
 for(const token of ['versionCode 25',"versionName '0.5.20'",'owner {',"applicationIdSuffix '.test'",'androidx.camera:camera-video:1.5.3'])must(gradle,token,'Android v0.5.20 config');
 for(const token of ['android.permission.CAMERA','android.permission.RECORD_AUDIO','.WalkthroughCaptureActivity','.MainActivity','androidx.core.content.FileProvider'])must(manifest,token,'Android manifest');
 
-for(const token of ['siteCaptureSessions','siteMeasurements','siteGeometryOutputs','ownerReviewRequired: true','automaticApproval: false','automaticCustomerSending: false'])must(edge,token,'Site Scanner Edge Function');
+for(const token of ['business_memberships','siteCaptureSessions','missingMeasurements','Supabase Auth session is required.','automaticApproval: false','automaticCustomerSending: false'])must(edge,token,'Site Scanner Edge Function');
 for(const token of ['automatic_approval','new_parallel_database_created','retired_apps_script_restored'])must(migration,token,'Site Scanner migration');
 for(const unsafe of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])absent(scanner,unsafe,'browser scanner');
 
