@@ -18,8 +18,8 @@ const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} unexpectedly conta
 for(const s of ['retiredRecorder:true','sameWalkthroughSpeech:true','microphoneRequired:true','videoOnlyFallback:false','derivedSameVideoAudio:true','targetSampleRate:TARGET_RATE','Walkthrough Voice Audio'])must(voice,s,'same-video audio derivative');
 absent(voice,'navigator.mediaDevices','same-video audio derivative');absent(voice,'new MediaRecorder','same-video audio derivative');
 for(const s of ['walkthroughVideoToProfessionalNotes:true','editableSavedNotes:true','videoMeasurementCandidates:true','plainVideoDepthGeometry:false','NO_AUDIO','Original spoken transcript — internal evidence','spokenMeasurementsFieldVerified:false','h38-walkthrough-transcription'])must(transcription,s,'transcription');
-for(const s of ['NO_USABLE_AUDIO','https://api.openai.com/v1/audio/transcriptions','automaticApproval: false','automaticCustomerSending: false'])must(server,s,'transcription edge function');
-for(const s of ['letsource=video','if(audioId)source=awaitrequireEvidence'])must(compactServer,s,'transcription edge function');
+for(const s of ['NO_USABLE_AUDIO','https://api.openai.com/v1/audio/transcriptions'])must(server,s,'transcription edge function');
+for(const s of ['letsource=video','if(audioId)source=awaitrequireEvidence','automaticApproval:false','automaticCustomerSending:false'])must(compactServer,s,'transcription edge function');
 for(const s of ['retired:true','cameraAuthority:false','microphoneAuthority:false'])must(direct,s,'retired Android WebView camera');
 absent(direct,'navigator.mediaDevices','retired Android WebView camera');absent(direct,'media.getUserMedia','retired Android WebView camera');
 for(const s of ["androidWalkthroughAuthority:'android-native-walkthrough-guard'",'webViewRecorderAuthority:false','data-delete-quote-row','data-h38-delete-site','Open / Edit'])must(operator,s,'operator flow');
