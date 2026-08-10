@@ -1,0 +1,35 @@
+name: Verify Field Platform Authority
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/android-camera-direct-fix.js'
+      - 'commercial-app/android-native-walkthrough-guard.js'
+      - 'commercial-app/field-visit-voice-capture.js'
+      - 'commercial-app/operator-direct-controls.js'
+      - 'native/h38-site-scanner/android-app/app/build.gradle'
+      - 'scripts/verify-field-platform-authority.js'
+      - '.github/workflows/verify-field-platform-authority.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/android-camera-direct-fix.js'
+      - 'commercial-app/android-native-walkthrough-guard.js'
+      - 'commercial-app/field-visit-voice-capture.js'
+      - 'commercial-app/operator-direct-controls.js'
+      - 'native/h38-site-scanner/android-app/app/build.gradle'
+      - 'scripts/verify-field-platform-authority.js'
+      - '.github/workflows/verify-field-platform-authority.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/verify-field-platform-authority.js
