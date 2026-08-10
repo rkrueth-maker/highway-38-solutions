@@ -80,14 +80,16 @@ public final class NativeScannerBridge {
 
     @JavascriptInterface
     public void disableWebAutofill() {
-        activity.runOnUiThread(() -> {
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
-                }
-            } catch (Throwable ignored) {
+        activity.runOnUiThread(this::disableWebAutofillNow);
+    }
+
+    private void disableWebAutofillNow() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
             }
-        });
+        } catch (Throwable ignored) {
+        }
     }
 
     @JavascriptInterface
@@ -129,18 +131,35 @@ public final class NativeScannerBridge {
                                 fillWebLogin(saved.getId(), saved.getPassword());
                                 return;
                             }
-                            notifySavedLoginUnavailable();
+                            requestWebPasswordManagerFallback();
                         }
                         @Override
                         public void onError(GetCredentialException error) {
                             credentialRequestBusy = false;
-                            notifySavedLoginUnavailable();
+                            requestWebPasswordManagerFallback();
                         }
                     });
         } catch (Throwable error) {
             credentialRequestBusy = false;
-            notifySavedLoginUnavailable();
+            requestWebPasswordManagerFallback();
         }
+    }
+
+    private void requestWebPasswordManagerFallback() {
+        activity.runOnUiThread(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+                    activity.requestWebAutofill();
+                    webView.postDelayed(this::disableWebAutofillNow, 12000L);
+                    String script = "window.dispatchEvent(new CustomEvent('h38:saved-login-web-autofill-requested'));";
+                    webView.evaluateJavascript(script, null);
+                    return;
+                }
+            } catch (Throwable ignored) {
+            }
+            notifySavedLoginUnavailable();
+        });
     }
 
     private void notifySavedLoginUnavailable() {
