@@ -8,6 +8,7 @@ const edge=read('supabase/functions/h38-walkthrough-transcription/index.ts');
 const cameraFix=read('commercial-app/android-camera-direct-fix.js');
 const operator=read('commercial-app/operator-direct-controls.js');
 const nativeGuard=read('commercial-app/android-native-walkthrough-guard.js');
+const followup=read('commercial-app/field-visit-fast-followup.js');
 const auth=read('commercial-app/auth-autofill.js');
 const android=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
 const nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
@@ -17,17 +18,15 @@ const compact=s=>s.replace(/\s+/g,'');
 const compactEdge=compact(edge);
 const failures=[];
 const check=(name,ok)=>{if(!ok)failures.push(name);};
-
 check('voice client exposes status for captured walkthrough',voice.includes('fieldVoiceStatus')&&voice.includes('Notes from walkthrough video'));
 check('no-audio walkthrough is explicitly rejected',voice.includes("status='NO_AUDIO'")&&voice.includes('not accepted because microphone audio is required'));
-check('transcription accepts same saved video when no separate audio exists',voice.includes('Checking the saved walkthrough for usable microphone audio')&&voice.includes('audioAttachmentId||\'\''));
+check('transcription accepts same saved video when no separate audio exists',voice.includes('Checking the saved walkthrough for usable microphone audio')&&voice.includes("audioAttachmentId||''"));
 check('retired separate voice recorder cannot reacquire microphone',capture.includes('retired:true')&&!capture.includes('navigator.mediaDevices')&&!capture.includes('new MediaRecorder'));
 check('retired voice recorder preserves same-video contract',capture.includes('sameWalkthroughSpeech:true')&&capture.includes('microphoneRequired:true')&&capture.includes('videoOnlyFallback:false'));
 check('edge preserves original video authority',edge.includes('Video Walkthrough')&&compactEdge.includes('attachmentId:videoId'));
 check('edge transcribes original video when no separate audio attachment exists',edge.includes('let source = video')&&edge.includes('if (audioId)'));
 check('edge returns explicit no usable audio code',edge.includes('NO_USABLE_AUDIO'));
 check('edge keeps spoken measurements unverified',edge.includes('UNVERIFIED_SPOKEN')&&compactEdge.includes('spokenMeasurementsFieldVerified:false'));
-
 check('old Android WebView camera authority is retired',cameraFix.includes('retired:true')&&cameraFix.includes('cameraAuthority:false')&&!cameraFix.includes("addEventListener('click'"));
 check('operator does not hijack Android walkthrough',operator.includes("if(!apple()||android())return false")&&operator.includes("androidWalkthroughAuthority:'android-native-walkthrough-guard'"));
 check('iPhone uses native video input',operator.includes("iphoneWalkthroughAuthority:'native-video-input'")&&operator.includes("document.getElementById('fieldVideoInput')"));
@@ -38,7 +37,8 @@ const acceptEnd=nativeGuard.indexOf('async function recover',acceptStart);
 const acceptPath=acceptStart>=0&&acceptEnd>acceptStart?nativeGuard.slice(acceptStart,acceptEnd):'';
 check('native video persists before frame extraction',acceptPath.indexOf('await persistVideoFirst(file)')>=0&&acceptPath.indexOf('await persistVideoFirst(file)')<acceptPath.indexOf('await bestEffortFrames(file)'));
 check('native recording is consumed only after attachment count advances',acceptPath.includes('walkthroughCount()<=before')&&acceptPath.includes('confirmConsumed()'));
-
+check('actual notes are surfaced on Capture',followup.includes('actualNotesOnCapture:true')&&followup.includes('Walkthrough notes'));
+check('next photo guidance is immediate',followup.includes('nextPhotoImmediate:true')&&followup.includes('NEXT PHOTO'));
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
 check('CameraX records microphone in same video',nativeCapture.includes('withAudioEnabled()')&&nativeCapture.includes('VideoCapture.withOutput'));
 check('CameraX has live rear preview',nativeCapture.includes('PreviewView')&&nativeCapture.includes('CameraSelector.DEFAULT_BACK_CAMERA'));
@@ -49,7 +49,6 @@ check('native return survives activity recreation',android.includes('persistCapt
 check('native return is not prematurely cleared',!android.includes('pendingFileCallback = null;\n                        clearCaptureTracking(false);'));
 check('saved Android login still uses Credential Manager',nativeBridge.includes('CredentialManager')&&nativeBridge.includes('GetPasswordOption')&&nativeBridge.includes('PasswordCredential')&&nativeBridge.includes('fillWebLogin'));
 check('saved login still does not auto-submit',auth.includes('h38:saved-login-filled')&&auth.includes('Tap Sign in.')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
-check('owner APK version bumped',gradle.includes('versionCode 25')&&gradle.includes("versionName '0.5.20'"));
-
+check('owner APK version bumped',gradle.includes('versionCode 26')&&gradle.includes("versionName '0.5.21'"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',checks:27,android:'CameraX only',iphone:'native video input',sameVideoAudio:true,webRtcWalkthroughAuthority:false,version:'0.5.20'},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX only',iphone:'native video input',sameVideoAudio:true,actualNotesOnCapture:true,nextPhotoImmediate:true,version:'0.5.21'},null,2));
