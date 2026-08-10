@@ -29,7 +29,7 @@ check(/data-h38-delete-site/.test(operator)&&/Site Visits/.test(operator),'Site 
 check(/privateCameraX:true/.test(guard),'Android CameraX must remain the Android walkthrough authority.');
 check(/directNativeLaunch:true/.test(guard),'Android walkthrough must launch directly through the native bridge.');
 check(/launchWalkthroughCapture/.test(bridge),'Android bridge must expose direct walkthrough launch.');
-check(/nativeChunkRecovery:true/.test(guard),'Android private recording recovery must remain enabled.');
+check(/nativeStreamingRecovery:true/.test(guard)&&/nativeChunkRecovery:false/.test(guard),'Android private recording must use native streaming recovery, not legacy chunk recovery.');
 check(/persistVideoFirst/.test(guard),'Android recovered video must persist before secondary processing.');
 check(/handler\.postDelayed\(this::startRecording,120\)/.test(capture),'CameraX must auto-start recording after the camera binds.');
 check(/workingHammer:true/.test(followup)&&/H38_WORKING_HAMMER/.test(followup),'Visible working hammer is required.');
@@ -37,4 +37,4 @@ check(/actualNotesOnCapture:true/.test(followup),'Actual walkthrough notes must 
 check(/nextPhotoImmediate:true/.test(followup)&&/onePhotoAtATime:true/.test(followup),'Next-photo guidance must be immediate and one photo at a time.');
 check(/versionCode\s+30\b/.test(build),'Owner APK versionCode must be 30.');
 check(/versionName\s+'0\.5\.25'/.test(build),'Owner APK versionName must be 0.5.25.');
-console.log('PASS field platform authority: one-action native CameraX recording, durable recovery, visible hammer, notes/next-photo guidance, and direct deletes.');
+console.log('PASS field platform authority: one-action native CameraX recording, native-stream recovery, visible hammer, notes/next-photo guidance, and direct deletes.');
