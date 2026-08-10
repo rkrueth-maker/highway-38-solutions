@@ -24,14 +24,15 @@ check('transcription accepts same saved video when no separate audio exists',voi
 check('retired separate voice recorder cannot reacquire microphone',capture.includes('retired:true')&&!capture.includes('navigator.mediaDevices')&&!capture.includes('new MediaRecorder'));
 check('retired voice recorder preserves same-video contract',capture.includes('sameWalkthroughSpeech:true')&&capture.includes('microphoneRequired:true')&&capture.includes('videoOnlyFallback:false'));
 check('edge preserves original video authority',edge.includes('Video Walkthrough')&&compactEdge.includes('attachmentId:videoId'));
-check('edge transcribes original video when no separate audio attachment exists',edge.includes('let source = video')&&edge.includes('if (audioId)'));
+check('edge transcribes original video when no separate audio attachment exists',compactEdge.includes('letsource=video;if(audioId)source=awaitrequireEvidence'));
 check('edge returns explicit no usable audio code',edge.includes('NO_USABLE_AUDIO'));
 check('edge keeps spoken measurements unverified',edge.includes('UNVERIFIED_SPOKEN')&&compactEdge.includes('spokenMeasurementsFieldVerified:false'));
+check('edge is Site Visit first and quote optional',compactEdge.includes('siteVisitFirst:true')&&compactEdge.includes('quoteOptional:true'));
 check('old Android WebView camera authority is retired',cameraFix.includes('retired:true')&&cameraFix.includes('cameraAuthority:false')&&!cameraFix.includes("addEventListener('click'"));
 check('operator does not hijack Android walkthrough',operator.includes("if(!apple()||android())return false")&&operator.includes("androidWalkthroughAuthority:'android-native-walkthrough-guard'"));
 check('iPhone uses native video input',operator.includes("iphoneWalkthroughAuthority:'native-video-input'")&&operator.includes("document.getElementById('fieldVideoInput')"));
 check('android guard is the native walkthrough authority',nativeGuard.includes('privateCameraX:true')&&nativeGuard.includes('noWebRTCWalkthrough:true'));
-check('native recovered video is streamed from private storage',nativeGuard.includes('readNativeFile')&&nativeGuard.includes('readRecoveredWalkthroughChunk'));
+check('native recovered video is streamed from private storage',nativeGuard.includes('readNativeFile')&&nativeGuard.includes('nativeStreamingRecovery:true')&&nativeGuard.includes('nativeChunkRecovery:false'));
 const acceptStart=nativeGuard.indexOf('async function acceptFile');
 const acceptEnd=nativeGuard.indexOf('async function recover',acceptStart);
 const acceptPath=acceptStart>=0&&acceptEnd>acceptStart?nativeGuard.slice(acceptStart,acceptEnd):'';
@@ -41,6 +42,7 @@ check('actual notes are surfaced on Capture',followup.includes('actualNotesOnCap
 check('next photo guidance is immediate',followup.includes('nextPhotoImmediate:true')&&followup.includes('NEXT PHOTO'));
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
 check('CameraX records microphone in same video',nativeCapture.includes('withAudioEnabled()')&&nativeCapture.includes('VideoCapture.withOutput'));
+check('CameraX auto-starts recording after camera bind',nativeCapture.includes('handler.postDelayed(this::startRecording,120)'));
 check('CameraX has live rear preview',nativeCapture.includes('PreviewView')&&nativeCapture.includes('CameraSelector.DEFAULT_BACK_CAMERA'));
 check('CameraX has torch control',nativeCapture.includes('Light On')&&nativeCapture.includes('Light Off')&&nativeCapture.includes('enableTorch'));
 check('walkthrough remains in private H38 storage',nativeCapture.includes('getFilesDir()')&&nativeCapture.includes('FileProvider.getUriForFile'));
@@ -49,6 +51,6 @@ check('native return survives activity recreation',android.includes('persistCapt
 check('native return is not prematurely cleared',!android.includes('pendingFileCallback = null;\n                        clearCaptureTracking(false);'));
 check('saved Android login still uses Credential Manager',nativeBridge.includes('CredentialManager')&&nativeBridge.includes('GetPasswordOption')&&nativeBridge.includes('PasswordCredential')&&nativeBridge.includes('fillWebLogin'));
 check('saved login still does not auto-submit',auth.includes('h38:saved-login-filled')&&auth.includes('Tap Sign in.')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
-check('owner APK version bumped',gradle.includes('versionCode 26')&&gradle.includes("versionName '0.5.21'"));
+check('owner APK version bumped',gradle.includes('versionCode 30')&&gradle.includes("versionName '0.5.25'"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',android:'CameraX only',iphone:'native video input',sameVideoAudio:true,actualNotesOnCapture:true,nextPhotoImmediate:true,version:'0.5.21'},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudio:true,nativeStreamingRecovery:true,actualNotesOnCapture:true,nextPhotoImmediate:true,version:'0.5.25'},null,2));
