@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.25 removes the second CameraX start action: Site Visit opens the native camera and recording begins automatically while preserving the proven private-file attachment path.
+// v0.5.26 repairs automatic post-capture sync/processing and owner-login autofill while preserving the proven CameraX private-file walkthrough path.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -16,8 +16,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 30
-        versionName '0.5.25'
+        versionCode 31
+        versionName '0.5.26'
     }
     signingConfigs {
         if (hasReleaseSigning) {
