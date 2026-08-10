@@ -27,6 +27,7 @@ import com.google.ar.core.Session;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.Collections;
 
 public final class NativeScannerBridge {
@@ -190,6 +191,24 @@ public final class NativeScannerBridge {
                 + "['input','change'].forEach(function(type){email.dispatchEvent(new Event(type,{bubbles:true}));pass.dispatchEvent(new Event(type,{bubbles:true}));});"
                 + "pass.focus();window.dispatchEvent(new CustomEvent('h38:saved-login-filled'));return true;})();";
         webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    @JavascriptInterface
+    public void launchWalkthroughCapture() {
+        activity.runOnUiThread(() -> {
+            try {
+                Method method = MainActivity.class.getDeclaredMethod("launchWalkthroughVideoCapture");
+                method.setAccessible(true);
+                Object result = method.invoke(activity);
+                if (result instanceof Boolean && !((Boolean) result)) {
+                    throw new IllegalStateException("Walkthrough camera did not launch.");
+                }
+            } catch (Throwable error) {
+                String message = error.getCause() != null ? error.getCause().getMessage() : error.getMessage();
+                final String safe = message == null || message.trim().isEmpty() ? "Walkthrough camera could not open." : message;
+                webView.post(() -> webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('h38:native-walkthrough-launch-failed',{detail:" + JSONObject.quote(safe) + "}));", null));
+            }
+        });
     }
 
     @JavascriptInterface
