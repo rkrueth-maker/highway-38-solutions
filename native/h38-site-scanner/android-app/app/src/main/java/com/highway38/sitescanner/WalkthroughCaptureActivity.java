@@ -4,10 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.media.MediaCodec;
-import android.media.MediaExtractor;
-import android.media.MediaFormat;
-import android.media.MediaMuxer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -46,7 +42,6 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 public final class WalkthroughCaptureActivity extends ComponentActivity {
@@ -55,8 +50,6 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
     private static final String CAPTURE_URI_KEY = "pending_uri";
     private static final String CAPTURE_READY_KEY = "ready";
-    private static final String AUDIO_URI_KEY = "pending_audio_uri";
-    private static final String AUDIO_READY_KEY = "audio_ready";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private PreviewView previewView;
@@ -103,28 +96,11 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
     private void stopAndUseVideo(){if(finalized||outputFile==null)return;finishButton.setEnabled(false);finishButton.setText("Saving…");statusView.setText("🔨 H38 is saving walkthrough…");turnTorchOff();if(activeRecording!=null)activeRecording.stop();else if(outputFile.exists())completeWithFile();}
     private void cancelCapture(){if(finalized)return;cancelled=true;finishButton.setEnabled(false);statusView.setText("Cancelling…");turnTorchOff();if(activeRecording!=null)activeRecording.stop();else finishCancelled();}
     private void finalizeCapture(VideoRecordEvent.Finalize event){if(finalized)return;if(cancelled){finishCancelled();return;}if(event.hasError()){fail("Walkthrough recording failed: "+event.getError());return;}completeWithFile();}
-
-    private File extractAudioTrack(File videoFile) throws Exception {
-        MediaExtractor extractor=new MediaExtractor(); MediaMuxer muxer=null;
-        try{
-            extractor.setDataSource(videoFile.getAbsolutePath()); int audioTrack=-1; MediaFormat format=null;
-            for(int i=0;i<extractor.getTrackCount();i++){MediaFormat f=extractor.getTrackFormat(i);String mime=f.getString(MediaFormat.KEY_MIME);if(mime!=null&&mime.startsWith("audio/")){audioTrack=i;format=f;break;}}
-            if(audioTrack<0||format==null)throw new IllegalStateException("No microphone audio track was found.");
-            File audioFile=new File(videoFile.getParentFile(),videoFile.getName().replace(".mp4","-audio.m4a"));
-            if(audioFile.exists())audioFile.delete();
-            muxer=new MediaMuxer(audioFile.getAbsolutePath(),MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);int outTrack=muxer.addTrack(format);muxer.start();extractor.selectTrack(audioTrack);
-            int maxInput=512*1024;try{if(format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE))maxInput=Math.max(maxInput,format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE));}catch(Throwable ignored){}
-            ByteBuffer buffer=ByteBuffer.allocateDirect(maxInput);MediaCodec.BufferInfo info=new MediaCodec.BufferInfo();
-            while(true){buffer.clear();int size=extractor.readSampleData(buffer,0);if(size<0)break;info.offset=0;info.size=size;info.presentationTimeUs=extractor.getSampleTime();info.flags=extractor.getSampleFlags();muxer.writeSampleData(outTrack,buffer,info);extractor.advance();}
-            muxer.stop();muxer.release();muxer=null;if(!audioFile.exists()||audioFile.length()<1)throw new IllegalStateException("Microphone audio extraction produced an empty file.");return audioFile;
-        }finally{try{extractor.release();}catch(Throwable ignored){}if(muxer!=null)try{muxer.release();}catch(Throwable ignored){}}
-    }
-
-    private void completeWithFile(){if(finalized)return;if(outputFile==null||!outputFile.exists()||outputFile.length()<1){fail("The walkthrough video was empty. Record it again.");return;}statusView.setText("🔨 H38 is preparing spoken notes…");File audioFile;try{audioFile=extractAudioTrack(outputFile);}catch(Throwable error){fail("The walkthrough microphone audio could not be prepared: "+safeMessage(error));return;}finalized=true;turnTorchOff();handler.removeCallbacksAndMessages(null);Uri uri=FileProvider.getUriForFile(this,getPackageName()+".files",outputFile);Uri audioUri=FileProvider.getUriForFile(this,getPackageName()+".files",audioFile);getSharedPreferences(CAPTURE_PREFS,MODE_PRIVATE).edit().putString(CAPTURE_URI_KEY,uri.toString()).putBoolean(CAPTURE_READY_KEY,true).putString(AUDIO_URI_KEY,audioUri.toString()).putBoolean(AUDIO_READY_KEY,true).apply();Intent result=new Intent();result.setData(uri);result.putExtra("audioUri",audioUri.toString());result.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);setResult(RESULT_OK,result);finish();}
+    private void completeWithFile(){if(finalized)return;if(outputFile==null||!outputFile.exists()||outputFile.length()<1){fail("The walkthrough video was empty. Record it again.");return;}finalized=true;turnTorchOff();handler.removeCallbacksAndMessages(null);Uri uri=FileProvider.getUriForFile(this,getPackageName()+".files",outputFile);getSharedPreferences(CAPTURE_PREFS,MODE_PRIVATE).edit().putString(CAPTURE_URI_KEY,uri.toString()).putBoolean(CAPTURE_READY_KEY,true).apply();Intent result=new Intent();result.setData(uri);result.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);setResult(RESULT_OK,result);finish();}
     private void finishCancelled(){finalized=true;turnTorchOff();handler.removeCallbacksAndMessages(null);deleteOutput();clearCaptureTracking();setResult(RESULT_CANCELED);finish();}
     private void fail(String m){finalized=true;turnTorchOff();handler.removeCallbacksAndMessages(null);if(activeRecording!=null){try{activeRecording.close();}catch(Exception ignored){}activeRecording=null;}deleteOutput();clearCaptureTracking();statusView.setText(m);lightButton.setEnabled(false);finishButton.setEnabled(false);setResult(RESULT_CANCELED);handler.postDelayed(this::finish,1400);}
     private void deleteOutput(){if(outputFile!=null&&outputFile.exists())try{outputFile.delete();}catch(Exception ignored){}}
-    private void clearCaptureTracking(){getSharedPreferences(CAPTURE_PREFS,MODE_PRIVATE).edit().remove(CAPTURE_URI_KEY).remove(CAPTURE_READY_KEY).remove(AUDIO_URI_KEY).remove(AUDIO_READY_KEY).apply();}
+    private void clearCaptureTracking(){getSharedPreferences(CAPTURE_PREFS,MODE_PRIVATE).edit().remove(CAPTURE_URI_KEY).remove(CAPTURE_READY_KEY).apply();}
     private String safeMessage(Throwable e){String v=e==null?"":e.getMessage();return v==null||v.trim().isEmpty()?e==null?"Unknown error":e.getClass().getSimpleName():v;}
     private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
     @Override public void onBackPressed(){cancelCapture();}
