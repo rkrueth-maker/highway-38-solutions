@@ -4,66 +4,33 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} must not contain ${s}`)};
 const syntax=(c,l)=>{try{new Function(c)}catch(error){throw new Error(`${l} invalid JavaScript: ${error.message}`)}};
-
-const index=read('commercial-app/index.html');
-const core=read('commercial-app/field-visit-core.js');
-const ui=read('commercial-app/field-visit-ui.js');
-const boot=read('commercial-app/field-visit.js');
-const video=read('commercial-app/field-visit-video.js');
-const recovery=read('commercial-app/field-visit-recovery.js');
-const photoReview=read('commercial-app/field-visit-photo-review.js');
-const transcription=read('commercial-app/field-visit-transcription.js');
-const voiceCapture=read('commercial-app/field-visit-voice-capture.js');
-const owner=read('commercial-app/field-visit-owner-controls.js');
-const operator=read('commercial-app/operator-direct-controls.js');
-const direct=read('commercial-app/android-camera-direct-fix.js');
-const nativeGuard=read('commercial-app/android-native-walkthrough-guard.js');
-const worker=read('commercial-app/service-worker.js');
-const auth=read('commercial-app/auth-autofill.js');
-const main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
-const nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
-const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
-const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
-const manifest=read('native/h38-site-scanner/android-app/app/src/main/AndroidManifest.xml');
-const workflow=read('.github/workflows/android-arcore-apk.yml');
-const ios=read('native/h38-site-scanner/ios/H38SiteScannerBridge.swift');
-const voiceFn=read('supabase/functions/h38-walkthrough-transcription/index.ts');
-
-for(const [file,source] of [['core',core],['ui',ui],['boot',boot],['video',video],['recovery',recovery],['photo review',photoReview],['transcription',transcription],['voice compatibility',voiceCapture],['owner controls',owner],['operator controls',operator],['retired direct fix',direct],['native guard',nativeGuard]])syntax(source,file);
-
+const index=read('commercial-app/index.html'),core=read('commercial-app/field-visit-core.js'),ui=read('commercial-app/field-visit-ui.js'),boot=read('commercial-app/field-visit.js'),video=read('commercial-app/field-visit-video.js'),recovery=read('commercial-app/field-visit-recovery.js'),photoReview=read('commercial-app/field-visit-photo-review.js'),transcription=read('commercial-app/field-visit-transcription.js'),voiceCapture=read('commercial-app/field-visit-voice-capture.js'),owner=read('commercial-app/field-visit-owner-controls.js'),operator=read('commercial-app/operator-direct-controls.js'),direct=read('commercial-app/android-camera-direct-fix.js'),nativeGuard=read('commercial-app/android-native-walkthrough-guard.js'),followup=read('commercial-app/field-visit-fast-followup.js'),worker=read('commercial-app/service-worker.js'),auth=read('commercial-app/auth-autofill.js'),loader=read('commercial-app/supabase-no-legacy-office.js'),main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java'),nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java'),bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java'),gradle=read('native/h38-site-scanner/android-app/app/build.gradle'),manifest=read('native/h38-site-scanner/android-app/app/src/main/AndroidManifest.xml'),workflow=read('.github/workflows/android-arcore-apk.yml'),ios=read('native/h38-site-scanner/ios/H38SiteScannerBridge.swift'),voiceFn=read('supabase/functions/h38-walkthrough-transcription/index.ts');
+for(const [file,source] of [['core',core],['ui',ui],['boot',boot],['video',video],['recovery',recovery],['photo review',photoReview],['transcription',transcription],['voice compatibility',voiceCapture],['owner controls',owner],['operator controls',operator],['retired direct fix',direct],['native guard',nativeGuard],['fast follow-up',followup]])syntax(source,file);
 for(const s of ['./field-visit-core.js','./field-visit-ui.js','./field-visit.js','./field-visit-recovery.js','./field-visit-photo-review.js','./android-camera-direct-fix.js','./field-visit-voice-capture.js','./field-visit-transcription.js','./field-visit-owner-controls.js','./operator-direct-controls.js','./android-native-walkthrough-guard.js'])must(index,s,'commercial app');
-
 for(const s of ['H38DB','operations','SAVE_ENTITY','SAVE_ATTACHMENT','siteCaptureSessions','siteMeasurements','Offline First','DEVICE_CAPTURED','FIELD_MEASURED'])must(core,s,'field core');
 for(const s of ['Job','Capture','Notes','Review','Save Draft','Save & Start Walkthrough','Step 1 — Video walkthrough','Start Video Walkthrough','Add Detail Photos','fieldVideoInput','fieldPhotoInput','Next: Notes','Next: Review'])must(ui,s,'field UI/workflow');
 if(ui.indexOf("await window.H38DB.put('attachments',item)")<0||ui.indexOf('metadata=await videoElement(file)')<0||ui.indexOf("await window.H38DB.put('attachments',item)")>ui.indexOf('metadata=await videoElement(file)'))throw new Error('Original walkthrough must be persisted before video decoding/frame extraction.');
-
 for(const s of ['companyCamStyle:true','walkthroughFirst:true','videoWalkthrough:true','videoFramesForAiReview:true','View Saved Walkthrough'])must(boot,s,'field boot');
 for(const s of ['syncNow','waitingOperations','H38_SUPABASE_OPERATIONAL','synchronize'])must(recovery,s,'field recovery');
 for(const s of ['H38_FIELD_VISIT_PHOTO_REVIEW','missingMeasurements','walkthroughTranscriptIncluded:true','activeVisitPhotosOnly:true'])must(photoReview,s,'field photo review');
 for(const s of ['H38_FIELD_VISIT_TRANSCRIPTION','h38-walkthrough-transcription','Original transcript — internal evidence','UNVERIFIED SPOKEN','walkthroughVideoToProfessionalNotes:true','NO_AUDIO'])must(transcription,s,'walkthrough transcription');
 for(const s of ['gpt-4o-mini-transcribe','https://api.openai.com/v1/audio/transcriptions','let source = video','if (audioId)','NO_USABLE_AUDIO','automaticApproval: false','automaticCustomerSending: false'])must(voiceFn,s,'walkthrough transcription function');
-
 for(const s of ['H38_FIELD_VISIT_VOICE_CAPTURE','retired:true','sameWalkthroughSpeech:true','microphoneRequired:true','videoOnlyFallback:false'])must(voiceCapture,s,'retired WebView voice recorder');
-absent(voiceCapture,'getUserMedia(','retired WebView voice recorder');
-absent(voiceCapture,'new MediaRecorder','retired WebView voice recorder');
-for(const s of ['H38_ANDROID_CAMERA_DIRECT_FIX','retired:true','cameraAuthority:false','microphoneAuthority:false'])must(direct,s,'retired Android direct fix');
-absent(direct,"addEventListener('click'",'retired Android direct fix');
-
+absent(voiceCapture,'getUserMedia(','retired WebView voice recorder');absent(voiceCapture,'new MediaRecorder','retired WebView voice recorder');
+for(const s of ['H38_ANDROID_CAMERA_DIRECT_FIX','retired:true','cameraAuthority:false','microphoneAuthority:false'])must(direct,s,'retired Android direct fix');absent(direct,"addEventListener('click'",'retired Android direct fix');
 for(const s of ['H38_ANDROID_NATIVE_WALKTHROUGH_GUARD','persistVideoFirst','readNativeFile','confirmConsumed','privateCameraX:true','activityRestartRecovery:true','nativeChunkRecovery:true','noMediaStore:true','noWebRTCWalkthrough:true'])must(nativeGuard,s,'Android native walkthrough authority');
-for(const s of ['H38_OPERATOR_DIRECT_CONTROLS','data-delete-quote-row','Open / Edit','data-h38-delete-site','Delete Site Visit','You do not have to open a broken visit before deleting it','function appleWalkthrough','androidWalkthroughAuthority:\'android-native-walkthrough-guard\'','iphoneWalkthroughAuthority:\'native-video-input\'','webViewRecorderAuthority:false'])must(operator,s,'operator record/platform controls');
-
+for(const s of ['H38_FIELD_VISIT_FAST_FOLLOWUP','actualNotesOnCapture:true','onePhotoAtATime:true','nextPhotoImmediate:true','backgroundProcessing:true','NEXT PHOTO'])must(followup,s,'fast Site Visit follow-up');
+for(const s of ['H38_OPERATOR_DIRECT_CONTROLS','data-delete-quote-row','Open / Edit','data-h38-delete-site','Delete Site Visit','You do not have to open a broken visit before deleting it','function appleWalkthrough',"androidWalkthroughAuthority:'android-native-walkthrough-guard'","iphoneWalkthroughAuthority:'native-video-input'",'webViewRecorderAuthority:false'])must(operator,s,'operator record/platform controls');
 for(const s of ['H38_FIELD_VISIT_OWNER_CONTROLS','Delete Draft','DELETE_SITE_VISIT_PHOTO','DELETE_SITE_VISIT_DRAFT','linkedQuoteDeleted:false','linkedCustomerDeleted:false'])must(owner,s,'owner delete controls');
-for(const s of ["CACHE_NAME='h38-business-office-20260810-0236'","FIELD_RECOVERY_BUILD='20260810-0236'",'android-native-walkthrough-guard.js','operator-direct-controls.js'])must(worker,s,'service worker');
-
+for(const s of ["CACHE_NAME='h38-business-office-20260810-1025'","FIELD_RECOVERY_BUILD='20260810-1025'",'android-native-walkthrough-guard.js','operator-direct-controls.js','field-visit-fast-followup.js'])must(worker,s,'service worker');
+must(loader,'field-visit-fast-followup.js?build=20260810-1025','Office loader');
 for(const s of ['setImportantForAutofill','AutofillManager','requestAutofill(webView)','pendingFileCapture','WalkthroughCaptureActivity.class','Manifest.permission.CAMERA','Manifest.permission.RECORD_AUDIO','launchWalkthroughVideoCapture','CAPTURE_RECOVERY_URL','persistCaptureTracking','restoreCaptureTracking','recoveredCaptureUri','openRecoveredWalkthroughResponse','pendingFileCallback.onReceiveValue(new Uri[]{captured})'])must(main,s,'Android shell');
 for(const s of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','VideoCapture.withOutput','withAudioEnabled()','FileOutputOptions','getFilesDir()','FileProvider.getUriForFile','Light On','Light Off','Stop & Use Video'])must(nativeCapture,s,'Android CameraX recorder');
 for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_OUTPUT','createWalkthroughVideoUri'])absent(main,s,'retired system-camera handoff');
 for(const s of ['getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed','CredentialManager','PasswordCredential','fillWebLogin'])must(bridge,s,'Android bridge');
-for(const s of ['versionCode 25',"versionName '0.5.20'",'androidx.camera:camera-video:1.5.3','androidx.credentials:credentials:1.6.0-beta02'])must(gradle,s,'Android Gradle');
+for(const s of ['versionCode 26',"versionName '0.5.21'",'androidx.camera:camera-video:1.5.3','androidx.credentials:credentials:1.6.0-beta02'])must(gradle,s,'Android Gradle');
 for(const s of ['android.permission.CAMERA','android.permission.RECORD_AUDIO','.WalkthroughCaptureActivity','androidx.core.content.FileProvider'])must(manifest,s,'Android manifest');
 for(const s of ['com.highway38.sitescanner.test','Publish owner test release and credential association'])must(workflow,s,'APK workflow');
 for(const s of ['import RoomPlan','import ARKit','RoomCaptureSession','LIDAR_ROOM','DEVICE_CAPTURED'])must(ios,s,'Apple measurement bridge');
-
-for(const source of [core,ui,boot,video,recovery,photoReview,transcription,voiceCapture,owner,operator,direct,nativeGuard,auth])for(const s of ['automaticApproval:true','automaticCustomerSending:true','service_role','SUPABASE_SERVICE_ROLE_KEY'])absent(source,s,'field runtime');
-
-console.log(JSON.stringify({status:'PASS',offlineFirst:true,androidWalkthroughAuthority:'CameraX only',iphoneWalkthroughAuthority:'native video capture',webViewWalkthroughRecorderRetired:true,sameVideoAudioForTranscription:true,durableVideoBeforeSecondaryProcessing:true,directQuoteDeleteBesideOpenEdit:true,directSiteVisitDeleteBesideOpenEdit:true,brokenVisitCanDeleteWithoutOpen:true,linkedQuotePreserved:true,linkedCustomerPreserved:true,versionName:'0.5.20',versionCode:25,automaticApproval:false,automaticCustomerSending:false},null,2));
+for(const source of [core,ui,boot,video,recovery,photoReview,transcription,voiceCapture,owner,operator,direct,nativeGuard,followup,auth])for(const s of ['automaticApproval:true','automaticCustomerSending:true','service_role','SUPABASE_SERVICE_ROLE_KEY'])absent(source,s,'field runtime');
+console.log(JSON.stringify({status:'PASS',offlineFirst:true,androidWalkthroughAuthority:'CameraX only',iphoneWalkthroughAuthority:'native video capture',actualNotesOnCapture:true,nextPhotoImmediate:true,backgroundProcessing:true,directQuoteDeleteBesideOpenEdit:true,directSiteVisitDeleteBesideOpenEdit:true,versionName:'0.5.21',versionCode:26,automaticApproval:false,automaticCustomerSending:false},null,2));
