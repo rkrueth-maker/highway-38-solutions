@@ -150,8 +150,11 @@ public final class NativeScannerBridge {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
-                    activity.requestWebAutofill();
-                    webView.postDelayed(this::disableWebAutofillNow, 12000L);
+                    String focusScript = "(function(){var e=document.getElementById('h38AuthEmail');if(e){e.focus({preventScroll:true});return true;}return false;})();";
+                    webView.evaluateJavascript(focusScript, value -> webView.postDelayed(() -> {
+                        activity.requestWebAutofill();
+                        webView.postDelayed(this::disableWebAutofillNow, 12000L);
+                    }, 180L));
                     String script = "window.dispatchEvent(new CustomEvent('h38:saved-login-web-autofill-requested'));";
                     webView.evaluateJavascript(script, null);
                     return;
