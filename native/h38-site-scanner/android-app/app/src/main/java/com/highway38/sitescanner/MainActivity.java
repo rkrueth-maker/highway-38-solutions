@@ -2,13 +2,16 @@ package com.highway38.sitescanner;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.autofill.AutofillManager;
@@ -22,48 +25,46 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class MainActivity extends Activity {
-    static final String BUSINESS_OFFICE_URL =
-            "https://highway38solutions.com/commercial-app/";
-    static final int REQUEST_NATIVE_SCAN = 3801;
-    private static final int REQUEST_WEB_PERMISSIONS = 3802;
-    private static final int REQUEST_FILE_CHOOSER = 3803;
-    private static final int REQUEST_WALKTHROUGH_CAMERA_PERMISSION = 3804;
-    private static final int OFFICE_BACKGROUND = Color.rgb(238, 243, 247);
-    private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
-    private static final String CAPTURE_URI_KEY = "pending_uri";
-    private static final String CAPTURE_READY_KEY = "ready";
-    private static final String CAPTURE_RECOVERY_URL =
-            BUSINESS_OFFICE_URL + "__native_walkthrough_recovery";
+public class MainActivity extends AppCompatActivity {
+    private static final String OFFICE_URL = "https://highway38solutions.com/commercial-app/";
+    private static final String CAPTURE_RECOVERY_URL = "https://highway38solutions.com/commercial-app/__native_walkthrough_recovery";
+    private static final int FILE_CHOOSER_REQUEST = 7001;
+    private static final int WALKTHROUGH_CAPTURE_REQUEST = 7002;
+    private static final int REQUEST_WALKTHROUGH_CAMERA_PERMISSION = 7003;
+    private static final int OFFICE_BACKGROUND = Color.rgb(246, 249, 251);
+    private static final String CAPTURE_PREFS = "h38_walkthrough_capture";
+    private static final String CAPTURE_URI_KEY = "capture_uri";
+    private static final String CAPTURE_READY_KEY = "capture_ready";
 
     private WebView webView;
-    private NativeScannerBridge nativeScannerBridge;
-    private PermissionRequest pendingWebPermissionRequest;
-    private ValueCallback<Uri[]> pendingFileCallback;
-    private boolean pendingFileCapture;
-    private boolean pendingWalkthroughPermissionResume;
-    private Uri pendingCaptureUri;
-    private Uri recoveredCaptureUri;
     private View launchCover;
+    private ValueCallback<Uri[]> pendingFileCallback;
+    private boolean pendingFileCapture = false;
+    private boolean pendingWalkthroughPermissionResume = false;
+    private Uri recoveredCaptureUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        configureSystemBars();
         restoreCaptureTracking();
 
         FrameLayout root = new FrameLayout(this);
@@ -78,7 +79,7 @@ public final class MainActivity extends Activity {
         webView.setBackgroundColor(OFFICE_BACKGROUND);
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
         }
         webView.setLayoutParams(new FrameLayout.LayoutParams(
@@ -101,7 +102,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.15"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.20"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -114,7 +115,7 @@ public final class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
-        nativeScannerBridge = new NativeScannerBridge(this, webView);
+        NativeScannerBridge nativeScannerBridge = new NativeScannerBridge(this, webView);
         webView.addJavascriptInterface(nativeScannerBridge, "AndroidH38Native");
 
         webView.setWebViewClient(new WebViewClient() {
@@ -128,20 +129,13 @@ public final class MainActivity extends Activity {
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (Exception error) {
-                    Toast.makeText(
-                            MainActivity.this,
-                            "Cannot open this link.",
-                            Toast.LENGTH_LONG
-                    ).show();
+                    Toast.makeText(MainActivity.this, "Cannot open this link.", Toast.LENGTH_LONG).show();
                 }
                 return true;
             }
 
             @Override
-            public WebResourceResponse shouldInterceptRequest(
-                    WebView view,
-                    WebResourceRequest request
-            ) {
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (uri != null && CAPTURE_RECOVERY_URL.equals(uri.toString())) {
                     return openRecoveredWalkthroughResponse();
@@ -169,461 +163,206 @@ public final class MainActivity extends Activity {
             }
 
             @Override
-            public boolean onShowFileChooser(
-                    WebView webView,
-                    ValueCallback<Uri[]> filePathCallback,
-                    FileChooserParams fileChooserParams
-            ) {
-                if (pendingFileCallback != null) {
-                    pendingFileCallback.onReceiveValue(null);
-                }
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = filePathCallback;
 
                 if (recoveredCaptureUri != null) {
                     pendingFileCallback.onReceiveValue(null);
                     pendingFileCallback = null;
-                    Toast.makeText(
-                            MainActivity.this,
-                            "Finishing the last recorded walkthrough first.",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(MainActivity.this, "Finishing the last recorded walkthrough first.", Toast.LENGTH_SHORT).show();
                     injectNativeScanner();
                     return true;
                 }
 
-                pendingFileCapture = false;
-                pendingWalkthroughPermissionResume = false;
-                pendingCaptureUri = null;
-                clearCaptureTracking(false);
-                try {
-                    if (fileChooserParams.isCaptureEnabled()
-                            && acceptsVideo(fileChooserParams.getAcceptTypes())) {
-                        pendingFileCapture = true;
-                        List<String> needed = new ArrayList<>();
-                        if (checkSelfPermission(Manifest.permission.CAMERA)
-                                != PackageManager.PERMISSION_GRANTED) {
-                            needed.add(Manifest.permission.CAMERA);
-                        }
-                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                                != PackageManager.PERMISSION_GRANTED) {
-                            needed.add(Manifest.permission.RECORD_AUDIO);
-                        }
-                        if (!needed.isEmpty()) {
-                            pendingWalkthroughPermissionResume = true;
-                            requestPermissions(
-                                    needed.toArray(new String[0]),
-                                    REQUEST_WALKTHROUGH_CAMERA_PERMISSION
-                            );
-                            return true;
-                        }
-                        return launchWalkthroughVideoCapture();
+                if (fileChooserParams.isCaptureEnabled() && acceptsVideo(fileChooserParams.getAcceptTypes())) {
+                    pendingFileCapture = true;
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        pendingWalkthroughPermissionResume = true;
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, REQUEST_WALKTHROUGH_CAMERA_PERMISSION);
+                    } else {
+                        launchWalkthroughVideoCapture();
                     }
-                    startActivityForResult(
-                            fileChooserParams.createIntent(),
-                            REQUEST_FILE_CHOOSER
-                    );
                     return true;
-                } catch (Exception error) {
-                    failPendingFileCapture("Video capture is unavailable.");
-                    return false;
                 }
+
+                try {
+                    Intent intent = fileChooserParams.createIntent();
+                    startActivityForResult(intent, FILE_CHOOSER_REQUEST);
+                } catch (ActivityNotFoundException error) {
+                    pendingFileCallback.onReceiveValue(null);
+                    pendingFileCallback = null;
+                    Toast.makeText(MainActivity.this, "No compatible file picker is available.", Toast.LENGTH_LONG).show();
+                }
+                return true;
             }
         });
 
-        boolean restored = false;
-        if (savedInstanceState != null) {
-            try {
-                restored = webView.restoreState(savedInstanceState) != null;
-            } catch (Exception ignored) {
-                restored = false;
-            }
-        }
-        String restoredUrl = webView.getUrl();
-        if (!restored || restoredUrl == null) {
-            webView.loadUrl(BUSINESS_OFFICE_URL);
-        } else if (webView.getProgress() >= 100) {
-            webView.postDelayed(this::hideLaunchCover, 180);
-        }
+        injectNativeScanner();
+        webView.loadUrl(OFFICE_URL);
     }
 
-    private boolean launchWalkthroughVideoCapture() {
-        try {
-            Intent captureIntent = new Intent(this, WalkthroughCaptureActivity.class);
-            pendingCaptureUri = null;
-            pendingFileCapture = true;
-            pendingWalkthroughPermissionResume = false;
-            startActivityForResult(captureIntent, REQUEST_FILE_CHOOSER);
-            return true;
-        } catch (Exception error) {
-            failPendingFileCapture("Video capture is unavailable.");
-            return false;
-        }
-    }
-
-    private void failPendingFileCapture(String message) {
-        cleanupPendingCaptureUri();
-        if (pendingFileCallback != null) {
-            pendingFileCallback.onReceiveValue(null);
-            pendingFileCallback = null;
-        }
-        pendingFileCapture = false;
-        pendingWalkthroughPermissionResume = false;
-        recoveredCaptureUri = null;
-        Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-    }
-
-    private void persistCaptureTracking(Uri uri, boolean ready) {
-        if (uri == null) return;
-        getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                .edit()
-                .putString(CAPTURE_URI_KEY, uri.toString())
-                .putBoolean(CAPTURE_READY_KEY, ready)
-                .apply();
-    }
-
-    private void restoreCaptureTracking() {
-        String value = getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                .getString(CAPTURE_URI_KEY, "");
-        if (value == null || value.trim().isEmpty()) return;
-        try {
-            pendingCaptureUri = Uri.parse(value);
-            pendingFileCapture = true;
-            if (getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                    .getBoolean(CAPTURE_READY_KEY, false)) {
-                recoveredCaptureUri = pendingCaptureUri;
-            }
-        } catch (Exception ignored) {
-            clearCaptureTracking(false);
-        }
-    }
-
-    private void clearCaptureTracking(boolean deleteUri) {
-        Uri tracked = pendingCaptureUri != null ? pendingCaptureUri : recoveredCaptureUri;
-        if (deleteUri && tracked != null) {
-            try {
-                getContentResolver().delete(tracked, null, null);
-            } catch (Exception ignored) {
-            }
-        }
-        getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                .edit()
-                .remove(CAPTURE_URI_KEY)
-                .remove(CAPTURE_READY_KEY)
-                .apply();
-    }
-
-    private void cleanupPendingCaptureUri() {
-        clearCaptureTracking(true);
-        pendingCaptureUri = null;
-        recoveredCaptureUri = null;
-    }
-
-    String getRecoveredWalkthroughUrl() {
-        return recoveredCaptureUri == null ? "" : CAPTURE_RECOVERY_URL;
-    }
-
-    void confirmRecoveredWalkthroughConsumed() {
-        clearCaptureTracking(false);
-        pendingCaptureUri = null;
-        recoveredCaptureUri = null;
-        pendingFileCapture = false;
-    }
-
-    private WebResourceResponse openRecoveredWalkthroughResponse() {
-        Uri uri = recoveredCaptureUri;
-        if (uri == null) return null;
-        try {
-            InputStream stream = getContentResolver().openInputStream(uri);
-            if (stream == null) return null;
-            String mime = getContentResolver().getType(uri);
-            if (mime == null || mime.trim().isEmpty()) mime = "video/mp4";
-            return new WebResourceResponse(mime, null, stream);
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private boolean acceptsVideo(String[] acceptTypes) {
-        if (acceptTypes == null) return false;
-        for (String type : acceptTypes) {
-            String value = type == null ? "" : type.trim().toLowerCase();
-            if (value.equals("video/*") || value.startsWith("video/")) return true;
+    private boolean acceptsVideo(String[] types) {
+        if (types == null || types.length == 0) return false;
+        for (String type : types) {
+            if (type != null && (type.startsWith("video/") || type.equals("*/*"))) return true;
         }
         return false;
     }
 
-    private View buildLaunchCover() {
-        FrameLayout cover = new FrameLayout(this);
-        cover.setBackgroundColor(OFFICE_BACKGROUND);
-        cover.setClickable(true);
-        cover.setFocusable(true);
-        cover.setLayoutParams(new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        ));
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setGravity(Gravity.CENTER);
-        content.setPadding(dp(28), dp(28), dp(28), dp(28));
-        FrameLayout.LayoutParams contentParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER
-        );
-
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.highway38_logo);
-        logo.setContentDescription("Highway 38 Solutions");
-        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(dp(92), dp(92));
-        logoParams.bottomMargin = dp(18);
-        content.addView(logo, logoParams);
-
-        TextView title = new TextView(this);
-        title.setText("Highway 38 Solutions");
-        title.setTextColor(Color.rgb(11, 36, 56));
-        title.setTextSize(20);
-        title.setGravity(Gravity.CENTER);
-        content.addView(title);
-
-        TextView status = new TextView(this);
-        status.setText("Opening Business Office…");
-        status.setTextColor(Color.rgb(82, 97, 109));
-        status.setTextSize(14);
-        status.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        statusParams.topMargin = dp(8);
-        content.addView(status, statusParams);
-
-        cover.addView(content, contentParams);
-        return cover;
-    }
-
-    private void hideLaunchCover() {
-        View cover = launchCover;
-        if (cover == null || cover.getParent() == null) return;
-        launchCover = null;
-        cover.animate().alpha(0f).setDuration(140).withEndAction(() -> {
-            ViewGroup parent = (ViewGroup) cover.getParent();
-            if (parent != null) parent.removeView(cover);
-        }).start();
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
-
-    void requestWebAutofill() {
-        runOnUiThread(() -> {
-            if (webView == null) return;
-            webView.requestFocus(View.FOCUS_DOWN);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                AutofillManager manager = getSystemService(AutofillManager.class);
-                if (manager != null && manager.isEnabled()) {
-                    manager.requestAutofill(webView);
-                }
-            }
-        });
-    }
-
-    private void configureSystemBars() {
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
-        getWindow().setStatusBarColor(Color.rgb(11, 36, 56));
-        getWindow().setNavigationBarColor(Color.rgb(11, 36, 56));
-        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(
-                getWindow(),
-                getWindow().getDecorView()
-        );
-        controller.setAppearanceLightStatusBars(false);
-        controller.setAppearanceLightNavigationBars(false);
-    }
-
-    private void injectNativeScanner() {
-        String script = "(function(){"
-                + "window.__h38NativePending=window.__h38NativePending||{};"
-                + "window.__h38NativeComplete=function(requestId,ok,payload){"
-                + "var pending=window.__h38NativePending[requestId];"
-                + "if(!pending)return;"
-                + "delete window.__h38NativePending[requestId];"
-                + "if(ok){try{pending.resolve(typeof payload==='string'?JSON.parse(payload):payload);}catch(e){pending.reject(e);}}"
-                + "else{pending.reject(new Error(payload||'Native scan failed.'));}"
-                + "};"
-                + "window.H38NativeScanner={"
-                + "getCapabilities:function(){try{return JSON.parse(AndroidH38Native.getCapabilities());}catch(e){return {platform:'android',arcore:false,depth:false,autofill:false};}},"
-                + "getRecoveredWalkthroughUrl:function(){try{return AndroidH38Native.getRecoveredWalkthroughUrl();}catch(e){return '';}} ,"
-                + "confirmRecoveredWalkthroughConsumed:function(){try{AndroidH38Native.confirmRecoveredWalkthroughConsumed();}catch(e){}},"
-                + "start:function(options){return new Promise(function(resolve,reject){"
-                + "var requestId='NATIVE-'+Date.now()+'-'+Math.random().toString(16).slice(2);"
-                + "window.__h38NativePending[requestId]={resolve:resolve,reject:reject};"
-                + "try{AndroidH38Native.start(JSON.stringify(options||{}),requestId);}catch(e){delete window.__h38NativePending[requestId];reject(e);}"
-                + "});}"
-                + "};"
-                + "window.dispatchEvent(new CustomEvent('h38:native-scanner-ready'));"
-                + "})();";
-        webView.evaluateJavascript(script, null);
-    }
-
-    private void handleWebPermissionRequest(PermissionRequest request) {
-        List<String> needed = new ArrayList<>();
-        for (String resource : request.getResources()) {
-            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
-                    && checkSelfPermission(Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                needed.add(Manifest.permission.CAMERA);
-            }
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
-                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED) {
-                needed.add(Manifest.permission.RECORD_AUDIO);
-            }
-        }
-
-        if (needed.isEmpty()) {
-            request.grant(request.getResources());
-            return;
-        }
-
-        pendingWebPermissionRequest = request;
-        requestPermissions(
-                needed.toArray(new String[0]),
-                REQUEST_WEB_PERMISSIONS
-        );
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode,
-            String[] permissions,
-            int[] grantResults
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == REQUEST_WALKTHROUGH_CAMERA_PERMISSION) {
-            boolean granted = grantResults.length > 0;
-            for (int result : grantResults) {
-                granted &= result == PackageManager.PERMISSION_GRANTED;
-            }
-            if (granted && pendingWalkthroughPermissionResume && pendingFileCallback != null) {
-                launchWalkthroughVideoCapture();
-            } else {
-                failPendingFileCapture(
-                        "Camera and microphone permissions are required to record the walkthrough."
-                );
-            }
-            return;
-        }
-
-        if (requestCode == REQUEST_WEB_PERMISSIONS
-                && pendingWebPermissionRequest != null) {
-            boolean granted = true;
-            for (int result : grantResults) {
-                granted &= result == PackageManager.PERMISSION_GRANTED;
-            }
-            if (granted) {
-                pendingWebPermissionRequest.grant(
-                        pendingWebPermissionRequest.getResources()
-                );
-            } else {
-                pendingWebPermissionRequest.deny();
-            }
-            pendingWebPermissionRequest = null;
+    private void launchWalkthroughVideoCapture() {
+        Intent intent = new Intent(this, WalkthroughCaptureActivity.class);
+        try {
+            startActivityForResult(intent, WALKTHROUGH_CAPTURE_REQUEST);
+        } catch (Exception error) {
+            pendingFileCapture = false;
+            if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
+            pendingFileCallback = null;
+            Toast.makeText(this, "The H38 walkthrough camera could not open.", Toast.LENGTH_LONG).show();
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == REQUEST_NATIVE_SCAN) {
-            nativeScannerBridge.completeFromActivity(resultCode, data);
-            return;
-        }
-
-        if (requestCode == REQUEST_FILE_CHOOSER) {
-            boolean captureResult = pendingFileCapture
-                    || pendingCaptureUri != null
-                    || !getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                            .getString(CAPTURE_URI_KEY, "")
-                            .trim()
-                            .isEmpty();
-
-            if (captureResult) {
-                Uri captured = pendingCaptureUri;
-                if (captured == null) {
-                    String tracked = getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
-                            .getString(CAPTURE_URI_KEY, "");
-                    if (tracked != null && !tracked.trim().isEmpty()) {
-                        captured = Uri.parse(tracked);
-                    }
+        if (requestCode == WALKTHROUGH_CAPTURE_REQUEST) {
+            pendingFileCapture = false;
+            if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                Uri captured = data.getData();
+                persistCaptureTracking(captured, true);
+                recoveredCaptureUri = captured;
+                if (pendingFileCallback != null) {
+                    pendingFileCallback.onReceiveValue(new Uri[]{captured});
+                    pendingFileCallback = null;
                 }
-                if (captured == null && data != null) captured = data.getData();
-
-                if (resultCode == RESULT_OK && captured != null) {
-                    pendingCaptureUri = captured;
-                    recoveredCaptureUri = captured;
-                    persistCaptureTracking(captured, true);
-                    if (pendingFileCallback != null) {
-                        pendingFileCallback.onReceiveValue(new Uri[]{captured});
-                        pendingFileCallback = null;
-                    }
-                    injectNativeScanner();
-                } else {
-                    cleanupPendingCaptureUri();
-                    if (pendingFileCallback != null) {
-                        pendingFileCallback.onReceiveValue(null);
-                        pendingFileCallback = null;
-                    }
-                }
-                pendingFileCapture = recoveredCaptureUri != null;
-                pendingWalkthroughPermissionResume = false;
-                return;
-            }
-
-            if (pendingFileCallback != null) {
-                Uri[] results = WebChromeClient.FileChooserParams.parseResult(
-                        resultCode,
-                        data
-                );
-                pendingFileCallback.onReceiveValue(results);
+                injectNativeScanner();
+            } else {
+                clearCaptureTracking(false);
+                if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = null;
             }
+            return;
+        }
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            if (pendingFileCallback == null) return;
+            Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            pendingFileCallback.onReceiveValue(results);
+            pendingFileCallback = null;
         }
     }
 
     @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_WALKTHROUGH_CAMERA_PERMISSION) return;
+        boolean granted = grantResults.length >= 2;
+        for (int result : grantResults) granted = granted && result == PackageManager.PERMISSION_GRANTED;
+        if (granted && pendingWalkthroughPermissionResume) {
+            pendingWalkthroughPermissionResume = false;
+            launchWalkthroughVideoCapture();
         } else {
-            super.onBackPressed();
+            pendingWalkthroughPermissionResume = false;
+            pendingFileCapture = false;
+            if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
+            pendingFileCallback = null;
+            Toast.makeText(this, "Camera and microphone permission are required for the walkthrough.", Toast.LENGTH_LONG).show();
         }
     }
 
-    @Override
-    protected void onPause() {
-        webView.onPause();
-        CookieManager.getInstance().flush();
-        super.onPause();
+    private void handleWebPermissionRequest(PermissionRequest request) {
+        List<String> granted = new ArrayList<>();
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) || PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) granted.add(resource);
+        }
+        if (granted.isEmpty()) request.deny(); else request.grant(granted.toArray(new String[0]));
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        webView.onResume();
+    private void persistCaptureTracking(Uri uri, boolean ready) {
+        SharedPreferences prefs = getSharedPreferences(CAPTURE_PREFS, Context.MODE_PRIVATE);
+        prefs.edit().putString(CAPTURE_URI_KEY, uri == null ? "" : uri.toString()).putBoolean(CAPTURE_READY_KEY, ready).apply();
+    }
+
+    private void restoreCaptureTracking() {
+        SharedPreferences prefs = getSharedPreferences(CAPTURE_PREFS, Context.MODE_PRIVATE);
+        String raw = prefs.getString(CAPTURE_URI_KEY, "");
+        boolean ready = prefs.getBoolean(CAPTURE_READY_KEY, false);
+        if (ready && raw != null && !raw.isEmpty()) {
+            try { recoveredCaptureUri = Uri.parse(raw); } catch (Exception ignored) { recoveredCaptureUri = null; }
+        }
+    }
+
+    private void clearCaptureTracking(boolean deleteFile) {
+        Uri previous = recoveredCaptureUri;
+        recoveredCaptureUri = null;
+        getSharedPreferences(CAPTURE_PREFS, Context.MODE_PRIVATE).edit().remove(CAPTURE_URI_KEY).remove(CAPTURE_READY_KEY).apply();
+        if (deleteFile && previous != null) {
+            try {
+                String path = previous.getPath();
+                if (path != null) new File(path).delete();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private WebResourceResponse openRecoveredWalkthroughResponse() {
+        Uri uri = recoveredCaptureUri;
+        if (uri == null) return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", java.util.Collections.emptyMap(), InputStream.nullInputStream());
+        try {
+            InputStream stream = getContentResolver().openInputStream(uri);
+            if (stream == null) throw new FileNotFoundException();
+            return new WebResourceResponse("video/mp4", null, 200, "OK", java.util.Collections.singletonMap("Cache-Control", "no-store"), stream);
+        } catch (Exception error) {
+            return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", java.util.Collections.emptyMap(), InputStream.nullInputStream());
+        }
+    }
+
+    void confirmRecoveredWalkthroughConsumed() {
+        clearCaptureTracking(true);
         injectNativeScanner();
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
-        if (pendingCaptureUri != null) {
-            outState.putString(CAPTURE_URI_KEY, pendingCaptureUri.toString());
+    Uri getRecoveredCaptureUri() {
+        return recoveredCaptureUri;
+    }
+
+    private void injectNativeScanner() {
+        if (webView == null) return;
+        webView.post(() -> {
+            if (webView == null) return;
+            webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('h38:native-scanner-ready'));", null);
+        });
+    }
+
+    private View buildLaunchCover() {
+        LinearLayout cover = new LinearLayout(this);
+        cover.setOrientation(LinearLayout.VERTICAL);
+        cover.setGravity(android.view.Gravity.CENTER);
+        cover.setBackgroundColor(OFFICE_BACKGROUND);
+        ProgressBar progress = new ProgressBar(this);
+        TextView label = new TextView(this);
+        label.setText("Opening Highway 38…");
+        label.setTextColor(Color.rgb(11, 36, 56));
+        label.setTextSize(16f);
+        label.setPadding(0, 18, 0, 0);
+        cover.addView(progress);
+        cover.addView(label);
+        cover.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        return cover;
+    }
+
+    private void hideLaunchCover() {
+        if (launchCover == null) return;
+        launchCover.animate().alpha(0f).setDuration(140).withEndAction(() -> {
+            if (launchCover != null) launchCover.setVisibility(View.GONE);
+        }).start();
+    }
+
+    void requestWebAutofill() {
+        if (webView == null) return;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            AutofillManager autofill = getSystemService(AutofillManager.class);
+            if (autofill != null) autofill.requestAutofill(webView);
         }
-        outState.putBoolean("h38.pendingFileCapture", pendingFileCapture);
-        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -632,13 +371,10 @@ public final class MainActivity extends Activity {
             pendingFileCallback.onReceiveValue(null);
             pendingFileCallback = null;
         }
-        if (isFinishing() && pendingFileCapture && recoveredCaptureUri == null) {
-            cleanupPendingCaptureUri();
-        }
-        pendingWalkthroughPermissionResume = false;
         if (webView != null) {
             webView.removeJavascriptInterface("AndroidH38Native");
             webView.destroy();
+            webView = null;
         }
         super.onDestroy();
     }
