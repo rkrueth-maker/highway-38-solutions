@@ -2,30 +2,23 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.22 keeps the proven CameraX recorder but launches it directly through the native bridge, then shows a visible hammer while save/transcription/AI work is running.
+// v0.5.23 removes the Base64 native-video bridge bottleneck and records field-optimized walkthrough media for reliable Site Visit processing.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
-def hasReleaseSigning = [
-        releaseKeystorePath,
-        releaseKeystorePassword,
-        releaseKeyAlias,
-        releaseKeyPassword
-].every { it != null && !it.trim().isEmpty() }
+def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
 
 android {
     namespace 'com.highway38.sitescanner'
     compileSdk 35
-
     defaultConfig {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 27
-        versionName '0.5.22'
+        versionCode 28
+        versionName '0.5.23'
     }
-
     signingConfigs {
         if (hasReleaseSigning) {
             release {
@@ -36,12 +29,8 @@ android {
             }
         }
     }
-
     buildTypes {
-        debug {
-            applicationIdSuffix '.test'
-            versionNameSuffix '-test'
-        }
+        debug { applicationIdSuffix '.test'; versionNameSuffix '-test' }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -55,17 +44,11 @@ android {
             if (hasReleaseSigning) signingConfig signingConfigs.release
         }
     }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-
-    packaging {
-        resources {
-            excludes += ['/META-INF/{AL2.0,LGPL2.1}']
-        }
-    }
+    packaging { resources { excludes += ['/META-INF/{AL2.0,LGPL2.1}'] } }
 }
 
 dependencies {
