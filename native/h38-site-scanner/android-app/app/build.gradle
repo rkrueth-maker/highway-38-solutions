@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.23 removes the Base64 native-video bridge bottleneck and records field-optimized walkthrough media for reliable Site Visit processing.
+// v0.5.24 keeps the proven CameraX capture/attachment path and repairs one-tap launch recovery plus Site Visit-first walkthrough notes.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -16,8 +16,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 28
-        versionName '0.5.23'
+        versionCode 29
+        versionName '0.5.24'
     }
     signingConfigs {
         if (hasReleaseSigning) {

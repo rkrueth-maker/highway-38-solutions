@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260809-1220';
+const BUILD='20260810-1230';
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
   try{document.activeElement?.blur?.();}catch(_){}
@@ -21,8 +21,15 @@ function decorate(){
     bar.querySelector('#h38StartSiteVisitTop').addEventListener('click',event=>{event.preventDefault();event.currentTarget.blur();start();});
   }
 }
+function loadPhoneFinalFix(){
+  if(window.H38_SITE_VISIT_PHONE_FINAL_FIX||document.querySelector('script[data-h38-site-visit-phone-final]'))return;
+  const script=document.createElement('script');
+  script.src='./site-visit-phone-final-fix.js?build=20260810-1228';
+  script.dataset.h38SiteVisitPhoneFinal='1';
+  document.head.appendChild(script);
+}
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,700);setTimeout(decorate,0);setTimeout(decorate,900);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true};
+setInterval(decorate,700);setTimeout(decorate,0);setTimeout(decorate,900);loadPhoneFinalFix();
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true};
 })();
