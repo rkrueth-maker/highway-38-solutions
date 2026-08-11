@@ -111,13 +111,13 @@
     }
   }
 
-  function loadFastFieldFollowup() {
-    if (!window.H38_FIELD_VISIT_FAST_FOLLOWUP && !document.querySelector('script[data-h38-fast-field-followup]')) {
-      const script = document.createElement('script');
-      script.src = './field-visit-fast-followup.js?build=20260810-hammer-runtime-2040';
-      script.dataset.h38FastFieldFollowup = '1';
-      document.body.appendChild(script);
-    }
+  function loadSiteVisitController() {
+    if (window.H38_FIELD_VISIT_GUIDED_CONTROLLER || window.H38_FIELD_VISIT_GUIDANCE) return;
+    if (document.querySelector('script[data-h38-guided-site-visit]')) return;
+    const script = document.createElement('script');
+    script.src = './field-visit-guided-controller.js?build=20260810-guided-controller-2058';
+    script.dataset.h38GuidedSiteVisit = '1';
+    document.body.appendChild(script);
   }
 
   window.H38_LEGACY_OFFICE_DISABLED = Object.freeze({
@@ -132,5 +132,5 @@
   loadPersonalAssistant();
   loadOfficePolish();
   loadPlayCompliance();
-  loadFastFieldFollowup();
+  loadSiteVisitController();
 })();
