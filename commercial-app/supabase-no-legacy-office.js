@@ -114,7 +114,7 @@
   function loadFastFieldFollowup() {
     if (!window.H38_FIELD_VISIT_FAST_FOLLOWUP && !document.querySelector('script[data-h38-fast-field-followup]')) {
       const script = document.createElement('script');
-      script.src = './field-visit-fast-followup.js?build=20260810-1025';
+      script.src = './field-visit-fast-followup.js?build=20260810-hammer-runtime-2040';
       script.dataset.h38FastFieldFollowup = '1';
       document.body.appendChild(script);
     }
