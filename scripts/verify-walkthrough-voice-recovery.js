@@ -8,7 +8,7 @@ const edge=read('supabase/functions/h38-walkthrough-transcription/index.ts');
 const cameraFix=read('commercial-app/android-camera-direct-fix.js');
 const operator=read('commercial-app/operator-direct-controls.js');
 const nativeGuard=read('commercial-app/android-native-walkthrough-guard.js');
-const followup=read('commercial-app/field-visit-fast-followup.js');
+const guided=read('commercial-app/field-visit-guided-controller.js');
 const recovery=read('commercial-app/field-visit-recovery.js');
 const auth=read('commercial-app/auth-autofill.js');
 const android=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/MainActivity.java');
@@ -49,9 +49,11 @@ const acceptPath=acceptStart>=0&&acceptEnd>acceptStart?nativeGuard.slice(acceptS
 check('native video persists before frame extraction',acceptPath.indexOf('await persistVideoFirst(file)')>=0&&acceptPath.indexOf('await persistVideoFirst(file)')<acceptPath.indexOf('await bestEffortFrames(file)'));
 check('native recording is consumed only after attachment count advances',acceptPath.includes('walkthroughCount()<=before')&&acceptPath.includes('confirmConsumed()'));
 check('post-capture queue drains automatically',recovery.includes('automaticPostCaptureSync:true')&&recovery.includes('automaticWalkthroughProcessing:true'));
-check('actual notes are surfaced on Capture',followup.includes('actualNotesOnCapture:true')&&followup.includes('Walkthrough notes'));
-check('visible hammer swing is enforced',followup.includes('visibleSwingHammer:true')&&followup.includes('h38HammerSwing'));
-check('measurement verification precedes generic photo guidance when needed',followup.includes('measurementVerificationFirst:true')&&followup.includes('NEXT MEASUREMENT'));
+check('actual notes are surfaced by authoritative guided review',guided.includes('visibleSpokenNotes:true')&&guided.includes('What you said'));
+check('visible hammer swing is enforced by authoritative guided review',guided.includes('inlineWorkingHammer:true')&&guided.includes('@keyframes h38GuidedHammer'));
+check('measurement verification precedes photo guidance when needed',guided.includes("if(measureList.length)return{kind:'measure'")&&guided.includes('NEXT MEASUREMENT'));
+check('saved AR measurement advances only after ingest',guided.includes('await C.ingest(result)')&&guided.includes('await completeMeasurementRequest(request,saved)')&&guided.includes('walkthroughCompletedMeasurements'));
+check('guided review does not start a measurement/review feedback loop',guided.includes('automaticMeasurementReanalysis:false')&&guided.includes('mutationObserver:false'));
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
 check('CameraX records microphone in same video',nativeCapture.includes('withAudioEnabled()')&&nativeCapture.includes('VideoCapture.withOutput'));
 check('CameraX auto-starts recording after camera bind',nativeCapture.includes('handler.postDelayed(this::startRecording,120)'));
@@ -62,6 +64,6 @@ check('external Android camera intent remains retired',!android.includes('MediaS
 check('native return survives activity recreation',android.includes('persistCaptureTracking')&&android.includes('restoreCaptureTracking')&&android.includes('recoveredCaptureUri'));
 check('saved Android login still uses Credential Manager',nativeBridge.includes('CredentialManager')&&nativeBridge.includes('GetPasswordOption')&&nativeBridge.includes('PasswordCredential')&&nativeBridge.includes('fillWebLogin'));
 check('saved owner login fills automatically but never auto-submits',auth.includes('automaticSavedOwnerFill:true')&&auth.includes('h38:saved-login-filled')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
-check('owner APK is v0.5.27 runtime host',gradle.includes('versionCode 32')&&gradle.includes("versionName '0.5.27'"));
+check('Android source is current v0.5.28 candidate',gradle.includes('versionCode 33')&&gradle.includes("versionName '0.5.28'"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,operatorVerifiedMeasurements:true,materialSpecificationsExcludedFromMeasurements:true,measurementVerificationFirst:true,visibleSwingHammer:true,selectedTranscriptionSourceSizeGate:true,version:'0.5.27'},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,operatorVerifiedMeasurements:true,materialSpecificationsExcludedFromMeasurements:true,measurementVerificationFirst:true,oneGuidedController:true,walkthroughArAdvanceLinked:true,selectedTranscriptionSourceSizeGate:true,currentCandidateSource:'0.5.28',acceptedOwnerApkBaseline:'0.5.27',physicalPhoneAcceptanceExternal:true},null,2));
