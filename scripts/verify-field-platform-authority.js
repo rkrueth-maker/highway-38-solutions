@@ -10,6 +10,7 @@ check(/retired:true/.test(direct),'Old Android WebView camera interceptor must s
 check(!/addEventListener\(['"]click['"]/.test(direct),'Retired Android direct fix must not intercept walkthrough clicks.');
 check(/retiredRecorder:true/.test(voice)&&/derivedSameVideoAudio:true/.test(voice)&&!/getUserMedia\s*\(/.test(voice)&&!/new MediaRecorder/.test(voice),'WebView microphone recorder must stay retired while same-video audio derivation remains active.');
 check(/targetSampleRate:TARGET_RATE/.test(voice)&&/Walkthrough Voice Audio/.test(voice),'Same-video audio must be reduced and saved as private walkthrough voice evidence.');
+check(/voiceFirstVideoSync:true/.test(voice)&&/sharedExtractionPromise:true/.test(voice)&&/__h38VoiceFirstSync/.test(voice)&&/await ensureFromVideo\(file,videoId\)/.test(voice),'Walkthrough video sync must wait for the same-video audio derivative so the local MP4 is not discarded first.');
 check(/editableSavedNotes:true/.test(transcription)&&/videoMeasurementCandidates:true/.test(transcription)&&/plainVideoDepthGeometry:false/.test(transcription),'Walkthrough speech must become editable notes and honest measurement candidates.');
 check(/function appleWalkthrough/.test(operator)&&/if\(!apple\(\)\|\|android\(\)\)return false/.test(operator),'iPhone native video capture authority must stay separate from Android.');
 check(/data-delete-quote-row/.test(operator)&&/Open \/ Edit/.test(operator),'Saved quote rows need Open / Edit + Delete controls.');
@@ -29,4 +30,4 @@ check(/automaticPostCaptureSync:true/.test(recovery)&&/automaticWalkthroughProce
 check(/automaticSavedOwnerFill:true/.test(auth),'Android saved owner login must fill automatically without another credential-button tap.');
 check(/versionCode\s+31\b/.test(build),'Owner APK versionCode must remain 31 for this runtime-only repair.');
 check(/versionName\s+'0\.5\.26'/.test(build),'Owner APK versionName must remain 0.5.26 for this runtime-only repair.');
-console.log('PASS field platform authority: CameraX unchanged; exact Site Visit return identity is pinned, mismatches fail safe, and return diagnostics are active.');
+console.log('PASS field platform authority: CameraX unchanged; exact Site Visit return is pinned and same-video audio is created before walkthrough video sync.');
