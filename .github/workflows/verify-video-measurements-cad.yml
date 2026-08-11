@@ -30,6 +30,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Compile-check video measurement Edge Function
+        run: deno check supabase/functions/h38-video-measurements/index.ts
       - name: Verify video measurement and CAD contracts
         run: node scripts/verify-video-measurements-cad.js
       - name: Preserve native walkthrough acceptance guards
