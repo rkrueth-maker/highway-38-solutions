@@ -129,6 +129,7 @@ jobs:
           node --check commercial-app/field-visit-photo-review.js
           node --check commercial-app/field-visit-recovery.js
           node --check commercial-app/field-visit-measurement-fix.js
+          node --check commercial-app/field-visit-video-measurements.js
           node --check commercial-app/quote-ai-live-fix.js
           node --check commercial-app/quote-total-lock.js
           node --check commercial-app/quote-drift-control.js
@@ -136,6 +137,7 @@ jobs:
           node --check commercial-app/service-worker.js
 
           grep -Fq "runtime-rowid-fix.js" commercial-app/index.html
+          grep -Fq "field-visit-video-measurements.js?build=20260811-video-safe-heartbeat-0958" commercial-app/index.html
           grep -Fq "quote-ai-live-fix.js" commercial-app/index.html
           grep -Fq "quote-total-lock.js" commercial-app/index.html
           grep -Fq "quote-drift-control.js" commercial-app/index.html
