@@ -115,7 +115,7 @@
     if (window.H38_FIELD_VISIT_GUIDED_CONTROLLER || window.H38_FIELD_VISIT_GUIDANCE) return;
     if (document.querySelector('script[data-h38-guided-site-visit]')) return;
     const script = document.createElement('script');
-    script.src = './field-visit-guided-controller.js?build=20260810-guided-controller-2058';
+    script.src = './field-visit-guided-controller.js?build=20260811-guided-stable-1152';
     script.dataset.h38GuidedSiteVisit = '1';
     document.body.appendChild(script);
   }
