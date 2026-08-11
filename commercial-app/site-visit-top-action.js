@@ -1,13 +1,36 @@
 (function(){
 'use strict';
-const BUILD='20260810-1230';
+const BUILD='20260811-blank-screen-recovery-0644';
+let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
   try{document.activeElement?.blur?.();}catch(_){}
   if(window.H38_FIELD_VISIT?.open){window.H38_FIELD_VISIT.open({customerId:'',quoteId:''});return;}
   if(typeof window.openPage==='function')window.openPage('field');
 }
+function recoverBlankSiteVisit(){
+  const body=document.body;
+  if(!body)return;
+  const claimedOpen=body.classList.contains('field-visit-open');
+  const app=document.querySelector('.field-visit-app');
+  if(!claimedOpen||app){blankSince=0;return;}
+  if(!blankSince){blankSince=Date.now();return;}
+  if(Date.now()-blankSince<900||blankRepairBusy)return;
+  blankRepairBusy=true;
+  try{
+    const core=window.H38_FIELD_VISIT_CORE;
+    try{core?.state?.render?.();}catch(error){console.error('[H38 Site Visit blank recovery] render failed',error);}
+    if(document.querySelector('.field-visit-app')){blankSince=0;return;}
+    if(core?.state)core.state.open=false;
+    body.classList.remove('field-visit-open');
+    document.querySelectorAll('.topbar,.business-bar,.app-shell,#toast').forEach(node=>node.style.removeProperty('visibility'));
+    console.error('[H38 Site Visit blank recovery] restored Business Office because Site Visit UI was missing');
+    try{window.toast?.('Site Visit could not finish opening. Business Office was restored; your saved visit was kept.',true);}catch(_){}
+    blankSince=0;
+  }finally{blankRepairBusy=false;}
+}
 function decorate(){
+  recoverBlankSiteVisit();
   const s=officeState(),main=document.getElementById('mainContent');
   if(!main||s?.page!=='customers'){document.getElementById('h38TopSiteVisitAction')?.remove();return;}
   main.querySelectorAll('[data-customer-site]').forEach(button=>button.remove());
@@ -30,6 +53,6 @@ function loadPhoneFinalFix(){
 }
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,700);setTimeout(decorate,0);setTimeout(decorate,900);loadPhoneFinalFix();
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadPhoneFinalFix();
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,blankScreenRecovery:true};
 })();
