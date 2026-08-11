@@ -295,6 +295,21 @@ public final class NativeScannerBridge {
     }
 
     @JavascriptInterface
+    public String getRecoveredWalkthroughAudioInfo() {
+        return WalkthroughAudioExtractor.info(activity);
+    }
+
+    @JavascriptInterface
+    public String readRecoveredWalkthroughAudioChunk(long offset, int requestedBytes) {
+        return WalkthroughAudioExtractor.readChunk(activity, offset, requestedBytes);
+    }
+
+    @JavascriptInterface
+    public void confirmRecoveredWalkthroughAudioConsumed() {
+        activity.runOnUiThread(() -> WalkthroughAudioExtractor.clear(activity, true));
+    }
+
+    @JavascriptInterface
     public void confirmRecoveredWalkthroughConsumed() { activity.runOnUiThread(activity::confirmRecoveredWalkthroughConsumed); }
 
     @JavascriptInterface

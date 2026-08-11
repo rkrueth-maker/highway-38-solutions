@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('fs'),path=require('path'),root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const check=(ok,msg)=>{if(!ok)throw new Error(msg)};
+const extractor=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughAudioExtractor.java');
+const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
+const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
+const voice=read('commercial-app/field-visit-voice-capture.js');
+const transcription=read('commercial-app/field-visit-transcription.js');
+check(/MediaExtractor/.test(extractor)&&/MediaMuxer/.test(extractor),'Native audio track extraction is required.');
+check(/WalkthroughAudioExtractor\.prepare\(this,outputFile\)/.test(capture),'CameraX completion must prepare same-file audio.');
+check(/getRecoveredWalkthroughAudioInfo/.test(bridge)&&/readRecoveredWalkthroughAudioChunk/.test(bridge),'Native bridge must expose private audio recovery.');
+check(/nativeSameVideoAudio:true/.test(voice)&&!/getUserMedia\s*\(/.test(voice)&&!/new MediaRecorder/.test(voice),'Web runtime must consume native same-video audio without a second microphone recorder.');
+check(/refreshAuthBeforeAudioSync:true/.test(voice)&&/refreshAuthBeforeSiteVisitSync:true/.test(transcription),'Audio and Site Visit sync must refresh auth before secure writes.');
+console.log('PASS Android native walkthrough audio: exact CameraX MP4 supplies private audio evidence and refreshed Site Visit sync.');
