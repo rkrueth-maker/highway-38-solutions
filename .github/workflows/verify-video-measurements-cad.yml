@@ -1,0 +1,36 @@
+name: Verify video measurements and CAD
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/field-visit-video-measurements.js'
+      - 'commercial-app/site-scanner-cad-export.js'
+      - 'commercial-app/index.html'
+      - 'supabase/functions/h38-video-measurements/index.ts'
+      - 'scripts/verify-video-measurements-cad.js'
+      - '.github/workflows/verify-video-measurements-cad.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/field-visit-video-measurements.js'
+      - 'commercial-app/site-scanner-cad-export.js'
+      - 'commercial-app/index.html'
+      - 'supabase/functions/h38-video-measurements/index.ts'
+      - 'scripts/verify-video-measurements-cad.js'
+      - '.github/workflows/verify-video-measurements-cad.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify video measurement and CAD contracts
+        run: node scripts/verify-video-measurements-cad.js
+      - name: Preserve native walkthrough acceptance guards
+        run: node scripts/verify-android-native-walkthrough-audio.js
