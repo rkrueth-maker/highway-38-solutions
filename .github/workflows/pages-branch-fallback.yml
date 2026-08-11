@@ -137,7 +137,7 @@ jobs:
           node --check commercial-app/service-worker.js
 
           grep -Fq "runtime-rowid-fix.js" commercial-app/index.html
-          grep -Fq "field-visit-video-measurements.js?build=20260811-video-safe-heartbeat-0958" commercial-app/index.html
+          grep -Fq "field-visit-video-measurements.js?build=20260811-video-walkthrough-integrated-1112" commercial-app/index.html
           grep -Fq "quote-ai-live-fix.js" commercial-app/index.html
           grep -Fq "quote-total-lock.js" commercial-app/index.html
           grep -Fq "quote-drift-control.js" commercial-app/index.html
