@@ -33,7 +33,7 @@ check('Site Visit sync refreshes auth before queue processing',voice.includes('r
 check('edge preserves original video authority',edge.includes('Video Walkthrough')&&compactEdge.includes('attachmentId:videoId'));
 check('edge uses derived audio when provided and original video otherwise',compactEdge.includes('letsource=video;if(audioId)source=awaitrequireEvidence'));
 check('edge returns explicit no usable audio code',edge.includes('NO_USABLE_AUDIO'));
-check('edge keeps spoken measurements unverified',edge.includes('UNVERIFIED_SPOKEN')&&compactEdge.includes('spokenMeasurementsFieldVerified:false'));
+check('edge keeps unverified speech unverified but preserves explicit operator verification',edge.includes('UNVERIFIED_SPOKEN')&&edge.includes('OPERATOR_VERIFIED')&&edge.includes('normalizeSpokenMeasurements')&&edge.includes('isOperatorVerified')&&edge.includes('isMaterialSpecification')&&edge.includes('Do not put product or material specifications into spokenMeasurements'));
 check('edge is Site Visit first and quote optional',compactEdge.includes('siteVisitFirst:true')&&compactEdge.includes('quoteOptional:true'));
 check('walkthrough notes become editable saved Site Visit content',voice.includes('editableSavedNotes:true')&&voice.includes('fieldSaveWalkthroughNotes')&&voice.includes('walkthroughEditableNotes'));
 check('spoken dimensions feed measurement candidates without fake depth',voice.includes('walkthroughMeasurementCandidates')&&voice.includes('plainVideoDepthGeometry:false'));
@@ -63,4 +63,4 @@ check('saved Android login still uses Credential Manager',nativeBridge.includes(
 check('saved owner login fills automatically but never auto-submits',auth.includes('automaticSavedOwnerFill:true')&&auth.includes('h38:saved-login-filled')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
 check('owner APK is v0.5.27 runtime host',gradle.includes('versionCode 32')&&gradle.includes("versionName '0.5.27'"));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,measurementVerificationFirst:true,visibleSwingHammer:true,version:'0.5.27'},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,operatorVerifiedMeasurements:true,materialSpecificationsExcludedFromMeasurements:true,measurementVerificationFirst:true,visibleSwingHammer:true,version:'0.5.27'},null,2));
