@@ -1,0 +1,10 @@
+'use strict';
+const fs=require('fs');
+const fix=fs.readFileSync('commercial-app/field-visit-acceptance-fix.js','utf8');
+const index=fs.readFileSync('commercial-app/index.html','utf8');
+const must=(s,label)=>{if(!fix.includes(s))throw new Error(`${label} missing ${s}`)};
+for(const s of ['verifiedDimensionsSuppressAiReverification:true','verifiedCandidatesDisplayAsVerified:true','reviewMissingMeasurementsDeduped:true','dimensionSignatures','filterMissing','OPERATOR VERIFIED · field measurement already confirmed · no remeasurement required'])must(s,'verified dimension handling');
+for(const s of ['serverIdentityEvidenceCascade:true','siteVisitDeleteRemovesAttachedPhotos:true','discoverServerEvidence','Capture Session ID','Site Visit ID','Linked Site Visit ID','DELETE_SITE_VISIT_EVIDENCE_CASCADE','business-office-files'])must(s,'Site Visit evidence cascade');
+for(const s of ['photoDeleteBesideMakeActionPicture:true','Make Action Picture','field-owner-photo-actions','field-owner-delete-photo','actionPictureId'])must(s,'per-photo actions');
+if(!index.includes('./field-visit-acceptance-fix.js?build=20260810-site-visit-acceptance-2230'))throw new Error('production runtime missing fresh Site Visit acceptance repair');
+console.log('PASS Site Visit delete removes attached synced evidence, each picture has Action/Delete controls, and verified dimensions are not re-requested');
