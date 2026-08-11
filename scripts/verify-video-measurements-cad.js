@@ -1,0 +1,31 @@
+const fs=require('fs');
+function read(path){return fs.readFileSync(path,'utf8')}
+function need(ok,msg){if(!ok)throw new Error(msg)}
+const index=read('commercial-app/index.html');
+const runtime=read('commercial-app/field-visit-video-measurements.js');
+const cad=read('commercial-app/site-scanner-cad-export.js');
+const fn=read('supabase/functions/h38-video-measurements/index.ts');
+need(index.includes('field-visit-video-measurements.js?build=20260811-video-reference-scale-0143'),'production loader must include fresh video measurement runtime');
+need(index.includes('site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143'),'production loader must include fresh CAD review runtime');
+new Function(runtime);new Function(cad);
+need(runtime.includes("source:'CAMERA_ESTIMATE'")||runtime.includes("'Source':'CAMERA_ESTIMATE'"),'video estimates must retain CAMERA_ESTIMATE source');
+need(runtime.includes("verificationStatus:'UNVERIFIED'")||runtime.includes("'Verification Status':'UNVERIFIED'"),'video estimates must remain UNVERIFIED');
+need(runtime.includes('samePlaneRequired:true'),'phone runtime must declare same-plane requirement');
+need(runtime.includes('verifiedReferenceRequired:true'),'phone runtime must require verified reference');
+need(runtime.includes('fieldVerificationRequired:true'),'phone runtime must require field verification');
+need(!runtime.includes("'Verification Status':'FIELD_MEASURED'"),'video runtime must never promote an estimate to FIELD_MEASURED');
+need(fn.includes('sameFrameOnly:true'),'server prompt contract must require same frame');
+need(fn.includes('samePlaneOnly:true'),'server prompt contract must require same plane');
+need(fn.includes('serverComputesScale:true'),'server must deterministically compute scale instead of accepting an AI dimension');
+need(fn.includes('Do not output a dimension value; the server calculates it deterministically'),'AI must locate endpoints, not invent the numeric dimension');
+need(fn.includes('Math.min(0.72'),'video estimate confidence must be capped');
+need(fn.includes('verificationStatus:"UNVERIFIED"'),'server output must remain unverified');
+need(fn.includes('fieldVerificationRequired:true'),'server output must require field verification');
+need(fn.includes('exactDimensionsInvented:false'),'Proof Log must state exact dimensions were not invented');
+need(cad.includes("'H38_FIELD_VERIFIED'"),'DXF must have verified measurement layer');
+need(cad.includes("'H38_DEVICE_CAPTURED'"),'DXF must have device measurement layer');
+need(cad.includes("'H38_VIDEO_ESTIMATE'"),'DXF must have video estimate layer');
+need(cad.includes("format:'DXF_R12_ASCII'"),'CAD export must identify DXF R12 format');
+need(cad.includes("'Quote',q,'Internal'"),'quote drawing attachment must remain internal by default');
+need(cad.includes('automaticApproval:false')&&cad.includes('automaticCustomerSending:false'),'CAD export must preserve owner/no-auto-send controls');
+console.log('Video measurement + CAD review verification passed.');
