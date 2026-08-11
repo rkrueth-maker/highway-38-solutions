@@ -15,7 +15,7 @@ for(const source of [runtime,guided,recovery,cad,cadGuard])new Function(source);
 
 need(index.includes('field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158'),'production loader must install server Site Visit draft recovery before field-visit.js');
 need(index.indexOf('field-visit-server-recovery.js')>index.indexOf('field-visit-core.js')&&index.indexOf('field-visit-server-recovery.js')<index.indexOf('field-visit.js?'),'server recovery must wrap restore before the field visit shell captures it');
-need(index.includes('field-visit-guided-controller.js?build=20260811-guided-stable-1152'),'production loader must use stable guided controller');
+need(index.includes('field-visit-guided-controller.js?build=20260811-guided-ar-advance-1'),'production loader must use current guided controller');
 need(index.includes('field-visit-video-measurements.js?build=20260811-video-headless-stable-1154'),'production loader must use headless video measurement engine');
 need(index.includes('site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156'),'production loader must protect CAD save actions');
 need(index.includes('site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143'),'production loader must retain CAD review runtime');
@@ -48,8 +48,11 @@ need(guided.includes('mutationObserver:false'),'guided controller must declare m
 need(guided.includes('idempotentRender:true'),'guided controller must declare idempotent rendering');
 need(guided.includes('automaticMeasurementReanalysis:false'),'measurement changes must not trigger automatic full AI reanalysis');
 need(guided.includes('What H38 determined from this walkthrough'),'guided controller must present video measurements inside walkthrough review');
-need(guided.includes("source:'CAMERA_ESTIMATE'")||guided.includes("source:'CAMERA_ESTIMATE'"),'guided queue must distinguish camera estimates');
+need(guided.includes("source:'CAMERA_ESTIMATE'"),'guided queue must distinguish camera estimates');
 need(guided.includes('OPERATOR VERIFIED · field measurement already confirmed'),'operator-verified narration must display as verified');
+need(guided.includes('walkthroughCompletedMeasurements'),'saved field measurements must suppress only completed walkthrough requests');
+need(guided.includes('measurementRequest:raw')&&guided.includes('measurementLabel:label'),'native AR must receive the active walkthrough request identity');
+need(guided.includes('await C.ingest(result)')&&guided.includes('await completeMeasurementRequest(request,saved)'),'walkthrough request may advance only after the AR result is ingested and linked');
 const evidenceFn=(guided.match(/function reviewEvidenceKey\(\)\{[\s\S]*?\n\}/)||[''])[0];
 need(evidenceFn&&!evidenceFn.includes('measurementIds'),'review evidence key must not change just because measurements were added');
 
@@ -87,4 +90,4 @@ need(cad.includes("format:'DXF_R12_ASCII'"),'CAD export must identify DXF R12 fo
 need(cad.includes("'Quote',q,'Internal'"),'quote drawing attachment must remain internal by default');
 need(cad.includes('automaticApproval:false')&&cad.includes('automaticCustomerSending:false'),'CAD export must preserve owner/no-auto-send controls');
 
-console.log('Stable walkthrough measurement + server recovery + CAD guard verification passed.');
+console.log('Stable walkthrough measurement + AR advance linkage + server recovery + CAD guard verification passed.');
