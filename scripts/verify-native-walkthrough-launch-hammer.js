@@ -6,6 +6,7 @@ const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/hi
 const audio=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughAudioExtractor.java');
 const guard=read('commercial-app/android-native-walkthrough-guard.js');
 const guided=read('commercial-app/field-visit-guided-controller.js');
+const measureClass=read('commercial-app/field-visit-measurement-classification.js');
 const recovery=read('commercial-app/field-visit-recovery.js');
 const auth=read('commercial-app/auth-autofill.js');
 const index=read('commercial-app/index.html');
@@ -17,11 +18,12 @@ for(const s of ['directNativeLaunch:true','b.launchWalkthroughCapture()','readNa
 for(const s of ['handler.postDelayed(this::startRecording,120)','Stop & Use Video','🔨 H38 is saving walkthrough…','WalkthroughAudioExtractor.prepare(this,outputFile)'])must(capture,s,'CameraX auto-start');
 for(const s of ['MediaExtractor','MediaMuxer','MUXER_OUTPUT_MPEG_4'])must(audio,s,'native same-video audio');
 for(const s of ['inlineWorkingHammer:true','visibleVisualNotes:true','visibleSpokenNotes:true','visiblePhotoRequests:true','visibleMeasurementRequests:true','walkthroughMeasurementCandidates:true','@keyframes h38GuidedHammer','Photos H38 still needs','Measurements H38 still needs','Walkthrough measurement candidates'])must(guided,s,'guided Site Visit controller');
+for(const s of ['materialSpecificationsAreNotFieldMeasurements:true','operatorVerifiedSpokenDimensionsStayVerified:true','OPERATOR_VERIFIED','UNVERIFIED_SPOKEN','isMaterialSpecification','isOperatorVerified'])must(measureClass,s,'walkthrough measurement classifier');
 for(const s of ['automaticSavedOwnerFill:true','automaticSavedOwnerSignIn:true','Sign in with saved owner login','Saved owner login found. Signing in'])must(auth,s,'owner sign-in');
-for(const s of ['./field-visit-guided-controller.js?build=20260810-guided-controller-2058','./auth-autofill.js?build=20260810-owner-login-one-step-2040','./supabase-no-legacy-office.js?build=20260810-guided-controller-authority-2105'])must(index,s,'production runtime');
+for(const s of ['./field-visit-guided-controller.js?build=20260810-guided-controller-2058','./field-visit-measurement-classification.js?build=20260810-measurement-classification-2140','./auth-autofill.js?build=20260810-owner-login-one-step-2040','./supabase-no-legacy-office.js?build=20260810-guided-controller-authority-2105'])must(index,s,'production runtime');
 if(index.includes('./field-visit-walkthrough-guidance.js?build=')||index.includes('./field-visit-fast-followup.js?build='))throw new Error('production index still loads retired split Site Visit guidance runtimes');
 for(const s of ['loadSiteVisitController','H38_FIELD_VISIT_GUIDED_CONTROLLER','H38_FIELD_VISIT_GUIDANCE','./field-visit-guided-controller.js?build=20260810-guided-controller-2058'])must(noLegacy,s,'dynamic Site Visit authority');
 if(noLegacy.includes('./field-visit-fast-followup.js?build='))throw new Error('dynamic loader can still inject retired fast-followup controller');
 for(const s of ['automaticPostCaptureSync:true','automaticWalkthroughProcessing:true','H38 is syncing Site Visit evidence'])must(recovery,s,'post-capture recovery');
 for(const s of ['versionCode 32',"versionName '0.5.27'"])must(gradle,s,'Android build');
-console.log('PASS native walkthrough + same-video audio + single unified persistent Site Visit review + visible inline hammer + follow-up queues + measurement candidates v0.5.27');
+console.log('PASS native walkthrough + same-video audio + unified Site Visit review + working hammer + correct verified measurement classification v0.5.27');
