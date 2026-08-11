@@ -7,7 +7,7 @@ on:
       - 'commercial-app/service-worker.js'
       - 'commercial-app/field-visit-voice-capture.js'
       - 'commercial-app/field-visit-transcription.js'
-      - 'commercial-app/field-visit-walkthrough-guidance.js'
+      - 'commercial-app/field-visit-guided-controller.js'
       - 'scripts/verify-post-walkthrough-actions.js'
       - '.github/workflows/verify-post-walkthrough-actions.yml'
   push:
@@ -17,7 +17,7 @@ on:
       - 'commercial-app/service-worker.js'
       - 'commercial-app/field-visit-voice-capture.js'
       - 'commercial-app/field-visit-transcription.js'
-      - 'commercial-app/field-visit-walkthrough-guidance.js'
+      - 'commercial-app/field-visit-guided-controller.js'
       - 'scripts/verify-post-walkthrough-actions.js'
       - '.github/workflows/verify-post-walkthrough-actions.yml'
 
@@ -38,4 +38,4 @@ jobs:
         run: |
           node --check commercial-app/field-visit-voice-capture.js
           node --check commercial-app/field-visit-transcription.js
-          node --check commercial-app/field-visit-walkthrough-guidance.js
+          node --check commercial-app/field-visit-guided-controller.js
