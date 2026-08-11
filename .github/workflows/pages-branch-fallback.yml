@@ -142,7 +142,7 @@ jobs:
 
           grep -Fq "runtime-rowid-fix.js" commercial-app/index.html
           grep -Fq "field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158" commercial-app/index.html
-          grep -Fq "field-visit-guided-controller.js?build=20260811-guided-stable-1152" commercial-app/index.html
+          grep -Fq "field-visit-guided-controller.js?build=20260811-guided-ar-advance-1" commercial-app/index.html
           grep -Fq "field-visit-video-measurements.js?build=20260811-video-headless-stable-1154" commercial-app/index.html
           grep -Fq "site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156" commercial-app/index.html
           grep -Fq "quote-ai-live-fix.js" commercial-app/index.html
