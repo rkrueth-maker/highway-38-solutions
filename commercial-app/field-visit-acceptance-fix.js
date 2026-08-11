@@ -54,6 +54,13 @@ function suppressVerifiedReverification(){
     }
   }
 }
+function showVerifiedCandidateStatus(){
+  const verified=verifiedSignatures();if(!verified.size)return;const card=document.getElementById('h38GuidedController');if(!card)return;
+  for(const section of card.querySelectorAll('.h38-guided-section')){
+    const heading=text(section.querySelector(':scope > strong')?.textContent).trim();if(heading!=='Walkthrough measurement candidates')continue;
+    section.querySelectorAll('li').forEach(item=>{const sigs=dimensionSignatures(item.querySelector('span')?.textContent||item.textContent);if(!sigs.length||!sigs.every(sig=>verified.has(sig)))return;const small=item.querySelector('small');if(small)small.textContent='OPERATOR VERIFIED · field measurement already confirmed · no remeasurement required';item.classList.add('h38-operator-verified-candidate');});
+  }
+}
 async function auth(){
   const api=shared?.ensure?.();if(!api)throw Error('The secure Business Office connection is not ready.');
   const result=await api.auth.getSession();if(result.error)throw result.error;const user=result.data?.session?.user;if(!user)throw Error('Sign in again before deleting synced Site Visit evidence.');return{api,user};
@@ -130,17 +137,17 @@ function photoActions(){
   });
 }
 function scheduleDecorate(delay=30){clearTimeout(timer);timer=setTimeout(()=>void decorate(),delay);}
-async function decorate(){if(decorating)return;decorating=true;try{suppressVerifiedReverification();wrapOwnerControls();photoActions();}finally{decorating=false;}}
+async function decorate(){if(decorating)return;decorating=true;try{suppressVerifiedReverification();wrapOwnerControls();photoActions();showVerifiedCandidateStatus();}finally{decorating=false;}}
 function installRender(){
   if(renderWrapped)return;const base=C.state.render;if(typeof base!=='function')return;renderWrapped=true;C.setRender(function(){suppressVerifiedReverification();base();scheduleDecorate(0);});scheduleDecorate(0);
 }
 document.addEventListener('click',event=>{
   const button=event.target?.closest?.('.field-owner-delete-photo');if(!button)return;const v=visit(),row=button.closest('.field-owner-photo'),id=text(row?.dataset.photoId);if(v&&id&&text(v.actionPictureId)===id){v.actionPictureId='';void C.saveDraft?.();}
 },true);
-const style=document.createElement('style');style.textContent='.field-owner-photo-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}.field-owner-action-photo{font-weight:800}.field-owner-action-photo.selected{color:#075985}.field-owner-photo-selected{outline:2px solid #0b698b;outline-offset:1px}@media(max-width:620px){.field-owner-photo{grid-template-columns:58px minmax(0,1fr)!important}.field-owner-photo-actions{grid-column:1/-1;justify-content:stretch}.field-owner-photo-actions button{flex:1;min-height:42px}}';document.head.appendChild(style);
+const style=document.createElement('style');style.textContent='.field-owner-photo-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}.field-owner-action-photo{font-weight:800}.field-owner-action-photo.selected{color:#075985}.field-owner-photo-selected{outline:2px solid #0b698b;outline-offset:1px}.h38-operator-verified-candidate small{color:#17653a!important;font-weight:800}@media(max-width:620px){.field-owner-photo{grid-template-columns:58px minmax(0,1fr)!important}.field-owner-photo-actions{grid-column:1/-1;justify-content:stretch}.field-owner-photo-actions button{flex:1;min-height:42px}}';document.head.appendChild(style);
 new MutationObserver(()=>scheduleDecorate(40)).observe(document.documentElement,{childList:true,subtree:true});
 addEventListener('online',()=>{void sweepDeleteTombstones();scheduleDecorate(0);});
 setInterval(()=>{wrapOwnerControls();suppressVerifiedReverification();if(navigator.onLine)void sweepDeleteTombstones();},4000);
-window.H38_SITE_VISIT_ACCEPTANCE_FIX=Object.freeze({build:BUILD,verifiedDimensionsSuppressAiReverification:true,reviewMissingMeasurementsDeduped:true,serverIdentityEvidenceCascade:true,siteVisitDeleteRemovesAttachedPhotos:true,photoDeleteBesideMakeActionPicture:true,makeActionPicture,serverEvidenceSweep,automaticApproval:false,automaticCustomerSending:false});
+window.H38_SITE_VISIT_ACCEPTANCE_FIX=Object.freeze({build:BUILD,verifiedDimensionsSuppressAiReverification:true,verifiedCandidatesDisplayAsVerified:true,reviewMissingMeasurementsDeduped:true,serverIdentityEvidenceCascade:true,siteVisitDeleteRemovesAttachedPhotos:true,photoDeleteBesideMakeActionPicture:true,makeActionPicture,serverEvidenceSweep,automaticApproval:false,automaticCustomerSending:false});
 installRender();setTimeout(()=>{installRender();wrapOwnerControls();scheduleDecorate(0);},500);
 })();
