@@ -3,8 +3,11 @@ name: Verify video measurements and CAD
 on:
   pull_request:
     paths:
+      - 'commercial-app/field-visit-guided-controller.js'
+      - 'commercial-app/field-visit-server-recovery.js'
       - 'commercial-app/field-visit-video-measurements.js'
       - 'commercial-app/site-scanner-cad-export.js'
+      - 'commercial-app/site-scanner-cad-save-guard.js'
       - 'commercial-app/index.html'
       - 'supabase/functions/h38-video-measurements/index.ts'
       - 'scripts/verify-video-measurements-cad.js'
@@ -12,8 +15,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'commercial-app/field-visit-guided-controller.js'
+      - 'commercial-app/field-visit-server-recovery.js'
       - 'commercial-app/field-visit-video-measurements.js'
       - 'commercial-app/site-scanner-cad-export.js'
+      - 'commercial-app/site-scanner-cad-save-guard.js'
       - 'commercial-app/index.html'
       - 'supabase/functions/h38-video-measurements/index.ts'
       - 'scripts/verify-video-measurements-cad.js'
@@ -35,7 +41,7 @@ jobs:
           deno-version: v2.x
       - name: Compile-check video measurement Edge Function
         run: deno check --node-modules-dir=auto supabase/functions/h38-video-measurements/index.ts
-      - name: Verify video measurement and CAD contracts
+      - name: Verify stable walkthrough measurement and recovery contracts
         run: node scripts/verify-video-measurements-cad.js
       - name: Preserve native walkthrough acceptance guards
         run: node scripts/verify-android-native-walkthrough-audio.js
