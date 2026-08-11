@@ -51,7 +51,7 @@ check('native recording is consumed only after attachment count advances',accept
 check('post-capture queue drains automatically',recovery.includes('automaticPostCaptureSync:true')&&recovery.includes('automaticWalkthroughProcessing:true'));
 check('actual notes are surfaced by authoritative guided review',guided.includes('visibleSpokenNotes:true')&&guided.includes('What you said'));
 check('visible hammer swing is enforced by authoritative guided review',guided.includes('inlineWorkingHammer:true')&&guided.includes('@keyframes h38GuidedHammer'));
-check('measurement verification precedes photo guidance when needed',guided.includes("if(measureList.length)return{kind:'measure'")&&guided.includes('NEXT MEASUREMENT'));
+check('measurement verification precedes photo guidance when needed',guided.includes("if(measureList.length)return{kind:'measure'")&&guided.includes("next.kind==='measure'?'MEASUREMENT':'PHOTO'"));
 check('saved AR measurement advances only after ingest',guided.includes('await C.ingest(result)')&&guided.includes('await completeMeasurementRequest(request,saved)')&&guided.includes('walkthroughCompletedMeasurements'));
 check('guided review does not start a measurement/review feedback loop',guided.includes('automaticMeasurementReanalysis:false')&&guided.includes('mutationObserver:false'));
 check('android host opens H38 CameraX walkthrough activity',android.includes('WalkthroughCaptureActivity.class')&&android.includes('pendingFileCapture'));
