@@ -128,8 +128,12 @@ jobs:
           node --check commercial-app/field-visit-guidance.js
           node --check commercial-app/field-visit-photo-review.js
           node --check commercial-app/field-visit-recovery.js
+          node --check commercial-app/field-visit-server-recovery.js
+          node --check commercial-app/field-visit-guided-controller.js
           node --check commercial-app/field-visit-measurement-fix.js
           node --check commercial-app/field-visit-video-measurements.js
+          node --check commercial-app/site-scanner-cad-export.js
+          node --check commercial-app/site-scanner-cad-save-guard.js
           node --check commercial-app/quote-ai-live-fix.js
           node --check commercial-app/quote-total-lock.js
           node --check commercial-app/quote-drift-control.js
@@ -137,7 +141,10 @@ jobs:
           node --check commercial-app/service-worker.js
 
           grep -Fq "runtime-rowid-fix.js" commercial-app/index.html
-          grep -Fq "field-visit-video-measurements.js?build=20260811-video-walkthrough-integrated-1112" commercial-app/index.html
+          grep -Fq "field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158" commercial-app/index.html
+          grep -Fq "field-visit-guided-controller.js?build=20260811-guided-stable-1152" commercial-app/index.html
+          grep -Fq "field-visit-video-measurements.js?build=20260811-video-headless-stable-1154" commercial-app/index.html
+          grep -Fq "site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156" commercial-app/index.html
           grep -Fq "quote-ai-live-fix.js" commercial-app/index.html
           grep -Fq "quote-total-lock.js" commercial-app/index.html
           grep -Fq "quote-drift-control.js" commercial-app/index.html
