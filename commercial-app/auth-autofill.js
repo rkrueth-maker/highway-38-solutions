@@ -1,10 +1,11 @@
 (function () {
   'use strict';
-  const BUILD = '20260810-owner-login-autofill';
+  const BUILD = '20260810-owner-login-one-step-2040';
   let scheduled = false;
   let invitationTimer = 0;
   let nativeAutofillDisabled = false;
   let automaticSavedLoginRequested = false;
+  let automaticSubmitBusy = false;
 
   function nativeBridge() { return window.AndroidH38Native || null; }
   function isAndroidApp() { const bridge=nativeBridge(); return !!bridge && typeof bridge.requestAutofill==='function'; }
@@ -72,6 +73,24 @@
     watchInvitationCompletion();
   }
 
+  function submitSavedLogin(form,email,password,help) {
+    if (invitationPending() || automaticSubmitBusy) return;
+    const username = String(email?.value || '').trim();
+    const secret = String(password?.value || '');
+    if (!form || !username || !secret) return;
+    automaticSubmitBusy = true;
+    if (help) help.textContent = 'Saved owner login found. Signing in…';
+    requestAnimationFrame(() => {
+      try {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+      } catch (_) {
+        automaticSubmitBusy = false;
+      }
+      setTimeout(() => { automaticSubmitBusy = false; }, 3500);
+    });
+  }
+
   function enhance() {
     scheduled = false;
     disableWebAutofillInterference();
@@ -80,15 +99,15 @@
     const form = document.getElementById('h38AuthForm');
     if (!form || form.dataset.autofillReady === BUILD) return;
     form.dataset.autofillReady = BUILD;
-    form.setAttribute('autocomplete','off');
+    form.setAttribute('autocomplete','on');
 
     const email = document.getElementById('h38AuthEmail');
     const password = document.getElementById('h38AuthPassword');
     if (email) {
-      email.name = 'username'; email.autocomplete = 'off'; email.inputMode = 'email';
+      email.name = 'username'; email.autocomplete = 'username'; email.inputMode = 'email';
       email.setAttribute('autocapitalize','none'); email.setAttribute('spellcheck','false'); email.setAttribute('enterkeyhint','next');
     }
-    if (password) { password.name = 'password'; password.autocomplete = 'off'; password.setAttribute('enterkeyhint','go'); }
+    if (password) { password.name = 'password'; password.autocomplete = 'current-password'; password.setAttribute('enterkeyhint','go'); }
 
     form.addEventListener('submit', () => rememberLogin(email,password));
 
@@ -96,16 +115,19 @@
     if (isAndroidApp() && !button) {
       button = document.createElement('button');
       button.id = 'h38UseSavedLogin'; button.type = 'button'; button.className = 'secondary h38-saved-login';
-      button.textContent = '🔐 Fill saved owner login'; button.addEventListener('click', requestAutofill);
+      button.textContent = '🔐 Sign in with saved owner login'; button.addEventListener('click', requestAutofill);
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button); else form.appendChild(button);
     } else if (!isAndroidApp() && button) { button.remove(); button = null; }
 
     let help = document.getElementById('h38AutofillHelp');
     if (!help) { help=document.createElement('p'); help.id='h38AutofillHelp'; help.className='muted h38-autofill-help'; form.appendChild(help); }
-    help.textContent = isAndroidApp() ? 'H38 will fill the saved owner login on this phone. Tap Sign in after it fills.' : 'Enter your email and password, then tap Sign in.';
+    help.textContent = isAndroidApp() ? 'H38 will use the saved owner login on this phone and sign in automatically.' : 'Enter your email and password, then tap Sign in.';
 
-    window.addEventListener('h38:saved-login-filled', () => { if (help) help.textContent = 'Saved owner login filled. Tap Sign in.'; });
+    window.addEventListener('h38:saved-login-filled', () => {
+      if (help) help.textContent = 'Saved owner login filled. Signing in…';
+      submitSavedLogin(form,email,password,help);
+    });
     window.addEventListener('h38:saved-login-unavailable', () => {
       if (help) help.textContent = 'No saved H38 login was returned. Enter it once; H38 will keep an encrypted local copy for this phone.';
       try { email?.focus?.({preventScroll:true}); } catch (_) { try { email?.focus?.(); } catch (_) {} }
@@ -113,7 +135,7 @@
 
     if (isAndroidApp() && !invitationPending() && !automaticSavedLoginRequested) {
       automaticSavedLoginRequested = true;
-      setTimeout(requestAutofill, 220);
+      setTimeout(requestAutofill, 180);
     }
   }
 
@@ -126,7 +148,7 @@
     schedule();
   }
 
-  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill,automaticSavedOwnerFill:true};
+  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill,automaticSavedOwnerFill:true,automaticSavedOwnerSignIn:true};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();
