@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260811-blank-screen-recovery-1245';
+const BUILD='20260811-site-quote-handoff-2';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -58,8 +58,15 @@ function loadPhoneFinalFix(){
   script.dataset.h38SiteVisitPhoneFinal='1';
   document.head.appendChild(script);
 }
+function loadQuoteHandoff(){
+  if(window.H38_FIELD_VISIT_QUOTE_HANDOFF||document.querySelector('script[data-h38-site-visit-quote-handoff]'))return;
+  const script=document.createElement('script');
+  script.src='./field-visit-quote-handoff.js?build=20260811-site-visit-quote-handoff-2';
+  script.dataset.h38SiteVisitQuoteHandoff='1';
+  document.head.appendChild(script);
+}
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,blankScreenRecovery:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteHandoff();
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteHandoffLoaded:true,blankScreenRecovery:true};
 })();
