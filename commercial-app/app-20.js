@@ -15,6 +15,62 @@ function h38QuotePreviewLine(line){
   const unitPrice=num(v(line,'Unit Price','unitPrice'));
   return `<tr><td>${esc(v(line,'Description','description'))}</td><td>${esc(quantity)}</td><td>${esc(v(line,'Unit','unit')||'each')}</td><td>${money(unitPrice)}</td><td>${money(quantity*unitPrice)}</td></tr>`;
 }
+function h38AiPriceSourceLabel(line){
+  const source=String(line?.priceSource||'').toLowerCase();
+  if(line?.catalogId||source==='price_book'||source.includes('price book')||source.includes('price catalog'))return 'Price Book — owner review';
+  if(source==='local_research'||source.includes('web research')||source.includes('local research'))return 'Current web research — owner review';
+  if(num(line?.rate||line?.unitPrice)>0)return 'Current researched pricing — owner review';
+  return 'Owner review required';
+}
+function h38NormalizeResearchedPriceSources(){
+  if(!state.quote||!Array.isArray(state.quote.lines))return;
+  state.quote.lines.forEach(line=>{
+    const source=String(line?.priceSource||'');
+    if(num(line?.unitPrice)>0&&(source==='AI suggestion — manual price required'||source==='Site Visit AI suggestion — manual price required'))line.priceSource='Current web research — owner review';
+  });
+}
+function h38MissingCostSuggestions(){
+  if(!state.quote)return[];
+  const quoteId=String(state.quote.quoteId||'');
+  const cache=window.H38_QUOTE_MISSING_COST_CACHE||{};
+  const cached=quoteId&&Array.isArray(cache[quoteId])?cache[quoteId]:[];
+  if(!Array.isArray(state.quote.possibleMissingCosts)||(!state.quote.possibleMissingCosts.length&&cached.length))state.quote.possibleMissingCosts=cached;
+  return Array.isArray(state.quote.possibleMissingCosts)?state.quote.possibleMissingCosts:[];
+}
+function h38MissingCostById(id){return h38MissingCostSuggestions().find(item=>String(item?.suggestionId||'')===String(id||''));}
+function h38SetMissingCostDecision(item,decision){
+  if(!item)return;
+  item.decision=decision;
+  const quoteId=String(state.quote?.quoteId||'');
+  if(quoteId&&window.H38_QUOTE_MISSING_COST_CACHE)window.H38_QUOTE_MISSING_COST_CACHE[quoteId]=h38MissingCostSuggestions();
+}
+function h38AddMissingCostToQuote(item){
+  if(!item||!state.quote)return;
+  const rate=num(item.rate),quantity=Math.max(.01,num(item.quantity||1));
+  if(rate<=0){toast('H38 will not add an unpriced cost suggestion. Re-run the quote audit so current pricing can be researched.',true);return;}
+  if(!Array.isArray(state.quote.lines))state.quote.lines=[];
+  state.quote.lines.push({quoteLineId:newId('QUOTE-LINE'),description:String(item.description||'Possible missing expense'),quantity,unit:String(item.unit||'each'),unitPrice:rate,priceSource:h38AiPriceSourceLabel(item),priceStatus:'Owner review required'});
+  state.quote.ownerEdited=true;
+  h38SetMissingCostDecision(item,'ADDED');
+  toast(`${item.description||'Missing cost'} added to the editable draft. Review it, then save the quote when ready.`);
+  renderQuotes();
+}
+function h38AddMissingCostReviewPanel(){
+  const main=$('mainContent');if(!main||!state.quote)return;
+  main.querySelector('#h38MissingCostReview')?.remove();
+  const all=h38MissingCostSuggestions(),pending=all.filter(item=>!item?.decision||item.decision==='PENDING');
+  if(!pending.length)return;
+  const panel=document.createElement('section');panel.id='h38MissingCostReview';panel.className='card h38-missing-cost-review';
+  panel.innerHTML=`<div class="row-top"><div><span class="h38-missing-cost-kicker">OWNER COST CHECK</span><h2>Possible missing costs</h2></div><span class="pill pending">${pending.length} to review</span></div><p class="muted">H38 compared the scope and current estimate for likely expenses that may be missing. These are owner-only suggestions. Nothing is added, saved, approved, or shown to the customer unless you choose <strong>Add to quote</strong> and later save the draft.</p><div class="list">${pending.map(item=>{const quantity=Math.max(.01,num(item.quantity||1)),rate=num(item.rate),amount=quantity*rate;return `<div class="row h38-missing-cost-row" data-cost-id="${esc(item.suggestionId||'')}"><div class="row-top"><strong>${esc(item.description||'Possible missing expense')}</strong><strong>${money(amount)}</strong></div><small>${esc(quantity)} ${esc(item.unit||'each')} × ${money(rate)} · ${esc(h38AiPriceSourceLabel(item))} · ${esc(String(item.confidence||'low'))} confidence</small><p>${esc(item.reason||'H38 did not find an equivalent cost in the current draft.')}</p><div class="actions"><button type="button" data-cost-action="add">Add to quote</button><button type="button" class="secondary" data-cost-action="ignore">Ignore</button><button type="button" class="secondary" data-cost-action="na">Not applicable</button></div></div>`;}).join('')}</div>`;
+  const grid=main.querySelector('.grid');if(grid)grid.insertAdjacentElement('beforebegin',panel);else main.querySelector('.page-head')?.insertAdjacentElement('afterend',panel);
+  panel.querySelectorAll('button[data-cost-action]').forEach(button=>button.addEventListener('click',()=>{
+    const row=button.closest('[data-cost-id]'),item=h38MissingCostById(row?.dataset?.costId),action=button.dataset.costAction;
+    if(!item)return;
+    if(action==='add'){h38AddMissingCostToQuote(item);return;}
+    if(action==='ignore'){h38SetMissingCostDecision(item,'IGNORED');toast(`${item.description||'Cost'} left out of this draft.`);renderQuotes();return;}
+    if(action==='na'){h38SetMissingCostDecision(item,'NOT_APPLICABLE');toast(`${item.description||'Cost'} marked not applicable.`);renderQuotes();}
+  }));
+}
 function renderQuotePreview(){
   const row=h38CurrentQuoteRecord();
   const quoteId=String(state.quote&&state.quote.quoteId||rowId(row,'Quote ID','quoteId'));
@@ -67,9 +123,11 @@ async function h38BuildAiQuoteDraft(){
     state.quote.projectTitle=draft.projectTitle||projectTitle?.value||state.quote.projectTitle||'';
     state.quote.scope=draft.scope||scope?.value||state.quote.scope||'';
     state.quote.customerId=customer.value;
-    state.quote.lines=suggested.map(line=>({quoteLineId:newId('QUOTE-LINE'),description:String(line.description||'Suggested work item'),quantity:Math.max(0.01,num(line.quantity||1)),unit:String(line.unit||'each'),unitPrice:num(line.rate||line.unitPrice||0),priceSource:line.catalogId?'Price Catalog + AI assistance':'AI suggestion — manual price required',priceStatus:'Owner review required'}));
+    state.quote.lines=suggested.map(line=>({quoteLineId:newId('QUOTE-LINE'),description:String(line.description||'Suggested work item'),quantity:Math.max(0.01,num(line.quantity||1)),unit:String(line.unit||'each'),unitPrice:num(line.rate||line.unitPrice||0),priceSource:h38AiPriceSourceLabel(line),priceStatus:'Owner review required'}));
+    state.quote.possibleMissingCosts=Array.isArray(draft.possibleMissingCosts)?draft.possibleMissingCosts:[];
     state.quote.measurementNotes=[measurements?.value||'',...(draft.photoObservations||[]).map(item=>`AI photo observation: ${item}`),...(draft.missingInformation||[]).map(item=>`Needs confirmation: ${item}`)].filter(Boolean).join('\n');
-    toast(`${result.provider||'AI'} draft loaded. Price Catalog searched first; nothing approved or sent.`);
+    const costCount=state.quote.possibleMissingCosts.filter(item=>!item?.decision||item.decision==='PENDING').length;
+    toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''}; nothing approved or sent.`);
     renderQuotes();
   }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='✨ Build with H38 AI';}}
 }
@@ -116,7 +174,9 @@ renderQuotes=function(){
     const generic=Array.from(customer.options).find(option=>option.textContent.trim()==='Generic Quote Customer');
     if(generic){customer.value=generic.value;state.quote.customerId=generic.value;}
   }
+  h38NormalizeResearchedPriceSources();
   h38AddQuoteAiTools();
+  h38AddMissingCostReviewPanel();
   const tools=document.querySelector('.page-tools');
   if(tools&&state.quote&&state.quote.quoteId&&Array.isArray(state.quote.lines)&&state.quote.lines.length){
     const button=document.createElement('button');
@@ -126,4 +186,6 @@ renderQuotes=function(){
 const h38DeliveryBaseRenderMeasure=renderMeasure;
 renderMeasure=function(){h38DeliveryBaseRenderMeasure();h38AddMeasureAiPanel();};
 
+if(!document.getElementById('h38MissingCostReviewStyle')){const style=document.createElement('style');style.id='h38MissingCostReviewStyle';style.textContent='.h38-missing-cost-review{display:grid;gap:.75rem;border:2px solid #b56a00;background:#fffaf2;margin-bottom:.85rem}.h38-missing-cost-kicker{font-size:.7rem;font-weight:950;letter-spacing:.08em;color:#8a4f00}.h38-missing-cost-row{background:#fff;border:1px solid #ead7bb;border-radius:12px;padding:.7rem}.h38-missing-cost-row p{margin:.4rem 0;line-height:1.4}.h38-missing-cost-row .actions{margin-top:.45rem}';document.head.appendChild(style);}
+window.H38_QUOTE_OWNER_COST_REVIEW={enabled:true,suggestions:h38MissingCostSuggestions,add:h38AddMissingCostToQuote,priceSourceLabel:h38AiPriceSourceLabel,ownerOnly:true,automaticAdd:false,automaticSave:false,automaticApproval:false,customerVisible:false};
 document.body.dataset.approvedLogo='assets/highway38-logo.png?v=20260720-exact-0cbc4514';

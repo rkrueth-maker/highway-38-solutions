@@ -5,8 +5,10 @@ const Bridge=window.H38Bridge;
 if(!cfg.enabled||!window.supabase||!Bridge||!Bridge.prototype)return;
 const previousRequest=Bridge.prototype.request;
 let db=null;
+const missingCostCache=window.H38_QUOTE_MISSING_COST_CACHE&&typeof window.H38_QUOTE_MISSING_COST_CACHE==='object'?window.H38_QUOTE_MISSING_COST_CACHE:Object.create(null);
+window.H38_QUOTE_MISSING_COST_CACHE=missingCostCache;
 function text(value){return String(value==null?'':value);}
-function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-supabase-quote-ai-v4'}}}));}
+function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-supabase-quote-ai-v5'}}}));}
 async function functionError(error){
   let detail='';
   const context=error&&error.context;
@@ -32,7 +34,7 @@ async function quoteAi(args,timeout,requestAction){
     const timeoutPromise=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Quote AI operation timed out. The saved quote and photos were not approved or sent.')),timeoutMs);});
     const invokePromise=api.functions.invoke('h38-quote-ai',{
       body:{action:requestAction||'buildQuote',...args},
-      headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-supabase-quote-ai-v4'}
+      headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-supabase-quote-ai-v5'}
     });
     const result=await Promise.race([invokePromise,timeoutPromise]);
     const payload=result&&result.data||{};
@@ -44,7 +46,18 @@ async function quoteAi(args,timeout,requestAction){
 function linesOf(payload){return Array.isArray(payload?.draft?.suggestedLines)?payload.draft.suggestedLines:[];}
 function rateOf(line){const value=Number(line?.rate??line?.unitPrice??0);return Number.isFinite(value)?value:0;}
 function zeroPriceLines(payload){return linesOf(payload).map((line,index)=>({line,index})).filter(item=>rateOf(item.line)<=0);}
-function normalizeDescription(value){return text(value).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function normalizeDescription(value){return text(value).toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+const COST_STOP_WORDS=new Set(['and','the','for','with','from','into','per','each','all','job','work','labor','material','materials','install','installation','provide','supply']);
+function descriptionWords(value){return new Set(normalizeDescription(value).split(' ').filter(word=>word.length>2&&!COST_STOP_WORDS.has(word)));}
+function sameCostDescription(a,b){
+  const left=normalizeDescription(a),right=normalizeDescription(b);
+  if(!left||!right)return false;
+  if(left===right||left.includes(right)||right.includes(left))return true;
+  const A=descriptionWords(left),B=descriptionWords(right);
+  if(!A.size||!B.size)return false;
+  let common=0;A.forEach(word=>{if(B.has(word))common+=1;});
+  return common/Math.min(A.size,B.size)>=0.67||common/Math.max(A.size,B.size)>=0.5;
+}
 function pricingRetryNotes(args,missing){
   const existing=text(args?.notes).trim();
   const targets=missing.map(({line,index})=>`Line ${index+1}: ${text(line?.description)} | quantity ${Number(line?.quantity||0)} ${text(line?.unit||'each')}`).join('\n');
@@ -67,7 +80,7 @@ function patchMissingPrices(original,research){
   });
   return {...original,draft:{...(original?.draft||{}),suggestedLines:patched,pricingSummary:text(original?.draft?.pricingSummary||research?.draft?.pricingSummary)}};
 }
-async function buildPricedQuote(args,timeout){
+async function buildPricedQuoteCore(args,timeout){
   const first=await quoteAi(args||{},timeout,'buildQuote');
   const missing=zeroPriceLines(first);
   if(!missing.length)return first;
@@ -83,10 +96,60 @@ async function buildPricedQuote(args,timeout){
   patched.internetPriceRepairCount=missing.length;
   return patched;
 }
+function estimateFromLines(lines){
+  return lines.map((line,index)=>({quoteLineId:text(line?.quoteLineId||`AI-LINE-${index+1}`),description:text(line?.description),quantity:Number(line?.quantity||0),unit:text(line?.unit||'each'),unitPrice:rateOf(line),extendedPrice:Number(line?.quantity||0)*rateOf(line),priceSource:text(line?.priceSource),priceStatus:'Owner review required'}));
+}
+function costAuditNotes(args,baseLines){
+  const existing=text(args?.notes).trim();
+  const baseline=baseLines.map((line,index)=>`${index+1}. ${text(line?.description)} | ${Number(line?.quantity||0)} ${text(line?.unit||'each')} | ${rateOf(line)}`).join('\n');
+  return [existing,
+    'OWNER COST GAP AUDIT ONLY: The CURRENT ESTIMATE below is already included in the draft. Preserve every existing line, description, quantity, unit, and rate. Do not delete, reduce, replace, merge, or reprice those lines. Review the project scope, photos, measurements, site conditions, work sequence, and current estimate for plausible project expenses that may have been omitted. Append only likely missing expense candidates after the preserved current estimate. Do not invent new customer scope. Typical checks may include delivery or mobilization, disposal or dump fees, fasteners and consumables, equipment or rental, protection and cleanup, waste allowance, permit or inspection fees when relevant, subcontract work, access costs, restoration, and overhead or jobsite support when not already represented. Every appended candidate must have a current positive non-zero rate: Price Book first, then current web research for Grand Rapids / Itasca County, Minnesota; if exact local pricing is unavailable use a conservative current regional market allowance with low confidence. If a candidate cannot be priced above zero, omit it. These candidates are OWNER-ONLY suggestions and must never be automatically added, approved, saved, or shown on the customer proposal. If no likely cost is missing, return the preserved current estimate with no extra lines.',
+    'CURRENT ESTIMATE TO PRESERVE EXACTLY:',baseline
+  ].filter(Boolean).join('\n\n');
+}
+function extractMissingCostSuggestions(base,audit){
+  const baseline=linesOf(base),reviewed=linesOf(audit),seen=[];
+  return reviewed.filter(line=>{
+    if(rateOf(line)<=0||!text(line?.description).trim())return false;
+    if(baseline.some(existing=>sameCostDescription(existing?.description,line?.description)))return false;
+    if(seen.some(existing=>sameCostDescription(existing?.description,line?.description)))return false;
+    seen.push(line);return true;
+  }).slice(0,8).map((line,index)=>({
+    suggestionId:`MISSING-COST-${index+1}-${normalizeDescription(line?.description).replace(/\s+/g,'-').slice(0,36)}`,
+    description:text(line?.description||'Possible missing expense'),
+    reason:text(line?.rationale||'H38 found this cost may be needed to complete the described work and did not find an equivalent line in the current draft.'),
+    quantity:Math.max(0.01,Number(line?.quantity||1)),
+    unit:text(line?.unit||'each'),
+    rate:rateOf(line),
+    catalogId:text(line?.catalogId),
+    priceSource:text(line?.priceSource||'local_research'),
+    confidence:text(line?.confidence||'low'),
+    decision:'PENDING'
+  }));
+}
+async function addOwnerMissingCostAudit(base,args,timeout){
+  const quoteId=text(args?.quoteId);
+  try{
+    const baseline=linesOf(base);
+    if(!baseline.length){if(quoteId)missingCostCache[quoteId]=[];return {...base,draft:{...(base?.draft||{}),possibleMissingCosts:[]},ownerMissingCostAuditStatus:'NO_BASE_LINES',ownerMissingCostSuggestionCount:0};}
+    const auditArgs={...(args||{}),currentEstimate:estimateFromLines(baseline),notes:costAuditNotes(args||{},baseline)};
+    const audited=await buildPricedQuoteCore(auditArgs,timeout);
+    const suggestions=extractMissingCostSuggestions(base,audited);
+    if(quoteId)missingCostCache[quoteId]=suggestions;
+    return {...base,draft:{...(base?.draft||{}),possibleMissingCosts:suggestions},ownerMissingCostAuditStatus:'PASS',ownerMissingCostSuggestionCount:suggestions.length};
+  }catch(error){
+    if(quoteId)missingCostCache[quoteId]=[];
+    return {...base,draft:{...(base?.draft||{}),possibleMissingCosts:[]},ownerMissingCostAuditStatus:'UNAVAILABLE',ownerMissingCostSuggestionCount:0,ownerMissingCostAuditMessage:text(error?.message||error)};
+  }
+}
+async function buildPricedQuote(args,timeout){
+  const priced=await buildPricedQuoteCore(args||{},timeout);
+  return addOwnerMissingCostAudit(priced,args||{},timeout);
+}
 Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiBuildQuoteDraft')return buildPricedQuote(args||{},timeout);
   if(action==='aiRenderQuoteConcept')return quoteAi(args||{},timeout,'renderConcept');
   return previousRequest.call(this,action,args,timeout);
 };
-window.H38_SUPABASE_QUOTE_AI={enabled:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,preservesFirstPassQuantities:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
+window.H38_SUPABASE_QUOTE_AI={enabled:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,preservesFirstPassQuantities:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
 })();
