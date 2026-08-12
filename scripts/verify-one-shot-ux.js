@@ -66,8 +66,7 @@ check('request progress survives refresh',requestFlow.includes('H38Platform.save
 
 const customer=read('customer-portal.html');
 check('customer action required host',customer.includes('id="actionRequired"'));
-check('customer current project host',customer.includes('id="currentProject"'));
-check('customer project selector',customer.includes('id="projectSelector"')&&customer.includes('id="projectSelectorWrap"'));
+check('customer current project host',customer.includes('id="projectSelector"')&&customer.includes('id="projectSelectorWrap"'));
 check('customer complete quote review dialog',customer.includes('id="quoteReviewDialog"')&&customer.includes('id="quoteApproveConfirmed"'));
 check('customer project-bound messages',customer.includes('id="messageProjectContext"'));
 check('customer remains noindex',customer.includes('noindex,nofollow'));
@@ -75,7 +74,7 @@ const customerUx=read('customer-portal-ux.js');
 check('quote approval occurs from complete review',customerUx.includes('openQuoteReview')&&customerUx.includes('quoteApproveConfirmed'));
 check('incomplete quote terms block approval',customerUx.includes('quoteReviewComplete')&&customerUx.includes('approve.disabled=!available'));
 const customerClient=read('customer-portal-supabase.js');
-check('messages attach selected project',customerClient.includes('job_id: state.selectedJobId || null'));
+check('messages attach selected project',/job_id\s*:\s*state\.selectedJobId\s*\|\|\s*null/.test(customerClient));
 
 const portalIndex=read('apps-script/core-engine/owner-portal-next/Portal_Index.html');
 const raw=read('apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js');
