@@ -17,7 +17,7 @@ const checks=[
  ['Linked Site Visit measurements are hydrated structurally',provider.includes('linkedMeasurementEvidence')&&provider.includes("snapshotRows('siteMeasurements')")&&provider.includes('measurementEvidence=evidence')&&provider.includes('linkedSiteVisitMeasurementHydration:true')],
  ['Structured measurement authority reaches the server',edge.includes('function measurementEvidence')&&edge.includes('authorityRank: measurementRank(status)')&&edge.includes('structuredMeasurementEvidence: true')],
  ['Catalog pricing requires identity description and unit validation',edge.includes('function validateCatalogPricing')&&edge.includes('sameUnit(line.unit, matched.unit)')&&edge.includes('sameDescription(line.description, matched.description)')&&edge.includes('catalogPriceValidation: true')],
- ['Stored researched allowances are not mislabeled as approved catalog truth',edge.includes('stored_researched_allowance')&&edge.includes('sourceType === "local_research" ? "local_research" : "price_book"')],
+ ['Stored researched allowances are not mislabeled as approved catalog truth',edge.includes('stored_researched_allowance')&&edge.includes('const normalizedSource')&&edge.includes('? "local_research" : "price_book"')],
  ['Stale learned pricing is forced back through current research',edge.includes('LOCAL_RESEARCH_REFRESH_DAYS = 30')&&edge.includes('requiresWebRefresh')&&edge.includes('staleLocalResearchRefreshDays: LOCAL_RESEARCH_REFRESH_DAYS')],
  ['Private photos use short signed URLs',edge.includes('createSignedUrl(path, 600)')&&edge.includes('path.startsWith(`${businessId}/`)')],
  ['Membership and role are validated',edge.includes('business_memberships')&&edge.includes('auth_user_id')&&edge.includes('administrator')],
