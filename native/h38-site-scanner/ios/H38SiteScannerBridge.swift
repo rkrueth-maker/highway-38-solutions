@@ -19,17 +19,21 @@ final class H38SiteScannerBridge: NSObject, RoomCaptureSessionDelegate {
     }
 
     func getCapabilities() -> [String: Any] {
+        let roomPlan = RoomCaptureSession.isSupported
         let lidar = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
         return [
             "platform": "ios",
-            "roomPlan": true,
+            "roomPlan": roomPlan,
             "lidar": lidar,
             "arcore": false,
-            "depth": lidar
+            "depth": roomPlan || lidar
         ]
     }
 
     func start(options: [String: Any]) async throws -> [String: Any] {
+        guard RoomCaptureSession.isSupported else {
+            throw ScannerError.unsupportedDevice
+        }
         guard let sessionId = options["captureSessionId"] as? String, !sessionId.isEmpty,
               let businessId = options["businessId"] as? String, !businessId.isEmpty,
               let quoteId = options["quoteId"] as? String, !quoteId.isEmpty else {
@@ -81,61 +85,126 @@ final class H38SiteScannerBridge: NSObject, RoomCaptureSessionDelegate {
 
         for (index, wall) in room.walls.enumerated() {
             let dimensions = wall.dimensions
+            let confidenceValue = confidence(wall.confidence)
             entities.append([
                 "id": "WALL-\(index)",
                 "type": "wall",
                 "label": "Wall \(index + 1)",
                 "source": "LIDAR_ROOM",
-                "confidence": confidence(wall.confidence),
+                "confidence": confidenceValue,
                 "geometry": [
                     "widthMeters": dimensions.x,
                     "heightMeters": dimensions.y,
                     "transform": matrix(wall.transform)
                 ]
             ])
-            measurements.append([
-                "id": "LIDAR-WALL-\(index)",
-                "label": "Wall \(index + 1) width",
-                "type": "Length",
-                "value": dimensions.x,
-                "unit": "m",
-                "source": "LIDAR_ROOM",
-                "confidence": confidence(wall.confidence),
-                "verificationStatus": "DEVICE_CAPTURED",
-                "startPoint": [:],
-                "endPoint": [:],
-                "notes": "RoomPlan/LiDAR-derived. Verify critical dimensions in the field."
-            ])
+            measurements.append(measurement(
+                id: "LIDAR-WALL-\(index)-WIDTH",
+                label: "Wall \(index + 1) width",
+                valueMeters: dimensions.x,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived wall width. Verify critical dimensions in the field."
+            ))
+            measurements.append(measurement(
+                id: "LIDAR-WALL-\(index)-HEIGHT",
+                label: "Wall \(index + 1) height",
+                valueMeters: dimensions.y,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived wall height. Verify critical dimensions in the field."
+            ))
         }
 
         for (index, door) in room.doors.enumerated() {
+            let dimensions = door.dimensions
+            let confidenceValue = confidence(door.confidence)
             entities.append([
                 "id": "DOOR-\(index)",
                 "type": "opening",
                 "label": "Door \(index + 1)",
                 "source": "LIDAR_ROOM",
-                "confidence": confidence(door.confidence),
+                "confidence": confidenceValue,
                 "geometry": [
-                    "widthMeters": door.dimensions.x,
-                    "heightMeters": door.dimensions.y,
+                    "widthMeters": dimensions.x,
+                    "heightMeters": dimensions.y,
                     "transform": matrix(door.transform)
                 ]
             ])
+            measurements.append(measurement(
+                id: "LIDAR-DOOR-\(index)-WIDTH",
+                label: "Door \(index + 1) width",
+                valueMeters: dimensions.x,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived door width. Verify critical opening dimensions in the field."
+            ))
+            measurements.append(measurement(
+                id: "LIDAR-DOOR-\(index)-HEIGHT",
+                label: "Door \(index + 1) height",
+                valueMeters: dimensions.y,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived door height. Verify critical opening dimensions in the field."
+            ))
         }
 
         for (index, window) in room.windows.enumerated() {
+            let dimensions = window.dimensions
+            let confidenceValue = confidence(window.confidence)
             entities.append([
                 "id": "WINDOW-\(index)",
                 "type": "opening",
                 "label": "Window \(index + 1)",
                 "source": "LIDAR_ROOM",
-                "confidence": confidence(window.confidence),
+                "confidence": confidenceValue,
                 "geometry": [
-                    "widthMeters": window.dimensions.x,
-                    "heightMeters": window.dimensions.y,
+                    "widthMeters": dimensions.x,
+                    "heightMeters": dimensions.y,
                     "transform": matrix(window.transform)
                 ]
             ])
+            measurements.append(measurement(
+                id: "LIDAR-WINDOW-\(index)-WIDTH",
+                label: "Window \(index + 1) width",
+                valueMeters: dimensions.x,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived window width. Verify critical opening dimensions in the field."
+            ))
+            measurements.append(measurement(
+                id: "LIDAR-WINDOW-\(index)-HEIGHT",
+                label: "Window \(index + 1) height",
+                valueMeters: dimensions.y,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived window height. Verify critical opening dimensions in the field."
+            ))
+        }
+
+        for (index, opening) in room.openings.enumerated() {
+            let dimensions = opening.dimensions
+            let confidenceValue = confidence(opening.confidence)
+            entities.append([
+                "id": "OPENING-\(index)",
+                "type": "opening",
+                "label": "Opening \(index + 1)",
+                "source": "LIDAR_ROOM",
+                "confidence": confidenceValue,
+                "geometry": [
+                    "widthMeters": dimensions.x,
+                    "heightMeters": dimensions.y,
+                    "transform": matrix(opening.transform)
+                ]
+            ])
+            measurements.append(measurement(
+                id: "LIDAR-OPENING-\(index)-WIDTH",
+                label: "Opening \(index + 1) width",
+                valueMeters: dimensions.x,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived opening width. Verify critical opening dimensions in the field."
+            ))
+            measurements.append(measurement(
+                id: "LIDAR-OPENING-\(index)-HEIGHT",
+                label: "Opening \(index + 1) height",
+                valueMeters: dimensions.y,
+                confidence: confidenceValue,
+                notes: "RoomPlan/LiDAR-derived opening height. Verify critical opening dimensions in the field."
+            ))
         }
 
         return [
@@ -146,6 +215,28 @@ final class H38SiteScannerBridge: NSObject, RoomCaptureSessionDelegate {
             "entities": entities,
             "measurements": measurements,
             "status": "CAPTURED"
+        ]
+    }
+
+    private func measurement(
+        id: String,
+        label: String,
+        valueMeters: Float,
+        confidence: Double,
+        notes: String
+    ) -> [String: Any] {
+        [
+            "id": id,
+            "label": label,
+            "type": "Length",
+            "value": valueMeters,
+            "unit": "m",
+            "source": "LIDAR_ROOM",
+            "confidence": confidence,
+            "verificationStatus": "DEVICE_CAPTURED",
+            "startPoint": [:],
+            "endPoint": [:],
+            "notes": notes
         ]
     }
 
@@ -169,5 +260,6 @@ final class H38SiteScannerBridge: NSObject, RoomCaptureSessionDelegate {
 
     enum ScannerError: Error {
         case invalidContext
+        case unsupportedDevice
     }
 }

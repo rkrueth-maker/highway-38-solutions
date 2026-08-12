@@ -303,6 +303,12 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
     const instructions = [
       "Build an internal contractor quote comparison draft for Highway 38 Solutions.",
       "The CURRENT OWNER INSTRUCTIONS, current scope, and current measurement notes are explicit project evidence and must be followed.",
+      "Measurement authority order is FIELD_MEASURED_AND_CHECKED / FIELD_MEASURED / OPERATOR_VERIFIED / FIELD_VERIFIED first, then DEVICE_CAPTURED, then UNVERIFIED or CAMERA_ESTIMATE.",
+      "A field-verified measurement controls over a conflicting ARCore, LiDAR, camera, or inferred value. Never average conflicting verified readings; put the conflict or needed remeasurement in missingInformation.",
+      "DEVICE_CAPTURED ARCore or LiDAR dimensions may support estimating when they do not conflict with field-verified evidence, but they remain device-captured and must not be described as tape/laser verified.",
+      "UNVERIFIED and CAMERA_ESTIMATE values are approximate context only and must never control a critical quantity when a verified or device-captured value exists. If a critical dimension is only an uncertain camera estimate, request the missing measurement instead of pretending it is exact.",
+      "Product dimensions and material specifications such as insulation batt width, nominal lumber size, model number, gauge, or R-value are not site geometry unless the evidence explicitly identifies them as a field measurement.",
+      "Preserve measurement units exactly and show which measurement basis drove each calculated quantity.",
       "The CURRENT ESTIMATE is the authoritative owner-reviewed baseline. Do not silently erase, reduce, replace, or reprice its lines.",
       "For every explicit owner instruction, either represent the requested work in suggestedLines or state the exact missing critical measurement/information in missingInformation. Never ignore an owner instruction.",
       "Example: if the owner adds stairs or steps, analyze that requested work. If dimensions such as width, rise, tread count, material, or access are critically needed, ask only for what is actually missing instead of inventing it.",
@@ -390,7 +396,7 @@ Deno.serve(async (request: Request) => {
     return json(request, 200, {
       status: "PASS", service: "h38-quote-ai", providerConfigured: Boolean(OPENAI_API_KEY), model: OPENAI_MODEL, imageModel: OPENAI_IMAGE_MODEL,
       authentication: "direct Supabase Auth REST validation", priceBookFirst: true, localResearchFallback: true, quotePhotoRestore: true,
-      ownerInstructionsIncluded: true, currentEstimateComparison: true, renderedConcepts: true, separateRenderRequest: true,
+      ownerInstructionsIncluded: true, currentEstimateComparison: true, measurementAuthorityHierarchy: true, renderedConcepts: true, separateRenderRequest: true,
       duplicatePhotoSuppression: true, ownerReviewRequired: true, automaticApproval: false, automaticSending: false,
     });
   }
