@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260811-site-quote-handoff-1';
+const BUILD='20260811-site-quote-handoff-2';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -61,7 +61,7 @@ function loadPhoneFinalFix(){
 function loadQuoteHandoff(){
   if(window.H38_FIELD_VISIT_QUOTE_HANDOFF||document.querySelector('script[data-h38-site-visit-quote-handoff]'))return;
   const script=document.createElement('script');
-  script.src='./field-visit-quote-handoff.js?build=20260811-site-visit-quote-handoff-1';
+  script.src='./field-visit-quote-handoff.js?build=20260811-site-visit-quote-handoff-2';
   script.dataset.h38SiteVisitQuoteHandoff='1';
   document.head.appendChild(script);
 }
