@@ -66,7 +66,8 @@ check('request progress survives refresh',requestFlow.includes('H38Platform.save
 
 const customer=read('customer-portal.html');
 check('customer action required host',customer.includes('id="actionRequired"'));
-check('customer current project host',customer.includes('id="projectSelector"')&&customer.includes('id="projectSelectorWrap"'));
+check('customer current project host',customer.includes('id="currentProject"'));
+check('customer project selector',customer.includes('id="projectSelector"')&&customer.includes('id="projectSelectorWrap"'));
 check('customer complete quote review dialog',customer.includes('id="quoteReviewDialog"')&&customer.includes('id="quoteApproveConfirmed"'));
 check('customer project-bound messages',customer.includes('id="messageProjectContext"'));
 check('customer remains noindex',customer.includes('noindex,nofollow'));
