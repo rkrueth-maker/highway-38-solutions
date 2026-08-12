@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260811-server-draft-recovery-1158';
+const BUILD='20260811-server-draft-recovery-attach-terminal-1';
 const C=window.H38_FIELD_VISIT_CORE;
 const DB=window.H38DB;
 if(!C||!DB||typeof C.restore!=='function')return;
@@ -10,9 +10,20 @@ const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&
 const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
 const now=()=>new Date().toISOString();
 const DRAFT_TOMBSTONE='H38_FIELD_VISIT_DELETE_TOMBSTONE';
+const TERMINAL_SESSION_STATUSES=new Set(['COMPLETE','COMPLETED','CLOSED','DELETED','VOIDED','CANCELLED','CANCELED','ATTACHED_TO_DRAFT_QUOTE']);
 function sessionId(row){return text(value(row,'Capture Session ID','captureSessionId'))}
 function sessionStatus(row){return text(value(row,'Status','status')).toUpperCase()}
-function activeSession(row){return row&&sessionId(row)&&!['CLOSED','DELETED','VOIDED','CANCELLED','CANCELED'].includes(sessionStatus(row))}
+function sessionAttachedToDraft(row){
+  const sid=sessionId(row),qid=text(value(row,'Quote ID','quoteId')),businessId=text(value(row,'Business ID','businessId'));
+  if(!sid)return false;
+  return rows('quotes').some(quote=>{
+    if(businessId&&text(value(quote,'Business ID','businessId'))!==businessId)return false;
+    const quoteId=text(value(quote,'Quote ID','quoteId')),quoteSession=text(value(quote,'Site Scanner Session ID','siteScannerSessionId')),review=text(value(quote,'Site Visit Review Status','siteVisitReviewStatus')).toUpperCase();
+    if(qid&&quoteId&&qid!==quoteId)return false;
+    return quoteSession===sid&&(review.includes('OWNER_REVIEWED_FOR_DRAFT_ATTACHMENT')||review.includes('ATTACHED_TO_DRAFT_QUOTE'));
+  });
+}
+function activeSession(row){return !!(row&&sessionId(row)&&!TERMINAL_SESSION_STATUSES.has(sessionStatus(row))&&!sessionAttachedToDraft(row))}
 function sessionTime(row){return text(value(row,'Updated Time','updatedAt','Completed Time','completedAt','Started Time','startedAt','Created Time','createdAt'))}
 function documentId(row){return text(value(row,'Document ID','documentId'))}
 function sourceType(row){return text(value(row,'Source Type','sourceType')).toLowerCase()}
@@ -101,5 +112,5 @@ C.restore=async function(){
   if(local)return local;
   try{return await recoverFromServerSnapshot()}catch(error){console.warn('H38 Site Visit server recovery:',error?.message||error);return null}
 };
-window.H38_FIELD_VISIT_SERVER_RECOVERY=Object.freeze({build:BUILD,recoverFromServerSnapshot,serverSessionFallback:true,localDraftFirst:true,tombstoneSafe:true,activeSessionsOnly:true,automaticApproval:false,automaticCustomerSending:false});
+window.H38_FIELD_VISIT_SERVER_RECOVERY=Object.freeze({build:BUILD,recoverFromServerSnapshot,serverSessionFallback:true,localDraftFirst:true,tombstoneSafe:true,activeSessionsOnly:true,attachedSessionsAreTerminal:true,completedSessionsAreTerminal:true,automaticApproval:false,automaticCustomerSending:false});
 })();
