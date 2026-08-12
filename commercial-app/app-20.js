@@ -127,7 +127,7 @@ async function h38BuildAiQuoteDraft(){
     state.quote.possibleMissingCosts=Array.isArray(draft.possibleMissingCosts)?draft.possibleMissingCosts:[];
     state.quote.measurementNotes=[measurements?.value||'',...(draft.photoObservations||[]).map(item=>`AI photo observation: ${item}`),...(draft.missingInformation||[]).map(item=>`Needs confirmation: ${item}`)].filter(Boolean).join('\n');
     const costCount=state.quote.possibleMissingCosts.filter(item=>!item?.decision||item.decision==='PENDING').length;
-    toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''} Nothing approved or sent.`);
+    toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''}; nothing approved or sent.`);
     renderQuotes();
   }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='✨ Build with H38 AI';}}
 }
