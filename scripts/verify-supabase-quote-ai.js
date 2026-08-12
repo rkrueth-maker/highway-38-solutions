@@ -9,7 +9,8 @@ const mobile=read('commercial-app/quote-mobile-stabilization.js');
 const index=read('commercial-app/index.html');
 const worker=read('commercial-app/service-worker.js');
 const pricingSchema=read('supabase/migrations/20260812154632_contractor_pricing_system.sql');
-const assemblySync=read('supabase/migrations/20260812155900_contractor_assembly_catalog_sync.sql');
+const assemblySync=read('supabase/migrations/20260812155839_contractor_assembly_catalog_sync.sql');
+const catalogSeed=read('supabase/migrations/20260812160306_highway38_contractor_catalog_seed.sql');
 const captureSelector=live.includes("closest('#h38AiQuoteDraftButton')")||live.includes("closest?.('#h38AiQuoteDraftButton')");
 const checks=[
  ['OpenAI key remains server-side',edge.includes('Deno.env.get("OPENAI_API_KEY")')&&!provider.includes('OPENAI_API_KEY')],
@@ -17,10 +18,11 @@ const checks=[
  ['Structured quote schema is required',edge.includes('type: "json_schema"')&&edge.includes('h38_quote_draft')],
  ['Price Book is searched before local research',edge.includes('priceBookEntries')&&edge.includes('Search the supplied Price Book first')&&edge.includes('local_research')],
  ['Contractor assemblies have a hard ten-percent waste floor',pricingSchema.includes('material_waste_pct numeric not null default 0.10')&&pricingSchema.includes('material_waste_pct >= 0.10')],
+ ['H38 seed preserves minimum ten-percent waste',catalogSeed.includes("'MATERIAL_WASTE_FLOOR'")&&catalogSeed.includes("'ASM-DRYWALL-WALL-L4'")&&catalogSeed.includes("'ASM-RETAINING-FABRIC'")&&catalogSeed.includes('greatest(excluded.material_waste_pct,0.10)')],
  ['Assembly waste is separate from customer installed quantity',assemblySync.includes('Internal material waste=')&&assemblySync.includes('do not inflate customer installed quantity')],
  ['Installed assemblies sync into the existing Quote AI catalog',assemblySync.includes('sync_price_book_assembly_catalog')&&assemblySync.includes("'INSTALLED ASSEMBLY | '")&&assemblySync.includes('new.sell_rate')],
- ['Raw materials are explicitly material-only',assemblySync.includes("'RAW MATERIAL ONLY — '")&&assemblySync.includes("category like 'RAW MATERIAL |%'")],
- ['Assembly catalog sync preserves owner review state',assemblySync.includes('approval_status = excluded.approval_status')&&pricingSchema.includes("default 'owner_review_required'"))],
+ ['Raw materials are explicitly material-only',assemblySync.includes("'RAW MATERIAL ONLY — '")&&assemblySync.includes("category like 'RAW MATERIAL |%'")&&catalogSeed.includes("'RAW MATERIAL ONLY — 1/2 in. x 4 ft. x 8 ft. standard drywall panel'"))],
+ ['Assembly catalog sync preserves owner review state',assemblySync.includes('approval_status = excluded.approval_status')&&pricingSchema.includes("default 'owner_review_required'")&&catalogSeed.includes("approval_status='owner_review_required'"))],
  ['Linked Site Visit measurements are hydrated structurally',provider.includes('linkedMeasurementEvidence')&&provider.includes("snapshotRows('siteMeasurements')")&&provider.includes('measurementEvidence=evidence')&&provider.includes('linkedSiteVisitMeasurementHydration:true')],
  ['Structured measurement authority reaches the server',edge.includes('function measurementEvidence')&&edge.includes('authorityRank: measurementRank(status)')&&edge.includes('structuredMeasurementEvidence: true')],
  ['Catalog pricing requires identity description and unit validation',edge.includes('function validateCatalogPricing')&&edge.includes('sameUnit(line.unit, matched.unit)')&&edge.includes('sameDescription(line.description, matched.description)')&&edge.includes('catalogPriceValidation: true')],
