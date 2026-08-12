@@ -8,7 +8,44 @@ let db=null;
 const missingCostCache=window.H38_QUOTE_MISSING_COST_CACHE&&typeof window.H38_QUOTE_MISSING_COST_CACHE==='object'?window.H38_QUOTE_MISSING_COST_CACHE:Object.create(null);
 window.H38_QUOTE_MISSING_COST_CACHE=missingCostCache;
 function text(value){return String(value==null?'':value);}
-function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-supabase-quote-ai-v5'}}}));}
+function valueOf(row,...keys){for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';}
+function snapshotRows(collection){const rows=window.state?.snapshot?.[collection];return Array.isArray(rows)?rows:[];}
+function compactMeasurement(row){
+  const value=Number(valueOf(row,'Value','value'));
+  const label=text(valueOf(row,'Label','label')).trim();
+  if(!label||!Number.isFinite(value)||value<=0)return null;
+  return{
+    measurementId:text(valueOf(row,'Site Measurement ID','measurementId','Measurement ID')),
+    label,
+    value,
+    unit:text(valueOf(row,'Unit','unit')||'in'),
+    source:text(valueOf(row,'Source','source')),
+    verificationStatus:text(valueOf(row,'Verification Status','verificationStatus')||'UNVERIFIED'),
+    notes:text(valueOf(row,'Notes','notes'))
+  };
+}
+function linkedMeasurementEvidence(args){
+  const supplied=Array.isArray(args?.measurementEvidence)?args.measurementEvidence.map(compactMeasurement).filter(Boolean).slice(0,80):[];
+  if(supplied.length)return supplied;
+  const quoteId=text(args?.quoteId).trim();
+  if(!quoteId)return[];
+  const quote=snapshotRows('quotes').find(row=>text(valueOf(row,'Quote ID','quoteId'))===quoteId);
+  const sessionId=text(valueOf(quote,'Site Scanner Session ID','siteScannerSessionId')).trim();
+  if(!sessionId)return[];
+  const rows=[...snapshotRows('siteMeasurements'),...snapshotRows('measurements')];
+  const seen=new Set();
+  return rows.filter(row=>text(valueOf(row,'Capture Session ID','captureSessionId'))===sessionId).map(compactMeasurement).filter(Boolean).filter(row=>{
+    const key=[row.measurementId,row.label,row.value,row.unit,row.source,row.verificationStatus].join('|');
+    if(seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,80);
+}
+function withMeasurementEvidence(args){
+  const prepared={...(args||{})};
+  const evidence=linkedMeasurementEvidence(prepared);
+  if(evidence.length)prepared.measurementEvidence=evidence;
+  return prepared;
+}
+function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-supabase-quote-ai-v6'}}}));}
 async function functionError(error){
   let detail='';
   const context=error&&error.context;
@@ -34,7 +71,7 @@ async function quoteAi(args,timeout,requestAction){
     const timeoutPromise=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Quote AI operation timed out. The saved quote and photos were not approved or sent.')),timeoutMs);});
     const invokePromise=api.functions.invoke('h38-quote-ai',{
       body:{action:requestAction||'buildQuote',...args},
-      headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-supabase-quote-ai-v5'}
+      headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-supabase-quote-ai-v6'}
     });
     const result=await Promise.race([invokePromise,timeoutPromise]);
     const payload=result&&result.data||{};
@@ -109,7 +146,8 @@ function patchMissingPrices(original,research){
   return {...original,draft:{...(original?.draft||{}),suggestedLines:patched,pricingSummary:text(original?.draft?.pricingSummary||research?.draft?.pricingSummary)}};
 }
 async function buildPricedQuoteCore(args,timeout){
-  const first=await quoteAi(args||{},timeout,'buildQuote');
+  const prepared=withMeasurementEvidence(args||{});
+  const first=await quoteAi(prepared,timeout,'buildQuote');
   const invalidQuantities=invalidQuantityLines(first);
   if(invalidQuantities.length){
     const names=invalidQuantities.slice(0,6).map(({line})=>text(line?.description||'Invalid quantity line')).join('; ');
@@ -117,7 +155,7 @@ async function buildPricedQuoteCore(args,timeout){
   }
   const missing=zeroPriceLines(first);
   if(!missing.length)return first;
-  const retryArgs={...(args||{}),notes:pricingRetryNotes(args||{},missing)};
+  const retryArgs={...prepared,notes:pricingRetryNotes(prepared,missing)};
   const researched=await quoteAi(retryArgs,timeout,'buildQuote');
   const patched=patchMissingPrices(first,researched);
   const unresolved=zeroPriceLines(patched);
@@ -184,5 +222,5 @@ Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiRenderQuoteConcept')return quoteAi(args||{},timeout,'renderConcept');
   return previousRequest.call(this,action,args,timeout);
 };
-window.H38_SUPABASE_QUOTE_AI={enabled:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
+window.H38_SUPABASE_QUOTE_AI={enabled:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,structuredMeasurementEvidence:true,linkedSiteVisitMeasurementHydration:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
 })();
