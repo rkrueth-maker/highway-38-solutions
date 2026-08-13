@@ -144,10 +144,11 @@
   };
 
   function personalCommandStaysLocal(command){
-    const q=text(command).toLowerCase();
+    const q=text(command).toLowerCase().trim();
     return /^remind\s+me\b|^remember\b|^note\b|^add(?:\s+a)?\s+task\b|\bevery\s+(day|week|month)\b|\b(daily|weekly|monthly)\b/.test(q)
       || /what.*(today|need|do)|my day|what's next|whats next/.test(q)
-      || /reminder|personal task/.test(q)
+      || /^(show|list|what are|do i have|my)\b.*\b(reminders?|personal tasks?)\b/.test(q)
+      || /^(reminders?|personal tasks?)$/.test(q)
       || /blocked|stuck|needs attention|follow.?up/.test(q)
       || /^find\s+|^search\s+/.test(q)
       || /receipt|expense|mileage|schedule|calendar|appointment/.test(q);
@@ -156,6 +157,9 @@
   function renderRoutedChat(){
     const chat=document.getElementById('paChat');
     if(!chat||!routedChat.length)return;
+    const expected=Math.min(routedChat.length,10);
+    const existing=chat.querySelectorAll('[data-h38-routed-chat]').length;
+    if(existing===expected)return;
     chat.querySelectorAll('[data-h38-routed-chat]').forEach(node=>node.remove());
     routedChat.slice(-10).forEach(message=>{
       const bubble=document.createElement('div');
@@ -167,7 +171,7 @@
     chat.scrollTop=chat.scrollHeight;
   }
 
-  async function routePersonalBusinessCommand(form,command){
+  async function routePersonalBusinessCommand(command){
     routedChat.push({role:'user',body:command});
     renderRoutedChat();
     const state=window.state||{};
@@ -196,18 +200,20 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     form.reset();
-    routePersonalBusinessCommand(form,command).catch(error=>{
+    routePersonalBusinessCommand(command).catch(error=>{
       routedChat.push({role:'assistant',body:`I could not answer that business question: ${text(error?.message||error)}`});
       renderRoutedChat();
     });
   },true);
 
   function installPersonalObserver(){
-    if(personalObserver||!document.documentElement)return;
+    if(personalObserver)return;
+    const main=document.getElementById('mainContent');
+    if(!main)return;
     personalObserver=new MutationObserver(()=>{if(document.getElementById('paChat'))renderRoutedChat();});
-    personalObserver.observe(document.documentElement,{childList:true,subtree:true});
+    personalObserver.observe(main,{childList:true,subtree:true});
   }
-  installPersonalObserver();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installPersonalObserver,{once:true});else installPersonalObserver();
 
   window.H38_ASSISTANT_ROUTER=Object.freeze({
     enabled:true,build:BUILD,endpoint:ENDPOINT,readOnly:true,sharedBusinessGuidance:true,personalRecordsPrivate:true,
