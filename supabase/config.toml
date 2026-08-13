@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.nlpm-office-gateway]
 verify_jwt = false
+
+[functions.h38-assistant-ai]
+verify_jwt = true
