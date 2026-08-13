@@ -5,8 +5,11 @@ on:
     paths:
       - 'commercial-app/personal-assistant.js'
       - 'commercial-app/personal-assistant.css'
+      - 'commercial-app/supabase-ai-fallback.js'
       - 'commercial-app/supabase-no-legacy-office.js'
       - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-assistant-ai/**'
+      - 'supabase/config.toml'
       - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
       - 'scripts/verify-personal-assistant.js'
       - '.github/workflows/verify-personal-assistant.yml'
@@ -15,8 +18,11 @@ on:
     paths:
       - 'commercial-app/personal-assistant.js'
       - 'commercial-app/personal-assistant.css'
+      - 'commercial-app/supabase-ai-fallback.js'
       - 'commercial-app/supabase-no-legacy-office.js'
       - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-assistant-ai/**'
+      - 'supabase/config.toml'
       - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
       - 'scripts/verify-personal-assistant.js'
       - '.github/workflows/verify-personal-assistant.yml'
@@ -29,5 +35,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify private Personal Assistant contract
+      - name: Verify private Personal Assistant and shared read-only AI router
         run: node scripts/verify-personal-assistant.js
