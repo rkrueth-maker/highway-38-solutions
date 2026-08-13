@@ -35,6 +35,7 @@ check(aiRouter.includes("const ENDPOINT='h38-assistant-ai'"),'Assistant router m
 check(aiRouter.includes('window.H38_ASSISTANT_ROUTER')&&aiRouter.includes('readOnly:true'),'Assistant router must publish a read-only authority contract.');
 check(aiRouter.includes("action==='aiAsk'")&&aiRouter.includes('H38 local guidance'),'Assistant router must preserve safe local guidance fallback.');
 check(aiRouter.includes("form.id!=='paCommandForm'")&&aiRouter.includes('personalCommandStaysLocal(command)'),'Business questions from Personal Assistant must share the router without stealing private local commands.');
+check(aiRouter.includes('if(existing===expected)return;')&&aiRouter.includes('personalObserver.observe(main'),'Personal Assistant routed chat replay must be bounded and avoid a self-triggering render loop.');
 check(aiRouter.includes('controlledActionRequest(question)')&&aiRouter.includes('requiresExistingOfficeControl:true'),'Direct commitment commands must be deterministically gated to existing Office controls.');
 check(aiRouter.includes("window.H38_SUPABASE_SHARED_CLIENT?.ensure?.()")&&aiRouter.includes('functions.invoke(ENDPOINT'),'Assistant router must use the authenticated shared Supabase client.');
 check(aiRouter.includes('externalActionsEnabled:false')&&aiRouter.includes('automaticApproval:false')&&aiRouter.includes('automaticCustomerSending:false'),'Assistant router must not gain external execution authority.');
