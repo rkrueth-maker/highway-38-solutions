@@ -34,7 +34,9 @@ check(/handler\.postDelayed\(this::startRecording,120\)/.test(capture),'CameraX 
 check(/workingHammer:true/.test(followup)&&/visibleSwingHammer:true/.test(followup)&&/actualNotesOnCapture:true/.test(followup),'Capture must retain visible swinging hammer and notes UX.');
 check(/measurementVerificationFirst:true/.test(followup)&&/plainVideoDepthGeometry:false/.test(followup),'Spoken dimensions must route to measurement verification without pretending MP4 contains depth.');
 check(/automaticPostCaptureSync:true/.test(recovery)&&/automaticWalkthroughProcessing:true/.test(recovery),'Saved walkthrough must auto-sync and auto-start downstream processing.');
+check(/refreshAuthBeforeWalkthroughVideoSync:true/.test(recovery)&&/syncWalkthroughEvidence/.test(recovery),'Walkthrough video retry must refresh the shared Supabase session before private upload.');
+check(/currentWalkthroughEvidenceGate:true/.test(recovery)&&/unrelatedQueueDoesNotBlockReview:true/.test(recovery)&&/processingWaitingOperations/.test(recovery)&&/allWaitingOperations/.test(recovery),'Guided review must wait only for the active walkthrough evidence while preserving the full Business Office sync queue.');
 check(/automaticSavedOwnerFill:true/.test(auth),'Android saved owner login must fill automatically without another credential-button tap.');
 check(/versionCode\s+34\b/.test(build),'Owner APK versionCode must be 34 for v0.5.29.');
 check(/versionName\s+'0\.5\.29'/.test(build),'Owner APK versionName must be 0.5.29.');
-console.log('PASS field platform authority: CameraX and exact Site Visit return remain authoritative; Android allows five-minute walkthroughs, derives microphone evidence from the same MP4 and refreshes auth before sync.');
+console.log('PASS field platform authority: CameraX and exact Site Visit return remain authoritative; Android allows five-minute walkthroughs, refreshes auth before private video retry, and lets current walkthrough processing continue without unrelated queue blockers.');
