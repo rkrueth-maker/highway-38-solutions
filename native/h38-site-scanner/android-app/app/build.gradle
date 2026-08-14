@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.28 preserves the proven CameraX walkthrough and repairs the separate user-initiated ARCore measurement activity.
+// v0.5.29 preserves the proven CameraX + ARCore path, raises the walkthrough safety ceiling, and keeps manual Stop & Use Video as the normal finish.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -16,8 +16,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 33
-        versionName '0.5.28'
+        versionCode 34
+        versionName '0.5.29'
     }
     signingConfigs {
         if (hasReleaseSigning) {
