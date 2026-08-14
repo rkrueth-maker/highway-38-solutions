@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class WalkthroughCaptureActivity extends ComponentActivity {
     private static final int REQUEST_PERMISSIONS = 5701;
-    private static final long MAX_DURATION_MS = 90_000L;
+    private static final long MAX_DURATION_MS = 300_000L;
     private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
     private static final String CAPTURE_URI_KEY = "pending_uri";
     private static final String CAPTURE_READY_KEY = "ready";
