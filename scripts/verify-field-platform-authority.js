@@ -27,6 +27,7 @@ check(/returnDiagnostics:true/.test(guard)&&/before-native-launch/.test(guard)&&
 check(/launchWalkthroughCapture/.test(bridge),'Android bridge must expose walkthrough launch.');
 check(/getRecoveredWalkthroughAudioInfo/.test(bridge)&&/readRecoveredWalkthroughAudioChunk/.test(bridge)&&/confirmRecoveredWalkthroughAudioConsumed/.test(bridge),'Android bridge must expose private same-video audio recovery without a second microphone recording.');
 check(/WalkthroughAudioExtractor\.prepare\(this,outputFile\)/.test(capture)&&/Walkthrough microphone audio could not be prepared/.test(capture),'CameraX completion must require a native microphone-track derivative from the same recorded MP4.');
+check(/MAX_DURATION_MS\s*=\s*300_000L/.test(capture),'CameraX Site Visit walkthrough must allow five minutes.');
 check(/MediaExtractor/.test(audio)&&/MediaMuxer/.test(audio)&&/mime\.startsWith\("audio\/"\)/.test(audio)&&/MUXER_OUTPUT_MPEG_4/.test(audio),'Native audio extraction must copy the embedded audio track from the CameraX MP4 into private M4A evidence.');
 check(!/AudioRecord|MediaRecorder/.test(audio),'Native same-video audio extraction must never start a second microphone recorder.');
 check(/handler\.postDelayed\(this::startRecording,120\)/.test(capture),'CameraX must auto-start after camera bind.');
@@ -34,6 +35,6 @@ check(/workingHammer:true/.test(followup)&&/visibleSwingHammer:true/.test(follow
 check(/measurementVerificationFirst:true/.test(followup)&&/plainVideoDepthGeometry:false/.test(followup),'Spoken dimensions must route to measurement verification without pretending MP4 contains depth.');
 check(/automaticPostCaptureSync:true/.test(recovery)&&/automaticWalkthroughProcessing:true/.test(recovery),'Saved walkthrough must auto-sync and auto-start downstream processing.');
 check(/automaticSavedOwnerFill:true/.test(auth),'Android saved owner login must fill automatically without another credential-button tap.');
-check(/versionCode\s+32\b/.test(build),'Owner APK versionCode must be 32 for v0.5.27.');
-check(/versionName\s+'0\.5\.27'/.test(build),'Owner APK versionName must be 0.5.27.');
-console.log('PASS field platform authority: CameraX and exact Site Visit return remain authoritative; Android derives microphone evidence from the same MP4 and refreshes auth before sync.');
+check(/versionCode\s+34\b/.test(build),'Owner APK versionCode must be 34 for v0.5.29.');
+check(/versionName\s+'0\.5\.29'/.test(build),'Owner APK versionName must be 0.5.29.');
+console.log('PASS field platform authority: CameraX and exact Site Visit return remain authoritative; Android allows five-minute walkthroughs, derives microphone evidence from the same MP4 and refreshes auth before sync.');
