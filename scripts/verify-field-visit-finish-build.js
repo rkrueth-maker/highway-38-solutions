@@ -22,7 +22,16 @@ need(finish,'await api.buildDraftFromContext(null)','automatic empty-quote build
 need(finish,'automaticVisualGeneration:false','no finish/build generated photo');
 reject(finish,'aiRenderQuoteConcept','finish flow render invocation');
 need(guard,'linkedMeasurementHydrationRestored:true','late runtime measurement hydration');
+need(guard,'acceptsSiteMeasurementsPayload:true','siteMeasurements request compatibility');
+need(guard,'liveSupabaseMeasurementHydration:true','live Supabase measurement fallback');
+need(guard,"...(Array.isArray(args?.siteMeasurements)?args.siteMeasurements:[])",'siteMeasurements accepted as structured evidence');
+need(guard,".eq('collection','siteMeasurements')",'live Site Visit measurement query');
 need(guard,'prepared.measurementEvidence=evidence','structured measurement evidence passed through auth fix');
+need(guard,'prepared.siteMeasurements=evidence','siteMeasurements normalized to final evidence');
+need(guard,'separateMaterialAndLabor:true','material and labor quote breakout authority');
+need(guard,'materialOrderAllowancePercent:10','ten percent material ordering allowance');
+need(guard,'noBlendedInstalledRateForSeparatedComponents:true','no blended installed rate for separated quote components');
+need(guard,'Labor quantities must use the actual installed/net work quantity','labor quantity excludes material waste allowance');
 need(guard,"renderStatus:'SKIPPED_NO_ACTION_PHOTO'",'render skip without action photo');
 need(guard,'noAutomaticRenderWithoutActionPhoto:true','action-photo render authority');
 need(guard,"if(action==='aiRenderQuoteConcept')",'render request gate');
@@ -33,9 +42,9 @@ need(guard,'selectedActionPhotoPromotedAsRenderSource:true','exact Action Pictur
 need(finish,'automaticApproval:false','approval safety');
 need(finish,'automaticCustomerSending:false','send safety');
 need(loader,'field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-3','finish/build runtime load');
-need(loader,'quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-2','quote measurement/action-photo guard load');
+need(loader,'quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4','quote measurement/material/action-photo guard load');
 need(loader,"script.addEventListener('load',loadFinishBuild)",'finish/build loads after quote handoff');
 new Function(finish);
 new Function(guard);
 new Function(loader);
-console.log('PASS — Finish Walkthrough saves the Site Visit, opens the exact draft quote, refreshes and passes structured measurements, builds only an empty quote, preserves existing lines, blocks rendering without an Action Picture, and promotes the selected Action Picture as the render source.');
+console.log('PASS — Finish Walkthrough saves the Site Visit, opens the exact draft quote, hydrates current Supabase measurements into Quote AI, separates material and labor with a 10% material-order allowance, preserves existing lines, blocks rendering without an Action Picture, and promotes the selected Action Picture as the render source.');
