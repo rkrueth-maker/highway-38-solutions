@@ -1,0 +1,79 @@
+(function(){
+'use strict';
+const BUILD='20260814-finish-site-visit-build-quote-1';
+let busy=false,decorateTimer=0;
+const text=value=>String(value==null?'':value);
+function core(){return window.H38_FIELD_VISIT_CORE||null;}
+function handoffApi(){return window.H38_FIELD_VISIT_QUOTE_HANDOFF||null;}
+function activeQuoteId(){return text(core()?.state?.visit?.quoteId||window.state?.quote?.quoteId).trim();}
+function editableLines(){return Array.isArray(window.state?.quote?.lines)?window.state.quote.lines:[];}
+function toast(message,bad){try{core()?.toast?.(message,!!bad);}catch(_){try{window.toast?.(message,!!bad);}catch(__){}}}
+function quoteReady(quoteId){return window.state?.page==='quotes'&&text(window.state?.quote?.quoteId)===text(quoteId);}
+function waitForQuote(quoteId,timeoutMs=6500){
+  const started=Date.now();
+  return new Promise(resolve=>{
+    const check=()=>{
+      if(quoteReady(quoteId))return resolve(true);
+      if(Date.now()-started>=timeoutMs)return resolve(false);
+      setTimeout(check,80);
+    };
+    check();
+  });
+}
+async function finishAndBuild(){
+  if(busy)return;
+  const api=handoffApi(),quoteId=activeQuoteId();
+  if(!api?.handoff||!api?.buildDraftFromContext||!quoteId)return;
+  busy=true;
+  try{
+    await api.handoff();
+    const opened=await waitForQuote(quoteId);
+    if(!opened)return;
+    if(editableLines().length){
+      toast('Site Visit finished. Existing quote lines were preserved for review.');
+      return;
+    }
+    if(!navigator.onLine){
+      toast('Site Visit finished and saved to the draft quote. Build the quote when the secure Office connection is online.');
+      return;
+    }
+    await api.buildDraftFromContext(null);
+  }catch(error){
+    toast(error?.message||String(error),true);
+  }finally{
+    busy=false;
+    scheduleDecorate(0);
+  }
+}
+function decorate(){
+  const button=document.getElementById('fieldAttach');
+  if(!button)return;
+  button.textContent='✓ Finish Walkthrough & Build Quote';
+  button.dataset.h38FinishBuildQuote='1';
+  button.title='Save this Site Visit, open its draft quote, and build the quote when it is empty. Existing quote lines are preserved.';
+}
+function scheduleDecorate(delay=40){clearTimeout(decorateTimer);decorateTimer=setTimeout(decorate,delay);}
+window.addEventListener('click',event=>{
+  const target=event.target instanceof Element?event.target.closest('#fieldAttach'):null;
+  if(!target||!handoffApi()?.handoff)return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  void finishAndBuild();
+},true);
+new MutationObserver(()=>scheduleDecorate()).observe(document.documentElement,{childList:true,subtree:true});
+[0,250,900].forEach(delay=>setTimeout(decorate,delay));
+window.H38_FIELD_VISIT_FINISH_BUILD=Object.freeze({
+  build:BUILD,
+  finishAndBuild,
+  finishWalkthroughBuildsEmptyQuote:true,
+  preserveExistingQuoteLines:true,
+  offlineSaveStillAllowed:true,
+  automaticVisualGeneration:false,
+  actionPhotoRequiredBeforeAnyOptionalRender:true,
+  automaticApproval:false,
+  automaticCustomerSending:false,
+  automaticPurchase:false,
+  automaticPayment:false
+});
+})();
