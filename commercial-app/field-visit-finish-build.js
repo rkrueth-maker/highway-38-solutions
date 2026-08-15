@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-finish-site-visit-build-quote-2';
+const BUILD='20260814-finish-site-visit-build-quote-3';
 let busy=false,decorateTimer=0;
 const text=value=>String(value==null?'':value);
 function core(){return window.H38_FIELD_VISIT_CORE||null;}
@@ -9,6 +9,12 @@ function activeQuoteId(){return text(core()?.state?.visit?.quoteId||window.state
 function editableLines(){return Array.isArray(window.state?.quote?.lines)?window.state.quote.lines:[];}
 function toast(message,bad){try{core()?.toast?.(message,!!bad);}catch(_){try{window.toast?.(message,!!bad);}catch(__){}}}
 function quoteReady(quoteId){return window.state?.page==='quotes'&&text(window.state?.quote?.quoteId)===text(quoteId);}
+function rememberActionPhoto(quoteId){
+  const map=window.H38_QUOTE_ACTION_PHOTO_BY_QUOTE||(window.H38_QUOTE_ACTION_PHOTO_BY_QUOTE=Object.create(null));
+  const visit=core()?.state?.visit,selected=visit&&text(visit.quoteId)===quoteId?text(visit.actionPictureId).trim():'';
+  if(selected)map[quoteId]=selected;else delete map[quoteId];
+  return selected;
+}
 function waitForQuote(quoteId,timeoutMs=6500){
   const started=Date.now();
   return new Promise(resolve=>{
@@ -28,6 +34,7 @@ async function finishAndBuild(){
   if(busy)return;
   const api=handoffApi(),quoteId=activeQuoteId();
   if(!api?.handoff||!api?.buildDraftFromContext||!quoteId)return;
+  rememberActionPhoto(quoteId);
   busy=true;
   try{
     await api.handoff();
@@ -76,6 +83,7 @@ new MutationObserver(()=>scheduleDecorate()).observe(document.documentElement,{c
 window.H38_FIELD_VISIT_FINISH_BUILD=Object.freeze({
   build:BUILD,
   finishAndBuild,
+  rememberActionPhoto,
   finishWalkthroughBuildsEmptyQuote:true,
   refreshLatestEvidenceBeforeBuild:true,
   preserveExistingQuoteLines:true,
