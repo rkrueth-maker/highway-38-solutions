@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-site-quote-handoff-4';
+const BUILD='20260814-site-quote-handoff-5';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -69,7 +69,7 @@ function loadQuoteHandoff(){
 function loadFinishBuild(){
   if(window.H38_FIELD_VISIT_FINISH_BUILD||document.querySelector('script[data-h38-site-visit-finish-build]'))return;
   const script=document.createElement('script');
-  script.src='./field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-1';
+  script.src='./field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-2';
   script.dataset.h38SiteVisitFinishBuild='1';
   document.head.appendChild(script);
 }
