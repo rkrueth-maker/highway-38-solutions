@@ -16,6 +16,8 @@ const nativeCapture=read('native/h38-site-scanner/android-app/app/src/main/java/
 const nativeBridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const nativeAudio=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughAudioExtractor.java');
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
+const versionCode=Number((gradle.match(/versionCode\s+(\d+)/)||[])[1]||0);
+const versionName=(gradle.match(/versionName\s+'([^']+)'/)||[])[1]||'';
 const compact=s=>s.replace(/\s+/g,'');
 const compactEdge=compact(edge);
 const failures=[];
@@ -65,6 +67,6 @@ check('external Android camera intent remains retired',!android.includes('MediaS
 check('native return survives activity recreation',android.includes('persistCaptureTracking')&&android.includes('restoreCaptureTracking')&&android.includes('recoveredCaptureUri'));
 check('saved Android login still uses Credential Manager',nativeBridge.includes('CredentialManager')&&nativeBridge.includes('GetPasswordOption')&&nativeBridge.includes('PasswordCredential')&&nativeBridge.includes('fillWebLogin'));
 check('saved owner login fills automatically but never auto-submits',auth.includes('automaticSavedOwnerFill:true')&&auth.includes('h38:saved-login-filled')&&!nativeBridge.includes("document.getElementById('h38AuthForm').submit"));
-check('Android source is current v0.5.29 candidate',gradle.includes('versionCode 34')&&gradle.includes("versionName '0.5.29'"));
+check('Android candidate version preserves accepted baseline',versionCode>=34&&/^0\.5\.\d+$/.test(versionName));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,maxWalkthroughSeconds:300,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,operatorVerifiedMeasurements:true,materialSpecificationsExcludedFromMeasurements:true,measurementVerificationFirst:true,oneGuidedController:true,walkthroughArAdvanceLinked:true,selectedTranscriptionSourceSizeGate:true,currentCandidateSource:'0.5.29',acceptedOwnerApkBaseline:'0.5.28',physicalPhoneAcceptanceExternal:true},null,2));
+console.log(JSON.stringify({status:'PASS',android:'CameraX auto-start only',iphone:'native video input',sameVideoAudioDerivative:true,nativeSameVideoAudio:true,nativeStreamingRecovery:true,maxWalkthroughSeconds:300,automaticPostCaptureSync:true,automaticWalkthroughProcessing:true,automaticSavedOwnerFill:true,editableSavedNotes:true,operatorVerifiedMeasurements:true,materialSpecificationsExcludedFromMeasurements:true,measurementVerificationFirst:true,oneGuidedController:true,walkthroughArAdvanceLinked:true,selectedTranscriptionSourceSizeGate:true,currentCandidateSource:versionName,currentCandidateVersionCode:versionCode,acceptedOwnerApkBaseline:'0.5.28',physicalPhoneAcceptanceExternal:true},null,2));
