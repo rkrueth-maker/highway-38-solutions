@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-site-quote-handoff-7';
+const BUILD='20260814-site-quote-handoff-8';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -76,7 +76,7 @@ function loadFinishBuild(){
 function loadQuoteMeasurementActionPhotoGuard(){
   if(window.H38_QUOTE_MEASUREMENT_ACTION_PHOTO_GUARD||document.querySelector('script[data-h38-quote-measurement-action-photo-guard]'))return;
   const script=document.createElement('script');
-  script.src='./quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-2';
+  script.src='./quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4';
   script.dataset.h38QuoteMeasurementActionPhotoGuard='1';
   document.head.appendChild(script);
 }
