@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-finish-site-visit-build-quote-1';
+const BUILD='20260814-finish-site-visit-build-quote-2';
 let busy=false,decorateTimer=0;
 const text=value=>String(value==null?'':value);
 function core(){return window.H38_FIELD_VISIT_CORE||null;}
@@ -20,6 +20,10 @@ function waitForQuote(quoteId,timeoutMs=6500){
     check();
   });
 }
+async function refreshEvidence(){
+  if(typeof window.sync==='function')await window.sync(false);
+  if(typeof window.renderQuotes==='function')window.renderQuotes();
+}
 async function finishAndBuild(){
   if(busy)return;
   const api=handoffApi(),quoteId=activeQuoteId();
@@ -37,6 +41,12 @@ async function finishAndBuild(){
       toast('Site Visit finished and saved to the draft quote. Build the quote when the secure Office connection is online.');
       return;
     }
+    await refreshEvidence();
+    if(!quoteReady(quoteId))return;
+    if(editableLines().length){
+      toast('Site Visit finished. Existing quote lines were preserved for review.');
+      return;
+    }
     await api.buildDraftFromContext(null);
   }catch(error){
     toast(error?.message||String(error),true);
@@ -50,7 +60,7 @@ function decorate(){
   if(!button)return;
   button.textContent='✓ Finish Walkthrough & Build Quote';
   button.dataset.h38FinishBuildQuote='1';
-  button.title='Save this Site Visit, open its draft quote, and build the quote when it is empty. Existing quote lines are preserved.';
+  button.title='Save this Site Visit, refresh its latest measurements, open its draft quote, and build the quote when it is empty. Existing quote lines are preserved.';
 }
 function scheduleDecorate(delay=40){clearTimeout(decorateTimer);decorateTimer=setTimeout(decorate,delay);}
 window.addEventListener('click',event=>{
@@ -67,6 +77,7 @@ window.H38_FIELD_VISIT_FINISH_BUILD=Object.freeze({
   build:BUILD,
   finishAndBuild,
   finishWalkthroughBuildsEmptyQuote:true,
+  refreshLatestEvidenceBeforeBuild:true,
   preserveExistingQuoteLines:true,
   offlineSaveStillAllowed:true,
   automaticVisualGeneration:false,
