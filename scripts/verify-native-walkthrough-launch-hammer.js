@@ -16,6 +16,8 @@ const noLegacy=read('commercial-app/supabase-no-legacy-office.js');
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
 const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} unexpectedly contains ${s}`)};
+const versionCode=Number((gradle.match(/versionCode\s+(\d+)/)||[])[1]||0);
+const versionName=(gradle.match(/versionName\s+'([^']+)'/)||[])[1]||'';
 for(const s of ['launchWalkthroughCapture','getDeclaredMethod("launchWalkthroughVideoCapture")','getRecoveredWalkthroughAudioInfo','readRecoveredWalkthroughAudioChunk'])must(bridge,s,'native bridge');
 for(const s of ['directNativeLaunch:true','b.launchWalkthroughCapture()','readNativeFile','persistVideoFirst'])must(guard,s,'walkthrough guard');
 for(const s of ['handler.postDelayed(this::startRecording,120)','Stop & Use Video','🔨 H38 is saving walkthrough…','WalkthroughAudioExtractor.prepare(this,outputFile)','MAX_DURATION_MS = 300_000L'])must(capture,s,'CameraX auto-start');
@@ -30,5 +32,6 @@ if(index.includes('./field-visit-walkthrough-guidance.js?build=')||index.include
 for(const s of ['loadSiteVisitController','H38_FIELD_VISIT_GUIDED_CONTROLLER','H38_FIELD_VISIT_GUIDANCE','./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1'])must(noLegacy,s,'dynamic Site Visit authority');
 absent(noLegacy,'./field-visit-fast-followup.js?build=','dynamic Site Visit authority');
 for(const s of ['automaticPostCaptureSync:true','automaticWalkthroughProcessing:true','H38 is syncing Site Visit evidence'])must(recovery,s,'post-capture recovery');
-for(const s of ['versionCode 34',"versionName '0.5.29'",'androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android candidate source');
-console.log(JSON.stringify({status:'PASS',nativeWalkthroughAuthority:'CameraX',guidedControllerAuthority:true,walkthroughArAdvanceLinked:true,maxWalkthroughSeconds:300,currentCandidateSource:'0.5.29',acceptedOwnerApkBaseline:'0.5.28',physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
+for(const s of ['androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android candidate source');
+if(versionCode<34||!/^0\.5\.\d+$/.test(versionName))throw new Error(`Android candidate version is invalid: ${versionName} (${versionCode})`);
+console.log(JSON.stringify({status:'PASS',nativeWalkthroughAuthority:'CameraX',guidedControllerAuthority:true,walkthroughArAdvanceLinked:true,maxWalkthroughSeconds:300,currentCandidateSource:versionName,acceptedOwnerApkBaseline:'0.5.28',physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
