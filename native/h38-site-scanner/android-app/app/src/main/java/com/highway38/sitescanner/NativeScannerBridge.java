@@ -71,6 +71,7 @@ public final class NativeScannerBridge {
             result.put("lidar", false);
             result.put("roomPlan", false);
             result.put("autofill", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O);
+            result.put("nativePrint", Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
             result.put("localSavedLogin", secureLoginStore.load() != null);
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
@@ -81,9 +82,10 @@ public final class NativeScannerBridge {
                 result.put("arcore", false);
                 result.put("depth", false);
                 result.put("autofill", false);
+                result.put("nativePrint", false);
                 result.put("error", error.getMessage());
             } catch (Exception ignored) {
-                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false,\"autofill\":false}";
+                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false,\"autofill\":false,\"nativePrint\":false}";
             }
         }
         return result.toString();
@@ -191,6 +193,25 @@ public final class NativeScannerBridge {
                 + "['input','change'].forEach(function(type){email.dispatchEvent(new Event(type,{bubbles:true}));pass.dispatchEvent(new Event(type,{bubbles:true}));});"
                 + "pass.focus();window.dispatchEvent(new CustomEvent('h38:saved-login-filled'));return true;})();";
         webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    @JavascriptInterface
+    public void printCurrentPage() {
+        activity.runOnUiThread(() -> {
+            try {
+                android.print.PrintManager manager = (android.print.PrintManager) activity.getSystemService(android.content.Context.PRINT_SERVICE);
+                if (manager == null) throw new IllegalStateException("Android print service is unavailable.");
+                String jobName = "Highway 38 Quote";
+                android.print.PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(jobName);
+                manager.print(jobName, adapter, new android.print.PrintAttributes.Builder().build());
+                webView.post(() -> webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('h38:native-print-launched'));", null));
+            } catch (Throwable error) {
+                String message = error.getMessage();
+                final String safe = message == null || message.trim().isEmpty() ? "Android print could not open." : message;
+                android.widget.Toast.makeText(activity, safe, android.widget.Toast.LENGTH_LONG).show();
+                webView.post(() -> webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('h38:native-print-failed',{detail:" + JSONObject.quote(safe) + "}));", null));
+            }
+        });
     }
 
     @JavascriptInterface
