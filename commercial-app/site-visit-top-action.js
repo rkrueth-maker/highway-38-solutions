@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-site-quote-handoff-5';
+const BUILD='20260814-site-quote-handoff-6';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -69,12 +69,19 @@ function loadQuoteHandoff(){
 function loadFinishBuild(){
   if(window.H38_FIELD_VISIT_FINISH_BUILD||document.querySelector('script[data-h38-site-visit-finish-build]'))return;
   const script=document.createElement('script');
-  script.src='./field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-2';
+  script.src='./field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-3';
   script.dataset.h38SiteVisitFinishBuild='1';
+  document.head.appendChild(script);
+}
+function loadQuoteMeasurementActionPhotoGuard(){
+  if(window.H38_QUOTE_MEASUREMENT_ACTION_PHOTO_GUARD||document.querySelector('script[data-h38-quote-measurement-action-photo-guard]'))return;
+  const script=document.createElement('script');
+  script.src='./quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-1';
+  script.dataset.h38QuoteMeasurementActionPhotoGuard='1';
   document.head.appendChild(script);
 }
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteHandoff();setTimeout(loadFinishBuild,1200);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,blankScreenRecovery:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();setTimeout(loadFinishBuild,1200);
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,blankScreenRecovery:true};
 })();
