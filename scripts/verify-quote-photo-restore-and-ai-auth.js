@@ -16,6 +16,9 @@ const authFix = read('commercial-app/supabase-quote-ai-auth-fix.js');
 const photoRestore = read('commercial-app/quote-photo-restore.js');
 const edge = read('supabase/functions/h38-quote-ai/index.ts');
 
+new Function(authFix);
+new Function(photoRestore);
+
 const quoteBase = index.indexOf('./supabase-quote-ai.js');
 const authRepair = index.indexOf('./supabase-quote-ai-auth-fix.js');
 const mobile = index.indexOf('./quote-mobile-stabilization.js');
@@ -34,6 +37,12 @@ requireText(authFix, "'apikey': config.publishableKey", 'Direct Quote AI request
 requireText(authFix, '/functions/v1/h38-quote-ai', 'Direct Quote AI endpoint');
 if (authFix.includes("functions.invoke('h38-quote-ai'")) fail('The Quote AI auth repair must not use functions.invoke for the protected request.');
 requireText(authFix, 'api.auth.getUser()', 'Live browser session validation');
+requireText(authFix, 'function rateOf(line)', 'Direct Quote AI pricing gate');
+requireText(authFix, 'zero/non-positive rate:', 'Direct Quote AI zero-rate detection');
+requireText(authFix, 'Every returned line must have a positive non-zero rate.', 'Direct Quote AI pricing retry');
+requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded.', 'Direct Quote AI fail-closed pricing rule');
+requireText(authFix, 'zeroRateDraftBlocked: true', 'Direct Quote AI zero-rate safety flag');
+requireText(authFix, 'pricingRepairRetry: true', 'Direct Quote AI pricing retry flag');
 
 requireText(photoRestore, "val(r,'Source ID','sourceId')", 'Saved quote photo relationship');
 requireText(photoRestore, 'createSignedUrl(path,300)', 'Private saved-photo preview');
@@ -57,8 +66,20 @@ requireText(edge, 'assemblyRecipes(service, businessId)', 'Assembly recipe hydra
 requireText(edge, 'breakoutProblems(draft, context)', 'Server breakout validation');
 requireText(edge, 'serverBreakoutRepairApplied', 'Server repair proof');
 requireText(edge, 'No blended or zero-quantity draft was returned', 'Fail-closed breakout rule');
+
+requireText(edge, 'clean(entry.itemCode, 160) === requestedIdentity', 'Catalog itemCode identity compatibility');
+requireText(edge, 'deterministic_component_recovery', 'Deterministic component catalog recovery');
+requireText(edge, 'material_line_cannot_use_labor_catalog', 'Material cannot use labor catalog rows');
+requireText(edge, 'labor_line_cannot_use_material_catalog', 'Labor cannot use material catalog rows');
+requireText(edge, 'separated_component_cannot_use_installed_assembly', 'Separated components cannot use installed assembly rates');
+requireText(edge, 'catalogPricingDiagnostics', 'Pricing validation proof diagnostics');
+requireText(edge, 'catalogPricingRecovered', 'Pricing recovery proof counter');
+requireText(edge, 'catalogPricingRejected', 'Pricing rejection proof counter');
+requireText(edge, 'Do not select an EACH, box, or roll raw purchase-unit row for an SF quote line.', 'SF component Price Book routing');
+requireText(edge, 'PRIMARY_COMPONENT_IDS', 'Primary safe material component map');
+
 requireText(edge, 'automaticApproval: false', 'No automatic approval');
 requireText(edge, 'automaticCustomerSending: false', 'No automatic customer send');
 requireText(edge, 'separateRenderRequest: true', 'Separate render request');
 
-console.log('Quote photo restore, direct AI auth, assembly recipes, and server component breakout verification passed.');
+console.log('Quote photo restore, direct AI auth, nonzero pricing gate, assembly recipes, component breakout, and safe catalog pricing verification passed.');

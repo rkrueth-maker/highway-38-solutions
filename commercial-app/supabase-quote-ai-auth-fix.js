@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20260814-quote-ai-auth-measurement-split-2';
+  const BUILD = '20260815-quote-ai-pricing-gate-1';
   const config = window.H38_BUSINESS_OFFICE_SUPABASE || {};
   const Bridge = window.H38Bridge;
   const shared = window.H38_SUPABASE_SHARED_CLIENT;
@@ -104,7 +104,8 @@
       'For insulation, return an insulation MATERIAL line and a separate insulation INSTALLATION LABOR line. For sheetrock/drywall, return separate drywall MATERIAL and hanging/taping/finishing LABOR lines.',
       'MATERIAL ORDER ALLOWANCE: material purchase/order quantity must be 110% of the measured installed material quantity (10% extra). State the measured/net quantity and the 10% ordering allowance in the material-line rationale.',
       'Labor quantity must use the actual installed/net work quantity, never the 110% material ordering quantity.',
-      'Do not use a blended installed Price Book assembly rate as the rate for a material-only or labor-only component. Use a separate component rate when available; otherwise use an owner-review-required researched/manual component rate.',
+      'Do not use a blended installed Price Book assembly rate as the rate for a material-only or labor-only component. Use a separate component rate when available; otherwise use an owner-review-required researched component rate.',
+      'Every returned quote line must have a positive non-zero rate. Search the supplied Price Book first; if no safe same-unit catalog component exists, use current Grand Rapids / Itasca County market research as owner-review-required local_research. Never return $0 as a placeholder.',
       'Never return a zero or negative quantity. If a critical dimension is genuinely missing, put it in missingInformation instead of creating a zero-quantity quote line.',
       'All pricing remains owner-review required. Never approve, send, purchase, pay, schedule, or financially commit automatically.'
     ].join('\n');
@@ -136,6 +137,10 @@
   }
   function quantityOf(line) {
     const value = Number(line?.quantity ?? 0);
+    return Number.isFinite(value) ? value : 0;
+  }
+  function rateOf(line) {
+    const value = Number(line?.rate ?? line?.unitPrice ?? 0);
     return Number.isFinite(value) ? value : 0;
   }
   function hasWord(value, words) {
@@ -187,6 +192,8 @@
     const problems = [];
     const invalid = lines.filter(line => quantityOf(line) <= 0);
     if (invalid.length) problems.push(`zero/non-positive quantity: ${invalid.slice(0, 4).map(line => text(line?.description)).join('; ')}`);
+    const unpriced = lines.filter(line => rateOf(line) <= 0);
+    if (unpriced.length) problems.push(`zero/non-positive rate: ${unpriced.slice(0, 6).map(line => text(line?.description)).join('; ')}`);
     for (const target of ['insulation', 'drywall']) {
       if (scopeRequiresTarget(args, target) && !hasSeparatedMaterialAndLabor(lines, target)) {
         const returned = targetLines(lines, target).map(line => text(line?.description)).filter(Boolean).slice(0, 6).join(' | ');
@@ -198,9 +205,10 @@
   function repairNotes(args, problems) {
     return [
       text(args?.notes).trim(),
-      'QUOTE DRAFT REPAIR REQUIRED: The previous draft failed H38 quote acceptance. Rebuild the draft while preserving the requested scope and verified measurements.',
+      'QUOTE DRAFT REPAIR REQUIRED: The previous draft failed H38 quote acceptance. Rebuild the draft while preserving the requested scope, verified measurements, positive quantities, units, and material/labor cost types.',
       `FAILURES TO CORRECT: ${problems.join(' | ')}`,
-      'Return positive quantities only. For insulation and drywall/sheetrock in this scope, material and labor must be separate lines. A labor line may be named with an action such as Install insulation or Hang and finish drywall; it does not have to contain the literal word labor. Material quantity includes the 10% ordering allowance; labor quantity stays at net installed quantity.'
+      'Every returned line must have a positive non-zero rate. Search the supplied Price Book first and keep the same unit basis. If no safe matching catalog component exists, use current web research for Grand Rapids / Itasca County, Minnesota and return a defensible positive owner-review-required local_research rate with low confidence. Never return $0 or manual_required as a placeholder when a current defensible rate can be researched.',
+      'For insulation and drywall/sheetrock in this scope, material and labor must be separate lines. A labor line may be named with an action such as Install insulation or Hang and finish drywall; it does not have to contain the literal word labor. Material quantity includes the 10% ordering allowance; labor quantity stays at net installed quantity.'
     ].filter(Boolean).join('\n\n');
   }
   async function responsePayload(response) {
@@ -288,9 +296,10 @@
           attempt = await successfulAttempt(prepared, timeout, false, requestAction);
           problems = draftProblems(attempt.payload, prepared);
           if (problems.length) {
-            throw new Error(`H38 blocked the quote draft because Quote AI still failed required takeoff rules: ${problems.join('; ')}. No zero-quantity or blended insulation/drywall draft was loaded.`);
+            throw new Error(`H38 blocked the quote draft because Quote AI still failed required takeoff/pricing rules: ${problems.join('; ')}. No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded.`);
           }
           attempt.payload.h38DraftRepairApplied = true;
+          attempt.payload.h38PricingRepairApplied = true;
         }
       }
       return attempt.payload;
@@ -320,6 +329,8 @@
     liveMeasurementHydrationFallback: true,
     failClosedOnMissingLinkedMeasurements: true,
     zeroQuantityDraftBlocked: true,
+    zeroRateDraftBlocked: true,
+    pricingRepairRetry: true,
     separateInsulationMaterialAndLaborRequired: true,
     separateDrywallMaterialAndLaborRequired: true,
     distinctMaterialAndLaborLinesRequired: true,
