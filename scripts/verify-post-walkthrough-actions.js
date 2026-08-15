@@ -14,6 +14,8 @@ const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/hi
 const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const audio=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughAudioExtractor.java');
 const gradle=read('native/h38-site-scanner/android-app/app/build.gradle');
+const versionCode=Number((gradle.match(/versionCode\s+(\d+)/)||[])[1]||0);
+const versionName=(gradle.match(/versionName\s+'([^']+)'/)||[])[1]||'';
 const must=(c,s,l)=>{if(!c.includes(s))throw new Error(`${l} missing ${s}`)};
 const absent=(c,s,l)=>{if(c.includes(s))throw new Error(`${l} unexpectedly contains ${s}`)};
 for(const s of ['retiredRecorder:true','sameWalkthroughSpeech:true','microphoneRequired:true','videoOnlyFallback:false','derivedSameVideoAudio:true','nativeSameVideoAudio:true','nativeAudioChunkRecovery:true','Walkthrough Voice Audio'])must(voice,s,'same-video audio derivative');
@@ -32,7 +34,9 @@ for(const s of ['PreviewView','CameraSelector.DEFAULT_BACK_CAMERA','VideoCapture
 for(const s of ['launchWalkthroughCapture','getRecoveredWalkthroughUrl','confirmRecoveredWalkthroughConsumed','getRecoveredWalkthroughAudioInfo','readRecoveredWalkthroughAudioChunk','confirmRecoveredWalkthroughAudioConsumed','CredentialManager','PasswordCredential','fillWebLogin'])must(bridge,s,'Android bridge');
 for(const s of ['MediaExtractor','MediaMuxer','mime.startsWith("audio/")','MUXER_OUTPUT_MPEG_4'])must(audio,s,'native same-video audio extractor');
 absent(audio,'AudioRecord','native same-video audio extractor');absent(audio,'MediaRecorder','native same-video audio extractor');
-for(const s of ['versionCode 34',"versionName '0.5.29'",'androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android candidate source');
+if(versionCode<34)throw new Error(`Android candidate source regressed below versionCode 34: ${versionCode}`);
+if(!/^0\.5\.\d+$/.test(versionName))throw new Error(`Android candidate source left accepted 0.5.x line: ${versionName}`);
+must(gradle,'androidx.camera:camera-video:1.5.3','Android candidate source');
 for(const s of ['MediaStore.ACTION_VIDEO_CAPTURE','MediaStore.EXTRA_OUTPUT','createWalkthroughVideoUri'])absent(main,s,'Android host');
 for(const runtime of [voice,transcription,operator,direct,nativeGuard,guided])for(const s of ['automaticApproval:true','automaticCustomerSending:true','SUPABASE_SERVICE_ROLE_KEY'])absent(runtime,s,'runtime safety');
-console.log(JSON.stringify({status:'PASS',androidAuthority:'direct native CameraX bridge',sameVideoAudioDerivative:true,oneGuidedController:true,walkthroughArAdvanceLinked:true,currentCandidateSource:'0.5.29',acceptedOwnerApkBaseline:'0.5.27',physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
+console.log(JSON.stringify({status:'PASS',androidAuthority:'direct native CameraX bridge',sameVideoAudioDerivative:true,oneGuidedController:true,walkthroughArAdvanceLinked:true,currentCandidateSource:versionName,currentCandidateVersionCode:versionCode,acceptedOwnerApkBaseline:'0.5.27',physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
