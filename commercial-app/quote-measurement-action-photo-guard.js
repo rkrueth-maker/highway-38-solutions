@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-quote-measurement-action-photo-guard-2';
+const BUILD='20260814-quote-measurement-action-photo-guard-3';
 const Bridge=window.H38Bridge;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!Bridge||!Bridge.prototype)return;
@@ -23,7 +23,11 @@ function compactMeasurement(row){
   };
 }
 function linkedMeasurementEvidence(args){
-  const supplied=Array.isArray(args?.measurementEvidence)?args.measurementEvidence.map(compactMeasurement).filter(Boolean):[];
+  const suppliedRows=[
+    ...(Array.isArray(args?.measurementEvidence)?args.measurementEvidence:[]),
+    ...(Array.isArray(args?.siteMeasurements)?args.siteMeasurements:[])
+  ];
+  const supplied=suppliedRows.map(compactMeasurement).filter(Boolean);
   if(supplied.length)return supplied.slice(0,80);
   const quoteId=text(args?.quoteId).trim();
   if(!quoteId)return[];
@@ -77,7 +81,10 @@ Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiBuildQuoteDraft'){
     const prepared={...(args||{})};
     const evidence=linkedMeasurementEvidence(prepared);
-    if(evidence.length)prepared.measurementEvidence=evidence;
+    if(evidence.length){
+      prepared.measurementEvidence=evidence;
+      prepared.siteMeasurements=evidence;
+    }
     const result=await previousRequest.call(this,action,prepared,timeout);
     const quoteId=text(prepared.quoteId).trim();
     if(!actionPhotoId(quoteId,prepared))return skipRender(result);
@@ -95,6 +102,7 @@ Bridge.prototype.request=async function(action,args,timeout){
 window.H38_QUOTE_MEASUREMENT_ACTION_PHOTO_GUARD=Object.freeze({
   build:BUILD,
   linkedMeasurementHydrationRestored:true,
+  acceptsSiteMeasurementsPayload:true,
   measurementEvidencePassedToQuoteAi:true,
   noAutomaticRenderWithoutActionPhoto:true,
   actionPhotoRequiredForRender:true,
