@@ -1,0 +1,15 @@
+#h38QuoteQuickBar{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:9px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 8px 24px rgba(12,38,57,.09)}
+#h38QuoteQuickBar button{flex:1 1 0;min-height:44px;margin:0;padding:9px 10px;border-radius:11px;font-weight:850;white-space:normal}
+#h38QuoteQuickBar button:first-child{background:var(--blue);color:#fff}
+.h38-owner-evidence-details>summary{min-height:46px;display:flex;align-items:center;cursor:pointer;font-weight:750}
+.h38-optional-work{border-left:4px solid var(--blue)!important;background:linear-gradient(90deg,rgba(28,106,153,.07),rgba(255,255,255,0))!important}
+.h38-optional-work::before{content:'OPTIONAL — not part of the base proposal unless selected';display:block;margin:0 0 7px;color:var(--blue);font-size:.72rem;font-weight:900;letter-spacing:.035em}
+@media(max-width:760px){
+  body.h38-owner-quote-polish #h38QuoteQuickBar{position:sticky;top:0;z-index:24;margin:0 -4px 12px;padding:7px;border-radius:0 0 14px 14px;box-shadow:0 8px 18px rgba(12,38,57,.13)}
+  body.h38-owner-quote-polish #h38QuoteQuickBar button{min-height:48px;padding:7px 5px;font-size:.78rem;line-height:1.15}
+  body.h38-owner-quote-polish #mainContent .page-tools{margin-bottom:8px}
+  .h38-owner-evidence-details{margin-block:2px}
+  .h38-owner-evidence-details>summary{min-height:50px;padding-block:7px}
+}
+@media(max-width:420px){#h38QuoteQuickBar{gap:5px}#h38QuoteQuickBar button{font-size:.72rem;padding-inline:4px}}
+@media print{#h38QuoteQuickBar,.h38-optional-work::before{display:none!important}}
