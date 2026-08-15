@@ -34,6 +34,12 @@ requireText(authFix, "'apikey': config.publishableKey", 'Direct Quote AI request
 requireText(authFix, '/functions/v1/h38-quote-ai', 'Direct Quote AI endpoint');
 if (authFix.includes("functions.invoke('h38-quote-ai'")) fail('The Quote AI auth repair must not use functions.invoke for the protected request.');
 requireText(authFix, 'api.auth.getUser()', 'Live browser session validation');
+requireText(authFix, 'function rateOf(line)', 'Direct Quote AI pricing gate');
+requireText(authFix, 'zero/non-positive rate:', 'Direct Quote AI zero-rate detection');
+requireText(authFix, 'Every returned line must have a positive non-zero rate.', 'Direct Quote AI pricing retry');
+requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded.', 'Direct Quote AI fail-closed pricing rule');
+requireText(authFix, 'zeroRateDraftBlocked: true', 'Direct Quote AI zero-rate safety flag');
+requireText(authFix, 'pricingRepairRetry: true', 'Direct Quote AI pricing retry flag');
 
 requireText(photoRestore, "val(r,'Source ID','sourceId')", 'Saved quote photo relationship');
 requireText(photoRestore, 'createSignedUrl(path,300)', 'Private saved-photo preview');
@@ -73,4 +79,4 @@ requireText(edge, 'automaticApproval: false', 'No automatic approval');
 requireText(edge, 'automaticCustomerSending: false', 'No automatic customer send');
 requireText(edge, 'separateRenderRequest: true', 'Separate render request');
 
-console.log('Quote photo restore, direct AI auth, assembly recipes, component breakout, and safe catalog pricing verification passed.');
+console.log('Quote photo restore, direct AI auth, nonzero pricing gate, assembly recipes, component breakout, and safe catalog pricing verification passed.');
