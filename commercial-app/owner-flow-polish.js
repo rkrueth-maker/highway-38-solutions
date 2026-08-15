@@ -39,7 +39,7 @@ function collapseInternalEvidence(root=document){
   root.querySelectorAll?.('details').forEach(details=>{
     if(details.dataset.h38OwnerPolish==='1')return;
     const summary=text(details.querySelector(':scope > summary')?.textContent||details.querySelector('summary')?.textContent);
-    if(!/^(site measurements|field notes|skipped requested photos|measurement evidence|ai evidence|ai review|internal evidence|capture evidence|technical details)/i.test(summary))return;
+    if(!/^(site measurements|field notes|skipped requested photos|measurement evidence|ai evidence|ai review|internal evidence|capture evidence|technical details|owner scope confirmations|owner site visit context|h38 scope draft)/i.test(summary))return;
     details.dataset.h38OwnerPolish='1';
     details.open=false;
     details.classList.add('h38-owner-evidence-details');
