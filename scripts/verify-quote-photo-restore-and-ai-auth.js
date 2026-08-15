@@ -16,6 +16,9 @@ const authFix = read('commercial-app/supabase-quote-ai-auth-fix.js');
 const photoRestore = read('commercial-app/quote-photo-restore.js');
 const edge = read('supabase/functions/h38-quote-ai/index.ts');
 
+new Function(authFix);
+new Function(photoRestore);
+
 const quoteBase = index.indexOf('./supabase-quote-ai.js');
 const authRepair = index.indexOf('./supabase-quote-ai-auth-fix.js');
 const mobile = index.indexOf('./quote-mobile-stabilization.js');
