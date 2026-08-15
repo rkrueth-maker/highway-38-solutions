@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const need=(body,marker,label)=>{if(!body.includes(marker))throw new Error(`Missing ${label}: ${marker}`);};
+const reject=(body,marker,label)=>{if(body.includes(marker))throw new Error(`Forbidden ${label}: ${marker}`);};
+const finish=read('commercial-app/field-visit-finish-build.js');
+const loader=read('commercial-app/site-visit-top-action.js');
+need(finish,"button.textContent='✓ Finish Walkthrough & Build Quote'",'single finish/build action');
+need(finish,"window.addEventListener('click'",'window capture interceptor');
+need(finish,"event.stopImmediatePropagation()",'legacy duplicate handoff suppression');
+need(finish,'await api.handoff()','existing safe Site Visit save/handoff reuse');
+need(finish,'if(editableLines().length)','existing quote-line preservation gate');
+need(finish,'if(!navigator.onLine)','offline save fallback');
+need(finish,'await api.buildDraftFromContext(null)','automatic empty-quote build after handoff');
+need(finish,'automaticVisualGeneration:false','no automatic generated photo');
+need(finish,'actionPhotoRequiredBeforeAnyOptionalRender:true','action-photo render boundary');
+reject(finish,'aiRenderQuoteConcept','automatic render invocation');
+reject(finish,'renderConcept','automatic render endpoint call');
+need(finish,'automaticApproval:false','approval safety');
+need(finish,'automaticCustomerSending:false','send safety');
+need(loader,'field-visit-finish-build.js?build=20260814-finish-site-visit-build-quote-1','finish/build runtime load');
+need(loader,"script.addEventListener('load',loadFinishBuild)",'finish/build loads after quote handoff');
+new Function(finish);
+new Function(loader);
+console.log('PASS — Finish Walkthrough saves the Site Visit, opens the exact draft quote, builds only when quote lines are empty and online, preserves existing lines, and never generates a visual without a separate action-photo render path.');
