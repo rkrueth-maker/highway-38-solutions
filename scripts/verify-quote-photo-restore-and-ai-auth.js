@@ -57,8 +57,20 @@ requireText(edge, 'assemblyRecipes(service, businessId)', 'Assembly recipe hydra
 requireText(edge, 'breakoutProblems(draft, context)', 'Server breakout validation');
 requireText(edge, 'serverBreakoutRepairApplied', 'Server repair proof');
 requireText(edge, 'No blended or zero-quantity draft was returned', 'Fail-closed breakout rule');
+
+requireText(edge, 'clean(entry.itemCode, 160) === requestedIdentity', 'Catalog itemCode identity compatibility');
+requireText(edge, 'deterministic_component_recovery', 'Deterministic component catalog recovery');
+requireText(edge, 'material_line_cannot_use_labor_catalog', 'Material cannot use labor catalog rows');
+requireText(edge, 'labor_line_cannot_use_material_catalog', 'Labor cannot use material catalog rows');
+requireText(edge, 'separated_component_cannot_use_installed_assembly', 'Separated components cannot use installed assembly rates');
+requireText(edge, 'catalogPricingDiagnostics', 'Pricing validation proof diagnostics');
+requireText(edge, 'catalogPricingRecovered', 'Pricing recovery proof counter');
+requireText(edge, 'catalogPricingRejected', 'Pricing rejection proof counter');
+requireText(edge, 'Do not select an EACH, box, or roll raw purchase-unit row for an SF quote line.', 'SF component Price Book routing');
+requireText(edge, 'PRIMARY_COMPONENT_IDS', 'Primary safe material component map');
+
 requireText(edge, 'automaticApproval: false', 'No automatic approval');
 requireText(edge, 'automaticCustomerSending: false', 'No automatic customer send');
 requireText(edge, 'separateRenderRequest: true', 'Separate render request');
 
-console.log('Quote photo restore, direct AI auth, assembly recipes, and server component breakout verification passed.');
+console.log('Quote photo restore, direct AI auth, assembly recipes, component breakout, and safe catalog pricing verification passed.');
