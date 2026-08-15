@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20260814-quote-ai-auth-measurement-split-1';
+  const BUILD = '20260814-quote-ai-auth-measurement-split-2';
   const config = window.H38_BUSINESS_OFFICE_SUPABASE || {};
   const Bridge = window.H38Bridge;
   const shared = window.H38_SUPABASE_SHARED_CLIENT;
@@ -152,12 +152,35 @@
       ? /\binsulat(e|ion|ing)\b/i.test(text(line?.description))
       : /\b(sheet\s*rock|sheetrock|drywall)\b/i.test(text(line?.description)));
   }
+  function materialLike(line, target) {
+    const kind = text(line?.costType || line?.lineType || line?.componentType).toLowerCase();
+    if (kind === 'material' || kind === 'materials') return true;
+    const description = text(line?.description).toLowerCase();
+    if (target === 'insulation') {
+      return /\b(material|batt|batts|roll|rolls|board|boards|fiberglass|foam|cellulose)\b/.test(description)
+        && !/^\s*(install|installation|labor|place|fit|hang)\b/.test(description);
+    }
+    return /\b(material|sheet|sheets|panel|panels|board|boards|gypsum|compound|tape|screws?)\b/.test(description)
+      && !/^\s*(hang|hanging|install|installation|labor|tape and finish|finish)\b/.test(description);
+  }
+  function laborLike(line, target) {
+    const kind = text(line?.costType || line?.lineType || line?.componentType).toLowerCase();
+    if (kind === 'labor' || kind === 'labour') return true;
+    const description = text(line?.description).toLowerCase();
+    if (/\b(labor|labour|installation labor|hanging labor|finishing labor)\b/.test(description)) return true;
+    if (target === 'insulation') return /^\s*(install|installation|place|fit)\b/.test(description);
+    return /^\s*(hang|hanging|install|installation|tape|taping|finish|finishing)\b/.test(description);
+  }
   function hasSeparatedMaterialAndLabor(lines, target) {
     const relevant = targetLines(lines, target);
-    if (!relevant.length) return false;
-    const hasMaterial = relevant.some(line => hasWord(line?.description, ['material', 'batt', 'roll', 'board', 'panel', 'sheetrock', 'drywall sheet']));
-    const hasLabor = relevant.some(line => hasWord(line?.description, ['labor', 'install', 'hanging', 'hang ', 'taping', 'finishing', 'finish '])) && relevant.some(line => hasWord(line?.description, ['labor', 'installation labor', 'hanging labor', 'finishing labor']));
-    return hasMaterial && hasLabor;
+    if (relevant.length < 2) return false;
+    const materialIndexes = [];
+    const laborIndexes = [];
+    relevant.forEach((line, index) => {
+      if (materialLike(line, target)) materialIndexes.push(index);
+      if (laborLike(line, target)) laborIndexes.push(index);
+    });
+    return materialIndexes.some(materialIndex => laborIndexes.some(laborIndex => laborIndex !== materialIndex));
   }
   function draftProblems(payload, args) {
     const lines = draftLines(payload);
@@ -165,7 +188,10 @@
     const invalid = lines.filter(line => quantityOf(line) <= 0);
     if (invalid.length) problems.push(`zero/non-positive quantity: ${invalid.slice(0, 4).map(line => text(line?.description)).join('; ')}`);
     for (const target of ['insulation', 'drywall']) {
-      if (scopeRequiresTarget(args, target) && !hasSeparatedMaterialAndLabor(lines, target)) problems.push(`${target} material and labor are not separated`);
+      if (scopeRequiresTarget(args, target) && !hasSeparatedMaterialAndLabor(lines, target)) {
+        const returned = targetLines(lines, target).map(line => text(line?.description)).filter(Boolean).slice(0, 6).join(' | ');
+        problems.push(`${target} material and labor are not separated${returned ? ` (returned: ${returned})` : ''}`);
+      }
     }
     return problems;
   }
@@ -174,7 +200,7 @@
       text(args?.notes).trim(),
       'QUOTE DRAFT REPAIR REQUIRED: The previous draft failed H38 quote acceptance. Rebuild the draft while preserving the requested scope and verified measurements.',
       `FAILURES TO CORRECT: ${problems.join(' | ')}`,
-      'Return positive quantities only. For insulation and drywall/sheetrock in this scope, material and labor must be separate lines. Material quantity includes the 10% ordering allowance; labor quantity stays at net installed quantity.'
+      'Return positive quantities only. For insulation and drywall/sheetrock in this scope, material and labor must be separate lines. A labor line may be named with an action such as Install insulation or Hang and finish drywall; it does not have to contain the literal word labor. Material quantity includes the 10% ordering allowance; labor quantity stays at net installed quantity.'
     ].filter(Boolean).join('\n\n');
   }
   async function responsePayload(response) {
@@ -296,6 +322,8 @@
     zeroQuantityDraftBlocked: true,
     separateInsulationMaterialAndLaborRequired: true,
     separateDrywallMaterialAndLaborRequired: true,
+    distinctMaterialAndLaborLinesRequired: true,
+    laborActionDescriptionsAccepted: true,
     materialOrderAllowancePercent: 10,
     laborUsesNetInstalledQuantity: true,
     separateRenderRequest: true,
