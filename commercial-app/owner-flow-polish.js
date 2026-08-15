@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-0240';
+const BUILD='20260815-0310';
 let scheduled=false;
 let fallbackTimer=0;
 
@@ -11,10 +11,7 @@ function quotePage(){
   const heading=document.querySelector('#mainContent .page-head h1,#mainContent h1');
   return /quote/i.test(text(heading?.textContent))&&Boolean(document.querySelector('#mainContent'));
 }
-function visible(node){return Boolean(node&&node.isConnected&&node.getClientRects().length&&!node.disabled);}
-function actionByText(pattern){
-  return Array.from(document.querySelectorAll('#mainContent button,#mainContent a')).find(node=>!node.closest('#h38QuoteQuickBar')&&visible(node)&&pattern.test(text(node.textContent)))||null;
-}
+function quoteHasLines(){try{return Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.length>0;}catch(_){return false;}}
 function stopFallbackWatch(){if(fallbackTimer){clearInterval(fallbackTimer);fallbackTimer=0;}}
 function startFallbackWatch(){
   stopFallbackWatch();
@@ -42,61 +39,68 @@ function collapseInternalEvidence(root=document){
   root.querySelectorAll?.('details').forEach(details=>{
     if(details.dataset.h38OwnerPolish==='1')return;
     const summary=text(details.querySelector(':scope > summary')?.textContent||details.querySelector('summary')?.textContent);
-    if(!/^(site measurements|field notes|skipped requested photos|measurement evidence|ai evidence|ai review|internal evidence|capture evidence|technical details)/i.test(summary))return;
+    if(!/^(site measurements|field notes|skipped requested photos|measurement evidence|ai evidence|ai review|internal evidence|capture evidence|technical details|owner scope confirmations|owner site visit context|h38 scope draft)/i.test(summary))return;
     details.dataset.h38OwnerPolish='1';
     details.open=false;
     details.classList.add('h38-owner-evidence-details');
   });
 }
-function scrollPreview(){
-  const preview=document.getElementById('quotePreviewDocument');
-  if(preview){preview.scrollIntoView({behavior:'smooth',block:'start'});return;}
-  const button=actionByText(/customer preview|preview customer|open preview|preview quote/i);
-  if(button)button.click();
-  else window.toast?.('Customer Preview is not ready yet.',true);
+function removeRetiredProxyBar(){document.getElementById('h38QuoteQuickBar')?.remove();}
+function ensureMoreTools(main,tools){
+  const ai=document.getElementById('h38AiQuoteDraftButton');
+  const cad=document.getElementById('h38CadButton');
+  let more=document.getElementById('h38QuoteMoreTools');
+  if(!quoteHasLines()){
+    if(ai){ai.textContent='✨ Build with H38 AI';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
+    if(cad&&cad.closest('#h38QuoteMoreTools'))tools.appendChild(cad);
+    more?.remove();
+    return;
+  }
+  if(!ai&&!cad){more?.remove();return;}
+  if(!more){
+    more=document.createElement('details');
+    more.id='h38QuoteMoreTools';
+    more.className='h38-quote-more-tools';
+    more.innerHTML='<summary>More quote tools</summary><div class="h38-quote-more-actions"></div><p>Use Rebuild only when you want H38 AI to recalculate the current draft. Existing Site Visit quote lines do not need to be rebuilt just to preview or print them.</p>';
+    tools.insertAdjacentElement('afterend',more);
+  }
+  const actions=more.querySelector('.h38-quote-more-actions');
+  if(ai){ai.textContent='↻ Rebuild with H38 AI';ai.classList.add('secondary','h38-rebuild-tool');actions.appendChild(ai);}
+  if(cad){cad.classList.add('secondary');actions.appendChild(cad);}
 }
-function buildQuote(){
-  const button=actionByText(/^(?:✨\s*)?(?:build|refresh|rebuild).*(?:quote|draft)|build draft from this site visit/i);
-  if(button){button.click();return;}
-  window.toast?.('Build Quote is not available on this screen.',true);
-}
-function printQuote(){
-  if(nativePrintAvailable()&&window.H38_SAFE_QUOTE_PRINT?.print){window.H38_SAFE_QUOTE_PRINT.print();return;}
-  const button=document.querySelector('#printQuoteButton,#h38PhonePrintSaveButton,#h38CreatePdfButton');
-  if(button&&!button.closest('#h38QuoteQuickBar')){button.click();return;}
-  window.toast?.('Open Customer Preview before printing or saving a PDF.',true);
-}
-function ensureQuoteBar(){
-  let bar=document.getElementById('h38QuoteQuickBar');
+function polishRealQuoteTools(){
+  removeRetiredProxyBar();
   if(!quotePage()){
     document.body.classList.remove('h38-owner-quote-polish');
-    bar?.remove();
+    document.getElementById('h38QuoteMoreTools')?.remove();
     return;
   }
   document.body.classList.add('h38-owner-quote-polish');
   const main=document.getElementById('mainContent');
-  if(!main)return;
-  if(!bar){
-    bar=document.createElement('nav');
-    bar.id='h38QuoteQuickBar';
-    bar.className='h38-quote-quick-bar';
-    bar.setAttribute('aria-label','Quote quick actions');
-    bar.innerHTML='<button type="button" data-h38-quote-quick="build">✨ Build / Refresh</button><button type="button" data-h38-quote-quick="preview">Customer Preview</button><button type="button" data-h38-quote-quick="print">Print / Save PDF</button>';
-    bar.addEventListener('click',event=>{
-      const button=event.target.closest?.('[data-h38-quote-quick]');if(!button)return;
-      const action=button.dataset.h38QuoteQuick;
-      if(action==='build')buildQuote();
-      else if(action==='preview')scrollPreview();
-      else if(action==='print')printQuote();
-    });
-  }
+  const tools=main?.querySelector('.page-tools');
+  if(!main||!tools)return;
+  tools.classList.add('h38-proven-quote-tools');
+  tools.setAttribute('aria-label','Quote actions');
   const head=main.querySelector('.page-head');
-  if(head&&bar.previousElementSibling!==head)head.insertAdjacentElement('afterend',bar);
-  else if(!bar.isConnected)main.prepend(bar);
+  if(head&&tools.parentElement===head)head.insertAdjacentElement('afterend',tools);
+
+  const preview=document.getElementById('previewQuoteButton');
+  if(preview){
+    preview.textContent='Customer Preview';
+    preview.classList.remove('secondary');
+    preview.classList.add('h38-primary-quote-action');
+    tools.prepend(preview);
+  }
+  const back=document.getElementById('backToQuoteFromPreview');
+  if(back){back.textContent='← Back to Quote';back.classList.add('secondary');tools.prepend(back);}
+  const print=document.getElementById('printQuoteButton');
+  if(print){print.textContent='Print / Save PDF';print.classList.add('h38-primary-quote-action');tools.appendChild(print);}
+
+  ensureMoreTools(main,tools);
 }
 function markOptionalWork(root=document){
   root.querySelectorAll?.('#mainContent .row,#mainContent .card,#mainContent section').forEach(node=>{
-    if(node.id==='h38QuoteQuickBar'||node.dataset.h38OptionalChecked==='1')return;
+    if(node.id==='h38QuoteMoreTools'||node.dataset.h38OptionalChecked==='1')return;
     const label=text(node.querySelector('h2,h3,strong,.row-top')?.textContent);
     if(!/^optional\b/i.test(label))return;
     node.dataset.h38OptionalChecked='1';
@@ -106,7 +110,7 @@ function markOptionalWork(root=document){
 function apply(){
   scheduled=false;
   collapseInternalEvidence(document);
-  ensureQuoteBar();
+  polishRealQuoteTools();
   markOptionalWork(document);
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
@@ -131,7 +135,11 @@ window.H38_OWNER_FLOW_POLISH=Object.freeze({
   nativePrintPriority:true,
   noAndroidAboutBlank:true,
   savedLoginFallbackAutoSubmit:true,
-  quoteQuickActions:true,
+  provenQuoteButtonsOnly:true,
+  syntheticQuoteQuickBar:false,
+  realPreviewButtonId:'previewQuoteButton',
+  realPrintButtonId:'printQuoteButton',
+  aiRebuildSecondaryWhenLinesExist:true,
   internalEvidenceCollapsed:true,
   optionalWorkEmphasized:true,
   automaticApproval:false,
