@@ -20,6 +20,13 @@ const MAX_ASSEMBLY_ROWS = 160;
 const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
+const PRIMARY_COMPONENT_IDS = {
+  insulationR24Ceiling: "f752fe19-ffe4-4981-864e-a7c0b69660c4",
+  insulationR19Wall: "536e415e-df4b-4d56-9a0f-56103a778933",
+  drywallCeiling: "143ede44-adde-4c19-adeb-2eb15ae572b5",
+  drywallWall: "709671e9-eb94-4b73-b565-b574e19803bd",
+} as const;
+const PRIMARY_COMPONENT_ID_SET = new Set<string>(Object.values(PRIMARY_COMPONENT_IDS));
 
 type JsonObject = Record<string, unknown>;
 type AuthUser = { id: string; email?: string };
@@ -384,42 +391,149 @@ async function assemblyRecipes(service: ReturnType<typeof serviceClient>, busine
     updatedAt: row.updated_at,
   }));
 }
+
+function catalogRole(entry: JsonObject): "material" | "labor" | "assembly" | "unknown" {
+  const itemCode = clean(entry.itemCode, 180).toUpperCase();
+  const text = normalizeText(`${clean(entry.category, 300)} ${clean(entry.description, 800)} ${clean(entry.sourceNote, 1200)}`);
+  if (itemCode.startsWith("ASM-") || text.includes("installed assembly") || text.includes("blended installed")) return "assembly";
+  if (itemCode.startsWith("LAB-") || text.includes("labor only")) return "labor";
+  if (itemCode.startsWith("MAT-") || text.includes("material only") || text.includes("raw material")) return "material";
+  return "unknown";
+}
+function pricingFamily(value: unknown): "insulation" | "drywall" | "" {
+  const text = normalizeText(value);
+  if (/\binsulat(e|ed|ing|ion)\b/.test(text)) return "insulation";
+  if (/\b(drywall|sheet\s*rock|sheetrock)\b/.test(text)) return "drywall";
+  return "";
+}
+function catalogFamily(entry: JsonObject): "insulation" | "drywall" | "" {
+  return pricingFamily(`${clean(entry.category, 300)} ${clean(entry.description, 800)} ${clean(entry.itemCode, 180)} ${clean(entry.sourceNote, 1200)}`);
+}
+function catalogIdentityMatch(entry: JsonObject, requestedIdentity: string): boolean {
+  if (!requestedIdentity) return false;
+  return clean(entry.catalogId, 160) === requestedIdentity || clean(entry.itemCode, 160) === requestedIdentity;
+}
+function deterministicMaterialComponent(line: JsonObject, catalog: JsonObject[]): JsonObject | null {
+  if (clean(line.costType, 40).toLowerCase() !== "material" || normalizeUnit(line.unit) !== "square foot") return null;
+  const description = normalizeText(line.description);
+  let targetId = "";
+  if (/\binsulat(e|ed|ing|ion)\b/.test(description) && /\b(ceiling|overhead)\b/.test(description) && /\b(r\s*24|r24|high\s*r)\b/.test(description)) {
+    targetId = PRIMARY_COMPONENT_IDS.insulationR24Ceiling;
+  } else if (/\binsulat(e|ed|ing|ion)\b/.test(description) && /\bwalls?\b/.test(description) && /\b(r\s*19|r19)\b/.test(description)) {
+    targetId = PRIMARY_COMPONENT_IDS.insulationR19Wall;
+  } else if (/\b(drywall|sheet\s*rock|sheetrock)\b/.test(description) && /\bceiling\b/.test(description)) {
+    targetId = PRIMARY_COMPONENT_IDS.drywallCeiling;
+  } else if (/\b(drywall|sheet\s*rock|sheetrock)\b/.test(description) && /\bwalls?\b/.test(description)) {
+    targetId = PRIMARY_COMPONENT_IDS.drywallWall;
+  }
+  return targetId ? catalog.find((entry) => clean(entry.catalogId, 160) === targetId) || null : null;
+}
+function catalogSafety(line: JsonObject, matched: JsonObject | null, matchMode: string): { valid: boolean; reason: string } {
+  if (!matched) return { valid: false, reason: "catalog_identity_not_found" };
+  if (number(matched.rate) <= 0) return { valid: false, reason: "catalog_rate_not_positive" };
+  if (!sameUnit(line.unit, matched.unit)) return { valid: false, reason: "catalog_unit_mismatch" };
+  if (matched.sourceType === "local_research" && matched.requiresWebRefresh === true) return { valid: false, reason: "catalog_local_research_stale" };
+
+  const costType = clean(line.costType, 40).toLowerCase();
+  const role = catalogRole(matched);
+  const lineFamily = pricingFamily(line.description);
+  const matchedFamily = catalogFamily(matched);
+  if (costType === "material" && role === "labor") return { valid: false, reason: "material_line_cannot_use_labor_catalog" };
+  if (costType === "labor" && role === "material") return { valid: false, reason: "labor_line_cannot_use_material_catalog" };
+  if ((lineFamily === "insulation" || lineFamily === "drywall") && role === "assembly") return { valid: false, reason: "separated_component_cannot_use_installed_assembly" };
+  if (lineFamily && matchedFamily && lineFamily !== matchedFamily) return { valid: false, reason: "catalog_component_family_mismatch" };
+
+  const matchedId = clean(matched.catalogId, 160);
+  const primaryComponent = PRIMARY_COMPONENT_ID_SET.has(matchedId);
+  if (matchMode !== "deterministic_component_recovery" && !primaryComponent && !sameDescription(line.description, matched.description)) {
+    return { valid: false, reason: "catalog_description_mismatch" };
+  }
+  return { valid: true, reason: "validated" };
+}
 function validateCatalogPricing(draft: JsonObject, prices: JsonObject[]) {
   const catalog = prices.filter((item) => clean(item.catalogId, 160));
-  if (!catalog.length || !Array.isArray(draft.suggestedLines)) return { draft, corrections: 0 };
+  if (!catalog.length || !Array.isArray(draft.suggestedLines)) {
+    return { draft, corrections: 0, recovered: 0, rejected: 0, normalized: 0, diagnostics: [] as JsonObject[] };
+  }
   let corrections = 0;
+  let recovered = 0;
+  let rejected = 0;
+  let normalized = 0;
+  const diagnostics: JsonObject[] = [];
   const suggestedLines = (draft.suggestedLines as unknown[]).map((item) => {
     const line = item && typeof item === "object" ? item as JsonObject : {};
     const source = clean(line.priceSource, 80).toLowerCase();
-    const catalogId = clean(line.catalogId, 160);
-    if (source !== "price_book" && !catalogId) return line;
-    const matched = catalogId ? catalog.find((entry) => clean(entry.catalogId, 160) === catalogId) : null;
-    const staleResearch = matched && matched.sourceType === "local_research" && matched.requiresWebRefresh === true;
-    const valid = Boolean(
-      matched && number(matched.rate) > 0 && sameUnit(line.unit, matched.unit) && sameDescription(line.description, matched.description) && !staleResearch
-    );
-    if (!valid) {
+    const requestedIdentity = clean(line.catalogId, 160);
+    const requestedRate = number(line.rate);
+    let matched = requestedIdentity ? catalog.find((entry) => catalogIdentityMatch(entry, requestedIdentity)) || null : null;
+    let matchMode = matched ? (clean(matched.catalogId, 160) === requestedIdentity ? "catalogId" : "itemCode") : "none";
+
+    const deterministic = deterministicMaterialComponent(line, catalog);
+    if (deterministic && (source === "manual_required" || requestedRate <= 0 || !matched || clean(matched.catalogId, 160) !== clean(deterministic.catalogId, 160))) {
+      matched = deterministic;
+      matchMode = "deterministic_component_recovery";
+    }
+
+    if (source !== "price_book" && source !== "local_research" && !requestedIdentity && !matched) return line;
+
+    const safety = catalogSafety(line, matched, matchMode);
+    if (!safety.valid) {
       corrections += 1;
+      rejected += 1;
+      diagnostics.push({
+        description: clean(line.description, 260),
+        costType: clean(line.costType, 40),
+        requestedCatalogId: requestedIdentity,
+        requestedPriceSource: source,
+        requestedRate,
+        matchedCatalogId: clean(matched?.catalogId, 160),
+        matchedItemCode: clean(matched?.itemCode, 160),
+        matchMode,
+        reason: safety.reason,
+        finalRate: 0,
+        finalPriceSource: "manual_required",
+      });
       return {
         ...line,
         rate: 0,
         catalogId: "",
         priceSource: "manual_required",
         confidence: "low",
-        rationale: `${clean(line.rationale, 900)} Catalog pricing was rejected because catalog identity, description, unit, positive rate, or stored-research freshness did not safely match. Reprice with current research.`.trim(),
+        rationale: `${clean(line.rationale, 900)} Catalog pricing was rejected by server validation (${safety.reason}). Reprice with a safe matching component rate.`.trim(),
       };
     }
+
     const normalizedSource = clean(matched?.sourceType, 80).toLowerCase() === "local_research" ? "local_research" : "price_book";
-    if (number(line.rate) !== number(matched?.rate) || source !== normalizedSource) corrections += 1;
+    const finalRate = number(matched?.rate);
+    const finalCatalogId = clean(matched?.catalogId, 160);
+    const changed = requestedRate !== finalRate || source !== normalizedSource || requestedIdentity !== finalCatalogId;
+    if (changed) corrections += 1;
+    if (matchMode === "deterministic_component_recovery") recovered += 1;
+    else if (changed) normalized += 1;
+    if (matchMode === "deterministic_component_recovery" || matchMode === "itemCode" || changed) {
+      diagnostics.push({
+        description: clean(line.description, 260),
+        costType: clean(line.costType, 40),
+        requestedCatalogId: requestedIdentity,
+        requestedPriceSource: source,
+        requestedRate,
+        matchedCatalogId: finalCatalogId,
+        matchedItemCode: clean(matched?.itemCode, 160),
+        matchMode,
+        reason: matchMode === "deterministic_component_recovery" ? "recovered_safe_primary_component" : changed ? "normalized_to_catalog" : "resolved_item_code_identity",
+        finalRate,
+        finalPriceSource: normalizedSource,
+      });
+    }
     return {
       ...line,
-      rate: number(matched?.rate),
-      catalogId: clean(matched?.catalogId, 160),
+      rate: finalRate,
+      catalogId: finalCatalogId,
       priceSource: normalizedSource,
       rationale: clean(line.rationale, 1200),
     };
   });
-  return { draft: { ...draft, suggestedLines }, corrections };
+  return { draft: { ...draft, suggestedLines }, corrections, recovered, rejected, normalized, diagnostics: diagnostics.slice(0, 40) };
 }
 function currentEstimate(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -481,9 +595,11 @@ function baseInstructions(): string {
     "MATERIAL ORDER ALLOWANCE: material purchase/order quantities use the measured installed material quantity plus 10 percent. State both net installed quantity and 10 percent ordering allowance in the material-line rationale.",
     "LABOR QUANTITY: labor quantities use only net installed work quantity. Never multiply labor quantity by the 10 percent material allowance.",
     "ASSEMBLY RECIPE RULE: assemblyRecipes are calculation scaffolds. For a componentized quote, NEVER copy installedSellRate as a material-only or labor-only rate.",
-    "For material component pricing, use an exact raw-material Price Book item when available. Otherwise use a defensible owner-review-required component basis from baseMaterialCost/consumables or current local research.",
+    "PRICE COMPONENT SAFETY: a MATERIAL line must never use a LAB/labor-only row; a LABOR line must never use a MAT/raw-material row; separated insulation/drywall components must never use an ASM installed/blended sell rate.",
+    "For separated material component pricing, prefer the exact Price Book component row whose unit matches the quote line. If a quote component is measured in SF and a matching primary/COMP SF material row exists, use that row. Do not select an EACH, box, or roll raw purchase-unit row for an SF quote line.",
+    "Use a raw purchase-unit Price Book row only when the quote line quantity and unit use that same purchase unit. If no same-unit component row exists, use a defensible owner-review-required component basis from assembly baseMaterialCost/consumables or current local research.",
     "For labor component pricing, derive the component labor basis from laborHoursPerUnit × laborCostPerHour when the matching assembly recipe applies. Keep it owner-review required unless an owner-approved labor item exists.",
-    "When using a Price Book catalogId, keep the line description close enough to the catalog description and use the same unit so the server can safely verify it.",
+    "When selecting a Price Book row, prefer its exact catalogId UUID. Keep the line unit compatible with that row. The server can safely resolve an exact itemCode as a compatibility identity but returns the canonical UUID.",
     "Search the supplied Price Book first. Owner-approved catalog pricing is strongest. Stored researched allowances remain owner-review required.",
     `If a local_research Price Book row is older than ${LOCAL_RESEARCH_REFRESH_DAYS} days or marked requiresWebRefresh, use current web research instead of claiming it is current.`,
     "If no suitable current component rate exists, use zero with manual_required only for the RATE; quantity must remain positive when the work quantity is known.",
@@ -691,6 +807,13 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       serverBreakoutRepairApplied: repairApplied,
       serverBreakoutProblemsBeforeRepair: beforeRepair,
       catalogPricingCorrections: validated.corrections,
+      catalogPricingRecovered: validated.recovered,
+      catalogPricingRejected: validated.rejected,
+      catalogPricingNormalized: validated.normalized,
+      catalogPricingDiagnostics: validated.diagnostics,
+      catalogIdentityMatchesItemCode: true,
+      catalogCostTypeSafety: true,
+      deterministicComponentRecovery: true,
       renderStatus: photos.length ? "READY_FOR_SEPARATE_RENDER" : "NO_SOURCE_PHOTO",
       renderModel: OPENAI_IMAGE_MODEL,
     });
@@ -708,6 +831,10 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       serverBreakoutValidated: true,
       serverBreakoutRepairApplied: repairApplied,
       catalogPricingCorrections: validated.corrections,
+      catalogPricingRecovered: validated.recovered,
+      catalogPricingRejected: validated.rejected,
+      catalogPricingNormalized: validated.normalized,
+      catalogPricingDiagnostics: validated.diagnostics,
       ownerReviewRequired: true,
       externalActionOccurred: false,
     });
@@ -816,6 +943,10 @@ Deno.serve(async (request: Request) => {
       measurementAuthorityHierarchy: true,
       structuredMeasurementEvidence: true,
       catalogPriceValidation: true,
+      catalogIdentityMatchesItemCode: true,
+      catalogCostTypeSafety: true,
+      deterministicComponentRecovery: true,
+      catalogPricingDiagnostics: true,
       staleLocalResearchRefreshDays: LOCAL_RESEARCH_REFRESH_DAYS,
       renderedConcepts: true,
       separateRenderRequest: true,
