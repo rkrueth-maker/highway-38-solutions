@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-quote-measurement-action-photo-guard-3';
+const BUILD='20260814-quote-measurement-action-photo-guard-4';
 const Bridge=window.H38Bridge;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!Bridge||!Bridge.prototype)return;
@@ -22,27 +22,63 @@ function compactMeasurement(row){
     notes:text(valueOf(row,'Notes','notes'))
   };
 }
+function uniqueMeasurements(items){
+  const seen=new Set();
+  return items.map(compactMeasurement).filter(Boolean).filter(item=>{
+    const key=[item.measurementId,item.label,item.value,item.unit,item.source,item.verificationStatus].join('|');
+    if(seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,80);
+}
 function linkedMeasurementEvidence(args){
-  const suppliedRows=[
+  const supplied=uniqueMeasurements([
     ...(Array.isArray(args?.measurementEvidence)?args.measurementEvidence:[]),
     ...(Array.isArray(args?.siteMeasurements)?args.siteMeasurements:[])
-  ];
-  const supplied=suppliedRows.map(compactMeasurement).filter(Boolean);
-  if(supplied.length)return supplied.slice(0,80);
+  ]);
+  if(supplied.length)return supplied;
   const quoteId=text(args?.quoteId).trim();
   if(!quoteId)return[];
   const quote=rows('quotes').find(row=>text(valueOf(row,'Quote ID','quoteId'))===quoteId);
   const sessionId=text(valueOf(quote,'Site Scanner Session ID','siteScannerSessionId')).trim();
   const all=[...rows('siteMeasurements'),...rows('measurements')];
-  const seen=new Set();
-  return all.filter(row=>{
+  return uniqueMeasurements(all.filter(row=>{
     const rowQuote=text(valueOf(row,'Quote ID','quoteId'));
     const rowSession=text(valueOf(row,'Capture Session ID','captureSessionId'));
     return (sessionId&&rowSession===sessionId)||rowQuote===quoteId;
-  }).map(compactMeasurement).filter(Boolean).filter(item=>{
-    const key=[item.measurementId,item.label,item.value,item.unit,item.source,item.verificationStatus].join('|');
-    if(seen.has(key))return false;seen.add(key);return true;
-  }).slice(0,80);
+  }));
+}
+async function liveMeasurementEvidence(args){
+  const quoteId=text(args?.quoteId).trim(),businessId=text(args?.businessId||window.state?.businessId).trim();
+  if(!quoteId||!businessId)return[];
+  const api=shared?.ensure?.();
+  if(!api)return[];
+  const quote=rows('quotes').find(row=>text(valueOf(row,'Quote ID','quoteId'))===quoteId);
+  const sessionId=text(valueOf(quote,'Site Scanner Session ID','siteScannerSessionId')).trim();
+  try{
+    const result=await api.from('business_records').select('record_key,payload,updated_at').eq('business_id',businessId).eq('collection','siteMeasurements').eq('record_status','active').order('updated_at',{ascending:false}).limit(500);
+    if(result.error)throw result.error;
+    return uniqueMeasurements((result.data||[]).map(row=>row?.payload||{}).filter(payload=>{
+      const rowQuote=text(valueOf(payload,'Quote ID','quoteId'));
+      const rowSession=text(valueOf(payload,'Capture Session ID','captureSessionId'));
+      return rowQuote===quoteId||(sessionId&&rowSession===sessionId);
+    }));
+  }catch(error){
+    console.warn('[H38 Quote measurement guard] live measurement hydration failed',error);
+    return[];
+  }
+}
+function materialBreakoutInstructions(){return [
+  'QUOTE COST BREAKOUT REQUIREMENT: Show material cost and labor cost as separate required quote lines whenever both are part of the scope. Do not hide materials inside a blended installed rate.',
+  'For sheetrock/drywall, create separate lines for sheetrock/materials and for hanging/taping/finishing labor. For insulation, likewise separate insulation material from installation labor when both are included.',
+  'MATERIAL ORDER ALLOWANCE: calculate purchase/order quantities at 110% of the measured installed material quantity (10% extra for waste, cuts, damage, and ordering allowance). Clearly state the measured quantity and the 10% allowance in the rationale.',
+  'Labor quantities must use the actual installed/net work quantity, not the 110% material purchase quantity.',
+  'If the Price Book only contains a blended installed material+labor price, do not use that blended row as the rate for a material-only or labor-only line. Use an appropriate separate Price Book row when available; otherwise use a clearly owner-review-required local-research or manual-required component rate.',
+  'Keep all generated prices owner-review required. Never approve, send, purchase, pay, or financially commit automatically.'
+].join('\n');}
+function applyMaterialBreakoutPolicy(prepared){
+  const policy=materialBreakoutInstructions(),existing=text(prepared.notes);
+  if(!existing.includes('QUOTE COST BREAKOUT REQUIREMENT:'))prepared.notes=[existing,policy].filter(Boolean).join('\n\n');
+  prepared.materialOrderAllowancePercent=10;
+  prepared.separateMaterialAndLabor=true;
 }
 function actionPhotoMap(){return window.H38_QUOTE_ACTION_PHOTO_BY_QUOTE||(window.H38_QUOTE_ACTION_PHOTO_BY_QUOTE=Object.create(null));}
 function actionPhotoId(quoteId,args){
@@ -80,7 +116,10 @@ async function promoteActionPhotoSource(quoteId,selected){
 Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiBuildQuoteDraft'){
     const prepared={...(args||{})};
-    const evidence=linkedMeasurementEvidence(prepared);
+    applyMaterialBreakoutPolicy(prepared);
+    let evidence=linkedMeasurementEvidence(prepared);
+    const live=await liveMeasurementEvidence(prepared);
+    if(live.length)evidence=live;
     if(evidence.length){
       prepared.measurementEvidence=evidence;
       prepared.siteMeasurements=evidence;
@@ -103,7 +142,11 @@ window.H38_QUOTE_MEASUREMENT_ACTION_PHOTO_GUARD=Object.freeze({
   build:BUILD,
   linkedMeasurementHydrationRestored:true,
   acceptsSiteMeasurementsPayload:true,
+  liveSupabaseMeasurementHydration:true,
   measurementEvidencePassedToQuoteAi:true,
+  separateMaterialAndLabor:true,
+  materialOrderAllowancePercent:10,
+  noBlendedInstalledRateForSeparatedComponents:true,
   noAutomaticRenderWithoutActionPhoto:true,
   actionPhotoRequiredForRender:true,
   selectedActionPhotoPromotedAsRenderSource:true,
