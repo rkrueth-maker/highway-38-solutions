@@ -1,7 +1,8 @@
 (function(){
 'use strict';
-const BUILD='20260814-quote-measurement-action-photo-guard-1';
+const BUILD='20260814-quote-measurement-action-photo-guard-2';
 const Bridge=window.H38Bridge;
+const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!Bridge||!Bridge.prototype)return;
 const previousRequest=Bridge.prototype.request;
 const text=value=>String(value==null?'':value);
@@ -51,6 +52,27 @@ function skipRender(result){
   if(!result||typeof result!=='object')return result;
   return{...result,photoCount:0,renderStatus:'SKIPPED_NO_ACTION_PHOTO',actionPhotoRequiredForRender:true};
 }
+async function promoteActionPhotoSource(quoteId,selected){
+  const api=shared?.ensure?.(),businessId=text(window.state?.businessId).trim();
+  if(!api||!businessId||!quoteId||!selected)throw new Error('The selected Action Picture could not be prepared securely for rendering.');
+  if(typeof window.sync==='function')await window.sync(false);
+  const result=await api.from('business_records').select('record_key,payload').eq('business_id',businessId).eq('collection','documents').eq('record_status','active').limit(500);
+  if(result.error)throw result.error;
+  const candidates=(result.data||[]).filter(row=>{
+    const payload=row?.payload||{};
+    const sourceType=text(valueOf(payload,'Source Type','sourceType')).toLowerCase();
+    const sourceId=text(valueOf(payload,'Source ID','sourceId'));
+    const mime=text(valueOf(payload,'Mime Type','mimeType')).toLowerCase();
+    const documentId=text(valueOf(payload,'Document ID','documentId'));
+    const originalId=text(valueOf(payload,'Original Document ID','originalDocumentId'));
+    return sourceType==='quote'&&sourceId===quoteId&&mime.startsWith('image/')&&(documentId===selected||originalId===selected);
+  });
+  if(!candidates.length)throw new Error('The selected Action Picture is not linked to this quote yet. Reopen the Site Visit and finish it again before rendering.');
+  const target=candidates[0],now=new Date().toISOString(),payload={...(target.payload||{}),'Action Picture':true,'Action Picture Source ID':selected,'Action Picture Selected Time':now,'Updated Time':now};
+  const updated=await api.from('business_records').update({payload,updated_at:now}).eq('business_id',businessId).eq('collection','documents').eq('record_key',target.record_key);
+  if(updated.error)throw updated.error;
+  return text(target.record_key);
+}
 Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiBuildQuoteDraft'){
     const prepared={...(args||{})};
@@ -65,6 +87,7 @@ Bridge.prototype.request=async function(action,args,timeout){
     const prepared={...(args||{})},quoteId=text(prepared.quoteId).trim(),selected=actionPhotoId(quoteId,prepared);
     if(!selected)return{status:'PASS',renderStatus:'SKIPPED_NO_ACTION_PHOTO',renderedConcepts:[],actionPhotoRequiredForRender:true,ownerReviewRequired:true,externalActionOccurred:false};
     prepared.actionPhotoDocumentId=selected;
+    prepared.actionPhotoQuoteLinkId=await promoteActionPhotoSource(quoteId,selected);
     return previousRequest.call(this,action,prepared,timeout);
   }
   return previousRequest.call(this,action,args,timeout);
@@ -75,6 +98,8 @@ window.H38_QUOTE_MEASUREMENT_ACTION_PHOTO_GUARD=Object.freeze({
   measurementEvidencePassedToQuoteAi:true,
   noAutomaticRenderWithoutActionPhoto:true,
   actionPhotoRequiredForRender:true,
+  selectedActionPhotoPromotedAsRenderSource:true,
+  selectedActionPhotoMustBeLinkedToQuote:true,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticFinancialAction:false
