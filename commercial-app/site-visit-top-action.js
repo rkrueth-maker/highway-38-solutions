@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-site-quote-handoff-8';
+const BUILD='20260816-job-centered-flow-loader-1';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -80,8 +80,15 @@ function loadQuoteMeasurementActionPhotoGuard(){
   script.dataset.h38QuoteMeasurementActionPhotoGuard='1';
   document.head.appendChild(script);
 }
+function loadJobCenteredFlow(){
+  if(window.H38_JOB_CENTERED_FLOW||document.querySelector('script[data-h38-job-centered-flow]'))return;
+  const script=document.createElement('script');
+  script.src='./job-centered-flow.js?build=20260816-job-centered-flow-1';
+  script.dataset.h38JobCenteredFlow='1';
+  document.head.appendChild(script);
+}
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();setTimeout(loadFinishBuild,1200);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,blankScreenRecovery:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();loadJobCenteredFlow();setTimeout(loadFinishBuild,1200);
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,blankScreenRecovery:true};
 })();
