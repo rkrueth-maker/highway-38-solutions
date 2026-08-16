@@ -5,6 +5,7 @@ FLOW = (ROOT / "commercial-app" / "job-centered-flow.js").read_text(encoding="ut
 PHOTO_RESTORE = (ROOT / "commercial-app" / "quote-photo-restore.js").read_text(encoding="utf-8")
 PHOTO_REVIEW = (ROOT / "commercial-app" / "field-visit-photo-review.js").read_text(encoding="utf-8")
 TOP_ACTION = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
+DELETE_RESET = (ROOT / "commercial-app" / "site-visit-delete-reset-fix.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
@@ -79,19 +80,45 @@ def test_ai_site_review_keeps_all_evidence_but_aliases_selected_only():
     assert "automaticQuotePhotoLinking:false" in PHOTO_REVIEW
 
 
+def test_delete_site_visit_clears_loaded_and_local_capture_state():
+    assert "activeDeleteTwoTapConfirm:true" in DELETE_RESET
+    assert "localDraftPurge:true" in DELETE_RESET
+    assert "attachmentPurge:true" in DELETE_RESET
+    assert "pendingOperationPurge:true" in DELETE_RESET
+    assert "loadedSnapshotPurge:true" in DELETE_RESET
+    for collection in ["siteCaptureSessions", "siteMeasurements", "jobNotes", "siteAiReviews", "siteVisits"]:
+        assert collection in DELETE_RESET
+    assert "snapshot.documents" in DELETE_RESET
+    assert "window.H38_FIELD_VISIT?.close?.()" in DELETE_RESET
+    assert "reopenStartsFresh:true" in DELETE_RESET
+
+
+def test_delete_site_visit_keeps_customer_quote_and_uses_explicit_confirmation():
+    assert "Tap Again to Delete" in DELETE_RESET
+    assert "window.confirm=()=>true" in DELETE_RESET
+    assert "Customer and quote were kept" in DELETE_RESET
+    assert "linkedQuoteDeleted:false" in DELETE_RESET
+    assert "linkedCustomerDeleted:false" in DELETE_RESET
+
+
 def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
     assert "./site-visit-top-action.js?build=20260816-job-centered-flow-loader-1" in INDEX
     assert "window.H38_ASSET_BUILD='20260816-0345'" in INDEX
     assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
     assert "'./job-centered-flow.js'" in SW
-    assert "h38-business-office-20260816-0408" in SW
+    assert "site-visit-delete-reset-fix.js" in SW.split("const SHELL=", 1)[0]
+    assert "'./site-visit-delete-reset-fix.js'" in SW
+    assert "h38-business-office-20260816-0430" in SW
     assert "loadJobCenteredFlow" in TOP_ACTION
     assert "jobCenteredFlowLoaded:true" in TOP_ACTION
+    assert "loadDeleteResetFix" in TOP_ACTION
+    assert "deleteResetFixLoaded:true" in TOP_ACTION
+    assert "site-visit-delete-reset-fix.js?build=20260816-site-visit-delete-reset-0425" in TOP_ACTION
 
 
 def test_no_new_automatic_external_actions():
-    for source in (FLOW, PHOTO_REVIEW):
+    for source in (FLOW, PHOTO_REVIEW, DELETE_RESET):
         assert "automaticApproval:false" in source
         assert "automaticSending:false" in source or "automaticCustomerSending:false" in source
     assert "automaticPurchasing:false" in FLOW
