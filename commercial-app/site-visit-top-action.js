@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260816-delete-reset-loader-1';
+const BUILD='20260816-native-photo-loader-1';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -51,6 +51,13 @@ function loadAndroidReturnStabilizer(){
   script.dataset.h38AndroidReturnStabilizer='1';
   document.head.appendChild(script);
 }
+function loadAndroidWalkthroughPhotoRecovery(){
+  if(window.H38_ANDROID_WALKTHROUGH_PHOTO_RECOVERY||document.querySelector('script[data-h38-android-walkthrough-photo-recovery]'))return;
+  const script=document.createElement('script');
+  script.src='./android-walkthrough-photo-recovery.js?build=20260816-native-walkthrough-photos-1';
+  script.dataset.h38AndroidWalkthroughPhotoRecovery='1';
+  document.head.appendChild(script);
+}
 function loadPhoneFinalFix(){
   if(window.H38_SITE_VISIT_PHONE_FINAL_FIX||document.querySelector('script[data-h38-site-visit-phone-final]'))return;
   const script=document.createElement('script');
@@ -96,6 +103,6 @@ function loadDeleteResetFix(){
 }
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();loadJobCenteredFlow();loadDeleteResetFix();setTimeout(loadFinishBuild,1200);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,deleteResetFixLoaded:true,blankScreenRecovery:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadAndroidWalkthroughPhotoRecovery();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();loadJobCenteredFlow();loadDeleteResetFix();setTimeout(loadFinishBuild,1200);
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,androidWalkthroughPhotoRecoveryLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,deleteResetFixLoaded:true,blankScreenRecovery:true};
 })();

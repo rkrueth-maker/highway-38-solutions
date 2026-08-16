@@ -109,11 +109,15 @@ def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "'./job-centered-flow.js'" in SW
     assert "site-visit-delete-reset-fix.js" in SW.split("const SHELL=", 1)[0]
     assert "'./site-visit-delete-reset-fix.js'" in SW
-    assert "h38-business-office-20260816-0430" in SW
+    assert "android-walkthrough-photo-recovery.js" in SW.split("const SHELL=", 1)[0]
+    assert "'./android-walkthrough-photo-recovery.js'" in SW
+    assert "h38-business-office-20260816-0455" in SW
     assert "loadJobCenteredFlow" in TOP_ACTION
     assert "jobCenteredFlowLoaded:true" in TOP_ACTION
     assert "loadDeleteResetFix" in TOP_ACTION
     assert "deleteResetFixLoaded:true" in TOP_ACTION
+    assert "loadAndroidWalkthroughPhotoRecovery" in TOP_ACTION
+    assert "androidWalkthroughPhotoRecoveryLoaded:true" in TOP_ACTION
     assert "site-visit-delete-reset-fix.js?build=20260816-site-visit-delete-reset-0425" in TOP_ACTION
 
 
