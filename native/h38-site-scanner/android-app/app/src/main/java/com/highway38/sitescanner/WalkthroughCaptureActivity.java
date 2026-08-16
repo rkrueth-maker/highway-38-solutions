@@ -234,7 +234,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
                 lightButton.setEnabled(flash);
                 lightButton.setText(flash ? "Light On" : "No Light");
                 statusView.setText("🔨 H38 is starting camera + microphone recording…");
-                handler.postDelayed(this::startRecording, 120);
+                handler.postDelayed(this::startRecording,120);
             } catch (Throwable error) {
                 fail("Could not start the H38 camera: " + safeMessage(error));
             }
@@ -389,7 +389,7 @@ public final class WalkthroughCaptureActivity extends ComponentActivity {
             return;
         }
         statusView.setText("🔨 H38 is preparing microphone audio…");
-        Uri audioUri = WalkthroughAudioExtractor.prepare(this, outputFile);
+        Uri audioUri = WalkthroughAudioExtractor.prepare(this,outputFile);
         if (audioUri == null) {
             fail("Walkthrough microphone audio could not be prepared. Record it again.");
             return;
