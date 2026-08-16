@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// v0.5.30 keeps the proven CameraX + ARCore capture path and adds native Android Print / Save PDF for customer quotes.
+// v0.5.31 keeps the proven CameraX + ARCore + native print path and adds intentional still photos while walkthrough video keeps recording.
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
 def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
@@ -16,8 +16,8 @@ android {
         applicationId 'com.highway38.sitescanner'
         minSdk 24
         targetSdk 35
-        versionCode 35
-        versionName '0.5.30'
+        versionCode 36
+        versionName '0.5.31'
     }
     signingConfigs {
         if (hasReleaseSigning) {
