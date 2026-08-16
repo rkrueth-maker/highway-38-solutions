@@ -105,7 +105,7 @@ def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
     assert "./site-visit-top-action.js?build=20260816-job-centered-flow-loader-1" in INDEX
     assert "window.H38_ASSET_BUILD='20260816-0715'" in INDEX
-    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-pre-camera-fast-path-4" in INDEX
+    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in INDEX
     assert "./mobile-flow-polish-v2.js?build=20260816-wide-mobile-flow-polish-2" in INDEX
     assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
     assert "'./job-centered-flow.js'" in SW
