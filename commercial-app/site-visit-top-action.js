@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260816-job-centered-flow-loader-1';
+const BUILD='20260816-delete-reset-loader-1';
 let blankSince=0,blankRepairBusy=false;
 function officeState(){try{return typeof state!=='undefined'?state:window.state}catch(_){return window.state}}
 function start(){
@@ -87,8 +87,15 @@ function loadJobCenteredFlow(){
   script.dataset.h38JobCenteredFlow='1';
   document.head.appendChild(script);
 }
+function loadDeleteResetFix(){
+  if(window.H38_SITE_VISIT_DELETE_RESET_FIX||document.querySelector('script[data-h38-site-visit-delete-reset]'))return;
+  const script=document.createElement('script');
+  script.src='./site-visit-delete-reset-fix.js?build=20260816-site-visit-delete-reset-0425';
+  script.dataset.h38SiteVisitDeleteReset='1';
+  document.head.appendChild(script);
+}
 const style=document.createElement('style');style.textContent='.h38-top-site-visit-action{display:flex;justify-content:flex-start;align-items:center;margin:0 0 14px}.h38-top-site-visit-action button{min-height:48px;padding:0 18px;font-weight:800}';document.head.appendChild(style);
 const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{childList:true,subtree:true});
-setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();loadJobCenteredFlow();setTimeout(loadFinishBuild,1200);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,blankScreenRecovery:true};
+setInterval(decorate,350);setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadQuoteHandoff();loadJobCenteredFlow();loadDeleteResetFix();setTimeout(loadFinishBuild,1200);
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,deleteResetFixLoaded:true,blankScreenRecovery:true};
 })();
