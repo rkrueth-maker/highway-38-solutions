@@ -21,7 +21,8 @@ def test_rebuild_feedback_survives_quote_rerender():
     assert "renderRebuildStatus()" in source
     assert "renderRebuildStatus();" in source
     assert "rebuildFeedbackPersistsAcrossRender:true" in source
-    assert "#h38QuoteMoreTools" not in source  # uses the real element id via getElementById, not a proxy selector/button
+    assert "realAiRebuildButtonId:'h38AiQuoteDraftButton'" in source
+    assert "syntheticQuoteQuickBar:false" in source
 
 
 def test_owner_flow_asset_is_cache_busted():
