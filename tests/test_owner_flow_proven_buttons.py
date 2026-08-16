@@ -23,8 +23,19 @@ def test_owner_flow_uses_real_quote_buttons_without_proxy_clickers():
     assert "id=\"printQuoteButton\"" in app20
 
 
-def test_ai_rebuild_is_secondary_after_site_visit_lines_exist():
+def test_ai_rebuild_is_restored_and_secondary_after_site_visit_lines_exist():
     polish = POLISH.read_text(encoding="utf-8")
+    app20 = APP20.read_text(encoding="utf-8")
+
     assert "quoteHasLines()" in polish
-    assert "Rebuild with H38 AI" in polish
+    assert "Rebuild quote with H38 AI" in polish
     assert "Existing Site Visit quote lines do not need to be rebuilt" in polish
+    assert "restoresBaseAiToolWhenMissing:true" in polish
+    assert "realAiRebuildButtonId:'h38AiQuoteDraftButton'" in polish
+
+    # If another late renderer temporarily removes the button, restore it by asking
+    # the original app-20 tool creator to recreate the same button/handler.
+    assert "window.h38AddQuoteAiTools" in polish
+    assert "window.h38AddQuoteAiTools();" in polish
+    assert "ai.id='h38AiQuoteDraftButton'" in app20
+    assert "ai.onclick=h38BuildAiQuoteDraft" in app20
