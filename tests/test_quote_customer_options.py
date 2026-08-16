@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OPTIONS = ROOT / "commercial-app" / "quote-customer-options.js"
+LIVE_OPTIONS = ROOT / "commercial-app" / "quote-live-customer-options.js"
 INDEX = ROOT / "commercial-app" / "index.html"
 
 
@@ -29,8 +30,23 @@ def test_drywall_scope_gets_prime_and_paint_option_without_duplicate():
     assert "seen=new Set()" in source
 
 
-def test_business_office_loads_customer_options_after_owner_flow():
+def test_live_customer_quote_uses_same_base_and_options_contract():
+    source = LIVE_OPTIONS.read_text(encoding="utf-8")
+    assert "base=all.filter(line=>!optional(line))" in source
+    assert "Base quote total" in source
+    assert "Optional add-ons" in source
+    assert "Total with selected options" in source
+    assert "Prime and paint new drywall" in source
+    assert "rate:1.75" in source
+    assert "customerSelectable:true" in source
+    assert "automaticApproval:false" in source
+    assert "automaticSending:false" in source
+
+
+def test_business_office_loads_customer_options_after_proven_runtimes():
     index = INDEX.read_text(encoding="utf-8")
     owner = index.index("./owner-flow-polish.js")
     options = index.index("./quote-customer-options.js")
-    assert owner < options
+    phone = index.index("./quote-final-phone-fix.js")
+    live_options = index.index("./quote-live-customer-options.js")
+    assert owner < options < phone < live_options
