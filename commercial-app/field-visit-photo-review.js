@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260808-2320';
+const BUILD='20260816-explicit-quote-photo-selection-1';
 const C=window.H38_FIELD_VISIT_CORE;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
@@ -12,7 +12,7 @@ function client(){
   if(shared?.ensure)return shared.ensure();
   return window.supabase.createClient(cfg.url,cfg.publishableKey,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},
-    global:{headers:{'x-client-info':'h38-guided-photo-review-v1'}}
+    global:{headers:{'x-client-info':'h38-guided-photo-review-v2-explicit-quote-selection'}}
   });
 }
 async function validSession(forceRefresh){
@@ -44,7 +44,7 @@ async function drainQueue(){
 }
 function aliasKey(original,quoteId){return`QUOTE-LINK-${text(original).replace(/[^A-Za-z0-9-]/g,'-')}-${text(quoteId).replace(/^QUOTE-/,'').slice(0,8)}`;}
 async function linkVisitPhotos(api,user,visit){
-  const businessId=text(visit.businessId||window.state?.businessId),visitId=text(visit.visitId),quoteId=text(visit.quoteId),activeIds=new Set((visit.attachmentIds||[]).map(text).filter(Boolean));
+  const businessId=text(visit.businessId||window.state?.businessId),visitId=text(visit.visitId),quoteId=text(visit.quoteId),activeIds=new Set((visit.attachmentIds||[]).map(text).filter(Boolean)),selectedIds=new Set((visit.quotePhotoIds||[]).map(text).filter(id=>activeIds.has(id)));
   if(!activeIds.size)throw Error('No active Site Visit photos are available for review. Capture the walkthrough or detail photos first.');
   const{data,error}=await api.from('business_records').select('record_key,payload,updated_at')
     .eq('business_id',businessId).eq('collection','documents').eq('record_status','active')
@@ -53,7 +53,7 @@ async function linkVisitPhotos(api,user,visit){
   const rows=data||[];
   const staleAliases=rows.filter(row=>{
     const payload=row.payload||{},linked=text(value(payload,'Linked Site Visit ID','linkedSiteVisitId')),original=text(value(payload,'Original Document ID','originalDocumentId'));
-    return linked===visitId&&original&&!activeIds.has(original);
+    return linked===visitId&&original&&(!activeIds.has(original)||!selectedIds.has(original));
   }).map(row=>row.record_key);
   if(staleAliases.length){
     const removed=await api.from('business_records').delete().eq('business_id',businessId).eq('collection','documents').in('record_key',staleAliases);
@@ -68,20 +68,25 @@ async function linkVisitPhotos(api,user,visit){
       text(value(payload,'Mime Type','mimeType')).toLowerCase().startsWith('image/');
   });
   if(!source.length)throw Error('The active walkthrough review photos have not reached private storage yet. H38 will retry after sync.');
-  const records=source.map(row=>{
+  const selectedSource=source.filter(row=>{
+    const payload=row.payload||{},original=text(value(payload,'Document ID','documentId')||row.record_key);
+    return selectedIds.has(original);
+  });
+  if(!selectedSource.length)return 0;
+  const records=selectedSource.map(row=>{
     const payload=row.payload||{},original=text(value(payload,'Document ID','documentId')||row.record_key),recordKey=aliasKey(original,quoteId);
     return{
       business_id:businessId,
       collection:'documents',
       record_key:recordKey,
-      payload:{...payload,'Document ID':recordKey,'Source Type':'Quote','Source ID':quoteId,'Linked Site Visit ID':visitId,'Original Document ID':original,'Updated Time':new Date().toISOString()},
+      payload:{...payload,'Document ID':recordKey,'Source Type':'Quote','Source ID':quoteId,'Linked Site Visit ID':visitId,'Original Document ID':original,'Customer Quote Selected':true,'Visibility':'Customer Proposal','Updated Time':new Date().toISOString()},
       record_status:'active',created_by:user.id,updated_by:user.id
     };
   });
   const upsert=await api.from('business_records').upsert(records,{onConflict:'business_id,collection,record_key'});
   if(upsert.error)throw upsert.error;
   const docs=window.state?.snapshot?.documents;
-  if(Array.isArray(docs))records.forEach(record=>{if(!docs.some(row=>text(value(row,'Document ID','documentId'))===record.record_key))docs.unshift(record.payload);});
+  if(Array.isArray(docs))records.forEach(record=>{const index=docs.findIndex(row=>text(value(row,'Document ID','documentId'))===record.record_key);if(index>=0)docs[index]=record.payload;else docs.unshift(record.payload);});
   return records.length;
 }
 function measurements(){
@@ -106,7 +111,7 @@ async function postReview(session,visit,forceRefresh){
   const active=forceRefresh?(await validSession(true)).session:session;
   const response=await fetch(`${cfg.url}/functions/v1/h38-site-scanner`,{
     method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
-    headers:{authorization:`Bearer ${active.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':'h38-guided-photo-review-v1'},
+    headers:{authorization:`Bearer ${active.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':'h38-guided-photo-review-v2-explicit-quote-selection'},
     body:JSON.stringify({
       businessId:visit.businessId||window.state?.businessId,
       customerId:visit.customerId,
@@ -154,11 +159,11 @@ async function run(){
     if(!attempt.response.ok||attempt.payload.status!=='PASS')throw Error(attempt.payload.message||`AI site review failed (${attempt.response.status}).`);
     await saveReview(api,user,visit,attempt.payload.review||{},attempt.payload.provider,attempt.payload.model);
     guidance.applyPhotoReview?.(attempt.payload.review||{});
-    C.toast('Walkthrough review complete. H38 is showing only the photos and measurements it still needs.');
+    C.toast('Walkthrough review complete. H38 is showing only the photos and measurements it still needs. Customer quote photos remain owner-selected.');
   }catch(error){
     guidance.failPhotoReview?.(error?.message||String(error));
     C.toast(error?.message||String(error),true);
   }finally{running=false;}
 }
-window.H38_FIELD_VISIT_PHOTO_REVIEW={build:BUILD,run,linkVisitPhotos,activeVisitPhotosOnly:true,staleReplacedAliasesRemoved:true,walkthroughTranscriptIncluded:true,automaticApproval:false,automaticCustomerSending:false,exactDimensionsInvented:false};
+window.H38_FIELD_VISIT_PHOTO_REVIEW={build:BUILD,run,linkVisitPhotos,activeVisitPhotosOnly:true,activeVisitPhotosStillAvailableForAiReview:true,explicitQuotePhotoSelection:true,automaticQuotePhotoLinking:false,videoFramesInternalByDefault:true,staleReplacedAliasesRemoved:true,walkthroughTranscriptIncluded:true,automaticApproval:false,automaticCustomerSending:false,exactDimensionsInvented:false};
 })();
