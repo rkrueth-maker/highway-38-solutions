@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OPTIONS = ROOT / "commercial-app" / "quote-customer-options.js"
 LIVE_OPTIONS = ROOT / "commercial-app" / "quote-live-customer-options.js"
+PRINT_SAFE = ROOT / "commercial-app" / "quote-print-safe.js"
 INDEX = ROOT / "commercial-app" / "index.html"
 
 
@@ -41,6 +42,17 @@ def test_live_customer_quote_uses_same_base_and_options_contract():
     assert "customerSelectable:true" in source
     assert "automaticApproval:false" in source
     assert "automaticSending:false" in source
+
+
+def test_android_live_quote_prints_option_aware_customer_document():
+    live = LIVE_OPTIONS.read_text(encoding="utf-8")
+    print_safe = PRINT_SAFE.read_text(encoding="utf-8")
+    assert "#h38LiveOpenPdf" in live
+    assert "nativeLivePrint:true" in live
+    assert "window.H38_SAFE_QUOTE_PRINT.print()" in live
+    assert "#h38LiveCustomerQuote .h38-live-document" in print_safe
+    assert "liveCustomerQuoteSource:true" in print_safe
+    assert "nativeAndroidPrint:true" in print_safe
 
 
 def test_business_office_loads_customer_options_after_proven_runtimes():
