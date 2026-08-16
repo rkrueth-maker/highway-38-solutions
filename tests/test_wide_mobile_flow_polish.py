@@ -9,13 +9,13 @@ POLISH = (APP / "mobile-flow-polish-v2.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
 
 
-def test_final_native_launch_uses_direct_bridge_after_bounded_save():
+def test_final_native_launch_uses_direct_bridge_after_bounded_save_and_identity():
     assert "window.addEventListener('click',intercept,true)" in LAUNCH
+    assert "window.addEventListener('submit',intercept,true)" in LAUNCH
     assert "#fieldStartWalkthrough" in LAUNCH
     assert "bounded(()=>workflow.saveJobDraft(form),SAVE_TIMEOUT_MS" in LAUNCH
-    assert "bounded(()=>workflow.ensureSession(),SESSION_TIMEOUT_MS" in LAUNCH
+    assert "ensureSessionIdentity();" in LAUNCH
     assert "SAVE_TIMEOUT_MS=4500" in LAUNCH
-    assert "SESSION_TIMEOUT_MS=3500" in LAUNCH
     assert "BRIDGE_TIMEOUT_MS=1800" in LAUNCH
     assert "localStorage.setItem(RESUME_KEY" in LAUNCH
     assert "localStorage.setItem(RETURN_KEY" in LAUNCH
@@ -23,6 +23,8 @@ def test_final_native_launch_uses_direct_bridge_after_bounded_save():
     assert "button.click()" not in LAUNCH
     assert "getUserMedia" not in LAUNCH
     assert "MediaRecorder" not in LAUNCH
+    assert "preCameraQueueWork:false" in LAUNCH
+    assert "sessionBackfillAfterReturn:true" in LAUNCH
     assert "indefiniteHammer:false" in LAUNCH
 
 
