@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-0310';
+const BUILD='20260815-1945';
 let scheduled=false;
 let fallbackTimer=0;
 
@@ -46,9 +46,16 @@ function collapseInternalEvidence(root=document){
   });
 }
 function removeRetiredProxyBar(){document.getElementById('h38QuoteQuickBar')?.remove();}
+function ensureBaseQuoteAiTools(){
+  let ai=document.getElementById('h38AiQuoteDraftButton');
+  if(!ai&&typeof window.h38AddQuoteAiTools==='function'){
+    try{window.h38AddQuoteAiTools();}catch(error){console.warn('[H38 owner flow] could not restore base quote AI tools',error);}
+    ai=document.getElementById('h38AiQuoteDraftButton');
+  }
+  return {ai,cad:document.getElementById('h38CadButton')};
+}
 function ensureMoreTools(main,tools){
-  const ai=document.getElementById('h38AiQuoteDraftButton');
-  const cad=document.getElementById('h38CadButton');
+  let {ai,cad}=ensureBaseQuoteAiTools();
   let more=document.getElementById('h38QuoteMoreTools');
   if(!quoteHasLines()){
     if(ai){ai.textContent='✨ Build with H38 AI';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
@@ -56,7 +63,10 @@ function ensureMoreTools(main,tools){
     more?.remove();
     return;
   }
-  if(!ai&&!cad){more?.remove();return;}
+  if(!ai){
+    more?.remove();
+    return;
+  }
   if(!more){
     more=document.createElement('details');
     more.id='h38QuoteMoreTools';
@@ -65,7 +75,13 @@ function ensureMoreTools(main,tools){
     tools.insertAdjacentElement('afterend',more);
   }
   const actions=more.querySelector('.h38-quote-more-actions');
-  if(ai){ai.textContent='↻ Rebuild with H38 AI';ai.classList.add('secondary','h38-rebuild-tool');actions.appendChild(ai);}
+  if(ai){
+    ai.textContent='↻ Rebuild quote with H38 AI';
+    ai.classList.add('secondary','h38-rebuild-tool');
+    ai.hidden=false;
+    ai.removeAttribute('aria-hidden');
+    actions.prepend(ai);
+  }
   if(cad){cad.classList.add('secondary');actions.appendChild(cad);}
 }
 function polishRealQuoteTools(){
@@ -139,6 +155,8 @@ window.H38_OWNER_FLOW_POLISH=Object.freeze({
   syntheticQuoteQuickBar:false,
   realPreviewButtonId:'previewQuoteButton',
   realPrintButtonId:'printQuoteButton',
+  realAiRebuildButtonId:'h38AiQuoteDraftButton',
+  restoresBaseAiToolWhenMissing:true,
   aiRebuildSecondaryWhenLinesExist:true,
   internalEvidenceCollapsed:true,
   optionalWorkEmphasized:true,
