@@ -29,8 +29,25 @@ def test_site_visit_has_five_progressive_stages_and_real_controls():
     assert "siteVisitStages:['Walkthrough','Measure','Photos','Review','Quote']" in FLOW
     assert "document.getElementById('fieldPhotos')" in FLOW
     assert "document.getElementById('fieldCamera')" in FLOW
+    assert "document.getElementById('fieldWalkthrough')" in FLOW
     assert "realFieldButtonsPreserved:true" in FLOW
+    assert "walkthroughStartUsesRealButton:true" in FLOW
     assert "📷 Take Site Photo" in FLOW
+
+
+def test_site_photo_and_navigation_stay_available_on_physical_phone():
+    assert "sitePhotoVisibleBeforeWalkthrough:true" in FLOW
+    assert "bottomVisitNavigationPreserved:true" in FLOW
+    assert "targeted.hidden=false" in FLOW
+    assert "bottom.hidden=false" in FLOW
+    assert "measure.hidden=!ready" in FLOW
+    assert "bottom.hidden=!!v.quoteId" not in FLOW
+
+
+def test_flow_does_not_rebuild_site_visit_from_whole_page_mutations():
+    assert "wholePageMutationLoop:false" in FLOW
+    assert "new MutationObserver" not in FLOW
+    assert "rail.dataset.signature" in FLOW
 
 
 def test_video_evidence_stays_internal_until_owner_selects_photo():
@@ -68,7 +85,7 @@ def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "window.H38_ASSET_BUILD='20260816-0345'" in INDEX
     assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
     assert "'./job-centered-flow.js'" in SW
-    assert "h38-business-office-20260816-0345" in SW
+    assert "h38-business-office-20260816-0408" in SW
     assert "loadJobCenteredFlow" in TOP_ACTION
     assert "jobCenteredFlowLoaded:true" in TOP_ACTION
 
