@@ -47,6 +47,19 @@ def test_session_identity_and_return_context_exist_before_direct_bridge_launch()
     assert "launchBeforeReload:true" in FINAL
 
 
+def test_native_bridge_failure_cannot_leave_opening_hammer_forever():
+    assert "NATIVE_HANDOFF_TIMEOUT_MS=3500" in FINAL
+    assert "h38:native-walkthrough-launch-failed" in FINAL
+    assert "function nativeLaunchFailed(event)" in FINAL
+    assert "function fallbackToNativeFileCapture(reason)" in FINAL
+    assert "document.getElementById('fieldVideoInput')" in FINAL
+    assert "input.click()" in FINAL
+    assert "armHandoffWatch();" in FINAL
+    assert "nativeFailureEventHandled:true" in FINAL
+    assert "nativeFileCaptureFallback:true" in FINAL
+    assert "nativeHandoffTimeoutMs:NATIVE_HANDOFF_TIMEOUT_MS" in FINAL
+
+
 def test_session_persistence_is_deferred_until_native_return():
     assert "async function persistSessionAfterReturn()" in FINAL
     assert "scheduleBackfill" in FINAL
@@ -70,10 +83,11 @@ def test_existing_ui_keeps_real_submit_and_capture_controls():
     assert 'id="fieldWalkthrough"' in UI
     assert "form?.addEventListener('submit'" in UI
     assert "fieldWalkthrough')?.addEventListener('click'" in UI
+    assert 'id="fieldVideoInput"' in UI
 
 
 def test_new_fast_path_is_cache_busted_live():
-    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-pre-camera-fast-path-4" in INDEX
+    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in INDEX
 
 
 def test_prior_return_repair_remains_loaded_as_fallback_only():
@@ -86,6 +100,7 @@ def test_repair_is_web_only_and_keeps_owner_apk_v0531_and_safety():
     assert "versionCode 36" in GRADLE
     assert "versionName '0.5.31'" in GRADLE
     assert "cameraXChanged:false" in FINAL
+    assert "webRtcFallback:false" in FINAL
     for token in [
         "automaticApproval:false",
         "automaticCustomerSending:false",
