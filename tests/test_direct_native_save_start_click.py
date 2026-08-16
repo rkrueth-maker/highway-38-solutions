@@ -8,7 +8,8 @@ GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.
 
 def test_real_save_start_button_has_window_capture_native_authority():
     assert "window.addEventListener('click',intercept,true)" in FINAL
-    assert "closest?.('#fieldStartWalkthrough')" in FINAL
+    assert "window.addEventListener('submit',intercept,true)" in FINAL
+    assert "#fieldStartWalkthrough" in FINAL
     assert "event.preventDefault()" in FINAL
     assert "event.stopImmediatePropagation()" in FINAL
     assert "void saveAndLaunch(form)" in FINAL
@@ -17,9 +18,12 @@ def test_real_save_start_button_has_window_capture_native_authority():
 
 def test_final_authority_does_not_depend_on_submitter_or_focus():
     intercept = FINAL.split("function intercept(event)", 1)[1].split("window.H38_NATIVE_SAVE_START_AUTHORITY", 1)[0]
+    resolver = FINAL.split("function formFromEvent(event)", 1)[1].split("function intercept(event)", 1)[0]
     assert "event.submitter" not in intercept
     assert "document.activeElement" not in intercept
-    assert "button.form" in intercept
+    assert "button?.form" in resolver
+    assert "target instanceof HTMLFormElement" in resolver
+    assert "formFromEvent(event)" in intercept
 
 
 def test_final_authority_launches_bridge_directly_not_via_proxy_click():
