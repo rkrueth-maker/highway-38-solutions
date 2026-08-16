@@ -48,6 +48,9 @@ def test_quote_restore_does_not_auto_link_site_visit_images():
     assert "Customer Quote Selected" in PHOTO_RESTORE
     assert "async function ensureQuoteLinks(){return 0;}" in PHOTO_RESTORE
     assert "Site Visit video and extracted frames stay internal" in PHOTO_RESTORE
+    assert "selectedPhotosRenderOnCustomerProposal:true" in PHOTO_RESTORE
+    assert "selectedPhotosRenderInPrintSource:true" in PHOTO_RESTORE
+    assert "h38-customer-photo-section" in PHOTO_RESTORE
 
 
 def test_ai_site_review_keeps_all_evidence_but_aliases_selected_only():
@@ -62,9 +65,10 @@ def test_ai_site_review_keeps_all_evidence_but_aliases_selected_only():
 def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
     assert "./site-visit-top-action.js?build=20260816-job-centered-flow-loader-1" in INDEX
-    assert "window.H38_ASSET_BUILD='20260816-job-centered-0345'" in INDEX
+    assert "window.H38_ASSET_BUILD='20260816-0345'" in INDEX
     assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
     assert "'./job-centered-flow.js'" in SW
+    assert "h38-business-office-20260816-0345" in SW
     assert "loadJobCenteredFlow" in TOP_ACTION
     assert "jobCenteredFlowLoaded:true" in TOP_ACTION
 
