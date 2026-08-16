@@ -25,13 +25,13 @@ const missing=refs.filter(ref=>!fs.existsSync(path.resolve(app,ref)));
 if(missing.length)fail('Business Office local assets exist',missing.join(', '));else pass(`Business Office local assets exist (${refs.length} references)`);
 
 requireText(deleteFix,'postDeleteBlankRender:false','delete never renders an empty Site Visit after purge');
-requireText(deleteFix,'singleFinalize:true','delete finalizes exactly once');
+requireText(deleteFix,'singleFinalize:true','delete finalizes exactly once per accepted path');
+requireText(deleteFix,"if(outcome?.finalized!==true)await finalizeDelete",'active delete only runs fallback finalize when owner did not finalize');
 requireText(deleteFix,"window.openPage('work')",'delete returns to Jobs deterministically');
 requireText(deleteFix,"document.body.classList.remove('field-visit-open')",'delete clears Site Visit shell state');
 requireText(deleteFix,"document.getElementById('h38FieldVisitApp')?.remove()",'delete removes stale Site Visit DOM');
 requireText(deleteFix,'workingHammer:true','delete exposes working hammer state');
 if(/resetActiveAndClose[\s\S]{0,500}C\.state\.render/.test(deleteFix))fail('delete avoids render-before-close regression');else pass('delete avoids render-before-close regression');
-if((deleteFix.match(/await finalizeDelete\(source/g)||[]).length>1)fail('active delete has no duplicate finalize call');else pass('active delete has no duplicate finalize call');
 
 requireText(nativeLaunch,'launchBeforeReload:true','Save & Start launches native camera before reload');
 requireText(nativeLaunch,'workingHammer:true','Save & Start has visible hammer');
