@@ -41,4 +41,4 @@ def test_repair_loader_and_cache_are_production_reachable():
     assert "site-visit-delete-reset-fix.js" in SW.split("const SHELL=", 1)[0]
     assert "'./site-visit-delete-reset-fix.js'" in SW
     assert "android-walkthrough-photo-recovery.js" in SW.split("const SHELL=", 1)[0]
-    assert "h38-business-office-20260816-0455" in SW
+    assert "h38-business-office-20260816-1745" in SW
