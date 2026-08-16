@@ -15,8 +15,9 @@ const nativeLaunch=read('commercial-app/site-visit-native-launch-final.js');
 const topAction=read('commercial-app/site-visit-top-action.js');
 const jobFlow=read('commercial-app/job-centered-flow.js');
 const polish=read('commercial-app/mobile-flow-polish-v2.js');
+const stability=read('commercial-app/mobile-runtime-stability.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['mobile stability',stability]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -45,12 +46,25 @@ requireText(polish,'workHistoryCollapse:true','Jobs history remains collapsed');
 requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed');
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
+requireText(index,'mobile-runtime-stability.js?build=20260816-mobile-runtime-stability-1','mobile stability layer loads last');
+requireText(stability,'publishedOfficeAuthority:true','published Business Office remains UI authority');
+requireText(stability,'nativeShellHardwareOnly:true','native shell remains hardware bridge rather than duplicate app');
+requireText(stability,'dynamicViewport:true','dynamic visual viewport stabilization is enabled');
+requireText(stability,'safeAreaBottom:true','safe-area bottom handling is enabled');
+requireText(stability,'fixedNavIsolation:true','fixed primary nav is isolated from content reflow');
+requireText(stability,'fieldVisitSingleBottomNav:true','Site Visit suppresses duplicate Business Office bottom nav');
+requireText(stability,'keyboardZoomGuard:true','mobile form controls prevent keyboard zoom reflow');
+requireText(stability,'screenInstabilityGuard:true','screen instability guard is declared');
+requireText(stability,"padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))",'main content reserves space above fixed nav');
+requireText(stability,"body.field-visit-open #mainNav.h38-five-primary-nav{display:none!important}",'field visit hides office bottom navigation');
+requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit owns one stable viewport layer');
+
 for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true','automaticPurchasing:true','automaticPayment:true','automaticScheduling:true']){
-  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['job flow',jobFlow],['polish',polish]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
+  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['job flow',jobFlow],['polish',polish],['stability',stability]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + assets + delete/restart + native launch/return + navigation + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + assets + delete/restart + native launch/return + navigation + viewport/screen stability + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));
