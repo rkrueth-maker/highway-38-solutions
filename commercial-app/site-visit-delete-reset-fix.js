@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260816-site-visit-delete-reset-0425';
+const BUILD='20260816-site-visit-delete-reset-2';
 const C=window.H38_FIELD_VISIT_CORE;
 const DB=window.H38DB;
 if(!C||!DB)return;
@@ -11,162 +11,25 @@ let deleteBusy=false;
 let installedOwner=null;
 
 function value(row,...keys){for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';}
-function identity(row){
-  return{
-    businessId:text(value(row,'businessId','Business ID')||C.business?.()),
-    visitId:text(value(row,'visitId','siteVisitId','Site Visit ID')),
-    sessionId:text(value(row,'sessionId','captureSessionId','Capture Session ID')),
-    quoteId:text(value(row,'quoteId','Quote ID')),
-    customerId:text(value(row,'customerId','Customer ID')),
-    title:text(value(row,'projectTitle','Project Title'))
-  };
-}
-function sameIdentity(row,source){
-  const a=identity(row),b=identity(source);
-  if(a.businessId&&b.businessId&&a.businessId!==b.businessId)return false;
-  if(a.visitId&&b.visitId&&a.visitId===b.visitId)return true;
-  if(a.sessionId&&b.sessionId&&a.sessionId===b.sessionId)return true;
-  if(!a.visitId&&!a.sessionId&&!b.visitId&&!b.sessionId&&a.quoteId&&b.quoteId&&a.quoteId===b.quoteId&&(!a.title||!b.title||a.title===b.title))return true;
-  return false;
-}
+function identity(row){return{businessId:text(value(row,'businessId','Business ID')||C.business?.()),visitId:text(value(row,'visitId','siteVisitId','Site Visit ID')),sessionId:text(value(row,'sessionId','captureSessionId','Capture Session ID')),quoteId:text(value(row,'quoteId','Quote ID')),customerId:text(value(row,'customerId','Customer ID')),title:text(value(row,'projectTitle','Project Title'))};}
+function sameIdentity(row,source){const a=identity(row),b=identity(source);if(a.businessId&&b.businessId&&a.businessId!==b.businessId)return false;if(a.visitId&&b.visitId&&a.visitId===b.visitId)return true;if(a.sessionId&&b.sessionId&&a.sessionId===b.sessionId)return true;if(!a.visitId&&!a.sessionId&&!b.visitId&&!b.sessionId&&a.quoteId&&b.quoteId&&a.quoteId===b.quoteId&&(!a.title||!b.title||a.title===b.title))return true;return false;}
 function payloadIdentity(row){return identity(row?.payload||row);}
-function rowMatchesIdentity(row,target){
-  const r=payloadIdentity(row);
-  if(r.businessId&&target.businessId&&r.businessId!==target.businessId)return false;
-  if(target.visitId&&(r.visitId===target.visitId||text(value(row?.payload||row,'Linked Site Visit ID','linkedSiteVisitId'))===target.visitId))return true;
-  if(target.sessionId&&r.sessionId===target.sessionId)return true;
-  const sourceType=text(value(row?.payload||row,'Source Type','sourceType')).toLowerCase();
-  const sourceId=text(value(row?.payload||row,'Source ID','sourceId'));
-  if(target.visitId&&sourceType==='site visit'&&sourceId===target.visitId)return true;
-  return false;
-}
-function purgeSnapshot(target){
-  const snapshot=window.state?.snapshot;if(!snapshot)return;
-  for(const collection of ['siteCaptureSessions','siteMeasurements','jobNotes','siteAiReviews','siteVisits']){
-    if(Array.isArray(snapshot[collection]))snapshot[collection]=snapshot[collection].filter(row=>!rowMatchesIdentity(row,target));
-  }
-  if(Array.isArray(snapshot.documents))snapshot.documents=snapshot.documents.filter(row=>!rowMatchesIdentity(row,target));
-}
-async function purgeResidualLocal(target){
-  const drafts=await DB.all('drafts');
-  for(const row of drafts){
-    if(row?.kind===DELETE_TOMBSTONE)continue;
-    if(sameIdentity(row,target))await DB.remove('drafts',row.id);
-  }
-  const attachments=await DB.all('attachments');
-  for(const row of attachments){
-    const bid=text(row?.businessId),visitId=text(row?.relatedRecordId||row?.visitId),sessionId=text(row?.captureSessionId||row?.sessionId);
-    if(bid&&target.businessId&&bid!==target.businessId)continue;
-    if((target.visitId&&visitId===target.visitId)||(target.sessionId&&sessionId===target.sessionId))await DB.remove('attachments',row.id||row.attachmentId);
-  }
-  const tokens=unique([target.visitId,target.sessionId]);
-  if(tokens.length){
-    for(const row of await DB.all('operations')){
-      const status=text(row?.syncStatus||row?.status).toUpperCase();
-      if(['SYNCED','COMPLETE','COMPLETED'].includes(status))continue;
-      let hay='';try{hay=JSON.stringify(row);}catch(_){}
-      if(tokens.some(token=>hay.includes(token)))await DB.remove('operations',row.id);
-    }
-  }
-  await C.pending?.();
-}
-function resetActiveAndClose(source){
-  if(!sameIdentity(C.state?.visit,source))return;
-  C.state.visit=C.blank();
-  C.state.measurements=[];
-  C.state.tab='job';
-  try{C.state.render?.();}catch(_){}
-  setTimeout(()=>{try{window.H38_FIELD_VISIT?.close?.();}catch(_){}},0);
-}
-async function finalizeDelete(source,{closeActive=true}={}){
-  const target=identity(source);
-  await purgeResidualLocal(target);
-  purgeSnapshot(target);
-  if(closeActive)resetActiveAndClose(source);
-  return target;
-}
-function installOwnerDeleteWrapper(){
-  const owner=window.H38_FIELD_VISIT_OWNER_CONTROLS;
-  if(!owner||typeof owner.deleteDraft!=='function'||owner.siteVisitDeleteStartOver===true||owner===installedOwner)return false;
-  const baseDelete=owner.deleteDraft.bind(owner);
-  async function deleteDraft(source){
-    const wasActive=sameIdentity(C.state?.visit,source);
-    let accepted=null,promise;
-    const realConfirm=window.confirm;
-    window.confirm=function(message){accepted=realConfirm.call(window,message);return accepted;};
-    try{promise=baseDelete(source);}finally{window.confirm=realConfirm;}
-    const result=await promise;
-    if(accepted===true){
-      await finalizeDelete(source,{closeActive:wasActive});
-      return{deleted:true,result};
-    }
-    return{deleted:false,result};
-  }
-  const wrapped=Object.freeze({...owner,deleteDraft,siteVisitDeleteStartOver:true,loadedSnapshotPurge:true,reopenStartsFresh:true,linkedQuoteDeleted:false,linkedCustomerDeleted:false});
-  window.H38_FIELD_VISIT_OWNER_CONTROLS=wrapped;
-  installedOwner=wrapped;
-  return true;
-}
-function resetArmedButton(button){
-  if(!button)return;
-  button.dataset.h38DeleteArmedUntil='0';
-  button.textContent='Delete Site Visit';
-}
-async function deleteActiveVisit(button){
-  if(deleteBusy)return;
-  const visit=C.state?.visit;
-  if(!visit)return;
-  deleteBusy=true;
-  button.disabled=true;
-  const source={...visit,
-    attachmentIds:Array.isArray(visit.attachmentIds)?visit.attachmentIds.slice():[],
-    walkthroughFrameIds:Array.isArray(visit.walkthroughFrameIds)?visit.walkthroughFrameIds.slice():[],
-    replacedWalkthroughFrameIds:Array.isArray(visit.replacedWalkthroughFrameIds)?visit.replacedWalkthroughFrameIds.slice():[],
-    videoAttachmentIds:Array.isArray(visit.videoAttachmentIds)?visit.videoAttachmentIds.slice():[],
-    walkthroughAudioAttachmentIds:Array.isArray(visit.walkthroughAudioAttachmentIds)?visit.walkthroughAudioAttachmentIds.slice():[]
-  };
-  try{
-    installOwnerDeleteWrapper();
-    const owner=window.H38_FIELD_VISIT_OWNER_CONTROLS;
-    if(!owner?.deleteDraft)throw Error('Site Visit delete controls are still loading.');
-    const realConfirm=window.confirm;
-    window.confirm=()=>true;
-    let outcome;
-    try{outcome=await owner.deleteDraft(source);}finally{window.confirm=realConfirm;}
-    if(outcome?.deleted===false)throw Error('Site Visit delete was cancelled.');
-    await finalizeDelete(source,{closeActive:true});
-    C.toast?.('Site Visit cleared. Customer and quote were kept. Open Site Visit again to start fresh.');
-  }catch(error){
-    C.toast?.(`Could not clear Site Visit: ${error?.message||error}`,true);
-    resetArmedButton(button);
-    button.disabled=false;
-  }finally{deleteBusy=false;}
-}
-function bindActiveDelete(){
-  installOwnerDeleteWrapper();
-  const button=document.getElementById('fieldDeleteSiteVisit');
-  if(!button||button.dataset.h38DeleteResetBuild===BUILD)return;
-  button.dataset.h38DeleteResetBuild=BUILD;
-  resetArmedButton(button);
-  button.onclick=event=>{
-    event.preventDefault();event.stopPropagation();
-    if(deleteBusy)return;
-    const now=Date.now(),armedUntil=Number(button.dataset.h38DeleteArmedUntil||0);
-    if(armedUntil>now){
-      button.dataset.h38DeleteArmedUntil='0';
-      button.textContent='Clearing…';
-      void deleteActiveVisit(button);
-      return;
-    }
-    button.dataset.h38DeleteArmedUntil=String(now+5000);
-    button.textContent='Tap Again to Delete';
-    C.toast?.('Tap Delete Site Visit again within 5 seconds to clear this visit and start over. The customer and quote stay.');
-    setTimeout(()=>{if(Number(button.dataset.h38DeleteArmedUntil||0)<=Date.now())resetArmedButton(button);},5100);
-  };
-}
+function rowMatchesIdentity(row,target){const r=payloadIdentity(row);if(r.businessId&&target.businessId&&r.businessId!==target.businessId)return false;if(target.visitId&&(r.visitId===target.visitId||text(value(row?.payload||row,'Linked Site Visit ID','linkedSiteVisitId'))===target.visitId))return true;if(target.sessionId&&r.sessionId===target.sessionId)return true;const sourceType=text(value(row?.payload||row,'Source Type','sourceType')).toLowerCase(),sourceId=text(value(row?.payload||row,'Source ID','sourceId'));return !!(target.visitId&&sourceType==='site visit'&&sourceId===target.visitId);}
+function working(title,detail){try{if(window.H38_WORKING_HAMMER?.show){window.H38_WORKING_HAMMER.show(title,detail);return;}if(window.H38_WORKING_HAMMER?.start){window.H38_WORKING_HAMMER.start(`${title}${detail?` — ${detail}`:''}`);return;}}catch(_){}const node=document.getElementById('h38SiteVisitWorkingHammer');if(node){node.querySelector('[data-h38-working-title]')?.replaceChildren(document.createTextNode(title));node.querySelector('[data-h38-working-detail]')?.replaceChildren(document.createTextNode(detail||'Please wait.'));node.classList.add('show');}}
+function clearWorking(){try{window.H38_WORKING_HAMMER?.hide?.();window.H38_WORKING_HAMMER?.stop?.();}catch(_){}document.getElementById('h38SiteVisitWorkingHammer')?.classList.remove('show');}
+function purgeSnapshot(target){const snapshot=window.state?.snapshot;if(!snapshot)return;for(const collection of ['siteCaptureSessions','siteMeasurements','jobNotes','siteAiReviews','siteVisits'])if(Array.isArray(snapshot[collection]))snapshot[collection]=snapshot[collection].filter(row=>!rowMatchesIdentity(row,target));if(Array.isArray(snapshot.documents))snapshot.documents=snapshot.documents.filter(row=>!rowMatchesIdentity(row,target));}
+async function purgeResidualLocal(target){const drafts=await DB.all('drafts');for(const row of drafts){if(row?.kind===DELETE_TOMBSTONE)continue;if(sameIdentity(row,target))await DB.remove('drafts',row.id);}const attachments=await DB.all('attachments');for(const row of attachments){const bid=text(row?.businessId),visitId=text(row?.relatedRecordId||row?.visitId),sessionId=text(row?.captureSessionId||row?.sessionId);if(bid&&target.businessId&&bid!==target.businessId)continue;if((target.visitId&&visitId===target.visitId)||(target.sessionId&&sessionId===target.sessionId))await DB.remove('attachments',row.id||row.attachmentId);}const tokens=unique([target.visitId,target.sessionId]);if(tokens.length){for(const row of await DB.all('operations')){const status=text(row?.syncStatus||row?.status).toUpperCase();if(['SYNCED','COMPLETE','COMPLETED'].includes(status))continue;let hay='';try{hay=JSON.stringify(row);}catch(_){}if(tokens.some(token=>hay.includes(token)))await DB.remove('operations',row.id);}}await C.pending?.();}
+function closeWorkspaceWithoutBlankRender(source){if(!sameIdentity(C.state?.visit,source))return false;C.state.open=false;C.state.visit=C.blank();C.state.measurements=[];C.state.tab='job';document.body.classList.remove('field-visit-open');document.getElementById('h38FieldVisitApp')?.remove();try{window.H38_FIELD_VISIT?.close?.();}catch(_){}return true;}
+function restoreOfficeChrome(){document.querySelectorAll('.topbar,.business-bar,.app-shell,#toast').forEach(node=>node.style.removeProperty('visibility'));document.body.classList.remove('field-visit-open');}
+function returnToJobs(){restoreOfficeChrome();setTimeout(()=>{try{if(typeof window.openPage==='function'){window.openPage('work');return;}if(window.state)window.state.page='work';}catch(error){console.error('[H38 Site Visit delete return]',error);restoreOfficeChrome();}},30);}
+async function finalizeDelete(source,{closeActive=true,returnToWork=false}={}){const target=identity(source);working('Cleaning old Site Visit…','Removing the deleted capture from this phone and the current workspace.');await purgeResidualLocal(target);purgeSnapshot(target);const closed=closeActive?closeWorkspaceWithoutBlankRender(source):false;if(returnToWork||closed){working('Returning to Jobs…','Opening a clean job workspace.');returnToJobs();}return target;}
+function installOwnerDeleteWrapper(){const owner=window.H38_FIELD_VISIT_OWNER_CONTROLS;if(!owner||typeof owner.deleteDraft!=='function'||owner.siteVisitDeleteStartOver===true||owner===installedOwner)return false;const baseDelete=owner.deleteDraft.bind(owner);async function deleteDraft(source){const wasActive=sameIdentity(C.state?.visit,source);let accepted=null,promise;const realConfirm=window.confirm;window.confirm=function(message){accepted=realConfirm.call(window,message);return accepted;};try{promise=baseDelete(source);}finally{window.confirm=realConfirm;}const result=await promise;if(accepted===true){await finalizeDelete(source,{closeActive:wasActive,returnToWork:wasActive});return{deleted:true,result,finalized:true};}return{deleted:false,result};}const wrapped=Object.freeze({...owner,deleteDraft,siteVisitDeleteStartOver:true,loadedSnapshotPurge:true,reopenStartsFresh:true,postDeleteBlankRender:false,singleFinalize:true,linkedQuoteDeleted:false,linkedCustomerDeleted:false});window.H38_FIELD_VISIT_OWNER_CONTROLS=wrapped;installedOwner=wrapped;return true;}
+function resetArmedButton(button){if(!button)return;button.dataset.h38DeleteArmedUntil='0';button.textContent='Delete Site Visit';}
+async function deleteActiveVisit(button){if(deleteBusy)return;const visit=C.state?.visit;if(!visit)return;deleteBusy=true;button.disabled=true;const source={...visit,attachmentIds:Array.isArray(visit.attachmentIds)?visit.attachmentIds.slice():[],walkthroughFrameIds:Array.isArray(visit.walkthroughFrameIds)?visit.walkthroughFrameIds.slice():[],replacedWalkthroughFrameIds:Array.isArray(visit.replacedWalkthroughFrameIds)?visit.replacedWalkthroughFrameIds.slice():[],videoAttachmentIds:Array.isArray(visit.videoAttachmentIds)?visit.videoAttachmentIds.slice():[],walkthroughAudioAttachmentIds:Array.isArray(visit.walkthroughAudioAttachmentIds)?visit.walkthroughAudioAttachmentIds.slice():[]};try{working('Deleting Site Visit…','Keeping the linked customer and quote while clearing this capture.');installOwnerDeleteWrapper();const owner=window.H38_FIELD_VISIT_OWNER_CONTROLS;if(!owner?.deleteDraft)throw Error('Site Visit delete controls are still loading.');const realConfirm=window.confirm;window.confirm=()=>true;let outcome;try{outcome=await owner.deleteDraft(source);}finally{window.confirm=realConfirm;}if(outcome?.deleted===false)throw Error('Site Visit delete was cancelled.');if(outcome?.finalized!==true)await finalizeDelete(source,{closeActive:true,returnToWork:true});C.toast?.('Site Visit cleared. Customer and quote were kept. Start Site Visit again when ready.');setTimeout(clearWorking,500);}catch(error){clearWorking();C.toast?.(`Could not clear Site Visit: ${error?.message||error}`,true);resetArmedButton(button);button.disabled=false;}finally{deleteBusy=false;}}
+function bindActiveDelete(){installOwnerDeleteWrapper();const button=document.getElementById('fieldDeleteSiteVisit');if(!button||button.dataset.h38DeleteResetBuild===BUILD)return;button.dataset.h38DeleteResetBuild=BUILD;resetArmedButton(button);button.onclick=event=>{event.preventDefault();event.stopPropagation();if(deleteBusy)return;const now=Date.now(),armedUntil=Number(button.dataset.h38DeleteArmedUntil||0);if(armedUntil>now){button.dataset.h38DeleteArmedUntil='0';button.textContent='Clearing…';void deleteActiveVisit(button);return;}button.dataset.h38DeleteArmedUntil=String(now+5000);button.textContent='Tap Again to Delete';C.toast?.('Tap Delete Site Visit again within 5 seconds to clear this visit and start over. The customer and quote stay.');setTimeout(()=>{if(Number(button.dataset.h38DeleteArmedUntil||0)<=Date.now())resetArmedButton(button);},5100);};}
 function apply(){bindActiveDelete();}
-setInterval(apply,350);
-setTimeout(apply,0);
-setTimeout(apply,800);
-window.H38_SITE_VISIT_DELETE_RESET_FIX=Object.freeze({build:BUILD,activeDeleteTwoTapConfirm:true,localDraftPurge:true,attachmentPurge:true,pendingOperationPurge:true,loadedSnapshotPurge:true,serverDeleteDelegatedToOwnerControls:true,reopenStartsFresh:true,linkedQuoteDeleted:false,linkedCustomerDeleted:false,automaticApproval:false,automaticCustomerSending:false});
+window.addEventListener('pageshow',()=>{restoreOfficeChrome();if(!document.body.classList.contains('field-visit-open'))clearWorking();});
+window.addEventListener('focus',()=>{if(!document.body.classList.contains('field-visit-open'))clearWorking();});
+setInterval(apply,350);setTimeout(apply,0);setTimeout(apply,800);
+window.H38_SITE_VISIT_DELETE_RESET_FIX=Object.freeze({build:BUILD,activeDeleteTwoTapConfirm:true,localDraftPurge:true,attachmentPurge:true,pendingOperationPurge:true,loadedSnapshotPurge:true,serverDeleteDelegatedToOwnerControls:true,reopenStartsFresh:true,postDeleteBlankRender:false,singleFinalize:true,deterministicJobsReturn:true,workingHammer:true,linkedQuoteDeleted:false,linkedCustomerDeleted:false,automaticApproval:false,automaticCustomerSending:false});
 })();
