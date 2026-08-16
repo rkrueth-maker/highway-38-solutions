@@ -16,12 +16,13 @@ def test_save_start_is_intercepted_only_for_native_android():
     assert "realSaveStartButton:true" in FINAL
 
 
-def test_native_save_start_saves_draft_session_and_return_context_before_launch():
+def test_native_save_start_saves_draft_session_and_return_context_before_launch_without_reload():
     assert "await workflow.saveJobDraft(form)" in FINAL
     assert "await workflow.ensureSession()" in FINAL
     assert "C.state.tab='capture'" in FINAL
-    assert "await C.load?.()" in FINAL
-    assert "C.state.render?.()" in FINAL
+    assert "await C.load?.()" not in FINAL
+    assert "C.state.render?.()" not in FINAL
+    assert "launchBeforeReload:true" in FINAL
     assert "localStorage.setItem(RESUME_KEY" in FINAL
     assert "localStorage.setItem(RETURN_KEY" in FINAL
 
@@ -39,7 +40,7 @@ def test_old_web_recorder_is_not_called_by_final_native_save_start_repair():
     assert "openRecorder(" not in repair
     assert "getUserMedia" not in repair
     assert "MediaRecorder" not in repair
-    assert "launchWalkthroughCapture" not in repair  # launch is isolated behind launch()
+    assert "launchWalkthroughCapture" not in repair
     assert "await launch()" in repair
 
 
