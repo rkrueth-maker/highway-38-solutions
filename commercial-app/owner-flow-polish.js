@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260815-1945';
+const BUILD='20260815-2135';
 let scheduled=false;
 let fallbackTimer=0;
 
 const text=value=>String(value==null?'':value).trim();
+const number=value=>{const parsed=Number(value==null?0:value);return Number.isFinite(parsed)?parsed:0;};
 function nativePrintAvailable(){return Boolean(window.AndroidH38Native&&typeof window.AndroidH38Native.printCurrentPage==='function');}
 function quotePage(){
   try{if(window.state?.page==='quotes')return true;}catch(_){}
@@ -12,6 +13,92 @@ function quotePage(){
   return /quote/i.test(text(heading?.textContent))&&Boolean(document.querySelector('#mainContent'));
 }
 function quoteHasLines(){try{return Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.length>0;}catch(_){return false;}}
+function lineDescription(line){return text(line?.description??line?.Description).replace(/\s+/g,' ').toLowerCase();}
+function lineQuantity(line){return number(line?.quantity??line?.Quantity);}
+function lineUnit(line){return text(line?.unit??line?.Unit).toLowerCase();}
+function lineRate(line){return number(line?.rate??line?.unitPrice??line?.['Unit Price']);}
+function snapshotLines(lines){
+  const values=(Array.isArray(lines)?lines:[]).map(line=>({description:lineDescription(line),quantity:lineQuantity(line),unit:lineUnit(line),rate:lineRate(line)}));
+  values.sort((a,b)=>a.description.localeCompare(b.description)||a.unit.localeCompare(b.unit)||a.quantity-b.quantity||a.rate-b.rate);
+  return values;
+}
+function compareSnapshots(before,after){
+  const left=new Map((before||[]).map(line=>[`${line.description}|${line.unit}`,line]));
+  const right=new Map((after||[]).map(line=>[`${line.description}|${line.unit}`,line]));
+  const keys=new Set([...left.keys(),...right.keys()]);
+  let changed=0;
+  keys.forEach(key=>{
+    const a=left.get(key),b=right.get(key);
+    if(!a||!b||Math.abs(a.quantity-b.quantity)>.0001||Math.abs(a.rate-b.rate)>.0001)changed+=1;
+  });
+  return changed;
+}
+function rebuildStatusStore(){
+  try{if(window.state?.quote)return window.state.quote;}catch(_){}
+  return null;
+}
+function setRebuildStatus(status){
+  const quote=rebuildStatusStore();
+  if(quote)quote.h38RebuildStatus=status;
+  renderRebuildStatus();
+}
+function rebuildStatusMessage(status){
+  if(!status)return'';
+  if(status.phase==='working')return 'Rebuilding quote… H38 is checking the current Site Visit, measurements and Price Book. Your saved revision remains untouched until you save.';
+  if(status.phase==='error')return `Rebuild failed — ${status.message||'H38 AI did not complete.'} The saved quote was preserved.`;
+  const checked=number(status.linesChecked),errors=number(status.pricingErrors),changed=number(status.linesChanged);
+  if(changed>0)return `Rebuild complete — ${checked} line${checked===1?'':'s'} checked · ${errors} pricing error${errors===1?'':'s'} · ${changed} line${changed===1?'':'s'} changed. Review the updated draft, then save the next revision when ready.`;
+  return `Rebuild complete — ${checked} line${checked===1?'':'s'} checked · ${errors} pricing error${errors===1?'':'s'} · no quote changes. The current draft already matches H38 AI.`;
+}
+function renderRebuildStatus(){
+  const more=document.getElementById('h38QuoteMoreTools');
+  const actions=more?.querySelector('.h38-quote-more-actions');
+  if(!more||!actions)return;
+  const status=rebuildStatusStore()?.h38RebuildStatus;
+  let node=document.getElementById('h38QuoteRebuildStatus');
+  if(!status){node?.remove();return;}
+  if(!node){node=document.createElement('div');node.id='h38QuoteRebuildStatus';actions.insertAdjacentElement('afterend',node);}
+  node.className=`notice h38-rebuild-status${status.phase==='error'?' warn':status.phase==='success'?' good':''}`;
+  node.setAttribute('role','status');
+  node.setAttribute('aria-live','polite');
+  node.textContent=rebuildStatusMessage(status);
+}
+function installRebuildFeedback(){
+  const bridge=window.state?.bridge;
+  if(!bridge||typeof bridge.request!=='function'||bridge.__h38RebuildFeedback)return false;
+  const previous=bridge.request.bind(bridge);
+  bridge.request=async function(action,args,timeout){
+    if(action!=='aiBuildQuoteDraft')return previous(action,args,timeout);
+    const before=snapshotLines(window.state?.quote?.lines);
+    const startedAt=new Date().toISOString();
+    setRebuildStatus({phase:'working',startedAt,linesChecked:before.length,pricingErrors:0,linesChanged:0});
+    try{
+      const result=await previous(action,args,timeout);
+      if(result?.status!=='PASS'){
+        setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(result?.message)||'H38 AI did not complete.'});
+        return result;
+      }
+      const suggested=Array.isArray(result?.draft?.suggestedLines)?result.draft.suggestedLines:[];
+      const after=snapshotLines(suggested);
+      const pricingErrors=suggested.filter(line=>lineRate(line)<=0).length;
+      setRebuildStatus({
+        phase:'success',
+        startedAt,
+        finishedAt:new Date().toISOString(),
+        linesChecked:suggested.length,
+        pricingErrors,
+        linesChanged:compareSnapshots(before,after),
+        quoteId:text(args?.quoteId||window.state?.quote?.quoteId)
+      });
+      return result;
+    }catch(error){
+      setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(error?.message||error)||'H38 AI did not complete.'});
+      throw error;
+    }
+  };
+  bridge.__h38RebuildFeedback=true;
+  return true;
+}
 function stopFallbackWatch(){if(fallbackTimer){clearInterval(fallbackTimer);fallbackTimer=0;}}
 function startFallbackWatch(){
   stopFallbackWatch();
@@ -83,9 +170,11 @@ function ensureMoreTools(main,tools){
     actions.prepend(ai);
   }
   if(cad){cad.classList.add('secondary');actions.appendChild(cad);}
+  renderRebuildStatus();
 }
 function polishRealQuoteTools(){
   removeRetiredProxyBar();
+  installRebuildFeedback();
   if(!quotePage()){
     document.body.classList.remove('h38-owner-quote-polish');
     document.getElementById('h38QuoteMoreTools')?.remove();
@@ -158,6 +247,9 @@ window.H38_OWNER_FLOW_POLISH=Object.freeze({
   realAiRebuildButtonId:'h38AiQuoteDraftButton',
   restoresBaseAiToolWhenMissing:true,
   aiRebuildSecondaryWhenLinesExist:true,
+  rebuildCompletionFeedback:true,
+  rebuildFeedbackPersistsAcrossRender:true,
+  rebuildDoesNotAutoSave:true,
   internalEvidenceCollapsed:true,
   optionalWorkEmphasized:true,
   automaticApproval:false,
