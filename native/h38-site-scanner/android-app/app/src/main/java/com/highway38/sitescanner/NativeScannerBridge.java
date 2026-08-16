@@ -72,6 +72,7 @@ public final class NativeScannerBridge {
             result.put("roomPlan", false);
             result.put("autofill", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O);
             result.put("nativePrint", Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
+            result.put("walkthroughPhotos", true);
             result.put("localSavedLogin", secureLoginStore.load() != null);
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
@@ -83,9 +84,10 @@ public final class NativeScannerBridge {
                 result.put("depth", false);
                 result.put("autofill", false);
                 result.put("nativePrint", false);
+                result.put("walkthroughPhotos", true);
                 result.put("error", error.getMessage());
             } catch (Exception ignored) {
-                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false,\"autofill\":false,\"nativePrint\":false}";
+                return "{\"platform\":\"android\",\"arcore\":false,\"depth\":false,\"autofill\":false,\"nativePrint\":false,\"walkthroughPhotos\":true}";
             }
         }
         return result.toString();
@@ -218,6 +220,10 @@ public final class NativeScannerBridge {
     public void launchWalkthroughCapture() {
         activity.runOnUiThread(() -> {
             try {
+                int waitingPhotos = WalkthroughPhotoStore.count(activity);
+                if (waitingPhotos > 0) {
+                    throw new IllegalStateException(waitingPhotos + " walkthrough photo" + (waitingPhotos == 1 ? " is" : "s are") + " still being saved to the Site Visit. Keep H38 open for a moment before recording another walkthrough.");
+                }
                 Method method = MainActivity.class.getDeclaredMethod("launchWalkthroughVideoCapture");
                 method.setAccessible(true);
                 Object result = method.invoke(activity);
@@ -244,6 +250,7 @@ public final class NativeScannerBridge {
             String value = prefs.getString(CAPTURE_URI_KEY, "");
             if (!ready || value == null || value.trim().isEmpty()) {
                 result.put("ready", false);
+                result.put("photoCount", WalkthroughPhotoStore.count(activity));
                 return result.toString();
             }
             Uri uri = Uri.parse(value);
@@ -267,10 +274,12 @@ public final class NativeScannerBridge {
             result.put("ready", size > 0L);
             result.put("size", Math.max(0L, size));
             result.put("mime", mime);
+            result.put("photoCount", WalkthroughPhotoStore.count(activity));
             return result.toString();
         } catch (Throwable error) {
             try {
                 result.put("ready", false);
+                result.put("photoCount", WalkthroughPhotoStore.count(activity));
                 result.put("error", error.getMessage());
             } catch (Throwable ignored) {
             }
@@ -313,6 +322,21 @@ public final class NativeScannerBridge {
         } catch (Throwable ignored) {
             return "";
         }
+    }
+
+    @JavascriptInterface
+    public String getRecoveredWalkthroughPhotosInfo() {
+        return WalkthroughPhotoStore.info(activity);
+    }
+
+    @JavascriptInterface
+    public String readRecoveredWalkthroughPhotoChunk(int index, long offset, int requestedBytes) {
+        return WalkthroughPhotoStore.readChunk(activity, index, offset, requestedBytes);
+    }
+
+    @JavascriptInterface
+    public void confirmRecoveredWalkthroughPhotosConsumed() {
+        activity.runOnUiThread(() -> WalkthroughPhotoStore.clear(activity, true));
     }
 
     @JavascriptInterface
