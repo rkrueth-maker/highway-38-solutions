@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-2055';
+const BUILD='20260815-2110';
 const H38_BUSINESS_ID='10b85a89-5834-436d-95b0-c6ee2eb335ad';
 const PAINT_OPTION={description:'Prime and paint new drywall',unit:'SF',rate:1.75};
 let scheduled=false;
@@ -40,6 +40,7 @@ function optionRow(option,index){return `<label class="h38-customer-option h38-l
 function tax(){
   try{const id=text(window.state?.quote?.quoteId),records=Array.isArray(window.state?.snapshot?.quotes)?window.state.snapshot.quotes:[],record=records.find(row=>text(row?.['Quote ID']||row?.quoteId)===id)||{};return number(record?.Tax??record?.tax);}catch(_){return 0;}
 }
+function nativePrintAvailable(){return Boolean(window.AndroidH38Native&&typeof window.AndroidH38Native.printCurrentPage==='function'&&window.H38_SAFE_QUOTE_PRINT?.print);}
 function updateTotals(section,baseTotal){const selected=Array.from(section.querySelectorAll('input[data-h38-live-option]:checked')).reduce((sum,input)=>sum+number(input.closest('.h38-live-option-row')?.dataset.amount),0);section.querySelector('[data-h38-live-selected]')?.replaceChildren(document.createTextNode(money(selected)));section.querySelector('[data-h38-live-combined]')?.replaceChildren(document.createTextNode(money(baseTotal+selected)));}
 function installStyle(){if(document.getElementById('h38LiveQuoteOptionStyle'))return;const style=document.createElement('style');style.id='h38LiveQuoteOptionStyle';style.textContent=`.h38-live-options{margin-top:18px;padding-top:15px;border-top:2px solid #14232f}.h38-live-options h3{margin:0 0 4px}.h38-live-options>p{margin:.2rem 0 10px;color:#66737d}.h38-live-options .h38-customer-option{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;padding:11px 0;border-top:1px solid #e2e7eb;cursor:pointer}.h38-live-options .h38-customer-option input{position:absolute;opacity:0}.h38-live-options .h38-option-check{width:23px;height:23px;border:2px solid #0b5f78;border-radius:5px;display:grid;place-items:center;color:transparent;font-weight:900}.h38-live-options .h38-customer-option:has(input:checked) .h38-option-check{background:#0b5f78;color:#fff}.h38-live-options .h38-option-copy{display:flex;flex-direction:column;gap:2px}.h38-live-options .h38-option-copy small{color:#66737d}.h38-live-options .h38-option-price{white-space:nowrap}.h38-live-option-totals{margin:10px 0 0 auto;max-width:370px}.h38-live-option-totals>div{display:flex;justify-content:space-between;gap:14px;padding:4px 0}.h38-live-option-totals .grand{border-top:2px solid #14232f;margin-top:4px;padding-top:8px;font-size:1.08rem}.h38-live-option-note{font-size:.78rem!important;color:#66737d!important}@media(max-width:560px){.h38-live-options .h38-customer-option{grid-template-columns:auto minmax(0,1fr)}.h38-live-options .h38-option-price{grid-column:2}.h38-live-option-totals{max-width:none}}@media print{.h38-live-options .h38-option-check{background:#fff!important;color:transparent!important}.h38-live-options .h38-customer-option:has(input:checked) .h38-option-check{color:#14232f!important}}`;document.head.appendChild(style);}
 function decorate(){
@@ -61,7 +62,8 @@ function schedule(delay=40){if(scheduled)return;scheduled=true;setTimeout(()=>{s
 document.addEventListener('input',event=>{if(event.target?.matches?.('#quoteTitle,#quoteScope,#quoteCustomer,[data-line-field]'))schedule(140);});
 document.addEventListener('change',event=>{if(event.target?.matches?.('#quoteTitle,#quoteScope,#quoteCustomer,[data-line-field]'))schedule(140);});
 document.addEventListener('click',event=>{if(event.target?.closest?.('#addQuoteLine,[data-remove-line],#h38AiQuoteDraftButton'))schedule(220);});
+document.addEventListener('click',event=>{const button=event.target?.closest?.('#h38LiveOpenPdf');if(!button||!nativePrintAvailable())return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();decorate();window.H38_SAFE_QUOTE_PRINT.print();},true);
 new MutationObserver(mutations=>{const hit=mutations.some(mutation=>Array.from(mutation.addedNodes||[]).some(node=>node.nodeType===1&&(node.id==='h38LiveCustomerQuote'||node.classList?.contains('h38-live-document')||node.querySelector?.('#h38LiveCustomerQuote,.h38-live-document'))));if(hit)schedule(20);}).observe(document.documentElement,{subtree:true,childList:true});
 installStyle();schedule(0);
-window.H38_LIVE_QUOTE_OPTIONS=Object.freeze({enabled:true,build:BUILD,baseQuoteExcludesOptions:true,paintOptionRate:1.75,customerSelectable:true,automaticApproval:false,automaticSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false});
+window.H38_LIVE_QUOTE_OPTIONS=Object.freeze({enabled:true,build:BUILD,baseQuoteExcludesOptions:true,paintOptionRate:1.75,customerSelectable:true,nativeLivePrint:true,automaticApproval:false,automaticSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false});
 })();
