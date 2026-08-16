@@ -1,9 +1,16 @@
 (function () {
   'use strict';
+  const nativeAndroid = /H38SiteScannerAndroid\//.test(String(navigator.userAgent || ''));
+  if (nativeAndroid) {
+    document.documentElement.classList.add('h38-early-native-startup');
+    const style = document.createElement('style');
+    style.id = 'h38EarlyNativeStartupStyle';
+    style.textContent = 'html.h38-early-native-startup body{overflow:hidden!important}html.h38-early-native-startup body:after{content:"🔨  Opening Highway 38…";white-space:pre;position:fixed;inset:0;z-index:2147483199;display:grid;place-items:center;background:#eef3f7;color:#10212c;font:800 18px system-ui,sans-serif;text-align:center;padding:24px}';
+    document.head.appendChild(style);
+  }
+
   // The existing Office is intentionally kept as classic scripts. Its top-level
   // const bindings are shared across scripts but are not window properties.
-  // Expose only runtime helpers that actually exist in this build so a retired
-  // renderer cannot crash startup or Site Visit navigation.
   window.state = state;
   window.PAGE_DEFS = PAGE_DEFS;
   window.esc = esc;
@@ -42,8 +49,14 @@
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
-    script.src = './startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-1';
+    script.src = './startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-2';
     script.dataset.h38StartupSiteVisitStability = '1';
+    document.head.appendChild(script);
+  }
+  if (!document.querySelector('script[data-h38-owner-phone-visual-fix]')) {
+    const script = document.createElement('script');
+    script.src = './owner-phone-visual-fix.js?build=20260816-owner-phone-visual-fix-1';
+    script.dataset.h38OwnerPhoneVisualFix = '1';
     document.head.appendChild(script);
   }
 })();
