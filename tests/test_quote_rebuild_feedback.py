@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "commercial-app" / "owner-flow-polish.js"
@@ -29,4 +30,4 @@ def test_owner_flow_asset_is_cache_busted():
     index = INDEX.read_text(encoding="utf-8")
     assert "owner-flow-polish.css?build=20260815-2135" in index
     assert "owner-flow-polish.js?build=20260815-2135" in index
-    assert "window.H38_ASSET_BUILD='20260815-2135'" in index
+    assert re.search(r"window\.H38_ASSET_BUILD='\d{8}-\d{4}'", index)

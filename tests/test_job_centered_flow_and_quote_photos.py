@@ -1,0 +1,81 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+FLOW = (ROOT / "commercial-app" / "job-centered-flow.js").read_text(encoding="utf-8")
+PHOTO_RESTORE = (ROOT / "commercial-app" / "quote-photo-restore.js").read_text(encoding="utf-8")
+PHOTO_REVIEW = (ROOT / "commercial-app" / "field-visit-photo-review.js").read_text(encoding="utf-8")
+TOP_ACTION = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
+INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
+SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
+
+
+def test_phone_navigation_is_five_primary_places():
+    assert "primaryNavigation:['Today','Jobs','Customers','Messages','More']" in FLOW
+    assert "['today','⌂','Today']" in FLOW
+    assert "['work','🧰','Jobs']" in FLOW
+    assert "['customers','👤','Customers']" in FLOW
+    assert "['messages','💬','Messages']" in FLOW
+    assert "data-h38-primary=\"more\"" in FLOW
+
+
+def test_job_home_remains_real_existing_job_center():
+    assert "h38JobCommandHome" in FLOW
+    assert "Do next step" in FLOW
+    assert "window.openPage?.(key)" in FLOW
+    assert "jobHomeCenter:true" in FLOW
+
+
+def test_site_visit_has_five_progressive_stages_and_real_controls():
+    assert "siteVisitStages:['Walkthrough','Measure','Photos','Review','Quote']" in FLOW
+    assert "document.getElementById('fieldPhotos')" in FLOW
+    assert "document.getElementById('fieldCamera')" in FLOW
+    assert "realFieldButtonsPreserved:true" in FLOW
+    assert "📷 Take Site Photo" in FLOW
+
+
+def test_video_evidence_stays_internal_until_owner_selects_photo():
+    assert "videoFramesInternalByDefault:true" in FLOW
+    assert "automaticCustomerPhotoSelection:false" in FLOW
+    assert "quotePhotoIds" in FLOW
+    assert "Add to Quote" in FLOW
+    assert "'Customer Quote Selected':true" in FLOW
+    assert "'Visibility':'Customer Proposal'" in FLOW
+
+
+def test_quote_restore_does_not_auto_link_site_visit_images():
+    assert "automaticSiteVisitPhotoLinking:false" in PHOTO_RESTORE
+    assert "explicitCustomerPhotoSelection:true" in PHOTO_RESTORE
+    assert "Customer Quote Selected" in PHOTO_RESTORE
+    assert "async function ensureQuoteLinks(){return 0;}" in PHOTO_RESTORE
+    assert "Site Visit video and extracted frames stay internal" in PHOTO_RESTORE
+    assert "selectedPhotosRenderOnCustomerProposal:true" in PHOTO_RESTORE
+    assert "selectedPhotosRenderInPrintSource:true" in PHOTO_RESTORE
+    assert "h38-customer-photo-section" in PHOTO_RESTORE
+
+
+def test_ai_site_review_keeps_all_evidence_but_aliases_selected_only():
+    assert "selectedIds=new Set((visit.quotePhotoIds||[])" in PHOTO_REVIEW
+    assert "selectedSource=source.filter" in PHOTO_REVIEW
+    assert "if(!selectedSource.length)return 0" in PHOTO_REVIEW
+    assert "'Customer Quote Selected':true" in PHOTO_REVIEW
+    assert "activeVisitPhotosStillAvailableForAiReview:true" in PHOTO_REVIEW
+    assert "automaticQuotePhotoLinking:false" in PHOTO_REVIEW
+
+
+def test_new_flow_is_loaded_live_first_and_cache_busted():
+    assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
+    assert "./site-visit-top-action.js?build=20260816-job-centered-flow-loader-1" in INDEX
+    assert "window.H38_ASSET_BUILD='20260816-0345'" in INDEX
+    assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
+    assert "'./job-centered-flow.js'" in SW
+    assert "h38-business-office-20260816-0345" in SW
+    assert "loadJobCenteredFlow" in TOP_ACTION
+    assert "jobCenteredFlowLoaded:true" in TOP_ACTION
+
+
+def test_no_new_automatic_external_actions():
+    for source in (FLOW, PHOTO_REVIEW):
+        assert "automaticApproval:false" in source
+        assert "automaticSending:false" in source or "automaticCustomerSending:false" in source
+    assert "automaticPurchasing:false" in FLOW
+    assert "automaticPayment:false" in FLOW

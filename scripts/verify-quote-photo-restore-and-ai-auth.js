@@ -14,10 +14,14 @@ const index = read('commercial-app/index.html');
 const worker = read('commercial-app/service-worker.js');
 const authFix = read('commercial-app/supabase-quote-ai-auth-fix.js');
 const photoRestore = read('commercial-app/quote-photo-restore.js');
+const photoReview = read('commercial-app/field-visit-photo-review.js');
+const jobFlow = read('commercial-app/job-centered-flow.js');
 const edge = read('supabase/functions/h38-quote-ai/index.ts');
 
 new Function(authFix);
 new Function(photoRestore);
+new Function(photoReview);
+new Function(jobFlow);
 
 const quoteBase = index.indexOf('./supabase-quote-ai.js');
 const authRepair = index.indexOf('./supabase-quote-ai-auth-fix.js');
@@ -29,6 +33,7 @@ if (!(quoteBase >= 0 && authRepair > quoteBase && mobile > authRepair && photoRe
 
 requireText(worker, 'supabase-quote-ai-auth-fix.js', 'Service worker');
 requireText(worker, 'quote-photo-restore.js', 'Service worker');
+requireText(worker, 'job-centered-flow.js', 'Service worker');
 const cacheName = worker.match(/const CACHE_NAME='(h38-business-office-\d{8}-\d{4})'/)?.[1];
 if (!cacheName) fail('Service worker cache rotation must use a dated h38-business-office cache name.');
 
@@ -44,11 +49,28 @@ requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall
 requireText(authFix, 'zeroRateDraftBlocked: true', 'Direct Quote AI zero-rate safety flag');
 requireText(authFix, 'pricingRepairRetry: true', 'Direct Quote AI pricing retry flag');
 
-requireText(photoRestore, "val(r,'Source ID','sourceId')", 'Saved quote photo relationship');
+requireText(photoRestore, "val(row,'Source ID','sourceId')", 'Saved quote photo relationship');
 requireText(photoRestore, 'createSignedUrl(path,300)', 'Private saved-photo preview');
 requireText(photoRestore, 'seen.has(k)', 'Duplicate saved-photo suppression');
-requireText(photoRestore, 'Saved with this quote', 'Saved photo section');
+requireText(photoRestore, 'Customer quote photos', 'Explicit customer photo section');
+requireText(photoRestore, 'automaticSiteVisitPhotoLinking:false', 'No automatic Site Visit photo linking');
+requireText(photoRestore, 'explicitCustomerPhotoSelection:true', 'Explicit customer photo contract');
+requireText(photoRestore, 'Customer Quote Selected', 'Selected Site Visit photo gate');
+requireText(photoRestore, 'selectedPhotosRenderOnCustomerProposal:true', 'Selected photos render on customer proposal');
+requireText(photoRestore, 'selectedPhotosRenderInPrintSource:true', 'Selected photos render in print/PDF source');
 if (photoRestore.includes('document.documentElement') || photoRestore.includes('document.body,{')) fail('Saved-photo restore must not observe the entire page.');
+
+requireText(photoReview, 'selectedIds=new Set((visit.quotePhotoIds||[])', 'Site Review owner-selected photo ids');
+requireText(photoReview, 'selectedSource=source.filter', 'Site Review selected-only quote aliasing');
+requireText(photoReview, "'Customer Quote Selected':true", 'Selected quote alias marker');
+requireText(photoReview, 'activeVisitPhotosStillAvailableForAiReview:true', 'AI review retains all active private evidence');
+requireText(photoReview, 'automaticQuotePhotoLinking:false', 'No automatic AI review quote photo linking');
+
+requireText(jobFlow, "primaryNavigation:['Today','Jobs','Customers','Messages','More']", 'Five-place phone navigation');
+requireText(jobFlow, "siteVisitStages:['Walkthrough','Measure','Photos','Review','Quote']", 'Five-stage Site Visit');
+requireText(jobFlow, 'quotePhotosExplicitSelection:true', 'Explicit Site Visit quote photo selection');
+requireText(jobFlow, 'videoFramesInternalByDefault:true', 'Video frames stay internal by default');
+requireText(jobFlow, 'automaticCustomerPhotoSelection:false', 'No random customer photo selection');
 
 requireText(edge, '${SUPABASE_URL}/auth/v1/user', 'Edge Auth validation');
 requireText(edge, 'authorization: `Bearer ${token}`', 'Edge Auth validation');
@@ -82,4 +104,4 @@ requireText(edge, 'automaticApproval: false', 'No automatic approval');
 requireText(edge, 'automaticCustomerSending: false', 'No automatic customer send');
 requireText(edge, 'separateRenderRequest: true', 'Separate render request');
 
-console.log('Quote photo restore, direct AI auth, nonzero pricing gate, assembly recipes, component breakout, and safe catalog pricing verification passed.');
+console.log('Quote photo restore, explicit Site Visit photo selection, direct AI auth, nonzero pricing gate, component breakout, and safe catalog pricing verification passed.');
