@@ -60,7 +60,7 @@ requireText(stability,"body.field-visit-open #mainNav.h38-five-primary-nav{displ
 requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit owns one stable viewport layer');
 
 requireText(runtimeGlobals,"typeof renderField !== 'undefined'",'optional field renderer is guarded before export');
-if(/window\.renderField\s*=\s*renderField\s*;/.test(runtimeGlobals))fail('runtime globals avoid unguarded renderField reference');else pass('runtime globals avoid unguarded renderField reference');
+if(/^\s*window\.renderField\s*=\s*renderField\s*;/m.test(runtimeGlobals))fail('runtime globals avoid unguarded renderField reference');else pass('runtime globals avoid unguarded renderField reference');
 requireText(runtimeGlobals,'startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-1','startup/site visit stability guard is loaded');
 requireText(runtimeGlobals,'window.H38_FIELD_VISIT?.open','missing classic field renderer routes to real Site Visit authority');
 requireText(startupVisit,'startupSingleCover:true','native startup uses one visual cover instead of intermediate screens');
