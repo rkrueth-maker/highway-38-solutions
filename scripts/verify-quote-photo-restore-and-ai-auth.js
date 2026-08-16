@@ -49,13 +49,15 @@ requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall
 requireText(authFix, 'zeroRateDraftBlocked: true', 'Direct Quote AI zero-rate safety flag');
 requireText(authFix, 'pricingRepairRetry: true', 'Direct Quote AI pricing retry flag');
 
-requireText(photoRestore, "val(r,'Source ID','sourceId')", 'Saved quote photo relationship');
+requireText(photoRestore, "val(row,'Source ID','sourceId')", 'Saved quote photo relationship');
 requireText(photoRestore, 'createSignedUrl(path,300)', 'Private saved-photo preview');
 requireText(photoRestore, 'seen.has(k)', 'Duplicate saved-photo suppression');
 requireText(photoRestore, 'Customer quote photos', 'Explicit customer photo section');
 requireText(photoRestore, 'automaticSiteVisitPhotoLinking:false', 'No automatic Site Visit photo linking');
 requireText(photoRestore, 'explicitCustomerPhotoSelection:true', 'Explicit customer photo contract');
 requireText(photoRestore, 'Customer Quote Selected', 'Selected Site Visit photo gate');
+requireText(photoRestore, 'selectedPhotosRenderOnCustomerProposal:true', 'Selected photos render on customer proposal');
+requireText(photoRestore, 'selectedPhotosRenderInPrintSource:true', 'Selected photos render in print/PDF source');
 if (photoRestore.includes('document.documentElement') || photoRestore.includes('document.body,{')) fail('Saved-photo restore must not observe the entire page.');
 
 requireText(photoReview, 'selectedIds=new Set((visit.quotePhotoIds||[])', 'Site Review owner-selected photo ids');
