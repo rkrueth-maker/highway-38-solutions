@@ -2,7 +2,8 @@
   'use strict';
   // The existing Office is intentionally kept as classic scripts. Its top-level
   // const bindings are shared across scripts but are not window properties.
-  // Expose only the runtime helpers required by the Supabase operational adapter.
+  // Expose only runtime helpers that actually exist in this build so a retired
+  // renderer cannot crash startup or Site Visit navigation.
   window.state = state;
   window.PAGE_DEFS = PAGE_DEFS;
   window.esc = esc;
@@ -17,7 +18,8 @@
   window.newId = newId;
   window.renderToday = renderToday;
   window.renderWork = renderWork;
-  window.renderField = renderField;
+  if (typeof renderField !== 'undefined') window.renderField = renderField;
+  else if (!window.renderField) window.renderField = function () { return window.renderWork?.(); };
   window.renderSettings = renderSettings;
   window.queueOperation = queueOperation;
 })();
