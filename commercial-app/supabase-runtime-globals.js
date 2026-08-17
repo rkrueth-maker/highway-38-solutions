@@ -1,6 +1,72 @@
 (function () {
   'use strict';
   const nativeAndroid = /H38SiteScannerAndroid\//.test(String(navigator.userAgent || ''));
+  const nativeReturnReloadParam = 'h38NativeReturnCold';
+
+  function nativeReturnPending() {
+    if (!nativeAndroid) return false;
+    try {
+      const info = JSON.parse(String(window.AndroidH38Native?.getRecoveredWalkthroughInfo?.() || '{}'));
+      if (info?.ready === true && Number(info?.size || 0) > 0) return true;
+    } catch (_) {}
+    try {
+      const photos = JSON.parse(String(window.AndroidH38Native?.getRecoveredWalkthroughPhotosInfo?.() || '{}'));
+      if (photos?.ready === true && Number(photos?.count || photos?.photos?.length || 0) > 0) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  function officeUsable() {
+    try {
+      const main = document.getElementById('mainContent');
+      const nav = document.getElementById('mainNav');
+      if (!main) return false;
+      const body = String(main.textContent || '');
+      if (/sign in|session expired|access denied|could not open/i.test(body)) return true;
+      if (!window.state?.businessId || !window.state?.snapshot) return false;
+      if (/Opening Business Office|Checking Supabase Auth/i.test(body)) return false;
+      return !!nav?.querySelector('button');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function installNativeReturnColdReloadGuard() {
+    if (!nativeAndroid || !nativeReturnPending()) return;
+    let url;
+    try {
+      url = new URL(location.href);
+    } catch (_) {
+      return;
+    }
+    if (url.searchParams.get(nativeReturnReloadParam) === '1') {
+      const clearMarker = function () {
+        if (!officeUsable()) return false;
+        try {
+          const clean = new URL(location.href);
+          clean.searchParams.delete(nativeReturnReloadParam);
+          history.replaceState(history.state, '', clean.toString());
+        } catch (_) {}
+        return true;
+      };
+      if (!clearMarker()) {
+        const started = Date.now();
+        const timer = setInterval(function () {
+          if (clearMarker() || Date.now() - started > 10000) clearInterval(timer);
+        }, 250);
+      }
+      return;
+    }
+    setTimeout(function () {
+      if (!nativeReturnPending() || officeUsable()) return;
+      try {
+        const cold = new URL(location.href);
+        cold.searchParams.set(nativeReturnReloadParam, '1');
+        location.replace(cold.toString());
+      } catch (_) {}
+    }, 2200);
+  }
+
   if (nativeAndroid) {
     document.documentElement.classList.add('h38-early-native-startup');
     const style = document.createElement('style');
@@ -46,6 +112,8 @@
   };
   window.renderSettings = renderSettings;
   window.queueOperation = queueOperation;
+
+  installNativeReturnColdReloadGuard();
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
