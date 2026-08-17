@@ -90,8 +90,8 @@ def test_existing_ui_keeps_real_controls_and_native_shell_recovery_only():
     assert 'id="fieldWalkthrough"' in UI
     assert 'id="fieldVideoInput"' in UI
     assert "physicalAndroidReturnRepair:true" in TOP
-    assert "versionCode 38" in GRADLE
-    assert "versionName '0.5.33'" in GRADLE
+    assert "versionCode 39" in GRADLE
+    assert "versionName '0.5.34'" in GRADLE
     assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in FINAL
     assert "webRtcFallback:false" in FINAL
