@@ -115,7 +115,7 @@ def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "'./android-walkthrough-photo-recovery.js'" in SW
     assert "site-visit-native-launch-final.js" in SW.split("const SHELL=", 1)[0]
     assert "'./site-visit-native-launch-final.js'" in SW
-    assert "h38-business-office-20260816-1745" in SW
+    assert "h38-business-office-20260817-0645" in SW
     assert "loadJobCenteredFlow" in TOP_ACTION
     assert "jobCenteredFlowLoaded:true" in TOP_ACTION
     assert "loadDeleteResetFix" in TOP_ACTION
