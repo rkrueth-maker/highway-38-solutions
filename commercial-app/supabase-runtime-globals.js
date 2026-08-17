@@ -31,6 +31,11 @@
     }
   }
 
+  function clearEarlyNativeStartupCover() {
+    document.documentElement.classList.remove('h38-early-native-startup');
+    document.getElementById('h38EarlyNativeStartupStyle')?.remove();
+  }
+
   function installNativeReturnColdReloadGuard() {
     if (!nativeAndroid || !nativeReturnPending()) return;
     let url;
@@ -42,6 +47,7 @@
     if (url.searchParams.get(nativeReturnReloadParam) === '1') {
       const clearMarker = function () {
         if (!officeUsable()) return false;
+        clearEarlyNativeStartupCover();
         try {
           const clean = new URL(location.href);
           clean.searchParams.delete(nativeReturnReloadParam);
@@ -73,10 +79,11 @@
     style.id = 'h38EarlyNativeStartupStyle';
     style.textContent = 'html.h38-early-native-startup body{overflow:hidden!important}html.h38-early-native-startup body:after{content:"🔨  Opening Highway 38…";white-space:pre;position:fixed;inset:0;z-index:2147483199;display:grid;place-items:center;background:#eef3f7;color:#10212c;font:800 18px system-ui,sans-serif;text-align:center;padding:24px}';
     document.head.appendChild(style);
+    // This early pseudo-cover exists only until the real startup watchdog is installed.
+    // Never allow it to become an indefinite opaque screen if later startup code fails.
+    setTimeout(clearEarlyNativeStartupCover, 3000);
   }
 
-  // The existing Office is intentionally kept as classic scripts. Its top-level
-  // const bindings are shared across scripts but are not window properties.
   window.state = state;
   window.PAGE_DEFS = PAGE_DEFS;
   window.esc = esc;
@@ -117,8 +124,10 @@
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
-    script.src = './startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-2';
+    script.src = './startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-3';
     script.dataset.h38StartupSiteVisitStability = '1';
+    script.onload = function () { clearEarlyNativeStartupCover(); };
+    script.onerror = function () { clearEarlyNativeStartupCover(); };
     document.head.appendChild(script);
   }
   if (!document.querySelector('script[data-h38-owner-phone-visual-fix]')) {
