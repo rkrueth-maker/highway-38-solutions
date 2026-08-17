@@ -37,5 +37,5 @@ window.addEventListener('pageshow',()=>void stabilize('pageshow'));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void stabilize('visible-return')});
 window.addEventListener('h38:native-scanner-ready',()=>void stabilize('native-ready'));
 setTimeout(()=>void stabilize('startup'),120);
-window.H38_ANDROID_WALKTHROUGH_RETURN_STABILIZER=Object.freeze({build:BUILD,exactRememberedVisitRecovery:true,persistentReturnContext:true,returnGraceMs:RETURN_GRACE_MS,focusCannotClearFreshContext:true,photoEvidenceCountsAsNativeReady:true,atomicFieldRestoreBeforeRecovery:true,serverSnapshotAssist:true,missingLocalDraftRebuilt:true,noBlindRenderTimer:true,noMutationObserver:true,noCameraAuthority:true,automaticApproval:false,automaticCustomerSending:false});
+window.H38_ANDROID_WALKTHROUGH_RETURN_STABILIZER=Object.freeze({build:BUILD,exactRememberedVisitRecovery:true,persistentReturnContext:true,returnGraceMs:RETURN_GRACE_MS,focusCannotClearFreshContext:true,photoEvidenceCountsAsNativeReady:true,atomicFieldRestoreBeforeRecovery:true,staleResumeClearedOnReturn:true,serverSnapshotAssist:true,missingLocalDraftRebuilt:true,noBlindRenderTimer:true,noMutationObserver:true,noCameraAuthority:true,automaticApproval:false,automaticCustomerSending:false});
 })();

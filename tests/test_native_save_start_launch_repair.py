@@ -7,6 +7,7 @@ UI = (ROOT / "commercial-app" / "field-visit-ui.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
+MAIN = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src" / "main" / "java" / "com" / "highway38" / "sitescanner" / "MainActivity.java").read_text(encoding="utf-8")
 
 
 def test_save_start_is_owned_by_window_capture_authority_for_native_android():
@@ -84,13 +85,14 @@ def test_old_web_recorder_is_not_called_by_final_native_save_start_authority():
     assert "await launch()" in repair
 
 
-def test_existing_ui_keeps_real_controls_and_web_only_repair():
+def test_existing_ui_keeps_real_controls_and_native_shell_recovery_only():
     assert 'id="fieldStartWalkthrough"' in UI
     assert 'id="fieldWalkthrough"' in UI
     assert 'id="fieldVideoInput"' in UI
     assert "physicalAndroidReturnRepair:true" in TOP
-    assert "versionCode 36" in GRADLE
-    assert "versionName '0.5.31'" in GRADLE
+    assert "versionCode 37" in GRADLE
+    assert "versionName '0.5.32'" in GRADLE
+    assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in FINAL
     assert "webRtcFallback:false" in FINAL
     for token in ["automaticApproval:false","automaticCustomerSending:false","automaticPurchasing:false","automaticPayment:false","automaticScheduling:false"]:

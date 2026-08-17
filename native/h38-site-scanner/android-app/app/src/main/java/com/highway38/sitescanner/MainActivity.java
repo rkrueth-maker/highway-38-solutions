@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.view.autofill.AutofillManager;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -47,6 +48,8 @@ public final class MainActivity extends Activity {
     private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
     private static final String CAPTURE_URI_KEY = "pending_uri";
     private static final String CAPTURE_READY_KEY = "ready";
+    private static final String RENDERER_RECOVERY_KEY = "renderer_recovery_pending";
+    private static final String LAST_OFFICE_URL_KEY = "last_office_url";
     private static final String CAPTURE_RECOVERY_URL =
             BUSINESS_OFFICE_URL + "__native_walkthrough_recovery";
 
@@ -56,6 +59,7 @@ public final class MainActivity extends Activity {
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean pendingFileCapture;
     private boolean pendingWalkthroughPermissionResume;
+    private boolean webRendererGone;
     private Uri pendingCaptureUri;
     private Uri recoveredCaptureUri;
     private View launchCover;
@@ -65,6 +69,8 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         configureSystemBars();
         restoreCaptureTracking();
+        boolean rendererRecovery = getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .getBoolean(RENDERER_RECOVERY_KEY, false);
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(OFFICE_BACKGROUND);
@@ -86,7 +92,7 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
         root.addView(webView);
-        launchCover = buildLaunchCover();
+        launchCover = buildLaunchCover(rendererRecovery || hasPendingNativeReturn());
         root.addView(launchCover);
         setContentView(root);
 
@@ -101,7 +107,7 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
         settings.setUserAgentString(
-                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.15"
+                settings.getUserAgentString() + " H38SiteScannerAndroid/0.5.32"
         );
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
             WebSettingsCompat.setWebAuthenticationSupport(
@@ -151,14 +157,18 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onPageCommitVisible(WebView view, String url) {
-                injectNativeScanner();
-                hideLaunchCover();
+                finishWebRecovery(url);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                injectNativeScanner();
-                hideLaunchCover();
+                finishWebRecovery(url);
+            }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                handleWebRendererGone(view, detail);
+                return true;
             }
         });
 
@@ -231,7 +241,7 @@ public final class MainActivity extends Activity {
         });
 
         boolean restored = false;
-        if (savedInstanceState != null) {
+        if (!rendererRecovery && savedInstanceState != null) {
             try {
                 restored = webView.restoreState(savedInstanceState) != null;
             } catch (Exception ignored) {
@@ -240,7 +250,7 @@ public final class MainActivity extends Activity {
         }
         String restoredUrl = webView.getUrl();
         if (!restored || restoredUrl == null) {
-            webView.loadUrl(BUSINESS_OFFICE_URL);
+            webView.loadUrl(lastOfficeUrl());
         } else if (webView.getProgress() >= 100) {
             webView.postDelayed(this::hideLaunchCover, 180);
         }
@@ -295,6 +305,73 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) {
             clearCaptureTracking(false);
         }
+    }
+
+    private boolean hasPendingNativeReturn() {
+        if (recoveredCaptureUri != null) return true;
+        if (getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .getBoolean(CAPTURE_READY_KEY, false)) return true;
+        try {
+            return WalkthroughPhotoStore.count(this) > 0;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private String lastOfficeUrl() {
+        String value = getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .getString(LAST_OFFICE_URL_KEY, BUSINESS_OFFICE_URL);
+        if (value == null || !value.startsWith(BUSINESS_OFFICE_URL)) return BUSINESS_OFFICE_URL;
+        return value;
+    }
+
+    private void rememberOfficeUrl(String url) {
+        if (url == null || !url.startsWith(BUSINESS_OFFICE_URL)) return;
+        getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .edit()
+                .putString(LAST_OFFICE_URL_KEY, url)
+                .apply();
+    }
+
+    private void finishWebRecovery(String url) {
+        rememberOfficeUrl(url);
+        getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .edit()
+                .remove(RENDERER_RECOVERY_KEY)
+                .apply();
+        injectNativeScanner();
+        hideLaunchCover();
+    }
+
+    private void handleWebRendererGone(WebView view, RenderProcessGoneDetail detail) {
+        if (webRendererGone) return;
+        webRendererGone = true;
+        getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
+                .edit()
+                .putBoolean(RENDERER_RECOVERY_KEY, true)
+                .apply();
+        runOnUiThread(() -> {
+            try {
+                ViewGroup parent = (ViewGroup) view.getParent();
+                if (parent != null) parent.removeView(view);
+            } catch (Throwable ignored) {
+            }
+            try {
+                view.removeJavascriptInterface("AndroidH38Native");
+                view.destroy();
+            } catch (Throwable ignored) {
+            }
+            if (webView == view) webView = null;
+            nativeScannerBridge = null;
+            Toast.makeText(
+                    MainActivity.this,
+                    hasPendingNativeReturn()
+                            ? "Restoring Site Visit after Android reclaimed the web screen."
+                            : "Restoring Highway 38 after Android reclaimed the web screen.",
+                    Toast.LENGTH_SHORT
+            ).show();
+            recreate();
+        });
     }
 
     private void clearCaptureTracking(boolean deleteUri) {
@@ -352,7 +429,7 @@ public final class MainActivity extends Activity {
         return false;
     }
 
-    private View buildLaunchCover() {
+    private View buildLaunchCover(boolean restoringSiteVisit) {
         FrameLayout cover = new FrameLayout(this);
         cover.setBackgroundColor(OFFICE_BACKGROUND);
         cover.setClickable(true);
@@ -372,6 +449,17 @@ public final class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        TextView hammer = new TextView(this);
+        hammer.setText("🔨");
+        hammer.setTextSize(38);
+        hammer.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams hammerParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        hammerParams.bottomMargin = dp(10);
+        content.addView(hammer, hammerParams);
+
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.highway38_logo);
         logo.setContentDescription("Highway 38 Solutions");
@@ -387,7 +475,7 @@ public final class MainActivity extends Activity {
         content.addView(title);
 
         TextView status = new TextView(this);
-        status.setText("Opening Business Office…");
+        status.setText(restoringSiteVisit ? "Restoring Site Visit…" : "Opening Business Office…");
         status.setTextColor(Color.rgb(82, 97, 109));
         status.setTextSize(14);
         status.setGravity(Gravity.CENTER);
@@ -442,6 +530,7 @@ public final class MainActivity extends Activity {
     }
 
     private void injectNativeScanner() {
+        if (webView == null || webRendererGone) return;
         String script = "(function(){"
                 + "window.__h38NativePending=window.__h38NativePending||{};"
                 + "window.__h38NativeComplete=function(requestId,ok,payload){"
@@ -463,7 +552,10 @@ public final class MainActivity extends Activity {
                 + "};"
                 + "window.dispatchEvent(new CustomEvent('h38:native-scanner-ready'));"
                 + "})();";
-        webView.evaluateJavascript(script, null);
+        try {
+            webView.evaluateJavascript(script, null);
+        } catch (Throwable ignored) {
+        }
     }
 
     private void handleWebPermissionRequest(PermissionRequest request) {
@@ -538,7 +630,9 @@ public final class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_NATIVE_SCAN) {
-            nativeScannerBridge.completeFromActivity(resultCode, data);
+            if (nativeScannerBridge != null) {
+                nativeScannerBridge.completeFromActivity(resultCode, data);
+            }
             return;
         }
 
@@ -595,7 +689,7 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
+        if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
             super.onBackPressed();
@@ -604,7 +698,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        webView.onPause();
+        if (webView != null && !webRendererGone) webView.onPause();
         CookieManager.getInstance().flush();
         super.onPause();
     }
@@ -612,13 +706,20 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        webView.onResume();
-        injectNativeScanner();
+        if (webView != null && !webRendererGone) {
+            webView.onResume();
+            injectNativeScanner();
+        }
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
+        if (webView != null && !webRendererGone) {
+            try {
+                webView.saveState(outState);
+            } catch (Throwable ignored) {
+            }
+        }
         if (pendingCaptureUri != null) {
             outState.putString(CAPTURE_URI_KEY, pendingCaptureUri.toString());
         }
@@ -637,8 +738,12 @@ public final class MainActivity extends Activity {
         }
         pendingWalkthroughPermissionResume = false;
         if (webView != null) {
-            webView.removeJavascriptInterface("AndroidH38Native");
-            webView.destroy();
+            try {
+                webView.removeJavascriptInterface("AndroidH38Native");
+                webView.destroy();
+            } catch (Throwable ignored) {
+            }
+            webView = null;
         }
         super.onDestroy();
     }

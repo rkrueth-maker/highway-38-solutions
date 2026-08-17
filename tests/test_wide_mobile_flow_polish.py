@@ -7,6 +7,7 @@ INDEX = (APP / "index.html").read_text(encoding="utf-8")
 LAUNCH = (APP / "site-visit-native-launch-final.js").read_text(encoding="utf-8")
 POLISH = (APP / "mobile-flow-polish-v2.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
+MAIN = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src" / "main" / "java" / "com" / "highway38" / "sitescanner" / "MainActivity.java").read_text(encoding="utf-8")
 
 
 def test_final_native_launch_uses_direct_bridge_after_bounded_save_and_identity():
@@ -28,9 +29,10 @@ def test_final_native_launch_uses_direct_bridge_after_bounded_save_and_identity(
     assert "indefiniteHammer:false" in LAUNCH
 
 
-def test_native_fix_remains_web_only_on_existing_owner_apk():
-    assert "versionCode 36" in GRADLE
-    assert "versionName '0.5.31'" in GRADLE
+def test_native_renderer_recovery_uses_v0532_without_camera_rewrite():
+    assert "versionCode 37" in GRADLE
+    assert "versionName '0.5.32'" in GRADLE
+    assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in LAUNCH
     assert "automaticApproval:false" in LAUNCH
     assert "automaticCustomerSending:false" in LAUNCH

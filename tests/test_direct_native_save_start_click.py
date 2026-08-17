@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TOP = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
 FINAL = (ROOT / "commercial-app" / "site-visit-native-launch-final.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
+MAIN = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src" / "main" / "java" / "com" / "highway38" / "sitescanner" / "MainActivity.java").read_text(encoding="utf-8")
 
 
 def test_real_save_start_button_has_window_capture_native_authority():
@@ -41,10 +42,11 @@ def test_legacy_top_action_return_recovery_remains_but_is_not_launch_authority_c
     assert "singleActiveAuthority:true" in FINAL
 
 
-def test_no_web_recorder_or_native_apk_change_added():
+def test_no_web_recorder_and_native_renderer_recovery_is_v0532():
     assert "getUserMedia" not in FINAL
     assert "MediaRecorder" not in FINAL
     assert "openRecorder(" not in FINAL
-    assert "versionCode 36" in GRADLE
-    assert "versionName '0.5.31'" in GRADLE
+    assert "versionCode 37" in GRADLE
+    assert "versionName '0.5.32'" in GRADLE
+    assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in FINAL
