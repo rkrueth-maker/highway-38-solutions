@@ -37,7 +37,7 @@ absent(noLegacy,'./field-visit-fast-followup.js?build=','dynamic Site Visit auth
 for(const s of ['automaticPostCaptureSync:true','automaticWalkthroughProcessing:true','H38 is syncing Site Visit evidence'])must(recovery,s,'post-capture recovery');
 for(const s of ['clearEarlyNativeStartupCover','setTimeout(clearEarlyNativeStartupCover, 3000)','script.onload = function () { clearEarlyNativeStartupCover(); }','h38NativeReturnCold'])must(runtimeGlobals,s,'Android startup recovery');
 for(const s of ["BUILD='20260816-startup-site-visit-stability-3'","startupMaxCoverMs:8000","Highway 38 startup did not finish. The underlying Business Office is now visible for recovery."])must(startupStability,s,'startup watchdog');
-for(const s of ["CACHE_NAME='h38-business-office-20260817-native-startup-recovery-1'","'supabase-runtime-globals.js'","'startup-site-visit-stability.js'","'./startup-site-visit-stability.js'"])must(serviceWorker,s,'startup service worker');
+for(const s of ["CACHE_NAME='h38-business-office-20260817-0330'","'supabase-runtime-globals.js'","'startup-site-visit-stability.js'","'./startup-site-visit-stability.js'"])must(serviceWorker,s,'startup service worker');
 const liveFirst=(serviceWorker.match(/const LIVE_FIRST=new Set\(\[([\s\S]*?)\]\);/)||[])[1]||'';
 for(const critical of ['supabase-runtime-globals.js','startup-site-visit-stability.js'])must(liveFirst,`'${critical}'`,'startup LIVE_FIRST boundary');
 for(const s of ['androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android candidate source');
