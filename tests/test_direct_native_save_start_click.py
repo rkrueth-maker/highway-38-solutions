@@ -35,10 +35,14 @@ def test_final_authority_launches_bridge_directly_not_via_proxy_click():
     assert "realSaveStartButton:true" in FINAL
 
 
-def test_legacy_top_action_return_recovery_remains_but_is_not_launch_authority_contract():
+def test_top_action_delegates_return_and_does_not_own_restore():
     assert "physicalAndroidReturnRepair:true" in TOP
     assert "persistentReturnContext:true" in TOP
-    assert "nativeEvidencePoll:true" in TOP
+    assert "delegatesNativeReturn:true" in TOP
+    assert "nativeEvidenceRequired:true" in TOP
+    repair = TOP.split("async function repairNativeReturn", 1)[1].split("function clickRealWalkthrough", 1)[0]
+    assert "authority.recoverNow" in repair
+    assert "C.state.render" not in repair
     assert "singleActiveAuthority:true" in FINAL
 
 
