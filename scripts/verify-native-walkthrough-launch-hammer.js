@@ -4,6 +4,8 @@ const read=p=>fs.readFileSync(p,'utf8');
 const bridge=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/NativeScannerBridge.java');
 const capture=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughCaptureActivity.java');
 const audio=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/WalkthroughAudioExtractor.java');
+const nativeWatchdog=read('native/h38-site-scanner/android-app/app/src/main/java/com/highway38/sitescanner/H38Application.java');
+const manifest=read('native/h38-site-scanner/android-app/app/src/main/AndroidManifest.xml');
 const guard=read('commercial-app/android-native-walkthrough-guard.js');
 const guided=read('commercial-app/field-visit-guided-controller.js');
 const measureClass=read('commercial-app/field-visit-measurement-classification.js');
@@ -25,6 +27,8 @@ for(const s of ['launchWalkthroughCapture','getDeclaredMethod("launchWalkthrough
 for(const s of ['directNativeLaunch:true','b.launchWalkthroughCapture()','readNativeFile','persistVideoFirst'])must(guard,s,'walkthrough guard');
 for(const s of ['handler.postDelayed(this::startRecording,120)','Stop & Use Video','🔨 H38 is saving walkthrough…','WalkthroughAudioExtractor.prepare(this,outputFile)','MAX_DURATION_MS = 300_000L'])must(capture,s,'CameraX auto-start');
 for(const s of ['MediaExtractor','MediaMuxer','MUXER_OUTPUT_MPEG_4'])must(audio,s,'native same-video audio');
+for(const s of ['android:name=".H38Application"'])must(manifest,s,'native watchdog manifest');
+for(const s of ['Application.ActivityLifecycleCallbacks','PROBE_RESPONSE_TIMEOUT_MS = 4000L','WebViewCompat.getWebViewRenderProcess(webView)','process.terminate()','MainActivity.onRenderProcessGone()','exposeUnderlyingOffice','MIN_FORCED_RECOVERY_GAP_MS = 45000L'])must(nativeWatchdog,s,'native WebView hang watchdog');
 for(const s of ['inlineWorkingHammer:true','visibleVisualNotes:true','visibleSpokenNotes:true','visiblePhotoRequests:true','visibleMeasurementRequests:true','walkthroughMeasurementCandidates:true','@keyframes h38GuidedHammer','Photos H38 still needs','Measurements H38 still needs','Walkthrough measurement candidates','mutationObserver:false','idempotentRender:true','automaticMeasurementReanalysis:false','walkthroughCompletedMeasurements','measurementRequest:raw','measurementLabel:label','await C.ingest(result)','h38:walkthrough-measurements-updated'])must(guided,s,'guided Site Visit controller');
 for(const s of ['materialSpecificationsAreNotFieldMeasurements:true','operatorVerifiedSpokenDimensionsStayVerified:true','OPERATOR_VERIFIED','UNVERIFIED_SPOKEN','isMaterialSpecification','isOperatorVerified'])must(measureClass,s,'walkthrough measurement classifier');
 for(const s of ['verifiedDimensionsSuppressAiReverification:true','verifiedCandidatesDisplayAsVerified:true','reviewMissingMeasurementsDeduped:true','serverIdentityEvidenceCascade:true','siteVisitDeleteRemovesAttachedPhotos:true','photoDeleteBesideMakeActionPicture:true','DELETE_SITE_VISIT_EVIDENCE_CASCADE','Capture Session ID','Linked Site Visit ID','Make Action Picture','field-owner-delete-photo','OPERATOR VERIFIED · field measurement already confirmed · no remeasurement required'])must(acceptance,s,'Site Visit acceptance repair');
@@ -41,5 +45,5 @@ for(const s of ["CACHE_NAME='h38-business-office-20260817-0330'","'supabase-runt
 const liveFirst=(serviceWorker.match(/const LIVE_FIRST=new Set\(\[([\s\S]*?)\]\);/)||[])[1]||'';
 for(const critical of ['supabase-runtime-globals.js','startup-site-visit-stability.js'])must(liveFirst,`'${critical}'`,'startup LIVE_FIRST boundary');
 for(const s of ['androidx.camera:camera-video:1.5.3'])must(gradle,s,'Android candidate source');
-if(versionCode<34||!/^0\.5\.\d+$/.test(versionName))throw new Error(`Android candidate version is invalid: ${versionName} (${versionCode})`);
-console.log(JSON.stringify({status:'PASS',nativeWalkthroughAuthority:'CameraX',guidedControllerAuthority:true,walkthroughArAdvanceLinked:true,maxWalkthroughSeconds:300,currentCandidateSource:versionName,androidStartupAssetsLiveFirst:true,earlyStartupCoverBounded:true,physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
+if(versionCode<38||versionName!=='0.5.33')throw new Error(`Android watchdog candidate version is invalid: ${versionName} (${versionCode})`);
+console.log(JSON.stringify({status:'PASS',nativeWalkthroughAuthority:'CameraX',guidedControllerAuthority:true,walkthroughArAdvanceLinked:true,maxWalkthroughSeconds:300,currentCandidateSource:versionName,androidStartupAssetsLiveFirst:true,earlyStartupCoverBounded:true,nativeRendererHangWatchdog:true,physicalPhoneAcceptanceExternal:true,automaticApproval:false,automaticCustomerSending:false},null,2));
