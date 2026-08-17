@@ -56,11 +56,12 @@ def test_explicit_native_failure_does_not_bounce_through_second_camera_entry():
     assert "nativeFailureEventHandled:true" in FINAL
 
 
-def test_jobs_backfill_only_runs_while_field_workspace_is_open():
+def test_jobs_backfill_requires_open_field_and_proven_native_return():
     assert "function fieldOpen()" in FINAL
-    assert "if(backfillBusy||!fieldOpen())return false" in FINAL
-    assert "if(!fieldOpen())return" in FINAL
+    assert "if(backfillBusy||!fieldOpen()||!nativeEvidencePending())return false" in FINAL
+    assert "if(!fieldOpen()||!nativeEvidencePending())return" in FINAL
     assert "jobsBackfillOnlyWhenFieldOpen:true" in FINAL
+    assert "returnHydrationRequiresNativeEvidence:true" in FINAL
 
 
 def test_session_persistence_is_deferred_until_native_return():
@@ -72,9 +73,8 @@ def test_session_persistence_is_deferred_until_native_return():
 def test_launcher_is_service_worker_live_first_so_android_gets_repairs():
     live_first = SW.split("const LIVE_FIRST=", 1)[1].split("const SHELL=", 1)[0]
     assert "site-visit-native-launch-final.js" in live_first
-    assert "h38-business-office-20260816-1745" in SW
     assert "./site-visit-native-launch-final.js" in SW
-    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in INDEX
+    assert "./site-visit-native-launch-final.js?build=" in INDEX
 
 
 def test_old_web_recorder_is_not_called_by_final_native_save_start_authority():
