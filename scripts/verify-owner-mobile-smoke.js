@@ -63,7 +63,7 @@ requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit ow
 requireText(runtimeGlobals,"typeof renderField !== 'undefined'",'optional field renderer is guarded before export');
 if(/^\s*window\.renderField\s*=\s*renderField\s*;/m.test(runtimeGlobals))fail('runtime globals avoid unguarded renderField reference');else pass('runtime globals avoid unguarded renderField reference');
 requireText(runtimeGlobals,'h38-early-native-startup','startup cover is asserted before hydration begins');
-requireText(runtimeGlobals,'startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-2','updated startup/site visit stability guard is loaded');
+requireText(runtimeGlobals,'startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-3','updated startup/site visit stability guard is loaded');
 requireText(runtimeGlobals,'owner-phone-visual-fix.js?build=20260816-owner-phone-visual-fix-1','phone visual repair is loaded before hydration finishes');
 requireText(runtimeGlobals,'window.H38_FIELD_VISIT?.open','missing classic field renderer routes to real Site Visit authority');
 requireText(startupVisit,'startupSingleCover:true','native startup uses one visual cover instead of intermediate screens');
