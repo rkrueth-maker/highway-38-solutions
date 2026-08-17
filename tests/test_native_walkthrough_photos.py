@@ -47,5 +47,5 @@ def test_native_photo_recovery_is_loaded_and_offline_cached():
 
 
 def test_owner_apk_version_is_bumped_for_native_change():
-    assert "versionCode 36" in GRADLE
-    assert "versionName '0.5.31'" in GRADLE
+    assert "versionCode 37" in GRADLE
+    assert "versionName '0.5.32'" in GRADLE
