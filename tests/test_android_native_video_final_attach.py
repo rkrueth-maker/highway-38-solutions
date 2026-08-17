@@ -32,13 +32,7 @@ def test_native_video_is_not_consumed_until_attachment_and_exact_draft_are_verif
     assert "await window.H38DB.put('drafts',visit)" in persist
     assert "verifyDurable(item,attachmentId)" in persist
     assert "confirmRecoveredWalkthroughConsumed" not in persist
-
-    # If the original guard already wrote both the exact draft and attachment,
-    # the fallback may safely finish native consumption without duplicating it.
     assert fallback.index("if(await durableVideoAlreadyAttached(item,visit))") < fallback.index("confirmConsumed()")
-
-    # For a newly created fallback attachment, durable persistence and verification
-    # must finish before the native source is acknowledged/cleared.
     new_file_path = fallback.split("const file=await readNativeFile()", 1)[1]
     assert new_file_path.index("persistExactVideo(file,item)") < new_file_path.index("confirmConsumed()")
     assert "durableVerificationBeforeConsume:true" in FINAL
@@ -50,8 +44,8 @@ def test_final_attach_can_recover_stream_or_native_chunks_without_camera_rewrite
     assert "readRecoveredWalkthroughChunk" in FINAL
     assert "CHUNK_BYTES=256*1024" in FINAL
     assert "cameraXChanged:false" in FINAL
-    assert "versionCode 38" in GRADLE
-    assert "versionName '0.5.33'" in GRADLE
+    assert "versionCode 39" in GRADLE
+    assert "versionName '0.5.34'" in GRADLE
 
 
 def test_final_attach_is_loaded_from_live_runtime_and_keeps_safety_controls():
