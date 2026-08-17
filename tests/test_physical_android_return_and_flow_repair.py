@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TOP = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
+MAIN = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src" / "main" / "java" / "com" / "highway38" / "sitescanner" / "MainActivity.java").read_text(encoding="utf-8")
 
 
 def test_native_return_context_survives_first_focus_race():
@@ -49,8 +50,10 @@ def test_duplicate_walkthrough_call_to_action_is_removed_but_real_button_remains
     assert "#h38SiteVisitStageRail .h38-site-next[hidden]" in TOP
 
 
-def test_repair_is_web_only_and_keeps_owner_apk_at_v0531():
-    assert "versionCode 36" in GRADLE
-    assert "versionName '0.5.31'" in GRADLE
+def test_native_renderer_recovery_bumps_owner_apk_to_v0532():
+    assert "versionCode 37" in GRADLE
+    assert "versionName '0.5.32'" in GRADLE
+    assert "onRenderProcessGone" in MAIN
+    assert '"Restoring Site Visit…"' in MAIN
     assert "automaticApproval:false" in TOP
     assert "automaticCustomerSending:false" in TOP
