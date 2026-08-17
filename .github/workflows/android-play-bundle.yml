@@ -13,7 +13,7 @@ on:
       - '.github/workflows/android-play-bundle.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-play-bundle:
@@ -67,11 +67,12 @@ jobs:
             echo 'signed=true' >> "$GITHUB_OUTPUT"
           else
             echo 'signed=false' >> "$GITHUB_OUTPUT"
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event_name }}" != "pull_request" ]]; then
               echo 'Play release signing secrets are not configured.' >&2
               echo 'Required: H38_ANDROID_UPLOAD_KEYSTORE_B64, H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD, H38_ANDROID_UPLOAD_KEY_ALIAS, H38_ANDROID_UPLOAD_KEY_PASSWORD.' >&2
               exit 1
             fi
+            echo 'Pull-request validation will compile an unsigned AAB only; it is not a Play upload artifact.'
           fi
       - name: Build release App Bundle
         run: gradle --no-daemon --stacktrace :app:bundleRelease
@@ -100,3 +101,21 @@ jobs:
             H38-Business-Office-v${{ steps.version.outputs.version_name }}.aab.sha256
           if-no-files-found: error
           retention-days: 30
+      - name: Publish verified Play upload bundle release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.signing.outputs.signed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.version.outputs.version_name }}'
+          VERSION_CODE='${{ steps.version.outputs.version_code }}'
+          TAG="h38-google-play-v${VERSION}"
+          AAB="H38-Business-Office-v${VERSION}.aab"
+          SHA="H38-Business-Office-v${VERSION}.aab.sha256"
+          gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" "$AAB" "$SHA" \
+            --target "$GITHUB_SHA" \
+            --title "H38 Google Play v${VERSION}" \
+            --notes "Verified signed Google Play upload bundle for Highway 38 Business Office v${VERSION} (versionCode ${VERSION_CODE}), targeting Android 16 / API 36. The workflow verified the AAB JAR signature before publishing this release."
