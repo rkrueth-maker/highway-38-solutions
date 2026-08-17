@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.view.View;
+import android.view.MotionEvent;
 import android.webkit.WebView;
 import android.widget.Toast;
 
@@ -19,12 +19,10 @@ import java.lang.reflect.Field;
 /**
  * Native owner-phone watchdog for the published Business Office WebView.
  *
- * CameraX can remain healthy while the WebView renderer is alive-but-wedged.
- * JavaScript timers cannot recover that state because they run in the wedged
- * renderer. This watchdog runs from the Android process, probes the renderer,
- * and terminates only a renderer that fails to answer a trivial JS probe.
- * MainActivity.onRenderProcessGone() remains the authority that recreates the
- * WebView and preserves pending walkthrough evidence.
+ * This watchdog exists only to recover an alive-but-unresponsive renderer during
+ * MainActivity resume/startup (especially after CameraX return). It must never
+ * interpret normal owner interaction, rendering, scrolling, or button work as a
+ * hung renderer.
  */
 public final class H38Application extends Application implements Application.ActivityLifecycleCallbacks {
     private static final String PREFS = "h38-walkthrough-capture";
@@ -33,13 +31,17 @@ public final class H38Application extends Application implements Application.Act
     private static final long PROBE_RESPONSE_TIMEOUT_MS = 4000L;
     private static final long RESPONSIVE_STARTUP_FAIL_OPEN_MS = 15000L;
     private static final long MIN_FORCED_RECOVERY_GAP_MS = 45000L;
+    private static final long USER_INTERACTION_GRACE_MS = 8000L;
+    private static final int REQUIRED_UNANSWERED_PROBES = 2;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WeakReference<MainActivity> currentMain = new WeakReference<>(null);
     private int generation;
     private long resumedAt;
+    private long lastUserInteractionAt;
     private boolean responsiveRendererSeen;
     private boolean failOpenApplied;
+    private int unansweredProbeCount;
 
     @Override
     public void onCreate() {
@@ -54,8 +56,26 @@ public final class H38Application extends Application implements Application.Act
         currentMain = new WeakReference<>(main);
         generation++;
         resumedAt = SystemClock.elapsedRealtime();
+        lastUserInteractionAt = resumedAt;
         responsiveRendererSeen = false;
         failOpenApplied = false;
+        unansweredProbeCount = 0;
+        WebView webView = webView(main);
+        if (webView != null) {
+            // Returning false preserves WebView's normal click/scroll/gesture handling.
+            webView.setOnTouchListener((view, event) -> {
+                if (event != null) {
+                    int action = event.getActionMasked();
+                    if (action == MotionEvent.ACTION_DOWN
+                            || action == MotionEvent.ACTION_MOVE
+                            || action == MotionEvent.ACTION_UP) {
+                        lastUserInteractionAt = SystemClock.elapsedRealtime();
+                        unansweredProbeCount = 0;
+                    }
+                }
+                return false;
+            });
+        }
         final int token = generation;
         mainHandler.postDelayed(() -> probeOffice(main, token), FIRST_PROBE_DELAY_MS);
     }
@@ -77,7 +97,10 @@ public final class H38Application extends Application implements Application.Act
                     value -> {
                         answered[0] = true;
                         if (!isCurrent(activity, token)) return;
+                        // Any callback proves the renderer/JS thread is responsive. Once that
+                        // happens, the native kill watchdog is disarmed for this resume cycle.
                         responsiveRendererSeen = true;
+                        unansweredProbeCount = 0;
                         if ("true".equals(String.valueOf(value))) {
                             clearForcedRecoveryAge();
                             return;
@@ -93,6 +116,8 @@ public final class H38Application extends Application implements Application.Act
                             ).show();
                             return;
                         }
+                        // The renderer answered, so do not terminate it. A later lightweight
+                        // probe may expose a startup cover, but cannot become a renderer-kill path.
                         mainHandler.postDelayed(() -> probeOffice(activity, token), 1800L);
                     }
             );
@@ -101,6 +126,23 @@ public final class H38Application extends Application implements Application.Act
 
         mainHandler.postDelayed(() -> {
             if (!isCurrent(activity, token) || answered[0]) return;
+            if (responsiveRendererSeen) {
+                // The renderer has already proved it can execute JS during this resume cycle.
+                // Do not convert a later busy frame into a destructive recovery.
+                exposeUnderlyingOffice(webView);
+                return;
+            }
+            long sinceTouch = SystemClock.elapsedRealtime() - lastUserInteractionAt;
+            if (sinceTouch < USER_INTERACTION_GRACE_MS) {
+                unansweredProbeCount = 0;
+                mainHandler.postDelayed(() -> probeOffice(activity, token), 1800L);
+                return;
+            }
+            unansweredProbeCount++;
+            if (unansweredProbeCount < REQUIRED_UNANSWERED_PROBES) {
+                mainHandler.postDelayed(() -> probeOffice(activity, token), 1800L);
+                return;
+            }
             forceHungRendererRecovery(activity, webView);
         }, PROBE_RESPONSE_TIMEOUT_MS);
     }
