@@ -73,6 +73,14 @@
     }, 2200);
   }
 
+  function loadFinalNativeVideoAttach() {
+    if (!nativeAndroid || document.querySelector('script[data-h38-native-video-final-attach]')) return;
+    const script = document.createElement('script');
+    script.src = './android-native-video-final-attach.js?build=20260817-native-video-final-attach-1';
+    script.dataset.h38NativeVideoFinalAttach = '1';
+    document.head.appendChild(script);
+  }
+
   if (nativeAndroid) {
     document.documentElement.classList.add('h38-early-native-startup');
     const style = document.createElement('style');
@@ -121,6 +129,7 @@
   window.queueOperation = queueOperation;
 
   installNativeReturnColdReloadGuard();
+  loadFinalNativeVideoAttach();
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
