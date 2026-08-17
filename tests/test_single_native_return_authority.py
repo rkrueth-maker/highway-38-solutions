@@ -51,9 +51,10 @@ def test_return_requires_exact_identity_and_does_not_synthesize_blank_customer_v
     assert "projectTitle:text(item.projectTitle" not in RETURN
 
 
-def test_camera_and_native_owner_build_are_unchanged():
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+def test_camera_authority_is_unchanged_on_api36_release():
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
+    assert "targetSdk 36" in GRADLE
     assert "cameraXChanged:false" in LAUNCH
     assert "cameraXChanged:false" in ATTACH
     for token in [
