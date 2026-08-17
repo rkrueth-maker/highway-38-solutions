@@ -76,7 +76,12 @@ jobs:
             echo 'signed=true' >> "$GITHUB_OUTPUT"
           else
             echo 'signed=false' >> "$GITHUB_OUTPUT"
-            echo 'Stable Android signing secrets are unavailable; building the owner-test debug package. Saved H38 login no longer depends on Digital Asset Links after first manual sign-in.'
+            if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+              echo 'Stable Android signing secrets are not configured; refusing to publish an owner APK with an ephemeral debug certificate.' >&2
+              echo 'Required: H38_ANDROID_UPLOAD_KEYSTORE_B64, H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD, H38_ANDROID_UPLOAD_KEY_ALIAS, H38_ANDROID_UPLOAD_KEY_PASSWORD.' >&2
+              exit 1
+            fi
+            echo 'Pull-request validation will build a debug APK only; it is not an owner release artifact.'
           fi
       - name: Compile APK
         shell: bash
@@ -128,7 +133,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Publish owner test release and credential association
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.signing.outputs.signed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         working-directory: ${{ github.workspace }}
