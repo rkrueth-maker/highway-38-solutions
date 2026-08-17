@@ -55,9 +55,10 @@ def test_duplicate_walkthrough_call_to_action_is_removed_but_real_button_remains
     assert "#h38SiteVisitStageRail .h38-site-next[hidden]" in TOP
 
 
-def test_native_renderer_recovery_keeps_owner_apk_at_v0534():
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+def test_native_renderer_recovery_keeps_api36_owner_candidate_without_camera_rewrite():
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
+    assert "targetSdk 36" in GRADLE
     assert "onRenderProcessGone" in MAIN
     assert '"Restoring Site Visit…"' in MAIN
     assert "automaticApproval:false" in TOP
