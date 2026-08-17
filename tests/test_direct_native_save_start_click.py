@@ -42,11 +42,11 @@ def test_legacy_top_action_return_recovery_remains_but_is_not_launch_authority_c
     assert "singleActiveAuthority:true" in FINAL
 
 
-def test_no_web_recorder_and_native_renderer_recovery_is_v0532():
+def test_no_web_recorder_and_native_renderer_recovery_is_v0533():
     assert "getUserMedia" not in FINAL
     assert "MediaRecorder" not in FINAL
     assert "openRecorder(" not in FINAL
-    assert "versionCode 37" in GRADLE
-    assert "versionName '0.5.32'" in GRADLE
+    assert "versionCode 38" in GRADLE
+    assert "versionName '0.5.33'" in GRADLE
     assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in FINAL
