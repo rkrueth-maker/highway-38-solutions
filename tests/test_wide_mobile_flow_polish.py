@@ -29,9 +29,10 @@ def test_final_native_launch_uses_direct_bridge_after_bounded_save_and_identity(
     assert "indefiniteHammer:false" in LAUNCH
 
 
-def test_native_renderer_recovery_uses_v0534_without_camera_rewrite():
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+def test_native_renderer_recovery_uses_api36_v0535_without_camera_rewrite():
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
+    assert "targetSdk 36" in GRADLE
     assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in LAUNCH
     assert "automaticApproval:false" in LAUNCH
