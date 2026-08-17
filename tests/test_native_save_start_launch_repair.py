@@ -85,13 +85,14 @@ def test_old_web_recorder_is_not_called_by_final_native_save_start_authority():
     assert "await launch()" in repair
 
 
-def test_existing_ui_keeps_real_controls_and_native_shell_recovery_only():
+def test_existing_ui_keeps_real_controls_and_api36_native_shell_recovery():
     assert 'id="fieldStartWalkthrough"' in UI
     assert 'id="fieldWalkthrough"' in UI
     assert 'id="fieldVideoInput"' in UI
     assert "physicalAndroidReturnRepair:true" in TOP
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
+    assert "targetSdk 36" in GRADLE
     assert "onRenderProcessGone" in MAIN
     assert "cameraXChanged:false" in FINAL
     assert "webRtcFallback:false" in FINAL

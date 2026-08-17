@@ -46,6 +46,7 @@ def test_native_photo_recovery_is_loaded_and_offline_cached():
     assert "h38-business-office-20260817-0645" in SW
 
 
-def test_owner_apk_version_is_bumped_for_native_change():
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+def test_owner_apk_version_is_bumped_for_api36_release():
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
+    assert "targetSdk 36" in GRADLE
