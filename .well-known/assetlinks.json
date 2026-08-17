@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.highway38.sitescanner.test",
-      "sha256_cert_fingerprints": ["53:E1:0D:74:CA:0C:2A:9E:06:A9:DF:F4:6B:1C:FC:16:82:93:FC:85:D8:12:48:C2:7C:19:99:D0:48:71:C5:FC"]
+      "sha256_cert_fingerprints": ["7E:48:55:6A:C0:E2:3B:FE:0E:CC:CB:ED:87:0C:D0:CD:4C:F1:83:05:FA:60:A0:B5:7F:F1:0F:7E:BA:F3:2F:F1"]
     }
   }
 ]
