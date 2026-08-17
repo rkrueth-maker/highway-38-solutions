@@ -8,6 +8,7 @@
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
     <application
+        android:name=".H38Application"
         android:allowBackup="false"
         android:icon="@drawable/highway38_logo"
         android:roundIcon="@drawable/highway38_logo"
