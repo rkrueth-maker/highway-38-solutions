@@ -45,8 +45,8 @@ def test_final_attach_can_recover_stream_or_native_chunks_without_camera_rewrite
     assert "readRecoveredWalkthroughChunk" in FINAL
     assert "CHUNK_BYTES=256*1024" in FINAL
     assert "cameraXChanged:false" in FINAL
-    assert "versionCode 39" in GRADLE
-    assert "versionName '0.5.34'" in GRADLE
+    assert "versionCode 40" in GRADLE
+    assert "versionName '0.5.35'" in GRADLE
 
 
 def test_final_attach_is_loaded_from_live_runtime_and_keeps_safety_controls():
