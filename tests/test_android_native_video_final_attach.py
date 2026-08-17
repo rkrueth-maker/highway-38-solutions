@@ -32,7 +32,15 @@ def test_native_video_is_not_consumed_until_attachment_and_exact_draft_are_verif
     assert "await window.H38DB.put('drafts',visit)" in persist
     assert "verifyDurable(item,attachmentId)" in persist
     assert "confirmRecoveredWalkthroughConsumed" not in persist
-    assert fallback.index("persistExactVideo(file,item)") < fallback.index("confirmConsumed()")
+
+    # If the original guard already wrote both the exact draft and attachment,
+    # the fallback may safely finish native consumption without duplicating it.
+    assert fallback.index("if(await durableVideoAlreadyAttached(item,visit))") < fallback.index("confirmConsumed()")
+
+    # For a newly created fallback attachment, durable persistence and verification
+    # must finish before the native source is acknowledged/cleared.
+    new_file_path = fallback.split("const file=await readNativeFile()", 1)[1]
+    assert new_file_path.index("persistExactVideo(file,item)") < new_file_path.index("confirmConsumed()")
     assert "durableVerificationBeforeConsume:true" in FINAL
     assert "nativeEvidencePreservedOnFailure:true" in FINAL
 
