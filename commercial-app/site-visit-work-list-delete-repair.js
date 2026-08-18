@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260818-physical-work-list-delete-2';
+const BUILD='20260818-physical-work-list-delete-3';
 const DB=window.H38DB;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!DB)return;
@@ -138,7 +138,7 @@ new MutationObserver(scheduleDecorate).observe(document.documentElement,{childLi
 window.addEventListener('pageshow',()=>{void loadPendingMarkers();scheduleDecorate();});
 window.addEventListener('focus',scheduleDecorate);
 window.addEventListener('online',()=>{void window.H38_FIELD_VISIT_OWNER_CONTROLS?.flushTombstones?.();setTimeout(()=>void loadPendingMarkers(),100);});
-setInterval(()=>{scheduleDecorate();},750);
+document.addEventListener('h38:business-snapshot-updated',()=>{void loadPendingMarkers();scheduleDecorate();});
 setTimeout(()=>{void loadPendingMarkers();scheduleDecorate();},0);
 window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR=Object.freeze({
   build:BUILD,
@@ -148,6 +148,7 @@ window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR=Object.freeze({
   workListDeleteUsesOwnerAuthority:true,
   twoTapDelete:true,
   pendingDeleteRowsSuppressed:true,
+  continuousPolling:false,
   linkedQuoteDeleted:false,
   linkedCustomerDeleted:false,
   automaticApproval:false,

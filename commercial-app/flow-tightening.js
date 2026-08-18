@@ -1,9 +1,10 @@
 (function(){
 'use strict';
-const BUILD='20260809-0235';
+const BUILD='20260818-jobs-page-stability-1';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
+let workEnhanceScheduled=false;
 const text=value=>String(value==null?'':value);
 const upper=value=>text(value).trim().toUpperCase();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -94,21 +95,31 @@ async function recordChangeDecision(id,decision){
     toastSafe(`Customer ${verb} decision recorded. Nothing was sent.`);window.renderWork?.();
   }catch(error){toastSafe(error?.message||String(error),true);}
 }
+function workFingerprint(job,context,expenses,documents){
+  const jid=recordId(job,'Job ID','jobId');
+  const changes=rows('changeOrders').filter(row=>recordId(row,'Job ID','jobId')===jid).map(row=>`${recordId(row,'Change Order ID','changeOrderId')}:${text(value(row,'Status','status'))}:${text(value(row,'Updated Time','updatedAt'))}`).sort();
+  return JSON.stringify({jid,stage:context?.stageLabel||'',next:context?.next||'',blockers:[...(context?.blockers||[]),...(context?.warnings||[])],site:context?.site?.length||0,quotes:context?.quotes?.length||0,checklists:context?.checklists?.length||0,invoices:context?.invoices?.length||0,expenses:expenses.length,documents:documents.length,changes});
+}
 function enhanceWork(){
-  const main=document.getElementById('mainContent');if(!main)return;
+  const main=document.getElementById('mainContent');if(!main||officeState()?.page!=='work')return;
   const job=selectedJob();if(!job)return;
   preferredJobId=recordId(job,'Job ID','jobId');
   const context=window.H38_JOB_LIFECYCLE?.analyzeJob?window.H38_JOB_LIFECYCLE.analyzeJob(job):null;
-  document.getElementById('h38JobCommandHome')?.remove();
   const blockers=[...(context?.blockers||[]),...(context?.warnings||[])],expenses=rows('expenses').filter(row=>recordId(row,'Job ID','jobId')===preferredJobId),documents=rows('documents').filter(row=>recordId(row,'Job ID','jobId')===preferredJobId||recordId(row,'Source ID','sourceId')===preferredJobId);
+  const fingerprint=workFingerprint(job,context,expenses,documents);
+  let section=document.getElementById('h38JobCommandHome');
+  if(section?.dataset.h38WorkFingerprint===fingerprint)return;
   const next=nextActionFor(context),stage=context?.stageLabel||value(job,'Status','status')||'Job';
-  const section=document.createElement('section');section.id='h38JobCommandHome';section.className='h38-job-command-home';
+  const isNew=!section;
+  if(!section){section=document.createElement('section');section.id='h38JobCommandHome';section.className='h38-job-command-home';}
+  section.dataset.h38WorkFingerprint=fingerprint;
   section.innerHTML=`<div class="h38-job-command-head"><div><span>JOB HOME</span><h2>${html(value(job,'Project Title','projectTitle')||value(job,'Job Number','jobNumber')||'Job')}</h2><p>${html(stage)} · ${html(context?.next||'Keep this job moving from one place.')}</p></div><button type="button" data-job-command="${next}" class="h38-job-next">Do next step</button></div>${blockers.length?`<div class="h38-job-alert"><strong>Needs attention</strong><span>${html(blockers.join(' · '))}</span></div>`:''}<div class="h38-job-command-grid"><button type="button" data-job-command="site"><span>📍</span><strong>Site</strong><small>${context?.site?.length||0} visits</small></button><button type="button" data-job-command="quote"><span>🧾</span><strong>Quote</strong><small>${context?.quotes?.length||0} revisions</small></button><button type="button" data-job-command="work"><span>🧰</span><strong>Work</strong><small>${context?.checklists?.length||0} checklists</small></button><button type="button" data-job-command="money"><span>💵</span><strong>Money</strong><small>${context?.invoices?.length||0} invoices · ${expenses.length} costs</small></button><button type="button" data-job-command="files"><span>📁</span><strong>Files</strong><small>${documents.length} linked</small></button><button type="button" data-job-command="messages"><span>💬</span><strong>Messages</strong><small>Customer context</small></button></div>`;
-  const head=main.querySelector('.page-head');head?.insertAdjacentElement('afterend',section);
+  if(isNew){const head=main.querySelector('.page-head');head?.insertAdjacentElement('afterend',section);}
   section.querySelectorAll('[data-job-command]').forEach(button=>button.onclick=()=>runJobCommand(button.dataset.jobCommand,job,context));
   main.querySelectorAll('.grid > .card').forEach(card=>{const heading=card.querySelector('h2')?.textContent?.trim();if(['New request','New job','Assign task'].includes(heading))card.classList.add('h38-tight-secondary');});
   enhanceChangeOrders(job);
 }
+function scheduleWorkEnhance(){if(workEnhanceScheduled||officeState()?.page!=='work')return;workEnhanceScheduled=true;setTimeout(()=>{workEnhanceScheduled=false;enhanceWork();},0);}
 function runJobCommand(command,job,context){
   preferredJobId=recordId(job,'Job ID','jobId');
   if(command==='site'||command==='field'){startSiteVisit(text(value(job,'Customer ID','customerId')),recordId(latest(context?.quotes||[]),'Quote ID','quoteId'));return;}
@@ -154,7 +165,7 @@ function install(){
     const base=window.renderNav;window.renderNav=function(){return compactRenderNav(base);};window.renderNav();
   }
   if(typeof window.renderWork==='function'){
-    const base=window.renderWork;window.renderWork=function(){const result=base.apply(this,arguments);setTimeout(enhanceWork,0);return result;};
+    const base=window.renderWork;window.renderWork=function(){const result=base.apply(this,arguments);scheduleWorkEnhance();return result;};
   }
   if(typeof window.renderCustomers==='function'){
     const base=window.renderCustomers;window.renderCustomers=function(){const result=base.apply(this,arguments);setTimeout(enhanceCustomers,0);return result;};
@@ -162,9 +173,9 @@ function install(){
   if(typeof window.renderMoney==='function'){
     const base=window.renderMoney;window.renderMoney=function(){const result=base.apply(this,arguments);setTimeout(enhanceMoney,0);return result;};
   }
-  const observer=new MutationObserver(()=>{decorateFieldVisit();if(officeState()?.page==='work')setTimeout(enhanceWork,0);});observer.observe(document.documentElement,{childList:true,subtree:true});
-  if(officeState()?.page==='work')setTimeout(enhanceWork,0);if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'scrollable-allowed-pages',plusLauncher:false,moreLauncher:false,jobHome:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  const observer=new MutationObserver(()=>{decorateFieldVisit();scheduleWorkEnhance();});observer.observe(document.documentElement,{childList:true,subtree:true});
+  scheduleWorkEnhance();if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'scrollable-allowed-pages',plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
