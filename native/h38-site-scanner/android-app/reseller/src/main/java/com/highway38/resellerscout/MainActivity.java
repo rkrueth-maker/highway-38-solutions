@@ -37,6 +37,31 @@ public final class MainActivity extends Activity {
     private static final String APP_BASE_URL =
             "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
+    private static final String STORE_FETCH_GUARD =
+            "<script>(function(){'use strict';" +
+            "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map();" +
+            "var TARGET='/functions/v1/reseller-nearby-stores';" +
+            "function urlOf(input){return typeof input==='string'?input:(input&&input.url)||'';}" +
+            "function keyOf(url,init){return String((init&&init.body)||url);}" +
+            "function responseOf(s){return new Response(s.body,{status:s.status,statusText:s.statusText,headers:s.headers});}" +
+            "async function snap(r){return {body:await r.text(),status:r.status,statusText:r.statusText,headers:Array.from(r.headers.entries())};}" +
+            "function storeCount(s){try{var p=JSON.parse(s.body);return Array.isArray(p.stores)?p.stores.length:0;}catch(e){return 0;}}" +
+            "function setBusy(v){['refreshStores','refreshTop'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=v;});}" +
+            "window.fetch=async function(input,init){" +
+            "var url=urlOf(input);if(url.indexOf(TARGET)<0)return rawFetch(input,init);" +
+            "var key=keyOf(url,init),good=lastGood.get(key),age=Date.now()-(lastGoodAt.get(key)||0);" +
+            "if(good&&age<10000)return responseOf(good);" +
+            "if(inflight.has(key))return responseOf(await inflight.get(key));" +
+            "setBusy(true);" +
+            "var work=(async function(){try{" +
+            "var r=await rawFetch(input,init),s=await snap(r),count=storeCount(s),prior=lastGood.get(key);" +
+            "if(r.ok&&count>0){lastGood.set(key,s);lastGoodAt.set(key,Date.now());return s;}" +
+            "if(prior&&(r.ok||!r.ok))return prior;" +
+            "return s;" +
+            "}catch(e){var prior=lastGood.get(key);if(prior)return prior;throw e;}})();" +
+            "inflight.set(key,work);try{return responseOf(await work);}finally{inflight.delete(key);if(inflight.size===0)setBusy(false);}" +
+            "};" +
+            "})();</script>";
     private WebView webView;
 
     @Override
@@ -61,7 +86,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.2");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.3");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -98,7 +123,9 @@ public final class MainActivity extends Activity {
         try (InputStream input = getAssets().open("reseller/index.html"); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192]; int read;
             while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
-            webView.loadDataWithBaseURL(APP_BASE_URL, output.toString(StandardCharsets.UTF_8.name()), "text/html", "UTF-8", APP_BASE_URL);
+            String html = output.toString(StandardCharsets.UTF_8.name());
+            html = html.replace("</head>", STORE_FETCH_GUARD + "\n</head>");
+            webView.loadDataWithBaseURL(APP_BASE_URL, html, "text/html", "UTF-8", APP_BASE_URL);
         } catch (Exception error) {
             Toast.makeText(this, "Reseller Scout failed to open: " + error.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -179,6 +206,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-local-store-v012"; }
+        @JavascriptInterface public String build() { return "20260818-local-store-v013"; }
     }
 }
