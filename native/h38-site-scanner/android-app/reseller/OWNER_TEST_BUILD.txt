@@ -1,0 +1,6 @@
+H38 Reseller Scout owner-test build
+Branch: agent/private-reseller-scout
+Version: 0.1.0
+Runtime access: two approved Supabase user IDs only
+Production H38 Pages: unchanged
+Google Play build: unchanged
