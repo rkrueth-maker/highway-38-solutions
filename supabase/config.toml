@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.h38-assistant-ai]
 verify_jwt = true
+
+[functions.reseller-deal-feed]
+verify_jwt = true
