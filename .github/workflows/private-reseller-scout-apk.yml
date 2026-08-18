@@ -8,13 +8,18 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
       - '.github/workflows/private-reseller-scout-apk.yml'
+  pull_request:
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/**'
+      - 'native/h38-site-scanner/android-app/settings.gradle'
+      - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: private-reseller-scout-apk
+  group: private-reseller-scout-apk-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,9 +44,15 @@ jobs:
           gradle-version: '8.13'
       - name: Verify private branch and module
         shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'
+          if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
+            test "$HEAD_REF" = 'agent/private-reseller-scout'
+          else
+            test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'
+          fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
@@ -58,7 +69,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -n "${KEYSTORE_B64:-}" ]]; then
+          if [[ -n "${KEYSTORE_B64:-}" && "$GITHUB_EVENT_NAME" != 'pull_request' ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-owner-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
             chmod 600 "$KEYSTORE_PATH"
@@ -88,7 +99,7 @@ jobs:
           cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.0.apk"
           sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.0.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.0.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.0.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
-          printf 'branch=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
+          printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
