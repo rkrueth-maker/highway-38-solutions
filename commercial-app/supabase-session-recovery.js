@@ -135,3 +135,12 @@
     forcesCurrentServiceWorker: true
   });
 })();
+
+(function(){
+  'use strict';
+  if(document.querySelector('script[data-h38-play-auth-runtime-repair]'))return;
+  const script=document.createElement('script');
+  script.dataset.h38PlayAuthRuntimeRepair='1';
+  script.src='./auth-play-runtime-repair.js?build=20260818-play-auth-singleflight-1';
+  document.head.appendChild(script);
+})();

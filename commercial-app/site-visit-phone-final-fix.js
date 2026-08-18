@@ -26,3 +26,12 @@ function install(){if(!installNotesOverride())setTimeout(install,120);else if(la
 install();
 window.H38_SITE_VISIT_PHONE_FINAL_FIX={build:BUILD,userGestureCameraOnly:true,startupAutoLaunch:false,focusAutoLaunch:false,pageshowAutoLaunch:false,bridgeReadyAutoLaunch:false,siteVisitFirstNotes:true,quoteOptional:true,automaticApproval:false,automaticCustomerSending:false};
 })();
+
+(function(){
+'use strict';
+if(document.querySelector('script[data-h38-site-visit-delete-runtime-repair]'))return;
+const script=document.createElement('script');
+script.dataset.h38SiteVisitDeleteRuntimeRepair='1';
+script.src='./site-visit-delete-runtime-repair.js?build=20260818-play-delete-integrity-1';
+document.head.appendChild(script);
+})();
