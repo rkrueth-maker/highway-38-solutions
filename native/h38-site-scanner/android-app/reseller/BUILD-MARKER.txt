@@ -1,0 +1,5 @@
+H38 Private Reseller Scout owner-test build
+Version: 0.1.6
+Build purpose: automatic local penny and resale hunt with collapsed store cards, 50-mile default, persisted last hunt, and major-retailer deal sources.
+Retailers: Dollar General, Dollar Tree, Home Depot, Menards, Ace Hardware, Walmart, Lowe's.
+Access: exact Rick + Amanda Supabase user allowlist only.
