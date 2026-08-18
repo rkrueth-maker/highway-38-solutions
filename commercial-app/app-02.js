@@ -1,8 +1,8 @@
 async function loadBusiness(businessId,quiet=false){if(!businessId)return;state.businessId=businessId;await put('meta',{id:'selectedBusiness',businessId});try{const snapshot=await state.bridge.request('completionBootstrap',{businessId},90000);snapshot.id=`business:${businessId}`;snapshot.cachedAt=now();await put('snapshots',snapshot);state.snapshot=snapshot;$('businessSelect').value=businessId;$('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · cached ${new Date(snapshot.cachedAt).toLocaleTimeString()}`;openPage(state.page,false);if(!quiet)toast('Business refreshed. Important records are now available offline.');}catch(error){await loadCached();if(!quiet)toast(`${error.message} Using the most recent offline business pack.`,true);}}
 async function loadCached(){if(!state.businessId)return;const snapshot=await get('snapshots',`business:${state.businessId}`);if(snapshot){state.snapshot=snapshot;$('businessStatus').textContent=`${snapshot.business.businessName} · offline pack ${new Date(snapshot.cachedAt).toLocaleString()}`;$('businessSelect').value=state.businessId;}}
-function openPage(page,track=true){const pages=allowedPages();if(!pages.includes(page))page=pages[0]||'today';state.page=page;renderNav();renderPage();$('mainContent').focus({preventScroll:true});if(track)recordUsage(page,'open-page').catch(()=>{});}
+function openPage(page,track=true){const pages=allowedPages();if(!pages.includes(page))page=pages[0]||'today';if(state.page==='reseller'&&page!=='reseller')window.H38_RESELLER_SCOUT?.stop?.();state.page=page;renderNav();renderPage();$('mainContent').focus({preventScroll:true});if(track)recordUsage(page,'open-page').catch(()=>{});}
 function pageHead(title,description,tools=''){return`<header class="page-head"><div><h1>${esc(title)}</h1><p>${esc(description)}</p></div><div class="page-tools">${tools}</div></header>`;}
-function renderPage(){if(!state.snapshot){renderWelcome();return;}const renderers={today:renderToday,customers:renderCustomers,work:renderWork,quotes:renderQuotes,measure:renderMeasure,schedule:renderSchedule,messages:renderMessages,field:renderField,inventory:renderInventory,fleet:renderFleet,money:renderMoney,documents:renderDocuments,social:renderSocial,ai:renderAi,settings:renderSettings};(renderers[state.page]||renderToday)();}
+function renderPage(){if(!state.snapshot){renderWelcome();return;}const renderers={today:renderToday,customers:renderCustomers,work:renderWork,quotes:renderQuotes,measure:renderMeasure,schedule:renderSchedule,messages:renderMessages,field:renderField,inventory:renderInventory,fleet:renderFleet,money:renderMoney,documents:renderDocuments,social:renderSocial,reseller:renderResellerScout,ai:renderAi,settings:renderSettings};(renderers[state.page]||renderToday)();}
 function records(name){return state.snapshot?.[name]||[];}
 function customerName(id){const row=records('customers').find(x=>rowId(x,'Customer ID','customerId')===String(id));return v(row,'Customer Name','name')||'No customer';}
 function jobName(id){const row=records('jobs').find(x=>rowId(x,'Job ID','jobId')===String(id));return v(row,'Project Title','projectTitle')||'No job';}
@@ -12,6 +12,22 @@ function optionRows(rows,idKeys,labelFn,blank='Select'){return`<option value="">
 function activeRows(rows){return rows.filter(row=>!['ARCHIVED','INACTIVE','CANCELLED'].includes(String(v(row,'Status','status')).toUpperCase()));}
 function dueSoon(value,days=14){if(!value)return false;const time=new Date(value).getTime();return Number.isFinite(time)&&time<=Date.now()+days*86400000;}
 function serverSafeguard(){return`<div class="notice warn"><strong>Owner control:</strong> drafts and internal work can be created here. Nothing is automatically sent, published, purchased, paid, deleted or approved.</div>`;}
+
+function h38LoadPrivateModuleAsset(tagName,attributes,key){return new Promise((resolve,reject)=>{const existing=document.querySelector(`[data-h38-private-asset="${key}"]`);if(existing){if(existing.dataset.loaded==='1')return resolve();existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>reject(new Error(`Could not load ${key}.`)),{once:true});return;}const node=document.createElement(tagName);Object.entries(attributes).forEach(([name,value])=>node[name]=value);node.dataset.h38PrivateAsset=key;node.addEventListener('load',()=>{node.dataset.loaded='1';resolve();},{once:true});node.addEventListener('error',()=>reject(new Error(`Could not load ${key}.`)),{once:true});document.head.appendChild(node);});}
+async function renderResellerScout(){
+  if(!isPrivateResellerUser()){openPage('today',false);return;}
+  if(!window.H38_RESELLER_SCOUT){
+    $('mainContent').innerHTML=pageHead('Reseller Scout','Opening private deal tools…')+'<section class="card"><div class="empty">Loading private workspace…</div></section>';
+    try{
+      await Promise.all([
+        h38LoadPrivateModuleAsset('link',{rel:'stylesheet',href:'./reseller-scout.css?build=20260818-private-1'},'reseller-scout-css'),
+        h38LoadPrivateModuleAsset('script',{src:'./reseller-scout.js?build=20260818-private-1',async:true},'reseller-scout-js')
+      ]);
+    }catch(error){$('mainContent').innerHTML=pageHead('Reseller Scout','Private module could not be loaded.')+`<section class="card"><div class="notice warn">${esc(error.message)}</div></section>`;return;}
+  }
+  window.H38_RESELLER_SCOUT.render();
+  window.H38_RESELLER_SCOUT.refresh(false);
+}
 
 async function queueOperation(action,recordType,recordId,payload,optimistic,autoSync=true){if(!state.businessId)throw new Error('Open a business first.');const id=newId('OP'),operation={id,operationId:id,businessId:state.businessId,deviceId:await deviceId(),recordType,recordId,action,baseVersion:num(payload?.baseVersion),localTimestamp:now(),payload,syncStatus:'PENDING',retryCount:0};await put('operations',operation);if(optimistic)applyOptimistic(optimistic.collection,optimistic.record,optimistic.idKeys);await updatePending();if(autoSync&&navigator.onLine&&state.bridgeReady)sync(false);return operation;}
 function applyOptimistic(collection,record,idKeys=[]){if(!state.snapshot[collection])state.snapshot[collection]=[];const keys=idKeys.length?idKeys:['id'];const id=keys.map(key=>v(record,key)).find(Boolean);const index=state.snapshot[collection].findIndex(row=>keys.some(key=>v(row,key)===id));record.__localPending=true;if(index>=0)state.snapshot[collection][index]=record;else state.snapshot[collection].unshift(record);put('snapshots',{...state.snapshot,id:`business:${state.businessId}`,cachedAt:state.snapshot.cachedAt||now()}).catch(()=>{});}
