@@ -39,12 +39,16 @@ def test_native_renderer_recovery_uses_api36_v0535_without_camera_rewrite():
     assert "automaticCustomerSending:false" in LAUNCH
 
 
-def test_mobile_polish_groups_more_and_collapses_history():
+def test_mobile_polish_groups_more_without_moving_jobs_history():
     assert "['Work',['quotes','field','schedule','documents']]" in POLISH
     assert "['Money',['money','accounting','reports','payroll','tax']]" in POLISH
     assert "['Team & assets',['people','inventory','fleet']]" in POLISH
     assert "['Business',['social','controls','ai','settings']]" in POLISH
-    assert "Site Visit history" in POLISH
+    assert "Site Visit history" not in POLISH
+    assert "polishWorkHistory" not in POLISH
+    assert "workHistoryCollapse:false" in POLISH
+    assert "siteVisitGroupingDelegated:true" in POLISH
+    assert "jobsDomMutation:false" in POLISH
     assert "Saved quote history" in POLISH
     assert "Jobs that need attention" in POLISH
     assert "unavailableRoutesHidden:true" in POLISH

@@ -43,7 +43,7 @@ def test_native_photo_recovery_is_loaded_and_offline_cached():
     assert "loadAndroidWalkthroughPhotoRecovery" in TOP
     assert "androidWalkthroughPhotoRecoveryLoaded:true" in TOP
     assert "android-walkthrough-photo-recovery.js" in SW
-    assert "h38-business-office-20260817-0645" in SW
+    assert "h38-business-office-20260818-1630" in SW
 
 
 def test_owner_apk_version_is_bumped_for_api36_release():
