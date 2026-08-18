@@ -37,31 +37,40 @@ public final class MainActivity extends Activity {
     private static final String APP_BASE_URL =
             "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
+    private static final String LAST_RADIUS_KEY = "h38_reseller_last_radius_v1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
-            "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map();" +
-            "var TARGET='/functions/v1/reseller-nearby-stores';" +
+            "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
+            "var STORE='/functions/v1/reseller-nearby-stores',LEADS='/functions/v1/reseller-auto-leads';" +
+            "var STORE_KEY='h38_reseller_last_store_response_v1',LEADS_KEY='h38_reseller_last_leads_response_v1',RADIUS_KEY='" + LAST_RADIUS_KEY + "';" +
             "function urlOf(input){return typeof input==='string'?input:(input&&input.url)||'';}" +
-            "function keyOf(url,init){return String((init&&init.body)||url);}" +
+            "function kindOf(url){if(url.indexOf(STORE)>=0)return 'store';if(url.indexOf(LEADS)>=0)return 'leads';return '';}" +
+            "function cacheKey(kind){return kind==='store'?STORE_KEY:LEADS_KEY;}" +
             "function responseOf(s){return new Response(s.body,{status:s.status,statusText:s.statusText,headers:s.headers});}" +
             "async function snap(r){return {body:await r.text(),status:r.status,statusText:r.statusText,headers:Array.from(r.headers.entries())};}" +
-            "function storeCount(s){try{var p=JSON.parse(s.body);return Array.isArray(p.stores)?p.stores.length:0;}catch(e){return 0;}}" +
+            "function count(kind,s){try{var p=JSON.parse(s.body);var a=kind==='store'?p.stores:p.leads;return Array.isArray(a)?a.length:0;}catch(e){return 0;}}" +
+            "function markPersisted(kind,s){try{var p=JSON.parse(s.body);p.cached=true;p.persisted=true;if(kind==='store'){p.stale=true;p.warning='Showing the last saved hunt. Tap Refresh hunt for current results.';}s.body=JSON.stringify(p);}catch(e){}return s;}" +
+            "function savePersistent(kind,s,init){try{if(count(kind,s)<=0)return;var copy={body:s.body,status:s.status,statusText:s.statusText,headers:s.headers,at:Date.now(),requestBody:String((init&&init.body)||'')};localStorage.setItem(cacheKey(kind),JSON.stringify(copy));if(kind==='store'){try{var q=JSON.parse(copy.requestBody||'{}');var r=String(Number(q.radiusMiles||50));if(['25','50','100','150'].indexOf(r)>=0)localStorage.setItem(RADIUS_KEY,r);}catch(e){}}}catch(e){}}" +
+            "function loadPersistent(kind){try{var raw=localStorage.getItem(cacheKey(kind));if(!raw)return null;var s=JSON.parse(raw);if(!s||!s.body)return null;return markPersisted(kind,s);}catch(e){return null;}}" +
             "function setBusy(v){['refreshStores','refreshTop'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=v;});}" +
             "window.fetch=async function(input,init){" +
-            "var url=urlOf(input);if(url.indexOf(TARGET)<0)return rawFetch(input,init);" +
-            "var key=keyOf(url,init),good=lastGood.get(key),age=Date.now()-(lastGoodAt.get(key)||0);" +
+            "var url=urlOf(input),kind=kindOf(url);if(!kind)return rawFetch(input,init);" +
+            "var persisted=loadPersistent(kind);" +
+            "if(!servedPersisted.has(kind)&&persisted){servedPersisted.add(kind);rawFetch(input,init).then(async function(r){var s=await snap(r);if(r.ok&&count(kind,s)>0)savePersistent(kind,s,init);}).catch(function(){});return responseOf(persisted);}" +
+            "var key=kind+'|'+String((init&&init.body)||url),good=lastGood.get(key),age=Date.now()-(lastGoodAt.get(key)||0);" +
             "if(good&&age<10000)return responseOf(good);" +
             "if(inflight.has(key))return responseOf(await inflight.get(key));" +
             "setBusy(true);" +
             "var work=(async function(){try{" +
-            "var r=await rawFetch(input,init),s=await snap(r),count=storeCount(s),prior=lastGood.get(key);" +
-            "if(r.ok&&count>0){lastGood.set(key,s);lastGoodAt.set(key,Date.now());return s;}" +
-            "if(prior&&(r.ok||!r.ok))return prior;" +
-            "return s;" +
-            "}catch(e){var prior=lastGood.get(key);if(prior)return prior;throw e;}})();" +
+            "var r=await rawFetch(input,init),s=await snap(r),c=count(kind,s),prior=lastGood.get(key)||loadPersistent(kind);" +
+            "if(r.ok&&c>0){lastGood.set(key,s);lastGoodAt.set(key,Date.now());savePersistent(kind,s,init);return s;}" +
+            "if(prior)return prior;return s;" +
+            "}catch(e){var prior=lastGood.get(key)||loadPersistent(kind);if(prior)return prior;throw e;}})();" +
             "inflight.set(key,work);try{return responseOf(await work);}finally{inflight.delete(key);if(inflight.size===0)setBusy(false);}" +
             "};" +
             "})();</script>";
+    private static final String RADIUS_BOOTSTRAP =
+            "<script>(function(){try{var r=localStorage.getItem('" + LAST_RADIUS_KEY + "')||'50';var e=document.getElementById('radius');if(e&&['25','50','100','150'].indexOf(r)>=0)e.value=r;}catch(x){var e=document.getElementById('radius');if(e)e.value='50';}})();</script>";
     private WebView webView;
 
     @Override
@@ -86,7 +95,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.3");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.5");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -115,7 +124,7 @@ public final class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_LOCATION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) deliverLocation();
-            else sendLocationError("Location permission is required for the 150-mile store search.");
+            else sendLocationError("Location permission is required for the local store search.");
         }
     }
 
@@ -124,7 +133,12 @@ public final class MainActivity extends Activity {
             byte[] buffer = new byte[8192]; int read;
             while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
             String html = output.toString(StandardCharsets.UTF_8.name());
+            html = html.replace(
+                    "<option value=\"50\">50 miles</option><option value=\"100\">100 miles</option><option value=\"150\" selected>150 miles</option>",
+                    "<option value=\"50\" selected>50 miles</option><option value=\"100\">100 miles</option><option value=\"150\">150 miles</option>"
+            );
             html = html.replace("</head>", STORE_FETCH_GUARD + "\n</head>");
+            html = html.replace("<script>\n(()=>{'use strict';", RADIUS_BOOTSTRAP + "\n<script>\n(()=>{'use strict';");
             webView.loadDataWithBaseURL(APP_BASE_URL, html, "text/html", "UTF-8", APP_BASE_URL);
         } catch (Exception error) {
             Toast.makeText(this, "Reseller Scout failed to open: " + error.getMessage(), Toast.LENGTH_LONG).show();
@@ -206,6 +220,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-local-store-v013"; }
+        @JavascriptInterface public String build() { return "20260818-auto-hunt-v015"; }
     }
 }
