@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20260818-1630-jobs-runtime-1';
+const CACHE_NAME='h38-business-office-20260818-1630';
 const PREVIOUS_CACHE_NAME='h38-business-office-20260817-0645';
 const FIELD_RECOVERY_BUILD='20260818-1630-jobs-runtime-1';
 const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
