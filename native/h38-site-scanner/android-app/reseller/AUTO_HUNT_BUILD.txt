@@ -1,0 +1,3 @@
+H38 Reseller Scout owner-test v0.1.4
+Automatic product hunting replaces manual find reporting.
+Sources in this build: current Dollar General and Dollar Tree penny lists with UPCs, mapped to nearby matching physical stores.
