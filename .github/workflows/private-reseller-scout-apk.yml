@@ -7,11 +7,13 @@ on:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
+      - 'supabase/functions/reseller-auto-leads/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
+      - 'supabase/functions/reseller-auto-leads/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -42,7 +44,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Verify private automatic-hunt module
+      - name: Verify private multi-retailer hunt module
         shell: bash
         env:
           HEAD_REF: ${{ github.head_ref }}
@@ -51,26 +53,30 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then test "$HEAD_REF" = 'agent/private-reseller-scout'; else test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'; fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq "versionName '0.1.5'" reseller/build.gradle
-          grep -Fq "versionCode 6" reseller/build.gradle
+          test -f ../../../supabase/functions/reseller-auto-leads/index.ts
+          grep -Fq "versionName '0.1.6'" reseller/build.gradle
+          grep -Fq "versionCode 7" reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
           grep -Fq 'reseller-nearby-stores' reseller/src/main/assets/reseller/index.html
           grep -Fq 'reseller-auto-leads' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Stores with automatic leads' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Automatic hunt list' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Stores stay closed until you tap them' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'DEAL LEADS' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Automatic deal leads' reseller/src/main/assets/reseller/index.html
           grep -Fq 'Scan match' reseller/src/main/assets/reseller/index.html
           grep -Fq 'Sold comps' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Open source' reseller/src/main/assets/reseller/index.html
           grep -Fq 'AndroidH38Reseller.requestLocation' reseller/src/main/assets/reseller/index.html
           grep -Fq 'AndroidH38Reseller.scanBarcode' reseller/src/main/assets/reseller/index.html
+          if grep -Fq "\${hot?'open':''}" reseller/src/main/assets/reseller/index.html; then echo 'store cards must remain collapsed by default' >&2; exit 1; fi
           if grep -Fq 'Add / verify local find' reseller/src/main/assets/reseller/index.html; then echo 'manual reporting UI must stay removed' >&2; exit 1; fi
+          for retailer in 'Home Depot' 'Menards' 'Ace Hardware' 'Walmart' "Lowe's" 'Dollar General' 'Dollar Tree'; do grep -Fq "$retailer" ../../../supabase/functions/reseller-auto-leads/index.ts; done
           grep -Fq 'WindowInsetsCompat.Type.systemBars' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'STORE_FETCH_GUARD' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'RADIUS_BOOTSTRAP' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_store_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_leads_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_radius_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq '<option value=\"50\" selected>50 miles</option>' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'H38ResellerScoutAndroid/0.1.5' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq '<option value="50" selected>50 miles</option>' reseller/src/main/assets/reseller/index.html
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -106,14 +112,14 @@ jobs:
           if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then gradle --no-daemon --stacktrace :reseller:assembleRelease; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon --stacktrace :reseller:assembleDebug; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.5.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.5.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.5.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.5.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.6.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.6.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.6.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.6.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.5
+          name: h38-reseller-scout-owner-test-v0.1.6
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
