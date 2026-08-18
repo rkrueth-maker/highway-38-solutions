@@ -9,3 +9,6 @@ verify_jwt = true
 
 [functions.reseller-deal-feed]
 verify_jwt = true
+
+[functions.reseller-nearby-stores]
+verify_jwt = true
