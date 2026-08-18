@@ -1,0 +1,77 @@
+name: Build Private Reseller Scout
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-reseller-scout-build
+  cancel-in-progress: true
+
+jobs:
+  verify-and-package:
+    name: Verify and package owner test build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout private branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm branch contains current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor origin/main HEAD
+          printf 'branch=%s\nsha=%s\nmain=%s\n' "$GITHUB_REF_NAME" "$(git rev-parse HEAD)" "$(git rev-parse origin/main)"
+
+      - name: Verify Reseller Scout security and architecture
+        run: node scripts/verify-private-reseller-scout.js
+
+      - name: Syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check commercial-app/app-01.js
+          node --check commercial-app/app-02.js
+          node --check commercial-app/reseller-scout.js
+          node --check scripts/verify-private-reseller-scout.js
+
+      - name: Create build manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/private-reseller-scout
+          cat > artifacts/private-reseller-scout/BUILD.txt <<EOF
+          Highway 38 Private Reseller Scout — Owner Test Build
+          Branch: ${GITHUB_REF_NAME}
+          Commit: ${GITHUB_SHA}
+          Built: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          Runtime access: two approved Supabase user IDs only
+          Production Pages changed: no
+          Main branch changed: no
+          External purchase/listing actions: none
+          EOF
+          cp commercial-app/reseller-scout.js artifacts/private-reseller-scout/
+          cp commercial-app/reseller-scout.css artifacts/private-reseller-scout/
+          cp commercial-app/app-01.js artifacts/private-reseller-scout/
+          cp commercial-app/app-02.js artifacts/private-reseller-scout/
+          cp supabase/functions/reseller-deal-feed/index.ts artifacts/private-reseller-scout/reseller-deal-feed-index.ts
+          cp supabase/migrations/20260818203000_private_reseller_scout.sql artifacts/private-reseller-scout/
+          cp supabase/migrations/20260818204000_tighten_private_reseller_grants.sql artifacts/private-reseller-scout/
+          (cd artifacts && zip -qr h38-private-reseller-scout-owner-test.zip private-reseller-scout)
+
+      - name: Upload owner test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-private-reseller-scout-owner-test
+          path: artifacts/h38-private-reseller-scout-owner-test.zip
+          if-no-files-found: error
+          retention-days: 14
