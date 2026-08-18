@@ -42,7 +42,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Verify private local-store module
+      - name: Verify private automatic-hunt module
         shell: bash
         env:
           HEAD_REF: ${{ github.head_ref }}
@@ -51,19 +51,30 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then test "$HEAD_REF" = 'agent/private-reseller-scout'; else test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'; fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq "versionName '0.1.3'" reseller/build.gradle
+          grep -Fq "versionName '0.1.4'" reseller/build.gradle
+          grep -Fq "versionCode 5" reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
           grep -Fq 'reseller-nearby-stores' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'reseller-auto-leads' reseller/src/main/assets/reseller/index.html
           grep -Fq '150 miles' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Stores with finds' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Finds underneath' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'data-add-store' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Stores with automatic leads' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Automatic hunt list' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Scan match' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Sold comps' reseller/src/main/assets/reseller/index.html
           grep -Fq 'AndroidH38Reseller.requestLocation' reseller/src/main/assets/reseller/index.html
           grep -Fq 'AndroidH38Reseller.scanBarcode' reseller/src/main/assets/reseller/index.html
+          if grep -Fq 'Add / verify local find' reseller/src/main/assets/reseller/index.html; then echo 'manual reporting UI must stay removed' >&2; exit 1; fi
           grep -Fq 'WindowInsetsCompat.Type.systemBars' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'STORE_FETCH_GUARD' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'inflight=new Map()' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'lastGood=new Map()' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('reseller/src/main/assets/reseller/index.html').read_text()
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
+          inline='\n'.join(s for s in scripts if s.strip())
+          Path('/tmp/reseller-inline.js').write_text(inline)
+          PY
+          node --check /tmp/reseller-inline.js
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -90,14 +101,14 @@ jobs:
           if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then gradle --no-daemon --stacktrace :reseller:assembleRelease; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon --stacktrace :reseller:assembleDebug; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.3.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.3.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.3.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.3.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.4.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.4.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.4.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.4.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.3
+          name: h38-reseller-scout-owner-test-v0.1.4
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
