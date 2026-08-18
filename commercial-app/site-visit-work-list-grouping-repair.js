@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260818-work-site-visit-grouping-1';
+const BUILD='20260818-work-site-visit-grouping-2';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -10,9 +10,11 @@ const sessionTime=row=>text(value(row,'Started Time','startedAt','Created Time',
 const projectTitle=row=>text(value(row,'Project Title','projectTitle')||'Site Visit');
 const quoteId=row=>text(value(row,'Quote ID','quoteId'));
 const customerId=row=>text(value(row,'Customer ID','customerId'));
+const jobId=row=>text(value(row,'Job ID','jobId'));
 function isWorkPage(){return text(window.state?.page)==='work'&&!!document.getElementById('mainContent');}
+function collection(name){const rows=window.state?.snapshot?.[name];return Array.isArray(rows)?rows:[];}
 function snapshots(){
-  const rows=Array.isArray(window.state?.snapshot?.siteCaptureSessions)?window.state.snapshot.siteCaptureSessions:[];
+  const rows=collection('siteCaptureSessions');
   return rows.filter(row=>sessionId(row)).slice().sort((a,b)=>sessionTime(a).localeCompare(sessionTime(b)));
 }
 function actionButtons(row){return Array.from(row?.querySelectorAll?.('button')||[]);}
@@ -31,12 +33,26 @@ function mapRows(){
     let match=sessions.find(item=>!used.has(sessionId(item))&&title&&normalize(projectTitle(item))===title);
     if(!match)match=sessions.find(item=>!used.has(sessionId(item))&&title&&(normalize(projectTitle(item)).includes(title)||title.includes(normalize(projectTitle(item)))));
     if(!match)continue;
-    used.add(sessionId(match));mapped.push({row,session:match});
+    const sid=sessionId(match);used.add(sid);row.dataset.h38SiteVisitSessionId=sid;mapped.push({row,session:match});
   }
   return mapped;
 }
+function jobIdForSession(session){
+  const direct=jobId(session);if(direct)return direct;
+  const qid=quoteId(session);
+  if(qid){
+    const quote=collection('quotes').find(row=>quoteId(row)===qid);
+    const fromQuote=jobId(quote);if(fromQuote)return fromQuote;
+    const quoteCustomer=customerId(quote)||customerId(session),quoteTitle=projectTitle(quote)||projectTitle(session);
+    const matchedJob=collection('jobs').find(row=>customerId(row)===quoteCustomer&&normalize(projectTitle(row))===normalize(quoteTitle));
+    if(matchedJob&&jobId(matchedJob))return jobId(matchedJob);
+  }
+  const cid=customerId(session),title=normalize(projectTitle(session));
+  const matchedJob=collection('jobs').find(row=>cid&&customerId(row)===cid&&title&&normalize(projectTitle(row))===title);
+  return matchedJob?jobId(matchedJob):'';
+}
 function groupKey(session){
-  const q=quoteId(session);if(q)return`quote:${q}`;
+  const jid=jobIdForSession(session);if(jid)return`job:${jid}`;
   return`customer:${customerId(session)}|project:${normalize(projectTitle(session))}`;
 }
 function groupMapped(mapped){
@@ -84,5 +100,5 @@ window.addEventListener('pageshow',schedule);
 window.addEventListener('focus',schedule);
 document.addEventListener('h38:business-snapshot-updated',schedule);
 setTimeout(schedule,0);
-window.H38_SITE_VISIT_WORK_LIST_GROUPING_REPAIR=Object.freeze({build:BUILD,oneProjectLevelSiteVisit:true,continuationsNested:true,storageChanged:false,androidChanged:false,automaticApproval:false,automaticCustomerSending:false,physicalAndroidAcceptanceRequired:true});
+window.H38_SITE_VISIT_WORK_LIST_GROUPING_REPAIR=Object.freeze({build:BUILD,oneProjectLevelSiteVisit:true,groupByJobIdentity:true,continuationsNested:true,durableSessionIdentityOnRows:true,storageChanged:false,androidChanged:false,automaticApproval:false,automaticCustomerSending:false,physicalAndroidAcceptanceRequired:true});
 })();
