@@ -19,7 +19,9 @@ const OVERPASS = [
 ];
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const PARTIAL_CACHE_TTL_MS = 2 * 60 * 1000;
+const STALE_TTL_MS = 24 * 60 * 60 * 1000;
 const cache = new Map<string,{at:number,payload:any,ttl:number}>();
+const inflight = new Map<string,Promise<any>>();
 
 type Box = { south:number; west:number; north:number; east:number };
 
@@ -90,6 +92,31 @@ function parseStores(elements:any[],lat:number,lon:number,radiusMiles:number){
     return {store_key:key,store_name:name,retailer:canonical(name),store_address:address(t),lat:slat,lon:slon,distance_miles:Math.round(haversine(lat,lon,slat,slon)*10)/10};
   }).filter(Boolean).filter((x:any)=>x.distance_miles<=radiusMiles).sort((a:any,b:any)=>a.distance_miles-b.distance_miles).slice(0,240);
 }
+async function buildPayload(lat:number,lon:number,radiusMiles:number){
+  const tiles=splitFour(region(lat,lon,radiusMiles),lat,lon);
+  const results=await Promise.all(tiles.map((tile,i)=>queryTile(tileQuery(tile),i%OVERPASS.length)));
+  const good=results.filter(x=>x.ok);
+  if(!good.length){
+    const failures=results.flatMap(x=>x.failures).slice(0,8).join(", ");
+    throw new Error(`Nearby store services unavailable (${failures || "all regional queries failed"}).`);
+  }
+  const elements=good.flatMap(x=>Array.isArray(x.payload?.elements)?x.payload.elements:[]);
+  const stores=parseStores(elements,lat,lon,radiusMiles);
+  const partial=good.length<tiles.length;
+  return {
+    status:"PASS",
+    radius_miles:radiusMiles,
+    stores,
+    source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),
+    cached:false,
+    partial,
+    regions_ok:good.length,
+    regions_total:tiles.length,
+  };
+}
+function stalePayload(prior:{at:number,payload:any,ttl:number},extra:Record<string,unknown>={}){
+  return {...prior.payload,cached:true,stale:true,warning:"Using last successful store list while live store service recovers.",...extra};
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null,{status:204,headers:cors(req)});
@@ -102,31 +129,36 @@ Deno.serve(async (req: Request) => {
     const radiusMiles = Math.min(150, Math.max(1, Number(body.radiusMiles || 150)));
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return json(req,400,{error:"Valid phone location required."});
 
-    const key=cacheKey(lat,lon,radiusMiles), prior=cache.get(key);
-    if(prior && Date.now()-prior.at<prior.ttl) return json(req,200,{...prior.payload,cached:true});
+    const key=cacheKey(lat,lon,radiusMiles);
+    const prior=cache.get(key);
+    const now=Date.now();
+    if(prior && now-prior.at<prior.ttl) return json(req,200,{...prior.payload,cached:true});
 
-    const tiles=splitFour(region(lat,lon,radiusMiles),lat,lon);
-    const results=await Promise.all(tiles.map((tile,i)=>queryTile(tileQuery(tile),i%OVERPASS.length)));
-    const good=results.filter(x=>x.ok);
-    if(!good.length){
-      const failures=results.flatMap(x=>x.failures).slice(0,8).join(", ");
-      throw new Error(`Nearby store services unavailable (${failures || "all regional queries failed"}).`);
+    const active=inflight.get(key);
+    if(active){
+      try {
+        const payload=await active;
+        return json(req,200,{...payload,coalesced:true});
+      } catch(e) {
+        const last=cache.get(key) || prior;
+        if(last && Date.now()-last.at<STALE_TTL_MS) return json(req,200,stalePayload(last,{coalesced:true}));
+        throw e;
+      }
     }
 
-    const elements=good.flatMap(x=>Array.isArray(x.payload?.elements)?x.payload.elements:[]);
-    const stores=parseStores(elements,lat,lon,radiusMiles);
-    const partial=good.length<tiles.length;
-    const payload={
-      status:"PASS",
-      radius_miles:radiusMiles,
-      stores,
-      source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),
-      cached:false,
-      partial,
-      regions_ok:good.length,
-      regions_total:tiles.length,
-    };
-    cache.set(key,{at:Date.now(),payload,ttl:partial?PARTIAL_CACHE_TTL_MS:CACHE_TTL_MS});
-    return json(req,200,payload);
+    const work=buildPayload(lat,lon,radiusMiles).then(payload=>{
+      cache.set(key,{at:Date.now(),payload,ttl:payload.partial?PARTIAL_CACHE_TTL_MS:CACHE_TTL_MS});
+      return payload;
+    }).finally(()=>inflight.delete(key));
+    inflight.set(key,work);
+
+    try {
+      const payload=await work;
+      return json(req,200,payload);
+    } catch(e) {
+      const last=cache.get(key) || prior;
+      if(last && Date.now()-last.at<STALE_TTL_MS) return json(req,200,stalePayload(last));
+      throw e;
+    }
   } catch (e) { return json(req,503,{error:e instanceof Error?e.message:String(e)}); }
 });
