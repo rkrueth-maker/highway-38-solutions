@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "H38SiteScannerAndroid"
 include(":app")
+include(":reseller")
