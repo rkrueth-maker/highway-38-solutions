@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.reseller-nearby-stores]
 verify_jwt = true
+
+[functions.reseller-auto-leads]
+verify_jwt = true
