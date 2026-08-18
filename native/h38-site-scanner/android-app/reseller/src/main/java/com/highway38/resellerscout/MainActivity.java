@@ -38,6 +38,7 @@ public final class MainActivity extends Activity {
             "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
     private static final String LAST_RADIUS_KEY = "h38_reseller_last_radius_v1";
+    private static final String STOCK_UI_MARKER = "LOCAL_STOCK_DISPLAY_V1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
             "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
@@ -95,7 +96,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.5");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.7");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -136,6 +137,18 @@ public final class MainActivity extends Activity {
             html = html.replace(
                     "<option value=\"50\">50 miles</option><option value=\"100\">100 miles</option><option value=\"150\" selected>150 miles</option>",
                     "<option value=\"50\" selected>50 miles</option><option value=\"100\">100 miles</option><option value=\"150\">150 miles</option>"
+            );
+            html = html.replace(
+                    ".lead-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}",
+                    ".lead-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin:8px 0}"
+            );
+            html = html.replace(
+                    "function renderLead(s,l){",
+                    "function stockDisplay(l){var status=norm(l.stock_status||l.local_stock_status||'');var raw=l.stock_count!=null?l.stock_count:l.local_stock_count;if(status==='in_stock'||status==='available'||status==='low_stock'){var q=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(q))return String(q)+' shown';return status==='low_stock'?'Low stock':'In stock';}if(status==='out_of_stock'||status==='unavailable')return'Out of stock';return'Stock not shown';}\nfunction renderLead(s,l){"
+            );
+            html = html.replace(
+                    "<div class=\"stat\"><strong>${esc(l.source_name||l.retailer)}</strong><span>Source</span></div></div><div class=\"actions\">",
+                    "<div class=\"stat\"><strong>${esc(l.source_name||l.retailer)}</strong><span>Source</span></div><div class=\"stat\"><strong>${stockDisplay(l)}</strong><span>Local stock</span></div></div><div class=\"actions\">"
             );
             html = html.replace("</head>", STORE_FETCH_GUARD + "\n</head>");
             html = html.replace("<script>\n(()=>{'use strict';", RADIUS_BOOTSTRAP + "\n<script>\n(()=>{'use strict';");
@@ -220,6 +233,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-auto-hunt-v015"; }
+        @JavascriptInterface public String build() { return "20260818-stock-display-v017"; }
     }
 }
