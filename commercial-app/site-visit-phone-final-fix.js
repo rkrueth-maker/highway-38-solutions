@@ -38,7 +38,7 @@ document.head.appendChild(script);
 
 (function(){
 'use strict';
-const BUILD='20260818-physical-work-list-delete-2';
+const BUILD='20260818-physical-work-list-delete-3';
 function load(){
   if(window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-delete-repair]'))return;
   const script=document.createElement('script');
