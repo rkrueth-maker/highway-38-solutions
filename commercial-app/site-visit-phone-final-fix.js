@@ -29,17 +29,36 @@ window.H38_SITE_VISIT_PHONE_FINAL_FIX={build:BUILD,userGestureCameraOnly:true,st
 
 (function(){
 'use strict';
-if(document.querySelector('script[data-h38-site-visit-delete-runtime-repair]'))return;
-const script=document.createElement('script');
-script.dataset.h38SiteVisitDeleteRuntimeRepair='1';
-script.src='./site-visit-delete-runtime-repair.js?build=20260818-play-delete-integrity-1';
-document.head.appendChild(script);
+async function purgeDynamicRepair(file){
+  if(!window.caches?.keys)return;
+  try{
+    const names=await window.caches.keys();
+    for(const name of names){
+      if(!String(name).startsWith('h38-business-office-'))continue;
+      const cache=await window.caches.open(name),requests=await cache.keys();
+      for(const request of requests){
+        try{if(new URL(request.url).pathname.endsWith(`/${file}`))await cache.delete(request);}catch(_){}
+      }
+    }
+  }catch(error){console.warn('[H38 dynamic repair cache purge]',file,error?.message||error);}
+}
+window.H38_PURGE_DYNAMIC_REPAIR_CACHE=purgeDynamicRepair;
+async function load(){
+  await purgeDynamicRepair('site-visit-delete-runtime-repair.js');
+  if(document.querySelector('script[data-h38-site-visit-delete-runtime-repair]'))return;
+  const script=document.createElement('script');
+  script.dataset.h38SiteVisitDeleteRuntimeRepair='1';
+  script.src='./site-visit-delete-runtime-repair.js?build=20260818-play-delete-integrity-1';
+  document.head.appendChild(script);
+}
+void load();
 })();
 
 (function(){
 'use strict';
 const BUILD='20260818-physical-work-list-delete-4';
-function load(){
+async function load(){
+  await window.H38_PURGE_DYNAMIC_REPAIR_CACHE?.('site-visit-work-list-delete-repair.js');
   if(window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-delete-repair]'))return;
   const script=document.createElement('script');
   script.dataset.h38SiteVisitWorkListDeleteRepair='1';
@@ -47,7 +66,7 @@ function load(){
   document.head.appendChild(script);
 }
 function waitForDeleteAuthority(attempt=0){
-  if(window.H38_SITE_VISIT_DELETE_RUNTIME_REPAIR){load();return;}
+  if(window.H38_SITE_VISIT_DELETE_RUNTIME_REPAIR){void load();return;}
   if(attempt<120)setTimeout(()=>waitForDeleteAuthority(attempt+1),100);
 }
 waitForDeleteAuthority();
@@ -55,13 +74,14 @@ waitForDeleteAuthority();
 
 (function(){
 'use strict';
-const BUILD='20260818-work-site-visit-grouping-2';
-function load(){
+const BUILD='20260818-work-site-visit-grouping-3-single-authority';
+async function load(){
+  await window.H38_PURGE_DYNAMIC_REPAIR_CACHE?.('site-visit-work-list-grouping-repair.js');
   if(window.H38_SITE_VISIT_WORK_LIST_GROUPING_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-grouping-repair]'))return;
   const script=document.createElement('script');
   script.dataset.h38SiteVisitWorkListGroupingRepair='1';
   script.src=`./site-visit-work-list-grouping-repair.js?build=${BUILD}`;
   document.head.appendChild(script);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>void load(),{once:true});else void load();
 })();
