@@ -7,7 +7,7 @@ PHONE = ROOT / "commercial-app" / "site-visit-phone-final-fix.js"
 
 def test_physical_work_list_delete_repair_contract():
     text = REPAIR.read_text(encoding="utf-8")
-    assert "20260818-physical-work-list-delete-2" in text
+    assert "20260818-physical-work-list-delete-4" in text
     assert "physicalFailureBoundary:'Jobs Site Visit list delete'" in text
     assert "text(window.state?.page)==='work'" in text
     assert "open edit" in text
@@ -23,6 +23,7 @@ def test_physical_work_list_delete_repair_contract():
     assert "Tap Again to Delete" in text
     assert "pendingSessionIds" in text
     assert "H38_SITE_VISIT_DELETE_REPAIR_TOMBSTONE" in text
+    assert "durableGroupedRowIdentityPreferred:true" in text
     assert "linkedQuoteDeleted:false" in text
     assert "linkedCustomerDeleted:false" in text
     assert "automaticApproval:false" in text
@@ -35,5 +36,5 @@ def test_phone_runtime_loads_physical_delete_repair_after_hardened_authority():
     assert "site-visit-delete-runtime-repair.js?build=20260818-play-delete-integrity-1" in text
     assert "window.H38_SITE_VISIT_DELETE_RUNTIME_REPAIR" in text
     assert "site-visit-work-list-delete-repair.js?build=${BUILD}" in text
-    assert "20260818-physical-work-list-delete-2" in text
+    assert "20260818-physical-work-list-delete-4" in text
     assert "waitForDeleteAuthority" in text
