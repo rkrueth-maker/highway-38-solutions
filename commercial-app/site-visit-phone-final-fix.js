@@ -35,3 +35,20 @@ script.dataset.h38SiteVisitDeleteRuntimeRepair='1';
 script.src='./site-visit-delete-runtime-repair.js?build=20260818-play-delete-integrity-1';
 document.head.appendChild(script);
 })();
+
+(function(){
+'use strict';
+const BUILD='20260818-physical-work-list-delete-2';
+function load(){
+  if(window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-delete-repair]'))return;
+  const script=document.createElement('script');
+  script.dataset.h38SiteVisitWorkListDeleteRepair='1';
+  script.src=`./site-visit-work-list-delete-repair.js?build=${BUILD}`;
+  document.head.appendChild(script);
+}
+function waitForDeleteAuthority(attempt=0){
+  if(window.H38_SITE_VISIT_DELETE_RUNTIME_REPAIR){load();return;}
+  if(attempt<120)setTimeout(()=>waitForDeleteAuthority(attempt+1),100);
+}
+waitForDeleteAuthority();
+})();
