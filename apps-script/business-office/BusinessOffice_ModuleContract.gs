@@ -6,7 +6,7 @@
  * derived from this contract. Runtime records and compatibility aliases remain
  * in their existing stores; this file owns module metadata only.
  */
-var H38_UNIFIED_MODULE_CONTRACT_VERSION = '2026-07-24-v2';
+var H38_UNIFIED_MODULE_CONTRACT_VERSION = '2026-08-18-private-reseller-v1';
 var H38_UNIFIED_MODULE_CONTRACT_CACHE_ = null;
 var H38_UNIFIED_MODULE_INDEX_CACHE_ = null;
 var H38_UNIFIED_BUSINESS_DEFINITIONS_CACHE_ = null;
@@ -87,6 +87,7 @@ function boGetUnifiedModuleContract_(){
     boUnifiedModule_('website','Website','growth','native','websiteCenter','website','◇','site pages publishing',{dependencies:['documents','approvals'],externalActions:'owner-approval-gated-publish'}),
     boUnifiedModule_('social','Social','growth','native','social','social','◎','posts channels content',{dependencies:['documents','approvals'],externalActions:'owner-approval-gated-publish'}),
     boUnifiedModule_('advertising','Advertising','growth','native','advertising','advertising','◉','ads campaigns spend',{dependencies:['approvals'],externalActions:'owner-approval-gated-spend'}),
+    boUnifiedModule_('resellerScout','Reseller Scout','growth','native','reseller','resellerScout','🏷','private deals clearance penny resale flip',{secondary:true,dataOwner:'Supabase',serverOwner:'supabase/functions/reseller-deal-feed',clientOwner:'commercial-app/reseller-scout.js',permissionPolicy:'h38PortalPrivateResellerCanView_',loadStrategy:'on-demand',cacheTtlSeconds:120,externalActions:'none'}),
 
     boUnifiedModule_('setup','Apps & Modules','office','native','moduleManager','setup','▦','business apps enabled disabled modules features',{essential:true,disablePolicy:'required',clientOwner:'Portal_Application_Client_Views.html'}),
     boUnifiedModule_('setupWizard','Business Setup','office','native','setupWizard','setup','⚙','configuration install pack',{essential:true,disablePolicy:'required',dependencies:['setup']}),
