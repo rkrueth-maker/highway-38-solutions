@@ -56,10 +56,14 @@ def test_jobs_page_groups_site_visit_continuations_with_single_render_authority(
     assert "androidChanged:false" in text
 
 
-def test_phone_loads_jobs_page_repair_loader():
+def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     text = PHONE.read_text(encoding="utf-8")
+    assert "H38_PURGE_DYNAMIC_REPAIR_CACHE" in text
+    assert "window.caches.keys()" in text
+    assert "cache.delete(request)" in text
     assert "20260818-physical-work-list-delete-4" in text
     assert "site-visit-work-list-delete-repair.js?build=${BUILD}" in text
+    assert "20260818-work-site-visit-grouping-3-single-authority" in text
     assert "site-visit-work-list-grouping-repair.js?build=${BUILD}" in text
 
 
