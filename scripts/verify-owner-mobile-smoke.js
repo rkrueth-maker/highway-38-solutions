@@ -45,7 +45,9 @@ requireText(topAction,'nativeEvidencePoll:true','native evidence polling stays e
 
 for(const token of ["['today','⌂','Today']","['work','🧰','Jobs']","['customers','👤','Customers']","['messages','💬','Messages']",'<span>More</span>'])requireText(jobFlow,token,`primary mobile navigation: ${token}`);
 requireText(polish,'groupedMore:true','More remains grouped');
-requireText(polish,'workHistoryCollapse:true','Jobs history remains collapsed');
+requireText(polish,'workHistoryCollapse:false','legacy Jobs history mover stays retired');
+requireText(polish,'siteVisitGroupingDelegated:true','Jobs Site Visit grouping is delegated to one authority');
+requireText(polish,'jobsDomMutation:false','mobile polish does not re-parent Jobs rows');
 requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed');
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
@@ -82,7 +84,7 @@ for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true'
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));
