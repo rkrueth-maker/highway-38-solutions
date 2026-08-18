@@ -38,7 +38,7 @@ document.head.appendChild(script);
 
 (function(){
 'use strict';
-const BUILD='20260818-physical-work-list-delete-2';
+const BUILD='20260818-physical-work-list-delete-3';
 function load(){
   if(window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-delete-repair]'))return;
   const script=document.createElement('script');
@@ -51,4 +51,17 @@ function waitForDeleteAuthority(attempt=0){
   if(attempt<120)setTimeout(()=>waitForDeleteAuthority(attempt+1),100);
 }
 waitForDeleteAuthority();
+})();
+
+(function(){
+'use strict';
+const BUILD='20260818-work-site-visit-grouping-1';
+function load(){
+  if(window.H38_SITE_VISIT_WORK_LIST_GROUPING_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-grouping-repair]'))return;
+  const script=document.createElement('script');
+  script.dataset.h38SiteVisitWorkListGroupingRepair='1';
+  script.src=`./site-visit-work-list-grouping-repair.js?build=${BUILD}`;
+  document.head.appendChild(script);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
