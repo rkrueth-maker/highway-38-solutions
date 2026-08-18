@@ -38,7 +38,7 @@ document.head.appendChild(script);
 
 (function(){
 'use strict';
-const BUILD='20260818-physical-work-list-delete-3';
+const BUILD='20260818-physical-work-list-delete-4';
 function load(){
   if(window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-delete-repair]'))return;
   const script=document.createElement('script');
@@ -55,7 +55,7 @@ waitForDeleteAuthority();
 
 (function(){
 'use strict';
-const BUILD='20260818-work-site-visit-grouping-1';
+const BUILD='20260818-work-site-visit-grouping-2';
 function load(){
   if(window.H38_SITE_VISIT_WORK_LIST_GROUPING_REPAIR||document.querySelector('script[data-h38-site-visit-work-list-grouping-repair]'))return;
   const script=document.createElement('script');

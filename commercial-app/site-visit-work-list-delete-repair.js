@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260818-physical-work-list-delete-3';
+const BUILD='20260818-physical-work-list-delete-4';
 const DB=window.H38DB;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!DB)return;
@@ -72,8 +72,10 @@ function mapDomRows(){
   if(!domRows.length)return;
   const sessions=snapshots(),used=new Set();
   for(const row of domRows){
+    const hinted=text(row.dataset.h38SiteVisitSessionId);
     const title=titleForDomRow(row);
-    let match=sessions.find(item=>!used.has(sessionId(item))&&title&&normalize(projectTitle(item))===title);
+    let match=hinted?sessions.find(item=>sessionId(item)===hinted):null;
+    if(!match)match=sessions.find(item=>!used.has(sessionId(item))&&title&&normalize(projectTitle(item))===title);
     if(!match)match=sessions.find(item=>!used.has(sessionId(item))&&title&&(normalize(projectTitle(item)).includes(title)||title.includes(normalize(projectTitle(item)))));
     if(!match)continue;
     const sid=sessionId(match);used.add(sid);rowSession.set(row,match);
@@ -145,6 +147,7 @@ window.H38_SITE_VISIT_WORK_LIST_DELETE_REPAIR=Object.freeze({
   physicalFailureBoundary:'Jobs Site Visit list delete',
   serverSessionFenceBeforeLocalRemoval:true,
   captureSessionIdentityRequired:true,
+  durableGroupedRowIdentityPreferred:true,
   workListDeleteUsesOwnerAuthority:true,
   twoTapDelete:true,
   pendingDeleteRowsSuppressed:true,
