@@ -100,7 +100,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.10");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.11");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -261,6 +261,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-truthful-retail-penny-stock-v0110"; }
+        @JavascriptInterface public String build() { return "20260818-retailer-adapters-v0111"; }
     }
 }
