@@ -36,3 +36,56 @@ function schedule(){if(scheduled)return;scheduled=true;setTimeout(run,30);}
 const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('pageshow',schedule);window.addEventListener('focus',schedule);document.addEventListener('click',event=>{if(event.target?.closest?.('[data-h38-primary="more"]'))setTimeout(groupMore,20);},true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 window.H38_MOBILE_FLOW_POLISH_V2={build:BUILD,groupedMore:true,todayDensity:true,siteVisitDensity:true,offlineDetailsCollapsed:true,workHistoryCollapse:false,siteVisitGroupingDelegated:true,jobsDomMutation:false,quoteHistoryCollapse:true,unavailableRoutesHidden:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchasing:false,automaticPayment:false};
 })();
+
+(function(){
+'use strict';
+const BUILD='20260818-global-office-scroll-authority-1';
+const MOBILE='(max-width: 760px)';
+let syncQueued=false;
+function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
+function fieldStateOpen(){return window.H38_FIELD_VISIT_CORE?.state?.open===true;}
+function fieldActuallyOpen(){
+  if(!fieldStateOpen())return false;
+  const app=document.getElementById('h38FieldVisitApp');if(!app||app.hidden||app.getAttribute('aria-hidden')==='true')return false;
+  try{const s=getComputedStyle(app);return s.display!=='none'&&s.visibility!=='hidden'&&app.getClientRects().length>0;}catch(_){return false;}
+}
+function installStyle(){
+  if(document.getElementById('h38OfficeScrollAuthorityStyle'))return;
+  const style=document.createElement('style');style.id='h38OfficeScrollAuthorityStyle';style.textContent=`
+@media(max-width:760px){
+ html{height:auto!important;min-height:100%!important;max-height:none!important;overflow-y:auto!important;touch-action:pan-y!important}
+ body:not(.h38-field-scroll-lock),body.field-visit-open:not(.h38-field-scroll-lock){height:auto!important;min-height:100%!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important}
+ body:not(.h38-field-scroll-lock) .app-shell,body.field-visit-open:not(.h38-field-scroll-lock) .app-shell{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;touch-action:pan-y!important}
+ body:not(.h38-field-scroll-lock) #mainContent,body.field-visit-open:not(.h38-field-scroll-lock) #mainContent{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;overflow-y:visible!important;touch-action:pan-y!important}
+ body.h38-field-scroll-lock{height:var(--h38-mobile-vh,100dvh)!important;overflow:hidden!important}
+}
+`;
+  document.head.appendChild(style);
+}
+function clearInlineLocks(){
+  for(const node of [document.documentElement,document.body,document.querySelector('.app-shell'),document.getElementById('mainContent')]){
+    if(!node)continue;
+    node.style.removeProperty('height');node.style.removeProperty('max-height');node.style.removeProperty('overflow');node.style.removeProperty('overflow-y');
+  }
+}
+function sync(){
+  syncQueued=false;if(!mobile())return;
+  installStyle();
+  const open=fieldActuallyOpen();
+  document.body.classList.toggle('h38-field-scroll-lock',open);
+  if(!open){
+    if(!fieldStateOpen())document.body.classList.remove('field-visit-open');
+    clearInlineLocks();
+  }
+}
+function queueSync(){if(syncQueued)return;syncQueued=true;setTimeout(sync,0);}
+setTimeout(sync,0);
+setTimeout(sync,250);
+window.addEventListener('pageshow',queueSync);
+window.addEventListener('focus',queueSync);
+window.addEventListener('resize',queueSync,{passive:true});
+document.addEventListener('click',queueSync,true);
+document.addEventListener('h38:business-snapshot-updated',queueSync);
+const observer2=new MutationObserver(queueSync);observer2.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+window.H38_OFFICE_SCROLL_AUTHORITY=Object.freeze({build:BUILD,globalOfficeScrollRestored:true,legacyFieldVisitClassNotAuthoritative:true,actualFieldStateRequired:true,verticalPanPreserved:true,noPolling:true,automaticApproval:false,automaticCustomerSending:false});
+})();
