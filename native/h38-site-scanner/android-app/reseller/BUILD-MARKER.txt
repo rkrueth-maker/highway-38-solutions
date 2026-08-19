@@ -7,3 +7,4 @@ Opportunity markers: OPPORTUNITY_ENGINE_V1, MARKETPLACE_SHARE_IN_V1.
 Access: exact Rick + Amanda Supabase user allowlist only.
 Scope: agent/private-reseller-scout only. Never merge Reseller Scout changes into main without explicit owner authorization.
 Physical Android phone remains final acceptance authority.
+Final signed verification trigger: 2026-08-19T15:10Z
