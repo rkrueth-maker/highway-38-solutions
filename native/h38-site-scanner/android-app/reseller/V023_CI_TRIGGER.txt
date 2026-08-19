@@ -1,0 +1,1 @@
+CI-only trigger for H38 Reseller Scout v0.1.23. Verify decodable vector launcher resource plus Scan All/Facebook fallback lists and mandatory store ad/flyer links. Do not merge.
