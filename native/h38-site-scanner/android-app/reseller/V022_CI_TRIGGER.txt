@@ -1,1 +1,2 @@
 CI-only trigger for H38 Reseller Scout v0.1.22 fallback-list, store flyer, and launcher packaging verification. Do not merge this file into the canonical private branch.
+Retrigger after PR creation.
