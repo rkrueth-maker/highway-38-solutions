@@ -44,6 +44,7 @@ public final class MainActivity extends Activity {
     private static final String STORE_OPEN_PATCH_MARKER = "KEEP_STORE_OPEN_ON_SHOW_ALL_V1";
     private static final String DEEP_DISCOUNT_MARKER = "DEEP_DISCOUNT_FIRST_OVER_50_V1";
     private static final String PENNY_AUTO_QTY_MARKER = "PENNY_AUTO_STORE_QTY_V1";
+    private static final String HOME_DEPOT_PRICE_MARKER = "HOME_DEPOT_STORE_PRICE_LOCAL_PENNY_V1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
             "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
@@ -85,12 +86,13 @@ public final class MainActivity extends Activity {
             "function detailsFor(sk){return Array.from(document.querySelectorAll('details[data-store-key]')).find(function(d){return d.dataset.storeKey===sk;})||null;}" +
             "function itemFromLead(lead,sk){var t=lead.querySelector('.lead-title'),txt=lead.textContent||'',u=txt.match(/UPC\\s+(\\d+)/i),s=txt.match(/Model\\/SKU\\s+([^·\\n]+)/i);return{store_key:sk,title:t?t.textContent.trim():'',upc:u?u[1]:'',sku:s?s[1].trim():''};}" +
             "function remember(b){var d=b.closest('details[data-store-key]'),lead=b.closest('.lead');if(!d||!lead)return'';var id=b.dataset.stock||'',x=itemFromLead(lead,d.dataset.storeKey||'');if(id)sigToId.set(sig(x),id);return id;}" +
-            "function qty(p){if(!p)return'Not checked';var raw=p.stock_count;if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(Number(raw)))return String(Number(raw));var st=String(p.stock_status||'').toLowerCase();if(st==='out_of_stock')return'OUT';if(st==='in_stock')return'IN';if(p.status==='check_failed')return'Error';return'Qty not exposed';}" +
-            "function decorate(root){Array.from((root||document).querySelectorAll('.lead')).forEach(function(lead){var b=lead.querySelector('[data-stock]'),meta=lead.querySelector('.lead-meta');if(!b||!meta)return;var id=b.dataset.stock||'',box=meta.querySelector('[data-h38-store-qty]');if(!box){box=document.createElement('div');box.className='stat';box.setAttribute('data-h38-store-qty','1');box.innerHTML='<strong>Not checked</strong><span>STORE QTY</span>';meta.appendChild(box);}var strong=box.querySelector('strong');if(strong)strong.textContent=pending.has(id)?'Checking…':qty(results.get(id));var line=lead.querySelector('.stock-line');if(line)line.style.display='none';});}" +
+            "function qty(p){if(!p)return'Not checked';var raw=p.stock_count;if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(Number(raw)))return String(Number(raw));var st=String(p.stock_status||'').toLowerCase();if(st==='out_of_stock')return'OUT';if(st==='in_stock')return'IN';if(p.status==='check_failed')return'Error';if(p.status==='store_not_resolved')return'Store not resolved';return'Qty not exposed';}" +
+            "function price(p){if(!p)return'Not checked';var raw=p.current_price,n=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(n)&&n>0)return'$'+n.toFixed(2);if(p.status==='check_failed')return'Error';if(p.store_bound)return'Not exposed';return'Not checked';}" +
+            "function decorate(root){Array.from((root||document).querySelectorAll('.lead')).forEach(function(lead){var b=lead.querySelector('[data-stock]'),meta=lead.querySelector('.lead-meta');if(!b||!meta)return;var id=b.dataset.stock||'',p=results.get(id),busy=pending.has(id),qbox=meta.querySelector('[data-h38-store-qty]'),pbox=meta.querySelector('[data-h38-store-price]');if(!pbox){pbox=document.createElement('div');pbox.className='stat';pbox.setAttribute('data-h38-store-price','1');pbox.innerHTML='<strong>Not checked</strong><span>STORE PRICE</span>';meta.appendChild(pbox);}if(!qbox){qbox=document.createElement('div');qbox.className='stat';qbox.setAttribute('data-h38-store-qty','1');qbox.innerHTML='<strong>Not checked</strong><span>STORE QTY</span>';meta.appendChild(qbox);}var ps=pbox.querySelector('strong'),qs=qbox.querySelector('strong');if(ps)ps.textContent=busy?'Checking…':price(p);if(qs)qs.textContent=busy?'Checking…':qty(p);var old=lead.querySelector('.stock-line:not([data-h38-store-status])');if(old)old.style.display='none';var status=lead.querySelector('[data-h38-store-status]');if(!status){status=document.createElement('div');status.className='stock-line small';status.setAttribute('data-h38-store-status','1');lead.insertBefore(status,lead.querySelector('.actions'));}status.textContent=busy?'Checking this physical store…':(p&&p.availability_label?p.availability_label:'Store not checked yet.');var badge=lead.querySelector('[data-h38-local-penny]'),isLocal=!!(p&&p.penny_price_detected===true&&lead.querySelector('.pill.penny'));if(isLocal&&!badge){badge=document.createElement('span');badge.className='pill local';badge.setAttribute('data-h38-local-penny','1');badge.textContent='LOCAL $0.01';var host=lead.querySelector('.lead-head>div:last-child');if(host)host.appendChild(document.createTextNode(' ')),host.appendChild(badge);}else if(!isLocal&&badge)badge.remove();});}" +
             "document.addEventListener('click',function(e){var n=e.target;if(!(n instanceof Element))return;var b=n.closest('[data-stock]');if(b)remember(b);},true);" +
             "window.fetch=async function(input,init){var url=typeof input==='string'?input:(input&&input.url)||'';if(url.indexOf(STOCK)<0)return baseFetch(input,init);var body={};try{body=JSON.parse(String((init&&init.body)||'{}'));}catch(e){}var signature=sig(body),id=sigToId.get(signature)||signature;pending.add(id);decorate(document);try{var r=await baseFetch(input,init),c=r.clone();c.json().then(function(p){results.set(id,p||{});pending.delete(id);queued.delete(id);decorate(document);}).catch(function(){pending.delete(id);queued.delete(id);decorate(document);});return r;}catch(e){results.set(id,{status:'check_failed',stock_status:'unknown'});pending.delete(id);queued.delete(id);decorate(document);throw e;}};" +
             "function findButton(id){return Array.from(document.querySelectorAll('[data-stock]')).find(function(b){return b.dataset.stock===id;})||null;}" +
-            "function queuePenny(d){if(!d||!d.open)return;var sk=d.dataset.storeKey||'',todo=[];Array.from(d.querySelectorAll('.lead')).forEach(function(lead){if(!lead.querySelector('.pill.penny'))return;var b=lead.querySelector('[data-stock]');if(!b)return;var id=remember(b);if(!id||results.has(id)||pending.has(id)||queued.has(id))return;queued.add(id);todo.push(id);});decorate(d);todo.forEach(function(id,i){setTimeout(function(){var b=findButton(id);if(!b){queued.delete(id);return;}if(results.has(id)||pending.has(id)){queued.delete(id);return;}remember(b);b.click();},i*2200);});}" +
+            "function queuePenny(d){if(!d||!d.open)return;var sk=d.dataset.storeKey||'',todo=[];Array.from(d.querySelectorAll('.lead')).forEach(function(lead){if(!lead.querySelector('.pill.penny'))return;var b=lead.querySelector('[data-stock]');if(!b)return;var id=remember(b);if(!id||results.has(id)||pending.has(id)||queued.has(id))return;queued.add(id);todo.push(id);});decorate(d);todo.forEach(function(id,i){setTimeout(function(){var live=detailsFor(sk);if(!live||!live.open){queued.delete(id);return;}var b=findButton(id);if(!b){queued.delete(id);return;}if(results.has(id)||pending.has(id)){queued.delete(id);return;}remember(b);b.click();},i*2200);});}" +
             "document.addEventListener('toggle',function(e){var d=e.target;if(d instanceof HTMLDetailsElement&&d.matches('details[data-store-key]')&&d.open)queuePenny(d);},true);" +
             "var obs=new MutationObserver(function(){decorate(document);Array.from(document.querySelectorAll('details[data-store-key][open]')).forEach(queuePenny);});" +
             "obs.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){decorate(document);Array.from(document.querySelectorAll('details[data-store-key][open]')).forEach(queuePenny);},0);" +
@@ -119,7 +121,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.12-qtyfix");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.14-recovery");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -186,16 +188,8 @@ public final class MainActivity extends Activity {
                     "function leadBadge(l){if(l.deal_type==='penny')return'<span class=\"pill penny\">PENNY</span>';if(l.deep_discount&&n(l.discount_pct)>50)return'<span class=\"pill local\">DEEP '+n(l.discount_pct).toFixed(0)+'% OFF</span>';if(l.deal_type==='in_store_bargain')return'<span class=\"pill local\">LOCAL BARGAIN</span>';return'<span class=\"pill deal\">RESALE DEAL</span>'}"
             );
             html = html.replace(
-                    "function renderLead(s,l){",
-                    "function stockDisplay(l){var status=norm(l.stock_status||l.local_stock_status||'');var raw=l.stock_count!=null?l.stock_count:l.local_stock_count;if(status==='in_stock'||status==='available'||status==='low_stock'){var q=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(q))return String(q)+' shown';return status==='low_stock'?'Low stock':'In stock';}if(status==='out_of_stock'||status==='unavailable')return'Out of stock';if(l.deal_type==='penny'||status==='not_shown')return'Stock not shown';return'Not checked by H38';}\nfunction renderLead(s,l){"
-            );
-            html = html.replace(
                     "function renderLead(s,l){const existing=savedMatch(s,l),potential=n(l.resale_potential),rank=potential>=90?'STRONG':potential>=78?'GOOD':'CHECK',sourceOnly=!!l.source_only;",
                     "function renderLead(s,l){const existing=savedMatch(s,l),potential=n(l.resale_potential),rank=potential>=90?'STRONG':potential>=78?'GOOD':'CHECK',sourceOnly=!!l.source_only;if(sourceOnly)return`<div class=\"lead\"><div class=\"lead-head\"><div><div class=\"lead-title\">${esc(l.title)}</div><div class=\"muted small\">${esc(l.availability_label||'Open the retailer sale list to browse all items.')}</div></div><div><span class=\"pill local\">SALE LIST</span></div></div><div class=\"actions\"><button data-source=\"${esc(l.id)}\">View full sale list</button></div></div>`;"
-            );
-            html = html.replace(
-                    "<div class=\"stat\"><strong>${esc(l.source_name||l.retailer)}</strong><span>Source</span></div></div><div class=\"actions\">",
-                    "<div class=\"stat\"><strong>${esc(l.source_name||l.retailer)}</strong><span>Source</span></div><div class=\"stat\"><strong>${stockDisplay(l)}</strong><span>Local stock</span></div></div><div class=\"actions\">"
             );
             html = html.replace("</head>", STORE_FETCH_GUARD + "\n</head>");
             html = html.replace("<script>\n(()=>{'use strict';", RADIUS_BOOTSTRAP + "\n<script>\n(()=>{'use strict';");
@@ -281,6 +275,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260819-penny-auto-store-qty-v1"; }
+        @JavascriptInterface public String build() { return "20260819-multi-retailer-hd-penny-recovery-v014"; }
     }
 }
