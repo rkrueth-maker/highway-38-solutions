@@ -6,6 +6,11 @@ on:
       - agent/private-reseller-scout
     paths:
       - '.github/reseller-v017.trigger'
+  pull_request:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - '.github/reseller-v017.trigger'
 
 permissions:
   contents: write
