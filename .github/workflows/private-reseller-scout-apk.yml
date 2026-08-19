@@ -51,10 +51,12 @@ jobs:
         shell: bash
         env:
           HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
-            test "$HEAD_REF" = 'agent/private-reseller-scout'
+            [[ "$HEAD_REF" == agent/private-reseller-scout-ci-* ]]
+            test "$BASE_REF" = 'agent/private-reseller-scout'
           else
             test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'
           fi
