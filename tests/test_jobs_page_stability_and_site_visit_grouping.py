@@ -67,14 +67,17 @@ def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     assert "site-visit-work-list-grouping-repair.js?build=${BUILD}" in text
 
 
-def test_legacy_mobile_history_grouper_is_retired_on_jobs():
+def test_legacy_mobile_history_grouper_and_scroll_authority_are_retired_on_jobs():
     text = MOBILE_FLOW.read_text(encoding="utf-8")
-    assert "20260818-wide-mobile-flow-polish-3-jobs-delegated" in text
+    assert "20260819-wide-mobile-flow-polish-4-scroll-delegated" in text
     assert "if(page()==='work')return" in text
     assert "polishWorkHistory" not in text
     assert "workHistoryCollapse:false" in text
     assert "siteVisitGroupingDelegated:true" in text
     assert "jobsDomMutation:false" in text
+    assert "scrollAuthorityDelegated:true" in text
+    assert "duplicateScrollAuthorityRetired:true" in text
+    assert "H38_OFFICE_SCROLL_AUTHORITY" not in text
 
 
 def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
