@@ -40,6 +40,8 @@ public final class MainActivity extends Activity {
     private static final String LAST_RADIUS_KEY = "h38_reseller_last_radius_v1";
     private static final String STOCK_UI_MARKER = "LOCAL_STOCK_DISPLAY_V1";
     private static final String LIST_CLEANUP_MARKER = "STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1";
+    private static final String STORE_OPEN_PATCH_MARKER = "KEEP_STORE_OPEN_ON_SHOW_ALL_V1";
+    private static final String DEEP_DISCOUNT_MARKER = "DEEP_DISCOUNT_FIRST_OVER_50_V1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
             "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
@@ -97,7 +99,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.8");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.9");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -142,6 +144,26 @@ public final class MainActivity extends Activity {
             html = html.replace(
                     ".lead-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}",
                     ".lead-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin:8px 0}"
+            );
+            html = html.replace(
+                    "let user=null,stores=[],leads=[],saved=[],point=null,storeLoad=null,leadLoad=null,targetScan=null,expandedStores=new Set();",
+                    "let user=null,stores=[],leads=[],saved=[],point=null,storeLoad=null,leadLoad=null,targetScan=null,expandedStores=new Set(),openStores=new Set();"
+            );
+            html = html.replace(
+                    "function leadForStore(s){return leads.filter(x=>norm(x.retailer)===norm(s.retailer)).sort((a,b)=>n(b.resale_potential)-n(a.resale_potential)||n(b.discount_pct)-n(a.discount_pct))}",
+                    "function leadForStore(s){return leads.filter(x=>norm(x.retailer)===norm(s.retailer)).sort((a,b)=>Number(!!b.deep_discount)-Number(!!a.deep_discount)||n(b.discount_pct)-n(a.discount_pct)||n(b.resale_potential)-n(a.resale_potential))}"
+            );
+            html = html.replace(
+                    "function renderStore(s){const auto=leadForStore(s),mine=savedForStore(s),showAll=expandedStores.has(s.store_key),shown=showAll?auto:auto.slice(0,18),hot=auto.length>0;return`<details class=\"store ${hot?'hot':''}\">",
+                    "function renderStore(s){const auto=leadForStore(s),mine=savedForStore(s),showAll=expandedStores.has(s.store_key),shown=showAll?auto:auto.slice(0,18),hot=auto.length>0,isOpen=openStores.has(s.store_key);return`<details data-store-key=\"${esc(s.store_key)}\" class=\"store ${hot?'hot':''}\" ${isOpen?'open':''}>"
+            );
+            html = html.replace(
+                    "function bindActions(node){node.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{expandedStores.add(b.dataset.more);renderStores()});",
+                    "function bindActions(node){node.querySelectorAll('details[data-store-key]').forEach(d=>d.ontoggle=()=>{if(d.open)openStores.add(d.dataset.storeKey);else openStores.delete(d.dataset.storeKey)});node.querySelectorAll('[data-more]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();expandedStores.add(b.dataset.more);openStores.add(b.dataset.more);renderStores()});"
+            );
+            html = html.replace(
+                    "function leadBadge(l){if(l.deal_type==='penny')return'<span class=\"pill penny\">PENNY</span>';if(l.deal_type==='in_store_bargain')return'<span class=\"pill local\">LOCAL BARGAIN</span>';return'<span class=\"pill deal\">RESALE DEAL</span>'}",
+                    "function leadBadge(l){if(l.deal_type==='penny')return'<span class=\"pill penny\">PENNY</span>';if(l.deep_discount&&n(l.discount_pct)>50)return'<span class=\"pill local\">DEEP '+n(l.discount_pct).toFixed(0)+'% OFF</span>';if(l.deal_type==='in_store_bargain')return'<span class=\"pill local\">LOCAL BARGAIN</span>';return'<span class=\"pill deal\">RESALE DEAL</span>'}"
             );
             html = html.replace(
                     "function renderLead(s,l){",
@@ -238,6 +260,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-strict-priced-v018"; }
+        @JavascriptInterface public String build() { return "20260818-deep-discount-show-all-v019"; }
     }
 }
