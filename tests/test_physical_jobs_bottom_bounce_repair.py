@@ -4,18 +4,32 @@ ROOT = Path(__file__).resolve().parents[1]
 MOBILE = (ROOT / "commercial-app" / "mobile-runtime-stability.js").read_text(encoding="utf-8")
 
 
-def test_physical_mobile_office_uses_one_explicit_scroll_container():
-    assert "20260819-physical-mobile-scroll-ui-1" in MOBILE
+def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
+    assert "20260819-deep-mobile-scroll-authority-2" in MOBILE
     assert "officeExplicitMainScroller:true" in MOBILE
+    assert "officeFixedViewportScroller:true" in MOBILE
     assert "documentScrollDisabledByDesign:true" in MOBILE
     assert "officeOverscrollBounceDisabled:true" in MOBILE
     assert "officeOverscrollContained:true" in MOBILE
     assert "officeVerticalPanPreserved:true" in MOBILE
-    assert "html,body{height:100%!important" in MOBILE
-    assert "overflow:hidden!important;overscroll-behavior:none!important" in MOBILE
-    assert "#mainContent{box-sizing:border-box" in MOBILE
-    assert "overflow-y:auto!important;overscroll-behavior-y:contain!important" in MOBILE
+    assert ".app-shell{position:fixed!important" in MOBILE
+    assert "top:var(--h38-office-shell-top,58px)!important" in MOBILE
+    assert "bottom:0!important" in MOBILE
+    assert "#mainContent{position:absolute!important;inset:0!important" in MOBILE
+    assert "overflow-y:scroll!important;overscroll-behavior-y:contain!important" in MOBILE
     assert "touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important" in MOBILE
+
+
+def test_android_touch_fallback_scrolls_outer_office_without_stealing_nested_scrollers():
+    assert "manualTouchScrollFallback:true" in MOBILE
+    assert "nestedScrollPreserved:true" in MOBILE
+    assert "function independentVerticalScroller" in MOBILE
+    assert "node.scrollHeight>node.clientHeight+2" in MOBILE
+    assert "main.addEventListener('touchmove'" in MOBILE
+    assert "{passive:false}" in MOBILE
+    assert "main.scrollTop=clamp(before+dy,0,max)" in MOBILE
+    assert "event.preventDefault()" in MOBILE
+    assert "startInertia(main,gesture.velocity)" in MOBILE
 
 
 def test_page_navigation_resets_main_scroller_not_window():
@@ -43,11 +57,15 @@ def test_mobile_primary_navigation_has_one_last_loaded_authority():
     assert "wrapRenderNav" in MOBILE
 
 
-def test_stray_quote_action_is_hidden_outside_quotes_and_bottom_content_is_reachable():
+def test_visible_mobile_cleanup_from_physical_video_is_preserved():
     assert "strayQuoteActionHiddenOutsideQuotes:true" in MOBILE
     assert "approve & send quote" in MOBILE.lower()
     assert "bottomNavContentReachable:true" in MOBILE
-    assert "padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important" in MOBILE
+    assert "padding:13px 10px calc(112px + env(safe-area-inset-bottom,0px))!important" in MOBILE
+    assert "mobileJobsHeadingSimplified:true" in MOBILE
+    assert "mobileCustomerEntryFormsCollapsed:true" in MOBILE
+    assert "Work\\s*&\\s*Task Assignment".lower() in MOBILE.lower()
+    assert "Add or edit customer" in MOBILE
 
 
 def test_site_visit_scroll_boundary_remains_separate():
