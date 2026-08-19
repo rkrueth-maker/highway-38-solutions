@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260819-physical-mobile-scroll-ui-1';
+const BUILD='20260819-deep-mobile-scroll-authority-2';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
@@ -9,6 +9,8 @@ let resizeTimer=0;
 let interactionUntil=0;
 let lastPage='';
 let navBusy=false;
+let touchGesture=null;
+let inertiaFrame=0;
 const reviewWorkingSince=new Map();
 const text=value=>String(value==null?'':value).trim();
 const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,8 +31,12 @@ function setViewportVars(){
   const viewport=window.visualViewport;
   const height=Math.round(viewport?.height||window.innerHeight||0);
   if(height)document.documentElement.style.setProperty('--h38-mobile-vh',`${height}px`);
-  const shell=document.querySelector('.app-shell');
-  if(shell&&height){const top=Math.max(0,Math.round(shell.getBoundingClientRect().top));document.documentElement.style.setProperty('--h38-office-shell-height',`${Math.max(180,height-top)}px`);}
+  let shellTop=0;
+  for(const node of [document.querySelector('.topbar'),document.querySelector('.business-bar')]){
+    if(!node||node.hidden)continue;
+    try{const style=getComputedStyle(node);if(style.display==='none'||style.visibility==='hidden'||!node.getClientRects().length)continue;const rect=node.getBoundingClientRect();shellTop=Math.max(shellTop,Math.round(rect.bottom));}catch(_){}
+  }
+  document.documentElement.style.setProperty('--h38-office-shell-top',`${Math.max(0,shellTop)}px`);
 }
 function installStyle(){
   let style=document.getElementById('h38MobileRuntimeStabilityStyle');
@@ -39,19 +45,21 @@ function installStyle(){
 html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
 #mainContent{overflow-anchor:none;min-width:0}.h38-five-primary-nav{isolation:isolate}
 @media(max-width:760px){
- html,body{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
- body:not(.h38-field-scroll-lock){height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;touch-action:auto!important}
+ html,body{height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+ body:not(.h38-field-scroll-lock){height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;touch-action:auto!important}
  .topbar{position:relative!important;top:auto!important;z-index:1600;transform:translateZ(0);backface-visibility:hidden}
  .topbar .brand{min-width:0;overflow:hidden}.topbar .brand>div{min-width:0}.topbar .brand strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:165px}.topbar .brand small{display:none}
  .business-bar:empty{display:none}.business-bar{position:relative!important;top:auto!important;z-index:1500}
- body:not(.h38-field-scroll-lock) .app-shell{display:block!important;height:var(--h38-office-shell-height,calc(100dvh - 58px))!important;min-height:0!important;max-height:var(--h38-office-shell-height,calc(100dvh - 58px))!important;overflow:hidden!important;touch-action:auto!important}
- body:not(.h38-field-scroll-lock) #mainContent{box-sizing:border-box;width:100%;height:100%!important;max-height:100%!important;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:contain!important;padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;contain:none!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto!important}
- body:not(.h38-field-scroll-lock) #mainContent>*{touch-action:pan-y manipulation}
+ body:not(.h38-field-scroll-lock) .app-shell{position:fixed!important;left:0!important;right:0!important;top:var(--h38-office-shell-top,58px)!important;bottom:0!important;display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;contain:layout paint!important;touch-action:auto!important}
+ body:not(.h38-field-scroll-lock) #mainContent{position:absolute!important;inset:0!important;box-sizing:border-box!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow-x:hidden!important;overflow-y:scroll!important;overscroll-behavior-y:contain!important;padding:13px 10px calc(112px + env(safe-area-inset-bottom,0px))!important;contain:none!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto!important;will-change:scroll-position}
+ body:not(.h38-field-scroll-lock) #mainContent>*{max-width:100%;min-width:0}
  #mainNav.h38-five-primary-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:2500!important;margin:0!important;padding:6px 6px env(safe-area-inset-bottom,0px)!important;background:var(--card,#fff)!important;box-shadow:0 -8px 24px rgba(11,36,56,.12);transform:translateZ(0);backface-visibility:hidden;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important}
  #mainNav.h38-five-primary-nav button{min-width:0!important;max-width:none!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
  #toast{position:fixed;left:10px;right:10px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:3000;max-width:none;transform:translateZ(0)}
  dialog{max-height:calc(var(--h38-mobile-vh,100dvh) - 24px)}
+ .h38-mobile-entry-details{margin:0 0 10px;border:1px solid var(--line,#d6e0e8);border-radius:14px;background:var(--card,#fff);overflow:hidden}.h38-mobile-entry-details>summary{padding:13px 14px;font-weight:900;color:var(--navy,#0b2438);cursor:pointer}.h38-mobile-entry-details>.card{margin:0!important;border:0!important;border-top:1px solid var(--line,#d6e0e8)!important;border-radius:0!important;box-shadow:none!important}
  body.h38-field-scroll-lock{height:var(--h38-mobile-vh,100dvh)!important;overflow:hidden!important}
+ body.h38-field-scroll-lock .app-shell{position:static!important}
  body.h38-field-scroll-lock #mainNav.h38-five-primary-nav{display:none!important}
  body.h38-field-scroll-lock #mainContent{overflow:hidden!important;padding-bottom:0!important}
  #h38FieldVisitApp{position:fixed;inset:0;z-index:2400;height:var(--h38-mobile-vh,100dvh);max-height:var(--h38-mobile-vh,100dvh);overflow:hidden;background:var(--bg,#eef3f6);transform:translateZ(0)}
@@ -66,7 +74,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
 function clearInlineLocks(){
   for(const node of [document.documentElement,document.body,document.querySelector('.app-shell'),document.getElementById('mainContent')]){
     if(!node)continue;
-    node.style.removeProperty('overflow');node.style.removeProperty('overflow-y');node.style.removeProperty('height');node.style.removeProperty('max-height');node.style.removeProperty('position');node.style.removeProperty('top');
+    node.style.removeProperty('overflow');node.style.removeProperty('overflow-y');node.style.removeProperty('height');node.style.removeProperty('max-height');node.style.removeProperty('position');node.style.removeProperty('top');node.style.removeProperty('bottom');
   }
 }
 function restoreChrome(){document.querySelectorAll('.topbar,.business-bar,.app-shell,#mainNav,#mainContent').forEach(node=>{node?.style.removeProperty('visibility');node?.style.removeProperty('opacity');});}
@@ -99,12 +107,71 @@ function hideStrayQuoteActions(){
     button.hidden=true;button.dataset.h38HiddenOutsideQuotes='1';
   });
 }
+function polishVisiblePage(){
+  const main=document.getElementById('mainContent'),current=statePage();if(!main)return;
+  if(current==='work'){
+    const h1=main.querySelector('.page-head h1');if(h1&&/work\s*&\s*task assignment/i.test(text(h1.textContent)))h1.textContent='Jobs';
+  }
+  if(current==='customers'){
+    Array.from(main.querySelectorAll('.card')).forEach(card=>{
+      if(card.closest('.h38-mobile-entry-details'))return;
+      const heading=text(card.querySelector('h2,h3')?.textContent);
+      if(!/^(add or update customer|add property)$/i.test(heading))return;
+      const details=document.createElement('details');details.className='h38-mobile-entry-details';
+      const summary=document.createElement('summary');summary.textContent=/property/i.test(heading)?'Add property':'Add or edit customer';
+      card.parentNode?.insertBefore(details,card);details.append(summary,card);
+    });
+  }
+}
+function cancelInertia(){if(inertiaFrame){cancelAnimationFrame(inertiaFrame);inertiaFrame=0;}}
+function clamp(value,min,max){return Math.min(max,Math.max(min,value));}
+function independentVerticalScroller(target,main){
+  let node=target instanceof Element?target:null;
+  while(node&&node!==main){
+    try{const style=getComputedStyle(node);if(/auto|scroll/.test(style.overflowY)&&node.scrollHeight>node.clientHeight+2)return node;}catch(_){}
+    node=node.parentElement;
+  }
+  return null;
+}
+function startInertia(main,velocity){
+  cancelInertia();if(!Number.isFinite(velocity)||Math.abs(velocity)<0.08)return;
+  let v=velocity,last=performance.now();
+  const step=now=>{
+    const dt=Math.min(32,Math.max(1,now-last));last=now;
+    const max=Math.max(0,main.scrollHeight-main.clientHeight),before=main.scrollTop,next=clamp(before+v*dt,0,max);main.scrollTop=next;
+    v*=Math.pow(0.90,dt/16);
+    if(Math.abs(v)<0.03||max<=0||next===before&&(next===0||next===max)){inertiaFrame=0;return;}
+    inertiaFrame=requestAnimationFrame(step);
+  };
+  inertiaFrame=requestAnimationFrame(step);
+}
+function installManualTouchScroll(){
+  const main=document.getElementById('mainContent');if(!main||main.dataset.h38ManualTouchScroll==='2')return;
+  main.dataset.h38ManualTouchScroll='2';main.dataset.h38PhysicalScrollSurface='mainContent';
+  main.addEventListener('touchstart',event=>{
+    if(!mobile()||fieldActuallyOpen()||event.touches.length!==1){touchGesture=null;return;}
+    cancelInertia();
+    const touch=event.touches[0],nested=independentVerticalScroller(event.target,main);
+    touchGesture={nested:!!nested,lastY:touch.clientY,lastTime:performance.now(),velocity:0,moved:false};
+  },{passive:true});
+  main.addEventListener('touchmove',event=>{
+    if(!touchGesture||touchGesture.nested||event.touches.length!==1||fieldActuallyOpen())return;
+    const max=Math.max(0,main.scrollHeight-main.clientHeight);if(max<=0)return;
+    const now=performance.now(),y=event.touches[0].clientY,dy=touchGesture.lastY-y,dt=Math.max(1,now-touchGesture.lastTime);
+    if(Math.abs(dy)>0.5){
+      const before=main.scrollTop;main.scrollTop=clamp(before+dy,0,max);touchGesture.velocity=dy/dt;touchGesture.moved=true;event.preventDefault();
+    }
+    touchGesture.lastY=y;touchGesture.lastTime=now;
+  },{passive:false});
+  const finish=()=>{if(!touchGesture)return;const gesture=touchGesture;touchGesture=null;if(!gesture.nested&&gesture.moved)startInertia(main,gesture.velocity);};
+  main.addEventListener('touchend',finish,{passive:true});main.addEventListener('touchcancel',()=>{touchGesture=null;cancelInertia();},{passive:true});
+}
 function stabilizeAfterRender(){
   if(!mobile())return;
   installStyle();setViewportVars();restoreChrome();clearInlineLocks();
   const fieldOpen=fieldActuallyOpen();document.body.classList.toggle('h38-field-scroll-lock',fieldOpen);
   if(!fieldOpen&&window.H38_FIELD_VISIT_CORE?.state?.open!==true)document.body.classList.remove('field-visit-open');
-  ensurePrimaryNav();hideStrayQuoteActions();
+  ensurePrimaryNav();hideStrayQuoteActions();polishVisiblePage();installManualTouchScroll();
   const current=statePage(),main=document.getElementById('mainContent');
   if(main&&lastPage&&current&&current!==lastPage&&!interacting())main.scrollTo({top:0,left:0,behavior:'instant'});
   if(current)lastPage=current;
@@ -140,5 +207,5 @@ observer.observe(document.body,{childList:true,subtree:true,attributes:true,attr
 setInterval(()=>void settleWalkthroughReview(),2500);
 setTimeout(()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();void settleWalkthroughReview();},0);
 setTimeout(()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();void settleWalkthroughReview();},500);
-window.H38_MOBILE_RUNTIME_STABILITY=Object.freeze({build:BUILD,publishedOfficeAuthority:true,nativeShellHardwareOnly:true,dynamicViewport:true,safeAreaBottom:true,fixedNavIsolation:true,fieldVisitSingleBottomNav:true,keyboardZoomGuard:true,screenInstabilityGuard:true,officeDocumentScroll:false,officeExplicitMainScroller:true,documentScrollDisabledByDesign:true,scrollRegressionRepair:true,officeOverscrollBounceDisabled:true,officeOverscrollContained:true,officeVerticalPanPreserved:true,staleFieldDomDoesNotLockOfficeScroll:true,jobsMutationScrollChurnDisabled:true,visualViewportScrollStabilizerDisabled:true,mobilePrimaryNavigationSingleAuthority:true,strayQuoteActionHiddenOutsideQuotes:true,bottomNavContentReachable:true,walkthroughReviewTerminalState:true,walkthroughReviewMaxWorkingMs:REVIEW_WORK_MAX_MS,noInfiniteReviewSpinner:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false});
+window.H38_MOBILE_RUNTIME_STABILITY=Object.freeze({build:BUILD,publishedOfficeAuthority:true,nativeShellHardwareOnly:true,dynamicViewport:true,safeAreaBottom:true,fixedNavIsolation:true,fieldVisitSingleBottomNav:true,keyboardZoomGuard:true,screenInstabilityGuard:true,officeDocumentScroll:false,officeExplicitMainScroller:true,officeFixedViewportScroller:true,documentScrollDisabledByDesign:true,manualTouchScrollFallback:true,nestedScrollPreserved:true,scrollRegressionRepair:true,officeOverscrollBounceDisabled:true,officeOverscrollContained:true,officeVerticalPanPreserved:true,staleFieldDomDoesNotLockOfficeScroll:true,jobsMutationScrollChurnDisabled:true,visualViewportScrollStabilizerDisabled:true,mobilePrimaryNavigationSingleAuthority:true,strayQuoteActionHiddenOutsideQuotes:true,bottomNavContentReachable:true,mobileJobsHeadingSimplified:true,mobileCustomerEntryFormsCollapsed:true,walkthroughReviewTerminalState:true,walkthroughReviewMaxWorkingMs:REVIEW_WORK_MAX_MS,noInfiniteReviewSpinner:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false});
 })();
