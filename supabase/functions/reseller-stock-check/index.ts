@@ -16,7 +16,7 @@ const SUPPORTED = new Set([
   "Harbor Freight", "Tractor Supply", "Dollar General", "Dollar Tree",
   "Family Dollar", "Northern Tool", "Ace Hardware",
 ]);
-const UA = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScoutStock/0.1.14";
+const UA = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScoutStock/0.1.16";
 const CACHE_TTL = 5 * 60 * 1000;
 const cache = new Map<string, { at: number; payload: any }>();
 
@@ -293,7 +293,7 @@ function contextualize(retailer: string, url: string, context: any, query: strin
 function logResult(payload: any) {
   try {
     console.log(JSON.stringify({
-      h38_stock_v: 4,
+      h38_stock_v: 5,
       retailer: payload.retailer,
       status: payload.status,
       store_id: payload.store_id || "",
@@ -307,6 +307,7 @@ function logResult(payload: any) {
 }
 
 Deno.serve(async (req: Request) => {
+  let attemptedRetailer = "";
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
   if (req.method !== "POST") return json(req, 405, { error: "POST required." });
   try {
@@ -314,6 +315,7 @@ Deno.serve(async (req: Request) => {
     if (!ALLOWED.has(uid)) return json(req, 403, { error: "Not authorized." });
     const body = await req.json().catch(() => ({}));
     const retailer = clean(body.retailer);
+    attemptedRetailer = retailer;
     const store = {
       retailer,
       store_name: clean(body.store_name),
@@ -388,15 +390,20 @@ Deno.serve(async (req: Request) => {
     logResult(payload);
     return json(req, 200, payload);
   } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    const blocked = /returned\s+(?:401|403|429)\b|forbidden|access denied|too many requests/i.test(detail);
     const payload = {
-      status: "check_failed",
-      retailer: "",
+      status: blocked ? "retailer_blocked" : "check_failed",
+      retailer: attemptedRetailer,
       stock_checked: true,
       stock_status: "unknown",
       stock_count: null,
       current_price: null,
       store_bound: false,
-      availability_label: `Store check unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      retailer_blocked: blocked,
+      availability_label: blocked
+        ? `${attemptedRetailer || "Retailer"} blocked the automated store lookup. Price and quantity are not verified; open the retailer to confirm.`
+        : `Store check unavailable: ${detail}`,
     };
     logResult(payload);
     return json(req, 200, payload);
