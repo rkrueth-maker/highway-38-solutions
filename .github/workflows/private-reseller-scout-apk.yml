@@ -54,8 +54,8 @@ jobs:
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f ../../../supabase/functions/reseller-auto-leads/index.ts
-          grep -Fq "versionName '0.1.7'" reseller/build.gradle
-          grep -Fq "versionCode 8" reseller/build.gradle
+          grep -Fq "versionName '0.1.8'" reseller/build.gradle
+          grep -Fq "versionCode 9" reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
           grep -Fq 'reseller-nearby-stores' reseller/src/main/assets/reseller/index.html
           grep -Fq 'reseller-auto-leads' reseller/src/main/assets/reseller/index.html
@@ -74,14 +74,22 @@ jobs:
           grep -Fq 'STORE_FETCH_GUARD' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'RADIUS_BOOTSTRAP' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'LOCAL_STOCK_DISPLAY_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'function stockDisplay' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq '<span>Local stock</span>' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'Stock not shown' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'H38ResellerScoutAndroid/0.1.7' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'SALE LIST' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'View full sale list' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'H38ResellerScoutAndroid/0.1.8' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_store_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_leads_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_radius_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq '<option value="50" selected>50 miles</option>' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'source_only:true' ../../../supabase/functions/reseller-auto-leads/index.ts
+          grep -Fq 'NO_PRICED_PRODUCTS' ../../../supabase/functions/reseller-auto-leads/index.ts
+          grep -Fq 'exactly one sale-list row is returned' ../../../supabase/functions/reseller-auto-leads/index.ts
+          grep -Fq 'if(!(c>0))return null' ../../../supabase/functions/reseller-auto-leads/index.ts
+          grep -Fq 'if(!(c>0)||(!sku&&!hot(t)))continue' ../../../supabase/functions/reseller-auto-leads/index.ts
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -89,6 +97,13 @@ jobs:
           scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
           inline='\n'.join(s for s in scripts if s.strip())
           Path('/tmp/reseller-inline.js').write_text(inline)
+          main=Path('reseller/src/main/java/com/highway38/resellerscout/MainActivity.java').read_text()
+          assert 'View full sale list' in main
+          assert 'STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1' in main
+          backend=Path('../../../supabase/functions/reseller-auto-leads/index.ts').read_text()
+          assert 'source_only:true' in backend
+          assert 'buy_price:0' in backend
+          assert 'buy_price:.01' in backend
           PY
           node --check /tmp/reseller-inline.js
       - name: Configure H38 signing key when available
@@ -117,14 +132,14 @@ jobs:
           if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then gradle --no-daemon --stacktrace :reseller:assembleRelease; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon --stacktrace :reseller:assembleDebug; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.7.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.7.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.7.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.7.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.8.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.8.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.8.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.8.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.7
+          name: h38-reseller-scout-owner-test-v0.1.8
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
