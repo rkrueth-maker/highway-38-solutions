@@ -49,7 +49,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Verify v0.1.18 opportunity, retention and all-store behavior
+      - name: Verify v0.1.18 opportunity, retention and wide-store behavior
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
               assert token in auto, token
           for token in ['Home Depot',"Lowe's",'Walmart','Target','Menards','Fleet Farm','Harbor Freight','Tractor Supply','Dollar General','Dollar Tree','Family Dollar','Northern Tool','Ace Hardware','retailer_blocked','h38_stock_v: 5']:
               assert token in stock, token
-          for token in ['L&M Fleet Supply','AutoZone','NAPA Auto Parts','O\'Reilly Auto Parts','car_parts','all-stores-parts-lm-fast-v2','findNearbyPrior','mergeStores','SAME_AREA_MILES']:
+          for token in ['L&M Fleet Supply','AutoZone','NAPA Auto Parts','O\'Reilly Auto Parts','car_parts','wide-store-coverage-v3','MIN_COVERAGE_RATIO','splitGrid','payloadValid','hardware','department_store','electronics','Best Buy','Walgreens','Runnings','findNearbyPrior','mergeStores','SAME_AREA_MILES']:
               assert token in nearby, token
           PY
 
