@@ -37,86 +37,34 @@ type Lead = {
   availability_label: string;
   resale_potential: number;
   source_priority: number;
+  source_only?: boolean;
+  stock_status?: string;
+  stock_count?: number | null;
 };
 
 const PENNY_SOURCES: Source[] = [
-  {
-    retailer: "Dollar General",
-    name: "RetailShout Penny List",
-    url: "https://retailshout.com/latest-dollar-general-penny-items-near-you/",
-    kind: "penny",
-    priority: 100,
-  },
-  {
-    retailer: "Dollar Tree",
-    name: "RetailShout Penny List",
-    url: "https://retailshout.com/latest-dollar-tree-penny-items-near-you/",
-    kind: "penny",
-    priority: 100,
-  },
+  { retailer: "Dollar General", name: "RetailShout Penny List", url: "https://retailshout.com/latest-dollar-general-penny-items-near-you/", kind: "penny", priority: 100 },
+  { retailer: "Dollar Tree", name: "RetailShout Penny List", url: "https://retailshout.com/latest-dollar-tree-penny-items-near-you/", kind: "penny", priority: 100 },
 ];
 
 const RETAIL_SOURCES: Source[] = [
-  {
-    retailer: "Home Depot",
-    name: "Home Depot Daily Deals",
-    url: "https://www.homedepot.com/daily-deals/",
-    kind: "deal",
-    priority: 99,
-  },
-  {
-    retailer: "Home Depot",
-    name: "Home Depot Tool Savings",
-    url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf",
-    kind: "deal",
-    priority: 98,
-  },
-  {
-    retailer: "Walmart",
-    name: "Walmart Tool Clearance",
-    url: "https://www.walmart.com/tp/tool-clearance",
-    kind: "clearance",
-    priority: 98,
-    broad: true,
-  },
-  {
-    retailer: "Lowe's",
-    name: "Lowe's Daily Deals",
-    url: "https://www.lowes.com/l/savings/daily-deals",
-    kind: "deal",
-    priority: 97,
-  },
-  {
-    retailer: "Ace Hardware",
-    name: "Ace Clearance",
-    url: "https://www.acehardware.com/clearance?pageSize=60",
-    kind: "clearance",
-    priority: 96,
-  },
-  {
-    retailer: "Ace Hardware",
-    name: "Ace Tool Deals",
-    url: "https://www.acehardware.com/top-power-tool-deals",
-    kind: "deal",
-    priority: 96,
-  },
-  {
-    retailer: "Menards",
-    name: "Menards Tools & Hardware Sale Items",
-    url: "https://www.menards.com/main/sale-items/tools-hardware-sale-items/c-1642874323047994.htm",
-    kind: "deal",
-    priority: 96,
-    broad: true,
-  },
-  {
-    retailer: "Menards",
-    name: "Menards Ray's List",
-    url: "https://www.menards.com/main/b-1957366.htm",
-    kind: "in_store_bargain",
-    priority: 99,
-    broad: true,
-  },
+  { retailer: "Home Depot", name: "Home Depot Daily Deals", url: "https://www.homedepot.com/daily-deals/", kind: "deal", priority: 99 },
+  { retailer: "Home Depot", name: "Home Depot Tool Savings", url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf", kind: "deal", priority: 98 },
+  { retailer: "Walmart", name: "Walmart Tool Clearance", url: "https://www.walmart.com/tp/tool-clearance", kind: "clearance", priority: 98, broad: true },
+  { retailer: "Lowe's", name: "Lowe's Daily Deals", url: "https://www.lowes.com/l/savings/daily-deals", kind: "deal", priority: 97 },
+  { retailer: "Ace Hardware", name: "Ace Clearance", url: "https://www.acehardware.com/clearance?pageSize=60", kind: "clearance", priority: 96 },
+  { retailer: "Ace Hardware", name: "Ace Tool Deals", url: "https://www.acehardware.com/top-power-tool-deals", kind: "deal", priority: 96 },
+  { retailer: "Menards", name: "Menards Tools & Hardware Sale Items", url: "https://www.menards.com/main/sale-items/tools-hardware-sale-items/c-1642874323047994.htm", kind: "deal", priority: 96, broad: true },
+  { retailer: "Menards", name: "Menards Ray's List", url: "https://www.menards.com/main/b-1957366.htm", kind: "in_store_bargain", priority: 99, broad: true },
 ];
+
+const COLLECTION_TITLES: Record<string, string> = {
+  "Home Depot": "Home Depot sale & tool deals",
+  "Walmart": "Walmart rollbacks & clearance",
+  "Lowe's": "Lowe's daily deals & savings",
+  "Ace Hardware": "Ace clearance & tool deals",
+  "Menards": "Menards Ray's List & sale items",
+};
 
 const CACHE_TTL_MS = 12 * 60 * 1000;
 let cache: { at: number; payload: any } | null = null;
@@ -139,9 +87,7 @@ function json(req: Request, status: number, body: unknown) {
 }
 
 async function userId(req: Request) {
-  const token = String(req.headers.get("authorization") || "")
-    .replace(/^Bearer\s+/i, "")
-    .trim();
+  const token = String(req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!token) throw new Error("Sign in required.");
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { authorization: `Bearer ${token}`, apikey: SERVICE_KEY },
@@ -164,15 +110,11 @@ function decodeHtml(value: string) {
 }
 
 function slug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 100);
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
 }
 
 function cleanTitle(value: string) {
-  return decodeHtml(value || "")
+  return decodeHtml(String(value || ""))
     .replace(/^\*\s*/, "")
     .replace(/^Image:\s*/i, "")
     .replace(/\s+/g, " ")
@@ -181,12 +123,11 @@ function cleanTitle(value: string) {
 
 function usefulTitle(value: string) {
   const text = cleanTitle(value);
-  return text.length >= 9 &&
-    text.length <= 220 &&
-    !/^(add|compare|shop now|view|sort|filter|all filters|price|brand|availability|category|get it fast|showing|load more|clear all|image|sponsored|free shipping|pickup|delivery|shipping|deals by|shop by|top categories|sign in|create account|see more options|expert installation|limit \d+)/i.test(text) &&
-    !/^\$?\d+(?:\.\d{1,2})?$/.test(text) &&
-    !/^was\s*\$?|^save\s*\$?/i.test(text) &&
-    !/^\(?\d(?:\.\d)?\s*\/\s*\d+/i.test(text);
+  if (text.length < 9 || text.length > 220) return false;
+  if (/^(add|compare|shop now|view|sort|filter|all filters|price|brand|availability|category|get it fast|showing|load more|clear all|image|sponsored|free shipping|pickup|delivery|shipping|deals by|shop by|top categories|sign in|create account|see more options|expert installation|limit \d+)/i.test(text)) return false;
+  if (/^(rollback|rollbacks|clearance|sale|savings|special buys?|daily deals?|shop all|featured|best sellers?|recommended|related products?)$/i.test(text)) return false;
+  if (/^\$?\d+(?:\.\d{1,2})?$/.test(text) || /^was\s*\$?|^save\s*\$?/i.test(text)) return false;
+  return true;
 }
 
 function resaleFriendly(value: string) {
@@ -207,8 +148,7 @@ function resaleScore(title: string, discount = 0, kind = "deal") {
 function money(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value > 0 ? value : 0;
   if (typeof value === "string") {
-    const normalized = value.replace(/,/g, "").replace(/\s+(\d{2})(?=\D|$)/, ".$1");
-    const match = normalized.match(/(?:\$\s*)?(\d{1,7}(?:\.\d{1,2})?)/);
+    const match = value.replace(/,/g, "").match(/(?:\$\s*)?(\d{1,7}(?:\.\d{1,2})?)/);
     return match ? Number(match[1]) : 0;
   }
   if (value && typeof value === "object") {
@@ -251,11 +191,7 @@ function firstString(obj: any, paths: string[]) {
 
 function absoluteUrl(sourceUrl: string, candidate: string) {
   if (!candidate) return sourceUrl;
-  try {
-    return new URL(candidate, sourceUrl).toString();
-  } catch {
-    return sourceUrl;
-  }
+  try { return new URL(candidate, sourceUrl).toString(); } catch { return sourceUrl; }
 }
 
 function visibleLines(html: string) {
@@ -265,10 +201,7 @@ function visibleLines(html: string) {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>|<\/tr>|<\/article>|<\/section>|<\/button>/gi, "\n")
     .replace(/<[^>]+>/g, " ");
-  return decodeHtml(stripped)
-    .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+  return decodeHtml(stripped).split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 
 function pennyLeads(html: string, source: Source): Lead[] {
@@ -279,20 +212,13 @@ function pennyLeads(html: string, source: Source): Lead[] {
     if (!dateMatch) continue;
     let title = "";
     for (let j = i - 1; j >= Math.max(0, i - 7); j--) {
-      if (usefulTitle(lines[j])) {
-        title = cleanTitle(lines[j]).replace(/^\d+[.)]\s*/, "");
-        break;
-      }
+      if (usefulTitle(lines[j])) { title = cleanTitle(lines[j]).replace(/^\d+[.)]\s*/, ""); break; }
     }
     let sku = "";
     let upc = "";
     for (let j = i + 1; j <= Math.min(lines.length - 1, i + 10); j++) {
       const match = lines[j].match(/SKU:\s*([A-Za-z0-9-]+).*?UPC:\s*([0-9]{7,14})/i);
-      if (match) {
-        sku = match[1];
-        upc = match[2];
-        break;
-      }
+      if (match) { sku = match[1]; upc = match[2]; break; }
     }
     if (!title || !upc) continue;
     output.push({
@@ -311,6 +237,8 @@ function pennyLeads(html: string, source: Source): Lead[] {
       availability_label: "Chain penny lead · local shelf availability unknown",
       resale_potential: resaleScore(title, 99, "penny"),
       source_priority: source.priority,
+      stock_status: "unknown",
+      stock_count: null,
     });
   }
   return output;
@@ -328,35 +256,26 @@ function discountFromObject(obj: any, current: number, original: number) {
 
 function productFromObject(obj: any, source: Source): Lead | null {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return null;
-  const title = firstString(obj, [
-    "productName", "name", "title", "displayName", "product.name", "item.name",
-  ]);
+  const title = firstString(obj, ["productName", "name", "title", "displayName", "product.name", "item.name"]);
   if (!usefulTitle(title)) return null;
-
-  const sku = firstString(obj, [
-    "sku", "modelNumber", "modelNo", "model", "productId", "productID", "usItemId", "itemId", "id",
-  ]);
-  const upc = firstString(obj, ["upc", "gtin13", "gtin12", "gtin", "product.upc"])
-    .replace(/\D/g, "");
+  const sku = firstString(obj, ["sku", "modelNumber", "modelNo", "model", "productId", "productID", "usItemId", "itemId", "id"]);
+  const upc = firstString(obj, ["upc", "gtin13", "gtin12", "gtin", "product.upc"]).replace(/\D/g, "");
   const current = firstPrice(obj, [
     "priceInfo.currentPrice.price", "priceInfo.currentPrice", "currentPrice.price", "currentPrice",
     "salePrice.price", "salePrice", "offerPrice", "finalPrice", "pricing.currentPrice", "pricing.price",
     "offers.price", "offers.lowPrice", "price.price", "price.value", "price",
   ]);
+  if (!(current > 0)) return null;
   const original = firstPrice(obj, [
     "priceInfo.wasPrice.price", "priceInfo.wasPrice", "wasPrice.price", "wasPrice", "originalPrice.price",
     "originalPrice", "regularPrice", "listPrice", "strikeThroughPrice", "comparisonPrice", "offers.highPrice",
   ]);
-  const productUrl = firstString(obj, [
-    "canonicalUrl", "productUrl", "productURL", "productPageUrl", "url", "link", "itemUrl",
-  ]);
-  const shapeHint = !!sku || !!upc || !!current || !!productUrl || !!obj.priceInfo || !!obj.offers || String(obj["@type"] || "").toLowerCase() === "product";
-  if (!shapeHint) return null;
+  const productUrl = firstString(obj, ["canonicalUrl", "productUrl", "productURL", "productPageUrl", "url", "link", "itemUrl"]);
+  const productShape = !!sku || !!upc || !!productUrl || String(obj["@type"] || "").toLowerCase() === "product" || resaleFriendly(title);
+  if (!productShape) return null;
   if (!source.broad && !resaleFriendly(title)) return null;
-
   const discount = discountFromObject(obj, current, original);
-  if (source.kind === "deal" && current > 0 && original > current && discount < 8) return null;
-
+  if (source.kind === "deal" && original > current && discount < 8) return null;
   return {
     id: `${slug(source.retailer)}:${sku || upc || slug(title)}`,
     retailer: source.retailer,
@@ -370,41 +289,34 @@ function productFromObject(obj: any, source: Source): Lead | null {
     penny_date: "",
     source_name: source.name,
     source_url: absoluteUrl(source.url, productUrl),
-    availability_label: source.kind === "in_store_bargain"
-      ? "Retailer in-store bargain lead · exact local item availability varies"
-      : "Retailer deal/clearance lead · local price and stock may vary",
+    availability_label: "Priced retailer item · local price and stock may vary",
     resale_potential: resaleScore(title, discount, source.kind),
     source_priority: source.priority,
+    stock_status: "unknown",
+    stock_count: null,
   };
 }
 
-function walkProducts(root: unknown, source: Source, output: Lead[], seenObjects: WeakSet<object>, counter: { value: number }) {
-  if (counter.value > 120000 || root == null) return;
-  if (Array.isArray(root)) {
-    for (const item of root) walkProducts(item, source, output, seenObjects, counter);
-    return;
-  }
+function walkProducts(root: unknown, source: Source, output: Lead[], seen: WeakSet<object>, counter: { value: number }) {
+  if (counter.value > 120000 || root == null || output.length > 220) return;
+  if (Array.isArray(root)) { for (const item of root) walkProducts(item, source, output, seen, counter); return; }
   if (typeof root !== "object") return;
   const obj = root as Record<string, unknown>;
-  if (seenObjects.has(obj)) return;
-  seenObjects.add(obj);
+  if (seen.has(obj)) return;
+  seen.add(obj);
   counter.value += 1;
-
   const lead = productFromObject(obj, source);
   if (lead) output.push(lead);
-  if (output.length > 250) return;
-
   for (const value of Object.values(obj)) {
-    if (value && typeof value === "object") walkProducts(value, source, output, seenObjects, counter);
-    if (output.length > 250 || counter.value > 120000) return;
+    if (value && typeof value === "object") walkProducts(value, source, output, seen, counter);
+    if (output.length > 220 || counter.value > 120000) return;
   }
 }
 
 function embeddedJsonProducts(html: string, source: Source): Lead[] {
   const output: Lead[] = [];
-  const scripts = html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi);
   let checked = 0;
-  for (const match of scripts) {
+  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (checked++ > 120 || output.length > 200) break;
     const attrs = match[1] || "";
     let body = (match[2] || "").trim();
@@ -412,33 +324,26 @@ function embeddedJsonProducts(html: string, source: Source): Lead[] {
     const likelyJson = /application\/(?:ld\+json|json)/i.test(attrs) || /__NEXT_DATA__|__APOLLO_STATE__|preloaded|initial-state|initialState/i.test(attrs) || /^[\[{]/.test(body);
     if (!likelyJson) continue;
     body = decodeHtml(body);
-    try {
-      const parsed = JSON.parse(body);
-      walkProducts(parsed, source, output, new WeakSet<object>(), { value: 0 });
-    } catch {
-      // Hydration blobs are not always strict JSON. Product-shaped fragments are handled below.
-    }
+    try { walkProducts(JSON.parse(body), source, output, new WeakSet<object>(), { value: 0 }); } catch { /* handled by fragment scan below */ }
   }
-
   if (output.length < 8) {
-    const normalized = decodeHtml(html)
-      .replace(/\\u0026/g, "&")
-      .replace(/\\u003c/g, "<")
-      .replace(/\\u003e/g, ">")
-      .replace(/\\\"/g, '"');
+    const normalized = decodeHtml(html).replace(/\\u0026/g, "&").replace(/\\u003c/g, "<").replace(/\\u003e/g, ">").replace(/\\\"/g, '"');
     const re = /"(?:productName|displayName|name|title)"\s*:\s*"([^"\\]{9,220})"/g;
     let match: RegExpExecArray | null;
     let guard = 0;
-    while ((match = re.exec(normalized)) && guard++ < 800 && output.length < 220) {
+    while ((match = re.exec(normalized)) && guard++ < 800 && output.length < 180) {
       const title = cleanTitle(match[1]);
       if (!usefulTitle(title) || (!source.broad && !resaleFriendly(title))) continue;
-      const nearby = normalized.slice(match.index, Math.min(normalized.length, match.index + 2600));
+      const nearby = normalized.slice(match.index, Math.min(normalized.length, match.index + 2800));
       const currentMatch = nearby.match(/"(?:currentPrice|salePrice|offerPrice|finalPrice|price)"\s*:\s*(?:\{[^{}]{0,240}"(?:price|value|amount)"\s*:\s*)?"?\$?(\d{1,7}(?:\.\d{1,2})?)/i);
-      const originalMatch = nearby.match(/"(?:wasPrice|originalPrice|regularPrice|listPrice)"\s*:\s*(?:\{[^{}]{0,240}"(?:price|value|amount)"\s*:\s*)?"?\$?(\d{1,7}(?:\.\d{1,2})?)/i);
       const skuMatch = nearby.match(/"(?:sku|modelNumber|productId|usItemId|itemId)"\s*:\s*"?([A-Za-z0-9._-]{3,80})/i);
+      const urlMatch = nearby.match(/"(?:canonicalUrl|productUrl|productPageUrl|itemUrl|url)"\s*:\s*"([^"\\]{3,600})"/i);
       const current = currentMatch ? Number(currentMatch[1]) : 0;
+      if (!(current > 0)) continue;
+      if (!skuMatch && !urlMatch && !resaleFriendly(title)) continue;
+      const originalMatch = nearby.match(/"(?:wasPrice|originalPrice|regularPrice|listPrice)"\s*:\s*(?:\{[^{}]{0,240}"(?:price|value|amount)"\s*:\s*)?"?\$?(\d{1,7}(?:\.\d{1,2})?)/i);
       const original = originalMatch ? Number(originalMatch[1]) : 0;
-      const discount = current > 0 && original > current ? Math.round((1 - current / original) * 100) : 0;
+      const discount = original > current ? Math.round((1 - current / original) * 100) : 0;
       output.push({
         id: `${slug(source.retailer)}:${skuMatch?.[1] || slug(title)}`,
         retailer: source.retailer,
@@ -451,12 +356,12 @@ function embeddedJsonProducts(html: string, source: Source): Lead[] {
         deal_type: source.kind,
         penny_date: "",
         source_name: source.name,
-        source_url: source.url,
-        availability_label: source.kind === "in_store_bargain"
-          ? "Retailer in-store bargain lead · exact local item availability varies"
-          : "Retailer deal/clearance lead · local price and stock may vary",
+        source_url: absoluteUrl(source.url, urlMatch?.[1] || ""),
+        availability_label: "Priced retailer item · local price and stock may vary",
         resale_potential: resaleScore(title, discount, source.kind),
         source_priority: source.priority,
+        stock_status: "unknown",
+        stock_count: null,
       });
     }
   }
@@ -464,11 +369,8 @@ function embeddedJsonProducts(html: string, source: Source): Lead[] {
 }
 
 function nearbyVisiblePrice(lines: string[], index: number) {
-  let current = 0;
-  let original = 0;
-  let discount = 0;
-  let sku = "";
-  for (let j = index + 1; j <= Math.min(lines.length - 1, index + 12); j++) {
+  let current = 0, original = 0, discount = 0, sku = "";
+  for (let j = index + 1; j <= Math.min(lines.length - 1, index + 10); j++) {
     const line = lines[j];
     let match = line.match(/(?:Model#|Model #|Item #|SKU:?)\s*([A-Za-z0-9._-]+)/i);
     if (match && !sku) sku = match[1];
@@ -478,10 +380,6 @@ function nearbyVisiblePrice(lines: string[], index: number) {
     if (nowMatch && !current) current = Number(`${nowMatch[1]}.${nowMatch[2] || "00"}`);
     const wasMatch = line.match(/(?:Was|regular price|original price)\s*\$?\s*(\d{1,7})(?:[ .](\d{2}))?/i);
     if (wasMatch && !original) original = Number(`${wasMatch[1]}.${wasMatch[2] || "00"}`);
-    if (!current) {
-      const priceMatch = line.match(/\$\s*(\d{1,7})(?:[ .](\d{2}))?/);
-      if (priceMatch) current = Number(`${priceMatch[1]}.${priceMatch[2] || "00"}`);
-    }
   }
   if (!discount && current > 0 && original > current) discount = Math.round((1 - current / original) * 100);
   return { current, original, discount, sku };
@@ -491,14 +389,14 @@ function visibleRetailProducts(html: string, source: Source): Lead[] {
   const lines = visibleLines(html);
   const output: Lead[] = [];
   const seen = new Set<string>();
-  for (let i = 0; i < lines.length && output.length < 80; i++) {
+  for (let i = 0; i < lines.length && output.length < 60; i++) {
     const title = cleanTitle(lines[i]);
     if (!usefulTitle(title) || (!source.broad && !resaleFriendly(title))) continue;
+    const pricing = nearbyVisiblePrice(lines, i);
+    if (!(pricing.current > 0)) continue;
+    if (!pricing.sku && !resaleFriendly(title)) continue;
     const key = slug(title);
     if (!key || seen.has(key)) continue;
-    const pricing = nearbyVisiblePrice(lines, i);
-    const hasProductSignal = pricing.current > 0 || pricing.sku || /^Image:/i.test(lines[i]) || resaleFriendly(title);
-    if (!hasProductSignal) continue;
     seen.add(key);
     output.push({
       id: `${slug(source.retailer)}:${pricing.sku || key}`,
@@ -513,11 +411,11 @@ function visibleRetailProducts(html: string, source: Source): Lead[] {
       penny_date: "",
       source_name: source.name,
       source_url: source.url,
-      availability_label: source.kind === "in_store_bargain"
-        ? "Retailer in-store bargain lead · exact local item availability varies"
-        : "Retailer deal/clearance lead · local price and stock may vary",
+      availability_label: "Priced retailer item · local price and stock may vary",
       resale_potential: resaleScore(title, pricing.discount, source.kind),
       source_priority: source.priority,
+      stock_status: "unknown",
+      stock_count: null,
     });
   }
   return output;
@@ -528,9 +426,7 @@ function dedupe(leads: Lead[]) {
   for (const lead of leads) {
     const key = `${slug(lead.retailer)}|${lead.upc || lead.sku || slug(lead.title)}`;
     const existing = merged.get(key);
-    if (!existing || lead.source_priority > existing.source_priority || lead.discount_pct > existing.discount_pct || (lead.buy_price > 0 && existing.buy_price <= 0)) {
-      merged.set(key, lead);
-    }
+    if (!existing || lead.source_priority > existing.source_priority || lead.discount_pct > existing.discount_pct) merged.set(key, lead);
   }
   const grouped = new Map<string, Lead[]>();
   for (const lead of merged.values()) {
@@ -540,16 +436,40 @@ function dedupe(leads: Lead[]) {
   }
   const output: Lead[] = [];
   for (const bucket of grouped.values()) {
-    bucket.sort((a, b) => b.resale_potential - a.resale_potential || b.discount_pct - a.discount_pct || Number(b.buy_price > 0) - Number(a.buy_price > 0));
+    bucket.sort((a, b) => b.resale_potential - a.resale_potential || b.discount_pct - a.discount_pct || b.buy_price - a.buy_price);
     output.push(...bucket.slice(0, 70));
   }
   return output.sort((a, b) => b.source_priority - a.source_priority || b.resale_potential - a.resale_potential);
 }
 
+function collectionLead(retailer: string, sources: Source[]): Lead {
+  const source = [...sources].sort((a, b) => b.priority - a.priority)[0];
+  return {
+    id: `${slug(retailer)}:sale-list`,
+    retailer,
+    title: COLLECTION_TITLES[retailer] || `${retailer} sale list`,
+    sku: "",
+    upc: "",
+    buy_price: 0,
+    original_price: 0,
+    discount_pct: 0,
+    deal_type: "sale_list",
+    penny_date: "",
+    source_name: source.name,
+    source_url: source.url,
+    availability_label: "Broad sale / rollback list · open the retailer page to browse all items",
+    resale_potential: 0,
+    source_priority: source.priority,
+    source_only: true,
+    stock_status: "unknown",
+    stock_count: null,
+  };
+}
+
 async function fetchSource(source: Source) {
   const response = await fetch(source.url, {
     headers: {
-      "user-agent": "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.6",
+      "user-agent": "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.8",
       "accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
       "accept-language": "en-US,en;q=0.9",
     },
@@ -560,55 +480,42 @@ async function fetchSource(source: Source) {
   const html = await response.text();
   const leads = source.kind === "penny"
     ? pennyLeads(html, source)
-    : dedupe([
-      ...embeddedJsonProducts(html, source),
-      ...visibleRetailProducts(html, source),
-    ]);
-  if (!leads.length) throw new Error(`${source.name} returned no product records`);
+    : dedupe([...embeddedJsonProducts(html, source), ...visibleRetailProducts(html, source)]).filter((lead) => lead.buy_price > 0);
+  if (!leads.length) throw new Error(`${source.name} returned no priced product records`);
   return leads;
 }
 
 async function buildPayload() {
   const sources = [...PENNY_SOURCES, ...RETAIL_SOURCES];
   const results = await Promise.allSettled(sources.map(fetchSource));
-  const raw: Lead[] = [];
+  const penny: Lead[] = [];
+  const retail: Lead[] = [];
   const warnings: string[] = [];
   const sourceStatus: any[] = [];
-
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     const source = sources[i];
     if (result.status === "fulfilled") {
-      raw.push(...result.value);
-      sourceStatus.push({
-        retailer: source.retailer,
-        source: source.name,
-        status: "PASS",
-        products: result.value.length,
-      });
+      if (source.kind === "penny") penny.push(...result.value); else retail.push(...result.value);
+      sourceStatus.push({ retailer: source.retailer, source: source.name, status: "PASS", products: result.value.length });
     } else {
       const warning = result.reason instanceof Error ? result.reason.message : String(result.reason);
       warnings.push(warning);
-      sourceStatus.push({
-        retailer: source.retailer,
-        source: source.name,
-        status: "NO_PRODUCTS",
-        products: 0,
-        warning,
-      });
+      sourceStatus.push({ retailer: source.retailer, source: source.name, status: "NO_PRICED_PRODUCTS", products: 0, warning });
     }
   }
 
-  const leads = dedupe(raw);
-  if (!leads.length) throw new Error(warnings.join("; ") || "Automatic deal sources unavailable.");
-  const byRetailer = Object.fromEntries(
-    [...new Set(leads.map((lead) => lead.retailer))].map((retailer) => [
-      retailer,
-      leads.filter((lead) => lead.retailer === retailer).length,
-    ]),
-  );
-  console.log("reseller-auto-leads build", JSON.stringify({ byRetailer, sourceStatus }));
+  const pricedRetail = dedupe(retail.filter((lead) => lead.buy_price > 0));
+  const retailRetailers = [...new Set(RETAIL_SOURCES.map((source) => source.retailer))];
+  const rollups = retailRetailers
+    .filter((retailer) => !pricedRetail.some((lead) => lead.retailer === retailer))
+    .map((retailer) => collectionLead(retailer, RETAIL_SOURCES.filter((source) => source.retailer === retailer)));
+  const leads = [...dedupe(penny), ...pricedRetail, ...rollups]
+    .sort((a, b) => Number(a.source_only) - Number(b.source_only) || b.source_priority - a.source_priority || b.resale_potential - a.resale_potential);
 
+  if (!leads.length) throw new Error(warnings.join("; ") || "Automatic deal sources unavailable.");
+  const byRetailer = Object.fromEntries([...new Set(leads.map((lead) => lead.retailer))].map((retailer) => [retailer, leads.filter((lead) => lead.retailer === retailer).length]));
+  console.log("reseller-auto-leads clean build", JSON.stringify({ byRetailer, sourceStatus }));
   return {
     status: "PASS",
     generated_at: new Date().toISOString(),
@@ -618,7 +525,7 @@ async function buildPayload() {
     leads,
     source_status: sourceStatus,
     warnings,
-    note: "Only actual product records are returned as leads. Source-only placeholders are not counted as deals. Local shelf stock and local price are not claimed unless a retailer source itself is store-specific.",
+    note: "Retail product rows require an actual price. If a retailer only exposes a broad sale/rollback page, one sale-list row is returned for that retailer instead of unpriced pseudo-products.",
   };
 }
 
@@ -628,27 +535,13 @@ Deno.serve(async (req: Request) => {
   try {
     const id = await userId(req);
     if (!ALLOWED.has(id)) return json(req, 403, { error: "Not authorized." });
-    if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-      return json(req, 200, { ...cache.payload, cached: true });
-    }
+    if (cache && Date.now() - cache.at < CACHE_TTL_MS) return json(req, 200, { ...cache.payload, cached: true });
     if (!inflight) {
-      inflight = buildPayload()
-        .then((payload) => {
-          cache = { at: Date.now(), payload };
-          return payload;
-        })
-        .finally(() => { inflight = null; });
+      inflight = buildPayload().then((payload) => { cache = { at: Date.now(), payload }; return payload; }).finally(() => { inflight = null; });
     }
     return json(req, 200, await inflight);
   } catch (error) {
-    if (cache) {
-      return json(req, 200, {
-        ...cache.payload,
-        cached: true,
-        stale: true,
-        warning: error instanceof Error ? error.message : String(error),
-      });
-    }
+    if (cache) return json(req, 200, { ...cache.payload, cached: true, stale: true, warning: error instanceof Error ? error.message : String(error) });
     return json(req, 503, { error: error instanceof Error ? error.message : String(error) });
   }
 });
