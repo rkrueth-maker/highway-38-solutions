@@ -54,7 +54,7 @@ jobs:
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          test -s reseller/src/main/res/drawable/reseller_scout_icon.b64
+          test -s reseller/src/main/res/drawable/reseller_scout_icon.png
           grep -Fq "versionName '0.1.21'" reseller/build.gradle
           grep -Fq 'versionCode 22' reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
