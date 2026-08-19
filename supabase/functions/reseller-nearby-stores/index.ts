@@ -22,6 +22,9 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 const PARTIAL_CACHE_TTL_MS = 2 * 60 * 1000;
 const STALE_TTL_MS = 24 * 60 * 60 * 1000;
 const SAME_AREA_MILES = 5;
+const HEDGE_DELAY_MS = 650;
+const OVERPASS_CLIENT_TIMEOUT_MS = 6500;
+const DISCOVERY_VERSION = "all-stores-parts-lm-fast-v2";
 
 type Box = { south:number; west:number; north:number; east:number };
 type CacheEntry = { at:number; payload:any; ttl:number; lat:number; lon:number; radius:number };
@@ -114,20 +117,41 @@ function splitFour(box:Box,lat:number,lon:number):Box[]{
 function bbox(b:Box){return `${b.south.toFixed(5)},${b.west.toFixed(5)},${b.north.toFixed(5)},${b.east.toFixed(5)}`;}
 function tileQuery(b:Box){
   const area=bbox(b);
-  return `[out:json][timeout:7];(nwr["shop"]["name"~"${RETAILER_PATTERN}",i](${area});nwr["shop"]["brand"~"${RETAILER_PATTERN}",i](${area});nwr["shop"="car_parts"](${area}););out center tags qt;`;
+  return `[out:json][timeout:5];(nwr["shop"]["name"~"${RETAILER_PATTERN}",i](${area});nwr["shop"]["brand"~"${RETAILER_PATTERN}",i](${area});nwr["shop"="car_parts"](${area}););out center tags qt;`;
 }
+function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function queryTile(query:string,preferred:number){
+  const ordered=[OVERPASS[preferred%OVERPASS.length],OVERPASS[(preferred+1)%OVERPASS.length]];
   const failures:string[]=[];
-  for(let step=0;step<OVERPASS.length;step++){
-    const endpoint=OVERPASS[(preferred+step)%OVERPASS.length];
-    try{
-      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded","user-agent":"H38-Private-Reseller-Scout/0.1.17"},body:`data=${encodeURIComponent(query)}`,signal:AbortSignal.timeout(9000)});
-      if(!r.ok){failures.push(`${new URL(endpoint).host}:${r.status}`);continue;}
-      const payload=await r.json();
-      return {ok:true,payload,source:new URL(endpoint).host,failures};
-    }catch(e){failures.push(`${new URL(endpoint).host}:${e instanceof Error?e.message:String(e)}`);}
-  }
-  return {ok:false,payload:{elements:[]},source:"",failures};
+  const controllers=ordered.map(()=>new AbortController());
+
+  return await new Promise<any>(resolve=>{
+    let finished=0,settled=false;
+    ordered.forEach((endpoint,index)=>{
+      (async()=>{
+        try{
+          if(index>0)await sleep(HEDGE_DELAY_MS);
+          if(settled)return;
+          const controller=controllers[index];
+          const timeout=setTimeout(()=>controller.abort(),OVERPASS_CLIENT_TIMEOUT_MS);
+          try{
+            const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded","user-agent":"H38-Private-Reseller-Scout/0.1.17"},body:`data=${encodeURIComponent(query)}`,signal:controller.signal});
+            if(!r.ok)throw new Error(`HTTP ${r.status}`);
+            const payload=await r.json();
+            if(settled)return;
+            settled=true;
+            controllers.forEach((c,i)=>{if(i!==index)c.abort();});
+            resolve({ok:true,payload,source:new URL(endpoint).host,failures,hedged:index>0});
+          }finally{clearTimeout(timeout);}
+        }catch(e){
+          if(!settled)failures.push(`${new URL(endpoint).host}:${e instanceof Error?e.message:String(e)}`);
+        }finally{
+          finished++;
+          if(!settled&&finished===ordered.length){settled=true;resolve({ok:false,payload:{elements:[]},source:"",failures,hedged:true});}
+        }
+      })();
+    });
+  });
 }
 function parseStores(elements:any[],lat:number,lon:number,radiusMiles:number){
   const seen=new Set<string>();
@@ -144,6 +168,7 @@ function parseStores(elements:any[],lat:number,lon:number,radiusMiles:number){
 }
 async function buildPayload(lat:number,lon:number,radiusMiles:number){
   const tiles=splitFour(region(lat,lon,radiusMiles),lat,lon);
+  const started=Date.now();
   const results=await Promise.all(tiles.map((tile,i)=>queryTile(tileQuery(tile),i%OVERPASS.length)));
   const good=results.filter(x=>x.ok);
   if(!good.length){
@@ -153,7 +178,7 @@ async function buildPayload(lat:number,lon:number,radiusMiles:number){
   const elements=good.flatMap(x=>Array.isArray(x.payload?.elements)?x.payload.elements:[]);
   const stores=parseStores(elements,lat,lon,radiusMiles);
   const partial=good.length<tiles.length;
-  return {status:"PASS",radius_miles:radiusMiles,stores,source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),cached:false,partial,regions_ok:good.length,regions_total:tiles.length,discovery_version:"all-stores-parts-lm-v1"};
+  return {status:"PASS",radius_miles:radiusMiles,stores,source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),cached:false,partial,regions_ok:good.length,regions_total:tiles.length,hedged_regions:good.filter(x=>x.hedged).length,elapsed_ms:Date.now()-started,discovery_version:DISCOVERY_VERSION};
 }
 
 Deno.serve(async (req: Request) => {
