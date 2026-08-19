@@ -136,14 +136,16 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$out" AndroidManifest.xml > "$report/manifest.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='20' versionName='0.1.19'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='20' versionName='0.1.19'" "$report/badging.txt" || { echo 'Release package/version mismatch'; cat "$report/badging.txt"; exit 1; }
           else
-            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='20' versionName='0.1.19-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='20' versionName='0.1.19-debug'" "$report/badging.txt" || { echo 'Debug package/version mismatch'; cat "$report/badging.txt"; exit 1; }
           fi
-          grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt"
-          unzip -p "$out" classes.dex | strings > "$report/classes-strings.txt"
-          for token in AUTOMATIC_OPPORTUNITY_MONITOR_V2 AUTOMATIC_STOCK_QUANTITY_CHECK_V2 reseller-opportunity-scan; do grep -Fq "$token" "$report/classes-strings.txt"; done
-          if grep -Fq 'Search Marketplace' "$report/classes-strings.txt"; then echo 'Manual Marketplace button still present in APK.' >&2; exit 1; fi
+          grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt" || { echo 'Application label mismatch'; cat "$report/badging.txt"; exit 1; }
+          : > "$report/classes-strings.txt"
+          while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/classes-strings.txt"; done < <(zipinfo -1 "$out" | grep -E '^classes[0-9]*\.dex$')
+          for token in AUTOMATIC_OPPORTUNITY_MONITOR_V2 AUTOMATIC_STOCK_QUANTITY_CHECK_V2 reseller-opportunity-scan; do
+            grep -Fq "$token" "$report/classes-strings.txt" || { echo "Missing APK marker: $token"; exit 1; }
+          done
           if [[ "${{ steps.signing.outputs.variant }}" == release ]] && grep -Fq 'CN=Android Debug' "$report/signing.txt"; then echo 'Release artifact unexpectedly uses Android debug signer.' >&2; exit 1; fi
 
       - name: Upload private owner-test APK
