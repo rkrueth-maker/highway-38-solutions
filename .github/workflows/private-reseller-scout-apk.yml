@@ -1,4 +1,5 @@
 name: Build H38 Private Reseller Scout APK
+# CI-only v0.1.19 final trigger
 
 on:
   push:
