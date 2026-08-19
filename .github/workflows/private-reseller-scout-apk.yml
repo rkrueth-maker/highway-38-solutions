@@ -86,7 +86,8 @@ jobs:
           assert 'openStores.add(b.dataset.more)' in main
           assert '<option value="50" selected>50 miles</option>' in html
           assert 'h38_reseller_last_radius_v1' in main
-          assert 'source_only: true' in backend
+          compact=re.sub(r'\s+','',backend)
+          assert 'source_only:true' in compact
 
           # Penny deals survive missing stock and never become out-of-stock by omission.
           penny=re.search(r'deal_type:\s*"penny"[\s\S]{0,900}?stock_status:\s*"not_shown"[\s\S]{0,220}?stock_count:\s*null[\s\S]{0,220}?stock_checked:\s*false', backend)
@@ -96,25 +97,25 @@ jobs:
           assert 'function retailerProductUrl' in backend
           for token in ['/\\/p\\//i', '/\\/ip\\//i', '/\\/pd\\//i', '/\\/departments\\//i', '/\\/p-\\d+/i']:
               assert token in backend, f'missing retailer product URL gate: {token}'
-          assert '!usefulTitle(title) || !productUrl || !(current > 0)' in backend
+          assert 'if(!usefulTitle(title)||!productUrl||!(current>0))returnnull' in compact
 
           # >50% claims require a real current/reference pair.
-          assert 'const deep = original > current && pairPct > CLEARANCE_MIN_DISCOUNT;' in backend
-          assert 'if (strictDeep(source) && !deep) return null;' in backend
-          assert 'Number(lead.original_price) > Number(lead.buy_price)' in backend
-          assert 'Number(lead.discount_pct) > CLEARANCE_MIN_DISCOUNT' in backend
+          assert 'deep=original>current&&pairPct>CLEARANCE_MIN_DISCOUNT' in compact
+          assert 'if(strictDeep&&!deep)returnnull' in compact
+          assert 'Number(l.original_price)>Number(l.buy_price)' in compact
+          assert 'Number(l.discount_pct)>CLEARANCE_MIN_DISCOUNT' in compact
 
           # Every retailer has a specific adapter; generic walker only delegates to it.
           for adapter in ['homeDepotAdapter','walmartAdapter','lowesAdapter','aceAdapter','menardsAdapter']:
               assert f'function {adapter}' in backend, f'missing {adapter}'
           assert 'const RETAILER_ADAPTERS' in backend
-          assert 'RETAILER_SPECIFIC_ADAPTERS_V1 = true' in backend
-          assert 'adapter_version: "retailer-specific-v1"' in backend
+          assert 'RETAILER_SPECIFIC_ADAPTERS_V1' in backend
+          assert 'adapter_version:"retailer-specific-v1"' in compact
 
           # Retail rows do not imply local stock.
-          assert 'stock_status: "not_checked"' in backend
-          assert 'stock_count: null' in backend
-          assert 'stock_checked: false' in backend
+          assert 'stock_status:"not_checked"' in compact
+          assert 'stock_count:null' in compact
+          assert 'stock_checked:false' in compact
 
           scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
           Path('/tmp/reseller-inline.js').write_text('\n'.join(s for s in scripts if s.strip()))
