@@ -39,6 +39,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_LOCATION = 3901;
     private static final String LAST_RADIUS_KEY = "h38_reseller_last_radius_v1";
     private static final String STOCK_UI_MARKER = "LOCAL_STOCK_DISPLAY_V1";
+    private static final String LIST_CLEANUP_MARKER = "STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
             "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
@@ -96,7 +97,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.7");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.8");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -145,6 +146,10 @@ public final class MainActivity extends Activity {
             html = html.replace(
                     "function renderLead(s,l){",
                     "function stockDisplay(l){var status=norm(l.stock_status||l.local_stock_status||'');var raw=l.stock_count!=null?l.stock_count:l.local_stock_count;if(status==='in_stock'||status==='available'||status==='low_stock'){var q=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(q))return String(q)+' shown';return status==='low_stock'?'Low stock':'In stock';}if(status==='out_of_stock'||status==='unavailable')return'Out of stock';return'Stock not shown';}\nfunction renderLead(s,l){"
+            );
+            html = html.replace(
+                    "function renderLead(s,l){const existing=savedMatch(s,l),potential=n(l.resale_potential),rank=potential>=90?'STRONG':potential>=78?'GOOD':'CHECK',sourceOnly=!!l.source_only;",
+                    "function renderLead(s,l){const existing=savedMatch(s,l),potential=n(l.resale_potential),rank=potential>=90?'STRONG':potential>=78?'GOOD':'CHECK',sourceOnly=!!l.source_only;if(sourceOnly)return`<div class=\"lead\"><div class=\"lead-head\"><div><div class=\"lead-title\">${esc(l.title)}</div><div class=\"muted small\">${esc(l.availability_label||'Open the retailer sale list to browse all items.')}</div></div><div><span class=\"pill local\">SALE LIST</span></div></div><div class=\"actions\"><button data-source=\"${esc(l.id)}\">View full sale list</button></div></div>`;"
             );
             html = html.replace(
                     "<div class=\"stat\"><strong>${esc(l.source_name||l.retailer)}</strong><span>Source</span></div></div><div class=\"actions\">",
@@ -233,6 +238,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-stock-display-v017"; }
+        @JavascriptInterface public String build() { return "20260818-strict-priced-v018"; }
     }
 }
