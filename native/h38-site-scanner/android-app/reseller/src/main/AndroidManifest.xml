@@ -7,6 +7,8 @@
     <application
         android:name=".ResellerScoutApplication"
         android:allowBackup="false"
+        android:icon="@drawable/reseller_scout_icon"
+        android:roundIcon="@drawable/reseller_scout_icon"
         android:label="H38 Reseller Scout"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
