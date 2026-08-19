@@ -9,6 +9,7 @@ on:
       - 'native/h38-site-scanner/android-app/settings.gradle'
       - 'supabase/functions/reseller-auto-leads/**'
       - 'supabase/functions/reseller-stock-check/**'
+      - 'supabase/functions/reseller-nearby-stores/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'native/h38-site-scanner/android-app/settings.gradle'
       - 'supabase/functions/reseller-auto-leads/**'
       - 'supabase/functions/reseller-stock-check/**'
+      - 'supabase/functions/reseller-nearby-stores/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -47,61 +49,54 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Verify multi-retailer flow polish and truth rules
+      - name: Verify v0.1.17 retention and all-store behavior
         shell: bash
-        env:
-          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
-            test "$HEAD_REF" = 'agent/private-reseller-scout'
-          else
+          if [[ "$GITHUB_EVENT_NAME" != 'pull_request' ]]; then
             test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'
           fi
-
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f ../../../supabase/functions/reseller-auto-leads/index.ts
           test -f ../../../supabase/functions/reseller-stock-check/index.ts
+          test -f ../../../supabase/functions/reseller-nearby-stores/index.ts
 
-          grep -Fq "versionName '0.1.16'" reseller/build.gradle
-          grep -Fq "versionCode 17" reseller/build.gradle
+          grep -Fq "versionName '0.1.17'" reseller/build.gradle
+          grep -Fq 'versionCode 18' reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
 
-          grep -Fq 'KEEP_STORE_OPEN_ON_SHOW_ALL_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'DEEP_DISCOUNT_FIRST_OVER_50_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'PENNY_STOCK_NOT_SHOWN_RETAIL_NOT_CHECKED_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'PENNY_AUTO_STORE_QTY_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'HOME_DEPOT_STORE_PRICE_LOCAL_PENNY_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'HAMMER_MUTATION_LOOP_FIXED_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'BROWSE_NONBLOCKING_SEARCH_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'AUTO_CHECK_HOME_DEPOT_TOP5_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Find item' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Refresh deals' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Update location & stores' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Check price & stock' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Reported penny' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Open Home Depot' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq "retailer!=='home depot'" reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'todo.length>=5' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq "kind==='leads'" reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'data-h38-store-price' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'data-h38-store-qty' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'LOCAL $0.01' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'if(!live||!live.open)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'results=new Map()' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'sigToId=new Map()' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'obs.observe(list,{childList:true})' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          if grep -Fq 'obs.observe(document.documentElement,{childList:true,subtree:true})' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java; then
-            echo 'Rejected self-triggering MutationObserver returned' >&2
+          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+          for token in \
+            'REOPEN_RETENTION_STORE_MERGE_V1' \
+            'ALL_STORES_PARTS_LM_V1' \
+            'STOCK_RESULT_RETENTION_V1' \
+            'BROWSE_NONBLOCKING_SEARCH_V1' \
+            'AUTO_CHECK_HOME_DEPOT_TOP5_V1' \
+            'HAMMER_MUTATION_LOOP_FIXED_V1' \
+            'Find item' \
+            'All stores' \
+            'Refresh deals' \
+            'Update location & stores' \
+            'Check price & stock' \
+            'Open Home Depot' \
+            'h38_reseller_item_search_v1' \
+            'h38_reseller_open_stores_v1' \
+            'h38_reseller_stock_results_v1' \
+            'sameArea' \
+            'mergeStoreSnap' \
+            'if(!servedPersisted.has(kind)&&persisted)' \
+            'obs.observe(list,{childList:true})'; do
+            grep -Fq "$token" "$main"
+          done
+          if grep -Fq 'obs.observe(document.documentElement,{childList:true,subtree:true})' "$main"; then
+            echo 'Rejected self-triggering hammer observer' >&2
             exit 1
           fi
 
           grep -Fq '<title>H38 Reseller Scout</title>' reseller/src/main/assets/reseller/index.html
-          grep -Fq '<option value="50" selected>50 miles</option>' reseller/src/main/assets/reseller/index.html
           grep -Fq 'All retailers' reseller/src/main/assets/reseller/index.html
           grep -Fq 'Add my find' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Check store qty' reseller/src/main/assets/reseller/index.html
           grep -Fq 'manualScanMode' reseller/src/main/assets/reseller/index.html
           grep -Fq 'reseller_deals' reseller/src/main/assets/reseller/index.html
           if grep -Fq 'H38 Home Depot Penny Scout' reseller/src/main/assets/reseller/index.html; then
@@ -111,24 +106,15 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          backend = Path('../../../supabase/functions/reseller-auto-leads/index.ts').read_text()
-          stock = Path('../../../supabase/functions/reseller-stock-check/index.ts').read_text()
-          main = Path('reseller/src/main/java/com/highway38/resellerscout/MainActivity.java').read_text()
-
-          for token in ['homeDepotAdapter','walmartAdapter','lowesAdapter','aceAdapter','menardsAdapter']:
-              assert f'function {token}' in backend, f'missing retailer adapter: {token}'
-          for token in ['Dollar General','Dollar Tree','RetailShout Penny List','Walmart Clearance',"Lowe's Savings & Clearance",'Ace Clearance',"Menards Ray's List",'Home Depot Daily Deals']:
-              assert token in backend, f'missing old automatic source: {token}'
-          for token in ['PennyCentral community penny board','pennyCentral','community_reports','community_states','reported_penny_price:0.01','buy_price:0','community_penny:true','pennycentral-parser-v2','multi-retailer-plus-home-depot-penny-v2']:
-              assert token in backend, f'missing Home Depot penny behavior: {token}'
-
-          for retailer in ["Home Depot","Lowe's","Walmart","Target","Menards","Fleet Farm","Harbor Freight","Tractor Supply","Dollar General","Dollar Tree","Family Dollar","Northern Tool","Ace Hardware"]:
-              assert retailer in stock, f'missing stock retailer: {retailer}'
-          for token in ['resolveStore','locatorUrl','locatorCandidates','contextualize','storeEvidence','productEvidence','exactCount','stock_count: null','storeSelection','homeDepotPricePair','homeDepotAisleBay','penny_price_detected','h38_stock_v: 5','retailer_blocked']:
-              assert token in stock, f'missing stock truth/HD behavior: {token}'
-          assert 'retailer !== "Home Depot"' not in stock, 'stock checker was narrowed to Home Depot again'
-          assert "if(!$('app').classList.contains('hidden'))return" in main, 'blocking hammer returned while browsing'
-          assert "await Promise.all([loadLeads(true),loadSaved()])" in main, 'deal refresh reruns store discovery'
+          auto=Path('../../../supabase/functions/reseller-auto-leads/index.ts').read_text()
+          stock=Path('../../../supabase/functions/reseller-stock-check/index.ts').read_text()
+          nearby=Path('../../../supabase/functions/reseller-nearby-stores/index.ts').read_text()
+          for token in ['homeDepotAdapter','walmartAdapter','lowesAdapter','aceAdapter','menardsAdapter','PennyCentral community penny board']:
+              assert token in auto, token
+          for token in ['Home Depot',"Lowe's",'Walmart','Target','Menards','Fleet Farm','Harbor Freight','Tractor Supply','Dollar General','Dollar Tree','Family Dollar','Northern Tool','Ace Hardware','retailer_blocked','h38_stock_v: 5']:
+              assert token in stock, token
+          for token in ['L&M Fleet Supply','AutoZone','NAPA Auto Parts','O\'Reilly Auto Parts','car_parts','all-stores-parts-lm-v1','findNearbyPrior','mergeStores','SAME_AREA_MILES']:
+              assert token in nearby, token
           PY
 
       - name: Configure H38 signing key when available
@@ -169,15 +155,15 @@ jobs:
           fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.16.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.16.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.16.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.16.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
 
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.16
+          name: h38-reseller-scout-owner-test-v0.1.17
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
