@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id 'com.android.application'
 }
@@ -16,7 +18,8 @@ tasks.register('prepareResellerScoutIcon') {
     doLast {
         if (!resellerIconB64.exists()) throw new GradleException('Reseller Scout icon source is missing.')
         resellerIconPng.parentFile.mkdirs()
-        resellerIconPng.bytes = resellerIconB64.text.trim().decodeBase64()
+        def encoded = resellerIconB64.getText('UTF-8').replaceAll('\\s+', '')
+        resellerIconPng.bytes = Base64.getDecoder().decode(encoded)
     }
 }
 
