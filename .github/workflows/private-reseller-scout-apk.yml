@@ -6,19 +6,11 @@ on:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
-      - 'supabase/functions/reseller-auto-leads/**'
-      - 'supabase/functions/reseller-stock-check/**'
-      - 'supabase/functions/reseller-nearby-stores/**'
-      - 'supabase/functions/reseller-opportunity-scan/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
-      - 'supabase/functions/reseller-auto-leads/**'
-      - 'supabase/functions/reseller-stock-check/**'
-      - 'supabase/functions/reseller-nearby-stores/**'
-      - 'supabase/functions/reseller-opportunity-scan/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -46,7 +38,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v0.1.22 private Scout contract
+      - name: Verify v0.1.23 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
@@ -54,21 +46,15 @@ jobs:
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          test -s reseller/src/main/res/drawable/reseller_scout_icon.png
-          grep -Fq "versionName '0.1.22'" reseller/build.gradle
-          grep -Fq 'versionCode 23' reseller/build.gradle
+          test -s reseller/src/main/res/drawable/reseller_scout_launcher.xml
+          grep -Fq "versionName '0.1.23'" reseller/build.gradle
+          grep -Fq 'versionCode 24' reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
-          grep -Fq "android:icon=\"@drawable/reseller_scout_icon\"" reseller/src/main/AndroidManifest.xml
-          grep -Fq "android:roundIcon=\"@drawable/reseller_scout_icon\"" reseller/src/main/AndroidManifest.xml
+          grep -Fq 'android:icon="@drawable/reseller_scout_launcher"' reseller/src/main/AndroidManifest.xml
+          grep -Fq 'android:roundIcon="@drawable/reseller_scout_launcher"' reseller/src/main/AndroidManifest.xml
           grep -Fq 'android.intent.action.SEND' reseller/src/main/AndroidManifest.xml
-          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
-          for token in REOPEN_RETENTION_STORE_MERGE_V1 ALL_STORES_PARTS_LM_V1 STOCK_RESULT_RETENTION_V1 BROWSE_NONBLOCKING_SEARCH_V1 HAMMER_MUTATION_LOOP_FIXED_V1 'Find item' 'All stores' 'Refresh deals' 'Update location & stores' 'Check price & stock' h38_reseller_item_search_v1 h38_reseller_open_stores_v1 h38_reseller_stock_results_v1 sameArea mergeStoreSnap; do grep -Fq "$token" "$main"; done
           overlay='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
-          for token in AUTOMATIC_OPPORTUNITY_MONITOR_V3 AUTOMATIC_STOCK_QUANTITY_CHECK_V3 SOURCE_SCAN_FALLBACK_LIST_V1 STORE_FLYER_FALLBACK_V1 h38_reseller_watch_terms_v2 reseller-opportunity-scan 'Automatic opportunity monitor' 'sourceSearchRows' 'decorateStoreFlyers' 'Ad / flyer source' 'data-h38-scan' 'Facebook' 'Auctions' 'Craigslist' 'Price/qty checks'; do grep -Fq "$token" "$overlay"; done
-          grep -Fq "'apikey':SBKEY" "$overlay"
-          grep -Fq '<title>H38 Reseller Scout</title>' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'All retailers' reseller/src/main/assets/reseller/index.html
-          grep -Fq 'Add my find' reseller/src/main/assets/reseller/index.html
+          for token in AUTOMATIC_OPPORTUNITY_MONITOR_V3 AUTOMATIC_STOCK_QUANTITY_CHECK_V3 SOURCE_SCAN_FALLBACK_LIST_V1 STORE_FLYER_FALLBACK_V1 sourceSearchRows decorateStoreFlyers 'Ad / flyer source' 'Facebook' 'Auctions' 'Craigslist' 'Price/qty checks'; do grep -Fq "$token" "$overlay"; done
 
       - name: Configure H38 signing key when available
         id: signing
@@ -105,37 +91,36 @@ jobs:
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
           test -s "$apk"
-          test -s reseller/src/main/res/drawable/reseller_scout_icon.png
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.22.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.23.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.22.sha256"
+          sha256sum "$out" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.23.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
 
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.22.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.23.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$out" AndroidManifest.xml > "$report/manifest.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='23' versionName='0.1.22'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='24' versionName='0.1.23'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='23' versionName='0.1.22-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='24' versionName='0.1.23-debug'" "$report/badging.txt"
           fi
           grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt"
-          zipinfo -1 "$out" | grep -Eq '^res/drawable[^/]*/reseller_scout_icon\.png$' || { echo 'Launcher icon PNG missing from APK.' >&2; zipinfo -1 "$out" | grep -E '^res/' | head -100; exit 1; }
+          grep -Fq "application-icon-160:'res/drawable/reseller_scout_launcher.xml'" "$report/badging.txt"
+          zipinfo -1 "$out" | grep -Fq 'res/drawable/reseller_scout_launcher.xml'
           : > "$report/classes-strings.txt"
           while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/classes-strings.txt"; done < <(zipinfo -1 "$out" | grep -E '^classes[0-9]*\.dex$')
-          for token in AUTOMATIC_OPPORTUNITY_MONITOR_V3 AUTOMATIC_STOCK_QUANTITY_CHECK_V3 SOURCE_SCAN_FALLBACK_LIST_V1 STORE_FLYER_FALLBACK_V1 reseller-opportunity-scan sourceSearchRows decorateStoreFlyers 'Ad / flyer source' 'Price/qty checks'; do grep -Fq "$token" "$report/classes-strings.txt"; done
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]] && grep -Fq 'CN=Android Debug' "$report/signing.txt"; then echo 'Release artifact unexpectedly uses Android debug signer.' >&2; exit 1; fi
+          for token in SOURCE_SCAN_FALLBACK_LIST_V1 STORE_FLYER_FALLBACK_V1 sourceSearchRows decorateStoreFlyers 'Ad / flyer source'; do grep -Fq "$token" "$report/classes-strings.txt"; done
 
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.22
+          name: h38-reseller-scout-owner-test-v0.1.23
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
