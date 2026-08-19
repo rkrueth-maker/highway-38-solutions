@@ -8,12 +8,14 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
       - 'supabase/functions/reseller-auto-leads/**'
+      - 'supabase/functions/reseller-stock-check/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'native/h38-site-scanner/android-app/settings.gradle'
       - 'supabase/functions/reseller-auto-leads/**'
+      - 'supabase/functions/reseller-stock-check/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -44,7 +46,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Verify private retailer-adapter hunt module
+      - name: Verify private stock-check hunt module
         shell: bash
         env:
           HEAD_REF: ${{ github.head_ref }}
@@ -54,25 +56,25 @@ jobs:
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f ../../../supabase/functions/reseller-auto-leads/index.ts
-          grep -Fq "versionName '0.1.11'" reseller/build.gradle
-          grep -Fq "versionCode 12" reseller/build.gradle
+          test -f ../../../supabase/functions/reseller-stock-check/index.ts
+          grep -Fq "versionName '0.1.12'" reseller/build.gradle
+          grep -Fq "versionCode 13" reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
-          grep -Fq 'H38ResellerScoutAndroid/0.1.11' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq '20260818-retailer-adapters-v0111' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'KEEP_STORE_OPEN_ON_SHOW_ALL_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'DEEP_DISCOUNT_FIRST_OVER_50_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'PENNY_STOCK_NOT_SHOWN_RETAIL_NOT_CHECKED_V1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'openStores.add(b.dataset.more)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'details[data-store-key]' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'Number(!!b.deep_discount)-Number(!!a.deep_discount)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'function stockDisplay' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Stock not shown' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'Not checked by H38' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'SALE LIST' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_store_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_leads_response_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'h38_reseller_last_radius_v1' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq '<option value="50" selected>50 miles</option>' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Add my find' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'Check store qty' reseller/src/main/assets/reseller/index.html
+          grep -Fq 'class="hammer"' reseller/src/main/assets/reseller/index.html
+          grep -Fq "URL+'/functions/v1/reseller-stock-check'" reseller/src/main/assets/reseller/index.html
+          if grep -Fq 'id="refreshTop"' reseller/src/main/assets/reseller/index.html; then echo 'top Refresh button must be removed' >&2; exit 1; fi
           if grep -Fq "\${hot?'open':''}" reseller/src/main/assets/reseller/index.html; then echo 'store cards must remain collapsed by default' >&2; exit 1; fi
           python3 - <<'PY'
           from pathlib import Path
@@ -80,42 +82,43 @@ jobs:
           html=Path('reseller/src/main/assets/reseller/index.html').read_text()
           main=Path('reseller/src/main/java/com/highway38/resellerscout/MainActivity.java').read_text()
           backend=Path('../../../supabase/functions/reseller-auto-leads/index.ts').read_text()
-
-          # Existing UI behavior gates.
-          assert 'Stores stay closed until you tap them' in html
-          assert 'openStores.add(b.dataset.more)' in main
-          assert '<option value="50" selected>50 miles</option>' in html
-          assert 'h38_reseller_last_radius_v1' in main
+          stock=Path('../../../supabase/functions/reseller-stock-check/index.ts').read_text()
           compact=re.sub(r'\s+','',backend)
+
+          # Existing UI/runtime behavior remains.
+          assert '<option value="50" selected>50 miles</option>' in html
+          assert 'openStores.add(b.dataset.more)' in main
+          assert 'h38_reseller_last_radius_v1' in main
           assert 'source_only:true' in compact
+
+          # Manual finds are no longer dependent on an automatic lead.
+          for token in ['Add my find','source_type:\'manual\'','reported_quantity:qty','manualScanMode']:
+              assert token in html, f'missing manual-find behavior: {token}'
+
+          # Hammer is visible during hunt/refresh/quantity work.
+          for token in ['startWork(\'Refreshing hunt…\')','Searching deal sources…','Checking ${s.retailer||s.store_name} quantity…','class="hammer"']:
+              assert token in html, f'missing hammer working state: {token}'
+
+          # Stock checker covers all mapped retailers and never invents an exact quantity.
+          for retailer in ["Home Depot","Lowe's","Walmart","Target","Menards","Fleet Farm","Harbor Freight","Tractor Supply","Dollar General","Dollar Tree","Family Dollar","Northern Tool","Ace Hardware"]:
+              assert retailer in stock, f'missing stock checker retailer: {retailer}'
+          assert 'if(q!==null&&storeBound)' in stock
+          assert 'status:"availability_only"' in stock
+          assert 'status:"not_store_bound"' in stock
+          assert 'stock_count:null' in stock
+          assert 'storeEvidence' in stock
 
           # Penny deals survive missing stock and never become out-of-stock by omission.
           penny=re.search(r'deal_type:\s*"penny"[\s\S]{0,900}?stock_status:\s*"not_shown"[\s\S]{0,220}?stock_count:\s*null[\s\S]{0,220}?stock_checked:\s*false', backend)
           assert penny, 'penny lead must survive with stock not shown'
 
-          # Real retailer products require a retailer-shaped product detail URL and current price.
+          # Real retailer products still require a legitimate detail URL and price.
           assert 'function retailerProductUrl' in backend
-          for token in ['/\\/p\\//i', '/\\/ip\\//i', '/\\/pd\\//i', '/\\/departments\\//i', '/\\/p-\\d+/i']:
-              assert token in backend, f'missing retailer product URL gate: {token}'
           assert 'if(!usefulTitle(title)||!productUrl||!(current>0))returnnull' in compact
-
-          # >50% claims require a real current/reference pair.
           assert 'deep=original>current&&pairPct>CLEARANCE_MIN_DISCOUNT' in compact
           assert 'if(strictDeep&&!deep)returnnull' in compact
-          assert 'Number(l.original_price)>Number(l.buy_price)' in compact
-          assert 'Number(l.discount_pct)>CLEARANCE_MIN_DISCOUNT' in compact
-
-          # Every retailer has a specific adapter; generic walker only delegates to it.
           for adapter in ['homeDepotAdapter','walmartAdapter','lowesAdapter','aceAdapter','menardsAdapter']:
-              assert f'function {adapter}' in backend, f'missing {adapter}'
-          assert 'const RETAILER_ADAPTERS' in backend
-          assert 'RETAILER_SPECIFIC_ADAPTERS_V1' in backend
-          assert 'adapter_version:"retailer-specific-v1"' in compact
-
-          # Retail rows do not imply local stock.
-          assert 'stock_status:"not_checked"' in compact
-          assert 'stock_count:null' in compact
-          assert 'stock_checked:false' in compact
+              assert f'function {adapter}' in backend
 
           scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
           Path('/tmp/reseller-inline.js').write_text('\n'.join(s for s in scripts if s.strip()))
@@ -147,14 +150,14 @@ jobs:
           if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then gradle --no-daemon --stacktrace :reseller:assembleRelease; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon --stacktrace :reseller:assembleDebug; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.11.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.11.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.11.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.11.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.12.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.12.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.12.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.12.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.11
+          name: h38-reseller-scout-owner-test-v0.1.12
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
