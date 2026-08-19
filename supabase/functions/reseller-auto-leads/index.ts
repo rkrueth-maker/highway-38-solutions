@@ -20,18 +20,18 @@ const PENNY_SOURCES = [
 ];
 
 const RETAIL_SOURCES = [
-  { retailer: "Home Depot", name: "Home Depot Clearance", url: "https://www.homedepot.com/c/clearance/", kind: "clearance", priority: 103, broad: true },
-  { retailer: "Home Depot", name: "Home Depot Appliance Clearance", url: "https://www.homedepot.com/c/Appliance_Clearance_Sale", kind: "clearance", priority: 102, broad: true },
+  { retailer: "Home Depot", name: "Home Depot Deep Tool Savings 1", url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=0&catStyle=ShowProducts", kind: "deep_discount", priority: 105, broad: true },
+  { retailer: "Home Depot", name: "Home Depot Deep Tool Savings 2", url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=16&catStyle=ShowProducts", kind: "deep_discount", priority: 104, broad: true },
+  { retailer: "Home Depot", name: "Home Depot Deep Tool Savings 3", url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=32&catStyle=ShowProducts", kind: "deep_discount", priority: 103, broad: true },
   { retailer: "Home Depot", name: "Home Depot Daily Deals", url: "https://www.homedepot.com/daily-deals/", kind: "deal", priority: 99 },
-  { retailer: "Home Depot", name: "Home Depot Tool Savings", url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf", kind: "deal", priority: 98 },
 
-  { retailer: "Walmart", name: "Walmart Clearance", url: "https://www.walmart.com/shop/deals/clearance", kind: "clearance", priority: 102, broad: true },
-  { retailer: "Walmart", name: "Walmart Tool Clearance", url: "https://www.walmart.com/browse/home-improvement/clearance-tools/1072864_1031899_6846544", kind: "clearance", priority: 101, broad: true },
+  { retailer: "Walmart", name: "Walmart Clearance", url: "https://www.walmart.com/shop/deals/clearance", kind: "clearance", priority: 103, broad: true },
+  { retailer: "Walmart", name: "Walmart Tool Clearance", url: "https://www.walmart.com/browse/home-improvement/clearance-tools/1072864_1031899_6846544", kind: "clearance", priority: 102, broad: true },
 
-  { retailer: "Lowe's", name: "Lowe's Savings & Clearance", url: "https://www.lowes.com/l/savings", kind: "clearance", priority: 101, broad: true },
+  { retailer: "Lowe's", name: "Lowe's Savings & Clearance", url: "https://www.lowes.com/l/savings", kind: "clearance", priority: 102, broad: true },
   { retailer: "Lowe's", name: "Lowe's Daily Deals", url: "https://www.lowes.com/l/savings/daily-deals", kind: "deal", priority: 97 },
 
-  { retailer: "Ace Hardware", name: "Ace Clearance", url: "https://www.acehardware.com/clearance?pageSize=60", kind: "clearance", priority: 101, broad: true },
+  { retailer: "Ace Hardware", name: "Ace Clearance", url: "https://www.acehardware.com/clearance?pageSize=180", kind: "clearance", priority: 102, broad: true },
   { retailer: "Ace Hardware", name: "Ace Tool Deals", url: "https://www.acehardware.com/top-power-tool-deals", kind: "deal", priority: 96 },
 
   { retailer: "Menards", name: "Menards Ray's List", url: "https://www.menards.com/main/b-1957366.htm", kind: "in_store_bargain", priority: 100, broad: true },
@@ -39,7 +39,7 @@ const RETAIL_SOURCES = [
 ];
 
 const COLLECTION_TITLES = {
-  "Home Depot": "Home Depot clearance & sale list",
+  "Home Depot": "Home Depot deep tool savings & daily deals",
   "Walmart": "Walmart clearance & rollbacks",
   "Lowe's": "Lowe's clearance & savings",
   "Ace Hardware": "Ace clearance & tool deals",
@@ -107,7 +107,7 @@ function resaleScore(title, discount = 0, kind = "deal") {
   if (/battery|charger|combo kit|tool kit|generator|mower|blower|trimmer|chainsaw|vacuum|compressor|storage|toolbox|workbench|grill|smoker|electronics|gaming|lego/.test(text)) score += 9;
   if (kind === "penny") score += 12;
   if (kind === "in_store_bargain") score += 8;
-  if (discount > 50) score += 12;
+  if (discount > CLEARANCE_MIN_DISCOUNT) score += 12;
   score += Math.min(14, Math.max(0, discount) / 4);
   return Math.max(45, Math.min(99, Math.round(score)));
 }
@@ -193,6 +193,7 @@ function pennyLeads(html, source) {
       buy_price: 0.01,
       original_price: 0,
       discount_pct: 99,
+      deep_discount: true,
       deal_type: "penny",
       penny_date: dateMatch[1].trim(),
       source_name: source.name,
@@ -227,6 +228,9 @@ function objectLead(obj, source) {
     "comparisonPrice", "offers.highPrice",
   ]);
   const pct = discount(obj, current, original);
+  const deep = pct > CLEARANCE_MIN_DISCOUNT;
+  const strictDeep = source.kind === "clearance" || source.kind === "deep_discount";
+  if (strictDeep && !deep) return null;
   return {
     id: `${slug(source.retailer)}:${sku || upc || slug(title)}`,
     retailer: source.retailer,
@@ -236,13 +240,13 @@ function objectLead(obj, source) {
     buy_price: current,
     original_price: original,
     discount_pct: pct,
-    deep_discount: pct > CLEARANCE_MIN_DISCOUNT,
-    deal_type: source.kind,
+    deep_discount: deep,
+    deal_type: source.kind === "deep_discount" ? "clearance" : source.kind,
     penny_date: "",
     source_name: source.name,
     source_url: absoluteUrl(source.url, productUrl),
-    availability_label: source.kind === "clearance"
-      ? "Deep-clearance candidate · must verify local price/stock"
+    availability_label: strictDeep
+      ? "Verified deep discount over 50% · local price/stock may vary"
       : "Priced retailer item · local price and stock may vary",
     resale_potential: resaleScore(title, pct, source.kind),
     source_priority: source.priority,
@@ -285,22 +289,28 @@ function visibleProducts(html, source) {
   const lines = visibleLines(html);
   const output = [];
   const seen = new Set();
-  for (let i = 0; i < lines.length && output.length < 45; i++) {
+  for (let i = 0; i < lines.length && output.length < 70; i++) {
     const title = clean(lines[i]);
     if (!usefulTitle(title) || (!source.broad && !resaleFriendly(title))) continue;
     let sku = "", current = 0, original = 0, pct = 0;
-    for (let j = i + 1; j <= Math.min(lines.length - 1, i + 10); j++) {
+    for (let j = i + 1; j <= Math.min(lines.length - 1, i + 12); j++) {
       let match = lines[j].match(/(?:Model#|Model #|Item #|SKU:?)\s*([A-Za-z0-9._-]+)/i);
       if (match && !sku) sku = match[1];
-      match = lines[j].match(/(?:Now|Sale Price|current price)\s*\$?\s*(\d{1,7})(?:[ .](\d{2}))?/i);
+      match = lines[j].match(/(?:Now|Sale Price|current price)?\s*\$\s*(\d{1,7})(?:[ .](\d{2}))?/i);
       if (match && !current) current = Number(`${match[1]}.${match[2] || "00"}`);
-      match = lines[j].match(/(?:Was|regular price|original price)\s*\$?\s*(\d{1,7})(?:[ .](\d{2}))?/i);
-      if (match && !original) original = Number(`${match[1]}.${match[2] || "00"}`);
+      match = lines[j].match(/(?:Was|regular price|original price)?\s*\$\s*(\d{1,7})(?:[ .](\d{2}))?/i);
+      if (match && current && !original) {
+        const candidate = Number(`${match[1]}.${match[2] || "00"}`);
+        if (candidate > current) original = candidate;
+      }
       match = lines[j].match(/(?:Save[^%]{0,50}|off\s*)\(?\s*(\d{1,2})\s*%\)?/i);
       if (match) pct = Math.max(pct, Number(match[1]));
     }
     if (!(current > 0) || (!sku && !resaleFriendly(title))) continue;
     if (!pct && original > current) pct = Math.round((1 - current / original) * 100);
+    const deep = pct > CLEARANCE_MIN_DISCOUNT;
+    const strictDeep = source.kind === "clearance" || source.kind === "deep_discount";
+    if (strictDeep && !deep) continue;
     const key = sku || slug(title);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -313,13 +323,13 @@ function visibleProducts(html, source) {
       buy_price: current,
       original_price: original,
       discount_pct: pct,
-      deep_discount: pct > CLEARANCE_MIN_DISCOUNT,
-      deal_type: source.kind,
+      deep_discount: deep,
+      deal_type: source.kind === "deep_discount" ? "clearance" : source.kind,
       penny_date: "",
       source_name: source.name,
       source_url: source.url,
-      availability_label: source.kind === "clearance"
-        ? "Deep-clearance candidate · must verify local price/stock"
+      availability_label: strictDeep
+        ? "Verified deep discount over 50% · local price/stock may vary"
         : "Priced retailer item · local price and stock may vary",
       resale_potential: resaleScore(title, pct, source.kind),
       source_priority: source.priority,
@@ -386,7 +396,7 @@ function rollup(retailer) {
 async function fetchSource(source) {
   const response = await fetch(source.url, {
     headers: {
-      "user-agent": "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.8",
+      "user-agent": "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.9",
       "accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
       "accept-language": "en-US,en;q=0.9",
     },
@@ -459,8 +469,8 @@ async function buildPayload() {
     leads,
     source_status: sourceStatus,
     warnings,
-    clearance_rule: `Clearance items require more than ${CLEARANCE_MIN_DISCOUNT}% off.`,
-    note: "Deep-clearance sources are queried separately. Clearance rows require a verified discount greater than 50%. Deep discounts sort ahead of ordinary sale items. If a retailer only exposes a broad page, one sale-list row is returned.",
+    clearance_rule: `Clearance/deep-discount items require more than ${CLEARANCE_MIN_DISCOUNT}% off.`,
+    note: "Home Depot deep-hunt pages and retailer clearance pages are queried separately. Clearance/deep-discount rows require a verified discount greater than 50%. Deep discounts sort ahead of ordinary sale items. If a retailer only exposes a broad page, one sale-list row is returned.",
   };
 }
 
