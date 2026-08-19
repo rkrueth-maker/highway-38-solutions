@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
     private static final String LIST_CLEANUP_MARKER = "STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1";
     private static final String STORE_OPEN_PATCH_MARKER = "KEEP_STORE_OPEN_ON_SHOW_ALL_V1";
     private static final String DEEP_DISCOUNT_MARKER = "DEEP_DISCOUNT_FIRST_OVER_50_V1";
+    private static final String PENNY_AUTO_QTY_MARKER = "PENNY_AUTO_STORE_QTY_V1";
     private static final String STORE_FETCH_GUARD =
             "<script>(function(){'use strict';" +
             "var rawFetch=window.fetch.bind(window),inflight=new Map(),lastGood=new Map(),lastGoodAt=new Map(),servedPersisted=new Set();" +
@@ -76,6 +77,24 @@ public final class MainActivity extends Activity {
             "})();</script>";
     private static final String RADIUS_BOOTSTRAP =
             "<script>(function(){try{var r=localStorage.getItem('" + LAST_RADIUS_KEY + "')||'50';var e=document.getElementById('radius');if(e&&['25','50','100','150'].indexOf(r)>=0)e.value=r;}catch(x){var e=document.getElementById('radius');if(e)e.value='50';}})();</script>";
+    private static final String PENNY_QTY_UI_PATCH =
+            "<script>(function(){'use strict';" +
+            "var STOCK='/functions/v1/reseller-stock-check',baseFetch=window.fetch.bind(window),results=new Map(),pending=new Set(),sigToId=new Map(),queued=new Set();" +
+            "function norm(v){return String(v||'').trim().toLowerCase().replace(/\\s+/g,' ');}" +
+            "function sig(x){return [String(x.store_key||''),norm(x.title),String(x.upc||'').replace(/\\D/g,''),norm(x.sku)].join('|');}" +
+            "function detailsFor(sk){return Array.from(document.querySelectorAll('details[data-store-key]')).find(function(d){return d.dataset.storeKey===sk;})||null;}" +
+            "function itemFromLead(lead,sk){var t=lead.querySelector('.lead-title'),txt=lead.textContent||'',u=txt.match(/UPC\\s+(\\d+)/i),s=txt.match(/Model\\/SKU\\s+([^·\\n]+)/i);return{store_key:sk,title:t?t.textContent.trim():'',upc:u?u[1]:'',sku:s?s[1].trim():''};}" +
+            "function remember(b){var d=b.closest('details[data-store-key]'),lead=b.closest('.lead');if(!d||!lead)return'';var id=b.dataset.stock||'',x=itemFromLead(lead,d.dataset.storeKey||'');if(id)sigToId.set(sig(x),id);return id;}" +
+            "function qty(p){if(!p)return'Not checked';var raw=p.stock_count;if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(Number(raw)))return String(Number(raw));var st=String(p.stock_status||'').toLowerCase();if(st==='out_of_stock')return'OUT';if(st==='in_stock')return'IN';if(p.status==='check_failed')return'Error';return'Qty not exposed';}" +
+            "function decorate(root){Array.from((root||document).querySelectorAll('.lead')).forEach(function(lead){var b=lead.querySelector('[data-stock]'),meta=lead.querySelector('.lead-meta');if(!b||!meta)return;var id=b.dataset.stock||'',box=meta.querySelector('[data-h38-store-qty]');if(!box){box=document.createElement('div');box.className='stat';box.setAttribute('data-h38-store-qty','1');box.innerHTML='<strong>Not checked</strong><span>STORE QTY</span>';meta.appendChild(box);}var strong=box.querySelector('strong');if(strong)strong.textContent=pending.has(id)?'Checking…':qty(results.get(id));var line=lead.querySelector('.stock-line');if(line)line.style.display='none';});}" +
+            "document.addEventListener('click',function(e){var n=e.target;if(!(n instanceof Element))return;var b=n.closest('[data-stock]');if(b)remember(b);},true);" +
+            "window.fetch=async function(input,init){var url=typeof input==='string'?input:(input&&input.url)||'';if(url.indexOf(STOCK)<0)return baseFetch(input,init);var body={};try{body=JSON.parse(String((init&&init.body)||'{}'));}catch(e){}var signature=sig(body),id=sigToId.get(signature)||signature;pending.add(id);decorate(document);try{var r=await baseFetch(input,init),c=r.clone();c.json().then(function(p){results.set(id,p||{});pending.delete(id);queued.delete(id);decorate(document);}).catch(function(){pending.delete(id);queued.delete(id);decorate(document);});return r;}catch(e){results.set(id,{status:'check_failed',stock_status:'unknown'});pending.delete(id);queued.delete(id);decorate(document);throw e;}};" +
+            "function findButton(id){return Array.from(document.querySelectorAll('[data-stock]')).find(function(b){return b.dataset.stock===id;})||null;}" +
+            "function queuePenny(d){if(!d||!d.open)return;var sk=d.dataset.storeKey||'',todo=[];Array.from(d.querySelectorAll('.lead')).forEach(function(lead){if(!lead.querySelector('.pill.penny'))return;var b=lead.querySelector('[data-stock]');if(!b)return;var id=remember(b);if(!id||results.has(id)||pending.has(id)||queued.has(id))return;queued.add(id);todo.push(id);});decorate(d);todo.forEach(function(id,i){setTimeout(function(){var b=findButton(id);if(!b){queued.delete(id);return;}if(results.has(id)||pending.has(id)){queued.delete(id);return;}remember(b);b.click();},i*2200);});}" +
+            "document.addEventListener('toggle',function(e){var d=e.target;if(d instanceof HTMLDetailsElement&&d.matches('details[data-store-key]')&&d.open)queuePenny(d);},true);" +
+            "var obs=new MutationObserver(function(){decorate(document);Array.from(document.querySelectorAll('details[data-store-key][open]')).forEach(queuePenny);});" +
+            "obs.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){decorate(document);Array.from(document.querySelectorAll('details[data-store-key][open]')).forEach(queuePenny);},0);" +
+            "})();</script>";
     private WebView webView;
 
     @Override
@@ -100,7 +119,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.11");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.12-qtyfix");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -180,6 +199,7 @@ public final class MainActivity extends Activity {
             );
             html = html.replace("</head>", STORE_FETCH_GUARD + "\n</head>");
             html = html.replace("<script>\n(()=>{'use strict';", RADIUS_BOOTSTRAP + "\n<script>\n(()=>{'use strict';");
+            html = html.replace("</body>", PENNY_QTY_UI_PATCH + "\n</body>");
             webView.loadDataWithBaseURL(APP_BASE_URL, html, "text/html", "UTF-8", APP_BASE_URL);
         } catch (Exception error) {
             Toast.makeText(this, "Reseller Scout failed to open: " + error.getMessage(), Toast.LENGTH_LONG).show();
@@ -261,6 +281,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-retailer-adapters-v0111"; }
+        @JavascriptInterface public String build() { return "20260819-penny-auto-store-qty-v1"; }
     }
 }
