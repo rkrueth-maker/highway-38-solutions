@@ -39,6 +39,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_LOCATION = 3901;
     private static final String LAST_RADIUS_KEY = "h38_reseller_last_radius_v1";
     private static final String STOCK_UI_MARKER = "LOCAL_STOCK_DISPLAY_V1";
+    private static final String TRUTHFUL_STOCK_MARKER = "PENNY_STOCK_NOT_SHOWN_RETAIL_NOT_CHECKED_V1";
     private static final String LIST_CLEANUP_MARKER = "STRICT_PRICED_ITEMS_OR_ONE_SALE_LIST_V1";
     private static final String STORE_OPEN_PATCH_MARKER = "KEEP_STORE_OPEN_ON_SHOW_ALL_V1";
     private static final String DEEP_DISCOUNT_MARKER = "DEEP_DISCOUNT_FIRST_OVER_50_V1";
@@ -99,7 +100,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.9");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.10");
 
         webView.addJavascriptInterface(new ResellerBridge(), "AndroidH38Reseller");
         webView.setWebViewClient(new WebViewClient() {
@@ -167,7 +168,7 @@ public final class MainActivity extends Activity {
             );
             html = html.replace(
                     "function renderLead(s,l){",
-                    "function stockDisplay(l){var status=norm(l.stock_status||l.local_stock_status||'');var raw=l.stock_count!=null?l.stock_count:l.local_stock_count;if(status==='in_stock'||status==='available'||status==='low_stock'){var q=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(q))return String(q)+' shown';return status==='low_stock'?'Low stock':'In stock';}if(status==='out_of_stock'||status==='unavailable')return'Out of stock';return'Stock not shown';}\nfunction renderLead(s,l){"
+                    "function stockDisplay(l){var status=norm(l.stock_status||l.local_stock_status||'');var raw=l.stock_count!=null?l.stock_count:l.local_stock_count;if(status==='in_stock'||status==='available'||status==='low_stock'){var q=Number(raw);if(raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(q))return String(q)+' shown';return status==='low_stock'?'Low stock':'In stock';}if(status==='out_of_stock'||status==='unavailable')return'Out of stock';if(l.deal_type==='penny'||status==='not_shown')return'Stock not shown';return'Not checked by H38';}\nfunction renderLead(s,l){"
             );
             html = html.replace(
                     "function renderLead(s,l){const existing=savedMatch(s,l),potential=n(l.resale_potential),rank=potential>=90?'STRONG':potential>=78?'GOOD':'CHECK',sourceOnly=!!l.source_only;",
@@ -260,6 +261,6 @@ public final class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String build() { return "20260818-deep-discount-show-all-v019"; }
+        @JavascriptInterface public String build() { return "20260818-truthful-retail-penny-stock-v0110"; }
     }
 }
