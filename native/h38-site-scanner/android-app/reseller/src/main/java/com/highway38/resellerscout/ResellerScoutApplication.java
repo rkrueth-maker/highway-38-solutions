@@ -73,21 +73,21 @@ public final class ResellerScoutApplication extends Application implements Appli
         return text == null || text.trim().isEmpty() ? null : text.trim();
     }
 
-    private void install(Activity activity, long delayMs) {
+    private void install(Activity activity, long delayMs, String shared) {
         WebView webView = findWebView(activity);
         if (webView == null) return;
-        String shared = sharedText(activity.getIntent());
         String suffix = shared == null ? "" : "\nwindow.H38SharedOpportunity&&window.H38SharedOpportunity(" + JSONObject.quote(shared) + ");";
         webView.postDelayed(() -> webView.evaluateJavascript(OPPORTUNITY_JS + suffix, null), delayMs);
-        if (shared != null) activity.getIntent().setAction(null);
     }
 
     @Override
     public void onActivityResumed(Activity activity) {
         if (!(activity instanceof MainActivity)) return;
-        install(activity, 250);
-        install(activity, 1100);
-        install(activity, 2600);
+        String shared = sharedText(activity.getIntent());
+        install(activity, 250, shared);
+        install(activity, 1100, shared);
+        install(activity, 2600, shared);
+        if (shared != null) activity.getIntent().setAction(null);
     }
 
     @Override public void onActivityCreated(Activity activity, Bundle state) {}
