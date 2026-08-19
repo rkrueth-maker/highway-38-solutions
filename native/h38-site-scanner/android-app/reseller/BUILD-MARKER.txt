@@ -1,5 +1,9 @@
 H38 Private Reseller Scout owner-test build
-Version: 0.1.6
-Build purpose: automatic local penny and resale hunt with collapsed store cards, 50-mile default, persisted last hunt, and major-retailer deal sources.
-Retailers: Dollar General, Dollar Tree, Home Depot, Menards, Ace Hardware, Walmart, Lowe's.
+Version: 0.1.18
+versionCode: 19
+Build purpose: multi-retailer local resale opportunity scout with fast nearby-store discovery, retained hunt state, truthful store/stock status, Home Depot penny candidates, auction/Marketplace companion tools, watch terms, and Android share-in.
+Retailers/sources preserved: Home Depot, Walmart, Lowe's, Menards, Ace Hardware, Dollar General, Dollar Tree, L&M Fleet Supply, named auto-parts chains, independent car-parts stores, and existing multi-retailer deal sources.
+Opportunity markers: OPPORTUNITY_ENGINE_V1, MARKETPLACE_SHARE_IN_V1.
 Access: exact Rick + Amanda Supabase user allowlist only.
+Scope: agent/private-reseller-scout only. Never merge Reseller Scout changes into main without explicit owner authorization.
+Physical Android phone remains final acceptance authority.
