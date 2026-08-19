@@ -1,5 +1,3 @@
-import java.util.Base64
-
 plugins {
     id 'com.android.application'
 }
@@ -9,23 +7,6 @@ def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWOR
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
 def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
-
-def resellerIconB64 = file('src/main/res/drawable/reseller_scout_icon.b64')
-def resellerIconPng = file('src/main/res/drawable/reseller_scout_icon.png')
-tasks.register('prepareResellerScoutIcon') {
-    inputs.file(resellerIconB64)
-    outputs.file(resellerIconPng)
-    doLast {
-        if (!resellerIconB64.exists()) throw new GradleException('Reseller Scout icon source is missing.')
-        resellerIconPng.parentFile.mkdirs()
-        def encoded = resellerIconB64.getText('UTF-8').replaceAll('\\s+', '')
-        resellerIconPng.bytes = Base64.getDecoder().decode(encoded)
-    }
-}
-
-tasks.configureEach { task ->
-    if (task.name == 'preBuild') task.dependsOn('prepareResellerScoutIcon')
-}
 
 android {
     namespace 'com.highway38.resellerscout'
