@@ -126,7 +126,7 @@ jobs:
             grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='22' versionName='0.1.21-debug'" "$report/badging.txt"
           fi
           grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt"
-          grep -Fq 'reseller_scout_icon' "$report/manifest.txt"
+          zipinfo -1 "$out" | grep -Eq '^res/drawable[^/]*/reseller_scout_icon\.png$' || { echo 'Launcher icon PNG missing from APK.' >&2; zipinfo -1 "$out" | grep -E '^res/' | head -100; exit 1; }
           : > "$report/classes-strings.txt"
           while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/classes-strings.txt"; done < <(zipinfo -1 "$out" | grep -E '^classes[0-9]*\.dex$')
           for token in AUTOMATIC_OPPORTUNITY_MONITOR_V3 AUTOMATIC_STOCK_QUANTITY_CHECK_V3 reseller-opportunity-scan 'Price/qty checks'; do grep -Fq "$token" "$report/classes-strings.txt"; done
