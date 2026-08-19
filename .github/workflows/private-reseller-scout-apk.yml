@@ -77,8 +77,10 @@ jobs:
               assert token in auto, token
           for token in ['Home Depot',"Lowe's",'Walmart','Target','Menards','Fleet Farm','Harbor Freight','Tractor Supply','Dollar General','Dollar Tree','Family Dollar','Northern Tool','Ace Hardware','retailer_blocked','h38_stock_v: 5']:
               assert token in stock, token
-          for token in ['wide-store-coverage-v4-durable','SNAPSHOT_TABLE','reseller_store_discovery_snapshots','MIN_COVERAGE_RATIO','splitGrid','payloadValid','durablePrior','durableSave','hardware','department_store','electronics','Best Buy','Walgreens','Runnings','L&M Fleet Supply','AutoZone','NAPA Auto Parts',"O'Reilly Auto Parts",'findNearbyPrior','mergeStores','SAME_AREA_MILES']:
+          for token in ['incremental-durable-store-scan-v1','reseller_store_discovery_tiles','TILE_BATCH','coverage_tiles_done','coverage_tiles_total','scan_complete','saveTile','loadTiles','areaKey','splitGrid','validPayload','hardware','department_store','electronics','Best Buy','Walgreens','Runnings','L&M Fleet Supply','AutoZone','NAPA Auto Parts',"O'Reilly Auto Parts",'mergeStores']:
               assert token in nearby, token
+          assert 'TILE_BATCH = 4' in nearby
+          assert 'PROVIDER_TIMEOUT_MS = 4200' in nearby
           PY
 
       - name: Configure H38 signing key when available
