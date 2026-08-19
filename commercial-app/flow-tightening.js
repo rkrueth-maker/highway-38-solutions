@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260818-jobs-page-stability-1';
+const BUILD='20260819-flow-event-driven-2';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
@@ -12,12 +12,8 @@ const recordId=(row,...keys)=>text(value(row,...keys));
 const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rows=name=>typeof window.records==='function'?window.records(name):(window.state?.snapshot?.[name]||[]);
 const allowed=()=>{try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}};
-const pageLabel=key=>{
-  try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}
-};
-const pageIcon=key=>{
-  try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}
-};
+const pageLabel=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}};
+const pageIcon=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}};
 function officeState(){try{return typeof state!=='undefined'?state:window.state;}catch(_){return window.state;}}
 function activeBusiness(){const s=officeState();return text(s?.businessId);}
 function activeUser(){const s=officeState();return text(s?.snapshot?.user?.userId||s?.snapshot?.user?.id);}
@@ -51,13 +47,19 @@ function startSiteVisit(customerId='',quoteId=''){
   openPageSafe('field');
 }
 function compactRenderNav(baseRenderNav){
+  if(window.H38_MOBILE_RUNTIME_STABILITY?.mobilePrimaryNavigationSingleAuthority)return;
   const s=officeState();if(!s||s.shell!=='office'){baseRenderNav();return;}
   const pages=new Set(allowed()),nav=document.getElementById('mainNav');if(!nav)return;
   const keys=NAV_ORDER.filter(key=>pages.has(key));
   nav.classList.add('h38-operator-scroll-nav');
   nav.innerHTML=keys.map(key=>`<button type="button" data-page="${html(key)}" class="${s.page===key?'active':''}"><span class="nav-icon">${pageIcon(key)}</span><span>${html(pageLabel(key))}</span></button>`).join('');
   nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage(button.dataset.page));
-  requestAnimationFrame(()=>nav.querySelector('[data-page].active')?.scrollIntoView({block:'nearest',inline:'nearest'}));
+  requestAnimationFrame(()=>{
+    const active=nav.querySelector('[data-page].active');
+    if(!active||nav.scrollWidth<=nav.clientWidth)return;
+    const target=Math.max(0,active.offsetLeft-(nav.clientWidth-active.clientWidth)/2);
+    nav.scrollTo({left:target,behavior:'auto'});
+  });
 }
 function moneyForJob(jobId){preferredJobId=text(jobId);openPageSafe('money');setTimeout(()=>{document.querySelectorAll('#h38ReceiptForm [name="jobId"],#h38MileageForm [name="jobId"]').forEach(select=>{if(Array.from(select.options).some(option=>option.value===preferredJobId))select.value=preferredJobId;});},40);}
 function quoteForJob(job,context){
@@ -173,9 +175,9 @@ function install(){
   if(typeof window.renderMoney==='function'){
     const base=window.renderMoney;window.renderMoney=function(){const result=base.apply(this,arguments);setTimeout(enhanceMoney,0);return result;};
   }
-  const observer=new MutationObserver(()=>{decorateFieldVisit();scheduleWorkEnhance();});observer.observe(document.documentElement,{childList:true,subtree:true});
+  const observer=new MutationObserver(()=>{decorateFieldVisit();});observer.observe(document.documentElement,{childList:true,subtree:true});
   scheduleWorkEnhance();if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'scrollable-allowed-pages',plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'delegated-to-final-mobile-runtime',primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
