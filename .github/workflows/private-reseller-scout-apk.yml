@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: private-reseller-scout-apk-${{ github.event.pull_request.number || github.ref }}
@@ -62,13 +62,11 @@ jobs:
           test -f ../../../supabase/functions/reseller-auto-leads/index.ts
           test -f ../../../supabase/functions/reseller-stock-check/index.ts
           test -f ../../../supabase/functions/reseller-nearby-stores/index.ts
-
           grep -Fq "versionName '0.1.18'" reseller/build.gradle
           grep -Fq 'versionCode 19' reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
           grep -Fq 'android:name=".ResellerScoutApplication"' reseller/src/main/AndroidManifest.xml
           grep -Fq 'android.intent.action.SEND' reseller/src/main/AndroidManifest.xml
-
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
           for token in \
             'REOPEN_RETENTION_STORE_MERGE_V1' \
@@ -96,7 +94,6 @@ jobs:
             echo 'Rejected self-triggering hammer observer' >&2
             exit 1
           fi
-
           overlay='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
           for token in \
             'OPPORTUNITY_ENGINE_V1' \
@@ -113,7 +110,6 @@ jobs:
             echo 'Rejected broad opportunity observer' >&2
             exit 1
           fi
-
           grep -Fq '<title>H38 Reseller Scout</title>' reseller/src/main/assets/reseller/index.html
           grep -Fq 'All retailers' reseller/src/main/assets/reseller/index.html
           grep -Fq 'Add my find' reseller/src/main/assets/reseller/index.html
@@ -123,7 +119,6 @@ jobs:
             echo 'Rejected Home Depot-only UI returned' >&2
             exit 1
           fi
-
           python3 - <<'PY'
           from pathlib import Path
           auto=Path('../../../supabase/functions/reseller-auto-leads/index.ts').read_text()
@@ -189,7 +184,11 @@ jobs:
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$out" AndroidManifest.xml > "$report/manifest.txt"
-          grep -Fq "package: name='com.highway38.resellerscout' versionCode='19' versionName='0.1.18'" "$report/badging.txt"
+          if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='19' versionName='0.1.18'" "$report/badging.txt"
+          else
+            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='19' versionName='0.1.18-debug'" "$report/badging.txt"
+          fi
           grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt"
           grep -Fq 'com.highway38.resellerscout.ResellerScoutApplication' "$report/manifest.txt"
           grep -Fq 'android.intent.action.SEND' "$report/manifest.txt"
@@ -199,11 +198,9 @@ jobs:
           grep -Fq 'MARKETPLACE_SHARE_IN_V1' "$report/classes-strings.txt"
           grep -Fq 'Search Marketplace' "$report/classes-strings.txt"
           grep -Fq 'Search auctions' "$report/classes-strings.txt"
-          if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]]; then
-            if grep -Fq 'CN=Android Debug' "$report/signing.txt"; then
-              echo 'Release artifact unexpectedly uses Android debug signer.' >&2
-              exit 1
-            fi
+          if [[ "${{ steps.signing.outputs.variant }}" == 'release' ]] && grep -Fq 'CN=Android Debug' "$report/signing.txt"; then
+            echo 'Release artifact unexpectedly uses Android debug signer.' >&2
+            exit 1
           fi
 
       - name: Upload private owner-test APK
@@ -213,3 +210,31 @@ jobs:
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
+
+      - name: Record private push build receipt
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
+          sha="$(cut -d' ' -f1 "$report/H38-Reseller-Scout-Owner-Test-v0.1.18.sha256")"
+          signer="$(grep -m1 'Signer #1 certificate DN:' "$report/signing.txt" | sed 's/^[[:space:]]*//' || true)"
+          mkdir -p private-build-results
+          cat > private-build-results/reseller-v0.1.18.txt <<EOF
+          version=v0.1.18
+          versionCode=19
+          run_id=$GITHUB_RUN_ID
+          run_number=$GITHUB_RUN_NUMBER
+          source_commit=$GITHUB_SHA
+          variant=${{ steps.signing.outputs.variant }}
+          apk_sha256=$sha
+          $signer
+          smoke=PASS
+          artifact_name=h38-reseller-scout-owner-test-v0.1.18
+          EOF
+          git config user.name 'H38 Private Build Receipt'
+          git config user.email 'actions@users.noreply.github.com'
+          git add private-build-results/reseller-v0.1.18.txt
+          git commit -m 'Record private reseller v0.1.18 build receipt [skip ci]'
+          git push origin HEAD:agent/private-reseller-scout
