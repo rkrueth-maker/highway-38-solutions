@@ -1,0 +1,12 @@
+name: Private Reseller Scout v0.1.16 CI bridge
+on:
+  pull_request:
+    branches:
+      - agent/private-reseller-scout-ci-v016
+permissions:
+  contents: read
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Permanent private Reseller Scout workflow is authoritative."
