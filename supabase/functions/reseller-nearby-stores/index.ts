@@ -11,8 +11,9 @@ const ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
 ]);
-const RETAILER_PATTERN = "Home Depot|Lowe|Walmart|Target|Menards|Fleet Farm|Harbor Freight|Tractor Supply|Dollar General|Dollar Tree|Family Dollar|Northern Tool|Ace Hardware";
-const RETAILER_RE = /Home Depot|Lowe'?s|Walmart|Target|Menards|Fleet Farm|Harbor Freight|Tractor Supply|Dollar General|Dollar Tree|Family Dollar|Northern Tool|Ace Hardware/i;
+
+const RETAILER_PATTERN = "Home Depot|Lowe|Walmart|Target|Menards|Fleet Farm|L&M|L & M|Harbor Freight|Tractor Supply|Dollar General|Dollar Tree|Family Dollar|Northern Tool|Ace Hardware|AutoZone|O.Reilly|NAPA|Advance Auto Parts|Carquest|Auto Value|Parts City|Bumper to Bumper";
+const RETAILER_RE = /Home Depot|Lowe'?s|Walmart|Target|Menards|Fleet Farm|L\s*(?:&|and)\s*M|Harbor Freight|Tractor Supply|Dollar General|Dollar Tree|Family Dollar|Northern Tool|Ace Hardware|AutoZone|O'Reilly|NAPA|Advance Auto Parts|Carquest|Auto Value|Parts City|Bumper to Bumper/i;
 const OVERPASS = [
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass-api.de/api/interpreter",
@@ -20,10 +21,12 @@ const OVERPASS = [
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const PARTIAL_CACHE_TTL_MS = 2 * 60 * 1000;
 const STALE_TTL_MS = 24 * 60 * 60 * 1000;
-const cache = new Map<string,{at:number,payload:any,ttl:number}>();
-const inflight = new Map<string,Promise<any>>();
+const SAME_AREA_MILES = 5;
 
 type Box = { south:number; west:number; north:number; east:number };
+type CacheEntry = { at:number; payload:any; ttl:number; lat:number; lon:number; radius:number };
+const cache = new Map<string,CacheEntry>();
+const inflight = new Map<string,Promise<any>>();
 
 function cors(req: Request) {
   const o = req.headers.get("origin") || "";
@@ -45,9 +48,55 @@ async function userId(req: Request) {
   return String(p.id);
 }
 function haversine(a:number,b:number,c:number,d:number){const R=3958.7613,toRad=(x:number)=>x*Math.PI/180;const dLat=toRad(c-a),dLon=toRad(d-b);const q=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(q));}
-function canonical(name:string){const s=name.toLowerCase();if(s.includes("home depot"))return "Home Depot";if(s.includes("lowe"))return "Lowe's";if(s.includes("walmart"))return "Walmart";if(s.includes("target"))return "Target";if(s.includes("menards"))return "Menards";if(s.includes("fleet farm"))return "Fleet Farm";if(s.includes("harbor freight"))return "Harbor Freight";if(s.includes("tractor supply"))return "Tractor Supply";if(s.includes("dollar general"))return "Dollar General";if(s.includes("dollar tree"))return "Dollar Tree";if(s.includes("family dollar"))return "Family Dollar";if(s.includes("northern tool"))return "Northern Tool";if(s.includes("ace"))return "Ace Hardware";return name;}
+function canonical(name:string){
+  const s=name.toLowerCase();
+  if(s.includes("l&m")||s.includes("l & m")||s.includes("l and m"))return "L&M Fleet Supply";
+  if(s.includes("autozone"))return "AutoZone";
+  if(s.includes("o'reilly"))return "O'Reilly Auto Parts";
+  if(s.includes("napa"))return "NAPA Auto Parts";
+  if(s.includes("advance auto"))return "Advance Auto Parts";
+  if(s.includes("carquest"))return "Carquest";
+  if(s.includes("auto value"))return "Auto Value";
+  if(s.includes("parts city"))return "Parts City";
+  if(s.includes("bumper to bumper"))return "Bumper to Bumper";
+  if(s.includes("home depot"))return "Home Depot";
+  if(s.includes("lowe"))return "Lowe's";
+  if(s.includes("walmart"))return "Walmart";
+  if(s.includes("target"))return "Target";
+  if(s.includes("menards"))return "Menards";
+  if(s.includes("fleet farm"))return "Fleet Farm";
+  if(s.includes("harbor freight"))return "Harbor Freight";
+  if(s.includes("tractor supply"))return "Tractor Supply";
+  if(s.includes("dollar general"))return "Dollar General";
+  if(s.includes("dollar tree"))return "Dollar Tree";
+  if(s.includes("family dollar"))return "Family Dollar";
+  if(s.includes("northern tool"))return "Northern Tool";
+  if(s.includes("ace"))return "Ace Hardware";
+  return name;
+}
 function address(t:any){return [t["addr:housenumber"],t["addr:street"],t["addr:city"],t["addr:state"],t["addr:postcode"]].filter(Boolean).join(" ").replace(/ (\d{5})$/,", $1");}
 function cacheKey(lat:number,lon:number,radius:number){return `${lat.toFixed(2)}|${lon.toFixed(2)}|${radius}`;}
+function findNearbyPrior(lat:number,lon:number,radius:number){
+  let best:CacheEntry|null=null;
+  for(const entry of cache.values()){
+    if(entry.radius!==radius)continue;
+    if(Date.now()-entry.at>STALE_TTL_MS)continue;
+    if(haversine(lat,lon,entry.lat,entry.lon)>SAME_AREA_MILES)continue;
+    if(!best||entry.at>best.at)best=entry;
+  }
+  return best;
+}
+function rebasePayload(entry:CacheEntry,lat:number,lon:number,extra:Record<string,unknown>={}){
+  const stores=Array.isArray(entry.payload?.stores)?entry.payload.stores.map((s:any)=>({...s,distance_miles:Math.round(haversine(lat,lon,Number(s.lat),Number(s.lon))*10)/10})).sort((a:any,b:any)=>a.distance_miles-b.distance_miles):[];
+  return {...entry.payload,stores,cached:true,...extra};
+}
+function storeId(s:any){return String(s.store_key||[s.retailer||s.store_name||"",s.store_address||"",Number(s.lat||0).toFixed(4),Number(s.lon||0).toFixed(4)].join("|"));}
+function mergeStores(previous:any[],current:any[]){
+  const merged=new Map<string,any>();
+  for(const s of previous||[])merged.set(storeId(s),s);
+  for(const s of current||[])merged.set(storeId(s),s);
+  return [...merged.values()];
+}
 function region(lat:number,lon:number,radiusMiles:number):Box {
   const latDelta=radiusMiles/69.0;
   const cos=Math.max(0.15,Math.cos(lat*Math.PI/180));
@@ -65,14 +114,14 @@ function splitFour(box:Box,lat:number,lon:number):Box[]{
 function bbox(b:Box){return `${b.south.toFixed(5)},${b.west.toFixed(5)},${b.north.toFixed(5)},${b.east.toFixed(5)}`;}
 function tileQuery(b:Box){
   const area=bbox(b);
-  return `[out:json][timeout:7];(nwr["shop"]["name"~"${RETAILER_PATTERN}",i](${area});nwr["shop"]["brand"~"${RETAILER_PATTERN}",i](${area}););out center tags qt;`;
+  return `[out:json][timeout:7];(nwr["shop"]["name"~"${RETAILER_PATTERN}",i](${area});nwr["shop"]["brand"~"${RETAILER_PATTERN}",i](${area});nwr["shop"="car_parts"](${area}););out center tags qt;`;
 }
 async function queryTile(query:string,preferred:number){
   const failures:string[]=[];
   for(let step=0;step<OVERPASS.length;step++){
     const endpoint=OVERPASS[(preferred+step)%OVERPASS.length];
     try{
-      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded","user-agent":"H38-Private-Reseller-Scout/0.1.3"},body:`data=${encodeURIComponent(query)}`,signal:AbortSignal.timeout(9000)});
+      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded","user-agent":"H38-Private-Reseller-Scout/0.1.17"},body:`data=${encodeURIComponent(query)}`,signal:AbortSignal.timeout(9000)});
       if(!r.ok){failures.push(`${new URL(endpoint).host}:${r.status}`);continue;}
       const payload=await r.json();
       return {ok:true,payload,source:new URL(endpoint).host,failures};
@@ -85,12 +134,13 @@ function parseStores(elements:any[],lat:number,lon:number,radiusMiles:number){
   return elements.map((e:any)=>{
     const t=e.tags||{}, name=String(t.name||t.brand||"").trim();
     const slat=Number(e.lat ?? e.center?.lat), slon=Number(e.lon ?? e.center?.lon);
-    if(!name || !RETAILER_RE.test(name) || !Number.isFinite(slat) || !Number.isFinite(slon)) return null;
+    const isParts=String(t.shop||"").toLowerCase()==="car_parts";
+    if(!name || (!RETAILER_RE.test(name)&&!isParts) || !Number.isFinite(slat) || !Number.isFinite(slon)) return null;
     const key=`osm:${e.type}:${e.id}`;
     if(seen.has(key)) return null;
     seen.add(key);
-    return {store_key:key,store_name:name,retailer:canonical(name),store_address:address(t),lat:slat,lon:slon,distance_miles:Math.round(haversine(lat,lon,slat,slon)*10)/10};
-  }).filter(Boolean).filter((x:any)=>x.distance_miles<=radiusMiles).sort((a:any,b:any)=>a.distance_miles-b.distance_miles).slice(0,240);
+    return {store_key:key,store_name:name,retailer:canonical(name),store_address:address(t),lat:slat,lon:slon,distance_miles:Math.round(haversine(lat,lon,slat,slon)*10)/10,store_category:isParts?"Auto parts":null};
+  }).filter(Boolean).filter((x:any)=>x.distance_miles<=radiusMiles).sort((a:any,b:any)=>a.distance_miles-b.distance_miles).slice(0,320);
 }
 async function buildPayload(lat:number,lon:number,radiusMiles:number){
   const tiles=splitFour(region(lat,lon,radiusMiles),lat,lon);
@@ -103,19 +153,7 @@ async function buildPayload(lat:number,lon:number,radiusMiles:number){
   const elements=good.flatMap(x=>Array.isArray(x.payload?.elements)?x.payload.elements:[]);
   const stores=parseStores(elements,lat,lon,radiusMiles);
   const partial=good.length<tiles.length;
-  return {
-    status:"PASS",
-    radius_miles:radiusMiles,
-    stores,
-    source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),
-    cached:false,
-    partial,
-    regions_ok:good.length,
-    regions_total:tiles.length,
-  };
-}
-function stalePayload(prior:{at:number,payload:any,ttl:number},extra:Record<string,unknown>={}){
-  return {...prior.payload,cached:true,stale:true,warning:"Using last successful store list while live store service recovers.",...extra};
+  return {status:"PASS",radius_miles:radiusMiles,stores,source:[...new Set(good.map(x=>x.source).filter(Boolean))].join(","),cached:false,partial,regions_ok:good.length,regions_total:tiles.length,discovery_version:"all-stores-parts-lm-v1"};
 }
 
 Deno.serve(async (req: Request) => {
@@ -130,9 +168,10 @@ Deno.serve(async (req: Request) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return json(req,400,{error:"Valid phone location required."});
 
     const key=cacheKey(lat,lon,radiusMiles);
-    const prior=cache.get(key);
+    const exact=cache.get(key);
+    const prior=exact || findNearbyPrior(lat,lon,radiusMiles);
     const now=Date.now();
-    if(prior && now-prior.at<prior.ttl) return json(req,200,{...prior.payload,cached:true});
+    if(prior && now-prior.at<prior.ttl) return json(req,200,rebasePayload(prior,lat,lon,{same_area_cache:prior!==exact}));
 
     const active=inflight.get(key);
     if(active){
@@ -140,24 +179,28 @@ Deno.serve(async (req: Request) => {
         const payload=await active;
         return json(req,200,{...payload,coalesced:true});
       } catch(e) {
-        const last=cache.get(key) || prior;
-        if(last && Date.now()-last.at<STALE_TTL_MS) return json(req,200,stalePayload(last,{coalesced:true}));
+        const last=cache.get(key) || findNearbyPrior(lat,lon,radiusMiles);
+        if(last) return json(req,200,rebasePayload(last,lat,lon,{stale:true,coalesced:true,warning:"Using last successful store list while live store service recovers."}));
         throw e;
       }
     }
 
     const work=buildPayload(lat,lon,radiusMiles).then(payload=>{
-      cache.set(key,{at:Date.now(),payload,ttl:payload.partial?PARTIAL_CACHE_TTL_MS:CACHE_TTL_MS});
+      const previous=findNearbyPrior(lat,lon,radiusMiles);
+      if(previous&&Date.now()-previous.at<STALE_TTL_MS){
+        payload.stores=mergeStores(previous.payload?.stores||[],payload.stores||[]).map((s:any)=>({...s,distance_miles:Math.round(haversine(lat,lon,Number(s.lat),Number(s.lon))*10)/10})).filter((s:any)=>s.distance_miles<=radiusMiles).sort((a:any,b:any)=>a.distance_miles-b.distance_miles).slice(0,320);
+        payload.merged_previous=true;
+      }
+      cache.set(key,{at:Date.now(),payload,ttl:payload.partial?PARTIAL_CACHE_TTL_MS:CACHE_TTL_MS,lat,lon,radius:radiusMiles});
       return payload;
     }).finally(()=>inflight.delete(key));
     inflight.set(key,work);
 
     try {
-      const payload=await work;
-      return json(req,200,payload);
+      return json(req,200,await work);
     } catch(e) {
-      const last=cache.get(key) || prior;
-      if(last && Date.now()-last.at<STALE_TTL_MS) return json(req,200,stalePayload(last));
+      const last=cache.get(key) || findNearbyPrior(lat,lon,radiusMiles);
+      if(last) return json(req,200,rebasePayload(last,lat,lon,{stale:true,warning:"Using last successful store list while live store service recovers."}));
       throw e;
     }
   } catch (e) { return json(req,503,{error:e instanceof Error?e.message:String(e)}); }
