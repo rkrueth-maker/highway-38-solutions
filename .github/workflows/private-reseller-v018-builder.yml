@@ -7,6 +7,13 @@ on:
     paths:
       - 'scripts/private_reseller_v018_patch.py'
       - '.github/workflows/private-reseller-v018-builder.yml'
+  pull_request:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - '.private-reseller-v018-trigger'
+      - 'scripts/private_reseller_v018_patch.py'
+      - '.github/workflows/private-reseller-v018-builder.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +25,7 @@ concurrency:
 
 jobs:
   patch-private-reseller:
-    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.base_ref == 'agent/private-reseller-scout')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
