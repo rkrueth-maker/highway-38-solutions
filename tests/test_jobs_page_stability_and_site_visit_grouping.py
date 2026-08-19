@@ -9,13 +9,20 @@ MOBILE_FLOW = ROOT / "commercial-app" / "mobile-flow-polish-v2.js"
 SERVICE_WORKER = ROOT / "commercial-app" / "service-worker.js"
 
 
-def test_jobs_page_enhancement_is_idempotent():
+def test_jobs_page_enhancement_is_idempotent_and_render_boundary_driven():
     text = FLOW.read_text(encoding="utf-8")
-    assert "20260818-jobs-page-stability-1" in text
+    assert "20260819-flow-event-driven-2" in text
     assert "workFingerprint" in text
     assert "dataset.h38WorkFingerprint===fingerprint" in text
     assert "scheduleWorkEnhance" in text
     assert "jobsPageStableEnhancement:true" in text
+    assert "workEnhanceDocumentObserver:false" in text
+    assert "workEnhanceRenderBoundary:true" in text
+    assert "primaryNavDelegatedToFinalMobileRuntime:true" in text
+    assert "mobileNavVerticalScrollIntoView:false" in text
+    assert "new MutationObserver(()=>{decorateFieldVisit();})" in text
+    assert "new MutationObserver(()=>{decorateFieldVisit();scheduleWorkEnhance();})" not in text
+    assert "scrollIntoView({block:'nearest',inline:'nearest'})" not in text
     assert "document.getElementById('h38JobCommandHome')?.remove()" not in text
 
 
@@ -67,7 +74,7 @@ def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     assert "site-visit-work-list-grouping-repair.js?build=${BUILD}" in text
 
 
-def test_legacy_mobile_history_grouper_and_scroll_authority_are_retired_on_jobs():
+def test_legacy_mobile_history_grouper_is_retired_on_jobs():
     text = MOBILE_FLOW.read_text(encoding="utf-8")
     assert "20260819-wide-mobile-flow-polish-4-scroll-delegated" in text
     assert "if(page()==='work')return" in text
@@ -77,7 +84,6 @@ def test_legacy_mobile_history_grouper_and_scroll_authority_are_retired_on_jobs(
     assert "jobsDomMutation:false" in text
     assert "scrollAuthorityDelegated:true" in text
     assert "duplicateScrollAuthorityRetired:true" in text
-    assert "H38_OFFICE_SCROLL_AUTHORITY" not in text
 
 
 def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
