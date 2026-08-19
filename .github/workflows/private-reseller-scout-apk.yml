@@ -49,7 +49,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Verify v0.1.17 retention and all-store behavior
+      - name: Verify v0.1.18 opportunity, retention and all-store behavior
         shell: bash
         run: |
           set -euo pipefail
@@ -58,13 +58,16 @@ jobs:
           fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
           test -f ../../../supabase/functions/reseller-auto-leads/index.ts
           test -f ../../../supabase/functions/reseller-stock-check/index.ts
           test -f ../../../supabase/functions/reseller-nearby-stores/index.ts
 
-          grep -Fq "versionName '0.1.17'" reseller/build.gradle
-          grep -Fq 'versionCode 18' reseller/build.gradle
+          grep -Fq "versionName '0.1.18'" reseller/build.gradle
+          grep -Fq 'versionCode 19' reseller/build.gradle
           grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
+          grep -Fq 'android:name=".ResellerScoutApplication"' reseller/src/main/AndroidManifest.xml
+          grep -Fq 'android.intent.action.SEND' reseller/src/main/AndroidManifest.xml
 
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
           for token in \
@@ -94,6 +97,23 @@ jobs:
             exit 1
           fi
 
+          overlay='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
+          for token in \
+            'OPPORTUNITY_ENGINE_V1' \
+            'MARKETPLACE_SHARE_IN_V1' \
+            'h38_reseller_shared_opportunities_v1' \
+            'h38_reseller_watch_terms_v1' \
+            'Search auctions' \
+            'Search Marketplace' \
+            'Store found.' \
+            'obs.observe(list,{childList:true})'; do
+            grep -Fq "$token" "$overlay"
+          done
+          if grep -Fq 'document.documentElement' "$overlay"; then
+            echo 'Rejected broad opportunity observer' >&2
+            exit 1
+          fi
+
           grep -Fq '<title>H38 Reseller Scout</title>' reseller/src/main/assets/reseller/index.html
           grep -Fq 'All retailers' reseller/src/main/assets/reseller/index.html
           grep -Fq 'Add my find' reseller/src/main/assets/reseller/index.html
@@ -113,7 +133,7 @@ jobs:
               assert token in auto, token
           for token in ['Home Depot',"Lowe's",'Walmart','Target','Menards','Fleet Farm','Harbor Freight','Tractor Supply','Dollar General','Dollar Tree','Family Dollar','Northern Tool','Ace Hardware','retailer_blocked','h38_stock_v: 5']:
               assert token in stock, token
-          for token in ['L&M Fleet Supply','AutoZone','NAPA Auto Parts','O\'Reilly Auto Parts','car_parts','all-stores-parts-lm-v1','findNearbyPrior','mergeStores','SAME_AREA_MILES']:
+          for token in ['L&M Fleet Supply','AutoZone','NAPA Auto Parts','O\'Reilly Auto Parts','car_parts','all-stores-parts-lm-fast-v2','findNearbyPrior','mergeStores','SAME_AREA_MILES']:
               assert token in nearby, token
           PY
 
@@ -155,15 +175,15 @@ jobs:
           fi
           test -s "$apk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.17.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.18.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.18.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.18.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.18.apk" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/signing.txt"
           printf 'event=%s\nref=%s\nhead_ref=%s\ncommit=%s\nvariant=%s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF_NAME" "${HEAD_REF:-}" "$GITHUB_SHA" "${{ steps.signing.outputs.variant }}" > "$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/BUILD.txt"
 
       - name: Upload private owner-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.17
+          name: h38-reseller-scout-owner-test-v0.1.18
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
