@@ -5,7 +5,7 @@ MOBILE = (ROOT / "commercial-app" / "mobile-runtime-stability.js").read_text(enc
 
 
 def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
-    assert "20260819-deep-mobile-scroll-authority-2" in MOBILE
+    assert "20260819-production-mobile-polish-3" in MOBILE
     assert "officeExplicitMainScroller:true" in MOBILE
     assert "officeFixedViewportScroller:true" in MOBILE
     assert "documentScrollDisabledByDesign:true" in MOBILE
@@ -51,8 +51,11 @@ def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
 
 def test_mobile_primary_navigation_has_one_last_loaded_authority():
     assert "mobilePrimaryNavigationSingleAuthority:true" in MOBILE
+    assert "accessiblePrimaryNav:true" in MOBILE
     assert "PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']]" in MOBILE
     assert "nav.classList.remove('h38-operator-scroll-nav')" in MOBILE
+    assert 'aria-current="page"' in MOBILE
+    assert 'aria-haspopup="dialog"' in MOBILE
     assert "data-h38-primary=\"more\"" in MOBILE
     assert "wrapRenderNav" in MOBILE
 
@@ -61,11 +64,25 @@ def test_visible_mobile_cleanup_from_physical_video_is_preserved():
     assert "strayQuoteActionHiddenOutsideQuotes:true" in MOBILE
     assert "approve & send quote" in MOBILE.lower()
     assert "bottomNavContentReachable:true" in MOBILE
-    assert "padding:13px 10px calc(112px + env(safe-area-inset-bottom,0px))!important" in MOBILE
+    assert "padding:12px 10px calc(112px + env(safe-area-inset-bottom,0px))!important" in MOBILE
+    assert "productionHeaderCompact:true" in MOBILE
+    assert "productionCardDensity:true" in MOBILE
+    assert "productionTouchTargets:true" in MOBILE
     assert "mobileJobsHeadingSimplified:true" in MOBILE
+    assert "mobileJobsCreationToolsCollapsed:true" in MOBILE
+    assert "mobileRecordCardsFirst:true" in MOBILE
     assert "mobileCustomerEntryFormsCollapsed:true" in MOBILE
-    assert "Work\\s*&\\s*Task Assignment".lower() in MOBILE.lower()
+    assert "customerGridCollapseRegressionFixed:true" in MOBILE
+    assert "mobileMessageCopyPolished:true" in MOBILE
     assert "Add or edit customer" in MOBILE
+    assert "Team conversations" in MOBILE
+
+
+def test_mobile_collapsed_tools_span_full_grid_width_and_cannot_become_vertical_strips():
+    assert ".h38-mobile-tool-details,.h38-mobile-entry-details{grid-column:1/-1!important;width:100%!important;min-width:0!important" in MOBILE
+    assert ".h38-mobile-tool-details>.card,.h38-mobile-entry-details>.card{width:100%!important;min-width:0!important" in MOBILE
+    assert "wrapToolCard(byName('Add or update customer'),'Add or edit customer',true)" in MOBILE
+    assert "wrapToolCard(byName('Add property'),'Add property',true)" in MOBILE
 
 
 def test_site_visit_scroll_boundary_remains_separate():

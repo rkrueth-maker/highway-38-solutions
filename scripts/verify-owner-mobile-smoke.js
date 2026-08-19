@@ -59,7 +59,8 @@ requireText(stability,'fixedNavIsolation:true','fixed primary nav is isolated fr
 requireText(stability,'fieldVisitSingleBottomNav:true','Site Visit suppresses duplicate Business Office bottom nav');
 requireText(stability,'keyboardZoomGuard:true','mobile form controls prevent keyboard zoom reflow');
 requireText(stability,'screenInstabilityGuard:true','screen instability guard is declared');
-requireText(stability,"body.field-visit-open #mainNav.h38-five-primary-nav{display:none!important}",'field visit hides office bottom navigation');
+requireText(stability,"body.h38-field-scroll-lock #mainNav.h38-five-primary-nav{display:none!important}",'field visit authoritative lock hides office bottom navigation');
+requireText(stability,'staleFieldDomDoesNotLockOfficeScroll:true','legacy field class cannot own normal Office scrolling');
 requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit owns one stable viewport layer');
 
 requireText(runtimeGlobals,"typeof renderField !== 'undefined'",'optional field renderer is guarded before export');
