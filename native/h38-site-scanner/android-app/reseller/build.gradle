@@ -8,6 +8,22 @@ def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
 def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
 
+def resellerIconB64 = file('src/main/res/drawable/reseller_scout_icon.b64')
+def resellerIconPng = file('src/main/res/drawable/reseller_scout_icon.png')
+tasks.register('prepareResellerScoutIcon') {
+    inputs.file(resellerIconB64)
+    outputs.file(resellerIconPng)
+    doLast {
+        if (!resellerIconB64.exists()) throw new GradleException('Reseller Scout icon source is missing.')
+        resellerIconPng.parentFile.mkdirs()
+        resellerIconPng.bytes = resellerIconB64.text.trim().decodeBase64()
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preBuild') task.dependsOn('prepareResellerScoutIcon')
+}
+
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
@@ -15,8 +31,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 21
-        versionName '0.1.20'
+        versionCode 22
+        versionName '0.1.21'
     }
     signingConfigs {
         if (hasReleaseSigning) {
