@@ -1,3 +1,4 @@
+# CI-only PR 803 trigger; do not merge this comment.
 name: Build H38 Private Reseller Scout APK
 
 on:
