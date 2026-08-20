@@ -33,6 +33,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     public static final String LOCATION_MARKER = "H38_PHONE_OR_ZIP_LOCATION_V3";
     public static final String SAAS_MARKER = "H38_RESELLER_SAAS_WORKSPACE_V2";
     public static final String NATIVE_INSETS_MARKER = "H38_NATIVE_CONTENT_INSETS_V1";
+    public static final String DEEP_CLEANUP_MARKER = "H38_SCOUT_DEEP_CLEANUP_V032";
     public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Search ZIP | Use phone location | Ad / flyer source | Scout Home | Store Scan | Verified Finds | Item Watch | Auctions | Stores / Clearance | Inventory | Diagnostics";
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile String patchJs;
@@ -130,7 +131,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         String cached = patchJs;
         if (cached != null) return cached;
         try {
-            patchJs = readAsset("reseller/v027-patch.js") + "\n" + readAsset("reseller/v029-saas.js");
+            patchJs = readAsset("reseller/v027-patch.js") + "\n" + readAsset("reseller/v032-cleanup.js") + "\n" + readAsset("reseller/v029-saas.js");
         } catch (Exception e) {
             patchJs = "console.error('H38 Scout runtime patch asset unavailable: " + JSONObject.quote(String.valueOf(e.getMessage())) + "');";
         }
@@ -152,10 +153,6 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     private static void applyNativeContentInsets(Activity activity, WebView webView) {
         View content = activity.findViewById(android.R.id.content);
         if (content == null || webView == null) return;
-
-        // MainActivity historically padded the WebView itself. Fixed/sticky DOM elements can still
-        // render beneath Android system bars in that arrangement. Move the insets to the native
-        // content container so Android physically reduces the WebView viewport instead.
         ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
             view.setPadding(0, 0, 0, 0);
             return insets;
