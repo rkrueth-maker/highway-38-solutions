@@ -134,6 +134,7 @@ jobs:
           for token in H38_STRICT_IN_APP_SOURCE_SCAN_V2 H38_PHONE_OR_ZIP_LOCATION_V1 'Search ZIP' 'Use phone location' 'no manual-search fallback links' 'blocked/unavailable' 'Manual source fallback suppressed' 'Ad / flyer source'; do grep -Fq "$token" "$report/classes-strings.txt"; done
 
       - name: Upload private owner-test APK
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: h38-reseller-scout-owner-test-v0.1.25
