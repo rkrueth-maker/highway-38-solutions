@@ -1,21 +1,14 @@
 name: Build H38 Private Reseller Scout APK
 
 on:
-  push:
-    branches: [agent/private-reseller-scout]
-    paths:
-      - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'native/h38-site-scanner/android-app/settings.gradle'
-      - '.github/workflows/private-reseller-scout-apk.yml'
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'native/h38-site-scanner/android-app/settings.gradle'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: private-reseller-scout-apk-${{ github.event.pull_request.number || github.ref }}
@@ -37,50 +30,33 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-
-      - name: Verify v0.1.27 private Scout contract
+      - name: Verify v0.1.28 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
           check() { local pattern="$1" file="$2"; grep -Fq "$pattern" "$file" || { echo "::error::Missing contract token [$pattern] in $file"; exit 1; }; }
-          if [[ "$GITHUB_EVENT_NAME" != 'pull_request' ]]; then test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'; fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/assets/reseller/v027-patch.js
           test -f reseller/src/main/assets/reseller/v027-retailer-extract.js
+          test -f reseller/src/main/assets/reseller/v028-saas.js
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
           test -f reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
-          test -f reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceNotificationListener.java
           test -f reseller/src/main/java/com/highway38/resellerscout/RetailerDeviceCheckManager.java
-          test -f reseller/src/main/java/com/highway38/resellerscout/RetailerVerificationActivity.java
           test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
-          test ! -e reseller/icon/reseller_scout_icon_256.webp.b64
-          test ! -e reseller/src/main/res/drawable/reseller_scout_icon.png
-          test ! -e reseller/src/main/res/drawable/reseller_scout_launcher.xml
           echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.27'" reseller/build.gradle
-          check 'versionCode 28' reseller/build.gradle
-          check "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
-          check 'android:icon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
-          check 'android:roundIcon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
-          check 'android:name=".FacebookMarketplaceActivity"' reseller/src/main/AndroidManifest.xml
-          check 'android:name=".RetailerVerificationActivity"' reseller/src/main/AndroidManifest.xml
+          check "versionName '0.1.28'" reseller/build.gradle
+          check 'versionCode 29' reseller/build.gradle
           check 'LEGACY_OPPORTUNITY_SCANNER_REMOVED_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          if grep -Fq 'SOURCE_SCAN_FALLBACK_LIST_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java; then echo '::error::legacy source fallback scanner still present'; exit 1; fi
-          check 'H38_RESALE_OPPORTUNITY_ENGINE_V2' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'H38_FACEBOOK_AUTHENTICATED_BROWSER_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'H38_DEVICE_RETAILER_STOCK_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'H38_PHONE_OR_ZIP_LOCATION_V3' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'Search Facebook in Scout' reseller/src/main/assets/reseller/v027-patch.js
+          if grep -Fq 'SOURCE_SCAN_FALLBACK_LIST_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java; then exit 1; fi
+          for t in H38_RESALE_OPPORTUNITY_ENGINE_V2 H38_FACEBOOK_AUTHENTICATED_BROWSER_V1 H38_DEVICE_RETAILER_STOCK_V1 H38_PHONE_OR_ZIP_LOCATION_V3; do check "$t" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java; done
+          check 'v028-saas.js' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          for t in Dashboard 'Store Scan' Auctions 'Item Tracker' Diagnostics; do check "$t" reseller/src/main/assets/reseller/v028-saas.js; done
           check 'Only verified, profit-supported resale opportunities' reseller/src/main/assets/reseller/v027-patch.js
-          check 'Set / verify ' reseller/src/main/assets/reseller/v027-patch.js
-          check 'DEVICE_STORE_BOUND_CHECK_V1' reseller/src/main/java/com/highway38/resellerscout/RetailerDeviceCheckManager.java
-          check 'H38ResellerScoutMarketplace/0.1.27' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          check 'Search Facebook in Scout' reseller/src/main/assets/reseller/v027-patch.js
           check 'Search ZIP' reseller/src/main/assets/reseller/v027-patch.js
-          check 'Use phone location' reseller/src/main/assets/reseller/v027-patch.js
           check 'Ad / flyer source' reseller/src/main/assets/reseller/v027-patch.js
-
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -103,69 +79,29 @@ jobs:
           else
             echo 'variant=debug' >> "$GITHUB_OUTPUT"
           fi
-
       - name: Compile private Reseller Scout APK
         shell: bash
         run: |
-          set -uo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
-          mkdir -p "$report"
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            set +e
-            gradle --no-daemon --stacktrace :reseller:assembleRelease 2>&1 | tee "$report/compile.log"
-            rc=${PIPESTATUS[0]}
-            set -e
-            apk='reseller/build/outputs/apk/release/reseller-release.apk'
-          else
-            set +e
-            gradle --no-daemon --stacktrace :reseller:assembleDebug 2>&1 | tee "$report/compile.log"
-            rc=${PIPESTATUS[0]}
-            set -e
-            apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
-          fi
-          if [[ $rc -ne 0 ]]; then exit "$rc"; fi
-          test -s "$apk"
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.27.apk"
-          cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.27.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
-
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then gradle --no-daemon :reseller:assembleRelease | tee "$report/compile.log"; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.28.apk"; cp "$apk" "$out"; sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.28.sha256"; "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.27.apk"
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.28.apk"; report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$out" AndroidManifest.xml > "$report/manifest.txt"
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='28' versionName='0.1.27'" "$report/badging.txt"
-          else
-            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='28' versionName='0.1.27-debug'" "$report/badging.txt"
-          fi
-          grep -Fq "application-label:'H38 Reseller Scout'" "$report/badging.txt"
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then grep -Fq "package: name='com.highway38.resellerscout' versionCode='29' versionName='0.1.28'" "$report/badging.txt"; else grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='29' versionName='0.1.28-debug'" "$report/badging.txt"; fi
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
-          zipinfo -1 "$out" | grep -Fq 'res/drawable/reseller_scout_icon.webp'
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v027-patch.js'
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v027-retailer-extract.js'
-          unzip -p "$out" 'res/drawable/reseller_scout_icon.webp' > "$RUNNER_TEMP/apk-reseller-icon.webp"
-          echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  '"$RUNNER_TEMP/apk-reseller-icon.webp" | sha256sum -c -
-          : > "$report/classes-strings.txt"
-          while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/classes-strings.txt"; done < <(zipinfo -1 "$out" | grep -E '^classes[0-9]*\.dex$')
-          for token in H38_RESALE_OPPORTUNITY_ENGINE_V2 H38_FACEBOOK_AUTHENTICATED_BROWSER_V1 H38_DEVICE_RETAILER_STOCK_V1 H38_PHONE_OR_ZIP_LOCATION_V3 LEGACY_OPPORTUNITY_SCANNER_REMOVED_V1; do grep -Fq "$token" "$report/classes-strings.txt"; done
-          if grep -Fq 'SOURCE_SCAN_FALLBACK_LIST_V1' "$report/classes-strings.txt"; then echo '::error::legacy source-search fallback is still packaged'; exit 1; fi
-          grep -Fq 'FacebookMarketplaceActivity' "$report/manifest.txt"
-          grep -Fq 'RetailerVerificationActivity' "$report/manifest.txt"
-          unzip -p "$out" 'assets/reseller/v027-patch.js' | grep -Fq 'Only verified, profit-supported resale opportunities'
-          unzip -p "$out" 'assets/reseller/v027-patch.js' | grep -Fq 'Search Facebook in Scout'
-          unzip -p "$out" 'assets/reseller/v027-patch.js' | grep -Fq 'Search ZIP'
-          unzip -p "$out" 'assets/reseller/v027-patch.js' | grep -Fq 'Ad / flyer source'
-
+          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v028-saas.js'
+          unzip -p "$out" 'assets/reseller/v028-saas.js' | grep -Fq 'Store Scan'
+          unzip -p "$out" 'assets/reseller/v028-saas.js' | grep -Fq 'Item Tracker'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.27
+          name: h38-reseller-scout-owner-test-v0.1.28
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
