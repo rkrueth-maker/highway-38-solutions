@@ -42,6 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          check() { local pattern="$1" file="$2"; grep -Fq "$pattern" "$file" || { echo "::error::Missing contract token [$pattern] in $file"; exit 1; }; }
           if [[ "$GITHUB_EVENT_NAME" != 'pull_request' ]]; then test "$GITHUB_REF_NAME" = 'agent/private-reseller-scout'; fi
           test -f reseller/src/main/assets/reseller/index.html
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
@@ -52,22 +53,22 @@ jobs:
           test ! -e reseller/src/main/res/drawable/reseller_scout_launcher.xml
           printf '%s' "$(tr -d '\r\n\t ' < reseller/icon/reseller_scout_icon_256.webp.b64)" | base64 --decode > "$RUNNER_TEMP/approved-reseller-icon.webp"
           echo '98231f52928ed339bb899b0950b952a7f1ee7a7f602d2f67594825ebf8117384  '"$RUNNER_TEMP/approved-reseller-icon.webp" | sha256sum -c -
-          grep -Fq "versionName '0.1.25'" reseller/build.gradle
-          grep -Fq 'versionCode 26' reseller/build.gradle
-          grep -Fq "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
-          grep -Fq 'prepareApprovedResellerIcon' reseller/build.gradle
-          grep -Fq 'android:icon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
-          grep -Fq 'android:roundIcon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
-          grep -Fq 'android:name=".ResellerScoutPatchProvider"' reseller/src/main/AndroidManifest.xml
-          grep -Fq 'H38_STRICT_IN_APP_SOURCE_SCAN_V2' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'H38_PHONE_OR_ZIP_LOCATION_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'https://api.zippopotam.us/us/' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq "button.textContent='Search ZIP'" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq "locate.textContent='Use phone location'" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/reseller-opportunity-scan' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'no manual-search fallback links' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'Manual source fallback suppressed' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          grep -Fq 'Ad / flyer source' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
+          check "versionName '0.1.25'" reseller/build.gradle
+          check 'versionCode 26' reseller/build.gradle
+          check "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
+          check 'prepareApprovedResellerIcon' reseller/build.gradle
+          check 'android:icon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
+          check 'android:roundIcon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
+          check 'android:name=".ResellerScoutPatchProvider"' reseller/src/main/AndroidManifest.xml
+          check 'H38_STRICT_IN_APP_SOURCE_SCAN_V2' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'H38_PHONE_OR_ZIP_LOCATION_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'https://api.zippopotam.us/us/' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check "button.textContent='Search ZIP'" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check "locate.textContent='Use phone location'" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/reseller-opportunity-scan' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'no manual-search fallback links' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'Manual source fallback suppressed' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          check 'Ad / flyer source' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
 
       - name: Configure H38 signing key when available
         id: signing
