@@ -27,8 +27,8 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     public static final String FACEBOOK_MARKER = "H38_FACEBOOK_AUTHENTICATED_BROWSER_V1";
     public static final String DEVICE_STOCK_MARKER = "H38_DEVICE_RETAILER_STOCK_V1";
     public static final String LOCATION_MARKER = "H38_PHONE_OR_ZIP_LOCATION_V3";
-    public static final String SAAS_MARKER = "H38_RESELLER_SAAS_WORKSPACE_V1";
-    public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Set / verify | Search ZIP | Use phone location | Ad / flyer source | Store Scan | Local auctions | Item Tracker | Stores / Clearance | Diagnostics";
+    public static final String SAAS_MARKER = "H38_RESELLER_SAAS_WORKSPACE_V2";
+    public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Search ZIP | Use phone location | Ad / flyer source | Scout Home | Store Scan | Verified Finds | Item Watch | Auctions | Stores / Clearance | Inventory | Diagnostics";
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile String patchJs;
 
@@ -68,6 +68,16 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
                 i.putExtra(FacebookMarketplaceActivity.EXTRA_POSTAL, postal == null ? "" : postal);
                 if (url != null && url.startsWith("https://www.facebook.com/marketplace/")) i.putExtra(FacebookMarketplaceActivity.EXTRA_URL, url);
                 activity.startActivity(i);
+            });
+        }
+
+        @JavascriptInterface public void openExternalUrl(String url) {
+            activity.runOnUiThread(() -> {
+                try {
+                    if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) return;
+                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    activity.startActivity(i);
+                } catch (Exception ignored) {}
             });
         }
 
@@ -115,7 +125,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         String cached = patchJs;
         if (cached != null) return cached;
         try {
-            patchJs = readAsset("reseller/v027-patch.js") + "\n" + readAsset("reseller/v028-saas.js");
+            patchJs = readAsset("reseller/v027-patch.js") + "\n" + readAsset("reseller/v029-saas.js");
         } catch (Exception e) {
             patchJs = "console.error('H38 Scout runtime patch asset unavailable: " + JSONObject.quote(String.valueOf(e.getMessage())) + "');";
         }
