@@ -48,15 +48,14 @@ jobs:
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
           test -f reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          test -s reseller/icon/reseller_scout_icon_256.webp.b64
+          test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
+          test ! -e reseller/icon/reseller_scout_icon_256.webp.b64
           test ! -e reseller/src/main/res/drawable/reseller_scout_icon.png
           test ! -e reseller/src/main/res/drawable/reseller_scout_launcher.xml
-          printf '%s' "$(tr -d '\r\n\t ' < reseller/icon/reseller_scout_icon_256.webp.b64)" | base64 --decode > "$RUNNER_TEMP/approved-reseller-icon.webp"
-          echo '98231f52928ed339bb899b0950b952a7f1ee7a7f602d2f67594825ebf8117384  '"$RUNNER_TEMP/approved-reseller-icon.webp" | sha256sum -c -
+          echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
           check "versionName '0.1.25'" reseller/build.gradle
           check 'versionCode 26' reseller/build.gradle
           check "applicationId 'com.highway38.resellerscout'" reseller/build.gradle
-          check 'prepareApprovedResellerIcon' reseller/build.gradle
           check 'android:icon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
           check 'android:roundIcon="@drawable/reseller_scout_icon"' reseller/src/main/AndroidManifest.xml
           check 'android:name=".ResellerScoutPatchProvider"' reseller/src/main/AndroidManifest.xml
@@ -128,7 +127,7 @@ jobs:
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
           zipinfo -1 "$out" | grep -Fq 'res/drawable/reseller_scout_icon.webp'
           unzip -p "$out" 'res/drawable/reseller_scout_icon.webp' > "$RUNNER_TEMP/apk-reseller-icon.webp"
-          echo '98231f52928ed339bb899b0950b952a7f1ee7a7f602d2f67594825ebf8117384  '"$RUNNER_TEMP/apk-reseller-icon.webp" | sha256sum -c -
+          echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  '"$RUNNER_TEMP/apk-reseller-icon.webp" | sha256sum -c -
           if zipinfo -1 "$out" | grep -Fq 'res/drawable/reseller_scout_launcher.xml'; then exit 1; fi
           : > "$report/classes-strings.txt"
           while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/classes-strings.txt"; done < <(zipinfo -1 "$out" | grep -E '^classes[0-9]*\.dex$')
