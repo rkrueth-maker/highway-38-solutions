@@ -8,21 +8,6 @@ def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
 def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
 
-def approvedIconB64 = file('icon/reseller_scout_icon_256.webp.b64')
-def generatedIconResDir = file("$buildDir/generated/h38ResellerIcon/res")
-def generatedIconFile = file("$generatedIconResDir/drawable/reseller_scout_icon.webp")
-
-tasks.register('prepareApprovedResellerIcon') {
-    inputs.file approvedIconB64
-    outputs.file generatedIconFile
-    doLast {
-        if (!approvedIconB64.exists()) throw new GradleException('Approved Reseller Scout icon payload is missing.')
-        byte[] bytes = approvedIconB64.getText('UTF-8').replaceAll('\\s+', '').decodeBase64()
-        generatedIconFile.parentFile.mkdirs()
-        generatedIconFile.bytes = bytes
-    }
-}
-
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
@@ -32,11 +17,6 @@ android {
         targetSdk 36
         versionCode 26
         versionName '0.1.25'
-    }
-    sourceSets {
-        main {
-            res.srcDir generatedIconResDir
-        }
     }
     signingConfigs {
         if (hasReleaseSigning) {
@@ -63,10 +43,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-}
-
-tasks.named('preBuild').configure {
-    dependsOn tasks.named('prepareApprovedResellerIcon')
 }
 
 dependencies {
