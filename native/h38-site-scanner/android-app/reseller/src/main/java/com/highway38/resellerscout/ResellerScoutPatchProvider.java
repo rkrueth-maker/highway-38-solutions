@@ -27,7 +27,8 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     public static final String FACEBOOK_MARKER = "H38_FACEBOOK_AUTHENTICATED_BROWSER_V1";
     public static final String DEVICE_STOCK_MARKER = "H38_DEVICE_RETAILER_STOCK_V1";
     public static final String LOCATION_MARKER = "H38_PHONE_OR_ZIP_LOCATION_V3";
-    public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Set / verify | Search ZIP | Use phone location | Ad / flyer source";
+    public static final String SAAS_MARKER = "H38_RESELLER_SAAS_WORKSPACE_V1";
+    public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Set / verify | Search ZIP | Use phone location | Ad / flyer source | Store Scan | Local auctions | Item Tracker | Stores / Clearance | Diagnostics";
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile String patchJs;
 
@@ -52,13 +53,8 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
             });
         }
 
-        @JavascriptInterface public String facebookNotificationCandidates() {
-            return FacebookMarketplaceNotificationListener.rowsJson(activity);
-        }
-
-        @JavascriptInterface public String facebookBrowserCandidates() {
-            return FacebookMarketplaceActivity.rowsJson(activity);
-        }
+        @JavascriptInterface public String facebookNotificationCandidates() { return FacebookMarketplaceNotificationListener.rowsJson(activity); }
+        @JavascriptInterface public String facebookBrowserCandidates() { return FacebookMarketplaceActivity.rowsJson(activity); }
 
         @JavascriptInterface public void openFacebookMarketplace(String termsJson, double lat, double lon, int radius, String postal, String url) {
             activity.runOnUiThread(() -> {
@@ -70,9 +66,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
                 }
                 i.putExtra(FacebookMarketplaceActivity.EXTRA_RADIUS, radius);
                 i.putExtra(FacebookMarketplaceActivity.EXTRA_POSTAL, postal == null ? "" : postal);
-                if (url != null && url.startsWith("https://www.facebook.com/marketplace/")) {
-                    i.putExtra(FacebookMarketplaceActivity.EXTRA_URL, url);
-                }
+                if (url != null && url.startsWith("https://www.facebook.com/marketplace/")) i.putExtra(FacebookMarketplaceActivity.EXTRA_URL, url);
                 activity.startActivity(i);
             });
         }
@@ -109,15 +103,21 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         return true;
     }
 
+    private String readAsset(String name) throws Exception {
+        try (InputStream in = getContext().getAssets().open(name); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192]; int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
     private String patch() {
         String cached = patchJs;
         if (cached != null) return cached;
-        try (InputStream in = getContext().getAssets().open("reseller/v027-patch.js"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[8192]; int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            patchJs = new String(out.toByteArray(), StandardCharsets.UTF_8);
+        try {
+            patchJs = readAsset("reseller/v027-patch.js") + "\n" + readAsset("reseller/v028-saas.js");
         } catch (Exception e) {
-            patchJs = "console.error('H38 v0.1.27 patch asset unavailable');";
+            patchJs = "console.error('H38 Scout runtime patch asset unavailable: " + JSONObject.quote(String.valueOf(e.getMessage())) + "');";
         }
         return patchJs;
     }
