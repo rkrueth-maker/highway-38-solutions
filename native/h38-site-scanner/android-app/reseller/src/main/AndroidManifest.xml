@@ -15,6 +15,10 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode_ui" />
+        <provider
+            android:name=".ResellerScoutPatchProvider"
+            android:authorities="${applicationId}.resellerpatch"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
