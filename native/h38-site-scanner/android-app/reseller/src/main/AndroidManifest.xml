@@ -19,6 +19,15 @@
             android:name=".ResellerScoutPatchProvider"
             android:authorities="${applicationId}.resellerpatch"
             android:exported="false" />
+        <service
+            android:name=".FacebookMarketplaceNotificationListener"
+            android:label="H38 Facebook Marketplace Alerts"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"
