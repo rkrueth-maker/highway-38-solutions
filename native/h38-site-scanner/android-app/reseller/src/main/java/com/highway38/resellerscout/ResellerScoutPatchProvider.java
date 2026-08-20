@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 public final class ResellerScoutPatchProvider extends ContentProvider implements Application.ActivityLifecycleCallbacks {
@@ -45,6 +46,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
               function mode(){try{return localStorage.getItem(LOCATION_MODE_KEY)==='zip'?'zip':'phone'}catch(e){return 'phone'}}
               function setLocationStatus(text,bad){var s=document.getElementById('status');if(!s)return;s.className='notice '+(bad?'bad':'');s.textContent=text}
               function labelZip(z){var l=document.getElementById('locationLabel');if(!l||!z)return;var place=[z.place,z.state].filter(Boolean).join(', ');l.textContent='ZIP '+z.zip+(place?' · '+place:'')}
+              function reloadScout(){try{if(window.AndroidH38LocationPatch&&typeof window.AndroidH38LocationPatch.reloadScout==='function'){window.AndroidH38LocationPatch.reloadScout();return}}catch(e){}location.reload()}
               function wrapNativeLocation(){
                 if(window.__H38LocationWrappedV1)return true;
                 var original=window.H38NativeLocationResult;if(typeof original!=='function')return false;
@@ -65,13 +67,13 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
                   var p=await r.json(),place=Array.isArray(p.places)&&p.places.length?p.places[0]:null,lat=Number(place&&place.latitude),lon=Number(place&&place.longitude);if(!place||!Number.isFinite(lat)||!Number.isFinite(lon))throw new Error('ZIP location unavailable');
                   var z={zip:zip,lat:lat,lon:lon,place:String(place['place name']||''),state:String(place['state abbreviation']||place.state||'')};
                   localStorage.setItem(ZIP_KEY,JSON.stringify(z));localStorage.setItem(LOCATION_MODE_KEY,'zip');
-                  setLocationStatus('Switching Scout to ZIP '+zip+'…',false);location.reload();
+                  setLocationStatus('Switching Scout to ZIP '+zip+'…',false);reloadScout();
                 }catch(e){setLocationStatus('ZIP search failed: '+String(e&&e.message||e),'bad');if(button)button.disabled=false}
               }
               function installLocationControls(){
                 var line=document.querySelector('.location-line'),locate=document.getElementById('locateBtn');if(!line||!locate)return false;
                 locate.textContent='Use phone location';
-                if(!locate.dataset.h38PhoneMode){locate.dataset.h38PhoneMode='1';locate.addEventListener('click',function(e){if(mode()==='zip'){e.preventDefault();e.stopImmediatePropagation();localStorage.setItem(LOCATION_MODE_KEY,'phone');localStorage.removeItem(ZIP_KEY);setLocationStatus('Switching Scout back to phone location…',false);location.reload();return}localStorage.setItem(LOCATION_MODE_KEY,'phone');localStorage.removeItem(ZIP_KEY)},true)}
+                if(!locate.dataset.h38PhoneMode){locate.dataset.h38PhoneMode='1';locate.addEventListener('click',function(e){if(mode()==='zip'){e.preventDefault();e.stopImmediatePropagation();localStorage.setItem(LOCATION_MODE_KEY,'phone');localStorage.removeItem(ZIP_KEY);setLocationStatus('Switching Scout back to phone location…',false);reloadScout();return}localStorage.setItem(LOCATION_MODE_KEY,'phone');localStorage.removeItem(ZIP_KEY)},true)}
                 if(!document.getElementById('h38ZipInput')){
                   var input=document.createElement('input');input.id='h38ZipInput';input.type='text';input.inputMode='numeric';input.autocomplete='postal-code';input.maxLength=5;input.placeholder='ZIP code';input.setAttribute('aria-label','ZIP code');input.style.width='104px';input.style.padding='10px';input.style.border='1px solid #cbd7df';input.style.borderRadius='9px';input.style.background='#fff';
                   var z=zipState();if(z)input.value=String(z.zip||'');
@@ -97,6 +99,12 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
             })();
             """;
 
+    private static final class LocationPatchBridge {
+        private final Activity activity;
+        LocationPatchBridge(Activity activity) { this.activity = activity; }
+        @JavascriptInterface public void reloadScout() { activity.runOnUiThread(activity::recreate); }
+    }
+
     @Override public boolean onCreate() {
         Application app = (Application) getContext().getApplicationContext();
         app.registerActivityLifecycleCallbacks(this);
@@ -118,7 +126,10 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     private void inject(Activity activity) {
         if (!(activity instanceof MainActivity)) return;
         WebView webView = findWebView(activity.getWindow().getDecorView());
-        if (webView != null) webView.evaluateJavascript(PATCH_JS, null);
+        if (webView != null) {
+            webView.addJavascriptInterface(new LocationPatchBridge(activity), "AndroidH38LocationPatch");
+            webView.evaluateJavascript(PATCH_JS, null);
+        }
     }
 
     @Override public void onActivityResumed(Activity activity) {
