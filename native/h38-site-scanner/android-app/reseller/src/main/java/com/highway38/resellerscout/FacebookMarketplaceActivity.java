@@ -22,8 +22,6 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -148,7 +146,7 @@ public final class FacebookMarketplaceActivity extends Activity {
 
     private String searchUrl(String term) {
         StringBuilder u = new StringBuilder("https://www.facebook.com/marketplace/search/?query=")
-                .append(URLEncoder.encode(term, StandardCharsets.UTF_8))
+                .append(Uri.encode(term))
                 .append("&sortBy=creation_time_descend&daysSinceListed=7&deliveryMethod=local_pick_up&exact=false&radius=")
                 .append(radiusMiles);
         if (Double.isFinite(lat) && Double.isFinite(lon)) {
