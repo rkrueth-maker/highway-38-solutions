@@ -126,8 +126,8 @@ public final class RetailerDeviceCheckManager {
         if (job.done.get() || job.checker == null || job.followedProduct) return;
         String retailer = job.retailer();
         String script = retailer.equals("Home Depot")
-                ? "(function(){var a=document.querySelector('a[href*=\\"/p/\\"]');return a&&a.href||''})()"
-                : "(function(){var a=document.querySelector('a[href*=\\"/p/\\"],a[href*=\\"/product/\\"]');return a&&a.href||''})()";
+                ? "(function(){var a=document.querySelector('a[href*=\"/p/\"]');return a&&a.href||''})()"
+                : "(function(){var a=document.querySelector('a[href*=\"/p/\"],a[href*=\"/product/\"]');return a&&a.href||''})()";
         job.checker.evaluateJavascript(script, value -> {
             if (job.done.get()) return;
             try {
