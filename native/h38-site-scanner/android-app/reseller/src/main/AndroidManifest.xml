@@ -29,6 +29,14 @@
             </intent-filter>
         </service>
         <activity
+            android:name=".FacebookMarketplaceActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".RetailerVerificationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
