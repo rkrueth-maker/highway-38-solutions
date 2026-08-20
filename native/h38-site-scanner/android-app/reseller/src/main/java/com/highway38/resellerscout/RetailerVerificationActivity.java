@@ -13,9 +13,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 /** Visible one-time retailer session/setup browser for store-bound checks. */
 public final class RetailerVerificationActivity extends Activity {
     public static final String EXTRA_RETAILER = "retailer";
@@ -40,7 +37,7 @@ public final class RetailerVerificationActivity extends Activity {
     private String value(String k){String v=getIntent().getStringExtra(k);return v==null?"":v.trim();}
     private static String startUrl(String retailer,String query,String source){
         try{if(!source.isBlank()){Uri u=Uri.parse(source);String h=String.valueOf(u.getHost()).toLowerCase();if(retailer.equals("Home Depot")&&h.endsWith("homedepot.com"))return source;if(retailer.equals("Dollar General")&&h.endsWith("dollargeneral.com"))return source;}}catch(Exception ignored){}
-        String q=URLEncoder.encode(query.isBlank()?"tools":query, StandardCharsets.UTF_8);
+        String q=Uri.encode(query.isBlank()?"tools":query);
         return retailer.equals("Dollar General")?"https://www.dollargeneral.com/product-search.html?query="+q:"https://www.homedepot.com/s/"+q;
     }
 }
