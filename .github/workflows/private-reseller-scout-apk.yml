@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
+      - 'supabase/functions/reseller-opportunity-scan/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -30,7 +31,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.31 private Scout contract
+      - name: Verify v0.1.32 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
@@ -39,18 +40,24 @@ jobs:
           test -f reseller/src/main/assets/reseller/v027-patch.js
           test -f reseller/src/main/assets/reseller/v027-retailer-extract.js
           test -f reseller/src/main/assets/reseller/v029-saas.js
+          test -f reseller/src/main/assets/reseller/v032-cleanup.js
           test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
           echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.31'" reseller/build.gradle
-          check 'versionCode 32' reseller/build.gradle
+          check "versionName '0.1.32'" reseller/build.gradle
+          check 'versionCode 33' reseller/build.gradle
           check 'LEGACY_OPPORTUNITY_SCANNER_REMOVED_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
           if grep -Fq 'SOURCE_SCAN_FALLBACK_LIST_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java; then exit 1; fi
-          for t in H38_RESALE_OPPORTUNITY_ENGINE_V2 H38_FACEBOOK_AUTHENTICATED_BROWSER_V1 H38_DEVICE_RETAILER_STOCK_V1 H38_PHONE_OR_ZIP_LOCATION_V3 H38_RESELLER_SAAS_WORKSPACE_V2 H38_NATIVE_CONTENT_INSETS_V1; do check "$t" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java; done
-          check 'applyNativeContentInsets' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'android.R.id.content' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          check 'view.setPadding(0, 0, 0, 0)' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          for t in H38_RESALE_OPPORTUNITY_ENGINE_V2 H38_FACEBOOK_AUTHENTICATED_BROWSER_V1 H38_DEVICE_RETAILER_STOCK_V1 H38_PHONE_OR_ZIP_LOCATION_V3 H38_RESELLER_SAAS_WORKSPACE_V2 H38_NATIVE_CONTENT_INSETS_V1 H38_SCOUT_DEEP_CLEANUP_V032; do check "$t" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java; done
+          check 'v032-cleanup.js' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
+          for t in 'Candidate only' 'STORE VERIFIED' 'Source progress' 'Premium not exposed' 'comp_only' 'h38_v032_session_started'; do check "$t" reseller/src/main/assets/reseller/v032-cleanup.js; done
           check 'Only verified, profit-supported resale opportunities' reseller/src/main/assets/reseller/v027-patch.js
-          check 'Scout Home' reseller/src/main/assets/reseller/v029-saas.js
+          root="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan/index.ts"
+          check 'verified_profit_v3' "$root"
+          check 'actual_only_no_default' "$root"
+          check 'auction_candidates' "$root"
+          check 'comp_only' "$root"
+          check 'rejected_missing_premium' "$root"
+          if grep -Fq 'DEFAULT_AUCTION_PREMIUM' "$root"; then echo '::error::Auction premium default must not exist'; exit 1; fi
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -79,21 +86,23 @@ jobs:
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then gradle --no-daemon :reseller:assembleRelease | tee "$report/compile.log"; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.31.apk"; cp "$apk" "$out"; sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.31.sha256"; "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.32.apk"; cp "$apk" "$out"; sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.32.sha256"; "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.31.apk"; report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.32.apk"; report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then grep -Fq "package: name='com.highway38.resellerscout' versionCode='32' versionName='0.1.31'" "$report/badging.txt"; else grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='32' versionName='0.1.31-debug'" "$report/badging.txt"; fi
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then grep -Fq "package: name='com.highway38.resellerscout' versionCode='33' versionName='0.1.32'" "$report/badging.txt"; else grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='33' versionName='0.1.32-debug'" "$report/badging.txt"; fi
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v029-saas.js'
+          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v032-cleanup.js'
+          unzip -p "$out" 'assets/reseller/v032-cleanup.js' | grep -Fq 'STORE VERIFIED'
+          unzip -p "$out" 'assets/reseller/v032-cleanup.js' | grep -Fq 'comp_only'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.31
+          name: h38-reseller-scout-owner-test-v0.1.32
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
