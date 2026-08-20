@@ -6,301 +6,92 @@ const ALLOWED = new Set([
 ]);
 const U = Deno.env.get("SUPABASE_URL") || "";
 const K = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const ORIGINS = new Set([
-  "https://appassets.androidplatform.net",
-  "https://highway38solutions.com",
-  "https://www.highway38solutions.com",
-]);
-const UA = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Safari/537.36 H38ResellerScout/1";
-const DEFAULT_TERMS = ["tools", "Milwaukee", "DeWalt", "Snap-on", "generator", "welder", "toolbox", "zero turn", "pressure washer"];
+const ORIGINS = new Set(["https://appassets.androidplatform.net", "https://highway38solutions.com", "https://www.highway38solutions.com"]);
+const UA = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/151 Safari/537.36 H38ResellerScout/0.1.27";
+const DEFAULT_TERMS = ["Milwaukee", "DeWalt", "Snap-on", "generator", "welder", "toolbox", "zero turn", "pressure washer"];
 const SELLING_FRICTION = 0.13;
+const TRAVEL_COST_PER_MILE = 0.35;
 const DEFAULT_AUCTION_PREMIUM = 18;
+const MIN_NET = 25;
+const MIN_ROI = 30;
+const TARGET_PROFIT_RATE = 0.25;
 
-function cors(r: Request) {
-  const o = r.headers.get("origin") || "";
-  return {
-    "access-control-allow-origin": ORIGINS.has(o) ? o : "https://appassets.androidplatform.net",
-    "access-control-allow-headers": "authorization, apikey, content-type",
-    "access-control-allow-methods": "POST, OPTIONS",
-    "content-type": "application/json; charset=utf-8",
-    "cache-control": "no-store",
-    "vary": "Origin",
-  };
-}
+function cors(r: Request) { const o = r.headers.get("origin") || ""; return { "access-control-allow-origin": ORIGINS.has(o) ? o : "https://appassets.androidplatform.net", "access-control-allow-headers": "authorization, apikey, content-type", "access-control-allow-methods": "POST, OPTIONS", "content-type": "application/json; charset=utf-8", "cache-control": "no-store", vary: "Origin" }; }
 function json(r: Request, s: number, b: unknown) { return new Response(JSON.stringify(b), { status: s, headers: cors(r) }); }
-async function uid(r: Request) {
-  const t = String(r.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
-  if (!t) throw Error("Sign in required.");
-  const x = await fetch(`${U}/auth/v1/user`, { headers: { authorization: `Bearer ${t}`, apikey: K } });
-  const p = await x.json().catch(() => ({}));
-  if (!x.ok || !p?.id) throw Error("Session expired.");
-  return String(p.id);
-}
-function dec(v: unknown) {
-  return String(v || "")
-    .replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#0*39;|&apos;/gi, "'")
-    .replace(/&nbsp;|&#160;/gi, " ").replace(/&ndash;/gi, "–").replace(/&mdash;/gi, "—");
-}
-function text(v: unknown) {
-  return dec(v).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ").trim();
-}
-function money(v: unknown): number {
-  if (typeof v === "number" && Number.isFinite(v)) return v > 0 ? v : 0;
-  const m = String(v || "").replace(/,/g, "").match(/\$\s*([0-9]{1,7}(?:\.\d{1,2})?)/);
-  return m ? Number(m[1]) : 0;
-}
-function price(v: string) { return money(v); }
+async function uid(r: Request) { const t = String(r.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim(); if (!t) throw Error("Sign in required."); const x = await fetch(`${U}/auth/v1/user`, { headers: { authorization: `Bearer ${t}`, apikey: K } }); const p = await x.json().catch(() => ({})); if (!x.ok || !p?.id) throw Error("Session expired."); return String(p.id); }
+function dec(v: unknown) { return String(v || "").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#0*39;|&apos;/gi, "'").replace(/&nbsp;|&#160;/gi, " ").replace(/&ndash;/gi, "–").replace(/&mdash;/gi, "—"); }
+function strip(v: unknown) { return dec(v).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+function money(v: unknown): number { if (typeof v === "number" && Number.isFinite(v)) return v > 0 ? v : 0; const m = String(v || "").replace(/,/g, "").match(/\$\s*([0-9]{1,7}(?:\.\d{1,2})?)/); return m ? Number(m[1]) : 0; }
 function clamp(n: number, a: number, b: number) { return Math.max(a, Math.min(b, n)); }
-function uniq(rows: any[]) {
-  const m = new Map<string, any>();
-  for (const x of rows) {
-    const k = String(x.url || x.notification_id || `${x.source}|${x.title}|${x.buy_price}`).toLowerCase();
-    if (k && !m.has(k)) m.set(k, x);
-  }
-  return [...m.values()];
-}
-function matches(title: string, term: string) {
-  const a = title.toLowerCase(), b = term.toLowerCase(), parts = b.split(/\s+/).filter(x => x.length > 2);
-  return a.includes(b) || parts.some(x => a.includes(x));
-}
-function friendly(v: string) {
-  return /tool|battery|charger|drill|driver|impact|saw|nailer|grinder|sander|router|vacuum|compressor|generator|mower|blower|trimmer|chainsaw|storage|toolbox|workbench|ladder|grill|smoker|cooler|appliance|electronics|camera|speaker|headphone|tablet|laptop|\btv\b|gaming|console|lego|heater|lighting|pump|welder|socket|wrench|ratchet|hammer|laser|level|zero turn|pressure washer|snowblower|snow blower/i.test(v);
-}
-function quality(title: string, source: string, hasPrice: boolean, hasImage: boolean, hasLocation: boolean) {
-  let s = 42;
-  if (hasPrice) s += 20;
-  if (hasImage) s += 7;
-  if (hasLocation) s += 7;
-  if (/milwaukee|dewalt|snap-?on|makita|bosch|ridgid|ryobi|kobalt|craftsman|metabo|ego|stihl|husqvarna|honda|generac|lincoln|miller/i.test(title)) s += 13;
-  if (friendly(title)) s += 9;
-  if (source === "Facebook Marketplace") s += 3;
-  return clamp(s, 0, 100);
-}
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 3958.7613, d2r = Math.PI / 180, dLat = (lat2 - lat1) * d2r, dLon = (lon2 - lon1) * d2r;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * d2r) * Math.cos(lat2 * d2r) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 function absUrl(href: string, base: string) { try { return new URL(dec(href), base).toString(); } catch { return ""; } }
-function imageFrom(block: string, base: string) {
-  const m = block.match(/<(?:img|source)\b[^>]*(?:src|data-src)=["']([^"']+)["']/i);
-  return m ? absUrl(m[1], base) : "";
-}
-function geoFrom(block: string) {
-  const a = block.match(/data-latitude=["'](-?\d+(?:\.\d+)?)["']/i), b = block.match(/data-longitude=["'](-?\d+(?:\.\d+)?)["']/i);
-  if (!a || !b) return null;
-  const lat = Number(a[1]), lon = Number(b[1]);
-  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
-}
-function locationFrom(block: string) {
-  const m = block.match(/<(?:span|div)\b[^>]*class=["'][^"']*(?:location|nearby|town)[^"']*["'][^>]*>([\s\S]{0,250}?)<\/(?:span|div)>/i);
-  return m ? text(m[1]).replace(/^\(|\)$/g, "") : "";
-}
-function ageLabel(ms: number) {
-  if (!ms || !Number.isFinite(ms)) return "";
-  const d = Math.max(0, Date.now() - ms), min = Math.round(d / 60000);
-  if (min < 60) return `${min} min ago`;
-  const hr = Math.round(min / 60); if (hr < 48) return `${hr} hr ago`;
-  return `${Math.round(hr / 24)} d ago`;
-}
-async function get(url: string, timeout = 7000) {
-  const c = new AbortController(), to = setTimeout(() => c.abort(), timeout);
-  try {
-    const r = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: c.signal });
-    const html = await r.text().catch(() => "");
-    if (!r.ok) throw Error(`HTTP ${r.status}`);
-    return { url: r.url, html };
-  } finally { clearTimeout(to); }
-}
-async function reversePostal(lat: number, lon: number) {
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return "";
-  try {
-    const u = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
-    const r = await fetch(u, { headers: { "user-agent": UA, accept: "application/json" } });
-    if (!r.ok) return "";
-    const p = await r.json().catch(() => ({}));
-    return String(p?.address?.postcode || "").match(/\d{5}/)?.[0] || "";
-  } catch { return ""; }
-}
+function meta(html: string, key: string) { const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const a = html.match(new RegExp(`<meta\\b[^>]*(?:property|name|itemprop)=["']${esc}["'][^>]*content=["']([^"']+)["']`, "i")) || html.match(new RegExp(`<meta\\b[^>]*content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["']${esc}["']`, "i")); return a ? dec(a[1]) : ""; }
+function attr(s: string, name: string) { const m = s.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i")); return dec(m?.[1] || m?.[2] || m?.[3] || ""); }
+function friendly(v: string) { return /tool|battery|charger|drill|driver|impact|saw|nailer|grinder|sander|router|vacuum|compressor|generator|mower|blower|trimmer|chainsaw|storage|toolbox|workbench|ladder|grill|smoker|cooler|appliance|electronics|camera|speaker|headphone|tablet|laptop|\btv\b|gaming|console|lego|heater|lighting|pump|welder|socket|wrench|ratchet|hammer|laser|level|zero turn|pressure washer|snowblower|snow blower|stihl|husqvarna|milwaukee|dewalt|snap.?on/i.test(v); }
+function matches(title: string, term: string) { const a = title.toLowerCase(), b = term.toLowerCase(), parts = b.split(/\s+/).filter(x => x.length > 2); return a.includes(b) || parts.some(x => a.includes(x)); }
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number) { const R = 3958.7613, d2r = Math.PI / 180, dLat = (lat2 - lat1) * d2r, dLon = (lon2 - lon1) * d2r; const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * d2r) * Math.cos(lat2 * d2r) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
+function ageLabel(ms: number) { if (!ms || !Number.isFinite(ms)) return ""; const min = Math.max(0, Math.round((Date.now() - ms) / 60000)); if (min < 60) return `${min} min ago`; const hr = Math.round(min / 60); if (hr < 48) return `${hr} hr ago`; return `${Math.round(hr / 24)} d ago`; }
+function titleClean(v: string) { return strip(v).replace(/\s*[|\-–]\s*(craigslist|hibid).*$/i, "").trim().slice(0, 220); }
+async function get(url: string, timeout = 6500) { const c = new AbortController(), to = setTimeout(() => c.abort(), timeout); try { const r = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: c.signal }); const html = await r.text().catch(() => ""); if (!r.ok) throw Error(`HTTP ${r.status}`); return { url: r.url, html }; } finally { clearTimeout(to); } }
+async function reversePostal(lat: number, lon: number) { if (!Number.isFinite(lat) || !Number.isFinite(lon)) return ""; try { const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`, { headers: { "user-agent": UA, accept: "application/json" } }); if (!r.ok) return ""; const p = await r.json().catch(() => ({})); return String(p?.address?.postcode || "").match(/\d{5}/)?.[0] || ""; } catch { return ""; } }
+const geoCache = new Map<string, Promise<any>>();
+async function geocodeLocation(text: string) { const q = strip(text).replace(/\b(?:pickup|location|auction|item)\b\s*:?/ig, " ").replace(/\s+/g, " ").trim().slice(0, 100); if (q.length < 3) return null; if (geoCache.has(q.toLowerCase())) return geoCache.get(q.toLowerCase()); const work = (async () => { try { const c = new AbortController(), to = setTimeout(() => c.abort(), 3500); try { const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`, { headers: { "user-agent": UA, accept: "application/json" }, signal: c.signal }); if (!r.ok) return null; const a = await r.json().catch(() => []); const x = Array.isArray(a) && a.length ? a[0] : null, lat = Number(x?.lat), lon = Number(x?.lon); return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null; } finally { clearTimeout(to); } } catch { return null; } })(); geoCache.set(q.toLowerCase(), work); return work; }
 
-function craigslist(html: string, base: string, term: string, ctx: any) {
-  const out: any[] = [], seen = new Set<string>();
-  for (const m of html.matchAll(/<a\b([^>]*)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)) {
-    if (out.length >= 24) break;
-    const href = absUrl(m[2] || "", base), title = text(m[4] || "");
-    if (!href || seen.has(href) || title.length < 5 || (!/\.html(?:$|\?)/i.test(href) && !/\/d\//i.test(href))) continue;
-    if (!matches(title, term) && !friendly(title)) continue;
-    const at = m.index || 0, block = html.slice(Math.max(0, at - 1300), Math.min(html.length, at + 3600)), buy = price(text(block));
-    if (!(buy > 0)) continue;
-    const g = geoFrom(block), dist = g && Number.isFinite(ctx.lat) && Number.isFinite(ctx.lon) ? haversine(ctx.lat, ctx.lon, g.lat, g.lon) : null;
-    if (dist != null && dist > ctx.radiusMiles * 1.25) continue;
-    const loc = locationFrom(block), img = imageFrom(block, base), dt = block.match(/datetime=["']([^"']+)["']/i), posted = dt ? Date.parse(dt[1]) : 0;
-    seen.add(href);
-    out.push({ source: "Craigslist", title, url: href, buy_price: buy, estimated_all_in: buy, image_url: img, location_label: loc, distance_miles: dist, posted_at: posted || null, age_label: ageLabel(posted), term, automatic: true, quality: quality(title, "Craigslist", true, !!img, !!loc || dist != null) });
-  }
-  return out;
-}
-function hibid(html: string, base: string, term: string) {
-  const out: any[] = [], seen = new Set<string>();
-  for (const m of html.matchAll(/<a\b([^>]*)href=["']([^"']*(?:\/lot\/|\/lot-information\/)[^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)) {
-    if (out.length >= 24) break;
-    const href = absUrl(m[2] || "", base), title = text(m[4] || "");
-    if (!href || seen.has(href) || title.length < 5 || (!matches(title, term) && !friendly(title))) continue;
-    const at = m.index || 0, block = html.slice(Math.max(0, at - 1700), Math.min(html.length, at + 4300)), plain = text(block), bid = price(plain);
-    if (!(bid > 0)) continue;
-    const pm = plain.match(/(?:buyer'?s?\s+premium|bp)\s*[:\-]?\s*(\d{1,2}(?:\.\d+)?)\s*%/i), premium = pm ? clamp(Number(pm[1]), 0, 40) : DEFAULT_AUCTION_PREMIUM;
-    const estimated = Number((bid * (1 + premium / 100)).toFixed(2)), img = imageFrom(block, base), loc = locationFrom(block);
-    const close = plain.match(/(?:Ends|Closing|Closes)\s*[:\-]?\s*([^|]{3,45})/i)?.[0] || "";
-    seen.add(href);
-    out.push({ source: "HiBid", title, url: href, buy_price: bid, estimated_all_in: estimated, buyer_premium_pct: premium, buyer_premium_estimated: !pm, image_url: img, location_label: loc, closing_label: close, term, automatic: true, quality: quality(title, "HiBid", true, !!img, !!loc) });
-  }
-  return out;
-}
-function facebook(rows: any[], terms: string[]) {
-  const out: any[] = [];
-  for (const x of rows.slice(0, 80)) {
-    const raw = `${x?.title || ""} ${x?.text || ""}`.trim(), title = String(x?.title || x?.text || "").trim();
-    const buy = Number(x?.price || money(raw));
-    if (title.length < 4 || !(buy > 0)) continue;
-    const matched = terms.some(t => matches(raw, t)) || friendly(raw);
-    if (!matched) continue;
-    out.push({ source: "Facebook Marketplace", title, url: String(x?.url || ""), notification_id: x?.notification ? String(x?.id || "") : "", buy_price: buy, estimated_all_in: buy, posted_at: Number(x?.posted_at || 0) || null, age_label: ageLabel(Number(x?.posted_at || 0)), location_label: "Marketplace alert location", automatic: true, quality: quality(title, "Facebook Marketplace", true, false, false), facebook_device_alert: true });
-  }
-  return out;
-}
+function discoverCraigslist(html: string, base: string, term: string) { const out: any[] = [], seen = new Set<string>(); for (const m of html.matchAll(/<a\b([^>]*)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)) { if (out.length >= 12) break; const href = absUrl(m[2] || "", base), title = titleClean(m[4] || ""); if (!href || seen.has(href) || title.length < 5 || (!/\.html(?:$|\?)/i.test(href) && !/\/d\//i.test(href))) continue; if (!matches(title, term) && !friendly(title)) continue; seen.add(href); out.push({ source: "Craigslist", term, title, url: href }); } return out; }
+function discoverHiBid(html: string, base: string, term: string) { const out: any[] = [], seen = new Set<string>(); for (const m of html.matchAll(/<a\b([^>]*)href=["']([^"']*(?:\/lot\/|\/lot-information\/)[^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)) { if (out.length >= 12) break; const href = absUrl(m[2] || "", base), title = titleClean(m[4] || ""); if (!href || seen.has(href) || title.length < 5 || (!matches(title, term) && !friendly(title))) continue; seen.add(href); out.push({ source: "HiBid", term, title, url: href }); } return out; }
 
-const compCache = new Map<string, any>();
-function compQuery(title: string) {
-  return title.replace(/\b(new|used|obo|firm|sale|for sale|lot|auction|pickup only)\b/gi, " ").replace(/[^a-z0-9+.# -]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 90);
-}
-async function soldComp(title: string) {
-  const q = compQuery(title).toLowerCase();
-  if (!q) return null;
-  if (compCache.has(q)) return compCache.get(q);
-  const promise = (async () => {
-    try {
-      const u = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`;
-      const p = await get(u, 5000);
-      if (/pardon our interruption|captcha|robot check/i.test(p.html)) return null;
-      const vals: number[] = [];
-      for (const m of p.html.matchAll(/s-item__price[^>]*>([\s\S]{0,180}?)<\/span>/gi)) {
-        const n = price(text(m[1] || ""));
-        if (n >= 5 && n <= 25000) vals.push(n);
-        if (vals.length >= 24) break;
-      }
-      if (vals.length < 2) return null;
-      vals.sort((a, b) => a - b);
-      const lo = Math.floor(vals.length * 0.15), hi = Math.max(lo + 1, Math.ceil(vals.length * 0.85)), trimmed = vals.slice(lo, hi);
-      const mid = Math.floor(trimmed.length / 2), median = trimmed.length % 2 ? trimmed[mid] : (trimmed[mid - 1] + trimmed[mid]) / 2;
-      return { median: Number(median.toFixed(2)), samples: vals.length, confidence: vals.length >= 8 ? "high" : vals.length >= 4 ? "medium" : "low" };
-    } catch { return null; }
-  })();
-  compCache.set(q, promise);
-  return promise;
-}
-async function scoreCandidates(rows: any[]) {
-  const ordered = [...rows].sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0));
-  const compTargets = ordered.filter(x => Number(x.buy_price) > 0).slice(0, 10);
-  const comps = await Promise.all(compTargets.map(x => soldComp(x.title)));
-  compTargets.forEach((x, i) => x.__comp = comps[i]);
+function craigslistDetail(html: string, url: string, seed: any) { const plain = strip(html), title = titleClean(meta(html, "og:title") || html.match(/<span[^>]*id=["']titletextonly["'][^>]*>([\s\S]*?)<\/span>/i)?.[1] || seed.title || ""), buy = money(meta(html, "product:price:amount")) || money(html.match(/<span[^>]*class=["'][^"']*price[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1] || "") || money(plain.slice(0, 4000)), image = meta(html, "og:image"), lat = Number(meta(html, "geo.position").split(/[;,]/)[0] || html.match(/latitude[^0-9-]*(-?\d+(?:\.\d+)?)/i)?.[1]), lon = Number(meta(html, "geo.position").split(/[;,]/)[1] || html.match(/longitude[^0-9-]*(-?\d+(?:\.\d+)?)/i)?.[1]), loc = strip(html.match(/<small[^>]*>([\s\S]{0,500}?)<\/small>/i)?.[1] || html.match(/<div[^>]*class=["'][^"']*(?:mapaddress|postingtitletext)[^"']*["'][^>]*>([\s\S]{0,700}?)<\/div>/i)?.[1] || "").replace(/^\(|\)$/g, ""), dt = html.match(/datetime=["']([^"']+)["']/i), posted = dt ? Date.parse(dt[1]) : 0; if (title.length < 5 || !(buy > 0)) return null; return { ...seed, title, url, buy_price: buy, estimated_all_in: buy, image_url: image, lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null, location_label: loc, posted_at: posted || null, age_label: ageLabel(posted), detail_verified: true }; }
+function hibidDetail(html: string, url: string, seed: any) { const plain = strip(html), title = titleClean(meta(html, "og:title") || html.match(/<h1\b[^>]*>([\s\S]{0,700}?)<\/h1>/i)?.[1] || seed.title || ""), bid = money(plain.match(/(?:Current Bid|High Bid|Winning Bid|Bid)\s*:?\s*(\$\s*[0-9,]+(?:\.\d{1,2})?)/i)?.[1] || ""), pm = plain.match(/(?:buyer'?s?\s+premium|buyers? premium|\bBP\b)\s*[:\-]?\s*(\d{1,2}(?:\.\d+)?)\s*%/i), premium = pm ? clamp(Number(pm[1]), 0, 40) : DEFAULT_AUCTION_PREMIUM, image = meta(html, "og:image"), loc = (plain.match(/(?:Pickup Location|Auction Location|Item Location|Location)\s*[:\-]\s*([^|]{4,100})/i)?.[1] || "").replace(/(?:Directions|Preview|Removal).*$/i, "").trim(), close = plain.match(/(?:Ends|Closing|Closes)\s*[:\-]?\s*([^|]{3,60})/i)?.[0] || ""; if (title.length < 5 || !(bid > 0)) return null; return { ...seed, title, url, buy_price: bid, buyer_premium_pct: premium, buyer_premium_estimated: !pm, estimated_all_in: Number((bid * (1 + premium / 100)).toFixed(2)), image_url: image, location_label: loc, closing_label: close, detail_verified: true }; }
 
-  const out: any[] = [];
-  let needsCompKept = 0;
-  for (const x of ordered) {
-    const c = x.__comp || null, allIn = Number(x.estimated_all_in || x.buy_price || 0), dist = Number(x.distance_miles);
-    if (c && allIn > 0) {
-      const resale = Number(c.median), net = Number((resale * (1 - SELLING_FRICTION) - allIn).toFixed(2)), roi = Number((net / allIn * 100).toFixed(1));
-      if (net < 15 || roi < 20) continue;
-      const distancePenalty = Number.isFinite(dist) ? Math.min(20, dist / 4) : 5;
-      const opportunity = Math.round(clamp(45 + roi * 0.28 + net / 18 - distancePenalty, 1, 99));
-      out.push({ ...x, resale_estimate: resale, comp_samples: c.samples, comp_confidence: c.confidence, selling_friction_pct: SELLING_FRICTION * 100, net_profit: net, roi_pct: roi, opportunity_score: opportunity, needs_comp: false });
-    } else {
-      if (Number(x.quality || 0) < 69 || needsCompKept >= 6) continue;
-      needsCompKept++;
-      out.push({ ...x, resale_estimate: null, comp_samples: 0, comp_confidence: "none", net_profit: null, roi_pct: null, opportunity_score: Math.round(clamp(Number(x.quality || 0) - 25, 1, 70)), needs_comp: true });
-    }
-  }
-  return out.sort((a, b) => Number(b.opportunity_score || 0) - Number(a.opportunity_score || 0)).slice(0, 32);
-}
+async function verifyLocation(row: any, ctx: any) { if (!Number.isFinite(ctx.lat) || !Number.isFinite(ctx.lon)) return { ...row, distance_miles: null, location_verified: !!row.location_label }; let dist: number | null = null; if (Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon))) dist = haversine(ctx.lat, ctx.lon, Number(row.lat), Number(row.lon)); else if (Number.isFinite(Number(row.distance_miles))) dist = Number(row.distance_miles); else if (row.location_label) { const g = await geocodeLocation(String(row.location_label)); if (g) dist = haversine(ctx.lat, ctx.lon, g.lat, g.lon); } if (dist == null || !Number.isFinite(dist)) return { ...row, distance_miles: null, location_verified: false }; if (dist > ctx.radiusMiles * 1.15) return null; return { ...row, distance_miles: Number(dist.toFixed(1)), location_verified: true }; }
+
+function facebookSeeds(rows: any[], terms: string[]) { const out: any[] = []; for (const x of rows.slice(0, 160)) { const raw = `${x?.title || ""} ${x?.text || ""}`.trim(), title = titleClean(String(x?.title || x?.text || "")), buy = Number(x?.price || money(raw)), url = String(x?.url || ""); if (title.length < 4 || !(buy > 0) || !url.includes("facebook.com/marketplace/item/")) continue; if (!terms.some(t => matches(raw, t)) && !friendly(raw)) continue; const d = Number(x?.distance_miles); out.push({ source: "Facebook Marketplace", title, url, buy_price: buy, estimated_all_in: buy, image_url: String(x?.image_url || ""), distance_miles: Number.isFinite(d) ? d : null, location_label: String(x?.location_label || ""), posted_at: Number(x?.captured_at || x?.posted_at || 0) || null, age_label: ageLabel(Number(x?.captured_at || x?.posted_at || 0)), browser_session: !!x?.browser_session, notification: !!x?.notification, detail_verified: true, term: String(x?.term || "") }); } return out; }
+
+const compCache = new Map<string, Promise<any>>();
+function compQuery(title: string) { return title.replace(/\b(new|used|obo|firm|sale|for sale|lot|auction|pickup only|local pickup)\b/gi, " ").replace(/[^a-z0-9+.# -]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 90); }
+async function soldComp(title: string) { const q = compQuery(title).toLowerCase(); if (!q) return null; if (compCache.has(q)) return compCache.get(q); const work = (async () => { try { const p = await get(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`, 5200); if (/pardon our interruption|captcha|robot check/i.test(p.html)) return null; const vals: number[] = []; for (const m of p.html.matchAll(/s-item__price[^>]*>([\s\S]{0,180}?)<\/span>/gi)) { const n = money(strip(m[1] || "")); if (n >= 5 && n <= 25000) vals.push(n); if (vals.length >= 30) break; } if (vals.length < 3) return null; vals.sort((a, b) => a - b); const lo = Math.floor(vals.length * .15), hi = Math.max(lo + 1, Math.ceil(vals.length * .85)), a = vals.slice(lo, hi), mid = Math.floor(a.length / 2), median = a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2; return { median: Number(median.toFixed(2)), samples: vals.length, confidence: vals.length >= 10 ? "high" : vals.length >= 5 ? "medium" : "low" }; } catch { return null; } })(); compCache.set(q, work); return work; }
+
+async function scoreStrict(rows: any[], summary: Record<string, any>) { const ordered = rows.filter(x => x && x.detail_verified && x.location_verified && Number(x.buy_price) > 0).sort((a, b) => Number(b.buy_price || 0) - Number(a.buy_price || 0)).slice(0, 18); const comps = await Promise.all(ordered.map(x => soldComp(x.title))); const out: any[] = []; ordered.forEach((x, i) => { const s = summary[x.source]; const c = comps[i]; if (!c) { if (s) s.rejected_no_comp++; return; } if (s) s.comp_verified++; const distance = Number(x.distance_miles), travel = Number.isFinite(distance) ? Number((distance * 2 * TRAVEL_COST_PER_MILE).toFixed(2)) : 0, baseAllIn = Number(x.estimated_all_in || x.buy_price || 0), allIn = Number((baseAllIn + travel).toFixed(2)), resale = Number(c.median), proceeds = resale * (1 - SELLING_FRICTION), net = Number((proceeds - allIn).toFixed(2)), roi = Number((net / allIn * 100).toFixed(1)); if (net < MIN_NET || roi < MIN_ROI) { if (s) s.rejected_profit++; return; } let maxBid: number | null = null; if (x.source === "HiBid") { const targetProfit = Math.max(MIN_NET, resale * TARGET_PROFIT_RATE), maxAllInBeforeTravel = Math.max(0, proceeds - targetProfit - travel), premium = Number(x.buyer_premium_pct || DEFAULT_AUCTION_PREMIUM); maxBid = Number((maxAllInBeforeTravel / (1 + premium / 100)).toFixed(2)); if (!(maxBid > 0) || Number(x.buy_price) > maxBid) { if (s) s.rejected_profit++; return; } } const score = Math.round(clamp(45 + roi * .32 + net / 15 - (Number.isFinite(distance) ? distance / 5 : 0), 1, 99)); const row = { ...x, estimated_all_in: allIn, travel_cost: travel, resale_estimate: resale, comp_samples: c.samples, comp_confidence: c.confidence, selling_friction_pct: SELLING_FRICTION * 100, net_profit: net, roi_pct: roi, max_bid: maxBid, opportunity_score: score, needs_comp: false, profit_verified: true }; out.push(row); if (s) s.qualified++; }); return out.sort((a, b) => Number(b.opportunity_score) - Number(a.opportunity_score)).slice(0, 28); }
+
+function summaryFor(names: string[]) { const o: Record<string, any> = {}; for (const n of names) o[n] = { attempts: 0, search_hits: 0, detail_verified: 0, location_verified: 0, comp_verified: 0, qualified: 0, rejected_no_comp: 0, rejected_location: 0, rejected_profit: 0, failed: 0 }; return o; }
 
 Deno.serve(async (r) => {
   if (r.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(r) });
   if (r.method !== "POST") return json(r, 405, { error: "POST required" });
   try {
-    const id = await uid(r);
-    if (!ALLOWED.has(id)) return json(r, 403, { error: "Not authorized" });
-    const b = await r.json().catch(() => ({}));
-    let terms = Array.isArray(b.terms) ? b.terms.map((x: any) => String(x || "").trim()).filter((x: string) => x.length >= 2).slice(0, 12) : [];
-    if (!terms.length) terms = DEFAULT_TERMS.slice();
-    const wanted = new Set((Array.isArray(b.sources) ? b.sources : []).map((x: any) => String(x).toLowerCase()));
-    const use = (n: string) => !wanted.size || wanted.has(n.toLowerCase());
-    const lat = Number(b.lat), lon = Number(b.lon), radiusMiles = [25, 50, 100, 150].includes(Number(b.radiusMiles)) ? Number(b.radiusMiles) : 50;
-    let postal = String(b.postal || "").match(/\d{5}/)?.[0] || "";
-    if (!postal && Number.isFinite(lat) && Number.isFinite(lon)) postal = await reversePostal(lat, lon);
-    const ctx = { lat, lon, radiusMiles, postal };
+    const id = await uid(r); if (!ALLOWED.has(id)) return json(r, 403, { error: "Not authorized" });
+    const b = await r.json().catch(() => ({})); let terms = Array.isArray(b.terms) ? b.terms.map((x: any) => String(x || "").trim()).filter((x: string) => x.length >= 2).slice(0, 10) : []; if (!terms.length) terms = DEFAULT_TERMS.slice();
+    const wanted = new Set((Array.isArray(b.sources) ? b.sources : []).map((x: any) => String(x).toLowerCase())), use = (n: string) => !wanted.size || wanted.has(n.toLowerCase());
+    const lat = Number(b.lat), lon = Number(b.lon), radiusMiles = [25, 50, 100, 150].includes(Number(b.radiusMiles)) ? Number(b.radiusMiles) : 50; let postal = String(b.postal || "").match(/\d{5}/)?.[0] || ""; if (!postal && Number.isFinite(lat) && Number.isFinite(lon)) postal = await reversePostal(lat, lon); const ctx = { lat, lon, radiusMiles, postal };
+    const names = ["Craigslist", "HiBid", "Facebook Marketplace"].filter(use), summary = summaryFor(names), seeds: any[] = [], remoteTerms = terms.slice(0, 4);
 
-    let rows: any[] = [], status: any[] = [];
-    const remoteTerms = terms.slice(0, 5);
     for (const term of remoteTerms) {
       const q = encodeURIComponent(term), jobs: any[] = [];
-      if (use("Craigslist")) {
-        const geo = Number.isFinite(lat) && Number.isFinite(lon) ? `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&search_distance=${radiusMiles}` : "";
-        jobs.push({ source: "Craigslist", url: `https://www.craigslist.org/search/sss?query=${q}&sort=date${geo}`, parse: (h: string, u: string) => craigslist(h, u, term, ctx) });
-      }
-      if (use("HiBid")) {
-        const loc = postal ? `&zip=${encodeURIComponent(postal)}&miles=${radiusMiles}` : "";
-        jobs.push({ source: "HiBid", url: `https://hibid.com/lots?q=${q}${loc}`, parse: (h: string, u: string) => hibid(h, u, term) });
-      }
-      const settled = await Promise.all(jobs.map(async j => {
-        try {
-          const p = await get(j.url), found = j.parse(p.html, p.url);
-          status.push({ source: j.source, term, status: "PASS", matches: found.length });
-          return found;
-        } catch (e) {
-          status.push({ source: j.source, term, status: "BLOCKED_OR_UNAVAILABLE", matches: 0, detail: e instanceof Error ? e.message : String(e) });
-          return [];
-        }
-      }));
-      for (const x of settled) rows.push(...x);
+      if (use("Craigslist")) jobs.push({ source: "Craigslist", url: `https://www.craigslist.org/search/sss?query=${q}&sort=date${Number.isFinite(lat)&&Number.isFinite(lon)?`&lat=${lat}&lon=${lon}&search_distance=${radiusMiles}`:""}` });
+      if (use("HiBid")) jobs.push({ source: "HiBid", url: `https://hibid.com/lots?q=${q}${postal?`&zip=${encodeURIComponent(postal)}&miles=${radiusMiles}`:""}` });
+      const got = await Promise.all(jobs.map(async j => { summary[j.source].attempts++; try { const p = await get(j.url, 6500), found = j.source === "Craigslist" ? discoverCraigslist(p.html, p.url, term) : discoverHiBid(p.html, p.url, term); summary[j.source].search_hits += found.length; return found; } catch { summary[j.source].failed++; return []; } }));
+      got.forEach(a => seeds.push(...a));
     }
 
-    if (use("Facebook Marketplace")) {
-      const fb = facebook(Array.isArray(b.facebookCandidates) ? b.facebookCandidates : [], terms);
-      rows.push(...fb);
-      status.push({ source: "Facebook Marketplace", term: "phone alerts", status: "PASS", matches: fb.length, device_session: true });
-    }
+    if (use("Facebook Marketplace")) { const fb = facebookSeeds(Array.isArray(b.facebookCandidates) ? b.facebookCandidates : [], terms); summary["Facebook Marketplace"].attempts = 1; summary["Facebook Marketplace"].search_hits = fb.length; seeds.push(...fb); }
 
-    const candidates = uniq(rows).sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0)).slice(0, 60);
-    const opportunities = await scoreCandidates(candidates);
-    const by: Record<string, any> = {};
-    for (const s of status) {
-      const k = s.source;
-      if (!by[k]) by[k] = { attempts: 0, passed: 0, matches: 0, failed: 0, qualified: 0 };
-      by[k].attempts++;
-      if (s.status === "PASS") by[k].passed++; else by[k].failed++;
-      by[k].matches += Number(s.matches || 0);
+    const unique = new Map<string, any>(); for (const s of seeds) if (s.url && !unique.has(s.url)) unique.set(s.url, s);
+    const bySource: Record<string, any[]> = { Craigslist: [], HiBid: [], "Facebook Marketplace": [] }; for (const x of unique.values()) bySource[x.source]?.push(x);
+    const detailRows: any[] = [];
+    for (const source of ["Craigslist", "HiBid"]) {
+      if (!use(source)) continue;
+      const top = (bySource[source] || []).slice(0, 8);
+      const details = await Promise.all(top.map(async seed => { try { const p = await get(seed.url, 6500), d = source === "Craigslist" ? craigslistDetail(p.html, p.url, seed) : hibidDetail(p.html, p.url, seed); if (d) summary[source].detail_verified++; else summary[source].failed++; return d; } catch { summary[source].failed++; return null; } }));
+      detailRows.push(...details.filter(Boolean));
     }
-    for (const x of opportunities) {
-      const k = x.source;
-      if (!by[k]) by[k] = { attempts: 0, passed: 0, matches: 0, failed: 0, qualified: 0 };
-      by[k].qualified++;
-    }
+    if (use("Facebook Marketplace")) { const fb = bySource["Facebook Marketplace"] || []; summary["Facebook Marketplace"].detail_verified = fb.length; detailRows.push(...fb); }
 
-    return json(r, 200, {
-      status: "PASS",
-      engine: "location_profit_v1",
-      facebook_mode: "device_notifications_only",
-      location: { lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null, postal: postal || null, radius_miles: radiusMiles },
-      candidates_checked: candidates.length,
-      opportunities,
-      source_status: status,
-      source_summary: by,
-      automatic: true,
-      scanned_at: new Date().toISOString(),
-    });
+    const located: any[] = [];
+    for (const row of detailRows.slice(0, 24)) { const v = await verifyLocation(row, ctx); if (v && v.location_verified) { summary[row.source].location_verified++; located.push(v); } else summary[row.source].rejected_location++; }
+    const opportunities = await scoreStrict(located, summary);
+    const searchHits = Object.values(summary).reduce((a: number, x: any) => a + Number(x.search_hits || 0), 0), detailVerified = Object.values(summary).reduce((a: number, x: any) => a + Number(x.detail_verified || 0), 0);
+
+    return json(r, 200, { status: "PASS", engine: "verified_profit_v2", facebook_mode: "authenticated_device_browser_plus_alerts", location: { lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null, postal: postal || null, radius_miles: radiusMiles }, search_hits: searchHits, detail_verified: detailVerified, opportunities, source_summary: summary, automatic: true, scanned_at: new Date().toISOString() });
   } catch (e) {
-    return json(r, 200, { status: "PARTIAL", engine: "location_profit_v1", facebook_mode: "device_notifications_only", candidates_checked: 0, opportunities: [], source_status: [], source_summary: {}, automatic: true, warning: e instanceof Error ? e.message : String(e) });
+    return json(r, 200, { status: "PARTIAL", engine: "verified_profit_v2", facebook_mode: "authenticated_device_browser_plus_alerts", search_hits: 0, detail_verified: 0, opportunities: [], source_summary: {}, automatic: true, warning: e instanceof Error ? e.message : String(e) });
   }
 });
