@@ -16,6 +16,10 @@ import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -28,6 +32,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
     public static final String DEVICE_STOCK_MARKER = "H38_DEVICE_RETAILER_STOCK_V1";
     public static final String LOCATION_MARKER = "H38_PHONE_OR_ZIP_LOCATION_V3";
     public static final String SAAS_MARKER = "H38_RESELLER_SAAS_WORKSPACE_V2";
+    public static final String NATIVE_INSETS_MARKER = "H38_NATIVE_CONTENT_INSETS_V1";
     public static final String CONTRACT_TEXT = "Search Facebook in Scout | Only verified, profit-supported resale opportunities | Search ZIP | Use phone location | Ad / flyer source | Scout Home | Store Scan | Verified Finds | Item Watch | Auctions | Stores / Clearance | Inventory | Diagnostics";
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile String patchJs;
@@ -144,6 +149,26 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         return null;
     }
 
+    private static void applyNativeContentInsets(Activity activity, WebView webView) {
+        View content = activity.findViewById(android.R.id.content);
+        if (content == null || webView == null) return;
+
+        // MainActivity historically padded the WebView itself. Fixed/sticky DOM elements can still
+        // render beneath Android system bars in that arrangement. Move the insets to the native
+        // content container so Android physically reduces the WebView viewport instead.
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
+            view.setPadding(0, 0, 0, 0);
+            return insets;
+        });
+        ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(content);
+        ViewCompat.requestApplyInsets(webView);
+    }
+
     private static String sharedText(Intent intent) {
         if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return null;
         String type = intent.getType();
@@ -157,6 +182,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         if (!(activity instanceof MainActivity)) return;
         WebView webView = findWebView(activity.getWindow().getDecorView());
         if (webView == null) return;
+        applyNativeContentInsets(activity, webView);
         webView.addJavascriptInterface(new Bridge(activity, webView), "AndroidH38Scout");
         String shared = sharedText(activity.getIntent());
         String js = patch() + (shared == null ? "" : "\nwindow.H38SharedOpportunity&&window.H38SharedOpportunity(" + JSONObject.quote(shared) + ");");
