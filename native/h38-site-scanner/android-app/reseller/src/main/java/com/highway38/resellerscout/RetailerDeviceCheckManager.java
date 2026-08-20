@@ -171,7 +171,7 @@ public final class RetailerDeviceCheckManager {
                 byte[] buffer = new byte[8192];
                 int count;
                 while ((count = in.read(buffer)) > 0) out.write(buffer, 0, count);
-                extractorAsset = out.toString(StandardCharsets.UTF_8);
+                extractorAsset = new String(out.toByteArray(), StandardCharsets.UTF_8);
                 return extractorAsset;
             }
         }
