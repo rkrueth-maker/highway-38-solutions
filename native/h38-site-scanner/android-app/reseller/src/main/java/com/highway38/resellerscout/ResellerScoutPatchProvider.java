@@ -115,7 +115,7 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
         try (InputStream in = getContext().getAssets().open("reseller/v027-patch.js"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buf = new byte[8192]; int n;
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            patchJs = out.toString(StandardCharsets.UTF_8);
+            patchJs = new String(out.toByteArray(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             patchJs = "console.error('H38 v0.1.27 patch asset unavailable');";
         }
