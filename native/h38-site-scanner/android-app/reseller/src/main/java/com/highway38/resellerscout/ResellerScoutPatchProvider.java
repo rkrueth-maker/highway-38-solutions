@@ -37,8 +37,8 @@ public final class ResellerScoutPatchProvider extends ContentProvider implements
               function wire(){var deck=document.getElementById('h38AutomaticDeck');if(!deck)return false;var note=deck.querySelector('.muted.small');if(note)note.textContent='Scout scans resale sources itself. Results and blocked/unavailable status stay inside Scout; no manual-search fallback links.';deck.querySelectorAll('[data-h38-scan]').forEach(function(old){if(old.dataset.h38Strict==='2')return;var b=old.cloneNode(true);b.dataset.h38Strict='2';old.parentNode.replaceChild(b,old);b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();scan(b.dataset.h38Scan||'all')})});var finds=document.getElementById('h38AutoFinds');if(finds&&!finds.__h38StrictObserverV2){finds.__h38StrictObserverV2=true;new MutationObserver(purgeFallbacks).observe(finds,{childList:true,subtree:true})}purgeFallbacks();return true}
               if(!window.__H38BlockManualSourceFallbackV2){window.__H38BlockManualSourceFallbackV2=true;document.addEventListener('click',function(e){var n=e.target;if(!(n instanceof Element))return;var b=n.closest('[data-auto-open]');if(!b||!blockedFallbackUrl(b.dataset.autoOpen))return;e.preventDefault();e.stopImmediatePropagation();var card=b.closest('.h38-auto-card');if(card)card.remove();var st=document.getElementById('h38AutoStatus');if(st)st.textContent='Manual source fallback suppressed. Scout only shows in-app scan results.'},true)}
               window.__H38StrictInAppSourceScanV2=function(){wire()};
-              wire();
-              if(!window.__H38StrictAutoSourceScanV2){window.__H38StrictAutoSourceScanV2=true;setTimeout(function(){if(wire())scan('all')},900);setInterval(function(){if(wire())scan('all')},120000)}
+              function startAutomatic(){if(window.__H38StrictAutoSourceScanV2)return;if(!wire()){setTimeout(startAutomatic,500);return}window.__H38StrictAutoSourceScanV2=true;scan('all');setInterval(function(){if(wire())scan('all')},120000)}
+              wire();startAutomatic();
             })();
             """;
 
