@@ -6,8 +6,8 @@ FINISH = (ROOT / 'commercial-app' / 'field-visit-finish-build.js').read_text(enc
 
 
 def test_final_runtime_is_loaded_from_finish_flow():
-    assert "20260821-site-visit-photo-quote-runtime-repair-2" in RUNTIME
-    assert "site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-2" in FINISH
+    assert "20260821-site-visit-photo-quote-runtime-repair-3" in RUNTIME
+    assert "site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-3" in FINISH
     assert "photoQuoteRuntimeRepairLoaded:true" in FINISH
     assert "await window.H38_SITE_VISIT_PHOTO_QUOTE_RUNTIME_REPAIR?.hydrateEvidence?.('finish-build')" in FINISH
 
@@ -47,6 +47,17 @@ def test_quote_ai_uses_explicit_token_validation_and_one_refresh_retry():
     assert "forcedAuthRefreshRetry:true" in RUNTIME
 
 
+def test_quote_ai_is_single_flight_and_suppresses_background_repeat_requests():
+    assert "quoteBuildBusy" in RUNTIME
+    assert "if(quoteBuildBusy)return quoteBuildBusy" in RUNTIME
+    assert "lastQuoteResult" in RUNTIME
+    assert "Date.now()-lastQuoteResult.at<120000" in RUNTIME
+    assert "singleFlightQuoteBuild:true" in RUNTIME
+    assert "repeatedRequestSuppression:true" in RUNTIME
+    assert "x-h38-request-id" in RUNTIME
+    assert "clientRuntimeBuild=BUILD" in RUNTIME
+
+
 def test_quote_build_hydrates_saved_site_measurements():
     assert ".eq('collection','siteMeasurements')" in RUNTIME
     assert "prepared.measurementEvidence=evidence" in RUNTIME
@@ -54,19 +65,24 @@ def test_quote_build_hydrates_saved_site_measurements():
     assert "liveSupabaseMeasurements:true" in RUNTIME
 
 
-def test_trade_specific_policy_cannot_contaminate_unrelated_scope():
+def test_trade_specific_policy_is_separated_from_owner_work_request():
     assert "function cleanOwnerNotes(notes)" in RUNTIME
     assert "insulat(?:e|ed|ing|ion)|drywall|sheet\\s*rock|sheetrock" in RUNTIME
-    assert "Trade-specific examples in system instructions apply only when that trade is actually named in the project scope." in RUNTIME
+    assert "prepared.ownerWorkRequest=ownerWorkRequest" in RUNTIME
+    assert "prepared.systemQuotePolicy=buildPolicy()" in RUNTIME
+    assert "System quote policy and reusable examples are rules only" in RUNTIME
     assert "noGlobalDrywallInsulationContamination:true" in RUNTIME
 
 
-def test_zero_line_or_zero_price_quote_is_repaired_not_silently_loaded():
-    assert "if(!lines.length)problems.push('no quote lines were returned')" in RUNTIME
-    assert "non-positive quantities" in RUNTIME
-    assert "non-positive rates" in RUNTIME
-    assert "OWNER DRAFT REPAIR" in RUNTIME
-    assert "H38 could not create a safe editable quote draft" in RUNTIME
+def test_missing_price_or_quantity_keeps_an_editable_owner_review_draft():
+    assert "text(line?.priceSource).toLowerCase()!=='manual_required'" in RUNTIME
+    assert "function editableDraft(payload,args)" in RUNTIME
+    assert "quantity:1,unit:'lump sum',rate:0" in RUNTIME
+    assert "Needs pricing:" in RUNTIME
+    assert "Provisional owner-review quantity of 1 keeps the draft editable" in RUNTIME
+    assert "manualPricingDoesNotLockDraft:true" in RUNTIME
+    assert "editableDraftFallback:true" in RUNTIME
+    assert "H38 could not create a safe editable quote draft" not in RUNTIME
 
 
 def test_safety_boundaries_are_preserved():
