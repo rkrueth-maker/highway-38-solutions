@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 46
-        versionName '0.1.45'
+        versionCode 47
+        versionName '0.1.46'
     }
     signingConfigs {
         if (hasReleaseSigning) {
@@ -30,7 +30,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix '.owner45'
+            applicationIdSuffix '.owner46'
             versionNameSuffix '-debug'
         }
         release {
