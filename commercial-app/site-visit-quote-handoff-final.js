@@ -1,0 +1,82 @@
+(function(){
+'use strict';
+const BUILD='20260821-site-visit-quote-handoff-final-1';
+const legacy=window.H38_FIELD_VISIT_QUOTE_HANDOFF;
+const C=window.H38_FIELD_VISIT_CORE;
+if(!legacy||!C)return;
+let buildBusy=false,scheduled=false;
+const text=value=>String(value==null?'':value).trim();
+const number=value=>{const n=Number(value==null?0:value);return Number.isFinite(n)?n:0;};
+const value=(row,...keys)=>{const source=row?.payload&&typeof row.payload==='object'?row.payload:row;for(const key of keys){if(source&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')return source[key];}return'';};
+const arr=value=>Array.isArray(value)?value:[];
+const quoteIdOf=row=>text(value(row,'Quote ID','quoteId'));
+const newLineId=()=>typeof window.newId==='function'?window.newId('QUOTE-LINE'):`QUOTE-LINE-${crypto.randomUUID().toUpperCase()}`;
+function quoteRecord(){const id=text(window.state?.quote?.quoteId);return id?C.rows('quotes').find(row=>quoteIdOf(row)===id)||null:null;}
+function context(){const quote=quoteRecord();return quote?legacy.contextFromRecords?.(quote)||null:null;}
+function noteSummary(ctx){const manual=text(ctx?.ownerFieldNotes),transcript=text(ctx?.walkthroughTranscript),voice=arr(ctx?.walkthroughCustomerRequests).length||arr(ctx?.walkthroughSiteConditions).length||text(ctx?.aiScopeDraft);return{manual:manual?'Manual field notes: ready':'Manual field notes: none',walkthrough:(transcript||voice)?'Walkthrough AI notes: ready':'Walkthrough AI notes: none'};}
+function ownerWorkRequest(ctx){if(!ctx)return'';const measurements=arr(ctx.measurements).map(item=>`${text(item.label)}: ${number(item.value)} ${text(item.unit)} [${text(item.verificationStatus)}]`).filter(Boolean);return[
+  ctx.ownerFieldNotes?`Manual field notes:\n${text(ctx.ownerFieldNotes)}`:'',
+  ctx.walkthroughTranscript?`Walkthrough transcript:\n${text(ctx.walkthroughTranscript)}`:'',
+  arr(ctx.walkthroughCustomerRequests).length?`Customer requests heard during walkthrough: ${arr(ctx.walkthroughCustomerRequests).join(' | ')}`:'',
+  arr(ctx.walkthroughSiteConditions).length?`Site conditions heard during walkthrough: ${arr(ctx.walkthroughSiteConditions).join(' | ')}`:'',
+  arr(ctx.scopeConfirmations).length?`Owner scope confirmations: ${arr(ctx.scopeConfirmations).map(item=>`${text(item.question)} => ${text(item.answer)}`).join(' | ')}`:'',
+  measurements.length?`Structured field measurements: ${measurements.join(' | ')}`:''
+].filter(Boolean).join('\n\n').slice(0,16000);}
+function measurementSummary(ctx){return arr(ctx?.measurements).map(item=>`${text(item.label)}: ${number(item.value)} ${text(item.unit)}; ${text(item.verificationStatus)}; ${text(item.source)}`).join('\n');}
+function mapLine(line){const rate=Math.max(0,number(line?.rate??line?.unitPrice)),manual=rate<=0||text(line?.priceSource).toLowerCase()==='manual_required';return{quoteLineId:newLineId(),description:text(line?.description||'Owner review work item'),quantity:Math.max(.01,number(line?.quantity)||1),unit:text(line?.unit||'each'),unitPrice:rate,rate,costType:text(line?.costType||'other'),catalogId:text(line?.catalogId),priceSource:text(line?.priceSource||'manual_required'),priceStatus:manual?'Manual price required':'Owner review required',rationale:text(line?.rationale),ownerReviewRequired:true};}
+async function buildDraftFromContext(button){
+  if(buildBusy)return;
+  const office=window.state,quote=quoteRecord(),ctx=context(),runtime=window.H38_QUOTE_RUNTIME_AUTHORITY;
+  if(!quote||!ctx){C.toast('The linked Site Visit context could not be loaded.',true);return;}
+  if(!navigator.onLine||!runtime?.buildQuote){C.toast('H38 quote drafting needs an online secure Office connection.',true);return;}
+  buildBusy=true;
+  const original=button?.textContent;
+  if(button){button.disabled=true;button.textContent='Building quote directions…';button.setAttribute('aria-busy','true');}
+  try{
+    if(typeof window.sync==='function')await window.sync(false);
+    const scope=text(value(quote,'Scope','scope')||ctx.ownerScopeRequest),result=await runtime.buildQuote({businessId:office.businessId,customerId:text(value(quote,'Customer ID','customerId')),quoteId:quoteIdOf(quote),projectTitle:text(value(quote,'Project Title','projectTitle')),scope,measurementNotes:measurementSummary(ctx),measurementEvidence:arr(ctx.measurements),siteMeasurements:arr(ctx.measurements),ownerWorkRequest:ownerWorkRequest(ctx),currentEstimate:arr(office?.quote?.lines).map(line=>({quoteLineId:text(line.quoteLineId),description:text(line.description),quantity:number(line.quantity),unit:text(line.unit),unitPrice:number(line.unitPrice??line.rate),extendedPrice:number(line.quantity)*number(line.unitPrice??line.rate),priceSource:text(line.priceSource),priceStatus:text(line.priceStatus)}))},180000);
+    if(result?.status!=='PASS')throw new Error(result?.message||'H38 AI quote draft did not complete.');
+    const draft=result.draft||{},suggested=arr(draft.suggestedLines);
+    office.quote.projectTitle=text(value(quote,'Project Title','projectTitle')||draft.projectTitle||office.quote.projectTitle);
+    office.quote.customerId=text(value(quote,'Customer ID','customerId')||office.quote.customerId);
+    office.quote.scope=text(value(quote,'Scope','scope')||draft.scope||scope);
+    office.quote.lines=suggested.map(mapLine);
+    office.quote.siteVisitDraftLoaded=true;
+    office.quote.ownerEdited=false;
+    if(result.quoteDirections?.directions?.length){
+      office.quote.h38QuoteDirections=result.quoteDirections.directions;
+      office.quote.h38QuoteDirectionTitle=text(result.quoteDirections.decisionTitle);
+      office.quote.h38QuoteDirectionReason=text(result.quoteDirections.decisionReason);
+      office.quote.h38QuoteDirectionDefaultId=text(result.quoteDirections.defaultDirectionId);
+    }
+    if(typeof window.renderQuotes==='function')window.renderQuotes();
+    const manual=office.quote.lines.filter(line=>number(line.unitPrice)<=0).length,directions=arr(result.quoteDirections?.directions).length;
+    C.toast(`Site Visit draft loaded: ${office.quote.lines.length} line${office.quote.lines.length===1?'':'s'}${directions?` · ${directions} direction${directions===1?'':'s'}`:''}${manual?` · ${manual} owner price${manual===1?'':'s'} still needed`:''}. Review before saving.`);
+  }catch(error){C.toast(error?.message||String(error),true);}finally{
+    buildBusy=false;
+    if(button){button.disabled=false;button.removeAttribute('aria-busy');button.textContent=original||'Build / Refresh Draft';}
+    schedule();
+  }
+}
+function attached(){const quote=quoteRecord();return Boolean(text(value(quote,'Site Scanner Session ID','siteScannerSessionId'))||text(value(quote,'Site Visit ID','siteVisitId')));}
+function fixAttachedState(){
+  if(window.state?.page!=='quotes'||!attached())return;
+  const main=document.getElementById('mainContent');if(!main)return;
+  const start=document.getElementById('h38StartFieldVisit');
+  if(start){start.textContent='Open Site Visit';start.dataset.h38OpenLinkedVisit='1';start.classList.add('secondary');start.removeAttribute('disabled');}
+  main.querySelectorAll('p,small,strong,h2,h3').forEach(node=>{const t=text(node.textContent);if(/^capture the job before building the quote/i.test(t))node.textContent='Site Visit Ready — review the captured evidence or build/refresh the editable quote draft.';});
+  const ai=document.getElementById('h38AiQuoteDraftButton');if(ai&&!arr(window.state?.quote?.lines).length)ai.textContent='✨ Build / Refresh Draft';
+  let status=document.getElementById('h38SiteVisitReadyFinal');
+  const ctx=context(),notes=noteSummary(ctx);
+  if(!status){status=document.createElement('div');status.id='h38SiteVisitReadyFinal';status.className='notice good';const anchor=document.querySelector('.h38-site-visit-quote-context')||main.querySelector('.page-tools');anchor?.insertAdjacentElement('afterend',status);}
+  if(status)status.innerHTML=`<strong>Site Visit Ready</strong><br><small>${notes.manual} · ${notes.walkthrough}</small>`;
+}
+function bindBuildButton(){const ai=document.getElementById('h38AiQuoteDraftButton');if(!ai||ai.dataset.h38FinalBuildBound==='1')return;ai.dataset.h38FinalBuildBound='1';ai.addEventListener('click',event=>{if(!attached())return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();void buildDraftFromContext(ai);},true);}
+function decorateQuote(){try{legacy.decorateQuote?.();}catch(_){}fixAttachedState();bindBuildButton();}
+function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;decorateQuote();});}
+const finalApi=Object.freeze({...legacy,build:BUILD,buildDraftFromContext,decorateQuote,contextFromRecords:legacy.contextFromRecords,finalRuntimeAuthority:true,noBridgeReadyGate:true,attachedSiteVisitReadyState:true,manualVsWalkthroughNotes:true,quoteDirectionsSupported:true,automaticApproval:false,automaticCustomerSending:false});
+window.H38_FIELD_VISIT_QUOTE_HANDOFF=finalApi;
+if(typeof window.renderQuotes==='function'&&!window.renderQuotes.__h38SiteVisitFinal){const base=window.renderQuotes;const wrapped=function(){const result=base.apply(this,arguments);schedule();return result;};wrapped.__h38SiteVisitFinal=true;window.renderQuotes=wrapped;}
+new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
+[0,250,900].forEach(delay=>setTimeout(schedule,delay));
+})();
