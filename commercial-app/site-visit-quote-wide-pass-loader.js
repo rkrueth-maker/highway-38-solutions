@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260821-site-visit-quote-wide-pass-loader-5';
+const BUILD='20260821-site-visit-quote-wide-pass-loader-6';
 const ASSET_BUILD='20260821-1605';
 if(window.H38_SITE_VISIT_QUOTE_WIDE_PASS_LOADER)return;
 window.H38_ASSET_BUILD=ASSET_BUILD;
@@ -14,7 +14,7 @@ const scripts=[
   ['./job-followup-idempotency-final.js','20260821-followup-idempotency-final-1','H38_JOB_FOLLOWUP_IDEMPOTENCY_FINAL'],
   ['./quote-action-picture-final.js','20260821-quote-action-picture-final-1','H38_QUOTE_ACTION_PICTURE_FINAL'],
   ['./quote-direction-options.js','20260821-quote-direction-options-1','H38_QUOTE_DIRECTION_OPTIONS'],
-  ['./site-visit-wide-acceptance-final.js','20260821-site-visit-wide-acceptance-final-1','H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL']
+  ['./site-visit-wide-acceptance-final.js','20260821-site-visit-wide-acceptance-final-2','H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL']
 ];
 function load(entry){return new Promise((resolve,reject)=>{const[path,build,global]=entry;if(window[global])return resolve();const existing=document.querySelector(`script[data-h38-wide-pass="${global}"]`);if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}const script=document.createElement('script');script.src=`${path}?build=${build}`;script.async=false;script.dataset.h38WidePass=global;script.addEventListener('load',resolve,{once:true});script.addEventListener('error',()=>reject(new Error(`Could not load ${path}`)),{once:true});document.head.appendChild(script);});}
 async function boot(){for(const entry of scripts){try{await load(entry);}catch(error){console.error('[H38 wide pass loader]',error);}}window.dispatchEvent(new CustomEvent('h38:site-visit-quote-wide-pass-ready',{detail:{build:BUILD,assetBuild:ASSET_BUILD}}));}
