@@ -36,7 +36,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.39 private Scout contract
+      - name: Verify v0.1.40 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
@@ -54,8 +54,10 @@ jobs:
           test -s reseller/src/main/res/xml/reseller_file_paths.xml
           test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
           echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.39'" reseller/build.gradle
-          check 'versionCode 40' reseller/build.gradle
+          check "versionName '0.1.40'" reseller/build.gradle
+          check 'versionCode 41' reseller/build.gradle
+          check "applicationIdSuffix '.owner40'" reseller/build.gradle
+          check "versionNameSuffix '-owner40'" reseller/build.gradle
           check 'camera-core:1.4.2' reseller/build.gradle
           check 'camera-camera2:1.4.2' reseller/build.gradle
           check 'camera-lifecycle:1.4.2' reseller/build.gradle
@@ -128,22 +130,22 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.39.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.40.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.39.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.40.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.39.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.40.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='40' versionName='0.1.39'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='41' versionName='0.1.40'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='40' versionName='0.1.39-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner40' versionCode='41' versionName='0.1.40-owner40'" "$report/badging.txt"
           fi
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
           for f in index.html v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js v037-safearea.css v037-physical.js; do zipinfo -1 "$out" | grep -Fq "assets/reseller/$f"; done
@@ -154,7 +156,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.39
+          name: h38-reseller-scout-owner-test-v0.1.40
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
