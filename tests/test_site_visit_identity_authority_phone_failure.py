@@ -61,11 +61,13 @@ def test_identity_authority_is_deployed_through_live_first_cache_boundary():
     assert "site-visit-work-dedupe-final-2" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
     assert "site-visit-quote-wide-pass-loader-4" in HAMMER
+    assert "h38-business-office-20260821-1148" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert "h38-business-office-20260821-0345" in SW
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     assert "site-visit-work-dedupe-final.js" in live_first
+    assert "site-visit-identity-write-fence-final.js" in live_first
     assert "site-visit-quote-wide-pass-loader.js" in live_first
+    assert "site-visit-quote-final-bootstrap.js" in live_first
 
 
 def test_detached_local_draft_cannot_mutate_linked_quote_identity():
