@@ -1,0 +1,15 @@
+/* v0.1.37 physical Android safe-area and control polish */
+:root{--h38-bottom-nav-height:72px}
+.top button.ghost{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.06)}
+.top button.ghost:active{background:rgba(255,255,255,.16)}
+.wrap{padding-bottom:calc(var(--h38-bottom-nav-height) + 30px + env(safe-area-inset-bottom,0px))}
+.bottom{min-height:var(--h38-bottom-nav-height);padding:6px 7px max(10px,env(safe-area-inset-bottom,0px));touch-action:manipulation}
+.bottom button{min-height:54px;touch-action:manipulation}
+@media(max-width:700px){
+  .top{padding:10px 10px;gap:6px}
+  .top h1{font-size:18px;line-height:1.1}
+  .top .right{gap:5px;flex:0 0 auto}
+  .top .right button{min-height:38px;padding:7px 9px;font-size:12px}
+  .top small{max-width:46vw}
+  .wrap{padding:9px 9px calc(var(--h38-bottom-nav-height) + 30px + env(safe-area-inset-bottom,0px))}
+}
