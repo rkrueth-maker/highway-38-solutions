@@ -7,6 +7,7 @@ TOP = (APP / 'site-visit-top-action.js').read_text(encoding='utf-8')
 FINISH = (APP / 'field-visit-finish-build.js').read_text(encoding='utf-8')
 PHOTO = (APP / 'site-visit-photo-quote-runtime-repair.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
+INDEX = (APP / 'index.html').read_text(encoding='utf-8')
 
 
 def declared_build(source: str) -> str:
@@ -40,11 +41,24 @@ def test_final_quote_runtimes_are_live_first_and_precached():
         assert f"'./{filename}'" in SW
 
 
+def test_final_authorities_are_loaded_directly_from_index():
+    expected = [
+        './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
+        f'./site-visit-photo-quote-runtime-repair.js?build={declared_build(PHOTO)}',
+        './field-visit-quote-handoff.js?build=20260811-site-visit-quote-handoff-3',
+        f'./field-visit-finish-build.js?build={declared_build(FINISH)}',
+        './site-visit-top-action.js?build=20260821-site-visit-quote-runtime-authority-1',
+    ]
+    positions = [INDEX.index(item) for item in expected]
+    assert positions == sorted(positions)
+    assert "window.H38_ASSET_BUILD='20260821-site-visit-quote-final-1'" in INDEX
+
+
 def test_service_worker_cache_was_bumped_for_final_authority():
     assert "h38-business-office-20260821-quote-runtime-authority-1" in SW
 
 
-def test_top_level_runtime_directly_loads_photo_quote_authority():
+def test_top_level_runtime_still_has_defensive_direct_loader():
     assert 'function loadPhotoQuoteRuntimeRepair()' in TOP
     assert 'loadPhotoQuoteRuntimeRepair();loadQuoteHandoff()' in TOP
     assert 'photoQuoteRuntimeRepairLoaded:true' in TOP
