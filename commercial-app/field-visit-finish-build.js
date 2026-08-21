@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260814-finish-site-visit-build-quote-3';
+const BUILD='20260821-finish-site-visit-build-quote-4';
 let busy=false,decorateTimer=0;
 const text=value=>String(value==null?'':value);
 function core(){return window.H38_FIELD_VISIT_CORE||null;}
@@ -30,13 +30,22 @@ async function refreshEvidence(){
   if(typeof window.sync==='function')await window.sync(false);
   if(typeof window.renderQuotes==='function')window.renderQuotes();
 }
+function loadPhotoQuoteRuntimeRepair(){
+  if(window.H38_SITE_VISIT_PHOTO_QUOTE_RUNTIME_REPAIR||document.querySelector('script[data-h38-photo-quote-runtime-repair]'))return;
+  const script=document.createElement('script');
+  script.src='./site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-2';
+  script.dataset.h38PhotoQuoteRuntimeRepair='1';
+  document.head.appendChild(script);
+}
 async function finishAndBuild(){
   if(busy)return;
   const api=handoffApi(),quoteId=activeQuoteId();
   if(!api?.handoff||!api?.buildDraftFromContext||!quoteId)return;
-  rememberActionPhoto(quoteId);
   busy=true;
   try{
+    loadPhotoQuoteRuntimeRepair();
+    await window.H38_SITE_VISIT_PHOTO_QUOTE_RUNTIME_REPAIR?.hydrateEvidence?.('finish-build');
+    rememberActionPhoto(quoteId);
     await api.handoff();
     const opened=await waitForQuote(quoteId);
     if(!opened)return;
@@ -80,6 +89,8 @@ window.addEventListener('click',event=>{
 },true);
 new MutationObserver(()=>scheduleDecorate()).observe(document.documentElement,{childList:true,subtree:true});
 [0,250,900].forEach(delay=>setTimeout(decorate,delay));
+loadPhotoQuoteRuntimeRepair();
+setTimeout(loadPhotoQuoteRuntimeRepair,500);
 window.H38_FIELD_VISIT_FINISH_BUILD=Object.freeze({
   build:BUILD,
   finishAndBuild,
@@ -90,6 +101,7 @@ window.H38_FIELD_VISIT_FINISH_BUILD=Object.freeze({
   offlineSaveStillAllowed:true,
   automaticVisualGeneration:false,
   actionPhotoRequiredBeforeAnyOptionalRender:true,
+  photoQuoteRuntimeRepairLoaded:true,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticPurchase:false,
