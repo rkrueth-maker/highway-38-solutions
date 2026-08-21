@@ -12,7 +12,6 @@ const VERIFIED_STATUSES=Object.freeze([
 const VERIFIED_SET=new Set(VERIFIED_STATUSES);
 const text=value=>String(value==null?'':value);
 const value=(row,...keys)=>{const source=row?.payload&&typeof row.payload==='object'?row.payload:row;for(const key of keys){if(source&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')return source[key];}return'';};
-const unique=items=>Array.from(new Set((items||[]).filter(Boolean)));
 function status(rowOrStatus){return text(typeof rowOrStatus==='string'?rowOrStatus:value(rowOrStatus,'Verification Status','verificationStatus','status')).trim().toUpperCase();}
 function isVerified(rowOrStatus){return rowOrStatus?.fieldVerified===true||VERIFIED_SET.has(status(rowOrStatus));}
 function normalizeUnit(raw){const unit=text(raw).toLowerCase().trim().replace(/[^a-z]/g,'');if(['in','inch','inches'].includes(unit))return'in';if(['ft','foot','feet'].includes(unit))return'ft';if(['lf','linearfoot','linearfeet'].includes(unit))return'lf';if(['sf','squarefoot','squarefeet'].includes(unit))return'sf';return unit;}
@@ -37,10 +36,10 @@ function suppressCurrentVisitMissing(){const v=currentVisit(),verified=currentRo
   const ai=v.walkthroughAi;if(ai){if(Array.isArray(ai.missingMeasurements)){const before=ai.missingMeasurements.length;ai.missingMeasurements=filterMissing(ai.missingMeasurements,verified);removed+=before-ai.missingMeasurements.length;}if(ai.review){for(const key of ['Missing Measurements','missingMeasurements']){if(!Array.isArray(ai.review[key]))continue;const before=ai.review[key].length;ai.review[key]=filterMissing(ai.review[key],verified);removed+=before-ai.review[key].length;}}}
   return{verified:verified.length,removed};}
 function decorateReviewWording(){const card=document.getElementById('h38GuidedController');if(!card)return;for(const section of card.querySelectorAll('.h38-guided-section')){const heading=section.querySelector(':scope > strong');if(!heading)continue;const label=text(heading.textContent).trim();if(label==='Photos H38 still needs'){heading.textContent='Additional photos H38 recommends';const empty=section.querySelector('.h38-guided-empty');if(empty)empty.textContent='No additional photos needed.';}if(label==='Measurements H38 still needs'){heading.textContent='Measurements still unverified';const empty=section.querySelector('.h38-guided-empty');if(empty)empty.textContent='No additional measurements needed.';}}}
-let busy=false;function reconcile(){if(busy)return;busy=true;try{suppressCurrentVisitMissing();decorateReviewWording();}finally{busy=false;}}
+let busy=false;function reconcile(){if(busy)return;busy=true;try{const result=suppressCurrentVisitMissing();if(result.removed>0){const guidance=window.H38_FIELD_VISIT_GUIDANCE;if(typeof guidance?.decorate==='function')guidance.decorate(true);}decorateReviewWording();}finally{busy=false;}}
 const observer=new MutationObserver(()=>queueMicrotask(reconcile));observer.observe(document.documentElement,{childList:true,subtree:true});
 window.addEventListener('h38:walkthrough-measurements-updated',reconcile);
 window.addEventListener('h38:business-snapshot-updated',reconcile);
 [0,250,900,2200].forEach(delay=>setTimeout(reconcile,delay));
-window.H38_MEASUREMENT_VERIFICATION=Object.freeze({build:BUILD,VERIFIED_STATUSES,isVerified,normalizeUnit,normalizeLabel,labelMatch,missingResolved,currentRows,filterMissing,suppressCurrentVisitMissing,reconcile,fieldMeasuredIsVerified:true,structuredIdentityMatching:true,scalarLabelValueUnitMatching:true,automaticApproval:false});
+window.H38_MEASUREMENT_VERIFICATION=Object.freeze({build:BUILD,VERIFIED_STATUSES,isVerified,normalizeUnit,normalizeLabel,labelMatch,missingResolved,currentRows,filterMissing,suppressCurrentVisitMissing,reconcile,fieldMeasuredIsVerified:true,structuredIdentityMatching:true,scalarLabelValueUnitMatching:true,reviewReRenderAfterSuppression:true,automaticApproval:false});
 })();
