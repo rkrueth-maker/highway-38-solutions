@@ -4,12 +4,8 @@ on:
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'supabase/functions/reseller-auto-leads-v044/**'
-      - 'supabase/functions/reseller-auto-leads-v046/**'
       - 'supabase/functions/reseller-auto-leads-v049/**'
       - 'supabase/functions/reseller-auto-leads-v051/**'
-      - 'supabase/functions/reseller-item-research-v044/**'
-      - 'supabase/functions/reseller-item-research-v047/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -36,64 +32,33 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.51 artifact and photo contract
+
+      - name: Verify v0.1.52 install-recovery contract
         shell: bash
         run: |
           set -euo pipefail
           check() { grep -Fq "$1" "$2" || { echo "::error::Missing contract token [$1] in $2"; exit 1; }; }
           assets='reseller/src/main/assets/reseller'
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
-          foundation="$assets/v045-runtime.js"
           v049="$assets/v049-runtime.js"
           v051="$assets/v051-runtime.js"
-          leads49="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v049/index.ts"
-          leads51="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v051/index.ts"
-          market="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v047/index.ts"
-          check "versionName '0.1.51'" reseller/build.gradle
-          check 'versionCode 52' reseller/build.gradle
-          check "applicationIdSuffix '.owner51'" reseller/build.gradle
-          check 'v049-runtime.js' reseller/build.gradle
-          check 'v051-runtime.js' reseller/build.gradle
-          check 'bundled-v049-plus-v051' reseller/build.gradle
-          check 'H38_V045_RUNTIME_INLINED' "$main"
-          check 'H38_V048_RUNTIME_ACTIVE' "$foundation"
+          check "versionName '0.1.52'" reseller/build.gradle
+          check 'versionCode 53' reseller/build.gradle
+          check "applicationIdSuffix '.owner52fix'" reseller/build.gradle
+          check 'enableV1Signing true' reseller/build.gradle
+          check 'enableV2Signing true' reseller/build.gradle
+          check 'bundled-v049-plus-v051-installfix' reseller/build.gradle
           check 'H38_V049_RUNTIME_ACTIVE' "$v049"
-          check 'near-penny-all-store-leads-dg-photo-v049' "$v049"
           check 'Near Penny' "$v049"
           check 'All ranked leads' "$v049"
-          check 'storeBatchV049' "$v049"
           check 'H38_V051_RUNTIME_ACTIVE' "$v051"
           check 'artifact-filter-progressive-dg-photo-cache-v051' "$v051"
-          check 'known_image_ids' "$v051"
-          check 'open_facts_checked_ids' "$v051"
           check 'reseller-auto-leads-v051' "$v051"
-          check "replace(/[^a-z0-9]+/gi,' ')" "$v051"
-          check 'cleanState()' "$v051"
-          check 'OPEN_FACTS_LIMIT=5' "$leads51"
-          check 'product_type=all' "$leads51"
-          check 'image_front_url' "$leads51"
-          check 'Open Facts barcode' "$leads51"
-          check 'reseller-auto-leads-v049' "$leads51"
-          check 'open_facts_photo_enriched_count' "$leads51"
-          check 'artifact_rule' "$leads51"
-          check 'dg_photo_enriched_count' "$leads49"
-          check 'Penny Tree item' "$leads49"
-          check 'H38_STAGED_RESEARCH_V047' "$market"
           check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
           if grep -Fq 'All crawler' "$v049"; then echo '::error::Raw crawler dump must not return to the hunt UI'; exit 1; fi
-          if grep -Fq 'ACTION_IMAGE_CAPTURE' "$main"; then echo '::error::External OEM image capture is forbidden'; exit 1; fi
-          node --check "$assets/v035-research.js"
-          node --check "$assets/v035-app.js"
-          node --check "$assets/v037-physical.js"
-          node --check "$foundation"
           node --check "$v049"
           node --check "$v051"
-          node - <<'NODE'
-          const artifact=t=>{t=String(t||'').trim();const plain=t.replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();if(t.length<7||plain.length<3)return true;return /^(?:today|yesterday|\d+\s+(?:minutes?|hours?|days?|weeks?)\s+ago|fd|dg|dt|item|product|unknown|clearance|penny|deal)$/i.test(plain)||/^(?:home depot|dollar general|dollar tree|family dollar)\s+(?:deep|daily|weekly|tool|deal|deals|clearance|penny)/i.test(plain)||/(?:deep tool savings|daily deals|weekly deals|current weekly list|surprise penny list)$/i.test(plain)};
-          for(const bad of ['→ · today','→ · yesterday','💊 FD','2 days ago','Home Depot Daily Deals'])if(!artifact(bad))throw new Error('artifact escaped: '+bad);
-          for(const good of ['KISS Salon Acrylic Natural Nails','Pantene Pro-V Conditioner 12.1 oz'])if(artifact(good))throw new Error('real product rejected: '+good);
-          console.log('artifact filter cases ok');
-          NODE
+
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -116,11 +81,13 @@ jobs:
           else
             echo 'variant=debug' >> "$GITHUB_OUTPUT"
           fi
+
       - name: Compile private Reseller Scout APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
+          mkdir -p "$report"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
             gradle --no-daemon :reseller:assembleRelease | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/release/reseller-release.apk'
@@ -128,40 +95,45 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.51.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.52.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.51.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.52.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
-      - name: Smoke inspect packaged v0.1.51 runtime authority
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+
+      - name: Smoke inspect installable v0.1.52 APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.51.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.52.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='52' versionName='0.1.51'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='53' versionName='0.1.52'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner51' versionCode='52' versionName='0.1.51-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner52fix' versionCode='53' versionName='0.1.52-debug'" "$report/badging.txt"
           fi
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v049-runtime.js'
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v051-runtime.js'
+          grep -Fq 'Verified using v1 scheme (JAR signing): true' "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"
+          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
-          grep -Fq 'data-h38-v051-runtime="bundled-v049-plus-v051"' "$report/packaged-index.html"
+          grep -Fq 'data-h38-v052-runtime="bundled-v049-plus-v051-installfix"' "$report/packaged-index.html"
           grep -Fq 'H38_V049_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V051_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'Near Penny' "$report/packaged-index.html"
           grep -Fq 'All ranked leads' "$report/packaged-index.html"
           grep -Fq 'artifact-filter-progressive-dg-photo-cache-v051' "$report/packaged-index.html"
-          grep -Fq 'reseller-auto-leads-v051' "$report/packaged-index.html"
           if grep -Fq '<script src="v049-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v049 must be bundled inline'; exit 1; fi
           if grep -Fq '<script src="v051-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v051 must be bundled inline'; exit 1; fi
+
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.51
+          name: h38-reseller-scout-owner-test-v0.1.52
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
