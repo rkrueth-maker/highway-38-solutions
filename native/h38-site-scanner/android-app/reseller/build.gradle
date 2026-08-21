@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 50
-        versionName '0.1.49'
+        versionCode 51
+        versionName '0.1.50'
     }
     signingConfigs {
         if (hasReleaseSigning) {
@@ -30,7 +30,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix '.owner49'
+            applicationIdSuffix '.owner50'
             versionNameSuffix '-debug'
         }
         release {
@@ -45,24 +45,35 @@ android {
     }
 }
 
-// Keep v0.1.48 as the stable foundation and inject the narrow v0.1.49 runtime
-// only into Gradle's merged asset output. This avoids dirtying source index.html.
-def h38V049Tag = '<script src="v049-runtime.js"></script>'
-def injectH38V049 = {
+// v0.1.50 fixes the physical-phone runtime boundary discovered in v0.1.49.
+// MainActivity loads index.html with a remote base URL, so an external v049 script tag
+// resolves to the website instead of the APK asset. Embed v049 directly into the merged
+// index and delay execution until window.load; MainActivity's inlined v045/v048 foundation
+// has executed by then, so v049 becomes the final runtime authority on the phone.
+def injectH38V050 = {
+    def runtimeFile = file('src/main/assets/reseller/v049-runtime.js')
+    if (!runtimeFile.isFile()) throw new GradleException('Missing reseller/v049-runtime.js for v0.1.50 runtime handoff')
+    def runtime = runtimeFile.getText('UTF-8')
+    def marker = 'data-h38-v050-runtime="bundled-inline-after-v048"'
+    def tag = '<script ' + marker + '>window.addEventListener("load",function(){\n' + runtime + '\nwindow.H38_V050_RUNTIME_HANDOFF="bundled-inline-after-v048";\n},{once:true});</script>'
     def matches = fileTree(layout.buildDirectory.get().asFile).matching { include '**/reseller/index.html' }.files
-    if (matches.empty) throw new GradleException('Could not locate merged reseller/index.html for v0.1.49 runtime injection')
+    if (matches.empty) throw new GradleException('Could not locate merged reseller/index.html for v0.1.50 runtime injection')
     matches.each { File indexFile ->
         def html = indexFile.getText('UTF-8')
-        if (!html.contains(h38V049Tag)) {
-            def next = html.replace('</body>', h38V049Tag + '\n</body>')
-            if (next == html) throw new GradleException('Merged reseller/index.html has no </body> for v0.1.49 injection')
+        // Remove the failed v0.1.49 external-script form if a stale merged asset contains it.
+        html = html.replace('<script src="v049-runtime.js"></script>', '')
+        if (!html.contains(marker)) {
+            def next = html.replace('</body>', tag + '\n</body>')
+            if (next == html) throw new GradleException('Merged reseller/index.html has no </body> for v0.1.50 injection')
             indexFile.write(next, 'UTF-8')
+        } else {
+            indexFile.write(html, 'UTF-8')
         }
     }
 }
 tasks.configureEach { task ->
     if (task.name == 'mergeDebugAssets' || task.name == 'mergeReleaseAssets') {
-        task.doLast { injectH38V049() }
+        task.doLast { injectH38V050() }
     }
 }
 
