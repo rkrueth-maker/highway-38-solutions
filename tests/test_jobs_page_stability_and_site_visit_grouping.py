@@ -53,7 +53,7 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "eventDrivenReconciliation:true" in text
     assert "permanentWholeDocumentObserver:false" in text
     assert "boundedMainContentObserverMs:0" in text
-    assert "MutationObserver" not in text
+    assert "new MutationObserver" not in text
     assert "H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL" in text
     assert "h38:business-snapshot-updated" in text
 
@@ -63,7 +63,7 @@ def test_final_site_visit_identity_authority_survives_late_jobs_hydration_withou
     assert "20260821-site-visit-work-dedupe-final-3" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
-    assert "MutationObserver" not in text
+    assert "new MutationObserver" not in text
     assert "setTimeout(reconcile,80)" in text
     assert "setTimeout(reconcile,260)" in text
     assert "installOpenAuthority" in text
@@ -79,7 +79,7 @@ def test_wide_acceptance_keeps_one_project_site_visit_and_event_driven_reconcili
     assert "eventDrivenReconciliation:true" in text
     assert "documentMutationObserver:false" in text
     assert "jobsMutationObserver:false" in text
-    assert "MutationObserver" not in text
+    assert "new MutationObserver" not in text
     assert "LOCAL[_ -]?DRAFT" in text
     assert "siteCaptureSessions" in text
     assert "projectKey" in text
