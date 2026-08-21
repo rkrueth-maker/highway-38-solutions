@@ -42,6 +42,8 @@ def test_model_contract_explicitly_keeps_policy_out_of_scope_detection():
 
 
 def test_server_accepts_separate_owner_work_and_system_policy_fields():
-    assert 'ownerWorkRequest: clean(body.ownerWorkRequest, 8000)' in SOURCE
-    assert 'systemQuotePolicy: clean(body.systemQuotePolicy, 12000)' in SOURCE
-    assert 'userProjectContext:' in SOURCE
+    assert 'const ownerWorkRequest = clean(body.ownerWorkRequest, 8000);' in SOURCE
+    assert 'const systemQuotePolicy = clean(body.systemQuotePolicy || body.notes, 12000);' in SOURCE
+    assert 'userProjectContext: { projectTitle, scope: projectScope }' in SOURCE
+    scope_block = SOURCE[SOURCE.index('function projectWorkText('):SOURCE.index('function targetLine(')]
+    assert 'systemQuotePolicy' not in scope_block
