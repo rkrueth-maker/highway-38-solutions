@@ -1,1 +1,0 @@
-Wide pass adds one final Quote AI runtime authority, owner-review project directions, final Site Visit handoff, measurement reconciliation, Action Picture separation, Jobs dedupe, follow-up idempotency, and behavior tests for landscape, garage, and retaining wall.
