@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260821-quote-working-ui-only-4';
+const BUILD='20260821-quote-working-ui-only-5';
 const text=value=>String(value==null?'':value);
 function ensureUi(){
   let style=document.getElementById('h38PersistentHammerStyle');
@@ -11,7 +11,7 @@ function ensureUi(){
 }
 function decorate(source,label){const button=source&&source.nodeType===1?source:document.getElementById('h38AiQuoteDraftButton');if(!button)return;if(!button.dataset.h38HammerOriginal)button.dataset.h38HammerOriginal=button.textContent||'Build Quote';button.innerHTML='<span class="h38-button-hammer" aria-hidden="true">🔨</span><span>'+text(label||'Building quote…')+'</span>';button.setAttribute('aria-busy','true');}
 function restore(source){for(const button of [source,document.getElementById('h38AiQuoteDraftButton')].filter(Boolean)){button.removeAttribute('aria-busy');if(button.dataset.h38HammerOriginal){button.textContent=button.dataset.h38HammerOriginal;delete button.dataset.h38HammerOriginal;}}}
-function loadWidePass(){if(window.H38_SITE_VISIT_QUOTE_WIDE_PASS_LOADER||document.querySelector('script[data-h38-wide-pass-loader]'))return;const script=document.createElement('script');script.src='./site-visit-quote-wide-pass-loader.js?build=20260821-site-visit-quote-wide-pass-loader-2';script.dataset.h38WidePassLoader='1';document.head.appendChild(script);}
-function install(){const overlay=ensureUi();window.H38_WORKING_HAMMER={show(title,detail,source){overlay.hidden=false;document.body.setAttribute('aria-busy','true');document.getElementById('h38WhTitle').textContent=title||'Highway 38 is building';document.getElementById('h38WhMessage').textContent=detail||'Please keep this screen open.';decorate(source,title);},hide(source){overlay.hidden=true;document.body.removeAttribute('aria-busy');restore(source);}};window.H38_PERSISTENT_WORKING_HAMMER=Object.freeze({enabled:true,build:BUILD,uiOnly:true,directSupabaseQuoteAi:false,automaticFieldPreflight:false,noBackgroundQuoteRequests:true,widePassLoader:true});setTimeout(loadWidePass,0);}
+function loadWidePass(){if(window.H38_SITE_VISIT_QUOTE_WIDE_PASS_LOADER||document.querySelector('script[data-h38-wide-pass-loader]'))return;const script=document.createElement('script');script.src='./site-visit-quote-wide-pass-loader.js?build=20260821-site-visit-quote-wide-pass-loader-3';script.dataset.h38WidePassLoader='1';document.head.appendChild(script);}
+function install(){const overlay=ensureUi();window.H38_WORKING_HAMMER={show(title,detail,source){overlay.hidden=false;document.body.setAttribute('aria-busy','true');document.getElementById('h38WhTitle').textContent=title||'Highway 38 is building';document.getElementById('h38WhMessage').textContent=detail||'Please keep this screen open.';decorate(source,title);},hide(source){overlay.hidden=true;document.body.removeAttribute('aria-busy');restore(source);}};window.H38_PERSISTENT_WORKING_HAMMER=Object.freeze({enabled:true,build:BUILD,uiOnly:true,directSupabaseQuoteAi:false,automaticFieldPreflight:false,noBackgroundQuoteRequests:true,widePassLoader:true,siteVisitIdentityAuthority:true});setTimeout(loadWidePass,0);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
