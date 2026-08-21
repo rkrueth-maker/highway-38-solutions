@@ -45,7 +45,7 @@ requireText(authFix, 'api.auth.getUser()', 'Live browser session validation');
 requireText(authFix, 'function rateOf(line)', 'Direct Quote AI pricing gate');
 requireText(authFix, 'zero/non-positive rate:', 'Direct Quote AI zero-rate detection');
 requireText(authFix, 'Every returned line must have a positive non-zero rate.', 'Direct Quote AI pricing retry');
-requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded.', 'Direct Quote AI fail-closed pricing rule');
+requireText(authFix, 'No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded.', 'Legacy direct Quote AI fail-closed pricing rule');
 requireText(authFix, 'zeroRateDraftBlocked: true', 'Direct Quote AI zero-rate safety flag');
 requireText(authFix, 'pricingRepairRetry: true', 'Direct Quote AI pricing retry flag');
 
@@ -87,7 +87,9 @@ requireText(edge, 'LABOR QUANTITY', 'Net labor quantity contract');
 requireText(edge, 'assemblyRecipes(service, businessId)', 'Assembly recipe hydration');
 requireText(edge, 'breakoutProblems(draft, context)', 'Server breakout validation');
 requireText(edge, 'serverBreakoutRepairApplied', 'Server repair proof');
-requireText(edge, 'No blended or zero-quantity draft was returned', 'Fail-closed breakout rule');
+requireText(edge, 'appendOwnerReviewProblems(draft, afterRepair)', 'Editable owner-review fallback');
+requireText(edge, 'A missing or uncertain rate/quantity must not destroy the whole editable draft.', 'Non-blocking draft contract');
+requireText(edge, 'Owner review — ${problem}', 'Per-line owner review warning');
 
 requireText(edge, 'clean(entry.itemCode, 160) === requestedIdentity', 'Catalog itemCode identity compatibility');
 requireText(edge, 'deterministic_component_recovery', 'Deterministic component catalog recovery');
@@ -104,4 +106,4 @@ requireText(edge, 'automaticApproval: false', 'No automatic approval');
 requireText(edge, 'automaticCustomerSending: false', 'No automatic customer send');
 requireText(edge, 'separateRenderRequest: true', 'Separate render request');
 
-console.log('Quote photo restore, explicit Site Visit photo selection, direct AI auth, nonzero pricing gate, component breakout, and safe catalog pricing verification passed.');
+console.log('Quote photo restore, explicit Site Visit photo selection, direct AI auth, editable owner-review fallback, component breakout, and safe catalog pricing verification passed.');
