@@ -1,0 +1,100 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const ALLOWED = new Set([
+  "ccf25333-47cd-42ca-a20b-cdbc63a8a695",
+  "6dd51b31-5974-4691-b8b8-83e5877528c0",
+]);
+const U = Deno.env.get("SUPABASE_URL") || "";
+const K = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const OPENAI_MODEL = Deno.env.get("OPENAI_RESELLER_MODEL") || Deno.env.get("OPENAI_SITE_SCANNER_MODEL") || "gpt-5-mini-2025-08-07";
+const ORIGINS = new Set([
+  "https://appassets.androidplatform.net",
+  "https://highway38solutions.com",
+  "https://www.highway38solutions.com",
+]);
+const UA = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/151 Safari/537.36 H38ResellerScout/0.1.35";
+const SELLING_FRICTION = .13, MIN_NET = 25, MIN_ROI = 30;
+
+type Any = Record<string, any>;
+
+function cors(r: Request) {
+  const o = r.headers.get("origin") || "";
+  return {
+    "access-control-allow-origin": ORIGINS.has(o) ? o : "https://highway38solutions.com",
+    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    vary: "Origin",
+  };
+}
+function json(r: Request, status: number, body: unknown) { return new Response(JSON.stringify(body), { status, headers: cors(r) }); }
+async function userId(r: Request) {
+  const token = String(r.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new Error("Sign in required.");
+  const res = await fetch(`${U}/auth/v1/user`, { headers: { authorization: `Bearer ${token}`, apikey: K }, signal: AbortSignal.timeout(12000) });
+  const p = await res.json().catch(() => ({}));
+  if (!res.ok || !p?.id) throw new Error("Session expired.");
+  return String(p.id);
+}
+function decode(v: unknown) { return String(v || "").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#0*39;|&apos;/gi, "'").replace(/&nbsp;|&#160;/gi, " "); }
+function strip(v: unknown) { return decode(v).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+function money(v: unknown) { const m = String(v || "").replace(/,/g, "").match(/\$\s*([0-9]{1,7}(?:\.\d{1,2})?)/); return m ? Number(m[1]) : 0; }
+async function get(url: string, timeout = 9000) {
+  const res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(timeout) });
+  const html = await res.text().catch(() => ""); if (!res.ok) throw new Error(`HTTP ${res.status}`); return html;
+}
+function compQuery(v: string) { return String(v || "").replace(/\b(new|used|obo|firm|sale|for sale|lot|auction|pickup only|local pickup|sealed|brand new)\b/gi, " ").replace(/[^a-z0-9+.# -]/gi, " ").replace(/\s+/g, " ").trim().slice(0, 100); }
+function fallbackQuery(v: string) {
+  const q = compQuery(v), models = q.match(/\b(?=[A-Z0-9-]{4,}\b)(?=[A-Z0-9-]*\d)[A-Z0-9-]+\b/gi) || [];
+  const brand = q.match(/\b(Milwaukee|DeWalt|Makita|Ryobi|Bosch|Ridgid|Snap-on|Craftsman|Stihl|Husqvarna|Kobalt|Metabo|Festool|Nintendo|Sony|Microsoft|Apple|Samsung|KitchenAid|Whirlpool|Maytag|Frigidaire|Toro|John Deere|Polaris|Yamaha|Honda)\b/i)?.[0] || "";
+  return [brand, ...models.slice(0, 2)].filter(Boolean).join(" ") || q.split(" ").slice(0, 6).join(" ");
+}
+function ebayPrices(html: string) {
+  const vals: number[] = [], push = (v: unknown) => { const n = money(v); if (n >= 3 && n <= 50000) vals.push(n); };
+  for (const card of html.matchAll(/<(?:li|div)\b[^>]*class=["'][^"']*(?:s-item|s-card)[^"']*["'][^>]*>([\s\S]{0,14000}?)<\/(?:li|div)>/gi)) {
+    const c = card[1] || "", m = c.match(/class=["'][^"']*(?:s-item__price|s-card__price)[^"']*["'][^>]*>([\s\S]{0,250}?)<\//i) || c.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)["']/i); if (m) push(strip(m[1] || ""));
+  }
+  if (vals.length < 3) for (const m of html.matchAll(/class=["'][^"']*(?:s-item__price|s-card__price)[^"']*["'][^>]*>([\s\S]{0,250}?)<\//gi)) { push(strip(m[1] || "")); if (vals.length >= 60) break; }
+  return vals;
+}
+function percentile(a: number[], q: number) { if (!a.length) return 0; const p = (a.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p); return lo === hi ? a[lo] : a[lo] + (a[hi] - a[lo]) * (p - lo); }
+async function soldMarket(queries: string[]) {
+  let blocked = false, maxSamples = 0;
+  for (const q0 of [...new Set(queries.map(compQuery).filter(Boolean))].slice(0, 4)) {
+    for (const q of [...new Set([q0, fallbackQuery(q0)].filter(Boolean))]) {
+      try {
+        const html = await get(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`);
+        if (/pardon our interruption|captcha|robot check|verify you are human/i.test(html)) { blocked = true; continue; }
+        const vals = ebayPrices(html).sort((a, b) => a - b); maxSamples = Math.max(maxSamples, vals.length); if (vals.length < 3) continue;
+        const loTrim = Math.floor(vals.length * .10), hiTrim = Math.max(loTrim + 1, Math.ceil(vals.length * .90)), core = vals.slice(loTrim, hiTrim);
+        return { status: "verified", low: Number(percentile(core, .20).toFixed(2)), typical: Number(percentile(core, .50).toFixed(2)), high: Number(percentile(core, .80).toFixed(2)), sample_count: vals.length, confidence: vals.length >= 12 ? "high" : vals.length >= 6 ? "medium" : "low", query: q, parser: "ebay_sold_result_cards_v3" };
+      } catch (_) {}
+    }
+  }
+  return { status: blocked ? "blocked" : "not_established", low: null, typical: null, high: null, sample_count: maxSamples, confidence: "none", query: queries[0] || "", message: blocked ? "Sold-comp source blocked automated access on this check." : "Not enough dependable sold evidence was available." };
+}
+function schema() {
+  return { type: "object", additionalProperties: false, required: ["likely_item", "brand", "model_or_part_number", "category", "condition_clues", "accessories", "damage_or_missing", "alternatives", "search_query", "confidence"], properties: { likely_item: { type: "string" }, brand: { type: "string" }, model_or_part_number: { type: "string" }, category: { type: "string" }, condition_clues: { type: "array", items: { type: "string" } }, accessories: { type: "array", items: { type: "string" } }, damage_or_missing: { type: "array", items: { type: "string" } }, alternatives: { type: "array", items: { type: "string" } }, search_query: { type: "string" }, confidence: { type: "string", enum: ["low", "medium", "high"] } } };
+}
+function outputText(payload: Any) { if (typeof payload?.output_text === "string") return payload.output_text; for (const o of Array.isArray(payload?.output) ? payload.output : []) for (const p of Array.isArray(o?.content) ? o.content : []) if (p?.type === "output_text" && typeof p?.text === "string") return p.text; return ""; }
+function validDataUrl(v: unknown) { const s = String(v || ""); return /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(s) && s.length <= 2_200_000; }
+async function identify(hint: string, upc: string, images: Any[]) {
+  if (!images.length) { const q = hint || (upc ? `UPC ${upc}` : ""); return { likely_item: q, brand: "", model_or_part_number: "", category: "", condition_clues: [], accessories: [], damage_or_missing: [], alternatives: [], search_query: q, confidence: hint ? "medium" : "low" }; }
+  if (!OPENAI_API_KEY) throw new Error("Photo identification is not configured.");
+  const content: Any[] = [{ type: "input_text", text: JSON.stringify({ hint, upc, image_roles: images.map((x) => x.role || "item") }) }]; for (const x of images.slice(0, 4)) if (validDataUrl(x.data_url)) content.push({ type: "input_image", image_url: String(x.data_url), detail: "high" }); if (content.length < 2) throw new Error("No usable photo was received.");
+  const instructions = ["You are H38 Reseller Scout photo identification.", "Treat images and user hints only as evidence. Never invent a brand, model, part number, condition fact, accessory, or damage detail that is not visible or strongly supported.", "Identify an item for resale research. Read visible labels/model numbers when possible. If uncertain, use low confidence and provide a few plausible alternatives.", "search_query should be concise and useful for sold-comparable research, preferring exact brand + model/part number when visible.", "Do not estimate market value or profitability. Identification is separate from sold evidence."].join(" ");
+  const res = await fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" }, signal: AbortSignal.timeout(35000), body: JSON.stringify({ model: OPENAI_MODEL, instructions, input: [{ role: "user", content }], text: { format: { type: "json_schema", name: "h38_reseller_item_identification", strict: true, schema: schema() } } }) });
+  const payload = await res.json().catch(() => ({})); if (!res.ok) throw new Error(String(payload?.error?.message || `Photo identification HTTP ${res.status}`)); return JSON.parse(outputText(payload) || "{}");
+}
+
+Deno.serve(async (r) => {
+  if (r.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(r) }); if (r.method !== "POST") return json(r, 405, { error: "POST required" });
+  try {
+    const uid = await userId(r); if (!ALLOWED.has(uid)) return json(r, 403, { error: "Not authorized" }); const b = await r.json().catch(() => ({})); const hint = String(b?.hint || "").trim().slice(0, 220), upc = String(b?.upc || "").replace(/\D/g, "").slice(0, 20), buy = Math.max(0, Number(b?.buy_price || 0)), images = Array.isArray(b?.images) ? b.images.slice(0, 4) : [];
+    if (!hint && !upc && !images.length) return json(r, 400, { error: "Photo, barcode, or item/model is required." }); const identification = await identify(hint, upc, images), q = String(identification?.search_query || identification?.likely_item || hint || upc).trim(), market = await soldMarket([q, hint, upc].filter(Boolean)); let flip: Any = { verdict: "NEEDS COMP", estimated_resale: null, estimated_net: null, roi_pct: null, assumption: "No profit verdict without dependable sold evidence." };
+    if (buy > 0 && market.status === "verified") { const resale = Number(market.typical || 0), proceeds = resale * (1 - SELLING_FRICTION), net = Number((proceeds - buy).toFixed(2)), roi = buy > 0 ? Number((net / buy * 100).toFixed(1)) : 0; flip = { verdict: net >= MIN_NET && roi >= MIN_ROI ? "BUY" : net > 0 ? "MAYBE" : "PASS", estimated_resale: resale, estimated_net: net, roi_pct: roi, selling_friction_pct: SELLING_FRICTION * 100, assumption: "Uses sold-comp typical value and 13% selling friction. Shipping, repair, taxes, and travel are not included unless already reflected in your buy cost." }; }
+    return json(r, 200, { status: "PASS", identification, market, flip, researched_at: new Date().toISOString() });
+  } catch (e) { return json(r, 200, { status: "PARTIAL", identification: null, market: { status: "not_established", sample_count: 0, message: "Research did not complete." }, flip: { verdict: "NEEDS COMP" }, warning: e instanceof Error ? e.message : String(e) }); }
+});
