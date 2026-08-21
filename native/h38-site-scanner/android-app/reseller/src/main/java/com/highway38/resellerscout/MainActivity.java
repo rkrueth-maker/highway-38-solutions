@@ -85,7 +85,7 @@ public final class MainActivity extends Activity {
                 deliverSharedText(getIntent());
             }
         });
-        webView.loadDataWithBaseURL(APP_BASE_URL, readAsset("reseller/index.html"), "text/html", "UTF-8", null);
+        webView.loadDataWithBaseURL(APP_BASE_URL, bundledPage(), "text/html", "UTF-8", null);
     }
 
     private void applyInsets() {
@@ -95,6 +95,15 @@ public final class MainActivity extends Activity {
             return insets;
         });
         ViewCompat.requestApplyInsets(webView);
+    }
+
+    private String bundledPage() {
+        String html = readAsset("reseller/index.html");
+        html = html.replace("<link rel=\"stylesheet\" href=\"v035-ui.css\">", "<style>" + readAsset("reseller/v035-ui.css") + "</style>");
+        for (String name : new String[]{"v035-core.js", "v035-sourcing-a.js", "v035-sourcing-b.js", "v035-research.js", "v035-app.js"}) {
+            html = html.replace("<script src=\"" + name + "\"></script>", "<script>" + readAsset("reseller/" + name) + "</script>");
+        }
+        return html;
     }
 
     private String readAsset(String path) {
