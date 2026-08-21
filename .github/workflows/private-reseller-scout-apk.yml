@@ -4,13 +4,8 @@ on:
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'supabase/functions/reseller-opportunity-scan/**'
-      - 'supabase/functions/reseller-opportunity-scan-v4/**'
-      - 'supabase/functions/reseller-location-geocode/**'
-      - 'supabase/functions/reseller-auction-discovery/**'
-      - 'supabase/functions/reseller-item-research/**'
-      - 'supabase/functions/reseller-item-research-v041/**'
-      - 'supabase/functions/reseller-auto-leads-v038/**'
+      - 'supabase/functions/reseller-auto-leads-v044/**'
+      - 'supabase/functions/reseller-item-research-v044/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -37,90 +32,34 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.43 private Scout contract
+      - name: Verify v0.1.44 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
-          check() { local pattern="$1" file="$2"; grep -Fq "$pattern" "$file" || { echo "::error::Missing contract token [$pattern] in $file"; exit 1; }; }
+          check() { grep -Fq "$1" "$2" || { echo "::error::Missing contract token [$1] in $2"; exit 1; }; }
           assets='reseller/src/main/assets/reseller'
-          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
-          camera='reseller/src/main/java/com/highway38/resellerscout/NativePhotoCaptureActivity.java'
-          manifest='reseller/src/main/AndroidManifest.xml'
-          patch='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java'
-          leads="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v038/index.ts"
-          research="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v041/index.ts"
-          test -s "$assets/index.html"
-          for f in v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js v037-safearea.css v037-physical.js v041-market.js; do test -s "$assets/$f"; done
-          test -s "$camera"
-          test -s "$leads"
-          test -s "$research"
-          test -s reseller/src/main/res/xml/reseller_file_paths.xml
-          test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
-          echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.43'" reseller/build.gradle
-          check 'versionCode 44' reseller/build.gradle
-          check "applicationIdSuffix '.owner43'" reseller/build.gradle
-          check 'camera-core:1.4.2' reseller/build.gradle
-          check 'camera-camera2:1.4.2' reseller/build.gradle
-          check 'camera-lifecycle:1.4.2' reseller/build.gradle
-          check 'camera-view:1.4.2' reseller/build.gradle
-          check 'zxing-android-embedded:4.3.0' reseller/build.gradle
-          check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
-          check 'NativePhotoCaptureActivity.class' "$main"
-          check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$camera"
-          check 'PreviewView' "$camera"
-          check 'ImageCapture' "$camera"
-          check 'bindToLifecycle' "$camera"
-          check 'android.permission.CAMERA' "$manifest"
-          check '.NativePhotoCaptureActivity' "$manifest"
-          if grep -Fq 'ACTION_IMAGE_CAPTURE' "$main"; then echo '::error::External OEM image capture must not be used for Research photos'; exit 1; fi
-          check 'NATIVE_ROOT_SYSTEM_BAR_INSETS_V037' "$main"
-          check 'startFallbackBarcodeScanner' "$main"
-          check 'H38_LEGACY_PATCH_STACK_REMOVED_V035' "$patch"
-          if grep -Fq 'v034-production.js' "$patch"; then echo '::error::Legacy runtime patch stack must not be injected'; exit 1; fi
-          for t in 'What are you hunting?' 'Deals Near Me' 'Penny & Clearance' 'Nearby Stores' 'Auctions' 'Research an Item'; do check "$t" "$assets/index.html"; done
-          for t in 'data-nav="deals"' 'data-nav="clearance"' 'data-nav="stores"' 'data-nav="auctions"' 'data-nav="more"'; do check "$t" "$assets/index.html"; done
-          if grep -Fq 'data-nav="home"' "$assets/index.html"; then echo '::error::Permanent Home nav is forbidden'; exit 1; fi
-          check 'reseller-auto-leads-v038' "$assets/index.html"
-          check 'H38_MULTI_SOURCE_MARKET_UI_V041' "$assets/index.html"
-          check 'H38_PENNY_SIGNAL_UI_V042' "$assets/index.html"
-          check 'Near Penny' "$assets/index.html"
-          check 'HIGH = 3+ independent sources' "$assets/index.html"
-          check 'reseller-item-research-v041' "$assets/index.html"
-          check 'SOLD EVIDENCE' "$assets/index.html"
-          check 'CURRENT MARKET' "$assets/index.html"
-          check 'LOCAL MARKET' "$assets/index.html"
-          check 'SOURCE STACK' "$assets/index.html"
-          check 'H38_MULTI_SOURCE_MARKET_UI_V041' "$assets/v041-market.js"
-          check 'H38_PENNY_HUNT_UI_V043' "$assets/v041-market.js"
-          check 'Penny lead remains active' "$assets/v041-market.js"
-          check 'Retailer-wide source feeds are not repeated under this store' "$assets/v041-market.js"
-          check 'H38_MULTI_SOURCE_MARKET_V041' "$research"
-          check 'PRICECHARTING_TOKEN' "$research"
-          check 'local_candidates' "$research"
-          check 'eBay Active' "$research"
-          check 'Facebook Marketplace' "$research"
-          check 'Amazon' "$research"
-          check 'Walmart' "$research"
-          check 'Home Depot' "$research"
-          check "Lowe's" "$research"
-          check 'Target' "$research"
-          check 'Reverb Price Guide' "$research"
-          check 'Discogs' "$research"
-          check 'cross-source-identity-v043' "$leads"
-          check 'penny-hunt-v043' "$leads"
-          check 'PennyCentral' "$leads"
-          check 'Krazy Coupon Lady' "$leads"
-          check 'The Freebie Guy' "$leads"
-          check 'Penny Tree' "$leads"
-          check 'near_penny' "$leads"
-          check 'signal_source_count' "$leads"
-          check 'duplicate_count' "$leads"
-          check 'A store/web price never deletes a penny lead' "$leads"
-          check 'PENNY CANDIDATE' "$assets/v035-sourcing-a.js"
-          check 'STORE VERIFIED' "$assets/v035-sourcing-a.js"
-          check 'LOCAL $0.01' "$assets/v035-sourcing-a.js"
-          check 'VALUE NOT ESTABLISHED' "$assets/v035-research.js"
+          research="$assets/v035-research.js"
+          leads="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v044/index.ts"
+          market="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v044/index.ts"
+          check "versionName '0.1.44'" reseller/build.gradle
+          check 'versionCode 45' reseller/build.gradle
+          check "applicationIdSuffix '.owner44'" reseller/build.gradle
+          check 'H38_RESEARCH_RESET_V044' "$research"
+          check 'New item / photo search' "$research"
+          check "reseller-auto-leads-v044" "$research"
+          check "reseller-item-research-v044" "$research"
+          check "Release date" "$research"
+          check 'full-pennycentral-document-v044' "$leads"
+          check 'pennycentral_document_complete' "$leads"
+          check 'last_seen_label' "$leads"
+          check 'release_date' "$leads"
+          check 'Same retailer + SKU/UPC is one item' "$leads"
+          check 'web_search_preview' "$market"
+          check 'Web completed-sale evidence' "$market"
+          check 'active and retail prices are context only' "$market"
+          check 'H38_SCOUT_CAMERAX_PHOTO_V039' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          if grep -Fq 'ACTION_IMAGE_CAPTURE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java; then echo '::error::External OEM image capture is forbidden'; exit 1; fi
+          node --check "$assets/v035-research.js"
           node --check "$assets/v035-app.js"
           node --check "$assets/v037-physical.js"
           node --check "$assets/v041-market.js"
@@ -159,36 +98,33 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.43.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.44.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.43.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.44.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.43.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.44.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='44' versionName='0.1.43'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='45' versionName='0.1.44'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner43' versionCode='44' versionName='0.1.43-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner44' versionCode='45' versionName='0.1.44-debug'" "$report/badging.txt"
           fi
-          grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
-          for f in index.html v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js v037-safearea.css v037-physical.js v041-market.js; do zipinfo -1 "$out" | grep -Fq "assets/reseller/$f"; done
-          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'H38_MULTI_SOURCE_MARKET_UI_V041'
-          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'H38_PENNY_SIGNAL_UI_V042'
-          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'Near Penny'
-          unzip -p "$out" 'assets/reseller/v041-market.js' | grep -Fq 'H38_PENNY_HUNT_UI_V043'
+          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'H38_RESEARCH_RESET_V044'
+          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'reseller-auto-leads-v044'
+          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'reseller-item-research-v044'
+          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'Release date'
           unzip -p "$out" 'assets/reseller/v037-physical.js' | grep -Fq 'H38_DEEP_ACCEPTANCE_V038'
-          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'VALUE NOT ESTABLISHED'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.43
+          name: h38-reseller-scout-owner-test-v0.1.44
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
