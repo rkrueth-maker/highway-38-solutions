@@ -11,6 +11,7 @@ RUNTIME = (APP / 'quote-runtime-authority.js').read_text(encoding='utf-8')
 HANDOFF = (APP / 'site-visit-quote-handoff-final.js').read_text(encoding='utf-8')
 MEASURE = (APP / 'measurement-verification-final.js').read_text(encoding='utf-8')
 WORK = (APP / 'site-visit-work-dedupe-final.js').read_text(encoding='utf-8')
+FENCE = (APP / 'site-visit-identity-write-fence-final.js').read_text(encoding='utf-8')
 FOLLOW = (APP / 'job-followup-idempotency-final.js').read_text(encoding='utf-8')
 ACTION = (APP / 'quote-action-picture-final.js').read_text(encoding='utf-8')
 OPTIONS = (APP / 'quote-direction-options.js').read_text(encoding='utf-8')
@@ -30,21 +31,44 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
-    assert "ASSET_BUILD='20260821-1015'" in LOADER
+    assert "ASSET_BUILD='20260821-1051'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js',
         './site-visit-quote-handoff-final.js',
         './measurement-verification-final.js',
         './site-visit-work-dedupe-final.js',
+        './site-visit-identity-write-fence-final.js',
         './job-followup-idempotency-final.js',
         './quote-action-picture-final.js',
         './quote-direction-options.js',
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-3' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-4' in HAMMER
     assert 'siteVisitIdentityAuthority:true' in LOADER
+    assert 'linkedQuoteIdentityWriteFence:true' in LOADER
+
+
+def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
+    for marker in [
+        'authoritativeSessionBeforeOpen:true',
+        'linkedQuoteIdentityWriteFence:true',
+        'sessionlessLocalDraftCannotMutateLinkedQuote:true',
+        'canonicalEvidenceRecovery:true',
+        'localAliasSuppression:true',
+        'distinctServerSessionsPreserved:true',
+        'serverEvidenceNeverDeleted:true',
+    ]:
+        assert marker in FENCE
+    assert "throw Error('This quote belongs to a saved Site Visit. Reopen the authoritative Site Visit before changing it.')" in FENCE
+    assert "'Project Title':title(linked)" in FENCE
+    assert "'Customer ID':customerId(linked)" in FENCE
+    assert "'Site Scanner Session ID':linkedSid" in FENCE
+    assert 'videoAttachmentIds:videos.map(docId).filter(Boolean)' in FENCE
+    assert 'walkthroughAudioAttachmentIds:audios.map(docId).filter(Boolean)' in FENCE
+    assert 'walkthroughFrameIds:frames' in FENCE
+    assert '.delete(' not in FENCE
 
 
 def test_quote_runtime_is_singleflight_one_refresh_and_owner_initiated():
