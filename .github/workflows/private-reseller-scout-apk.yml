@@ -37,7 +37,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.41 private Scout contract
+      - name: Verify v0.1.42 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
@@ -57,9 +57,9 @@ jobs:
           test -s reseller/src/main/res/xml/reseller_file_paths.xml
           test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
           echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.41'" reseller/build.gradle
-          check 'versionCode 42' reseller/build.gradle
-          check "applicationIdSuffix '.owner41'" reseller/build.gradle
+          check "versionName '0.1.42'" reseller/build.gradle
+          check 'versionCode 43' reseller/build.gradle
+          check "applicationIdSuffix '.owner42'" reseller/build.gradle
           check 'camera-core:1.4.2' reseller/build.gradle
           check 'camera-camera2:1.4.2' reseller/build.gradle
           check 'camera-lifecycle:1.4.2' reseller/build.gradle
@@ -83,6 +83,9 @@ jobs:
           if grep -Fq 'data-nav="home"' "$assets/index.html"; then echo '::error::Permanent Home nav is forbidden'; exit 1; fi
           check 'reseller-auto-leads-v038' "$assets/index.html"
           check 'H38_MULTI_SOURCE_MARKET_UI_V041' "$assets/index.html"
+          check 'H38_PENNY_SIGNAL_UI_V042' "$assets/index.html"
+          check 'Near Penny' "$assets/index.html"
+          check 'HIGH = 3+ independent sources' "$assets/index.html"
           check 'reseller-item-research-v041' "$assets/index.html"
           check 'SOLD EVIDENCE' "$assets/index.html"
           check 'CURRENT MARKET' "$assets/index.html"
@@ -101,8 +104,15 @@ jobs:
           check 'Target' "$research"
           check 'Reverb Price Guide' "$research"
           check 'Discogs' "$research"
-          check 'strict-retailer-upc-sku-v038' "$leads"
+          check 'strict-retailer-upc-sku-v042' "$leads"
+          check 'penny-signal-v042' "$leads"
+          check 'Krazy Coupon Lady' "$leads"
+          check 'The Freebie Guy' "$leads"
+          check 'Penny Tree' "$leads"
+          check 'near_penny' "$leads"
+          check 'signal_source_count' "$leads"
           check 'duplicate_count' "$leads"
+          check 'LOCAL $0.01 requires store-bound verification' "$leads"
           check 'PENNY CANDIDATE' "$assets/v035-sourcing-a.js"
           check 'STORE VERIFIED' "$assets/v035-sourcing-a.js"
           check 'LOCAL $0.01' "$assets/v035-sourcing-a.js"
@@ -110,6 +120,7 @@ jobs:
           node --check "$assets/v035-app.js"
           node --check "$assets/v037-physical.js"
           node --check "$assets/v041-market.js"
+          node -e "const fs=require('fs'),h=fs.readFileSync('$assets/index.html','utf8'),s=[...h.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)].map(x=>x[1]);for(const [i,x] of s.entries()){new Function(x);console.log('inline-script-'+i+' ok')}"
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -144,34 +155,35 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.41.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.42.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.41.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.42.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.41.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.42.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='42' versionName='0.1.41'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='43' versionName='0.1.42'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner41' versionCode='42' versionName='0.1.41-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner42' versionCode='43' versionName='0.1.42-debug'" "$report/badging.txt"
           fi
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
           for f in index.html v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js v037-safearea.css v037-physical.js v041-market.js; do zipinfo -1 "$out" | grep -Fq "assets/reseller/$f"; done
           unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'H38_MULTI_SOURCE_MARKET_UI_V041'
-          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'reseller-item-research-v041'
+          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'H38_PENNY_SIGNAL_UI_V042'
+          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'Near Penny'
           unzip -p "$out" 'assets/reseller/v037-physical.js' | grep -Fq 'H38_DEEP_ACCEPTANCE_V038'
           unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'VALUE NOT ESTABLISHED'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.41
+          name: h38-reseller-scout-owner-test-v0.1.42
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
