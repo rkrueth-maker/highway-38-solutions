@@ -57,11 +57,12 @@ def test_final_authorities_are_loaded_directly_from_index():
     ]
     positions = [INDEX.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert "window.H38_ASSET_BUILD='20260821-site-visit-quote-final-3'" in INDEX
+    assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
 
 
 def test_service_worker_cache_was_bumped_for_final_authority():
-    assert "h38-business-office-20260821-quote-runtime-authority-3" in SW
+    assert "h38-business-office-20260821-0219" in SW
+    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-\d{4}'", SW)
 
 
 def test_top_level_runtime_still_has_defensive_direct_loader():
