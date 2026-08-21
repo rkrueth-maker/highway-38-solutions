@@ -33,7 +33,7 @@ async function refreshEvidence(){
 function loadPhotoQuoteRuntimeRepair(){
   if(window.H38_SITE_VISIT_PHOTO_QUOTE_RUNTIME_REPAIR||document.querySelector('script[data-h38-photo-quote-runtime-repair]'))return;
   const script=document.createElement('script');
-  script.src='./site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-1';
+  script.src='./site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-2';
   script.dataset.h38PhotoQuoteRuntimeRepair='1';
   document.head.appendChild(script);
 }
