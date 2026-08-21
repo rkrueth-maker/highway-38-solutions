@@ -176,6 +176,7 @@ jobs:
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
+          unzip -p "$out" 'assets/reseller/v035-sourcing-b.js' > "$report/packaged-sourcing-b.js"
           grep -Fq 'data-h38-v053-runtime="bundled-v049-plus-v051-plus-v053"' "$report/packaged-index.html"
           grep -Fq 'H38_V049_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V051_RUNTIME_ACTIVE' "$report/packaged-index.html"
@@ -185,7 +186,8 @@ jobs:
           grep -Fq 'Signal age' "$report/packaged-index.html"
           grep -Fq 'By nearby store' "$report/packaged-index.html"
           grep -Fq 'Retailers with deals' "$report/packaged-index.html"
-          grep -Fq 'shop/monthly-specials.html' "$report/packaged-index.html"
+          grep -Fq 'https://www.landmsupply.com/shop/monthly-specials.html' "$report/packaged-sourcing-b.js"
+          if grep -Fq 'https://www.landmsupply.com/weekly-ad' "$report/packaged-sourcing-b.js"; then echo '::error::Dead packaged L&M weekly-ad route returned'; exit 1; fi
           if grep -Fq '<script src="v049-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v049 must be bundled inline'; exit 1; fi
           if grep -Fq '<script src="v051-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v051 must be bundled inline'; exit 1; fi
           if grep -Fq '<script src="v053-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v053 must be bundled inline'; exit 1; fi
