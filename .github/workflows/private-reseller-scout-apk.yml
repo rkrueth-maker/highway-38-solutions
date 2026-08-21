@@ -112,8 +112,17 @@ jobs:
               --v4-signing-enabled false \
               --out "$out" "$aligned"
           else
-            DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
-            test -s "$DEBUG_KEYSTORE" || { echo '::error::Gradle debug keystore not found'; exit 1; }
+            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v052-owner-test.jks"
+            keytool -genkeypair -noprompt \
+              -keystore "$DEBUG_KEYSTORE" \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname 'CN=H38 Reseller Scout Owner Test,O=Highway 38 Solutions,C=US'
+            test -s "$DEBUG_KEYSTORE"
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
               --ks "$DEBUG_KEYSTORE" \
               --ks-pass pass:android \
