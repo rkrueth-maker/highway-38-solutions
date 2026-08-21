@@ -3,8 +3,10 @@ package com.highway38.resellerscout;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -17,10 +19,12 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
+import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -41,25 +45,33 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public final class MainActivity extends Activity {
-    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V036";
+    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V037";
+    public static final String NATIVE_SAFE_AREA_V037 = "NATIVE_ROOT_SYSTEM_BAR_INSETS_V037";
+    public static final String EXPORTED_CAMERA_HANDLER_V037 = "EXPORTED_CAMERA_HANDLER_V037";
     private static final String APP_BASE_URL = "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
     private static final int REQUEST_PHOTO = 3902;
+    private FrameLayout contentRoot;
     private WebView webView;
     private String pendingPhotoRole = "item";
     private File pendingPhotoFile;
     private Uri pendingPhotoUri;
+    private String pendingPhotoPackage;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(Color.rgb(11, 36, 56));
         getWindow().setNavigationBarColor(Color.WHITE);
 
+        contentRoot = new FrameLayout(this);
+        contentRoot.setBackgroundColor(Color.rgb(238, 243, 247));
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(238, 243, 247));
-        setContentView(webView);
+        contentRoot.addView(webView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(contentRoot);
         applyInsets();
 
         WebSettings settings = webView.getSettings();
@@ -69,7 +81,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.36-store-first");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.37-physical-safe-area");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
@@ -92,18 +104,21 @@ public final class MainActivity extends Activity {
     }
 
     private void applyInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return insets;
+            webView.setPadding(0, 0, 0, 0);
+            return WindowInsetsCompat.CONSUMED;
         });
-        ViewCompat.requestApplyInsets(webView);
+        ViewCompat.requestApplyInsets(contentRoot);
     }
 
     private String bundledPage() {
         String html = readAsset("reseller/index.html");
-        html = html.replace("<link rel=\"stylesheet\" href=\"v035-ui.css\">", "<style>" + readAsset("reseller/v035-ui.css") + "</style>");
-        for (String name : new String[]{"v035-core.js", "v035-sourcing-a.js", "v035-sourcing-b.js", "v035-research.js", "v035-app.js"}) {
+        for (String name : new String[]{"v035-ui.css", "v037-safearea.css"}) {
+            html = html.replace("<link rel=\"stylesheet\" href=\"" + name + "\">", "<style>" + readAsset("reseller/" + name) + "</style>");
+        }
+        for (String name : new String[]{"v035-core.js", "v035-sourcing-a.js", "v035-sourcing-b.js", "v035-research.js", "v035-app.js", "v037-physical.js"}) {
             html = html.replace("<script src=\"" + name + "\"></script>", "<script>" + readAsset("reseller/" + name) + "</script>");
         }
         return html;
@@ -228,19 +243,32 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private ResolveInfo exportedCameraHandler(Intent intent) {
+        List<ResolveInfo> handlers = getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        for (ResolveInfo handler : handlers) {
+            if (handler != null && handler.activityInfo != null && handler.activityInfo.exported) return handler;
+        }
+        return null;
+    }
+
     private void takePhoto(String role) {
         pendingPhotoRole = role == null || role.trim().isEmpty() ? "item" : role.trim();
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            ResolveInfo handler = exportedCameraHandler(intent);
+            if (handler == null) throw new IllegalStateException("No compatible camera app is available.");
             pendingPhotoFile = new File(getCacheDir(), "scout-photo-" + System.currentTimeMillis() + ".jpg");
             pendingPhotoUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingPhotoFile);
+            pendingPhotoPackage = handler.activityInfo.packageName;
+            intent.setComponent(new ComponentName(handler.activityInfo.packageName, handler.activityInfo.name));
             intent.putExtra(MediaStore.EXTRA_OUTPUT, pendingPhotoUri);
             intent.setClipData(ClipData.newRawUri("scout-photo", pendingPhotoUri));
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            grantUriPermission(pendingPhotoPackage, pendingPhotoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivityForResult(intent, REQUEST_PHOTO);
         } catch (Exception e) {
             cleanupPhoto();
-            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote("Camera could not open: " + String.valueOf(e.getMessage())) + ");", null);
+            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera could not open on this phone.');", null);
         }
     }
 
@@ -279,7 +307,7 @@ public final class MainActivity extends Activity {
                 webView.evaluateJavascript(js, null);
             }
         } catch (Exception e) {
-            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote(String.valueOf(e.getMessage())) + ");", null);
+            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera returned an unreadable image.');", null);
         } finally {
             cleanupPhoto();
         }
@@ -296,9 +324,13 @@ public final class MainActivity extends Activity {
     }
 
     private void cleanupPhoto() {
+        try {
+            if (pendingPhotoUri != null) revokeUriPermission(pendingPhotoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception ignored) {}
         try { if (pendingPhotoFile != null && pendingPhotoFile.exists()) pendingPhotoFile.delete(); } catch (Exception ignored) {}
         pendingPhotoFile = null;
         pendingPhotoUri = null;
+        pendingPhotoPackage = null;
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -320,7 +352,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void requestLocation() { runOnUiThread(MainActivity.this::requestPhoneLocation); }
         @JavascriptInterface public void scanBarcode() { runOnUiThread(MainActivity.this::scanBarcode); }
         @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
-        @JavascriptInterface public String build() { return "20260820-store-first-camera-barcode-v036"; }
+        @JavascriptInterface public String build() { return "20260820-safe-area-camera-retailer-v037"; }
         @JavascriptInterface public void reloadScout() { runOnUiThread(MainActivity.this::recreate); }
         @JavascriptInterface public boolean notificationAccessEnabled() {
             try {
