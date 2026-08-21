@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 49
-        versionName '0.1.48'
+        versionCode 50
+        versionName '0.1.49'
     }
     signingConfigs {
         if (hasReleaseSigning) {
@@ -30,7 +30,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix '.owner48'
+            applicationIdSuffix '.owner49'
             versionNameSuffix '-debug'
         }
         release {
@@ -42,6 +42,27 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Keep v0.1.48 as the stable foundation and inject the narrow v0.1.49 runtime
+// only into Gradle's merged asset output. This avoids dirtying source index.html.
+def h38V049Tag = '<script src="v049-runtime.js"></script>'
+def injectH38V049 = {
+    def matches = fileTree(layout.buildDirectory.get().asFile).matching { include '**/reseller/index.html' }.files
+    if (matches.empty) throw new GradleException('Could not locate merged reseller/index.html for v0.1.49 runtime injection')
+    matches.each { File indexFile ->
+        def html = indexFile.getText('UTF-8')
+        if (!html.contains(h38V049Tag)) {
+            def next = html.replace('</body>', h38V049Tag + '\n</body>')
+            if (next == html) throw new GradleException('Merged reseller/index.html has no </body> for v0.1.49 injection')
+            indexFile.write(next, 'UTF-8')
+        }
+    }
+}
+tasks.configureEach { task ->
+    if (task.name == 'mergeDebugAssets' || task.name == 'mergeReleaseAssets') {
+        task.doLast { injectH38V049() }
     }
 }
 
