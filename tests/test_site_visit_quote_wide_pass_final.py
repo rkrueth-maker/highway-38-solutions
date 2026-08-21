@@ -30,7 +30,7 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
-    assert "ASSET_BUILD='20260821-0345'" in LOADER
+    assert "ASSET_BUILD='20260821-1015'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js',
@@ -43,7 +43,8 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-2' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-3' in HAMMER
+    assert 'siteVisitIdentityAuthority:true' in LOADER
 
 
 def test_quote_runtime_is_singleflight_one_refresh_and_owner_initiated():
@@ -79,18 +80,27 @@ def test_verified_measurements_win_but_unverified_requests_remain():
     assert 'No additional measurements needed.' in MEASURE
 
 
-def test_work_rows_use_logical_site_visit_identity_priority():
+def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
     markers = [
         "'Capture Session ID'",
         "'Site Visit ID'",
-        "'Quote ID'",
+        "'unique Quote ID'",
         "'Customer ID + exact Project Title'",
+        "'unique exact Project Title'",
     ]
     positions = [WORK.index(item) for item in markers]
     assert positions == sorted(positions)
+    assert 'H38_SITE_VISIT_IDENTITY_AUTHORITY' in WORK
+    assert 'installRestoreAuthority' in WORK
+    assert 'installOpenAuthority' in WORK
+    assert 'forcedIdentity=identity' in WORK
+    assert 'titleOnlyRequiresUniqueServerSession:true' in WORK
+    assert 'conflictingIdentifiersBlockFallback:true' in WORK
+    assert 'persistentJobsObserver:true' in WORK
     assert 'localDraftReconcilesWithServer:true' in WORK
     assert 'genuineDifferentServerSessionsPreserved:true' in WORK
-    assert 'domOnlyNoEvidenceDeletion:true' in WORK
+    assert 'serverEvidenceNeverDeleted:true' in WORK
+    assert '.delete(' not in WORK
 
 
 def test_followups_reuse_open_related_records():
@@ -136,7 +146,8 @@ def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candid
 
 
 def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached():
-    assert "const CACHE_NAME='h38-business-office-20260821-0345'" in SW
+    assert "const CACHE_NAME='h38-business-office-20260821-1015'" in SW
+    assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-0345'" in SW
     expected = [
         'quote-runtime-authority.js',
         'site-visit-quote-handoff-final.js',
