@@ -1,0 +1,1 @@
+CI-only trigger for H38 Reseller Scout v0.1.45. Do not merge.
