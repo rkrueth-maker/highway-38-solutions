@@ -82,7 +82,7 @@ jobs:
             echo 'variant=debug' >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Compile private Reseller Scout APK
+      - name: Compile, align, and explicitly sign private Reseller Scout APK
         shell: bash
         run: |
           set -euo pipefail
@@ -95,8 +95,37 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
+
+          aligned="$RUNNER_TEMP/h38-reseller-v052-aligned.apk"
           out="$report/H38-Reseller-Scout-Owner-Test-v0.1.52.apk"
-          cp "$apk" "$out"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$apk" "$aligned"
+
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+              --ks "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" \
+              --ks-pass "pass:$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" \
+              --key-pass "pass:$H38_ANDROID_UPLOAD_KEY_PASSWORD" \
+              --ks-key-alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --v3-signing-enabled false \
+              --v4-signing-enabled false \
+              --out "$out" "$aligned"
+          else
+            DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
+            test -s "$DEBUG_KEYSTORE" || { echo '::error::Gradle debug keystore not found'; exit 1; }
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+              --ks "$DEBUG_KEYSTORE" \
+              --ks-pass pass:android \
+              --key-pass pass:android \
+              --ks-key-alias androiddebugkey \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --v3-signing-enabled false \
+              --v4-signing-enabled false \
+              --out "$out" "$aligned"
+          fi
+
           sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.52.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
