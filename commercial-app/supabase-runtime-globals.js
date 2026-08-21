@@ -81,14 +81,20 @@
     document.head.appendChild(script);
   }
 
+  function loadFieldUpdateFlow() {
+    if (document.querySelector('script[data-h38-field-update-flow]')) return;
+    const script = document.createElement('script');
+    script.src = './field-update-flow.js?build=20260817-field-update-flow-1';
+    script.dataset.h38FieldUpdateFlow = '1';
+    document.head.appendChild(script);
+  }
+
   if (nativeAndroid) {
     document.documentElement.classList.add('h38-early-native-startup');
     const style = document.createElement('style');
     style.id = 'h38EarlyNativeStartupStyle';
     style.textContent = 'html.h38-early-native-startup body{overflow:hidden!important}html.h38-early-native-startup body:after{content:"🔨  Opening Highway 38…";white-space:pre;position:fixed;inset:0;z-index:2147483199;display:grid;place-items:center;background:#eef3f7;color:#10212c;font:800 18px system-ui,sans-serif;text-align:center;padding:24px}';
     document.head.appendChild(style);
-    // This early pseudo-cover exists only until the real startup watchdog is installed.
-    // Never allow it to become an indefinite opaque screen if later startup code fails.
     setTimeout(clearEarlyNativeStartupCover, 3000);
   }
 
@@ -130,6 +136,7 @@
 
   installNativeReturnColdReloadGuard();
   loadFinalNativeVideoAttach();
+  loadFieldUpdateFlow();
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
