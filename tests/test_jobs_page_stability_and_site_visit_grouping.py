@@ -7,6 +7,7 @@ GROUP = ROOT / "commercial-app" / "site-visit-work-list-grouping-repair.js"
 PHONE = ROOT / "commercial-app" / "site-visit-phone-final-fix.js"
 MOBILE_FLOW = ROOT / "commercial-app" / "mobile-flow-polish-v2.js"
 SERVICE_WORKER = ROOT / "commercial-app" / "service-worker.js"
+IDENTITY = ROOT / "commercial-app" / "site-visit-work-dedupe-final.js"
 
 
 def test_jobs_page_enhancement_is_idempotent_and_render_boundary_driven():
@@ -63,6 +64,18 @@ def test_jobs_page_groups_site_visit_continuations_with_single_render_authority(
     assert "androidChanged:false" in text
 
 
+def test_final_site_visit_identity_authority_survives_late_jobs_hydration():
+    text = IDENTITY.read_text(encoding="utf-8")
+    assert "20260821-site-visit-work-dedupe-final-2" in text
+    assert "persistentJobsObserver:true" in text
+    assert "observer.observe(main,{childList:true,subtree:true})" in text
+    assert "setTimeout(()=>{reconcile();observer?.disconnect()" not in text
+    assert "installOpenAuthority" in text
+    assert "installRestoreAuthority" in text
+    assert "titleOnlyRequiresUniqueServerSession:true" in text
+    assert "genuineDifferentServerSessionsPreserved:true" in text
+
+
 def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     text = PHONE.read_text(encoding="utf-8")
     assert "H38_PURGE_DYNAMIC_REPAIR_CACHE" in text
@@ -88,12 +101,13 @@ def test_legacy_mobile_history_grouper_is_retired_on_jobs():
 
 def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
     text = SERVICE_WORKER.read_text(encoding="utf-8")
+    assert "h38-business-office-20260821-1015" in text
     assert "h38-business-office-20260821-0345" in text
-    assert "h38-business-office-20260821-0219" in text
     for filename in (
         "site-visit-delete-runtime-repair.js",
         "site-visit-work-list-delete-repair.js",
         "site-visit-work-list-grouping-repair.js",
+        "site-visit-work-dedupe-final.js",
     ):
         assert filename in text
         live_first = text.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
