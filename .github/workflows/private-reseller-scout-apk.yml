@@ -152,7 +152,10 @@ jobs:
           else
             grep -Fq "package: name='com.highway38.resellerscout.owner52fix' versionCode='53' versionName='0.1.52-debug'" "$report/badging.txt"
           fi
-          grep -Fq 'Verified using v1 scheme (JAR signing): true' "$report/signing.txt"
+          # minSdk 24 means APK Signature Scheme v2 is the install authority.
+          # apksigner verify does not report v1 as verified for this supported
+          # install range even when JAR signature records are present.
+          grep -Fq "sdkVersion:'24'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
