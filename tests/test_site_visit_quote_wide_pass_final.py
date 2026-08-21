@@ -15,6 +15,7 @@ FENCE = (APP / 'site-visit-identity-write-fence-final.js').read_text(encoding='u
 FOLLOW = (APP / 'job-followup-idempotency-final.js').read_text(encoding='utf-8')
 ACTION = (APP / 'quote-action-picture-final.js').read_text(encoding='utf-8')
 OPTIONS = (APP / 'quote-direction-options.js').read_text(encoding='utf-8')
+WIDE = (APP / 'site-visit-wide-acceptance-final.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 EDGE = FN.read_text(encoding='utf-8')
 
@@ -31,7 +32,7 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
-    assert "ASSET_BUILD='20260821-1051'" in LOADER
+    assert "ASSET_BUILD='20260821-1605'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js',
@@ -42,12 +43,14 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
         './job-followup-idempotency-final.js',
         './quote-action-picture-final.js',
         './quote-direction-options.js',
+        './site-visit-wide-acceptance-final.js',
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-4' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-5' in HAMMER
     assert 'siteVisitIdentityAuthority:true' in LOADER
     assert 'linkedQuoteIdentityWriteFence:true' in LOADER
+    assert 'unifiedWideAcceptanceAuthority:true' in LOADER
 
 
 def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
@@ -84,6 +87,25 @@ def test_quote_runtime_is_singleflight_one_refresh_and_owner_initiated():
         assert marker in RUNTIME
     assert "if(inflight[key])return inflight[key]" in RUNTIME
     assert "if(!authLike(error?.message||error)||error?.__h38Retried)throw error" in RUNTIME
+
+
+def test_unified_wide_authority_uses_field_measurements_and_keeps_quote_editable():
+    for marker in [
+        'fieldVerifiedMeasurementWins:true',
+        'cameraEstimateCannotReopenVerifiedDimension:true',
+        'actualProjectScopeOnly:true',
+        'editableQuoteFallback:true',
+        'directionsLoadWithoutBlockingQuote:true',
+        'savedActionPictureRendersWithoutCustomerSelection:true',
+        'orientationCorrectionPassedToRender:true',
+        'oneProjectSiteVisitWithNestedContinuations:true',
+        'persistentJobsReconciliation:true',
+    ]:
+        assert marker in WIDE
+    assert "void loadDirections(prepared,base,timeout)" in WIDE
+    assert 'AI pricing was unavailable. Keep this editable instead of failing the quote.' in WIDE
+    assert 'Action Picture Rotation Degrees' in WIDE
+    assert 'LOCAL[_ -]?DRAFT' in WIDE
 
 
 def test_final_handoff_loads_same_quote_without_bridge_ready_gate():
@@ -170,8 +192,8 @@ def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candid
 
 
 def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached():
-    assert "const CACHE_NAME='h38-business-office-20260821-1015'" in SW
-    assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-0345'" in SW
+    assert "const CACHE_NAME='h38-business-office-20260821-1605'" in SW
+    assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-1015'" in SW
     expected = [
         'quote-runtime-authority.js',
         'site-visit-quote-handoff-final.js',
@@ -181,6 +203,7 @@ def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached()
         'quote-action-picture-final.js',
         'quote-direction-options.js',
         'site-visit-quote-wide-pass-loader.js',
+        'site-visit-wide-acceptance-final.js',
     ]
     for filename in expected:
         assert f"'{filename}'" in SW

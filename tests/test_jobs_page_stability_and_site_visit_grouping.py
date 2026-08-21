@@ -8,6 +8,7 @@ PHONE = ROOT / "commercial-app" / "site-visit-phone-final-fix.js"
 MOBILE_FLOW = ROOT / "commercial-app" / "mobile-flow-polish-v2.js"
 SERVICE_WORKER = ROOT / "commercial-app" / "service-worker.js"
 IDENTITY = ROOT / "commercial-app" / "site-visit-work-dedupe-final.js"
+WIDE = ROOT / "commercial-app" / "site-visit-wide-acceptance-final.js"
 
 
 def test_jobs_page_enhancement_is_idempotent_and_render_boundary_driven():
@@ -76,6 +77,16 @@ def test_final_site_visit_identity_authority_survives_late_jobs_hydration():
     assert "genuineDifferentServerSessionsPreserved:true" in text
 
 
+def test_wide_acceptance_keeps_one_project_site_visit_and_persistent_reconciliation():
+    text = WIDE.read_text(encoding="utf-8")
+    assert "oneProjectSiteVisitWithNestedContinuations:true" in text
+    assert "persistentJobsReconciliation:true" in text
+    assert "LOCAL[_ -]?DRAFT" in text
+    assert "siteCaptureSessions" in text
+    assert "projectKey" in text
+    assert "serverEvidenceNeverDeleted:true" in text
+
+
 def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     text = PHONE.read_text(encoding="utf-8")
     assert "H38_PURGE_DYNAMIC_REPAIR_CACHE" in text
@@ -101,13 +112,14 @@ def test_legacy_mobile_history_grouper_is_retired_on_jobs():
 
 def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
     text = SERVICE_WORKER.read_text(encoding="utf-8")
+    assert "h38-business-office-20260821-1605" in text
     assert "h38-business-office-20260821-1015" in text
-    assert "h38-business-office-20260821-0345" in text
     for filename in (
         "site-visit-delete-runtime-repair.js",
         "site-visit-work-list-delete-repair.js",
         "site-visit-work-list-grouping-repair.js",
         "site-visit-work-dedupe-final.js",
+        "site-visit-wide-acceptance-final.js",
     ):
         assert filename in text
         live_first = text.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
