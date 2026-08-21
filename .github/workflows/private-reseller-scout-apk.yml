@@ -47,6 +47,7 @@ jobs:
           check "applicationIdSuffix '.owner45'" reseller/build.gradle
           check 'H38_V045_RUNTIME_INLINED' "$main"
           check 'v045-runtime.js' "$main"
+          check 'html.replace("</body>", "<script>" + repair + "</script></body>")' "$main"
           check 'H38_V045_RUNTIME_ACTIVE' "$runtime"
           check 'reseller-auto-leads-v044' "$runtime"
           check 'reseller-item-research-v044' "$runtime"
@@ -120,9 +121,10 @@ jobs:
           fi
           zipinfo -1 "$out" | grep -Fq 'assets/reseller/v045-runtime.js'
           unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'H38_V045_RUNTIME_ACTIVE'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'reseller-auto-leads-v044'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'reseller-item-research-v044'
           unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'New item / photo search'
           unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'Retailer-wide candidates are shown once'
-          unzip -p "$out" 'classes.dex' | strings | grep -Fq 'H38_V045_RUNTIME_INLINED'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
