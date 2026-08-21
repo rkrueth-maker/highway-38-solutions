@@ -58,14 +58,17 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_survives_late_jobs_hydration_without_observer_loop():
+def test_final_site_visit_identity_authority_matches_physical_cards_and_jobs_navigation_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-3" in text
+    assert "20260821-site-visit-work-dedupe-final-4-phone" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
+    assert "physicalCardStructureSupported:true" in text
+    assert "jobsNavigationReconciliation:true" in text
+    assert "function cardForButton(button)" in text
+    assert "function visitCards(" in text
+    assert "label==='jobs'||target==='work'" in text
     assert "new MutationObserver" not in text
-    assert "setTimeout(reconcile,80)" in text
-    assert "setTimeout(reconcile,260)" in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
     assert "titleOnlyRequiresUniqueServerSession:true" in text
@@ -118,6 +121,7 @@ def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
         "site-visit-work-list-grouping-repair.js",
         "site-visit-work-dedupe-final.js",
         "site-visit-wide-acceptance-final.js",
+        "supabase-quote-ai-auth-fix.js",
     ):
         assert filename in text
         live_first = text.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
