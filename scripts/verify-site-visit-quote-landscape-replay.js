@@ -4,6 +4,17 @@ const fs=require('fs');
 const path=require('path');
 const vm=require('vm');
 const ROOT=path.resolve(__dirname,'..');
+const dynamicJs=[
+  'commercial-app/site-visit-quote-e2e-core.js',
+  'commercial-app/site-visit-quote-final-bootstrap.js',
+  'commercial-app/quote-image-orientation-final.js',
+  'commercial-app/quote-working-hammer.js',
+  'commercial-app/android-walkthrough-photo-recovery.js',
+  'commercial-app/quote-runtime-authority.js',
+  'commercial-app/site-visit-work-dedupe-final.js',
+  'commercial-app/site-visit-identity-write-fence-final.js'
+];
+for(const relative of dynamicJs){const source=fs.readFileSync(path.join(ROOT,relative),'utf8');try{new vm.Script(source,{filename:relative});}catch(error){throw new Error(`Dynamic production JavaScript failed to parse: ${relative}: ${error.message}`);}}
 const core=require(path.join(ROOT,'commercial-app','site-visit-quote-e2e-core.js'));
 const fixture=JSON.parse(fs.readFileSync(path.join(ROOT,'tests','fixtures','site_visit_quote_landscape_replay.json'),'utf8'));
 
