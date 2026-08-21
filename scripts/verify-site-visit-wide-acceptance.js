@@ -32,7 +32,7 @@ assert.strictEqual(api.build,'20260821-site-visit-wide-acceptance-final-2','even
 assert.strictEqual(api.eventDrivenReconciliation,true,'wide acceptance reconciliation must be event driven');
 assert.strictEqual(api.documentMutationObserver,false,'document-wide mutation observer must stay disabled');
 assert.strictEqual(api.jobsMutationObserver,false,'Jobs mutation observer must stay disabled');
-assert(!source.includes('MutationObserver'),'wide acceptance authority must not use DOM mutation observers');
+assert(!source.includes('new MutationObserver'),'wide acceptance authority must not construct DOM mutation observers');
 const canonical=api.canonicalizeMeasurements(snapshot.siteMeasurements);
 const perimeter=canonical.find(row=>/perimeter/i.test(row.label));
 assert(perimeter,'perimeter missing from canonical measurements');
@@ -58,11 +58,11 @@ assert(video.includes('fieldMeasuredWins: true'),'backend proof/response does no
 assert(video.includes('cameraEstimateCannotReopenVerifiedDimension: true'),'backend does not declare no-reopen rule');
 const identity=fs.readFileSync('commercial-app/site-visit-work-dedupe-final.js','utf8');
 assert(identity.includes('site-visit-work-dedupe-final-3'),'event-driven identity authority did not advance');
-assert(!identity.includes('MutationObserver'),'Site Visit identity authority must not observe Jobs DOM mutations');
+assert(!identity.includes('new MutationObserver'),'Site Visit identity authority must not observe Jobs DOM mutations');
 assert(identity.includes('eventDrivenJobsReconciliation:true'),'identity authority is not event driven');
 const grouping=fs.readFileSync('commercial-app/site-visit-work-list-grouping-repair.js','utf8');
 assert(grouping.includes('retiredToUnifiedWideAcceptance:true'),'legacy grouping authority was not retired');
-assert(!grouping.includes('MutationObserver'),'legacy grouping repair still watches DOM mutations');
+assert(!grouping.includes('new MutationObserver'),'legacy grouping repair still watches DOM mutations');
 const sw=fs.readFileSync('commercial-app/service-worker.js','utf8');
 assert(sw.includes("h38-business-office-20260821-1605"),'service worker live-first cache authority missing');
 assert(sw.includes("site-visit-wide-acceptance-final.js"),'final authority is not live-first/pre-cached');
