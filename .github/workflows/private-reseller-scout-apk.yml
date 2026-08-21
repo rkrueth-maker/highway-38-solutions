@@ -6,6 +6,9 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'supabase/functions/reseller-opportunity-scan/**'
       - 'supabase/functions/reseller-opportunity-scan-v4/**'
+      - 'supabase/functions/reseller-location-geocode/**'
+      - 'supabase/functions/reseller-auction-discovery/**'
+      - 'supabase/functions/reseller-item-research/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -32,36 +35,46 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.34 private Scout contract
+      - name: Verify v0.1.35 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
           check() { local pattern="$1" file="$2"; grep -Fq "$pattern" "$file" || { echo "::error::Missing contract token [$pattern] in $file"; exit 1; }; }
-          test -f reseller/src/main/assets/reseller/index.html
-          test -f reseller/src/main/assets/reseller/v027-patch.js
-          test -f reseller/src/main/assets/reseller/v027-retailer-extract.js
-          test -f reseller/src/main/assets/reseller/v029-saas.js
-          test -f reseller/src/main/assets/reseller/v032-cleanup.js
-          test -f reseller/src/main/assets/reseller/v033-flow.js
-          test -f reseller/src/main/assets/reseller/v034-production.js
+          assets='reseller/src/main/assets/reseller'
+          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+          patch='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java'
+          test -f "$assets/index.html"
+          for f in v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js; do test -s "$assets/$f"; done
+          test -s reseller/src/main/res/xml/reseller_file_paths.xml
           test -s reseller/src/main/res/drawable/reseller_scout_icon.webp
           echo 'b6a949f4925296fec3ac5b11ce7592a4e47e610bc9f4ac8dcfa4b03821b17792  reseller/src/main/res/drawable/reseller_scout_icon.webp' | sha256sum -c -
-          check "versionName '0.1.34'" reseller/build.gradle
-          check 'versionCode 35' reseller/build.gradle
-          check 'LEGACY_OPPORTUNITY_SCANNER_REMOVED_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          if grep -Fq 'SOURCE_SCAN_FALLBACK_LIST_V1' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java; then exit 1; fi
-          for t in H38_RESALE_OPPORTUNITY_ENGINE_V2 H38_FACEBOOK_AUTHENTICATED_BROWSER_V1 H38_DEVICE_RETAILER_STOCK_V1 H38_PHONE_OR_ZIP_LOCATION_V3 H38_RESELLER_SAAS_WORKSPACE_V2 H38_NATIVE_CONTENT_INSETS_V1 H38_SCOUT_DEEP_CLEANUP_V032 H38_SCOUT_DEALS_FLOW_V033 H38_SCOUT_PRODUCTION_V034; do check "$t" reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java; done
-          check 'v034-production.js' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutPatchProvider.java
-          for t in 'Penny & Clearance' 'Verify local price' 'LOCAL $0.01' 'PENNY CANDIDATE' 'STORE VERIFIED' 'Nearby Stores' 'Set / verify'; do check "$t" reseller/src/main/assets/reseller/v034-production.js; done
-          check 'reseller-opportunity-scan-v4' reseller/src/main/assets/reseller/v033-flow.js
-          check 'Only verified, profit-supported resale opportunities' reseller/src/main/assets/reseller/v027-patch.js
+          check "versionName '0.1.35'" reseller/build.gradle
+          check 'versionCode 36' reseller/build.gradle
+          check 'H38_SCOUT_PRODUCT_FLOW_V035' "$main"
+          check 'bundledPage()' "$main"
+          check 'takePhoto(String role)' "$main"
+          check 'FileProvider.getUriForFile' "$main"
+          check 'H38_LEGACY_PATCH_STACK_REMOVED_V035' "$patch"
+          if grep -Fq 'v034-production.js' "$patch"; then echo '::error::Legacy runtime patch stack must not be injected'; exit 1; fi
+          for t in 'What are you hunting?' 'Deals Near Me' 'Penny & Clearance' 'Nearby Stores' 'Auctions' 'Research an Item'; do check "$t" "$assets/index.html"; done
+          for t in 'data-nav="deals"' 'data-nav="clearance"' 'data-nav="stores"' 'data-nav="auctions"' 'data-nav="more"'; do check "$t" "$assets/index.html"; done
+          if grep -Fq 'data-nav="home"' "$assets/index.html"; then echo '::error::Permanent Home nav is forbidden'; exit 1; fi
+          check 'showLauncher()' "$assets/v035-core.js"
+          check 'PENNY CANDIDATE' "$assets/v035-sourcing-a.js"
+          check 'STORE VERIFIED' "$assets/v035-sourcing-a.js"
+          check 'LOCAL $0.01' "$assets/v035-sourcing-a.js"
+          check 'Auction discovery does not require profit verification.' "$assets/v035-sourcing-b.js"
+          check 'VALUE NOT ESTABLISHED' "$assets/v035-research.js"
           root="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v4/index.ts"
           check 'verified_profit_v4' "$root"
-          check 'ebay_result_cards_v2' "$root"
-          check 'fallbackQuery' "$root"
-          check 'auction_premium_policy' "$root"
-          check 'actual_only' "$root"
           if grep -Fq 'DEFAULT_AUCTION_PREMIUM' "$root"; then echo '::error::Auction premium default must not exist'; exit 1; fi
+          auction="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-discovery/index.ts"
+          research="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research/index.ts"
+          geocode="$GITHUB_WORKSPACE/supabase/functions/reseller-location-geocode/index.ts"
+          check 'Auction events are discovery results.' "$auction"
+          check 'reseller_item_identification' "$research"
+          check 'Do not estimate market value or profitability.' "$research"
+          check 'api.zippopotam.us' "$geocode"
       - name: Configure H38 signing key when available
         id: signing
         shell: bash
@@ -89,24 +102,41 @@ jobs:
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then gradle --no-daemon :reseller:assembleRelease | tee "$report/compile.log"; apk='reseller/build/outputs/apk/release/reseller-release.apk'; else gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"; apk='reseller/build/outputs/apk/debug/reseller-debug.apk'; fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.34.apk"; cp "$apk" "$out"; sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.34.sha256"; "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
+            gradle --no-daemon :reseller:assembleRelease | tee "$report/compile.log"
+            apk='reseller/build/outputs/apk/release/reseller-release.apk'
+          else
+            gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
+            apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
+          fi
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.35.apk"
+          cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.35.sha256"
+          printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.34.apk"; report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.35.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then grep -Fq "package: name='com.highway38.resellerscout' versionCode='35' versionName='0.1.34'" "$report/badging.txt"; else grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='35' versionName='0.1.34-debug'" "$report/badging.txt"; fi
+          if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='36' versionName='0.1.35'" "$report/badging.txt"
+          else
+            grep -Fq "package: name='com.highway38.resellerscout.debug' versionCode='36' versionName='0.1.35-debug'" "$report/badging.txt"
+          fi
           grep -Fq "application-icon-160:'res/drawable/reseller_scout_icon.webp'" "$report/badging.txt"
-          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v034-production.js'
-          unzip -p "$out" 'assets/reseller/v034-production.js' | grep -Fq 'Verify local price'
-          unzip -p "$out" 'assets/reseller/v034-production.js' | grep -Fq 'LOCAL $0.01'
+          for f in index.html v035-ui.css v035-core.js v035-sourcing-a.js v035-sourcing-b.js v035-research.js v035-app.js; do zipinfo -1 "$out" | grep -Fq "assets/reseller/$f"; done
+          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'What are you hunting?'
+          unzip -p "$out" 'assets/reseller/index.html' | grep -Fq 'data-nav="more"'
+          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'VALUE NOT ESTABLISHED'
+          unzip -p "$out" 'assets/reseller/v035-sourcing-b.js' | grep -Fq 'Auction discovery does not require profit verification.'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.34
+          name: h38-reseller-scout-owner-test-v0.1.35
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
