@@ -2,11 +2,8 @@ package com.highway38.resellerscout;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ClipData;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -16,7 +13,6 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
 import android.view.ViewGroup;
@@ -27,7 +23,6 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
-import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -45,21 +40,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public final class MainActivity extends Activity {
-    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V037";
+    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V039";
     public static final String NATIVE_SAFE_AREA_V037 = "NATIVE_ROOT_SYSTEM_BAR_INSETS_V037";
-    public static final String EXPORTED_CAMERA_HANDLER_V037 = "EXPORTED_CAMERA_HANDLER_V037";
+    public static final String IN_APP_CAMERA_V039 = "H38_SCOUT_CAMERAX_PHOTO_V039";
     private static final String APP_BASE_URL = "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
     private static final int REQUEST_PHOTO = 3902;
     private FrameLayout contentRoot;
     private WebView webView;
     private String pendingPhotoRole = "item";
-    private File pendingPhotoFile;
-    private Uri pendingPhotoUri;
-    private String pendingPhotoPackage;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -81,7 +72,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.37-physical-safe-area");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.39-camerax");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
@@ -243,32 +234,14 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private ResolveInfo exportedCameraHandler(Intent intent) {
-        List<ResolveInfo> handlers = getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        for (ResolveInfo handler : handlers) {
-            if (handler != null && handler.activityInfo != null && handler.activityInfo.exported) return handler;
-        }
-        return null;
-    }
-
     private void takePhoto(String role) {
         pendingPhotoRole = role == null || role.trim().isEmpty() ? "item" : role.trim();
         try {
-            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            ResolveInfo handler = exportedCameraHandler(intent);
-            if (handler == null) throw new IllegalStateException("No compatible camera app is available.");
-            pendingPhotoFile = new File(getCacheDir(), "scout-photo-" + System.currentTimeMillis() + ".jpg");
-            pendingPhotoUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingPhotoFile);
-            pendingPhotoPackage = handler.activityInfo.packageName;
-            intent.setComponent(new ComponentName(handler.activityInfo.packageName, handler.activityInfo.name));
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, pendingPhotoUri);
-            intent.setClipData(ClipData.newRawUri("scout-photo", pendingPhotoUri));
-            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            grantUriPermission(pendingPhotoPackage, pendingPhotoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent = new Intent(this, NativePhotoCaptureActivity.class);
+            intent.putExtra(NativePhotoCaptureActivity.EXTRA_ROLE, pendingPhotoRole);
             startActivityForResult(intent, REQUEST_PHOTO);
         } catch (Exception e) {
-            cleanupPhoto();
-            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera could not open on this phone.');", null);
+            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Scout camera could not open.');", null);
         }
     }
 
@@ -284,32 +257,34 @@ public final class MainActivity extends Activity {
 
         if (requestCode != REQUEST_PHOTO) return;
         if (resultCode != RESULT_OK) {
-            cleanupPhoto();
-            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Photo canceled');", null);
+            String error = data == null ? "Photo canceled" : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_ERROR);
+            if (error == null || error.isBlank()) error = "Photo canceled";
+            String finalError = error;
+            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote(finalError) + ");", null);
             return;
         }
+
+        String path = data == null ? "" : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_PATH);
+        String role = data == null ? pendingPhotoRole : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_ROLE);
+        File file = path == null || path.isBlank() ? null : new File(path);
         Bitmap bitmap = null;
         try {
-            if (pendingPhotoFile != null && pendingPhotoFile.isFile() && pendingPhotoFile.length() > 0) {
-                bitmap = BitmapFactory.decodeFile(pendingPhotoFile.getAbsolutePath());
-            }
-            if (bitmap == null && data != null && data.getExtras() != null) {
-                Object raw = data.getExtras().get("data");
-                if (raw instanceof Bitmap) bitmap = (Bitmap) raw;
-            }
-            if (bitmap == null) throw new IllegalStateException("Camera did not return an image");
+            if (file == null || !file.isFile() || file.length() <= 0) throw new IllegalStateException("Camera did not return an image");
+            bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (bitmap == null) throw new IllegalStateException("Camera returned an unreadable image");
             bitmap = scaleForResearch(bitmap, 1600);
             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 84, out);
                 String b64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
                 String dataUrl = "data:image/jpeg;base64," + b64;
-                String js = "window.H38NativePhotoResult&&window.H38NativePhotoResult(" + JSONObject.quote(pendingPhotoRole) + "," + JSONObject.quote(dataUrl) + ");";
+                String js = "window.H38NativePhotoResult&&window.H38NativePhotoResult(" + JSONObject.quote(role == null ? pendingPhotoRole : role) + "," + JSONObject.quote(dataUrl) + ");";
                 webView.evaluateJavascript(js, null);
             }
         } catch (Exception e) {
             webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera returned an unreadable image.');", null);
         } finally {
-            cleanupPhoto();
+            try { if (file != null && file.exists()) file.delete(); } catch (Exception ignored) {}
+            if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
         }
     }
 
@@ -321,16 +296,6 @@ public final class MainActivity extends Activity {
         Bitmap scaled = Bitmap.createScaledBitmap(source, nw, nh, true);
         if (scaled != source) source.recycle();
         return scaled;
-    }
-
-    private void cleanupPhoto() {
-        try {
-            if (pendingPhotoUri != null) revokeUriPermission(pendingPhotoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Exception ignored) {}
-        try { if (pendingPhotoFile != null && pendingPhotoFile.exists()) pendingPhotoFile.delete(); } catch (Exception ignored) {}
-        pendingPhotoFile = null;
-        pendingPhotoUri = null;
-        pendingPhotoPackage = null;
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -352,7 +317,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void requestLocation() { runOnUiThread(MainActivity.this::requestPhoneLocation); }
         @JavascriptInterface public void scanBarcode() { runOnUiThread(MainActivity.this::scanBarcode); }
         @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
-        @JavascriptInterface public String build() { return "20260820-safe-area-camera-retailer-v037"; }
+        @JavascriptInterface public String build() { return "20260820-camerax-photo-v039"; }
         @JavascriptInterface public void reloadScout() { runOnUiThread(MainActivity.this::recreate); }
         @JavascriptInterface public boolean notificationAccessEnabled() {
             try {
