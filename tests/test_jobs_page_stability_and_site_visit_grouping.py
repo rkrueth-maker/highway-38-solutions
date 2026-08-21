@@ -88,7 +88,8 @@ def test_legacy_mobile_history_grouper_is_retired_on_jobs():
 
 def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
     text = SERVICE_WORKER.read_text(encoding="utf-8")
-    assert "h38-business-office-20260818-1630" in text
+    assert "h38-business-office-20260821-0345" in text
+    assert "h38-business-office-20260821-0219" in text
     for filename in (
         "site-visit-delete-runtime-repair.js",
         "site-visit-work-list-delete-repair.js",
