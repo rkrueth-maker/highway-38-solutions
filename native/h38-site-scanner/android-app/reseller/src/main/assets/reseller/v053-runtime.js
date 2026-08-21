@@ -1,14 +1,26 @@
 'use strict';
 window.H38_V053_RUNTIME_ACTIVE=true;
-window.H38_V053_RUNTIME_MARKER='store-split-age-refresh-store-noise-v053';
+window.H38_V053_RUNTIME_MARKER='store-split-age-refresh-store-noise-v053-strict-date-v054';
+window.H38_V054_TRUTH_FIX_ACTIVE=true;
 (function(){
   const text=v=>String(v??'').trim();
   const norm=v=>text(v).toLowerCase().replace(/\b(?:the|a|an)\b/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
   const retailerKey=v=>{const s=norm(v?.retailer??v);if(s.includes('home depot'))return'home depot';if(s.includes('dollar general'))return'dollar general';if(s.includes('dollar tree'))return'dollar tree';if(s.includes('family dollar'))return'family dollar';if(s.includes('lowe'))return'lowes';return s};
   const signalRaw=l=>text(l?.last_penny_report_at||l?.last_seen||l?.posted_date||l?.penny_date||'');
   const signalLabel=l=>text(l?.last_penny_report_label||l?.last_seen_label||signalRaw(l));
+  function strictSignalDate(value){
+    const raw=text(value);
+    if(!raw)return NaN;
+    const iso=/^\d{4}-\d{2}-\d{2}(?:[T\s]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s?(?:Z|[+-]\d{2}:?\d{2}))?)?$/i;
+    const numeric=/^\d{1,2}\/\d{1,2}\/\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)?$/i;
+    const monthFirst=/^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/i;
+    const dayFirst=/^\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{4}\b/i;
+    if(!(iso.test(raw)||numeric.test(raw)||monthFirst.test(raw)||dayFirst.test(raw)))return NaN;
+    const parsed=Date.parse(raw);
+    return Number.isFinite(parsed)?parsed:NaN;
+  }
   function age(l){
-    const raw=signalRaw(l),direct=Date.parse(raw);
+    const raw=signalRaw(l),direct=strictSignalDate(raw);
     if(Number.isFinite(direct))return{known:true,days:Math.max(0,Math.floor((Date.now()-direct)/86400000)),ms:direct};
     const label=signalLabel(l).toLowerCase().trim();
     if(!label)return{known:false,days:null,ms:0};
