@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 40
-        versionName '0.1.39'
+        versionCode 41
+        versionName '0.1.40'
     }
     signingConfigs {
         if (hasReleaseSigning) {
@@ -30,8 +30,11 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix '.debug'
-            versionNameSuffix '-debug'
+            // CI debug certificates are runner-local and can change between builds.
+            // Give this owner-test package a version-isolated application id so it
+            // installs cleanly beside earlier private test builds regardless of signer.
+            applicationIdSuffix '.owner40'
+            versionNameSuffix '-owner40'
         }
         release {
             minifyEnabled false
