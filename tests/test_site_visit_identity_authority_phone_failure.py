@@ -39,12 +39,15 @@ def test_distinct_real_server_sessions_are_not_collapsed_by_shared_quote_or_titl
     assert "distinctServerSessionsPreserved:true" in FENCE
 
 
-def test_jobs_dedupe_survives_late_async_hydration():
-    assert "observer=new MutationObserver(()=>schedule(35))" in IDENTITY
-    assert "observer.observe(main,{childList:true,subtree:true})" in IDENTITY
-    assert "observer?.disconnect();observer=null" not in IDENTITY
-    assert "persistentJobsObserver:true" in IDENTITY
-    assert "setTimeout(arm,0)" in FENCE
+def test_jobs_dedupe_survives_late_async_hydration_without_dom_observer_loop():
+    assert "20260821-site-visit-work-dedupe-final-3" in IDENTITY
+    assert "new MutationObserver" not in IDENTITY
+    assert "eventDrivenJobsReconciliation:true" in IDENTITY
+    assert "persistentJobsObserver:false" in IDENTITY
+    assert "setTimeout(reconcile,80)" in IDENTITY
+    assert "setTimeout(reconcile,260)" in IDENTITY
+    assert "window.addEventListener('h38:business-snapshot-updated'" in IDENTITY
+    assert "wrapped=function(){const result=base.apply(this,arguments);arm();return result;}" in IDENTITY
 
 
 def test_identity_repair_does_not_delete_business_evidence():
@@ -59,10 +62,10 @@ def test_identity_repair_does_not_delete_business_evidence():
 
 
 def test_identity_authority_is_deployed_through_live_first_cache_boundary():
-    assert "site-visit-work-dedupe-final-2" in LOADER
+    assert "site-visit-work-dedupe-final-3" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
-    assert "site-visit-wide-acceptance-final-1" in LOADER
-    assert "site-visit-quote-wide-pass-loader-5" in HAMMER
+    assert "site-visit-wide-acceptance-final-2" in LOADER
+    assert "site-visit-quote-wide-pass-loader-7" in HAMMER
     assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
@@ -70,6 +73,8 @@ def test_identity_authority_is_deployed_through_live_first_cache_boundary():
     assert "site-visit-quote-wide-pass-loader.js" in live_first
     assert "site-visit-wide-acceptance-final.js" in live_first
     assert "persistentJobsReconciliation:true" in WIDE
+    assert "eventDrivenReconciliation:true" in WIDE
+    assert "new MutationObserver" not in WIDE
 
 
 def test_detached_local_draft_cannot_mutate_linked_quote_identity():

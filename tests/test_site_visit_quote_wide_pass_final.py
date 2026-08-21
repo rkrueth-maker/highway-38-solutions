@@ -47,7 +47,9 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-5' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-7' in HAMMER
+    assert 'site-visit-work-dedupe-final-3' in LOADER
+    assert 'site-visit-wide-acceptance-final-2' in LOADER
     assert 'siteVisitIdentityAuthority:true' in LOADER
     assert 'linkedQuoteIdentityWriteFence:true' in LOADER
     assert 'unifiedWideAcceptanceAuthority:true' in LOADER
@@ -100,8 +102,12 @@ def test_unified_wide_authority_uses_field_measurements_and_keeps_quote_editable
         'orientationCorrectionPassedToRender:true',
         'oneProjectSiteVisitWithNestedContinuations:true',
         'persistentJobsReconciliation:true',
+        'eventDrivenReconciliation:true',
+        'documentMutationObserver:false',
+        'jobsMutationObserver:false',
     ]:
         assert marker in WIDE
+    assert 'new MutationObserver' not in WIDE
     assert "void loadDirections(prepared,base,timeout)" in WIDE
     assert 'AI pricing was unavailable. Keep this editable instead of failing the quote.' in WIDE
     assert 'Action Picture Rotation Degrees' in WIDE
@@ -142,7 +148,9 @@ def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
     assert 'forcedIdentity=identity' in WORK
     assert 'titleOnlyRequiresUniqueServerSession:true' in WORK
     assert 'conflictingIdentifiersBlockFallback:true' in WORK
-    assert 'persistentJobsObserver:true' in WORK
+    assert 'persistentJobsObserver:false' in WORK
+    assert 'eventDrivenJobsReconciliation:true' in WORK
+    assert 'new MutationObserver' not in WORK
     assert 'localDraftReconcilesWithServer:true' in WORK
     assert 'genuineDifferentServerSessionsPreserved:true' in WORK
     assert 'serverEvidenceNeverDeleted:true' in WORK

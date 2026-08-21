@@ -41,46 +41,45 @@ def test_site_visit_delete_repair_is_event_driven_not_polled():
     assert "linkedCustomerDeleted:false" in text
 
 
-def test_jobs_page_groups_site_visit_continuations_with_single_render_authority():
+def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     text = GROUP.read_text(encoding="utf-8")
-    assert "20260818-work-site-visit-grouping-3-single-authority" in text
+    assert "20260821-work-site-visit-grouping-retired-to-wide-1" in text
     assert "oneProjectLevelSiteVisit:true" in text
     assert "groupByJobIdentity:true" in text
     assert "continuationsNested:true" in text
     assert "durableSessionIdentityOnRows:true" in text
     assert "singleRenderAuthority:true" in text
+    assert "retiredToUnifiedWideAcceptance:true" in text
+    assert "eventDrivenReconciliation:true" in text
     assert "permanentWholeDocumentObserver:false" in text
-    assert "boundedMainContentObserverMs:450" in text
-    assert "groupingObserver.observe(main" in text
-    assert "observe(document.documentElement" not in text
-    assert "window.addEventListener('focus'" not in text
-    assert "window.addEventListener('pageshow'" not in text
-    assert "Original Site Visit" in text
-    assert "Continuation ${index}" in text
-    assert "Job ID" in text
-    assert "Quote ID" in text
-    assert "Customer ID" in text
-    assert "Project Title" in text
-    assert "row.dataset.h38SiteVisitSessionId=sid" in text
-    assert "androidChanged:false" in text
+    assert "boundedMainContentObserverMs:0" in text
+    assert "new MutationObserver" not in text
+    assert "H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL" in text
+    assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_survives_late_jobs_hydration():
+def test_final_site_visit_identity_authority_survives_late_jobs_hydration_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-2" in text
-    assert "persistentJobsObserver:true" in text
-    assert "observer.observe(main,{childList:true,subtree:true})" in text
-    assert "setTimeout(()=>{reconcile();observer?.disconnect()" not in text
+    assert "20260821-site-visit-work-dedupe-final-3" in text
+    assert "persistentJobsObserver:false" in text
+    assert "eventDrivenJobsReconciliation:true" in text
+    assert "new MutationObserver" not in text
+    assert "setTimeout(reconcile,80)" in text
+    assert "setTimeout(reconcile,260)" in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
     assert "titleOnlyRequiresUniqueServerSession:true" in text
     assert "genuineDifferentServerSessionsPreserved:true" in text
 
 
-def test_wide_acceptance_keeps_one_project_site_visit_and_persistent_reconciliation():
+def test_wide_acceptance_keeps_one_project_site_visit_and_event_driven_reconciliation():
     text = WIDE.read_text(encoding="utf-8")
     assert "oneProjectSiteVisitWithNestedContinuations:true" in text
     assert "persistentJobsReconciliation:true" in text
+    assert "eventDrivenReconciliation:true" in text
+    assert "documentMutationObserver:false" in text
+    assert "jobsMutationObserver:false" in text
+    assert "new MutationObserver" not in text
     assert "LOCAL[_ -]?DRAFT" in text
     assert "siteCaptureSessions" in text
     assert "projectKey" in text
@@ -94,7 +93,6 @@ def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
     assert "cache.delete(request)" in text
     assert "20260818-physical-work-list-delete-4" in text
     assert "site-visit-work-list-delete-repair.js?build=${BUILD}" in text
-    assert "20260818-work-site-visit-grouping-3-single-authority" in text
     assert "site-visit-work-list-grouping-repair.js?build=${BUILD}" in text
 
 
