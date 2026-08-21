@@ -32,37 +32,40 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.44 private Scout contract
+      - name: Verify v0.1.45 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
           check() { grep -Fq "$1" "$2" || { echo "::error::Missing contract token [$1] in $2"; exit 1; }; }
           assets='reseller/src/main/assets/reseller'
-          research="$assets/v035-research.js"
+          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+          runtime="$assets/v045-runtime.js"
           leads="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v044/index.ts"
           market="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v044/index.ts"
-          check "versionName '0.1.44'" reseller/build.gradle
-          check 'versionCode 45' reseller/build.gradle
-          check "applicationIdSuffix '.owner44'" reseller/build.gradle
-          check 'H38_RESEARCH_RESET_V044' "$research"
-          check 'New item / photo search' "$research"
-          check "reseller-auto-leads-v044" "$research"
-          check "reseller-item-research-v044" "$research"
-          check "Release date" "$research"
+          check "versionName '0.1.45'" reseller/build.gradle
+          check 'versionCode 46' reseller/build.gradle
+          check "applicationIdSuffix '.owner45'" reseller/build.gradle
+          check 'H38_V045_RUNTIME_INLINED' "$main"
+          check 'v045-runtime.js' "$main"
+          check 'H38_V045_RUNTIME_ACTIVE' "$runtime"
+          check 'reseller-auto-leads-v044' "$runtime"
+          check 'reseller-item-research-v044' "$runtime"
+          check 'Release / last seen:' "$runtime"
+          check 'Release date' "$runtime"
+          check 'New item / photo search' "$runtime"
+          check 'Candidate feeds are not duplicated under each store' "$runtime"
+          check 'Retailer-wide candidates are shown once' "$runtime"
+          check 'Penny lead remains active' "$runtime"
           check 'full-pennycentral-document-v044' "$leads"
           check 'pennycentral_document_complete' "$leads"
-          check 'last_seen_label' "$leads"
-          check 'release_date' "$leads"
-          check 'Same retailer + SKU/UPC is one item' "$leads"
           check 'web_search_preview' "$market"
           check 'Web completed-sale evidence' "$market"
-          check 'active and retail prices are context only' "$market"
-          check 'H38_SCOUT_CAMERAX_PHOTO_V039' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          if grep -Fq 'ACTION_IMAGE_CAPTURE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java; then echo '::error::External OEM image capture is forbidden'; exit 1; fi
+          check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
+          if grep -Fq 'ACTION_IMAGE_CAPTURE' "$main"; then echo '::error::External OEM image capture is forbidden'; exit 1; fi
           node --check "$assets/v035-research.js"
           node --check "$assets/v035-app.js"
           node --check "$assets/v037-physical.js"
-          node --check "$assets/v041-market.js"
+          node --check "$runtime"
           node -e "const fs=require('fs'),h=fs.readFileSync('$assets/index.html','utf8'),s=[...h.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)].map(x=>x[1]);for(const [i,x] of s.entries()){new Function(x);console.log('inline-script-'+i+' ok')}"
       - name: Configure H38 signing key when available
         id: signing
@@ -98,33 +101,33 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.44.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.45.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.44.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.45.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.44.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.45.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='45' versionName='0.1.44'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='46' versionName='0.1.45'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner44' versionCode='45' versionName='0.1.44-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner45' versionCode='46' versionName='0.1.45-debug'" "$report/badging.txt"
           fi
-          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'H38_RESEARCH_RESET_V044'
-          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'reseller-auto-leads-v044'
-          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'reseller-item-research-v044'
-          unzip -p "$out" 'assets/reseller/v035-research.js' | grep -Fq 'Release date'
-          unzip -p "$out" 'assets/reseller/v037-physical.js' | grep -Fq 'H38_DEEP_ACCEPTANCE_V038'
+          zipinfo -1 "$out" | grep -Fq 'assets/reseller/v045-runtime.js'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'H38_V045_RUNTIME_ACTIVE'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'New item / photo search'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'Retailer-wide candidates are shown once'
+          unzip -p "$out" 'classes.dex' | strings | grep -Fq 'H38_V045_RUNTIME_INLINED'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.44
+          name: h38-reseller-scout-owner-test-v0.1.45
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
