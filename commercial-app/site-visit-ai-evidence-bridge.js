@@ -16,9 +16,15 @@ function aliasKey(original,sessionId){return`AI-SITE-REVIEW-${safe(original)}-${
 async function activeUser(api){
   const result=await api.auth.getSession();
   if(result.error)throw result.error;
-  const session=result.data?.session;
+  let session=result.data?.session;
   if(!session)throw Error('Sign in again before reviewing the Site Visit.');
-  const verified=await api.auth.getUser(session.access_token);
+  let verified=await api.auth.getUser(session.access_token);
+  if(verified.error||!verified.data?.user){
+    const refreshed=await api.auth.refreshSession();
+    if(refreshed.error||!refreshed.data?.session)throw Error(refreshed.error?.message||verified.error?.message||'Secure session is invalid.');
+    session=refreshed.data.session;
+    verified=await api.auth.getUser(session.access_token);
+  }
   if(verified.error||!verified.data?.user)throw Error(verified.error?.message||'Secure session is invalid.');
   return verified.data.user;
 }
@@ -71,4 +77,92 @@ function wrap(){
 }
 if(!wrap())setTimeout(wrap,0);
 window.H38_SITE_VISIT_AI_EVIDENCE_BRIDGE={build:BUILD,bridgePrivateEvidence,privateOnly:true,automaticCustomerPhotoLinking:false,automaticApproval:false,automaticCustomerSending:false};
+})();
+
+(function(){
+'use strict';
+const BUILD='20260820-site-visit-open-notes-recovery-1';
+const C=window.H38_FIELD_VISIT_CORE;
+if(!C)return;
+const text=value=>String(value==null?'':value);
+let running=null;
+function activeVisit(){const visit=C.state?.visit;return C.state?.open===true&&visit?.sessionId?visit:null;}
+async function persistStatus(visit,status,message){
+  if(!visit)return;
+  visit.walkthroughTranscriptStatus=status;
+  visit.walkthroughTranscriptMessage=text(message);
+  try{await C.saveDraft?.();}catch(_){}
+  try{C.state.render?.();}catch(_){}
+}
+async function recover(trigger){
+  const visit=activeVisit();
+  if(!visit||!navigator.onLine)return false;
+  const voice=visit.walkthroughVoice||{};
+  if(voice.status==='COMPLETE'||voice.status==='STOPPED')return true;
+  const transcription=window.H38_FIELD_VISIT_TRANSCRIPTION;
+  if(!transcription?.ensure)return false;
+  if(running)return running;
+  running=(async()=>{
+    await persistStatus(visit,'RECOVERING',`Recovering saved walkthrough notes (${text(trigger)}).`);
+    try{
+      await transcription.ensure(true);
+      const current=visit.walkthroughVoice||{};
+      if(current.status==='COMPLETE'){
+        await persistStatus(visit,'COMPLETE','Professional walkthrough notes ready.');
+        return true;
+      }
+      if(current.status==='STOPPED'){
+        await persistStatus(visit,'STOPPED',current.message||'This Site Visit will not be retried.');
+        return true;
+      }
+      if(current.status==='FAILED'){
+        await persistStatus(visit,'FAILED',current.message||'Walkthrough notes could not be processed.');
+        return false;
+      }
+      await persistStatus(visit,current.status||'WAITING',current.message||'Walkthrough notes are waiting to process.');
+      return false;
+    }catch(error){
+      await persistStatus(visit,'FAILED',error?.message||String(error));
+      return false;
+    }
+  })().finally(()=>{running=null;});
+  return running;
+}
+function schedule(trigger){
+  [0,300,1200].forEach(delay=>setTimeout(()=>{
+    const visit=activeVisit(),voice=visit?.walkthroughVoice||{};
+    if(visit&&voice.status!=='COMPLETE'&&voice.status!=='STOPPED')void recover(trigger);
+  },delay));
+}
+function wrapOpen(){
+  const api=window.H38_FIELD_VISIT;
+  if(!api?.open)return false;
+  if(api.open.__h38WalkthroughNotesRecovery)return true;
+  const base=api.open.bind(api);
+  const wrapped=async function(){
+    const result=await base(...arguments);
+    schedule('site-visit-open');
+    return result;
+  };
+  wrapped.__h38WalkthroughNotesRecovery=true;
+  wrapped.__h38WalkthroughNotesRecoveryBase=base;
+  api.open=wrapped;
+  return true;
+}
+if(!wrapOpen()){
+  [0,250,750,1500,3000].forEach(delay=>setTimeout(wrapOpen,delay));
+}
+window.addEventListener('online',()=>schedule('online'));
+window.addEventListener('h38:session-valid',()=>schedule('session-valid'));
+window.addEventListener('h38:business-snapshot-updated',()=>schedule('snapshot-updated'));
+window.H38_SITE_VISIT_OPEN_NOTES_RECOVERY={
+  build:BUILD,
+  recover,
+  siteVisitOpenTrigger:true,
+  boundedEventRetries:true,
+  startupTimerIsNotAuthority:true,
+  staleProcessingStateExposed:false,
+  automaticApproval:false,
+  automaticCustomerSending:false
+};
 })();
