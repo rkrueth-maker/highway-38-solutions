@@ -15,7 +15,7 @@ def test_site_visit_open_triggers_saved_walkthrough_notes_recovery():
     assert "site-visit-open" in text
     assert "api.open=wrapped" in text
     assert "transcription.ensure(true)" in text
-    assert "startupTimerIsNotAuthority" not in text
+    assert "startupTimerIsNotAuthority:true" in text
 
 
 def test_recovery_is_bounded_and_event_driven_not_polling():
@@ -29,8 +29,8 @@ def test_recovery_is_bounded_and_event_driven_not_polling():
 
 def test_recovery_surfaces_real_status_instead_of_false_processing():
     text = source()
-    assert "walkthroughTranscriptStatus='RECOVERING'" in text
-    assert "walkthroughTranscriptStatus=status" in text
+    assert "persistStatus(visit,'RECOVERING'" in text
+    assert "visit.walkthroughTranscriptStatus=status" in text
     assert "current.status==='FAILED'" in text
     assert "Walkthrough notes could not be processed." in text
 
