@@ -6,13 +6,13 @@ FINISH = (ROOT / 'commercial-app' / 'field-visit-finish-build.js').read_text(enc
 
 
 def test_final_runtime_is_loaded_from_finish_flow():
-    assert "20260821-site-visit-photo-quote-runtime-repair-1" in RUNTIME
-    assert "site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-1" in FINISH
+    assert "20260821-site-visit-photo-quote-runtime-repair-2" in RUNTIME
+    assert "site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-2" in FINISH
     assert "photoQuoteRuntimeRepairLoaded:true" in FINISH
     assert "await window.H38_SITE_VISIT_PHOTO_QUOTE_RUNTIME_REPAIR?.hydrateEvidence?.('finish-build')" in FINISH
 
 
-def test_action_picture_is_durable_and_quote_linked():
+def test_action_picture_is_durable_and_quote_linked_without_write_churn():
     for marker in [
         "'Action Picture ID':selected",
         ".eq('collection','siteCaptureSessions')",
@@ -23,8 +23,11 @@ def test_action_picture_is_durable_and_quote_linked():
         "'Action Picture':true",
         "'Customer Quote Selected':false",
         "window.H38_QUOTE_ACTION_PHOTO_BY_QUOTE",
+        "changeOnlyServerWrites:true",
     ]:
         assert marker in RUNTIME
+    assert "const stamp=now(),bid=businessId(v),qid=quoteId(v);let wrote=false" in RUNTIME
+    assert "if(existing&&text(value(existingPayload,'Source Type','sourceType')).toLowerCase()==='quote'" in RUNTIME
 
 
 def test_private_server_photo_can_render_after_restart():
