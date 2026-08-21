@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260821-site-visit-quote-wide-pass-loader-6';
+const BUILD='20260821-site-visit-quote-wide-pass-loader-7';
 const ASSET_BUILD='20260821-1605';
 if(window.H38_SITE_VISIT_QUOTE_WIDE_PASS_LOADER)return;
 window.H38_ASSET_BUILD=ASSET_BUILD;
@@ -9,7 +9,7 @@ const scripts=[
   ['./quote-runtime-authority.js','20260821-quote-runtime-authority-1','H38_QUOTE_RUNTIME_AUTHORITY'],
   ['./site-visit-quote-handoff-final.js','20260821-site-visit-quote-handoff-final-1','H38_FIELD_VISIT_QUOTE_HANDOFF'],
   ['./measurement-verification-final.js','20260821-measurement-verification-final-1','H38_MEASUREMENT_VERIFICATION_FINAL'],
-  ['./site-visit-work-dedupe-final.js','20260821-site-visit-work-dedupe-final-2','H38_SITE_VISIT_WORK_DEDUPE_FINAL'],
+  ['./site-visit-work-dedupe-final.js','20260821-site-visit-work-dedupe-final-3','H38_SITE_VISIT_WORK_DEDUPE_FINAL'],
   ['./site-visit-identity-write-fence-final.js','20260821-site-visit-identity-write-fence-final-1','H38_SITE_VISIT_IDENTITY_WRITE_FENCE_FINAL'],
   ['./job-followup-idempotency-final.js','20260821-followup-idempotency-final-1','H38_JOB_FOLLOWUP_IDEMPOTENCY_FINAL'],
   ['./quote-action-picture-final.js','20260821-quote-action-picture-final-1','H38_QUOTE_ACTION_PICTURE_FINAL'],
