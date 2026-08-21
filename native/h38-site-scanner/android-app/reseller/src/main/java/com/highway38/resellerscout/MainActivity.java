@@ -2,6 +2,7 @@ package com.highway38.resellerscout;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -31,6 +32,8 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import org.json.JSONObject;
 
@@ -40,7 +43,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity {
-    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V035";
+    public static final String PRODUCT_FLOW_MARKER = "H38_SCOUT_PRODUCT_FLOW_V036";
     private static final String APP_BASE_URL = "https://highway38solutions.com/commercial-app/reseller-owner-test/";
     private static final int REQUEST_LOCATION = 3901;
     private static final int REQUEST_PHOTO = 3902;
@@ -66,7 +69,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.35-hunt-flow");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/0.1.36-store-first");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
@@ -186,6 +189,16 @@ public final class MainActivity extends Activity {
         webView.post(() -> webView.evaluateJavascript("window.H38NativeLocationError&&window.H38NativeLocationError(" + JSONObject.quote(text) + ");", null));
     }
 
+    private void sendBarcode(String value) {
+        String finalValue = value == null ? "" : value.trim();
+        webView.post(() -> webView.evaluateJavascript("window.H38NativeBarcodeResult&&window.H38NativeBarcodeResult(" + JSONObject.quote(finalValue) + ");", null));
+    }
+
+    private void sendBarcodeError(String text) {
+        String finalText = text == null || text.isBlank() ? "Barcode scan failed." : text;
+        webView.post(() -> webView.evaluateJavascript("window.H38NativeBarcodeError&&window.H38NativeBarcodeError(" + JSONObject.quote(finalText) + ");", null));
+    }
+
     private void scanBarcode() {
         GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
@@ -196,33 +209,51 @@ public final class MainActivity extends Activity {
                 .addOnSuccessListener(barcode -> {
                     String value = barcode.getRawValue();
                     if (value == null) value = barcode.getDisplayValue();
-                    String finalValue = value == null ? "" : value;
-                    webView.evaluateJavascript("window.H38NativeBarcodeResult&&window.H38NativeBarcodeResult(" + JSONObject.quote(finalValue) + ");", null);
+                    sendBarcode(value);
                 })
-                .addOnCanceledListener(() -> webView.evaluateJavascript("window.H38NativeBarcodeError&&window.H38NativeBarcodeError('Scan canceled');", null))
-                .addOnFailureListener(e -> webView.evaluateJavascript("window.H38NativeBarcodeError&&window.H38NativeBarcodeError(" + JSONObject.quote(String.valueOf(e.getMessage())) + ");", null));
+                .addOnCanceledListener(() -> sendBarcodeError("Scan canceled"))
+                .addOnFailureListener(e -> runOnUiThread(this::startFallbackBarcodeScanner));
+    }
+
+    private void startFallbackBarcodeScanner() {
+        try {
+            IntentIntegrator integrator = new IntentIntegrator(this);
+            integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);
+            integrator.setPrompt("Point the camera at the barcode");
+            integrator.setBeepEnabled(false);
+            integrator.setOrientationLocked(true);
+            integrator.initiateScan();
+        } catch (Exception e) {
+            sendBarcodeError("Barcode scanner unavailable. Type the UPC/model instead.");
+        }
     }
 
     private void takePhoto(String role) {
         pendingPhotoRole = role == null || role.trim().isEmpty() ? "item" : role.trim();
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            if (intent.resolveActivity(getPackageManager()) == null) {
-                webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera unavailable');", null);
-                return;
-            }
             pendingPhotoFile = new File(getCacheDir(), "scout-photo-" + System.currentTimeMillis() + ".jpg");
             pendingPhotoUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingPhotoFile);
             intent.putExtra(MediaStore.EXTRA_OUTPUT, pendingPhotoUri);
+            intent.setClipData(ClipData.newRawUri("scout-photo", pendingPhotoUri));
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivityForResult(intent, REQUEST_PHOTO);
         } catch (Exception e) {
-            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote(String.valueOf(e.getMessage())) + ");", null);
+            cleanupPhoto();
+            webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote("Camera could not open: " + String.valueOf(e.getMessage())) + ");", null);
         }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (scanResult != null) {
+            if (scanResult.getContents() == null || scanResult.getContents().isBlank()) sendBarcodeError("Scan canceled");
+            else sendBarcode(scanResult.getContents());
+            return;
+        }
+
         if (requestCode != REQUEST_PHOTO) return;
         if (resultCode != RESULT_OK) {
             cleanupPhoto();
@@ -289,7 +320,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void requestLocation() { runOnUiThread(MainActivity.this::requestPhoneLocation); }
         @JavascriptInterface public void scanBarcode() { runOnUiThread(MainActivity.this::scanBarcode); }
         @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
-        @JavascriptInterface public String build() { return "20260820-hunt-flow-photo-auctions-v035"; }
+        @JavascriptInterface public String build() { return "20260820-store-first-camera-barcode-v036"; }
         @JavascriptInterface public void reloadScout() { runOnUiThread(MainActivity.this::recreate); }
         @JavascriptInterface public boolean notificationAccessEnabled() {
             try {
