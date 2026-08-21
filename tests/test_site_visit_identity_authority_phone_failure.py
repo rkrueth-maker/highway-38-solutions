@@ -7,6 +7,7 @@ FENCE = (APP / "site-visit-identity-write-fence-final.js").read_text(encoding="u
 LOADER = (APP / "site-visit-quote-wide-pass-loader.js").read_text(encoding="utf-8")
 HAMMER = (APP / "quote-working-hammer.js").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
+WIDE = (APP / "site-visit-wide-acceptance-final.js").read_text(encoding="utf-8")
 
 
 def test_phone_failure_local_alias_is_resolved_before_site_visit_open():
@@ -60,12 +61,15 @@ def test_identity_repair_does_not_delete_business_evidence():
 def test_identity_authority_is_deployed_through_live_first_cache_boundary():
     assert "site-visit-work-dedupe-final-2" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
-    assert "site-visit-quote-wide-pass-loader-4" in HAMMER
+    assert "site-visit-wide-acceptance-final-1" in LOADER
+    assert "site-visit-quote-wide-pass-loader-5" in HAMMER
+    assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert "h38-business-office-20260821-0345" in SW
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     assert "site-visit-work-dedupe-final.js" in live_first
     assert "site-visit-quote-wide-pass-loader.js" in live_first
+    assert "site-visit-wide-acceptance-final.js" in live_first
+    assert "persistentJobsReconciliation:true" in WIDE
 
 
 def test_detached_local_draft_cannot_mutate_linked_quote_identity():
