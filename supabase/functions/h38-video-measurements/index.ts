@@ -14,7 +14,24 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const MODEL = Deno.env.get("OPENAI_SITE_SCANNER_MODEL") ||
   Deno.env.get("OPENAI_QUOTE_MODEL") || "gpt-5-mini-2025-08-07";
 const BUCKET = "business-office-files";
-const ENGINE = "video-reference-scale-v1";
+const ENGINE = "video-reference-scale-v2-field-authority";
+const VERIFIED_STATUSES = new Set([
+  "OPERATOR_VERIFIED",
+  "FIELD_VERIFIED",
+  "VERIFIED_BY_OPERATOR",
+  "VERIFIED",
+  "FIELD_MEASURED",
+  "FIELD_MEASURED_AND_CHECKED",
+  "DEVICE_CAPTURED",
+]);
+const GENERIC_MEASUREMENT_WORDS = new Set([
+  "verify", "verified", "measure", "measured", "measurement", "measurements",
+  "field", "dimension", "dimensions", "required", "needed", "need", "confirm",
+  "record", "walkthrough", "estimate", "estimated", "camera", "video", "using",
+  "android", "laser", "tape", "device", "the", "a", "an", "to", "of", "for",
+  "from", "and", "or", "in", "at", "feet", "foot", "ft", "inch", "inches",
+  "length", "width", "height", "value", "again",
+]);
 
 type J = Record<string, unknown>;
 type Client = any;
@@ -22,6 +39,14 @@ type Reference = {
   id: string;
   label: string;
   dimension: "width" | "height" | "length";
+  valueInches: number;
+  displayValue: string;
+  source: string;
+  verificationStatus: string;
+};
+type VerifiedMeasurement = {
+  id: string;
+  label: string;
   valueInches: number;
   displayValue: string;
   source: string;
@@ -56,6 +81,7 @@ type Estimate = {
   sampleCount?: number;
   agreementSpreadRatio?: number;
   conflictReviewRequired?: boolean;
+  supersededByFieldMeasurementId?: string;
 };
 
 function clean(value: unknown, max = 6000): string {
@@ -110,7 +136,7 @@ async function signedInUser(request: Request): Promise<{ id: string }> {
     headers: {
       authorization: `Bearer ${token}`,
       apikey: SERVICE_KEY,
-      "x-client-info": "h38-video-measurements-auth-v1",
+      "x-client-info": "h38-video-measurements-auth-v2",
     },
     signal: AbortSignal.timeout(15000),
   });
@@ -175,10 +201,22 @@ function feetInches(totalInches: number): string {
 }
 function isVerified(payload: J): boolean {
   const status = clean(payload.verificationStatus || payload["Verification Status"], 80).toUpperCase();
-  return payload.fieldVerified === true || [
-    "OPERATOR_VERIFIED", "FIELD_VERIFIED", "VERIFIED_BY_OPERATOR", "VERIFIED",
-    "FIELD_MEASURED", "FIELD_MEASURED_AND_CHECKED",
-  ].includes(status);
+  return payload.fieldVerified === true || VERIFIED_STATUSES.has(status);
+}
+function normalizeLabel(value: unknown): string {
+  return clean(value, 600).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function measurementTokens(value: unknown): string[] {
+  return normalizeLabel(value).split(" ").filter((token) => token && !/^\d/.test(token) && !GENERIC_MEASUREMENT_WORDS.has(token));
+}
+function sameMeasurement(a: unknown, b: unknown): boolean {
+  const left = measurementTokens(a);
+  const right = measurementTokens(b);
+  if (!left.length || !right.length) return false;
+  const rightSet = new Set(right);
+  const common = left.filter((token) => rightSet.has(token)).length;
+  const shorter = Math.min(left.length, right.length);
+  return common >= Math.max(1, Math.ceil(shorter * 0.7));
 }
 function isMaterialSpec(input: string): boolean {
   const value = input.toLowerCase();
@@ -211,46 +249,65 @@ function pairReferences(item: J, index: number): Reference[] {
     { id: `${base}:height`, label: `${label} height`, dimension: "height", valueInches: heightInches, displayValue: feetInches(heightInches), source, verificationStatus },
   ];
 }
-async function collectReferences(
+async function collectMeasurementAuthority(
   client: Client,
   businessId: string,
   captureSessionId: string,
   session: J,
-): Promise<Reference[]> {
-  const collected: Reference[] = [];
+): Promise<{ references: Reference[]; verified: VerifiedMeasurement[] }> {
+  const references: Reference[] = [];
+  const verified: VerifiedMeasurement[] = [];
   const spoken = Array.isArray(session["Walkthrough Spoken Measurements"])
     ? session["Walkthrough Spoken Measurements"] as J[] : [];
   spoken.forEach((item, index) => {
-    if (item && typeof item === "object" && isVerified(item)) collected.push(...pairReferences(item, index));
+    if (item && typeof item === "object" && isVerified(item)) references.push(...pairReferences(item, index));
   });
   const { data, error } = await client.from("business_records")
     .select("record_key,payload")
     .eq("business_id", businessId)
     .eq("collection", "siteMeasurements")
     .eq("record_status", "active")
-    .limit(300);
+    .limit(500);
   if (error) throw error;
   for (const row of (data || []) as any[]) {
     const payload = row.payload && typeof row.payload === "object" ? row.payload as J : {};
     if (clean(payload["Capture Session ID"] || payload.captureSessionId, 180) !== captureSessionId) continue;
     if (!isVerified(payload)) continue;
-    const valueInches = toInches(Number(payload["Value"] || payload.value || 0), clean(payload["Unit"] || payload.unit, 40));
     const label = clean(payload["Label"] || payload.label || "Field measurement", 160);
+    const valueInches = toInches(Number(payload["Value"] || payload.value || 0), clean(payload["Unit"] || payload.unit, 40));
     if (!(valueInches > 0) || isMaterialSpec(label)) continue;
-    collected.push({
-      id: clean(payload["Site Measurement ID"] || payload.measurementId || row.record_key, 180),
-      label, dimension: "length", valueInches, displayValue: feetInches(valueInches),
-      source: clean(payload["Source"] || payload.source, 120),
-      verificationStatus: clean(payload["Verification Status"] || payload.verificationStatus, 80),
-    });
+    const id = clean(payload["Site Measurement ID"] || payload.measurementId || row.record_key, 180);
+    const source = clean(payload["Source"] || payload.source || "FIELD_MEASURED", 120);
+    const verificationStatus = clean(payload["Verification Status"] || payload.verificationStatus || "FIELD_MEASURED", 80).toUpperCase();
+    const item = { id, label, valueInches, displayValue: feetInches(valueInches), source, verificationStatus };
+    verified.push(item);
+    references.push({ ...item, dimension: "length" });
   }
-  const seen = new Set<string>();
-  return collected.filter((reference) => {
-    const key = `${reference.label.toLowerCase()}|${Math.round(reference.valueInches * 10)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+  const seenReferences = new Set<string>();
+  const uniqueReferences = references.filter((reference) => {
+    const key = `${normalizeLabel(reference.label)}|${Math.round(reference.valueInches * 10)}`;
+    if (seenReferences.has(key)) return false;
+    seenReferences.add(key);
     return true;
   }).slice(0, 20);
+  const seenVerified = new Set<string>();
+  const uniqueVerified = verified.filter((item) => {
+    const key = `${normalizeLabel(item.label)}|${Math.round(item.valueInches * 10)}`;
+    if (seenVerified.has(key)) return false;
+    seenVerified.add(key);
+    return true;
+  });
+  return { references: uniqueReferences, verified: uniqueVerified };
+}
+function filterTargetsAgainstVerified(targets: string[], verified: VerifiedMeasurement[]) {
+  const unresolved: string[] = [];
+  const resolved: Array<{ target: string; measurement: VerifiedMeasurement }> = [];
+  for (const target of targets) {
+    const measurement = verified.find((item) => sameMeasurement(item.label, target));
+    if (measurement) resolved.push({ target, measurement });
+    else unresolved.push(target);
+  }
+  return { unresolved, resolved };
 }
 async function collectFrames(
   client: Client,
@@ -402,7 +459,7 @@ function calculateEstimates(parsed: J, references: Reference[], frames: FrameInp
   }
   const grouped = new Map<string, Estimate[]>();
   for (const estimate of accepted) {
-    const key = `${estimate.label.toLowerCase()}|${estimate.dimension}`;
+    const key = `${normalizeLabel(estimate.label)}|${estimate.dimension}`;
     const existing = grouped.get(key) || [];
     existing.push(estimate);
     grouped.set(key, existing);
@@ -421,17 +478,35 @@ function calculateEstimates(parsed: J, references: Reference[], frames: FrameInp
   }
   return results.slice(0, 8);
 }
+function suppressVerifiedEstimates(estimates: Estimate[], verified: VerifiedMeasurement[]) {
+  const kept: Estimate[] = [];
+  const suppressed: Estimate[] = [];
+  for (const estimate of estimates) {
+    const authority = verified.find((item) => sameMeasurement(item.label, estimate.label));
+    if (!authority) {
+      kept.push(estimate);
+      continue;
+    }
+    suppressed.push({
+      ...estimate,
+      supersededByFieldMeasurementId: authority.id,
+      evidenceNote: `${estimate.evidenceNote} Superseded by field-verified ${authority.label}: ${authority.displayValue}.`.trim(),
+    });
+  }
+  return { kept, suppressed };
+}
 async function writeProof(
   client: Client, businessId: string, userId: string, captureSessionId: string, quoteId: string,
-  referenceCount: number, frameCount: number, estimateCount: number,
+  referenceCount: number, frameCount: number, estimateCount: number, suppressedCount: number,
 ) {
   await client.from("business_proof_log").insert({
     business_id: businessId, actor_user_id: userId, action_type: "SITE_VISIT_VIDEO_MEASUREMENT_ESTIMATE",
     entity_type: "Site Capture Session", entity_id: null, result: "PASS",
     details: {
-      captureSessionId, quoteId, engine: ENGINE, referenceCount, frameCount, estimateCount,
+      captureSessionId, quoteId, engine: ENGINE, referenceCount, frameCount, estimateCount, suppressedCount,
       exactDimensionsInvented: false, referenceScaleRequired: true, samePlaneRequired: true,
-      fieldVerificationRequired: true, ownerReviewRequired: true,
+      fieldVerificationRequired: true, ownerReviewRequired: true, fieldMeasuredWins: true,
+      cameraEstimateCannotReopenVerifiedDimension: true,
       automaticApproval: false, automaticCustomerSending: false,
     }, external_action_occurred: false,
   });
@@ -455,6 +530,7 @@ Deno.serve(async (request: Request) => {
     return reply(request, 200, {
       status: "PASS", function: "h38-video-measurements", engine: ENGINE, model: MODEL,
       referenceScaleRequired: true, fieldVerificationRequired: true,
+      fieldMeasuredWins: true, cameraEstimateCannotReopenVerifiedDimension: true,
     });
   }
   if (request.method !== "POST") return reply(request, 405, { status: "FAIL", message: "POST is required." });
@@ -474,18 +550,37 @@ Deno.serve(async (request: Request) => {
     userId = signed.id;
     await requireMembership(client, userId, businessId);
     const session = await requireSession(client, businessId, captureSessionId, quoteId);
-    const references = await collectReferences(client, businessId, captureSessionId, session);
-    const frames = await collectFrames(client, businessId, captureSessionId, quoteId);
-    const targets = (Array.isArray(body.targets) ? body.targets : []).map((value) => clean(value, 500)).filter(Boolean).slice(0, 12);
+    const authority = await collectMeasurementAuthority(client, businessId, captureSessionId, session);
+    const references = authority.references;
+    const verified = authority.verified;
+    const frames = await collectFrames(client,businessId,captureSessionId,quoteId);
+    const requestedTargets = (Array.isArray(body.targets) ? body.targets : [])
+      .map((value) => clean(value, 500)).filter(Boolean).filter((value) => !isMaterialSpec(value)).slice(0, 12);
+    const filteredTargets = filterTargetsAgainstVerified(requestedTargets, verified);
+    const targets = filteredTargets.unresolved;
+    if (!targets.length && requestedTargets.length) {
+      await writeProof(client, businessId, userId, captureSessionId, quoteId, references.length, frames.length, 0, filteredTargets.resolved.length);
+      return reply(request, 200, {
+        status: "PASS", engine: ENGINE, outcome: "NO_UNVERIFIED_TARGETS",
+        message: "All requested measurement targets already have field-verified authority. Camera estimates were not allowed to reopen them.",
+        references, estimates: [],
+        suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })),
+        ownerReviewRequired: true, fieldVerificationRequired: true,
+        fieldMeasuredWins: true, cameraEstimateCannotReopenVerifiedDimension: true,
+        automaticApproval: false, automaticCustomerSending: false,
+      });
+    }
     if (!references.length) {
-      await writeProof(client, businessId, userId, captureSessionId, quoteId, 0, frames.length, 0);
+      await writeProof(client, businessId, userId, captureSessionId, quoteId, 0, frames.length, 0, filteredTargets.resolved.length);
       return reply(request, 200, { status: "PASS", engine: ENGINE, outcome: "NO_VERIFIED_REFERENCE",
-        message: "Video measurements need at least one field-verified dimension visible in a review frame.", references: [], estimates: [] });
+        message: "Video measurements need at least one field-verified dimension visible in a review frame.", references: [], estimates: [],
+        suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })) });
     }
     if (!frames.length) {
-      await writeProof(client, businessId, userId, captureSessionId, quoteId, references.length, 0, 0);
+      await writeProof(client, businessId, userId, captureSessionId, quoteId, references.length, 0, 0, filteredTargets.resolved.length);
       return reply(request, 200, { status: "PASS", engine: ENGINE, outcome: "NO_REVIEW_FRAMES",
-        message: "No saved walkthrough review frames are available.", references, estimates: [] });
+        message: "No saved walkthrough review frames are available.", references, estimates: [],
+        suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })) });
     }
     if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured.");
     const instructions = [
@@ -497,12 +592,13 @@ Deno.serve(async (request: Request) => {
       "Reference width and reference height are separate references; use the matching axis when possible.",
       "Coordinates are normalized image coordinates from 0 to 1.",
       "Do not output a dimension value; the server calculates it deterministically from endpoint ratios.",
+      "Do not create an observation for a target that is not in the unresolved target list.",
       "This creates internal estimates only. Exact dimensions are never invented and field verification remains required.",
     ].join(" ");
     const content: Array<Record<string, unknown>> = [{ type: "input_text", text: JSON.stringify({
       engine: ENGINE, targets, references,
       policy: { sameFrameOnly: true, samePlaneOnly: true, serverComputesScale: true,
-        fieldVerificationRequired: true, ownerReviewRequired: true },
+        fieldVerificationRequired: true, ownerReviewRequired: true, fieldMeasuredWins: true },
     }) }];
     frames.forEach((frame, index) => {
       content.push({ type: "input_text", text: `FRAME ${index} document ${frame.id}` });
@@ -524,13 +620,22 @@ Deno.serve(async (request: Request) => {
     }
     const raw = outputText(aiPayload);
     const parsed = raw ? JSON.parse(raw) as J : { observations: [] };
-    const estimates = calculateEstimates(parsed, references, frames);
-    await writeProof(client, businessId, userId, captureSessionId, quoteId, references.length, frames.length, estimates.length);
+    const calculated = calculateEstimates(parsed, references, frames);
+    const suppression = suppressVerifiedEstimates(calculated, verified);
+    const estimates = suppression.kept;
+    const suppressedEstimates = suppression.suppressed;
+    await writeProof(
+      client, businessId, userId, captureSessionId, quoteId,
+      references.length, frames.length, estimates.length,
+      filteredTargets.resolved.length + suppressedEstimates.length,
+    );
     return reply(request, 200, {
       status: "PASS", engine: ENGINE,
-      outcome: estimates.length ? "ESTIMATES_READY" : "NO_RELIABLE_SAME_PLANE_ESTIMATE",
-      model: MODEL, references, frameCount: frames.length, estimates,
+      outcome: estimates.length ? "ESTIMATES_READY" : suppressedEstimates.length ? "VERIFIED_AUTHORITY_SUPPRESSED_ESTIMATES" : "NO_RELIABLE_SAME_PLANE_ESTIMATE",
+      model: MODEL, references, frameCount: frames.length, estimates, suppressedEstimates,
+      suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })),
       ownerReviewRequired: true, fieldVerificationRequired: true,
+      fieldMeasuredWins: true, cameraEstimateCannotReopenVerifiedDimension: true,
       automaticApproval: false, automaticCustomerSending: false,
     });
   } catch (error) {
