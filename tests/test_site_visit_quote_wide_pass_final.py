@@ -47,8 +47,9 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-7' in HAMMER
-    assert 'site-visit-work-dedupe-final-3' in LOADER
+    assert 'site-visit-quote-wide-pass-loader-8-phone' in HAMMER
+    assert 'site-visit-quote-handoff-final-2-phone' in LOADER
+    assert 'site-visit-work-dedupe-final-4-phone' in LOADER
     assert 'site-visit-wide-acceptance-final-2' in LOADER
     assert 'siteVisitIdentityAuthority:true' in LOADER
     assert 'linkedQuoteIdentityWriteFence:true' in LOADER
@@ -56,15 +57,7 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
 
 
 def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
-    for marker in [
-        'authoritativeSessionBeforeOpen:true',
-        'linkedQuoteIdentityWriteFence:true',
-        'sessionlessLocalDraftCannotMutateLinkedQuote:true',
-        'canonicalEvidenceRecovery:true',
-        'localAliasSuppression:true',
-        'distinctServerSessionsPreserved:true',
-        'serverEvidenceNeverDeleted:true',
-    ]:
+    for marker in ['authoritativeSessionBeforeOpen:true','linkedQuoteIdentityWriteFence:true','sessionlessLocalDraftCannotMutateLinkedQuote:true','canonicalEvidenceRecovery:true','localAliasSuppression:true','distinctServerSessionsPreserved:true','serverEvidenceNeverDeleted:true']:
         assert marker in FENCE
     assert "throw Error('This quote belongs to a saved Site Visit. Reopen the authoritative Site Visit before changing it.')" in FENCE
     assert "'Project Title':title(linked)" in FENCE
@@ -77,35 +70,14 @@ def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evid
 
 
 def test_quote_runtime_is_singleflight_one_refresh_and_owner_initiated():
-    for marker in [
-        'singleTransport:true',
-        'oneAuthRefreshRetry:true',
-        'automaticPreflight:false',
-        'savedQuoteActionPictureAuthority:true',
-        "'h38-quote-options'",
-        'userInitiated!==true',
-        'manualRequiredLinesRemainEditable:true',
-    ]:
+    for marker in ['singleTransport:true','oneAuthRefreshRetry:true','automaticPreflight:false','savedQuoteActionPictureAuthority:true',"'h38-quote-options'",'userInitiated!==true','manualRequiredLinesRemainEditable:true']:
         assert marker in RUNTIME
     assert "if(inflight[key])return inflight[key]" in RUNTIME
     assert "if(!authLike(error?.message||error)||error?.__h38Retried)throw error" in RUNTIME
 
 
 def test_unified_wide_authority_uses_field_measurements_and_keeps_quote_editable():
-    for marker in [
-        'fieldVerifiedMeasurementWins:true',
-        'cameraEstimateCannotReopenVerifiedDimension:true',
-        'actualProjectScopeOnly:true',
-        'editableQuoteFallback:true',
-        'directionsLoadWithoutBlockingQuote:true',
-        'savedActionPictureRendersWithoutCustomerSelection:true',
-        'orientationCorrectionPassedToRender:true',
-        'oneProjectSiteVisitWithNestedContinuations:true',
-        'persistentJobsReconciliation:true',
-        'eventDrivenReconciliation:true',
-        'documentMutationObserver:false',
-        'jobsMutationObserver:false',
-    ]:
+    for marker in ['fieldVerifiedMeasurementWins:true','cameraEstimateCannotReopenVerifiedDimension:true','actualProjectScopeOnly:true','editableQuoteFallback:true','directionsLoadWithoutBlockingQuote:true','savedActionPictureRendersWithoutCustomerSelection:true','orientationCorrectionPassedToRender:true','oneProjectSiteVisitWithNestedContinuations:true','persistentJobsReconciliation:true','eventDrivenReconciliation:true','documentMutationObserver:false','jobsMutationObserver:false']:
         assert marker in WIDE
     assert 'new MutationObserver' not in WIDE
     assert "void loadDirections(prepared,base,timeout)" in WIDE
@@ -114,7 +86,8 @@ def test_unified_wide_authority_uses_field_measurements_and_keeps_quote_editable
     assert 'LOCAL[_ -]?DRAFT' in WIDE
 
 
-def test_final_handoff_loads_same_quote_without_bridge_ready_gate():
+def test_final_handoff_recognizes_linked_visit_and_routes_normal_ai_button_to_canonical_runtime():
+    assert '20260821-site-visit-quote-handoff-final-2-phone' in HANDOFF
     assert 'noBridgeReadyGate:true' in HANDOFF
     assert 'office.bridgeReady' not in HANDOFF
     assert 'Site Visit Ready' in HANDOFF
@@ -123,6 +96,13 @@ def test_final_handoff_loads_same_quote_without_bridge_ready_gate():
     assert 'Walkthrough AI notes:' in HANDOFF
     assert 'quoteDirectionsSupported:true' in HANDOFF
     assert 'office.quote.lines=suggested.map(mapLine)' in HANDOFF
+    assert 'linkedSessionFallback:true' in HANDOFF
+    assert 'legacyContextAttachmentFallback:true' in HANDOFF
+    assert 'genericQuoteButtonRoutedToCanonicalRuntime:true' in HANDOFF
+    assert "C.rows('siteCaptureSessions').find(row=>quoteIdOf(row)===qid)" in HANDOFF
+    assert "window.H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL" in HANDOFF
+    assert "window.state.bridge.request('aiBuildQuoteDraft'" in HANDOFF
+    assert 'new MutationObserver' not in HANDOFF
 
 
 def test_verified_measurements_win_but_unverified_requests_remain():
@@ -133,13 +113,7 @@ def test_verified_measurements_win_but_unverified_requests_remain():
 
 
 def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
-    markers = [
-        "'Capture Session ID'",
-        "'Site Visit ID'",
-        "'unique Quote ID'",
-        "'Customer ID + exact Project Title'",
-        "'unique exact Project Title'",
-    ]
+    markers = ["'Capture Session ID'","'Site Visit ID'","'unique Quote ID'","'Customer ID + exact Project Title'","'unique exact Project Title'"]
     positions = [WORK.index(item) for item in markers]
     assert positions == sorted(positions)
     assert 'H38_SITE_VISIT_IDENTITY_AUTHORITY' in WORK
@@ -150,6 +124,8 @@ def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
     assert 'conflictingIdentifiersBlockFallback:true' in WORK
     assert 'persistentJobsObserver:false' in WORK
     assert 'eventDrivenJobsReconciliation:true' in WORK
+    assert 'physicalCardStructureSupported:true' in WORK
+    assert 'jobsNavigationReconciliation:true' in WORK
     assert 'new MutationObserver' not in WORK
     assert 'localDraftReconcilesWithServer:true' in WORK
     assert 'genuineDifferentServerSessionsPreserved:true' in WORK
@@ -177,16 +153,7 @@ def test_action_picture_is_internal_render_source_with_explicit_customer_selecti
 
 
 def test_quote_direction_ui_supports_values_prices_upgrades_and_visuals():
-    for marker in [
-        'Use this direction',
-        'Generate visual',
-        'data-h38-direction-qty',
-        'Base direction',
-        'Upgrade',
-        'Premium',
-        'visualPerDirection:true',
-        'quantityDecisionInput:true',
-    ]:
+    for marker in ['Use this direction','Generate visual','data-h38-direction-qty','Base direction','Upgrade','Premium','visualPerDirection:true','quantityDecisionInput:true']:
         assert marker in OPTIONS
 
 
@@ -202,17 +169,7 @@ def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candid
 def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached():
     assert "const CACHE_NAME='h38-business-office-20260821-1605'" in SW
     assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-1015'" in SW
-    expected = [
-        'quote-runtime-authority.js',
-        'site-visit-quote-handoff-final.js',
-        'measurement-verification-final.js',
-        'site-visit-work-dedupe-final.js',
-        'job-followup-idempotency-final.js',
-        'quote-action-picture-final.js',
-        'quote-direction-options.js',
-        'site-visit-quote-wide-pass-loader.js',
-        'site-visit-wide-acceptance-final.js',
-    ]
+    expected = ['quote-runtime-authority.js','site-visit-quote-handoff-final.js','measurement-verification-final.js','site-visit-work-dedupe-final.js','job-followup-idempotency-final.js','quote-action-picture-final.js','quote-direction-options.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','supabase-quote-ai-auth-fix.js']
     for filename in expected:
         assert f"'{filename}'" in SW
         assert f"'./{filename}'" in SW
