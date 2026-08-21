@@ -6,6 +6,7 @@ APP = ROOT / 'commercial-app'
 TOP = (APP / 'site-visit-top-action.js').read_text(encoding='utf-8')
 FINISH = (APP / 'field-visit-finish-build.js').read_text(encoding='utf-8')
 PHOTO = (APP / 'site-visit-photo-quote-runtime-repair.js').read_text(encoding='utf-8')
+MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 INDEX = (APP / 'index.html').read_text(encoding='utf-8')
 
@@ -36,6 +37,7 @@ def test_final_quote_runtimes_are_live_first_and_precached():
         'field-visit-finish-build.js',
         'site-visit-photo-quote-runtime-repair.js',
         'quote-measurement-action-photo-guard.js',
+        'measurement-verification-authority.js',
     ]:
         assert f"'{filename}'" in SW
         assert f"'./{filename}'" in SW
@@ -43,6 +45,7 @@ def test_final_quote_runtimes_are_live_first_and_precached():
 
 def test_final_authorities_are_loaded_directly_from_index():
     expected = [
+        f'./measurement-verification-authority.js?build={declared_build(MEASURE)}',
         './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
         f'./site-visit-photo-quote-runtime-repair.js?build={declared_build(PHOTO)}',
         './field-visit-quote-handoff.js?build=20260811-site-visit-quote-handoff-3',
@@ -51,11 +54,11 @@ def test_final_authorities_are_loaded_directly_from_index():
     ]
     positions = [INDEX.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert "window.H38_ASSET_BUILD='20260821-site-visit-quote-final-1'" in INDEX
+    assert "window.H38_ASSET_BUILD='20260821-site-visit-quote-final-2'" in INDEX
 
 
 def test_service_worker_cache_was_bumped_for_final_authority():
-    assert "h38-business-office-20260821-quote-runtime-authority-1" in SW
+    assert "h38-business-office-20260821-quote-runtime-authority-2" in SW
 
 
 def test_top_level_runtime_still_has_defensive_direct_loader():
