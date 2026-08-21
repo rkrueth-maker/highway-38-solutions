@@ -18,7 +18,8 @@ def test_spoken_title_and_scope_are_extracted_without_overwriting_owner_edits():
 
 
 def test_legacy_empty_draft_quote_can_receive_only_internal_title_scope_context():
-    assert 'status==="DRAFT"' in CONTEXT
+    assert "const status=clean(" in CONTEXT
+    assert '"DRAFT"' in CONTEXT
     assert "lines.length===0" in CONTEXT
     assert "total===0" in CONTEXT
     assert '"Project Title":applyTitle&&genericTitle(qTitle)?projectTitle:qTitle' in CONTEXT
