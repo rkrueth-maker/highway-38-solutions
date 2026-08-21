@@ -48,6 +48,8 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     assert 'site-visit-quote-wide-pass-loader-4' in HAMMER
     assert 'siteVisitIdentityAuthority:true' in LOADER
     assert 'linkedQuoteIdentityWriteFence:true' in LOADER
+    assert 'site-visit-quote-final-bootstrap.js' in HAMMER
+    assert 'finalAuthorityBootstrap:true' in HAMMER
 
 
 def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
@@ -170,17 +172,21 @@ def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candid
 
 
 def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached():
-    assert "const CACHE_NAME='h38-business-office-20260821-1015'" in SW
-    assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-0345'" in SW
+    assert "const CACHE_NAME='h38-business-office-20260821-1148'" in SW
+    assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-1015'" in SW
     expected = [
         'quote-runtime-authority.js',
         'site-visit-quote-handoff-final.js',
         'measurement-verification-final.js',
         'site-visit-work-dedupe-final.js',
+        'site-visit-identity-write-fence-final.js',
         'job-followup-idempotency-final.js',
         'quote-action-picture-final.js',
         'quote-direction-options.js',
         'site-visit-quote-wide-pass-loader.js',
+        'site-visit-quote-e2e-core.js',
+        'site-visit-quote-final-bootstrap.js',
+        'quote-image-orientation-final.js',
     ]
     for filename in expected:
         assert f"'{filename}'" in SW

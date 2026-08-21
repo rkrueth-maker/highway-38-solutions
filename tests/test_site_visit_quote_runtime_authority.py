@@ -40,6 +40,9 @@ def test_final_quote_runtimes_are_live_first_and_precached():
         'quote-measurement-action-photo-guard.js',
         'measurement-verification-authority.js',
         'site-visit-delete-server-authority.js',
+        'site-visit-quote-e2e-core.js',
+        'site-visit-quote-final-bootstrap.js',
+        'quote-image-orientation-final.js',
     ]:
         assert f"'{filename}'" in SW
         assert f"'./{filename}'" in SW
@@ -61,8 +64,8 @@ def test_final_authorities_are_loaded_directly_from_index():
 
 
 def test_service_worker_cache_was_bumped_for_final_authority():
+    assert "h38-business-office-20260821-1148" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert "h38-business-office-20260821-0345" in SW
     assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-\d{4}'", SW)
 
 

@@ -1,0 +1,42 @@
+{
+  "quoteId": "QUOTE-REPLAY-LANDSCAPE",
+  "sessionId": "SCAN-REPLAY-LANDSCAPE",
+  "siteVisitId": "VISIT-REPLAY-LANDSCAPE",
+  "actionPictureId": "ATTACH-REPLAY-LANDSCAPE",
+  "quote": {
+    "Quote ID": "QUOTE-REPLAY-LANDSCAPE",
+    "Project Title": "Flower garden border",
+    "Scope": "Install edging around the existing flower garden, add screened topsoil, remove selected small trees, remove weeds and tidy the garden area.",
+    "Site Scanner Session ID": "SCAN-REPLAY-LANDSCAPE",
+    "Site Visit ID": "VISIT-REPLAY-LANDSCAPE",
+    "Action Picture ID": "ATTACH-REPLAY-LANDSCAPE",
+    "Action Picture Rotation Degrees": 270
+  },
+  "documents": [
+    {
+      "Document ID": "QUOTE-LINK-REPLAY-LANDSCAPE",
+      "Source Type": "Quote",
+      "Source ID": "QUOTE-REPLAY-LANDSCAPE",
+      "Original Document ID": "ATTACH-REPLAY-LANDSCAPE",
+      "Action Picture": true,
+      "Customer Quote Selected": false,
+      "Action Picture Rotation Degrees": 270,
+      "Mime Type": "image/jpeg"
+    }
+  ],
+  "project": {
+    "projectTitle": "Flower garden border",
+    "scope": "Install edging around the existing flower garden, add screened topsoil, remove selected small trees, remove weeds and tidy the garden area.",
+    "ownerWorkRequest": "Use the saved landscape Action Picture as the before/concept source.",
+    "systemPolicyNotes": "For insulation, separate material and labor. For drywall, separate material and labor."
+  },
+  "measurements": [
+    {"label": "Birdbath height", "value": 21, "unit": "in", "verificationStatus": "FIELD_MEASURED"},
+    {"label": "Sprinkler head to ground", "value": 71, "unit": "in", "verificationStatus": "FIELD_MEASURED"},
+    {"label": "Distance between birdbath and sprinkler", "value": 58, "unit": "in", "verificationStatus": "UNVERIFIED_SPOKEN"}
+  ],
+  "draftLines": [
+    {"description": "Screened topsoil (black dirt) — material", "quantity": 1, "unit": "owner input", "rate": 0, "priceSource": "manual_required", "ownerReviewRequired": true},
+    {"description": "Weeds, detritus removal & site tidy — allowance", "quantity": 1, "unit": "allowance", "rate": 0, "priceSource": "manual_required", "ownerReviewRequired": true}
+  ]
+}

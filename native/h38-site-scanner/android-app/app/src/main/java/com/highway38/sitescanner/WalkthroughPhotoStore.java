@@ -1,8 +1,10 @@
 package com.highway38.sitescanner;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
+import android.view.Surface;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,6 +24,18 @@ final class WalkthroughPhotoStore {
         return validEntries(context, true).length();
     }
 
+    private static int rotationCorrectionDegrees(Context context) {
+        if (!(context instanceof Activity)) return 0;
+        try {
+            int rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getRotation();
+            if (rotation == Surface.ROTATION_90) return 270;
+            if (rotation == Surface.ROTATION_180) return 180;
+            if (rotation == Surface.ROTATION_270) return 90;
+        } catch (Throwable ignored) {
+        }
+        return 0;
+    }
+
     static synchronized int add(Context context, File file) {
         if (file == null || !file.exists() || file.length() < 1L) return count(context);
         JSONArray rows = validEntries(context, true);
@@ -33,6 +47,7 @@ final class WalkthroughPhotoStore {
             row.put("mime", "image/jpeg");
             row.put("size", file.length());
             row.put("capturedAt", System.currentTimeMillis());
+            row.put("rotationDegrees", rotationCorrectionDegrees(context));
             rows.put(row);
             save(context, rows);
         } catch (Exception ignored) {
@@ -56,6 +71,7 @@ final class WalkthroughPhotoStore {
                 item.put("mime", row.optString("mime", "image/jpeg"));
                 item.put("size", file.length());
                 item.put("capturedAt", row.optLong("capturedAt", 0L));
+                item.put("rotationDegrees", row.optInt("rotationDegrees", 0));
                 photos.put(item);
             }
             result.put("ready", photos.length() > 0);
