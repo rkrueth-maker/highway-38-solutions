@@ -10,6 +10,7 @@ MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='ut
 CLEANUP = (APP / 'site-visit-delete-server-authority.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 INDEX = (APP / 'index.html').read_text(encoding='utf-8')
+WIDE = (APP / 'site-visit-wide-acceptance-final.js').read_text(encoding='utf-8')
 
 
 def declared_build(source: str) -> str:
@@ -40,6 +41,7 @@ def test_final_quote_runtimes_are_live_first_and_precached():
         'quote-measurement-action-photo-guard.js',
         'measurement-verification-authority.js',
         'site-visit-delete-server-authority.js',
+        'site-visit-wide-acceptance-final.js',
     ]:
         assert f"'{filename}'" in SW
         assert f"'./{filename}'" in SW
@@ -61,9 +63,11 @@ def test_final_authorities_are_loaded_directly_from_index():
 
 
 def test_service_worker_cache_was_bumped_for_final_authority():
+    assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert "h38-business-office-20260821-0345" in SW
     assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-\d{4}'", SW)
+    assert "fieldVerifiedMeasurementWins:true" in WIDE
+    assert "savedActionPictureRendersWithoutCustomerSelection:true" in WIDE
 
 
 def test_top_level_runtime_still_has_defensive_direct_loader():
