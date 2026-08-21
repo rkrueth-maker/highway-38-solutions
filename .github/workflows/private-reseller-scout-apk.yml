@@ -34,7 +34,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Verify v0.1.47 private Scout contract
+      - name: Verify v0.1.48 private Scout contract
         shell: bash
         run: |
           set -euo pipefail
@@ -44,27 +44,47 @@ jobs:
           runtime="$assets/v045-runtime.js"
           leads="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v046/index.ts"
           market="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v047/index.ts"
-          check "versionName '0.1.47'" reseller/build.gradle
-          check 'versionCode 48' reseller/build.gradle
-          check "applicationIdSuffix '.owner47'" reseller/build.gradle
+          check "versionName '0.1.48'" reseller/build.gradle
+          check 'versionCode 49' reseller/build.gradle
+          check "applicationIdSuffix '.owner48'" reseller/build.gradle
           check 'H38_V045_RUNTIME_INLINED' "$main"
           check 'v045-runtime.js' "$main"
-          check 'H38_V047_RUNTIME_ACTIVE' "$runtime"
-          check 'authoritative-evidence-first-staged-research-v047' "$runtime"
-          check 'reseller-auto-leads-v046' "$runtime"
-          check 'reseller-item-research-v047' "$runtime"
-          check 'Date pennied:' "$runtime"
+          check 'H38_V048_RUNTIME_ACTIVE' "$runtime"
+          check 'dense-hunt-progressive-discovery-v048' "$runtime"
+          check 'Best hunt first' "$runtime"
+          check 'Penny start date:' "$runtime"
           check 'Last penny report:' "$runtime"
           check 'All crawler' "$runtime"
-          check 'Weak identities are hidden only from Useful, never deleted.' "$runtime"
+          check 'rawLeadsV048' "$runtime"
+          check 'title-only similarity never merges products' "$runtime"
+          check 'DIRECT ITEM' "$runtime"
+          check 'LIST / PAGE' "$runtime"
+          check 'DOMAIN / HOME' "$runtime"
+          check 'chain-wide lead' "$runtime"
+          check 'Auto-check top 5' "$runtime"
+          check 'data-v048-batch="10"' "$runtime"
+          check 'Checking ${i+1} of ${cands.length}' "$runtime"
+          check 'CONFIRMED 1¢' "$runtime"
+          check 'PRICE FOUND' "$runtime"
+          check 'CHECK FAILED' "$runtime"
+          check "Promise.allSettled(['Craigslist','Facebook Marketplace']" "$runtime"
+          check 'Source lanes run independently. Partial results stay visible.' "$runtime"
+          check 'No candidate has passed all resale evidence checks yet.' "$runtime"
+          check 'no usable sold comps' "$runtime"
+          check 'failed profit threshold' "$runtime"
+          check 'Auction source timed out/failed; previous results were kept.' "$runtime"
+          check 'data-v048-retry' "$runtime"
+          check 'reseller-auto-leads-v046' "$runtime"
+          check 'reseller-item-research-v047' "$runtime"
           check 'Retry market only' "$runtime"
           check 'Identification is preserved' "$runtime"
           check 'pennied_date_status' "$leads"
           check 'not_published' "$leads"
           check 'mode==="market"' "$market"
           check 'H38_STAGED_RESEARCH_V047' "$market"
-          check 'Identification complete. Market research runs separately.' "$market"
           check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
+          if grep -Fq 'OLDER CRAWLER SIGNAL' "$runtime"; then echo '::error::Old crawler signal label must not dominate v0.1.48'; exit 1; fi
+          if grep -Fq "busy('deals'" "$runtime" || grep -Fq "busy('auctions'" "$runtime" || grep -Fq "busy('clearance'" "$runtime"; then echo '::error::Discovery pages must not use workflow-wide busy modals in authoritative v0.1.48 runtime'; exit 1; fi
           if grep -Fq 'ACTION_IMAGE_CAPTURE' "$main"; then echo '::error::External OEM image capture is forbidden'; exit 1; fi
           node --check "$assets/v035-research.js"
           node --check "$assets/v035-app.js"
@@ -105,33 +125,35 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.47.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.48.apk"
           cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.47.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.48.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
       - name: Smoke inspect built APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.47.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.48.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='48' versionName='0.1.47'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='49' versionName='0.1.48'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner47' versionCode='48' versionName='0.1.47-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner48' versionCode='49' versionName='0.1.48-debug'" "$report/badging.txt"
           fi
           zipinfo -1 "$out" | grep -Fq 'assets/reseller/v045-runtime.js'
-          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'H38_V047_RUNTIME_ACTIVE'
-          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'reseller-item-research-v047'
-          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'All crawler'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'H38_V048_RUNTIME_ACTIVE'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'dense-hunt-progressive-discovery-v048'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'Best hunt first'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'chain-wide lead'
+          unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'Source lanes run independently. Partial results stay visible.'
           unzip -p "$out" 'assets/reseller/v045-runtime.js' | grep -Fq 'Retry market only'
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.47
+          name: h38-reseller-scout-owner-test-v0.1.48
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
