@@ -1,8 +1,8 @@
 (function(){
 'use strict';
-const BUILD='20260821-site-visit-work-dedupe-final-2';
+const BUILD='20260821-site-visit-work-dedupe-final-3';
 const C=window.H38_FIELD_VISIT_CORE;
-let timer=0,observer=null,observerTarget=null,forcedIdentity=null;
+let timer=0,forcedIdentity=null;
 const text=value=>String(value==null?'':value).trim();
 const payload=row=>row?.payload&&typeof row.payload==='object'?row.payload:row;
 const value=(row,...keys)=>{const source=payload(row);for(const key of keys){if(source&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')return source[key];}return'';};
@@ -145,14 +145,7 @@ function reconcile(){
   return removed;
 }
 function schedule(delay=40){clearTimeout(timer);timer=setTimeout(reconcile,delay);}
-function arm(){
-  installOpenAuthority();
-  if(!isWork()){if(observer){observer.disconnect();observer=null;observerTarget=null;}return;}
-  const main=document.getElementById('mainContent');if(!main)return;
-  if(observer&&observerTarget===main){schedule(0);return;}
-  if(observer)observer.disconnect();
-  observerTarget=main;observer=new MutationObserver(()=>schedule(35));observer.observe(main,{childList:true,subtree:true});schedule(0);
-}
+function arm(){installOpenAuthority();if(!isWork())return;schedule(0);setTimeout(reconcile,80);setTimeout(reconcile,260);}
 function interceptOpen(event){
   const button=event.target instanceof Element?event.target.closest('button'):null;
   if(!button||!isOpenButton(button))return;
@@ -163,10 +156,12 @@ function interceptOpen(event){
   void api.open({captureSessionId:identity.sessionId,sessionId:identity.sessionId,siteVisitId:identity.visitId,visitId:identity.visitId,quoteId:identity.quoteId,customerId:identity.customerId,projectTitle:identity.projectTitle,scope:identity.scope});
 }
 document.addEventListener('click',interceptOpen,true);
-if(typeof window.renderWork==='function'&&!window.renderWork.__h38LogicalSiteVisitDedupe){const base=window.renderWork;const wrapped=function(){const result=base.apply(this,arguments);setTimeout(arm,0);return result;};wrapped.__h38LogicalSiteVisitDedupe=true;window.renderWork=wrapped;}
+if(typeof window.renderWork==='function'&&!window.renderWork.__h38LogicalSiteVisitDedupe){const base=window.renderWork;const wrapped=function(){const result=base.apply(this,arguments);arm();return result;};wrapped.__h38LogicalSiteVisitDedupe=true;window.renderWork=wrapped;}
 window.addEventListener('h38:business-snapshot-updated',()=>{installOpenAuthority();if(isWork())arm();});
 window.addEventListener('h38:auth-cleared',()=>{forcedIdentity=null;});
+window.addEventListener('focus',()=>{if(isWork())arm();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isWork())arm();});
 [0,120,350,900,1800,3600].forEach(delay=>setTimeout(()=>{installRestoreAuthority();installOpenAuthority();if(isWork())arm();},delay));
-window.H38_SITE_VISIT_IDENTITY_AUTHORITY=Object.freeze({enabled:true,build:BUILD,resolve,resolveClues,identityPriority:['Capture Session ID','Site Visit ID','unique Quote ID','Customer ID + exact Project Title','unique exact Project Title'],titleOnlyRequiresUniqueServerSession:true,conflictingIdentifiersBlockFallback:true,openCanonicalizedBeforeRestore:true,serverEvidenceNeverDeleted:true,genuineDifferentServerSessionsPreserved:true,persistentJobsObserver:true,automaticApproval:false,automaticCustomerSending:false});
-window.H38_SITE_VISIT_WORK_DEDUPE_FINAL=Object.freeze({enabled:true,build:BUILD,identityAuthority:true,localDraftReconcilesWithServer:true,genuineDifferentServerSessionsPreserved:true,domOnlyNoEvidenceDeletion:true,persistentObserver:true,automaticApproval:false,automaticCustomerSending:false});
+window.H38_SITE_VISIT_IDENTITY_AUTHORITY=Object.freeze({enabled:true,build:BUILD,resolve,resolveClues,identityPriority:['Capture Session ID','Site Visit ID','unique Quote ID','Customer ID + exact Project Title','unique exact Project Title'],titleOnlyRequiresUniqueServerSession:true,conflictingIdentifiersBlockFallback:true,openCanonicalizedBeforeRestore:true,serverEvidenceNeverDeleted:true,genuineDifferentServerSessionsPreserved:true,persistentJobsObserver:false,eventDrivenJobsReconciliation:true,automaticApproval:false,automaticCustomerSending:false});
+window.H38_SITE_VISIT_WORK_DEDUPE_FINAL=Object.freeze({enabled:true,build:BUILD,identityAuthority:true,localDraftReconcilesWithServer:true,genuineDifferentServerSessionsPreserved:true,domOnlyNoEvidenceDeletion:true,persistentObserver:false,eventDrivenReconciliation:true,automaticApproval:false,automaticCustomerSending:false});
 })();
