@@ -27,6 +27,8 @@ def test_title_fallback_only_applies_to_one_unambiguous_server_session():
     assert "function single(list){return list.length===1?list[0]:null;}" in IDENTITY
     assert "if(clue.title){const match=single(" in IDENTITY
     assert "compatible(clue,identity)" in IDENTITY
+    assert "rawServerTitle(raw)" in IDENTITY
+    assert "unique project title contained in physical card text" in IDENTITY
     assert "titleOnlyRequiresUniqueServerSession:true" in IDENTITY
     assert "conflictingIdentifiersBlockFallback:true" in IDENTITY
     assert "function unique(list){return list.length===1?list[0]:null;}" in FENCE
@@ -40,13 +42,14 @@ def test_distinct_real_server_sessions_are_not_collapsed_by_shared_quote_or_titl
 
 
 def test_jobs_dedupe_survives_real_phone_card_structure_and_navigation_without_observer_loop():
-    assert "20260821-site-visit-work-dedupe-final-4-phone" in IDENTITY
+    assert "20260821-site-visit-work-dedupe-final-5-phone" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert "eventDrivenJobsReconciliation:true" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
     assert "function cardForButton(button)" in IDENTITY
     assert "function visitCards(" in IDENTITY
     assert "physicalCardStructureSupported:true" in IDENTITY
+    assert "physicalCardRawTitleFallback:true" in IDENTITY
     assert "jobsNavigationReconciliation:true" in IDENTITY
     assert "label==='jobs'||target==='work'" in IDENTITY
     assert "window.addEventListener('h38:business-snapshot-updated'" in IDENTITY
@@ -65,14 +68,15 @@ def test_identity_repair_does_not_delete_business_evidence():
 
 
 def test_identity_authority_is_deployed_through_live_first_cache_boundary():
-    assert "site-visit-work-dedupe-final-4-phone" in LOADER
+    assert "site-visit-work-dedupe-final-5-phone" in LOADER
     assert "site-visit-quote-handoff-final-2-phone" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
-    assert "site-visit-wide-acceptance-final-2" in LOADER
-    assert "site-visit-quote-wide-pass-loader-8-phone" in HAMMER
+    assert "site-visit-wide-acceptance-final-3-phone" in LOADER
+    assert "site-visit-quote-wide-pass-loader-9-phone" in HAMMER
     assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
+    assert "field-visit-guided-controller.js" in live_first
     assert "site-visit-work-dedupe-final.js" in live_first
     assert "site-visit-quote-wide-pass-loader.js" in live_first
     assert "site-visit-wide-acceptance-final.js" in live_first
