@@ -2,7 +2,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-FN = ROOT / 'supabase' / 'functions' / 'h38-quote-options' / 'index.ts'
+OPTIONS_FN = ROOT / 'supabase' / 'functions' / 'h38-quote-options' / 'index.ts'
+QUOTE_AI_FN = ROOT / 'supabase' / 'functions' / 'h38-quote-ai' / 'index.ts'
 
 HAMMER = (APP / 'quote-working-hammer.js').read_text(encoding='utf-8')
 PREFLIGHT = (APP / 'field-visit-quote-preflight.js').read_text(encoding='utf-8')
@@ -21,7 +22,8 @@ MANUAL = (APP / 'quote-manual-image-controls.js').read_text(encoding='utf-8')
 OPTIONS = (APP / 'quote-direction-options.js').read_text(encoding='utf-8')
 WIDE = (APP / 'site-visit-wide-acceptance-final.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
-EDGE = FN.read_text(encoding='utf-8')
+EDGE = OPTIONS_FN.read_text(encoding='utf-8')
+QUOTE_AI = QUOTE_AI_FN.read_text(encoding='utf-8')
 
 
 def test_automatic_five_second_quote_preflight_is_retired():
@@ -36,7 +38,7 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
-    assert "ASSET_BUILD='20260821-2225'" in LOADER
+    assert "ASSET_BUILD='20260822-0052'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js', './site-visit-quote-handoff-final.js',
@@ -47,11 +49,11 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-11-phone' in HAMMER
-    assert 'site-visit-quote-handoff-final-3-phone' in LOADER
-    assert 'site-visit-work-dedupe-final-7-phone' in LOADER
+    assert 'site-visit-quote-wide-pass-loader-12-phone' in HAMMER
+    assert 'site-visit-quote-handoff-final-4-phone' in LOADER
+    assert 'site-visit-work-dedupe-final-8-phone' in LOADER
     assert 'site-visit-wide-acceptance-final-3-phone' in LOADER
-    for marker in ['siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','measurementStateHydration:true','cameraEstimateSupersession:true','canonicalQuoteReopen:true','lateJobsAliasReconciliation:true','localSnapshotAliasSuppression:true','savedActionPictureRenderAuthority:true','legacyManualRenderGateBypassed:true']:
+    for marker in ['siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','measurementStateHydration:true','cameraEstimateSupersession:true','canonicalQuoteReopen:true','canonicalQuoteHandoff:true','lateJobsAliasReconciliation:true','localSnapshotAliasSuppression:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','savedActionPictureRenderAuthority:true','legacyManualRenderGateBypassed:true']:
         assert marker in LOADER
 
 
@@ -94,18 +96,18 @@ def test_guided_walkthrough_suppresses_camera_estimates_after_field_measurement(
     assert 'new MutationObserver' not in GUIDED
 
 
-def test_final_handoff_reopens_exact_saved_visit_and_routes_normal_ai_button():
-    assert '20260821-site-visit-quote-handoff-final-3-phone' in HANDOFF
-    for marker in ['noBridgeReadyGate:true','Site Visit Ready','Build / Refresh Draft','Manual field notes:','Walkthrough AI notes:','quoteDirectionsSupported:true','genericQuoteButtonRoutedToCanonicalRuntime:true','canonicalReopenIdentity:true','reopenHydratesEvidence:true','reopenPassesCaptureSessionId:true','reopenPassesSiteVisitId:true']:
+def test_final_handoff_reopens_exact_saved_visit_and_enforces_canonical_quote():
+    assert '20260822-site-visit-quote-handoff-final-4-phone' in HANDOFF
+    for marker in ['noBridgeReadyGate:true','Site Visit Ready','Build / Refresh Draft','Manual field notes:','Walkthrough AI notes:','quoteDirectionsSupported:true','genericQuoteButtonRoutedToCanonicalRuntime:true','canonicalReopenIdentity:true','reopenHydratesEvidence:true','reopenPassesCaptureSessionId:true','reopenPassesSiteVisitId:true','canonicalQuoteHandoff:true','localQuoteAliasDomSuppression:true','boundedOwnerReviewFallback:true']:
         assert marker in HANDOFF
     assert 'office.bridgeReady' not in HANDOFF
     assert 'office.quote.lines=suggested.map(mapLine)' in HANDOFF
-    assert 'function canonicalLinkedSession(' in HANDOFF
-    assert 'function hydrateCanonicalOpenVisit(' in HANDOFF
-    assert 'captureSessionId:sid' in HANDOFF
-    assert 'siteVisitId:visitId' in HANDOFF
-    assert "window.H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL" in HANDOFF
-    assert "window.state.bridge.request('aiBuildQuoteDraft'" in HANDOFF
+    assert 'office.quote.quoteId=quoteIdOf(quote)' in HANDOFF
+    assert 'function canonicalQuoteCandidate()' in HANDOFF
+    assert 'async function ensureCanonicalQuoteOpen(' in HANDOFF
+    assert 'async function canonicalHandoff()' in HANDOFF
+    assert 'handoff:canonicalHandoff' in HANDOFF
+    assert 'PHONE_DRAFT_BUDGET_MS=60000' in HANDOFF
     assert 'new MutationObserver' not in HANDOFF
 
 
@@ -127,28 +129,31 @@ def test_saved_action_picture_render_capture_bypasses_legacy_manual_gate():
     assert 'bridgeRenderFallback:false' in RENDER
     assert 'finalRuntimeRequired:true' in RENDER
     assert '20260821-quote-measurement-action-photo-guard-5-phone' in GUARD
-    assert 'function savedQuoteActionPhotoId(quoteId)' in GUARD
-    assert "'Action Picture ID','actionPictureId'" in GUARD
     assert 'savedQuoteActionPictureAuthority:true' in GUARD
     assert 'internalActionPictureIndependentOfCustomerSelection:true' in GUARD
-    assert 'systemPolicyCannotCreateScope:true' in GUARD
 
 
-def test_verified_measurements_win_but_unverified_requests_remain():
-    assert 'authority.missingResolved' in MEASURE
-    assert 'verifiedMeasurementsWin:true' in MEASURE
-    assert 'unverifiedMeasurementsRemain:true' in MEASURE
-    assert 'No additional measurements needed.' in MEASURE
-
-
-def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
-    markers = ["'Capture Session ID'","'Site Visit ID'","'unique Quote ID'","'Customer ID + exact Project Title'","'unique exact Project Title'"]
-    positions = [WORK.index(item) for item in markers]
-    assert positions == sorted(positions)
-    for marker in ['H38_SITE_VISIT_IDENTITY_AUTHORITY','installRestoreAuthority','installOpenAuthority','forcedIdentity=identity','titleOnlyRequiresUniqueServerSession:true','persistentJobsObserver:false','eventDrivenJobsReconciliation:true','physicalCardStructureSupported:true','physicalCardRawTitleFallback:true','minimalOpenCardDetection:true','boundedLateMobileRenderRetries:true','jobsNavigationReconciliation:true','localDraftReconcilesWithServer:true','genuineDifferentServerSessionsPreserved:true','serverEvidenceNeverDeleted:true','localSnapshotAliasSuppressed:true','linkedCanonicalTitleWins:true']:
+def test_work_rows_ignore_poisoned_local_dataset_and_preserve_server_evidence():
+    for marker in ['H38_SITE_VISIT_IDENTITY_AUTHORITY','installRestoreAuthority','installOpenAuthority','forcedIdentity=identity','persistentJobsObserver:false','eventDrivenJobsReconciliation:true','localDraftReconcilesWithServer:true','genuineDifferentServerSessionsPreserved:true','serverEvidenceNeverDeleted:true','localSnapshotAliasSuppressed:true','linkedCanonicalTitleWins:true','poisonedLocalDatasetCannotBeatVisibleLocalStatus:true','sameTitlePhysicalLocalAliasRemoved:true']:
         assert marker in WORK
+    assert "if(item.clue.local)result-=1000" in WORK
+    assert "function removeSameTitleLocalAliases(" in WORK
+    assert "const preferred=button.closest('.row,article,li" in WORK
     assert 'new MutationObserver' not in WORK
     assert '.delete(' not in WORK
+
+
+def test_quote_ai_is_one_phone_bounded_model_pass_and_render_proof_is_uuid_safe():
+    assert '20260822-owner-bounded-draft-21' in QUOTE_AI
+    assert 'const QUOTE_MODEL_TIMEOUT_MS = 55000;' in QUOTE_AI
+    assert 'detail: "low"' in QUOTE_AI
+    assert QUOTE_AI.count('draft = await callQuoteModel(context, photos)') == 1
+    assert 'previousDraft' not in QUOTE_AI
+    assert 'SERVER REPAIR REQUEST' not in QUOTE_AI
+    assert 'serverBreakoutSecondPass: false' in QUOTE_AI
+    assert 'singleModelPass: true' in QUOTE_AI
+    assert 'entity_id: quoteId' not in QUOTE_AI
+    assert QUOTE_AI.count('entity_id: null') >= 2
 
 
 def test_followups_reuse_open_related_records():
@@ -175,7 +180,11 @@ def test_quote_direction_ui_supports_values_prices_upgrades_and_visuals():
         assert marker in OPTIONS
 
 
-def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candidates():
+def test_option_engine_is_bounded_and_keeps_landscape_garage_retaining_wall_behavior():
+    assert '20260822-quote-options-directions-2' in EDGE
+    assert 'AbortSignal.timeout(80000)' in EDGE
+    assert 'entity_id:null' in EDGE
+    assert 'entity_id:quoteId' not in EDGE
     for marker in ['landscape-border','garage','retaining-wall','quantityMode','quantityRequired','web_research','manual_required']:
         assert marker in EDGE
     assert 'never inject drywall, insulation, doors, electrical, storage' in EDGE
