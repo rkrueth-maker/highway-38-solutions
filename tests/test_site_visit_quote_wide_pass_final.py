@@ -11,6 +11,7 @@ RUNTIME = (APP / 'quote-runtime-authority.js').read_text(encoding='utf-8')
 HANDOFF = (APP / 'site-visit-quote-handoff-final.js').read_text(encoding='utf-8')
 MEASURE = (APP / 'measurement-verification-final.js').read_text(encoding='utf-8')
 WORK = (APP / 'site-visit-work-dedupe-final.js').read_text(encoding='utf-8')
+GUIDED = (APP / 'field-visit-guided-controller.js').read_text(encoding='utf-8')
 FENCE = (APP / 'site-visit-identity-write-fence-final.js').read_text(encoding='utf-8')
 FOLLOW = (APP / 'job-followup-idempotency-final.js').read_text(encoding='utf-8')
 ACTION = (APP / 'quote-action-picture-final.js').read_text(encoding='utf-8')
@@ -47,13 +48,15 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-8-phone' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-9-phone' in HAMMER
     assert 'site-visit-quote-handoff-final-2-phone' in LOADER
-    assert 'site-visit-work-dedupe-final-4-phone' in LOADER
-    assert 'site-visit-wide-acceptance-final-2' in LOADER
+    assert 'site-visit-work-dedupe-final-5-phone' in LOADER
+    assert 'site-visit-wide-acceptance-final-3-phone' in LOADER
     assert 'siteVisitIdentityAuthority:true' in LOADER
     assert 'linkedQuoteIdentityWriteFence:true' in LOADER
     assert 'unifiedWideAcceptanceAuthority:true' in LOADER
+    assert 'measurementStateHydration:true' in LOADER
+    assert 'cameraEstimateSupersession:true' in LOADER
 
 
 def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
@@ -77,13 +80,27 @@ def test_quote_runtime_is_singleflight_one_refresh_and_owner_initiated():
 
 
 def test_unified_wide_authority_uses_field_measurements_and_keeps_quote_editable():
-    for marker in ['fieldVerifiedMeasurementWins:true','cameraEstimateCannotReopenVerifiedDimension:true','actualProjectScopeOnly:true','editableQuoteFallback:true','directionsLoadWithoutBlockingQuote:true','savedActionPictureRendersWithoutCustomerSelection:true','orientationCorrectionPassedToRender:true','oneProjectSiteVisitWithNestedContinuations:true','persistentJobsReconciliation:true','eventDrivenReconciliation:true','documentMutationObserver:false','jobsMutationObserver:false']:
+    for marker in ['fieldVerifiedMeasurementWins:true','cameraEstimateCannotReopenVerifiedDimension:true','guidedCameraEstimateSupersession:true','fieldMeasurementStateHydration:true','actualProjectScopeOnly:true','editableQuoteFallback:true','directionsLoadWithoutBlockingQuote:true','savedActionPictureRendersWithoutCustomerSelection:true','orientationCorrectionPassedToRender:true','oneProjectSiteVisitWithNestedContinuations:true','physicalJobsCardReconciliation:true','persistentJobsReconciliation:true','eventDrivenReconciliation:true','documentMutationObserver:false','jobsMutationObserver:false']:
         assert marker in WIDE
     assert 'new MutationObserver' not in WIDE
     assert "void loadDirections(prepared,base,timeout)" in WIDE
     assert 'AI pricing was unavailable. Keep this editable instead of failing the quote.' in WIDE
     assert 'Action Picture Rotation Degrees' in WIDE
     assert 'LOCAL[_ -]?DRAFT' in WIDE
+    assert 'C.state.measurements=canonical' in WIDE
+    assert 'identityApi?.reconcile?.()' in WIDE
+    assert "main.querySelectorAll('.row')" not in WIDE
+
+
+def test_guided_walkthrough_suppresses_camera_estimates_after_field_measurement():
+    assert '20260821-guided-field-authority-2' in GUIDED
+    assert 'verifiedMeasurementForLabel' in GUIDED
+    assert 'supersededCameraRows' in GUIDED
+    assert 'if(verifiedMeasurementForLabel(label))continue' in GUIDED
+    assert 'Field measurements always win.' in GUIDED
+    assert 'fieldMeasurementSupersedesCameraEstimate:true' in GUIDED
+    assert 'staleReviewTargetsSuppressed:true' in GUIDED
+    assert 'new MutationObserver' not in GUIDED
 
 
 def test_final_handoff_recognizes_linked_visit_and_routes_normal_ai_button_to_canonical_runtime():
@@ -125,6 +142,7 @@ def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
     assert 'persistentJobsObserver:false' in WORK
     assert 'eventDrivenJobsReconciliation:true' in WORK
     assert 'physicalCardStructureSupported:true' in WORK
+    assert 'physicalCardRawTitleFallback:true' in WORK
     assert 'jobsNavigationReconciliation:true' in WORK
     assert 'new MutationObserver' not in WORK
     assert 'localDraftReconcilesWithServer:true' in WORK
@@ -169,7 +187,7 @@ def test_option_engine_keeps_landscape_garage_and_retaining_wall_behavior_candid
 def test_current_worker_forces_final_wide_pass_assets_live_first_and_precached():
     assert "const CACHE_NAME='h38-business-office-20260821-1605'" in SW
     assert "const PREVIOUS_CACHE_NAME='h38-business-office-20260821-1015'" in SW
-    expected = ['quote-runtime-authority.js','site-visit-quote-handoff-final.js','measurement-verification-final.js','site-visit-work-dedupe-final.js','job-followup-idempotency-final.js','quote-action-picture-final.js','quote-direction-options.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','supabase-quote-ai-auth-fix.js']
+    expected = ['quote-runtime-authority.js','site-visit-quote-handoff-final.js','measurement-verification-final.js','field-visit-guided-controller.js','site-visit-work-dedupe-final.js','job-followup-idempotency-final.js','quote-action-picture-final.js','quote-direction-options.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','supabase-quote-ai-auth-fix.js']
     for filename in expected:
         assert f"'{filename}'" in SW
         assert f"'./{filename}'" in SW
