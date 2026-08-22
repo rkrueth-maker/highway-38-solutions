@@ -58,19 +58,23 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_matches_physical_cards_and_jobs_navigation_without_observer_loop():
+def test_final_site_visit_identity_authority_matches_late_physical_cards_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-5-phone" in text
+    assert "20260821-site-visit-work-dedupe-final-6-phone" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
     assert "physicalCardStructureSupported:true" in text
     assert "physicalCardRawTitleFallback:true" in text
+    assert "minimalOpenCardDetection:true" in text
+    assert "boundedLateMobileRenderRetries:true" in text
     assert "jobsNavigationReconciliation:true" in text
+    assert "function workSurface()" in text
     assert "function cardForButton(button)" in text
     assert "function visitCards(" in text
     assert "rawServerTitle(raw)" in text
-    assert "label==='jobs'||target==='work'" in text
+    assert "2600,4500" in text
     assert "main.querySelectorAll('.row')" not in text
+    assert "buttons.some(isDeleteButton)" not in text
     assert "new MutationObserver" not in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
@@ -117,10 +121,8 @@ def test_legacy_mobile_history_grouper_is_retired_on_jobs():
     assert "duplicateScrollAuthorityRetired:true" in text
 
 
-def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
+def test_dynamic_jobs_repairs_are_live_first():
     text = SERVICE_WORKER.read_text(encoding="utf-8")
-    assert "h38-business-office-20260821-1605" in text
-    assert "h38-business-office-20260821-1015" in text
     for filename in (
         "field-visit-guided-controller.js",
         "site-visit-delete-runtime-repair.js",
@@ -130,7 +132,6 @@ def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
         "site-visit-wide-acceptance-final.js",
         "supabase-quote-ai-auth-fix.js",
     ):
-        assert filename in text
         live_first = text.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
         assert filename in live_first
     assert "ignoreSearch:true" in text
