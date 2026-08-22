@@ -72,15 +72,19 @@ def test_identity_repair_does_not_delete_business_evidence():
     assert "queueOperation('DELETE" not in FENCE
 
 
-def test_identity_authority_is_deployed_through_live_first_cache_boundary():
+def test_identity_authority_is_deployed_through_shared_machine_live_first_boundary():
     assert "site-visit-work-dedupe-final-8-phone" in LOADER
-    assert "site-visit-quote-handoff-final-4-phone" in LOADER
+    assert "quote-runtime-authority-2-machine" in LOADER
+    assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "site-visit-quote-wide-pass-loader-12-phone" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-13-machine" in HAMMER
+    assert "sharedQuoteRepairMachine:true" in LOADER
+    assert "allQuotesShareRepairMachine:true" in LOADER
     assert "poisonedLocalDatasetSuppression:true" in LOADER
     assert "canonicalQuoteHandoff:true" in LOADER
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
+    assert "quote-runtime-authority.js" in live_first
     assert "field-visit-guided-controller.js" in live_first
     assert "site-visit-work-dedupe-final.js" in live_first
     assert "site-visit-quote-wide-pass-loader.js" in live_first
