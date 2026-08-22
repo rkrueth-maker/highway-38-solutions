@@ -13,6 +13,8 @@ MANUAL = (APP / "quote-manual-image-controls.js").read_text(encoding="utf-8")
 LOADER = (APP / "site-visit-quote-wide-pass-loader.js").read_text(encoding="utf-8")
 HAMMER = (APP / "quote-working-hammer.js").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
+QUOTE_AI = (ROOT / "supabase/functions/h38-quote-ai/index.ts").read_text(encoding="utf-8")
+OPTIONS = (ROOT / "supabase/functions/h38-quote-options/index.ts").read_text(encoding="utf-8")
 
 
 def test_recorded_flower_garden_quote_cannot_hit_old_fail_closed_pricing_gate():
@@ -29,9 +31,13 @@ def test_recorded_flower_garden_quote_cannot_hit_old_fail_closed_pricing_gate():
     assert "Policy examples are never project scope" in AUTH
 
 
-def test_quote_reopen_passes_canonical_saved_session_and_hydrates_original_evidence():
-    assert "20260821-site-visit-quote-handoff-final-3-phone" in HANDOFF
+def test_quote_reopen_and_handoff_use_canonical_saved_quote_and_original_evidence():
+    assert "20260822-site-visit-quote-handoff-final-4-phone" in HANDOFF
     assert "function canonicalLinkedSession(" in HANDOFF
+    assert "function canonicalQuoteCandidate()" in HANDOFF
+    assert "async function ensureCanonicalQuoteOpen(" in HANDOFF
+    assert "async function canonicalHandoff()" in HANDOFF
+    assert "handoff:canonicalHandoff" in HANDOFF
     assert "function canonicalEvidence(" in HANDOFF
     assert "function hydrateCanonicalOpenVisit(" in HANDOFF
     assert "async function reopenLinkedVisit()" in HANDOFF
@@ -44,24 +50,24 @@ def test_quote_reopen_passes_canonical_saved_session_and_hydrates_original_evide
     assert "visit.measurementIds=evidence.measurementIds" in HANDOFF
     assert "canonicalReopenIdentity:true" in HANDOFF
     assert "reopenHydratesEvidence:true" in HANDOFF
+    assert "canonicalQuoteHandoff:true" in HANDOFF
+    assert "localQuoteAliasDomSuppression:true" in HANDOFF
 
 
-def test_recorded_jobs_local_alias_is_suppressed_when_linked_canonical_session_exists():
-    assert "20260821-site-visit-work-dedupe-final-7-phone" in IDENTITY
+def test_recorded_jobs_poisoned_local_alias_cannot_beat_linked_canonical_card():
+    assert "20260822-site-visit-work-dedupe-final-8-phone" in IDENTITY
     assert "function localAliasIdentity(identity)" in IDENTITY
     assert "canonicalTitles=new Set(" in IDENTITY
+    assert "function removeSameTitleLocalAliases(" in IDENTITY
+    assert "if(item.clue.local)result-=1000" in IDENTITY
+    assert "poisonedLocalDatasetCannotBeatVisibleLocalStatus:true" in IDENTITY
+    assert "sameTitlePhysicalLocalAliasRemoved:true" in IDENTITY
     assert "localSnapshotAliasSuppressed:true" in IDENTITY
     assert "linkedCanonicalTitleWins:true" in IDENTITY
-    assert "function workSurface()" in IDENTITY
-    assert "function cardForButton(button)" in IDENTITY
-    assert "function visitCards(" in IDENTITY
-    assert "physicalCardRawTitleFallback:true" in IDENTITY
-    assert "boundedLateMobileRenderRetries:true" in IDENTITY
-    assert "2600,4500" in IDENTITY
-    assert "main.querySelectorAll('.row')" not in IDENTITY
-    assert "buttons.some(isDeleteButton)" not in IDENTITY
+    assert "const preferred=button.closest('.row,article,li" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
+    assert ".from('business_records').delete" not in IDENTITY
 
 
 def test_field_measurement_supersedes_saved_camera_estimate_in_walkthrough_review():
@@ -104,13 +110,46 @@ def test_generate_render_capture_bypasses_legacy_manual_action_photo_gate():
     assert "savedQuoteActionPictureAuthority:true" in GUARD
 
 
+def test_fifth_phone_quote_build_has_bounded_owner_review_fallback():
+    assert "PHONE_DRAFT_BUDGET_MS=60000" in HANDOFF
+    assert "function ownerReviewFallback(args,reason)" in HANDOFF
+    assert "function boundedDraft(promise,args)" in HANDOFF
+    assert "phoneResponseBudgetExceeded:true" in HANDOFF
+    assert "boundedOwnerReviewFallback:true" in HANDOFF
+    assert "phoneDraftResponseBudgetMs:PHONE_DRAFT_BUDGET_MS" in HANDOFF
+    assert "office.quote.quoteId=quoteIdOf(quote)" in HANDOFF
+
+
+def test_quote_ai_is_one_bounded_model_pass_and_proof_ids_are_uuid_safe():
+    assert '20260822-owner-bounded-draft-21' in QUOTE_AI
+    assert 'const QUOTE_MODEL_TIMEOUT_MS = 55000;' in QUOTE_AI
+    assert 'detail: "low"' in QUOTE_AI
+    assert QUOTE_AI.count('draft = await callQuoteModel(context, photos)') == 1
+    assert 'previousDraft' not in QUOTE_AI
+    assert 'SERVER REPAIR REQUEST' not in QUOTE_AI
+    assert 'serverBreakoutSecondPass: false' in QUOTE_AI
+    assert 'singleModelPass: true' in QUOTE_AI
+    assert 'entity_id: quoteId' not in QUOTE_AI
+    assert QUOTE_AI.count('entity_id: null') >= 2
+
+
+def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only():
+    assert '20260822-quote-options-directions-2' in OPTIONS
+    assert 'AbortSignal.timeout(80000)' in OPTIONS
+    assert 'entity_id:null' in OPTIONS
+    assert 'entity_id:quoteId' not in OPTIONS
+    assert 'details:{quoteId' in OPTIONS
+
+
 def test_phone_repair_builds_are_live_first():
-    assert "site-visit-quote-wide-pass-loader-11-phone" in HAMMER
-    assert "site-visit-quote-handoff-final-3-phone" in LOADER
-    assert "site-visit-work-dedupe-final-7-phone" in LOADER
+    assert "site-visit-quote-wide-pass-loader-12-phone" in HAMMER
+    assert "site-visit-quote-handoff-final-4-phone" in LOADER
+    assert "site-visit-work-dedupe-final-8-phone" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "ASSET_BUILD='20260821-2225'" in LOADER
-    assert "localSnapshotAliasSuppression:true" in LOADER
+    assert "ASSET_BUILD='20260822-0052'" in LOADER
+    assert "canonicalQuoteHandoff:true" in LOADER
+    assert "poisonedLocalDatasetSuppression:true" in LOADER
+    assert "boundedQuoteDraftResponse:true" in LOADER
     assert "legacyManualRenderGateBypassed:true" in LOADER
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     for filename in (
