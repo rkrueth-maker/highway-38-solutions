@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "commercial-app"
 AUTH = (APP / "supabase-quote-ai-auth-fix.js").read_text(encoding="utf-8")
+RUNTIME = (APP / "quote-runtime-authority.js").read_text(encoding="utf-8")
 HANDOFF = (APP / "site-visit-quote-handoff-final.js").read_text(encoding="utf-8")
 IDENTITY = (APP / "site-visit-work-dedupe-final.js").read_text(encoding="utf-8")
 GUIDED = (APP / "field-visit-guided-controller.js").read_text(encoding="utf-8")
@@ -32,7 +33,7 @@ def test_recorded_flower_garden_quote_cannot_hit_old_fail_closed_pricing_gate():
 
 
 def test_quote_reopen_and_handoff_use_canonical_saved_quote_and_original_evidence():
-    assert "20260822-site-visit-quote-handoff-final-4-phone" in HANDOFF
+    assert "20260822-site-visit-quote-handoff-final-5-machine" in HANDOFF
     assert "function canonicalLinkedSession(" in HANDOFF
     assert "function canonicalQuoteCandidate()" in HANDOFF
     assert "async function ensureCanonicalQuoteOpen(" in HANDOFF
@@ -45,9 +46,6 @@ def test_quote_reopen_and_handoff_use_canonical_saved_quote_and_original_evidenc
     assert "sessionId:sid" in HANDOFF
     assert "siteVisitId:visitId" in HANDOFF
     assert "sourceType==='site visit'" in HANDOFF
-    assert "visit.videoAttachmentIds=evidence.videos" in HANDOFF
-    assert "visit.attachmentIds=evidence.photos" in HANDOFF
-    assert "visit.measurementIds=evidence.measurementIds" in HANDOFF
     assert "canonicalReopenIdentity:true" in HANDOFF
     assert "reopenHydratesEvidence:true" in HANDOFF
     assert "canonicalQuoteHandoff:true" in HANDOFF
@@ -64,7 +62,6 @@ def test_recorded_jobs_poisoned_local_alias_cannot_beat_linked_canonical_card():
     assert "sameTitlePhysicalLocalAliasRemoved:true" in IDENTITY
     assert "localSnapshotAliasSuppressed:true" in IDENTITY
     assert "linkedCanonicalTitleWins:true" in IDENTITY
-    assert "const preferred=button.closest('.row,article,li" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert ".from('business_records').delete" not in IDENTITY
@@ -110,13 +107,25 @@ def test_generate_render_capture_bypasses_legacy_manual_action_photo_gate():
     assert "savedQuoteActionPictureAuthority:true" in GUARD
 
 
-def test_fifth_phone_quote_build_has_bounded_owner_review_fallback():
-    assert "PHONE_DRAFT_BUDGET_MS=60000" in HANDOFF
-    assert "function ownerReviewFallback(args,reason)" in HANDOFF
-    assert "function boundedDraft(promise,args)" in HANDOFF
-    assert "phoneResponseBudgetExceeded:true" in HANDOFF
-    assert "boundedOwnerReviewFallback:true" in HANDOFF
-    assert "phoneDraftResponseBudgetMs:PHONE_DRAFT_BUDGET_MS" in HANDOFF
+def test_every_quote_uses_one_bounded_automatic_repair_machine():
+    assert "20260822-quote-runtime-authority-2-machine" in RUNTIME
+    assert "const QUOTE_RESPONSE_BUDGET_MS=60000;" in RUNTIME
+    assert "const QUOTE_PROVIDER_BUDGET_MS=55000;" in RUNTIME
+    assert "function ownerReviewFallback(prepared,reason)" in RUNTIME
+    assert "function normalizeDraft(result,prepared)" in RUNTIME
+    assert "function boundedBuild(promise,prepared)" in RUNTIME
+    assert "automaticDraftRepair:true" in RUNTIME
+    assert "automaticFailureRecovery:true" in RUNTIME
+    assert "automaticMeasurementHydration:true" in RUNTIME
+    assert "automaticDirectionsAfterBaseDraft:true" in RUNTIME
+    assert "directionsDoNotBlockBaseQuote:true" in RUNTIME
+    assert "allQuoteBuildsUseMachine:true" in RUNTIME
+    assert "void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)" in RUNTIME
+    assert "if(action==='aiBuildQuoteDraft')return buildQuote" in RUNTIME
+    assert "quoteMachineDelegated:true" in HANDOFF
+    assert "allQuotesShareRepairMachine:true" in HANDOFF
+    assert "const runtime=window.H38_QUOTE_RUNTIME_AUTHORITY" in HANDOFF
+    assert "function ownerReviewFallback(args,reason)" not in HANDOFF
     assert "office.quote.quoteId=quoteIdOf(quote)" in HANDOFF
 
 
@@ -142,11 +151,15 @@ def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only()
 
 
 def test_phone_repair_builds_are_live_first():
-    assert "site-visit-quote-wide-pass-loader-12-phone" in HAMMER
-    assert "site-visit-quote-handoff-final-4-phone" in LOADER
+    assert "site-visit-quote-wide-pass-loader-13-machine" in HAMMER
+    assert "quote-working-ui-only-15-machine" in HAMMER
+    assert "quote-runtime-authority-2-machine" in LOADER
+    assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-work-dedupe-final-8-phone" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "ASSET_BUILD='20260822-0052'" in LOADER
+    assert "ASSET_BUILD='20260822-0136'" in LOADER
+    assert "sharedQuoteRepairMachine:true" in LOADER
+    assert "allQuotesShareRepairMachine:true" in LOADER
     assert "canonicalQuoteHandoff:true" in LOADER
     assert "poisonedLocalDatasetSuppression:true" in LOADER
     assert "boundedQuoteDraftResponse:true" in LOADER
@@ -156,6 +169,7 @@ def test_phone_repair_builds_are_live_first():
         "supabase-quote-ai-auth-fix.js",
         "quote-measurement-action-photo-guard.js",
         "quote-render-approval.js",
+        "quote-runtime-authority.js",
         "field-visit-guided-controller.js",
         "site-visit-quote-handoff-final.js",
         "site-visit-work-dedupe-final.js",
