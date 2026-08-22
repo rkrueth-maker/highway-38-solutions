@@ -6,6 +6,7 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'supabase/functions/reseller-auto-leads-v049/**'
       - 'supabase/functions/reseller-auto-leads-v051/**'
+      - 'supabase/functions/reseller-nearby-sources/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
 
@@ -33,7 +34,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v0.1.55 hunt-identity contract
+      - name: Verify v0.1.56 resale-source Stores contract
         shell: bash
         run: |
           set -euo pipefail
@@ -43,11 +44,13 @@ jobs:
           v049="$assets/v049-runtime.js"
           v051="$assets/v051-runtime.js"
           v053="$assets/v053-runtime.js"
+          v056="$assets/v056-runtime.js"
           sourcing="$assets/v035-sourcing-b.js"
-          check "versionName '0.1.55'" reseller/build.gradle
-          check 'versionCode 56' reseller/build.gradle
-          check "applicationIdSuffix '.owner55'" reseller/build.gradle
-          check 'bundled-v049-plus-v051-plus-v053-v055fix' reseller/build.gradle
+          sources_fn="$GITHUB_WORKSPACE/supabase/functions/reseller-nearby-sources/index.ts"
+          check "versionName '0.1.56'" reseller/build.gradle
+          check 'versionCode 57' reseller/build.gradle
+          check "applicationIdSuffix '.owner56'" reseller/build.gradle
+          check 'bundled-v049-plus-v051-plus-v053-plus-v056' reseller/build.gradle
           check 'H38_V049_RUNTIME_ACTIVE' "$v049"
           check 'Near Penny' "$v049"
           check 'All ranked leads' "$v049"
@@ -70,8 +73,23 @@ jobs:
           check 'By retailer' "$v053"
           check 'By nearby store' "$v053"
           check 'not confirmed local inventory' "$v053"
-          check 'Retailers with deals' "$v053"
           check 'current results stay visible until the refresh finishes' "$v053"
+          check 'H38_V056_RUNTIME_ACTIVE' "$v056"
+          check 'reseller-nearby-sources' "$v056"
+          check 'Resale Sources' "$v056"
+          check 'All Nearby' "$v056"
+          check 'Sourcing destination only.' "$v056"
+          check 'Scan item here' "$v056"
+          check 'inventory is not assumed' "$v056"
+          check 'Habitat for Humanity' "$sources_fn"
+          check 'second_hand' "$sources_fn"
+          check 'charity' "$sources_fn"
+          check 'antiques' "$sources_fn"
+          check 'pawnbroker' "$sources_fn"
+          check 'Consignment' "$sources_fn"
+          check 'Salvage / reuse' "$sources_fn"
+          check 'inventory_known:false' "$sources_fn"
+          check 'resale-source-places-v056' "$sources_fn"
           check 'https://www.landmsupply.com/shop/monthly-specials.html' "$sourcing"
           if grep -Fq 'https://www.landmsupply.com/weekly-ad' "$sourcing"; then echo '::error::Dead L&M weekly-ad route returned'; exit 1; fi
           check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
@@ -79,6 +97,7 @@ jobs:
           node --check "$v049"
           node --check "$v051"
           node --check "$v053"
+          node --check "$v056"
           node <<'NODE'
           const bad='DG 11';
           if(Number.isNaN(Date.parse(bad))){throw new Error('Expected platform Date.parse to demonstrate the permissive DG 11 hazard');}
@@ -128,8 +147,8 @@ jobs:
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
 
-          aligned="$RUNNER_TEMP/h38-reseller-v055-aligned.apk"
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.55.apk"
+          aligned="$RUNNER_TEMP/h38-reseller-v056-aligned.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.56.apk"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$apk" "$aligned"
 
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
@@ -144,7 +163,7 @@ jobs:
               --v4-signing-enabled false \
               --out "$out" "$aligned"
           else
-            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v055-owner-test.jks"
+            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v056-owner-test.jks"
             keytool -genkeypair -noprompt \
               -keystore "$DEBUG_KEYSTORE" \
               -storepass android \
@@ -167,22 +186,22 @@ jobs:
               --out "$out" "$aligned"
           fi
 
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.55.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.56.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect installable v0.1.55 APK
+      - name: Smoke inspect installable v0.1.56 APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.55.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.56.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='56' versionName='0.1.55'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='57' versionName='0.1.56'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner55' versionCode='56' versionName='0.1.55-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner56' versionCode='57' versionName='0.1.56-debug'" "$report/badging.txt"
           fi
           grep -Fq "sdkVersion:'24'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -191,30 +210,33 @@ jobs:
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
           unzip -p "$out" 'assets/reseller/v035-sourcing-b.js' > "$report/packaged-sourcing-b.js"
-          grep -Fq 'data-h38-v055-runtime="bundled-v049-plus-v051-plus-v053-v055fix"' "$report/packaged-index.html"
+          grep -Fq 'data-h38-v056-runtime="bundled-v049-plus-v051-plus-v053-plus-v056"' "$report/packaged-index.html"
           grep -Fq 'H38_V049_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V051_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V054_ARTIFACT_FIX_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V055_ARTIFACT_FIX_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V053_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V054_TRUTH_FIX_ACTIVE' "$report/packaged-index.html"
+          grep -Fq 'H38_V056_RUNTIME_ACTIVE' "$report/packaged-index.html"
+          grep -Fq 'reseller-nearby-sources' "$report/packaged-index.html"
+          grep -Fq 'Resale Sources' "$report/packaged-index.html"
+          grep -Fq 'Sourcing destination only.' "$report/packaged-index.html"
           grep -Fq 'strictSignalDate' "$report/packaged-index.html"
           grep -Fq 'Near Penny' "$report/packaged-index.html"
           grep -Fq 'All ranked leads' "$report/packaged-index.html"
           grep -Fq 'Signal age' "$report/packaged-index.html"
           grep -Fq 'By nearby store' "$report/packaged-index.html"
-          grep -Fq 'Retailers with deals' "$report/packaged-index.html"
           grep -Fq 'https://www.landmsupply.com/shop/monthly-specials.html' "$report/packaged-sourcing-b.js"
           if grep -Fq 'https://www.landmsupply.com/weekly-ad' "$report/packaged-sourcing-b.js"; then echo '::error::Dead packaged L&M weekly-ad route returned'; exit 1; fi
-          if grep -Fq '<script src="v049-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v049 must be bundled inline'; exit 1; fi
-          if grep -Fq '<script src="v051-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v051 must be bundled inline'; exit 1; fi
-          if grep -Fq '<script src="v053-runtime.js"></script>' "$report/packaged-index.html"; then echo '::error::v053 must be bundled inline'; exit 1; fi
+          for f in v049-runtime.js v051-runtime.js v053-runtime.js v056-runtime.js; do
+            if grep -Fq "<script src=\"$f\"></script>" "$report/packaged-index.html"; then echo "::error::$f must be bundled inline"; exit 1; fi
+          done
 
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.55
+          name: h38-reseller-scout-owner-test-v0.1.56
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
