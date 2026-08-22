@@ -1,7 +1,8 @@
 'use strict';
 window.H38_V051_RUNTIME_ACTIVE=true;
-window.H38_V051_RUNTIME_MARKER='artifact-filter-progressive-dg-photo-cache-v051-v054-junk-title-fix';
+window.H38_V051_RUNTIME_MARKER='artifact-filter-progressive-dg-photo-cache-v051-v055-generic-identity-fix';
 window.H38_V054_ARTIFACT_FIX_ACTIVE=true;
+window.H38_V055_ARTIFACT_FIX_ACTIVE=true;
 (function(){
   const CACHE_KEY='h38.resellerScout.dgImageCache.v051';
   const text=v=>String(v??'').trim();
@@ -15,6 +16,7 @@ window.H38_V054_ARTIFACT_FIX_ACTIVE=true;
     const t=text(row?.canonical_title||row?.raw_title||row?.title),plain=t.replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();
     if(t.length<7||plain.length<3)return true;
     if(/^[\s·•→\-–—★☆⭐]*\d+(?:[.,]\d+)?[\s★☆⭐]*$/u.test(t))return true;
+    if(/^other\s+misc(?:\s+(?:no\s+brand|\d+(?:\s+\d+)?))?$/i.test(plain))return true;
     return /^(?:today|yesterday|\d+\s+(?:minutes?|hours?|days?|weeks?)\s+ago|fd|dg|dt|item|product|unknown|clearance|penny|deal)$/i.test(plain)||/^(?:home depot|dollar general|dollar tree|family dollar)\s+(?:deep|daily|weekly|tool|deal|deals|clearance|penny)/i.test(plain)||/(?:deep tool savings|daily deals|weekly deals|current weekly list|surprise penny list)$/i.test(plain)
   }
   function cleanState(){if(Array.isArray(state?.leads))state.leads=state.leads.filter(r=>!artifact(r))}
