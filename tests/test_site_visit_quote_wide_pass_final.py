@@ -17,6 +17,7 @@ FOLLOW = (APP / 'job-followup-idempotency-final.js').read_text(encoding='utf-8')
 ACTION = (APP / 'quote-action-picture-final.js').read_text(encoding='utf-8')
 GUARD = (APP / 'quote-measurement-action-photo-guard.js').read_text(encoding='utf-8')
 RENDER = (APP / 'quote-render-approval.js').read_text(encoding='utf-8')
+MANUAL = (APP / 'quote-manual-image-controls.js').read_text(encoding='utf-8')
 OPTIONS = (APP / 'quote-direction-options.js').read_text(encoding='utf-8')
 WIDE = (APP / 'site-visit-wide-acceptance-final.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
@@ -35,7 +36,7 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
-    assert "ASSET_BUILD='20260821-2136'" in LOADER
+    assert "ASSET_BUILD='20260821-2225'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js', './site-visit-quote-handoff-final.js',
@@ -46,11 +47,11 @@ def test_final_authority_loader_runs_after_legacy_and_in_fixed_order():
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-10-phone' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-11-phone' in HAMMER
     assert 'site-visit-quote-handoff-final-3-phone' in LOADER
-    assert 'site-visit-work-dedupe-final-6-phone' in LOADER
+    assert 'site-visit-work-dedupe-final-7-phone' in LOADER
     assert 'site-visit-wide-acceptance-final-3-phone' in LOADER
-    for marker in ['siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','measurementStateHydration:true','cameraEstimateSupersession:true','canonicalQuoteReopen:true','lateJobsAliasReconciliation:true','savedActionPictureRenderAuthority:true']:
+    for marker in ['siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','measurementStateHydration:true','cameraEstimateSupersession:true','canonicalQuoteReopen:true','lateJobsAliasReconciliation:true','localSnapshotAliasSuppression:true','savedActionPictureRenderAuthority:true','legacyManualRenderGateBypassed:true']:
         assert marker in LOADER
 
 
@@ -108,14 +109,23 @@ def test_final_handoff_reopens_exact_saved_visit_and_routes_normal_ai_button():
     assert 'new MutationObserver' not in HANDOFF
 
 
-def test_saved_action_picture_is_render_source_independent_of_customer_photo_selection():
-    assert '20260821-render-saved-action-picture-1-phone' in RENDER
-    assert 'async function requestRender(payload)' in RENDER
+def test_saved_action_picture_render_capture_bypasses_legacy_manual_gate():
+    assert 'Choose an Action Photo before rendering.' in MANUAL
+    assert '20260821-render-saved-action-picture-2-phone' in RENDER
+    assert 'function installFinalGenerateCapture()' in RENDER
+    assert "closest('[data-render-generate]')" in RENDER
+    assert 'event.stopImmediatePropagation()' in RENDER
+    assert 'function finalRenderRuntime()' in RENDER
+    assert 'waitForFinalRenderRuntime' in RENDER
     assert 'wide?.renderQuote' in RENDER
     assert 'runtime?.renderQuote' in RENDER
+    assert 'window.state?.bridge?.request' not in RENDER
     assert 'savedInternalActionPictureAuthority:true' in RENDER
     assert 'customerPhotoSelectionIndependent:true' in RENDER
     assert 'directFinalRuntimeRouting:true' in RENDER
+    assert 'legacyManualRenderGateBypassed:true' in RENDER
+    assert 'bridgeRenderFallback:false' in RENDER
+    assert 'finalRuntimeRequired:true' in RENDER
     assert '20260821-quote-measurement-action-photo-guard-5-phone' in GUARD
     assert 'function savedQuoteActionPhotoId(quoteId)' in GUARD
     assert "'Action Picture ID','actionPictureId'" in GUARD
@@ -135,7 +145,7 @@ def test_work_rows_use_canonical_site_visit_identity_before_open_and_render():
     markers = ["'Capture Session ID'","'Site Visit ID'","'unique Quote ID'","'Customer ID + exact Project Title'","'unique exact Project Title'"]
     positions = [WORK.index(item) for item in markers]
     assert positions == sorted(positions)
-    for marker in ['H38_SITE_VISIT_IDENTITY_AUTHORITY','installRestoreAuthority','installOpenAuthority','forcedIdentity=identity','titleOnlyRequiresUniqueServerSession:true','conflictingIdentifiersBlockFallback:true','persistentJobsObserver:false','eventDrivenJobsReconciliation:true','physicalCardStructureSupported:true','physicalCardRawTitleFallback:true','minimalOpenCardDetection:true','boundedLateMobileRenderRetries:true','jobsNavigationReconciliation:true','localDraftReconcilesWithServer:true','genuineDifferentServerSessionsPreserved:true','serverEvidenceNeverDeleted:true']:
+    for marker in ['H38_SITE_VISIT_IDENTITY_AUTHORITY','installRestoreAuthority','installOpenAuthority','forcedIdentity=identity','titleOnlyRequiresUniqueServerSession:true','persistentJobsObserver:false','eventDrivenJobsReconciliation:true','physicalCardStructureSupported:true','physicalCardRawTitleFallback:true','minimalOpenCardDetection:true','boundedLateMobileRenderRetries:true','jobsNavigationReconciliation:true','localDraftReconcilesWithServer:true','genuineDifferentServerSessionsPreserved:true','serverEvidenceNeverDeleted:true','localSnapshotAliasSuppressed:true','linkedCanonicalTitleWins:true']:
         assert marker in WORK
     assert 'new MutationObserver' not in WORK
     assert '.delete(' not in WORK

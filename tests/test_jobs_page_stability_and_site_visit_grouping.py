@@ -58,9 +58,13 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_matches_late_physical_cards_without_observer_loop():
+def test_final_site_visit_identity_authority_suppresses_local_snapshot_alias_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-6-phone" in text
+    assert "20260821-site-visit-work-dedupe-final-7-phone" in text
+    assert "function localAliasIdentity(identity)" in text
+    assert "canonicalTitles=new Set(" in text
+    assert "localSnapshotAliasSuppressed:true" in text
+    assert "linkedCanonicalTitleWins:true" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
     assert "physicalCardStructureSupported:true" in text
