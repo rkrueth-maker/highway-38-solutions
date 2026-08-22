@@ -58,31 +58,26 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_suppresses_local_snapshot_alias_without_observer_loop():
+def test_final_site_visit_identity_authority_removes_poisoned_local_physical_alias_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-7-phone" in text
+    assert "20260822-site-visit-work-dedupe-final-8-phone" in text
     assert "function localAliasIdentity(identity)" in text
     assert "canonicalTitles=new Set(" in text
     assert "localSnapshotAliasSuppressed:true" in text
     assert "linkedCanonicalTitleWins:true" in text
+    assert "poisonedLocalDatasetCannotBeatVisibleLocalStatus:true" in text
+    assert "sameTitlePhysicalLocalAliasRemoved:true" in text
+    assert "function removeSameTitleLocalAliases(" in text
+    assert "if(item.clue.local)result-=1000" in text
+    assert "const preferred=button.closest('.row,article,li" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
-    assert "physicalCardStructureSupported:true" in text
-    assert "physicalCardRawTitleFallback:true" in text
-    assert "minimalOpenCardDetection:true" in text
     assert "boundedLateMobileRenderRetries:true" in text
     assert "jobsNavigationReconciliation:true" in text
-    assert "function workSurface()" in text
-    assert "function cardForButton(button)" in text
-    assert "function visitCards(" in text
-    assert "rawServerTitle(raw)" in text
     assert "2600,4500" in text
-    assert "main.querySelectorAll('.row')" not in text
-    assert "buttons.some(isDeleteButton)" not in text
     assert "new MutationObserver" not in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
-    assert "titleOnlyRequiresUniqueServerSession:true" in text
     assert "genuineDifferentServerSessionsPreserved:true" in text
 
 

@@ -19,7 +19,8 @@ const MAX_PRICE_ROWS = 250;
 const MAX_ASSEMBLY_ROWS = 160;
 const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
-const QUOTE_AI_BUILD = "20260821-project-scope-authority-20";
+const QUOTE_MODEL_TIMEOUT_MS = 55000;
+const QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
   insulationR24Ceiling: "f752fe19-ffe4-4981-864e-a7c0b69660c4",
@@ -305,7 +306,7 @@ async function quotePhotos(service: ReturnType<typeof serviceClient>, businessId
     const path = String(payload["Storage Path"] || payload.storagePath || "");
     if (!path || !path.startsWith(`${businessId}/`)) continue;
     const { data: signed, error: signedError } = await service.storage.from(bucket).createSignedUrl(path, 600);
-    if (!signedError && signed?.signedUrl) result.push({ type: "input_image", image_url: signed.signedUrl, detail: "high" });
+    if (!signedError && signed?.signedUrl) result.push({ type: "input_image", image_url: signed.signedUrl, detail: "low" });
   }
   return result;
 }
@@ -633,13 +634,7 @@ function baseInstructions(): string {
     "Everything remains Owner-review required. Never approve, send, charge, purchase, pay, schedule, or authorize work.",
   ].join(" ");
 }
-async function callQuoteModel(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>, repair: { previousDraft?: JsonObject; problems?: string[] } = {}): Promise<JsonObject> {
-  const repairText = repair.problems?.length ? [
-    "SERVER REPAIR REQUEST: the prior structured draft has owner-review problems that should be corrected where possible.",
-    `PROBLEMS: ${repair.problems.join(" || ")}`,
-    `PRIOR DRAFT: ${clean(JSON.stringify(repair.previousDraft || {}), 12000)}`,
-    "Rebuild the full draft while preserving the actual project title/scope and verified measurement authority. Do not invent geometry. If a safe exact rate or quantity is still unavailable, keep an editable owner-review line and report the uncertainty instead of failing the whole draft.",
-  ].join(" ") : "";
+async function callQuoteModel(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" },
@@ -648,12 +643,12 @@ async function callQuoteModel(context: JsonObject, photos: Array<{ type: string;
       store: false,
       tools: [{ type: "web_search" }],
       input: [
-        { role: "developer", content: [{ type: "input_text", text: [baseInstructions(), repairText].filter(Boolean).join("\n\n") }] },
+        { role: "developer", content: [{ type: "input_text", text: baseInstructions() }] },
         { role: "user", content: [{ type: "input_text", text: JSON.stringify(context) }, ...photos] },
       ],
       text: { format: { type: "json_schema", name: "h38_quote_draft", strict: true, schema: quoteSchema() }, verbosity: "low" },
     }),
-    signal: AbortSignal.timeout(135000),
+    signal: AbortSignal.timeout(QUOTE_MODEL_TIMEOUT_MS),
   });
   const provider = await readJson(response);
   if (!response.ok) {
@@ -819,12 +814,8 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
 
     let draft = await callQuoteModel(context, photos);
     const beforeRepair = breakoutProblems(draft, context);
-    let repairApplied = false;
-    if (beforeRepair.length) {
-      repairApplied = true;
-      draft = await callQuoteModel(context, photos, { previousDraft: draft, problems: beforeRepair });
-    }
-    const afterRepair = breakoutProblems(draft, context);
+    const repairApplied = false;
+    const afterRepair = beforeRepair;
     draft = appendOwnerReviewProblems(draft, afterRepair);
 
     const validated = validateCatalogPricing(draft, prices as JsonObject[]);
@@ -840,9 +831,12 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       lineCostTypeContract: true,
       serverBreakoutValidated: afterRepair.length === 0,
       serverBreakoutRepairApplied: repairApplied,
+      serverBreakoutSecondPass: false,
       serverBreakoutProblemsBeforeRepair: beforeRepair,
       serverBreakoutProblemsAfterRepair: afterRepair,
       editableDraftPreservedOnOwnerReviewProblems: true,
+      singleModelPass: true,
+      quoteModelTimeoutMs: QUOTE_MODEL_TIMEOUT_MS,
       catalogPricingCorrections: validated.corrections,
       catalogPricingRecovered: validated.recovered,
       catalogPricingRejected: validated.rejected,
@@ -870,8 +864,11 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       lineCostTypeContract: true,
       serverBreakoutValidated: afterRepair.length === 0,
       serverBreakoutRepairApplied: repairApplied,
+      serverBreakoutSecondPass: false,
       serverBreakoutProblemsAfterRepair: afterRepair,
       editableDraftPreservedOnOwnerReviewProblems: true,
+      singleModelPass: true,
+      quoteModelTimeoutMs: QUOTE_MODEL_TIMEOUT_MS,
       catalogPricingCorrections: validated.corrections,
       catalogPricingRecovered: validated.recovered,
       catalogPricingRejected: validated.rejected,
@@ -888,6 +885,8 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       authentication: "direct-supabase-auth-rest",
       ownerReviewRequired: true,
       componentBreakoutContract: true,
+      singleModelPass: true,
+      quoteModelTimeoutMs: QUOTE_MODEL_TIMEOUT_MS,
     });
     const authFailure = /auth|member|role/i.test(message);
     const configurationFailure = /API key|configuration/i.test(message);
@@ -896,6 +895,8 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       message,
       serverBuild: QUOTE_AI_BUILD,
       ...trace,
+      singleModelPass: true,
+      quoteModelTimeoutMs: QUOTE_MODEL_TIMEOUT_MS,
       ownerReviewRequired: true,
       externalActionOccurred: false,
     });
@@ -936,7 +937,7 @@ async function renderQuote(request: Request, body: JsonObject): Promise<Response
       actor_user_id: user.id,
       action_type: "CREATE_AI_QUOTE_RENDER",
       entity_type: "Quote",
-      entity_id: quoteId,
+      entity_id: null,
       result: rendered.concept ? "PASS" : "SKIP",
       details: {
         quoteId,
@@ -988,7 +989,10 @@ Deno.serve(async (request: Request) => {
       assemblyRecipes: true,
       lineCostTypeContract: true,
       serverBreakoutValidation: true,
-      serverBreakoutRepair: true,
+      serverBreakoutRepair: false,
+      serverBreakoutSecondPass: false,
+      singleModelPass: true,
+      quoteModelTimeoutMs: QUOTE_MODEL_TIMEOUT_MS,
       editableDraftPreservedOnOwnerReviewProblems: true,
       scopeDetectionProjectOnly: true,
       separateProjectContextAndSystemPolicy: true,
@@ -996,6 +1000,7 @@ Deno.serve(async (request: Request) => {
       laborUsesNetInstalledQuantity: true,
       truthfulOwnerReviewRegionalAllowance: true,
       quotePhotoRestore: true,
+      quotePhotoAnalysisDetail: "low",
       ownerWorkRequestSupported: true,
       systemQuotePolicySupported: true,
       currentEstimateComparison: true,
