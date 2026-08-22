@@ -60,14 +60,17 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
 
 def test_final_site_visit_identity_authority_matches_physical_cards_and_jobs_navigation_without_observer_loop():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260821-site-visit-work-dedupe-final-4-phone" in text
+    assert "20260821-site-visit-work-dedupe-final-5-phone" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
     assert "physicalCardStructureSupported:true" in text
+    assert "physicalCardRawTitleFallback:true" in text
     assert "jobsNavigationReconciliation:true" in text
     assert "function cardForButton(button)" in text
     assert "function visitCards(" in text
+    assert "rawServerTitle(raw)" in text
     assert "label==='jobs'||target==='work'" in text
+    assert "main.querySelectorAll('.row')" not in text
     assert "new MutationObserver" not in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
@@ -78,6 +81,7 @@ def test_final_site_visit_identity_authority_matches_physical_cards_and_jobs_nav
 def test_wide_acceptance_keeps_one_project_site_visit_and_event_driven_reconciliation():
     text = WIDE.read_text(encoding="utf-8")
     assert "oneProjectSiteVisitWithNestedContinuations:true" in text
+    assert "physicalJobsCardReconciliation:true" in text
     assert "persistentJobsReconciliation:true" in text
     assert "eventDrivenReconciliation:true" in text
     assert "documentMutationObserver:false" in text
@@ -86,6 +90,8 @@ def test_wide_acceptance_keeps_one_project_site_visit_and_event_driven_reconcili
     assert "LOCAL[_ -]?DRAFT" in text
     assert "siteCaptureSessions" in text
     assert "projectKey" in text
+    assert "identityApi?.reconcile?.()" in text
+    assert "main.querySelectorAll('.row')" not in text
     assert "serverEvidenceNeverDeleted:true" in text
 
 
@@ -116,6 +122,7 @@ def test_dynamic_jobs_repairs_are_live_first_and_old_cache_is_replaced():
     assert "h38-business-office-20260821-1605" in text
     assert "h38-business-office-20260821-1015" in text
     for filename in (
+        "field-visit-guided-controller.js",
         "site-visit-delete-runtime-repair.js",
         "site-visit-work-list-delete-repair.js",
         "site-visit-work-list-grouping-repair.js",
