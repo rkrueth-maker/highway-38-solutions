@@ -13,5 +13,5 @@ def test_site_visit_wide_acceptance_replay():
         check=False,
     )
     assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-    assert "PASS Amanda physical replay" in result.stdout
-    assert "Jobs identity + field-over-camera + hydrated measurement count + quote safety" in result.stdout
+    assert "PASS site-visit-wide-acceptance Amanda replay" in result.stdout
+    assert "third phone Jobs + canonical reopen + saved Action Picture render authority" in result.stdout
