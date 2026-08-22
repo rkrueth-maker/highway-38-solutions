@@ -14,4 +14,4 @@ def test_site_visit_wide_acceptance_replay():
     )
     assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     assert "PASS site-visit-wide-acceptance Amanda replay" in result.stdout
-    assert "third phone Jobs + canonical reopen + saved Action Picture render authority" in result.stdout
+    assert "fourth phone canonical reopen + legacy render gate bypass + local Jobs alias suppression" in result.stdout
