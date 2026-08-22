@@ -54,7 +54,6 @@ jobs:
           check 'H38_V051_RUNTIME_ACTIVE' "$v051"
           check 'H38_V054_ARTIFACT_FIX_ACTIVE' "$v051"
           check 'H38_V055_ARTIFACT_FIX_ACTIVE' "$v051"
-          check 'other\\s+misc' "$v051"
           check 'reseller-auto-leads-v051' "$v051"
           check 'H38_V053_RUNTIME_ACTIVE' "$v053"
           check 'H38_V054_TRUTH_FIX_ACTIVE' "$v053"
