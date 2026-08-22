@@ -1,17 +1,24 @@
 'use strict';
 window.H38_V051_RUNTIME_ACTIVE=true;
-window.H38_V051_RUNTIME_MARKER='artifact-filter-progressive-dg-photo-cache-v051-v055-generic-identity-fix';
+window.H38_V051_RUNTIME_MARKER='progressive-photo-cache-v051-v057-all-retailers';
 window.H38_V054_ARTIFACT_FIX_ACTIVE=true;
 window.H38_V055_ARTIFACT_FIX_ACTIVE=true;
+window.H38_V057_PHOTO_FIX_ACTIVE=true;
 (function(){
-  const CACHE_KEY='h38.resellerScout.dgImageCache.v051';
+  const CACHE_KEY='h38.resellerScout.imageCache.v057';
+  const CURSOR_KEY='h38.resellerScout.photoCursor.v057';
   const text=v=>String(v??'').trim();
-  const code=row=>{if(!text(row?.retailer).toLowerCase().includes('dollar general'))return'';const x=text(row?.upc||row?.sku).replace(/\D/g,'');return x.length>=7?x:''};
+  const norm=v=>text(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  const digits=v=>text(v).replace(/\D/g,'');
+  function identity(row){const c=digits(row?.upc||row?.gtin||row?.barcode||row?.sku);if(c.length>=7)return c;for(const v of [row?.model,row?.model_number,row?.manufacturer_model,row?.sku]){const x=text(v).replace(/[^a-z0-9._-]+/gi,'').toLowerCase();if(x.length>=5&&!/^\d+$/.test(x))return x}return''}
+  function key(row){const id=identity(row);return id?`${norm(row?.retailer)||'unknown'}|${id}`:''}
   const loadCache=()=>{try{const x=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}');return x&&typeof x==='object'&&!Array.isArray(x)?x:{}}catch(e){return{}}};
-  const saveCache=c=>{try{localStorage.setItem(CACHE_KEY,JSON.stringify(Object.fromEntries(Object.entries(c||{}).slice(-300))))}catch(e){}};
-  const knownIds=()=>Object.keys(loadCache()).slice(0,300);
-  function applyCache(rows){const c=loadCache();return(Array.isArray(rows)?rows:[]).map(r=>{const k=code(r),h=k?c[k]:null;if(!h||r?.image_url||!h.url)return r;return{...r,image_url:h.url,image_source:h.source||'Cached verified image',image_reference_url:h.reference_url||''}})}
-  function remember(rows,checked){const c=loadCache();let changed=false;for(const r of Array.isArray(rows)?rows:[]){const k=code(r),u=text(r?.image_url);if(!k||!/^https?:\/\//i.test(u))continue;const n={url:u,source:text(r?.image_source||'Source image'),reference_url:text(r?.image_reference_url||'')};if(JSON.stringify(c[k]||{})!==JSON.stringify(n)){c[k]=n;changed=true}}for(const raw of Array.isArray(checked)?checked:[]){const k=text(raw).replace(/\D/g,'');if(k.length>=7&&!c[k]){c[k]={miss:true,url:'',source:'Open Facts checked',reference_url:''};changed=true}}if(changed)saveCache(c)}
+  const saveCache=c=>{try{localStorage.setItem(CACHE_KEY,JSON.stringify(Object.fromEntries(Object.entries(c||{}).slice(-500))))}catch(e){}};
+  const loadCursor=()=>{try{return Math.max(0,Number(localStorage.getItem(CURSOR_KEY)||0)||0)}catch(e){return 0}};
+  const saveCursor=v=>{try{localStorage.setItem(CURSOR_KEY,String(Math.max(0,Number(v)||0)))}catch(e){}};
+  const knownKeys=()=>Object.entries(loadCache()).filter(([,v])=>/^https?:\/\//i.test(text(v?.url))).map(([k])=>k).slice(0,500);
+  function applyCache(rows){const c=loadCache();return(Array.isArray(rows)?rows:[]).map(r=>{const k=key(r),h=k?c[k]:null;if(!h||r?.image_url||!/^https?:\/\//i.test(text(h.url)))return r;return{...r,image_url:h.url,image_source:h.source||'Cached verified image',image_reference_url:h.reference_url||'',image_match_barcode:h.barcode||'',image_match_model:h.model||''}})}
+  function remember(rows){const c=loadCache();let changed=false;for(const r of Array.isArray(rows)?rows:[]){const k=key(r),u=text(r?.image_url);if(!k||!/^https?:\/\//i.test(u))continue;const n={url:u,source:text(r?.image_source||'Verified source image'),reference_url:text(r?.image_reference_url||''),barcode:text(r?.image_match_barcode||''),model:text(r?.image_match_model||'')};if(JSON.stringify(c[k]||{})!==JSON.stringify(n)){c[k]=n;changed=true}}if(changed)saveCache(c)}
   function artifact(row){
     const t=text(row?.canonical_title||row?.raw_title||row?.title),plain=t.replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();
     if(t.length<7||plain.length<3)return true;
@@ -24,9 +31,9 @@ window.H38_V055_ARTIFACT_FIX_ACTIVE=true;
   const fnV051Base=fn;
   fn=async function(name,body,timeout){
     const feed=['reseller-auto-leads','reseller-auto-leads-v038','reseller-auto-leads-v044','reseller-auto-leads-v046','reseller-auto-leads-v049','reseller-auto-leads-v051'].includes(name);
-    if(feed){name='reseller-auto-leads-v051';body={...(body&&typeof body==='object'?body:{}),known_image_ids:knownIds()}}
+    if(feed){name='reseller-auto-leads-v051';body={...(body&&typeof body==='object'?body:{}),known_image_keys:knownKeys(),photo_offset:loadCursor()}}
     const out=await fnV051Base(name,body,timeout);
-    if(feed&&Array.isArray(out?.leads)){out.leads=applyCache(out.leads);remember(out.leads,out?.open_facts_checked_ids)}
+    if(feed&&Array.isArray(out?.leads)){if(Number.isFinite(Number(out.photo_next_offset)))saveCursor(Number(out.photo_next_offset));out.leads=applyCache(out.leads);remember(out.leads);if(state?.diagnostics)state.diagnostics.photoRecovery={eligible:Number(out.photo_queue_eligible_count||0),attempted:Number(out.photo_attempted_count||0),enriched:Number(out.photo_enriched_count||0),coverage:out.photo_coverage_by_retailer||{},next:Number(out.photo_next_offset||0)}}
     return out;
   };
 
