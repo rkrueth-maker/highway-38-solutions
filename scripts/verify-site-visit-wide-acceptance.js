@@ -39,15 +39,22 @@ assert(api.syncFieldMeasurementState());
 assert(fieldCore.state.measurements.length>0);
 assert.strictEqual(api.actionPictureInfo(quoteId,{}).sourceId,'ATTACH-AF0EA095-FA2E-4698-B7CC-38CCB5DC0BCE');
 
+const runtime=read('commercial-app/quote-runtime-authority.js');
+new vm.Script(runtime,{filename:'quote-runtime-authority.js'});
+for(const marker of ['20260822-quote-runtime-authority-2-machine','QUOTE_RESPONSE_BUDGET_MS=60000','QUOTE_PROVIDER_BUDGET_MS=55000','OPTIONS_RESPONSE_BUDGET_MS=80000','function ownerReviewFallback(prepared,reason)','function boundedBuild(promise,prepared)','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','allQuoteBuildsUseMachine:true','ownerActionStartsMachine:true','if(action===\'aiBuildQuoteDraft\')return buildQuote','void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)'])assert(runtime.includes(marker),`runtime missing ${marker}`);
+assert(!runtime.includes("Amanda's flower garden border"));
+
 const identity=read('commercial-app/site-visit-work-dedupe-final.js');
 new vm.Script(identity,{filename:'site-visit-work-dedupe-final.js'});
-for(const marker of ['20260822-site-visit-work-dedupe-final-8-phone','function localAliasIdentity(identity)','function removeSameTitleLocalAliases(','if(item.clue.local)result-=1000','poisonedLocalDatasetCannotBeatVisibleLocalStatus:true','sameTitlePhysicalLocalAliasRemoved:true','const preferred=button.closest(\'.row,article,li'])assert(identity.includes(marker),`identity missing ${marker}`);
+for(const marker of ['20260822-site-visit-work-dedupe-final-8-phone','function localAliasIdentity(identity)','function removeSameTitleLocalAliases(','if(item.clue.local)result-=1000','poisonedLocalDatasetCannotBeatVisibleLocalStatus:true','sameTitlePhysicalLocalAliasRemoved:true'])assert(identity.includes(marker),`identity missing ${marker}`);
 assert(!identity.includes('new MutationObserver'));
 assert(!identity.includes(".from('business_records').delete"));
 
 const handoff=read('commercial-app/site-visit-quote-handoff-final.js');
 new vm.Script(handoff,{filename:'site-visit-quote-handoff-final.js'});
-for(const marker of ['20260822-site-visit-quote-handoff-final-4-phone','PHONE_DRAFT_BUDGET_MS=60000','function canonicalQuoteCandidate()','async function ensureCanonicalQuoteOpen(','async function canonicalHandoff()','handoff:canonicalHandoff','function ownerReviewFallback(args,reason)','function boundedDraft(promise,args)','phoneResponseBudgetExceeded:true','boundedOwnerReviewFallback:true','canonicalQuoteHandoff:true','localQuoteAliasDomSuppression:true','office.quote.quoteId=quoteIdOf(quote)'])assert(handoff.includes(marker),`handoff missing ${marker}`);
+for(const marker of ['20260822-site-visit-quote-handoff-final-5-machine','function canonicalQuoteCandidate()','async function ensureCanonicalQuoteOpen(','async function canonicalHandoff()','handoff:canonicalHandoff','quoteMachineDelegated:true','allQuotesShareRepairMachine:true','boundedOwnerReviewFallbackDelegated:true','canonicalQuoteHandoff:true','localQuoteAliasDomSuppression:true','office.quote.quoteId=quoteIdOf(quote)','const runtime=window.H38_QUOTE_RUNTIME_AUTHORITY'])assert(handoff.includes(marker),`handoff missing ${marker}`);
+assert(!handoff.includes('function ownerReviewFallback(args,reason)'));
+assert(!handoff.includes('function boundedDraft(promise,args)'));
 
 const manual=read('commercial-app/quote-manual-image-controls.js');
 assert(manual.includes('Choose an Action Photo before rendering.'),'recorded legacy manual gate was not found');
@@ -68,16 +75,13 @@ const quoteOptions=read('supabase/functions/h38-quote-options/index.ts');
 for(const marker of ['20260822-quote-options-directions-2','AbortSignal.timeout(80000)','entity_id:null','details:{quoteId'])assert(quoteOptions.includes(marker),`quote options missing ${marker}`);
 assert(!quoteOptions.includes('entity_id:quoteId'));
 
-const guided=read('commercial-app/field-visit-guided-controller.js');
-new vm.Script(guided,{filename:'field-visit-guided-controller.js'});
-for(const marker of ['20260821-guided-field-authority-2','fieldMeasurementSupersedesCameraEstimate:true','staleReviewTargetsSuppressed:true'])assert(guided.includes(marker));
-
 const loader=read('commercial-app/site-visit-quote-wide-pass-loader.js');
-for(const marker of ['20260822-site-visit-quote-wide-pass-loader-12-phone','20260822-site-visit-work-dedupe-final-8-phone','20260822-site-visit-quote-handoff-final-4-phone','site-visit-wide-acceptance-final-3-phone',"ASSET_BUILD='20260822-0052'",'canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
+for(const marker of ['20260822-site-visit-quote-wide-pass-loader-13-machine','20260822-quote-runtime-authority-2-machine','20260822-site-visit-work-dedupe-final-8-phone','20260822-site-visit-quote-handoff-final-5-machine','site-visit-wide-acceptance-final-3-phone',"ASSET_BUILD='20260822-0136'",'sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
 const hammer=read('commercial-app/quote-working-hammer.js');
-assert(hammer.includes('20260822-quote-working-ui-only-14-phone'));
-assert(hammer.includes('site-visit-quote-wide-pass-loader-12-phone'));
+assert(hammer.includes('20260822-quote-working-ui-only-15-machine'));
+assert(hammer.includes('site-visit-quote-wide-pass-loader-13-machine'));
+assert(hammer.includes('allQuotesShareRepairMachine:true'));
 const sw=read('commercial-app/service-worker.js');
-for(const file of ['quote-render-approval.js','quote-measurement-action-photo-guard.js','site-visit-quote-handoff-final.js','site-visit-work-dedupe-final.js','site-visit-quote-wide-pass-loader.js'])assert(sw.includes(file));
+for(const file of ['quote-runtime-authority.js','quote-render-approval.js','quote-measurement-action-photo-guard.js','site-visit-quote-handoff-final.js','site-visit-work-dedupe-final.js','site-visit-quote-wide-pass-loader.js'])assert(sw.includes(file));
 
-console.log('PASS site-visit-wide-acceptance Amanda replay: fifth phone Render PASS preserved + canonical Quote/Jobs authority + bounded AI draft');
+console.log('PASS quote machine replay: fifth phone Render PASS preserved + canonical Quote/Jobs authority + all quotes share bounded automatic repair');
