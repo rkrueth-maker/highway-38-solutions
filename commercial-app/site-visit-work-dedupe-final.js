@@ -26,7 +26,7 @@ function isWork(){return text(window.state?.page)==='work'&&!!document.getElemen
 function openLabel(button){return normalize(button?.textContent);}
 function isOpenButton(button){const label=openLabel(button);return label==='open'||label==='open edit'||label.startsWith('open edit ');}
 function isDeleteButton(button){const label=openLabel(button);return label==='delete'||label.startsWith('delete ');}
-function rawServerTitle(raw){const normalized=normalize(raw),matches=identities().filter(identity=>identity.title&&normalized.includes(identity.title));const unique=new Map(matches.map(identity=>[identity.title,identity]));return unique.size===1?Array.from(unique.values())[0]:null;}
+function rawServerTitle(raw){const normalized=normalize(raw),matches=identities().filter(identity=>identity.title&&normalized.includes(identity.title));return single(matches);}
 function hasCardIdentitySignal(node){const raw=text(node?.textContent);if(!raw)return false;if(rawServerTitle(raw))return true;if(/\b(?:LOCAL[_ -]?DRAFT|ATTACHED_TO_DRAFT_QUOTE|IN_PROGRESS|COMPLETE|COMPLETED)\b/i.test(raw))return true;return!!node?.querySelector?.('strong,[data-h38-site-visit-title],h3,h4');}
 function isVisitCard(node){if(!(node instanceof Element))return false;const buttons=Array.from(node.querySelectorAll('button'));return buttons.some(isOpenButton)&&buttons.some(isDeleteButton)&&hasCardIdentitySignal(node);}
 function cardForButton(button){const main=document.getElementById('mainContent');let node=button?.parentElement;while(node&&node!==main){if(isVisitCard(node))return node;node=node.parentElement;}return null;}
