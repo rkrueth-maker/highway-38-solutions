@@ -43,19 +43,19 @@ def test_distinct_real_server_sessions_are_not_collapsed_by_shared_quote_or_titl
     assert "distinctServerSessionsPreserved:true" in FENCE
 
 
-def test_jobs_dedupe_survives_late_mobile_phone_card_render_without_observer_loop():
-    assert "20260821-site-visit-work-dedupe-final-7-phone" in IDENTITY
+def test_jobs_dedupe_prefers_physical_child_card_and_visible_local_status():
+    assert "20260822-site-visit-work-dedupe-final-8-phone" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert "eventDrivenJobsReconciliation:true" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
     assert "function workSurface()" in IDENTITY
     assert "function cardForButton(button)" in IDENTITY
-    assert "function visitCards(" in IDENTITY
-    assert "physicalCardStructureSupported:true" in IDENTITY
-    assert "physicalCardRawTitleFallback:true" in IDENTITY
-    assert "minimalOpenCardDetection:true" in IDENTITY
+    assert "const preferred=button.closest('.row,article,li" in IDENTITY
+    assert "function removeSameTitleLocalAliases(" in IDENTITY
+    assert "if(item.clue.local)result-=1000" in IDENTITY
+    assert "poisonedLocalDatasetCannotBeatVisibleLocalStatus:true" in IDENTITY
+    assert "sameTitlePhysicalLocalAliasRemoved:true" in IDENTITY
     assert "boundedLateMobileRenderRetries:true" in IDENTITY
-    assert "jobsNavigationReconciliation:true" in IDENTITY
     assert "2600,4500" in IDENTITY
     assert "window.addEventListener('h38:business-snapshot-updated'" in IDENTITY
     assert "wrapped=function(){const result=base.apply(this,arguments);arm();return result;}" in IDENTITY
@@ -73,11 +73,13 @@ def test_identity_repair_does_not_delete_business_evidence():
 
 
 def test_identity_authority_is_deployed_through_live_first_cache_boundary():
-    assert "site-visit-work-dedupe-final-7-phone" in LOADER
-    assert "site-visit-quote-handoff-final-3-phone" in LOADER
+    assert "site-visit-work-dedupe-final-8-phone" in LOADER
+    assert "site-visit-quote-handoff-final-4-phone" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "site-visit-quote-wide-pass-loader-11-phone" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-12-phone" in HAMMER
+    assert "poisonedLocalDatasetSuppression:true" in LOADER
+    assert "canonicalQuoteHandoff:true" in LOADER
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     assert "field-visit-guided-controller.js" in live_first
     assert "site-visit-work-dedupe-final.js" in live_first
