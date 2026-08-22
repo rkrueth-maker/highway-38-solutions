@@ -33,7 +33,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v0.1.54 physical-truth contract
+      - name: Verify v0.1.55 hunt-identity contract
         shell: bash
         run: |
           set -euo pipefail
@@ -44,15 +44,17 @@ jobs:
           v051="$assets/v051-runtime.js"
           v053="$assets/v053-runtime.js"
           sourcing="$assets/v035-sourcing-b.js"
-          check "versionName '0.1.54'" reseller/build.gradle
-          check 'versionCode 55' reseller/build.gradle
-          check "applicationIdSuffix '.owner54'" reseller/build.gradle
-          check 'bundled-v049-plus-v051-plus-v053-v054fix' reseller/build.gradle
+          check "versionName '0.1.55'" reseller/build.gradle
+          check 'versionCode 56' reseller/build.gradle
+          check "applicationIdSuffix '.owner55'" reseller/build.gradle
+          check 'bundled-v049-plus-v051-plus-v053-v055fix' reseller/build.gradle
           check 'H38_V049_RUNTIME_ACTIVE' "$v049"
           check 'Near Penny' "$v049"
           check 'All ranked leads' "$v049"
           check 'H38_V051_RUNTIME_ACTIVE' "$v051"
           check 'H38_V054_ARTIFACT_FIX_ACTIVE' "$v051"
+          check 'H38_V055_ARTIFACT_FIX_ACTIVE' "$v051"
+          check 'other\\s+misc' "$v051"
           check 'reseller-auto-leads-v051' "$v051"
           check 'H38_V053_RUNTIME_ACTIVE' "$v053"
           check 'H38_V054_TRUTH_FIX_ACTIVE' "$v053"
@@ -81,8 +83,13 @@ jobs:
           node <<'NODE'
           const bad='DG 11';
           if(Number.isNaN(Date.parse(bad))){throw new Error('Expected platform Date.parse to demonstrate the permissive DG 11 hazard');}
-          const raw='· ⭐ 4.5';
-          if(!/^[\s·•→\-–—★☆⭐]*\d+(?:[.,]\d+)?[\s★☆⭐]*$/u.test(raw))throw new Error('v0.1.54 rating-only artifact guard contract failed');
+          const rating='· ⭐ 4.5';
+          if(!/^[\s·•→\-–—★☆⭐]*\d+(?:[.,]\d+)?[\s★☆⭐]*$/u.test(rating))throw new Error('rating-only artifact guard contract failed');
+          const generic=/^other\s+misc(?:\s+(?:no\s+brand|\d+(?:\s+\d+)?))?$/i;
+          for(const raw of ['Other / Misc','Other / Misc · ⭐ 5','Other / Misc · No Brand']){
+            const plain=raw.replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();
+            if(!generic.test(plain))throw new Error(`generic identity guard missed ${raw}`);
+          }
           NODE
 
       - name: Configure H38 signing key when available
@@ -122,8 +129,8 @@ jobs:
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
 
-          aligned="$RUNNER_TEMP/h38-reseller-v054-aligned.apk"
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.54.apk"
+          aligned="$RUNNER_TEMP/h38-reseller-v055-aligned.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.55.apk"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$apk" "$aligned"
 
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
@@ -138,7 +145,7 @@ jobs:
               --v4-signing-enabled false \
               --out "$out" "$aligned"
           else
-            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v054-owner-test.jks"
+            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v055-owner-test.jks"
             keytool -genkeypair -noprompt \
               -keystore "$DEBUG_KEYSTORE" \
               -storepass android \
@@ -161,22 +168,22 @@ jobs:
               --out "$out" "$aligned"
           fi
 
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.54.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.55.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect installable v0.1.54 APK
+      - name: Smoke inspect installable v0.1.55 APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.54.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.55.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='55' versionName='0.1.54'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='56' versionName='0.1.55'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner54' versionCode='55' versionName='0.1.54-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner55' versionCode='56' versionName='0.1.55-debug'" "$report/badging.txt"
           fi
           grep -Fq "sdkVersion:'24'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -185,10 +192,11 @@ jobs:
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
           unzip -p "$out" 'assets/reseller/v035-sourcing-b.js' > "$report/packaged-sourcing-b.js"
-          grep -Fq 'data-h38-v054-runtime="bundled-v049-plus-v051-plus-v053-v054fix"' "$report/packaged-index.html"
+          grep -Fq 'data-h38-v055-runtime="bundled-v049-plus-v051-plus-v053-v055fix"' "$report/packaged-index.html"
           grep -Fq 'H38_V049_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V051_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V054_ARTIFACT_FIX_ACTIVE' "$report/packaged-index.html"
+          grep -Fq 'H38_V055_ARTIFACT_FIX_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V053_RUNTIME_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'H38_V054_TRUTH_FIX_ACTIVE' "$report/packaged-index.html"
           grep -Fq 'strictSignalDate' "$report/packaged-index.html"
@@ -207,7 +215,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.54
+          name: h38-reseller-scout-owner-test-v0.1.55
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
