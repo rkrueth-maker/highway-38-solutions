@@ -23,14 +23,16 @@ def test_phone_failure_local_alias_is_resolved_before_site_visit_open():
     assert "applyCanonical(session)" in FENCE
 
 
-def test_title_fallback_only_applies_to_one_unambiguous_server_session():
+def test_title_fallback_prefers_linked_canonical_session_over_local_snapshot_alias():
     assert "function single(list){return list.length===1?list[0]:null;}" in IDENTITY
+    assert "function localAliasIdentity(identity)" in IDENTITY
+    assert "canonicalTitles=new Set(" in IDENTITY
+    assert "localSnapshotAliasSuppressed:true" in IDENTITY
+    assert "linkedCanonicalTitleWins:true" in IDENTITY
     assert "if(clue.title){const match=single(" in IDENTITY
-    assert "compatible(clue,identity)" in IDENTITY
     assert "rawServerTitle(raw)" in IDENTITY
     assert "unique project title contained in physical card text" in IDENTITY
     assert "titleOnlyRequiresUniqueServerSession:true" in IDENTITY
-    assert "conflictingIdentifiersBlockFallback:true" in IDENTITY
     assert "function unique(list){return list.length===1?list[0]:null;}" in FENCE
 
 
@@ -42,7 +44,7 @@ def test_distinct_real_server_sessions_are_not_collapsed_by_shared_quote_or_titl
 
 
 def test_jobs_dedupe_survives_late_mobile_phone_card_render_without_observer_loop():
-    assert "20260821-site-visit-work-dedupe-final-6-phone" in IDENTITY
+    assert "20260821-site-visit-work-dedupe-final-7-phone" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert "eventDrivenJobsReconciliation:true" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
@@ -71,11 +73,11 @@ def test_identity_repair_does_not_delete_business_evidence():
 
 
 def test_identity_authority_is_deployed_through_live_first_cache_boundary():
-    assert "site-visit-work-dedupe-final-6-phone" in LOADER
+    assert "site-visit-work-dedupe-final-7-phone" in LOADER
     assert "site-visit-quote-handoff-final-3-phone" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "site-visit-quote-wide-pass-loader-10-phone" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-11-phone" in HAMMER
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     assert "field-visit-guided-controller.js" in live_first
     assert "site-visit-work-dedupe-final.js" in live_first
