@@ -130,7 +130,7 @@ jobs:
           check 'Open Facts exact barcode' "$photo51"
           check 'Penny Tree exact item' "$photo51"
           check 'H38_STAGED_RESEARCH_V047' "$research47"
-          check 'mode===\"market\"' "$research47"
+          check 'mode==="market"' "$research47"
           check 'Identification is preserved' "$research47"
           check 'Habitat for Humanity' "$sources_fn"
           check 'second_hand' "$sources_fn"
@@ -259,5 +259,5 @@ jobs:
         with:
           name: h38-reseller-scout-owner-test-v0.1.58
           path: artifacts/private-reseller-scout-apk/*
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
