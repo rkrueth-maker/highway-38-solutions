@@ -151,15 +151,20 @@ def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only()
 
 
 def test_phone_repair_builds_are_live_first():
-    assert "site-visit-quote-wide-pass-loader-13-machine" in HAMMER
-    assert "quote-working-ui-only-15-machine" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-15-polish" in HAMMER
+    assert "quote-working-ui-only-17-polish" in HAMMER
     assert "quote-runtime-authority-2-machine" in LOADER
     assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-work-dedupe-final-8-phone" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "ASSET_BUILD='20260822-0136'" in LOADER
+    assert "ASSET_BUILD='20260823-quote-reproduction-polish-2'" in LOADER
+    assert "quote-reproduction-authority-1" in LOADER
+    assert "spoken-measurement-authority-final-1" in LOADER
+    assert "site-visit-deep-polish-1" in LOADER
+    assert "quote-regression-runner-1" in LOADER
     assert "sharedQuoteRepairMachine:true" in LOADER
     assert "allQuotesShareRepairMachine:true" in LOADER
+    assert "historicalQuotesShareRepairMachine:true" in LOADER
     assert "canonicalQuoteHandoff:true" in LOADER
     assert "poisonedLocalDatasetSuppression:true" in LOADER
     assert "boundedQuoteDraftResponse:true" in LOADER
