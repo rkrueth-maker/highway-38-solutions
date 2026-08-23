@@ -1,71 +1,23 @@
 (function(){
 'use strict';
-const BUILD='20260810-measurement-classification-2140';
+const BUILD='20260823-measurement-classification-spoken-authority-2';
 const VERIFIED='OPERATOR_VERIFIED';
 const UNVERIFIED='UNVERIFIED_SPOKEN';
 const C=window.H38_FIELD_VISIT_CORE;
 if(!C)return;
 const text=v=>String(v==null?'':v);
-function combined(item){return [item?.label,item?.valueText,item?.statement,item?.detail,item?.request].map(text).join(' ').trim()}
-function isMaterialSpecification(item){
-  const s=combined(item).toLowerCase();
-  if(!s)return false;
-  if(/\br\s*-?\s*\d{1,2}\b/.test(s)&&/(insulat|batt|fiberglass|mineral wool|wall|ceiling|wide|width)/.test(s))return true;
-  if(/\b(r-value|sku|model(?: number)?|part number|gauge|capacity)\b/.test(s))return true;
-  return false;
-}
-function isOperatorVerified(item){
-  const status=text(item?.verificationStatus).toUpperCase();
-  if(['OPERATOR_VERIFIED','VERIFIED_BY_OPERATOR','FIELD_VERIFIED','VERIFIED'].includes(status))return true;
-  const s=combined(item).toLowerCase();
-  if(/\b(?:verified|confirmed|measured)\b.{0,32}\b(?:tape(?: measure)?|laser|ar(?:core)?|lidar)\b/.test(s))return true;
-  if(/\b(?:tape(?: measure)?|laser|ar(?:core)?|lidar)\b.{0,32}\b(?:verified|confirmed|measured)\b/.test(s))return true;
-  return false;
-}
-function normalizeOne(item){
-  if(!item||typeof item!=='object'||isMaterialSpecification(item))return null;
-  const verified=isOperatorVerified(item);
-  return Object.assign({},item,{
-    verificationStatus:verified?VERIFIED:(text(item.verificationStatus)||UNVERIFIED),
-    fieldVerified:verified||item.fieldVerified===true,
-    verificationSource:verified?'OPERATOR_STATED_FIELD_MEASUREMENT':text(item.verificationSource||'WALKTHROUGH_NARRATION')
-  });
-}
-function normalizeList(list){return (Array.isArray(list)?list:[]).map(normalizeOne).filter(Boolean)}
-function normalizeSessionRow(row){
-  if(!row||typeof row!=='object')return;
-  for(const key of ['Walkthrough Spoken Measurements','walkthroughSpokenMeasurements']){
-    if(Array.isArray(row[key]))row[key]=normalizeList(row[key]);
-  }
-}
-function normalizeAll(){
-  const v=C.state.visit;
-  const sessions=window.state?.snapshot?.siteCaptureSessions;
-  if(Array.isArray(sessions))sessions.forEach(normalizeSessionRow);
-  if(!v)return;
-  v.walkthroughSpokenMeasurements=normalizeList(v.walkthroughSpokenMeasurements);
-  v.walkthroughMeasurementCandidates=normalizeList(v.walkthroughMeasurementCandidates);
-  if(v.walkthroughVoice&&Array.isArray(v.walkthroughVoice.spokenMeasurements))v.walkthroughVoice.spokenMeasurements=normalizeList(v.walkthroughVoice.spokenMeasurements);
-  if(v.walkthroughProfessionalNotes&&Array.isArray(v.walkthroughProfessionalNotes.spokenMeasurements))v.walkthroughProfessionalNotes.spokenMeasurements=normalizeList(v.walkthroughProfessionalNotes.spokenMeasurements);
-}
-function install(){
-  if(C.state.__walkthroughMeasurementClassificationWrapped)return;
-  const base=C.state.render;
-  if(typeof base!=='function')return;
-  C.state.__walkthroughMeasurementClassificationWrapped=true;
-  C.setRender(function(){normalizeAll();base()});
-  normalizeAll();
-  C.state.render?.();
-}
-window.H38_FIELD_VISIT_MEASUREMENT_CLASSIFICATION=Object.freeze({
-  build:BUILD,
-  materialSpecificationsAreNotFieldMeasurements:true,
-  operatorVerifiedSpokenDimensionsStayVerified:true,
-  verifiedStatus:VERIFIED,
-  unverifiedStatus:UNVERIFIED,
-  normalizeList,
-  isMaterialSpecification,
-  isOperatorVerified
-});
+function combined(item){return [item?.label,item?.valueText,item?.statement,item?.detail,item?.request,item?.value,item?.unit].map(text).join(' ').trim();}
+function isMaterialSpecification(item){const s=combined(item).toLowerCase();if(!s)return false;if(/\br\s*-?\s*\d{1,2}\b/.test(s)&&/(insulat|batt|fiberglass|mineral wool|wall|ceiling|wide|width)/.test(s))return true;if(/\b(r-value|sku|model(?: number)?|part number|gauge|capacity)\b/.test(s))return true;return false;}
+function explicitUncertainty(item){const s=combined(item).toLowerCase();return /\b(?:about|approximately|approx\.?|roughly|around|estimate|estimated|guess|guessed|maybe|possibly|probably|not sure|unsure|looks like|seems like|should be|could be|camera estimate|device estimate)\b/.test(s);}
+function deviceDerived(item){const source=text(item?.source||item?.Source).toUpperCase(),status=text(item?.verificationStatus||item?.['Verification Status']).toUpperCase();return /CAMERA|DEVICE|ARCORE|LIDAR|ARKIT/.test(source)||['CAMERA_ESTIMATE','DEVICE_CAPTURED'].includes(status);}
+function dimensionLike(item){if(item==null||typeof item!=='object')return false;if(Number(item.value)>0&&text(item.unit))return true;const s=combined(item);return /\b\d+(?:\.\d+)?\s*(?:ft|feet|foot|in|inch|inches|yd|yard|yards|lf|sf|["'])\b/i.test(s)||/\b\d+(?:\.\d+)?\s*(?:x|×|by)\s*\d+(?:\.\d+)?\b/i.test(s);}
+function explicitlyVerified(item){const status=text(item?.verificationStatus).toUpperCase();if(['OPERATOR_VERIFIED','VERIFIED_BY_OPERATOR','FIELD_VERIFIED','VERIFIED','FIELD_MEASURED','FIELD_MEASURED_AND_CHECKED'].includes(status))return true;const s=combined(item).toLowerCase();if(/\b(?:verified|confirmed|measured)\b.{0,32}\b(?:tape(?: measure)?|laser|ar(?:core)?|lidar)\b/.test(s))return true;if(/\b(?:tape(?: measure)?|laser|ar(?:core)?|lidar)\b.{0,32}\b(?:verified|confirmed|measured)\b/.test(s))return true;return false;}
+function isOperatorVerified(item){if(!item||typeof item!=='object'||isMaterialSpecification(item)||deviceDerived(item))return false;if(explicitlyVerified(item))return true;if(explicitUncertainty(item))return false;return dimensionLike(item);}
+function normalizeOne(item){if(!item||typeof item!=='object'||isMaterialSpecification(item))return null;const verified=isOperatorVerified(item),status=text(item.verificationStatus).toUpperCase();return Object.assign({},item,{verificationStatus:verified?VERIFIED:(status&&status!==VERIFIED?status:UNVERIFIED),fieldVerified:verified||item.fieldVerified===true,verificationSource:verified?'WALKTHROUGH_SPOKEN_FIELD_DIMENSION':text(item.verificationSource||'WALKTHROUGH_NARRATION')});}
+function normalizeList(list){return (Array.isArray(list)?list:[]).map(normalizeOne).filter(Boolean);}
+function normalizeSessionRow(row){if(!row||typeof row!=='object')return;for(const key of ['Walkthrough Spoken Measurements','walkthroughSpokenMeasurements'])if(Array.isArray(row[key]))row[key]=normalizeList(row[key]);}
+function normalizeAll(){const v=C.state.visit,sessions=window.state?.snapshot?.siteCaptureSessions;if(Array.isArray(sessions))sessions.forEach(normalizeSessionRow);if(!v)return;v.walkthroughSpokenMeasurements=normalizeList(v.walkthroughSpokenMeasurements);v.walkthroughMeasurementCandidates=normalizeList(v.walkthroughMeasurementCandidates);if(v.walkthroughVoice&&Array.isArray(v.walkthroughVoice.spokenMeasurements))v.walkthroughVoice.spokenMeasurements=normalizeList(v.walkthroughVoice.spokenMeasurements);if(v.walkthroughProfessionalNotes&&Array.isArray(v.walkthroughProfessionalNotes.spokenMeasurements))v.walkthroughProfessionalNotes.spokenMeasurements=normalizeList(v.walkthroughProfessionalNotes.spokenMeasurements);}
+function install(){if(C.state.__walkthroughMeasurementClassificationWrapped===BUILD)return;const base=C.state.render;if(typeof base!=='function')return;C.state.__walkthroughMeasurementClassificationWrapped=BUILD;C.setRender(function(){normalizeAll();base();});normalizeAll();C.state.render?.();}
+window.H38_FIELD_VISIT_MEASUREMENT_CLASSIFICATION=Object.freeze({build:BUILD,materialSpecificationsAreNotFieldMeasurements:true,spokenDimensionsDefaultVerified:true,explicitUncertaintyKeepsUnverified:true,deviceDerivedMeasurementsDoNotBecomeSpokenVerified:true,operatorVerifiedSpokenDimensionsStayVerified:true,verifiedStatus:VERIFIED,unverifiedStatus:UNVERIFIED,normalizeList,isMaterialSpecification,explicitUncertainty,dimensionLike,isOperatorVerified});
 install();setTimeout(install,500);
 })();
