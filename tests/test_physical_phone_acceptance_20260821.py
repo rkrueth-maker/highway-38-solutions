@@ -13,6 +13,7 @@ RENDER = (APP / "quote-render-approval.js").read_text(encoding="utf-8")
 MANUAL = (APP / "quote-manual-image-controls.js").read_text(encoding="utf-8")
 LOADER = (APP / "site-visit-quote-wide-pass-loader.js").read_text(encoding="utf-8")
 HAMMER = (APP / "quote-working-hammer.js").read_text(encoding="utf-8")
+REVISION = (APP / "quote-revision-authority.js").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
 QUOTE_AI = (ROOT / "supabase/functions/h38-quote-ai/index.ts").read_text(encoding="utf-8")
 OPTIONS = (ROOT / "supabase/functions/h38-quote-options/index.ts").read_text(encoding="utf-8")
@@ -151,19 +152,29 @@ def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only()
 
 
 def test_phone_repair_builds_are_live_first():
-    assert "site-visit-quote-wide-pass-loader-13-machine" in HAMMER
-    assert "quote-working-ui-only-15-machine" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-16-revision" in HAMMER
+    assert "quote-working-ui-only-18-revision" in HAMMER
     assert "quote-runtime-authority-2-machine" in LOADER
     assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-work-dedupe-final-8-phone" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "ASSET_BUILD='20260822-0136'" in LOADER
+    assert "ASSET_BUILD='20260823-quote-revision-polish-1'" in LOADER
+    assert "quote-reproduction-authority-1" in LOADER
+    assert "quote-revision-authority-1" in LOADER
+    assert "spoken-measurement-authority-final-1" in LOADER
+    assert "site-visit-deep-polish-1" in LOADER
+    assert "quote-regression-runner-1" in LOADER
     assert "sharedQuoteRepairMachine:true" in LOADER
     assert "allQuotesShareRepairMachine:true" in LOADER
+    assert "historicalQuotesShareRepairMachine:true" in LOADER
+    assert "contentChangeOnlyQuoteRevisions:true" in LOADER
+    assert "immutableQuoteRevisionSnapshots:true" in LOADER
     assert "canonicalQuoteHandoff:true" in LOADER
     assert "poisonedLocalDatasetSuppression:true" in LOADER
     assert "boundedQuoteDraftResponse:true" in LOADER
     assert "legacyManualRenderGateBypassed:true" in LOADER
+    assert "contentChangeOnlyRevisions:true" in REVISION
+    assert "internalPrebuildDoesNotBumpRevision:true" in REVISION
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
     for filename in (
         "supabase-quote-ai-auth-fix.js",
@@ -175,5 +186,7 @@ def test_phone_repair_builds_are_live_first():
         "site-visit-work-dedupe-final.js",
         "site-visit-quote-wide-pass-loader.js",
         "site-visit-wide-acceptance-final.js",
+        "quote-reproduction-authority.js",
+        "quote-revision-authority.js",
     ):
         assert filename in live_first

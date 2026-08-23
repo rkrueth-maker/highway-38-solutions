@@ -9,6 +9,10 @@ HAMMER = (APP / 'quote-working-hammer.js').read_text(encoding='utf-8')
 PREFLIGHT = (APP / 'field-visit-quote-preflight.js').read_text(encoding='utf-8')
 LOADER = (APP / 'site-visit-quote-wide-pass-loader.js').read_text(encoding='utf-8')
 RUNTIME = (APP / 'quote-runtime-authority.js').read_text(encoding='utf-8')
+REPRO = (APP / 'quote-reproduction-authority.js').read_text(encoding='utf-8')
+SPOKEN = (APP / 'spoken-measurement-authority-final.js').read_text(encoding='utf-8')
+POLISH = (APP / 'site-visit-deep-polish.js').read_text(encoding='utf-8')
+REGRESSION = (APP / 'quote-regression-runner.js').read_text(encoding='utf-8')
 HANDOFF = (APP / 'site-visit-quote-handoff-final.js').read_text(encoding='utf-8')
 MEASURE = (APP / 'measurement-verification-final.js').read_text(encoding='utf-8')
 WORK = (APP / 'site-visit-work-dedupe-final.js').read_text(encoding='utf-8')
@@ -38,24 +42,68 @@ def test_automatic_five_second_quote_preflight_is_retired():
 
 
 def test_final_authority_loader_runs_after_legacy_and_loads_shared_machine_first():
-    assert "ASSET_BUILD='20260822-0136'" in LOADER
+    assert "ASSET_BUILD='20260823-quote-reproduction-polish-2'" in LOADER
     assert 'legacyLoadsFirst:true' in LOADER
     expected = [
         './quote-runtime-authority.js', './site-visit-quote-handoff-final.js',
         './measurement-verification-final.js', './site-visit-work-dedupe-final.js',
         './site-visit-identity-write-fence-final.js', './job-followup-idempotency-final.js',
         './quote-action-picture-final.js', './quote-direction-options.js',
-        './site-visit-wide-acceptance-final.js',
+        './site-visit-wide-acceptance-final.js', './spoken-measurement-authority-final.js',
+        './quote-reproduction-authority.js', './site-visit-deep-polish.js',
+        './quote-regression-runner.js',
     ]
     positions = [LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'site-visit-quote-wide-pass-loader-13-machine' in HAMMER
+    assert 'site-visit-quote-wide-pass-loader-15-polish' in HAMMER
     assert 'quote-runtime-authority-2-machine' in LOADER
     assert 'site-visit-quote-handoff-final-5-machine' in LOADER
     assert 'site-visit-work-dedupe-final-8-phone' in LOADER
     assert 'site-visit-wide-acceptance-final-3-phone' in LOADER
-    for marker in ['sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','ownerActionStartsMachine:true','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','savedActionPictureRenderAuthority:true','legacyManualRenderGateBypassed:true']:
+    assert 'spoken-measurement-authority-final-1' in LOADER
+    assert 'quote-reproduction-authority-1' in LOADER
+    assert 'site-visit-deep-polish-1' in LOADER
+    assert 'quote-regression-runner-1' in LOADER
+    for marker in ['sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','historicalQuotesShareRepairMachine:true','savedQuoteEvidenceHydration:true','savedImagesReused:true','spokenDimensionsDefaultVerified:true','explicitUncertaintyKeepsSpokenDimensionUnverified:true','ownerActionStartsMachine:true','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','siteVisitIdentityAuthority:true','linkedQuoteIdentityWriteFence:true','unifiedWideAcceptanceAuthority:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','savedActionPictureRenderAuthority:true','takeAnotherActionPhoto:true','offlineEvidenceRecovery:true','staleAudioRetryQuarantine:true','quoteRegressionRunner:true','legacyManualRenderGateBypassed:true']:
         assert marker in LOADER
+
+
+def test_final_reproduction_authority_uses_saved_quote_evidence_and_reclaims_transport():
+    assert '20260823-quote-reproduction-authority-1' in REPRO
+    for marker in ['historicalQuotesUseMachine:true','savedQuoteNotesHydrated:true','savedMeasurementNotesHydrated:true','savedEstimateHydrated:true','savedImagesReused:true','historicalActionPictureRecovered:true','reproductionFromEvidencePackage:true']:
+        assert marker in REPRO
+    assert "'lines','Quote Lines','quoteLines','Estimate','estimate'" in REPRO
+    assert "action==='aiBuildQuoteDraft'" in REPRO
+    assert "action==='aiRenderQuoteConcept'" in REPRO
+    assert '__h38FinalPhotoQuoteAuthority=true' in REPRO
+    assert 'window.H38_QUOTE_RUNTIME_AUTHORITY=authority' in REPRO
+    assert 'automaticApproval:false' in REPRO
+    assert 'automaticCustomerSending:false' in REPRO
+
+
+def test_spoken_dimensions_are_field_authority_unless_owner_states_uncertainty():
+    assert '20260823-spoken-measurement-authority-final-1' in SPOKEN
+    assert 'spokenDimensionsDefaultVerified:true' in SPOKEN
+    assert 'explicitUncertaintyKeepsUnverified:true' in SPOKEN
+    assert 'deviceAndCameraRemainSeparateAuthority:true' in SPOKEN
+    assert 'WALKTHROUGH_SPOKEN_FIELD_DIMENSION' in SPOKEN
+
+
+def test_deep_polish_handles_offline_audio_and_take_another_action_photo_without_deleting_evidence():
+    for marker in ['Saved offline — evidence is safe','ABANDONED_STALE_VISIT','sessionCompletesOnQuoteAttach:true','staleDeletedAudioStopsRetrying:true','staleAudioRequiresSnapshotAuthority:true','takeAnotherActionPhotoAvailable:true','evidenceNeverDeletedByPolish:true']:
+        assert marker in POLISH
+    assert '📷 Take another photo' in POLISH
+    assert "capture','environment" in POLISH
+    assert "syncStatus:'SYNCED'" in POLISH
+    assert "H38DB.delete" not in POLISH
+
+
+def test_saved_quote_regression_runner_is_owner_started_dry_run_only():
+    for marker in ['20260823-quote-regression-runner-1','ownerActionRequired:true','dryRunOnly:true','usesSharedQuoteMachine:true','historicalQuotesIncluded:true','automaticApproval:false','automaticCustomerSending:false']:
+        assert marker in REGRESSION
+    assert 'runtime.buildQuote' in REGRESSION
+    assert 'Saved quote reproduction' in REGRESSION
+    assert 'Run ${list.length} saved quote' in REGRESSION
 
 
 def test_identity_v3_fences_detached_local_quote_writes_and_recovers_server_evidence():
