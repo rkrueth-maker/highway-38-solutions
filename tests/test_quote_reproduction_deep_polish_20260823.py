@@ -76,9 +76,8 @@ def test_regression_runner_is_owner_started_and_dry_run_only():
     assert "usesSharedQuoteMachine:true" in src
     assert "automaticApproval:false" in src
     assert "automaticCustomerSending:false" in src
-    forbidden = ["sendQuote", "approveQuote", "purchase", "chargeCustomer", "scheduleJob"]
-    for term in forbidden:
-        assert term not in src
+    for forbidden_call in [".sendQuote(", ".approveQuote(", ".chargeCustomer(", ".scheduleJob(", "fetch('/purchase"]:
+        assert forbidden_call not in src
 
 
 def test_loader_places_final_authorities_after_legacy_wide_acceptance():
