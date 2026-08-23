@@ -78,9 +78,11 @@ def test_identity_authority_is_deployed_through_shared_machine_live_first_bounda
     assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
     assert "site-visit-wide-acceptance-final-3-phone" in LOADER
-    assert "site-visit-quote-wide-pass-loader-13-machine" in HAMMER
+    assert "site-visit-quote-wide-pass-loader-15-polish" in HAMMER
+    assert "quote-reproduction-authority-1" in LOADER
     assert "sharedQuoteRepairMachine:true" in LOADER
     assert "allQuotesShareRepairMachine:true" in LOADER
+    assert "historicalQuotesShareRepairMachine:true" in LOADER
     assert "poisonedLocalDatasetSuppression:true" in LOADER
     assert "canonicalQuoteHandoff:true" in LOADER
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
