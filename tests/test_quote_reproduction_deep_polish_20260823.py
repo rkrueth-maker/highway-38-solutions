@@ -80,24 +80,78 @@ def test_regression_runner_is_owner_started_and_dry_run_only():
         assert forbidden_call not in src
 
 
+def test_quote_revisions_are_content_aware_and_immutable():
+    src = read("quote-revision-authority.js")
+    assert "20260823-quote-revision-authority-1" in src
+    assert "action!=='SAVE_QUOTE'" in src
+    assert "collection:'quoteRevisions'" in src
+    assert "INTERNAL_QUOTE_WORKING_COPY_NOT_COMMITTED" in src
+    assert "if(!changed)" in src
+    assert "merged.Revision=oldRev+1" in src
+    assert "Changed before owner send" in src
+    assert "Changed on owner save" in src
+    for marker in [
+        "contentChangeOnlyRevisions:true",
+        "stableQuoteId:true",
+        "stableQuoteNumber:true",
+        "immutableRevisionSnapshots:true",
+        "internalPrebuildDoesNotBumpRevision:true",
+        "internalPrebuildDoesNotOverwriteSavedRevision:true",
+        "unchangedSaveKeepsRevision:true",
+        "changedSaveCreatesRevision:true",
+        "changedSendCreatesRevision:true",
+        "historicalRenderMetadataPreserved:true",
+        "imageAndRenderChangesCount:true",
+    ]:
+        assert marker in src
+    assert "automaticApproval:false" in src
+    assert "automaticCustomerSending:false" in src
+
+
+def test_revision_fingerprint_covers_quote_render_and_evidence_changes():
+    src = read("quote-revision-authority.js")
+    for marker in [
+        "projectTitle:", "scope:", "measurementNotes:", "unitPrice:",
+        "actionPictureId:", "actionPhotoPath:", "renderSourcePath:",
+        "preparedRenderSourcePath:", "renderInstructions:",
+        "selectedDirectionId:", "selectedRenderId:", "evidenceImages:"
+    ]:
+        assert marker in src
+    assert "clearDeliveryLock" in src
+    assert "Presented Time" in src
+    assert "PDF Storage Path" in src
+
+
 def test_loader_places_final_authorities_after_legacy_wide_acceptance():
     src = read("site-visit-quote-wide-pass-loader.js")
-    assert "20260823-site-visit-quote-wide-pass-loader-15-polish" in src
+    assert "20260823-site-visit-quote-wide-pass-loader-16-revision" in src
     wide = src.index("./site-visit-wide-acceptance-final.js")
     spoken = src.index("./spoken-measurement-authority-final.js")
     reproduction = src.index("./quote-reproduction-authority.js")
+    revision = src.index("./quote-revision-authority.js")
     polish = src.index("./site-visit-deep-polish.js")
     regression = src.index("./quote-regression-runner.js")
-    assert wide < spoken < reproduction < polish < regression
+    assert wide < spoken < reproduction < revision < polish < regression
     assert "legacyQuoteWrappersCannotRetakeAuthority:true" in src
     assert "historicalQuotesShareRepairMachine:true" in src
+    assert "contentChangeOnlyQuoteRevisions:true" in src
+    assert "immutableQuoteRevisionSnapshots:true" in src
     assert "quoteRegressionRunner:true" in src
 
 
 def test_hammer_loads_deep_polish_bundle():
     src = read("quote-working-hammer.js")
-    assert "20260823-quote-working-ui-only-17-polish" in src
-    assert "20260823-site-visit-quote-wide-pass-loader-15-polish" in src
+    assert "20260823-quote-working-ui-only-18-revision" in src
+    assert "20260823-site-visit-quote-wide-pass-loader-16-revision" in src
     assert "historicalQuotesShareRepairMachine:true" in src
+    assert "contentChangeOnlyQuoteRevisions:true" in src
+    assert "internalPrebuildDoesNotBumpRevision:true" in src
     assert "takeAnotherActionPhoto:true" in src
     assert "quoteRegressionRunner:true" in src
+
+
+def test_revision_authority_is_live_first_and_precached():
+    sw = read("service-worker.js")
+    assert "h38-business-office-20260823-0250" in sw
+    assert "'quote-revision-authority.js'" in sw
+    assert "'./quote-revision-authority.js'" in sw
