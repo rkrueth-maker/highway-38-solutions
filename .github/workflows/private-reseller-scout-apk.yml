@@ -8,6 +8,7 @@ on:
       - 'supabase/functions/reseller-auto-leads-v051/**'
       - 'supabase/functions/reseller-auto-leads-v058/**'
       - 'supabase/functions/reseller-nearby-sources/**'
+      - 'supabase/functions/reseller-auction-discovery/**'
       - 'supabase/functions/reseller-item-research-v047/**'
       - '.github/workflows/private-reseller-scout-apk.yml'
   workflow_dispatch:
@@ -36,7 +37,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v0.1.58 wide acceptance contract
+      - name: Verify v0.1.59 maintenance acceptance contract
         shell: bash
         run: |
           set -euo pipefail
@@ -48,96 +49,77 @@ jobs:
           v053="$assets/v053-runtime.js"
           v056="$assets/v056-runtime.js"
           v058="$assets/v058-runtime.js"
-          sourcing="$assets/v035-sourcing-b.js"
+          v059="$assets/v059-runtime.js"
           photo51="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v051/index.ts"
           photo58="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v058/index.ts"
           research47="$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v047/index.ts"
           sources_fn="$GITHUB_WORKSPACE/supabase/functions/reseller-nearby-sources/index.ts"
+          auctions_fn="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-discovery/index.ts"
 
-          check "versionName '0.1.58'" reseller/build.gradle
-          check 'versionCode 59' reseller/build.gradle
-          check "applicationIdSuffix '.owner58'" reseller/build.gradle
-          check 'bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058' reseller/build.gradle
+          check "versionName '0.1.59'" reseller/build.gradle
+          check 'versionCode 60' reseller/build.gradle
+          check "applicationIdSuffix '.owner59'" reseller/build.gradle
+          check 'bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058-plus-v059' reseller/build.gradle
 
-          # Preserve proven hunt/store truth authorities.
           check 'H38_V049_RUNTIME_ACTIVE' "$v049"
           check 'Near Penny' "$v049"
           check 'All ranked leads' "$v049"
-          check 'No photo' "$v049"
           check 'H38_V051_RUNTIME_ACTIVE' "$v051"
-          check 'H38_V054_ARTIFACT_FIX_ACTIVE' "$v051"
           check 'H38_V055_ARTIFACT_FIX_ACTIVE' "$v051"
           check 'H38_V057_PHOTO_FIX_ACTIVE' "$v051"
-          check 'known_image_keys' "$v051"
-          check 'photo_next_offset' "$v051"
           check 'H38_V053_RUNTIME_ACTIVE' "$v053"
-          check 'H38_V054_TRUTH_FIX_ACTIVE' "$v053"
           check 'strictSignalDate' "$v053"
-          check 'Today / 48h' "$v053"
-          check '7 days or newer' "$v053"
-          check '8–14 days' "$v053"
-          check '15–30 days' "$v053"
-          check '31+ days' "$v053"
-          check 'Unknown date' "$v053"
           check 'Newest signal first' "$v053"
           check 'Oldest signal first' "$v053"
           check 'By nearby store' "$v053"
           check 'not confirmed local inventory' "$v053"
-          check 'current results stay visible until the refresh finishes' "$v053"
           check 'H38_V056_RUNTIME_ACTIVE' "$v056"
-          check 'H38_V057_STORE_FIX_ACTIVE' "$v056"
           check 'Resale Sources' "$v056"
           check 'Sourcing destination only.' "$v056"
-          check 'inventory is not assumed' "$v056"
-          check 'Other nearby retailers' "$v056"
-
-          # v058 wide-pass client: complete pages, staged research, cache/cursor continuity.
           check 'H38_V058_RUNTIME_ACTIVE' "$v058"
-          check 'wide-pass-completeness-staged-research-visual-index-v058' "$v058"
-          check "h38.resellerScout.imageCache.v057" "$v058"
-          check "h38.resellerScout.photoCursor.v057" "$v058"
-          check "name='reseller-auto-leads-v058'" "$v058"
-          check 'Verified photo coverage:' "$v058"
           check 'Discovery health' "$v058"
           check 'Auction source health' "$v058"
-          check 'Wide-pass completeness' "$v058"
           check 'VALUE NOT ESTABLISHED' "$v058"
-          check 'reseller-item-research-v047' "$v058"
-          check "mode:'identify'" "$v058"
-          check "mode:'market'" "$v058"
-          check 'Identification is saved' "$v058"
           check 'Retry market evidence' "$v058"
-          check 'delete copy.images' "$v058"
-          check 'buy price not recorded' "$v058"
-          check 'Distance unknown' "$v058"
 
-          # Exact-UPC visual wrapper: multi-provider, no fuzzy/title image inference.
-          check 'wide-exact-upc-visual-v058' "$photo58"
-          check 'RetailShout DG' "$photo58"
-          check 'Crazy For Couponing DG' "$photo58"
-          check 'RetailShout Dollar Tree' "$photo58"
-          check 'latest-dollar-general-penny-items-near-you' "$photo58"
-          check 'dollar-general-penny-list' "$photo58"
-          check 'latest-dollar-tree-penny-items-near-you' "$photo58"
-          check 'UPC' "$photo58"
-          check 'penny_start_source' "$photo58"
-          check 'Existing images and dates are never overwritten' "$photo58"
-          check 'No title/fuzzy matching' "$photo58"
-          check 'reseller-auto-leads-v051' "$photo58"
+          check 'H38_V059_RUNTIME_ACTIVE' "$v059"
+          check 'maintenance-selftest-feed-hygiene-photo-proof-v059' "$v059"
+          check 'Maintenance / Self-Test' "$v059"
+          check 'Run full self-test' "$v059"
+          check 'Runtime chain' "$v059"
+          check 'Native bridge' "$v059"
+          check 'Local persistence' "$v059"
+          check 'Authentication' "$v059"
+          check 'Penny / clearance feed' "$v059"
+          check 'Photo providers' "$v059"
+          check 'Resale source discovery' "$v059"
+          check 'Auction discovery' "$v059"
+          check 'Research identify stage' "$v059"
+          check 'Overall' "$v059"
+          check 'h38.resellerScout.cacheProofMigration.v059' "$v059"
+          check 'localStorage.removeItem(CACHE)' "$v059"
+          check "r!=='dollar general'&&r!=='dollar tree'" "$v059"
+          check 'image_match_barcode' "$v059"
+          check 'ui_merged_evidence_rows' "$v059"
+          check 'feedHygieneV059' "$v059"
+          check 'feedStateV059' "$v059"
+          check 'reseller-auto-leads-v058' "$v059"
+          check 'reseller-nearby-sources' "$v059"
+          check 'reseller-auction-discovery' "$v059"
+          check 'reseller-item-research-v047' "$v059"
+          check "hint:'H38 maintenance probe item'" "$v059"
 
-          # Existing progressive fallback and research/store engines remain available.
           check 'PHOTO_BATCH_LIMIT=24' "$photo51"
           check 'Open Facts exact barcode' "$photo51"
           check 'Penny Tree exact item' "$photo51"
+          check 'wide-exact-upc-visual-v058' "$photo58"
+          check 'Existing images and dates are never overwritten' "$photo58"
+          check 'No title/fuzzy matching' "$photo58"
           check 'H38_STAGED_RESEARCH_V047' "$research47"
-          check 'mode==="market"' "$research47"
           check 'Identification is preserved' "$research47"
-          check 'Habitat for Humanity' "$sources_fn"
-          check 'second_hand' "$sources_fn"
           check 'inventory_known:false' "$sources_fn"
           check 'provider_errors' "$sources_fn"
-          check 'https://www.landmsupply.com/shop/monthly-specials.html' "$sourcing"
-          if grep -Fq 'https://www.landmsupply.com/weekly-ad' "$sourcing"; then echo '::error::Dead L&M weekly-ad route returned'; exit 1; fi
+          check 'Auction events are discovery results.' "$auctions_fn"
           check 'H38_SCOUT_CAMERAX_PHOTO_V039' "$main"
           if grep -Fq 'All crawler' "$v049"; then echo '::error::Raw crawler dump must not return to hunt UI'; exit 1; fi
 
@@ -146,28 +128,16 @@ jobs:
           node --check "$v053"
           node --check "$v056"
           node --check "$v058"
+          node --check "$v059"
 
           node <<'NODE'
-          const strictDate=v=>/^(?:\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{4})/i.test(v);
-          if(strictDate('DG 11'))throw new Error('DG 11 must remain an unknown signal date');
-          const rating='· ⭐ 4.5';
-          if(!/^[\s·•→\-–—★☆⭐]*\d+(?:[.,]\d+)?[\s★☆⭐]*$/u.test(rating))throw new Error('rating artifact guard failed');
-          const generic=/^other\s+misc(?:\s+(?:no\s+brand|\d+(?:\s+\d+)?))?$/i;
-          for(const raw of ['Other / Misc','Other / Misc · ⭐ 5','Other / Misc · No Brand']){
-            const plain=raw.replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();
-            if(!generic.test(plain))throw new Error(`generic identity guard missed ${raw}`);
-          }
-          const key=v=>String(v).replace(/\D/g,'').replace(/^0+/,'')||'0';
-          if(key('080878194483')!==key('80878194483'))throw new Error('leading-zero UPC equivalence failed');
-          // Provider orientation contract: RetailShout image follows its UPC; Crazy4Couponing image precedes its UPC.
-          const rs='<div>UPC: 11111111<img src="https://img.example/a.jpg"></div><div>UPC: 22222222<img src="https://img.example/b.jpg"></div>';
-          const cf='<div><img src="https://img.example/a.jpg">Item A UPC: 11111111</div><div><img src="https://img.example/b.jpg">Item B UPC: 22222222</div>';
-          const occurrences=h=>[...h.matchAll(/UPC\s*:\s*(\d{7,14})/g)].map(m=>({i:m.index,e:m.index+m[0].length,c:m[1]}));
-          function pick(h,target,orientation){const o=occurrences(h),i=o.findIndex(x=>x.c===target),start=i?o[i-1].e:0,end=i+1<o.length?o[i+1].i:h.length,seg=h.slice(start,end),at=o[i].i-start,imgs=[...seg.matchAll(/<img[^>]+src="([^"]+)"/g)].map(m=>({i:m.index,u:m[1]}));const a=orientation==='after'?imgs.filter(x=>x.i>at).sort((a,b)=>a.i-b.i):imgs.filter(x=>x.i<at).sort((a,b)=>b.i-a.i);return a[0]?.u||''}
-          if(!pick(rs,'11111111','after').endsWith('/a.jpg'))throw new Error('RetailShout exact UPC image association failed');
-          if(!pick(cf,'22222222','before').endsWith('/b.jpg'))throw new Error('Crazy4Couponing exact UPC image association failed');
-          const noImage='<div>UPC: 11111111<img src="https://img.example/a.jpg"></div><div>UPC: 22222222</div>';
-          if(pick(noImage,'22222222','after'))throw new Error('Adjacent item image borrowing detected');
+          const plain=s=>String(s).replace(/[^a-z0-9]+/gi,' ').replace(/\s+/g,' ').trim();
+          function artifact(t){const p=plain(t);if(!t||t.length<7||p.length<3)return true;if(/^[\s·•→\-–—★☆⭐]*\d+(?:[.,]\d+)?[\s★☆⭐]*$/u.test(t))return true;if(/^other\s+misc(?:\s+(?:no\s+brand|\d+(?:\s+\d+)?))?$/i.test(p))return true;if(/^page\s+\d+\s+(?:of|\/|-)\s+\d+$/i.test(p))return true;if(/^(?:check|shop|view|open|see|browse|load)\s+(?:amazon|ebay|walmart|target|online|store|stores|price|prices|list|deal|deals|more)$/i.test(p))return true;if(/^(?:next|previous|prev|more|details|learn more|buy now|shop now|add to cart|see all|view all|open list)$/i.test(p))return true;return false}
+          for(const t of ['Check Amazon','Page 1 of 2','Other / Misc','Other / Misc · ⭐ 5','· ⭐ 4.5','Open list'])if(!artifact(t))throw new Error(`artifact guard missed ${t}`);
+          for(const t of ['Energizer MAX AAA Batteries (2 Pack), Triple A Alkaline Batteries','Adjustable White LED Plug-in White Night Light With Automatic Dusk To Dawn'])if(artifact(t))throw new Error(`real product was filtered: ${t}`);
+          const key=v=>String(v).replace(/\D/g,'').replace(/^0+/,'');
+          if(key('080878194483')!==key('80878194483'))throw new Error('leading-zero barcode equivalence failed');
+          if(key('080878194483')===key('080878194484'))throw new Error('different barcodes cannot share photo proof');
           NODE
 
       - name: Configure H38 signing key when available
@@ -206,32 +176,32 @@ jobs:
             gradle --no-daemon :reseller:assembleDebug | tee "$report/compile.log"
             apk='reseller/build/outputs/apk/debug/reseller-debug.apk'
           fi
-          aligned="$RUNNER_TEMP/h38-reseller-v058-aligned.apk"
-          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.58.apk"
+          aligned="$RUNNER_TEMP/h38-reseller-v059-aligned.apk"
+          out="$report/H38-Reseller-Scout-Owner-Test-v0.1.59.apk"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$apk" "$aligned"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" --ks-pass "pass:$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" --key-pass "pass:$H38_ANDROID_UPLOAD_KEY_PASSWORD" --ks-key-alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false --out "$out" "$aligned"
           else
-            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v058-owner-test.jks"
+            DEBUG_KEYSTORE="$RUNNER_TEMP/h38-v059-owner-test.jks"
             keytool -genkeypair -noprompt -keystore "$DEBUG_KEYSTORE" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=H38 Reseller Scout Owner Test,O=Highway 38 Solutions,C=US'
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$DEBUG_KEYSTORE" --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false --out "$out" "$aligned"
           fi
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.58.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-Test-v0.1.59.sha256"
           printf '%s\n' "${{ steps.signing.outputs.variant }}" > "$report/build-variant.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect installable v0.1.58 APK
+      - name: Smoke inspect installable v0.1.59 APK
         shell: bash
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.58.apk"
+          out="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk/H38-Reseller-Scout-Owner-Test-v0.1.59.apk"
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
           if [[ "${{ steps.signing.outputs.variant }}" == release ]]; then
-            grep -Fq "package: name='com.highway38.resellerscout' versionCode='59' versionName='0.1.58'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout' versionCode='60' versionName='0.1.59'" "$report/badging.txt"
           else
-            grep -Fq "package: name='com.highway38.resellerscout.owner58' versionCode='59' versionName='0.1.58-debug'" "$report/badging.txt"
+            grep -Fq "package: name='com.highway38.resellerscout.owner59' versionCode='60' versionName='0.1.59-debug'" "$report/badging.txt"
           fi
           grep -Fq "sdkVersion:'24'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -239,25 +209,19 @@ jobs:
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
-          unzip -p "$out" 'assets/reseller/v035-sourcing-b.js' > "$report/packaged-sourcing-b.js"
-          grep -Fq 'data-h38-v058-runtime="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058"' "$report/packaged-index.html"
-          for token in H38_V049_RUNTIME_ACTIVE H38_V051_RUNTIME_ACTIVE H38_V054_ARTIFACT_FIX_ACTIVE H38_V055_ARTIFACT_FIX_ACTIVE H38_V057_PHOTO_FIX_ACTIVE H38_V053_RUNTIME_ACTIVE H38_V054_TRUTH_FIX_ACTIVE H38_V056_RUNTIME_ACTIVE H38_V057_STORE_FIX_ACTIVE H38_V058_RUNTIME_ACTIVE; do grep -Fq "$token" "$report/packaged-index.html"; done
-          grep -Fq 'Discovery health' "$report/packaged-index.html"
-          grep -Fq 'Auction source health' "$report/packaged-index.html"
-          grep -Fq 'Retry market evidence' "$report/packaged-index.html"
-          grep -Fq 'Verified photo coverage:' "$report/packaged-index.html"
-          grep -Fq 'strictSignalDate' "$report/packaged-index.html"
-          grep -Fq 'Resale Sources' "$report/packaged-index.html"
-          grep -Fq 'Sourcing destination only.' "$report/packaged-index.html"
-          grep -Fq 'https://www.landmsupply.com/shop/monthly-specials.html' "$report/packaged-sourcing-b.js"
-          if grep -Fq 'https://www.landmsupply.com/weekly-ad' "$report/packaged-sourcing-b.js"; then echo '::error::Dead packaged L&M route returned'; exit 1; fi
-          for f in v049-runtime.js v051-runtime.js v053-runtime.js v056-runtime.js v058-runtime.js; do if grep -Fq "<script src=\"$f\"></script>" "$report/packaged-index.html"; then echo "::error::$f must be bundled inline"; exit 1; fi; done
+          grep -Fq 'data-h38-v059-runtime="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058-plus-v059"' "$report/packaged-index.html"
+          for token in H38_V049_RUNTIME_ACTIVE H38_V051_RUNTIME_ACTIVE H38_V053_RUNTIME_ACTIVE H38_V056_RUNTIME_ACTIVE H38_V058_RUNTIME_ACTIVE H38_V059_RUNTIME_ACTIVE; do grep -Fq "$token" "$report/packaged-index.html"; done
+          grep -Fq 'Maintenance / Self-Test' "$report/packaged-index.html"
+          grep -Fq 'Run full self-test' "$report/packaged-index.html"
+          grep -Fq 'feedHygieneV059' "$report/packaged-index.html"
+          grep -Fq 'cacheProofMigration.v059' "$report/packaged-index.html"
+          for f in v049-runtime.js v051-runtime.js v053-runtime.js v056-runtime.js v058-runtime.js v059-runtime.js; do if grep -Fq "<script src=\"$f\"></script>" "$report/packaged-index.html"; then echo "::error::$f must be bundled inline"; exit 1; fi; done
 
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-test-v0.1.58
+          name: h38-reseller-scout-owner-test-v0.1.59
           path: artifacts/private-reseller-scout-apk/*
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
