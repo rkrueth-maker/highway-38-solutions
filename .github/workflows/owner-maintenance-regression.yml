@@ -47,7 +47,6 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       H38_RUN_VISUALS: '1'
-      H38_GITHUB_OIDC_TOKEN_FILE: ${{ runner.temp }}/h38-maintenance-oidc-token
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,13 +60,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TOKEN_FILE="$RUNNER_TEMP/h38-maintenance-oidc-token"
           RESPONSE=$(curl --fail --silent --show-error \
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=h38-owner-maintenance")
           TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);if(!p.value)process.exit(2);process.stdout.write(p.value)})")
           echo "::add-mask::$TOKEN"
-          printf '%s' "$TOKEN" > "$H38_GITHUB_OIDC_TOKEN_FILE"
-          chmod 600 "$H38_GITHUB_OIDC_TOKEN_FILE"
+          printf '%s' "$TOKEN" > "$TOKEN_FILE"
+          chmod 600 "$TOKEN_FILE"
+          printf 'H38_GITHUB_OIDC_TOKEN_FILE=%s\n' "$TOKEN_FILE" >> "$GITHUB_ENV"
       - name: Seed evidence and run canonical + visual acceptance
         run: node scripts/run-owner-maintenance-regression.js /dev/null "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
       - name: Upload regression evidence
