@@ -5,7 +5,7 @@ on:
     paths:
       - 'commercial-app/customer-360-authority.js'
       - 'commercial-app/customer-360-authority.css'
-      - 'commercial-app/customer-360-browser-integration-v2.js'
+      - 'commercial-app/customer-360-browser-integration-v3.js'
       - 'commercial-app/index.html'
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
@@ -29,11 +29,11 @@ jobs:
       - name: JavaScript syntax
         run: |
           node -c commercial-app/customer-360-authority.js
-          node -c commercial-app/customer-360-browser-integration-v2.js
+          node -c commercial-app/customer-360-browser-integration-v3.js
           node -c scripts/verify-customer-360-policy.js
       - name: Owner-language relationship resolver
         run: node scripts/verify-customer-360-owner-flow.js
-      - name: Owner ambiguity and finance policy
+      - name: Owner ambiguity finance and activity policy
         run: node scripts/verify-customer-360-policy.js
       - name: Customer 360 contracts
         run: python -m pytest -q tests/test_customer_360_owner_flow_20260824.py
