@@ -3,61 +3,78 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b2438">
+<meta name="theme-color" content="#0d2a3e">
 <title>H38 Reseller Scout</title>
-<link rel="stylesheet" href="v035-ui.css">
-<link rel="stylesheet" href="v037-safearea.css">
-<style>.retailer-store-group>summary,.candidate-queue>summary,.card>summary{cursor:pointer;list-style:none}.retailer-store-group>summary::-webkit-details-marker,.candidate-queue>summary::-webkit-details-marker,.card>summary::-webkit-details-marker{display:none}.candidate-queue{margin-top:10px;border-top:1px solid #e1e8ec;padding-top:8px}.candidate-queue>summary{padding:6px 0}.source-status{margin-top:5px}</style>
+<link rel="stylesheet" href="v200-ui.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header class="top"><div><h1>H38 Reseller Scout</h1><small id="topSub">Private sourcing workspace</small></div><div class="right"><button id="topResearch" class="ghost hidden">Research</button><button id="signOut" class="ghost hidden">Sign out</button></div></header>
-<main class="wrap">
-<section id="login" class="card login"><h2>Private sign in</h2><div class="muted small">Use your H38 account.</div><form id="loginForm"><label class="field">Email<input name="email" type="email" autocomplete="username" required></label><label class="field">Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form><div id="loginMsg"></div></section>
-<section id="app" class="hidden">
-<div id="globalNotice" class="notice hidden"></div>
-<section id="launcher" class="launcher hidden"><div class="launcher-head"><h2>What are you hunting?</h2><div class="muted">Start one sourcing workflow. Scout only runs the sources needed for that hunt.</div></div><div class="launch-grid"><button class="launch primary" data-launch="deals"><span class="ico">◆</span><strong>Deals Near Me</strong><span>Automatically look for profit-supported resale opportunities across supported local sources.</span></button><button class="launch" data-launch="clearance"><span class="ico">¢</span><strong>Penny & Clearance</strong><span>Find retailer penny/clearance candidates, then verify the selected store.</span></button><button class="launch" data-launch="stores"><span class="ico">▦</span><strong>Nearby Stores</strong><span>Browse actual reseller-relevant stores, flyers, candidates, and store hunts.</span></button><button class="launch" data-launch="auctions"><span class="ico">⚑</span><strong>Auctions</strong><span>Browse nearby physical auctions and online auctions with local pickup.</span></button><button class="launch" data-launch="research"><span class="ico">◎</span><strong>Research an Item</strong><span>Photo, barcode, or typed model → identify → multi-source market evidence → value/profit decision.</span></button></div></section>
-<section id="workspace" class="hidden">
-<div id="locationCard" class="card hidden"><div class="location-bar"><div class="label" id="locationLabel">Location not set<small>Use phone location or ZIP when this hunt needs geography.</small></div><div class="location-tools"><select id="radius"><option value="25">25 mi</option><option value="50" selected>50 mi</option><option value="100">100 mi</option><option value="150">150 mi</option></select><button id="phoneLocation" class="secondary">Phone</button><button id="zipLocation" class="secondary">ZIP</button></div></div></div>
-<section id="page-deals" class="page hidden"></section>
-<section id="page-clearance" class="page hidden"></section>
-<section id="page-stores" class="page hidden"></section>
-<section id="page-auctions" class="page hidden"></section>
-<section id="page-more" class="page hidden"></section>
-</section>
-</section>
+<header class="topbar">
+  <button id="homeButton" class="brand" aria-label="Home"><span class="brand-mark">H38</span><span><strong>Reseller Scout</strong><small id="topSubtitle">Find something worth buying</small></span></button>
+  <button id="accountButton" class="icon-btn hidden" aria-label="Account">●</button>
+</header>
+<main>
+  <section id="loginView" class="auth-shell">
+    <div class="auth-card">
+      <div class="eyebrow">PRIVATE OWNER APP</div>
+      <h1>Scout the deal.<br>Verify the money.</h1>
+      <p>Retail markdowns, local listings, auctions and in-store research in one sourcing workspace.</p>
+      <form id="loginForm">
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary wide" type="submit">Sign in</button>
+      </form>
+      <div id="loginMessage"></div>
+    </div>
+  </section>
+
+  <section id="appView" class="hidden">
+    <div id="notice" class="toast hidden"></div>
+    <section id="locationStrip" class="location-strip hidden">
+      <button id="locationButton" class="location-pill"><span>⌖</span><span id="locationText">Set location</span></button>
+      <select id="radiusSelect" aria-label="Search radius"><option value="25">25 mi</option><option value="50" selected>50 mi</option><option value="100">100 mi</option><option value="150">150 mi</option></select>
+    </section>
+
+    <section id="discoverPage" class="page"></section>
+    <section id="huntPage" class="page hidden"></section>
+    <section id="scanPage" class="page hidden"></section>
+    <section id="auctionPage" class="page hidden"></section>
+    <section id="morePage" class="page hidden"></section>
+  </section>
 </main>
-<nav id="bottomNav" class="bottom hidden"><button data-nav="deals"><b>◆</b>Deals</button><button data-nav="clearance"><b>¢</b>Clearance</button><button data-nav="stores"><b>▦</b>Stores</button><button data-nav="auctions"><b>⚑</b>Auctions</button><button data-nav="more"><b>•••</b>More</button></nav>
-<div id="busy" class="busy hidden"><div class="busy-box"><div class="spinner"></div><strong id="busyText">Working…</strong><div class="muted small" id="busySub">Scout is checking a live source.</div></div></div>
-<div id="zipModal" class="modal hidden"><div class="modal-card"><h2>Search by ZIP</h2><label class="field">ZIP code<input id="zipInput" inputmode="numeric" maxlength="5" placeholder="55744"></label><div class="actions"><button id="applyZip">Use ZIP</button><button id="cancelZip" class="secondary">Cancel</button></div><div id="zipMsg"></div></div></div>
-<script src="v035-core.js"></script>
-<script src="v035-sourcing-a.js"></script>
-<script src="v035-sourcing-b.js"></script>
-<script src="v035-research.js"></script>
-<script src="v035-app.js"></script>
-<script src="v037-physical.js"></script>
-<script>const H38_FN_V038=fn;fn=async function(name,body,timeout){return H38_FN_V038(name==='reseller-auto-leads'?'reseller-auto-leads-v038':name,body,timeout)};</script>
-<script>
-'use strict';
-const H38_MULTI_SOURCE_MARKET_UI_V041=true;
-function marketBandV041(x,label){if(!x||x.status!=='verified')return `<div class="notice warn small"><strong>${esc(label)}:</strong> ${esc(x?.message||'No dependable matching price sample returned.')}</div>`;return `<div class="econ"><div><strong>${money(x.low)}</strong><span>LOW</span></div><div><strong>${money(x.typical)}</strong><span>TYPICAL</span></div><div><strong>${money(x.high)}</strong><span>HIGH</span></div><div><strong>${num(x.sample_count)}</strong><span>SAMPLES</span></div></div><div class="small muted">${esc(label)} · ${esc(x.confidence||'')} confidence</div>`}
-function routeButtonsV041(rows){return (rows||[]).map(x=>`<button class="secondary" data-open="${esc(x.url||'')}">${esc(x.source||'Source')}<small style="display:block;font-weight:400">${esc(String(x.lane||'').toUpperCase())}${x.status?' · '+esc(x.status):''}</small></button>`).join('')}
-function guideHtmlV041(rows){const useful=(rows||[]).filter(x=>x&&x.status!=='not_applicable');if(!useful.length)return'';return `<div class="result"><span class="badge verified">CATEGORY GUIDE</span>${useful.map(x=>x.status==='verified'?`<div class="small" style="margin-top:7px"><strong>${esc(x.source)}</strong> · ${esc(x.product_name||'matched item')}${x.category?' · '+esc(x.category):''}</div><div class="econ"><div><strong>${money(x.loose)}</strong><span>LOOSE</span></div><div><strong>${money(x.cib)}</strong><span>COMPLETE</span></div><div><strong>${money(x.new)}</strong><span>NEW</span></div><div><strong>${x.sales_volume?num(x.sales_volume):'—'}</strong><span>VOLUME</span></div></div><div class="small muted">${esc(x.message||'Guide context only.')}</div>`:`<div class="notice small ${x.status==='not_configured'?'warn':''}"><strong>${esc(x.source)}:</strong> ${esc(x.message||x.status)}</div>`).join('')}</div>`}
-function localHtmlV041(x){if(!x||x.status==='not_established')return `<div class="notice small">No matching captured Facebook/Craigslist asks are available yet.</div>`;const rows=(x.rows||[]).map(r=>`<div class="watch-row"><div><strong>${esc(r.source||'Local')}</strong><div class="small muted">${esc(r.title||'Listing')} · ${money(r.price)}</div></div>${r.url?`<button class="secondary" data-open="${esc(r.url)}">Open</button>`:''}</div>`).join('');return `${x.status==='verified'?marketBandV041(x,'Captured local asking prices'):`<div class="notice warn small">${esc(x.message||'Local sample is thin.')}</div>`}${rows}`}
-runResearch=async function(){const q=$('researchItem').value.trim(),upc=$('researchUpc').value.trim(),buy=Number($('researchPrice').value||0);if(!q&&!upc&&!state.photos.length){notice('Take a photo, scan a barcode, or type an item/model first.','warn');return}busy('research','Researching across market sources…','Scout separates sold evidence, active asks, local asks, retail checks and category guides.');try{const local=[...fbRows(),...state.opportunities.map(x=>({source:x.source||'Craigslist',title:x.title||'',price:x.buy_price||x.estimated_all_in||0,url:x.url||''}))];const p=await fn('reseller-item-research-v041',{hint:q,upc,buy_price:buy,images:state.photos.map(x=>({role:x.role,data_url:x.data})),local_candidates:local,...locationBody()},50000);state.research={...p,query:q,upc,buyPrice:buy};diag('multiSourceResearch',{engine:p.engine||'',source_health:p.source_health||{},sold:p.market?.sample_count||0,local:p.evidence?.local?.sample_count||0,routes:(p.evidence?.routes||[]).map(x=>x.source)});renderResearch();notice(p.market?.status==='verified'?'Multi-source research loaded; sold evidence remains the valuation authority.':'Item identified; other market sources loaded, but completed-sale value is not established.',p.market?.status==='verified'?'good':'warn')}catch(e){notice('Item research failed: '+err('multiSourceResearch',e),'bad');renderResearch()}finally{done('research')}};
-researchHtml=function(r){if(!r)return'<div class="empty">No item research yet.</div>';const id=r.identification||{},m=r.market||{},ev=r.evidence||{},f=r.flip||{},confidence=id.confidence||'low',weak=confidence==='low',query=id.search_query||id.likely_item||r.query||r.upc||'',sold=(ev.sold||[])[0]||m,active=(ev.active||[])[0]||{},local=ev.local||{},routes=ev.routes||[];setTimeout(renderResearchBindings,0);return `<div class="result"><span class="badge ${confidence==='high'?'good':confidence==='medium'?'verified':'warn'}">IDENTIFICATION ${esc(confidence.toUpperCase())}</span><h3>${esc(id.likely_item||query||'Identity not established')}</h3><div class="small muted">${[id.brand,id.model_or_part_number,id.category].filter(Boolean).map(esc).join(' · ')}</div>${id.condition_clues?.length?`<div class="small" style="margin-top:7px"><strong>Visible condition:</strong> ${id.condition_clues.map(esc).join(' · ')}</div>`:''}${id.damage_or_missing?.length?`<div class="small"><strong>Damage / missing:</strong> ${id.damage_or_missing.map(esc).join(' · ')}</div>`:''}${weak?`<div class="notice warn small">Identification is uncertain. Add a label/model photo or type the model before relying on the match.${id.alternatives?.length?' Alternatives: '+id.alternatives.map(esc).join(', '):''}</div>`:''}</div><div class="result"><span class="badge ${sold.status==='verified'?'good':'warn'}">SOLD EVIDENCE</span>${sold.status==='verified'?marketBandV041(sold,'Completed-sale evidence'):`<div class="notice warn small"><strong>VALUE NOT ESTABLISHED.</strong> ${esc(sold.message||'No dependable completed-sale sample was available.')}</div>`}<div class="small muted" style="margin-top:7px">Only completed-sale evidence is allowed to set H38 resale value and BUY/MAYBE/PASS.</div></div><div class="result"><span class="badge verified">CURRENT MARKET</span>${marketBandV041(active,'Current asking competition')}<div class="small muted">Active asking prices are context only and never inflate the sold-comp value.</div></div><div class="result"><span class="badge">LOCAL MARKET</span>${localHtmlV041(local)}</div>${guideHtmlV041(ev.guide||[])}<div class="result"><span class="badge">SOURCE STACK</span><div class="small muted" style="margin-bottom:8px">Scout routes the identified item to relevant sources. Automatic evidence is labeled separately from search-only sources.</div><div class="actions">${routeButtonsV041(routes)}</div></div>${r.buyPrice>0?`<div class="result"><span class="verdict ${String(f.verdict||'NEEDS COMP').toLowerCase().includes('buy')?'buy':String(f.verdict||'').toLowerCase().includes('maybe')?'maybe':String(f.verdict||'').toLowerCase().includes('pass')?'pass':'comp'}">${esc(f.verdict||'NEEDS COMP')}</span><div class="econ"><div><strong>${money(r.buyPrice)}</strong><span>BUY COST</span></div><div><strong>${money(f.estimated_resale)}</strong><span>SOLD-BASED RESALE</span></div><div><strong>${money(f.estimated_net)}</strong><span>EST. NET</span></div><div><strong>${Number.isFinite(Number(f.roi_pct))?Number(f.roi_pct).toFixed(0)+'%':'—'}</strong><span>ROI</span></div></div>${f.assumption?`<div class="small muted">${esc(f.assumption)}</div>`:''}${m.status==='verified'?`<div class="actions" style="margin-top:8px"><button id="addInventory">Bought / Add to Inventory</button></div>`:''}</div>`:''}`};
-</script>
-<script>
-'use strict';
-const H38_PENNY_SIGNAL_UI_V042=true;
-function isNearPennyV042(l){return String(l?.deal_type||'').toLowerCase()==='near_penny'||l?.near_penny===true}
-function signalSourcesV042(l){const a=Array.isArray(l?.signal_sources)?l.signal_sources:[],out=[],seen=new Set();for(const s of a){const key=String(s?.domain||s?.name||'').toLowerCase().trim();if(!key||seen.has(key))continue;seen.add(key);out.push(s)}return out}
-function signalMetaV042(l,s=null){if(!isPenny(l)&&!isNearPennyV042(l))return'';const sources=signalSourcesV042(l),count=Number(l?.signal_source_count||sources.length||1),confidence=String(l?.signal_confidence||(count>=3?'HIGH':count>=2?'MEDIUM':'LOW')).toUpperCase(),bound=s?checkStateV038(l,s).bound:false,names=sources.slice(0,3).map(x=>String(x?.name||x?.domain||'Source')).filter(Boolean),more=count>names.length?` +${count-names.length}`:'';if(isNearPennyV042(l)){const price=Number(l?.buy_price),priceText=Number.isFinite(price)&&price>0?` · signal ${money(price)}`:'';return `<div class="small"><span class="badge warn">NEAR-PENNY</span>${priceText} · ${count} independent source${count===1?'':'s'}${names.length?` · ${esc(names.join(', ')+more)}`:''}${bound?'':' · NOT STORE VERIFIED'}</div>`}const cls=confidence==='HIGH'?'good':confidence==='MEDIUM'?'verified':'warn';return `<div class="small"><span class="badge ${cls}">${esc(confidence)} PENNY SIGNAL</span> ${count} independent source${count===1?'':'s'}${names.length?` · ${esc(names.join(', ')+more)}`:''}${bound?'':' · NOT STORE VERIFIED'}</div>`}
-const checkStatePreV042=checkStateV038;checkStateV038=function(l,s){const x=checkStatePreV042(l,s);if(!x.checked&&isNearPennyV042(l))x.label='NEAR-PENNY';return x};
-candidateRowV038=function(l,s){const identity=`${l.upc?'UPC '+esc(l.upc):''}${l.sku?(l.upc?' · ':'')+'Model '+esc(l.sku):''}${num(l.discount_pct)>0?' · '+num(l.discount_pct).toFixed(0)+'% reported':''}`;return `<div class="watch-row" data-clear-id="${esc(l.id||'')}" data-store-candidate="${esc(stockKey(l,s))}"><strong>${esc(l.title||'Candidate')}</strong><div class="small muted">${identity}</div>${signalMetaV042(l,s)}${inlineCheckHtmlV038(l,s)}<div class="actions"><button class="secondary" data-v038-verify="${esc(l.id||'')}" data-store-key="${esc(s.store_key)}">${checkStateV038(l,s).checked?'Recheck':'Verify'}</button>${l.source_url?`<button class="secondary" data-open="${esc(l.source_url)}">Source</button>`:''}</div></div>`};
-clearanceRowsV036=function(){let rows=dedupeLeadsV038(Array.isArray(state.leads)?state.leads:[]);const filter=String(state.clearanceFilter||'penny');if(filter==='penny')rows=rows.filter(isPenny);else if(filter==='near')rows=rows.filter(isNearPennyV042);else if(filter==='verified')rows=rows.filter(l=>matchingStores(l).some(s=>checkStateV038(l,s).bound));rows.sort((a,b)=>Number(isPenny(b))-Number(isPenny(a))||Number(isNearPennyV042(b))-Number(isNearPennyV042(a))||Number(b.signal_source_count||0)-Number(a.signal_source_count||0)||num(b.discount_pct)-num(a.discount_pct)||num(b.source_priority)-num(a.source_priority));return rows.slice(0,180)};
-clearanceRetailerV038=function(key,g){const stores=state.stores.filter(s=>retailerKeyV036(s.retailer)===key).sort((a,b)=>num(a.distance_miles)-num(b.distance_miles)),open=state.clearanceOpenRetailerV038===key,verifiedTotal=stores.reduce((n,s)=>n+g.leads.filter(l=>checkStateV038(l,s).bound).length,0),localTotal=stores.reduce((n,s)=>n+g.leads.filter(l=>checkStateV038(l,s).local).length,0);const storeRows=stores.map(s=>{const c=storeSummaryCountsV038(s,g.leads),viewKey=s.store_key+'|'+state.clearanceFilter,openStore=state.clearanceOpenStore===viewKey;return `<details class="store" data-clear-store="${esc(s.store_key)}" ${openStore?'open':''}><summary><div class="store-sum"><div><strong>${esc(s.store_name||s.retailer)}</strong><div class="small muted">${esc(s.store_address||'')}</div><div class="tiny muted">${c.verified} verified${c.local?' · '+c.local+' local 1¢':''}${c.checked&&!c.verified?' · '+c.checked+' checked':''}</div></div><strong>${Number.isFinite(Number(s.distance_miles))?Number(s.distance_miles).toFixed(1)+' mi':'—'}</strong></div></summary>${storeBodyV038(s,g.leads)}</details>`}).join('');const unmatched=!stores.length?`<details class="store"><summary><strong>Unmatched / retailer-wide candidates · ${g.leads.length}</strong></summary><div class="store-body">${g.leads.slice(0,16).map(l=>`<div class="watch-row"><strong>${esc(l.title||'Candidate')}</strong><div class="small muted">${l.upc?'UPC '+esc(l.upc):''}${l.sku?(l.upc?' · ':'')+'Model '+esc(l.sku):''}</div>${signalMetaV042(l)}${l.source_url?`<button class="secondary" data-open="${esc(l.source_url)}">Source</button>`:''}</div>`).join('')}</div></details>`:'';const multi=g.leads.filter(l=>Number(l.signal_source_count||0)>=2).length,near=g.leads.filter(isNearPennyV042).length;return `<details class="card" data-clear-retailer="${esc(key)}" ${open?'open':''}><summary><div class="store-sum"><div><strong>${esc(g.name)}</strong><div class="small muted">${stores.length} stores · ${g.leads.length} unique retailer candidates${multi?' · '+multi+' multi-source':''}${near?' · '+near+' near-penny':''}${verifiedTotal?' · '+verifiedTotal+' verified':''}${localTotal?' · '+localTotal+' local 1¢':''}</div></div></div></summary><div class="store-body">${storeRows||unmatched}</div></details>`};
-renderClearance=function(){const p=$('page-clearance');if(!p)return;const all=Array.isArray(state.leads)?state.leads:[],rows=dedupeLeadsV038(clearanceRowsV036()),verified=all.filter(l=>matchingStores(l).some(s=>checkStateV038(l,s).bound)).length,local=all.filter(l=>matchingStores(l).some(s=>checkStateV038(l,s).local)).length,penny=all.filter(isPenny).length,near=all.filter(isNearPennyV042).length,multi=all.filter(l=>isPenny(l)&&Number(l.signal_source_count||0)>=2).length,groups=new Map();for(const l of rows){const key=retailerKeyV036(l.retailer)||'unknown';if(!groups.has(key))groups.set(key,{name:retailerLabelV036(l.retailer),leads:[]});groups.get(key).leads.push(l)}const signalNote=multi?`${multi} penny candidates have agreement from 2+ independent sources. Source agreement raises hunt confidence only; it does not prove local inventory.`:'Independent penny sources are being combined by UPC/SKU. Local price still requires a store-bound check.';p.innerHTML=`<section class="card"><div class="workflow-head"><div><h2>Penny & Clearance</h2><div class="muted small">Retailer → physical store → candidate queue. ${all.length} unique candidates loaded. Candidate counts belong to the retailer; physical stores show only store-bound verification.</div><div class="source-status">${esc(state.clearanceRefreshTextV038||signalNote)}</div></div><button id="refreshClearance" class="secondary">Refresh</button></div><div class="stats" style="margin-top:10px"><div class="stat"><strong>${penny}</strong><span>PENNY</span></div><div class="stat"><strong>${near}</strong><span>NEAR PENNY</span></div><div class="stat"><strong>${multi}</strong><span>MULTI-SOURCE</span></div><div class="stat"><strong>${verified}</strong><span>STORE VERIFIED</span></div><div class="stat"><strong>${local}</strong><span>LOCAL 1¢</span></div></div><div class="tabs"><button data-cfilter="penny">Penny</button><button data-cfilter="near">Near Penny</button><button data-cfilter="all">All Clearance</button><button data-cfilter="verified">Verified Local</button></div><div class="tiny muted" style="margin-top:8px">HIGH = 3+ independent sources · MEDIUM = 2 · LOW = 1. No signal level can create LOCAL $0.01 without selected-store evidence.</div></section>${groups.size?[...groups.entries()].map(([key,g])=>clearanceRetailerV038(key,g)).join(''):'<section class="card"><div class="empty">No candidates match this view yet.</div></section>'}`;p.querySelectorAll('[data-cfilter]').forEach(b=>{b.classList.toggle('active',b.dataset.cfilter===state.clearanceFilter);b.onclick=()=>{state.clearanceFilter=b.dataset.cfilter;renderClearance()}});$('refreshClearance').onclick=()=>loadClearance(true);p.querySelectorAll('[data-clear-retailer]').forEach(d=>d.ontoggle=()=>{if(d.open)state.clearanceOpenRetailerV038=d.dataset.clearRetailer});p.querySelectorAll('[data-clear-store]').forEach(d=>d.ontoggle=()=>{if(d.open)state.clearanceOpenStore=d.dataset.clearStore+'|'+state.clearanceFilter});bindVerifyV038(p)};
-</script>
+
+<nav id="bottomNav" class="bottom-nav hidden">
+  <button data-page="discover"><span>◆</span><b>Discover</b></button>
+  <button data-page="hunt"><span>¢</span><b>Hunt</b></button>
+  <button data-page="scan" class="scan-nav"><span>◎</span><b>Scan</b></button>
+  <button data-page="auctions"><span>⚑</span><b>Auctions</b></button>
+  <button data-page="more"><span>•••</span><b>More</b></button>
+</nav>
+
+<div id="locationSheet" class="sheet hidden" role="dialog" aria-modal="true">
+  <div class="sheet-card">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><div><div class="eyebrow">SEARCH AREA</div><h2>Location & radius</h2></div><button id="closeLocation" class="icon-btn">×</button></div>
+    <button id="usePhoneLocation" class="primary wide">Use phone location</button>
+    <div class="or"><span></span>or<span></span></div>
+    <label>ZIP code<input id="zipInput" inputmode="numeric" maxlength="5" placeholder="55744"></label>
+    <button id="useZipLocation" class="secondary wide">Use ZIP</button>
+    <label>Radius<select id="sheetRadius"><option value="25">25 miles</option><option value="50">50 miles</option><option value="100">100 miles</option><option value="150">150 miles</option></select></label>
+    <div id="locationMessage"></div>
+  </div>
+</div>
+
+<div id="accountSheet" class="sheet hidden" role="dialog" aria-modal="true">
+  <div class="sheet-card compact">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><div><div class="eyebrow">OWNER APP</div><h2>Account</h2></div><button id="closeAccount" class="icon-btn">×</button></div>
+    <div id="accountIdentity" class="muted"></div>
+    <button id="openMaintenance" class="secondary wide">Maintenance / Self-Test</button>
+    <button id="signOutButton" class="danger-text wide">Sign out</button>
+  </div>
+</div>
+
+<div id="detailSheet" class="sheet hidden" role="dialog" aria-modal="true"><div id="detailCard" class="sheet-card detail-card"></div></div>
+<script src="v200-runtime.js"></script>
 </body>
 </html>
