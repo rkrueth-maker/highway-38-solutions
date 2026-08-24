@@ -29,7 +29,7 @@ def test_public_historical_asset_import_is_allowlisted_and_private_first():
     upload_pos = source.index(".storage.from('business-office-files').upload")
     choose_pos = source.index("chooseActionPhoto")
     assert upload_pos < choose_pos
-    assert "Public historical reference" in source
+    assert "Public H38 reference" in source
     assert "Private copy ready" in source
 
 
