@@ -1,8 +1,10 @@
 (function(){
 'use strict';
 const BUILD='20260815-2135';
+const CUSTOMER_WORKFLOW_BUILD='20260824-customer-workflow-loader-1';
 let scheduled=false;
 let fallbackTimer=0;
+let customerWorkflowStarted=false;
 
 const text=value=>String(value==null?'':value).trim();
 const number=value=>{const parsed=Number(value==null?0:value);return Number.isFinite(parsed)?parsed:0;};
@@ -219,6 +221,17 @@ function apply(){
   markOptionalWork(document);
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
+function loadOwnerCustomerWorkflow(){
+  if(customerWorkflowStarted)return;customerWorkflowStarted=true;
+  if(!document.querySelector('link[data-h38-owner-customer-workflow]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./owner-customer-workflow-polish.css?build=20260824-owner-customer-workflow-polish-1';link.dataset.h38OwnerCustomerWorkflow='1';document.head.appendChild(link);}
+  const start=Date.now();
+  const ready=()=>{
+    if(document.querySelector('script[data-h38-owner-customer-workflow]'))return true;
+    if(!window.H38_CUSTOMER_360_BROWSER&&Date.now()-start<3500)return false;
+    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260824-owner-customer-workflow-polish-1';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]'))return;const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';document.body.appendChild(next);};document.body.appendChild(script);return true;
+  };
+  if(ready())return;const timer=setInterval(()=>{if(ready())clearInterval(timer);},100);
+}
 
 window.addEventListener('h38:saved-login-web-autofill-requested',startFallbackWatch);
 window.addEventListener('h38:saved-login-unavailable',stopFallbackWatch);
@@ -232,11 +245,13 @@ document.addEventListener('click',event=>{
 new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
 window.addEventListener('popstate',schedule);
 window.addEventListener('hashchange',schedule);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{schedule();loadOwnerCustomerWorkflow();},{once:true});else{schedule();loadOwnerCustomerWorkflow();}
 
 window.H38_OWNER_FLOW_POLISH=Object.freeze({
   enabled:true,
   build:BUILD,
+  customerWorkflowBuild:CUSTOMER_WORKFLOW_BUILD,
+  customerWorkflowLoader:true,
   nativePrintPriority:true,
   noAndroidAboutBlank:true,
   savedLoginFallbackAutoSubmit:true,
