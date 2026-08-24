@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install pytest
       - name: Static conversation contract
         run: node scripts/verify-conversation-meeting-assistant.js
       - name: Python acceptance contracts
