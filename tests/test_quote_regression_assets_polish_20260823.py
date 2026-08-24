@@ -42,14 +42,21 @@ def test_plan_references_are_not_misrepresented_as_cad():
     assert "planReferencesNotMisrepresentedAsCad:true" in source
 
 
-def test_regression_runner_distinguishes_clean_from_fallback():
+def test_regression_runner_distinguishes_clean_from_fallback_and_isolates_base_draft():
     source = read("commercial-app/quote-regression-runner.js")
+    assert "20260823-quote-regression-runner-3-base-draft-isolation" in source
     assert "20260823-quote-regression-runner-2-honest-results" in source
     assert "20260823-quote-regression-runner-1" in source
     assert "'FALLBACK'" in source
     assert "'CLEAN'" in source
     assert "CLEAN AI" in source
     assert "FALLBACK" in source
+    assert "h38-quote-ai" in source
+    assert "runtime.prepareReproductionArgs" in source
+    assert "runtime.prepareBuild" in source
+    assert "runtime.normalizeDraft" in source
+    assert "bulkDirectionsSuppressed:true" in source
+    assert "normalQuoteDirectionsUnaffected:true" in source
     assert "sessionStorage" in source
     assert "resultsPersistForSession:true" in source
     assert "cleanVsFallbackVisible:true" in source
@@ -61,7 +68,8 @@ def test_asset_polish_loads_before_regression_runner_and_is_live_first():
     hammer = read("commercial-app/quote-working-hammer.js")
     assert "20260823-site-visit-quote-wide-pass-loader-17-assets" in loader
     assert loader.index("quote-historical-assets-polish.js") < loader.index("quote-regression-runner.js")
-    assert "20260823-quote-regression-runner-2-honest-results" in loader
+    assert "20260823-quote-regression-runner-3-base-draft-isolation" in loader
+    assert "quoteRegressionBulkDirectionsSuppressed:true" in loader
     assert "historicalPublicAssetsCanBecomePrivateActionPictures:true" in loader
     assert "quote-historical-assets-polish.js" in worker
     assert "h38-business-office-20260823-1900" in worker
