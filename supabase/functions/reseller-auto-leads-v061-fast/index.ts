@@ -3,9 +3,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const FUNCTION_SLUG="reseller-auto-leads-v061-fast";
 const BASE=Deno.env.get("SUPABASE_URL")||"";
 const ORIGINS=new Set(["https://appassets.androidplatform.net","https://highway38solutions.com","https://www.highway38solutions.com"]);
-function cors(req:Request){const o=req.headers.get("origin")||"";return{"access-control-allow-origin":ORIGINS.has(o)?o:"https://appassets.androidplatform.net","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"POST, OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"private, max-age=45","vary":"Origin"}}
-function json(req:Request,status:number,body:any){return new Response(JSON.stringify(body),{status,headers:cors(req)})}
-Deno.serve(async(req:Request)=>{
+function cors(req){const o=req.headers.get("origin")||"";return{"access-control-allow-origin":ORIGINS.has(o)?o:"https://appassets.androidplatform.net","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"POST, OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"private, max-age=45","vary":"Origin"}}
+function json(req,status,body){return new Response(JSON.stringify(body),{status,headers:cors(req)})}
+Deno.serve(async(req)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
   if(req.method!=="POST")return json(req,405,{error:"POST required."});
   try{
