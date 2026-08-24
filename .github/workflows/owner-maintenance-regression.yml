@@ -4,18 +4,34 @@ on:
   push:
     branches:
       - main
+      - agent/quote-agent-walkthrough-acceptance-polish-20260823
     paths:
       - 'scripts/run-owner-maintenance-regression.js'
       - '.github/workflows/owner-maintenance-regression.yml'
+      - 'supabase/functions/h38-quote-agent/**'
+      - 'supabase/functions/h38-owner-maintenance/**'
+      - 'supabase/functions/h38-owner-maintenance-oidc/**'
+      - 'commercial-app/quote-agent-contract.js'
+      - 'commercial-app/site-visit-quote-wide-pass-loader.js'
+      - 'commercial-app/service-worker.js'
+      - 'tests/test_quote_agent_walkthrough_acceptance_20260824.py'
   pull_request:
     paths:
       - 'scripts/run-owner-maintenance-regression.js'
       - '.github/workflows/owner-maintenance-regression.yml'
+      - 'supabase/functions/h38-quote-agent/**'
+      - 'supabase/functions/h38-owner-maintenance/**'
+      - 'supabase/functions/h38-owner-maintenance-oidc/**'
+      - 'commercial-app/quote-agent-contract.js'
+      - 'commercial-app/site-visit-quote-wide-pass-loader.js'
+      - 'commercial-app/service-worker.js'
+      - 'tests/test_quote_agent_walkthrough_acceptance_20260824.py'
   workflow_dispatch:
 
 permissions:
   contents: read
   issues: write
+  id-token: write
 
 concurrency:
   group: h38-owner-maintenance-regression-${{ github.event.pull_request.number || github.ref }}
@@ -23,39 +39,35 @@ concurrency:
 
 jobs:
   run:
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'agent/quote-agent-walkthrough-acceptance-polish-20260823')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
-      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
-      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
-      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
-      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
       GH_TOKEN: ${{ github.token }}
+      H38_RUN_VISUALS: '1'
+      H38_GITHUB_OIDC_TOKEN_FILE: ${{ runner.temp }}/h38-maintenance-oidc-token
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - name: Announce owner regression run
-        run: gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "RUNNING — OWNER MAINTENANCE REGRESSION. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-      - name: Load existing authorized Google owner credential
+        run: gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "RUNNING — CANONICAL QUOTE AGENT + VISUAL ACCEPTANCE (GitHub OIDC). Ref: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Request signed GitHub maintenance identity
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$HOME"
-          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
-          else echo 'Missing existing production Google credential.'; exit 78; fi
-          chmod 600 "$HOME/.clasprc.json"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
-      - name: Seed historical files and fire all saved quotes
-        run: node scripts/run-owner-maintenance-regression.js "$HOME/.clasprc.json" "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
+          RESPONSE=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=h38-owner-maintenance")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);if(!p.value)process.exit(2);process.stdout.write(p.value)})")
+          echo "::add-mask::$TOKEN"
+          printf '%s' "$TOKEN" > "$H38_GITHUB_OIDC_TOKEN_FILE"
+          chmod 600 "$H38_GITHUB_OIDC_TOKEN_FILE"
+      - name: Seed evidence and run canonical + visual acceptance
+        run: node scripts/run-owner-maintenance-regression.js /dev/null "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
       - name: Upload regression evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,12 +84,13 @@ jobs:
             SUMMARY=$(node - <<'NODE'
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('artifacts/owner-maintenance-regression.json','utf8'));
-          const failed=(r.results||[]).filter(x=>x.status!=='CLEAN').map(x=>`${x.title} [${x.quoteId}] — ${x.message||`HTTP ${x.http}`}`).join('\n');
+          const failed=(r.results||[]).filter(x=>x.status!=='CLEAN').map(x=>`${x.title} [${x.quoteId}] — build=${x.quoteAgent?.classification||'FAIL'}, lines=${x.quoteAgent?.baselineComparison?.pass?'match':'drift'}, options=${x.options?.baseComparison?.pass?'match':'drift'}, visual=${x.visual?.structurePass?'ready':'fail'}, fixture=${x.safety?.quoteFixtureUnchanged?'unchanged':'changed'}`).join('\n');
+          const visualFailed=(r.visualResults||[]).filter(x=>x.status!=='CLEAN').map(x=>`${x.title} [${x.quoteId}] — ${x.mode||'unknown'} / ${x.renderStatus||'FAIL'}${x.message?` — ${x.message}`:''}`).join('\n');
           const seed=r.seed||{};
-          process.stdout.write(`OWNER MAINTENANCE REGRESSION\nRun: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\nSeeded documents: ${seed.documentsSeeded||0}\nSeeded Action Pictures: ${seed.actionPicturesSeeded||0}\nUnique assets: ${seed.uniqueAssets||0}\nQuotes tested: ${(r.results||[]).length}\nClean: ${r.clean||0}\nFail: ${r.fail||0}\n${failed?`Failures:\n${failed}`:'All quote builds clean.'}`);
+          process.stdout.write(`CANONICAL QUOTE AGENT + VISUAL ACCEPTANCE\nRun: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\nAuth: ${r.authMode||'unknown'}\nSeeded documents: ${seed.documentsSeeded||0}\nSeeded Action Pictures: ${seed.actionPicturesSeeded||0}\nUnique assets: ${seed.uniqueAssets||0}\nCanonical quotes tested: ${(r.results||[]).length}\nCanonical clean: ${r.clean||0}\nCanonical fail: ${r.fail||0}\nVisuals tested: ${(r.visualResults||[]).length}\nVisual clean: ${r.visualClean||0}\nVisual fail: ${r.visualFail||0}\n${failed?`Canonical failures:\n${failed}\n`:''}${visualFailed?`Visual failures:\n${visualFailed}`:''}${!failed&&!visualFailed?'All canonical quote and visual checks clean.':''}`);
           NODE
             )
             gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$SUMMARY"
           else
-            gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "OWNER MAINTENANCE REGRESSION failed before producing its report. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "CANONICAL QUOTE AGENT acceptance failed before producing its report. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           fi
