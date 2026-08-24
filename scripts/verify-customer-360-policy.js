@@ -1,7 +1,7 @@
 const fs=require('fs');
 const vm=require('vm');
 const assert=require('assert');
-const source=fs.readFileSync('commercial-app/customer-360-browser-integration-v2.js','utf8');
+const source=fs.readFileSync('commercial-app/customer-360-browser-integration-v3.js','utf8');
 const sandbox={
   console,
   setInterval:()=>0,
@@ -24,14 +24,14 @@ const customers=[
  {'Customer ID':'C-TEST','Customer Name':'Recovered Customer Portal Test','Internal Only':true,'Test Data':true}
 ];
 const properties=[
- {'Property ID':'P-SMITH-1','Customer ID':'C-SMITH-1','Address':'101 Pine Rd'},
- {'Property ID':'P-SMITH-2','Customer ID':'C-SMITH-2','Address':'202 Oak Rd'},
- {'Property ID':'P-JOHN','Customer ID':'C-JOHN','Address':'129 Hwy 38'}
+ {'Property ID':'P-SMITH-1','Customer ID':'C-SMITH-1','Address':'101 Pine Rd','Updated Time':'2026-08-20T12:00:00Z'},
+ {'Property ID':'P-SMITH-2','Customer ID':'C-SMITH-2','Address':'202 Oak Rd','Updated Time':'2026-08-20T12:00:00Z'},
+ {'Property ID':'P-JOHN','Customer ID':'C-JOHN','Address':'129 Hwy 38','Updated Time':'2026-08-20T12:00:00Z'}
 ];
 const jobs=[
- {'Job ID':'J-SMITH-1','Customer ID':'C-SMITH-1','Project Title':'Deck repair'},
- {'Job ID':'J-SMITH-2','Customer ID':'C-SMITH-2','Project Title':'Roof repair'},
- {'Job ID':'J-JOHN','Customer ID':'C-JOHN','Project Title':'Gutter repair'}
+ {'Job ID':'J-SMITH-1','Customer ID':'C-SMITH-1','Project Title':'Deck repair','Updated Time':'2026-08-21T12:00:00Z'},
+ {'Job ID':'J-SMITH-2','Customer ID':'C-SMITH-2','Project Title':'Roof repair','Updated Time':'2026-08-21T12:00:00Z'},
+ {'Job ID':'J-JOHN','Customer ID':'C-JOHN','Project Title':'Gutter repair','Updated Time':'2026-08-22T12:00:00Z'}
 ];
 sandbox.window.state.snapshot={customers,properties,jobs,quotes:[],siteCaptureSessions:[],jobNotes:[],documents:[],followUps:[]};
 function bundle(cid){return{customerId:cid,customer:customers.find(c=>c['Customer ID']===cid),groups:{properties:properties.filter(x=>x['Customer ID']===cid),jobs:jobs.filter(x=>x['Customer ID']===cid)}};}
@@ -60,4 +60,8 @@ const untouched=P.supplementOperation(expense);assert.equal(untouched.payload.re
 sandbox.window.state.snapshot.quotes=[{'Quote ID':'Q-1','Customer ID':'C-JOHN'}];
 const doc={action:'SAVE_ENTITY',payload:{entity:'documents',record:{'Document ID':'D-1','Quote ID':'Q-1'}}};
 const linked=P.supplementOperation(doc);assert.equal(linked.payload.record['Customer ID'],'C-JOHN','operational child should inherit unique source customer');
-console.log(JSON.stringify({status:'PASS',build:P.build,checks:['duplicate surname ambiguity','internal test hidden','one-character typo','hiway normalization','finance isolation','operational source inheritance']},null,2));
+const activity=P.recentActivity(bundle('C-JOHN'));
+assert(activity.length>=2,'activity feed should include linked location and job');
+assert.equal(activity[0].collection,'jobs','newest linked record should appear first');
+assert.equal(P.activityFirstCustomerView,true);assert.equal(P.progressiveDisclosure,true);
+console.log(JSON.stringify({status:'PASS',build:P.build,checks:['duplicate surname ambiguity','internal test hidden','one-character typo','hiway normalization','finance isolation','operational source inheritance','activity ordering','progressive disclosure']},null,2));
