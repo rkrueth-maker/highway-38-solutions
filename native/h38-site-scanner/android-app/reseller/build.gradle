@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 59
-        versionName '0.1.58'
+        versionCode 60
+        versionName '0.1.59'
     }
     signingConfigs {
         debug {
@@ -36,8 +36,7 @@ android {
     }
     buildTypes {
         debug {
-            // Fresh owner-test namespace avoids any collision with prior ephemeral CI signatures.
-            applicationIdSuffix '.owner58'
+            applicationIdSuffix '.owner59'
             versionNameSuffix '-debug'
             signingConfig signingConfigs.debug
         }
@@ -53,51 +52,40 @@ android {
     }
 }
 
-// v0.1.58 keeps the proven v049 product/store authority, v051 local verified-image
-// cache/cursor, v053 strict-date/filter/refresh authority, and v056 sourcing-place
-// authority. v058 is the final app-wide completeness layer: exact-UPC visual index,
-// staged item research, useful empty states, source-health diagnostics, and missing-
-// value cleanup without changing crawler/store/resale truth boundaries.
-def injectH38V058 = {
+// v0.1.59 keeps all proven v058 authorities and adds one final maintenance layer.
+// v059 owns: self-test/maintenance path, feed artifact hygiene, duplicate identity
+// suppression in normal UI, one-time stale photo-cache reset, and exact-barcode proof
+// enforcement for Dollar General / Dollar Tree images.
+def injectH38V059 = {
     def v049File = file('src/main/assets/reseller/v049-runtime.js')
     def v051File = file('src/main/assets/reseller/v051-runtime.js')
     def v053File = file('src/main/assets/reseller/v053-runtime.js')
     def v056File = file('src/main/assets/reseller/v056-runtime.js')
     def v058File = file('src/main/assets/reseller/v058-runtime.js')
-    if (!v049File.isFile()) throw new GradleException('Missing reseller/v049-runtime.js for v0.1.58 foundation')
-    if (!v051File.isFile()) throw new GradleException('Missing reseller/v051-runtime.js for v0.1.58 cache authority')
-    if (!v053File.isFile()) throw new GradleException('Missing reseller/v053-runtime.js for v0.1.58 hunt-flow authority')
-    if (!v056File.isFile()) throw new GradleException('Missing reseller/v056-runtime.js for v0.1.58 sourcing stores')
-    if (!v058File.isFile()) throw new GradleException('Missing reseller/v058-runtime.js for v0.1.58 wide-pass authority')
+    def v059File = file('src/main/assets/reseller/v059-runtime.js')
+    [v049File,v051File,v053File,v056File,v058File,v059File].each { if (!it.isFile()) throw new GradleException("Missing reseller/${it.name} for v0.1.59") }
     def v049 = v049File.getText('UTF-8')
     def v051 = v051File.getText('UTF-8')
     def v053 = v053File.getText('UTF-8')
     def v056 = v056File.getText('UTF-8')
     def v058 = v058File.getText('UTF-8')
-    def marker = 'data-h38-v058-runtime="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058"'
-    def tag = '<script ' + marker + '>window.addEventListener("load",function(){\n' + v049 + '\n' + v051 + '\n' + v053 + '\n' + v056 + '\n' + v058 + '\nwindow.H38_V058_RUNTIME_HANDOFF="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058";\n},{once:true});</script>'
+    def v059 = v059File.getText('UTF-8')
+    def marker = 'data-h38-v059-runtime="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058-plus-v059"'
+    def tag = '<script ' + marker + '>window.addEventListener("load",function(){\n' + v049 + '\n' + v051 + '\n' + v053 + '\n' + v056 + '\n' + v058 + '\n' + v059 + '\nwindow.H38_V059_RUNTIME_HANDOFF="bundled-v049-plus-v051-plus-v053-plus-v056-plus-v058-plus-v059";\n},{once:true});</script>'
     def matches = fileTree(layout.buildDirectory.get().asFile).matching { include '**/reseller/index.html' }.files
-    if (matches.empty) throw new GradleException('Could not locate merged reseller/index.html for v0.1.58 injection')
+    if (matches.empty) throw new GradleException('Could not locate merged reseller/index.html for v0.1.59 injection')
     matches.each { File indexFile ->
         def html = indexFile.getText('UTF-8')
-        html = html.replace('<script src="v049-runtime.js"></script>', '')
-        html = html.replace('<script src="v051-runtime.js"></script>', '')
-        html = html.replace('<script src="v053-runtime.js"></script>', '')
-        html = html.replace('<script src="v056-runtime.js"></script>', '')
-        html = html.replace('<script src="v058-runtime.js"></script>', '')
+        for (String name : ['v049-runtime.js','v051-runtime.js','v053-runtime.js','v056-runtime.js','v058-runtime.js','v059-runtime.js']) html = html.replace('<script src="' + name + '"></script>', '')
         if (!html.contains(marker)) {
             def next = html.replace('</body>', tag + '\n</body>')
-            if (next == html) throw new GradleException('Merged reseller/index.html has no </body> for v0.1.58 injection')
+            if (next == html) throw new GradleException('Merged reseller/index.html has no </body> for v0.1.59 injection')
             indexFile.write(next, 'UTF-8')
-        } else {
-            indexFile.write(html, 'UTF-8')
-        }
+        } else indexFile.write(html, 'UTF-8')
     }
 }
 tasks.configureEach { task ->
-    if (task.name == 'mergeDebugAssets' || task.name == 'mergeReleaseAssets') {
-        task.doLast { injectH38V058() }
-    }
+    if (task.name == 'mergeDebugAssets' || task.name == 'mergeReleaseAssets') task.doLast { injectH38V059() }
 }
 
 dependencies {
