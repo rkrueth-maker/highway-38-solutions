@@ -6,6 +6,7 @@ const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const BUSINESS_ID="10b85a89-5834-436d-95b0-c6ee2eb335ad";
 const BUILD="20260824-quote-agent-canonical-3-render-action";
 const PREVIOUS_BUILD="20260824-quote-agent-canonical-2-evidence-source";
+const ORIGINAL_CANONICAL_BUILD="20260824-quote-agent-canonical-1";
 const STORAGE_BUCKET="business-office-files";
 const H38_ORIGIN="https://highway38solutions.com";
 const ALLOWED_ORIGINS=new Set([H38_ORIGIN,"https://www.highway38solutions.com","https://rkrueth-maker.github.io","http://localhost:8000","http://127.0.0.1:8000"]);

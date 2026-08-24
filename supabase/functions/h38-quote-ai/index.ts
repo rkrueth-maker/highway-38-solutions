@@ -21,6 +21,7 @@ const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
 const QUOTE_MODEL_TIMEOUT_MS = 55000;
 const QUOTE_AI_BUILD = "20260824-render-source-path-22";
+const PREVIOUS_QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
   insulationR24Ceiling: "f752fe19-ffe4-4981-864e-a7c0b69660c4",
