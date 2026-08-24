@@ -1,0 +1,35 @@
+name: Verify Customer 360 Owner Flow
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/customer-360-authority.js'
+      - 'commercial-app/customer-360-authority.css'
+      - 'commercial-app/customer-360-browser-integration.js'
+      - 'commercial-app/index.html'
+      - 'scripts/verify-customer-360-owner-flow.js'
+      - 'tests/test_customer_360_owner_flow_20260824.py'
+      - '.github/workflows/verify-customer-360-owner-flow.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: JavaScript syntax
+        run: |
+          node -c commercial-app/customer-360-authority.js
+          node -c commercial-app/customer-360-browser-integration.js
+      - name: Owner-language resolver
+        run: node scripts/verify-customer-360-owner-flow.js
+      - name: Customer 360 contracts
+        run: python -m pytest -q tests/test_customer_360_owner_flow_20260824.py
