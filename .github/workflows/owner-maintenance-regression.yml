@@ -55,7 +55,8 @@ jobs:
         with:
           node-version: '24'
       - name: Announce owner regression run
-        run: gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "RUNNING — CANONICAL QUOTE AGENT + VISUAL ACCEPTANCE (GitHub OIDC). Ref: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        run: |
+          gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "RUNNING — CANONICAL QUOTE AGENT + VISUAL ACCEPTANCE (GitHub OIDC). Ref: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
       - name: Request signed GitHub maintenance identity
         shell: bash
         run: |
