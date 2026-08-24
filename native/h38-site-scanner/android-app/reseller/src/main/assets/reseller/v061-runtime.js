@@ -11,6 +11,9 @@ window.H38_V061_RUNTIME_MARKER='fast-evidence-feed-photo-deferred-v061';
   function quality(row){let q=0;if(code(row))q+=5;if(text(row?.sku))q+=2;if(text(row?.original_price))q+=2;if(text(row?.posted_date||row?.pennied_at))q+=2;if(text(row?.last_seen))q++;q+=Math.min(4,Number(row?.signal_source_count||0)||0);return q}
   function clean(rows){const out=[],idx=new Map();for(const raw of Array.isArray(rows)?rows:[]){if(artifact(raw))continue;const row={...raw},r=norm(row.retailer);if((r==='dollar general'||r==='dollar tree')&&row.image_url){const proof=digits(row.image_match_barcode).replace(/^0+/,'');if(!proof||proof!==code(row)){delete row.image_url;delete row.image_source;delete row.image_reference_url;delete row.image_match_barcode;delete row.image_match_model;delete row.image_match_title}}const k=key(row);if(!idx.has(k)){idx.set(k,out.length);out.push(row);continue}const i=idx.get(k),old=out[i],winner=quality(row)>quality(old)?row:old,loser=winner===row?old:row,a=[...(Array.isArray(winner.signal_sources)?winner.signal_sources:[])],seen=new Set(a.map(x=>text(x?.url||x?.domain||x?.name).toLowerCase()).filter(Boolean));for(const s of Array.isArray(loser.signal_sources)?loser.signal_sources:[]){const sk=text(s?.url||s?.domain||s?.name).toLowerCase();if(sk&&!seen.has(sk)){seen.add(sk);a.push(s)}}out[i]={...winner,signal_sources:a,signal_source_count:Math.max(Number(winner.signal_source_count||0),Number(loser.signal_source_count||0),a.length)}}return out}
 
+  function addStyle(){if(document.getElementById('h38-v061-style'))return;const s=document.createElement('style');s.id='h38-v061-style';s.textContent=`.v061-advanced{margin-top:7px;border:1px solid #e1e8ec;border-radius:9px}.v061-advanced>summary{padding:8px 10px;cursor:pointer;font-weight:700}.v061-advanced .v053-controls{margin:0;padding:0 9px 9px}.v061-advanced-note{margin:6px 0!important;padding:0!important;border:0!important;background:transparent!important;font-size:.72rem}`;document.head.appendChild(s)}
+  addStyle();
+
   const fnBase=fn;
   fn=async function(name,body,timeout){
     const feeds=new Set(['reseller-auto-leads','reseller-auto-leads-v038','reseller-auto-leads-v044','reseller-auto-leads-v046','reseller-auto-leads-v049','reseller-auto-leads-v051','reseller-auto-leads-v058','reseller-auto-leads-v061-fast']),isFeed=feeds.has(name);
@@ -20,7 +23,14 @@ window.H38_V061_RUNTIME_MARKER='fast-evidence-feed-photo-deferred-v061';
     return out;
   };
 
+  function polishHunt(p){
+    const note=p.querySelector('.workflow-head .muted.small');if(note)note.textContent='Fast, searchable penny and clearance evidence. Missing pictures never delay the hunt; open a product only when its identity, date or store evidence is useful.';
+    p.querySelectorAll('.v058-photo-note').forEach(x=>x.remove());
+    const controls=p.querySelector('.v053-controls');
+    if(controls&&!controls.closest('.v061-advanced')){const d=document.createElement('details');d.className='v061-advanced';if(state.v053AgeFilter!=='all'||state.v053GroupMode!=='retailer')d.open=true;d.innerHTML='<summary>Advanced filters</summary>';controls.parentNode.insertBefore(d,controls);d.appendChild(controls)}
+    const status=p.querySelector('.v053-age-note');if(status){status.classList.add('v061-advanced-note');if(state.v053AgeFilter==='all'&&state.v053GroupMode==='retailer'){const m=text(status.textContent).match(/Showing\s+(\d+)\s+item/i);status.textContent=(m?`${m[1]} items`:'Items loaded')+' · all ages · by retailer';}}
+  }
   const renderClearanceBase=renderClearance;
-  renderClearance=function(){renderClearanceBase();const p=$('page-clearance');if(!p)return;const note=p.querySelector('.workflow-head .muted.small');if(note)note.textContent='Fast, searchable penny and clearance evidence. Missing pictures never delay the hunt; open a product only when its identity, date or store evidence is useful.';p.querySelectorAll('.v058-photo-note').forEach(x=>x.remove())};
+  renderClearance=function(){renderClearanceBase();const p=$('page-clearance');if(p)polishHunt(p)};
   if(state.page==='clearance')renderClearance();
 })();
