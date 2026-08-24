@@ -5,6 +5,7 @@ const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const authority=path.join(root,'commercial-app/customer-360-authority.js');
 const ownerPolish=path.join(root,'commercial-app/owner-customer-workflow-polish.js');
+const jobHandoff=path.join(root,'commercial-app/owner-job-lifecycle-handoff.js');
 const lifecycle=path.join(root,'commercial-app/job-lifecycle.js');
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -23,8 +24,8 @@ const lifecycle=path.join(root,'commercial-app/job-lifecycle.js');
       window.queueOperation=async(action,type,id,payload,optimistic)=>{window.__ops.push({action,type,id,payload,optimistic});const meta=optimistic||{};if(meta.collection&&meta.record){const list=state.snapshot[meta.collection]||(state.snapshot[meta.collection]=[]);const key=Object.keys(meta.record).find(k=>/ ID$/.test(k));const pos=key?list.findIndex(r=>r[key]===meta.record[key]):-1;if(pos>=0)list[pos]=meta.record;else list.push(meta.record);}return{ok:true};};
       window.H38Bridge=class{async request(){return{ok:true};}};
     });
-    await page.addScriptTag({path:authority});await page.addScriptTag({path:ownerPolish});await page.addScriptTag({path:lifecycle});await page.waitForFunction(()=>window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH&&window.H38_JOB_LIFECYCLE);
-    await page.evaluate(()=>H38_OWNER_CUSTOMER_WORKFLOW_POLISH.createJobFromAcceptedQuote());
+    await page.addScriptTag({path:authority});await page.addScriptTag({path:ownerPolish});await page.addScriptTag({path:jobHandoff});await page.addScriptTag({path:lifecycle});await page.waitForFunction(()=>window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH&&window.H38_OWNER_JOB_HANDOFF&&window.H38_JOB_LIFECYCLE);
+    await page.evaluate(()=>H38_OWNER_JOB_HANDOFF.createFromAcceptedQuote());
     const created=await page.evaluate(()=>({jobs:state.snapshot.jobs,checklists:state.snapshot.checklists,ops:__ops}));
     assert.equal(created.jobs.length,1,'accepted quote should create exactly one internal job');assert.equal(created.jobs[0]['Customer ID'],'C1');assert.equal(created.jobs[0]['Quote ID'],'Q1');assert.equal(created.jobs[0]['Status'],'Approved');assert.equal(created.checklists.length,3,'approved job should receive pre-job, completion quality and closeout checklists');assert.deepEqual(created.checklists.map(x=>x['Checklist Type']).sort(),['CLOSEOUT','PREJOB','QUALITY']);
     let stage=await page.evaluate(()=>H38_JOB_LIFECYCLE.analyzeJob(state.snapshot.jobs[0]).stage);assert.equal(stage,'SCHEDULE');
@@ -41,7 +42,7 @@ const lifecycle=path.join(root,'commercial-app/job-lifecycle.js');
     await page.evaluate(()=>state.snapshot.invoices.push({'Invoice ID':'I1','Job ID':state.snapshot.jobs[0]['Job ID'],'Customer ID':'C1','Total':2500,'Balance':2500,'Status':'Draft'}));stage=await page.evaluate(()=>H38_JOB_LIFECYCLE.analyzeJob(state.snapshot.jobs[0]).stage);assert.equal(stage,'PAYMENT');
     await page.evaluate(()=>{state.snapshot.invoices[0].Balance=0;state.snapshot.invoices[0].Status='Paid';state.snapshot.payments.push({'Payment ID':'P1','Invoice ID':'I1','Amount':2500});});stage=await page.evaluate(()=>H38_JOB_LIFECYCLE.analyzeJob(state.snapshot.jobs[0]).stage);assert.equal(stage,'CLOSEOUT');
     await page.evaluate(()=>{const c=state.snapshot.checklists.find(x=>x['Checklist Type']==='CLOSEOUT'),items=JSON.parse(c['Items JSON']);c['Completed Items JSON']=JSON.stringify(items.map(x=>x.id));c.Status='Complete';});stage=await page.evaluate(()=>H38_JOB_LIFECYCLE.analyzeJob(state.snapshot.jobs[0]).stage);assert.equal(stage,'WARRANTY');
-    const sideEffects=await page.evaluate(()=>__ops.map(x=>x.action));assert(!sideEffects.some(x=>/SEND|PAY|PURCHASE|SCHEDULE/.test(String(x))),'quote-to-job conversion must not send, pay, purchase, or schedule automatically');assert.deepEqual(errors,[],'browser should have no page errors');
+    const sideEffects=await page.evaluate(()=>__ops.map(x=>x.action));assert(!sideEffects.some(x=>/SEND|PAY|PURCHASE|SCHEDULE/.test(String(x))),'quote-to-job conversion must not send, pay, purchase, or schedule automatically');const flags=await page.evaluate(()=>H38_OWNER_JOB_HANDOFF);assert.equal(flags.ownerTapRequired,true);assert.equal(flags.automaticScheduling,false);assert.deepEqual(errors,[],'browser should have no page errors');
     console.log(JSON.stringify({status:'PASS',stages:['SCHEDULE','PREJOB','WORK','QUALITY','INVOICE','PAYMENT','CLOSEOUT','WARRANTY'],checklists:3,automaticExternalActions:false},null,2));
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
