@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: h38-owner-maintenance-regression
@@ -27,6 +28,7 @@ jobs:
       CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
       GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
       GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,7 +40,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME"
           if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
-          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64" | base64 --decode > "$HOME/.clasprc.json"
           elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
           elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
           elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
@@ -56,3 +58,20 @@ jobs:
           path: artifacts/owner-maintenance-regression.json
           if-no-files-found: warn
           retention-days: 90
+      - name: Report regression result
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/owner-maintenance-regression.json ]]; then
+            SUMMARY=$(node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('artifacts/owner-maintenance-regression.json','utf8'));
+          const failed=(r.results||[]).filter(x=>x.status!=='CLEAN').map(x=>`${x.title} [${x.quoteId}] — ${x.message||`HTTP ${x.http}`}`).join('\n');
+          const seed=r.seed||{};
+          process.stdout.write(`OWNER MAINTENANCE REGRESSION\nRun: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\nSeeded documents: ${seed.documentsSeeded||0}\nSeeded Action Pictures: ${seed.actionPicturesSeeded||0}\nUnique assets: ${seed.uniqueAssets||0}\nQuotes tested: ${(r.results||[]).length}\nClean: ${r.clean||0}\nFail: ${r.fail||0}\n${failed?`Failures:\n${failed}`:'All quote builds clean.'}`);
+          NODE
+            )
+            gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "$SUMMARY"
+          else
+            gh issue comment 168 --repo "$GITHUB_REPOSITORY" --body "OWNER MAINTENANCE REGRESSION failed before producing its report. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
