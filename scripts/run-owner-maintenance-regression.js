@@ -3,23 +3,26 @@
 
 const fs=require('fs');
 const path=require('path');
-const ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-owner-maintenance';
+const OWNER_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-owner-maintenance';
+const OIDC_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-owner-maintenance-oidc';
 const credentialPath=process.argv[2]||path.join(process.env.HOME||'','.clasprc.json');
 const outputPath=process.argv[3]||path.join(process.cwd(),'artifacts','owner-maintenance-regression.json');
+const oidcPath=process.env.H38_GITHUB_OIDC_TOKEN_FILE||'';
 const runVisuals=process.env.H38_RUN_VISUALS!=='0';
 function findByKey(value,keys,seen=new Set()){if(!value||typeof value!=='object'||seen.has(value))return'';seen.add(value);for(const [key,child] of Object.entries(value))if(keys.includes(key)&&typeof child==='string'&&child.trim())return child.trim();for(const child of Object.values(value)){const found=findByKey(child,keys,seen);if(found)return found;}return'';}
 function save(report){fs.mkdirSync(path.dirname(outputPath),{recursive:true});fs.writeFileSync(outputPath,JSON.stringify(report,null,2)+'\n');}
 async function googleAccessToken(){if(!fs.existsSync(credentialPath))throw new Error(`Credential file missing: ${credentialPath}`);const credentials=JSON.parse(fs.readFileSync(credentialPath,'utf8'));let accessToken=findByKey(credentials,['access_token','accessToken']);const refreshToken=findByKey(credentials,['refresh_token','refreshToken']),clientId=findByKey(credentials,['client_id','clientId']),clientSecret=findByKey(credentials,['client_secret','clientSecret']);if(refreshToken&&clientId&&clientSecret){const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'}),signal:AbortSignal.timeout(30000)});if(response.ok){const payload=await response.json();if(payload.access_token)accessToken=payload.access_token;}}if(!accessToken)throw new Error('No usable Google owner access token is available.');return accessToken;}
-async function call(token,body,timeout=180000){const response=await fetch(ENDPOINT,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',Origin:'https://highway38solutions.com'},body:JSON.stringify(body),signal:AbortSignal.timeout(timeout)});const raw=await response.text();let payload={};try{payload=raw?JSON.parse(raw):{};}catch{payload={status:'FAIL',message:raw.slice(0,1000)};}if(!response.ok||payload.status!=='PASS')throw new Error(`Owner maintenance ${body.action} failed (${response.status}): ${payload.message||raw.slice(0,500)}`);return payload;}
+async function auth(){if(oidcPath){if(!fs.existsSync(oidcPath))throw new Error(`GitHub OIDC token file missing: ${oidcPath}`);const token=fs.readFileSync(oidcPath,'utf8').trim();if(!token)throw new Error('GitHub OIDC token file is empty.');return{mode:'github-oidc',endpoint:OIDC_ENDPOINT,headers:{'x-h38-github-oidc':token}};}const token=await googleAccessToken();return{mode:'google-owner',endpoint:OWNER_ENDPOINT,headers:{Authorization:`Bearer ${token}`}};}
+async function call(identity,body,timeout=180000){const response=await fetch(identity.endpoint,{method:'POST',headers:{...identity.headers,'Content-Type':'application/json',Origin:'https://highway38solutions.com'},body:JSON.stringify(body),signal:AbortSignal.timeout(timeout)});const raw=await response.text();let payload={};try{payload=raw?JSON.parse(raw):{};}catch{payload={status:'FAIL',message:raw.slice(0,1000)};}if(!response.ok||payload.status!=='PASS')throw new Error(`Owner maintenance ${body.action} failed (${response.status}): ${payload.message||raw.slice(0,500)}`);return payload;}
 (async()=>{
-  const token=await googleAccessToken();
-  const report={startedAt:new Date().toISOString(),seed:null,status:null,batches:[],results:[],visualBatches:[],visualResults:[],runVisuals};
-  report.status=await call(token,{action:'status'},30000);save(report);
-  report.seed=await call(token,{action:'seed'},180000);save(report);
+  const identity=await auth();
+  const report={startedAt:new Date().toISOString(),authMode:identity.mode,seed:null,status:null,batches:[],results:[],visualBatches:[],visualResults:[],runVisuals};
+  report.status=await call(identity,{action:'status'},30000);save(report);
+  report.seed=await call(identity,{action:'seed'},180000);save(report);
   if(Array.isArray(report.seed.failures)&&report.seed.failures.length)throw new Error(`Historical evidence seeding had ${report.seed.failures.length} failure(s).`);
   const total=Number(report.status.total||0);
   for(let offset=0;offset<total;offset+=6){
-    const batch=await call(token,{action:'run',offset,limit:6},180000);
+    const batch=await call(identity,{action:'run',offset,limit:6},180000);
     report.batches.push({offset,clean:batch.clean,fail:batch.fail,returned:batch.returned,build:batch.build,agentBuild:batch.agentBuild});
     report.results.push(...(batch.results||[]));save(report);
     console.log(JSON.stringify({phase:'canonical',offset,clean:batch.clean,fail:batch.fail,returned:batch.returned,results:batch.results},null,2));
@@ -29,7 +32,7 @@ async function call(token,body,timeout=180000){const response=await fetch(ENDPOI
   if(report.results.length!==total)throw new Error(`Expected ${total} canonical quote results, got ${report.results.length}.`);
   if(runVisuals&&report.fail===0){
     for(let offset=0;offset<total;offset+=1){
-      const batch=await call(token,{action:'visual',offset,limit:1},190000);
+      const batch=await call(identity,{action:'visual',offset,limit:1},190000);
       report.visualBatches.push({offset,clean:batch.clean,fail:batch.fail,returned:batch.returned});
       report.visualResults.push(...(batch.results||[]));save(report);
       console.log(JSON.stringify({phase:'visual',offset,clean:batch.clean,fail:batch.fail,returned:batch.returned,results:batch.results},null,2));
