@@ -11,6 +11,11 @@ on:
       - 'commercial-app/owner-job-lifecycle-handoff.js'
       - 'commercial-app/owner-flow-polish.js'
       - 'commercial-app/job-lifecycle.js'
+      - 'commercial-app/example-data-manager.js'
+      - 'commercial-app/example-data-manager.css'
+      - 'commercial-app/assistant-command-bus.js'
+      - 'commercial-app/assistant-command-bus-input.js'
+      - 'commercial-app/assistant-command-runtime.js'
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
       - 'scripts/verify-customer-360-owner-flow.js'
@@ -19,6 +24,8 @@ on:
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
+      - 'scripts/verify-owner-example-maintenance-front-to-back.js'
+      - 'scripts/verify-personal-assistant-command-bus.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   workflow_dispatch:
@@ -43,11 +50,17 @@ jobs:
           node -c commercial-app/owner-customer-workflow-polish.js
           node -c commercial-app/owner-job-lifecycle-handoff.js
           node -c commercial-app/owner-flow-polish.js
+          node -c commercial-app/example-data-manager.js
+          node -c commercial-app/assistant-command-bus.js
+          node -c commercial-app/assistant-command-bus-input.js
+          node -c commercial-app/assistant-command-runtime.js
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
           node -c scripts/verify-owner-navigation-context-polish.js
           node -c scripts/verify-photo-only-web-quote.js
           node -c scripts/verify-owner-quote-to-complete-job.js
+          node -c scripts/verify-owner-example-maintenance-front-to-back.js
+          node -c scripts/verify-personal-assistant-command-bus.js
       - name: Owner-language relationship resolver
         run: node scripts/verify-customer-360-owner-flow.js
       - name: Owner ambiguity finance and activity policy
@@ -74,3 +87,7 @@ jobs:
         run: node scripts/verify-photo-only-web-quote.js
       - name: Run accepted quote through completed job lifecycle
         run: node scripts/verify-owner-quote-to-complete-job.js
+      - name: Run realistic example data through maintenance path
+        run: node scripts/verify-owner-example-maintenance-front-to-back.js
+      - name: Run Personal Assistant specialist command bus
+        run: node scripts/verify-personal-assistant-command-bus.js
