@@ -39,7 +39,7 @@ concurrency:
 
 jobs:
   run:
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'agent/quote-agent-walkthrough-acceptance-polish-20260823')
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'agent/quote-agent-walkthrough-acceptance-polish-20260823' || github.head_ref == 'agent/conversation-meeting-assistant-20260824'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
