@@ -4,6 +4,9 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "commercial-app"
 AGENT = ROOT / "supabase" / "functions" / "h38-quote-agent" / "index.ts"
 MAINT = ROOT / "supabase" / "functions" / "h38-owner-maintenance" / "index.ts"
+OIDC = ROOT / "supabase" / "functions" / "h38-owner-maintenance-oidc" / "index.ts"
+WORKFLOW = ROOT / ".github" / "workflows" / "owner-maintenance-regression.yml"
+RUNNER = ROOT / "scripts" / "run-owner-maintenance-regression.js"
 
 
 def read(path: Path) -> str:
@@ -33,6 +36,8 @@ def test_saved_owner_reviewed_baseline_is_deterministic_not_provider_bound():
     assert 'providerCallSkipped:true' in deterministic
     assert 'delegateLegacy' not in deterministic
     assert 'compareLines(saved,lines)' in deterministic
+    assert 'quoteLineId:l.quoteLineId' in src
+    assert 'unitPrice:l.unitPrice' in src
 
 
 def test_visual_manifest_fingerprints_exact_quote_lines_and_direction():
@@ -93,7 +98,7 @@ def test_service_worker_keeps_canonical_agent_live_first_and_precached():
 
 def test_owner_maintenance_checks_quote_options_visual_and_fixture_state():
     src = read(MAINT)
-    assert '20260824-owner-maintenance-acceptance-2' in src
+    assert '20260824-owner-maintenance-acceptance-3-token' in src
     for action in ['"buildQuote"', '"options"', '"prepareVisual"', '"renderQuote"']:
         assert action in src
     assert 'baselineComparison' in src
@@ -102,6 +107,8 @@ def test_owner_maintenance_checks_quote_options_visual_and_fixture_state():
     assert 'visualQuantityManifest' in src
     assert 'actualVisualGenerationPending' in src
     assert 'revisionUnchanged' in src
+    assert 'ownerMaintenanceTokens' in src
+    assert 'ephemeral-regression-token' in src
     assert 'automaticApproval:false' in src
     assert 'automaticCustomerSending:false' in src
 
@@ -111,3 +118,31 @@ def test_historical_seed_status_no_longer_claims_manual_reselection_is_required(
     assert 'no manual re-selection is required' in src
     assert 'Private Business Office plan/reference files are seeded' in src
     assert 'not DWG/DXF CAD' in src
+
+
+def test_oidc_gateway_is_repo_workflow_actor_and_action_bounded():
+    src = read(OIDC)
+    assert '20260824-owner-maintenance-oidc-1' in src
+    assert 'rkrueth-maker/highway-38-solutions' in src
+    assert 'Owner Maintenance Quote Regression' in src
+    assert 'OWNER_ACTOR="rkrueth-maker"' in src
+    assert 'AUDIENCE="h38-owner-maintenance"' in src
+    assert 'token.actions.githubusercontent.com/.well-known/jwks' in src
+    assert 'RSASSA-PKCS1-v1_5' in src
+    assert 'new Set(["status","seed","run","visual"])' in src
+    assert 'ownerMaintenanceTokens' in src
+    for forbidden in ['approveQuote', 'sendQuote', 'purchase', 'payment', 'scheduleJob']:
+        assert forbidden not in src
+
+
+def test_workflow_uses_oidc_not_stored_google_owner_credentials():
+    workflow = read(WORKFLOW)
+    runner = read(RUNNER)
+    assert 'id-token: write' in workflow
+    assert 'audience=h38-owner-maintenance' in workflow
+    assert 'H38_GITHUB_OIDC_TOKEN_FILE' in workflow
+    assert 'github.event.pull_request.head.repo.full_name == github.repository' in workflow
+    assert 'CLASPRC_JSON' not in workflow
+    assert 'GOOGLE_CLASPRC_JSON' not in workflow
+    assert 'h38-owner-maintenance-oidc' in runner
+    assert "'x-h38-github-oidc':token" in runner
