@@ -2,11 +2,13 @@ name: Temporary Owner Workflow Polish Wire
 on:
   push:
     branches: [agent/conversation-meeting-assistant-20260824]
+  pull_request:
+    branches: [main]
 permissions:
   contents: write
 jobs:
   wire:
-    if: ${{ !contains(github.event.head_commit.message, '[owner-polish-wired]') }}
+    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[owner-polish-wired]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
