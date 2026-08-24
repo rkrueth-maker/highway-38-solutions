@@ -8,12 +8,15 @@ on:
       - 'commercial-app/customer-360-browser-integration-v3.js'
       - 'commercial-app/owner-customer-workflow-polish.js'
       - 'commercial-app/owner-customer-workflow-polish.css'
+      - 'commercial-app/owner-job-lifecycle-handoff.js'
+      - 'commercial-app/owner-flow-polish.js'
       - 'commercial-app/job-lifecycle.js'
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
@@ -38,8 +41,11 @@ jobs:
           node -c commercial-app/customer-360-authority.js
           node -c commercial-app/customer-360-browser-integration-v3.js
           node -c commercial-app/owner-customer-workflow-polish.js
+          node -c commercial-app/owner-job-lifecycle-handoff.js
+          node -c commercial-app/owner-flow-polish.js
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
+          node -c scripts/verify-owner-navigation-context-polish.js
           node -c scripts/verify-photo-only-web-quote.js
           node -c scripts/verify-owner-quote-to-complete-job.js
       - name: Owner-language relationship resolver
@@ -62,6 +68,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run Customer 360 Chromium owner flow
         run: node scripts/verify-customer-360-browser.js
+      - name: Run owner navigation and context polish
+        run: node scripts/verify-owner-navigation-context-polish.js
       - name: Run photo-only web quote flow
         run: node scripts/verify-photo-only-web-quote.js
       - name: Run accepted quote through completed job lifecycle
