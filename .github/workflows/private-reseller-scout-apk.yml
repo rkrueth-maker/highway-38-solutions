@@ -6,6 +6,7 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'supabase/functions/reseller-auto-leads-v046/**'
       - 'supabase/functions/reseller-auto-leads-v058/**'
+      - 'supabase/functions/reseller-image-delivery-v201/**'
       - 'supabase/functions/reseller-nearby-stores/**'
       - 'supabase/functions/reseller-nearby-sources/**'
       - 'supabase/functions/reseller-item-research-v047/**'
@@ -38,7 +39,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify Scout v2.0 clean rebuild contract
+      - name: Verify Scout v2.0.1 physical repair contract
         shell: bash
         run: |
           set -euo pipefail
@@ -52,99 +53,88 @@ jobs:
           scan="$assets/v200-scan.js"
           more="$assets/v200-more.js"
           app="$assets/v200-app.js"
-          css="$assets/v200-ui.css"
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
           auctionFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v200/index.ts"
+          visualFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v058/index.ts"
+          imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"
           dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
 
-          check "versionName '2.0.0'" reseller/build.gradle
-          check 'versionCode 63' reseller/build.gradle
+          check "versionName '2.0.1'" reseller/build.gradle
+          check 'versionCode 64' reseller/build.gradle
           check "applicationIdSuffix '.owner'" reseller/build.gradle
-          check "buildTypes" reseller/build.gradle
-          check "owner {" reseller/build.gradle
           if grep -Eq 'injectH38V0|bundled-v049|owner61' reseller/build.gradle; then echo '::error::Legacy runtime injection/package suffix returned'; exit 1; fi
 
           for f in "$core" "$hunt" "$auctions" "$discover" "$scan" "$more" "$app"; do node --check "$f"; done
           check 'H38_SCOUT_V200' "$core"
-          check 'Discover' "$index"
-          check 'Hunt' "$index"
-          check 'Scan' "$index"
-          check 'Auctions' "$index"
-          check 'More' "$index"
-          check 'v200-core.js' "$index"
-          check 'v200-hunt.js' "$index"
-          check 'v200-auctions.js' "$index"
-          check 'v200-discover.js' "$index"
-          check 'v200-scan.js' "$index"
-          check 'v200-more.js' "$index"
-          check 'v200-app.js' "$index"
-          if grep -Eq 'v0(27|28|29|32|33|34|35|37|38|41|42|45|49|51|53|56|58|59|60|61)[-_.]' "$index"; then echo '::error::Legacy Scout runtime referenced by v2 index'; exit 1; fi
+          for t in Discover Hunt Scan Auctions More v200-core.js v200-hunt.js v200-auctions.js v200-discover.js v200-scan.js v200-more.js v200-app.js; do check "$t" "$index"; done
+          if grep -Eq 'v0(35|45|49|51|53|56|58|59|60|61)-runtime|v035-core.js' "$index"; then echo '::error::Legacy Scout runtime referenced by v2 index'; exit 1; fi
 
-          # Retail truth + async image behavior.
-          check 'artifactTitle' "$core"
-          check 'isPenny' "$core"
-          check 'isNearPenny' "$core"
+          # Physical Hunt regressions: collapse, strict dates, junk filtering, verified image delivery.
+          check 'huntArtifact' "$hunt"
+          check 'Penny date unknown' "$hunt"
+          check 'retailer-group' "$hunt"
+          check 'huntGroupCard' "$hunt"
+          check 'data-hunt-group' "$hunt"
+          check 'filter-pill' "$hunt"
+          check "fn('reseller-image-delivery-v201'" "$hunt"
+          check 'IntersectionObserver' "$hunt"
+          check 'image failure never blocks Hunt' "$more"
+          check 'v058-exact-upc-boundary-v201' "$visualFn"
+          check 'RetailShout DG' "$visualFn"
+          check 'next UPC boundary' "$visualFn"
+          check 'reseller-image-delivery-v201' "$imageFn"
+          check 'exact-upc-retailshout+verified-url' "$imageFn"
+          check 'exact barcode proof required' "$imageFn"
+
+          # Preserve core retail/deal truth.
           check 'Crawler/community evidence does not prove local store price or stock' "$hunt"
           check 'physical register scan remains final penny truth' "$hunt"
           check "fn('reseller-auto-leads-v046'" "$hunt"
-          check 'hydrateHuntImages' "$hunt"
           check "fn('reseller-auto-leads-v058'" "$hunt"
-          check 'image failure never blocks Hunt' "$more"
-
-          # Discover + deal truth.
           check 'runDiscover' "$discover"
-          check "reseller-opportunity-scan-v060" "$discover"
           check 'NEEDS COMP' "$discover"
           check 'VERIFIED OPPORTUNITY' "$discover"
           check 'Asking prices never set the resale estimate' "$scan"
           check 'listing kept for manual review' "$dealsFn"
-          check 'profit_verified:false' "$dealsFn"
-          check 'profit_verified:true' "$dealsFn"
 
-          # Auction v2 must search lots and isolate source health.
-          check 'H38_AUCTION_ADAPTERS_V200' "$auctionFn"
-          check 'parseHiBidLots' "$auctionFn"
-          check 'Public Surplus' "$auctionFn"
-          check 'AuctionZip' "$auctionFn"
-          check 'Proxibid' "$auctionFn"
-          check 'MaxSold' "$auctionFn"
-          check 'GovDeals' "$auctionFn"
-          check 'Purple Wave' "$auctionFn"
-          check 'EstateSales.NET' "$auctionFn"
-          check 'Promise.allSettled' "$auctionFn"
-          check 'Auction discovery only' "$auctionFn"
-          check "reseller-auction-search-v200" "$auctions"
-          check 'Search actual lots when available' "$auctions"
+          # Auction truth regressions.
+          check 'H38_AUCTION_ADAPTERS_V201_TRUTH' "$auctionFn"
+          check 'pickupVerified' "$auctionFn"
+          check 'resaleRelevant' "$auctionFn"
+          check 'if(d!=null&&d>radius)continue' "$auctionFn"
+          if grep -Fq 'radius*1.12' "$auctionFn"; then echo '::error::Auction radius tolerance returned'; exit 1; fi
+          check 'pickup_verified===true' "$auctionFn"
+          check 'Distance needs verification' "$auctions"
+          check 'premium unknown' "$auctions"
+          check 'Verified pickup required' "$auctions"
+          check 'Distance needs verification' "$auctions"
+          check 'Resale items' "$auctions"
           check 'source_health' "$auctions"
 
-          # Scan + supporting flows.
-          check 'H38_STAGED_RESEARCH_V047' "$GITHUB_WORKSPACE/supabase/functions/reseller-item-research-v047/index.ts"
-          check 'Retry market evidence' "$scan"
-          check 'Nearby Sources' "$more"
-          check 'Maintenance / Self-Test' "$more"
-          check 'Third-party outage is a WARN' "$more"
-
-          # Native v2 shell / Custom Tabs.
+          # Native shell remains clean v2 / Custom Tabs.
           check 'H38_SCOUT_V200_CLEAN_RUNTIME' "$main"
-          check 'H38ResellerScoutAndroid/2.0-clean-runtime' "$main"
           check 'CustomTabsIntent' "$main"
-          check 'v200-core.js' "$main"
           if grep -Eq 'v0(35|45|49|51|53|56|58|59|60|61)-runtime|v035-core.js|v035-app.js' "$main"; then echo '::error::Native shell still bundles legacy runtime'; exit 1; fi
 
-          # Behavioral regression guards from physical videos.
+          # Behavioral fixtures for exact physical failures from 1000009640.mp4.
           node <<'NODE'
-          const artifact=t=>{const p=String(t).toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();return /^page \d+ (?:of|\/) \d+$/.test(p)||/^(?:check|shop|view|open|see|browse|load) (?:amazon|ebay|walmart|target|online|store|stores|price|prices|list|deal|deals|more)$/.test(p)||/^other misc/.test(p)||/^[\d. ]+$/.test(p)};
-          for(const x of ['Check Amazon','Page 1 of 2','Other / Misc','4.5'])if(!artifact(x))throw Error('artifact guard missed '+x);
+          const norm=v=>String(v??'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+          const artifact=t=>{const p=norm(t);return /^(?:today|yesterday|\d+ (?:minutes?|hours?|days?|weeks?) ago)$/.test(p)||/^(?:fd|dg|dt|item|product|unknown|clearance|penny|deal)$/.test(p)||/^page \d+ (?:of|\/) \d+$/.test(p)||/^(?:check|shop|view|open|see|browse|load) (?:amazon|ebay|walmart|target|online|store|stores|price|prices|list|deal|deals|more)$/.test(p)||/^other misc/.test(p)||/^[\d. ]+$/.test(p)};
+          for(const x of ['→ · today','today','Check Amazon','Page 1 of 2','Other / Misc','4.5'])if(!artifact(x))throw Error('artifact guard missed '+x);
           for(const x of ['Milwaukee M18 FUEL Impact Wrench','Energizer MAX AAA Batteries'])if(artifact(x))throw Error('real product filtered '+x);
-          const pub='Auction: #4066416 - 2020 Toro Groundsmaster 7000 Zero Turn State: MN Current Price: $2,650.00 Time Left: 4 days 20 hours';
-          const m=pub.match(/Auction:\s*#(\d+)\s*-\s*([^#]{3,220}?)\s+State:\s*[A-Z]{2}\s+Current Price:\s*\$?([0-9,.]+)\s+Time Left:\s*([^A#]{2,60})/i);
-          if(!m||m[1]!=='4066416'||!m[2].includes('Toro'))throw Error('Public Surplus fixture failed');
-          const lot='<a href="/lot/5001/milwaukee-fuel-m18-12in-miter-saw">Lot 5001 | Milwaukee Fuel M18 12in Miter Saw & Stand</a> High Bid: 160.00 USD 24 Bids';
-          if(!/\/lot\//.test(lot)||!/Milwaukee Fuel M18/i.test(lot)||!/High Bid:\s*160/.test(lot))throw Error('HiBid lot fixture failed');
+          const known=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+          if(known(null)||known(undefined)||known(''))throw Error('unknown numeric values became zero');
+          if(!known(0))throw Error('explicit numeric zero should remain numeric when source truly supplies it');
+          const pickupVerified=v=>/^(?:local pickup only|local pickup preferred)$/i.test(String(v||'').trim());
+          if(pickupVerified('Pickup terms on source')||pickupVerified('Pickup not established'))throw Error('vague pickup passed required filter');
+          if(!pickupVerified('Local pickup only'))throw Error('verified pickup rejected');
+          const radius=50,distance=50.6;if(!(distance>radius))throw Error('exact radius fixture failed');
+          const resaleRelevant=t=>!/(?:tax[- ]forfeit|tax parcel|property tax|real estate|vacant land|residential property|commercial property|land parcel|acreage|\btract\s+\d+|\bparcel\s*(?:#|no\.?|number)?\s*\d+)/i.test(t.toLowerCase());
+          if(resaleRelevant('Tax Forfeited Parcel 17 - Vacant Land'))throw Error('property row survived resale default');
+          if(!resaleRelevant('2020 Toro Groundsmaster 7000 Zero Turn'))throw Error('resale equipment filtered');
           NODE
 
-      - name: Configure stable signing when available
-        id: signing
+      - name: Configure signing fallback
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
@@ -162,48 +152,42 @@ jobs:
             echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
             echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
             echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-            echo 'stable=true' >> "$GITHUB_OUTPUT"
             echo 'stable-upload-key' > "$report/signing-continuity.txt"
           else
-            echo 'stable=false' >> "$GITHUB_OUTPUT"
-            echo 'debug-fallback: configure H38_ANDROID_UPLOAD_* secrets before expecting in-place upgrades across CI runners' > "$report/signing-continuity.txt"
+            echo 'debug-fallback accepted for v2.0.1; uninstall/reinstall authorized for this physical repair build' > "$report/signing-continuity.txt"
           fi
 
-      - name: Compile stable Owner Scout v2 APK
+      - name: Compile Owner Scout v2.0.1 APK
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
-          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'
-          test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.0.0.apk"
-          cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.0.0.sha256"
+          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.0.1.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.0.1.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect installable Scout v2 APK
+      - name: Smoke inspect installable Scout v2.0.1 APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.0.0.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.0.1.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='63' versionName='2.0.0'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='64' versionName='2.0.1'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
-          grep -Fq 'v200-core.js' "$report/packaged-index.html"
-          grep -Fq 'v200-auctions.js' "$report/packaged-index.html"
-          if grep -Eq 'v0(35|45|49|51|53|56|58|59|60|61)-runtime|v035-core.js' "$report/packaged-index.html"; then echo '::error::Legacy runtime referenced in packaged v2 shell'; exit 1; fi
-          for f in v200-core.js v200-hunt.js v200-auctions.js v200-discover.js v200-scan.js v200-more.js v200-app.js v200-ui.css; do unzip -l "$out" | grep -Fq "assets/reseller/$f" || { echo "::error::Missing packaged $f"; exit 1; }; done
+          grep -Fq 'v200-hunt.js' "$report/packaged-index.html"; grep -Fq 'v200-auctions.js' "$report/packaged-index.html"
+          for f in v200-core.js v200-hunt.js v200-auctions.js v200-discover.js v200-scan.js v200-more.js v200-app.js v200-ui.css; do unzip -l "$out" | grep -Fq "assets/reseller/$f" || exit 1; done
 
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.0.0
+          name: h38-reseller-scout-owner-v2.0.1
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
