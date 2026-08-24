@@ -1,0 +1,98 @@
+name: Temporary Customer 360 Integration Patch
+on:
+  push:
+    branches: [agent/conversation-meeting-assistant-20260824]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[customer360-integrated]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/conversation-meeting-assistant-20260824
+          fetch-depth: 0
+      - name: Integrate customer authority
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p=Path(path); s=p.read_text()
+              if s.count(old)!=1:
+                  raise SystemExit(f'{path}: expected one marker, found {s.count(old)}: {old[:90]}')
+              p.write_text(s.replace(old,new,1))
+
+          # Customer graph: recover historical job/source links only from unique customer evidence.
+          replace_once('commercial-app/customer-360-authority.js',
+            "['Invoice ID','invoiceId','invoices'],['Conversation ID','conversationId','conversations'],['Portal Thread ID','portalThreadId','portalThreads']",
+            "['Invoice ID','invoiceId','invoices'],['Conversation ID','conversationId','conversations'],['Portal Thread ID','portalThreadId','portalThreads'],['Follow-up ID','followUpId','followUps']")
+          replace_once('commercial-app/customer-360-authority.js',
+            "if(sourceId){for(const parentCollection of ['quotes','jobs','siteCaptureSessions','meetings','requests','invoices','properties','conversations']){const cid=customerByKey[`${parentCollection}:${sourceId}`];if(cid)return{customerId:cid,via:`${parentCollection}:${sourceId}`};}}\n    return null;",
+            "if(sourceId){for(const parentCollection of ['quotes','jobs','siteCaptureSessions','meetings','requests','invoices','properties','conversations','followUps']){const cid=customerByKey[`${parentCollection}:${sourceId}`];if(cid)return{customerId:cid,via:`${parentCollection}:${sourceId}`};}\n      const visitNoteId=`${sourceId}-NOTES`,visitNoteCustomer=customerByKey[`jobNotes:${visitNoteId}`];if(visitNoteCustomer)return{customerId:visitNoteCustomer,via:`jobNotes:${visitNoteId}`};\n    }\n    return null;")
+
+          # Load Customer 360 as an explicit live-first runtime.
+          replace_once('commercial-app/index.html',
+            '  <link rel="stylesheet" href="./conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1">',
+            '  <link rel="stylesheet" href="./conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1">\n  <link rel="stylesheet" href="./customer-360-authority.css?build=20260824-customer-360-authority-1">')
+          replace_once('commercial-app/index.html',
+            '  <script src="./conversation-meeting-assistant.js?build=20260824-conversation-meeting-assistant-1"></script>',
+            '  <script src="./conversation-meeting-assistant.js?build=20260824-conversation-meeting-assistant-1"></script>\n  <script src="./customer-360-authority.js?build=20260824-customer-360-authority-1"></script>')
+
+          # Cache lineage and offline-first assets.
+          replace_once('commercial-app/service-worker.js',
+            "const CACHE_NAME='h38-business-office-20260824-0410';",
+            "const CACHE_NAME='h38-business-office-20260824-0550';\nconst PREVIOUS_CUSTOMER_360_CACHE_NAME='h38-business-office-20260824-0410';")
+          replace_once('commercial-app/service-worker.js',
+            "'conversation-meeting-assistant.js','conversation-meeting-assistant.css','mobile-flow-polish-v2.js'",
+            "'conversation-meeting-assistant.js','conversation-meeting-assistant.css','customer-360-authority.js','customer-360-authority.css','mobile-flow-polish-v2.js'")
+          replace_once('commercial-app/service-worker.js',
+            "'./owner-flow-polish.css','./conversation-meeting-assistant.css',",
+            "'./owner-flow-polish.css','./conversation-meeting-assistant.css','./customer-360-authority.css',")
+          replace_once('commercial-app/service-worker.js',
+            "'./quote-agent-contract.js','./conversation-meeting-assistant.js','./mobile-flow-polish-v2.js'",
+            "'./quote-agent-contract.js','./conversation-meeting-assistant.js','./customer-360-authority.js','./mobile-flow-polish-v2.js'")
+
+          # Personal Assistant: customer-first retrieval for owner language, including plain names/addresses.
+          pa=Path('commercial-app/personal-assistant.js'); s=pa.read_text()
+          helper="""function customerPull(command){
+  const c360=window.H38_CUSTOMER_360;if(!c360?.resolveAssistantQuery)return null;
+  const result=c360.resolveAssistantQuery(snapshot(),command);if(!result?.matched)return null;
+  if(result.confident&&result.customerId){c360.selectedCustomerId=result.customerId;try{openPage('customers');}catch(_){}}
+  return result.answer||null;
+}
+"""
+          marker='async function runCommand(command){'
+          if helper not in s:
+              if s.count(marker)!=1: raise SystemExit('personal-assistant runCommand marker missing')
+              s=s.replace(marker,helper+marker,1)
+          start=s.find("    else if(/^find\\s+|search\\s+/.test(q))")
+          end=s.find("    else if(/receipt|expense/.test(q))",start)
+          if start<0 or end<0: raise SystemExit('personal-assistant legacy search block missing')
+          branch="""    else if(/^(?:find|search|pull|open)\\s+|\\bcustomer\\b|\\bjob\\s+on\\b/.test(q)){
+      const customerAnswer=customerPull(command);
+      if(customerAnswer)answer=customerAnswer;
+      else{const term=command.replace(/^(find|search|pull|open)\\s+/i,'').trim();let found=[];try{found=window.H38_JOB_LIFECYCLE?.search?.(term)||[];}catch(_){}if(!Array.isArray(found)||!found.length){const collections=['customers','jobs','quotes','tasks','scheduleEvents','documents','invoices'];for(const collection of collections)for(const row of rows(collection)){const blob=JSON.stringify(row).toLowerCase();if(blob.includes(term.toLowerCase()))found.push({collection,row});if(found.length>=8)break;}}answer=found.length?found.slice(0,8).map(entry=>{const row=entry.row||entry.record||entry;return`${entry.collection||entry.type||'Office'}: ${text(value(row,'Project Title','Customer Name','Task Title','Title','Quote Number','Invoice Number','File Name')||'matching record')}`;}).join('\\n'):`I could not find “${term}” in the currently cached Office.`;}
+    }
+"""
+          s=s[:start]+branch+s[end:]
+          generic="    else answer='I can capture reminders, tasks, notes, routines and memory; summarize your day; find cached Office records; show business exceptions; and open the right Office screen. Business sends, approvals, purchases and payments stay behind their existing controls.';"
+          if s.count(generic)!=1: raise SystemExit(f'personal-assistant generic marker count {s.count(generic)}')
+          replacement="    else{const customerAnswer=customerPull(command);answer=customerAnswer||'I can capture reminders, tasks, notes, routines and memory; summarize your day; pull a customer by name, address or job; show business exceptions; and open the right Office screen. Business sends, approvals, purchases and payments stay behind their existing controls.';}"
+          pa.write_text(s.replace(generic,replacement,1))
+
+          Path('.github/workflows/temp-customer360-integration-patch.yml').unlink()
+          PY
+      - name: Verify patched syntax and owner flow
+        run: |
+          node -c commercial-app/customer-360-authority.js
+          node -c commercial-app/personal-assistant.js
+          node scripts/verify-customer-360-owner-flow.js
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commercial-app/customer-360-authority.js commercial-app/index.html commercial-app/service-worker.js commercial-app/personal-assistant.js .github/workflows/temp-customer360-integration-patch.yml
+          git commit -m "Integrate customer 360 and assistant retrieval [customer360-integrated]"
+          git push origin HEAD:agent/conversation-meeting-assistant-20260824
