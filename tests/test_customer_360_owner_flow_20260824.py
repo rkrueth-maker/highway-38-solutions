@@ -8,7 +8,8 @@ INDEX=(ROOT/'commercial-app/index.html').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
-    assert "const BUILD='20260824-customer-360-authority-1'" in C360
+    assert "const BUILD='20260824-customer-360-authority-2'" in C360
+    assert 'root.H38_CUSTOMER_360=api' in C360
     for marker in ['customers','properties','jobs','quotes','meetings','siteCaptureSessions','siteMeasurements','documents','followUps','invoices']:
         assert marker in C360
     for marker in ['expenses','purchases','payroll','taxRecords','contractorCostChecklists','contractorPricingPolicy']:
