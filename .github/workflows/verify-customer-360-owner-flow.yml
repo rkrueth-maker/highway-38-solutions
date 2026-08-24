@@ -9,6 +9,7 @@ on:
       - 'commercial-app/index.html'
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
+      - 'scripts/verify-customer-360-browser.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   workflow_dispatch:
@@ -31,9 +32,24 @@ jobs:
           node -c commercial-app/customer-360-authority.js
           node -c commercial-app/customer-360-browser-integration-v3.js
           node -c scripts/verify-customer-360-policy.js
+          node -c scripts/verify-customer-360-browser.js
       - name: Owner-language relationship resolver
         run: node scripts/verify-customer-360-owner-flow.js
       - name: Owner ambiguity finance and activity policy
         run: node scripts/verify-customer-360-policy.js
       - name: Customer 360 contracts
         run: python -m pytest -q tests/test_customer_360_owner_flow_20260824.py
+
+  browser-owner-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run Customer 360 Chromium owner flow
+        run: node scripts/verify-customer-360-browser.js
