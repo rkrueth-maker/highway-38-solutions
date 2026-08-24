@@ -20,7 +20,7 @@ const MAX_ASSEMBLY_ROWS = 160;
 const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
 const QUOTE_MODEL_TIMEOUT_MS = 55000;
-const QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
+const QUOTE_AI_BUILD = "20260824-render-source-path-22";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
   insulationR24Ceiling: "f752fe19-ffe4-4981-864e-a7c0b69660c4",
@@ -310,7 +310,13 @@ async function quotePhotos(service: ReturnType<typeof serviceClient>, businessId
   }
   return result;
 }
-async function quoteRenderSource(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string): Promise<RenderSource | null> {
+async function quoteRenderSource(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string, preferredPath = ""): Promise<RenderSource | null> {
+  const preferred = clean(preferredPath, 1200);
+  if (preferred && preferred.startsWith(`${businessId}/`)) {
+    const ext = (preferred.split(".").pop() || "").toLowerCase();
+    const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    return { bucket: STORAGE_BUCKET, path: preferred, mimeType };
+  }
   const { data, error } = await service.from("business_records")
     .select("payload, updated_at")
     .eq("business_id", businessId)
@@ -683,8 +689,8 @@ function renderPrompt(context: JsonObject, draft: JsonObject): string {
     "Show a plausible professionally completed result. Do not imply exact measurements, engineering approval, permit approval, pricing approval, or proof that work was completed.",
   ].join("\n");
 }
-async function createRenderConcept(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string, context: JsonObject, draft: JsonObject, userId: string) {
-  const source = await quoteRenderSource(service, businessId, quoteId);
+async function createRenderConcept(service: ReturnType<typeof serviceClient>, businessId: string, quoteId: string, context: JsonObject, draft: JsonObject, userId: string, preferredSourcePath = "") {
+  const source = await quoteRenderSource(service, businessId, quoteId, preferredSourcePath);
   if (!source) return { status: "NO_SOURCE_PHOTO", concept: null };
   const { data: sourceBlob, error: sourceError } = await service.storage.from(source.bucket).download(source.path);
   if (sourceError || !sourceBlob) throw sourceError || new Error("Original quote photo could not be loaded for rendering.");
@@ -931,7 +937,7 @@ async function renderQuote(request: Request, body: JsonObject): Promise<Response
       currentEstimate: currentEstimate(body.currentEstimate),
     };
     const draft: JsonObject = { suggestedLines: Array.isArray(body.suggestedLines) ? body.suggestedLines.slice(0, 80) : [] };
-    const rendered = await createRenderConcept(service, businessId, quoteId, context, draft, user.id);
+    const rendered = await createRenderConcept(service, businessId, quoteId, context, draft, user.id, clean(body.renderSourcePath, 1200));
     await service.from("business_proof_log").insert({
       business_id: businessId,
       actor_user_id: user.id,
