@@ -1,0 +1,58 @@
+name: Owner Maintenance Quote Regression
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/run-owner-maintenance-regression.js'
+      - '.github/workflows/owner-maintenance-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-owner-maintenance-regression
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 }}
+      CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+      CLASP_CREDENTIALS_B64: ${{ secrets.CLASP_CREDENTIALS_B64 }}
+      GOOGLE_CLASPRC_JSON: ${{ secrets.GOOGLE_CLASPRC_JSON }}
+      GOOGLE_CLASPRC_JSON_B64: ${{ secrets.GOOGLE_CLASPRC_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Load existing authorized Google owner credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [[ -n "${CLASPRC_JSON}" ]]; then printf '%s' "${CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASPRC_JSON_B64}" ]]; then printf '%s' "${CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS}" ]]; then printf '%s' "${CLASP_CREDENTIALS}" > "$HOME/.clasprc.json"
+          elif [[ -n "${CLASP_CREDENTIALS_B64}" ]]; then printf '%s' "${CLASP_CREDENTIALS_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON}" > "$HOME/.clasprc.json"
+          elif [[ -n "${GOOGLE_CLASPRC_JSON_B64}" ]]; then printf '%s' "${GOOGLE_CLASPRC_JSON_B64}" | base64 --decode > "$HOME/.clasprc.json"
+          else echo 'Missing existing production Google credential.'; exit 78; fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME+'/.clasprc.json','utf8'))"
+      - name: Seed historical files and fire all saved quotes
+        run: node scripts/run-owner-maintenance-regression.js "$HOME/.clasprc.json" "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-maintenance-regression-${{ github.run_id }}
+          path: artifacts/owner-maintenance-regression.json
+          if-no-files-found: warn
+          retention-days: 90
