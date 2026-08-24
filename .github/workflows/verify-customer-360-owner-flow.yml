@@ -13,6 +13,7 @@ on:
       - 'commercial-app/job-lifecycle.js'
       - 'commercial-app/example-data-manager.js'
       - 'commercial-app/example-data-manager.css'
+      - 'commercial-app/example-data-full-office.js'
       - 'commercial-app/assistant-command-bus.js'
       - 'commercial-app/assistant-command-bus-input.js'
       - 'commercial-app/assistant-command-runtime.js'
@@ -26,12 +27,14 @@ on:
       - 'scripts/verify-owner-quote-to-complete-job.js'
       - 'scripts/verify-owner-example-maintenance-front-to-back.js'
       - 'scripts/verify-personal-assistant-command-bus.js'
+      - 'scripts/run-owner-maintenance-regression.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   owner-flow:
@@ -51,6 +54,7 @@ jobs:
           node -c commercial-app/owner-job-lifecycle-handoff.js
           node -c commercial-app/owner-flow-polish.js
           node -c commercial-app/example-data-manager.js
+          node -c commercial-app/example-data-full-office.js
           node -c commercial-app/assistant-command-bus.js
           node -c commercial-app/assistant-command-bus-input.js
           node -c commercial-app/assistant-command-runtime.js
@@ -91,3 +95,39 @@ jobs:
         run: node scripts/verify-owner-example-maintenance-front-to-back.js
       - name: Run Personal Assistant specialist command bus
         run: node scripts/verify-personal-assistant-command-bus.js
+
+  owner-maintenance-tunnel:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      H38_RUN_VISUALS: '1'
+      H38_GITHUB_OIDC_TOKEN_FILE: ${{ runner.temp }}/h38-maintenance-oidc-token
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Request signed GitHub maintenance identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=h38-owner-maintenance")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);if(!p.value)process.exit(2);process.stdout.write(p.value)})")
+          echo "::add-mask::$TOKEN"
+          printf '%s' "$TOKEN" > "$H38_GITHUB_OIDC_TOKEN_FILE"
+          chmod 600 "$H38_GITHUB_OIDC_TOKEN_FILE"
+      - name: Run live owner maintenance regression
+        run: node scripts/run-owner-maintenance-regression.js /dev/null "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
+      - name: Upload maintenance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-maintenance-regression-${{ github.run_id }}
+          path: artifacts/owner-maintenance-regression.json
+          if-no-files-found: warn
+          retention-days: 90
