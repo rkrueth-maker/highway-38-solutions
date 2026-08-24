@@ -1,10 +1,10 @@
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
-  if(root&&root.document)api.install(root);
+  if(root){root.H38_CUSTOMER_360=api;if(root.document)api.install(root);}
 })(typeof window!=='undefined'?window:null,function(){
 'use strict';
-const BUILD='20260824-customer-360-authority-1';
+const BUILD='20260824-customer-360-authority-2';
 const INTERNAL_FINANCIAL=new Set(['expenses','purchases','purchaseOrders','vendorBills','payroll','payrollRuns','tax','taxRecords','contractorCostChecklists','contractorPricingPolicy','priceBookCostHistory','internalCosting']);
 const INTERNAL_BUSINESS=new Set(['usageLogs','trialBenchmarks','aiRecommendations','proofLog','errorLog','moduleSettings','providers','quickActions','aiKnowledge','roles','users','inventoryTransactions','assets','maintenance','socialMetrics']);
 const CUSTOMER_COLLECTIONS=['customers','properties','requests','jobs','tasks','scheduleEvents','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','portalMessages','quotes','quoteRevisions','meetings','siteCaptureSessions','siteMeasurements','checklists','changeOrders','timeEntries','jobNotes','dailyLogs','documents','invoices','payments','materialRequests','assignments','inspections','recurringPlans','followUps'];
@@ -32,8 +32,6 @@ function buildGraph(snapshot){
   rows(snapshot,'customers').forEach(row=>{const id=idFor('customers',row);if(id){customerByKey[`customers:${id}`]=id;provenance[`customers:${id}`]='DIRECT_CUSTOMER';}});
   const direct=(collection,row)=>text(value(row,...DIRECT_CUSTOMER_KEYS));
   CUSTOMER_COLLECTIONS.forEach(collection=>rows(snapshot,collection).forEach(row=>{const id=idFor(collection,row),cid=direct(collection,row);if(id&&cid){customerByKey[`${collection}:${id}`]=cid;provenance[`${collection}:${id}`]='DIRECT_CUSTOMER';}}));
-  // Historical child records can outlive their job row. Build safe parent hints only when
-  // direct customer evidence agrees, so old checklists/notes still remain recoverable.
   const relationshipHints=new Map();
   CUSTOMER_COLLECTIONS.forEach(collection=>rows(snapshot,collection).forEach(row=>{
     const cid=direct(collection,row);if(!cid)return;
