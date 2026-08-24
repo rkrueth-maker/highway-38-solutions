@@ -7,6 +7,10 @@ on:
     paths:
       - 'scripts/run-owner-maintenance-regression.js'
       - '.github/workflows/owner-maintenance-regression.yml'
+  pull_request:
+    paths:
+      - 'scripts/run-owner-maintenance-regression.js'
+      - '.github/workflows/owner-maintenance-regression.yml'
   workflow_dispatch:
 
 permissions:
@@ -14,7 +18,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: h38-owner-maintenance-regression
+  group: h38-owner-maintenance-regression-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
