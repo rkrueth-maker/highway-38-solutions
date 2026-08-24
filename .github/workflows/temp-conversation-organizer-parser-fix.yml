@@ -1,0 +1,36 @@
+name: Temporary Conversation Organizer Parser Fix
+on:
+  push:
+    branches: [agent/conversation-meeting-assistant-20260824]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[conversation-organizer-parser-fixed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/conversation-meeting-assistant-20260824
+          fetch-depth: 0
+      - name: Fix strict schema object closure
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('supabase/functions/h38-conversation-organize/index.ts')
+          s=p.read_text()
+          old='"SOURCE_NOTE"]}};const sourcedArray={type:"array",items:sourcedString};'
+          new='"SOURCE_NOTE"]}}};const sourcedArray={type:"array",items:sourcedString};'
+          if s.count(old)!=1:
+              raise SystemExit(f'expected one parser marker, found {s.count(old)}')
+          s=s.replace(old,new)
+          p.write_text(s)
+          Path('.github/workflows/temp-conversation-organizer-parser-fix.yml').unlink()
+          PY
+      - name: Commit parser repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/h38-conversation-organize/index.ts .github/workflows/temp-conversation-organizer-parser-fix.yml
+          git commit -m "Fix conversation organizer schema parser [conversation-organizer-parser-fixed]"
+          git push origin HEAD:agent/conversation-meeting-assistant-20260824
