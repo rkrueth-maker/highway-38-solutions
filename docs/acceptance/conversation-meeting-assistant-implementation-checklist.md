@@ -1,0 +1,24 @@
+# Conversation & Meeting Assistant implementation checklist
+
+- [x] Shared `meetings` business-record model
+- [x] Meetings Business Office navigation/page
+- [x] Start Meeting
+- [x] Add Past Conversation
+- [x] Typed recollection
+- [x] Dictated recollection path
+- [x] Live audio-only meeting recording
+- [x] Private local checkpoint / reconnect sync
+- [x] Shared meeting transcription Edge Function
+- [x] Structured meeting organizer Edge Function
+- [x] Field-level provenance
+- [x] Customer link/history
+- [x] Site Visit link and legacy projection
+- [x] Quote context handoff without bypassing Quote Agent
+- [x] Job IDs preserved where linked
+- [x] Before Visit continuity context
+- [x] CameraX microphone handoff guard
+- [ ] Automated CI green on PR head
+- [ ] Edge Functions deployed from accepted head
+- [ ] Browser/production smoke
+- [ ] Android owner candidate built
+- [ ] Physical Android Tests A–G passed
