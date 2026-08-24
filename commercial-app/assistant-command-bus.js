@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260824-assistant-command-bus-1';
+const BUILD='20260824-assistant-command-bus-2';
 const text=v=>String(v==null?'':v).trim();
 const lower=v=>text(v).toLowerCase();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -16,10 +16,22 @@ function allowedPage(page){try{return typeof window.allowedPages==='function'?wi
 function open(page){if(!allowedPage(page)&&page!=='meetings')return false;try{window.openPage?.(page);return true;}catch(_){return false;}}
 function settingContext(customerId,jobId=''){try{window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH?.setContext?.(customerId,{jobId,source:'assistant-command'});}catch(_){}try{if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;}catch(_){} }
 function customerMatches(query){const c360=window.H38_CUSTOMER_360;if(!c360?.searchCustomers)return[];try{return c360.searchCustomers(snapshot(),query)||[];}catch(_){return[];}}
+function directCustomerResult(query){
+  const words=lower(query).replace(/[^a-z0-9' -]+/g,' ').split(/\s+/).filter(word=>word.length>1);
+  if(!words.length)return null;
+  const candidates=rows('customers').map(row=>({row,id:text(value(row,'Customer ID','customerId')),name:text(value(row,'Customer Name','name'))})).filter(x=>x.id&&x.name);
+  const matched=candidates.filter(x=>{const name=lower(x.name);return words.every(word=>name.split(/\s+/).some(part=>part===word||part.startsWith(word)||word.startsWith(part)));});
+  if(matched.length===1){const item=matched[0],c360=window.H38_CUSTOMER_360;return{customerId:item.id,bundle:c360?.customerBundle?.(snapshot(),item.id)||null};}
+  if(matched.length>1)return{ambiguous:true,answer:`I found more than one matching customer: ${matched.slice(0,3).map(x=>x.name).join(', ')}. Add an address or job detail.`};
+  return null;
+}
 function customerResult(query){
-  const c360=window.H38_CUSTOMER_360;if(!c360)return null;
-  try{const result=c360.resolveAssistantQuery?.(snapshot(),query);if(result?.confident&&result.customerId)return{customerId:result.customerId,bundle:c360.customerBundle?.(snapshot(),result.customerId),answer:result.answer};if(result?.matched)return{ambiguous:true,answer:result.answer};}catch(_){}
-  const list=customerMatches(query);if(list.length===1)return{customerId:list[0].customerId,bundle:list[0].bundle};if(list.length>1)return{ambiguous:true,answer:`I found more than one matching customer: ${list.slice(0,3).map(x=>text(value(x.bundle?.customer,'Customer Name'))).join(', ')}. Add an address or job detail.`};return null;
+  const c360=window.H38_CUSTOMER_360;
+  if(c360){
+    try{const result=c360.resolveAssistantQuery?.(snapshot(),query);if(result?.confident&&result.customerId)return{customerId:result.customerId,bundle:c360.customerBundle?.(snapshot(),result.customerId),answer:result.answer};if(result?.matched&&!result?.confident){const direct=directCustomerResult(query);if(direct)return direct;return{ambiguous:true,answer:result.answer};}}catch(_){}
+    const list=customerMatches(query);if(list.length===1)return{customerId:list[0].customerId,bundle:list[0].bundle};if(list.length>1){const direct=directCustomerResult(query);if(direct)return direct;return{ambiguous:true,answer:`I found more than one matching customer: ${list.slice(0,3).map(x=>text(value(x.bundle?.customer,'Customer Name'))).join(', ')}. Add an address or job detail.`};}
+  }
+  return directCustomerResult(query);
 }
 function customerName(id){return text(value(rows('customers').find(row=>text(value(row,'Customer ID','customerId'))===text(id)),'Customer Name','name'))||'customer';}
 function customerFromCommand(command){
