@@ -17,7 +17,7 @@ def test_meeting_runtime_is_loaded_and_offline_cached():
     assert "'conversation-meeting-assistant.js'" in SW
     assert "'conversation-meeting-assistant.css'" in SW
     assert 'h38-business-office-20260824-0410' in SW
-    assert 'h38-business-office-20260824-0155' in SW  # preserve accepted cache lineage
+    assert 'h38-business-office-20260824-0155' in SW
 
 
 def test_recording_is_optional_and_past_conversation_is_first_class():
@@ -56,7 +56,7 @@ def test_shared_business_record_model_and_offline_queue_are_used():
 
 
 def test_meetings_area_customer_history_and_followup_context_are_connected():
-    for marker in ['Start Meeting','Meetings','Start Follow-up Meeting','Before Visit','Conversation history','beforeVisitContext','enhanceCustomers']:
+    for marker in ['Start Meeting','Meetings','Start Follow-up Meeting','Before Visit','Open customer history','beforeVisitContext','enhanceCustomers']:
         assert marker in RUNTIME
     assert "window.PAGE_DEFS.meetings=['🗣️','Meetings']" in RUNTIME
     assert "office().page==='meetings'" in RUNTIME
