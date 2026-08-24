@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 C360=(ROOT/'commercial-app/customer-360-authority.js').read_text()
 CSS=(ROOT/'commercial-app/customer-360-authority.css').read_text()
-BROWSER=(ROOT/'commercial-app/customer-360-browser-integration-v2.js').read_text()
+BROWSER=(ROOT/'commercial-app/customer-360-browser-integration-v3.js').read_text()
 INDEX=(ROOT/'commercial-app/index.html').read_text()
 
 
@@ -35,12 +35,21 @@ def test_owner_language_search_handles_names_addresses_and_job_language():
     assert 'Add a little more of the name, address, or job' in C360
 
 
-def test_customer_360_progressive_disclosure_and_action_layout_exist():
+def test_customer_360_base_actions_and_sections_exist():
     for marker in ['CUSTOMER 360','Locations','Jobs','Requests','Quotes','Site visits','Measurements','Meetings & conversations','Files & photos','Follow-ups','Tasks','Customer billing','Customer setup']:
         assert marker in C360
     for marker in ['Start quote','Site visit','Meeting','Message','Work']:
         assert marker in C360
     assert '@media(max-width:760px)' in CSS
+
+
+def test_activity_first_progressive_disclosure_reduces_customer_page_clutter():
+    for marker in ['Recent activity','Active work','History, conversations & files','Billing history','recentActivity','makeGroup']:
+        assert marker in BROWSER
+    assert 'activityFirstCustomerView:true' in BROWSER
+    assert 'progressiveDisclosure:true' in BROWSER
+    assert '.h38-c360-detail-group' in CSS
+    assert '.h38-c360-timeline' in CSS
 
 
 def test_assistant_policy_is_customer_first_and_ambiguity_safe():
@@ -73,8 +82,8 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
     assert 'internalFinancialWriteSupplementExcluded:true' in BROWSER
 
 
-def test_customer_360_dynamic_loader_is_loaded_by_office_shell_with_new_physical_filename():
-    assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' in INDEX
-    assert 'customer-360-browser-integration.js?build=20260824-customer-360-browser-integration-1' not in INDEX
+def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
+    assert 'customer-360-browser-integration-v3.js?build=20260824-customer-360-browser-integration-v4' in INDEX
+    assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
     assert 'customer-360-authority.js?build=20260824-customer-360-authority-1' in BROWSER
-    assert 'customer-360-authority.css?build=20260824-customer-360-authority-1' in BROWSER
+    assert 'customer-360-authority.css?build=20260824-customer-360-authority-2' in BROWSER
