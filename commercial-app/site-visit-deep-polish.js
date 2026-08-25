@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260823-site-visit-deep-polish-1';
+const BUILD='20260825-site-visit-deep-polish-2';
 const text=value=>String(value==null?'':value).trim();
 const val=(row,...keys)=>{const src=row?.payload&&typeof row.payload==='object'?row.payload:row;for(const key of keys){if(src&&src[key]!==undefined&&src[key]!==null&&src[key]!=='')return src[key];}return'';};
 const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
@@ -19,5 +19,5 @@ function actionPhotoButton(){const controls=document.querySelector('#h38ActionPi
 function decorate(){if(decorating)return;decorating=true;try{offlineNotice();actionPhotoButton();void completeAttachedSession();void quarantineStaleAudio();}finally{decorating=false;}}
 window.addEventListener('online',decorate);window.addEventListener('offline',decorate);window.addEventListener('h38:business-snapshot-updated',decorate);window.addEventListener('h38:quote-reproduction-authority-ready',decorate);window.addEventListener('h38:walkthrough-measurements-updated',decorate);document.addEventListener('click',()=>setTimeout(decorate,0),true);
 [0,250,900,2200].forEach(delay=>setTimeout(decorate,delay));setInterval(decorate,2500);
-window.H38_SITE_VISIT_DEEP_POLISH=Object.freeze({enabled:true,build:BUILD,quarantineStaleAudio,completeAttachedSession,takeAnotherActionPhoto,spokenDimensionsAreFieldAuthority:true,explicitUncertaintyRemainsUnverified:true,offlineEvidencePersists:true,onlineReviewResumesAutomatically:true,sessionCompletesOnQuoteAttach:true,staleDeletedAudioStopsRetrying:true,staleAudioRequiresSnapshotAuthority:true,takeAnotherActionPhotoAvailable:true,evidenceNeverDeletedByPolish:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
+window.H38_SITE_VISIT_DEEP_POLISH=Object.freeze({enabled:true,build:BUILD,quarantineStaleAudio,completeAttachedSession,takeAnotherActionPhoto,spokenDimensionsAreFieldAuthority:false,persistedVerifiedMeasurementsAreFieldAuthority:true,explicitUncertaintyRemainsUnverified:true,offlineEvidencePersists:true,onlineReviewResumesAutomatically:true,sessionCompletesOnQuoteAttach:true,staleDeletedAudioStopsRetrying:true,staleAudioRequiresSnapshotAuthority:true,takeAnotherActionPhotoAvailable:true,evidenceNeverDeletedByPolish:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
 })();
