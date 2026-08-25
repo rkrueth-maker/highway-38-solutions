@@ -15,6 +15,7 @@ function h38InventoryKey(x){
   if(code)return`code|${code}|${Number(x?.buy_price||0).toFixed(2)}`;
   return`title|${norm(x?.title||x?.item_name||x?.product_name)}|${Number(x?.buy_price||0).toFixed(2)}`;
 }
+function h38SafeRemoteImage(v){const s=txt(v);return /^https?:\/\//i.test(s)?s:''}
 function h38NormalizeInventory(x,remote=false){
   const meta=h38InventoryMeta(x?.notes);
   return{...x,
@@ -39,7 +40,7 @@ function h38PurchasePayload(r){
   const buy=num(r?.buy_price||r?.estimated_all_in||state.scan?.buyPrice);
   const resale=num(r?.resale_estimate||r?.expected_resale||r?.market?.typical||r?.market?.median);
   const purchasedAt=new Date().toISOString();
-  const meta={image_url:txt(r?.image_url),purchased_at:purchasedAt,source_label:source};
+  const meta={image_url:h38SafeRemoteImage(r?.image_url),purchased_at:purchasedAt,source_label:source};
   return{
     title,retailer:source,location_text:txt(r?.location_label||state.location.label||`ZIP ${H38_DEFAULT_ZIP}`),
     upc:digits(r?.upc||r?.gtin||r?.barcode),sku:txt(r?.sku||r?.model_or_part_number),source_type:norm(source)||'scout',source_url:sourceUrl,
@@ -50,6 +51,11 @@ function h38PurchasePayload(r){
     verification_status:'reported',reported_quantity:Math.max(0,Math.round(num(r?.reported_quantity)||0))
   }
 }
+function h38FallbackPayload(x){
+  const p=h38PurchasePayload(x),old=h38InventoryMeta(x?._notes||x?.notes),sold=norm(x?.status)==='sold';
+  if(sold){p.status='sold';p.notes=JSON.stringify({h38_scout_meta:{...old,image_url:h38SafeRemoteImage(x?.image_url||old.image_url),purchased_at:x?.purchased_at||old.purchased_at,sold_at:x?.sold_at||new Date().toISOString(),sold_price:num(x?.sold_price),actual_fees:num(x?.actual_fees),actual_profit:Number.isFinite(Number(x?.actual_profit))?Number(x.actual_profit):h38SaleProfit(x,num(x?.sold_price),num(x?.actual_fees))}})}
+  return p
+}
 
 // Shared Watch rules use the protected reseller_watch_rules table, while local storage remains the instant/offline cache.
 const h38v211LocalAddWatch=addWatch,h38v211LocalRemoveWatch=removeWatch;
@@ -57,10 +63,10 @@ function h38WatchRemoteShape(x){return{term:txt(x?.query_text),min_profit:num(x?
 async function h38LoadSharedWatches(force=false){
   if(!state.user)return watchRows();
   if(!force&&state.watchSharedLoadedAt&&Date.now()-state.watchSharedLoadedAt<60000)return watchRows();
-  const local=watchRows();let remote=[];
+  const local=watchRows();let remote=[],remoteOk=false;
   try{
     const{data,error:e}=await h38sb.from('reseller_watch_rules').select('*').eq('enabled',true).order('updated_at',{ascending:false}).limit(200);if(e)throw e;
-    remote=Array.isArray(data)?data.map(h38WatchRemoteShape):[];
+    remote=Array.isArray(data)?data.map(h38WatchRemoteShape):[];remoteOk=true;
     const remoteTerms=new Set(remote.map(x=>norm(x.term)));
     const missing=local.filter(x=>x.term&&!remoteTerms.has(norm(x.term))&&!x.remote);
     if(missing.length){
@@ -70,10 +76,10 @@ async function h38LoadSharedWatches(force=false){
       remote=Array.isArray(again)?again.map(h38WatchRemoteShape):remote;
     }
     state.watchSharedLoadedAt=Date.now();
-  }catch(e){error('watchLoadShared',e)}
-  const map=new Map();
+  }catch(e){remoteOk=false;error('watchLoadShared',e)}
+  const map=new Map(),remoteTerms=new Set(remote.map(x=>norm(x.term)));
   for(const x of remote){const k=norm(x.term);if(k&&!map.has(k))map.set(k,x)}
-  for(const x of local){const k=norm(x.term);if(k&&!map.has(k))map.set(k,x)}
+  for(const x of local){const k=norm(x.term);if(!k)continue;if(remoteOk&&x.remote&&!remoteTerms.has(k))continue;if(!map.has(k))map.set(k,x)}
   const merged=[...map.values()];write(H38_KEYS.watch,merged);return merged;
 }
 async function h38FindSharedWatchIds(term){
@@ -103,24 +109,36 @@ renderWatch=function(){
   if(!state.watchSharedLoadedAt||Date.now()-state.watchSharedLoadedAt>60000)void h38LoadSharedWatches().then(()=>{if(state.page==='more'&&state.moreView==='watch')renderWatch()})
 };
 
-// Shared inventory: use the real reseller_deals schema/status values, keep a local fallback, and dedupe remote/local copies canonically.
+async function h38SyncLocalInventoryFallbacks(rawLocals,remote){
+  if(!state.user||!rawLocals.length)return{locals:rawLocals,remote};
+  const remoteKeys=new Set(remote.map(h38InventoryKey)),keep=[],added=[];
+  for(const raw of rawLocals){
+    const x=h38NormalizeInventory(raw,false),key=h38InventoryKey(x);if(remoteKeys.has(key))continue;
+    try{const payload=h38FallbackPayload(x),{data,error:e}=await h38sb.from('reseller_deals').insert(payload).select('*').single();if(e)throw e;const row=h38NormalizeInventory(data,true);added.push(row);remoteKeys.add(h38InventoryKey(row))}
+    catch(e){error('inventoryFallbackSync',e);keep.push(raw)}
+  }
+  if(keep.length!==rawLocals.length)saveLocalInventory(keep);
+  return{locals:keep,remote:[...remote,...added]}
+}
+
+// Shared inventory: use the real reseller_deals schema/status values, auto-retry device fallbacks, and dedupe canonically.
 loadInventory=async function(){
-  const locals=localInventory().map(x=>h38NormalizeInventory(x,false));let remote=[];
-  try{
-    const{data,error:e}=await h38sb.from('reseller_deals').select('*').in('status',['bought','sold']).order('updated_at',{ascending:false}).limit(300);
-    if(e)throw e;remote=Array.isArray(data)?data.map(x=>h38NormalizeInventory(x,true)):[];
-  }catch(e){error('inventoryLoad',e)}
-  const map=new Map();for(const x of remote)map.set(h38InventoryKey(x),x);for(const x of locals){const k=h38InventoryKey(x);if(!map.has(k))map.set(k,x)}
+  const rawLocals=localInventory();let remote=[];
+  try{const{data,error:e}=await h38sb.from('reseller_deals').select('*').in('status',['bought','sold']).order('updated_at',{ascending:false}).limit(300);if(e)throw e;remote=Array.isArray(data)?data.map(x=>h38NormalizeInventory(x,true)):[]}
+  catch(e){error('inventoryLoad',e)}
+  let locals=rawLocals;
+  if(state.user){const synced=await h38SyncLocalInventoryFallbacks(rawLocals,remote);locals=synced.locals;remote=synced.remote}
+  const map=new Map();for(const x of remote)map.set(h38InventoryKey(x),x);for(const x of locals.map(x=>h38NormalizeInventory(x,false))){const k=h38InventoryKey(x);if(!map.has(k))map.set(k,x)}
   state.inventory=[...map.values()].sort((a,b)=>new Date(b.updated_at||b.purchased_at||0)-new Date(a.updated_at||a.purchased_at||0));
   await h38LoadSharedWatches();return state.inventory;
 };
 recordPurchase=async function(r){
   const payload=h38PurchasePayload(r),key=h38InventoryKey(payload);
   if((state.inventory||[]).some(x=>h38InventoryKey(x)===key&&norm(x.status)!=='sold')){notice('That item is already in Inventory.','warn');return}
-  const local={id:`local-${Date.now()}`,title:payload.title,status:'bought',buy_price:payload.buy_price,resale_estimate:payload.expected_resale,source:payload.retailer,source_url:payload.source_url,upc:payload.upc,sku:payload.sku,image_url:h38InventoryMeta(payload.notes).image_url,purchased_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const meta=h38InventoryMeta(payload.notes),local={id:`local-${Date.now()}`,title:payload.title,status:'bought',buy_price:payload.buy_price,resale_estimate:payload.expected_resale,source:payload.retailer,source_url:payload.source_url,upc:payload.upc,sku:payload.sku,image_url:meta.image_url,purchased_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   const prior=localInventory().filter(x=>h38InventoryKey(x)!==key);saveLocalInventory([local,...prior]);state.inventory=[local,...(state.inventory||[]).filter(x=>h38InventoryKey(x)!==key)];
   try{const{data,error:e}=await h38sb.from('reseller_deals').insert(payload).select('*').single();if(e)throw e;saveLocalInventory(localInventory().filter(x=>h38InventoryKey(x)!==key));await loadInventory();notice(`${payload.title} saved to shared Inventory.`,'good');return data}
-  catch(e){error('recordPurchaseRemote',e);await loadInventory();notice(`${payload.title} saved on this device. Shared sync will retry when available.`,'warn');return local}
+  catch(e){error('recordPurchaseRemote',e);await loadInventory();notice(`${payload.title} saved on this device. Shared sync will retry automatically.`,'warn');return local}
 };
 
 function h38SaleProfit(x,sold,fees){return Number((num(sold)-num(x?.buy_price)-num(fees)).toFixed(2))}
@@ -128,14 +146,14 @@ async function h38SaveSaleOutcome(id){
   const x=(state.inventory||[]).find(r=>txt(r.id)===txt(id));if(!x)return;const sold=num($('salePrice')?.value),fees=num($('saleFees')?.value);if(!(sold>0)){notice('Enter the actual sold price.','warn');return}
   const soldAt=new Date().toISOString(),actual=h38SaleProfit(x,sold,fees);
   if(x.remote&&!txt(x.id).startsWith('local-')){
-    const old=h38InventoryMeta(x._notes),notes=JSON.stringify({h38_scout_meta:{...old,image_url:x.image_url||old.image_url,purchased_at:x.purchased_at||old.purchased_at,sold_at:soldAt,sold_price:sold,actual_fees:fees,actual_profit:actual}});
+    const old=h38InventoryMeta(x._notes),notes=JSON.stringify({h38_scout_meta:{...old,image_url:h38SafeRemoteImage(x.image_url||old.image_url),purchased_at:x.purchased_at||old.purchased_at,sold_at:soldAt,sold_price:sold,actual_fees:fees,actual_profit:actual}});
     try{const{error:e}=await h38sb.from('reseller_deals').update({status:'sold',notes,updated_by:state.user?.id,updated_at:soldAt}).eq('id',x.id);if(e)throw e;state.inventorySaleEdit='';await loadInventory();renderInventory();notice(`Sold result saved · ${dollars(actual)} actual profit.`,'good');return}catch(e){error('inventorySoldRemote',e);notice('Shared sold update failed; keeping the item unchanged.','bad');return}
   }
   const rows=localInventory().map(r=>txt(r.id)===txt(id)?{...r,status:'sold',sold_at:soldAt,sold_price:sold,actual_fees:fees,actual_profit:actual,updated_at:soldAt}:r);saveLocalInventory(rows);state.inventorySaleEdit='';await loadInventory();renderInventory();notice(`Sold result saved · ${dollars(actual)} actual profit.`,'good');
 }
 renderInventory=function(){
   const p=$('morePage'),rows=state.inventory||[],editing=txt(state.inventorySaleEdit);
-  p.innerHTML=`<div class="page-head"><div><button id="moreBack" class="ghost">‹ More</button><h1>Inventory</h1><p>Shared bought/sold history closes the loop so Scout can learn what actually makes money.</p></div><button id="inventoryRefresh" class="mini-btn">Refresh</button></div><div class="result-list">${rows.length?rows.map(x=>{const sold=norm(x.status)==='sold',est=inventoryExpectedProfit(x),actual=Number.isFinite(Number(x.actual_profit))?Number(x.actual_profit):null,isEdit=editing===txt(x.id);return`<div class="card"><div class="item-top"><span class="badge ${sold?'good':'info'}">${sold?'SOLD':'BOUGHT'}</span><span class="badge">${x.remote?'SHARED':'DEVICE FALLBACK'}</span>${sold&&actual!=null?`<span class="badge good">ACTUAL ${esc(dollars(actual))}</span>`:est!=null?`<span class="badge">EST. ${esc(dollars(est))} SPREAD</span>`:''}</div><h3>${esc(x.title||'Saved item')}</h3><div class="meta">${num(x.buy_price)>0?`<span>buy ${dollars(x.buy_price)}</span>`:''}${num(x.resale_estimate)>0?`<span>expected ${dollars(x.resale_estimate)}</span>`:''}${sold&&num(x.sold_price)>0?`<span>sold ${dollars(x.sold_price)}</span>`:''}${sold&&num(x.actual_fees)>0?`<span>fees ${dollars(x.actual_fees)}</span>`:''}${x.source?`<span>${esc(x.source)}</span>`:''}</div>${isEdit?`<div class="search-row" style="margin-top:12px"><input id="salePrice" inputmode="decimal" placeholder="Sold price $"><input id="saleFees" inputmode="decimal" placeholder="Fees / selling costs $"><button class="primary" data-save-sale="${esc(x.id)}">Save sale</button><button class="secondary" data-cancel-sale>Cancel</button></div>`:''}<div class="card-actions">${x.source_url?`<button class="mini-btn" data-open="${esc(x.source_url)}">Source</button>`:''}${!sold&&!isEdit?`<button class="mini-btn good" data-mark-sold="${esc(x.id)}">Mark sold</button>`:''}</div></div>`}).join(''):'<div class="empty"><strong>No inventory yet</strong>Use “I bought it” in Discover or Scan and Scout will carry the known item, cost, source and expected resale here for both authorized users.</div>'}</div>`;
+  p.innerHTML=`<div class="page-head"><div><button id="moreBack" class="ghost">‹ More</button><h1>Inventory</h1><p>Shared bought/sold history closes the loop so Scout can learn what actually makes money.</p></div><button id="inventoryRefresh" class="mini-btn">Refresh</button></div><div class="result-list">${rows.length?rows.map(x=>{const sold=norm(x.status)==='sold',est=inventoryExpectedProfit(x),actual=Number.isFinite(Number(x.actual_profit))?Number(x.actual_profit):null,isEdit=editing===txt(x.id);return`<div class="card"><div class="item-top"><span class="badge ${sold?'good':'info'}">${sold?'SOLD':'BOUGHT'}</span><span class="badge">${x.remote?'SHARED':'DEVICE FALLBACK'}</span>${sold&&actual!=null?`<span class="badge good">ACTUAL ${esc(dollars(actual))}</span>`:est!=null?`<span class="badge">EST. ${esc(dollars(est))} SPREAD</span>`:''}</div><h3>${esc(x.title||'Saved item')}</h3><div class="meta">${num(x.buy_price)>0?`<span>buy ${dollars(x.buy_price)}</span>`:''}${num(x.resale_estimate)>0?`<span>expected ${dollars(x.resale_estimate)}</span>`:''}${sold&&num(x.sold_price)>0?`<span>sold ${dollars(x.sold_price)}</span>`:''}${sold&&num(x.actual_fees)>0?`<span>fees ${dollars(x.actual_fees)}</span>`:''}${x.source?`<span>${esc(x.source)}</span>`:''}</div>${isEdit?`<div class="search-row" style="margin-top:12px"><input id="salePrice" inputmode="decimal" placeholder="Sold price $"><input id="saleFees" inputmode="decimal" placeholder="Fees / shipping / selling costs $"><button class="primary" data-save-sale="${esc(x.id)}">Save sale</button><button class="secondary" data-cancel-sale>Cancel</button></div>`:''}<div class="card-actions">${x.source_url?`<button class="mini-btn" data-open="${esc(x.source_url)}">Source</button>`:''}${!sold&&!isEdit?`<button class="mini-btn good" data-mark-sold="${esc(x.id)}">Mark sold</button>`:''}</div></div>`}).join(''):'<div class="empty"><strong>No inventory yet</strong>Use “I bought it” in Discover or Scan and Scout will carry the known item, cost, source and expected resale here for both authorized users.</div>'}</div>`;
   $('moreBack').onclick=()=>{state.moreView='home';renderMore()};$('inventoryRefresh').onclick=async()=>{await loadInventory();renderInventory()};p.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openExternal(b.dataset.open));p.querySelectorAll('[data-mark-sold]').forEach(b=>b.onclick=()=>{state.inventorySaleEdit=b.dataset.markSold;renderInventory()});p.querySelectorAll('[data-cancel-sale]').forEach(b=>b.onclick=()=>{state.inventorySaleEdit='';renderInventory()});p.querySelectorAll('[data-save-sale]').forEach(b=>b.onclick=()=>h38SaveSaleOutcome(b.dataset.saveSale));
 };
 
@@ -183,6 +201,7 @@ runMaintenance=async function(){
     const sharedWatch=await h38SharedWatchProbe();addTest('Shared Watch RLS',sharedWatch.ok?'pass':'fail',sharedWatch.detail);
     try{const p=await fn('reseller-image-delivery-v201',{items:[]},30000);addTest('Image delivery service',p?.status==='PASS'?'pass':'fail','Exact-UPC recovery service is authenticated and reachable; missing images do not change penny truth.')}catch(e){addTest('Image delivery service','fail',txt(e.message||e))}
     try{const old=watchRows(),term='H38 ranking fixture';write(H38_KEYS.watch,[{term,min_profit:40,min_roi:30,max_buy:80,created_at:new Date().toISOString()},...old.filter(x=>norm(x.term)!==norm(term))]);const pass=h38WatchEvaluation({title:term,term,buy_price:50,net_profit:60,roi_pct:120}),fail=h38WatchEvaluation({title:term,term,buy_price:90,net_profit:20,roi_pct:22});write(H38_KEYS.watch,old);addTest('Watch ranking logic',pass?.status==='hit'&&fail?.status==='over'?'pass':'fail','Profit/ROI/max-buy targets now influence deal priority and badges.')}catch(e){addTest('Watch ranking logic','fail',txt(e.message||e))}
+    addTest('Fallback auto-sync',typeof h38SyncLocalInventoryFallbacks==='function'?'pass':'fail','Device-only purchases automatically retry into shared Inventory on authenticated refresh/startup.');
     addTest('Scan to Inventory',typeof h38ScanPurchasePayload==='function'&&typeof recordPurchase==='function'?'pass':'fail','Scanned identity and sold-based research can be carried directly into shared Inventory.');
     const fails=state.maintenance.tests.filter(x=>x.status==='fail').length,warns=state.maintenance.tests.filter(x=>x.status==='warn').length;addTest('Overall',fails?'fail':warns?'warn':'pass',fails?`${fails} required Scout checks failed.`:warns?`Core lifecycle passed with ${warns} isolated source/conditional warnings.`:'Wide sellable-product acceptance passed for 55744.');
   }finally{state.maintenance.running=false;renderMaintenance()}
