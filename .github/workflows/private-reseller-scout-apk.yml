@@ -1,6 +1,9 @@
 name: Build H38 Private Reseller Scout APK
 
 on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout-ci-v210-pass2'
   pull_request:
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
