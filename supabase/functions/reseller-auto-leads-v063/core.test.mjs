@@ -37,4 +37,11 @@ const sameDomain=aggregate([
 assert.equal(sameDomain.length,1);
 assert.equal(sameDomain[0].signal_source_count,1,'multiple pages on one domain count as one independent source');
 
+const unnamed=aggregate([
+ {retailer:'Home Depot',title:'Exact Product',sku:'1001001001',deal_type:'penny',buy_price:.01},
+ {retailer:'Home Depot',title:'Exact Product',sku:'1001001001',deal_type:'penny',buy_price:.01,source_name:'PennyCentral',source_url:'https://pennycentral.com/item',signal_domain:'pennycentral.com'}
+]);
+assert.equal(unnamed.length,1);
+assert.equal(unnamed[0].signal_source_count,1,'an unnamed base row must not inflate independent source confidence');
+
 console.log('PASS canonical multi-source fixtures');
