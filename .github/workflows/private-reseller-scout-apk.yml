@@ -31,7 +31,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.1.3 multi-source physical contract
+      - name: Verify v2.1.4 physical interaction contract
         shell: bash
         run: |
           set -euo pipefail
@@ -39,20 +39,29 @@ jobs:
           check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
           reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2"; exit 1; fi; }
           assets='reseller/src/main/assets/reseller'
-          core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; discover="$assets/v200-discover.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
+          core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
           fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
+          acceptance='reseller/SCOUT_BUILD_ACCEPTANCE.md'
           imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"
           dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
           sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"
           sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
 
-          check "versionName '2.1.3'" reseller/build.gradle
-          check 'versionCode 70' reseller/build.gradle
+          check "versionName '2.1.4'" reseller/build.gradle
+          check 'versionCode 71' reseller/build.gradle
           check 'H38_BUILD_SHA' reseller/build.gradle
           check 'H38_BUILD_RUN' reseller/build.gradle
           for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical"; do node --check "$f"; done
+          node reseller/hunt-touch.test.mjs | tee "$report/hunt-touch-fixture.txt"
           node "$sourceTest" | tee "$report/canonical-source-fixtures.txt"
+
+          check 'H38_SCOUT_V214_HUNT_TOUCH_ACCEPTANCE' "$physical"
+          check 'h38BindStableHuntTouch' "$physical"
+          check "addEventListener('pointerup'" "$physical"
+          check 'Retailer expand touch path' "$physical"
+          check 'TAP EACH visible retailer header' "$acceptance"
+          check 'final acceptance authority' "$acceptance"
           check 'retailer-upc-sku-bridge-v063' "$sourceCore"
           check 'pennygeneral.net' "$sourceIndex"
           check 'pennypinchinmom.com' "$sourceIndex"
@@ -102,7 +111,7 @@ jobs:
           check 'Scan to Inventory' "$wide"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.1.3 APK
+      - name: Compile Owner Scout v2.1.4 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -110,8 +119,8 @@ jobs:
           echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.1.3.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.3.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.1.4.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.4.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -119,13 +128,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.3.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.4.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='70' versionName='2.1.3'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='71' versionName='2.1.4'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"; node --check "$report/packaged-v212.js"; grep -Fq H38_SCOUT_V213_SOURCE_ACCEPTANCE "$report/packaged-v212.js"
+          unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"; node --check "$report/packaged-v212.js"; grep -Fq H38_SCOUT_V214_HUNT_TOUCH_ACCEPTANCE "$report/packaged-v212.js"; grep -Fq h38BindStableHuntTouch "$report/packaged-v212.js"
           unzip -p "$out" assets/reseller/v200-core.js > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
           unzip -p "$out" assets/reseller/v200-hunt.js > "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"
           unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"; grep -Fq 'H38_SCOUT_V213_MULTI_SOURCE' "$report/packaged-index.html"; grep -Fq 'reseller-auto-leads-v063' "$report/packaged-index.html"
@@ -143,7 +152,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.1.3
+          name: h38-reseller-scout-owner-v2.1.4
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: warn
           retention-days: 30
