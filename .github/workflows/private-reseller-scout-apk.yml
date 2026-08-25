@@ -93,7 +93,6 @@ jobs:
           check 'collectibles' "$discover"
           check 'discover_multi_lane_v202' "$discover"
           check 'discover_then_verify_v060_broad_profit_v202' "$dealsFn"
-          check 'oak dining table' "$dealsFn" || true
           check 'furniture|table|chair|desk|dresser|cabinet|shelf|sofa|couch' "$dealsFn"
           check 'auto part|car part|truck part' "$dealsFn"
           check 'sporting|golf|fishing|hunting' "$dealsFn"
@@ -102,6 +101,8 @@ jobs:
 
           # Facebook Marketplace is a real on-device capture source, but truth must stay explicit.
           check 'Scan Facebook Marketplace' "$discover"
+          check 'rankable' "$discover"
+          check 'an alert is not treated as a listing' "$discover"
           check 'facebookBrowserCandidates' "$discover"
           check 'facebookNotificationCandidates' "$discover"
           check 'openFacebookMarketplace' "$discover"
