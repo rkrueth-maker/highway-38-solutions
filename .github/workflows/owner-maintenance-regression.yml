@@ -44,7 +44,7 @@ permissions:
 
 concurrency:
   group: h38-owner-maintenance-regression-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   run:
