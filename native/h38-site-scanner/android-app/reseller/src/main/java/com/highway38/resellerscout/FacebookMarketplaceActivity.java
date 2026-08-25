@@ -86,7 +86,7 @@ public final class FacebookMarketplaceActivity extends Activity {
             }
         } catch (Exception ignored) {}
         if (terms.isEmpty()) {
-            terms.add("Milwaukee"); terms.add("DeWalt"); terms.add("generator"); terms.add("welder"); terms.add("toolbox");
+            terms.add("electronics"); terms.add("appliances"); terms.add("furniture"); terms.add("tools"); terms.add("lawn mower"); terms.add("collectibles");
         }
     }
 
@@ -118,7 +118,7 @@ public final class FacebookMarketplaceActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(true);
-        s.setUserAgentString(s.getUserAgentString() + " H38ResellerScoutMarketplace/0.1.27");
+        s.setUserAgentString(s.getUserAgentString() + " H38ResellerScoutMarketplace/2.0.2");
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
         cm.setAcceptThirdPartyCookies(webView, true);
