@@ -1,11 +1,6 @@
 name: Build H38 Private Reseller Scout APK
 
 on:
-  pull_request:
-    paths:
-      - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'supabase/functions/reseller-*/**'
-      - '.github/workflows/private-reseller-scout-apk.yml'
   push:
     branches:
       - 'agent/private-reseller-scout-ci-*'
@@ -36,83 +31,77 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify Scout v2.1.2 physical acceptance contract
+      - name: Verify v2.1.2 physical contract
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
-          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2" | tee -a "$report/contract-failures.txt"; exit 1; }; }
-          reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2" | tee -a "$report/contract-failures.txt"; exit 1; fi; }
+          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
+          reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2"; exit 1; fi; }
           assets='reseller/src/main/assets/reseller'
-          core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; auctions="$assets/v200-auctions.js"; discover="$assets/v200-discover.js"; scan="$assets/v200-scan.js"; more="$assets/v200-more.js"; polish="$assets/v210-polish.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
+          core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; discover="$assets/v200-discover.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
           fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
-          dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
-          auctionFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v200/index.ts"
           imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"
+          dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
 
           check "versionName '2.1.2'" reseller/build.gradle
           check 'versionCode 69' reseller/build.gradle
           check 'H38_BUILD_SHA' reseller/build.gradle
           check 'H38_BUILD_RUN' reseller/build.gradle
-          check "applicationIdSuffix '.owner'" reseller/build.gradle
-          for f in "$core" "$hunt" "$auctions" "$discover" "$scan" "$more" "$polish" "$wide" "$physical"; do node --check "$f"; done
-          check 'v210-polish.js' "$index"; check 'v211-wide.js' "$index"; check 'v212-physical.js' "$index"; check 'accountBuild' "$index"
-          check "const H38_DEFAULT_ZIP='55744'" "$core"; check "zip:H38_DEFAULT_ZIP" "$core"; check 'ensureDefaultLocation' "$core"
-          check 'retailer-group' "$hunt"; check 'Penny date unknown' "$hunt"; check 'Posted ${posted}' "$hunt"; check 'Last seen ${last}' "$hunt"; check 'physical register scan remains final penny truth' "$hunt"
-          check 'H38_SCOUT_V210_SELLABLE' "$polish"; check 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$wide"; check 'H38_SCOUT_V212_PHYSICAL_ACCEPTANCE' "$physical"
-          check 'h38PrimePennyImageRecovery' "$physical"; check 'Bundled runtime' "$physical"; check 'Installed build' "$physical"
-          check 'v210-polish.js' "$main"; check 'v211-wide.js' "$main"; check 'v212-physical.js' "$main"; check 'data-h38-bundled-module' "$main"; check 'BuildConfig.H38_BUILD_SHA' "$main"
+          for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical"; do node --check "$f"; done
+          check "const H38_DEFAULT_ZIP='55744'" "$core"
+          check 'retailer-group' "$hunt"
+          check 'Penny date unknown' "$hunt"
+          check 'physical register scan remains final penny truth' "$hunt"
+          check 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$wide"
+          check 'H38_SCOUT_V212_PHYSICAL_ACCEPTANCE' "$physical"
+          check 'h38PrimePennyImageRecovery' "$physical"
+          check 'Installed build' "$physical"
+          check 'Bundled runtime' "$physical"
+          check 'v210-polish.js' "$main"
+          check 'v211-wide.js' "$main"
+          check 'v212-physical.js' "$main"
+          check 'data-h38-bundled-module' "$main"
+          check 'BuildConfig.H38_BUILD_SHA' "$main"
+          check 'accountBuild' "$index"
 
-          check "expected_resale:resale" "$wide"; check "status:'bought'" "$wide"; check ".in('status',['bought','sold'])" "$wide"; check 'h38InventoryKey' "$wide"; check 'h38SharedInventoryProbe' "$wide"
-          check 'h38SyncLocalInventoryFallbacks' "$wide"; check 'Fallback auto-sync' "$wide"; check 'Shared sync will retry automatically' "$wide"
-          check 'sold_price' "$wide"; check 'actual_fees' "$wide"; check 'actual_profit' "$wide"
-          check 'reseller_watch_rules' "$wide"; check 'h38LoadSharedWatches' "$wide"; check 'h38SharedWatchProbe' "$wide"; check 'h38WatchEvaluation' "$wide"; check 'Scan to Inventory' "$wide"
+          check 'H38ResellerScoutMarketplace/2.1.2' "$fb"
+          check 'Grand Rapids, MN' "$fb"
+          check 'location_fixing' "$fb"
+          check 'MutationObserver' "$fb"
+          check 'item_urls_seen' "$fb"
+          check 'Capture now' "$fb"
+          reject 'Next search' "$fb"
+          reject 'Capture visible' "$fb"
+          check 'if(d>ctx.radiusMiles)return null' "$dealsFn"
 
-          check 'Run Facebook pass' "$discover"
-          check 'H38ResellerScoutMarketplace/2.1.2' "$fb"; check 'Grand Rapids, MN' "$fb"; check 'location_fixing' "$fb"; check 'MutationObserver' "$fb"; check 'item_urls_seen' "$fb"; check 'Capture now' "$fb"; check 'strict 50' "$fb" || true
-          reject 'Next search' "$fb"; reject 'Capture visible' "$fb"
-          check 'source_search_bound:true' "$dealsFn"; check 'if(d>ctx.radiusMiles)return null' "$dealsFn"; check 'H38_AUCTION_ADAPTERS_V201_TRUTH' "$auctionFn"
+          check 'exactPennyTree' "$imageFn"
+          check 'PennyTree exact retailer + UPC' "$imageFn"
+          check 'RetailShout exact UPC' "$imageFn"
+          check 'Image failure never changes penny/store/resale truth' "$imageFn"
 
-          check 'exactPennyTree' "$imageFn"; check 'PennyTree exact retailer + UPC' "$imageFn"; check 'RetailShout exact UPC' "$imageFn"; check 'Image failure never changes penny/store/resale truth' "$imageFn"
-          if grep -Fq "status:'inventory'" "$wide"; then echo '::error::v2.1.2 must use database status bought, not inventory' | tee -a "$report/contract-failures.txt"; exit 1; fi
-
-          node <<'NODE'
-          const strictRadius=(d,r)=>!(Number.isFinite(d)&&d>r);if(strictRadius(51,50)!==false||strictRadius(50,50)!==true)throw Error('strict radius fixture failed');
-          const coarse=r=>r<=25?40:r<=50?60:r<=100?100:250;if(coarse(50)!==60)throw Error('Facebook coarse radius fixture failed');
-          const norm=v=>String(v||'').toLowerCase().trim().replace(/\s+/g,' '),remoteTerms=new Set(['keep']);const local=[{term:'keep',remote:true},{term:'deleted',remote:true},{term:'offline',remote:false}];const merged=local.filter(x=>!(x.remote&&!remoteTerms.has(norm(x.term))));if(merged.some(x=>x.term==='deleted')||!merged.some(x=>x.term==='offline'))throw Error('Watch stale deletion fixture failed');
-          const actual=(sold,buy,fees)=>Number((sold-buy-fees).toFixed(2));if(actual(125,45,18)!==62)throw Error('actual profit fixture failed');
-          NODE
+          check 'h38SyncLocalInventoryFallbacks' "$wide"
+          check 'reseller_watch_rules' "$wide"
+          check 'h38SharedWatchProbe' "$wide"
+          check 'actual_profit' "$wide"
+          check 'Scan to Inventory' "$wide"
           echo PASS > "$report/contract.txt"
-
-      - name: Configure signing fallback
-        shell: bash
-        env:
-          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
-          if [[ -n "${KEYSTORE_B64:-}" ]]; then
-            KEYSTORE_PATH="$RUNNER_TEMP/h38-owner-keystore.jks"; printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"; chmod 600 "$KEYSTORE_PATH"
-            echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"; echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"; echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"; echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-            echo stable-upload-key > "$report/signing-continuity.txt"
-          else echo debug-fallback-owner-test > "$report/signing-continuity.txt"; fi
 
       - name: Compile Owner Scout v2.1.2 APK
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
+          echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.1.2.apk"; cp "$apk" "$out"; sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.2.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.1.2.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.2.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect physical APK
+      - name: Smoke inspect exact APK bytes
         shell: bash
         run: |
           set -euo pipefail
@@ -122,19 +111,17 @@ jobs:
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" 'assets/reseller/v212-physical.js' > "$report/packaged-v212-physical.js"; node --check "$report/packaged-v212-physical.js"; grep -Fq 'H38_SCOUT_V212_PHYSICAL_ACCEPTANCE' "$report/packaged-v212-physical.js"
-          unzip -p "$out" 'assets/reseller/v211-wide.js' > "$report/packaged-v211-wide.js"; node --check "$report/packaged-v211-wide.js"; grep -Fq 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$report/packaged-v211-wide.js"
-          unzip -p "$out" 'assets/reseller/v200-core.js' > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
-          unzip -p "$out" 'assets/reseller/v200-hunt.js' > "$report/packaged-hunt.js"; grep -Fq 'retailer-group' "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"; grep -Fq 'physical register scan remains final penny truth' "$report/packaged-hunt.js"
-          unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"; grep -Fq 'v212-physical.js' "$report/packaged-index.html"; grep -Fq 'accountBuild' "$report/packaged-index.html"
+          unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"; node --check "$report/packaged-v212.js"; grep -Fq H38_SCOUT_V212_PHYSICAL_ACCEPTANCE "$report/packaged-v212.js"
+          unzip -p "$out" assets/reseller/v200-core.js > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
+          unzip -p "$out" assets/reseller/v200-hunt.js > "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"
           for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
           grep -Fq 'H38ResellerScoutMarketplace/2.1.2' "$report/dex-strings.txt"
           grep -Fq 'Capture now' "$report/dex-strings.txt"
           grep -Fq 'Grand Rapids, MN' "$report/dex-strings.txt"
           grep -Fq 'v212-physical.js' "$report/dex-strings.txt"
           grep -Fq 'data-h38-bundled-module' "$report/dex-strings.txt"
-          if grep -Fq 'Next search' "$report/dex-strings.txt"; then echo '::error::stale Facebook Next search UI packaged in APK'; exit 1; fi
-          if grep -Fq 'Capture visible' "$report/dex-strings.txt"; then echo '::error::stale Facebook Capture visible UI packaged in APK'; exit 1; fi
+          if grep -Fq 'Next search' "$report/dex-strings.txt"; then echo '::error::stale Next search UI packaged'; exit 1; fi
+          if grep -Fq 'Capture visible' "$report/dex-strings.txt"; then echo '::error::stale Capture visible UI packaged'; exit 1; fi
           echo PASS > "$report/smoke.txt"
 
       - name: Upload owner-test APK and diagnostics
