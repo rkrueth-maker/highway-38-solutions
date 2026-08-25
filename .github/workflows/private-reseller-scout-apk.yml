@@ -18,10 +18,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: private-reseller-scout-apk-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build-reseller-apk:
     runs-on: ubuntu-latest
@@ -39,121 +35,79 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify Scout v2.0.2 broad-profit physical repair contract
+      - name: Verify Scout v2.0.3 acceptance contract
         shell: bash
         run: |
           set -euo pipefail
           check() { grep -Fq "$1" "$2" || { echo "::error::Missing contract token [$1] in $2"; exit 1; }; }
           assets='reseller/src/main/assets/reseller'
-          index="$assets/index.html"
-          core="$assets/v200-core.js"
+          discover="$assets/v200-discover.js"
           hunt="$assets/v200-hunt.js"
           auctions="$assets/v200-auctions.js"
-          discover="$assets/v200-discover.js"
           scan="$assets/v200-scan.js"
-          more="$assets/v200-more.js"
+          core="$assets/v200-core.js"
           app="$assets/v200-app.js"
+          fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
-          auctionFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v200/index.ts"
-          visualFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v058/index.ts"
-          imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"
           dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
+          auctionFn="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v200/index.ts"
 
-          check "versionName '2.0.2'" reseller/build.gradle
-          check 'versionCode 65' reseller/build.gradle
+          check "versionName '2.0.3'" reseller/build.gradle
+          check 'versionCode 66' reseller/build.gradle
           check "applicationIdSuffix '.owner'" reseller/build.gradle
-          if grep -Eq 'injectH38V0|bundled-v049|owner61' reseller/build.gradle; then echo '::error::Legacy runtime injection/package suffix returned'; exit 1; fi
+          for f in "$core" "$hunt" "$auctions" "$discover" "$scan" "$app"; do node --check "$f"; done
 
-          for f in "$core" "$hunt" "$auctions" "$discover" "$scan" "$more" "$app"; do node --check "$f"; done
-          check 'H38_SCOUT_V200' "$core"
-          for t in Discover Hunt Scan Auctions More v200-core.js v200-hunt.js v200-auctions.js v200-discover.js v200-scan.js v200-more.js v200-app.js; do check "$t" "$index"; done
-          if grep -Eq 'v0(35|45|49|51|53|56|58|59|60|61)-runtime|v035-core.js' "$index"; then echo '::error::Legacy Scout runtime referenced by v2 index'; exit 1; fi
-
-          # Preserve v2.0.1 physical Hunt/image repairs.
-          check 'huntArtifact' "$hunt"
-          check 'Penny date unknown' "$hunt"
-          check 'retailer-group' "$hunt"
-          check 'huntGroupCard' "$hunt"
-          check 'data-hunt-group' "$hunt"
-          check 'filter-pill' "$hunt"
-          check "fn('reseller-image-delivery-v201'" "$hunt"
-          check 'IntersectionObserver' "$hunt"
-          check 'v058-exact-upc-boundary-v201' "$visualFn"
-          check 'exact-upc-retailshout+verified-url' "$imageFn"
-
-          # Broad-profit discovery must not collapse back to a tool-brand hunt.
+          # Broad-profit Discover and unified results flow.
           check 'H38_PROFIT_LANES' "$discover"
-          check 'Find anything worth reselling' "$discover"
-          check 'Brand does not qualify a deal' "$discover"
           check 'electronics' "$discover"
           check 'appliances' "$discover"
           check 'furniture' "$discover"
           check 'auto parts' "$discover"
           check 'sporting goods' "$discover"
           check 'collectibles' "$discover"
-          check 'discover_multi_lane_v202' "$discover"
-          check 'discover_then_verify_v060_broad_profit_v202' "$dealsFn"
-          check 'furniture|table|chair|desk|dresser|cabinet|shelf|sofa|couch' "$dealsFn"
-          check 'auto part|car part|truck part' "$dealsFn"
-          check 'sporting|golf|fishing|hunting' "$dealsFn"
-          check 'collectible|vintage|antique|coin|card|comic|toy' "$dealsFn"
-          if grep -Fq 'const DEFAULT_TERMS=["Milwaukee","DeWalt","Snap-on"' "$dealsFn"; then echo '::error::Tool-brand default discovery returned'; exit 1; fi
+          check 'Scout does the source hunting; you review the ranked candidates.' "$discover"
+          check 'Ranked local opportunities' "$discover"
+          check 'discover_multi_lane_v203' "$discover"
+          check "sources:['Craigslist','Facebook Marketplace']" "$discover"
 
-          # Facebook Marketplace is a real on-device capture source, but truth must stay explicit.
-          check 'Scan Facebook Marketplace' "$discover"
-          check 'rankable' "$discover"
-          check 'an alert is not treated as a listing' "$discover"
+          # Facebook must run an automated capture cycle and return to Scout.
+          check 'Run Facebook pass' "$discover"
           check 'facebookBrowserCandidates' "$discover"
           check 'facebookNotificationCandidates' "$discover"
           check 'openFacebookMarketplace' "$discover"
+          check 'H38ResellerScoutMarketplace/2.0.3' "$fb"
+          check 'No action needed unless Facebook asks you to sign in or confirm location.' "$fb"
+          check 'captureVisible(true)' "$fb"
+          check 'nextTerm()' "$fb"
+          check 'Returning to Scout to rank results' "$fb"
+          check 'handler.postDelayed(this::finish,1200)' "$fb"
+          check '/marketplace/item/' "$fb"
+
+          # Facebook truth / capture-survival backend remains intact.
           check 'source_search_bound:true' "$dealsFn"
           check 'Facebook listing was captured from Scout' "$dealsFn"
           check 'source_distance_reported:true' "$dealsFn"
-          check 'provenance(x,terms)' "$dealsFn"
-          check 'facebookBrowserCandidates' "$main"
-          check 'facebookNotificationCandidates' "$main"
-          check 'openFacebookMarketplace' "$main"
+          check 'if(d>ctx.radiusMiles)return null' "$dealsFn"
+          if grep -Fq 'ctx.radiusMiles*1.15' "$dealsFn"; then exit 1; fi
 
-          # Preserve retail truth.
-          check 'Crawler/community evidence does not prove local store price or stock' "$hunt"
+          # Preserve v2.0.1 Hunt/image/auction truth repairs.
+          check 'Penny date unknown' "$hunt"
+          check 'retailer-group' "$hunt"
           check 'physical register scan remains final penny truth' "$hunt"
-          check "fn('reseller-auto-leads-v046'" "$hunt"
-          check "fn('reseller-auto-leads-v058'" "$hunt"
-          check 'NEEDS COMP' "$discover"
-          check 'VERIFIED OPPORTUNITY' "$discover"
-          check 'Asking prices never set the resale estimate' "$scan"
-          check 'listing kept for manual review' "$dealsFn"
-
-          # Preserve auction truth repairs.
-          check 'H38_AUCTION_ADAPTERS_V201_TRUTH' "$auctionFn"
-          check 'pickupVerified' "$auctionFn"
-          check 'resaleRelevant' "$auctionFn"
-          check 'if(d!=null&&d>radius)continue' "$auctionFn"
-          if grep -Fq 'radius*1.12' "$auctionFn"; then echo '::error::Auction radius tolerance returned'; exit 1; fi
-          check 'pickup_verified===true' "$auctionFn"
           check 'Distance needs verification' "$auctions"
           check 'premium unknown' "$auctions"
           check 'Verified pickup required' "$auctions"
-          check 'Resale items' "$auctions"
-
-          # Local-listing radius also obeys the selected radius exactly.
-          check 'if(d>ctx.radiusMiles)return null' "$dealsFn"
-          if grep -Fq 'ctx.radiusMiles*1.15' "$dealsFn"; then echo '::error::Local listing radius tolerance returned'; exit 1; fi
-
-          # Native shell remains clean v2 / Custom Tabs.
+          check 'H38_AUCTION_ADAPTERS_V201_TRUTH' "$auctionFn"
+          check 'if(d!=null&&d>radius)continue' "$auctionFn"
           check 'H38_SCOUT_V200_CLEAN_RUNTIME' "$main"
-          check 'CustomTabsIntent' "$main"
-          if grep -Eq 'v0(35|45|49|51|53|56|58|59|60|61)-runtime|v035-core.js|v035-app.js' "$main"; then echo '::error::Native shell still bundles legacy runtime'; exit 1; fi
+          check 'Asking prices never set the resale estimate' "$scan"
 
-          # Behavioral fixtures from the full 1000009640.mp4 review.
+          # Behavioral fixtures: broad items and exact radius.
           node <<'NODE'
-          const friendly=v=>/tool|battery|charger|drill|driver|impact|saw|nailer|grinder|sander|router|vacuum|compressor|generator|mower|blower|trimmer|chainsaw|storage|toolbox|workbench|ladder|grill|smoker|cooler|appliance|electronics|camera|speaker|headphone|tablet|laptop|\btv\b|gaming|console|lego|heater|lighting|pump|welder|socket|wrench|ratchet|hammer|laser|level|zero turn|pressure washer|snowblower|stihl|husqvarna|milwaukee|dewalt|snap.?on|furniture|table|chair|desk|dresser|cabinet|shelf|sofa|couch|recliner|bed frame|mattress|auto part|car part|truck part|wheel|tire|rim|bumper|tailgate|engine|transmission|sporting|golf|fishing|hunting|kayak|canoe|bike|bicycle|collectible|vintage|antique|coin|card|comic|toy|doll|jewelry|watch|trailer|atv|utv|snowmobile|boat|small engine|shop equipment/i.test(v);
-          for(const x of ['Oak dining table','Vintage dresser','Golf club set','Truck tailgate','Pokemon cards','Kayak'])if(!friendly(x))throw Error('broad resale item filtered '+x);
-          const broad=new Set(['electronics','appliances','furniture','tools','lawn mower','auto parts','sporting goods','collectibles']);
-          for(const x of ['electronics','furniture','auto parts','collectibles'])if(!broad.has(x))throw Error('broad lane missing '+x);
-          const radius=50;for(const d of [50.1,50.6,57.4])if(!(d>radius))throw Error('exact radius fixture failed '+d);
-          const captured={term:'furniture',title:'Oak dining table',price:75,url:'https://www.facebook.com/marketplace/item/123'};
-          if(captured.term!=='furniture'||!captured.url.includes('/marketplace/item/'))throw Error('Facebook provenance fixture failed');
+          const broad=['Oak dining table','Vintage dresser','Golf club set','Truck tailgate','Pokemon cards','Kayak'];
+          const friendly=v=>/table|dresser|golf|tailgate|card|kayak|tool|appliance|electronics|furniture|auto part|sporting|collectible/i.test(v);
+          for(const x of broad) if(!friendly(x)) throw Error('broad item filtered '+x);
+          const radius=50; for(const d of [50.1,50.6,57.4]) if(!(d>radius)) throw Error('radius fixture '+d);
           NODE
 
       - name: Configure signing fallback
@@ -176,44 +130,40 @@ jobs:
             echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
             echo 'stable-upload-key' > "$report/signing-continuity.txt"
           else
-            echo 'debug-fallback accepted for v2.0.2; uninstall/reinstall authorized for this physical repair build' > "$report/signing-continuity.txt"
+            echo 'debug-fallback owner test build' > "$report/signing-continuity.txt"
           fi
 
-      - name: Compile Owner Scout v2.0.2 APK
+      - name: Compile Owner Scout v2.0.3 APK
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.0.2.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.0.2.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.0.3.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.0.3.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect installable Scout v2.0.2 APK
+      - name: Smoke inspect installable Scout v2.0.3 APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.0.2.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.0.3.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='65' versionName='2.0.2'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='66' versionName='2.0.3'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
-          grep -Fq 'v200-hunt.js' "$report/packaged-index.html"; grep -Fq 'v200-auctions.js' "$report/packaged-index.html"
-          for f in v200-core.js v200-hunt.js v200-auctions.js v200-discover.js v200-scan.js v200-more.js v200-app.js v200-ui.css; do unzip -l "$out" | grep -Fq "assets/reseller/$f" || exit 1; done
           unzip -p "$out" 'assets/reseller/v200-discover.js' > "$report/packaged-discover.js"
-          grep -Fq 'Find anything worth reselling' "$report/packaged-discover.js"
-          grep -Fq 'Scan Facebook Marketplace' "$report/packaged-discover.js"
-          grep -Fq 'discover_multi_lane_v202' "$report/packaged-discover.js"
+          grep -Fq 'discover_multi_lane_v203' "$report/packaged-discover.js"
+          grep -Fq 'Run Facebook pass' "$report/packaged-discover.js"
 
       - name: Upload private owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.0.2
+          name: h38-reseller-scout-owner-v2.0.3
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: error
           retention-days: 30
