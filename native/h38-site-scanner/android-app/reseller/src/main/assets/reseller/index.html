@@ -63,6 +63,22 @@
 <script src="v210-polish.js"></script>
 <script src="v211-wide.js"></script>
 <script src="v212-physical.js"></script>
+<script>
+window.H38_SCOUT_V213_MULTI_SOURCE=true;
+window.H38_SCOUT_V213_DEDUPE_RULE='one card per product; multiple evidence sources merge underneath it.';
+loadHunt=async function(force=false){
+  if(state.hunt.loading)return;
+  state.hunt.loading=true;renderHunt();
+  try{
+    const p=await fn('reseller-auto-leads-v063',{...locationPayload(),force:!!force},70000),rows=cleanRows(p.leads||[]).filter(r=>!huntArtifact(r));
+    state.hunt.raw=Number(p.raw_count)||(Array.isArray(p.leads)?p.leads.length:0);
+    state.hunt.rows=rows;state.hunt.loaded=true;
+    state.hunt.sourceHealth={status:p.status||'PASS',warnings:p.warnings||[],raw:state.hunt.raw,actionable:rows.length,duplicatesMerged:Number(p.duplicate_count||0),sourceStatus:p.source_status||[],canonicalIdentity:p.canonical_identity_version||''};
+    renderHunt();if(hasPoint()||state.location.zip)void ensureNearbyStores().then(()=>renderHuntListOnly());void hydrateHuntImages();
+  }catch(e){notice(`Retail Hunt unavailable: ${error('hunt',e)}`,'bad');renderHunt()}
+  finally{state.hunt.loading=false;renderHunt()}
+};
+</script>
 <script src="v200-app.js"></script>
 </body>
 </html>
