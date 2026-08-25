@@ -11,8 +11,9 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  try{
   await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"><div class="grid"></div></main><dialog id="h38QuickCreateDialog"><div class="h38-quick-grid"></div><button value="cancel"></button></dialog></body></html>');
   await page.evaluate(()=>{
-   const records=new Map();
+   const records=new Map();let nextId=0;
    window.state={page:'documents',businessId:'B-OWNER',snapshot:{customers:[{'Customer ID':'C-1','Customer Name':'Johnson'}],jobs:[{'Job ID':'J-1','Customer ID':'C-1','Project Title':'Deck repair'}]}};
+   window.newId=prefix=>`${String(prefix||'ID')}-OWNER-${++nextId}`;
    window.esc=v=>String(v??'');
    window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://test.supabase.co',publishableKey:'pk-test'};
@@ -64,7 +65,7 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
          const vals=Array.isArray(v)?v:[v];
          for(const row of vals){
            if(table==='business_records'){
-             const id=row.id||crypto.randomUUID();
+             const id=row.id||`ROW-OWNER-${++nextId}`;
              records.set(`${row.business_id}|${row.collection}|${row.record_key}`,{id,...row});
            }
          }
