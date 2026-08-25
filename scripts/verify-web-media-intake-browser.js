@@ -14,6 +14,7 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
    const records=new Map();let nextId=0;
    window.state={page:'documents',businessId:'B-OWNER',snapshot:{customers:[{'Customer ID':'C-1','Customer Name':'Johnson'}],jobs:[{'Job ID':'J-1','Customer ID':'C-1','Project Title':'Deck repair'}]}};
    window.newId=prefix=>`${String(prefix||'ID')}-OWNER-${++nextId}`;
+   if(typeof window.crypto?.randomUUID!=='function')Object.defineProperty(window.crypto,'randomUUID',{configurable:true,value:()=>`00000000-0000-4000-8000-${String(++nextId).padStart(12,'0')}`});
    window.esc=v=>String(v??'');
    window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://test.supabase.co',publishableKey:'pk-test'};
