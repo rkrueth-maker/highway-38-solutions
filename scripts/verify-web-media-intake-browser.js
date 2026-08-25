@@ -8,7 +8,7 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  const browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- let uploadOffset=0;
+ let uploadOffset=0,uploadLength=0;
  const cors={
    'Access-Control-Allow-Origin':'*',
    'Access-Control-Allow-Headers':'authorization, apikey, tus-resumable, upload-length, upload-metadata, upload-offset, content-type',
@@ -18,8 +18,16 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  await page.route('https://test.storage.supabase.co/**',async route=>{
    const req=route.request();
    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
-   if(req.method()==='POST'){uploadOffset=0;return route.fulfill({status:201,headers:{...cors,Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});}
-   if(req.method()==='PATCH'){const b=req.postDataBuffer();uploadOffset+=b?b.length:0;return route.fulfill({status:204,headers:{...cors,'Upload-Offset':String(uploadOffset),'Tus-Resumable':'1.0.0'}});}
+   if(req.method()==='POST'){
+     uploadOffset=0;
+     uploadLength=Number(req.headers()['upload-length']||0);
+     return route.fulfill({status:201,headers:{...cors,Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});
+   }
+   if(req.method()==='PATCH'){
+     const b=req.postDataBuffer();
+     uploadOffset=uploadLength||uploadOffset+(b?b.length:1);
+     return route.fulfill({status:204,headers:{...cors,'Upload-Offset':String(uploadOffset),'Tus-Resumable':'1.0.0'}});
+   }
    return route.fulfill({status:200,headers:cors});
  });
  try{
@@ -29,6 +37,7 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
    window.state={page:'documents',businessId:'B-OWNER',snapshot:{customers:[{'Customer ID':'C-1','Customer Name':'Johnson'}],jobs:[{'Job ID':'J-1','Customer ID':'C-1','Project Title':'Deck repair'}]}};
    window.esc=v=>String(v??'');
    window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
+   window.H38_BUSABASE_AUTH={getState:()=>({selectedBusinessId:'B-OWNER',userId:'U-OWNER'})};
    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://test.supabase.co',publishableKey:'pk-test'};
    window.H38_SUPABASE_AUTH={getState:()=>({selectedBusinessId:'B-OWNER',userId:'U-OWNER'})};
    const match=(row,filters)=>filters.every(([k,v])=>String(row[k]??'')===String(v));
@@ -100,7 +109,9 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   await page.locator('#h38MediaTitle').fill('Customer deck recording');
   await page.locator('#h38MediaFile').setInputFiles({name:'customer-note.webm',mimeType:'audio/webm',buffer:Buffer.from('H38 synthetic owner acceptance audio')});
   await page.locator('#h38MediaUpload').click();
-  await page.waitForFunction(()=>document.querySelector('#h38MediaStatus')?.textContent.includes('complete'),null,{timeout:10000});
+  await page.waitForFunction(()=>{const t=document.querySelector('#h38MediaStatus')?.textContent||'';return t.includes('complete')||t.startsWith('Stopped:');},null,{timeout:10000});
+  const status=await page.locator('#h38MediaStatus').textContent();
+  assert(!status.startsWith('Stopped:'),`media intake stopped: ${status}`);
   const result=await page.locator('#h38MediaResult').textContent();
   assert(result.includes('Deck repair media reviewed.'));
   assert(result.includes('Owner authority preserved.'));
