@@ -7,6 +7,8 @@ def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWOR
 def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
 def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
+def h38BuildSha = (System.getenv('GITHUB_SHA') ?: 'local').replace('"', '')
+def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '')
 
 android {
     namespace 'com.highway38.resellerscout'
@@ -15,8 +17,13 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 68
-        versionName '2.1.1'
+        versionCode 69
+        versionName '2.1.2'
+        buildConfigField 'String', 'H38_BUILD_SHA', '"' + h38BuildSha + '"'
+        buildConfigField 'String', 'H38_BUILD_RUN', '"' + h38BuildRun + '"'
+    }
+    buildFeatures {
+        buildConfig true
     }
     signingConfigs {
         debug {
