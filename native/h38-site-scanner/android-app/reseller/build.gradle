@@ -15,8 +15,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 67
-        versionName '2.1.0'
+        versionCode 68
+        versionName '2.1.1'
     }
     signingConfigs {
         debug {
