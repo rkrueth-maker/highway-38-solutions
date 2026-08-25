@@ -1,6 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260823-spoken-measurement-authority-final-1';
+const BUILD='20260825-spoken-measurement-authority-final-2-persisted-only';
+const LEGACY_BUILD='20260823-spoken-measurement-authority-final-1';
 const C=window.H38_FIELD_VISIT_CORE;if(!C)return;
 const text=value=>String(value==null?'':value);
 const UNVERIFIED='UNVERIFIED_SPOKEN';
@@ -23,5 +24,5 @@ function list(value){return (Array.isArray(value)?value:[]).map(normalize).filte
 function run(){const v=C.state?.visit;if(!v)return;v.walkthroughSpokenMeasurements=list(v.walkthroughSpokenMeasurements);v.walkthroughMeasurementCandidates=list(v.walkthroughMeasurementCandidates);if(v.walkthroughVoice&&Array.isArray(v.walkthroughVoice.spokenMeasurements))v.walkthroughVoice.spokenMeasurements=list(v.walkthroughVoice.spokenMeasurements);if(v.walkthroughProfessionalNotes&&Array.isArray(v.walkthroughProfessionalNotes.spokenMeasurements))v.walkthroughProfessionalNotes.spokenMeasurements=list(v.walkthroughProfessionalNotes.spokenMeasurements);for(const row of Array.isArray(window.state?.snapshot?.siteCaptureSessions)?window.state.snapshot.siteCaptureSessions:[]){for(const key of ['Walkthrough Spoken Measurements','walkthroughSpokenMeasurements'])if(Array.isArray(row[key]))row[key]=list(row[key]);}}
 function install(){if(C.state.__h38SpokenAuthorityFinal===BUILD)return true;const base=C.state.render;if(typeof base!=='function')return false;C.state.__h38SpokenAuthorityFinal=BUILD;C.setRender(function(){run();base();});run();C.state.render?.();return true;}
 let ticks=0;const timer=setInterval(()=>{if(install()||++ticks>20)clearInterval(timer);},100);install();
-window.H38_SPOKEN_MEASUREMENT_AUTHORITY_FINAL=Object.freeze({enabled:true,build:BUILD,normalize,run,spokenDimensionsDefaultVerified:false,spokenDimensionsRequirePersistedOperatorVerification:true,explicitUncertaintyKeepsUnverified:true,deviceAndCameraRemainSeparateAuthority:true,materialSpecsExcluded:true,automaticApproval:false});
+window.H38_SPOKEN_MEASUREMENT_AUTHORITY_FINAL=Object.freeze({enabled:true,build:BUILD,legacyBuild:LEGACY_BUILD,normalize,run,spokenDimensionsDefaultVerified:false,spokenDimensionsRequirePersistedOperatorVerification:true,persistedSiteMeasurementsAreFieldAuthority:true,explicitUncertaintyKeepsUnverified:true,deviceAndCameraRemainSeparateAuthority:true,materialSpecsExcluded:true,automaticApproval:false});
 })();
