@@ -98,7 +98,7 @@ def test_service_worker_keeps_canonical_agent_live_first_and_precached():
 
 def test_owner_maintenance_checks_quote_options_visual_fixture_and_stable_identity():
     src = read(MAINT)
-    assert '20260824-owner-maintenance-acceptance-4-stable-order' in src
+    assert '20260824-owner-maintenance-acceptance-5-exclude-examples' in src
     for action in ['"buildQuote"', '"options"', '"prepareVisual"', '"renderQuote"']:
         assert action in src
     assert 'baselineComparison' in src
@@ -110,6 +110,8 @@ def test_owner_maintenance_checks_quote_options_visual_fixture_and_stable_identi
     assert 'ownerMaintenanceTokens' in src
     assert 'ephemeral-regression-token' in src
     assert '.order("record_key",{ascending:true})' in src
+    assert 'function exampleData' in src
+    assert '!exampleData(q)' in src
     assert 'quoteIds:quotes.map(qid)' in src
     assert 'stableOrder:true' in src
     assert 'stableQuoteOrdering:true' in src
