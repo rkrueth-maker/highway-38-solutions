@@ -21,12 +21,17 @@ on:
       - 'commercial-app/assistant-command-bus.js'
       - 'commercial-app/assistant-command-bus-input.js'
       - 'commercial-app/assistant-command-runtime.js'
+      - 'commercial-app/document-photo-service-runtime-v2.js'
+      - 'commercial-app/web-media-intake-runtime.js'
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-media-intake-ai/**'
+      - 'supabase/functions/h38-web-video-measurements/**'
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
+      - 'scripts/verify-web-media-intake-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
@@ -34,6 +39,7 @@ on:
       - 'scripts/verify-personal-assistant-command-bus.js'
       - 'scripts/run-owner-maintenance-regression.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
+      - 'tests/test_web_media_intake_runtime.py'
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   pull_request:
     paths:
@@ -53,12 +59,17 @@ on:
       - 'commercial-app/assistant-command-bus.js'
       - 'commercial-app/assistant-command-bus-input.js'
       - 'commercial-app/assistant-command-runtime.js'
+      - 'commercial-app/document-photo-service-runtime-v2.js'
+      - 'commercial-app/web-media-intake-runtime.js'
       - 'commercial-app/index.html'
       - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-media-intake-ai/**'
+      - 'supabase/functions/h38-web-video-measurements/**'
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
+      - 'scripts/verify-web-media-intake-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
@@ -66,6 +77,7 @@ on:
       - 'scripts/verify-personal-assistant-command-bus.js'
       - 'scripts/run-owner-maintenance-regression.js'
       - 'tests/test_customer_360_owner_flow_20260824.py'
+      - 'tests/test_web_media_intake_runtime.py'
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   workflow_dispatch:
 
@@ -96,9 +108,12 @@ jobs:
           node -c commercial-app/assistant-command-bus.js
           node -c commercial-app/assistant-command-bus-input.js
           node -c commercial-app/assistant-command-runtime.js
+          node -c commercial-app/document-photo-service-runtime-v2.js
+          node -c commercial-app/web-media-intake-runtime.js
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
           node -c scripts/verify-customer-readiness-polish-browser.js
+          node -c scripts/verify-web-media-intake-browser.js
           node -c scripts/verify-owner-navigation-context-polish.js
           node -c scripts/verify-photo-only-web-quote.js
           node -c scripts/verify-owner-quote-to-complete-job.js
@@ -108,8 +123,8 @@ jobs:
         run: node scripts/verify-customer-360-owner-flow.js
       - name: Owner ambiguity finance and activity policy
         run: node scripts/verify-customer-360-policy.js
-      - name: Customer 360 contracts
-        run: python -m pytest -q tests/test_customer_360_owner_flow_20260824.py
+      - name: Customer 360 and web-media contracts
+        run: python -m pytest -q tests/test_customer_360_owner_flow_20260824.py tests/test_web_media_intake_runtime.py
 
   browser-owner-flow:
     runs-on: ubuntu-latest
@@ -126,6 +141,8 @@ jobs:
         run: node scripts/verify-customer-360-browser.js
       - name: Run customer readiness polish as owner
         run: node scripts/verify-customer-readiness-polish-browser.js
+      - name: Run web video and recording intake as owner
+        run: node scripts/verify-web-media-intake-browser.js
       - name: Run owner navigation and context polish
         run: node scripts/verify-owner-navigation-context-polish.js
       - name: Run photo-only web quote flow
