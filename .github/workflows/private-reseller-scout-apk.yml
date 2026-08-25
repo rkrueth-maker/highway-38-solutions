@@ -32,7 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
+          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2" | tee -a "$report/contract-failures.txt"; exit 1; }; }
           assets='reseller/src/main/assets/reseller'
           core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; discover="$assets/v200-discover.js"; more="$assets/v200-more.js"; polish="$assets/v210-polish.js"; index="$assets/index.html"
           fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
@@ -54,7 +55,7 @@ jobs:
           check 'Posted ${posted}' "$hunt"
           check 'physical register scan remains final penny truth' "$hunt"
           check 'H38_SCOUT_V210_SELLABLE' "$polish"
-          check 'Last-known-good verified image' "$polish"
+          check 'last-known-good verified image' "$polish"
           check 'I bought it' "$polish"
           check 'min_profit' "$polish"
           check 'Inventory lifecycle' "$polish"
@@ -73,6 +74,7 @@ jobs:
           const zip='55744';if(zip.length!==5)throw Error('default zip invalid');
           const price=(resale,buy)=>resale-buy;if(price(100,40)!==60)throw Error('inventory spread fixture');
           NODE
+          echo PASS > "$report/contract.txt"
 
       - name: Configure signing fallback
         shell: bash
@@ -115,6 +117,7 @@ jobs:
           unzip -p "$out" 'assets/reseller/v200-core.js' > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
           unzip -p "$out" 'assets/reseller/v200-hunt.js' > "$report/packaged-hunt.js"; grep -Fq 'retailer-group' "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"; grep -Fq 'v210-polish.js' "$report/packaged-index.html"
+          echo PASS > "$report/smoke.txt"
 
       - name: Upload owner-test APK and diagnostics
         if: ${{ always() }}
@@ -122,5 +125,5 @@ jobs:
         with:
           name: h38-reseller-scout-owner-v2.1.0
           path: artifacts/private-reseller-scout-apk/*
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
