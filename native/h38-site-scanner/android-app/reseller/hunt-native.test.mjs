@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const physical=fs.readFileSync(new URL('./src/main/assets/reseller/v212-physical.js',import.meta.url),'utf8');
+const index=fs.readFileSync(new URL('./src/main/assets/reseller/index.html',import.meta.url),'utf8');
+const main=fs.readFileSync(new URL('./src/main/java/com/highway38/resellerscout/MainActivity.java',import.meta.url),'utf8');
+const acceptance=fs.readFileSync(new URL('./SCOUT_BUILD_ACCEPTANCE.md',import.meta.url),'utf8');
+assert.match(physical,/H38_SCOUT_V215_NATIVE_HUNT=true/);
+assert.match(physical,/<details class="retailer-group" data-hunt-details=/);
+assert.match(physical,/<summary class="retailer-group-head">/);
+assert.match(physical,/summary\.click\(\)/);
+assert.match(physical,/Native Penny Hunt expansion/);
+assert.doesNotMatch(physical,/h38BindStableHuntTouch/);
+assert.doesNotMatch(physical,/data-hunt-group/);
+assert.ok(index.indexOf('v212-physical.js')<index.indexOf('v200-app.js'),'physical runtime must load before app bootstrap and be bundled by Android shell');
+assert.match(main,/"v212-physical\.js"/);
+assert.match(acceptance,/TAP EACH visible retailer header/);
+assert.match(acceptance,/actual Android phone behavior is final acceptance authority/i);
+console.log('PASS native Penny Hunt disclosure contract');
