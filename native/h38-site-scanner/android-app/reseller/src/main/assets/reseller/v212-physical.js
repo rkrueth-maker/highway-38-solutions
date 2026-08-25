@@ -1,8 +1,9 @@
 'use strict';
 window.H38_SCOUT_V212_PHYSICAL_ACCEPTANCE=true;
+window.H38_SCOUT_V213_SOURCE_ACCEPTANCE=true;
 
 function h38InstalledBuild(){
-  try{const b=bridge(),v=b&&typeof b.build==='function'?String(b.build()||''):'';return v||'v2.1.2 · build identity unavailable'}catch{return'v2.1.2 · build identity unavailable'}
+  try{const b=bridge(),v=b&&typeof b.build==='function'?String(b.build()||''):'';return v||'v2.1.3 · build identity unavailable'}catch{return'v2.1.3 · build identity unavailable'}
 }
 function h38RenderInstalledBuild(){const el=$('accountBuild');if(el)el.textContent=`Installed: ${h38InstalledBuild()}`}
 setTimeout(h38RenderInstalledBuild,50);
@@ -23,7 +24,7 @@ renderHuntListOnly=function(){h38v212RenderHuntListOnly();setTimeout(()=>h38Prim
 const h38v212RenderHunt=renderHunt;
 renderHunt=function(){h38v212RenderHunt();setTimeout(()=>h38PrimePennyImageRecovery(30),80)};
 
-// Keep the build identity and packaging state visible inside Maintenance so recordings can prove exact bytes.
+// Keep exact build/package identity and the canonical multi-source Retail Hunt visible in Maintenance.
 const h38v212RunMaintenance=runMaintenance;
 runMaintenance=async function(){
   await h38v212RunMaintenance();
@@ -32,10 +33,18 @@ runMaintenance=async function(){
   const bundledOk=required.every(x=>bundled.includes(x));
   const tests=state.maintenance.tests||[];
   const overallIndex=tests.findIndex(x=>x.name==='Overall');
-  const buildTest={name:'Installed build',status:/v2\.1\.2\b/.test(h38InstalledBuild())?'pass':'fail',detail:h38InstalledBuild()};
-  const bundleTest={name:'Bundled runtime',status:bundledOk?'pass':'fail',detail:bundledOk?'v2.1 polish layers are running from APK assets, not a live URL.':`Missing bundled layers: ${required.filter(x=>!bundled.includes(x)).join(', ')}`};
-  if(overallIndex>=0)tests.splice(overallIndex,0,buildTest,bundleTest);else tests.push(buildTest,bundleTest);
+  const additions=[];
+  additions.push({name:'Installed build',status:/v2\.1\.3\b/.test(h38InstalledBuild())?'pass':'fail',detail:h38InstalledBuild()});
+  additions.push({name:'Bundled runtime',status:bundledOk?'pass':'fail',detail:bundledOk?'v2.1 polish layers are running from APK assets, not a live URL.':`Missing bundled layers: ${required.filter(x=>!bundled.includes(x)).join(', ')}`});
+  additions.push({name:'One-card source layer',status:window.H38_SCOUT_V213_MULTI_SOURCE===true?'pass':'fail',detail:window.H38_SCOUT_V213_MULTI_SOURCE===true?'Retail Hunt routes through canonical UPC/SKU source aggregation; evidence merges underneath one product card.':'v2.1.3 canonical source layer is not active.'});
+  try{
+    const p=await fn('reseller-auto-leads-v063',{...locationPayload(),force:false},70000),rows=Array.isArray(p.leads)?p.leads:[],ids=rows.map(x=>txt(x.canonical_id)).filter(Boolean),unique=new Set(ids),newSources=(p.source_status||[]).filter(x=>/pennygeneral|penny pinchin/i.test(txt(x.source))),live=newSources.filter(x=>x.status==='PASS').length;
+    const canonicalOk=p.canonical_identity_version==='retailer-upc-sku-bridge-v063'&&ids.length===unique.size;
+    additions.push({name:'Multi-source canonical Hunt',status:canonicalOk?'pass':'fail',detail:`${rows.length} cards · ${num(p.duplicate_count)} duplicate source rows merged · ${live}/${newSources.length||2} new source adapters live.`});
+    if(canonicalOk&&live<newSources.length)additions.push({name:'New source availability',status:'warn',detail:`${live}/${newSources.length} new community sources responded now; unavailable sources do not erase the base Hunt feed.`});
+  }catch(e){additions.push({name:'Multi-source canonical Hunt',status:'fail',detail:txt(e?.message||e)})}
+  const insertAt=overallIndex>=0?overallIndex:tests.length;tests.splice(insertAt,0,...additions);
   const fails=tests.filter(x=>x.status==='fail'&&x.name!=='Overall').length,warns=tests.filter(x=>x.status==='warn'&&x.name!=='Overall').length;
-  const overall=tests.find(x=>x.name==='Overall');if(overall){overall.status=fails?'fail':warns?'warn':'pass';overall.detail=fails?`${fails} required Scout checks failed.`:warns?`Required checks passed with ${warns} conditional/source warnings.`:'All required v2.1.2 checks passed.'}
+  const overall=tests.find(x=>x.name==='Overall');if(overall){overall.status=fails?'fail':warns?'warn':'pass';overall.detail=fails?`${fails} required Scout checks failed.`:warns?`Required checks passed with ${warns} conditional/source warnings.`:'All required v2.1.3 checks passed.'}
   renderMaintenance();h38RenderInstalledBuild()
 };
