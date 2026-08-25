@@ -37,14 +37,16 @@ def test_saved_quote_package_hydrates_lines_notes_measurements_and_images():
         assert marker in src
 
 
-def test_spoken_dimensions_are_verified_unless_explicitly_uncertain():
-    src = read("spoken-measurement-authority-final.js")
-    assert "spokenDimensionsDefaultVerified:true" in src
-    assert "explicitUncertaintyKeepsUnverified:true" in src
-    assert "WALKTHROUGH_SPOKEN_FIELD_DIMENSION" in src
-    for phrase in ["approximately", "roughly", "estimate", "guess", "not sure", "unsure"]:
-        assert phrase in src
-    assert "deviceAndCameraRemainSeparateAuthority:true" in src
+def test_spoken_dimensions_require_separate_persisted_field_verification():
+    spoken = read("spoken-measurement-authority-final.js")
+    authority = read("measurement-verification-authority.js")
+    assert "spokenDimensionsDefaultVerified:false" in spoken
+    assert "spokenDimensionsRequirePersistedOperatorVerification:true" in spoken
+    assert "verificationStatus:UNVERIFIED" in spoken
+    assert "fieldVerified:false" in spoken
+    assert "deviceAndCameraRemainSeparateAuthority:true" in spoken
+    assert "persistedSiteMeasurementsOnly:true" in authority
+    assert "spokenDimensionsAreFieldAuthority:false" in authority
 
 
 def test_offline_and_stale_audio_polish_is_evidence_preserving():
