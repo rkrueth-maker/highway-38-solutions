@@ -1,6 +1,37 @@
 name: Verify Customer 360 Owner Flow
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/customer-360-authority.js'
+      - 'commercial-app/customer-360-authority.css'
+      - 'commercial-app/customer-360-browser-integration-v3.js'
+      - 'commercial-app/owner-customer-workflow-polish.js'
+      - 'commercial-app/owner-customer-workflow-polish.css'
+      - 'commercial-app/owner-job-lifecycle-handoff.js'
+      - 'commercial-app/owner-flow-polish.js'
+      - 'commercial-app/job-lifecycle.js'
+      - 'commercial-app/example-data-manager.js'
+      - 'commercial-app/example-data-manager.css'
+      - 'commercial-app/example-data-full-office.js'
+      - 'commercial-app/assistant-command-bus.js'
+      - 'commercial-app/assistant-command-bus-input.js'
+      - 'commercial-app/assistant-command-runtime.js'
+      - 'commercial-app/index.html'
+      - 'commercial-app/service-worker.js'
+      - 'scripts/verify-customer-360-owner-flow.js'
+      - 'scripts/verify-customer-360-policy.js'
+      - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-owner-navigation-context-polish.js'
+      - 'scripts/verify-photo-only-web-quote.js'
+      - 'scripts/verify-owner-quote-to-complete-job.js'
+      - 'scripts/verify-owner-example-maintenance-front-to-back.js'
+      - 'scripts/verify-personal-assistant-command-bus.js'
+      - 'scripts/run-owner-maintenance-regression.js'
+      - 'tests/test_customer_360_owner_flow_20260824.py'
+      - '.github/workflows/verify-customer-360-owner-flow.yml'
   pull_request:
     paths:
       - 'commercial-app/customer-360-authority.js'
@@ -102,7 +133,6 @@ jobs:
     timeout-minutes: 40
     env:
       H38_RUN_VISUALS: '1'
-      H38_GITHUB_OIDC_TOKEN_FILE: ${{ runner.temp }}/h38-maintenance-oidc-token
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,13 +144,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TOKEN_FILE="$RUNNER_TEMP/h38-maintenance-oidc-token"
           RESPONSE=$(curl --fail --silent --show-error \
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=h38-owner-maintenance")
           TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);if(!p.value)process.exit(2);process.stdout.write(p.value)})")
           echo "::add-mask::$TOKEN"
-          printf '%s' "$TOKEN" > "$H38_GITHUB_OIDC_TOKEN_FILE"
-          chmod 600 "$H38_GITHUB_OIDC_TOKEN_FILE"
+          printf '%s' "$TOKEN" > "$TOKEN_FILE"
+          chmod 600 "$TOKEN_FILE"
+          printf 'H38_GITHUB_OIDC_TOKEN_FILE=%s\n' "$TOKEN_FILE" >> "$GITHUB_ENV"
       - name: Run live owner maintenance regression
         run: node scripts/run-owner-maintenance-regression.js /dev/null "$GITHUB_WORKSPACE/artifacts/owner-maintenance-regression.json"
       - name: Upload maintenance evidence
