@@ -115,7 +115,15 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   await page.locator('#h38MediaFile').setInputFiles({name:'customer-note.webm',mimeType:'audio/webm',buffer:Buffer.from('H38 synthetic owner acceptance audio')});
   assert.equal(await page.locator('#h38MediaFile').evaluate(el=>el.files?.length||0),1,'synthetic owner media must be attached');
   await page.locator('#h38MediaFile').dispatchEvent('change');
-  await page.evaluate(()=>document.getElementById('h38MediaUpload')?.click());
+  const uploadBoundary=await page.evaluate(async()=>{
+    const button=document.getElementById('h38MediaUpload');
+    if(!button)return{ok:false,reason:'missing'};
+    if(button.disabled)return{ok:false,reason:'disabled'};
+    if(typeof button.onclick!=='function')return{ok:false,reason:'handler'};
+    await button.onclick.call(button);
+    return{ok:true};
+  });
+  assert.equal(uploadBoundary.ok,true,`bound upload handler must execute: ${uploadBoundary.reason||''}`);
   try{
     await page.waitForFunction(()=>{const t=document.querySelector('#h38MediaStatus')?.textContent||'';return t.includes('complete')||t.startsWith('Stopped:');},null,{timeout:10000});
   }catch(error){
@@ -152,6 +160,6 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   assert.equal(contract.safeguards.measurementsVerified,false);
   assert.equal(contract.safeguards.confirmedReferenceRequired,true);
   assert.deepEqual(errors,[],'web media owner browser should have no page errors');
-  console.log(JSON.stringify({status:'PASS',checks:['Documents video/recording card','media dialog','customer/job assignment','resumable private upload','AI analysis','owner-confirmed reference gate','unverified distance estimate','close','Quick Create video/recording','safety authority']},null,2));
+  console.log(JSON.stringify({status:'PASS',checks:['Documents video/recording card','media dialog','customer/job assignment','bound upload handler','resumable private upload','AI analysis','owner-confirmed reference gate','unverified distance estimate','close','Quick Create video/recording','safety authority']},null,2));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
