@@ -18,15 +18,67 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  try{
   await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"><div class="grid"></div></main><dialog id="h38QuickCreateDialog"><div class="h38-quick-grid"></div><button value="cancel"></button></dialog></body></html>');
   await page.evaluate(()=>{
-   const records=new Map(),now=new Date().toISOString();
+   const records=new Map();
    window.state={page:'documents',businessId:'B-OWNER',snapshot:{customers:[{'Customer ID':'C-1','Customer Name':'Johnson'}],jobs:[{'Job ID':'J-1','Customer ID':'C-1','Project Title':'Deck repair'}]}};
-   window.esc=v=>String(v??'');window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
+   window.esc=v=>String(v??'');
+   window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://test.supabase.co',publishableKey:'pk-test'};
    window.H38_SUPABASE_AUTH={getState:()=>({selectedBusinessId:'B-OWNER',userId:'U-OWNER'})};
    const match=(row,filters)=>filters.every(([k,v])=>String(row[k]??'')===String(v));
-   function builder(table){let filters=[],payload=null,mode='select';const api={select(){mode='select';return api;},eq(k,v){filters.push([k,v]);return api;},in(){return api;},order(){return api;},limit(){return api;},maybeSingle(){if(table==='business_records'){for(const row of records.values())if(match(row,filters))return Promise.resolve({data:{id:row.id,payload:row.payload},error:null});}return Promise.resolve({data:null,error:null});},insert(v){const vals=Array.isArray(v)?v:[v];for(const row of vals){if(table==='business_records'){const id=row.id||crypto.randomUUID();records.set(`${row.business_id}|${row.collection}|${row.record_key}`,{id,...row});}}return Promise.resolve({data:vals,error:null});},update(v){payload=v;mode='update';return api;},then(resolve){if(mode==='update'&&table==='business_records'){for(const [key,row] of records)if(match(row,filters)){records.set(key,{...row,...payload});}}resolve({data:null,error:null});}};return api;}
+   function builder(table){
+     let filters=[],payload=null,mode='select';
+     const api={
+       select(){mode='select';return api;},
+       eq(k,v){filters.push([k,v]);return api;},
+       in(){return api;},
+       order(){return api;},
+       limit(){return api;},
+       maybeSingle(){
+         if(table==='business_records'){
+           for(const row of records.values())if(match(row,filters))return Promise.resolve({data:{id:row.id,payload:row.payload},error:null});
+         }
+         return Promise.resolve({data:null,error:null});
+       },
+       insert(v){
+         const vals=Array.isArray(v)?v:[v];
+         for(const row of vals){
+           if(table==='business_records'){
+             const id=row.id||crypto.randomUUID();
+             records.set(`${row.business_id}|${row.collection}|${row.record_key}`,{id,...row});
+           }
+         }
+         return Promise.resolve({data:vals,error:null});
+       },
+       update(v){payload=v;mode='update';return api;},
+       then(resolve){
+         if(mode==='update'&&table==='business_records'){
+           for(const [key,row] of records)if(match(row,filters))records.set(key,{...row,...payload});
+         }
+         resolve({data:null,error:null});
+       }
+     };
+     return api;
+   }
    window.__records=records;
-   window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>({auth:{getSession:async()=>({data:{session:{access_token:'token',expires_at:9999999999}},error:null}),refreshSession:async()=>({data:{session:{access_token:'token',expires_at:9999999999}},error:null})},from:builder,storage:{from:()=>({upload:async()=>({data:{},error:null})})},functions:{invoke:async(name,args)=>{window.__invokes=window.__invokes||[];window.__invokes.push({name,args});if(name==='h38-media-intake-ai')return{data:{status:'PASS',transcriptStatus:'COMPLETE',transcript:'Customer wants deck railing repaired. The door opening is 36 inches wide.',frameCount:0,analysis:{summary:'Deck repair media reviewed.',observedFacts:[{fact:'Railing damage is discussed',confidence:.9,evidence:'transcript'}],measurementTargets:[{label:'deck width',dimension:'width',reason:'quote scope'}],candidateReferenceMentions:[{label:'door opening',valueText:'36 in',reason:'spoken reference',requiresOwnerConfirmation:true}]},usage:{inputTokens:12,outputTokens:8,totalTokens:20}},error:null};if(name==='h38-web-video-measurements')return{data:{status:'PASS',outcome:'ESTIMATES_READY',message:'1 camera estimate is ready for field verification.',estimates:[{label:'deck width',displayValue:'12 ft 0 in',confidence:.61}]},error:null};return{data:{status:'PASS'},error:null};}})};
+   window.H38_SUPABASE_SHARED_CLIENT={
+     ensure:()=>({
+       auth:{
+         getSession:async()=>({data:{session:{access_token:'token',expires_at:9999999999}},error:null}),
+         refreshSession:async()=>({data:{session:{access_token:'token',expires_at:9999999999}},error:null})
+       },
+       from:builder,
+       storage:{from:()=>({upload:async()=>({data:{},error:null})})},
+       functions:{
+         invoke:async(name,args)=>{
+           window.__invokes=window.__invokes||[];
+           window.__invokes.push({name,args});
+           if(name==='h38-media-intake-ai')return{data:{status:'PASS',transcriptStatus:'COMPLETE',transcript:'Customer wants deck railing repaired. The door opening is 36 inches wide.',frameCount:0,analysis:{summary:'Deck repair media reviewed.',observedFacts:[{fact:'Railing damage is discussed',confidence:.9,evidence:'transcript'}],measurementTargets:[{label:'deck width',dimension:'width',reason:'quote scope'}],candidateReferenceMentions:[{label:'door opening',valueText:'36 in',reason:'spoken reference',requiresOwnerConfirmation:true}]},usage:{inputTokens:12,outputTokens:8,totalTokens:20}},error:null};
+           if(name==='h38-web-video-measurements')return{data:{status:'PASS',outcome:'ESTIMATES_READY',message:'1 camera estimate is ready for field verification.',estimates:[{label:'deck width',displayValue:'12 ft 0 in',confidence:.61}]},error:null};
+           return{data:{status:'PASS'},error:null};
+         }
+       }
+     })
+   };
    window.renderDocuments=function(){state.page='documents';document.getElementById('mainContent').innerHTML='<div class="grid"></div>';};
   });
   await page.addScriptTag({path:runtime});
