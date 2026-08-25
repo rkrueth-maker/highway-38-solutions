@@ -12,7 +12,6 @@ setTimeout(h38RenderInstalledBuild,50);
 const h38v212Authorize=authorize;
 authorize=async function(session){await h38v212Authorize(session);h38RenderInstalledBuild()};
 
-// Prime exact-UPС recovery for visible penny rows instead of waiting only for an existing external image URL.
 function h38PrimePennyImageRecovery(limit=30){
   try{
     const rows=(state.hunt?.rows||[]).filter(r=>strictImageRetailer(r.retailer)&&!!itemCode(r)&&!r.image_data_url&&!cachedImage(itemKey(r))).slice(0,limit);
@@ -26,7 +25,6 @@ const h38v212RenderHunt=renderHunt;
 renderHunt=function(){h38v212RenderHunt();setTimeout(()=>h38PrimePennyImageRecovery(30),80)};
 
 // Android WebView physical repair: retailer groups use one stable delegated touch/click path on #huntPage.
-// This survives innerHTML replacement and avoids the v2.1.3 failure where the row visibly received taps but never expanded.
 let h38HuntPointer=null,h38HuntLastToggleAt=0;
 function h38ToggleHuntGroup(key){
   key=txt(key);if(!key)return false;
@@ -62,11 +60,25 @@ function h38BindStableHuntTouch(){
     e.preventDefault();e.stopPropagation();h38ToggleHuntGroup(b.dataset.huntGroup);
   },true);
 }
+function h38ProbeHuntTouchInteraction(){
+  try{
+    h38BindStableHuntTouch();
+    let button=$('huntPage')?.querySelector?.('[data-hunt-group]');
+    if(!button){renderHunt();button=$('huntPage')?.querySelector?.('[data-hunt-group]')}
+    if(!button)return{ok:false,detail:'No retailer header was available for the interaction probe.'};
+    const key=txt(button.dataset.huntGroup),before=!!(state.hunt.expanded||{})[key],pid=914;
+    const opts={bubbles:true,cancelable:true,pointerId:pid,clientX:10,clientY:10,pointerType:'touch',isPrimary:true};
+    button.dispatchEvent(new PointerEvent('pointerdown',opts));
+    button.dispatchEvent(new PointerEvent('pointerup',opts));
+    const after=!!(state.hunt.expanded||{})[key],rendered=!!$('huntPage')?.querySelector?.(`[data-hunt-group="${CSS.escape(key)}"]`)?.closest?.('.retailer-group')?.classList?.contains('open');
+    if(after!==before)h38ToggleHuntGroup(key);
+    return{ok:after!==before&&rendered===after,detail:`${key}: ${before?'open':'closed'} → ${after?'open':'closed'}; rendered=${rendered?'open':'closed'}.`};
+  }catch(e){return{ok:false,detail:txt(e?.message||e)}}
+}
 const h38v214RenderHunt=renderHunt;
 renderHunt=function(){h38BindStableHuntTouch();h38v214RenderHunt()};
 setTimeout(h38BindStableHuntTouch,80);
 
-// Keep exact build/package identity and the canonical multi-source Retail Hunt visible in Maintenance.
 const h38v212RunMaintenance=runMaintenance;
 runMaintenance=async function(){
   await h38v212RunMaintenance();
@@ -78,7 +90,8 @@ runMaintenance=async function(){
   const additions=[];
   additions.push({name:'Installed build',status:/v2\.1\.4\b/.test(h38InstalledBuild())?'pass':'fail',detail:h38InstalledBuild()});
   additions.push({name:'Bundled runtime',status:bundledOk?'pass':'fail',detail:bundledOk?'v2.1 polish layers are running from APK assets, not a live URL.':`Missing bundled layers: ${required.filter(x=>!bundled.includes(x)).join(', ')}`});
-  additions.push({name:'Retailer expand touch path',status:window.H38_SCOUT_V214_HUNT_TOUCH_ACCEPTANCE===true&&!!$('huntPage')?.dataset?.h38HuntTouchBound?'pass':'fail',detail:'Retailer expansion is bound to a stable Hunt-page pointer/click delegate so re-rendered rows remain tappable.'});
+  const touchProbe=h38ProbeHuntTouchInteraction();
+  additions.push({name:'Retailer expand touch path',status:touchProbe.ok?'pass':'fail',detail:touchProbe.detail});
   additions.push({name:'One-card source layer',status:window.H38_SCOUT_V213_MULTI_SOURCE===true?'pass':'fail',detail:window.H38_SCOUT_V213_MULTI_SOURCE===true?'Retail Hunt routes through canonical UPC/SKU source aggregation; evidence merges underneath one product card.':'v2.1.3 canonical source layer is not active.'});
   try{
     const p=await fn('reseller-auto-leads-v063',{...locationPayload(),force:false},70000),rows=Array.isArray(p.leads)?p.leads:[],ids=rows.map(x=>txt(x.canonical_id)).filter(Boolean),unique=new Set(ids),newSources=(p.source_status||[]).filter(x=>/pennygeneral|penny pinchin/i.test(txt(x.source))),live=newSources.filter(x=>x.status==='PASS').length;
