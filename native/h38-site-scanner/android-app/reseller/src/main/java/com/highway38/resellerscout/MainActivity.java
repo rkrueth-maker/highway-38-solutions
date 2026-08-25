@@ -70,7 +70,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/2.0-clean-runtime");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/2.1.2");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
@@ -100,8 +100,8 @@ public final class MainActivity extends Activity {
     private String bundledPage() {
         String html = readAsset("reseller/index.html");
         html = html.replace("<link rel=\"stylesheet\" href=\"v200-ui.css\">", "<style>" + readAsset("reseller/v200-ui.css") + "</style>");
-        for (String name : new String[]{"v200-core.js", "v200-hunt.js", "v200-auctions.js", "v200-discover.js", "v200-scan.js", "v200-more.js", "v200-app.js"}) {
-            html = html.replace("<script src=\"" + name + "\"></script>", "<script data-h38-v200-module=\"" + name + "\">" + readAsset("reseller/" + name) + "</script>");
+        for (String name : new String[]{"v200-core.js", "v200-hunt.js", "v200-auctions.js", "v200-discover.js", "v200-scan.js", "v200-more.js", "v210-polish.js", "v211-wide.js", "v212-physical.js", "v200-app.js"}) {
+            html = html.replace("<script src=\"" + name + "\"></script>", "<script data-h38-bundled-module=\"" + name + "\">" + readAsset("reseller/" + name) + "</script>");
         }
         return html;
     }
@@ -295,11 +295,17 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private String buildIdentity() {
+        String sha = BuildConfig.H38_BUILD_SHA == null ? "local" : BuildConfig.H38_BUILD_SHA;
+        if (sha.length() > 12) sha = sha.substring(0, 12);
+        return "v" + BuildConfig.VERSION_NAME + " · code " + BuildConfig.VERSION_CODE + " · " + sha + " · run " + BuildConfig.H38_BUILD_RUN;
+    }
+
     private final class NativeBridge {
         @JavascriptInterface public void requestLocation() { runOnUiThread(MainActivity.this::requestPhoneLocation); }
         @JavascriptInterface public void scanBarcode() { runOnUiThread(MainActivity.this::scanBarcode); }
         @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
-        @JavascriptInterface public String build() { return "20260824-v200-clean-runtime"; }
+        @JavascriptInterface public String build() { return buildIdentity(); }
         @JavascriptInterface public void reloadScout() { runOnUiThread(MainActivity.this::recreate); }
         @JavascriptInterface public boolean notificationAccessEnabled() {
             try {
