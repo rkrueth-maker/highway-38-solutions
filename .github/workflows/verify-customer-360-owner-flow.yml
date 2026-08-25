@@ -8,6 +8,8 @@ on:
       - 'commercial-app/customer-360-authority.js'
       - 'commercial-app/customer-360-authority.css'
       - 'commercial-app/customer-360-browser-integration-v3.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'commercial-app/customer-readiness-polish.css'
       - 'commercial-app/owner-customer-workflow-polish.js'
       - 'commercial-app/owner-customer-workflow-polish.css'
       - 'commercial-app/owner-job-lifecycle-handoff.js'
@@ -24,6 +26,7 @@ on:
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
@@ -37,6 +40,8 @@ on:
       - 'commercial-app/customer-360-authority.js'
       - 'commercial-app/customer-360-authority.css'
       - 'commercial-app/customer-360-browser-integration-v3.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'commercial-app/customer-readiness-polish.css'
       - 'commercial-app/owner-customer-workflow-polish.js'
       - 'commercial-app/owner-customer-workflow-polish.css'
       - 'commercial-app/owner-job-lifecycle-handoff.js'
@@ -53,6 +58,7 @@ on:
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
       - 'scripts/verify-owner-quote-to-complete-job.js'
@@ -81,6 +87,7 @@ jobs:
         run: |
           node -c commercial-app/customer-360-authority.js
           node -c commercial-app/customer-360-browser-integration-v3.js
+          node -c commercial-app/customer-readiness-polish.js
           node -c commercial-app/owner-customer-workflow-polish.js
           node -c commercial-app/owner-job-lifecycle-handoff.js
           node -c commercial-app/owner-flow-polish.js
@@ -91,6 +98,7 @@ jobs:
           node -c commercial-app/assistant-command-runtime.js
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
+          node -c scripts/verify-customer-readiness-polish-browser.js
           node -c scripts/verify-owner-navigation-context-polish.js
           node -c scripts/verify-photo-only-web-quote.js
           node -c scripts/verify-owner-quote-to-complete-job.js
@@ -116,6 +124,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run Customer 360 Chromium owner flow
         run: node scripts/verify-customer-360-browser.js
+      - name: Run customer readiness polish as owner
+        run: node scripts/verify-customer-readiness-polish-browser.js
       - name: Run owner navigation and context polish
         run: node scripts/verify-owner-navigation-context-polish.js
       - name: Run photo-only web quote flow
