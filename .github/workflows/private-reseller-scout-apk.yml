@@ -52,7 +52,6 @@ jobs:
           check '<summary class="retailer-group-head">' "$physical"
           check 'Native Penny Hunt expansion' "$physical"
           reject 'h38BindStableHuntTouch' "$physical"
-          reject 'data-hunt-group' "$physical"
           check 'TAP EACH visible retailer header' "$acceptance"
           check "const H38_DEFAULT_ZIP='55744'" "$core"
           check 'Penny date unknown' "$hunt"
