@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260821-measurement-verification-authority-1';
+const BUILD='20260825-measurement-verification-authority-2';
 const VERIFIED_STATUSES=Object.freeze([
   'FIELD_MEASURED_AND_CHECKED',
   'FIELD_MEASURED',
@@ -29,7 +29,22 @@ function sameNumber(a,b){return Math.abs(Number(a)-Number(b))<0.01;}
 function missingResolved(item,row){if(!isVerified(row))return false;const request=typeof item==='string'?item:text(item?.request||item?.label||item?.detail||item?.statement),rid=text(item?.measurementId||item?.['Site Measurement ID']||'').trim(),mid=measurementId(row);if(rid&&mid&&rid===mid)return true;const label=rowLabel(row);if(!labelMatch(label,request))return false;const nums=numericValues(request),amount=scalar(row);if(nums.length&&amount!==null&&!nums.some(number=>sameNumber(number,amount)))return false;const requestedUnit=normalizeUnit((text(request).match(/\b(?:in|inch(?:es)?|ft|feet|foot|lf|sf)\b/i)||[])[0]);const unit=rowUnit(row);if(requestedUnit&&unit&&requestedUnit!==unit)return false;return true;}
 function currentVisit(){return window.H38_FIELD_VISIT_CORE?.state?.visit||null;}
 function snapshotRows(name){return Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];}
-function currentRows(){const C=window.H38_FIELD_VISIT_CORE,v=currentVisit(),sid=text(v?.sessionId),qid=text(v?.quoteId),local=Array.isArray(C?.state?.measurements)?C.state.measurements:[],server=snapshotRows('siteMeasurements').filter(row=>{const rs=rowSession(row),rq=text(value(row,'Quote ID','quoteId'));return(sid&&rs===sid)||(qid&&rq===qid);});const spoken=[];for(const source of [v?.walkthroughMeasurementCandidates,v?.walkthroughSpokenMeasurements,v?.walkthroughVoice?.spokenMeasurements,v?.walkthroughProfessionalNotes?.spokenMeasurements])if(Array.isArray(source))spoken.push(...source);const seen=new Set();return[...local,...server,...spoken].filter(row=>{if(!isVerified(row))return false;const key=[measurementId(row),normalizeLabel(rowLabel(row)),scalar(row),rowUnit(row),rowSession(row)].join('|');if(seen.has(key))return false;seen.add(key);return true;});}
+function currentRows(){
+  const C=window.H38_FIELD_VISIT_CORE,v=currentVisit(),sid=text(v?.sessionId),qid=text(v?.quoteId);
+  // Only real Site Measurement records can carry field-verification authority.
+  // Walkthrough speech/AI candidates are intentionally excluded here even when
+  // their text contains words such as measured, laser, verified, or field measured.
+  const local=Array.isArray(C?.state?.measurements)?C.state.measurements:[];
+  const server=snapshotRows('siteMeasurements').filter(row=>{const rs=rowSession(row),rq=text(value(row,'Quote ID','quoteId'));return(sid&&rs===sid)||(qid&&rq===qid);});
+  const seen=new Set();
+  return[...local,...server].filter(row=>{
+    if(!isVerified(row))return false;
+    const key=[measurementId(row),normalizeLabel(rowLabel(row)),scalar(row),rowUnit(row),rowSession(row)].join('|');
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
 function filterMissing(list,rows=currentRows()){if(!Array.isArray(list)||!list.length||!rows.length)return Array.isArray(list)?list:[];return list.filter(item=>!rows.some(row=>missingResolved(item,row)));}
 function reviewMatchesVisit(review,v=currentVisit()){if(!review||!v)return false;const sid=text(value(review,'Capture Session ID','captureSessionId')),vid=text(value(review,'Site Visit ID','siteVisitId')),qid=text(value(review,'Quote ID','quoteId'));return Boolean((v.sessionId&&sid===text(v.sessionId))||(v.visitId&&vid===text(v.visitId))||(v.quoteId&&qid===text(v.quoteId)));}
 function suppressCurrentVisitMissing(){const v=currentVisit(),verified=currentRows();if(!v||!verified.length)return{verified:verified.length,removed:0};let removed=0;for(const review of snapshotRows('siteAiReviews')){if(!reviewMatchesVisit(review,v))continue;for(const key of ['Missing Measurements','missingMeasurements']){if(!Array.isArray(review[key]))continue;const before=review[key].length;review[key]=filterMissing(review[key],verified);removed+=before-review[key].length;}}
@@ -41,5 +56,5 @@ const observer=new MutationObserver(()=>queueMicrotask(reconcile));observer.obse
 window.addEventListener('h38:walkthrough-measurements-updated',reconcile);
 window.addEventListener('h38:business-snapshot-updated',reconcile);
 [0,250,900,2200].forEach(delay=>setTimeout(reconcile,delay));
-window.H38_MEASUREMENT_VERIFICATION=Object.freeze({build:BUILD,VERIFIED_STATUSES,isVerified,normalizeUnit,normalizeLabel,labelMatch,missingResolved,currentRows,filterMissing,suppressCurrentVisitMissing,reconcile,fieldMeasuredIsVerified:true,structuredIdentityMatching:true,scalarLabelValueUnitMatching:true,reviewReRenderAfterSuppression:true,automaticApproval:false});
+window.H38_MEASUREMENT_VERIFICATION=Object.freeze({build:BUILD,VERIFIED_STATUSES,isVerified,normalizeUnit,normalizeLabel,labelMatch,missingResolved,currentRows,filterMissing,suppressCurrentVisitMissing,reconcile,fieldMeasuredIsVerified:true,persistedSiteMeasurementsOnly:true,spokenDimensionsAreFieldAuthority:false,structuredIdentityMatching:true,scalarLabelValueUnitMatching:true,reviewReRenderAfterSuppression:true,automaticApproval:false});
 })();
