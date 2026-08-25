@@ -58,6 +58,7 @@ jobs:
           check 'H38_SCOUT_V210_SELLABLE' "$polish"; check 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$wide"
           check "expected_resale:resale" "$wide"; check "status:'bought'" "$wide"; check ".in('status',['bought','sold'])" "$wide"; check 'h38InventoryKey' "$wide"; check 'h38SharedInventoryProbe' "$wide"
           check 'sold_price' "$wide"; check 'actual_fees' "$wide"; check 'actual_profit' "$wide"
+          check 'reseller_watch_rules' "$wide"; check 'h38LoadSharedWatches' "$wide"; check 'h38SyncWatch' "$wide"; check 'h38DeleteSharedWatch' "$wide"; check 'h38SharedWatchProbe' "$wide"; check 'Shared Watch RLS' "$wide"
           check 'h38WatchEvaluation' "$wide"; check 'Watch ranking logic' "$wide"; check 'Scan to Inventory' "$wide"
           check 'strictImageRetailer(r.retailer)&&!!itemCode(r)' "$wide"; check 'PHOTO<br>RECOVERY' "$wide"; check 'reseller-image-delivery-v201' "$wide"
           check 'Run Facebook pass' "$discover"; check 'captureVisible(true)' "$fb"; check 'Returning to Scout to rank results' "$fb"
@@ -70,6 +71,8 @@ jobs:
           const key=x=>{const u=String(x.source_url||x.url||'').split('?')[0].replace(/\/$/,'');if(u)return 'url|'+norm(u);const c=digits(x.upc||x.sku);if(c)return `code|${c}|${Number(x.buy_price||0).toFixed(2)}`;return `title|${norm(x.title)}|${Number(x.buy_price||0).toFixed(2)}`};
           if(key({source_url:'https://x/item/1?a=1',title:'A',buy_price:40})!==key({source_url:'https://x/item/1',title:'A',buy_price:40})) throw Error('inventory canonical URL dedupe fixture failed');
           const actual=(sold,buy,fees)=>Number((sold-buy-fees).toFixed(2));if(actual(125,45,18)!==62)throw Error('actual profit fixture failed');
+          const watch=(r,w)=>{const checks=[];if(w.max>0)checks.push(r.buy<=w.max);if(w.profit>0)checks.push(r.profit>=w.profit);if(w.roi>0)checks.push(r.roi>=w.roi);return checks.includes(false)?'over':'hit'};
+          if(watch({buy:50,profit:60,roi:120},{max:80,profit:40,roi:30})!=='hit'||watch({buy:90,profit:20,roi:22},{max:80,profit:40,roi:30})!=='over') throw Error('watch threshold fixture failed');
           const zip='55744';if(zip.length!==5)throw Error('default zip fixture failed');
           const lanes=['furniture','electronics','collectibles','auto parts','sporting goods','appliances'];if(lanes.length<6)throw Error('broad lanes missing');
           NODE
@@ -113,7 +116,7 @@ jobs:
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/v211-wide.js' > "$report/packaged-v211-wide.js"; node --check "$report/packaged-v211-wide.js"
-          grep -Fq 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$report/packaged-v211-wide.js"; grep -Fq 'h38SharedInventoryProbe' "$report/packaged-v211-wide.js"; grep -Fq 'PHOTO<br>RECOVERY' "$report/packaged-v211-wide.js"
+          grep -Fq 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$report/packaged-v211-wide.js"; grep -Fq 'h38SharedInventoryProbe' "$report/packaged-v211-wide.js"; grep -Fq 'h38SharedWatchProbe' "$report/packaged-v211-wide.js"; grep -Fq 'reseller_watch_rules' "$report/packaged-v211-wide.js"; grep -Fq 'PHOTO<br>RECOVERY' "$report/packaged-v211-wide.js"
           unzip -p "$out" 'assets/reseller/v200-core.js' > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
           unzip -p "$out" 'assets/reseller/v200-hunt.js' > "$report/packaged-hunt.js"; grep -Fq 'retailer-group' "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"; grep -Fq 'physical register scan remains final penny truth' "$report/packaged-hunt.js"
           unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"; grep -Fq 'v210-polish.js' "$report/packaged-index.html"; grep -Fq 'v211-wide.js' "$report/packaged-index.html"
