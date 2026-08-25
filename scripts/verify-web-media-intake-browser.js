@@ -8,28 +8,6 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  const browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- let uploadOffset=0,uploadLength=0;
- const cors={
-   'Access-Control-Allow-Origin':'*',
-   'Access-Control-Allow-Headers':'authorization, apikey, tus-resumable, upload-length, upload-metadata, upload-offset, content-type',
-   'Access-Control-Allow-Methods':'POST, PATCH, OPTIONS',
-   'Access-Control-Expose-Headers':'Location, Upload-Offset, Tus-Resumable'
- };
- await page.route('https://test.storage.supabase.co/**',async route=>{
-   const req=route.request();
-   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
-   if(req.method()==='POST'){
-     uploadOffset=0;
-     uploadLength=Number(req.headers()['upload-length']||0);
-     return route.fulfill({status:201,headers:{...cors,Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});
-   }
-   if(req.method()==='PATCH'){
-     const b=req.postDataBuffer();
-     uploadOffset=uploadLength||uploadOffset+(b?b.length:1);
-     return route.fulfill({status:204,headers:{...cors,'Upload-Offset':String(uploadOffset),'Tus-Resumable':'1.0.0'}});
-   }
-   return route.fulfill({status:200,headers:cors});
- });
  try{
   await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"><div class="grid"></div></main><dialog id="h38QuickCreateDialog"><div class="h38-quick-grid"></div><button value="cancel"></button></dialog></body></html>');
   await page.evaluate(()=>{
@@ -37,9 +15,36 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
    window.state={page:'documents',businessId:'B-OWNER',snapshot:{customers:[{'Customer ID':'C-1','Customer Name':'Johnson'}],jobs:[{'Job ID':'J-1','Customer ID':'C-1','Project Title':'Deck repair'}]}};
    window.esc=v=>String(v??'');
    window.toast=(m,e)=>{window.__toasts=window.__toasts||[];window.__toasts.push({m,e});};
-   window.H38_BUSABASE_AUTH={getState:()=>({selectedBusinessId:'B-OWNER',userId:'U-OWNER'})};
    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://test.supabase.co',publishableKey:'pk-test'};
    window.H38_SUPABASE_AUTH={getState:()=>({selectedBusinessId:'B-OWNER',userId:'U-OWNER'})};
+   window.__tusTrace=[];
+   let uploadLength=0;
+   const nativeFetch=window.fetch.bind(window);
+   window.fetch=async(input,init={})=>{
+     const url=typeof input==='string'?input:String(input?.url||input);
+     if(url.startsWith('https://test.storage.supabase.co/')){
+       const method=String(init.method||'GET').toUpperCase();
+       const h=init.headers||{};
+       const header=(name)=>{
+         if(h instanceof Headers)return h.get(name)||'';
+         const key=Object.keys(h).find(k=>k.toLowerCase()===name.toLowerCase());
+         return key?h[key]:'';
+       };
+       window.__tusTrace.push({method,url});
+       if(method==='POST'){
+         uploadLength=Number(header('Upload-Length')||0);
+         return new Response(null,{status:201,headers:{Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});
+       }
+       if(method==='PATCH'){
+         const bodySize=Number(init.body?.size||0);
+         const start=Number(header('Upload-Offset')||0);
+         const next=uploadLength||start+bodySize;
+         return new Response(null,{status:204,headers:{'Upload-Offset':String(next),'Tus-Resumable':'1.0.0'}});
+       }
+       return new Response(null,{status:200});
+     }
+     return nativeFetch(input,init);
+   };
    const match=(row,filters)=>filters.every(([k,v])=>String(row[k]??'')===String(v));
    function builder(table){
      let filters=[],payload=null,mode='select';
@@ -109,7 +114,12 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   await page.locator('#h38MediaTitle').fill('Customer deck recording');
   await page.locator('#h38MediaFile').setInputFiles({name:'customer-note.webm',mimeType:'audio/webm',buffer:Buffer.from('H38 synthetic owner acceptance audio')});
   await page.locator('#h38MediaUpload').click();
-  await page.waitForFunction(()=>{const t=document.querySelector('#h38MediaStatus')?.textContent||'';return t.includes('complete')||t.startsWith('Stopped:');},null,{timeout:10000});
+  try{
+    await page.waitForFunction(()=>{const t=document.querySelector('#h38MediaStatus')?.textContent||'';return t.includes('complete')||t.startsWith('Stopped:');},null,{timeout:10000});
+  }catch(error){
+    const debug=await page.evaluate(()=>({status:document.querySelector('#h38MediaStatus')?.textContent||'',toasts:window.__toasts||[],invokes:window.__invokes||[],tus:window.__tusTrace||[],records:window.__records?.size||0}));
+    throw new Error(`media intake did not finish: ${JSON.stringify(debug)}`);
+  }
   const status=await page.locator('#h38MediaStatus').textContent();
   assert(!status.startsWith('Stopped:'),`media intake stopped: ${status}`);
   const result=await page.locator('#h38MediaResult').textContent();
@@ -124,9 +134,11 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   await page.waitForSelector('#h38MediaMeasurements .h38-media-estimate');
   const measurement=await page.locator('#h38MediaMeasurements').textContent();
   assert(measurement.includes('Camera estimate')&&measurement.includes('UNVERIFIED')&&measurement.includes('field verification required'));
-  const invokes=await page.evaluate(()=>window.__invokes);
-  assert(invokes.some(x=>x.name==='h38-media-intake-ai'),'media AI must run');
-  assert(invokes.some(x=>x.name==='h38-web-video-measurements'),'distance engine must run only after owner confirmation');
+  const evidence=await page.evaluate(()=>({invokes:window.__invokes||[],tus:window.__tusTrace||[]}));
+  assert(evidence.tus.some(x=>x.method==='POST'),'TUS create must run');
+  assert(evidence.tus.some(x=>x.method==='PATCH'),'TUS chunk upload must run');
+  assert(evidence.invokes.some(x=>x.name==='h38-media-intake-ai'),'media AI must run');
+  assert(evidence.invokes.some(x=>x.name==='h38-web-video-measurements'),'distance engine must run only after owner confirmation');
   await page.locator('#h38WebMediaDialog [data-close]').last().click();
   assert.equal(await page.locator('#h38WebMediaDialog').getAttribute('open'),null,'close button should close the media dialog');
   await page.evaluate(()=>document.getElementById('h38QuickCreateDialog').showModal());
