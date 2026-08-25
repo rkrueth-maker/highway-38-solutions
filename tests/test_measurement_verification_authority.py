@@ -86,6 +86,6 @@ def test_review_wording_no_longer_implies_saved_photo_is_missing():
 
 
 def test_measurement_authority_loads_before_guided_review_runtime():
-    authority = INDEX.index('./measurement-verification-authority.js?build=20260821-measurement-verification-authority-1')
+    authority = INDEX.index('./measurement-verification-authority.js?build=20260825-measurement-verification-authority-2')
     guided = INDEX.index('./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1')
     assert authority < guided
