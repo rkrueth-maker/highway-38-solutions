@@ -9,11 +9,18 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  let uploadOffset=0;
+ const cors={
+   'Access-Control-Allow-Origin':'*',
+   'Access-Control-Allow-Headers':'authorization, apikey, tus-resumable, upload-length, upload-metadata, upload-offset, content-type',
+   'Access-Control-Allow-Methods':'POST, PATCH, OPTIONS',
+   'Access-Control-Expose-Headers':'Location, Upload-Offset, Tus-Resumable'
+ };
  await page.route('https://test.storage.supabase.co/**',async route=>{
    const req=route.request();
-   if(req.method()==='POST'){uploadOffset=0;return route.fulfill({status:201,headers:{Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});}
-   if(req.method()==='PATCH'){const b=req.postDataBuffer();uploadOffset+=b?b.length:0;return route.fulfill({status:204,headers:{'Upload-Offset':String(uploadOffset),'Tus-Resumable':'1.0.0'}});}
-   return route.fulfill({status:200});
+   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
+   if(req.method()==='POST'){uploadOffset=0;return route.fulfill({status:201,headers:{...cors,Location:'https://test.storage.supabase.co/upload/owner-media-1','Tus-Resumable':'1.0.0'}});}
+   if(req.method()==='PATCH'){const b=req.postDataBuffer();uploadOffset+=b?b.length:0;return route.fulfill({status:204,headers:{...cors,'Upload-Offset':String(uploadOffset),'Tus-Resumable':'1.0.0'}});}
+   return route.fulfill({status:200,headers:cors});
  });
  try{
   await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"><div class="grid"></div></main><dialog id="h38QuickCreateDialog"><div class="h38-quick-grid"></div><button value="cancel"></button></dialog></body></html>');
