@@ -113,11 +113,13 @@ const runtime=path.join(root,'commercial-app/web-media-intake-runtime.js');
   await page.locator('#h38MediaPurpose').selectOption({label:'Meeting'});
   await page.locator('#h38MediaTitle').fill('Customer deck recording');
   await page.locator('#h38MediaFile').setInputFiles({name:'customer-note.webm',mimeType:'audio/webm',buffer:Buffer.from('H38 synthetic owner acceptance audio')});
-  await page.locator('#h38MediaUpload').click();
+  assert.equal(await page.locator('#h38MediaFile').evaluate(el=>el.files?.length||0),1,'synthetic owner media must be attached');
+  await page.locator('#h38MediaFile').dispatchEvent('change');
+  await page.evaluate(()=>document.getElementById('h38MediaUpload')?.click());
   try{
     await page.waitForFunction(()=>{const t=document.querySelector('#h38MediaStatus')?.textContent||'';return t.includes('complete')||t.startsWith('Stopped:');},null,{timeout:10000});
   }catch(error){
-    const debug=await page.evaluate(()=>({status:document.querySelector('#h38MediaStatus')?.textContent||'',toasts:window.__toasts||[],invokes:window.__invokes||[],tus:window.__tusTrace||[],records:window.__records?.size||0}));
+    const debug=await page.evaluate(()=>({status:document.querySelector('#h38MediaStatus')?.textContent||'',fileCount:document.querySelector('#h38MediaFile')?.files?.length||0,uploadHandler:typeof document.querySelector('#h38MediaUpload')?.onclick,toasts:window.__toasts||[],invokes:window.__invokes||[],tus:window.__tusTrace||[],records:window.__records?.size||0}));
     throw new Error(`media intake did not finish: ${JSON.stringify(debug)}`);
   }
   const status=await page.locator('#h38MediaStatus').textContent();
