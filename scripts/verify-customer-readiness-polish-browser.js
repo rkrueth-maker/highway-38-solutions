@@ -27,7 +27,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
         documents:[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','File Name':'gutter-before.jpg','Updated Time':now}],
         requests:[],quoteRevisions:[],siteMeasurements:[],tasks:[],payments:[],portalMessages:[],checklists:[],jobNotes:[],conversations:[],messages:[],emailThreads:[],emailMessages:[],smsThreads:[],smsMessages:[],portalThreads:[],changeOrders:[],timeEntries:[],dailyLogs:[],materialRequests:[],assignments:[],inspections:[],recurringPlans:[],expenses:[]
       }};
-      window.esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      window.esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
       window.money=value=>`$${Number(value||0).toFixed(2)}`;
       window.toast=()=>{};
       window.renderToday=function(){state.page='today';document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>Today</h1></header><section class="card"><h2>Legacy today</h2></section>';};
@@ -58,7 +58,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     assert.equal(await page.evaluate(()=>window.__siteOpen.customerId),'C-JOHN','site visit should inherit customer context');
     await page.evaluate(()=>{state.page='customers';H38_CUSTOMER_360.selectedCustomerId='C-JOHN';renderCustomers();});
     await page.waitForSelector('#h38CustomerReadyHero');
-    await page.locator('#h38CustomerReadyHero [data-h38-customer-action="meeting"]').click();
+    await page.locator('#h38CustomerReadyHero').getByRole('button',{name:'Meeting',exact:true}).click();
     assert.equal(await page.evaluate(()=>window.__meetingOpen.customerId),'C-JOHN','meeting should inherit customer context');
     await page.evaluate(()=>{window.H38_FIELD_VISIT_CORE={state:{visit:{sessionId:'VISIT-1',projectTitle:'Garage visit',photoAttachmentIds:['P1','P2'],videoAttachmentIds:['V1'],measurements:[1,2,3],unknowns:['confirm outlet']}}};});
     await page.waitForSelector('#h38CustomerReadyVisitSummary',{timeout:2500});
