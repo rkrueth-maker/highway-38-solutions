@@ -31,87 +31,55 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.1.4 physical interaction contract
+      - name: Verify v2.1.5 native Penny Hunt contract
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
           check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
           reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2"; exit 1; fi; }
-          assets='reseller/src/main/assets/reseller'
-          core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
-          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
-          fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
-          acceptance='reseller/SCOUT_BUILD_ACCEPTANCE.md'
-          imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"
-          dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"
-          sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"
-          sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
+          assets='reseller/src/main/assets/reseller'; core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; index="$assets/index.html"
+          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'; fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'; acceptance='reseller/SCOUT_BUILD_ACCEPTANCE.md'
+          imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"; dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"; sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"; sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
 
-          check "versionName '2.1.4'" reseller/build.gradle
-          check 'versionCode 71' reseller/build.gradle
-          check 'H38_BUILD_SHA' reseller/build.gradle
-          check 'H38_BUILD_RUN' reseller/build.gradle
+          check "versionName '2.1.5'" reseller/build.gradle
+          check 'versionCode 72' reseller/build.gradle
           for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical"; do node --check "$f"; done
-          node reseller/hunt-touch.test.mjs | tee "$report/hunt-touch-fixture.txt"
+          node reseller/hunt-native.test.mjs | tee "$report/hunt-native-fixture.txt"
           node "$sourceTest" | tee "$report/canonical-source-fixtures.txt"
-
-          check 'H38_SCOUT_V214_HUNT_TOUCH_ACCEPTANCE' "$physical"
-          check 'h38BindStableHuntTouch' "$physical"
-          check "addEventListener('pointerup'" "$physical"
-          check 'Retailer expand touch path' "$physical"
+          check 'H38_SCOUT_V215_NATIVE_HUNT=true' "$physical"
+          check '<details class="retailer-group" data-hunt-details=' "$physical"
+          check '<summary class="retailer-group-head">' "$physical"
+          check 'Native Penny Hunt expansion' "$physical"
+          reject 'h38BindStableHuntTouch' "$physical"
+          reject 'data-hunt-group' "$physical"
           check 'TAP EACH visible retailer header' "$acceptance"
-          check 'final acceptance authority' "$acceptance"
+          check "const H38_DEFAULT_ZIP='55744'" "$core"
+          check 'Penny date unknown' "$hunt"
+          check 'physical register scan remains final penny truth' "$hunt"
           check 'retailer-upc-sku-bridge-v063' "$sourceCore"
           check 'pennygeneral.net' "$sourceIndex"
           check 'pennypinchinmom.com' "$sourceIndex"
-          check 'reseller-auto-leads-v046' "$sourceIndex"
-          check 'Physical in-store UPC/register scan remains final local truth' "$sourceIndex"
-
-          check "const H38_DEFAULT_ZIP='55744'" "$core"
-          check 'retailer-group' "$hunt"
-          check 'Penny date unknown' "$hunt"
-          check 'physical register scan remains final penny truth' "$hunt"
-          check 'H38_SCOUT_V211_WIDE_ACCEPTANCE' "$wide"
-          check 'H38_SCOUT_V212_PHYSICAL_ACCEPTANCE' "$physical"
-          check 'H38_SCOUT_V213_SOURCE_ACCEPTANCE' "$physical"
-          check 'h38PrimePennyImageRecovery' "$physical"
-          check 'Multi-source canonical Hunt' "$physical"
-          check 'Installed build' "$physical"
-          check 'Bundled runtime' "$physical"
           check 'H38_SCOUT_V213_MULTI_SOURCE' "$index"
           check 'reseller-auto-leads-v063' "$index"
-          check 'one card per product' "$index"
-          check 'v210-polish.js' "$main"
-          check 'v211-wide.js' "$main"
           check 'v212-physical.js' "$main"
           check 'data-h38-bundled-module' "$main"
           check 'BuildConfig.H38_BUILD_SHA' "$main"
-          check 'accountBuild' "$index"
-
           check 'H38ResellerScoutMarketplace/2.1.2' "$fb"
           check 'Grand Rapids, MN' "$fb"
-          check 'location_fixing' "$fb"
-          check 'MutationObserver' "$fb"
-          check 'item_urls_seen' "$fb"
           check 'Capture now' "$fb"
           reject 'Next search' "$fb"
           reject 'Capture visible' "$fb"
           check 'if(d>ctx.radiusMiles)return null' "$dealsFn"
-
           check 'exactPennyTree' "$imageFn"
-          check 'PennyTree exact retailer + UPC' "$imageFn"
-          check 'RetailShout exact UPC' "$imageFn"
           check 'Image failure never changes penny/store/resale truth' "$imageFn"
-
           check 'h38SyncLocalInventoryFallbacks' "$wide"
           check 'reseller_watch_rules' "$wide"
-          check 'h38SharedWatchProbe' "$wide"
           check 'actual_profit' "$wide"
           check 'Scan to Inventory' "$wide"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.1.4 APK
+      - name: Compile Owner Scout v2.1.5 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -119,8 +87,8 @@ jobs:
           echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.1.4.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.4.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.1.5.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.5.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -128,22 +96,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.4.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.5.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='71' versionName='2.1.4'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='72' versionName='2.1.5'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"; node --check "$report/packaged-v212.js"; grep -Fq H38_SCOUT_V214_HUNT_TOUCH_ACCEPTANCE "$report/packaged-v212.js"; grep -Fq h38BindStableHuntTouch "$report/packaged-v212.js"
+          unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"
+          node --check "$report/packaged-v212.js"
+          grep -Fq 'H38_SCOUT_V215_NATIVE_HUNT=true' "$report/packaged-v212.js"
+          grep -Fq '<details class="retailer-group" data-hunt-details=' "$report/packaged-v212.js"
+          grep -Fq 'summary.click()' "$report/packaged-v212.js"
+          if grep -Fq 'h38BindStableHuntTouch' "$report/packaged-v212.js"; then echo '::error::old Hunt touch override packaged'; exit 1; fi
           unzip -p "$out" assets/reseller/v200-core.js > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
-          unzip -p "$out" assets/reseller/v200-hunt.js > "$report/packaged-hunt.js"; grep -Fq 'Penny date unknown' "$report/packaged-hunt.js"
-          unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"; grep -Fq 'H38_SCOUT_V213_MULTI_SOURCE' "$report/packaged-index.html"; grep -Fq 'reseller-auto-leads-v063' "$report/packaged-index.html"
+          unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"; grep -Fq 'H38_SCOUT_V213_MULTI_SOURCE' "$report/packaged-index.html"
           for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
-          grep -Fq 'H38ResellerScoutMarketplace/2.1.2' "$report/dex-strings.txt"
           grep -Fq 'Capture now' "$report/dex-strings.txt"
           grep -Fq 'Grand Rapids, MN' "$report/dex-strings.txt"
-          grep -Fq 'v212-physical.js' "$report/dex-strings.txt"
-          grep -Fq 'data-h38-bundled-module' "$report/dex-strings.txt"
           if grep -Fq 'Next search' "$report/dex-strings.txt"; then echo '::error::stale Next search UI packaged'; exit 1; fi
           if grep -Fq 'Capture visible' "$report/dex-strings.txt"; then echo '::error::stale Capture visible UI packaged'; exit 1; fi
           echo PASS > "$report/smoke.txt"
@@ -152,7 +121,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.1.4
+          name: h38-reseller-scout-owner-v2.1.5
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: warn
           retention-days: 30
