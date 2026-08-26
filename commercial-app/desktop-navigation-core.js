@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-desktop-navigation-core-2';
+const BUILD='20260826-desktop-navigation-core-3';
 const DESKTOP='(min-width: 761px)';
 const ORDER=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
 const REQUIREMENTS={
@@ -17,6 +17,11 @@ const REQUIREMENTS={
   social:['manageSocial'],
   settings:['manageSettings','manageUsers']
 };
+const LEGACY_ARTIFACT_IDS=[
+  'h38DesktopSidebarPhysicalProxy','h38DesktopNavHitLayerStyle','h38DesktopNavAuthority',
+  'h38DesktopNavHitLayer','h38DirectRouteProxyLayer','h38AuthCacheNavLayer',
+  'h38BusinessOfficeOpenHit','h38SiteVisitNativeHit','h38InboxControl'
+];
 let rendering=false;
 let navObserver=null;
 let observedNav=null;
@@ -48,8 +53,10 @@ function expectedPages(){
   });
 }
 function removeLegacyNavigationPatches(nav){
-  document.getElementById('h38DesktopSidebarPhysicalProxy')?.remove();
-  document.getElementById('h38DesktopNavHitLayerStyle')?.remove();
+  LEGACY_ARTIFACT_IDS.forEach(id=>document.getElementById(id)?.remove());
+  if(typeof window.h38DesktopNavWindowCapture==='function'){
+    try{window.removeEventListener('click',window.h38DesktopNavWindowCapture,true);}catch(_){}
+  }
   if(nav?.__h38DesktopNavClickHandler){
     try{nav.removeEventListener('click',nav.__h38DesktopNavClickHandler,true);}catch(_){}
     try{delete nav.__h38DesktopNavClickHandler;}catch(_){}
@@ -63,7 +70,11 @@ function owned(nav,pages){
 }
 function bind(nav){
   if(!nav)return false;
-  if(nav.__h38DesktopNavigationCoreHandler)return true;
+  const existing=nav.__h38DesktopNavigationCoreHandler;
+  if(existing?.__h38DesktopNavigationCoreBuild===BUILD)return true;
+  if(existing){
+    try{nav.removeEventListener('click',existing,false);}catch(_){}
+  }
   const handler=event=>{
     if(!desktop()||(office().shell||'office')!=='office')return;
     const button=event.target instanceof Element?event.target.closest('button[data-page]'):null;
@@ -79,6 +90,7 @@ function bind(nav){
       try{window.toast?.(`Could not open ${pageDef(page)?.[1]||page}.`,true);}catch(_){}
     }
   };
+  handler.__h38DesktopNavigationCoreBuild=BUILD;
   nav.__h38DesktopNavigationCoreHandler=handler;
   nav.addEventListener('click',handler,false);
   return true;
@@ -153,6 +165,8 @@ window.H38_DESKTOP_NAVIGATION_CORE=Object.freeze({
   reconcile,
   expectedPages,
   singleDesktopOwner:true,
+  replacesPriorCoreHandlers:true,
+  retiresLegacyNavigationArtifacts:true,
   delegatedNavContainerClick:true,
   noWindowClickCapture:true,
   noGeometryHitTesting:true,
