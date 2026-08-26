@@ -39,11 +39,7 @@
   function installNativeReturnColdReloadGuard() {
     if (!nativeAndroid || !nativeReturnPending()) return;
     let url;
-    try {
-      url = new URL(location.href);
-    } catch (_) {
-      return;
-    }
+    try { url = new URL(location.href); } catch (_) { return; }
     if (url.searchParams.get(nativeReturnReloadParam) === '1') {
       const clearMarker = function () {
         if (!officeUsable()) return false;
@@ -82,9 +78,11 @@
   }
 
   function loadDesktopNavigationCore() {
-    if (document.querySelector('script[data-h38-desktop-navigation-core]')) return;
+    const current = document.querySelector('script[data-h38-desktop-navigation-core]');
+    if (current && /desktop-navigation-core-5-window-capture/.test(String(current.src || ''))) return;
+    if (current) current.remove();
     const script = document.createElement('script');
-    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-4-physical-click';
+    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-5-window-capture';
     script.dataset.h38DesktopNavigationCore = '1';
     document.head.appendChild(script);
   }
@@ -116,20 +114,14 @@
   else if (!window.renderField) window.renderField = function () {
     const openVisit = function () {
       if (window.H38_FIELD_VISIT?.open) {
-        window.H38_FIELD_VISIT.open({
-          quoteId: String(window.state?.quote?.quoteId || ''),
-          customerId: String(window.state?.quote?.customerId || '')
-        });
+        window.H38_FIELD_VISIT.open({quoteId: String(window.state?.quote?.quoteId || ''),customerId: String(window.state?.quote?.customerId || '')});
         return true;
       }
       return false;
     };
     if (openVisit()) return;
     let attempts = 0;
-    const timer = setInterval(function () {
-      attempts += 1;
-      if (openVisit() || attempts >= 25) clearInterval(timer);
-    }, 80);
+    const timer = setInterval(function () { attempts += 1; if (openVisit() || attempts >= 25) clearInterval(timer); }, 80);
   };
   window.renderSettings = renderSettings;
   window.queueOperation = queueOperation;
