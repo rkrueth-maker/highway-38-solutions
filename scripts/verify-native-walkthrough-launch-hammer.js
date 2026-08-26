@@ -41,7 +41,7 @@ absent(noLegacy,'./field-visit-fast-followup.js?build=','dynamic Site Visit auth
 for(const s of ['automaticPostCaptureSync:true','automaticWalkthroughProcessing:true','H38 is syncing Site Visit evidence'])must(recovery,s,'post-capture recovery');
 for(const s of ['clearEarlyNativeStartupCover','setTimeout(clearEarlyNativeStartupCover, 3000)','script.onload = function () { clearEarlyNativeStartupCover(); }','h38NativeReturnCold'])must(runtimeGlobals,s,'Android startup recovery');
 for(const s of ["BUILD='20260816-startup-site-visit-stability-3'","startupMaxCoverMs:8000","Highway 38 startup did not finish. The underlying Business Office is now visible for recovery."])must(startupStability,s,'startup watchdog');
-if(!/const CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(serviceWorker))throw new Error('startup service worker must use a dated cache name');
+if(!/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(serviceWorker))throw new Error('startup service worker must use a dated or named cache build');
 for(const s of ["'supabase-runtime-globals.js'","'startup-site-visit-stability.js'","'./startup-site-visit-stability.js'"])must(serviceWorker,s,'startup service worker');
 const liveFirst=(serviceWorker.match(/const LIVE_FIRST=new Set\(\[([\s\S]*?)\]\);/)||[])[1]||'';
 for(const critical of ['supabase-runtime-globals.js','startup-site-visit-stability.js'])must(liveFirst,`'${critical}'`,'startup LIVE_FIRST boundary');
