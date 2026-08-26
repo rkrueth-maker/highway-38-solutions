@@ -34,7 +34,9 @@ def test_desktop_navigation_loads_last_and_measurement_authority_is_cache_busted
     assert INDEX.index(nav) > INDEX.index('./customer-readiness-polish.js?build=20260825-customer-readiness-polish-1')
     assert './measurement-verification-authority.js?build=20260825-measurement-verification-authority-2' in INDEX
     assert 'desktopNavigationCacheBridge:true' in AUTH_CACHE
-    assert '20260825-desktop-nav-cache-bridge-1' in AUTH_CACHE
+    assert '20260825-desktop-nav-cache-bridge-3-persistent' in AUTH_CACHE
+    assert 'desktopNavigationPersistentObserver:true' in AUTH_CACHE
+    assert 'desktopNavigationLateMutationRepair:true' in AUTH_CACHE
 
 
 def test_spoken_dimensions_are_evidence_until_a_persisted_field_measurement_exists():
