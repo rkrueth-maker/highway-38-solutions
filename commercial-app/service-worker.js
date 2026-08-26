@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20260826-photo-scope-4';
+const CACHE_NAME='h38-business-office-20260826-nav-core-5';
 const PREVIOUS_EXAMPLE_COMMAND_CACHE_NAME='h38-business-office-20260824-0815';
 const OLDER_EXAMPLE_COMMAND_CACHE_NAME='h38-business-office-20260824-0410';
 const PREVIOUS_CONVERSATION_CACHE_NAME='h38-business-office-20260824-0155';
