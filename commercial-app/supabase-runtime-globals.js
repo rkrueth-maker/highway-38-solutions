@@ -84,7 +84,7 @@
   function loadDesktopNavigationCore() {
     if (document.querySelector('script[data-h38-desktop-navigation-core]')) return;
     const script = document.createElement('script');
-    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-2';
+    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-3';
     script.dataset.h38DesktopNavigationCore = '1';
     document.head.appendChild(script);
   }
