@@ -12,9 +12,11 @@ MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='ut
 
 
 def test_desktop_navigation_has_one_real_owner():
-    assert "20260826-desktop-navigation-core-2" in CORE
+    assert "20260826-desktop-navigation-core-3" in CORE
     for marker in [
         'singleDesktopOwner:true',
+        'replacesPriorCoreHandlers:true',
+        'retiresLegacyNavigationArtifacts:true',
         'delegatedNavContainerClick:true',
         'noWindowClickCapture:true',
         'noGeometryHitTesting:true',
@@ -44,7 +46,7 @@ def test_failed_navigation_patch_layers_are_retired():
     assert 'H38_CORE_OPEN_PAGE' not in RUNTIME_GLOBALS
     assert 'H38_CORE_RENDER_NAV' not in RUNTIME_GLOBALS
     assert 'H38_CORE_ALLOWED_PAGES' not in RUNTIME_GLOBALS
-    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-2" in RUNTIME_GLOBALS
+    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-3" in RUNTIME_GLOBALS
 
 
 def test_navigation_keeps_owner_control_safety():
