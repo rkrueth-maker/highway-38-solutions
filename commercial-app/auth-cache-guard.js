@@ -1,7 +1,7 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-3';
-const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-3-persistent';
+const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-4-clicks';
+const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-4-clicks';
 const h38LegacyLoadCached=loadCached;
 
 loadCached=async function(options={}){
@@ -71,7 +71,12 @@ function h38DesktopNavDef(page){
   return window.PAGE_DEFS?.[page]||['•',page];
 }
 function h38OpenDesktopNavPage(page){
-  if(page==='meetings'&&window.H38_CONVERSATION_MEETING_ASSISTANT?.openMeetingsPage){window.H38_CONVERSATION_MEETING_ASSISTANT.openMeetingsPage();return;}
+  if(window.H38_DESKTOP_NAVIGATION_AUTHORITY?.openPage?.(page))return;
+  if(page==='meetings'&&typeof window.renderMeetings==='function'){
+    if(window.state)window.state.page='meetings';
+    window.renderMeetings();
+    return;
+  }
   window.openPage?.(page);
 }
 let h38DesktopNavRepairing=false;
@@ -143,5 +148,6 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   desktopNavigationPersistentObserver:true,
   desktopNavigationLateMutationRepair:true,
   desktopNavigationLifecycleRepair:true,
-  desktopNavigationPeriodicRepair:true
+  desktopNavigationPeriodicRepair:true,
+  desktopNavigationRoutesThroughFinalAuthority:true
 });
