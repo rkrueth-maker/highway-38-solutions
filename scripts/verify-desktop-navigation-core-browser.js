@@ -3,9 +3,11 @@ const fs=require('fs');
 const http=require('http');
 const path=require('path');
 const assert=require('assert');
+const {spawnSync}=require('child_process');
 const {chromium}=require('playwright');
 
 const root=path.resolve(__dirname,'..');
+const officeRoot=path.join(root,'commercial-app');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'};
 function server(){
   return http.createServer((req,res)=>{
@@ -19,8 +21,18 @@ function server(){
     fs.createReadStream(file).pipe(res);
   });
 }
+function verifyOfficeSyntax(){
+  const failures=[];
+  for(const name of fs.readdirSync(officeRoot).filter(name=>name.endsWith('.js')).sort()){
+    const file=path.join(officeRoot,name);
+    const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8'});
+    if(result.status!==0)failures.push(`${name}: ${(result.stderr||result.stdout||'syntax check failed').trim()}`);
+  }
+  if(failures.length)throw new Error(`Business Office JavaScript syntax failure(s):\n${failures.join('\n\n')}`);
+}
 
 (async()=>{
+  verifyOfficeSyntax();
   const local=server();
   await new Promise(resolve=>local.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${local.address().port}`;
@@ -41,7 +53,7 @@ function server(){
     await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
     await page.waitForFunction(()=>typeof window.openPage==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
     await page.waitForTimeout(500);
-    assert.deepEqual(runtimeErrors,[],'real Business Office startup must produce no browser page errors');
+    if(runtimeErrors.length)throw new Error(`real Business Office startup browser error(s): ${runtimeErrors.join(' | ')}`);
 
     await page.evaluate(()=>{
       const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
@@ -87,8 +99,8 @@ function server(){
     assert(contract&&contract.singleDesktopOwner===true,'desktop navigation must have one owner');
     assert.equal(contract.noProxyButtons,true,'proxy buttons must stay retired');
     assert.equal(contract.noWindowClickCapture,true,'window capture navigation must stay retired');
-    assert.deepEqual(runtimeErrors,[],'real sidebar sequence must produce no browser page errors');
-    console.log(JSON.stringify({status:'PASS',sequence:proof,checks:['real Business Office startup','real sidebar DOM','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes','single owner contract']},null,2));
+    if(runtimeErrors.length)throw new Error(`real sidebar sequence browser error(s): ${runtimeErrors.join(' | ')}`);
+    console.log(JSON.stringify({status:'PASS',sequence:proof,checks:['all Business Office JavaScript syntax','real Business Office startup','real sidebar DOM','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes','single owner contract']},null,2));
   }finally{
     await browser.close();
     await new Promise(resolve=>local.close(resolve));
