@@ -86,3 +86,38 @@ runMaintenance=async function(){
   if(overall){overall.status=fails?'fail':warns?'warn':'pass';overall.detail=fails?`${fails} required Scout checks failed.`:warns?`Required checks passed with ${warns} conditional/source warnings.`:'All required v2.1.6 checks passed.'}
   renderMaintenance();h38RenderInstalledBuild()
 };
+
+// v2.3.1 phone acceptance repair. Install after the v2.3 inline layer and app bootstrap have run.
+window.H38_SCOUT_V231_PHONE_REPAIR=true;
+function h38InstallV231AuctionRepair(){
+  if(window.__h38V231AuctionInstalled||typeof runAuctionSearch!=='function'||typeof renderAuctions!=='function')return;
+  window.__h38V231AuctionInstalled=true;
+  const baseRun=runAuctionSearch,baseRender=renderAuctions;
+  function healthCounts(){
+    const vals=Object.values(state.auctions?.health||{}),responding=vals.filter(x=>x?.status==='live'||x?.status==='partial_live'||x?.status==='no_match'||x?.status==='empty').length,limited=vals.filter(x=>x?.status==='unavailable').length,routes=vals.filter(x=>x?.status==='search_route').length;
+    return{responding,limited,routes,total:vals.length};
+  }
+  renderAuctions=function(){
+    baseRender();
+    const page=$('auctionPage'),line=page?.querySelector('.status-line');if(!line)return;
+    let extra=page.querySelector('[data-v231-auction-status]');if(!extra){extra=document.createElement('div');extra.dataset.v231AuctionStatus='true';extra.className='small muted';line.insertAdjacentElement('afterend',extra)}
+    const a=state.auctions||{},h=healthCounts(),elapsed=a.v231StartedAt?Math.max(0,Date.now()-a.v231StartedAt):0,last=a.v231LastResponse;
+    if(a.loading)extra.textContent=`Source request running · ${(elapsed/1000).toFixed(1)}s${a.pendingRefresh?' · latest filter change queued':''}. Existing results stay on screen.`;
+    else if(last)extra.textContent=`Last source response · ${last.count} row${last.count===1?'':'s'} · ${(last.elapsedMs/1000).toFixed(1)}s · ${last.responding} responding · ${last.limited} unavailable · ${last.routes} route-only.`;
+    else extra.textContent='No completed v2.3 source response on this screen yet.';
+  };
+  runAuctionSearch=async function(){
+    state.auctions=state.auctions||{};
+    if(state.auctions.loading){state.auctions.pendingRefresh=true;state.auctions.pendingQueuedAt=Date.now();renderAuctions();return;}
+    state.auctions.v231StartedAt=Date.now();state.auctions.pendingRefresh=false;
+    const promise=baseRun();
+    const tick=setInterval(()=>{if(!state.auctions.loading){clearInterval(tick);return}renderAuctions()},1000);
+    try{await promise}finally{
+      clearInterval(tick);
+      const h=healthCounts();state.auctions.v231LastResponse={count:Array.isArray(state.auctions.rows)?state.auctions.rows.length:0,elapsedMs:Math.max(0,Date.now()-state.auctions.v231StartedAt),responding:h.responding,limited:h.limited,routes:h.routes,completedAt:Date.now()};
+      const again=state.auctions.pendingRefresh===true;state.auctions.pendingRefresh=false;renderAuctions();if(again)setTimeout(()=>runAuctionSearch(),180);
+    }
+  };
+}
+setTimeout(h38InstallV231AuctionRepair,0);
+setTimeout(h38InstallV231AuctionRepair,250);
