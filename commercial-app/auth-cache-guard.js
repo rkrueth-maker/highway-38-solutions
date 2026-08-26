@@ -1,7 +1,7 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-1';
-const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-1';
+const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-2';
+const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-2';
 const h38LegacyLoadCached=loadCached;
 
 loadCached=async function(options={}){
@@ -36,34 +36,61 @@ addEventListener('h38:auth-cleared',()=>{
   try{$('businessSelect').innerHTML='<option value="">Select business</option>';}catch(error){}
 });
 
-function h38DesktopNavBridgeAllowedPages(){
-  try{
-    const pages=typeof window.allowedPages==='function'?window.allowedPages().slice():[];
-    if(window.PAGE_DEFS?.meetings&&!pages.includes('meetings')){
-      const at=Math.max(0,pages.indexOf('customers')+1);
-      pages.splice(at,0,'meetings');
-    }
-    return pages;
-  }catch(error){return[];}
+const H38_DESKTOP_NAV_ORDER=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
+const H38_DESKTOP_NAV_REQUIREMENTS={
+  customers:['viewCustomers','manageWork','manageQuotes'],
+  work:['manageWork','viewAssignedWork','manageAssignedWork'],
+  quotes:['manageQuotes','manageWork'],
+  schedule:['manageSchedule','manageWork','viewAssignedWork'],
+  messages:['manageCommunications'],
+  field:['manageField','viewAssignedWork','captureEvidence'],
+  inventory:['manageInventory','useInventory'],
+  fleet:['manageAssets','useAssets','manageMaintenance'],
+  money:['manageFinancial','viewFinancial'],
+  documents:['manageWork','manageQuotes','manageField','captureEvidence'],
+  social:['manageSocial'],
+  settings:['manageSettings','manageUsers']
+};
+function h38DesktopNavBridgeCan(capability){
+  const user=window.state?.snapshot?.user;
+  if(!user)return true;
+  if(user.owner===true||user.permissions?.all===true)return true;
+  return user.permissions?.[capability]===true;
 }
-
+function h38DesktopNavBridgeAllowedPages(){
+  const meetingAvailable=!!(window.H38_CONVERSATION_MEETING_ASSISTANT||document.querySelector('#mainNav [data-page="meetings"]'));
+  return H38_DESKTOP_NAV_ORDER.filter(page=>{
+    if(page==='meetings')return meetingAvailable;
+    if(!window.PAGE_DEFS?.[page])return false;
+    const requirements=H38_DESKTOP_NAV_REQUIREMENTS[page];
+    return !requirements||requirements.some(h38DesktopNavBridgeCan);
+  });
+}
+function h38DesktopNavDef(page){
+  if(page==='meetings')return window.PAGE_DEFS?.meetings||['🗣️','Meetings'];
+  return window.PAGE_DEFS?.[page]||['•',page];
+}
+function h38OpenDesktopNavPage(page){
+  if(page==='meetings'&&window.H38_CONVERSATION_MEETING_ASSISTANT?.openMeetingsPage){window.H38_CONVERSATION_MEETING_ASSISTANT.openMeetingsPage();return;}
+  window.openPage?.(page);
+}
 function h38RepairCollapsedDesktopNav(){
   if(!window.matchMedia?.('(min-width: 761px)').matches)return false;
   if((window.state?.shell||'office')!=='office')return false;
   const nav=document.getElementById('mainNav');
   if(!nav||!window.PAGE_DEFS)return false;
-  const pages=h38DesktopNavBridgeAllowedPages().filter(page=>window.PAGE_DEFS[page]);
-  if(pages.length<2)return false;
   const current=Array.from(nav.querySelectorAll('[data-page]')).map(node=>node.dataset.page).filter(Boolean);
+  const pages=h38DesktopNavBridgeAllowedPages();
+  if(pages.length<2)return false;
   const collapsed=current.length<2||!current.includes('today')||(!current.includes('customers')&&!current.includes('work'));
   if(!collapsed)return false;
   nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
   delete nav.dataset.h38PrimaryNav;
   nav.innerHTML=pages.map(page=>{
-    const def=window.PAGE_DEFS[page]||['•',page],active=String(window.state?.page||'')===page;
+    const def=h38DesktopNavDef(page),active=String(window.state?.page||'')===page;
     return `<button type="button" data-page="${page}" class="${active?'active':''}"${active?' aria-current="page"':''}><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`;
   }).join('');
-  nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage?.(button.dataset.page));
+  nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>h38OpenDesktopNavPage(button.dataset.page));
   nav.dataset.h38DesktopNavCacheBridge=H38_DESKTOP_NAV_BRIDGE_BUILD;
   return true;
 }
@@ -75,7 +102,7 @@ function h38ScheduleDesktopNavBridge(){
 }
 addEventListener('h38:business-snapshot-updated',h38ScheduleDesktopNavBridge);
 addEventListener('resize',h38ScheduleDesktopNavBridge);
-[0,150,500,1200,3000,6000].forEach(delay=>setTimeout(h38RepairCollapsedDesktopNav,delay));
+[0,150,500,1200,3000,6000,10000].forEach(delay=>setTimeout(h38RepairCollapsedDesktopNav,delay));
 
 window.H38_AUTH_CACHE_GUARD=Object.freeze({
   enabled:true,
@@ -85,5 +112,6 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   onlineWarmOpen:true,
   offlineOpen:true,
   desktopNavigationCacheBridge:true,
-  desktopNavigationCacheBridgeBuild:H38_DESKTOP_NAV_BRIDGE_BUILD
+  desktopNavigationCacheBridgeBuild:H38_DESKTOP_NAV_BRIDGE_BUILD,
+  desktopNavigationBridgeHasIndependentPermissionAuthority:true
 });
