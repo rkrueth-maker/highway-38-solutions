@@ -81,6 +81,14 @@
     document.head.appendChild(script);
   }
 
+  function loadDesktopNavigationCore() {
+    if (document.querySelector('script[data-h38-desktop-navigation-core]')) return;
+    const script = document.createElement('script');
+    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-1';
+    script.dataset.h38DesktopNavigationCore = '1';
+    document.head.appendChild(script);
+  }
+
   if (nativeAndroid) {
     document.documentElement.classList.add('h38-early-native-startup');
     const style = document.createElement('style');
@@ -101,31 +109,9 @@
   window.optionRows = optionRows;
   window.toast = toast;
   window.openPage = openPage;
-  window.H38_CORE_OPEN_PAGE = openPage;
-  window.H38_CORE_RENDER_PAGE = renderPage;
-  window.H38_CORE_RENDER_NAV = renderNav;
-  window.H38_CORE_ALLOWED_PAGES = allowedPages;
-  window.H38_CORE_NAVIGATION = Object.freeze({
-    openPage,
-    renderPage,
-    renderNav,
-    allowedPages,
-    build:'20260826-core-navigation-1',
-    wrapsBypassable:true
-  });
   window.newId = newId;
   window.renderToday = renderToday;
-  window.renderCustomers = renderCustomers;
   window.renderWork = renderWork;
-  window.renderQuotes = renderQuotes;
-  window.renderSchedule = renderSchedule;
-  window.renderMessages = renderMessages;
-  window.renderInventory = renderInventory;
-  window.renderFleet = renderFleet;
-  window.renderMoney = renderMoney;
-  window.renderDocuments = renderDocuments;
-  window.renderSocial = renderSocial;
-  window.renderAi = renderAi;
   if (typeof renderField !== 'undefined') window.renderField = renderField;
   else if (!window.renderField) window.renderField = function () {
     const openVisit = function () {
@@ -150,6 +136,7 @@
 
   installNativeReturnColdReloadGuard();
   loadFinalNativeVideoAttach();
+  loadDesktopNavigationCore();
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
