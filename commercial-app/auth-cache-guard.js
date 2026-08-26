@@ -1,8 +1,8 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-4-clicks';
-const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-4-clicks';
-const H38_DESKTOP_NAV_HARD_CLICK_BUILD='20260825-desktop-nav-window-capture-5';
+const H38_AUTH_CACHE_BUILD='20260826-auth-cache-guard-desktop-nav-hit-test-6';
+const H38_DESKTOP_NAV_BRIDGE_BUILD='20260826-desktop-nav-cache-bridge-6';
+const H38_DESKTOP_NAV_HARD_CLICK_BUILD='20260826-desktop-nav-window-hit-test-6';
 const h38LegacyLoadCached=loadCached;
 
 loadCached=async function(options={}){
@@ -71,6 +71,17 @@ function h38DesktopNavDef(page){
   if(page==='meetings')return window.PAGE_DEFS?.meetings||['🗣️','Meetings'];
   return window.PAGE_DEFS?.[page]||['•',page];
 }
+function h38EnsureDesktopNavHitLayer(){
+  if(!window.matchMedia?.('(min-width: 761px)').matches)return false;
+  let style=document.getElementById('h38DesktopNavHitLayerStyle');
+  if(!style){
+    style=document.createElement('style');
+    style.id='h38DesktopNavHitLayerStyle';
+    document.head.appendChild(style);
+  }
+  style.textContent='@media (min-width:761px){#mainNav.main-nav{position:sticky!important;z-index:120!important;pointer-events:auto!important;isolation:isolate!important}#mainNav.main-nav>[data-page]{position:relative!important;z-index:1!important;pointer-events:auto!important}}';
+  return true;
+}
 function h38OpenDesktopNavPage(page){
   if(h38DirectDesktopNavPage(page))return true;
   if(window.H38_DESKTOP_NAVIGATION_AUTHORITY?.openPage?.(page))return true;
@@ -128,15 +139,27 @@ function h38DirectDesktopNavPage(page){
   }catch(error){}
   return true;
 }
+function h38DesktopNavButtonForEvent(event){
+  const nav=document.getElementById('mainNav');
+  if(!nav)return null;
+  const target=event.target instanceof Element?event.target:null;
+  const direct=target?.closest?.('#mainNav [data-page]');
+  if(direct&&nav.contains(direct))return direct;
+  const x=Number(event.clientX),y=Number(event.clientY);
+  if(!Number.isFinite(x)||!Number.isFinite(y))return null;
+  const navRect=nav.getBoundingClientRect();
+  if(x<navRect.left||x>navRect.right||y<navRect.top||y>navRect.bottom)return null;
+  return Array.from(nav.querySelectorAll(':scope > [data-page]')).find(button=>{
+    const rect=button.getBoundingClientRect();
+    return x>=rect.left&&x<=rect.right&&y>=rect.top&&y<=rect.bottom;
+  })||null;
+}
 function h38DesktopNavWindowCapture(event){
   if(event.type!=='click')return;
   if(!window.matchMedia?.('(min-width: 761px)').matches)return;
   if((window.state?.shell||'office')!=='office')return;
-  const target=event.target instanceof Element?event.target:null;
-  const button=target?.closest?.('#mainNav [data-page]');
+  const button=h38DesktopNavButtonForEvent(event);
   if(!button)return;
-  const nav=document.getElementById('mainNav');
-  if(!nav||!nav.contains(button))return;
   const page=String(button.dataset.page||'').trim();
   if(!page)return;
   const handled=h38DirectDesktopNavPage(page);
@@ -152,13 +175,17 @@ function h38RepairCollapsedDesktopNav(){
   if(h38DesktopNavRepairing)return false;
   if(!window.matchMedia?.('(min-width: 761px)').matches)return false;
   if((window.state?.shell||'office')!=='office')return false;
+  h38EnsureDesktopNavHitLayer();
   const nav=document.getElementById('mainNav');
   if(!nav||!window.PAGE_DEFS)return false;
   const current=Array.from(nav.querySelectorAll(':scope > [data-page]')).map(node=>node.dataset.page).filter(Boolean);
   const pages=h38DesktopNavBridgeAllowedPages();
   if(pages.length<2)return false;
   const incomplete=current.length<2||!current.includes('today')||(!current.includes('customers')&&!current.includes('work'));
-  if(!incomplete)return false;
+  if(!incomplete){
+    nav.dataset.h38DesktopNavHardClick=H38_DESKTOP_NAV_HARD_CLICK_BUILD;
+    return false;
+  }
   h38DesktopNavRepairing=true;
   try{
     nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
@@ -186,6 +213,7 @@ let h38DesktopNavObserver=null;
 function h38ObserveDesktopNav(){
   const nav=document.getElementById('mainNav');
   if(!nav){setTimeout(h38ObserveDesktopNav,250);return false;}
+  h38EnsureDesktopNavHitLayer();
   if(h38DesktopNavObserved===nav)return true;
   h38DesktopNavObserver?.disconnect();
   h38DesktopNavObserved=nav;
@@ -195,7 +223,7 @@ function h38ObserveDesktopNav(){
   h38ScheduleDesktopNavBridge();
   return true;
 }
-function h38DesktopNavLifecycleCheck(){h38ObserveDesktopNav();h38ScheduleDesktopNavBridge();}
+function h38DesktopNavLifecycleCheck(){h38EnsureDesktopNavHitLayer();h38ObserveDesktopNav();h38ScheduleDesktopNavBridge();}
 addEventListener('h38:business-snapshot-updated',h38DesktopNavLifecycleCheck);
 addEventListener('resize',h38DesktopNavLifecycleCheck);
 addEventListener('pageshow',h38DesktopNavLifecycleCheck);
@@ -226,5 +254,7 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   desktopNavigationPointerDownAuthority:false,
   desktopNavigationClickOnlyAuthority:true,
   desktopNavigationCoreRouter:true,
-  desktopNavigationNonDestructiveFallback:true
+  desktopNavigationNonDestructiveFallback:true,
+  desktopNavigationGeometryHitTestFallback:true,
+  desktopNavigationForcedHitLayer:true
 });
