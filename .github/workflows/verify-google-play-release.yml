@@ -1,4 +1,5 @@
 name: Verify H38 Google Play Release
+# Final acceptance consolidation: workflow-only change; production runtime bytes are unchanged.
 
 on:
   pull_request:
