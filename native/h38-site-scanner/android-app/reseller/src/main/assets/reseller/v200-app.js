@@ -22,5 +22,6 @@
     renderLocationStrip();
     h38sb.auth.getSession().then(({data})=>data.session?authorize(data.session):showLogin()).catch(()=>showLogin());
   }
-  const s=document.createElement('script');s.src='v240-data.js';s.async=false;s.onload=bootstrapV200;s.onerror=()=>{console.warn('v2.4 data layer unavailable; booting accepted core shell');bootstrapV200()};document.head.appendChild(s);setTimeout(bootstrapV200,5000);
+  if(window.H38_SCOUT_V240_DATA_ACQUISITION===true){bootstrapV200();return}
+  const s=document.createElement('script');s.src='v240-data.js';s.async=false;s.onload=bootstrapV200;s.onerror=()=>{console.warn('Packaged provider layer unavailable; booting accepted core shell');bootstrapV200()};document.head.appendChild(s);setTimeout(bootstrapV200,5000);
 })();
