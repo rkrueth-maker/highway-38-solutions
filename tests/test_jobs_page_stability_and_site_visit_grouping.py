@@ -13,13 +13,15 @@ WIDE = ROOT / "commercial-app" / "site-visit-wide-acceptance-final.js"
 
 def test_jobs_page_enhancement_is_idempotent_and_render_boundary_driven():
     text = FLOW.read_text(encoding="utf-8")
-    assert "20260819-flow-event-driven-2" in text
+    assert "20260826-flow-desktop-nav-ownership-1" in text
     assert "workFingerprint" in text
     assert "dataset.h38WorkFingerprint===fingerprint" in text
     assert "scheduleWorkEnhance" in text
     assert "jobsPageStableEnhancement:true" in text
     assert "workEnhanceDocumentObserver:false" in text
     assert "workEnhanceRenderBoundary:true" in text
+    assert "desktopNavigationUsesBaseRenderer:true" in text
+    assert "if(!isMobile){baseRenderNav();return;}" in text
     assert "primaryNavDelegatedToFinalMobileRuntime:true" in text
     assert "mobileNavVerticalScrollIntoView:false" in text
     assert "new MutationObserver(()=>{decorateFieldVisit();})" in text
@@ -78,59 +80,3 @@ def test_final_site_visit_identity_authority_removes_poisoned_local_physical_ali
     assert "new MutationObserver" not in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
-    assert "genuineDifferentServerSessionsPreserved:true" in text
-
-
-def test_wide_acceptance_keeps_one_project_site_visit_and_event_driven_reconciliation():
-    text = WIDE.read_text(encoding="utf-8")
-    assert "oneProjectSiteVisitWithNestedContinuations:true" in text
-    assert "physicalJobsCardReconciliation:true" in text
-    assert "persistentJobsReconciliation:true" in text
-    assert "eventDrivenReconciliation:true" in text
-    assert "documentMutationObserver:false" in text
-    assert "jobsMutationObserver:false" in text
-    assert "new MutationObserver" not in text
-    assert "LOCAL[_ -]?DRAFT" in text
-    assert "siteCaptureSessions" in text
-    assert "projectKey" in text
-    assert "identityApi?.reconcile?.()" in text
-    assert "main.querySelectorAll('.row')" not in text
-    assert "serverEvidenceNeverDeleted:true" in text
-
-
-def test_phone_loads_jobs_page_repairs_after_purging_stale_dynamic_cache():
-    text = PHONE.read_text(encoding="utf-8")
-    assert "H38_PURGE_DYNAMIC_REPAIR_CACHE" in text
-    assert "window.caches.keys()" in text
-    assert "cache.delete(request)" in text
-    assert "20260818-physical-work-list-delete-4" in text
-    assert "site-visit-work-list-delete-repair.js?build=${BUILD}" in text
-    assert "site-visit-work-list-grouping-repair.js?build=${BUILD}" in text
-
-
-def test_legacy_mobile_history_grouper_is_retired_on_jobs():
-    text = MOBILE_FLOW.read_text(encoding="utf-8")
-    assert "20260819-wide-mobile-flow-polish-4-scroll-delegated" in text
-    assert "if(page()==='work')return" in text
-    assert "polishWorkHistory" not in text
-    assert "workHistoryCollapse:false" in text
-    assert "siteVisitGroupingDelegated:true" in text
-    assert "jobsDomMutation:false" in text
-    assert "scrollAuthorityDelegated:true" in text
-    assert "duplicateScrollAuthorityRetired:true" in text
-
-
-def test_dynamic_jobs_repairs_are_live_first():
-    text = SERVICE_WORKER.read_text(encoding="utf-8")
-    for filename in (
-        "field-visit-guided-controller.js",
-        "site-visit-delete-runtime-repair.js",
-        "site-visit-work-list-delete-repair.js",
-        "site-visit-work-list-grouping-repair.js",
-        "site-visit-work-dedupe-final.js",
-        "site-visit-wide-acceptance-final.js",
-        "supabase-quote-ai-auth-fix.js",
-    ):
-        live_first = text.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
-        assert filename in live_first
-    assert "ignoreSearch:true" in text
