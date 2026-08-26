@@ -31,7 +31,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.1.5 native Penny Hunt contract
+      - name: Verify v2.1.6 Penny Hunt runtime contract
         shell: bash
         run: |
           set -euo pipefail
@@ -42,17 +42,21 @@ jobs:
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'; fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'; acceptance='reseller/SCOUT_BUILD_ACCEPTANCE.md'
           imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"; dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"; sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"; sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
 
-          check "versionName '2.1.5'" reseller/build.gradle
-          check 'versionCode 72' reseller/build.gradle
+          check "versionName '2.1.6'" reseller/build.gradle
+          check 'versionCode 73' reseller/build.gradle
           for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical"; do node --check "$f"; done
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native-fixture.txt"
           node "$sourceTest" | tee "$report/canonical-source-fixtures.txt"
           check 'H38_SCOUT_V215_NATIVE_HUNT=true' "$physical"
+          check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
+          check 'function strictImageRetailer(v)' "$physical"
+          check 'strictImageRetailer(r.retailer)' "$wide"
           check '<details class="retailer-group" data-hunt-details=' "$physical"
           check '<summary class="retailer-group-head">' "$physical"
           check 'Native Penny Hunt expansion' "$physical"
           reject 'h38BindStableHuntTouch' "$physical"
           check 'TAP EACH visible retailer header' "$acceptance"
+          check 'cross-layer runtime dependency gate' "$acceptance"
           check "const H38_DEFAULT_ZIP='55744'" "$core"
           check 'Penny date unknown' "$hunt"
           check 'physical register scan remains final penny truth' "$hunt"
@@ -78,7 +82,7 @@ jobs:
           check 'Scan to Inventory' "$wide"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.1.5 APK
+      - name: Compile Owner Scout v2.1.6 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -86,8 +90,8 @@ jobs:
           echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.1.5.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.5.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.1.6.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.1.6.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -95,15 +99,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.5.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.1.6.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='72' versionName='2.1.5'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='73' versionName='2.1.6'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" assets/reseller/v212-physical.js > "$report/packaged-v212.js"
+          unzip -p "$out" assets/reseller/v211-wide.js > "$report/packaged-v211.js"
           node --check "$report/packaged-v212.js"
+          node --check "$report/packaged-v211.js"
           grep -Fq 'H38_SCOUT_V215_NATIVE_HUNT=true' "$report/packaged-v212.js"
+          grep -Fq 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$report/packaged-v212.js"
+          grep -Fq 'function strictImageRetailer(v)' "$report/packaged-v212.js"
+          grep -Fq 'strictImageRetailer(r.retailer)' "$report/packaged-v211.js"
           grep -Fq '<details class="retailer-group" data-hunt-details=' "$report/packaged-v212.js"
           grep -Fq 'summary.click()' "$report/packaged-v212.js"
           if grep -Fq 'h38BindStableHuntTouch' "$report/packaged-v212.js"; then echo '::error::old Hunt touch override packaged'; exit 1; fi
@@ -120,7 +129,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.1.5
+          name: h38-reseller-scout-owner-v2.1.6
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: warn
           retention-days: 30
