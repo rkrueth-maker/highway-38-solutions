@@ -12,31 +12,33 @@ MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='ut
 
 
 def test_desktop_navigation_has_one_real_owner():
-    assert "20260826-desktop-navigation-core-4-physical-click" in CORE
+    assert "20260826-desktop-navigation-core-5-window-capture" in CORE
     for marker in [
         'singleDesktopOwner:true',
         'replacesPriorCoreHandlers:true',
         'retiresLegacyNavigationArtifacts:true',
         'delegatedNavContainerClick:true',
         'capturePhaseNavContainerClick:true',
+        'windowCapturePhysicalClick:true',
+        'coordinateFallback:true',
         'realSidebarHitAuthority:true',
         'directRouteFallback:true',
-        'noWindowClickCapture:true',
-        'noGeometryHitTesting:true',
+        'noWindowClickCapture:false',
+        'noGeometryHitTesting:false',
         'noProxyButtons:true',
         'noAuthCacheNavigationBridge:true',
         'rolePermissionsPreserved:true',
         'meetingsAreAdditive:true',
         'mobileNavigationPreserved:true',
         "nav.addEventListener('click',handler,true)",
+        "window.addEventListener('click',handler,true)",
         "new MutationObserver(()=>queueReconcile())",
-        "z-index:120!important",
+        "z-index:2147482000!important",
         "pointer-events:auto!important",
     ]:
         assert marker in CORE
     assert "window.openPage(page,false)" in CORE
     assert "event.stopImmediatePropagation()" in CORE
-    assert "window.addEventListener('click'" not in CORE
 
 
 def test_failed_navigation_patch_layers_are_retired():
@@ -51,7 +53,7 @@ def test_failed_navigation_patch_layers_are_retired():
     assert 'H38_CORE_OPEN_PAGE' not in RUNTIME_GLOBALS
     assert 'H38_CORE_RENDER_NAV' not in RUNTIME_GLOBALS
     assert 'H38_CORE_ALLOWED_PAGES' not in RUNTIME_GLOBALS
-    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-4-physical-click" in RUNTIME_GLOBALS
+    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-5-window-capture" in RUNTIME_GLOBALS
 
 
 def test_navigation_keeps_owner_control_safety():
