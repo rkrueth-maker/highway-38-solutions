@@ -145,4 +145,9 @@ const countAfterFirst=T.events().length;
 T.scanMatches(op,ev);
 assert.equal(T.events().length,countAfterFirst,'unchanged repeated discovery must not create a duplicate match alert');
 
-console.log('PASS Scout v2.2 shared profitability + Track deterministic fixtures');
+const nearbySource=fs.readFileSync(new URL('../../../../supabase/functions/reseller-nearby-sources/index.ts',import.meta.url),'utf8');
+for(const marker of ['Estate sale / auction','Garage / moving sale','Government / institutional surplus','Equipment auction / liquidation','Auction company'])assert.ok(nearbySource.includes(marker),`nearby source expansion must include ${marker}`);
+assert.ok(nearbySource.includes('inventory_known:false'),'place discovery must not imply inventory proof');
+assert.ok(nearbySource.includes('if(d>radius)continue'),'nearby source discovery must keep the exact radius boundary');
+
+console.log('PASS Scout v2.2 shared profitability + Track + sourcing deterministic fixtures');
