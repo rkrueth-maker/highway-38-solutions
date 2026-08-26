@@ -2,9 +2,17 @@
 window.H38_SCOUT_V212_PHYSICAL_ACCEPTANCE=true;
 window.H38_SCOUT_V213_SOURCE_ACCEPTANCE=true;
 window.H38_SCOUT_V215_NATIVE_HUNT=true;
+window.H38_SCOUT_V216_HUNT_RUNTIME=true;
+
+// v2.1.6: v211-wide.js calls this helper while rendering Penny Hunt cards.
+// It must exist before app bootstrap or Hunt can fail before retailer disclosures appear.
+function strictImageRetailer(v){
+  const k=retailerKey(v);
+  return k==='dollar general'||k==='dollar tree';
+}
 
 function h38InstalledBuild(){
-  try{const b=bridge(),v=b&&typeof b.build==='function'?String(b.build()||''):'';return v||'v2.1.5 · build identity unavailable'}catch{return'v2.1.5 · build identity unavailable'}
+  try{const b=bridge(),v=b&&typeof b.build==='function'?String(b.build()||''):'';return v||'v2.1.6 · build identity unavailable'}catch{return'v2.1.6 · build identity unavailable'}
 }
 function h38RenderInstalledBuild(){const el=$('accountBuild');if(el)el.textContent=`Installed: ${h38InstalledBuild()}`}
 setTimeout(h38RenderInstalledBuild,50);
@@ -25,7 +33,7 @@ renderHuntListOnly=function(){h38v212RenderHuntListOnly();setTimeout(()=>h38Prim
 const h38v212RenderHunt=renderHunt;
 renderHunt=function(){h38v212RenderHunt();setTimeout(()=>h38PrimePennyImageRecovery(30),80)};
 
-// v2.1.5: native disclosure replaces all custom retailer-group tap toggles.
+// v2.1.5+: native disclosure replaces all custom retailer-group tap toggles.
 // The legacy bindHunt looks only for [data-hunt-group]; native rows intentionally never expose that attribute.
 huntGroupCard=function(g){
   state.hunt.expanded=state.hunt.expanded||{};
@@ -62,8 +70,9 @@ runMaintenance=async function(){
   const required=['v210-polish.js','v211-wide.js','v212-physical.js'];
   const bundledOk=required.every(x=>bundled.includes(x));
   const tests=state.maintenance.tests||[],overallIndex=tests.findIndex(x=>x.name==='Overall'),additions=[];
-  additions.push({name:'Installed build',status:/v2\.1\.5\b/.test(h38InstalledBuild())?'pass':'fail',detail:h38InstalledBuild()});
+  additions.push({name:'Installed build',status:/v2\.1\.6\b/.test(h38InstalledBuild())?'pass':'fail',detail:h38InstalledBuild()});
   additions.push({name:'Bundled runtime',status:bundledOk?'pass':'fail',detail:bundledOk?'All current v2.1 runtime layers are bundled inside the APK.':`Missing bundled layers: ${required.filter(x=>!bundled.includes(x)).join(', ')}`});
+  additions.push({name:'Penny Hunt runtime dependency',status:typeof strictImageRetailer==='function'?'pass':'fail',detail:typeof strictImageRetailer==='function'?'strictImageRetailer is defined before Hunt renders.':'strictImageRetailer is missing.'});
   const nativeProbe=h38ProbeNativeHuntDisclosure();additions.push({name:'Native Penny Hunt expansion',status:nativeProbe.ok?'pass':'fail',detail:nativeProbe.detail});
   additions.push({name:'One-card source layer',status:window.H38_SCOUT_V213_MULTI_SOURCE===true?'pass':'fail',detail:window.H38_SCOUT_V213_MULTI_SOURCE===true?'Retail Hunt routes through canonical UPC/SKU source aggregation; evidence merges underneath one product card.':'Canonical source layer is not active.'});
   try{
@@ -74,6 +83,6 @@ runMaintenance=async function(){
   }catch(e){additions.push({name:'Multi-source canonical Hunt',status:'fail',detail:txt(e?.message||e)})}
   tests.splice(overallIndex>=0?overallIndex:tests.length,0,...additions);
   const fails=tests.filter(x=>x.status==='fail'&&x.name!=='Overall').length,warns=tests.filter(x=>x.status==='warn'&&x.name!=='Overall').length,overall=tests.find(x=>x.name==='Overall');
-  if(overall){overall.status=fails?'fail':warns?'warn':'pass';overall.detail=fails?`${fails} required Scout checks failed.`:warns?`Required checks passed with ${warns} conditional/source warnings.`:'All required v2.1.5 checks passed.'}
+  if(overall){overall.status=fails?'fail':warns?'warn':'pass';overall.detail=fails?`${fails} required Scout checks failed.`:warns?`Required checks passed with ${warns} conditional/source warnings.`:'All required v2.1.6 checks passed.'}
   renderMaintenance();h38RenderInstalledBuild()
 };
