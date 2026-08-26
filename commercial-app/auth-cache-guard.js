@@ -2,6 +2,7 @@
 
 const H38_AUTH_CACHE_BUILD='20260825-auth-cache-guard-desktop-nav-bridge-4-clicks';
 const H38_DESKTOP_NAV_BRIDGE_BUILD='20260825-desktop-nav-cache-bridge-4-clicks';
+const H38_DESKTOP_NAV_HARD_CLICK_BUILD='20260825-desktop-nav-window-capture-5';
 const h38LegacyLoadCached=loadCached;
 
 loadCached=async function(options={}){
@@ -79,6 +80,67 @@ function h38OpenDesktopNavPage(page){
   }
   window.openPage?.(page);
 }
+function h38DirectDesktopNavPage(page){
+  page=String(page||'').trim();
+  if(!page)return false;
+  const nav=document.getElementById('mainNav');
+  if(!nav?.querySelector(`:scope > [data-page="${CSS.escape(page)}"]`))return false;
+  try{
+    if(typeof window.openPage==='function')window.openPage(page,false);
+  }catch(error){
+    console.error('[H38 desktop hard navigation openPage]',page,error);
+  }
+  if(String(window.state?.page||'')!==page){
+    try{
+      if(window.state)window.state.page=page;
+      if(page==='meetings'&&typeof window.renderMeetings==='function')window.renderMeetings();
+      else if(typeof window.renderPage==='function')window.renderPage();
+      else{
+        const renderer={today:'renderToday',customers:'renderCustomers',work:'renderWork',quotes:'renderQuotes',schedule:'renderSchedule',messages:'renderMessages',field:'renderField',inventory:'renderInventory',fleet:'renderFleet',money:'renderMoney',documents:'renderDocuments',social:'renderSocial',ai:'renderAi',settings:'renderSettings'}[page];
+        if(renderer&&typeof window[renderer]==='function')window[renderer]();
+      }
+    }catch(error){
+      console.error('[H38 desktop hard navigation fallback]',page,error);
+      return false;
+    }
+  }
+  try{
+    nav.querySelectorAll(':scope > [data-page]').forEach(button=>{
+      const active=String(button.dataset.page||'')===page;
+      button.classList.toggle('active',active);
+      if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
+    document.getElementById('mainContent')?.focus?.({preventScroll:true});
+  }catch(error){}
+  return String(window.state?.page||'')===page;
+}
+let h38LastDesktopPointerPage='';
+let h38LastDesktopPointerAt=0;
+function h38DesktopNavWindowCapture(event){
+  if(!window.matchMedia?.('(min-width: 761px)').matches)return;
+  if((window.state?.shell||'office')!=='office')return;
+  if(event.type==='pointerdown'&&event.button!==0)return;
+  const target=event.target instanceof Element?event.target:null;
+  const button=target?.closest?.('#mainNav [data-page]');
+  if(!button)return;
+  const nav=document.getElementById('mainNav');
+  if(!nav||!nav.contains(button))return;
+  const page=String(button.dataset.page||'').trim();
+  if(!page)return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation?.();
+  const now=Date.now();
+  if(event.type==='click'&&h38LastDesktopPointerPage===page&&now-h38LastDesktopPointerAt<1200)return;
+  if(event.type==='pointerdown'){
+    h38LastDesktopPointerPage=page;
+    h38LastDesktopPointerAt=now;
+  }
+  h38DirectDesktopNavPage(page);
+}
+window.addEventListener('pointerdown',h38DesktopNavWindowCapture,true);
+window.addEventListener('click',h38DesktopNavWindowCapture,true);
+
 let h38DesktopNavRepairing=false;
 function h38RepairCollapsedDesktopNav(){
   if(h38DesktopNavRepairing)return false;
@@ -99,8 +161,9 @@ function h38RepairCollapsedDesktopNav(){
       const def=h38DesktopNavDef(page),active=String(window.state?.page||'')===page;
       return `<button type="button" data-page="${page}" class="${active?'active':''}"${active?' aria-current="page"':''}><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`;
     }).join('');
-    nav.querySelectorAll(':scope > [data-page]').forEach(button=>button.onclick=()=>h38OpenDesktopNavPage(button.dataset.page));
+    nav.querySelectorAll(':scope > [data-page]').forEach(button=>button.onclick=()=>h38DirectDesktopNavPage(button.dataset.page));
     nav.dataset.h38DesktopNavCacheBridge=H38_DESKTOP_NAV_BRIDGE_BUILD;
+    nav.dataset.h38DesktopNavHardClick=H38_DESKTOP_NAV_HARD_CLICK_BUILD;
     return true;
   }finally{
     h38DesktopNavRepairing=false;
@@ -122,6 +185,7 @@ function h38ObserveDesktopNav(){
   h38DesktopNavObserved=nav;
   h38DesktopNavObserver=new MutationObserver(()=>h38ScheduleDesktopNavBridge());
   h38DesktopNavObserver.observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-page']});
+  nav.dataset.h38DesktopNavHardClick=H38_DESKTOP_NAV_HARD_CLICK_BUILD;
   h38ScheduleDesktopNavBridge();
   return true;
 }
@@ -149,5 +213,9 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   desktopNavigationLateMutationRepair:true,
   desktopNavigationLifecycleRepair:true,
   desktopNavigationPeriodicRepair:true,
-  desktopNavigationRoutesThroughFinalAuthority:true
+  desktopNavigationRoutesThroughFinalAuthority:true,
+  desktopNavigationWindowCapture:true,
+  desktopNavigationWindowCaptureBuild:H38_DESKTOP_NAV_HARD_CLICK_BUILD,
+  desktopNavigationBypassesStaleNavAuthority:true,
+  desktopNavigationPointerDownAuthority:true
 });
