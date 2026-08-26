@@ -83,6 +83,19 @@ loadHunt=async function(force=false){
 };
 </script>
 <script src="v220-product.js"></script>
+<script>
+window.H38_SCOUT_V221_PHONE_ACCEPTANCE=true;
+(function(){
+  const h38v221RenderScan=renderScan;
+  renderScan=function(){
+    h38v221RenderScan();
+    const card=document.getElementById('profitDecisionCard');if(!card)return;
+    const badge=card.querySelector('.decision-score');if(!badge)return;
+    const text=String(card.textContent||'').toUpperCase();
+    if(text.includes('RESALE ESTIMATE: NOT YET PROVEN')||text.includes('NEEDS COMP')||text.includes('NEEDS VERIFICATION'))badge.textContent='VALUE NOT PROVEN';
+  };
+})();
+</script>
 <script src="v200-app.js"></script>
 </body>
 </html>
