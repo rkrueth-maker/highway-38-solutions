@@ -1,3 +1,4 @@
+# Final consolidated owner + web-media acceptance trigger: 2026-08-26
 from pathlib import Path
 import subprocess
 
