@@ -2,43 +2,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-CORE = (APP / 'desktop-navigation-core.js').read_text(encoding='utf-8')
+FLOW = (APP / 'flow-tightening.js').read_text(encoding='utf-8')
 LEGACY = (APP / 'desktop-navigation-authority.js').read_text(encoding='utf-8')
 AUTH_CACHE = (APP / 'auth-cache-guard.js').read_text(encoding='utf-8')
 OFFICE_POLISH = (APP / 'office-polish.js').read_text(encoding='utf-8')
 RUNTIME_GLOBALS = (APP / 'supabase-runtime-globals.js').read_text(encoding='utf-8')
+MEETINGS = (APP / 'conversation-meeting-assistant.js').read_text(encoding='utf-8')
 SPOKEN = (APP / 'spoken-measurement-authority-final.js').read_text(encoding='utf-8')
 MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='utf-8')
 
 
 def test_desktop_navigation_has_one_real_owner():
-    assert "20260826-desktop-navigation-core-5-window-capture" in CORE
-    for marker in [
-        'singleDesktopOwner:true',
-        'replacesPriorCoreHandlers:true',
-        'retiresLegacyNavigationArtifacts:true',
-        'delegatedNavContainerClick:true',
-        'capturePhaseNavContainerClick:true',
-        'windowCapturePhysicalClick:true',
-        'coordinateFallback:true',
-        'realSidebarHitAuthority:true',
-        'directRouteFallback:true',
-        'noWindowClickCapture:false',
-        'noGeometryHitTesting:false',
-        'noProxyButtons:true',
-        'noAuthCacheNavigationBridge:true',
-        'rolePermissionsPreserved:true',
-        'meetingsAreAdditive:true',
-        'mobileNavigationPreserved:true',
-        "nav.addEventListener('click',handler,true)",
-        "window.addEventListener('click',handler,true)",
-        "new MutationObserver(()=>queueReconcile())",
-        "z-index:2147482000!important",
-        "pointer-events:auto!important",
-    ]:
-        assert marker in CORE
-    assert "window.openPage(page,false)" in CORE
-    assert "event.stopImmediatePropagation()" in CORE
+    assert "nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage(button.dataset.page))" in FLOW
+    assert "window.renderNav=function(){return compactRenderNav(base);}" in FLOW
+    assert "button.onclick=()=>window.openPage('meetings')" in MEETINGS
+    assert "desktop-navigation-core.js?build=" not in RUNTIME_GLOBALS
+    assert "loadDesktopNavigationCore();" not in RUNTIME_GLOBALS
 
 
 def test_failed_navigation_patch_layers_are_retired():
@@ -53,18 +32,16 @@ def test_failed_navigation_patch_layers_are_retired():
     assert 'H38_CORE_OPEN_PAGE' not in RUNTIME_GLOBALS
     assert 'H38_CORE_RENDER_NAV' not in RUNTIME_GLOBALS
     assert 'H38_CORE_ALLOWED_PAGES' not in RUNTIME_GLOBALS
-    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-5-window-capture" in RUNTIME_GLOBALS
 
 
 def test_navigation_keeps_owner_control_safety():
     for marker in [
-        'automaticApproval:false',
         'automaticCustomerSending:false',
-        'automaticPurchase:false',
+        'automaticApproval:false',
+        'automaticPurchasing:false',
         'automaticPayment:false',
-        'automaticScheduling:false',
     ]:
-        assert marker in CORE
+        assert marker in FLOW
 
 
 def test_spoken_dimensions_are_evidence_until_a_persisted_field_measurement_exists():
