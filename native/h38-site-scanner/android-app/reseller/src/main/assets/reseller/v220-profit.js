@@ -11,6 +11,7 @@
   const confidenceRank=v=>({high:1,medium:.65,low:.35,unknown:.15})[String(v||'unknown').toLowerCase()]??.15;
   const freshnessRank=age=>{if(!known(age))return .45;age=Number(age);if(age<=7)return 1;if(age<=30)return .85;if(age<=90)return .65;if(age<=180)return .4;return .2};
   const burdenRank=v=>{v=String(v||'').toLowerCase();if(!v||v==='easy'||v==='low')return 1;if(v==='medium'||v==='moderate')return .6;return .25};
+  function sourceState(input={}){if(input.timedOut===true||input.error)return 'SOURCE UNAVAILABLE';if(input.authRequired===true)return 'AUTHENTICATION REQUIRED';if(input.checked===false)return 'NOT CHECKED';if(input.partial===true)return 'PARTIAL RESULTS';if(known(input.verifiedCount)&&Number(input.verifiedCount)===0)return 'NO VERIFIED RESULTS';return 'LIVE';}
   function compSummary(input={}){
     const prices=(input.soldPrices||[]).map(Number).filter(x=>Number.isFinite(x)&&x>0),trimmed=trim(prices);
     const soldCount=known(input.soldCount)?Number(input.soldCount):prices.length;
@@ -78,5 +79,5 @@
   }
   function classifyGlitch(input={}){const current=n(input.currentPrice),reference=n(input.referencePrice);if(current===null||reference===null||reference<=0||current>=reference)return null;const drop=(reference-current)/reference;if(drop<.4)return null;return {label:'GLITCH CANDIDATE',dropPct:Math.round(drop*100),currentPrice:round2(current),referencePrice:round2(reference),verified:false,message:'Unusual drop detected; retailer error is not established.'};}
   root.H38_SCOUT_V220_PROFIT_ENGINE=true;
-  root.H38Profit=Object.freeze({known,compSummary,evaluateOpportunity,maxBid,classifyGlitch});
+  root.H38Profit=Object.freeze({known,sourceState,compSummary,evaluateOpportunity,maxBid,classifyGlitch});
 })(typeof window!=='undefined'?window:globalThis);
