@@ -44,7 +44,7 @@ function h38InstallCurrentOfficeWorker(){
 h38RetireLegacyNavigationArtifacts();
 h38InstallCurrentOfficeWorker();
 
-loadCached=async function(options={})=>{
+loadCached=async function(options={}){
   if(!window.H38_SUPABASE_AUTH?.enabled)return h38LegacyLoadCached();
   const allowOnline=options?.allowOnline===true;
   if(navigator.onLine&&!allowOnline)return false;
