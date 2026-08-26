@@ -1,7 +1,48 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260826-auth-cache-only-1';
+const H38_AUTH_CACHE_BUILD='20260826-auth-cache-only-2';
+const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-desktop-navigation-runtime-reset-1';
+const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const h38LegacyLoadCached=loadCached;
+
+function h38RetireLegacyNavigationArtifacts(){
+  const legacyIds=[
+    'h38DesktopSidebarPhysicalProxy','h38DesktopNavHitLayerStyle','h38DesktopNavAuthority',
+    'h38DesktopNavHitLayer','h38DirectRouteProxyLayer','h38AuthCacheNavLayer',
+    'h38BusinessOfficeOpenHit','h38SiteVisitNativeHit','h38InboxControl'
+  ];
+  legacyIds.forEach(id=>document.getElementById(id)?.remove());
+  const nav=document.getElementById('mainNav');
+  if(nav?.__h38DesktopNavClickHandler){
+    try{nav.removeEventListener('click',nav.__h38DesktopNavClickHandler,true);}catch(_){}
+    try{delete nav.__h38DesktopNavClickHandler;}catch(_){}
+  }
+  if(typeof window.h38DesktopNavWindowCapture==='function'){
+    try{window.removeEventListener('click',window.h38DesktopNavWindowCapture,true);}catch(_){}
+  }
+}
+
+function h38InstallCurrentOfficeWorker(){
+  if(!('serviceWorker' in navigator))return;
+  const desktop=()=>!!window.matchMedia?.('(min-width: 761px)').matches;
+  let reloading=false;
+  const reloadOnControllerChange=()=>{
+    if(reloading||!desktop())return;
+    try{
+      if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;
+      sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');
+    }catch(_){}
+    reloading=true;
+    location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange',reloadOnControllerChange);
+  navigator.serviceWorker.register(`./service-worker.js?build=${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`,{scope:'./',updateViaCache:'none'})
+    .then(registration=>registration.update().catch(()=>{}))
+    .catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
+}
+
+h38RetireLegacyNavigationArtifacts();
+h38InstallCurrentOfficeWorker();
 
 loadCached=async function(options={})=>{
   if(!window.H38_SUPABASE_AUTH?.enabled)return h38LegacyLoadCached();
@@ -38,9 +79,12 @@ addEventListener('h38:auth-cleared',()=>{
 window.H38_AUTH_CACHE_GUARD=Object.freeze({
   enabled:true,
   build:H38_AUTH_CACHE_BUILD,
+  serviceWorkerBuild:H38_AUTH_CACHE_SERVICE_WORKER_BUILD,
   userScoped:true,
   verifiedAuthorizationOnly:true,
   onlineWarmOpen:true,
   offlineOpen:true,
-  navigationAuthority:false
+  navigationAuthority:false,
+  legacyNavigationArtifactsRetired:true,
+  staleDesktopRuntimeReset:true
 });
