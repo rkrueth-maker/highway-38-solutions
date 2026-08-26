@@ -74,17 +74,17 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run all-page desktop and mobile verification
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p artifacts/final-polish
-          node scripts/verify-commercial-browser.js 2>&1 | tee artifacts/final-polish/browser-verification.txt
       - name: Verify consolidated desktop navigation core
         shell: bash
         run: |
           set -o pipefail
+          mkdir -p artifacts/final-polish
           node scripts/verify-desktop-navigation-core-browser.js 2>&1 | tee artifacts/final-polish/desktop-navigation-core.txt
+      - name: Run all-page desktop and mobile verification
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-commercial-browser.js 2>&1 | tee artifacts/final-polish/browser-verification.txt
       - name: Upload browser diagnostics
         if: always()
         uses: actions/upload-artifact@v4
