@@ -1,0 +1,70 @@
+name: Scout Owner Maintenance v2.4
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout-maintenance-v240
+    paths:
+      - '.github/workflows/scout-owner-maintenance-v240.yml'
+      - '.scout-maintenance-run-v240'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Request signed Scout maintenance identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=h38-scout-owner-maintenance")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);if(!p.value)process.exit(2);process.stdout.write(p.value)})")
+          echo "::add-mask::$TOKEN"
+          printf '%s' "$TOKEN" > "$RUNNER_TEMP/scout-maintenance-oidc"
+          chmod 600 "$RUNNER_TEMP/scout-maintenance-oidc"
+      - name: Run v2.4 as H38 owner through maintenance channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          TOKEN=$(cat "$RUNNER_TEMP/scout-maintenance-oidc")
+          HTTP=$(curl --silent --show-error --max-time 155 \
+            -o artifacts/scout-owner-maintenance-v240.json \
+            -w '%{http_code}' \
+            -X POST \
+            -H "x-h38-github-oidc: $TOKEN" \
+            -H 'content-type: application/json' \
+            -H 'Origin: https://highway38solutions.com' \
+            --data '{"action":"run"}' \
+            'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/reseller-owner-maintenance-v240')
+          echo "maintenance_http=$HTTP"
+          cat artifacts/scout-owner-maintenance-v240.json
+          test "$HTTP" = "200"
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync('artifacts/scout-owner-maintenance-v240.json','utf8'));
+          const rows=[['Home Depot',p.homeDepot],['Dollar General',p.dollarGeneral],['Facebook',p.facebook]];
+          console.log('\nSCOUT V2.4 OWNER MAINTENANCE');
+          console.log(`Auth: ${p.authMode||'unknown'}`);
+          for(const [name,r] of rows) console.log(`${name}: runtime=${r?.status||'FAIL'} provider=${r?.providerStatus||'unknown'} http=${r?.http||0} elapsed=${r?.elapsedMs||0}ms`);
+          if(p.status!=='PASS'||rows.some(([,r])=>r?.status!=='PASS')) process.exit(2);
+          NODE
+      - name: Upload owner maintenance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scout-owner-maintenance-v240-${{ github.run_id }}
+          path: artifacts/scout-owner-maintenance-v240.json
+          if-no-files-found: warn
+          retention-days: 30
