@@ -22,7 +22,7 @@ function server(){return http.createServer((req,res)=>{let pathname=decodeURICom
    for(const file of pages){
     const page=await context.newPage();const errors=[];const failedAssets=[];const source=fs.readFileSync(path.join(root,file),'utf8');
     const intentionalRedirect=/<meta[^>]+http-equiv=["']refresh["']/i.test(source)||/location\.(?:replace|assign)\s*\(/.test(source);
-    page.on('pageerror',error=>errors.push(`pageerror: ${error.message}`));page.on('console',message=>{if(message.type()==='error')errors.push(`console: ${message.text()}`);});
+    page.on('pageerror',error=>errors.push(`pageerror: ${String(error.stack||error.message).replace(/\s+/g,' ')}`));page.on('console',message=>{if(message.type()==='error')errors.push(`console: ${message.text()} @ ${message.location()?.url||''}:${message.location()?.lineNumber??''}:${message.location()?.columnNumber??''}`);});
     page.on('response',response=>{if(response.url().startsWith(base)&&response.status()>=400&&response.request().resourceType()!=='document')failedAssets.push(`${response.status()} ${response.url()}`);});
     page.on('requestfailed',request=>{if(!request.url().startsWith(base))return;const errorText=request.failure()?.errorText||'failed';if(intentionalRedirect&&errorText==='net::ERR_ABORTED')return;failedAssets.push(`${errorText} ${request.url()}`);});
     const response=await page.goto(`${base}/${file}`,{waitUntil:'networkidle',timeout:20000});if(!response||response.status()>=400)fail(`${viewport.name} ${file} loads`,response?String(response.status()):'no response');
