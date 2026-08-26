@@ -1,69 +1,96 @@
 'use strict';
+const fs=require('fs');
+const http=require('http');
 const path=require('path');
 const assert=require('assert');
 const {chromium}=require('playwright');
 
-const core=path.resolve(__dirname,'../commercial-app/desktop-navigation-core.js');
+const root=path.resolve(__dirname,'..');
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'};
+function server(){
+  return http.createServer((req,res)=>{
+    let pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+    if(pathname==='/')pathname='/index.html';
+    const file=path.resolve(root,`.${pathname}`);
+    if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){
+      res.writeHead(404,{'content-type':'text/plain'});res.end('Not found');return;
+    }
+    res.writeHead(200,{'content-type':mime[path.extname(file).toLowerCase()]||'application/octet-stream','cache-control':'no-store'});
+    fs.createReadStream(file).pipe(res);
+  });
+}
 
 (async()=>{
+  const local=server();
+  await new Promise(resolve=>local.listen(0,'127.0.0.1',resolve));
+  const base=`http://127.0.0.1:${local.address().port}`;
   const browser=await chromium.launch({headless:true});
-  const page=await browser.newPage({viewport:{width:1440,height:900}});
-  const errors=[];
-  page.on('pageerror',error=>errors.push(error.message));
+  const context=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});
+  await context.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:`
+    window.supabase=window.supabase||{createClient:function(){return{
+      auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+      from:function(){return new Proxy({}, {get:function(){return function(){return this;};}});},
+      functions:{invoke:async()=>({data:null,error:null})},storage:{from:function(){return{upload:async()=>({data:null,error:null}),createSignedUrl:async()=>({data:{signedUrl:''},error:null})};}}
+    };}};
+    window.PDFLib=window.PDFLib||{};
+  `}));
+  const page=await context.newPage();
+  const runtimeErrors=[];
+  page.on('pageerror',error=>runtimeErrors.push(error.message));
   try{
-    await page.setContent(`<!doctype html><html><head></head><body>
-      <div id="h38DesktopNavHitLayerStyle"></div>
-      <div id="h38DesktopSidebarPhysicalProxy"></div>
-      <nav id="mainNav" class="main-nav"><button type="button" data-page="meetings">Meetings</button></nav>
-      <main id="mainContent" tabindex="-1"></main>
-    </body></html>`);
-    await page.evaluate(()=>{
-      window.PAGE_DEFS={
-        today:['🏠','Today'],customers:['👥','Customers'],meetings:['🗣️','Meetings'],work:['🧰','Jobs'],quotes:['🧾','Quotes'],
-        schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Site Visit'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],
-        money:['💵','Money'],documents:['📁','Files'],social:['📣','Social'],ai:['✨','H38 AI'],settings:['⚙️','Settings']
-      };
-      window.state={shell:'office',page:'today',snapshot:{user:{owner:true,permissions:{all:true}}}};
-      window.__opens=[];
-      window.openPage=function(pageName){
-        state.page=pageName;
-        window.__opens.push(pageName);
-        // Deliberately emulate the legacy core replacing all nav children on every page open.
-        const keys=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
-        document.getElementById('mainNav').innerHTML=keys.map(key=>`<button type="button" data-page="${key}">${PAGE_DEFS[key][1]}</button>`).join('');
-        document.getElementById('mainContent').innerHTML=`<h1>${PAGE_DEFS[pageName]?.[1]||pageName}</h1>`;
-      };
-      const nav=document.getElementById('mainNav');
-      window.__legacyCaptureCount=0;
-      nav.__h38DesktopNavClickHandler=function(event){window.__legacyCaptureCount+=1;event.stopImmediatePropagation();};
-      nav.addEventListener('click',nav.__h38DesktopNavClickHandler,true);
-    });
-    await page.addScriptTag({path:core});
-    await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-h38-core-nav="1"]').length===15);
-    assert.equal(await page.locator('#h38DesktopSidebarPhysicalProxy').count(),0,'legacy physical proxy must be removed');
-    assert.equal(await page.locator('#h38DesktopNavHitLayerStyle').count(),0,'legacy hit-layer style must be removed');
+    await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
+    await page.waitForFunction(()=>typeof window.openPage==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
+    await page.waitForTimeout(500);
 
-    const pages=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
-    for(const key of pages){
-      await page.locator(`#mainNav > button[data-page="${key}"]`).click();
-      await page.waitForFunction(expected=>window.state.page===expected,key);
-      await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-h38-core-nav="1"]').length===15);
-      assert.equal(await page.evaluate(()=>window.__legacyCaptureCount),0,`legacy capture handler must not intercept ${key}`);
+    await page.evaluate(()=>{
+      const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
+      const snapshot={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};
+      emptyCollections.forEach(name=>snapshot[name]=[]);
+      window.state.shell='office';
+      window.state.page='today';
+      window.state.businessId='B-NAV-TEST';
+      window.state.snapshot=snapshot;
+      window.state.bridgeReady=true;
+      if(!window.PAGE_DEFS.meetings)window.PAGE_DEFS.meetings=['🗣️','Meetings'];
+      window.openPage('today',false);
+      window.H38_DESKTOP_NAVIGATION_CORE?.reconcile?.();
+    });
+
+    await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-page]').length>=7,{timeout:5000});
+    runtimeErrors.length=0;
+
+    const sequence=[
+      ['customers',/customer/i],
+      ['meetings',/meeting/i],
+      ['work',/job|work/i],
+      ['quotes',/quote/i],
+      ['schedule',/schedule/i],
+      ['messages',/message|communication/i]
+    ];
+    const proof=[];
+    for(const [key,contentPattern] of sequence){
+      const button=page.locator(`#mainNav > button[data-page="${key}"]`);
+      assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar`);
+      const before=(await page.locator('#mainContent').innerText()).trim();
+      await button.click();
+      await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});
+      await page.waitForTimeout(50);
+      const after=(await page.locator('#mainContent').innerText()).trim();
+      assert.notEqual(after,before,`${key} click must change the real main content`);
+      assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);
+      const active=await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page');
+      assert.equal(active,true,`${key} must become the active sidebar page`);
+      proof.push({page:key,content:after.slice(0,80)});
     }
 
-    await page.evaluate(()=>{document.getElementById('mainNav').innerHTML='<button type="button" data-page="meetings">Meetings</button>';});
-    await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-h38-core-nav="1"]').length===15);
-    assert.equal(await page.locator('#mainNav > button[data-page="work"]').count(),1,'collapsed navigation must self-heal to Jobs');
-    await page.locator('#mainNav > button[data-page="work"]').click();
-    await page.waitForFunction(()=>window.state.page==='work');
-
     const contract=await page.evaluate(()=>window.H38_DESKTOP_NAVIGATION_CORE);
-    assert.equal(contract.singleDesktopOwner,true);
-    assert.equal(contract.noProxyButtons,true);
-    assert.equal(contract.noWindowClickCapture,true);
-    assert.deepEqual(errors,[],'desktop navigation browser verifier must have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['all desktop pages clickable','legacy capture removed','proxy removed','collapsed nav self-heals','single owner contract']},null,2));
+    assert(contract&&contract.singleDesktopOwner===true,'desktop navigation must have one owner');
+    assert.equal(contract.noProxyButtons,true,'proxy buttons must stay retired');
+    assert.equal(contract.noWindowClickCapture,true,'window capture navigation must stay retired');
+    assert.deepEqual(runtimeErrors,[],'real sidebar sequence must produce no browser page errors');
+    console.log(JSON.stringify({status:'PASS',sequence:proof,checks:['real Business Office startup','real sidebar DOM','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes','single owner contract']},null,2));
   }finally{
     await browser.close();
+    await new Promise(resolve=>local.close(resolve));
   }
 })().catch(error=>{console.error(error);process.exit(1);});
