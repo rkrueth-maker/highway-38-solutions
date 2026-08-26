@@ -54,7 +54,7 @@ def test_quote_reopen_and_handoff_use_canonical_saved_quote_and_original_evidenc
 
 
 def test_recorded_jobs_poisoned_local_alias_cannot_beat_linked_canonical_card():
-    assert "20260822-site-visit-work-dedupe-final-8-phone" in IDENTITY
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in IDENTITY
     assert "function localAliasIdentity(identity)" in IDENTITY
     assert "canonicalTitles=new Set(" in IDENTITY
     assert "function removeSameTitleLocalAliases(" in IDENTITY
@@ -64,6 +64,8 @@ def test_recorded_jobs_poisoned_local_alias_cannot_beat_linked_canonical_card():
     assert "localSnapshotAliasSuppressed:true" in IDENTITY
     assert "linkedCanonicalTitleWins:true" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
+    assert "lateJobsDomMutation:false" in IDENTITY
+    assert "maxJobsReconcileDelayMs:700" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert ".from('business_records').delete" not in IDENTITY
 
