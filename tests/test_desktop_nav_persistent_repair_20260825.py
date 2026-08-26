@@ -1,43 +1,26 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CORE = (ROOT / 'commercial-app' / 'desktop-navigation-core.js').read_text(encoding='utf-8')
+FLOW = (ROOT / 'commercial-app' / 'flow-tightening.js').read_text(encoding='utf-8')
+RUNTIME_GLOBALS = (ROOT / 'commercial-app' / 'supabase-runtime-globals.js').read_text(encoding='utf-8')
+MEETINGS = (ROOT / 'commercial-app' / 'conversation-meeting-assistant.js').read_text(encoding='utf-8')
 AUTH = (ROOT / 'commercial-app' / 'auth-cache-guard.js').read_text(encoding='utf-8')
 
 
-def test_desktop_nav_core_survives_late_runtime_mutations():
-    assert '20260826-desktop-navigation-core-5-window-capture' in CORE
-    assert 'singleDesktopOwner:true' in CORE
-    assert 'replacesPriorCoreHandlers:true' in CORE
-    assert 'retiresLegacyNavigationArtifacts:true' in CORE
-    assert 'capturePhaseNavContainerClick:true' in CORE
-    assert 'windowCapturePhysicalClick:true' in CORE
-    assert 'coordinateFallback:true' in CORE
-    assert 'realSidebarHitAuthority:true' in CORE
-    assert 'directRouteFallback:true' in CORE
-    assert 'new MutationObserver(()=>queueReconcile())' in CORE
-    assert "navObserver.observe(nav,{childList:true,subtree:true,attributes:true" in CORE
-    assert "window.addEventListener('pageshow',reconcileAfterEvent)" in CORE
-    assert "window.addEventListener('focus',reconcileAfterEvent)" in CORE
-    assert "window.addEventListener('h38:business-snapshot-updated',reconcileAfterEvent)" in CORE
-    assert 'removeLegacyNavigationPatches(nav)' in CORE
-    assert 'ensurePhysicalHitAuthority()' in CORE
-    assert 'h38DesktopSidebarPhysicalProxy' in CORE
-    assert "nav.addEventListener('click',handler,true)" in CORE
-    assert "window.addEventListener('click',handler,true)" in CORE
+def test_desktop_nav_uses_business_office_native_click_path():
+    assert "nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage(button.dataset.page))" in FLOW
+    assert "window.renderNav=function(){return compactRenderNav(base);}" in FLOW
+    assert "desktop-navigation-core.js?build=" not in RUNTIME_GLOBALS
+    assert "loadDesktopNavigationCore();" not in RUNTIME_GLOBALS
+    assert "button.onclick=()=>window.openPage('meetings')" in MEETINGS
     assert 'desktopNavigationCacheBridge' not in AUTH
     assert 'desktopNavigationWindowCapture' not in AUTH
 
 
-def test_desktop_nav_core_preserves_permissions_and_owner_safety():
-    assert 'const REQUIREMENTS={' in CORE
-    assert "user.owner===true||user.permissions?.all===true" in CORE
-    assert "user.permissions?.[capability]===true" in CORE
-    assert "const DESKTOP='(min-width: 761px)'" in CORE
-    assert "(office().shell||'office')!=='office'" in CORE
-    assert 'rolePermissionsPreserved:true' in CORE
-    assert 'noWindowClickCapture:false' in CORE
-    assert 'noGeometryHitTesting:false' in CORE
-    assert 'noProxyButtons:true' in CORE
-    assert 'automaticApproval:false' in CORE
-    assert 'automaticCustomerSending:false' in CORE
+def test_desktop_nav_preserves_owner_safety_and_mobile_separation():
+    assert "@media(max-width:760px)" in FLOW
+    assert 'primaryNavDelegatedToFinalMobileRuntime:true' in FLOW
+    assert 'automaticApproval:false' in FLOW
+    assert 'automaticCustomerSending:false' in FLOW
+    assert 'automaticPurchasing:false' in FLOW
+    assert 'automaticPayment:false' in FLOW
