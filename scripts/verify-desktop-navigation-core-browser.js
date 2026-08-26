@@ -23,19 +23,51 @@ function verifyOfficeSyntax(){const failures=[];for(const name of fs.readdirSync
   const runtimeErrors=[];page.on('pageerror',error=>runtimeErrors.push(String(error.stack||error.message).replace(/\s+/g,' ')));
   try{
     await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
-    await page.waitForFunction(()=>typeof window.openPage==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
-    await page.waitForTimeout(500);
+    await page.waitForFunction(()=>typeof window.openPage==='function'&&typeof window.renderNav==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
+    await page.waitForFunction(()=>window.H38_FLOW_TIGHTENING&&window.H38_MOBILE_RUNTIME_STABILITY&&window.H38_CONVERSATION_MEETING_ASSISTANT,{timeout:10000});
+    await page.waitForTimeout(250);
     if(runtimeErrors.length)throw new Error(`real Business Office startup browser error(s): ${runtimeErrors.join(' | ')}`);
-    await page.evaluate(()=>{const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];const snapshot={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};emptyCollections.forEach(name=>snapshot[name]=[]);window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=snapshot;window.state.bridgeReady=true;if(!window.PAGE_DEFS.meetings)window.PAGE_DEFS.meetings=['🗣️','Meetings'];window.openPage('today',false);window.H38_DESKTOP_NAVIGATION_CORE?.reconcile?.();});
+
+    await page.evaluate(()=>{
+      const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
+      const snapshot={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};
+      emptyCollections.forEach(name=>snapshot[name]=[]);
+      window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=snapshot;window.state.bridgeReady=true;
+      window.renderNav();window.openPage('today',false);
+    });
+
     await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-page]').length>=7,{timeout:5000});
-    const physicalHit=await page.evaluate(()=>{const nav=document.getElementById('mainNav'),button=nav?.querySelector(':scope > button[data-page]'),navStyle=nav?getComputedStyle(nav):null,buttonStyle=button?getComputedStyle(button):null;return{navPointer:navStyle?.pointerEvents||'',navZ:navStyle?.zIndex||'',navIsolation:navStyle?.isolation||'',buttonPointer:buttonStyle?.pointerEvents||'',buttonZ:buttonStyle?.zIndex||'',coreBuild:window.H38_DESKTOP_NAVIGATION_CORE?.build||''};});
-    assert.equal(physicalHit.coreBuild,'20260826-desktop-navigation-core-5-window-capture','window-capture click core must be loaded');
-    assert.equal(physicalHit.navPointer,'auto');assert.equal(physicalHit.buttonPointer,'auto');assert(Number.parseInt(physicalHit.navZ,10)>=100);assert.equal(physicalHit.navIsolation,'isolate');
-    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['schedule',/schedule/i],['messages',/message|communication/i]];const proof=[];
-    for(const [key,contentPattern] of sequence){const button=page.locator(`#mainNav > button[data-page="${key}"]`);assert.equal(await button.count(),1);assert.equal(await button.evaluate(node=>node.onclick===null),true);await button.evaluate(node=>{node.addEventListener('click',event=>event.stopImmediatePropagation(),{once:true});});const before=(await page.locator('#mainContent').innerText()).trim();await button.click();await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});await page.waitForTimeout(50);const after=(await page.locator('#mainContent').innerText()).trim();assert.notEqual(after,before);assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);const active=await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page');assert.equal(active,true);proof.push({page:key,content:after.slice(0,80)});}
-    const contract=await page.evaluate(()=>window.H38_DESKTOP_NAVIGATION_CORE);
-    assert(contract&&contract.singleDesktopOwner===true);assert.equal(contract.capturePhaseNavContainerClick,true);assert.equal(contract.windowCapturePhysicalClick,true);assert.equal(contract.coordinateFallback,true);assert.equal(contract.realSidebarHitAuthority,true);assert.equal(contract.directRouteFallback,true);assert.equal(contract.noProxyButtons,true);assert.equal(contract.noWindowClickCapture,false);assert.equal(contract.noGeometryHitTesting,false);
+    const ownership=await page.evaluate(()=>({
+      interceptorLoaded:!!window.H38_DESKTOP_NAVIGATION_CORE,
+      interceptorScript:!!document.querySelector('script[data-h38-desktop-navigation-core]'),
+      flow:!!window.H38_FLOW_TIGHTENING,
+      mobile:!!window.H38_MOBILE_RUNTIME_STABILITY,
+      meetings:!!window.H38_CONVERSATION_MEETING_ASSISTANT,
+      pages:Array.from(document.querySelectorAll('#mainNav > button[data-page]')).map(button=>({page:button.dataset.page,onclick:typeof button.onclick}))
+    }));
+    assert.equal(ownership.interceptorLoaded,false,'retired desktop click interceptor must not load');
+    assert.equal(ownership.interceptorScript,false,'retired desktop click interceptor script must not load');
+    assert(ownership.flow&&ownership.mobile&&ownership.meetings,'final production navigation runtimes must all be installed before acceptance');
+
+    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['schedule',/schedule/i],['messages',/message|communication/i]];
+    const proof=[];
+    for(const [key,contentPattern] of sequence){
+      const button=page.locator(`#mainNav > button[data-page="${key}"]`);
+      assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar`);
+      assert.equal(await button.evaluate(node=>typeof node.onclick),'function',`${key} must keep its native Business Office click handler`);
+      const before=(await page.locator('#mainContent').innerText()).trim();
+      await button.click();
+      await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});
+      await page.waitForTimeout(60);
+      const after=(await page.locator('#mainContent').innerText()).trim();
+      assert.notEqual(after,before,`${key} click must change the real main content`);
+      assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);
+      const active=await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page');
+      assert.equal(active,true,`${key} must become the active sidebar page`);
+      proof.push({page:key,content:after.slice(0,80)});
+    }
+
     if(runtimeErrors.length)throw new Error(`real sidebar sequence browser error(s): ${runtimeErrors.join(' | ')}`);
-    console.log(JSON.stringify({status:'PASS',sequence:proof,physicalHit,checks:['all Business Office JavaScript syntax','real Business Office startup','real sidebar DOM','real sidebar owns pointer hit plane','window-capture routing beats hostile target listener','coordinate fallback available for intercepted hits','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes','single owner contract','no proxy buttons']},null,2));
+    console.log(JSON.stringify({status:'PASS',sequence:proof,ownership,checks:['all Business Office JavaScript syntax','real Business Office startup','flow-tightening installed','mobile runtime installed','Meetings integration installed','retired desktop interceptor absent','native sidebar onclicks preserved','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes']},null,2));
   }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1);});
