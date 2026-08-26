@@ -77,15 +77,8 @@
     document.head.appendChild(script);
   }
 
-  function loadDesktopNavigationCore() {
-    const current = document.querySelector('script[data-h38-desktop-navigation-core]');
-    if (current && /desktop-navigation-core-5-window-capture/.test(String(current.src || ''))) return;
-    if (current) current.remove();
-    const script = document.createElement('script');
-    script.src = './desktop-navigation-core.js?build=20260826-desktop-navigation-core-5-window-capture';
-    script.dataset.h38DesktopNavigationCore = '1';
-    document.head.appendChild(script);
-  }
+  // Desktop navigation is intentionally owned by the Business Office renderNav/openPage
+  // chain. The retired desktop-navigation-core interceptor must not be loaded here.
 
   if (nativeAndroid) {
     document.documentElement.classList.add('h38-early-native-startup');
@@ -128,7 +121,6 @@
 
   installNativeReturnColdReloadGuard();
   loadFinalNativeVideoAttach();
-  loadDesktopNavigationCore();
 
   if (!document.querySelector('script[data-h38-startup-site-visit-stability]')) {
     const script = document.createElement('script');
