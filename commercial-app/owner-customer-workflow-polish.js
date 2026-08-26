@@ -10,7 +10,7 @@ const text=v=>String(v==null?'':v).trim();
 const val=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const snapshot=()=>window.state?.snapshot||{};
 const rows=name=>Array.isArray(snapshot()?.[name])?snapshot()[name]:[];
-const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const now=()=>new Date().toISOString();
 const newid=prefix=>typeof window.newId==='function'?window.newId(prefix):`${prefix}-${crypto.randomUUID().toUpperCase()}`;
 function recordId(row,...keys){return text(val(row,...keys));}
