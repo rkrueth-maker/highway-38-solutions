@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260819-flow-event-driven-2';
+const BUILD='20260826-flow-desktop-nav-ownership-1';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
@@ -9,7 +9,7 @@ const text=value=>String(value==null?'':value);
 const upper=value=>text(value).trim().toUpperCase();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const recordId=(row,...keys)=>text(value(row,...keys));
-const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const rows=name=>typeof window.records==='function'?window.records(name):(window.state?.snapshot?.[name]||[]);
 const allowed=()=>{try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}};
 const pageLabel=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}};
@@ -47,6 +47,8 @@ function startSiteVisit(customerId='',quoteId=''){
   openPageSafe('field');
 }
 function compactRenderNav(baseRenderNav){
+  const isMobile=!!window.matchMedia?.('(max-width: 760px)').matches;
+  if(!isMobile){baseRenderNav();return;}
   if(window.H38_MOBILE_RUNTIME_STABILITY?.mobilePrimaryNavigationSingleAuthority)return;
   const s=officeState();if(!s||s.shell!=='office'){baseRenderNav();return;}
   const pages=new Set(allowed()),nav=document.getElementById('mainNav');if(!nav)return;
@@ -177,7 +179,7 @@ function install(){
   }
   const observer=new MutationObserver(()=>{decorateFieldVisit();});observer.observe(document.documentElement,{childList:true,subtree:true});
   scheduleWorkEnhance();if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'delegated-to-final-mobile-runtime',primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
