@@ -76,11 +76,11 @@ def test_identity_repair_does_not_delete_business_evidence():
 
 
 def test_identity_authority_is_deployed_through_shared_machine_live_first_boundary():
-    assert "site-visit-work-dedupe-final-8-phone" in LOADER
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in LOADER
     assert "quote-runtime-authority-2-machine" in LOADER
     assert "site-visit-quote-handoff-final-5-machine" in LOADER
     assert "site-visit-identity-write-fence-final-1" in LOADER
-    assert "site-visit-wide-acceptance-final-3-phone" in LOADER
+    assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in LOADER
     assert "site-visit-quote-wide-pass-loader-16-revision" in HAMMER
     assert "quote-reproduction-authority-1" in LOADER
     assert "quote-revision-authority-1" in LOADER
@@ -98,8 +98,12 @@ def test_identity_authority_is_deployed_through_shared_machine_live_first_bounda
     assert "site-visit-wide-acceptance-final.js" in live_first
     assert "quote-revision-authority.js" in live_first
     assert "supabase-quote-ai-auth-fix.js" in live_first
-    assert "persistentJobsReconciliation:true" in WIDE
+    assert "mobile-scroll-native-authority.js" in live_first
+    assert "persistentJobsReconciliation:false" in WIDE
+    assert "lateJobsDomMutationPrevented:true" in WIDE
+    assert "boundedJobsReconciliation:true" in WIDE
     assert "eventDrivenReconciliation:true" in WIDE
+    assert "maxJobsReconcileDelayMs:700" in WIDE
     assert "new MutationObserver" not in WIDE
 
 
