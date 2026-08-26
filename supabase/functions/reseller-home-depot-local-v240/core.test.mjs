@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {normalizeHomeDepotSearch,bestHomeDepotMatch,storeReading,communityFallback} from './core.mjs';
+const search={data:{products:[{item_id:'326680222',sku:'1001234567',title:'DEWALT 20V Impact Driver',price:{current:149,original:199},model_number:'DCF900B'}]}};
+assert.equal(normalizeHomeDepotSearch(search).length,1);
+assert.equal(bestHomeDepotMatch(search,{sku:'1001234567',title:'DEWALT Impact Driver'}).item_id,'326680222');
+const detail={product:{item_id:'326680222',title:'DEWALT 20V Impact Driver',price:{current:.01,original:149},ext:{store_inventory:[{store_id:'2834',store_name:'Grand Rapids',quantity:2,in_stock:true}]}}};
+const r=storeReading(detail,'2834');
+assert.equal(r.price_scope,'store');assert.equal(r.inventory_scope,'store');assert.equal(r.quantity,2);assert.equal(r.penny_signal,true);assert.equal(r.evidence_level,'LIVE VERIFIED');
+const fallback=communityFallback({sku:'1001234567',penny:true});assert.equal(fallback.evidence_level,'COMMUNITY SIGNAL');assert.match(fallback.penny_truth,/physical in-store register/i);
+console.log('PASS reseller-home-depot-local-v240 fixtures');
