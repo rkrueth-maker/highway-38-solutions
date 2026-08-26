@@ -60,9 +60,9 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "h38:business-snapshot-updated" in text
 
 
-def test_final_site_visit_identity_authority_removes_poisoned_local_physical_alias_without_observer_loop():
+def test_final_site_visit_identity_authority_removes_poisoned_local_physical_alias_without_late_jobs_bounce():
     text = IDENTITY.read_text(encoding="utf-8")
-    assert "20260822-site-visit-work-dedupe-final-8-phone" in text
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in text
     assert "function localAliasIdentity(identity)" in text
     assert "canonicalTitles=new Set(" in text
     assert "localSnapshotAliasSuppressed:true" in text
@@ -74,9 +74,13 @@ def test_final_site_visit_identity_authority_removes_poisoned_local_physical_ali
     assert "const preferred=button.closest('.row,article,li" in text
     assert "persistentJobsObserver:false" in text
     assert "eventDrivenJobsReconciliation:true" in text
-    assert "boundedLateMobileRenderRetries:true" in text
+    assert "boundedLateMobileRenderRetries:false" in text
     assert "jobsNavigationReconciliation:true" in text
-    assert "2600,4500" in text
+    assert "lateJobsDomMutation:false" in text
+    assert "maxJobsReconcileDelayMs:700" in text
+    assert "2600,4500" not in text
+    assert "3600,6000" not in text
+    assert "[80,260,700]" in text
     assert "new MutationObserver" not in text
     assert "installOpenAuthority" in text
     assert "installRestoreAuthority" in text
