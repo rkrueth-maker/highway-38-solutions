@@ -37,6 +37,7 @@
     <section id="huntPage" class="page hidden"></section>
     <section id="scanPage" class="page hidden"></section>
     <section id="auctionPage" class="page hidden"></section>
+    <section id="trackPage" class="page hidden"></section>
     <section id="morePage" class="page hidden"></section>
   </section>
 </main>
@@ -45,13 +46,13 @@
   <button data-page="hunt"><span>¢</span><b>Hunt</b></button>
   <button data-page="scan" class="scan-nav"><span>◎</span><b>Scan</b></button>
   <button data-page="auctions"><span>⚑</span><b>Auctions</b></button>
-  <button data-page="more"><span>•••</span><b>More</b></button>
+  <button data-page="track"><span>★</span><b>Track</b></button>
 </nav>
 <div id="locationSheet" class="sheet hidden" role="dialog" aria-modal="true">
   <div class="sheet-card"><div class="sheet-handle"></div><div class="sheet-head"><div><div class="eyebrow">SEARCH AREA</div><h2>Location & radius</h2></div><button id="closeLocation" class="icon-btn">×</button></div><button id="usePhoneLocation" class="primary wide">Use phone location</button><div class="or"><span></span>or<span></span></div><label>ZIP code<input id="zipInput" inputmode="numeric" maxlength="5" value="55744" placeholder="55744"></label><button id="useZipLocation" class="secondary wide">Use ZIP</button><label>Radius<select id="sheetRadius"><option value="25">25 miles</option><option value="50">50 miles</option><option value="100">100 miles</option><option value="150">150 miles</option></select></label><div id="locationMessage"></div></div>
 </div>
 <div id="accountSheet" class="sheet hidden" role="dialog" aria-modal="true">
-  <div class="sheet-card compact"><div class="sheet-handle"></div><div class="sheet-head"><div><div class="eyebrow">OWNER APP</div><h2>Account</h2></div><button id="closeAccount" class="icon-btn">×</button></div><div id="accountIdentity" class="muted"></div><div id="accountBuild" class="small muted" style="margin:8px 0 14px"></div><button id="openMaintenance" class="secondary wide">Maintenance / Self-Test</button><button id="signOutButton" class="danger-text wide">Sign out</button></div>
+  <div class="sheet-card compact"><div class="sheet-handle"></div><div class="sheet-head"><div><div class="eyebrow">OWNER APP</div><h2>Account</h2></div><button id="closeAccount" class="icon-btn">×</button></div><div id="accountIdentity" class="muted"></div><div id="accountBuild" class="small muted" style="margin:8px 0 14px"></div><button id="openMore" class="secondary wide">More / Settings</button><button id="openMaintenance" class="secondary wide">Maintenance / Self-Test</button><button id="signOutButton" class="danger-text wide">Sign out</button></div>
 </div>
 <div id="detailSheet" class="sheet hidden" role="dialog" aria-modal="true"><div id="detailCard" class="sheet-card detail-card"></div></div>
 <script src="v200-core.js"></script>
@@ -63,6 +64,8 @@
 <script src="v210-polish.js"></script>
 <script src="v211-wide.js"></script>
 <script src="v212-physical.js"></script>
+<script src="v220-profit.js"></script>
+<script src="v220-track.js"></script>
 <script>
 window.H38_SCOUT_V213_MULTI_SOURCE=true;
 window.H38_SCOUT_V213_DEDUPE_RULE='one card per product; multiple evidence sources merge underneath it.';
@@ -79,6 +82,7 @@ loadHunt=async function(force=false){
   finally{state.hunt.loading=false;renderHunt()}
 };
 </script>
+<script src="v220-product.js"></script>
 <script src="v200-app.js"></script>
 </body>
 </html>
