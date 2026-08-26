@@ -72,13 +72,9 @@ function h38DesktopNavDef(page){
   return window.PAGE_DEFS?.[page]||['•',page];
 }
 function h38OpenDesktopNavPage(page){
-  if(window.H38_DESKTOP_NAVIGATION_AUTHORITY?.openPage?.(page))return;
-  if(page==='meetings'&&typeof window.renderMeetings==='function'){
-    if(window.state)window.state.page='meetings';
-    window.renderMeetings();
-    return;
-  }
-  window.openPage?.(page);
+  if(h38DirectDesktopNavPage(page))return true;
+  if(window.H38_DESKTOP_NAVIGATION_AUTHORITY?.openPage?.(page))return true;
+  return false;
 }
 function h38DirectDesktopNavPage(page){
   page=String(page||'').trim();
@@ -86,24 +82,42 @@ function h38DirectDesktopNavPage(page){
   const nav=document.getElementById('mainNav');
   if(!nav?.querySelector(`:scope > [data-page="${CSS.escape(page)}"]`))return false;
   try{
-    if(typeof window.openPage==='function')window.openPage(page,false);
+    if(page==='meetings'&&typeof window.renderMeetings==='function'){
+      if(window.state)window.state.page='meetings';
+      window.renderMeetings();
+    }else if(typeof window.H38_CORE_OPEN_PAGE==='function'){
+      window.H38_CORE_OPEN_PAGE(page,false);
+    }else if(typeof window.openPage==='function'){
+      window.openPage(page,false);
+    }
   }catch(error){
-    console.error('[H38 desktop hard navigation openPage]',page,error);
+    console.error('[H38 desktop core navigation]',page,error);
+  }
+  if(String(window.state?.page||'')!==page){
+    try{
+      if(page==='meetings'&&typeof window.renderMeetings==='function'){
+        if(window.state)window.state.page='meetings';
+        window.renderMeetings();
+      }else if(typeof window.openPage==='function'){
+        window.openPage(page,false);
+      }
+    }catch(error){console.error('[H38 desktop wrapped navigation]',page,error);}
   }
   if(String(window.state?.page||'')!==page){
     try{
       if(window.state)window.state.page=page;
-      if(page==='meetings'&&typeof window.renderMeetings==='function')window.renderMeetings();
-      else if(typeof window.renderPage==='function')window.renderPage();
+      if(typeof window.H38_CORE_RENDER_PAGE==='function')window.H38_CORE_RENDER_PAGE();
       else{
         const renderer={today:'renderToday',customers:'renderCustomers',work:'renderWork',quotes:'renderQuotes',schedule:'renderSchedule',messages:'renderMessages',field:'renderField',inventory:'renderInventory',fleet:'renderFleet',money:'renderMoney',documents:'renderDocuments',social:'renderSocial',ai:'renderAi',settings:'renderSettings'}[page];
         if(renderer&&typeof window[renderer]==='function')window[renderer]();
       }
     }catch(error){
-      console.error('[H38 desktop hard navigation fallback]',page,error);
+      console.error('[H38 desktop direct renderer]',page,error);
       return false;
     }
   }
+  const handled=String(window.state?.page||'')===page;
+  if(!handled)return false;
   try{
     nav.querySelectorAll(':scope > [data-page]').forEach(button=>{
       const active=String(button.dataset.page||'')===page;
@@ -112,14 +126,12 @@ function h38DirectDesktopNavPage(page){
     });
     document.getElementById('mainContent')?.focus?.({preventScroll:true});
   }catch(error){}
-  return String(window.state?.page||'')===page;
+  return true;
 }
-let h38LastDesktopPointerPage='';
-let h38LastDesktopPointerAt=0;
 function h38DesktopNavWindowCapture(event){
+  if(event.type!=='click')return;
   if(!window.matchMedia?.('(min-width: 761px)').matches)return;
   if((window.state?.shell||'office')!=='office')return;
-  if(event.type==='pointerdown'&&event.button!==0)return;
   const target=event.target instanceof Element?event.target:null;
   const button=target?.closest?.('#mainNav [data-page]');
   if(!button)return;
@@ -127,18 +139,12 @@ function h38DesktopNavWindowCapture(event){
   if(!nav||!nav.contains(button))return;
   const page=String(button.dataset.page||'').trim();
   if(!page)return;
+  const handled=h38DirectDesktopNavPage(page);
+  if(!handled)return;
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation?.();
-  const now=Date.now();
-  if(event.type==='click'&&h38LastDesktopPointerPage===page&&now-h38LastDesktopPointerAt<1200)return;
-  if(event.type==='pointerdown'){
-    h38LastDesktopPointerPage=page;
-    h38LastDesktopPointerAt=now;
-  }
-  h38DirectDesktopNavPage(page);
 }
-window.addEventListener('pointerdown',h38DesktopNavWindowCapture,true);
 window.addEventListener('click',h38DesktopNavWindowCapture,true);
 
 let h38DesktopNavRepairing=false;
@@ -161,7 +167,7 @@ function h38RepairCollapsedDesktopNav(){
       const def=h38DesktopNavDef(page),active=String(window.state?.page||'')===page;
       return `<button type="button" data-page="${page}" class="${active?'active':''}"${active?' aria-current="page"':''}><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`;
     }).join('');
-    nav.querySelectorAll(':scope > [data-page]').forEach(button=>button.onclick=()=>h38DirectDesktopNavPage(button.dataset.page));
+    nav.querySelectorAll(':scope > [data-page]').forEach(button=>button.onclick=()=>h38OpenDesktopNavPage(button.dataset.page));
     nav.dataset.h38DesktopNavCacheBridge=H38_DESKTOP_NAV_BRIDGE_BUILD;
     nav.dataset.h38DesktopNavHardClick=H38_DESKTOP_NAV_HARD_CLICK_BUILD;
     return true;
@@ -217,5 +223,8 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   desktopNavigationWindowCapture:true,
   desktopNavigationWindowCaptureBuild:H38_DESKTOP_NAV_HARD_CLICK_BUILD,
   desktopNavigationBypassesStaleNavAuthority:true,
-  desktopNavigationPointerDownAuthority:true
+  desktopNavigationPointerDownAuthority:false,
+  desktopNavigationClickOnlyAuthority:true,
+  desktopNavigationCoreRouter:true,
+  desktopNavigationNonDestructiveFallback:true
 });
