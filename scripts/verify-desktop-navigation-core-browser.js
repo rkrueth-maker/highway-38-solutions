@@ -36,11 +36,12 @@ function server(){
   `}));
   const page=await context.newPage();
   const runtimeErrors=[];
-  page.on('pageerror',error=>runtimeErrors.push(error.message));
+  page.on('pageerror',error=>runtimeErrors.push(String(error.stack||error.message).replace(/\s+/g,' ')));
   try{
     await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
     await page.waitForFunction(()=>typeof window.openPage==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
     await page.waitForTimeout(500);
+    assert.deepEqual(runtimeErrors,[],'real Business Office startup must produce no browser page errors');
 
     await page.evaluate(()=>{
       const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
@@ -57,7 +58,6 @@ function server(){
     });
 
     await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-page]').length>=7,{timeout:5000});
-    runtimeErrors.length=0;
 
     const sequence=[
       ['customers',/customer/i],
