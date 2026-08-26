@@ -38,11 +38,17 @@ export function parseKbidLots(html='',base,event={},q=''){
   }
   return out.slice(0,120);
 }
+function govDealsTitleAndLocation(body=''){
+  const x=cleanTitle(body),parts=x.split(/\s+/).filter(Boolean);if(parts.length<2)return{title:x,location:'Minnesota, USA'};
+  // GovDeals SEO text places the pickup city immediately before ", Minnesota, USA" but does not expose a stable delimiter.
+  // Keep the full source text as the searchable title so product keywords are never lost; expose only state-level location until a dedicated pickup page proves more.
+  return{title:x,location:'Minnesota, USA'};
+}
 export function parseGovDeals(html='',base='https://prod-seo.govdeals.com/en/minnesota',q=''){
-  const plain=strip(html),out=[],seen=new Set(),re=/Online Auction\s+(.{3,220}?)\s+([A-Za-z0-9 .,'#&/()-]+,\s*Minnesota,\s*USA)\s+USD\s*\$?\s*([0-9,.]+)[\s\S]{0,180}?Lot#:\s*([0-9-]+)/gi;
+  const plain=strip(html),out=[],seen=new Set(),re=/Online Auction\s+(.{3,300}?),\s*Minnesota,\s*USA\s+USD\s*\$?\s*([0-9,.]+)[\s\S]{0,180}?Lot#:\s*([0-9-]+)/gi;
   for(const m of plain.matchAll(re)){
-    const title=cleanTitle(m[1]||''),lot=String(m[4]||'');if(!relevantTitle(title)||!matches(title,q)||seen.has(lot))continue;seen.add(lot);
-    out.push({source:'GovDeals',kind:'lot',title,source_url:`${base}#lot-${encodeURIComponent(lot)}`,image_url:'',current_bid:money(m[3]),bid_count:null,buyer_premium:null,location_label:String(m[2]||'').trim(),distance_miles:null,location_verified:false,pickup_mode:'Pickup terms on source',pickup_verified:false,date_label:'',lot_number:lot,profit_verified:false,resale_relevant:true});
+    const parsed=govDealsTitleAndLocation(m[1]||''),title=parsed.title,lot=String(m[3]||'');if(!relevantTitle(title)||!matches(title,q)||seen.has(lot))continue;seen.add(lot);
+    out.push({source:'GovDeals',kind:'lot',title,source_url:`${base}#lot-${encodeURIComponent(lot)}`,image_url:'',current_bid:money(m[2]),bid_count:null,buyer_premium:null,location_label:parsed.location,distance_miles:null,location_verified:false,pickup_mode:'Pickup terms on source',pickup_verified:false,date_label:'',lot_number:lot,profit_verified:false,resale_relevant:true});
   }
   return out.slice(0,120);
 }
