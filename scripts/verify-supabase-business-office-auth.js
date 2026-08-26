@@ -60,7 +60,7 @@ check(portal.includes('url=open-business-office.html')&&portal.includes('locatio
 
 check(has(index,[
   'id="mainContent"','id="businessSelect"','supabase-config.js','supabase-auth.js',
-  'auth-session-guard.js','auth-cache-guard.js?build=20260807-2132','supabase-startup.js?build=20260807-2132','authSignOutButton'
+  'auth-session-guard.js','auth-cache-guard.js?build=20260825-auth-cache-guard-desktop-nav-clicks-4','supabase-startup.js?build=20260807-2132','authSignOutButton'
 ]),'Business Office shell or Auth scripts are incomplete.');
 check((index.match(/id="mainContent"/g)||[]).length===1,'Only one Business Office shell is allowed.');
 check(index.indexOf('supabase-auth.js')<index.indexOf('auth-session-guard.js'),'Session guard must load after Auth.');
