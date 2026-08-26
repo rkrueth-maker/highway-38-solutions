@@ -132,7 +132,7 @@ jobs:
           check "'x-api-key':KEY" "$hd240"
           check "price_scope:'zip'" "$hd240"
           check "price_scope:storeId?'store':'zip'" "$hdCore240"
-          check "inventory_scope:'store'" "$hdCore240"
+          check "inventory_scope:inv.store_id?'store':'unknown'" "$hdCore240"
           check "evidence_level:'COMMUNITY SIGNAL'" "$hdCore240"
           check 'physical in-store register scan remains final local truth' "$hdCore240"
           check 'CONFIG_REQUIRED' "$hd240"
