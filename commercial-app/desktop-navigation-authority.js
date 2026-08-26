@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260825-desktop-navigation-authority-1';
+const BUILD='20260825-desktop-navigation-authority-2';
 const DESKTOP='(min-width: 761px)';
 const BASE_ORDER=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
 const REQUIREMENTS={
@@ -17,7 +17,7 @@ const REQUIREMENTS={
   social:['manageSocial'],
   settings:['manageSettings','manageUsers']
 };
-let rendering=false,resizeTimer=0;
+let rendering=false,resizeTimer=0,navObserver=null,navObserved=null,repairQueued=false;
 const text=value=>String(value==null?'':value).trim();
 function desktop(){return !!window.matchMedia?.(DESKTOP).matches;}
 function office(){return window.state||{};}
@@ -38,11 +38,17 @@ function rolePages(){
   }
   return pages;
 }
+function expectedPages(){return rolePages().filter(page=>window.PAGE_DEFS?.[page]);}
+function navIsComplete(nav,pages){
+  if(!nav||!pages.length)return false;
+  const rendered=Array.from(nav.querySelectorAll(':scope > [data-page]')).map(node=>text(node.dataset.page));
+  return rendered.length===pages.length&&pages.every((page,index)=>rendered[index]===page);
+}
 function renderDesktopNav(){
   if(rendering||!desktop()||(office().shell||'office')!=='office')return false;
   const nav=document.getElementById('mainNav');
   if(!nav||!window.PAGE_DEFS)return false;
-  const pages=rolePages().filter(page=>window.PAGE_DEFS[page]);
+  const pages=expectedPages();
   if(!pages.length)return false;
   rendering=true;
   try{
@@ -56,8 +62,26 @@ function renderDesktopNav(){
     return true;
   }finally{rendering=false;}
 }
+function queueRepair(){
+  if(repairQueued||rendering||!desktop())return;
+  repairQueued=true;
+  queueMicrotask(()=>{
+    repairQueued=false;
+    const nav=document.getElementById('mainNav'),pages=expectedPages();
+    if(nav&&pages.length&&!navIsComplete(nav,pages))renderDesktopNav();
+  });
+}
+function observeNav(){
+  const nav=document.getElementById('mainNav');
+  if(!nav||navObserved===nav)return;
+  navObserver?.disconnect();
+  navObserved=nav;
+  navObserver=new MutationObserver(()=>queueRepair());
+  navObserver.observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-page']});
+}
 function install(){
   const current=window.renderNav;
+  observeNav();
   if(typeof current!=='function')return false;
   if(current.__h38DesktopNavigationAuthority===BUILD)return true;
   const wrapped=function(){
@@ -71,14 +95,15 @@ function install(){
   queueMicrotask(renderDesktopNav);
   return true;
 }
-function reconcile(){install();renderDesktopNav();}
+function reconcile(){install();observeNav();renderDesktopNav();}
 window.addEventListener('h38:business-snapshot-updated',reconcile);
 window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(reconcile,100);});
-[0,120,450,1200,2800].forEach(delay=>setTimeout(reconcile,delay));
+[0,120,450,1200,2800,6000].forEach(delay=>setTimeout(reconcile,delay));
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:true,build:BUILD,render:renderDesktopNav,rolePages,
   desktopOnly:true,rolePermissionsPreserved:true,meetingsAreAdditive:true,
   mobileNavigationPreserved:true,noMembershipMutation:true,
+  selfHealsLateNavMutation:true,requiresCompleteDesktopPageSet:true,
   automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,
   automaticPayment:false,automaticScheduling:false
 });
