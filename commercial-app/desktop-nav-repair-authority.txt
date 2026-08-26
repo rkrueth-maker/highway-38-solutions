@@ -1,0 +1,5 @@
+HIGHWAY 38 DESKTOP NAVIGATION REPAIR AUTHORITY
+Build: 20260825-desktop-nav-cache-bridge-3-persistent
+Runtime source: commercial-app/auth-cache-guard.js
+Behavior: desktop-only persistent observer repairs late navigation collapse while preserving role permissions.
+Acceptance: source/test/deploy gates do not replace physical browser acceptance.
