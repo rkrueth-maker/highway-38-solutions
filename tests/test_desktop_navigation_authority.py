@@ -2,50 +2,60 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-NAV = (APP / 'desktop-navigation-authority.js').read_text(encoding='utf-8')
-INDEX = (APP / 'index.html').read_text(encoding='utf-8')
+CORE = (APP / 'desktop-navigation-core.js').read_text(encoding='utf-8')
+LEGACY = (APP / 'desktop-navigation-authority.js').read_text(encoding='utf-8')
+AUTH_CACHE = (APP / 'auth-cache-guard.js').read_text(encoding='utf-8')
+OFFICE_POLISH = (APP / 'office-polish.js').read_text(encoding='utf-8')
+RUNTIME_GLOBALS = (APP / 'supabase-runtime-globals.js').read_text(encoding='utf-8')
 SPOKEN = (APP / 'spoken-measurement-authority-final.js').read_text(encoding='utf-8')
 MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='utf-8')
-AUTH_CACHE = (APP / 'auth-cache-guard.js').read_text(encoding='utf-8')
 
 
-def test_desktop_navigation_restores_role_allowed_office_without_touching_mobile():
-    assert "20260825-desktop-navigation-authority-3-clicks" in NAV
+def test_desktop_navigation_has_one_real_owner():
+    assert "20260826-desktop-navigation-core-1" in CORE
     for marker in [
-        'desktopOnly:true',
+        'singleDesktopOwner:true',
+        'delegatedNavContainerClick:true',
+        'noWindowClickCapture:true',
+        'noGeometryHitTesting:true',
+        'noProxyButtons:true',
+        'noAuthCacheNavigationBridge:true',
         'rolePermissionsPreserved:true',
         'meetingsAreAdditive:true',
         'mobileNavigationPreserved:true',
-        'noMembershipMutation:true',
-        "DESKTOP='(min-width: 761px)'",
-        'delegatedCaptureClickAuthority:true',
-        'directRenderPageNavigation:true',
-        'survivesChildButtonReplacement:true',
-        'doesNotDependOnButtonOnclick:true',
-        "nav.addEventListener('click',handleDesktopNavClick,true)",
-        "event.stopImmediatePropagation?.()",
-        "if(typeof window.renderPage==='function')window.renderPage()",
+        "nav.addEventListener('click',handler,false)",
+        "new MutationObserver(()=>queueReconcile())",
     ]:
-        assert marker in NAV
-    assert "automaticApproval:false" in NAV
-    assert "automaticCustomerSending:false" in NAV
-    assert "automaticPurchase:false" in NAV
-    assert "automaticPayment:false" in NAV
-    assert "automaticScheduling:false" in NAV
+        assert marker in CORE
+    assert "window.openPage(page)" in CORE
+    assert "event.stopImmediatePropagation" not in CORE
+    assert "window.addEventListener('click'" not in CORE
 
 
-def test_desktop_navigation_loads_last_and_measurement_authority_is_cache_busted():
-    nav = './desktop-navigation-authority.js?build=20260825-desktop-navigation-authority-3-clicks'
-    assert nav in INDEX
-    assert INDEX.index(nav) > INDEX.index('./customer-readiness-polish.js?build=20260825-customer-readiness-polish-1')
-    assert './measurement-verification-authority.js?build=20260825-measurement-verification-authority-2' in INDEX
-    assert './auth-cache-guard.js?build=20260825-auth-cache-guard-desktop-nav-clicks-4' in INDEX
-    assert 'desktopNavigationCacheBridge:true' in AUTH_CACHE
-    assert '20260825-desktop-nav-cache-bridge-4-clicks' in AUTH_CACHE
-    assert 'desktopNavigationPersistentObserver:true' in AUTH_CACHE
-    assert 'desktopNavigationLateMutationRepair:true' in AUTH_CACHE
-    assert 'desktopNavigationRoutesThroughFinalAuthority:true' in AUTH_CACHE
-    assert 'window.H38_DESKTOP_NAVIGATION_AUTHORITY?.openPage?.(page)' in AUTH_CACHE
+def test_failed_navigation_patch_layers_are_retired():
+    assert 'retired:true' in LEGACY
+    assert 'mutatesNavigation:false' in LEGACY
+    assert 'capturesClicks:false' in LEGACY
+    assert 'createsProxyButtons:false' in LEGACY
+    assert 'desktopNavigationCacheBridge' not in AUTH_CACHE
+    assert 'desktopNavigationWindowCapture' not in AUTH_CACHE
+    assert 'h38DesktopSidebarPhysicalProxy' not in OFFICE_POLISH
+    assert 'desktopSidebarPhysicalProxy' not in OFFICE_POLISH
+    assert 'H38_CORE_OPEN_PAGE' not in RUNTIME_GLOBALS
+    assert 'H38_CORE_RENDER_NAV' not in RUNTIME_GLOBALS
+    assert 'H38_CORE_ALLOWED_PAGES' not in RUNTIME_GLOBALS
+    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-1" in RUNTIME_GLOBALS
+
+
+def test_navigation_keeps_owner_control_safety():
+    for marker in [
+        'automaticApproval:false',
+        'automaticCustomerSending:false',
+        'automaticPurchase:false',
+        'automaticPayment:false',
+        'automaticScheduling:false',
+    ]:
+        assert marker in CORE
 
 
 def test_spoken_dimensions_are_evidence_until_a_persisted_field_measurement_exists():
