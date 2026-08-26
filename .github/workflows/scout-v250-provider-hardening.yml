@@ -1,0 +1,146 @@
+name: Validate H38 Scout v2.5 Provider Hardening
+
+on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout-v250-provider-hardening'
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/**'
+      - 'supabase/functions/reseller-*/**'
+      - '.github/workflows/scout-v250-provider-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+
+      - name: Verify v2.5 provider hardening contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v250"; mkdir -p "$report"
+          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
+          reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2"; exit 1; fi; }
+          assets='reseller/src/main/assets/reseller'
+          appJava='reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
+          deviceJava='reseller/src/main/java/com/highway38/resellerscout/RetailerDeviceCheckManager.java'
+          fbJava='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
+          data="$assets/v240-data.js"; extractor="$assets/v027-retailer-extract.js"; physical="$assets/v212-physical.js"; product="$assets/v220-product.js"; hunt="$assets/v200-hunt.js"; profit="$assets/v220-profit.js"; track="$assets/v220-track.js"; index="$assets/index.html"
+          sourceTest="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063/core.test.mjs"
+          auctionTest="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs"
+          hdTest="$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs"
+          dgTest="$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs"
+          fbTest="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs"
+          fbFn="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+
+          check "versionName '2.5.0'" reseller/build.gradle
+          check 'versionCode 80' reseller/build.gradle
+          for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$assets"/v211-wide.js "$physical" "$profit" "$track" "$product" "$data" "$extractor"; do node --check "$f"; done
+          node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
+          node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
+          node "$sourceTest" | tee "$report/source.txt"
+          node "$auctionTest" | tee "$report/auction.txt"
+          node "$hdTest" | tee "$report/home-depot.txt"
+          node "$dgTest" | tee "$report/dg.txt"
+          node "$fbTest" | tee "$report/facebook.txt"
+
+          # Preserve already accepted Scout truth/regression boundaries.
+          check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
+          check 'H38_SCOUT_V220_PROFIT_ENGINE=true' "$profit"
+          check 'H38_SCOUT_V220_TRACK=true' "$track"
+          check 'PENNY CANDIDATE' "$product"
+          check 'Physical scan/register required.' "$product"
+          check 'H38_SCOUT_V230_BROAD_SOURCING=true' "$index"
+          check 'reseller-auction-search-v230' "$index"
+          check 'ROUTE ONLY' "$index"
+          check 'H38_SCOUT_V231_PHONE_REPAIR=true' "$physical"
+          check 'VALUE NOT PROVEN' "$index"
+          check 'Penny date unknown' "$hunt"
+          check 'physical register scan remains final penny truth' "$hunt"
+          check 'LOCATION_PROOF_TTL_MS' "$fbJava"
+          check 'location_verified' "$fbJava"
+          check 'if(Double.isFinite(d)&&d>radius)continue' "$fbJava"
+
+          # v2.5: paid providers are optional; device state stays on phone.
+          check 'H38_SCOUT_V250_PROVIDER_HARDENING=true' "$data"
+          check 'PERSIST_DEVICE_WEB_SESSIONS_V250' "$appJava"
+          check 'CookieManager.getInstance().flush()' "$appJava"
+          check 'DEVICE_STORE_BOUND_CHECK_V250' "$deviceJava"
+          check 'H38ResellerScoutStoreCheck/2.5.0' "$deviceJava"
+          check 'auto_store_setup' "$deviceJava"
+          check 'storeSelection' "$deviceJava"
+          check 'device_browser_v250' "$deviceJava"
+          check 'followBestProduct' "$deviceJava"
+          check 'regular_price' "$extractor"
+          check 'markdown_ratio' "$extractor"
+          check 'session_persisted:true' "$extractor"
+          check "provider_status:verified?'DEVICE_LIVE':'DEVICE_SETUP_REQUIRED'" "$data"
+          check "provider_status:bound?'DEVICE_LIVE':'DEVICE_SETUP_REQUIRED'" "$data"
+          check 'Run signed-in Facebook pass' "$data"
+          check 'WebView cookies are now explicitly persisted on this phone' "$data"
+          check 'device_fallback_required:blocked' "$fbFn"
+          check "provider_status:rows.length?'LIVE':blocked?'AUTH_GATED':'LIVE_PARTIAL'" "$fbFn"
+          check 'does not bypass login or CAPTCHA' "$fbFn"
+          reject 'facebook_password' "$fbFn"
+          reject 'document.cookie' "$fbFn"
+          reject 'getCookie(' "$deviceJava"
+          reject 'getCookie(' "$data"
+          echo PASS > "$report/contract.txt"
+
+      - name: Compile Owner Scout v2.5.0 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v250"; mkdir -p "$report"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.5.0.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.5.0.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+
+      - name: Smoke inspect exact v2.5 APK bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v250"; out="$report/H38-Reseller-Scout-Owner-v2.5.0.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='80' versionName='2.5.0'" "$report/badging.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          for name in v200-core v200-app v211-wide v212-physical v220-profit v220-track v220-product v240-data v027-retailer-extract; do unzip -p "$out" "assets/reseller/${name}.js" > "$report/packaged-${name}.js"; node --check "$report/packaged-${name}.js"; done
+          grep -Fq 'H38_SCOUT_V250_PROVIDER_HARDENING=true' "$report/packaged-v240-data.js"
+          grep -Fq 'DEVICE_LIVE' "$report/packaged-v240-data.js"
+          grep -Fq 'markdown_ratio' "$report/packaged-v027-retailer-extract.js"
+          for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
+          grep -Fq 'PERSIST_DEVICE_WEB_SESSIONS_V250' "$report/dex-strings.txt"
+          grep -Fq 'DEVICE_STORE_BOUND_CHECK_V250' "$report/dex-strings.txt"
+          grep -Fq 'H38ResellerScoutStoreCheck/2.5.0' "$report/dex-strings.txt"
+          grep -Fq 'storeSelection' "$report/dex-strings.txt"
+          echo PASS > "$report/smoke.txt"
+
+      - name: Upload v2.5 APK and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v2.5.0
+          path: artifacts/scout-v250/*
+          if-no-files-found: warn
+          retention-days: 30
