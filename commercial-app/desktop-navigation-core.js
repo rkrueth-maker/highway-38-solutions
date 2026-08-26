@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-desktop-navigation-core-1';
+const BUILD='20260826-desktop-navigation-core-2';
 const DESKTOP='(min-width: 761px)';
 const ORDER=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
 const REQUIREMENTS={
@@ -137,14 +137,15 @@ function reconcile(){
   observe();
   return render();
 }
-window.addEventListener('h38:business-snapshot-updated',reconcile);
-window.addEventListener('h38:conversation-meeting-assistant-ready',reconcile);
-window.addEventListener('pageshow',reconcile);
-window.addEventListener('focus',reconcile);
-window.addEventListener('load',reconcile);
+function reconcileAfterEvent(){queueReconcile();}
+window.addEventListener('h38:business-snapshot-updated',reconcileAfterEvent);
+window.addEventListener('h38:conversation-meeting-assistant-ready',reconcileAfterEvent);
+window.addEventListener('pageshow',reconcileAfterEvent);
+window.addEventListener('focus',reconcileAfterEvent);
+window.addEventListener('load',reconcileAfterEvent);
 window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(reconcile,80);});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reconcile();});
-[0,80,250,600,1200,2500,5000].forEach(delay=>setTimeout(reconcile,delay));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')queueReconcile();});
+[0,80,250,600,1200,2500,5000,6500,8000].forEach(delay=>setTimeout(reconcile,delay));
 window.H38_DESKTOP_NAVIGATION_CORE=Object.freeze({
   enabled:true,
   build:BUILD,
