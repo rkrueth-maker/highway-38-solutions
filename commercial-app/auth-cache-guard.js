@@ -1,7 +1,7 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260826-auth-cache-only-2';
-const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-desktop-navigation-runtime-reset-1';
+const H38_AUTH_CACHE_BUILD='20260826-auth-cache-only-3-photo-scope';
+const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const h38LegacyLoadCached=loadCached;
 
