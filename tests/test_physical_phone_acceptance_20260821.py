@@ -82,11 +82,13 @@ def test_field_measurement_supersedes_saved_camera_estimate_in_walkthrough_revie
 
 
 def test_capture_measurement_counter_hydrates_from_authoritative_snapshot():
-    assert "20260821-site-visit-wide-acceptance-final-3-phone" in WIDE
+    assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in WIDE
     assert "function syncFieldMeasurementState()" in WIDE
     assert "C.state.measurements=canonical" in WIDE
     assert "fieldMeasurementStateHydration:true" in WIDE
     assert "guidedCameraEstimateSupersession:true" in WIDE
+    assert "deviceCapturedRequiresOperatorVerification:true" in WIDE
+    assert "'VERIFIED','DEVICE_CAPTURED'" not in WIDE
     assert "new MutationObserver" not in WIDE
 
 
@@ -158,8 +160,8 @@ def test_phone_repair_builds_are_live_first():
     assert "quote-working-ui-only-18-revision" in HAMMER
     assert "quote-runtime-authority-2-machine" in LOADER
     assert "site-visit-quote-handoff-final-5-machine" in LOADER
-    assert "site-visit-work-dedupe-final-8-phone" in LOADER
-    assert "site-visit-wide-acceptance-final-3-phone" in LOADER
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in LOADER
+    assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in LOADER
     assert "ASSET_BUILD='20260823-quote-revision-polish-1'" in LOADER
     assert "quote-reproduction-authority-1" in LOADER
     assert "quote-revision-authority-1" in LOADER
@@ -190,5 +192,6 @@ def test_phone_repair_builds_are_live_first():
         "site-visit-wide-acceptance-final.js",
         "quote-reproduction-authority.js",
         "quote-revision-authority.js",
+        "mobile-scroll-native-authority.js",
     ):
         assert filename in live_first

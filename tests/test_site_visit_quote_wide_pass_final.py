@@ -58,8 +58,8 @@ def test_final_authority_loader_runs_after_legacy_and_loads_shared_machine_first
     assert 'site-visit-quote-wide-pass-loader-15-polish' in HAMMER
     assert 'quote-runtime-authority-2-machine' in LOADER
     assert 'site-visit-quote-handoff-final-5-machine' in LOADER
-    assert 'site-visit-work-dedupe-final-8-phone' in LOADER
-    assert 'site-visit-wide-acceptance-final-3-phone' in LOADER
+    assert '20260826-site-visit-work-dedupe-final-9-stable-jobs' in LOADER
+    assert '20260826-site-visit-wide-acceptance-final-4-stable-jobs' in LOADER
     assert 'spoken-measurement-authority-final-1' in LOADER
     assert 'quote-reproduction-authority-1' in LOADER
     assert 'site-visit-deep-polish-1' in LOADER
@@ -133,12 +133,19 @@ def test_quote_runtime_is_the_machine_for_every_quote_after_one_owner_action():
 
 
 def test_unified_wide_authority_still_protects_measurements_render_and_jobs():
-    for marker in ['fieldVerifiedMeasurementWins:true','cameraEstimateCannotReopenVerifiedDimension:true','guidedCameraEstimateSupersession:true','fieldMeasurementStateHydration:true','actualProjectScopeOnly:true','editableQuoteFallback:true','directionsLoadWithoutBlockingQuote:true','savedActionPictureRendersWithoutCustomerSelection:true','orientationCorrectionPassedToRender:true','oneProjectSiteVisitWithNestedContinuations:true','physicalJobsCardReconciliation:true','persistentJobsReconciliation:true','eventDrivenReconciliation:true','documentMutationObserver:false','jobsMutationObserver:false']:
+    for marker in ['fieldVerifiedMeasurementWins:true','cameraEstimateCannotReopenVerifiedDimension:true','guidedCameraEstimateSupersession:true','fieldMeasurementStateHydration:true','actualProjectScopeOnly:true','editableQuoteFallback:true','directionsLoadWithoutBlockingQuote:true','savedActionPictureRendersWithoutCustomerSelection:true','orientationCorrectionPassedToRender:true','oneProjectSiteVisitWithNestedContinuations:true','physicalJobsCardReconciliation:true','persistentJobsReconciliation:false','eventDrivenReconciliation:true','lateJobsDomMutationPrevented:true','boundedJobsReconciliation:true','documentMutationObserver:false','jobsMutationObserver:false','serverEvidenceNeverDeleted:true','deviceCapturedRequiresOperatorVerification:true']:
         assert marker in WIDE
     assert 'new MutationObserver' not in WIDE
     assert 'Action Picture Rotation Degrees' in WIDE
     assert 'C.state.measurements=canonical' in WIDE
     assert 'identityApi?.reconcile?.()' in WIDE
+    assert 'maxJobsReconcileDelayMs:700' in WIDE
+    assert '1400' not in WIDE
+    assert '2600' not in WIDE
+    assert '3600' not in WIDE
+    assert '4500' not in WIDE
+    assert '6000' not in WIDE
+    assert "'VERIFIED','DEVICE_CAPTURED'" not in WIDE
 
 
 def test_guided_walkthrough_suppresses_camera_estimates_after_field_measurement():
@@ -245,6 +252,6 @@ def test_option_engine_is_bounded_and_keeps_landscape_garage_retaining_wall_beha
 
 def test_current_worker_keeps_repair_machine_assets_live_first():
     live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
-    expected = ['quote-render-approval.js','quote-measurement-action-photo-guard.js','quote-runtime-authority.js','site-visit-quote-handoff-final.js','measurement-verification-final.js','field-visit-guided-controller.js','site-visit-work-dedupe-final.js','job-followup-idempotency-final.js','quote-action-picture-final.js','quote-direction-options.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','supabase-quote-ai-auth-fix.js']
+    expected = ['quote-render-approval.js','quote-measurement-action-photo-guard.js','quote-runtime-authority.js','site-visit-quote-handoff-final.js','measurement-verification-final.js','field-visit-guided-controller.js','site-visit-work-dedupe-final.js','job-followup-idempotency-final.js','quote-action-picture-final.js','quote-direction-options.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','supabase-quote-ai-auth-fix.js','mobile-scroll-native-authority.js']
     for filename in expected:
         assert f"'{filename}'" in live_first
