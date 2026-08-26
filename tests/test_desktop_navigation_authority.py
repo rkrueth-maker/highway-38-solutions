@@ -12,12 +12,15 @@ MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='ut
 
 
 def test_desktop_navigation_has_one_real_owner():
-    assert "20260826-desktop-navigation-core-3" in CORE
+    assert "20260826-desktop-navigation-core-4-physical-click" in CORE
     for marker in [
         'singleDesktopOwner:true',
         'replacesPriorCoreHandlers:true',
         'retiresLegacyNavigationArtifacts:true',
         'delegatedNavContainerClick:true',
+        'capturePhaseNavContainerClick:true',
+        'realSidebarHitAuthority:true',
+        'directRouteFallback:true',
         'noWindowClickCapture:true',
         'noGeometryHitTesting:true',
         'noProxyButtons:true',
@@ -25,12 +28,14 @@ def test_desktop_navigation_has_one_real_owner():
         'rolePermissionsPreserved:true',
         'meetingsAreAdditive:true',
         'mobileNavigationPreserved:true',
-        "nav.addEventListener('click',handler,false)",
+        "nav.addEventListener('click',handler,true)",
         "new MutationObserver(()=>queueReconcile())",
+        "z-index:120!important",
+        "pointer-events:auto!important",
     ]:
         assert marker in CORE
-    assert "window.openPage(page)" in CORE
-    assert "event.stopImmediatePropagation" not in CORE
+    assert "window.openPage(page,false)" in CORE
+    assert "event.stopImmediatePropagation()" in CORE
     assert "window.addEventListener('click'" not in CORE
 
 
@@ -46,7 +51,7 @@ def test_failed_navigation_patch_layers_are_retired():
     assert 'H38_CORE_OPEN_PAGE' not in RUNTIME_GLOBALS
     assert 'H38_CORE_RENDER_NAV' not in RUNTIME_GLOBALS
     assert 'H38_CORE_ALLOWED_PAGES' not in RUNTIME_GLOBALS
-    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-3" in RUNTIME_GLOBALS
+    assert "desktop-navigation-core.js?build=20260826-desktop-navigation-core-4-physical-click" in RUNTIME_GLOBALS
 
 
 def test_navigation_keeps_owner_control_safety():

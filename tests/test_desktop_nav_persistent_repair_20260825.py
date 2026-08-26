@@ -6,17 +6,22 @@ AUTH = (ROOT / 'commercial-app' / 'auth-cache-guard.js').read_text(encoding='utf
 
 
 def test_desktop_nav_core_survives_late_runtime_mutations():
-    assert '20260826-desktop-navigation-core-3' in CORE
+    assert '20260826-desktop-navigation-core-4-physical-click' in CORE
     assert 'singleDesktopOwner:true' in CORE
     assert 'replacesPriorCoreHandlers:true' in CORE
     assert 'retiresLegacyNavigationArtifacts:true' in CORE
+    assert 'capturePhaseNavContainerClick:true' in CORE
+    assert 'realSidebarHitAuthority:true' in CORE
+    assert 'directRouteFallback:true' in CORE
     assert 'new MutationObserver(()=>queueReconcile())' in CORE
     assert "navObserver.observe(nav,{childList:true,subtree:true,attributes:true" in CORE
     assert "window.addEventListener('pageshow',reconcileAfterEvent)" in CORE
     assert "window.addEventListener('focus',reconcileAfterEvent)" in CORE
     assert "window.addEventListener('h38:business-snapshot-updated',reconcileAfterEvent)" in CORE
     assert 'removeLegacyNavigationPatches(nav)' in CORE
+    assert 'ensurePhysicalHitAuthority()' in CORE
     assert 'h38DesktopSidebarPhysicalProxy' in CORE
+    assert "nav.addEventListener('click',handler,true)" in CORE
     assert 'desktopNavigationCacheBridge' not in AUTH
     assert 'desktopNavigationWindowCapture' not in AUTH
 
@@ -28,5 +33,8 @@ def test_desktop_nav_core_preserves_permissions_and_owner_safety():
     assert "const DESKTOP='(min-width: 761px)'" in CORE
     assert "(office().shell||'office')!=='office'" in CORE
     assert 'rolePermissionsPreserved:true' in CORE
+    assert 'noWindowClickCapture:true' in CORE
+    assert 'noGeometryHitTesting:true' in CORE
+    assert 'noProxyButtons:true' in CORE
     assert 'automaticApproval:false' in CORE
     assert 'automaticCustomerSending:false' in CORE
