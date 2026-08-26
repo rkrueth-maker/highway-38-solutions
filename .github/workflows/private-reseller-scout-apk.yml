@@ -31,7 +31,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.3.0 broad sourcing contract
+      - name: Verify v2.3.1 physical phone repair contract
         shell: bash
         run: |
           set -euo pipefail
@@ -43,8 +43,8 @@ jobs:
           imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"; dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"; sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"; sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
           auction230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/index.ts"; auctionCore230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.mjs"; auctionTest230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs"; image230="$GITHUB_WORKSPACE/supabase/functions/reseller-image-cache-v230/index.ts"; ledger230="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-ledger-v230/index.ts"
 
-          check "versionName '2.3.0'" reseller/build.gradle
-          check 'versionCode 76' reseller/build.gradle
+          check "versionName '2.3.1'" reseller/build.gradle
+          check 'versionCode 77' reseller/build.gradle
           for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical" "$profit" "$track" "$product"; do node --check "$f"; done
           python - <<'PY'
           from pathlib import Path
@@ -60,7 +60,7 @@ jobs:
           node "$sourceTest" | tee "$report/canonical-source-fixtures.txt"
           node "$auctionTest230" | tee "$report/auction-v230-fixtures.txt"
 
-          # Proven Hunt, penny, inventory and profit/Track boundaries remain protected.
+          # Proven Hunt, penny, inventory and profit/Track boundaries stay protected.
           check 'H38_SCOUT_V215_NATIVE_HUNT=true' "$physical"
           check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
           check 'function strictImageRetailer(v)' "$physical"
@@ -85,17 +85,11 @@ jobs:
           check 'More / Settings' "$index"
           check 'Maintenance / Self-Test' "$index"
 
-          # v2.2.1 physical Facebook and Scan truth remain protected.
-          check 'H38ResellerScoutMarketplace/2.2.1' "$fb"
-          check 'resumeCurrentTermAfterAuth' "$fb"
-          check 'strictLocationRequired' "$fb"
-          check 'isGrandRapidsMn' "$fb"
-          check 'Wrong-area cards are withheld.' "$fb"
-          check 'location_verified' "$fb"
+          # Scan value-confidence repair stays protected.
           check 'H38_SCOUT_V221_PHONE_ACCEPTANCE=true' "$index"
           check 'VALUE NOT PROVEN' "$index"
 
-          # v2.3 broad sourcing is real ingestion, not six decorative route names.
+          # v2.3 broad-source architecture stays protected.
           check 'H38_SCOUT_V230_BROAD_SOURCING=true' "$index"
           check 'reseller-auction-search-v230' "$index"
           check "['all','K-BID','HiBid','GovDeals','Public Surplus','Proxibid','AuctionTime']" "$index"
@@ -117,7 +111,7 @@ jobs:
           check 'parseProxibid' "$auctionCore230"
           check 'parseAuctionTime' "$auctionCore230"
 
-          # Shared source image cache is evidence-safe and bounded.
+          # Shared source-image cache remains evidence-safe.
           check 'H38_SCOUT_V230_IMAGE_CACHE=true' "$index"
           check 'reseller-image-cache-v230' "$index"
           check 'MAX=8,MAX_BYTES=650_000' "$image230"
@@ -129,7 +123,7 @@ jobs:
           check 'exactPennyTree' "$imageFn"
           check 'Image failure never changes penny/store/resale truth' "$imageFn"
 
-          # Facebook passes now leave an auditable start/finish record and visible before/after count.
+          # Facebook pass ledger remains present.
           check 'H38_SCOUT_V230_FACEBOOK_LEDGER=true' "$index"
           check 'reseller-facebook-ledger-v230' "$index"
           check 'before_count' "$index"
@@ -137,7 +131,31 @@ jobs:
           check 'NO NEW VERIFIED ROWS' "$index"
           check "event:'reseller-facebook-ledger-v230'" "$ledger230"
 
-          # Existing source/radius truth and clean v2 architecture stay protected.
+          # v2.3.1 phone-proven Facebook repair: full-page exact Minnesota selection, throttled steering, strict truth.
+          check 'H38ResellerScoutMarketplace/2.3.1' "$fb"
+          check 'desiredLocationQuery' "$fb"
+          check 'Grand Rapids, Minnesota' "$fb"
+          check 'exactLocationCandidate' "$fb"
+          check "document.querySelectorAll('[role=\"option\"],[role=\"listbox\"] [role=\"button\"],li,a,button,[role=\"button\"],[tabindex]')" "$fb"
+          check '__h38LocActionAt' "$fb"
+          check 'location_stage' "$fb"
+          check 'strictLocationRequired' "$fb"
+          check 'isGrandRapidsMn' "$fb"
+          check 'Wrong-area cards are withheld.' "$fb"
+          check 'location_verified' "$fb"
+          check 'if(Double.isFinite(d)&&d>radius)continue' "$fb"
+          check 'distance_verified' "$fb"
+          reject "return x.contains(\"grand rapids\");" "$fb"
+
+          # v2.3.1 auction repair: a filter change during a live call queues exactly one latest-state refresh.
+          check 'H38_SCOUT_V231_PHONE_REPAIR=true' "$physical"
+          check 'pendingRefresh=true' "$physical"
+          check 'latest filter change queued' "$physical"
+          check 'Last source response' "$physical"
+          check 'setTimeout(()=>runAuctionSearch(),180)' "$physical"
+          check 'v231LastResponse' "$physical"
+
+          # Existing source/radius truth and clean architecture remain protected.
           check "const H38_DEFAULT_ZIP='55744'" "$core"
           check 'Penny date unknown' "$hunt"
           check 'physical register scan remains final penny truth' "$hunt"
@@ -152,7 +170,7 @@ jobs:
           reject 'h38Inject' "$main"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.3.0 APK
+      - name: Compile Owner Scout v2.3.1 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -160,8 +178,8 @@ jobs:
           echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.3.0.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.3.0.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.3.1.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.3.1.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -169,37 +187,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.3.0.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.3.1.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='76' versionName='2.3.0'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='77' versionName='2.3.1'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           for name in v211-wide v212-physical v220-profit v220-track v220-product; do unzip -p "$out" "assets/reseller/${name}.js" > "$report/packaged-${name}.js"; node --check "$report/packaged-${name}.js"; done
+          grep -Fq 'H38_SCOUT_V231_PHONE_REPAIR=true' "$report/packaged-v212-physical.js"
+          grep -Fq 'pendingRefresh=true' "$report/packaged-v212-physical.js"
           unzip -p "$out" assets/reseller/v200-core.js > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
           unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"
           grep -Fq 'H38_SCOUT_V230_BROAD_SOURCING=true' "$report/packaged-index.html"
-          grep -Fq 'H38_SCOUT_V230_IMAGE_CACHE=true' "$report/packaged-index.html"
-          grep -Fq 'H38_SCOUT_V230_FACEBOOK_LEDGER=true' "$report/packaged-index.html"
           grep -Fq 'reseller-auction-search-v230' "$report/packaged-index.html"
-          grep -Fq 'reseller-image-cache-v230' "$report/packaged-index.html"
-          grep -Fq 'reseller-facebook-ledger-v230' "$report/packaged-index.html"
-          grep -Fq 'K-BID' "$report/packaged-index.html"
-          grep -Fq 'GovDeals' "$report/packaged-index.html"
-          grep -Fq 'Proxibid' "$report/packaged-index.html"
-          grep -Fq 'AuctionTime' "$report/packaged-index.html"
           grep -Fq 'VALUE NOT PROVEN' "$report/packaged-index.html"
           for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
-          grep -Fq 'Grand Rapids, MN' "$report/dex-strings.txt"
+          grep -Fq 'Grand Rapids, Minnesota' "$report/dex-strings.txt"
+          grep -Fq 'exactLocationCandidate' "$report/dex-strings.txt"
           grep -Fq 'Wrong-area cards are withheld' "$report/dex-strings.txt"
-          grep -Fq 'location_verified' "$report/dex-strings.txt"
+          grep -Fq 'distance_verified' "$report/dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
       - name: Upload owner-test APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.3.0
+          name: h38-reseller-scout-owner-v2.3.1
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: warn
           retention-days: 30
