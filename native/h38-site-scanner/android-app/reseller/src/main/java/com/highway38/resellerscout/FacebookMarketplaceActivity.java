@@ -34,6 +34,7 @@ public final class FacebookMarketplaceActivity extends Activity {
     public static final String EXTRA_TERMS="terms",EXTRA_LAT="lat",EXTRA_LON="lon",EXTRA_RADIUS="radius",EXTRA_POSTAL="postal",EXTRA_URL="url";
     private static final String PREFS="h38_reseller_facebook_browser_v1",ROWS="rows",LAST_POSTAL="last_postal";
     private static final int MAX_ROWS=240,MAX_TERMS=6;
+    private static final long LOCATION_PROOF_TTL_MS=20*60*1000L;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final List<String> terms=new ArrayList<>();
     private WebView webView;
@@ -42,7 +43,8 @@ public final class FacebookMarketplaceActivity extends Activity {
     private String currentTerm="",postal="";
     private double lat=Double.NaN,lon=Double.NaN;
     private int radiusMiles=50;
-    private boolean locationFixing=false,authWaiting=false;
+    private boolean locationFixing=false,authWaiting=false,locationSelectionConfirmed=false;
+    private long locationSelectionConfirmedAt=0L;
 
     @Override protected void onCreate(Bundle state){
         super.onCreate(state);
@@ -69,6 +71,9 @@ public final class FacebookMarketplaceActivity extends Activity {
     private String desiredLocation(){return "55744".equals(postal)?"Grand Rapids, MN":postal;}
     private String desiredLocationQuery(){return "55744".equals(postal)?"Grand Rapids, Minnesota":postal;}
     private boolean strictLocationRequired(){return "55744".equals(postal);}
+    private boolean hasCommittedLocationProof(){return locationSelectionConfirmed&&System.currentTimeMillis()-locationSelectionConfirmedAt<LOCATION_PROOF_TTL_MS;}
+    private void commitLocationProof(){locationSelectionConfirmed=true;locationSelectionConfirmedAt=System.currentTimeMillis();}
+    private void revokeLocationProof(){locationSelectionConfirmed=false;locationSelectionConfirmedAt=0L;}
     private static boolean isGrandRapidsMn(String value){String x=value==null?"":value.trim().toLowerCase();return x.contains("grand rapids")&&(x.contains(", mn")||x.contains(" minnesota")||x.contains("55744"));}
 
     private void buildUi(){
@@ -76,7 +81,7 @@ public final class FacebookMarketplaceActivity extends Activity {
         status=new TextView(this);status.setPadding(18,14,18,14);status.setTextSize(13f);status.setText("Starting Facebook Marketplace pass…");root.addView(status,new LinearLayout.LayoutParams(-1,-2));
         LinearLayout buttons=new LinearLayout(this);buttons.setOrientation(LinearLayout.HORIZONTAL);buttons.setPadding(12,0,12,8);
         Button back=new Button(this);back.setText("Back to Scout");back.setOnClickListener(v->finish());Button capture=new Button(this);capture.setText("Capture now");capture.setOnClickListener(v->captureVisible(false,true));buttons.addView(back,new LinearLayout.LayoutParams(0,-2,1f));buttons.addView(capture,new LinearLayout.LayoutParams(0,-2,1f));root.addView(buttons);
-        webView=new WebView(this);WebSettings s=webView.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setMediaPlaybackRequiresUserGesture(true);s.setUserAgentString(s.getUserAgentString()+" H38ResellerScoutMarketplace/2.3.1");
+        webView=new WebView(this);WebSettings s=webView.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setMediaPlaybackRequiresUserGesture(true);s.setUserAgentString(s.getUserAgentString()+" H38ResellerScoutMarketplace/2.3.2");
         CookieManager cm=CookieManager.getInstance();cm.setAcceptCookie(true);cm.setAcceptThirdPartyCookies(webView,true);webView.addJavascriptInterface(new BrowserBridge(),"AndroidH38FacebookBrowser");
         webView.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest req){Uri u=req.getUrl();if(u==null)return false;String host=String.valueOf(u.getHost()).toLowerCase();if(host.endsWith("facebook.com")||host.endsWith("fbcdn.net"))return false;try{startActivity(new Intent(Intent.ACTION_VIEW,u));}catch(Exception ignored){}return true;}
@@ -94,7 +99,7 @@ public final class FacebookMarketplaceActivity extends Activity {
     private void loadTerm(int index){if(index<0||index>=terms.size()){finishPass();return;}termIndex=index;currentTerm=terms.get(index);generation++;locationFixing=false;authWaiting=false;String where=postal.isBlank()?"your selected Scout area":"ZIP "+postal;status.setText("Scout is scanning Facebook "+(index+1)+"/"+terms.size()+" · "+currentTerm+" · "+where+"\nFacebook may overfetch to "+coarseFacebookRadius()+" mi; Scout still enforces your strict "+radiusMiles+" mi verification radius.");webView.loadUrl(searchUrl(currentTerm));}
     private void scheduleCurrentPage(int g){handler.postDelayed(()->{if(g==generation)captureVisible(true,true);},1800);handler.postDelayed(()->{if(g==generation)captureVisible(true,false);},4300);handler.postDelayed(()->{if(g==generation){try{webView.evaluateJavascript("window.scrollBy(0,Math.max(650,window.innerHeight*.75));",null);}catch(Exception ignored){}captureVisible(true,false);}},6800);handler.postDelayed(()->advanceWhenReady(g),10200);}
     private void advanceWhenReady(int g){if(g!=generation||currentTerm.isEmpty())return;if(authWaiting){status.setText("Facebook sign-in/security check is still open. Scout will resume this same search automatically when it clears.");handler.postDelayed(()->advanceWhenReady(g),3000);return;}if(locationFixing){status.setText("Scout is setting Facebook Marketplace to Grand Rapids, MN. Wrong-area cards are withheld.");handler.postDelayed(()->{if(g==generation){captureVisible(true,true);advanceWhenReady(g);}},3600);return;}nextTerm();}
-    private void resumeCurrentTermAfterAuth(){if(currentTerm.isEmpty())return;final int g=++generation;authWaiting=false;locationFixing=false;status.setText("Facebook sign-in complete. Resuming "+currentTerm+" automatically in Grand Rapids, MN…");handler.postDelayed(()->{if(g==generation&&!currentTerm.isEmpty())webView.loadUrl(searchUrl(currentTerm));},650);}
+    private void resumeCurrentTermAfterAuth(){if(currentTerm.isEmpty())return;final int g=++generation;authWaiting=false;locationFixing=false;revokeLocationProof();status.setText("Facebook sign-in complete. Resuming "+currentTerm+" automatically in Grand Rapids, MN…");handler.postDelayed(()->{if(g==generation&&!currentTerm.isEmpty())webView.loadUrl(searchUrl(currentTerm));},650);}
     private void nextTerm(){if(currentTerm.isEmpty())return;int n=termIndex+1;if(n>=terms.size())finishPass();else loadTerm(n);}
     private void finishPass(){currentTerm="";generation++;authWaiting=false;locationFixing=false;status.setText("Facebook pass complete · "+totalNew+" new verified listing"+(totalNew==1?"":"s")+" captured. Returning to Scout to rank results…");handler.postDelayed(this::finish,1400);}
 
@@ -107,18 +112,16 @@ public final class FacebookMarketplaceActivity extends Activity {
   function T(e){return String((e&&e.innerText)||'').trim()}
   function visible(e){if(!e)return false;var r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>2&&r.height>2&&r.bottom>0&&r.top<window.innerHeight&&s.visibility!=='hidden'&&s.display!=='none'}
   function locationMatches(v){var x=String(v||'').toLowerCase();if(!expectedCity)return true;return x.indexOf('grand rapids')>=0&&(x.indexOf(', mn')>=0||x.indexOf(' minnesota')>=0||x.indexOf('55744')>=0)}
-  function exactLocationCandidate(){
-    var nodes=[].slice.call(document.querySelectorAll('[role="option"],[role="listbox"] [role="button"],li,a,button,[role="button"],[tabindex]'));
-    return nodes.find(function(e){if(!visible(e))return false;var x=T(e).replace(/\s+/g,' ').trim(),low=x.toLowerCase();if(x.length<5||x.length>120)return false;return low.indexOf('grand rapids')>=0&&(low.indexOf('minnesota')>=0||low.indexOf(', mn')>=0||low.indexOf('55744')>=0)})||null;
-  }
+  function exactLocationCandidate(){var nodes=[].slice.call(document.querySelectorAll('[role="option"],[role="listbox"] [role="button"],li,a,button,[role="button"],[tabindex]'));return nodes.find(function(e){if(!visible(e))return false;var x=T(e).replace(/\s+/g,' ').trim(),low=x.toLowerCase();if(x.length<5||x.length>120)return false;return low.indexOf('grand rapids')>=0&&(low.indexOf('minnesota')>=0||low.indexOf(', mn')>=0||low.indexOf('55744')>=0)})||null}
   function itemId(v){var key='/marketplace/item/',p=String(v||'').toLowerCase().indexOf(key);if(p<0)return'';var s=String(v).substring(p+key.length),out='';for(var i=0;i<s.length;i++){var c=s.charAt(i);if(c>='0'&&c<='9')out+=c;else break}return out}
   function hrefOf(e){var n=e;for(var up=0;up<5&&n;up++,n=n.parentElement){var vals=[];try{vals.push(n.href,n.getAttribute&&n.getAttribute('href'),n.getAttribute&&n.getAttribute('data-href'))}catch(_){}try{n.querySelectorAll&&n.querySelectorAll('a[href],a[data-href]').forEach(function(a){vals.push(a.href,a.getAttribute('href'),a.getAttribute('data-href'))})}catch(_){}for(var i=0;i<vals.length;i++){var v=String(vals[i]||'');if(itemId(v)){try{return new URL(v,location.origin).toString().split('?')[0]}catch(_){return v.split('?')[0]}}}}return''}
   function currentMarketplaceLocation(){
     var body=String((document.body&&document.body.innerText)||''),lines=body.split(String.fromCharCode(10));
     for(var j=0;j<Math.min(lines.length,120);j++){var line=String(lines[j]||'').trim(),low=line.toLowerCase(),near=low.lastIndexOf(' near ');if(low.indexOf('search results for')>=0&&near>=0){var x=line.substring(near+6).trim();if(x.length>2&&x.length<100)return x}}
-    var nodes=[].slice.call(document.querySelectorAll('button,a,[role="button"]')).filter(function(e){var r=e.getBoundingClientRect();return visible(e)&&r.top>=0&&r.top<460});
-    for(var i=0;i<nodes.length;i++){var x=T(nodes[i]);if(x.length>3&&x.length<85&&x.indexOf(',')>1&&x.indexOf('$')<0&&!/change location/i.test(x))return x}return'';
+    var nodes=[].slice.call(document.querySelectorAll('button,[role="button"],[aria-label*="location" i],a[aria-label*="location" i]')).filter(function(e){var r=e.getBoundingClientRect();return visible(e)&&r.top>=0&&r.top<500});
+    for(var i=0;i<nodes.length;i++){var x=T(nodes[i]).replace(/\s+/g,' ').trim(),aria=String(nodes[i].getAttribute&&nodes[i].getAttribute('aria-label')||'').toLowerCase();if(x.length>3&&x.length<85&&x.indexOf(',')>1&&x.indexOf('$')<0&&x.indexOf('\n')<0&&(aria.indexOf('location')>=0||/^[a-z .'-]+,\s*(mn|minnesota)$/i.test(x)))return x}return'';
   }
+  function itemDetailLocation(){var body=String((document.body&&document.body.innerText)||''),lines=body.split(String.fromCharCode(10));for(var i=0;i<Math.min(lines.length,220);i++){var line=String(lines[i]||'').trim(),low=line.toLowerCase(),p=low.lastIndexOf(' in ');if(low.indexOf('listed')>=0&&p>0){var x=line.substring(p+4).trim();if(x.length>2&&x.length<100)return x}}return''}
   function priceFrom(raw){var p=raw.indexOf('$');if(p<0)return null;var out='';for(var i=p+1;i<Math.min(raw.length,p+18);i++){var c=raw.charAt(i);if((c>='0'&&c<='9')||c==='.'||c===',')out+=c;else if(out.length)break}var n=Number(out.split(',').join(''));return Number.isFinite(n)?n:null}
   function distanceFrom(raw){var low=raw.toLowerCase(),p=low.indexOf(' miles');if(p<0)p=low.indexOf(' mi');if(p<0)return null;var out='';for(var i=p-1;i>=0&&i>p-12;i--){var c=raw.charAt(i);if((c>='0'&&c<='9')||c==='.')out=c+out;else if(out.length)break}var n=Number(out);return Number.isFinite(n)?n:null}
   function scan(){
@@ -126,18 +129,18 @@ public final class FacebookMarketplaceActivity extends Activity {
     var login=((lowBody.indexOf('log in to facebook')>=0||lowBody.indexOf('email or phone')>=0||lowBody.indexOf('create new account')>=0||lowBody.indexOf('security check')>=0||lowBody.indexOf('confirm your identity')>=0||path.indexOf('/login')>=0||path.indexOf('/checkpoint')>=0)&&!hasItems);if(login){AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:true,url:location.href,rows:[]}));return}
     var rows=[],seen=new Set(),nodes=[].slice.call(document.querySelectorAll('a[href],[role="link"],[data-href]')),urlsSeen=0;
     nodes.forEach(function(el){var href=hrefOf(el),id=itemId(href);if(!href||!id||seen.has(id))return;seen.add(id);urlsSeen++;var node=el;for(var i=0;i<7&&node;i++){var raw0=T(node);if(raw0.length>=18&&raw0.length<=1400&&(node.querySelector&&node.querySelector('img')))break;node=node.parentElement}var raw=T(node||el);if(raw.length<4)return;var price=priceFrom(raw),dist=distanceFrom(raw),lines=String((node&&node.innerText)||el.innerText||'').split(String.fromCharCode(10)),title='';for(var j=0;j<lines.length;j++){var x=String(lines[j]||'').trim(),lx=x.toLowerCase();if(!x||x.charAt(0)==='$'||lx==='listed'||lx==='sponsored'||lx==='ships'||lx==='delivery'||lx==='local pickup'||lx==='results'||lx==='filter'||lx==='filters'||lx==='sort'||lx.indexOf(' mi away')>=0||lx.indexOf(' miles away')>=0)continue;if(x.length>=3&&x.length<=160){title=x;break}}if(!title)title=String(el.getAttribute&&el.getAttribute('aria-label')||el.textContent||'Marketplace listing').trim().slice(0,160);var img=(node&&node.querySelector&&node.querySelector('img'))||(el.querySelector&&el.querySelector('img')),im=img?String(img.currentSrc||img.src||''):'';rows.push({id:id,source:'Facebook Marketplace',title:title,text:raw,price:price,url:href,image_url:im,distance_miles:dist,location_label:'',captured_at:Date.now(),browser_session:true})});
-    var loc=currentMarketplaceLocation(),ok=locationMatches(loc);AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:false,url:location.href,rows:rows,item_urls_seen:urlsSeen,location_text:loc,location_ok:ok}));
+    var loc=currentMarketplaceLocation(),itemLoc=itemDetailLocation(),ok=locationMatches(loc);AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:false,url:location.href,rows:rows,item_urls_seen:urlsSeen,location_text:loc,item_location_text:itemLoc,location_ok:ok}));
   }
-  function reportFix(loc,stage){AndroidH38FacebookBrowser.capture(JSON.stringify({rows:[],location_fixing:true,location_text:loc,location_ok:false,location_stage:stage||''}))}
-  function clickExact(loc){var pick=exactLocationCandidate();if(!pick)return false;window.__h38LocActionAt=Date.now();reportFix(loc,'exact-suggestion');pick.click();setTimeout(scan,2600);return true}
+  function reportFix(loc,stage,extra){var p={rows:[],location_fixing:true,location_text:loc,location_ok:false,location_stage:stage||''};if(extra)for(var k in extra)p[k]=extra[k];AndroidH38FacebookBrowser.capture(JSON.stringify(p))}
+  function clickExact(loc){var pick=exactLocationCandidate();if(!pick)return false;window.__h38LocActionAt=Date.now();reportFix(loc,'exact-suggestion',{location_selected_exact:true,selected_location_text:T(pick)});pick.click();setTimeout(scan,2600);return true}
   function steer(){
     if(!shouldSteer||!expectedCity)return false;var loc=currentMarketplaceLocation();if(locationMatches(loc))return false;
     if(window.__h38LocActionAt&&Date.now()-window.__h38LocActionAt<2300)return true;
     if(clickExact(loc))return true;
     var inp=[].slice.call(document.querySelectorAll('input')).find(function(e){var p=String(e.getAttribute('placeholder')||'').toLowerCase(),a=String(e.getAttribute('aria-label')||'').toLowerCase();return visible(e)&&(p.indexOf('location')>=0||a.indexOf('location')>=0||p.indexOf('city')>=0||a.indexOf('city')>=0)})||null;
-    if(inp){window.__h38LocActionAt=Date.now();try{var setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(inp,desired)}catch(_){inp.value=desired}inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));reportFix(loc,'typed-location');setTimeout(function(){window.__h38LocActionAt=0;if(!clickExact(loc))reportFix(loc,'suggestion-not-ready')},1250);return true;}
+    if(inp){window.__h38LocActionAt=Date.now();try{var setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(inp,desired)}catch(_){inp.value=desired}inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));reportFix(loc,'typed-location');setTimeout(function(){window.__h38LocActionAt=0;if(!clickExact(loc))reportFix(loc,'suggestion-not-ready')},1250);return true}
     var clickables=[].slice.call(document.querySelectorAll('button,a,[role="button"]')).filter(visible),target=null;
-    for(var i=0;i<clickables.length;i++){var x=T(clickables[i]),r=clickables[i].getBoundingClientRect(),aria=String(clickables[i].getAttribute&&clickables[i].getAttribute('aria-label')||'').toLowerCase(),low=x.toLowerCase();if(r.top<650&&(aria.indexOf('location')>=0||low.indexOf('change location')>=0||(loc&&low.indexOf(loc.toLowerCase())>=0))){target=clickables[i];break}}
+    for(var i=0;i<clickables.length;i++){var x=T(clickables[i]),r=clickables[i].getBoundingClientRect(),aria=String(clickables[i].getAttribute&&clickables[i].getAttribute('aria-label')||'').toLowerCase(),low=x.toLowerCase();if(r.top<650&&(aria.indexOf('location')>=0||low.indexOf('change location')>=0)){target=clickables[i];break}}
     if(!target)return false;window.__h38LocActionAt=Date.now();reportFix(loc,'open-location-editor');target.click();setTimeout(function(){window.__h38LocActionAt=0;steer()},1500);return true;
   }
   if(!window.__h38MarketplaceObserver&&document.body){window.__h38MarketplaceObserver=new MutationObserver(function(){clearTimeout(window.__h38MarketplaceTimer);window.__h38MarketplaceTimer=setTimeout(scan,950)});window.__h38MarketplaceObserver.observe(document.body,{childList:true,subtree:true})}
@@ -152,16 +155,29 @@ public final class FacebookMarketplaceActivity extends Activity {
         @JavascriptInterface public void capture(String json){runOnUiThread(()->{
             try{
                 JSONObject p=new JSONObject(json==null?"{}":json);
-                if(p.optBoolean("login_required",false)){if(!authWaiting){authWaiting=true;generation++;}status.setText("Facebook needs sign-in or a security check. Complete it here; Scout will resume this same search automatically afterward.");return;}
+                if(p.optBoolean("login_required",false)){if(!authWaiting){authWaiting=true;generation++;}revokeLocationProof();status.setText("Facebook needs sign-in or a security check. Complete it here; Scout will resume this same search automatically afterward.");return;}
                 if(authWaiting){resumeCurrentTermAfterAuth();return;}
+                if(p.optBoolean("location_selected_exact",false)){
+                    String selected=p.optString("selected_location_text","");
+                    if(!strictLocationRequired()||isGrandRapidsMn(selected)){commitLocationProof();locationFixing=true;status.setText("Exact Grand Rapids, Minnesota location selected. Scout is waiting for Facebook to render that search area; wrong-area cards remain withheld.");return;}
+                }
                 if(p.optBoolean("location_fixing",false)){locationFixing=true;String stage=p.optString("location_stage","");status.setText("Scout is switching Marketplace to Grand Rapids, MN"+(stage.isBlank()?"":" · "+stage)+". Wrong-area cards are withheld.");return;}
-                boolean locationOk=!strictLocationRequired()||p.optBoolean("location_ok",false);String loc=p.optString("location_text","");
-                if(strictLocationRequired()&&(!locationOk||!isGrandRapidsMn(loc))){locationFixing=true;status.setText("Facebook Marketplace location is not yet verified as Grand Rapids, MN"+(loc.isBlank()?"":" (currently "+loc+")")+". Scout is withholding these cards and retrying location automatically.");final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1800);return;}
-                locationFixing=false;JSONArray a=p.optJSONArray("rows");int newCount=mergeRows(FacebookMarketplaceActivity.this,a,currentTerm,postal,radiusMiles,loc,true);totalNew+=newCount;int seen=p.optInt("item_urls_seen",0);
-                if(newCount>0)status.setText("Captured "+newCount+" new verified Marketplace listing"+(newCount==1?"":"s")+" for "+currentTerm+" · "+loc+". Scout will continue automatically.");
+
+                String loc=p.optString("location_text","");String itemLoc=p.optString("item_location_text","");int seen=p.optInt("item_urls_seen",0);
+                if(strictLocationRequired()&&!loc.isBlank()&&!isGrandRapidsMn(loc)){revokeLocationProof();locationFixing=true;status.setText("Facebook exposed a conflicting Marketplace base location ("+loc+"). Scout revoked the Grand Rapids proof and is correcting location before accepting cards.");final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1200);return;}
+                if(isGrandRapidsMn(loc))commitLocationProof();
+                boolean directProof=!strictLocationRequired()||isGrandRapidsMn(loc);
+                boolean committedProof=!strictLocationRequired()||hasCommittedLocationProof();
+                boolean itemReinforces=isGrandRapidsMn(itemLoc);
+                boolean locationOk=!strictLocationRequired()||directProof||(committedProof&&seen>0)||(committedProof&&itemReinforces);
+                if(strictLocationRequired()&&!locationOk){locationFixing=true;status.setText("Facebook Marketplace location is not yet verified as Grand Rapids, MN"+(itemLoc.isBlank()?"":" · listing shows "+itemLoc)+". Scout is withholding these cards and retrying location automatically.");final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1800);return;}
+
+                locationFixing=false;String verifiedBase=isGrandRapidsMn(loc)?loc:desiredLocation();JSONArray a=p.optJSONArray("rows");int newCount=mergeRows(FacebookMarketplaceActivity.this,a,currentTerm,postal,radiusMiles,verifiedBase,true);totalNew+=newCount;
+                String proofLabel=isGrandRapidsMn(loc)?"Facebook base location":"exact Grand Rapids selection"+(itemReinforces?" + listing detail":"");
+                if(newCount>0)status.setText("Captured "+newCount+" new verified Marketplace listing"+(newCount==1?"":"s")+" for "+currentTerm+" · "+verifiedBase+" · "+proofLabel+". Scout will continue automatically.");
                 else if(p.has("error"))status.setText("Marketplace capture error: "+p.optString("error"));
-                else if(seen>0)status.setText("Marketplace cards are readable ("+seen+" item links seen). No new unique verified cards this pass · "+loc+".");
-                else status.setText("Facebook rendered no readable Marketplace item links yet · "+loc+". Scout will retry while this category loads.");
+                else if(seen>0)status.setText("Marketplace cards are readable ("+seen+" item links seen). No new unique verified cards this pass · "+verifiedBase+" · "+proofLabel+".");
+                else status.setText("Facebook rendered no readable Marketplace item links yet · "+verifiedBase+". Scout will retry while this category loads.");
             }catch(Exception e){status.setText("Marketplace capture error: "+e.getMessage());}
         });}
     }
