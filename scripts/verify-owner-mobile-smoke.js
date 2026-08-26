@@ -15,12 +15,13 @@ const nativeLaunch=read('commercial-app/site-visit-native-launch-final.js');
 const topAction=read('commercial-app/site-visit-top-action.js');
 const jobFlow=read('commercial-app/job-centered-flow.js');
 const polish=read('commercial-app/mobile-flow-polish-v2.js');
+const nativeScroll=read('commercial-app/mobile-scroll-native-authority.js');
 const stability=read('commercial-app/mobile-runtime-stability.js');
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
 const startupVisit=read('commercial-app/startup-site-visit-stability.js');
 const phoneVisual=read('commercial-app/owner-phone-visual-fix.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['mobile stability',stability],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -51,7 +52,14 @@ requireText(polish,'jobsDomMutation:false','mobile polish does not re-parent Job
 requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed');
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
-requireText(index,'mobile-runtime-stability.js?build=20260816-mobile-runtime-stability-1','mobile stability layer loads last');
+requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
+requireText(index,'mobile-runtime-stability.js?build=20260826-mobile-runtime-stability-native-scroll-1','mobile stability layer loads after native scroll authority');
+const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20260826-mobile-runtime-stability-native-scroll-1');
+if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
+requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
+requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');
+requireText(nativeScroll,'syntheticInertiaPrevented:true','synthetic inertia is prevented');
 requireText(stability,'publishedOfficeAuthority:true','published Business Office remains UI authority');
 requireText(stability,'nativeShellHardwareOnly:true','native shell remains hardware bridge rather than duplicate app');
 requireText(stability,'safeAreaBottom:true','safe-area bottom handling is enabled');
@@ -81,11 +89,11 @@ requireText(phoneVisual,'todayCollapsedCardsFullWidth:true','Today collapsed car
 requireText(phoneVisual,'lifecycleSingleColumn:true','Today lifecycle content is forced to one readable phone column');
 
 for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true','automaticPurchasing:true','automaticPayment:true','automaticScheduling:true']){
-  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['job flow',jobFlow],['polish',polish],['stability',stability],['startup/site visit',startupVisit],['phone visual',phoneVisual]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
+  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['job flow',jobFlow],['polish',polish],['native scroll',nativeScroll],['stability',stability],['startup/site visit',startupVisit],['phone visual',phoneVisual]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));
