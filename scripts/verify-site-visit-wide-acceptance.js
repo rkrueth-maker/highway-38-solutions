@@ -31,7 +31,13 @@ Object.assign(context.window,{window:context.window,document,setTimeout:context.
 vm.createContext(context);vm.runInContext(source,context,{filename:'site-visit-wide-acceptance-final.js'});
 const api=context.window.H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL;
 assert(api?.enabled);
-assert.strictEqual(api.build,'20260821-site-visit-wide-acceptance-final-3-phone');
+assert.strictEqual(api.build,'20260826-site-visit-wide-acceptance-final-4-stable-jobs');
+assert.strictEqual(api.persistentJobsReconciliation,false);
+assert.strictEqual(api.eventDrivenReconciliation,true);
+assert.strictEqual(api.lateJobsDomMutationPrevented,true);
+assert.strictEqual(api.boundedJobsReconciliation,true);
+assert.strictEqual(api.maxJobsReconcileDelayMs,700);
+assert.strictEqual(api.deviceCapturedRequiresOperatorVerification,true);
 const canonical=api.canonicalizeMeasurements(snapshot.siteMeasurements);
 assert.strictEqual(canonical.find(row=>/perimeter/i.test(row.label)).value,528);
 assert.strictEqual(canonical.find(row=>/topsoil/i.test(row.label)).value,3);
@@ -46,9 +52,11 @@ assert(!runtime.includes("Amanda's flower garden border"));
 
 const identity=read('commercial-app/site-visit-work-dedupe-final.js');
 new vm.Script(identity,{filename:'site-visit-work-dedupe-final.js'});
-for(const marker of ['20260822-site-visit-work-dedupe-final-8-phone','function localAliasIdentity(identity)','function removeSameTitleLocalAliases(','if(item.clue.local)result-=1000','poisonedLocalDatasetCannotBeatVisibleLocalStatus:true','sameTitlePhysicalLocalAliasRemoved:true'])assert(identity.includes(marker),`identity missing ${marker}`);
+for(const marker of ['20260826-site-visit-work-dedupe-final-9-stable-jobs','function localAliasIdentity(identity)','function removeSameTitleLocalAliases(','if(item.clue.local)result-=1000','poisonedLocalDatasetCannotBeatVisibleLocalStatus:true','sameTitlePhysicalLocalAliasRemoved:true','eventDrivenJobsReconciliation:true','lateJobsDomMutation:false','maxJobsReconcileDelayMs:700'])assert(identity.includes(marker),`identity missing ${marker}`);
 assert(!identity.includes('new MutationObserver'));
 assert(!identity.includes(".from('business_records').delete"));
+assert(!identity.includes('2600,4500'));
+assert(!identity.includes('3600,6000'));
 
 const handoff=read('commercial-app/site-visit-quote-handoff-final.js');
 new vm.Script(handoff,{filename:'site-visit-quote-handoff-final.js'});
@@ -83,13 +91,13 @@ new vm.Script(revision,{filename:'quote-revision-authority.js'});
 for(const marker of ['20260823-quote-revision-authority-1','collection:\'quoteRevisions\'','INTERNAL_QUOTE_WORKING_COPY_NOT_COMMITTED','contentChangeOnlyRevisions:true','immutableRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','unchangedSaveKeepsRevision:true','changedSaveCreatesRevision:true','changedSendCreatesRevision:true','imageAndRenderChangesCount:true'])assert(revision.includes(marker),`revision missing ${marker}`);
 
 const loader=read('commercial-app/site-visit-quote-wide-pass-loader.js');
-for(const marker of ['20260823-site-visit-quote-wide-pass-loader-16-revision','20260822-quote-runtime-authority-2-machine','20260822-site-visit-work-dedupe-final-8-phone','20260822-site-visit-quote-handoff-final-5-machine','site-visit-wide-acceptance-final-3-phone','20260823-spoken-measurement-authority-final-1','20260823-quote-reproduction-authority-1','20260823-quote-revision-authority-1','20260823-site-visit-deep-polish-1','20260823-quote-regression-runner-1',"ASSET_BUILD='20260823-quote-revision-polish-1'",'sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','historicalQuotesShareRepairMachine:true','contentChangeOnlyQuoteRevisions:true','immutableQuoteRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
+for(const marker of ['20260823-site-visit-quote-wide-pass-loader-16-revision','20260822-quote-runtime-authority-2-machine','20260826-site-visit-work-dedupe-final-9-stable-jobs','20260822-site-visit-quote-handoff-final-5-machine','20260826-site-visit-wide-acceptance-final-4-stable-jobs','20260823-spoken-measurement-authority-final-1','20260823-quote-reproduction-authority-1','20260823-quote-revision-authority-1','20260823-site-visit-deep-polish-1','20260823-quote-regression-runner-1',"ASSET_BUILD='20260823-quote-revision-polish-1'",'sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','historicalQuotesShareRepairMachine:true','contentChangeOnlyQuoteRevisions:true','immutableQuoteRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
 const hammer=read('commercial-app/quote-working-hammer.js');
 assert(hammer.includes('20260823-quote-working-ui-only-18-revision'));
 assert(hammer.includes('site-visit-quote-wide-pass-loader-16-revision'));
 assert(hammer.includes('allQuotesShareRepairMachine:true'));
 assert(hammer.includes('contentChangeOnlyQuoteRevisions:true'));
 const sw=read('commercial-app/service-worker.js');
-for(const file of ['quote-runtime-authority.js','quote-render-approval.js','quote-measurement-action-photo-guard.js','site-visit-quote-handoff-final.js','site-visit-work-dedupe-final.js','site-visit-quote-wide-pass-loader.js','quote-reproduction-authority.js','quote-revision-authority.js','quote-regression-runner.js'])assert(sw.includes(file));
+for(const file of ['quote-runtime-authority.js','quote-render-approval.js','quote-measurement-action-photo-guard.js','site-visit-quote-handoff-final.js','site-visit-work-dedupe-final.js','site-visit-quote-wide-pass-loader.js','site-visit-wide-acceptance-final.js','quote-reproduction-authority.js','quote-revision-authority.js','quote-regression-runner.js','mobile-scroll-native-authority.js'])assert(sw.includes(file));
 
 console.log('PASS quote machine replay: historical and Site Visit quotes share bounded repair + immutable content-aware revisions + rerender authority');
