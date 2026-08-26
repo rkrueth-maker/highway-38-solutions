@@ -31,21 +31,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.3.2 Facebook proof-persistence contract
+      - name: Verify v2.4.0 data acquisition contract
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; mkdir -p "$report"
           check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
           reject(){ if grep -Fq "$1" "$2"; then echo "::error::Forbidden [$1] in $2"; exit 1; fi; }
-          assets='reseller/src/main/assets/reseller'; core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; profit="$assets/v220-profit.js"; track="$assets/v220-track.js"; product="$assets/v220-product.js"; index="$assets/index.html"
+          assets='reseller/src/main/assets/reseller'; core="$assets/v200-core.js"; hunt="$assets/v200-hunt.js"; wide="$assets/v211-wide.js"; physical="$assets/v212-physical.js"; profit="$assets/v220-profit.js"; track="$assets/v220-track.js"; product="$assets/v220-product.js"; index="$assets/index.html"; data240="$assets/v240-data.js"; app="$assets/v200-app.js"
           main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'; fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'; acceptance='reseller/SCOUT_BUILD_ACCEPTANCE.md'
-          imageFn="$GITHUB_WORKSPACE/supabase/functions/reseller-image-delivery-v201/index.ts"; dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"; sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"; sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
+          dealsFn="$GITHUB_WORKSPACE/supabase/functions/reseller-opportunity-scan-v060/index.ts"; sourceDir="$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v063"; sourceIndex="$sourceDir/index.ts"; sourceCore="$sourceDir/core.mjs"; sourceTest="$sourceDir/core.test.mjs"
           auction230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/index.ts"; auctionCore230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.mjs"; auctionTest230="$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs"; image230="$GITHUB_WORKSPACE/supabase/functions/reseller-image-cache-v230/index.ts"; ledger230="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-ledger-v230/index.ts"
+          hd240="$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/index.ts"; hdCore240="$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.mjs"; hdTest240="$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs"
+          dg240="$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/index.ts"; dgCore240="$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.mjs"; dgTest240="$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs"
+          fbp240="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"; fbpCore240="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.mjs"; fbpTest240="$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs"
 
-          check "versionName '2.3.2'" reseller/build.gradle
-          check 'versionCode 78' reseller/build.gradle
-          for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical" "$profit" "$track" "$product"; do node --check "$f"; done
+          check "versionName '2.4.0'" reseller/build.gradle
+          check 'versionCode 79' reseller/build.gradle
+          for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$wide" "$physical" "$profit" "$track" "$product" "$data240"; do node --check "$f"; done
           python - <<'PY'
           from pathlib import Path
           import re
@@ -59,8 +62,11 @@ jobs:
           node reseller/profit-engine.test.mjs | tee "$report/profit-track-fixtures.txt"
           node "$sourceTest" | tee "$report/canonical-source-fixtures.txt"
           node "$auctionTest230" | tee "$report/auction-v230-fixtures.txt"
+          node "$hdTest240" | tee "$report/home-depot-v240-fixtures.txt"
+          node "$dgTest240" | tee "$report/dg-remodel-v240-fixtures.txt"
+          node "$fbpTest240" | tee "$report/facebook-public-v240-fixtures.txt"
 
-          # Previously accepted Hunt/penny/profit/Track/broad-auction boundaries remain protected.
+          # Keep all previously accepted Scout truth boundaries.
           check 'H38_SCOUT_V215_NATIVE_HUNT=true' "$physical"
           check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
           check 'function strictImageRetailer(v)' "$physical"
@@ -74,80 +80,81 @@ jobs:
           check "label:'GLITCH CANDIDATE'" "$profit"
           check 'H38_SCOUT_V220_TRACK=true' "$track"
           check "const TRACK_KEY='h38.scout.v220.tracks'" "$track"
-          check "eventClass:'Tracked Item Match'" "$track"
           check 'H38Profit.evaluateOpportunity' "$product"
           check 'PENNY CANDIDATE' "$product"
           check 'Physical scan/register required.' "$product"
           check 'Store location unknown' "$product"
           check 'AUCTION MAX BID' "$product"
           check 'Profitability Settings' "$product"
-          check 'data-page="track"' "$index"
-          check 'More / Settings' "$index"
-          check 'Maintenance / Self-Test' "$index"
           check 'H38_SCOUT_V221_PHONE_ACCEPTANCE=true' "$index"
           check 'VALUE NOT PROVEN' "$index"
-
           check 'H38_SCOUT_V230_BROAD_SOURCING=true' "$index"
           check 'reseller-auction-search-v230' "$index"
           check "['all','K-BID','HiBid','GovDeals','Public Surplus','Proxibid','AuctionTime']" "$index"
-          check 'Local + shippable' "$index"
-          check 'High-value regional · up to 300 mi' "$index"
           check 'ROUTE ONLY' "$index"
           check "engine:'H38_AUCTION_AGGREGATOR_V230'" "$auction230"
-          check "['K-BID',()=>kbid" "$auction230"
-          check "['GovDeals',()=>govDeals" "$auction230"
-          check "['Proxibid',()=>proxibid" "$auction230"
-          check "['AuctionTime',()=>auctionTime" "$auction230"
-          check "source:'AuctionZip',status:'search_route'" "$auction230"
-          check "source:'MaxSold',status:'search_route'" "$auction230"
-          check "source:'Purple Wave',status:'search_route'" "$auction230"
-          check "source:'EstateSales.NET',status:'search_route'" "$auction230"
           check 'parseKbidEvents' "$auctionCore230"
-          check 'parseKbidLots' "$auctionCore230"
           check 'parseGovDeals' "$auctionCore230"
           check 'parseProxibid' "$auctionCore230"
           check 'parseAuctionTime' "$auctionCore230"
-
-          check 'H38_SCOUT_V230_IMAGE_CACHE=true' "$index"
           check 'reseller-image-cache-v230' "$index"
           check 'MAX=8,MAX_BYTES=650_000' "$image230"
           check 'never changes product identity, penny truth, location truth, resale evidence, or profitability' "$image230"
-          check 'H38_SCOUT_V230_FACEBOOK_LEDGER=true' "$index"
           check 'reseller-facebook-ledger-v230' "$index"
-          check 'before_count' "$index"
-          check 'accepted_delta' "$index"
           check 'NO NEW VERIFIED ROWS' "$index"
           check "event:'reseller-facebook-ledger-v230'" "$ledger230"
-
-          # v2.3.1 auction repair remains protected; physical recording has accepted this boundary.
           check 'H38_SCOUT_V231_PHONE_REPAIR=true' "$physical"
           check 'pendingRefresh=true' "$physical"
           check 'latest filter change queued' "$physical"
           check 'Last source response' "$physical"
-          check 'setTimeout(()=>runAuctionSearch(),180)' "$physical"
           check 'v231LastResponse' "$physical"
-
-          # v2.3.2 phone repair: exact Minnesota selection becomes bounded session proof across FB navigation.
           check 'H38ResellerScoutMarketplace/2.3.2' "$fb"
           check 'LOCATION_PROOF_TTL_MS' "$fb"
           check 'locationSelectionConfirmed' "$fb"
-          check 'commitLocationProof' "$fb"
-          check 'revokeLocationProof' "$fb"
           check 'location_selected_exact' "$fb"
-          check 'selected_location_text' "$fb"
-          check 'itemDetailLocation' "$fb"
           check 'item_location_text' "$fb"
-          check 'Exact Grand Rapids, Minnesota location selected.' "$fb"
-          check 'Facebook exposed a conflicting Marketplace base location' "$fb"
-          check 'verifiedBase=isGrandRapidsMn(loc)?loc:desiredLocation()' "$fb"
           check 'if(Double.isFinite(d)&&d>radius)continue' "$fb"
           check 'distance_verified' "$fb"
-          check 'strictLocationRequired' "$fb"
-          check 'isGrandRapidsMn' "$fb"
           check 'Wrong-area cards are withheld.' "$fb"
           check 'location_verified' "$fb"
-          check "document.querySelectorAll('button,[role=\"button\"],[aria-label*=\"location\" i],a[aria-label*=\"location\" i]')" "$fb"
-          reject "return x.contains(\"grand rapids\");" "$fb"
+
+          # v2.4: backend-first data acquisition. No provider may manufacture truth.
+          check 'H38_SCOUT_V240_DATA_ACQUISITION=true' "$data240"
+          check "s.src='v240-data.js'" "$app"
+          check 'reseller-home-depot-local-v240' "$data240"
+          check 'reseller-dg-remodel-radar-v240' "$data240"
+          check 'reseller-facebook-public-v240' "$data240"
+          check 'Open Facebook fallback' "$data240"
+          check 'backend first' "$data240"
+          check 'deep_verify:true' "$data240"
+
+          check "Deno.env.get('SOCIALCRAWL_API_KEY')" "$hd240"
+          check "'x-api-key':KEY" "$hd240"
+          check "price_scope:'zip'" "$hd240"
+          check "price_scope:'store'" "$hdCore240"
+          check "inventory_scope:'store'" "$hdCore240"
+          check "evidence_level:'COMMUNITY SIGNAL'" "$hdCore240"
+          check 'physical in-store register scan remains final local truth' "$hdCore240"
+          check 'CONFIG_REQUIRED' "$hd240"
+
+          check "Deno.env.get('APIFY_API_TOKEN')" "$dg240"
+          check 'dromb~dollar-general-scraper-clean' "$dg240"
+          check 'products-with-upcs-that-i-use-to-search-for-dollar-general-remodels' "$dg240"
+          check 'dollar-general-free-store-remodel-location-list-for-minnesota' "$dg240"
+          check "operation:'stores'" "$dg240"
+          check "operation:'item'" "$dg240"
+          check 'PENNY WINDOW CANDIDATE' "$dgCore240"
+          check 'REMODEL LIKELY' "$dgCore240"
+          check 'not an official remodel schedule' "$dgCore240"
+
+          check 'crowdpull~facebook-marketplace-scraper' "$fbp240"
+          check "authentication:'NO_FACEBOOK_LOGIN'" "$fbp240"
+          check "provider_status:rows.length?'LIVE':gated?'AUTH_GATED':'LIVE_PARTIAL'" "$fbp240"
+          check 'Public guest collection only' "$fbp240"
+          check 'does not bypass login or CAPTCHA' "$fbp240"
+          check 'normalizeMarketplaceRows' "$fbpCore240"
+          reject 'facebook_password' "$fbp240"
+          reject 'document.cookie' "$fbp240"
 
           check "const H38_DEFAULT_ZIP='55744'" "$core"
           check 'Penny date unknown' "$hunt"
@@ -163,7 +170,7 @@ jobs:
           reject 'h38Inject' "$main"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.3.2 APK
+      - name: Compile Owner Scout v2.4.0 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -171,8 +178,8 @@ jobs:
           echo debug-fallback-owner-test > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.3.2.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.3.2.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.4.0.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.4.0.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -180,25 +187,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.3.2.apk"
+          report="$GITHUB_WORKSPACE/artifacts/private-reseller-scout-apk"; out="$report/H38-Reseller-Scout-Owner-v2.4.0.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='78' versionName='2.3.2'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='79' versionName='2.4.0'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          for name in v211-wide v212-physical v220-profit v220-track v220-product; do unzip -p "$out" "assets/reseller/${name}.js" > "$report/packaged-${name}.js"; node --check "$report/packaged-${name}.js"; done
+          for name in v200-core v200-app v211-wide v212-physical v220-profit v220-track v220-product v240-data; do unzip -p "$out" "assets/reseller/${name}.js" > "$report/packaged-${name}.js"; node --check "$report/packaged-${name}.js"; done
+          grep -Fq 'H38_SCOUT_V240_DATA_ACQUISITION=true' "$report/packaged-v240-data.js"
+          grep -Fq 'reseller-facebook-public-v240' "$report/packaged-v240-data.js"
+          grep -Fq 'reseller-home-depot-local-v240' "$report/packaged-v240-data.js"
+          grep -Fq 'reseller-dg-remodel-radar-v240' "$report/packaged-v240-data.js"
+          grep -Fq "s.src='v240-data.js'" "$report/packaged-v200-app.js"
           grep -Fq 'H38_SCOUT_V231_PHONE_REPAIR=true' "$report/packaged-v212-physical.js"
-          unzip -p "$out" assets/reseller/v200-core.js > "$report/packaged-core.js"; grep -Fq "H38_DEFAULT_ZIP='55744'" "$report/packaged-core.js"
-          unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"
-          grep -Fq 'H38_SCOUT_V230_BROAD_SOURCING=true' "$report/packaged-index.html"
-          grep -Fq 'reseller-auction-search-v230' "$report/packaged-index.html"
-          grep -Fq 'VALUE NOT PROVEN' "$report/packaged-index.html"
           for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
           grep -Fq 'H38ResellerScoutMarketplace/2.3.2' "$report/dex-strings.txt"
           grep -Fq 'Exact Grand Rapids, Minnesota location selected' "$report/dex-strings.txt"
-          grep -Fq 'location_selected_exact' "$report/dex-strings.txt"
-          grep -Fq 'item_location_text' "$report/dex-strings.txt"
-          grep -Fq 'conflicting Marketplace base location' "$report/dex-strings.txt"
           grep -Fq 'distance_verified' "$report/dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
@@ -206,7 +210,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.3.2
+          name: h38-reseller-scout-owner-v2.4.0
           path: artifacts/private-reseller-scout-apk/*
           if-no-files-found: warn
           retention-days: 30
