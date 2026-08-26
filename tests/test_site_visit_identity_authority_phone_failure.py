@@ -43,8 +43,8 @@ def test_distinct_real_server_sessions_are_not_collapsed_by_shared_quote_or_titl
     assert "distinctServerSessionsPreserved:true" in FENCE
 
 
-def test_jobs_dedupe_prefers_physical_child_card_and_visible_local_status():
-    assert "20260822-site-visit-work-dedupe-final-8-phone" in IDENTITY
+def test_jobs_dedupe_prefers_physical_child_card_and_stops_before_user_scroll_settles():
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in IDENTITY
     assert "new MutationObserver" not in IDENTITY
     assert "eventDrivenJobsReconciliation:true" in IDENTITY
     assert "persistentJobsObserver:false" in IDENTITY
@@ -55,8 +55,11 @@ def test_jobs_dedupe_prefers_physical_child_card_and_visible_local_status():
     assert "if(item.clue.local)result-=1000" in IDENTITY
     assert "poisonedLocalDatasetCannotBeatVisibleLocalStatus:true" in IDENTITY
     assert "sameTitlePhysicalLocalAliasRemoved:true" in IDENTITY
-    assert "boundedLateMobileRenderRetries:true" in IDENTITY
-    assert "2600,4500" in IDENTITY
+    assert "boundedLateMobileRenderRetries:false" in IDENTITY
+    assert "lateJobsDomMutation:false" in IDENTITY
+    assert "maxJobsReconcileDelayMs:700" in IDENTITY
+    assert "2600,4500" not in IDENTITY
+    assert "3600,6000" not in IDENTITY
     assert "window.addEventListener('h38:business-snapshot-updated'" in IDENTITY
     assert "wrapped=function(){const result=base.apply(this,arguments);arm();return result;}" in IDENTITY
 
