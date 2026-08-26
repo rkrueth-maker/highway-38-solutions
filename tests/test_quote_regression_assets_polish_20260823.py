@@ -73,4 +73,5 @@ def test_asset_polish_loads_before_regression_runner_and_is_live_first():
     assert "historicalPublicAssetsCanBecomePrivateActionPictures:true" in loader
     assert "quote-historical-assets-polish.js" in worker
     assert "h38-business-office-20260823-1900" in worker
-    assert "20260823-site-visit-quote-wide-pass-loader-17-assets" in hammer
+    assert "20260823-quote-working-ui-only-19-assets" in hammer
+    assert "20260824-site-visit-quote-wide-pass-loader-18-quote-agent" in hammer
