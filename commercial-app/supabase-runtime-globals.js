@@ -87,8 +87,6 @@
     style.id = 'h38EarlyNativeStartupStyle';
     style.textContent = 'html.h38-early-native-startup body{overflow:hidden!important}html.h38-early-native-startup body:after{content:"🔨  Opening Highway 38…";white-space:pre;position:fixed;inset:0;z-index:2147483199;display:grid;place-items:center;background:#eef3f7;color:#10212c;font:800 18px system-ui,sans-serif;text-align:center;padding:24px}';
     document.head.appendChild(style);
-    // This early pseudo-cover exists only until the real startup watchdog is installed.
-    // Never allow it to become an indefinite opaque screen if later startup code fails.
     setTimeout(clearEarlyNativeStartupCover, 3000);
   }
 
@@ -103,9 +101,31 @@
   window.optionRows = optionRows;
   window.toast = toast;
   window.openPage = openPage;
+  window.H38_CORE_OPEN_PAGE = openPage;
+  window.H38_CORE_RENDER_PAGE = renderPage;
+  window.H38_CORE_RENDER_NAV = renderNav;
+  window.H38_CORE_ALLOWED_PAGES = allowedPages;
+  window.H38_CORE_NAVIGATION = Object.freeze({
+    openPage,
+    renderPage,
+    renderNav,
+    allowedPages,
+    build:'20260826-core-navigation-1',
+    wrapsBypassable:true
+  });
   window.newId = newId;
   window.renderToday = renderToday;
+  window.renderCustomers = renderCustomers;
   window.renderWork = renderWork;
+  window.renderQuotes = renderQuotes;
+  window.renderSchedule = renderSchedule;
+  window.renderMessages = renderMessages;
+  window.renderInventory = renderInventory;
+  window.renderFleet = renderFleet;
+  window.renderMoney = renderMoney;
+  window.renderDocuments = renderDocuments;
+  window.renderSocial = renderSocial;
+  window.renderAi = renderAi;
   if (typeof renderField !== 'undefined') window.renderField = renderField;
   else if (!window.renderField) window.renderField = function () {
     const openVisit = function () {
