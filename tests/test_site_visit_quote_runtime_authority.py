@@ -82,7 +82,7 @@ def test_shared_quote_machine_is_loaded_first_by_final_loader_and_is_generic():
 def test_service_worker_cache_was_bumped_for_final_authority():
     assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-\d{4}'", SW)
+    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'", SW)
     assert "fieldVerifiedMeasurementWins:true" in WIDE
     assert "savedActionPictureRendersWithoutCustomerSelection:true" in WIDE
 
