@@ -19,4 +19,4 @@ def test_line_items_stay_together_and_headers_repeat():
 
 def test_quote_delivery_css_is_live_first_on_phone():
     assert "'quote-delivery.css'" in SW.split("const SHELL=", 1)[0]
-    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-\d{4}'", SW)
+    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'", SW)
