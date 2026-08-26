@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-desktop-navigation-core-3';
+const BUILD='20260826-desktop-navigation-core-4-physical-click';
 const DESKTOP='(min-width: 761px)';
 const ORDER=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
 const REQUIREMENTS={
@@ -22,6 +22,22 @@ const LEGACY_ARTIFACT_IDS=[
   'h38DesktopNavHitLayer','h38DirectRouteProxyLayer','h38AuthCacheNavLayer',
   'h38BusinessOfficeOpenHit','h38SiteVisitNativeHit','h38InboxControl'
 ];
+const RENDERERS={
+  today:'renderToday',
+  customers:'renderCustomers',
+  work:'renderWork',
+  quotes:'renderQuotes',
+  schedule:'renderSchedule',
+  messages:'renderMessages',
+  field:'renderField',
+  inventory:'renderInventory',
+  fleet:'renderFleet',
+  money:'renderMoney',
+  documents:'renderDocuments',
+  social:'renderSocial',
+  ai:'renderAi',
+  settings:'renderSettings'
+};
 let rendering=false;
 let navObserver=null;
 let observedNav=null;
@@ -52,6 +68,19 @@ function expectedPages(){
     return !requirements||requirements.some(can);
   });
 }
+function ensurePhysicalHitAuthority(){
+  let style=document.getElementById('h38DesktopNavigationCoreStyle');
+  if(!style){
+    style=document.createElement('style');
+    style.id='h38DesktopNavigationCoreStyle';
+    document.head.appendChild(style);
+  }
+  style.textContent=`@media (min-width:761px){
+#mainNav.main-nav{position:sticky!important;z-index:120!important;pointer-events:auto!important;isolation:isolate!important}
+#mainNav.main-nav>button[data-page]{position:relative!important;z-index:1!important;pointer-events:auto!important}
+}`;
+  return true;
+}
 function removeLegacyNavigationPatches(nav){
   LEGACY_ARTIFACT_IDS.forEach(id=>document.getElementById(id)?.remove());
   if(typeof window.h38DesktopNavWindowCapture==='function'){
@@ -68,11 +97,71 @@ function owned(nav,pages){
   if(buttons.length!==pages.length)return false;
   return buttons.every((button,index)=>button.dataset.page===pages[index]&&button.dataset.h38CoreNav==='1');
 }
+function updateActive(page){
+  const nav=document.getElementById('mainNav');
+  if(!nav)return;
+  nav.querySelectorAll(':scope > button[data-page]').forEach(button=>{
+    const active=text(button.dataset.page)===text(page);
+    button.classList.toggle('active',active);
+    if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+  });
+}
+function renderDirect(page){
+  const s=office();
+  s.page=page;
+  if(page==='meetings'&&typeof window.renderMeetings==='function'){
+    window.renderMeetings();
+    return true;
+  }
+  if(typeof window.renderPage==='function'){
+    window.renderPage();
+    return true;
+  }
+  const renderer=RENDERERS[page];
+  if(renderer&&typeof window[renderer]==='function'){
+    window[renderer]();
+    return true;
+  }
+  return false;
+}
+function openDesktopPage(page){
+  page=text(page);
+  if(!desktop()||(office().shell||'office')!=='office'||!expectedPages().includes(page))return false;
+  let routed=false;
+  try{
+    if(page==='meetings'&&typeof window.renderMeetings==='function'){
+      office().page=page;
+      window.renderMeetings();
+      routed=true;
+    }else if(typeof window.openPage==='function'){
+      window.openPage(page,false);
+      routed=text(office().page)===page;
+    }
+  }catch(error){
+    console.error('[H38 desktop navigation router]',page,error);
+  }
+  if(!routed||text(office().page)!==page){
+    try{routed=renderDirect(page);}catch(error){
+      console.error('[H38 desktop navigation direct fallback]',page,error);
+      routed=false;
+    }
+  }
+  const handled=text(office().page)===page;
+  if(handled){
+    updateActive(page);
+    try{document.getElementById('mainContent')?.focus?.({preventScroll:true});}catch(_){}
+  }else{
+    try{window.toast?.(`Could not open ${pageDef(page)?.[1]||page}.`,true);}catch(_){}
+  }
+  queueReconcile();
+  return handled&&routed!==false;
+}
 function bind(nav){
   if(!nav)return false;
   const existing=nav.__h38DesktopNavigationCoreHandler;
   if(existing?.__h38DesktopNavigationCoreBuild===BUILD)return true;
   if(existing){
+    try{nav.removeEventListener('click',existing,true);}catch(_){}
     try{nav.removeEventListener('click',existing,false);}catch(_){}
   }
   const handler=event=>{
@@ -82,33 +171,26 @@ function bind(nav){
     const page=text(button.dataset.page);
     if(!expectedPages().includes(page))return;
     event.preventDefault();
-    try{
-      if(typeof window.openPage!=='function')throw new Error('Business Office page router is unavailable.');
-      window.openPage(page);
-    }catch(error){
-      console.error('[H38 desktop navigation core]',page,error);
-      try{window.toast?.(`Could not open ${pageDef(page)?.[1]||page}.`,true);}catch(_){}
-    }
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    openDesktopPage(page);
   };
   handler.__h38DesktopNavigationCoreBuild=BUILD;
   nav.__h38DesktopNavigationCoreHandler=handler;
-  nav.addEventListener('click',handler,false);
+  nav.addEventListener('click',handler,true);
   return true;
 }
 function render(){
   if(rendering||!desktop()||(office().shell||'office')!=='office')return false;
   const nav=document.getElementById('mainNav');
   if(!nav||!window.PAGE_DEFS)return false;
+  ensurePhysicalHitAuthority();
   removeLegacyNavigationPatches(nav);
   bind(nav);
   const pages=expectedPages();
   if(!pages.length)return false;
   if(owned(nav,pages)){
-    nav.querySelectorAll(':scope > button[data-page]').forEach(button=>{
-      const active=text(button.dataset.page)===text(office().page);
-      button.classList.toggle('active',active);
-      if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
-    });
+    updateActive(office().page);
     return true;
   }
   rendering=true;
@@ -134,6 +216,7 @@ function queueReconcile(){
 function observe(){
   const nav=document.getElementById('mainNav');
   if(!nav)return false;
+  ensurePhysicalHitAuthority();
   removeLegacyNavigationPatches(nav);
   bind(nav);
   if(observedNav!==nav){
@@ -163,11 +246,15 @@ window.H38_DESKTOP_NAVIGATION_CORE=Object.freeze({
   build:BUILD,
   render,
   reconcile,
+  openPage:openDesktopPage,
   expectedPages,
   singleDesktopOwner:true,
   replacesPriorCoreHandlers:true,
   retiresLegacyNavigationArtifacts:true,
   delegatedNavContainerClick:true,
+  capturePhaseNavContainerClick:true,
+  realSidebarHitAuthority:true,
+  directRouteFallback:true,
   noWindowClickCapture:true,
   noGeometryHitTesting:true,
   noProxyButtons:true,
