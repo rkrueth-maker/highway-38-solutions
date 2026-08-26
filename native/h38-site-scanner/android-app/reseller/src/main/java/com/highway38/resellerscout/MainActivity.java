@@ -100,7 +100,7 @@ public final class MainActivity extends Activity {
     private String bundledPage() {
         String html = readAsset("reseller/index.html");
         html = html.replace("<link rel=\"stylesheet\" href=\"v200-ui.css\">", "<style>" + readAsset("reseller/v200-ui.css") + "</style>");
-        for (String name : new String[]{"v200-core.js", "v200-hunt.js", "v200-auctions.js", "v200-discover.js", "v200-scan.js", "v200-more.js", "v210-polish.js", "v211-wide.js", "v212-physical.js", "v200-app.js"}) {
+        for (String name : new String[]{"v200-core.js", "v200-hunt.js", "v200-auctions.js", "v200-discover.js", "v200-scan.js", "v200-more.js", "v210-polish.js", "v211-wide.js", "v212-physical.js", "v220-profit.js", "v220-track.js", "v220-product.js", "v200-app.js"}) {
             html = html.replace("<script src=\"" + name + "\"></script>", "<script data-h38-bundled-module=\"" + name + "\">" + readAsset("reseller/" + name) + "</script>");
         }
         return html;
@@ -215,7 +215,7 @@ public final class MainActivity extends Activity {
             integrator.setOrientationLocked(true);
             integrator.initiateScan();
         } catch (Exception e) {
-            sendBarcodeError("Barcode scanner unavailable. Type the UPC/model instead.");
+            sendBarcodeError("Barcode scanner unavailable. Type the UPC instead.");
         }
     }
 
