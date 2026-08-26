@@ -27,8 +27,8 @@ if (!(quoteBase >= 0 && authRepair > quoteBase && mobile > authRepair && photoRe
 requireText(worker, 'supabase-quote-ai-auth-fix.js', 'Service worker');
 requireText(worker, 'quote-photo-restore.js', 'Service worker');
 requireText(worker, 'job-centered-flow.js', 'Service worker');
-const cacheName = worker.match(/const CACHE_NAME='(h38-business-office-\d{8}-\d{4})'/)?.[1];
-if (!cacheName) fail('Service worker cache rotation must use a dated h38-business-office cache name.');
+const cacheName = worker.match(/const CACHE_NAME='(h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+))'/)?.[1];
+if (!cacheName) fail('Service worker cache rotation must use an accepted dated or nav-core h38-business-office cache name.');
 
 requireText(authFix, "'Authorization':`Bearer ${auth.session.access_token}`", 'Direct Quote AI request');
 requireText(authFix, "'apikey':config.publishableKey", 'Direct Quote AI request');
