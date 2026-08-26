@@ -52,11 +52,13 @@ At minimum, every candidate must exercise the following interactive path on the 
 13. Maintenance/Self-Test: run after the interactive checks; it supplements physical acceptance and cannot replace it.
 
 If a physical recording shows a control receiving a tap highlight but not performing its action, the build FAILS regardless of CI status.
+If a physical recording shows a runtime error before retailer disclosures render, the build FAILS even if the native disclosure contract itself passed.
 
 ## Automated gates required before physical test
 - JavaScript syntax checks.
 - Canonical multi-source dedupe fixtures.
-- A Hunt interaction fixture that simulates pointerdown/pointerup and click fallback against the actual bundled touch code and proves expand does not immediately double-toggle closed.
+- A Hunt interaction fixture that proves native `<details>/<summary>` disclosure is packaged and rejects the legacy `data-hunt-group` / custom touch override.
+- A cross-layer runtime dependency gate for Hunt rendering. Any helper referenced by a loaded layer, including `strictImageRetailer`, must be defined in the bundled runtime before app bootstrap can render Hunt.
 - Android compile.
 - Exact APK package/version check.
 - APK signature verification and zipalign.
