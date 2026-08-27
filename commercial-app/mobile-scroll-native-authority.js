@@ -16,7 +16,7 @@ function currentOfficePage(){
 function blockActivePrimaryReselect(event){
   if(!window.matchMedia?.('(max-width: 760px)').matches)return;
   const button=event.target?.closest?.('button[data-h38-primary],button[data-page]');
-  if(!button)return;
+  if(!button||!button.closest?.('#mainNav'))return;
   const target=String(button.dataset.h38Primary||button.dataset.page||'').trim();
   if(!target||target==='more'||target!==currentOfficePage())return;
   event.preventDefault();
@@ -33,6 +33,7 @@ window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   nestedNativeScrollingPreserved:true,
   activePrimaryTabReselectNoop:true,
   samePageNavigationRebuildPrevented:true,
+  primaryNavOnlyReselectGuard:true,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticPurchasing:false,
