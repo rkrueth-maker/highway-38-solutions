@@ -1,0 +1,142 @@
+name: Build H38 Scout v2.6.2 Phone Video Repair
+
+on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout'
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v262-phone-video-repair.js'
+      - 'native/h38-site-scanner/android-app/reseller/v262-phone-video-repair.test.mjs'
+      - 'native/h38-site-scanner/android-app/reseller/v262-render-fixture.py'
+      - 'supabase/functions/reseller-nearby-stores-v262/index.ts'
+      - '.github/workflows/scout-v262-phone-video-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-build-render:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - uses: browser-actions/setup-chrome@v1
+
+      - name: Verify v2.6.2 phone-video repair and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v262"; mkdir -p "$report"
+          node reseller/v262-phone-video-repair.test.mjs | tee "$report/v262-contract.txt"
+          node reseller/v261-facebook-public.test.mjs | tee "$report/facebook-public-app.txt"
+          node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
+          node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
+          node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-resale-rank.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs" | tee "$report/home-depot.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg.txt"
+          node --check reseller/src/main/assets/reseller/v200-app.js
+          node --check reseller/src/main/assets/reseller/v261-facebook-public-runtime.js
+          node --check reseller/src/main/assets/reseller/v262-phone-video-repair.js
+          grep -Fq "versionName '2.6.2'" reseller/build.gradle
+          grep -Fq 'versionCode 86' reseller/build.gradle
+          grep -Fq 'central-nearby-bootstrap-v262' "$GITHUB_WORKSPACE/supabase/functions/reseller-nearby-stores-v262/index.ts"
+          if grep -Eiq 'Grand Rapids|55744' "$GITHUB_WORKSPACE/supabase/functions/reseller-nearby-stores-v262/index.ts"; then
+            echo 'Fast store backend contains forbidden fixed location'; exit 1
+          fi
+          echo PASS > "$report/contract.txt"
+
+      - name: Compile Owner Scout v2.6.2 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v262"; mkdir -p "$report"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.6.2-phone-video-repair.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.6.2-phone-video-repair.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+
+      - name: Smoke inspect exact v2.6.2 APK bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v262"; out="$report/H38-Reseller-Scout-Owner-v2.6.2-phone-video-repair.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='86' versionName='2.6.2'" "$report/badging.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/v200-app.js > "$report/packaged-v200-app.js"
+          unzip -p "$out" assets/reseller/v262-phone-video-repair.js > "$report/packaged-v262-phone-video-repair.js"
+          grep -Fq "r.src='v262-phone-video-repair.js'" "$report/packaged-v200-app.js"
+          grep -Fq 'H38_SCOUT_V262_PHONE_VIDEO_REPAIR=true' "$report/packaged-v262-phone-video-repair.js"
+          grep -Fq 'reseller-nearby-stores-v262' "$report/packaged-v262-phone-video-repair.js"
+          grep -Fq 'Search public Facebook' "$report/packaged-v262-phone-video-repair.js"
+          if grep -Fq 'Run signed-in Facebook pass' "$report/packaged-v262-phone-video-repair.js"; then
+            echo 'v2.6.2 repair still contains signed-in Facebook action'; exit 1
+          fi
+          rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
+          for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
+          grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
+          echo PASS > "$report/smoke.txt"
+
+      - name: Render exact packaged APK as owner at ZIP 55744
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v262"; out="$report/H38-Reseller-Scout-Owner-v2.6.2-phone-video-repair.apk"
+          rm -rf /tmp/h38-v262-apk /tmp/h38-v262-render-apk
+          mkdir -p /tmp/h38-v262-apk
+          unzip -q "$out" 'assets/reseller/*' -d /tmp/h38-v262-apk
+          python reseller/v262-render-fixture.py /tmp/h38-v262-apk/assets/reseller /tmp/h38-v262-render-apk
+          python3 -m http.server 8878 --directory /tmp/h38-v262-render-apk > "$report/render-http.log" 2>&1 &
+          server=$!; trap 'kill $server 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v chrome || command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          test -n "$CHROME"
+          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom http://127.0.0.1:8878/index.html > "$report/rendered-dom.html" 2> "$report/render-chrome.log"
+          python3 - "$report/rendered-dom.html" "$report/rendered-visible.txt" <<'PY'
+          import re,sys
+          s=open(sys.argv[1],encoding='utf-8').read()
+          s=re.sub(r'<script\b[^>]*>.*?</script>',' ',s,flags=re.I|re.S)
+          s=re.sub(r'<style\b[^>]*>.*?</style>',' ',s,flags=re.I|re.S)
+          s=re.sub(r'<[^>]+>',' ',s)
+          s=re.sub(r'\s+',' ',s)
+          open(sys.argv[2],'w',encoding='utf-8').write(s)
+          PY
+          grep -Fq 'data-v262-local-health="true"' "$report/rendered-dom.html"
+          grep -Fq 'Grand Rapids, MN, 55744' "$report/rendered-visible.txt"
+          grep -Fq '2 nearby stores loaded · HD 1 · DG 1' "$report/rendered-visible.txt"
+          grep -Fq 'Search public Facebook' "$report/rendered-visible.txt"
+          grep -Fq '1 public · no Facebook login' "$report/rendered-visible.txt"
+          grep -Fq 'H38_FACEBOOK_PUBLIC_V261 · LIVE · 1 location-proven listing' "$report/rendered-visible.txt"
+          for forbidden in 'Run signed-in Facebook pass' 'Open Facebook fallback' 'Enable Marketplace alerts' 'store location unknown' 'No matching nearby store loaded'; do
+            if grep -Fq "$forbidden" "$report/rendered-visible.txt"; then
+              echo "Visible phone fixture still exposes failure text: $forbidden"; exit 1
+            fi
+          done
+          echo PASS > "$report/rendered-phone-fixture.txt"
+
+      - name: Upload v2.6.2 APK and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v2.6.2-phone-video-repair
+          path: artifacts/scout-v262/*
+          if-no-files-found: warn
+          retention-days: 30
