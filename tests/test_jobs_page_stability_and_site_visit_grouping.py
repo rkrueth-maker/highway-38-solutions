@@ -53,7 +53,7 @@ def test_site_visit_delete_repair_is_event_driven_not_polled():
 
 def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     text = GROUP.read_text(encoding="utf-8")
-    assert "20260821-work-site-visit-grouping-retired-to-wide-1" in text
+    assert "20260827-work-site-visit-grouping-render-transaction-1" in text
     assert "oneProjectLevelSiteVisit:true" in text
     assert "groupByJobIdentity:true" in text
     assert "continuationsNested:true" in text
@@ -61,6 +61,12 @@ def test_legacy_site_visit_grouping_is_retired_to_one_unified_authority():
     assert "singleRenderAuthority:true" in text
     assert "retiredToUnifiedWideAcceptance:true" in text
     assert "eventDrivenReconciliation:true" in text
+    assert "renderTransactionReconciliation:true" in text
+    assert "initialJobsGroupingSynchronous:true" in text
+    assert "initialJobsPostPaintSwap:false" in text
+    assert "const result=current.apply(this,arguments);" in text
+    assert "reconcile();\n    return result;" in text
+    assert "const wrapped=function(){const result=current.apply(this,arguments);schedule();return result;}" not in text
     assert "permanentWholeDocumentObserver:false" in text
     assert "boundedMainContentObserverMs:0" in text
     assert "new MutationObserver" not in text
