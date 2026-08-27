@@ -1,10 +1,15 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 
-const app=fs.readFileSync('src/main/assets/reseller/v200-app.js','utf8');
-const repair=fs.readFileSync('src/main/assets/reseller/v262-phone-video-repair.js','utf8');
-const edge=fs.readFileSync('../../../../supabase/functions/reseller-nearby-stores-v262/index.ts','utf8');
-const gradle=fs.readFileSync('build.gradle','utf8');
+const here=path.dirname(fileURLToPath(import.meta.url));
+const read=(p)=>fs.readFileSync(path.resolve(here,p),'utf8');
+
+const app=read('src/main/assets/reseller/v200-app.js');
+const repair=read('src/main/assets/reseller/v262-phone-video-repair.js');
+const edge=read('../../../../supabase/functions/reseller-nearby-stores-v262/index.ts');
+const gradle=read('build.gradle');
 
 assert.match(gradle,/versionCode\s+86\b/);
 assert.match(gradle,/versionName\s+'2\.6\.2'/);
