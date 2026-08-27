@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = (ROOT / "commercial-app" / "mobile-runtime-stability.js").read_text(encoding="utf-8")
+NATIVE = (ROOT / "commercial-app" / "mobile-scroll-native-authority.js").read_text(encoding="utf-8")
 
 
 def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
@@ -37,6 +38,18 @@ def test_page_navigation_resets_main_scroller_not_window():
     assert "window.scrollTo({top:0" not in MOBILE
     assert "visualViewport?.addEventListener('scroll',schedule" not in MOBILE
     assert "#mainContent{overflow-anchor:none" in MOBILE
+
+
+def test_active_mobile_primary_tab_reselect_is_a_true_noop():
+    assert "activePrimaryTabReselectNoop:true" in NATIVE
+    assert "samePageNavigationRebuildPrevented:true" in NATIVE
+    assert "primaryNavOnlyReselectGuard:true" in NATIVE
+    assert "button[data-h38-primary],button[data-page]" in NATIVE
+    assert "button.closest?.('#mainNav')" in NATIVE
+    assert "target!==currentOfficePage()" in NATIVE
+    assert "event.preventDefault()" in NATIVE
+    assert "event.stopImmediatePropagation()" in NATIVE
+    assert "document.addEventListener('click',blockActivePrimaryReselect,true)" in NATIVE
 
 
 def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
