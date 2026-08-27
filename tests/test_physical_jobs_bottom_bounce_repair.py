@@ -44,12 +44,22 @@ def test_active_mobile_primary_tab_reselect_is_a_true_noop():
     assert "activePrimaryTabReselectNoop:true" in NATIVE
     assert "samePageNavigationRebuildPrevented:true" in NATIVE
     assert "primaryNavOnlyReselectGuard:true" in NATIVE
+    assert "navTargetCapturedBeforeDomReplacement:true" in NATIVE
     assert "button[data-h38-primary],button[data-page]" in NATIVE
     assert "button.closest?.('#mainNav')" in NATIVE
     assert "target!==currentOfficePage()" in NATIVE
     assert "event.preventDefault()" in NATIVE
     assert "event.stopImmediatePropagation()" in NATIVE
-    assert "document.addEventListener('click',blockActivePrimaryReselect,true)" in NATIVE
+    assert "document.addEventListener('click',capturePrimaryIntent,true)" in NATIVE
+
+
+def test_jobs_and_customers_have_immutable_physical_slots():
+    assert "physicalPrimaryNavOrderLocked:true" in NATIVE
+    assert "jobsBeforeCustomersFixedOrder:true" in NATIVE
+    assert '[data-h38-primary="work"],[data-page="work"]){order:2!important}' in NATIVE
+    assert '[data-h38-primary="customers"],[data-page="customers"]){order:3!important}' in NATIVE
+    assert "mobileRenderNavBaseSuppressedWhenCanonical:true" in NATIVE
+    assert "syncCanonicalNavState()" in NATIVE
 
 
 def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
