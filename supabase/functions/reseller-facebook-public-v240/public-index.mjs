@@ -81,7 +81,7 @@ export function parseBingRss(xml='',limit=30){
 }
 export function listingFromSearch(r={}){
   const snippet=txt(r.snippet),title=txt(r.title).replace(/\s*[-|·]\s*Facebook Marketplace.*$/i,'').trim();
-  const price=(snippet.match(/\b(?:US\s*)?\$\s*[\d,.]+(?:\.\d{2})?\b|\bFREE\b/i)||[])[0]||'';
+  const price=(snippet.match(/(?:US\s*)?\$\s*[\d,.]+(?:\.\d{2})?|\bFREE\b/i)||[])[0]||'';
   let location='';
   const patterns=[
     /\b(?:listed|available|located|pickup|pick up)\b[\s\S]{0,80}?\bin\s+([A-Z][A-Za-z .'-]{1,70},\s*(?:[A-Z]{2}|[A-Za-z ]{4,30}))(?=[.·|;]|$)/i,
