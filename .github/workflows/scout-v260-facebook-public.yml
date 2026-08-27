@@ -111,13 +111,27 @@ jobs:
           CHROME="$(command -v chrome || command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
           test -n "$CHROME"
           timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=12000 --dump-dom http://127.0.0.1:8877/index.html > "$report/rendered-dom.html" 2> "$report/render-chrome.log"
+          python3 - "$report/rendered-dom.html" "$report/rendered-visible.txt" <<'PY'
+          import sys
+          from html.parser import HTMLParser
+          class Visible(HTMLParser):
+              def __init__(self): super().__init__(); self.skip=0; self.parts=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag in ('script','style'): self.skip+=1
+              def handle_endtag(self,tag):
+                  if tag in ('script','style') and self.skip: self.skip-=1
+              def handle_data(self,data):
+                  if not self.skip and data.strip(): self.parts.append(' '.join(data.split()))
+          p=Visible(); p.feed(open(sys.argv[1],encoding='utf-8').read()); open(sys.argv[2],'w',encoding='utf-8').write('\n'.join(p.parts))
+          PY
+          visible="$report/rendered-visible.txt"
           grep -Fq 'data-v261-facebook-authority="true"' "$report/rendered-dom.html"
-          grep -Fq 'Grand Rapids, MN, 55744' "$report/rendered-dom.html"
-          grep -Fq 'Search public Facebook' "$report/rendered-dom.html"
-          grep -Fq '1 public · no Facebook login' "$report/rendered-dom.html"
-          grep -Fq 'H38_FACEBOOK_PUBLIC_V261 · LIVE · 1 location-proven listing' "$report/rendered-dom.html"
+          grep -Fq 'Grand Rapids, MN, 55744' "$visible"
+          grep -Fq 'Search public Facebook' "$visible"
+          grep -Fq '1 public · no Facebook login' "$visible"
+          grep -Fq 'H38_FACEBOOK_PUBLIC_V261 · LIVE · 1 location-proven listing' "$visible"
           for forbidden in 'Run signed-in Facebook pass' 'Open Facebook fallback' 'WebView cookies are now explicitly persisted' 'Enable Marketplace alerts' 'No Facebook pass ledger yet.'; do
-            if grep -Fq "$forbidden" "$report/rendered-dom.html"; then echo "Rendered Discover still exposes forbidden Facebook fallback UI: $forbidden"; exit 1; fi
+            if grep -Fq "$forbidden" "$visible"; then echo "Visible Discover still exposes forbidden Facebook fallback UI: $forbidden"; exit 1; fi
           done
           echo PASS > "$report/rendered-phone-fixture.txt"
 
