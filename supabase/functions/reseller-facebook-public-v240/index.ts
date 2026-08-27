@@ -56,7 +56,9 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)});
   if(req.method!=='POST')return json(req,405,{error:'POST required'});
   if(!req.headers.get('authorization'))return json(req,401,{error:'Sign in required'});
-  const started=Date.now(),body=await req.json().catch(()=>({})),terms=[...new Set((Array.isArray(body.terms)?body.terms:[]).map((x:any)=>txt(x)).filter((x:string)=>x.length>=2))].slice(0,4),warnings:string[]=[];
+  const started=Date.now(),body:Any=await req.json().catch(()=>({}));
+  const termValues:string[]=(Array.isArray(body.terms)?body.terms:[]).map((x:any)=>txt(x)).filter((x:string)=>x.length>=2);
+  const terms:string[]=[...new Set<string>(termValues)].slice(0,4),warnings:string[]=[];
   if(!terms.length)terms.push('tools','lawn mower','electronics','appliances');
   let rows:Any[]=[],directGated=false,attempts=0,successes=0,rawCandidates=0;
   const diagnostics:Any[]=[];
