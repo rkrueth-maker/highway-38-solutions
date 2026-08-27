@@ -35,7 +35,7 @@ window.H38_SCOUT_V252_FACEBOOK_LOCATION_REPAIR=true;
   }
 })();
 (function loadProviderAuthorityThenBootstrap(){
-  let started=false,authorityLoading=false;
+  let started=false,authorityLoading=false,repairLoading=false;
   function bootstrapV200(){if(started)return;started=true;
     $('loginForm').onsubmit=async e=>{e.preventDefault();$('loginMessage').innerHTML='<div class="status-line"><span class="dot loading"></span>Signing in…</div>';const f=new FormData(e.currentTarget),email=txt(f.get('email')),password=String(f.get('password')||'');try{const {data,error}=await h38sb.auth.signInWithPassword({email,password});if(error)throw error;await authorize(data.session)}catch(e){$('loginMessage').innerHTML=`<div class="status-line"><span class="dot warn"></span>${esc(e.message||e)}</div>`}};
     $('homeButton').onclick=()=>{if(state.user)setPage('discover')};
@@ -57,16 +57,25 @@ window.H38_SCOUT_V252_FACEBOOK_LOCATION_REPAIR=true;
     renderLocationStrip();
     h38sb.auth.getSession().then(({data})=>data.session?authorize(data.session):showLogin()).catch(()=>showLogin());
   }
+  function loadPhoneRepair(){
+    if(window.H38_SCOUT_V262_PHONE_VIDEO_REPAIR_INSTALLED===true){bootstrapV200();return}
+    if(repairLoading)return;
+    repairLoading=true;
+    const r=document.createElement('script');r.src='v262-phone-video-repair.js';r.async=false;
+    r.onload=()=>{repairLoading=false;bootstrapV200()};
+    r.onerror=()=>{repairLoading=false;console.warn('v2.6.2 phone repair unavailable; booting public authority shell');bootstrapV200()};
+    document.head.appendChild(r);
+  }
   function loadPublicAuthority(){
-    if(window.H38_SCOUT_V261_FACEBOOK_PUBLIC_INSTALLED===true){bootstrapV200();return}
+    if(window.H38_SCOUT_V261_FACEBOOK_PUBLIC_INSTALLED===true){loadPhoneRepair();return}
     if(authorityLoading)return;
     authorityLoading=true;
     const a=document.createElement('script');a.src='v261-facebook-public-runtime.js';a.async=false;
-    a.onload=()=>{authorityLoading=false;bootstrapV200()};
-    a.onerror=()=>{authorityLoading=false;console.warn('Public Facebook authority unavailable; booting accepted core shell');bootstrapV200()};
+    a.onload=()=>{authorityLoading=false;loadPhoneRepair()};
+    a.onerror=()=>{authorityLoading=false;console.warn('Public Facebook authority unavailable; booting accepted core shell');loadPhoneRepair()};
     document.head.appendChild(a);
   }
   if(window.H38_SCOUT_V240_DATA_ACQUISITION===true){loadPublicAuthority();return}
-  const s=document.createElement('script');s.src='v240-data.js';s.async=false;s.onload=loadPublicAuthority;s.onerror=()=>{console.warn('Packaged provider layer unavailable; booting accepted core shell');bootstrapV200()};document.head.appendChild(s);
-  setTimeout(()=>{if(!started&&window.H38_SCOUT_V240_DATA_ACQUISITION!==true)bootstrapV200()},5000);
+  const s=document.createElement('script');s.src='v240-data.js';s.async=false;s.onload=loadPublicAuthority;s.onerror=()=>{console.warn('Packaged provider layer unavailable; booting accepted core shell');loadPublicAuthority()};document.head.appendChild(s);
+  setTimeout(()=>{if(!started&&window.H38_SCOUT_V240_DATA_ACQUISITION!==true)loadPublicAuthority()},5000);
 })();
