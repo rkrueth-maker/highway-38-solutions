@@ -17,7 +17,7 @@ assert(phoneSource.includes('customerCreationDelegatedToTopAction:true'),'phone 
 assert(!phoneSource.includes('data-h38-add-customer'),'phone visual layer must not inject a second customer action');
 assert(serviceWorker.includes("'owner-phone-visual-fix.js'"),'owner phone visual fix must be live-first');
 assert(serviceWorker.includes("'./owner-phone-visual-fix.js'"),'owner phone visual fix must be available offline');
-assert(serviceWorker.includes("h38-business-office-20260827-customer-actions-7"),'service worker cache epoch must flush the stale customer-action cache');
+assert(serviceWorker.includes("h38-business-office-20260827-1350"),'service worker cache epoch must flush the stale customer-action cache');
 
 (async()=>{
   const browser=await chromium.launch({headless:true});
