@@ -1,0 +1,1 @@
+Physical phone failure reported 2026-08-26: while already on Customers or Jobs, tapping the same active bottom-navigation button causes a visible bounce. Repair boundary: active mobile primary-tab reselection must be a true no-op; different-page navigation remains unchanged.
