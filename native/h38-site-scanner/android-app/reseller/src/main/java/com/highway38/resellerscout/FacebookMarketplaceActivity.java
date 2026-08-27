@@ -115,7 +115,7 @@ public final class FacebookMarketplaceActivity extends Activity {
                 if(host.endsWith("facebook.com")||host.endsWith("fbcdn.net"))return false;
                 try{startActivity(new Intent(Intent.ACTION_VIEW,u));}catch(Exception ignored){}return true;
             }
-            @Override public void onPageFinished(WebView view,String url){super.onPageFinished(view,url);if(strictLocationRequired())commitLocationProof();scheduleCurrentPage(generation);}
+            @Override public void onPageFinished(WebView view,String url){super.onPageFinished(view,url);scheduleCurrentPage(generation);}
         });
         root.addView(webView,new LinearLayout.LayoutParams(-1,0,1f));setContentView(root);
     }
@@ -165,14 +165,14 @@ public final class FacebookMarketplaceActivity extends Activity {
   function visible(e){if(!e)return false;var r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>2&&r.height>2&&r.bottom>0&&r.top<window.innerHeight&&s.visibility!=='hidden'&&s.display!=='none'}
   function norm(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
   function locationMatches(v){if(!desired)return true;var a=norm(v),b=norm(desired);return !!a&&!!b&&a.indexOf(b)>=0}
-  function exactLocationCandidate(){if(!desired)return null;var want=norm(desired),nodes=[].slice.call(document.querySelectorAll('[role="option"],[role="listbox"] [role="button"],li,a,button,[role="button"],[tabindex]'));return nodes.find(function(e){if(!visible(e))return false;var x=T(e).replace(/\s+/g,' ').trim();return x.length>=2&&x.length<=120&&norm(x).indexOf(want)>=0})||null}
+  function exactLocationCandidate(){if(!desired)return null;var want=norm(desired),nodes=[].slice.call(document.querySelectorAll('[role="option"],[role="listbox"] [role="button"],li,a,button,[role="button"],[tabindex]'));return nodes.find(function(e){if(!visible(e))return false;var x=T(e).replace(/\s+/g,' ').trim();if(x.length<3||x.length>120)return false;return norm(x).indexOf(want)>=0})||null}
   function itemId(v){var key='/marketplace/item/',p=String(v||'').toLowerCase().indexOf(key);if(p<0)return'';var s=String(v).substring(p+key.length),out='';for(var i=0;i<s.length;i++){var c=s.charAt(i);if(c>='0'&&c<='9')out+=c;else break}return out}
   function hrefOf(e){var n=e;for(var up=0;up<5&&n;up++,n=n.parentElement){var vals=[];try{vals.push(n.href,n.getAttribute&&n.getAttribute('href'),n.getAttribute&&n.getAttribute('data-href'))}catch(_){}try{n.querySelectorAll&&n.querySelectorAll('a[href],a[data-href]').forEach(function(a){vals.push(a.href,a.getAttribute('href'),a.getAttribute('data-href'))})}catch(_){}for(var i=0;i<vals.length;i++){var v=String(vals[i]||'');if(itemId(v)){try{return new URL(v,location.origin).toString().split('?')[0]}catch(_){return v.split('?')[0]}}}}return''}
-  function currentMarketplaceLocation(){var body=String((document.body&&document.body.innerText)||''),lines=body.split(String.fromCharCode(10));for(var j=0;j<Math.min(lines.length,140);j++){var line=String(lines[j]||'').trim(),low=line.toLowerCase(),near=low.lastIndexOf(' near ');if(low.indexOf('search results for')>=0&&near>=0){var x=line.substring(near+6).trim();if(x.length>2&&x.length<100)return x}}var nodes=[].slice.call(document.querySelectorAll('button,[role="button"],[aria-label*="location" i],a[aria-label*="location" i]')).filter(function(e){var r=e.getBoundingClientRect();return visible(e)&&r.top>=0&&r.top<500});for(var i=0;i<nodes.length;i++){var x=T(nodes[i]).replace(/\s+/g,' ').trim(),aria=String(nodes[i].getAttribute&&nodes[i].getAttribute('aria-label')||'').toLowerCase();if(x.length>2&&x.length<100&&x.indexOf('$')<0&&(aria.indexOf('location')>=0||locationMatches(x)))return x}return''}
+  function currentMarketplaceLocation(){var body=String((document.body&&document.body.innerText)||''),lines=body.split(String.fromCharCode(10));for(var j=0;j<Math.min(lines.length,120);j++){var line=String(lines[j]||'').trim(),low=line.toLowerCase(),near=low.lastIndexOf(' near ');if(low.indexOf('search results for')>=0&&near>=0){var x=line.substring(near+6).trim();if(x.length>2&&x.length<100)return x}}var nodes=[].slice.call(document.querySelectorAll('button,[role="button"],[aria-label*="location" i],a[aria-label*="location" i]')).filter(function(e){var r=e.getBoundingClientRect();return visible(e)&&r.top>=0&&r.top<500});for(var i=0;i<nodes.length;i++){var x=T(nodes[i]).replace(/\s+/g,' ').trim(),aria=String(nodes[i].getAttribute&&nodes[i].getAttribute('aria-label')||'').toLowerCase();if(x.length>3&&x.length<85&&x.indexOf('$')<0&&(aria.indexOf('location')>=0||locationMatches(x)))return x}return''}
   function itemDetailLocation(){var body=String((document.body&&document.body.innerText)||''),lines=body.split(String.fromCharCode(10));for(var i=0;i<Math.min(lines.length,220);i++){var line=String(lines[i]||'').trim(),low=line.toLowerCase(),p=low.lastIndexOf(' in ');if(low.indexOf('listed')>=0&&p>0){var x=line.substring(p+4).trim();if(x.length>2&&x.length<100)return x}}return''}
   function priceFrom(raw){var p=raw.indexOf('$');if(p<0)return null;var out='';for(var i=p+1;i<Math.min(raw.length,p+18);i++){var c=raw.charAt(i);if((c>='0'&&c<='9')||c==='.'||c===',')out+=c;else if(out.length)break}var n=Number(out.split(',').join(''));return Number.isFinite(n)?n:null}
   function distanceFrom(raw){var low=raw.toLowerCase(),p=low.indexOf(' miles');if(p<0)p=low.indexOf(' mi');if(p<0)return null;var out='';for(var i=p-1;i>=0&&i>p-12;i--){var c=raw.charAt(i);if((c>='0'&&c<='9')||c==='.')out=c+out;else if(out.length)break}var n=Number(out);return Number.isFinite(n)?n:null}
-  function scan(){var body=(document.body&&document.body.innerText)||'',lowBody=String(body).toLowerCase(),path=String(location.pathname||'').toLowerCase(),hasItems=!!document.querySelector('a[href*="/marketplace/item/"]');var login=((lowBody.indexOf('log in to facebook')>=0||lowBody.indexOf('email or phone')>=0||lowBody.indexOf('create new account')>=0||lowBody.indexOf('security check')>=0||lowBody.indexOf('confirm your identity')>=0||path.indexOf('/login')>=0||path.indexOf('/checkpoint')>=0)&&!hasItems);if(login){AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:true,url:location.href,rows:[]}));return}var rows=[],seen=new Set(),nodes=[].slice.call(document.querySelectorAll('a[href],[role="link"],[data-href]')),urlsSeen=0;nodes.forEach(function(el){var href=hrefOf(el),id=itemId(href);if(!href||!id||seen.has(id))return;seen.add(id);urlsSeen++;var node=el;for(var i=0;i<7&&node;i++){var raw0=T(node);if(raw0.length>=18&&raw0.length<=1400&&(node.querySelector&&node.querySelector('img')))break;node=node.parentElement}var raw=T(node||el);if(raw.length<4)return;var price=priceFrom(raw),dist=distanceFrom(raw),lines=String((node&&node.innerText)||el.innerText||'').split(String.fromCharCode(10)),title='';for(var j=0;j<lines.length;j++){var x=String(lines[j]||'').trim(),lx=x.toLowerCase();if(!x||x.charAt(0)==='$'||lx==='listed'||lx==='sponsored'||lx==='ships'||lx==='delivery'||lx==='local pickup'||lx==='results'||lx==='filter'||lx==='filters'||lx==='sort'||lx.indexOf(' mi away')>=0||lx.indexOf(' miles away')>=0)continue;if(x.length>=3&&x.length<=160){title=x;break}}if(!title)title=String(el.getAttribute&&el.getAttribute('aria-label')||el.textContent||'Marketplace listing').trim().slice(0,160);var img=(node&&node.querySelector&&node.querySelector('img'))||(el.querySelector&&el.querySelector('img')),im=img?String(img.currentSrc||img.src||''):'';rows.push({id:id,source:'Facebook Marketplace',title:title,text:raw,price:price,url:href,image_url:im,distance_miles:dist,location_label:'',captured_at:Date.now(),browser_session:true})});var loc=currentMarketplaceLocation(),itemLoc=itemDetailLocation(),ok=locationMatches(loc);AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:false,url:location.href,rows:rows,item_urls_seen:urlsSeen,location_text:loc,item_location_text:itemLoc,location_ok:ok}))}
+  function scan(){var body=(document.body&&document.body.innerText)||'',lowBody=String(body).toLowerCase(),path=String(location.pathname||'').toLowerCase(),hasItems=!!document.querySelector('a[href*="/marketplace/item/"]');var login=((lowBody.indexOf('log in to facebook')>=0||lowBody.indexOf('email or phone')>=0||lowBody.indexOf('create new account')>=0||lowBody.indexOf('security check')>=0||lowBody.indexOf('confirm your identity')>=0||path.indexOf('/login')>=0||path.indexOf('/checkpoint')>=0)&&!hasItems);if(login){AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:true,url:location.href,rows:[]}));return}var rows=[],seen=new Set(),nodes=[].slice.call(document.querySelectorAll('a[href],[role="link"],[data-href]')),urlsSeen=0;nodes.forEach(function(el){var href=hrefOf(el),id=itemId(href);if(!href||!id||seen.has(id))return;seen.add(id);urlsSeen++;var node=el;for(var i=0;i<7&&node;i++){var raw0=T(node);if(raw0.length>=18&&raw0.length<=1400&&(node.querySelector&&node.querySelector('img')))break;node=node.parentElement}var raw=T(node||el);if(raw.length<4)return;var price=priceFrom(raw),dist=distanceFrom(raw),lines=String((node&&node.innerText)||el.innerText||'').split(String.fromCharCode(10)),title='';for(var j=0;j<lines.length;j++){var x=String(lines[j]||'').trim(),lx=x.toLowerCase();if(!x||x.charAt(0)==='$'||lx==='listed'||lx==='sponsored'||lx==='ships'||lx==='delivery'||lx==='local pickup'||lx==='results'||lx==='filter'||lx==='filters'||lx==='sort'||lx.indexOf(' mi away')>=0||lx.indexOf(' miles away')>=0)continue;if(x.length>=3&&x.length<=160){title=x;break}}if(!title)title=String(el.getAttribute&&el.getAttribute('aria-label')||el.textContent||'Marketplace listing').trim().slice(0,160);var img=(node&&node.querySelector&&node.querySelector('img'))||(el.querySelector&&el.querySelector('img')),im=img?String(img.currentSrc||img.src||''):'';rows.push({id:id,source:'Facebook Marketplace',title:title,text:raw,price:price,url:href,image_url:im,distance_miles:dist,location_label:'',captured_at:Date.now(),browser_session:true})});var loc=currentMarketplaceLocation(),itemLoc=itemDetailLocation(),ok=locationMatches(loc);AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:false,url:location.href,rows:rows,item_urls_seen:urlsSeen,location_text:loc,item_location_text:itemLoc,location_ok:ok}));}
   function reportFix(loc,stage,extra){var p={rows:[],location_fixing:true,location_text:loc,location_ok:false,location_stage:stage||''};if(extra)for(var k in extra)p[k]=extra[k];AndroidH38FacebookBrowser.capture(JSON.stringify(p))}
   function clickExact(loc){var pick=exactLocationCandidate();if(!pick)return false;window.__h38LocActionAt=Date.now();reportFix(loc,'exact-suggestion',{location_selected_exact:true,selected_location_text:T(pick)});pick.click();setTimeout(scan,2600);return true}
   function steer(){if(!shouldSteer||!desired)return false;var loc=currentMarketplaceLocation();if(locationMatches(loc))return false;if(window.__h38LocActionAt&&Date.now()-window.__h38LocActionAt<2300)return true;if(clickExact(loc))return true;var inp=[].slice.call(document.querySelectorAll('input')).find(function(e){var p=String(e.getAttribute('placeholder')||'').toLowerCase(),a=String(e.getAttribute('aria-label')||'').toLowerCase();return visible(e)&&(p.indexOf('location')>=0||a.indexOf('location')>=0||p.indexOf('city')>=0||a.indexOf('city')>=0)})||null;if(inp){window.__h38LocActionAt=Date.now();try{var setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(inp,desired)}catch(_){inp.value=desired}inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));reportFix(loc,'typed-location');setTimeout(function(){window.__h38LocActionAt=0;if(!clickExact(loc))reportFix(loc,'suggestion-not-ready')},1250);return true}var clickables=[].slice.call(document.querySelectorAll('button,a,[role="button"]')).filter(visible),target=null;for(var i=0;i<clickables.length;i++){var x=T(clickables[i]),r=clickables[i].getBoundingClientRect(),aria=String(clickables[i].getAttribute&&clickables[i].getAttribute('aria-label')||'').toLowerCase(),low=x.toLowerCase();if(r.top<650&&(aria.indexOf('location')>=0||low.indexOf('change location')>=0)){target=clickables[i];break}}if(!target)return false;window.__h38LocActionAt=Date.now();reportFix(loc,'open-location-editor');target.click();setTimeout(function(){window.__h38LocActionAt=0;steer()},1500);return true}
@@ -181,42 +181,30 @@ public final class FacebookMarketplaceActivity extends Activity {
  }catch(e){AndroidH38FacebookBrowser.capture(JSON.stringify({error:String(e),rows:[]}));}
 })();
 """.formatted(JSONObject.quote(desired),steerLocation?"true":"false");
-        webView.evaluateJavascript(script,null);
-        if(!automatic)status.setText("Capturing visible Marketplace cards and verifying the "+desiredLocation()+" search area…");
+        webView.evaluateJavascript(script,null);if(!automatic)status.setText("Capturing visible Marketplace cards and verifying the "+desiredLocation()+" search area…");
     }
 
     private final class BrowserBridge{
         @JavascriptInterface public void capture(String json){runOnUiThread(()->{
             try{
                 JSONObject p=new JSONObject(json==null?"{}":json);
-                if(p.optBoolean("login_required",false)){
-                    if(!authWaiting){authWaiting=true;generation++;}
-                    revokeLocationProof();status.setText("Facebook needs sign-in or a security check. Complete it here; Scout will resume this same search automatically afterward.");return;
-                }
+                if(p.optBoolean("login_required",false)){if(!authWaiting){authWaiting=true;generation++;}revokeLocationProof();status.setText("Facebook needs sign-in or a security check. Complete it here; Scout will resume this same search automatically afterward.");return;}
                 if(authWaiting){resumeCurrentTermAfterAuth();return;}
                 if(p.optBoolean("location_selected_exact",false)){
                     String selected=p.optString("selected_location_text","");
-                    if(postal.isBlank()||locationMatchesSelected(selected)){commitLocationProof();locationFixing=true;status.setText("Selected Marketplace location confirmed for "+desiredLocation()+". Scout is waiting for Facebook to render that search area; wrong-area cards remain withheld.");return;}
+                    if(!strictLocationRequired()||locationMatchesSelected(selected)){commitLocationProof();locationFixing=true;status.setText("Selected Marketplace location matched Scout. Waiting for Facebook to render that search area; wrong-area cards remain withheld.");return;}
                 }
-                if(p.optBoolean("location_fixing",false)){
-                    locationFixing=true;String stage=p.optString("location_stage","");status.setText("Scout is switching Marketplace to "+desiredLocation()+(stage.isBlank()?"":" · "+stage)+". Wrong-area cards are withheld.");return;
-                }
-
+                if(p.optBoolean("location_fixing",false)){locationFixing=true;String stage=p.optString("location_stage","");status.setText("Scout is switching Marketplace to the selected Scout area"+(stage.isBlank()?"":" · "+stage)+". Wrong-area cards are withheld.");return;}
                 String loc=p.optString("location_text","");String itemLoc=p.optString("item_location_text","");int seen=p.optInt("item_urls_seen",0);
-                if(!loc.isBlank()&&locationMatchesSelected(loc))commitLocationProof();
-                boolean coordinateProof=Double.isFinite(lat)&&Double.isFinite(lon)&&hasCommittedLocationProof();
-                boolean directProof=postal.isBlank()||locationMatchesSelected(loc);
-                boolean itemReinforces=postal.isBlank()||locationMatchesSelected(itemLoc);
-                boolean locationOk=!strictLocationRequired()||directProof||coordinateProof||(hasCommittedLocationProof()&&seen>0)||(hasCommittedLocationProof()&&itemReinforces);
-                if(strictLocationRequired()&&!locationOk){
-                    locationFixing=true;status.setText("Facebook Marketplace location is not yet verified for "+desiredLocation()+(itemLoc.isBlank()?"":" · listing shows "+itemLoc)+". Scout is withholding these cards and retrying location automatically.");
-                    final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1800);return;
-                }
-
-                locationFixing=false;
-                String verifiedBase=!loc.isBlank()?loc:desiredLocation();
-                JSONArray a=p.optJSONArray("rows");int newCount=mergeRows(FacebookMarketplaceActivity.this,a,currentTerm,postal,radiusMiles,verifiedBase,true);totalNew+=newCount;
-                String proofLabel=directProof&&locationMatchesSelected(loc)?"Facebook base location":"Scout coordinates / selected location";
+                if(strictLocationRequired()&&!loc.isBlank()&&!locationMatchesSelected(loc)){revokeLocationProof();locationFixing=true;status.setText("Facebook exposed a conflicting Marketplace base location ("+loc+"). Scout revoked location proof and is correcting location before accepting cards.");final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1200);return;}
+                if(locationMatchesSelected(loc))commitLocationProof();
+                boolean directProof=!strictLocationRequired()||locationMatchesSelected(loc);
+                boolean committedProof=!strictLocationRequired()||hasCommittedLocationProof();
+                boolean itemReinforces=locationMatchesSelected(itemLoc);
+                boolean locationOk=!strictLocationRequired()||directProof||(committedProof&&seen>0)||(committedProof&&itemReinforces);
+                if(strictLocationRequired()&&!locationOk){locationFixing=true;status.setText("Facebook Marketplace location is not yet verified against the selected Scout area"+(itemLoc.isBlank()?"":" · listing shows "+itemLoc)+". Scout is withholding these cards and retrying location automatically.");final int g=generation;handler.postDelayed(()->{if(g==generation&&!authWaiting)captureVisible(true,true);},1800);return;}
+                locationFixing=false;String verifiedBase=locationMatchesSelected(loc)?loc:desiredLocation();JSONArray a=p.optJSONArray("rows");int newCount=mergeRows(FacebookMarketplaceActivity.this,a,currentTerm,postal,radiusMiles,verifiedBase,true);totalNew+=newCount;
+                String proofLabel=locationMatchesSelected(loc)?"Facebook base location":"selected Scout location"+(itemReinforces?" + listing detail":"");
                 if(newCount>0)status.setText("Captured "+newCount+" new verified Marketplace listing"+(newCount==1?"":"s")+" for "+currentTerm+" · "+verifiedBase+" · "+proofLabel+". Scout will continue automatically.");
                 else if(p.has("error"))status.setText("Marketplace capture error: "+p.optString("error"));
                 else if(seen>0)status.setText("Marketplace cards are readable ("+seen+" item links seen). No new unique verified cards this pass · "+verifiedBase+" · "+proofLabel+".");
@@ -226,8 +214,7 @@ public final class FacebookMarketplaceActivity extends Activity {
     }
 
     private static int mergeRows(Context context,JSONArray incoming,String term,String postal,int radius,String locationText,boolean locationVerified){
-        if(incoming==null)return 0;
-        try{
+        if(incoming==null)return 0;try{
             SharedPreferences p=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);JSONArray old=new JSONArray(p.getString(ROWS,"[]"));Map<String,JSONObject> merged=new LinkedHashMap<>();Set<String> oldIds=new HashSet<>();
             for(int i=0;i<old.length();i++){JSONObject x=old.optJSONObject(i);if(x==null)continue;String id=x.optString("id",x.optString("url",""));if(id.isBlank())continue;oldIds.add(id);merged.put(id,x);}
             int added=0;Set<String> incomingIds=new HashSet<>();
@@ -244,13 +231,12 @@ public final class FacebookMarketplaceActivity extends Activity {
     public static String rowsJson(Context context){
         try{
             SharedPreferences p=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
-            String raw=p.getString(ROWS,"[]"),activePostal=p.getString(LAST_POSTAL,"");
-            if(activePostal.isBlank())return raw;
+            String raw=p.getString(ROWS,"[]"),postal=p.getString(LAST_POSTAL,"");
+            if(postal.isBlank())return raw;
             JSONArray old=new JSONArray(raw),safe=new JSONArray();
             for(int i=0;i<old.length();i++){
                 JSONObject x=old.optJSONObject(i);if(x==null||!x.optBoolean("location_verified",false))continue;
-                String rowPostal=x.optString("search_postal","");
-                if(activePostal.equals(rowPostal))safe.put(x);
+                if(postal.equals(x.optString("search_postal","")))safe.put(x);
             }
             return safe.toString();
         }catch(Exception ignored){return"[]";}
