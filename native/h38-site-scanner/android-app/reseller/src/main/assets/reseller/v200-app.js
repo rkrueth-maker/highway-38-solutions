@@ -1,4 +1,39 @@
 'use strict';
+window.H38_SCOUT_V252_FACEBOOK_LOCATION_REPAIR=true;
+(function installV252FacebookLocationRepair(){
+  const priorOpenFacebookScan=typeof openFacebookScan==='function'?openFacebookScan:null;
+  function unresolvedZipLabel(label,zip){
+    label=txt(label);zip=digits(zip).slice(0,5);
+    if(!zip)return false;
+    if(!label)return true;
+    if(new RegExp('^ZIP\\s*'+zip+'$','i').test(label)||label===zip)return true;
+    const stripped=label.replace(/,\s*\d{5}(?:-\d{4})?\s*$/,'').trim();
+    return !stripped||/^ZIP\b/i.test(stripped)||/^Current location$/i.test(stripped);
+  }
+  async function resolveFacebookZipLabel(){
+    const zip=digits(state.location?.zip||'').slice(0,5);
+    let label=txt(state.location?.label||'');
+    if(!zip||!unresolvedZipLabel(label,zip))return{zip,label,resolved:true};
+    const p=await fn('reseller-location-geocode',{zip},20000),loc=p?.location||{},city=txt(loc.city),region=txt(loc.state);
+    if(!city||!Number.isFinite(Number(loc.lat))||!Number.isFinite(Number(loc.lon)))return{zip,label,resolved:false};
+    state.location={mode:'zip',lat:Number(loc.lat),lon:Number(loc.lon),zip,label:[city,region,zip].filter(Boolean).join(', ')};
+    rememberLocation();renderLocationStrip();
+    return{zip,label:state.location.label,resolved:true};
+  }
+  if(priorOpenFacebookScan){
+    openFacebookScan=async function(){
+      if(state.facebookLocationOpening)return;
+      state.facebookLocationOpening=true;
+      try{
+        if(!requireLocation())return;
+        const r=await resolveFacebookZipLabel();
+        if(r.zip&&(!r.resolved||unresolvedZipLabel(r.label,r.zip))){notice(`Scout could not resolve ZIP ${r.zip} to a Facebook city. Facebook was not opened with an unverified location.`,'warn');return;}
+        return priorOpenFacebookScan();
+      }catch(e){error('facebookLocationV252',e);notice('Scout could not verify the Facebook search city. Try the Facebook pass again.','warn')}
+      finally{state.facebookLocationOpening=false}
+    };
+  }
+})();
 (function loadV240ThenBootstrap(){
   let started=false;
   function bootstrapV200(){if(started)return;started=true;
