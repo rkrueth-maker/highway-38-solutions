@@ -1,6 +1,9 @@
 'use strict';
 window.H38_SCOUT_V260_FACEBOOK_PUBLIC_FIRST=true;
-(function(){
+(function waitForV240(){
+  if(window.H38_SCOUT_V240_DATA_ACQUISITION!==true){setTimeout(waitForV240,40);return}
+  if(window.H38_SCOUT_V260_FACEBOOK_PUBLIC_INSTALLED===true)return;
+  window.H38_SCOUT_V260_FACEBOOK_PUBLIC_INSTALLED=true;
   state.v260=state.v260||{facebookLoading:false,lastFacebookRunAt:0};
 
   const priorSnapshot=facebookSnapshot;
@@ -33,9 +36,7 @@ window.H38_SCOUT_V260_FACEBOOK_PUBLIC_FIRST=true;
       state.v260.lastFacebookRunAt=Date.now();
       if(window.H38V230CacheRows&&state.v240.facebookRows.length)void H38V230CacheRows(state.v240.facebookRows);
       await rankPublicFacebook(state.v240.facebookRows,terms);
-      if(!state.v240.facebookRows.length){
-        notice('Public Facebook search returned no location-proven listings. That is not zero local inventory; Scout will not ask you to log into Facebook.','warn');
-      }
+      if(!state.v240.facebookRows.length)notice('Public Facebook search returned no location-proven listings. That is not zero local inventory; Scout will not ask you to log into Facebook.','warn');
     }catch(e){
       state.v240=state.v240||{};
       state.v240.facebook={status:'PARTIAL',provider_status:'UNAVAILABLE',authentication:'NO_FACEBOOK_LOGIN',results:[],warning:error('facebookPublicV260',e)};
@@ -63,21 +64,17 @@ window.H38_SCOUT_V260_FACEBOOK_PUBLIC_FIRST=true;
     button.disabled=!!state.v260.facebookLoading;
     button.onclick=()=>void runFacebookPublicV260(true);
     if(alerts)alerts.style.display='none';
-    const head=section?.querySelector('.section-head span');
-    if(head)head.textContent=`${rows.length} public result${rows.length===1?'':'s'} · no Facebook login`;
-    const copy=section?.querySelector('p.small');
-    if(copy)copy.textContent='Scout searches public Marketplace pages and public search-index results, then requires distance or city/state evidence before a listing can enter resale ranking. Facebook login, cookies and notification access are not used.';
-    let status=section?.querySelector('[data-v260-facebook-status]');
-    if(!status&&section){status=document.createElement('div');status.dataset.v260FacebookStatus='true';section.appendChild(status)}
-    if(status){
-      const provider=txt(f?.provider_status||f?.status||'READY'),engine=txt(f?.engine||'H38_FACEBOOK_PUBLIC_V260'),loading=state.v260.facebookLoading;
-      status.innerHTML=`<div class="status-line" style="margin-top:10px"><span class="dot ${loading?'loading':rows.length?'live':provider==='UNAVAILABLE'?'warn':''}"></span>${loading?'Searching public Facebook sources…':`${esc(engine)} · ${esc(provider)} · ${rows.length} location-proven listing${rows.length===1?'':'s'}`}</div>`;
-    }
+    const head=section?.querySelector('.section-head span');if(head)head.textContent=`${rows.length} public result${rows.length===1?'':'s'} · no Facebook login`;
+    const copy=section?.querySelector('p.small');if(copy)copy.textContent='Scout searches public Marketplace pages and public search-index results, then requires distance or city/state evidence before a listing can enter resale ranking. Facebook login, cookies and notification access are not used.';
+    let status=section?.querySelector('[data-v260-facebook-status]');if(!status&&section){status=document.createElement('div');status.dataset.v260FacebookStatus='true';section.appendChild(status)}
+    if(status){const provider=txt(f?.provider_status||f?.status||'READY'),engine=txt(f?.engine||'H38_FACEBOOK_PUBLIC_V260'),loading=state.v260.facebookLoading;status.innerHTML=`<div class="status-line" style="margin-top:10px"><span class="dot ${loading?'loading':rows.length?'live':provider==='UNAVAILABLE'?'warn':''}"></span>${loading?'Searching public Facebook sources…':`${esc(engine)} · ${esc(provider)} · ${rows.length} location-proven listing${rows.length===1?'':'s'}`}</div>`}
     const legacy=section?.querySelector('[data-v240-fb]');if(legacy)legacy.style.display='none';
-    const oldProgress=section?.querySelector('.status-line .dot.loading')?.closest('.status-line');
-    if(oldProgress&&/Facebook resale pass is open|Ranking captured Facebook/i.test(oldProgress.textContent||''))oldProgress.style.display='none';
+    const ledger=section?.querySelector('[data-v230-facebook-ledger]');if(ledger)ledger.style.display='none';
+    [...(section?.querySelectorAll('.status-line')||[])].forEach(x=>{if(/Facebook resale pass is open|Ranking captured Facebook|Facebook pass opened/i.test(x.textContent||''))x.style.display='none'});
   };
 
+  state.facebookPassPending=false;
   window.addEventListener('focus',()=>{state.facebookPassPending=false});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')state.facebookPassPending=false});
+  if(state.page==='discover')renderDiscover();
 })();
