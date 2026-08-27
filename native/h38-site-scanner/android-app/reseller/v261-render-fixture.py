@@ -31,8 +31,9 @@ window.fetch=async function(url,opts){
 let __clicked=false;
 const __clickTimer=setInterval(()=>{
   try{
-    const b=document.getElementById('facebookScan');
-    if(!__clicked&&window.H38_SCOUT_V261_FACEBOOK_PUBLIC_INSTALLED===true&&window.state?.user&&b&&/Search public Facebook/.test(b.textContent||'')){
+    const b=document.getElementById('facebookScan'),app=document.getElementById('appView');
+    const authorized=app&&!app.classList.contains('hidden');
+    if(!__clicked&&window.H38_SCOUT_V261_FACEBOOK_PUBLIC_INSTALLED===true&&authorized&&b&&/Search public Facebook/.test(b.textContent||'')){
       __clicked=true;b.click();clearInterval(__clickTimer);
     }
   }catch{}
