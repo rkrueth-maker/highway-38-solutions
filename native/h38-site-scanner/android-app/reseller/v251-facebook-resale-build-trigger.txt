@@ -1,0 +1,3 @@
+Build validation trigger for private Scout Facebook resale return pipeline.
+Source authority: 55239c6087d13228b7a1de2a5bcb1f793aa9b2b2
+Do not merge to main.
