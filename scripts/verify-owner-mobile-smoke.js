@@ -97,7 +97,7 @@ requireText(phoneVisual,'todayCollapsedCardsFullWidth:true','Today collapsed car
 requireText(phoneVisual,'lifecycleSingleColumn:true','Today lifecycle content is forced to one readable phone column');
 requireText(phoneVisual,'customerCreationDelegatedToTopAction:true','phone visual layer delegates customer creation to the canonical top action');
 if(phoneVisual.includes('data-h38-add-customer'))fail('phone visual layer does not inject a duplicate Add Customer action');else pass('phone visual layer does not inject a duplicate Add Customer action');
-requireText(serviceWorker,'h38-business-office-20260827-customer-actions-7','service worker cache epoch flushes stale customer-action assets');
+requireText(serviceWorker,'h38-business-office-20260827-1350','service worker cache epoch flushes stale customer-action assets');
 requireText(serviceWorker,"'owner-phone-visual-fix.js'",'owner phone visual file is live-first');
 requireText(serviceWorker,"'./owner-phone-visual-fix.js'",'owner phone visual file is available in the offline shell');
 
