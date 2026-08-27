@@ -30,7 +30,7 @@ jobs:
           node supabase/functions/reseller-facebook-public-v240/core.test.mjs
           node supabase/functions/reseller-facebook-public-v240/public-index.test.mjs
       - name: Type-check deployable function
-        run: deno check supabase/functions/reseller-facebook-public-v240/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/reseller-facebook-public-v240/index.ts
       - name: Forbid authenticated Facebook acquisition
         run: |
           set -euo pipefail
