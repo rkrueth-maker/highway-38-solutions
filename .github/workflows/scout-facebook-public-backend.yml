@@ -1,0 +1,43 @@
+name: Test H38 Scout Public Facebook Backend
+
+on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout'
+    paths:
+      - 'supabase/functions/reseller-facebook-public-v240/index.ts'
+      - 'supabase/functions/reseller-facebook-public-v240/core.mjs'
+      - 'supabase/functions/reseller-facebook-public-v240/core.test.mjs'
+      - 'supabase/functions/reseller-facebook-public-v240/public-index.mjs'
+      - 'supabase/functions/reseller-facebook-public-v240/public-index.test.mjs'
+      - '.github/workflows/scout-facebook-public-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-facebook-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run public Facebook truth fixtures
+        run: |
+          set -euo pipefail
+          node supabase/functions/reseller-facebook-public-v240/core.test.mjs
+          node supabase/functions/reseller-facebook-public-v240/public-index.test.mjs
+      - name: Type-check deployable function
+        run: deno check supabase/functions/reseller-facebook-public-v240/index.ts
+      - name: Forbid authenticated Facebook acquisition
+        run: |
+          set -euo pipefail
+          f=supabase/functions/reseller-facebook-public-v240/index.ts
+          grep -Fq "authentication:'NO_FACEBOOK_LOGIN'" "$f"
+          grep -Fq "H38_FACEBOOK_PUBLIC_V264" "$f"
+          grep -Fq "PUBLIC_LOCATION_UNPROVEN" "$f"
+          if grep -Eiq 'facebook.*cookie|c_user|xs=|checkpoint bypass|login credential' "$f"; then
+            echo 'Forbidden authenticated Facebook acquisition marker'; exit 1
+          fi
