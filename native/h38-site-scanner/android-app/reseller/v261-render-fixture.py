@@ -1,9 +1,9 @@
 from pathlib import Path
-import shutil
+import shutil,sys
 
 root=Path('reseller')
-src=root/'src/main/assets/reseller'
-out=Path('/tmp/h38-v261-render')
+src=Path(sys.argv[1]) if len(sys.argv)>1 else root/'src/main/assets/reseller'
+out=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/tmp/h38-v261-render')
 if out.exists(): shutil.rmtree(out)
 shutil.copytree(src,out)
 index=out/'index.html'
