@@ -3,6 +3,7 @@
   const nativeAndroid = /H38SiteScannerAndroid\//.test(String(navigator.userAgent || ''));
   const nativeReturnReloadParam = 'h38NativeReturnCold';
   const mobileOffice = () => !!window.matchMedia?.('(max-width: 760px)').matches;
+  const EARLY_PRIMARY = [['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
 
   function installMobileFirstFrameStyle() {
     if (!mobileOffice() || document.getElementById('h38MobileFirstFrameStyle')) return;
@@ -18,7 +19,7 @@
  body:not(.h38-field-scroll-lock) .app-shell{position:fixed!important;left:0!important;right:0!important;top:var(--h38-office-shell-top,58px)!important;bottom:0!important;display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;contain:layout paint!important;touch-action:auto!important}
  body:not(.h38-field-scroll-lock) #mainContent{position:absolute!important;inset:0!important;box-sizing:border-box!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow-x:hidden!important;overflow-y:scroll!important;overscroll-behavior-y:contain!important;padding:12px 10px calc(112px + env(safe-area-inset-bottom,0px))!important;contain:none!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto!important;overflow-anchor:none!important}
  #mainContent .page-head{margin-bottom:10px!important}#mainContent .page-head h1{font-size:1.35rem!important;line-height:1.12}#mainContent .page-head p{margin-top:4px!important;font-size:.82rem!important;line-height:1.35}#mainContent .grid{gap:9px!important}#mainContent .card{padding:12px!important;border-radius:14px!important}#mainContent .row{padding:10px!important}#mainContent input,#mainContent textarea,#mainContent select{font-size:16px!important}
- #mainNav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:2500!important;margin:0!important;transform:translateZ(0);backface-visibility:hidden}
+ #mainNav.h38-five-primary-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:2500!important;margin:0!important;padding:6px 6px env(safe-area-inset-bottom,0px)!important;background:var(--card,#fff)!important;box-shadow:0 -8px 24px rgba(11,36,56,.12);transform:translateZ(0);backface-visibility:hidden;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important}#mainNav.h38-five-primary-nav button{min-width:0!important;max-width:none!important;min-height:54px!important;padding:5px 2px!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}#mainNav.h38-five-primary-nav button span:last-child{font-size:.7rem!important;font-weight:850}
  .h38-mobile-tool-details,.h38-mobile-entry-details{grid-column:1/-1!important;width:100%!important;min-width:0!important;margin:0 0 9px;border:1px solid var(--line,#d6e0e8);border-radius:14px;background:var(--card,#fff);overflow:hidden}.h38-mobile-tool-details>summary,.h38-mobile-entry-details>summary{min-height:46px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;color:var(--navy,#0b2438);cursor:pointer;list-style:none}.h38-mobile-tool-details>summary::-webkit-details-marker,.h38-mobile-entry-details>summary::-webkit-details-marker{display:none}.h38-mobile-tool-details>summary::after,.h38-mobile-entry-details>summary::after{content:'＋';font-size:1rem}.h38-mobile-tool-details[open]>summary::after,.h38-mobile-entry-details[open]>summary::after{content:'−'}.h38-mobile-tool-details>.card,.h38-mobile-entry-details>.card{width:100%!important;min-width:0!important;margin:0!important;border:0!important;border-top:1px solid var(--line,#d6e0e8)!important;border-radius:0!important;box-shadow:none!important}.h38-mobile-record-card{order:-1}
 }
 `;
@@ -40,6 +41,33 @@
   }
 
   function firstFrameText(value) { return String(value == null ? '' : value).trim(); }
+  function firstFrameAllowed() { try { return typeof window.allowedPages === 'function' ? window.allowedPages() : []; } catch (_) { return []; } }
+  function firstFramePageLabel(key) { try { return typeof PAGE_DEFS !== 'undefined' && PAGE_DEFS[key] ? PAGE_DEFS[key][1] : key; } catch (_) { return key; } }
+  function firstFramePageIcon(key) { try { return typeof PAGE_DEFS !== 'undefined' && PAGE_DEFS[key] ? PAGE_DEFS[key][0] : '•'; } catch (_) { return '•'; } }
+  function firstFrameHtml(value) { return typeof window.esc === 'function' ? window.esc(value) : firstFrameText(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function ensureMobilePrimaryFirstFrame() {
+    if (!mobileOffice() || window.state?.shell !== 'office') return;
+    const nav = document.getElementById('mainNav');
+    const pages = new Set(firstFrameAllowed());
+    if (!nav || !pages.size) return;
+    const current = firstFrameText(window.state?.page);
+    const moreActive = !EARLY_PRIMARY.some(([key]) => key === current);
+    const desired = [
+      ...EARLY_PRIMARY.filter(([key]) => pages.has(key)).map(([key,icon,label]) => `<button type="button" data-h38-primary="${key}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
+      `<button type="button" data-h38-primary="more" class="${moreActive?'active':''}" aria-haspopup="dialog"><span class="nav-icon">•••</span><span>More</span></button>`
+    ].join('');
+    nav.classList.add('h38-five-primary-nav');
+    nav.classList.remove('h38-operator-scroll-nav');
+    nav.dataset.h38PrimaryNav = 'first-frame';
+    if (nav.innerHTML !== desired) nav.innerHTML = desired;
+    nav.querySelectorAll('[data-h38-primary]').forEach(button => {
+      button.onclick = () => {
+        const target = firstFrameText(button.dataset.h38Primary);
+        if (!target || target === 'more' || target === firstFrameText(window.state?.page)) return;
+        window.openPage?.(target);
+      };
+    });
+  }
   function firstFrameCardHeading(card) { return firstFrameText(card?.querySelector(':scope > h2,:scope > h3')?.textContent); }
   function firstFrameWrapCard(card, label, entry) {
     if (!card || card.closest('.h38-mobile-tool-details,.h38-mobile-entry-details')) return;
@@ -91,6 +119,7 @@
         firstFrameWrapCard(byName('Add property'), 'Add property', true);
       }
     }
+    ensureMobilePrimaryFirstFrame();
     syncMobileShellTop();
   }
 
@@ -109,6 +138,18 @@
     firstFrameOpenPage.h38MobileFirstFrameStable = true;
     firstFrameOpenPage.h38Base = base;
     window.openPage = firstFrameOpenPage;
+  }
+  function installMobileFirstFrameRenderNav() {
+    const base = window.renderNav;
+    if (typeof base !== 'function' || base.h38MobileFirstFrameStable) return;
+    function firstFrameRenderNav(...args) {
+      const result = base.apply(this, args);
+      ensureMobilePrimaryFirstFrame();
+      return result;
+    }
+    firstFrameRenderNav.h38MobileFirstFrameStable = true;
+    firstFrameRenderNav.h38Base = base;
+    window.renderNav = firstFrameRenderNav;
   }
 
   function nativeReturnPending() {
@@ -211,6 +252,7 @@
   window.optionRows = optionRows;
   window.toast = toast;
   window.openPage = openPage;
+  window.renderNav = renderNav;
   window.newId = newId;
   window.renderToday = renderToday;
   window.renderWork = renderWork;
@@ -231,10 +273,13 @@
   window.queueOperation = queueOperation;
 
   installMobileFirstFrameOpenPage();
+  installMobileFirstFrameRenderNav();
   window.H38_MOBILE_FIRST_FRAME_AUTHORITY = Object.freeze({
     enabled: true,
     preStartup: true,
     criticalGeometryBeforeStartup: true,
+    mobilePrimaryNavigationSingleAuthority: true,
+    primaryNavigationBeforeStartup: true,
     preRenderScrollReset: true,
     jobsCustomersShapeBeforeFirstPaint: true,
     postPaintPageRebuildRequired: false,
