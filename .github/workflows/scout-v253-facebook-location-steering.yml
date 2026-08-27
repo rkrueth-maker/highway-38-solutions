@@ -79,9 +79,11 @@ jobs:
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" 'assets/reseller/v200-app.js' > "$report/packaged-v200-app.js"
           grep -Fq 'H38_SCOUT_V253_FACEBOOK_CITY_STATE_STEERING=true' "$report/packaged-v200-app.js"
-          unzip -p "$out" classes.dex | strings > "$report/dex-strings.txt"
+          : > "$report/dex-strings.txt"
+          while IFS= read -r dex; do unzip -p "$out" "$dex" | strings >> "$report/dex-strings.txt"; done < <(unzip -Z1 "$out" | grep -E '^classes[0-9]*\.dex$')
           grep -Fq 'location-apply' "$report/dex-strings.txt"
           grep -Fq 'wrong-area cards remain withheld until the page itself proves the location' "$report/dex-strings.txt"
+          grep -Fq 'H38ResellerScoutMarketplace/2.5.3' "$report/dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
       - name: Upload v2.5.3 APK and diagnostics
