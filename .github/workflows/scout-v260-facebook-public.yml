@@ -1,0 +1,102 @@
+name: Build H38 Scout v2.6.0 Public Facebook
+
+on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout'
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v260-facebook-public.js'
+      - 'native/h38-site-scanner/android-app/reseller/v260-facebook-public.test.mjs'
+      - 'native/h38-site-scanner/android-app/reseller/v260-apply-public-facebook.py'
+      - 'supabase/functions/reseller-facebook-public-v240/index.ts'
+      - 'supabase/functions/reseller-facebook-public-v240/core.mjs'
+      - 'supabase/functions/reseller-facebook-public-v240/core.test.mjs'
+      - '.github/workflows/scout-v260-facebook-public.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+
+      - name: Apply deterministic v2.6.0 package layer
+        run: python reseller/v260-apply-public-facebook.py
+
+      - name: Verify public Facebook and regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; mkdir -p "$report"
+          node reseller/v260-facebook-public.test.mjs | tee "$report/facebook-public-app.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-public-core.txt"
+          node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
+          node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
+          node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-resale-rank.txt"
+          node reseller/src/main/assets/reseller/v230-auction.test.mjs | tee "$report/auctions.txt"
+          node reseller/src/main/assets/reseller/v240-home-depot-local.test.mjs | tee "$report/home-depot.txt"
+          node reseller/src/main/assets/reseller/v240-dg-remodel-radar.test.mjs | tee "$report/dg.txt"
+          for f in reseller/src/main/assets/reseller/v200-*.js reseller/src/main/assets/reseller/v210-polish.js reseller/src/main/assets/reseller/v211-wide.js reseller/src/main/assets/reseller/v212-physical.js reseller/src/main/assets/reseller/v220-profit.js reseller/src/main/assets/reseller/v220-track.js reseller/src/main/assets/reseller/v220-product.js reseller/src/main/assets/reseller/v240-data.js reseller/src/main/assets/reseller/v260-facebook-public.js; do node --check "$f"; done
+          grep -Fq "versionName '2.6.0'" reseller/build.gradle
+          grep -Fq 'versionCode 84' reseller/build.gradle
+          grep -Fq '<script src="v260-facebook-public.js"></script>' reseller/src/main/assets/reseller/index.html
+          if grep -Eiq 'Grand Rapids|55744' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.mjs"; then echo 'Facebook public backend contains forbidden location hardcode'; exit 1; fi
+          grep -Fq "device_fallback_required:false" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "authentication:'NO_FACEBOOK_LOGIN'" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          echo PASS > "$report/contract.txt"
+
+      - name: Compile Owner Scout v2.6.0 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; mkdir -p "$report"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+
+      - name: Smoke inspect exact v2.6.0 APK bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; out="$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='84' versionName='2.6.0'" "$report/badging.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"
+          unzip -p "$out" assets/reseller/v260-facebook-public.js > "$report/packaged-v260-facebook-public.js"
+          grep -Fq '<script src="v260-facebook-public.js"></script>' "$report/packaged-index.html"
+          grep -Fq 'H38_SCOUT_V260_FACEBOOK_PUBLIC_FIRST=true' "$report/packaged-v260-facebook-public.js"
+          grep -Fq 'Search public Facebook' "$report/packaged-v260-facebook-public.js"
+          if grep -Fq 'openFacebookMarketplace(' "$report/packaged-v260-facebook-public.js"; then echo 'Public-only Facebook layer still opens authenticated WebView'; exit 1; fi
+          rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
+          for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
+          grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
+          echo PASS > "$report/smoke.txt"
+
+      - name: Upload v2.6.0 APK and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v2.6.0-public-facebook
+          path: artifacts/scout-v260/*
+          if-no-files-found: warn
+          retention-days: 30
