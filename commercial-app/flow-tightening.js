@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-flow-desktop-nav-ownership-1';
+const BUILD='20260826-flow-first-frame-stability-2';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
@@ -49,7 +49,7 @@ function startSiteVisit(customerId='',quoteId=''){
 function compactRenderNav(baseRenderNav){
   const isMobile=!!window.matchMedia?.('(max-width: 760px)').matches;
   if(!isMobile){baseRenderNav();return;}
-  if(window.H38_MOBILE_RUNTIME_STABILITY?.mobilePrimaryNavigationSingleAuthority)return;
+  if(window.H38_MOBILE_RUNTIME_STABILITY?.mobilePrimaryNavigationSingleAuthority||window.H38_MOBILE_FIRST_FRAME_AUTHORITY?.mobilePrimaryNavigationSingleAuthority)return;
   const s=officeState();if(!s||s.shell!=='office'){baseRenderNav();return;}
   const pages=new Set(allowed()),nav=document.getElementById('mainNav');if(!nav)return;
   const keys=NAV_ORDER.filter(key=>pages.has(key));
@@ -123,7 +123,11 @@ function enhanceWork(){
   main.querySelectorAll('.grid > .card').forEach(card=>{const heading=card.querySelector('h2')?.textContent?.trim();if(['New request','New job','Assign task'].includes(heading))card.classList.add('h38-tight-secondary');});
   enhanceChangeOrders(job);
 }
-function scheduleWorkEnhance(){if(workEnhanceScheduled||officeState()?.page!=='work')return;workEnhanceScheduled=true;setTimeout(()=>{workEnhanceScheduled=false;enhanceWork();},0);}
+function scheduleWorkEnhance(){
+  if(workEnhanceScheduled||officeState()?.page!=='work')return;
+  workEnhanceScheduled=true;
+  try{enhanceWork();}finally{workEnhanceScheduled=false;}
+}
 function runJobCommand(command,job,context){
   preferredJobId=recordId(job,'Job ID','jobId');
   if(command==='site'||command==='field'){startSiteVisit(text(value(job,'Customer ID','customerId')),recordId(latest(context?.quotes||[]),'Quote ID','quoteId'));return;}
@@ -172,14 +176,14 @@ function install(){
     const base=window.renderWork;window.renderWork=function(){const result=base.apply(this,arguments);scheduleWorkEnhance();return result;};
   }
   if(typeof window.renderCustomers==='function'){
-    const base=window.renderCustomers;window.renderCustomers=function(){const result=base.apply(this,arguments);setTimeout(enhanceCustomers,0);return result;};
+    const base=window.renderCustomers;window.renderCustomers=function(){const result=base.apply(this,arguments);enhanceCustomers();return result;};
   }
   if(typeof window.renderMoney==='function'){
     const base=window.renderMoney;window.renderMoney=function(){const result=base.apply(this,arguments);setTimeout(enhanceMoney,0);return result;};
   }
   const observer=new MutationObserver(()=>{decorateFieldVisit();});observer.observe(document.documentElement,{childList:true,subtree:true});
-  scheduleWorkEnhance();if(officeState()?.page==='customers')setTimeout(enhanceCustomers,0);decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  scheduleWorkEnhance();if(officeState()?.page==='customers')enhanceCustomers();decorateFieldVisit();
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,workEnhanceSynchronous:true,customerEnhanceSynchronous:true,postPaintJobsCustomerMutation:false,preStartupMobileNavRespected:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
