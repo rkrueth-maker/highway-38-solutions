@@ -10,6 +10,19 @@ if(main){
   main.dataset.h38NativeScrollAuthority='1';
   main.dataset.h38PhysicalScrollSurface='mainContent';
 }
+function currentOfficePage(){
+  try{return String(window.state?.page||'').trim();}catch(_){return'';}
+}
+function blockActivePrimaryReselect(event){
+  if(!window.matchMedia?.('(max-width: 760px)').matches)return;
+  const button=event.target?.closest?.('button[data-h38-primary],button[data-page]');
+  if(!button)return;
+  const target=String(button.dataset.h38Primary||button.dataset.page||'').trim();
+  if(!target||target==='more'||target!==currentOfficePage())return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+document.addEventListener('click',blockActivePrimaryReselect,true);
 window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   build:BUILD,
   enabled:true,
@@ -18,6 +31,8 @@ window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   manualTouchFallbackPrevented:true,
   syntheticInertiaPrevented:true,
   nestedNativeScrollingPreserved:true,
+  activePrimaryTabReselectNoop:true,
+  samePageNavigationRebuildPrevented:true,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticPurchasing:false,
