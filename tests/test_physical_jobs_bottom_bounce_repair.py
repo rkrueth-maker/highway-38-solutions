@@ -43,7 +43,9 @@ def test_page_navigation_resets_main_scroller_not_window():
 def test_active_mobile_primary_tab_reselect_is_a_true_noop():
     assert "activePrimaryTabReselectNoop:true" in NATIVE
     assert "samePageNavigationRebuildPrevented:true" in NATIVE
+    assert "primaryNavOnlyReselectGuard:true" in NATIVE
     assert "button[data-h38-primary],button[data-page]" in NATIVE
+    assert "button.closest?.('#mainNav')" in NATIVE
     assert "target!==currentOfficePage()" in NATIVE
     assert "event.preventDefault()" in NATIVE
     assert "event.stopImmediatePropagation()" in NATIVE
