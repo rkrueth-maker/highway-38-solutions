@@ -1,13 +1,15 @@
-name: Build H38 Scout v2.6.0 Public Facebook
+name: Build H38 Scout v2.6.1 Public Facebook Render Authority
 
 on:
   push:
     branches:
       - 'agent/private-reseller-scout'
     paths:
-      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v260-facebook-public.js'
-      - 'native/h38-site-scanner/android-app/reseller/v260-facebook-public.test.mjs'
-      - 'native/h38-site-scanner/android-app/reseller/v260-apply-public-facebook.py'
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v261-facebook-public-runtime.js'
+      - 'native/h38-site-scanner/android-app/reseller/v261-facebook-public.test.mjs'
+      - 'native/h38-site-scanner/android-app/reseller/v261-render-fixture.py'
       - 'supabase/functions/reseller-facebook-public-v240/index.ts'
       - 'supabase/functions/reseller-facebook-public-v240/core.mjs'
       - 'supabase/functions/reseller-facebook-public-v240/core.test.mjs'
@@ -33,16 +35,14 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-
-      - name: Apply deterministic v2.6.0 package layer
-        run: python reseller/v260-apply-public-facebook.py
+      - uses: browser-actions/setup-chrome@v1
 
       - name: Verify public Facebook and regression contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; mkdir -p "$report"
-          node reseller/v260-facebook-public.test.mjs | tee "$report/facebook-public-app.txt"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v261"; mkdir -p "$report"
+          node reseller/v261-facebook-public.test.mjs | tee "$report/facebook-public-app.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-public-core.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
@@ -50,53 +50,82 @@ jobs:
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs" | tee "$report/home-depot.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg.txt"
-          for f in reseller/src/main/assets/reseller/v200-*.js reseller/src/main/assets/reseller/v210-polish.js reseller/src/main/assets/reseller/v211-wide.js reseller/src/main/assets/reseller/v212-physical.js reseller/src/main/assets/reseller/v220-profit.js reseller/src/main/assets/reseller/v220-track.js reseller/src/main/assets/reseller/v220-product.js reseller/src/main/assets/reseller/v240-data.js reseller/src/main/assets/reseller/v260-facebook-public.js; do node --check "$f"; done
-          grep -Fq "versionName '2.6.0'" reseller/build.gradle
-          grep -Fq 'versionCode 84' reseller/build.gradle
-          grep -Fq '<script src="v260-facebook-public.js"></script>' reseller/src/main/assets/reseller/index.html
+          for f in reseller/src/main/assets/reseller/v200-*.js reseller/src/main/assets/reseller/v210-polish.js reseller/src/main/assets/reseller/v211-wide.js reseller/src/main/assets/reseller/v212-physical.js reseller/src/main/assets/reseller/v220-profit.js reseller/src/main/assets/reseller/v220-track.js reseller/src/main/assets/reseller/v220-product.js reseller/src/main/assets/reseller/v240-data.js reseller/src/main/assets/reseller/v261-facebook-public-runtime.js; do node --check "$f"; done
+          grep -Fq "versionName '2.6.1'" reseller/build.gradle
+          grep -Fq 'versionCode 85' reseller/build.gradle
+          grep -Fq 'v261-facebook-public-runtime.js' reseller/src/main/assets/reseller/v200-app.js
           if grep -Eiq 'Grand Rapids|55744' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.mjs"; then echo 'Facebook public backend contains forbidden location hardcode'; exit 1; fi
           grep -Fq "device_fallback_required:false" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
           grep -Fq "authentication:'NO_FACEBOOK_LOGIN'" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
           echo PASS > "$report/contract.txt"
 
-      - name: Compile Owner Scout v2.6.0 APK
+      - name: Compile Owner Scout v2.6.1 APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v261"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v2.6.1-public-facebook.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.6.1-public-facebook.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
-      - name: Smoke inspect exact v2.6.0 APK bytes
+      - name: Smoke inspect exact v2.6.1 APK bytes
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v260"; out="$report/H38-Reseller-Scout-Owner-v2.6.0-public-facebook.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v261"; out="$report/H38-Reseller-Scout-Owner-v2.6.1-public-facebook.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='84' versionName='2.6.0'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='85' versionName='2.6.1'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" assets/reseller/index.html > "$report/packaged-index.html"
-          unzip -p "$out" assets/reseller/v260-facebook-public.js > "$report/packaged-v260-facebook-public.js"
-          grep -Fq '<script src="v260-facebook-public.js"></script>' "$report/packaged-index.html"
-          grep -Fq 'H38_SCOUT_V260_FACEBOOK_PUBLIC_FIRST=true' "$report/packaged-v260-facebook-public.js"
-          grep -Fq 'Search public Facebook' "$report/packaged-v260-facebook-public.js"
-          if grep -Fq 'openFacebookMarketplace(' "$report/packaged-v260-facebook-public.js"; then echo 'Public-only Facebook layer still opens authenticated WebView'; exit 1; fi
+          unzip -p "$out" assets/reseller/v200-app.js > "$report/packaged-v200-app.js"
+          unzip -p "$out" assets/reseller/v261-facebook-public-runtime.js > "$report/packaged-v261-facebook-public-runtime.js"
+          grep -Fq 'v261-facebook-public-runtime.js' "$report/packaged-v200-app.js"
+          grep -Fq 's.onload=loadPublicAuthority' "$report/packaged-v200-app.js"
+          grep -Fq 'H38_SCOUT_V261_FACEBOOK_RENDER_AUTHORITY=true' "$report/packaged-v261-facebook-public-runtime.js"
+          grep -Fq 'Search public Facebook' "$report/packaged-v261-facebook-public-runtime.js"
+          grep -Fq 'reseller-location-geocode' "$report/packaged-v261-facebook-public-runtime.js"
+          if grep -Fq 'openFacebookMarketplace(' "$report/packaged-v261-facebook-public-runtime.js"; then echo 'Public Facebook authority still opens authenticated WebView'; exit 1; fi
+          if grep -Fq '<script src="v260-facebook-public.js"></script>' "$report/packaged-index.html"; then echo 'Old late v2.6.0 Facebook override is still wired into packaged index'; exit 1; fi
           rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
           for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
           grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
-      - name: Upload v2.6.0 APK and diagnostics
+      - name: Render exact packaged APK as owner at ZIP 55744 / 50 mi
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v261"; out="$report/H38-Reseller-Scout-Owner-v2.6.1-public-facebook.apk"
+          rm -rf /tmp/h38-v261-apk /tmp/h38-v261-render-apk
+          mkdir -p /tmp/h38-v261-apk
+          unzip -q "$out" 'assets/reseller/*' -d /tmp/h38-v261-apk
+          python reseller/v261-render-fixture.py /tmp/h38-v261-apk/assets/reseller /tmp/h38-v261-render-apk
+          python3 -m http.server 8877 --directory /tmp/h38-v261-render-apk > "$report/render-http.log" 2>&1 &
+          server=$!; trap 'kill $server 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v chrome || command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          test -n "$CHROME"
+          timeout 40s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=12000 --dump-dom http://127.0.0.1:8877/index.html > "$report/rendered-dom.html" 2> "$report/render-chrome.log"
+          grep -Fq 'data-v261-facebook-authority="true"' "$report/rendered-dom.html"
+          grep -Fq 'Grand Rapids, MN, 55744' "$report/rendered-dom.html"
+          grep -Fq 'Search public Facebook' "$report/rendered-dom.html"
+          grep -Fq '1 public · no Facebook login' "$report/rendered-dom.html"
+          grep -Fq 'H38_FACEBOOK_PUBLIC_V261 · LIVE · 1 location-proven listing' "$report/rendered-dom.html"
+          for forbidden in 'Run signed-in Facebook pass' 'Open Facebook fallback' 'WebView cookies are now explicitly persisted' 'Enable Marketplace alerts' 'No Facebook pass ledger yet.'; do
+            if grep -Fq "$forbidden" "$report/rendered-dom.html"; then echo "Rendered Discover still exposes forbidden Facebook fallback UI: $forbidden"; exit 1; fi
+          done
+          echo PASS > "$report/rendered-phone-fixture.txt"
+
+      - name: Upload v2.6.1 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.6.0-public-facebook
-          path: artifacts/scout-v260/*
+          name: h38-reseller-scout-owner-v2.6.1-public-facebook
+          path: artifacts/scout-v261/*
           if-no-files-found: warn
           retention-days: 30
