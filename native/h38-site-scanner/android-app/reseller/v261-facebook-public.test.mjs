@@ -20,11 +20,23 @@ assert.match(runtime,/alerts\.remove\(\)/);
 assert.match(runtime,/data-v261-facebook-status/);
 assert.doesNotMatch(runtime,/openFacebookMarketplace\(/);
 
+// v261 public authority must always load after the v240 provider layer.
 assert.match(app,/v261-facebook-public-runtime\.js/);
 assert.match(app,/s\.onload=loadPublicAuthority/);
-assert.match(app,/a\.onload=\(\)=>\{authorityLoading=false;bootstrapV200\(\)\}/);
-assert.match(gradle,/versionCode 85/);
-assert.match(gradle,/versionName '2\.6\.1'/);
+
+// v2.6.1 booted directly after v261. Newer repairs may insert another authority
+// layer, but v261 must still complete before that layer and bootstrap must remain
+// downstream of it. This keeps the public-Facebook ordering contract strict.
+const directBootstrap=/a\.onload=\(\)=>\{authorityLoading=false;bootstrapV200\(\)\}/.test(app);
+const repairBootstrap=/a\.onload=\(\)=>\{authorityLoading=false;loadPhoneRepair\(\)\}/.test(app)
+  && /r\.src='v262-phone-video-repair\.js'/.test(app)
+  && /r\.onload=\(\)=>\{repairLoading=false;bootstrapV200\(\)\}/.test(app);
+assert.ok(directBootstrap||repairBootstrap,'v261 public authority must complete before Scout bootstrap');
+
+const versionCode=Number((gradle.match(/versionCode\s+(\d+)/)||[])[1]);
+const versionName=(gradle.match(/versionName\s+'([^']+)'/)||[])[1]||'';
+assert.ok(versionCode>=85,'Scout build must not regress below v2.6.1 versionCode 85');
+assert.match(versionName,/^2\.6\.[1-9]\d*$/,'Scout build must remain v2.6.1 or newer');
 
 assert.match(backend,/authentication:'NO_FACEBOOK_LOGIN'/);
 assert.match(backend,/device_fallback_required:false/);
@@ -34,4 +46,4 @@ assert.doesNotMatch(core,/Grand Rapids/);
 assert.doesNotMatch(core,/55744/);
 assert.match(core,/onlyVerified===true/);
 
-console.log('PASS Scout v2.6.1 rendered public Facebook authority contract');
+console.log('PASS Scout v2.6.1+ rendered public Facebook authority contract');
