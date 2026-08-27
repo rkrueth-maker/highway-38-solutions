@@ -29,6 +29,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
+      - name: Configure stable owner signing key
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${KEYSTORE_B64:-}" || -z "${KEYSTORE_PASSWORD:-}" || -z "${KEY_ALIAS:-}" || -z "${KEY_PASSWORD:-}" ]]; then
+            echo 'Stable H38 Android signing secrets are required for Scout owner APKs.' >&2
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/h38-owner-keystore.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          {
+            echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+            echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Verify polish and preserved truth contracts
         shell: bash
         run: |
@@ -96,6 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/scout-v251-polish"; mkdir -p "$report"
+          echo stable-owner-key > "$report/signing-continuity.txt"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
           out="$report/H38-Reseller-Scout-Owner-v2.5.1-polish.apk"; cp "$apk" "$out"
