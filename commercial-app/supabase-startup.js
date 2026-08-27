@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20260807-2132';
+const H38_SUPABASE_STARTUP_BUILD='20260827-authoritative-online-first-paint-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -72,13 +72,14 @@ hydrateLocalStartup=async function(options={}){
     const selected=await withStartupTimeout(get('meta','selectedBusiness'),'loading user-scoped business');
     setFastBusinessId(selected?.businessId||'');
   }catch(error){console.warn(error.message);}
+  // Online startup may use cached preferences/selection, but never paints cached business records.
+  // Keep the startup cover up until the secure gateway returns the authoritative snapshot.
+  if(navigator.onLine&&allowOnline)return false;
   try{
     if(!state.snapshot)await withStartupTimeout(loadCached({allowOnline}),'loading verified business pack',4000);
     if(state.snapshot){
       h38SetAuthorizedChrome(true);
-      $('businessStatus').textContent=navigator.onLine
-        ?`${state.snapshot.business.businessName} · Office open · refreshing securely…`
-        :`${state.snapshot.business.businessName} · Offline · verified device cache`;
+      $('businessStatus').textContent=`${state.snapshot.business.businessName} · Offline · verified device cache`;
       openPage(state.page,false);
       await updatePending().catch(()=>{});
       return true;
@@ -218,11 +219,12 @@ handleFullSnapshot=async function(snapshot,businessId){
   try{
     const id=String(businessId||snapshot?.business?.businessId||'');
     if(!id||id!==state.businessId)return;
+    const firstAuthoritativeOpen=!state.snapshot;
     saveStartupSnapshot(snapshot,id);
     $('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · Office online`;
     openPage(state.page,false);
     await updatePending().catch(()=>{});
-    toast('Office refreshed.');
+    if(!firstAuthoritativeOpen)toast('Office refreshed.');
   }catch(error){handleBridgeError('refresh',error.message||String(error));}
 };
 
@@ -258,7 +260,7 @@ renderWelcome=function(mode='connecting',detailOverride=''){
     $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized Highway 38 business.</p></section>';
     return;
   }
-  $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Restoring your last verified office and refreshing securely.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
+  $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Opening your current verified business records.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
 };
 
 loadBusiness=async function(businessId,quiet=false){
@@ -281,6 +283,9 @@ window.H38_OFFICE_STARTUP=Object.freeze({
   enabled:true,
   build:H38_SUPABASE_STARTUP_BUILD,
   onlineWarmOpen:true,
+  onlineCachePaint:false,
+  authoritativeOnlineFirstPaint:true,
+  initialRefreshToastSuppressed:true,
   offlineVerifiedCache:true,
   serviceWorkerEnabled:true,
   membershipRevalidation:true,
