@@ -60,7 +60,6 @@ jobs:
           node "$dgTest" | tee "$report/dg.txt"
           node "$fbTest" | tee "$report/facebook.txt"
 
-          # Preserve already accepted Scout truth/regression boundaries.
           check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
           check 'H38_SCOUT_V220_PROFIT_ENGINE=true' "$profit"
           check 'H38_SCOUT_V220_TRACK=true' "$track"
@@ -76,8 +75,10 @@ jobs:
           check 'LOCATION_PROOF_TTL_MS' "$fbJava"
           check 'location_verified' "$fbJava"
           check 'if(Double.isFinite(d)&&d>radius)continue' "$fbJava"
+          check 'selected Scout area' "$fbJava"
+          reject 'Exact Grand Rapids, Minnesota location selected' "$fbJava"
+          reject 'if(!"55744".equals(postal))return raw' "$fbJava"
 
-          # v2.5: paid providers are optional; device state stays on phone.
           check 'H38_SCOUT_V250_PROVIDER_HARDENING=true' "$data"
           check 'PERSIST_DEVICE_WEB_SESSIONS_V250' "$appJava"
           check 'CookieManager.getInstance().flush()' "$appJava"
@@ -134,6 +135,8 @@ jobs:
           grep -Fq 'DEVICE_STORE_BOUND_CHECK_V250' "$report/dex-strings.txt"
           grep -Fq 'H38ResellerScoutStoreCheck/2.5.0' "$report/dex-strings.txt"
           grep -Fq 'storeSelection' "$report/dex-strings.txt"
+          grep -Fq 'selected Scout area' "$report/dex-strings.txt"
+          if grep -Fq 'Exact Grand Rapids, Minnesota location selected' "$report/dex-strings.txt"; then echo '::error::Hardcoded Grand Rapids Facebook location authority remains packaged'; exit 1; fi
           echo PASS > "$report/smoke.txt"
 
       - name: Upload v2.5 APK and diagnostics
