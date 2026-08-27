@@ -8,6 +8,7 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/build.gradle'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v262-phone-video-repair.js'
+      - 'native/h38-site-scanner/android-app/reseller/v261-facebook-public.test.mjs'
       - 'native/h38-site-scanner/android-app/reseller/v262-phone-video-repair.test.mjs'
       - 'native/h38-site-scanner/android-app/reseller/v262-render-fixture.py'
       - 'supabase/functions/reseller-nearby-stores-v262/index.ts'
