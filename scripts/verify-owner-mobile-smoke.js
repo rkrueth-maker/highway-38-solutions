@@ -20,8 +20,9 @@ const stability=read('commercial-app/mobile-runtime-stability.js');
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
 const startupVisit=read('commercial-app/startup-site-visit-stability.js');
 const phoneVisual=read('commercial-app/owner-phone-visual-fix.js');
+const serviceWorker=read('commercial-app/service-worker.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -43,6 +44,13 @@ requireText(nativeLaunch,'workingHammer:true','Save & Start has visible hammer')
 requireText(nativeLaunch,'b.launchWalkthroughCapture()','Save & Start reaches native CameraX bridge');
 requireText(topAction,'physicalAndroidReturnRepair:true','native return recovery stays enabled');
 requireText(topAction,'nativeEvidencePoll:true','native evidence polling stays enabled');
+requireText(topAction,'addCustomerTopLevel:true','Customers exposes Add Customer as a top-level action');
+requireText(topAction,'addCustomerBesideSiteVisit:true','Add Customer sits beside Start Site Visit');
+requireText(topAction,'addCustomerUsesCanonicalForm:true','Add Customer reuses the canonical customer form');
+requireText(topAction,'addCustomerExpandsMobileEntry:true','Add Customer expands the collapsed mobile customer form');
+requireText(topAction,'addCustomerNoNewWorkflow:true','Add Customer does not create a second customer workflow');
+requireText(topAction,'h38AddCustomerTop','top Customers action bar contains Add Customer');
+requireText(topAction,"document.getElementById('customerForm')",'Add Customer targets the canonical customer form');
 
 for(const token of ["['today','⌂','Today']","['work','🧰','Jobs']","['customers','👤','Customers']","['messages','💬','Messages']",'<span>More</span>'])requireText(jobFlow,token,`primary mobile navigation: ${token}`);
 requireText(polish,'groupedMore:true','More remains grouped');
@@ -75,7 +83,7 @@ requireText(runtimeGlobals,"typeof renderField !== 'undefined'",'optional field 
 if(/^\s*window\.renderField\s*=\s*renderField\s*;/m.test(runtimeGlobals))fail('runtime globals avoid unguarded renderField reference');else pass('runtime globals avoid unguarded renderField reference');
 requireText(runtimeGlobals,'h38-early-native-startup','startup cover is asserted before hydration begins');
 requireText(runtimeGlobals,'startup-site-visit-stability.js?build=20260816-startup-site-visit-stability-3','updated startup/site visit stability guard is loaded');
-requireText(runtimeGlobals,'owner-phone-visual-fix.js?build=20260816-owner-phone-visual-fix-1','phone visual repair is loaded before hydration finishes');
+requireText(runtimeGlobals,'owner-phone-visual-fix.js?build=20260816-owner-phone-visual-fix-1','phone visual loader path remains recognized');
 requireText(runtimeGlobals,'window.H38_FIELD_VISIT?.open','missing classic field renderer routes to real Site Visit authority');
 requireText(startupVisit,'startupSingleCover:true','native startup uses one visual cover instead of intermediate screens');
 requireText(startupVisit,'startupHammer:true','startup cover shows hammer working state');
@@ -87,13 +95,18 @@ requireText(startupVisit,'existingDraftPreserved:true','existing saved drafts re
 requireText(startupVisit,'realSiteVisitAuthority:true','real Site Visit remains launch authority');
 requireText(phoneVisual,'todayCollapsedCardsFullWidth:true','Today collapsed cards are forced full width on phones');
 requireText(phoneVisual,'lifecycleSingleColumn:true','Today lifecycle content is forced to one readable phone column');
+requireText(phoneVisual,'customerCreationDelegatedToTopAction:true','phone visual layer delegates customer creation to the canonical top action');
+if(phoneVisual.includes('data-h38-add-customer'))fail('phone visual layer does not inject a duplicate Add Customer action');else pass('phone visual layer does not inject a duplicate Add Customer action');
+requireText(serviceWorker,'h38-business-office-20260827-1350','service worker cache epoch flushes stale customer-action assets');
+requireText(serviceWorker,"'owner-phone-visual-fix.js'",'owner phone visual file is live-first');
+requireText(serviceWorker,"'./owner-phone-visual-fix.js'",'owner phone visual file is available in the offline shell');
 
 for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true','automaticPurchasing:true','automaticPayment:true','automaticScheduling:true']){
-  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['job flow',jobFlow],['polish',polish],['native scroll',nativeScroll],['stability',stability],['startup/site visit',startupVisit],['phone visual',phoneVisual]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
+  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['polish',polish],['native scroll',nativeScroll],['stability',stability],['startup/site visit',startupVisit],['phone visual',phoneVisual],['service worker',serviceWorker]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + canonical Customers top actions + phone cache freshness + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));

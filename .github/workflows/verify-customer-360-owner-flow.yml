@@ -14,6 +14,8 @@ on:
       - 'commercial-app/owner-customer-workflow-polish.css'
       - 'commercial-app/owner-job-lifecycle-handoff.js'
       - 'commercial-app/owner-flow-polish.js'
+      - 'commercial-app/owner-phone-visual-fix.js'
+      - 'commercial-app/site-visit-top-action.js'
       - 'commercial-app/job-lifecycle.js'
       - 'commercial-app/example-data-manager.js'
       - 'commercial-app/example-data-manager.css'
@@ -31,6 +33,7 @@ on:
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
+      - 'scripts/verify-customer-top-actions-browser.js'
       - 'scripts/verify-web-media-intake-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
@@ -51,6 +54,8 @@ on:
       - 'commercial-app/owner-customer-workflow-polish.css'
       - 'commercial-app/owner-job-lifecycle-handoff.js'
       - 'commercial-app/owner-flow-polish.js'
+      - 'commercial-app/owner-phone-visual-fix.js'
+      - 'commercial-app/site-visit-top-action.js'
       - 'commercial-app/job-lifecycle.js'
       - 'commercial-app/example-data-manager.js'
       - 'commercial-app/example-data-manager.css'
@@ -68,6 +73,7 @@ on:
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
+      - 'scripts/verify-customer-top-actions-browser.js'
       - 'scripts/verify-web-media-intake-browser.js'
       - 'scripts/verify-owner-navigation-context-polish.js'
       - 'scripts/verify-photo-only-web-quote.js'
@@ -100,6 +106,8 @@ jobs:
           node -c commercial-app/owner-customer-workflow-polish.js
           node -c commercial-app/owner-job-lifecycle-handoff.js
           node -c commercial-app/owner-flow-polish.js
+          node -c commercial-app/owner-phone-visual-fix.js
+          node -c commercial-app/site-visit-top-action.js
           node -c commercial-app/example-data-manager.js
           node -c commercial-app/example-data-full-office.js
           node -c commercial-app/assistant-command-bus.js
@@ -110,6 +118,7 @@ jobs:
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
           node -c scripts/verify-customer-readiness-polish-browser.js
+          node -c scripts/verify-customer-top-actions-browser.js
           node -c scripts/verify-web-media-intake-browser.js
           node -c scripts/verify-owner-navigation-context-polish.js
           node -c scripts/verify-photo-only-web-quote.js
@@ -138,6 +147,8 @@ jobs:
         run: node scripts/verify-customer-360-browser.js
       - name: Run customer readiness polish as owner
         run: node scripts/verify-customer-readiness-polish-browser.js
+      - name: Run Customers top actions on mobile
+        run: node scripts/verify-customer-top-actions-browser.js
       - name: Run web video and recording intake as owner
         run: node scripts/verify-web-media-intake-browser.js
       - name: Run owner navigation and context polish
