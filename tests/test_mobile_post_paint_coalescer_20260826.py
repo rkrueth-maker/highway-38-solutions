@@ -6,27 +6,43 @@ INDEX = (ROOT / 'commercial-app' / 'index.html').read_text(encoding='utf-8')
 SW = (ROOT / 'commercial-app' / 'service-worker.js').read_text(encoding='utf-8')
 
 
-def test_mobile_first_frame_coalesces_known_post_paint_authorities():
-    assert '20260826-mobile-scroll-native-authority-2-post-paint-coalescer' in AUTH
-    assert 'postPaintTimerCoalescing:true' in AUTH
-    assert 'postPaintIntervalPollingSuppressed:true' in AUTH
-    assert 'firstFrameAnimationFrameCoalescing:true' in AUTH
-    assert 'maxPostPaintDelayMs:0' in AUTH
+def test_mobile_guard_does_not_coalesce_unrelated_customer_or_runtime_timers():
+    assert '20260826-mobile-scroll-native-authority-3-jobs-one-pass' in AUTH
+    assert 'broadPostPaintCoalescerRemoved:true' in AUTH
+    assert 'customerTimersUnmodified:true' in AUTH
+    assert 'intervalMonkeypatch:false' in AUTH
+    assert 'animationFrameMonkeypatch:false' in AUTH
+    assert 'window.setInterval=function' not in AUTH
+    assert 'window.requestAnimationFrame=function' not in AUTH
+    jobs_source = AUTH.split('const JOBS_SOURCE=', 1)[1].split(';', 1)[0]
     for source in [
-        'site-visit-wide-acceptance-final',
         'customer-360-authority',
         'customer-360-browser-integration-v3',
         'customer-readiness-polish',
         'owner-customer-workflow-polish',
         'mobile-runtime-stability',
     ]:
-        assert source in AUTH
-    assert 'ms===250' in AUTH
-    assert 'ms<=750' in AUTH
-    assert 'queueMicrotask' in AUTH
+        assert source not in jobs_source
 
 
-def test_guard_is_loaded_before_late_mobile_customer_polish_layers():
+def test_jobs_reconciliation_is_one_visible_render_transaction():
+    assert 'jobsTimerGuardOnly:true' in AUTH
+    assert 'jobsZeroDelayRunsInRenderTransaction:true' in AUTH
+    assert 'jobsLateReconcileSuppressed:true' in AUTH
+    assert 'maxVisibleJobsReconcileDelayMs:0' in AUTH
+    jobs_source = AUTH.split('const JOBS_SOURCE=', 1)[1].split(';', 1)[0]
+    for source in [
+        'site-visit-wide-acceptance-final',
+        'site-visit-work-dedupe-final',
+        'site-visit-work-list-grouping-repair',
+    ]:
+        assert source in jobs_source
+    assert 'if(ms===0)' in AUTH
+    assert 'suppressedLateJobsCallbacks' in AUTH
+    assert 'queueMicrotask' not in AUTH
+
+
+def test_guard_loads_before_mobile_and_customer_polish_layers_and_is_live_first():
     guard = INDEX.index('mobile-scroll-native-authority.js')
     assert guard >= 0
     for later in [
@@ -35,7 +51,8 @@ def test_guard_is_loaded_before_late_mobile_customer_polish_layers():
         'customer-readiness-polish.js',
     ]:
         assert INDEX.index(later) > guard
-    assert 'mobile-scroll-native-authority.js' in SW
+    live_first = SW.split('const LIVE_FIRST=new Set([', 1)[1].split(']);', 1)[0]
+    assert "'mobile-scroll-native-authority.js'" in live_first
 
 
 def test_guard_preserves_owner_control_boundaries():
