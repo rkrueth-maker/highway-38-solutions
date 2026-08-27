@@ -134,6 +134,79 @@ window.H38_SCOUT_V230_FACEBOOK_LEDGER=true;
   runDiscover=async function(){if(state.discover.running)return;if(!requireLocation())return;state.discover.query=txt($('discoverSearch')?.value??state.discover.query);write(H38_KEYS.discover,state.discover.query);const terms=profitTerms(),fb=facebookSnapshot();state.discover.running=true;state.discover.deals=null;state.discover.auctions=null;renderDiscover();const batches=[];for(let i=0;i<terms.length;i+=4)batches.push(terms.slice(i,i+4));const deals=Promise.allSettled(batches.map(batch=>fn('reseller-opportunity-scan-v060',{sources:['Craigslist','Facebook Marketplace'],terms:batch,facebookCandidates:fb.rows,...locationPayload()},70000))).then(async settled=>{const parts=settled.filter(x=>x.status==='fulfilled').map(x=>x.value);if(!parts.length)throw Error(settled.find(x=>x.status==='rejected')?.reason?.message||'Local listing scan failed');state.discover.deals=mergeDealPayload(parts,terms);renderDiscover();const dealRows=[...(state.discover.deals?.opportunities||[]),...(state.discover.deals?.candidates||[])];if(await cacheRows(dealRows))renderDiscover()}).catch(e=>{error('discoverDealsV230',e);state.discover.deals={opportunities:[],candidates:[],warning:e.message||String(e)};renderDiscover()});const auctions=fn('reseller-auction-search-v230',{...locationPayload(),query:state.discover.query,sort:'best',source:'all',kind:'all',search_lane:'mixed'},90000).then(async p=>{state.discover.auctions=p;renderDiscover();if(await cacheRows(p.results||[]))renderDiscover()}).catch(e=>{error('discoverAuctionsV230',e);state.discover.auctions={results:[],warning:e.message||String(e)};renderDiscover()});const retail=(state.hunt.loaded?Promise.resolve():loadHunt(false)).then(()=>{state.discover.retail={rows:state.hunt.rows};renderDiscover()}).catch(e=>error('discoverRetailV230',e));await Promise.allSettled([deals,auctions,retail]);state.discover.running=false;renderDiscover()};
 })();
 </script>
+<script>
+window.H38_SCOUT_V251_POLISH=true;
+(function(){
+  const css=`
+  :root{--tap:44px}
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  button{touch-action:manipulation;-webkit-tap-highlight-color:rgba(14,116,144,.12)}
+  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid rgba(14,116,144,.24);outline-offset:2px}
+  .page{padding-bottom:34px}
+  .location-strip{box-shadow:0 5px 16px rgba(20,42,58,.045)}
+  .location-pill{min-height:44px}
+  .hero{border-radius:20px;box-shadow:0 10px 26px rgba(13,42,62,.14);margin-bottom:13px}
+  .hero .search-row{align-items:stretch}
+  .quick-chips{scroll-snap-type:x proximity;padding-bottom:4px}
+  .quick-chips .chip{scroll-snap-align:start;min-height:38px}
+  .section-head{align-items:center;margin-top:20px}
+  .card{box-shadow:0 5px 18px rgba(20,42,58,.055)}
+  .item-card{border-color:#d7e2e8;box-shadow:0 3px 12px rgba(20,42,58,.045);transition:transform .12s ease,box-shadow .12s ease}
+  .item-card .thumb{width:92px;height:92px}
+  .item-card h3{margin-top:7px}
+  .item-card .card-actions{margin-top:10px}
+  .mini-btn{min-height:40px;padding:8px 11px}
+  .card-actions>.mini-btn{min-width:84px}
+  .status-line{line-height:1.4}
+  .filter-row{padding-bottom:4px;scroll-snap-type:x proximity}
+  .filter-row select{width:auto;min-width:138px;margin-top:0;scroll-snap-align:start}
+  .retailer-group-head{min-height:58px}
+  .more-tile{min-height:104px;box-shadow:0 3px 12px rgba(20,42,58,.04)}
+  .empty{padding:19px 14px;background:#fbfcfd}
+  .sheet-card{overscroll-behavior:contain}
+  .bottom-nav button{min-height:52px;border-radius:14px}
+  .bottom-nav button.active:not(.scan-nav){background:#eaf4f6;color:var(--accent)}
+  .bottom-nav .scan-nav.active{color:var(--accent)}
+  .decision-actions button{min-height:44px}
+  @media(max-width:520px){
+    .page{padding:12px 10px 30px}
+    .card{padding:13px}
+    .item-card{grid-template-columns:80px minmax(0,1fr);gap:10px;padding:10px}
+    .item-card.no-image{grid-template-columns:minmax(0,1fr)}
+    .item-card .thumb{width:80px;height:80px}
+    .card-actions>.mini-btn{flex:1 1 calc(50% - 4px)}
+    .item-card .card-actions>.mini-btn.primary{flex-basis:100%}
+    .page-head h1,.page-head h2{font-size:24px}
+    .hero h1{font-size:26px}
+  }
+  @media(max-width:365px){
+    .search-row{grid-template-columns:1fr}
+    .search-row .primary{width:100%}
+    .profit-box{grid-template-columns:1fr 1fr}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  `;
+  const style=document.createElement('style');style.id='h38v251PolishStyles';style.textContent=css;document.head.appendChild(style);
+  let queued=false;
+  function polish(){
+    queued=false;
+    try{
+      document.body.dataset.scoutPage=state?.page||'';
+      const noticeEl=document.getElementById('notice');if(noticeEl){noticeEl.setAttribute('role','status');noticeEl.setAttribute('aria-live','polite')}
+      document.querySelectorAll('.status-line').forEach(x=>{x.setAttribute('role','status');x.setAttribute('aria-live','polite')});
+      document.querySelectorAll('button:not([type])').forEach(x=>x.type='button');
+      document.querySelectorAll('#bottomNav [data-page]').forEach(x=>{if(x.classList.contains('active'))x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+      const labels={closeLocation:'Close location',closeAccount:'Close account'};for(const [id,label] of Object.entries(labels)){const el=document.getElementById(id);if(el&&!el.getAttribute('aria-label'))el.setAttribute('aria-label',label)}
+      document.querySelectorAll('.item-card').forEach(x=>x.classList.add('polished-card'));
+    }catch(e){try{error('v251Polish',e)}catch{}}
+  }
+  function queuePolish(){if(queued)return;queued=true;requestAnimationFrame(polish)}
+  const baseSetPage=setPage;setPage=function(page){const r=baseSetPage(page);queuePolish();return r};
+  const root=document.getElementById('appView')||document.body;new MutationObserver(queuePolish).observe(root,{childList:true,subtree:true});
+  window.addEventListener('focus',queuePolish);document.addEventListener('visibilitychange',()=>{if(!document.hidden)queuePolish()});
+  queuePolish();
+})();
+</script>
 <script src="v200-app.js"></script>
 </body>
 </html>
