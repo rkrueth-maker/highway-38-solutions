@@ -7,7 +7,7 @@ SW = (ROOT / 'commercial-app' / 'service-worker.js').read_text(encoding='utf-8')
 
 
 def test_mobile_guard_does_not_coalesce_unrelated_customer_or_runtime_timers():
-    assert '20260826-mobile-scroll-native-authority-3-jobs-one-pass' in AUTH
+    assert '20260826-mobile-scroll-native-authority-4-jobs-first-frame-final' in AUTH
     assert 'broadPostPaintCoalescerRemoved:true' in AUTH
     assert 'customerTimersUnmodified:true' in AUTH
     assert 'intervalMonkeypatch:false' in AUTH
@@ -29,6 +29,9 @@ def test_jobs_reconciliation_is_one_visible_render_transaction():
     assert 'jobsTimerGuardOnly:true' in AUTH
     assert 'jobsZeroDelayRunsInRenderTransaction:true' in AUTH
     assert 'jobsLateReconcileSuppressed:true' in AUTH
+    assert 'jobsNavigationBubbleFinalize:true' in AUTH
+    assert 'jobsFinalLayoutBeforeFirstPaint:true' in AUTH
+    assert 'jobsFirstFrameFallbackIdentity:true' in AUTH
     assert 'maxVisibleJobsReconcileDelayMs:0' in AUTH
     jobs_source = AUTH.split('const JOBS_SOURCE=', 1)[1].split(';', 1)[0]
     for source in [
@@ -39,6 +42,10 @@ def test_jobs_reconciliation_is_one_visible_render_transaction():
         assert source in jobs_source
     assert 'if(ms===0)' in AUTH
     assert 'suppressedLateJobsCallbacks' in AUTH
+    assert "target!=='work'||currentOfficePage()!=='work'" in AUTH
+    assert 'wide.reconcileJobs();' in AUTH
+    assert "document.addEventListener('click',finalizeJobsFirstFrame);" in AUTH
+    assert "document.addEventListener('click',finalizeJobsFirstFrame,true);" not in AUTH
     assert 'queueMicrotask' not in AUTH
 
 
