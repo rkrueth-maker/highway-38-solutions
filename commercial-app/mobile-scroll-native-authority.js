@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-mobile-scroll-native-authority-3-jobs-one-pass';
+const BUILD='20260826-mobile-scroll-native-authority-4-jobs-first-frame-final';
 const main=document.getElementById('mainContent');
 const MOBILE='(max-width: 760px)';
 const JOBS_SOURCE=/(site-visit-wide-acceptance-final|site-visit-work-dedupe-final|site-visit-work-list-grouping-repair)\.js/i;
@@ -9,12 +9,12 @@ const originalClearTimeout=window.clearTimeout.bind(window);
 let syntheticId=-1;
 let jobsTimerRunning=false;
 const cancelled=new Set();
-const stats={synchronousJobsCallbacks:0,suppressedLateJobsCallbacks:0};
+const stats={synchronousJobsCallbacks:0,suppressedLateJobsCallbacks:0,jobsFirstFrameFinalizations:0};
 if(main){
   // mobile-runtime-stability treats this marker as "already installed".
   // Keep the browser/WebView as the only vertical scroll authority.
   main.dataset.h38ManualTouchScroll='2';
-  main.dataset.h38NativeScrollAuthority='3';
+  main.dataset.h38NativeScrollAuthority='4';
   main.dataset.h38PhysicalScrollSurface='mainContent';
 }
 function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
@@ -70,7 +70,28 @@ function blockActivePrimaryReselect(event){
   event.preventDefault();
   event.stopImmediatePropagation();
 }
+function finalizeJobsFirstFrame(event){
+  if(!mobile())return;
+  const button=event.target?.closest?.('button[data-h38-primary],button[data-page]');
+  if(!button||!button.closest?.('#mainNav'))return;
+  const target=String(button.dataset.h38Primary||button.dataset.page||'').trim();
+  if(target!=='work'||currentOfficePage()!=='work')return;
+  const wide=window.H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL;
+  const identity=window.H38_SITE_VISIT_IDENTITY_AUTHORITY;
+  if(typeof wide?.reconcileJobs==='function'){
+    wide.reconcileJobs();
+    stats.jobsFirstFrameFinalizations+=1;
+    return;
+  }
+  if(typeof identity?.reconcile==='function'){
+    identity.reconcile();
+    stats.jobsFirstFrameFinalizations+=1;
+  }
+}
 document.addEventListener('click',blockActivePrimaryReselect,true);
+// Bubble phase is intentional: the target Jobs onclick completes the normal Work render first,
+// then the final Site Visit grouping is applied in the same user event before first paint.
+document.addEventListener('click',finalizeJobsFirstFrame);
 window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   build:BUILD,
   enabled:true,
@@ -89,6 +110,9 @@ window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   jobsTimerGuardOnly:true,
   jobsZeroDelayRunsInRenderTransaction:true,
   jobsLateReconcileSuppressed:true,
+  jobsNavigationBubbleFinalize:true,
+  jobsFinalLayoutBeforeFirstPaint:true,
+  jobsFirstFrameFallbackIdentity:true,
   maxVisibleJobsReconcileDelayMs:0,
   getJobsTimerStats:()=>({...stats}),
   automaticApproval:false,
