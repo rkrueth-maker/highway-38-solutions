@@ -47,9 +47,9 @@ jobs:
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
           node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-resale-rank.txt"
-          node reseller/src/main/assets/reseller/v230-auction.test.mjs | tee "$report/auctions.txt"
-          node reseller/src/main/assets/reseller/v240-home-depot-local.test.mjs | tee "$report/home-depot.txt"
-          node reseller/src/main/assets/reseller/v240-dg-remodel-radar.test.mjs | tee "$report/dg.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs" | tee "$report/home-depot.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg.txt"
           for f in reseller/src/main/assets/reseller/v200-*.js reseller/src/main/assets/reseller/v210-polish.js reseller/src/main/assets/reseller/v211-wide.js reseller/src/main/assets/reseller/v212-physical.js reseller/src/main/assets/reseller/v220-profit.js reseller/src/main/assets/reseller/v220-track.js reseller/src/main/assets/reseller/v220-product.js reseller/src/main/assets/reseller/v240-data.js reseller/src/main/assets/reseller/v260-facebook-public.js; do node --check "$f"; done
           grep -Fq "versionName '2.6.0'" reseller/build.gradle
           grep -Fq 'versionCode 84' reseller/build.gradle
