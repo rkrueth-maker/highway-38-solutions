@@ -7,6 +7,7 @@ export function decodeEntities(value=''){
   return String(value).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#0?39;|&apos;/g,"'").replace(/&nbsp;/g,' ').replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)));
 }
 export function stripTags(value=''){return decodeEntities(String(value).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim()}
+function rssText(value=''){const raw=String(value),m=raw.match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/i);return stripTags(m?m[1]:raw)}
 function stateCode(v=''){const s=txt(v);if(/^[A-Za-z]{2}$/.test(s))return s.toUpperCase();return STATE_TO_CODE[s.toLowerCase()]||''}
 export function locationVariants(label=''){
   const raw=txt(label).replace(/^ZIP\s+/i,'').replace(/\b\d{5}(?:-\d{4})?\b/g,'').replace(/,+\s*$/,'').trim();
@@ -71,10 +72,10 @@ export function parseSearchHtml(html='',limit=30){
 export function parseBingRss(xml='',limit=30){
   const s=String(xml),out=[],seen=new Set(),re=/<item>([\s\S]*?)<\/item>/gi;let m;
   while((m=re.exec(s))&&out.length<limit){
-    const item=m[1],link=stripTags((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||''),target=marketplaceTarget(link);
+    const item=m[1],link=rssText((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||''),target=marketplaceTarget(link);
     if(!target||seen.has(target.id))continue;seen.add(target.id);
-    const title=stripTags((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'');
-    const snippet=stripTags((item.match(/<description>([\s\S]*?)<\/description>/i)||[])[1]||'');
+    const title=rssText((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'');
+    const snippet=rssText((item.match(/<description>([\s\S]*?)<\/description>/i)||[])[1]||'');
     out.push({...target,title,snippet});
   }
   return out;
