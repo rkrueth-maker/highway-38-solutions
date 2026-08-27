@@ -13,13 +13,21 @@ WIDE = ROOT / "commercial-app" / "site-visit-wide-acceptance-final.js"
 
 def test_jobs_page_enhancement_is_idempotent_and_render_boundary_driven():
     text = FLOW.read_text(encoding="utf-8")
-    assert "20260826-flow-desktop-nav-ownership-1" in text
+    assert "20260826-flow-first-frame-stability-2" in text
     assert "workFingerprint" in text
     assert "dataset.h38WorkFingerprint===fingerprint" in text
     assert "scheduleWorkEnhance" in text
     assert "jobsPageStableEnhancement:true" in text
     assert "workEnhanceDocumentObserver:false" in text
     assert "workEnhanceRenderBoundary:true" in text
+    assert "workEnhanceSynchronous:true" in text
+    assert "customerEnhanceSynchronous:true" in text
+    assert "postPaintJobsCustomerMutation:false" in text
+    assert "preStartupMobileNavRespected:true" in text
+    assert "try{enhanceWork();}finally{workEnhanceScheduled=false;}" in text
+    assert "setTimeout(()=>{workEnhanceScheduled=false;enhanceWork();},0)" not in text
+    assert "setTimeout(enhanceCustomers,0)" not in text
+    assert "H38_MOBILE_FIRST_FRAME_AUTHORITY?.mobilePrimaryNavigationSingleAuthority" in text
     assert "desktopNavigationUsesBaseRenderer:true" in text
     assert "if(!isMobile){baseRenderNav();return;}" in text
     assert "primaryNavDelegatedToFinalMobileRuntime:true" in text
