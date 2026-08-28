@@ -71,7 +71,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/2.5.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/" + BuildConfig.VERSION_NAME);
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
@@ -107,6 +107,8 @@ public final class MainActivity extends Activity {
         String appMarker = "<script data-h38-bundled-module=\"v200-app.js\">";
         String providerLayer = "<script data-h38-bundled-module=\"v240-data.js\">" + readAsset("reseller/v240-data.js") + "</script>";
         html = html.replace(appMarker, providerLayer + appMarker);
+        String wideRepair = "<script data-h38-bundled-module=\"v264-wide-repair.js\">" + readAsset("reseller/v264-wide-repair.js") + "</script>";
+        html = html.replace("</body>", wideRepair + "</body>");
         return html;
     }
 
