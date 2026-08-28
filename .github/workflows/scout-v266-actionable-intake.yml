@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.6.7 Optimized Polish
+name: Build H38 Scout v2.6.8 Reliability Repair
 on:
   push:
     branches: ['agent/private-reseller-scout']
@@ -24,13 +24,13 @@ jobs:
       - name: Contract gates
         run: |
           set -euo pipefail
-          grep -Fq "versionName '2.6.7'" reseller/build.gradle
-          grep -Fq 'versionCode 91' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V266_ACTIONABLE_INTAKE=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'H38_SCOUT_V267_POLISH=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "versionName '2.6.8'" reseller/build.gradle
+          grep -Fq 'versionCode 92' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V268_RELIABILITY=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'window.H38SharedOpportunity=function' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq "state.hunt.tab='best'" reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'Best opportunities now' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'Open Facebook Marketplace' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'referrerpolicy="no-referrer"' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'android:mimeType="text/*"' reseller/src/main/AndroidManifest.xml
           grep -Fq 'v266-actionable-intake.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'onNewIntent' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
@@ -39,10 +39,10 @@ jobs:
       - name: Build owner APK
         run: |
           gradle --no-daemon :reseller:assembleOwner
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v267"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v267/H38-Reseller-Scout-Owner-v2.6.7.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v267/H38-Reseller-Scout-Owner-v2.6.7.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v267/H38-Reseller-Scout-Owner-v2.6.7.sha256"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v268"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v268/H38-Reseller-Scout-Owner-v2.6.8.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v268/H38-Reseller-Scout-Owner-v2.6.8.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v268/H38-Reseller-Scout-Owner-v2.6.8.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.6.7-optimized-polish
-          path: artifacts/scout-v267/*
+          name: h38-reseller-scout-owner-v2.6.8-reliability-repair
+          path: artifacts/scout-v268/*
