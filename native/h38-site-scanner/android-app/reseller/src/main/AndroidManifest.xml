@@ -38,7 +38,6 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
-        <activity android:name=".FacebookMarketplaceActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".RetailerVerificationActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NativePhotoCaptureActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <activity
