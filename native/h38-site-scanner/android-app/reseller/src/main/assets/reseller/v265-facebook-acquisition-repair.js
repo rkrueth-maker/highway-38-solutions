@@ -43,3 +43,42 @@ window.H38_SCOUT_V265_FACEBOOK_ACQUISITION_REPAIR=true;
   renderDiscover=function(){renderBefore();decorateV265()};
   if(state.user&&state.page==='discover')renderDiscover();
 })();
+
+setTimeout(function installV282EvidenceRepair(){
+  if(window.H38_SCOUT_V282_EVIDENCE_REPAIR)return;
+  window.H38_SCOUT_V282_EVIDENCE_REPAIR=true;
+
+  function rawFacebookRows(){try{const b=bridge(),raw=b&&typeof b.facebookBrowserCandidates==='function'?b.facebookBrowserCandidates():'[]',rows=JSON.parse(String(raw||'[]'));return Array.isArray(rows)?rows:[]}catch{return[]}}
+  function fbState(){const raw=rawFacebookRows(),system=raw.find(r=>r?.h38_system===true)||null,rows=raw.filter(r=>r?.h38_system!==true&&r?.location_verified===true);return{status:txt(system?.status||''),rows}}
+  function connectFacebook(){const b=bridge();if(!b||typeof b.openFacebookMarketplace!=='function'){notice('Facebook connection requires the Android Scout app.','warn');return}try{b.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,txt(state.location?.label||state.location?.zip||''),'')}catch(e){notice(e.message||String(e),'warn')}}
+  window.H38FacebookConnected=function(){state.facebookPassPending=false;state.facebookRanking=false;notice('Facebook connected. Scout is starting an automatic Marketplace pass.','good');setTimeout(()=>window.H38V270OpenFacebookScan?.(),250)};
+
+  const imageBefore=typeof huntImageHtml==='function'?huntImageHtml:null;
+  if(imageBefore)huntImageHtml=function(r,title){
+    const rk=retailerKey(r?.retailer),u=txt(r?.image_data_url||r?.image_url),retailImage=(rk==='dollar general'||rk==='dollar tree'||rk==='family dollar')&&/^https:\/\//i.test(u);
+    if(retailImage)return`<img class="thumb" loading="lazy" src="${esc(u)}" alt="${esc(title)}" onerror="this.remove();this.closest('.item-card')?.classList.add('no-image')">`;
+    return imageBefore(r,title);
+  };
+
+  function patchDiscoverTruth(){
+    const p=$('discoverPage');if(!p)return;const line=p.querySelector('[data-v270-facebook]');if(!line)return;const fb=fbState(),started=num(state.facebookPassStartedAt)>0,busy=!!state.facebookPassPending||!!state.facebookRanking;
+    if(fb.status==='AUTH_REQUIRED'){
+      state.facebookPassPending=false;state.facebookRanking=false;
+      line.innerHTML=`<span class="dot warn"></span>Facebook needs a one-time connection before automatic Marketplace hunting can work. <button class="mini-btn primary" data-v282-connect>Connect Facebook once</button>`;
+      line.querySelector('[data-v282-connect]')?.addEventListener('click',connectFacebook);
+      return;
+    }
+    if(fb.rows.length){line.innerHTML=`<span class="dot live"></span>${fb.rows.length} location-proven Facebook Marketplace listing${fb.rows.length===1?'':'s'} captured by Scout.`;return}
+    if(busy){line.innerHTML='<span class="dot loading"></span>Scout is hunting Facebook Marketplace in the background.';return}
+    if(started){line.innerHTML='<span class="dot warn"></span>Facebook returned 0 usable Marketplace listings in this pass. Craigslist results below do not count as Facebook success.';return}
+    line.innerHTML='<span class="dot"></span>Facebook has not produced a usable Marketplace listing yet.';
+  }
+
+  const discoverBefore=renderDiscover;
+  renderDiscover=function(){discoverBefore();patchDiscoverTruth()};
+  const huntBefore=renderHunt;
+  renderHunt=function(){huntBefore()};
+  const huntListBefore=renderHuntListOnly;
+  renderHuntListOnly=function(){huntListBefore()};
+  if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt()}
+},0);
