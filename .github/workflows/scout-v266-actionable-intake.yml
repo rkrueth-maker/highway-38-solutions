@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.7.0 Wide Repair
+name: Build H38 Scout v2.7.1 Black Screen Repair
 on:
   push:
     branches: ['agent/private-reseller-scout']
@@ -24,28 +24,27 @@ jobs:
       - name: Contract gates
         run: |
           set -euo pipefail
-          grep -Fq "versionName '2.7.0'" reseller/build.gradle
-          grep -Fq 'versionCode 94' reseller/build.gradle
+          grep -Fq "versionName '2.7.1'" reseller/build.gradle
+          grep -Fq 'versionCode 95' reseller/build.gradle
           grep -Fq 'H38_SCOUT_V270_WIDE_REPAIR=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'Pictures, price evidence and the next action stay here in Scout' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq "fbSec.remove()" reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'fetchImageData' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'Theme_Translucent_NoTitleBar' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
-          grep -Fq 'FLAG_NOT_TOUCHABLE' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
-          grep -Fq 'setAlpha(0.01f)' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq 'lp.width=1;lp.height=1' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq 'FLAG_NOT_TOUCH_MODAL' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq 'new FrameLayout.LayoutParams(1080,1920)' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
           grep -Fq 'fetchImageData(String key,String url)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'facebookBrowserCandidates' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'android:mimeType="text/*"' reseller/src/main/AndroidManifest.xml
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
           node reseller/hunt-native.test.mjs
           node reseller/profit-engine.test.mjs
       - name: Build owner APK
         run: |
           gradle --no-daemon :reseller:assembleOwner
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v270"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.sha256"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v271"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v271/H38-Reseller-Scout-Owner-v2.7.1.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v271/H38-Reseller-Scout-Owner-v2.7.1.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v271/H38-Reseller-Scout-Owner-v2.7.1.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.7.0-wide-repair
-          path: artifacts/scout-v270/*
+          name: h38-reseller-scout-owner-v2.7.1-black-screen-repair
+          path: artifacts/scout-v271/*
