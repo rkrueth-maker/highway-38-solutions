@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.6.9 Automatic Facebook Native Images
+name: Build H38 Scout v2.7.0 Wide Repair
 on:
   push:
     branches: ['agent/private-reseller-scout']
@@ -24,15 +24,17 @@ jobs:
       - name: Contract gates
         run: |
           set -euo pipefail
-          grep -Fq "versionName '2.6.9'" reseller/build.gradle
-          grep -Fq 'versionCode 93' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V269_AUTOMATIC_FACEBOOK_NATIVE_IMAGES=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'Scan Facebook automatically' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq "typeof openFacebookScan==='function'" reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "versionName '2.7.0'" reseller/build.gradle
+          grep -Fq 'versionCode 94' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V270_WIDE_REPAIR=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'Pictures, price evidence and the next action stay here in Scout' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "fbSec.remove()" reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'fetchImageData' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'Theme_Translucent_NoTitleBar' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq 'FLAG_NOT_TOUCHABLE' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq 'setAlpha(0.01f)' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
           grep -Fq 'fetchImageData(String key,String url)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'facebookBrowserCandidates' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'openFacebookMarketplace' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'android:mimeType="text/*"' reseller/src/main/AndroidManifest.xml
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
           node reseller/hunt-native.test.mjs
@@ -40,10 +42,10 @@ jobs:
       - name: Build owner APK
         run: |
           gradle --no-daemon :reseller:assembleOwner
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v269"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v269/H38-Reseller-Scout-Owner-v2.6.9.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v269/H38-Reseller-Scout-Owner-v2.6.9.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v269/H38-Reseller-Scout-Owner-v2.6.9.sha256"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v270"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v270/H38-Reseller-Scout-Owner-v2.7.0.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.6.9-automatic-facebook-native-images
-          path: artifacts/scout-v269/*
+          name: h38-reseller-scout-owner-v2.7.0-wide-repair
+          path: artifacts/scout-v270/*
