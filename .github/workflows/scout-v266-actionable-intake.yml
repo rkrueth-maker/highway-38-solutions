@@ -1,0 +1,45 @@
+name: Build H38 Scout v2.6.6 Actionable Intake
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/**'
+      - '.github/workflows/scout-v266-actionable-intake.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - name: Contract gates
+        run: |
+          set -euo pipefail
+          grep -Fq "versionName '2.6.6'" reseller/build.gradle
+          grep -Fq 'versionCode 90' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V266_ACTIONABLE_INTAKE=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'window.H38SharedOpportunity=function' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'v266-actionable-intake.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'onNewIntent' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
+          node reseller/hunt-native.test.mjs
+          node reseller/profit-engine.test.mjs
+      - name: Build owner APK
+        run: |
+          gradle --no-daemon :reseller:assembleOwner
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v266"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v266/H38-Reseller-Scout-Owner-v2.6.6.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v266/H38-Reseller-Scout-Owner-v2.6.6.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v266/H38-Reseller-Scout-Owner-v2.6.6.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v2.6.6-actionable-intake
+          path: artifacts/scout-v266/*
