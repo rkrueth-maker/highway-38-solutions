@@ -1,0 +1,113 @@
+name: Build H38 Scout v2.6.5 Facebook Acquisition Repair
+
+on:
+  push:
+    branches:
+      - 'agent/private-reseller-scout'
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v264-wide-repair.js'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js'
+      - 'supabase/functions/reseller-facebook-public-v240/**'
+      - '.github/workflows/scout-v265-facebook-acquisition-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+
+      - name: Verify v2.6.5 Facebook acquisition contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v265"; mkdir -p "$report"
+          node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
+          node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
+          node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-rank.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-guest-hydration.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/public-index.test.mjs" | tee "$report/facebook-public-index.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/hunt-exact-source.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions-regression.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs" | tee "$report/home-depot-truth.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg-truth.txt"
+          node --check reseller/src/main/assets/reseller/v264-wide-repair.js
+          node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          deno check --node-modules-dir=auto "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "versionName '2.6.5'" reseller/build.gradle
+          grep -Fq 'versionCode 89' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V264_WIDE_REPAIR=true' reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq 'H38_SCOUT_V265_FACEBOOK_ACQUISITION_REPAIR=true' reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq "fn('reseller-facebook-public-v240'" reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq 'b.onclick=()=>void runFacebookPublicOnlyV264(true)' reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq 'browser:[],notifications:[]' reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq "facebook_guest:'FB guest'" reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq 'H38_FACEBOOK_PUBLIC_V265' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "directUrl(term,body,'m.facebook.com')" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "provider:meta.provider" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq 'marketplace_listing_id' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.mjs"
+          grep -Fq 'Local Facebook inventory remains unknown—not zero.' reseller/src/main/assets/reseller/v264-wide-repair.js
+          if grep -Fq 'b.onclick=()=>void runDiscover()' reseller/src/main/assets/reseller/v264-wide-repair.js; then echo 'Facebook button still reruns full Discover'; exit 1; fi
+          if grep -Fq 'openFacebookMarketplace(' reseller/src/main/assets/reseller/v264-wide-repair.js; then echo 'v265 reintroduced signed-in Facebook WebView'; exit 1; fi
+          grep -Fq 'H38ResellerScoutAndroid/" + BuildConfig.VERSION_NAME' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'v264-wide-repair.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          echo PASS > "$report/contracts.txt"
+
+      - name: Compile Owner Scout v2.6.5 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v265"; mkdir -p "$report"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.6.5.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.6.5.sha256"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+
+      - name: Smoke inspect exact v2.6.5 APK bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v265"; out="$report/H38-Reseller-Scout-Owner-v2.6.5.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='89' versionName='2.6.5'" "$report/badging.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/v264-wide-repair.js > "$report/packaged-v265-runtime.js"
+          grep -Fq 'H38_SCOUT_V265_FACEBOOK_ACQUISITION_REPAIR=true' "$report/packaged-v265-runtime.js"
+          grep -Fq "facebook_guest:'FB guest'" "$report/packaged-v265-runtime.js"
+          grep -Fq 'runFacebookPublicOnlyV264' "$report/packaged-v265-runtime.js"
+          rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
+          for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
+          grep -Fq 'v264-wide-repair.js' "$report/all-dex-strings.txt"
+          grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
+          echo PASS > "$report/smoke.txt"
+
+      - name: Upload v2.6.5 APK and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v2.6.5-facebook-acquisition-repair
+          path: artifacts/scout-v265/*
+          if-no-files-found: warn
+          retention-days: 30
