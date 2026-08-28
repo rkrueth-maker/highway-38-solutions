@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.8.1 Facebook + DG Repair
+name: Build H38 Scout v2.8.2 Facebook Truth + Images
 on:
   push:
     branches: ['agent/private-reseller-scout']
@@ -24,28 +24,29 @@ jobs:
       - name: Contract gates
         run: |
           set -euo pipefail
-          grep -Fq "versionName '2.8.1'" reseller/build.gradle
-          grep -Fq 'versionCode 97' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V281_FACEBOOK_DG_REPAIR=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq "proof=[label,zip].filter(Boolean).join('|')" reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'verifiedImageIdentity(r)&&/^https:\/\//i.test' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "versionName '2.8.2'" reseller/build.gradle
+          grep -Fq 'versionCode 98' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V282_EVIDENCE_REPAIR' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'Connect Facebook once' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'Craigslist results below do not count as Facebook success' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq "rk==='dollar general'||rk==='dollar tree'||rk==='family dollar'" reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq '__H38_CONNECT__' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'c_user=' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'AUTH_REQUIRED' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'COMPLETE_WITH_ROWS' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
           grep -Fq 'FacebookMarketplaceEmbeddedCollector' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'facebookCollector.start' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'FacebookMarketplaceEmbeddedCollector.rowsJson' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'stateAbbrev' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'pageNorm.contains(city)' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'setTranslationX(-5000f)' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
           ! grep -Fq '<activity android:name=".FacebookMarketplaceActivity"' reseller/src/main/AndroidManifest.xml
+          node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
           node reseller/hunt-native.test.mjs
           node reseller/profit-engine.test.mjs
       - name: Build owner APK
         run: |
           gradle --no-daemon :reseller:assembleOwner
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v281"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v281/H38-Reseller-Scout-Owner-v2.8.1.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v281/H38-Reseller-Scout-Owner-v2.8.1.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v281/H38-Reseller-Scout-Owner-v2.8.1.sha256"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/scout-v282"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/scout-v282/H38-Reseller-Scout-Owner-v2.8.2.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/scout-v282/H38-Reseller-Scout-Owner-v2.8.2.apk" > "$GITHUB_WORKSPACE/artifacts/scout-v282/H38-Reseller-Scout-Owner-v2.8.2.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.8.1-facebook-dg-repair
-          path: artifacts/scout-v281/*
+          name: h38-reseller-scout-owner-v2.8.2-facebook-truth-images
+          path: artifacts/scout-v282/*
