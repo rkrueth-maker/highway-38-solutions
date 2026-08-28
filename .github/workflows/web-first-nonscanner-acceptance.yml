@@ -110,15 +110,7 @@ jobs:
             label="$2"
             echo "::group::$label"
             cp "$file" "$file.__chromium_backup"
-            python - "$file" <<'PY'
-import pathlib, re, sys
-p=pathlib.Path(sys.argv[1])
-s=p.read_text()
-s=re.sub(r"\{\s*chromium\s*\}\s*=\s*require\((['\"])playwright\1\)", "{webkit}=require('playwright')", s)
-s=s.replace('chromium.launch(', 'webkit.launch(')
-s=s.replace('chromium.launchPersistentContext(', 'webkit.launchPersistentContext(')
-p.write_text(s)
-PY
+            python -c "from pathlib import Path; p=Path('$file'); s=p.read_text(); s=s.replace(\"{chromium}=require('playwright')\", \"{webkit}=require('playwright')\"); s=s.replace(\"{ chromium }=require('playwright')\", \"{ webkit }=require('playwright')\"); s=s.replace('chromium.launch(', 'webkit.launch('); s=s.replace('chromium.launchPersistentContext(', 'webkit.launchPersistentContext('); p.write_text(s)"
             node "$file"
             code=$?
             mv "$file.__chromium_backup" "$file"
@@ -147,5 +139,9 @@ PY
         run: |
           set -euo pipefail
           file=.github/workflows/web-first-nonscanner-acceptance.yml
-          ! grep -E 'gradlew|android-arcore|android-play|verify-native-walkthrough|verify-site-scanner|site-scanner.*\.js' "$file"
+          commands="$(grep -E '^[[:space:]]+(run_test|run_webkit|npm run|node scripts/)' "$file" || true)"
+          if printf '%s\n' "$commands" | grep -Eiq 'site-scanner|native-walkthrough|gradlew|android-arcore|android-play'; then
+            echo 'FAIL: web-first acceptance invokes a native/Site Scanner command.'
+            exit 1
+          fi
           echo 'PASS: web-first acceptance is independent of Android/Site Scanner verification.'
