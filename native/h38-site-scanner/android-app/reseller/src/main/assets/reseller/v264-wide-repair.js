@@ -1,13 +1,11 @@
 'use strict';
 window.H38_SCOUT_V264_WIDE_REPAIR=true;
+window.H38_SCOUT_V265_FACEBOOK_ACQUISITION_REPAIR=true;
 (function installV264WideRepair(){
   if(window.H38_SCOUT_V264_WIDE_REPAIR_INSTALLED===true)return;
   window.H38_SCOUT_V264_WIDE_REPAIR_INSTALLED=true;
   state.v264=state.v264||{facebookLoading:false,lastFacebookAt:0,lastFacebookStatus:'NOT_RUN'};
 
-  // Public Facebook is the only accepted Facebook acquisition authority. Old native
-  // browser/notification rows may still exist on a phone from prior builds, but they
-  // must not leak into Discover after the UI promises no Facebook login.
   const snapshotBeforeV264=facebookSnapshot;
   facebookSnapshot=function(){
     const base=snapshotBeforeV264(),rows=(state.v240?.facebookRows||[]).filter(r=>r&&r.location_verified===true);
@@ -20,12 +18,14 @@ window.H38_SCOUT_V264_WIDE_REPAIR=true;
     return['tools','lawn mower','electronics','appliances'];
   }
   function facebookProviderSummary(f){
-    const names={facebook_guest:'FB guest',google_index:'Google',bing_index:'Bing',duckduckgo_index:'DDG',apify:'Apify'},m=new Map();
+    const order=['facebook_guest','google_index','bing_index','duckduckgo_index','apify'];
+    const names={facebook_guest:'FB guest',google_index:'Google',bing_index:'Bing',duckduckgo_index:'DDG',apify:'Apify'};
+    const m=new Map(order.map(k=>[k,{raw:0,verified:0,gated:false,unavailable:false,reported:false}]));
     for(const d of Array.isArray(f?.diagnostics)?f.diagnostics:[]){
-      const k=txt(d?.provider||'public'),x=m.get(k)||{raw:0,verified:0,gated:false,http:new Set()};
-      x.raw+=num(d?.raw_count);x.verified+=num(d?.verified_count);x.gated=x.gated||d?.gated===true;if(d?.http_status)x.http.add(String(d.http_status));m.set(k,x);
+      const k=txt(d?.provider||'');if(!m.has(k))continue;const x=m.get(k);
+      x.reported=true;x.raw+=num(d?.raw_count);x.verified+=num(d?.verified_count);x.gated=x.gated||d?.gated===true;x.unavailable=x.unavailable||d?.unavailable===true;
     }
-    return[...m.entries()].map(([k,x])=>`${names[k]||k}: ${x.verified}/${x.raw}${x.gated?' gated':''}`).join(' · ');
+    return order.filter(k=>k!=='apify'||m.get(k).reported).map(k=>{const x=m.get(k);let suffix='';if(x.unavailable)suffix=' unavailable';else if(x.gated)suffix=' gated';else if(!x.reported)suffix=' not reported';return`${names[k]}: ${x.verified}/${x.raw}${suffix}`}).join(' · ');
   }
   function facebookStatusCopy(f,rows){
     const s=txt(f?.provider_status||f?.status||'READY');
@@ -56,22 +56,23 @@ window.H38_SCOUT_V264_WIDE_REPAIR=true;
       await rankFacebookV264(state.v240.facebookRows,terms);
       if(!state.v240.facebookRows.length)notice(facebookStatusCopy(p,[]),'warn');
     }catch(e){
-      state.v240=state.v240||{};state.v240.facebook={status:'PARTIAL',engine:'H38_FACEBOOK_PUBLIC_V264',provider_status:'PROVIDER_UNAVAILABLE',authentication:'NO_FACEBOOK_LOGIN',results:[],warning:error('facebookPublicOnlyV264',e)};state.v240.facebookRows=[];
+      state.v240=state.v240||{};state.v240.facebook={status:'PARTIAL',engine:'H38_FACEBOOK_PUBLIC_V265',provider_status:'PROVIDER_UNAVAILABLE',authentication:'NO_FACEBOOK_LOGIN',results:[],diagnostics:[{provider:'facebook_guest',raw_count:0,verified_count:0,unavailable:true},{provider:'google_index',raw_count:0,verified_count:0,unavailable:true},{provider:'bing_index',raw_count:0,verified_count:0,unavailable:true},{provider:'duckduckgo_index',raw_count:0,verified_count:0,unavailable:true}],warning:error('facebookPublicOnlyV264',e)};state.v240.facebookRows=[];
       state.v264.lastFacebookStatus='PROVIDER_UNAVAILABLE';notice('Public Facebook search is unavailable right now. Scout kept inventory unknown and did not open a Facebook login.','warn');
     }finally{state.v264.facebookLoading=false;renderDiscover()}
   }
   window.H38V264RunFacebookPublicOnly=runFacebookPublicOnlyV264;
+  window.H38V265RunFacebookPublicOnly=runFacebookPublicOnlyV264;
 
   function decorateFacebookV264(){
     const b=$('facebookScan');if(!b)return;const sec=b.closest('section.card');if(!sec)return;
-    sec.querySelectorAll('[data-v230-facebook-ledger],[data-v240-fb],[data-v261-facebook-status],[data-v264-facebook-status]').forEach(x=>x.remove());
+    sec.querySelectorAll('[data-v230-facebook-ledger],[data-v240-fb],[data-v261-facebook-status],[data-v264-facebook-status],[data-v265-facebook-status]').forEach(x=>x.remove());
     const rows=state.v240?.facebookRows||[],f=state.v240?.facebook,loading=!!state.v264.facebookLoading;
     b.textContent=loading?'Searching public Facebook…':'Search public Facebook';b.disabled=loading;b.onclick=()=>void runFacebookPublicOnlyV264(true);
     const alerts=$('facebookAlerts');if(alerts)alerts.remove();
     const head=sec.querySelector('.section-head span');if(head)head.textContent=`${rows.length} public · no Facebook login`;
     const copy=sec.querySelector('p.small');if(copy)copy.textContent='Public-only Marketplace discovery. This button checks Facebook public sources only; it does not rerun auctions, Retail Hunt, Home Depot, or Dollar General.';
-    const status=document.createElement('div');status.dataset.v264FacebookStatus='true';const provider=txt(f?.provider_status||f?.status||'READY'),summary=facebookProviderSummary(f);
-    status.innerHTML=`<div class="status-line" style="margin-top:10px"><span class="dot ${loading?'loading':rows.length?'live':provider==='PROVIDER_UNAVAILABLE'?'warn':''}"></span>${loading?`Searching public Facebook for ${esc(state.location?.label||state.location?.zip||'selected area')}…`:`${esc(f?.engine||'H38_FACEBOOK_PUBLIC_V264')} · ${esc(provider)} · ${rows.length} location-proven`}</div>${!loading?`<div class="small muted">${esc(facebookStatusCopy(f,rows))}</div>${summary?`<div class="small muted">${esc(summary)}</div>`:''}`:''}`;
+    const status=document.createElement('div');status.dataset.v265FacebookStatus='true';const provider=txt(f?.provider_status||f?.status||'READY'),summary=facebookProviderSummary(f);
+    status.innerHTML=`<div class="status-line" style="margin-top:10px"><span class="dot ${loading?'loading':rows.length?'live':provider==='PROVIDER_UNAVAILABLE'?'warn':''}"></span>${loading?`Searching public Facebook for ${esc(state.location?.label||state.location?.zip||'selected area')}…`:`${esc(f?.engine||'H38_FACEBOOK_PUBLIC_V265')} · ${esc(provider)} · ${rows.length} location-proven`}</div>${!loading?`<div class="small muted">${esc(facebookStatusCopy(f,rows))}</div><div class="small muted">${esc(summary)}</div>`:''}`;
     sec.appendChild(status);
   }
 
@@ -95,8 +96,6 @@ window.H38_SCOUT_V264_WIDE_REPAIR=true;
     setTimeout(decorate,0);setTimeout(decorate,350);try{await promise}finally{decorate()}
   };
 
-  // v064 keeps the accepted v063 lead/dedupe truth but attaches exact product routes
-  // where the source actually exposes a deterministic item URL.
   loadHunt=async function(force=false){
     if(state.hunt.loading)return;state.hunt.loading=true;renderHunt();
     try{
@@ -115,6 +114,5 @@ window.H38_SCOUT_V264_WIDE_REPAIR=true;
   const renderHuntListBeforeV264=renderHuntListOnly;
   renderHuntListOnly=function(){renderHuntListBeforeV264();decorateHuntV264()};
 
-  // Re-render once so an already-restored session immediately reflects the v264 authority.
   if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt()}
 })();
