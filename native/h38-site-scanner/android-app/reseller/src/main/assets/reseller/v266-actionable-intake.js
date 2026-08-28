@@ -2,78 +2,44 @@
 window.H38_SCOUT_V266_ACTIONABLE_INTAKE=true;
 window.H38_SCOUT_V267_POLISH=true;
 window.H38_SCOUT_V268_RELIABILITY=true;
-(function installV266ActionableIntake(){
-  if(window.H38_SCOUT_V266_ACTIONABLE_INTAKE_INSTALLED)return;
-  window.H38_SCOUT_V266_ACTIONABLE_INTAKE_INSTALLED=true;
+window.H38_SCOUT_V269_AUTOMATIC_FACEBOOK_NATIVE_IMAGES=true;
+(function installV269(){
+  if(window.H38_SCOUT_V269_INSTALLED)return;
+  window.H38_SCOUT_V269_INSTALLED=true;
   state.v266=state.v266||{shared:[]};
+
   function parseShared(text){
     const raw=txt(text),url=(raw.match(/https?:\/\/[^\s]+/i)||[])[0]||'',price=(raw.match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/)||[])[1]||'',lines=raw.split(/\r?\n/).map(txt).filter(Boolean),title=lines.find(x=>!/^https?:/i.test(x)&&!/^\$/.test(x))||'Shared resale listing';
     return{title,price:price?Number(price):null,url,source:/facebook\.com|fb\.com/i.test(raw)?'Facebook Marketplace':'Shared listing',shared_text:raw,location_verified:false,truth:'Shared by you from the source app. Scout does not infer local availability or seller truth from the share alone.',received_at:new Date().toISOString()};
   }
-  function openShared(row){
-    state.scan.hint=row.title||'';state.scan.buyPrice=row.price==null?'':String(row.price);state.scan.identification={likely_item:row.title||'Shared listing',search_query:row.title||'',confidence:'shared_source'};state.scan.market={marketplace:row.source||'Shared listing',shared_url:row.url||'',shared_text:row.shared_text||''};setPage('scan');renderScan();notice('Shared listing loaded. Verify cost and sold comps before BUY.','good');
-  }
-  window.H38SharedOpportunity=function(text){
-    const row=parseShared(text);state.v266.shared.unshift(row);state.v266.shared=state.v266.shared.slice(0,25);try{localStorage.setItem('h38-v266-shared',JSON.stringify(state.v266.shared))}catch{};openShared(row);
-  };
+  function openShared(row){state.scan.hint=row.title||'';state.scan.buyPrice=row.price==null?'':String(row.price);state.scan.identification={likely_item:row.title||'Shared listing',search_query:row.title||'',confidence:'shared_source'};state.scan.market={marketplace:row.source||'Shared listing',shared_url:row.url||'',shared_text:row.shared_text||''};setPage('scan');renderScan();notice('Shared listing loaded. Verify cost and sold comps before BUY.','good');}
+  window.H38SharedOpportunity=function(text){const row=parseShared(text);state.v266.shared.unshift(row);state.v266.shared=state.v266.shared.slice(0,25);try{localStorage.setItem('h38-v266-shared',JSON.stringify(state.v266.shared))}catch{}openShared(row)};
   try{state.v266.shared=JSON.parse(localStorage.getItem('h38-v266-shared')||'[]')}catch{state.v266.shared=[]}
 
-  function scoreLead(r){
-    let s=0;const t=typeof leadDate==='function'?leadDate(r):null,age=t?(Date.now()-t)/86400000:999;
-    if(txt(r?.source_item_scope)==='exact_product'||/^https?:\/\//i.test(txt(r?.source_item_url)))s+=5;
-    if(typeof isPenny==='function'&&isPenny(r))s+=4;else if(typeof isNearPenny==='function'&&isNearPenny(r))s+=3;
-    if(age<=2)s+=4;else if(age<=7)s+=2;else if(age<=30)s+=1;
-    if(num(r?.signal_source_count||r?.report_count)>=2)s+=2;
-    if(typeof itemCode==='function'&&itemCode(r))s+=2;
-    if(txt(r?.image_data_url||r?.image_url))s+=1;
-    return s;
-  }
+  function scoreLead(r){let s=0;const t=typeof leadDate==='function'?leadDate(r):null,age=t?(Date.now()-t)/86400000:999;if(txt(r?.source_item_scope)==='exact_product'||/^https?:\/\//i.test(txt(r?.source_item_url)))s+=5;if(typeof isPenny==='function'&&isPenny(r))s+=4;else if(typeof isNearPenny==='function'&&isNearPenny(r))s+=3;if(age<=2)s+=4;else if(age<=7)s+=2;else if(age<=30)s+=1;if(num(r?.signal_source_count||r?.report_count)>=2)s+=2;if(typeof itemCode==='function'&&itemCode(r))s+=2;if(txt(r?.image_data_url||r?.image_url))s+=1;return s}
+  const huntRowsBefore=typeof huntRows==='function'?huntRows:null;
+  if(huntRowsBefore)huntRows=function(){const rows=huntRowsBefore();if(state.hunt.tab!=='best')return rows;return rows.filter(r=>scoreLead(r)>=8).sort((a,b)=>scoreLead(b)-scoreLead(a)||((leadDate(b)||0)-(leadDate(a)||0)))};
 
-  const huntRowsBeforeV267=typeof huntRows==='function'?huntRows:null;
-  if(huntRowsBeforeV267){huntRows=function(){const rows=huntRowsBeforeV267();if(state.hunt.tab!=='best')return rows;return rows.filter(r=>scoreLead(r)>=8).sort((a,b)=>scoreLead(b)-scoreLead(a)||((leadDate(b)||0)-(leadDate(a)||0)));};}
+  const nativePending=new Set(),nativeFailed=new Set();
+  function nativeImageEligible(r){const rk=retailerKey(r?.retailer),u=txt(r?.image_url),proof=typeof sameProof==='function'&&typeof itemCode==='function'&&sameProof(r?.image_match_barcode,itemCode(r));return(rk==='dollar general'||rk==='dollar tree')&&proof&&/^https:\/\//i.test(u)}
+  window.H38NativeImageResult=function(key,dataUrl){nativePending.delete(String(key||''));if(!/^data:image\//i.test(txt(dataUrl)))return;let changed=false;state.hunt.rows=state.hunt.rows.map(r=>{if(itemKey(r)===String(key)){changed=true;return{...r,image_data_url:dataUrl}}return r});if(changed){if(state.page==='hunt')renderHuntListOnly();if(state.page==='discover')renderDiscover()}};
+  window.H38NativeImageError=function(key){nativePending.delete(String(key||''));nativeFailed.add(String(key||''))};
+  const drainBefore=typeof drainHuntImageQueue==='function'?drainHuntImageQueue:null;
+  if(drainBefore)drainHuntImageQueue=function(){const b=bridge(),rest=[];while(huntImageQueue.length){const k=huntImageQueue.shift(),r=state.hunt.rows.find(x=>itemKey(x)===k);if(!r||r.image_data_url)continue;if(nativeImageEligible(r)&&b&&typeof b.fetchImageData==='function'){if(!nativePending.has(k)&&!nativeFailed.has(k)){nativePending.add(k);try{b.fetchImageData(k,r.image_url)}catch{nativePending.delete(k);nativeFailed.add(k)}}}else rest.push(k)}huntImageQueue.push(...rest);return rest.length?drainBefore():Promise.resolve()};
 
-  const huntDisplayImageBeforeV268=typeof huntDisplayImage==='function'?huntDisplayImage:null;
-  if(huntDisplayImageBeforeV268){huntDisplayImage=function(r){
-    const existing=huntDisplayImageBeforeV268(r);if(existing)return existing;
-    const rk=typeof retailerKey==='function'?retailerKey(r?.retailer):'',u=txt(r?.image_url),proof=typeof sameProof==='function'&&typeof itemCode==='function'&&sameProof(r?.image_match_barcode,itemCode(r));
-    if((rk==='dollar general'||rk==='dollar tree')&&proof&&/^https:\/\//i.test(u))return u;
-    return'';
-  };}
-  const huntImageHtmlBeforeV268=typeof huntImageHtml==='function'?huntImageHtml:null;
-  if(huntImageHtmlBeforeV268){huntImageHtml=function(r,title){
-    const rk=typeof retailerKey==='function'?retailerKey(r?.retailer):'',u=txt(r?.image_data_url||r?.image_url),proof=typeof sameProof==='function'&&typeof itemCode==='function'&&sameProof(r?.image_match_barcode,itemCode(r));
-    if((rk==='dollar general'||rk==='dollar tree')&&proof&&/^https:\/\//i.test(u))return `<img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${esc(u)}" alt="${esc(title)}" onerror="this.remove();this.closest('.item-card')?.classList.add('no-image')">`;
-    return huntImageHtmlBeforeV268(r,title);
-  };}
+  const compactBefore=typeof compactRetail==='function'?compactRetail:null;
+  if(compactBefore)compactRetail=function(r){const s=signalLabel(r),title=txt(r.title||r.canonical_title||'Retail item'),img=typeof huntImageHtml==='function'?huntImageHtml(r,title):imageHtml(r.image_url,title);return `<article class="item-card ${img?'':'no-image'}">${img}<div class="item-main"><div class="item-top"><span class="badge ${s.cls}">${s.label}</span><span class="badge">${esc(r.retailer||'Retailer')}</span></div><h3>${esc(title)}</h3><div class="meta">${r.upc?`<span>UPC ${esc(r.upc)}</span>`:''}${dateLabel(r)?`<span>${esc(dateLabel(r))}</span>`:''}</div><div class="card-actions"><button class="mini-btn primary" data-discover-lead="${esc(itemKey(r))}">Check item</button></div></div></article>`};
 
-  function openFacebookForShare(){
-    const b=typeof bridge==='function'?bridge():null,url='https://www.facebook.com/marketplace/';
-    try{if(b&&typeof b.openExternalUrl==='function'){b.openExternalUrl(url);return}openExternal(url)}catch{openExternal(url)}
-  }
-  function decorateFacebook(){
-    const b=$('facebookScan');if(!b)return;const sec=b.closest('section.card');if(!sec)return;
-    b.textContent='Open Facebook Marketplace';b.disabled=false;b.onclick=openFacebookForShare;
-    const head=sec.querySelector('.section-head span');if(head)head.textContent=`${state.v266.shared.length} shared into Scout`;
-    const p=sec.querySelector('p.small');if(p)p.innerHTML='<strong>Working path:</strong> open Marketplace, pick a listing, tap Share, then choose <strong>H38 Reseller Scout</strong>. Scout opens the listing directly in Scan for comps, profit and ROI. Public scraping is no longer the primary workflow.';
-    sec.querySelectorAll('[data-v264-facebook-status],[data-v265-facebook-status]').forEach(x=>x.remove());
-    let box=sec.querySelector('[data-v266-share]');if(!box){box=document.createElement('div');box.dataset.v266Share='true';box.className='truth-note';box.style.marginTop='10px';sec.appendChild(box)}
-    const n=state.v266.shared.length;box.innerHTML=`<strong>FACEBOOK → SCOUT</strong><br>1. Open Marketplace &nbsp; 2. Open a listing &nbsp; 3. Share → H38 Reseller Scout${n?`<br><strong>${n}</strong> listing${n===1?'':'s'} received on this phone.`:''}`;
-  }
+  function decorateFacebook(){const b=$('facebookScan');if(!b)return;const sec=b.closest('section.card');if(!sec)return;b.textContent=state.facebookPassPending?'Scout scanning Facebook…':'Scan Facebook automatically';b.disabled=!!state.facebookPassPending;b.onclick=()=>{if(typeof openFacebookScan==='function')openFacebookScan()};const snap=typeof facebookSnapshot==='function'?facebookSnapshot():{browser:[]};const head=sec.querySelector('.section-head span');if(head)head.textContent=`${snap.browser?.length||0} captured automatically`;const p=sec.querySelector('p.small');if(p)p.innerHTML='Scout opens its <strong>internal signed-in Marketplace scanner</strong>, searches your resale categories itself, captures local listing cards, and ranks them for profit. You do not search Marketplace. Facebook may require a one-time sign-in in Scout before automatic scans can run.';sec.querySelectorAll('[data-v264-facebook-status],[data-v265-facebook-status],[data-v266-share]').forEach(x=>x.remove())}
 
-  function addBestTab(){const p=$('huntPage');if(!p)return;const existing=p.querySelector('[data-hunt-tab="best"]');const n=(typeof huntBaseRows==='function'?huntBaseRows():[]).filter(r=>scoreLead(r)>=8).length;if(existing){existing.textContent=`Best leads ${n}`;return}const first=p.querySelector('[data-hunt-tab]');if(!first)return;const b=document.createElement('button');b.className=first.className;b.dataset.huntTab='best';b.textContent=`Best leads ${n}`;first.parentElement.insertBefore(b,first);b.onclick=()=>{state.hunt.tab='best';renderHunt()};}
-
-  function polishDiscover(){
-    const p=$('discoverPage');if(!p)return;const all=state.hunt?.rows||[],retail=all.slice().sort((a,b)=>scoreLead(b)-scoreLead(a)).filter(r=>scoreLead(r)>=8).slice(0,5),deals=[...(state.discover?.deals?.opportunities||[])].slice(0,3),auctions=(state.discover?.auctions?.results||[]).slice(0,3),total=deals.length+retail.length+auctions.length;
-    let box=p.querySelector('[data-v267-now]');if(!box){box=document.createElement('section');box.dataset.v267Now='true';box.className='card';p.querySelector('.hero')?.insertAdjacentElement('afterend',box)}if(!box)return;
-    box.innerHTML=`<div class="section-head"><h2>Best opportunities now</h2><span>${total} prioritized</span></div>${total?`<p class="small muted">Highest-signal candidates first. Verify local stock, penny price and seller claims before buying.</p><div class="result-list cols">${deals.map(dealCard).join('')}${retail.map(compactRetail).join('')}${auctions.map(auctionCard).join('')}</div>`:`<div class="empty"><strong>No high-confidence opportunities yet</strong>Scan an item, open Best leads, check Auctions, or share a Marketplace listing into Scout. Unknown stays unknown.</div>`}`;
-    box.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.open));box.querySelectorAll('[data-discover-lead]').forEach(x=>x.onclick=()=>openLeadDetail(x.dataset.discoverLead));
-  }
-
-  function polishAuctions(){const p=$('auctionsPage');if(!p)return;const rows=Array.isArray(state.auctions?.rows)?state.auctions.rows:[],loading=!!state.auctions?.loading;let note=p.querySelector('[data-v267-auction-state]');if(!note){note=document.createElement('div');note.dataset.v267AuctionState='true';note.className='truth-note';p.querySelector('.page-head')?.insertAdjacentElement('afterend',note)}if(!note)return;note.innerHTML=loading?'<strong>AUCTIONS</strong><br>Checking supported sources…':rows.length?`<strong>AUCTIONS</strong><br>${rows.length} lot${rows.length===1?'':'s'} loaded. Check source, distance and resale evidence before bidding.`:'<strong>AUCTIONS</strong><br>No usable lots are loaded in this view. That means no matches were returned here—not that local auctions do not exist.';}
+  function addBestTab(){const p=$('huntPage');if(!p)return;const existing=p.querySelector('[data-hunt-tab="best"]'),n=(typeof huntBaseRows==='function'?huntBaseRows():[]).filter(r=>scoreLead(r)>=8).length;if(existing){existing.textContent=`Best leads ${n}`;return}const first=p.querySelector('[data-hunt-tab]');if(!first)return;const b=document.createElement('button');b.className=first.className;b.dataset.huntTab='best';b.textContent=`Best leads ${n}`;first.parentElement.insertBefore(b,first);b.onclick=()=>{state.hunt.tab='best';renderHunt()}};
+  function polishDiscover(){const p=$('discoverPage');if(!p)return;const all=state.hunt?.rows||[],retail=all.slice().sort((a,b)=>scoreLead(b)-scoreLead(a)).filter(r=>scoreLead(r)>=8).slice(0,5),deals=[...(state.discover?.deals?.opportunities||[])].slice(0,3),auctions=(state.discover?.auctions?.results||[]).slice(0,3),total=deals.length+retail.length+auctions.length;let box=p.querySelector('[data-v267-now]');if(!box){box=document.createElement('section');box.dataset.v267Now='true';box.className='card';p.querySelector('.hero')?.insertAdjacentElement('afterend',box)}if(!box)return;box.innerHTML=`<div class="section-head"><h2>Best opportunities now</h2><span>${total} prioritized</span></div>${total?`<p class="small muted">Highest-signal candidates first. Verify local stock, penny price and seller claims before buying.</p><div class="result-list cols">${deals.map(dealCard).join('')}${retail.map(compactRetail).join('')}${auctions.map(auctionCard).join('')}</div>`:`<div class="empty"><strong>No high-confidence opportunities yet</strong>Run Discover and Scout will hunt Facebook, retail markdowns and auctions automatically. Unknown stays unknown.</div>`}`;box.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.open));box.querySelectorAll('[data-discover-lead]').forEach(x=>x.onclick=()=>openLeadDetail(x.dataset.discoverLead));if(typeof bindProxyImages==='function')bindProxyImages(p)}
+  function polishAuctions(){const p=$('auctionsPage');if(!p)return;const rows=Array.isArray(state.auctions?.rows)?state.auctions.rows:[],loading=!!state.auctions?.loading;let note=p.querySelector('[data-v267-auction-state]');if(!note){note=document.createElement('div');note.dataset.v267AuctionState='true';note.className='truth-note';p.querySelector('.page-head')?.insertAdjacentElement('afterend',note)}if(!note)return;note.innerHTML=loading?'<strong>AUCTIONS</strong><br>Checking supported sources…':rows.length?`<strong>AUCTIONS</strong><br>${rows.length} lot${rows.length===1?'':'s'} loaded. Check source, distance and resale evidence before bidding.`:'<strong>AUCTIONS</strong><br>No usable lots are loaded in this view. That means no matches were returned here—not that local auctions do not exist.'}
 
   const priorDiscover=renderDiscover;renderDiscover=function(){priorDiscover();decorateFacebook();polishDiscover()};
   const priorHunt=renderHunt;renderHunt=function(){priorHunt();addBestTab()};
   const priorHuntList=renderHuntListOnly;renderHuntListOnly=function(){priorHuntList();addBestTab()};
-  if(typeof renderAuctions==='function'){const priorAuctions=renderAuctions;renderAuctions=function(){priorAuctions();polishAuctions()};}
-  if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt();if(state.page==='auctions'&&typeof renderAuctions==='function')renderAuctions();}
+  if(typeof renderAuctions==='function'){const priorAuctions=renderAuctions;renderAuctions=function(){priorAuctions();polishAuctions()}}
+  const runBefore=runDiscover;runDiscover=async function(){const launch=!state.facebookPassPending;const task=runBefore();if(launch)setTimeout(()=>{if(!state.facebookPassPending&&typeof openFacebookScan==='function')openFacebookScan()},350);return task};
+  if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt();if(state.page==='auctions'&&typeof renderAuctions==='function')renderAuctions()}
 })();
