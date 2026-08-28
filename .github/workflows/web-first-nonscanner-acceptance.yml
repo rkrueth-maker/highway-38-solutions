@@ -1,0 +1,151 @@
+name: Web First Non-Scanner Acceptance
+
+on:
+  push:
+    branches:
+      - agent/web-first-nonscanner-acceptance-20260827
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-first-nonscanner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-business-office:
+    name: Static Business Office contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          npm install
+          python -m pip install pytest
+      - name: Run broad non-native Business Office verification
+        shell: bash
+        run: |
+          set +e
+          rc=0
+          run_test() {
+            echo "::group::$1"
+            shift
+            "$@"
+            code=$?
+            echo "::endgroup::"
+            if [ $code -ne 0 ]; then rc=1; fi
+          }
+          run_test "Business Office suite" npm run test:business-office
+          run_test "Customer 360 owner relationships" node scripts/verify-customer-360-owner-flow.js
+          run_test "Customer 360 policy" node scripts/verify-customer-360-policy.js
+          run_test "Customer 360 + web media contracts" python -m pytest -q tests/test_customer_360_owner_flow_20260824.py tests/test_web_media_intake_runtime.py
+          exit $rc
+
+  chromium-web:
+    name: Chromium desktop/mobile web flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser dependencies
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Run all owner web flows without native Site Scanner
+        shell: bash
+        run: |
+          set +e
+          rc=0
+          run_test() {
+            echo "::group::$1"
+            shift
+            "$@"
+            code=$?
+            echo "::endgroup::"
+            if [ $code -ne 0 ]; then rc=1; fi
+          }
+          run_test "All public pages desktop/mobile" node scripts/verify-commercial-browser.js
+          run_test "Customer 360 owner flow" node scripts/verify-customer-360-browser.js
+          run_test "Customer readiness" node scripts/verify-customer-readiness-polish-browser.js
+          run_test "Customers top actions" node scripts/verify-customer-top-actions-browser.js
+          run_test "Web media/video intake" node scripts/verify-web-media-intake-browser.js
+          run_test "Owner navigation/context" node scripts/verify-owner-navigation-context-polish.js
+          run_test "Photo-only web quote" node scripts/verify-photo-only-web-quote.js
+          run_test "Accepted quote to completed job" node scripts/verify-owner-quote-to-complete-job.js
+          run_test "Example maintenance front-to-back" node scripts/verify-owner-example-maintenance-front-to-back.js
+          run_test "Personal Assistant command bus" node scripts/verify-personal-assistant-command-bus.js
+          exit $rc
+
+  webkit-apple-web:
+    name: WebKit / Apple-sized web flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install WebKit
+        run: |
+          npm install
+          npx playwright install --with-deps webkit
+      - name: Run existing browser acceptance under WebKit
+        shell: bash
+        run: |
+          set +e
+          rc=0
+          run_webkit() {
+            file="$1"
+            label="$2"
+            echo "::group::$label"
+            cp "$file" "$file.__chromium_backup"
+            python - "$file" <<'PY'
+import pathlib, re, sys
+p=pathlib.Path(sys.argv[1])
+s=p.read_text()
+s=re.sub(r"\{\s*chromium\s*\}\s*=\s*require\((['\"])playwright\1\)", "{webkit}=require('playwright')", s)
+s=s.replace('chromium.launch(', 'webkit.launch(')
+s=s.replace('chromium.launchPersistentContext(', 'webkit.launchPersistentContext(')
+p.write_text(s)
+PY
+            node "$file"
+            code=$?
+            mv "$file.__chromium_backup" "$file"
+            echo "::endgroup::"
+            if [ $code -ne 0 ]; then rc=1; fi
+          }
+          run_webkit scripts/verify-commercial-browser.js "All public pages in WebKit"
+          run_webkit scripts/verify-customer-360-browser.js "Customer 360 in WebKit"
+          run_webkit scripts/verify-customer-readiness-polish-browser.js "Customer readiness in WebKit"
+          run_webkit scripts/verify-customer-top-actions-browser.js "Customers top actions in WebKit"
+          run_webkit scripts/verify-web-media-intake-browser.js "Web media intake in WebKit"
+          run_webkit scripts/verify-owner-navigation-context-polish.js "Owner navigation/context in WebKit"
+          run_webkit scripts/verify-photo-only-web-quote.js "Photo-only quote in WebKit"
+          run_webkit scripts/verify-owner-quote-to-complete-job.js "Quote to complete job in WebKit"
+          run_webkit scripts/verify-owner-example-maintenance-front-to-back.js "Example maintenance in WebKit"
+          run_webkit scripts/verify-personal-assistant-command-bus.js "Personal Assistant in WebKit"
+          exit $rc
+
+  native-exclusion-audit:
+    name: Confirm web-first scope has no native acceptance dependency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify this acceptance suite never invokes Android build or Site Scanner tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=.github/workflows/web-first-nonscanner-acceptance.yml
+          ! grep -E 'gradlew|android-arcore|android-play|verify-native-walkthrough|verify-site-scanner|site-scanner.*\.js' "$file"
+          echo 'PASS: web-first acceptance is independent of Android/Site Scanner verification.'
