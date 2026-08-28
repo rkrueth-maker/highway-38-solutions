@@ -1,6 +1,7 @@
 'use strict';
 window.H38_SCOUT_V266_ACTIONABLE_INTAKE=true;
 window.H38_SCOUT_V267_POLISH=true;
+window.H38_SCOUT_V268_RELIABILITY=true;
 (function installV266ActionableIntake(){
   if(window.H38_SCOUT_V266_ACTIONABLE_INTAKE_INSTALLED)return;
   window.H38_SCOUT_V266_ACTIONABLE_INTAKE_INSTALLED=true;
@@ -31,12 +32,32 @@ window.H38_SCOUT_V267_POLISH=true;
   const huntRowsBeforeV267=typeof huntRows==='function'?huntRows:null;
   if(huntRowsBeforeV267){huntRows=function(){const rows=huntRowsBeforeV267();if(state.hunt.tab!=='best')return rows;return rows.filter(r=>scoreLead(r)>=8).sort((a,b)=>scoreLead(b)-scoreLead(a)||((leadDate(b)||0)-(leadDate(a)||0)));};}
 
+  const huntDisplayImageBeforeV268=typeof huntDisplayImage==='function'?huntDisplayImage:null;
+  if(huntDisplayImageBeforeV268){huntDisplayImage=function(r){
+    const existing=huntDisplayImageBeforeV268(r);if(existing)return existing;
+    const rk=typeof retailerKey==='function'?retailerKey(r?.retailer):'',u=txt(r?.image_url),proof=typeof sameProof==='function'&&typeof itemCode==='function'&&sameProof(r?.image_match_barcode,itemCode(r));
+    if((rk==='dollar general'||rk==='dollar tree')&&proof&&/^https:\/\//i.test(u))return u;
+    return'';
+  };}
+  const huntImageHtmlBeforeV268=typeof huntImageHtml==='function'?huntImageHtml:null;
+  if(huntImageHtmlBeforeV268){huntImageHtml=function(r,title){
+    const rk=typeof retailerKey==='function'?retailerKey(r?.retailer):'',u=txt(r?.image_data_url||r?.image_url),proof=typeof sameProof==='function'&&typeof itemCode==='function'&&sameProof(r?.image_match_barcode,itemCode(r));
+    if((rk==='dollar general'||rk==='dollar tree')&&proof&&/^https:\/\//i.test(u))return `<img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${esc(u)}" alt="${esc(title)}" onerror="this.remove();this.closest('.item-card')?.classList.add('no-image')">`;
+    return huntImageHtmlBeforeV268(r,title);
+  };}
+
+  function openFacebookForShare(){
+    const b=typeof bridge==='function'?bridge():null,url='https://www.facebook.com/marketplace/';
+    try{if(b&&typeof b.openExternalUrl==='function'){b.openExternalUrl(url);return}openExternal(url)}catch{openExternal(url)}
+  }
   function decorateFacebook(){
     const b=$('facebookScan');if(!b)return;const sec=b.closest('section.card');if(!sec)return;
-    const f=state.v240?.facebook,rows=state.v240?.facebookRows||[],dead=rows.length===0&&['PUBLIC_INDEX_EMPTY','PROVIDER_UNAVAILABLE'].includes(txt(f?.provider_status||f?.status));
-    if(dead){b.textContent='Retry public sources';const p=sec.querySelector('p.small');if(p)p.innerHTML='Public Facebook coverage is supplemental. For a listing you can actually see, use <strong>Share → H38 Reseller Scout</strong> for the fastest path into Scan, comps, profit and ROI.';}
+    b.textContent='Open Facebook Marketplace';b.disabled=false;b.onclick=openFacebookForShare;
+    const head=sec.querySelector('.section-head span');if(head)head.textContent=`${state.v266.shared.length} shared into Scout`;
+    const p=sec.querySelector('p.small');if(p)p.innerHTML='<strong>Working path:</strong> open Marketplace, pick a listing, tap Share, then choose <strong>H38 Reseller Scout</strong>. Scout opens the listing directly in Scan for comps, profit and ROI. Public scraping is no longer the primary workflow.';
+    sec.querySelectorAll('[data-v264-facebook-status],[data-v265-facebook-status]').forEach(x=>x.remove());
     let box=sec.querySelector('[data-v266-share]');if(!box){box=document.createElement('div');box.dataset.v266Share='true';box.className='truth-note';box.style.marginTop='10px';sec.appendChild(box)}
-    const n=state.v266.shared.length;box.innerHTML=`<strong>FASTEST FACEBOOK FLOW</strong><br>Marketplace listing → Share → H38 Reseller Scout.${n?`<br>${n} shared listing${n===1?'':'s'} received on this phone.`:''}`;
+    const n=state.v266.shared.length;box.innerHTML=`<strong>FACEBOOK → SCOUT</strong><br>1. Open Marketplace &nbsp; 2. Open a listing &nbsp; 3. Share → H38 Reseller Scout${n?`<br><strong>${n}</strong> listing${n===1?'':'s'} received on this phone.`:''}`;
   }
 
   function addBestTab(){const p=$('huntPage');if(!p)return;const existing=p.querySelector('[data-hunt-tab="best"]');const n=(typeof huntBaseRows==='function'?huntBaseRows():[]).filter(r=>scoreLead(r)>=8).length;if(existing){existing.textContent=`Best leads ${n}`;return}const first=p.querySelector('[data-hunt-tab]');if(!first)return;const b=document.createElement('button');b.className=first.className;b.dataset.huntTab='best';b.textContent=`Best leads ${n}`;first.parentElement.insertBefore(b,first);b.onclick=()=>{state.hunt.tab='best';renderHunt()};}
