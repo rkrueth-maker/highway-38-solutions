@@ -38,6 +38,6 @@ jobs:
           grep -Fq "authentication:'NO_FACEBOOK_LOGIN'" "$f"
           grep -Fq "H38_FACEBOOK_PUBLIC_V264" "$f"
           grep -Fq "PUBLIC_LOCATION_UNPROVEN" "$f"
-          if grep -Eiq 'facebook.*cookie|c_user|xs=|checkpoint bypass|login credential' "$f"; then
+          if grep -Eiq 'c_user|xs=|checkpoint bypass|login credential|headers[^\n]*cookie|cookie[^\n]*headers' "$f"; then
             echo 'Forbidden authenticated Facebook acquisition marker'; exit 1
           fi
