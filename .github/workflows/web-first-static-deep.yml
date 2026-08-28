@@ -1,0 +1,56 @@
+name: Web First Static Deep Scan
+
+on:
+  push:
+    branches:
+      - agent/web-first-static-deep-20260827
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  all-nonbrowser-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install
+      - name: Run every package-listed non-browser Business Office/commercial verifier independently
+        shell: bash
+        run: |
+          set +e
+          rc=0
+          pass=0
+          fail=0
+          skip=0
+          mapfile -t files < <(node -e "const p=require('./package.json'); const text=[p.scripts['test:business-office']||'',p.scripts['test:commercial']||''].join(' && '); const a=[...text.matchAll(/node (scripts\\/[^ \\t&]+\\.js)/g)].map(m=>m[1]); console.log([...new Set(a)].join('\\n'));" )
+          for file in "${files[@]}"; do
+            if grep -Eq "require\\(['\"]playwright['\"]\\)" "$file"; then
+              echo "SKIP browser: $file"
+              skip=$((skip+1))
+              continue
+            fi
+            if printf '%s\n' "$file" | grep -Eiq 'site-scanner|native-walkthrough|android-arcore|android-play'; then
+              echo "SKIP native/site-scanner: $file"
+              skip=$((skip+1))
+              continue
+            fi
+            echo "::group::$file"
+            node "$file"
+            code=$?
+            echo "::endgroup::"
+            if [ $code -eq 0 ]; then
+              pass=$((pass+1))
+            else
+              fail=$((fail+1))
+              rc=1
+              echo "FAIL_FILE=$file"
+            fi
+          done
+          echo "SUMMARY pass=$pass fail=$fail skip=$skip total=${#files[@]}"
+          exit $rc
