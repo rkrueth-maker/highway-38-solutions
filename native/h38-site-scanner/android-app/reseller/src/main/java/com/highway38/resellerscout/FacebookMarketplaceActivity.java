@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -30,9 +31,9 @@ import java.util.Set;
 /**
  * Automatic Marketplace collector used by Scout.
  *
- * Important UX rule: this activity is deliberately translucent and its WebView is nearly transparent.
- * Facebook may be used as an authenticated/public data source, but the user-facing experience stays
- * on the Scout screen. The collector does not require the user to scroll categories or search manually.
+ * The collector window is intentionally reduced to a 1x1 non-touchable translucent surface so
+ * Android never replaces Scout with a blank/black foreground screen. The WebView remains a full
+ * offscreen viewport inside that clipped window so Marketplace can render normal listing DOM.
  */
 public final class FacebookMarketplaceActivity extends Activity {
     public static final String EXTRA_TERMS="terms",EXTRA_LAT="lat",EXTRA_LON="lon",EXTRA_RADIUS="radius",EXTRA_POSTAL="postal",EXTRA_URL="url";
@@ -52,7 +53,10 @@ public final class FacebookMarketplaceActivity extends Activity {
         super.onCreate(state);
         getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL);
+        WindowManager.LayoutParams lp=getWindow().getAttributes();
+        lp.width=1;lp.height=1;lp.gravity=Gravity.BOTTOM|Gravity.END;lp.dimAmount=0f;lp.alpha=0.01f;
+        getWindow().setAttributes(lp);
         overridePendingTransition(0,0);
         readIntent();prepareCandidateStore();buildHiddenCollector();
         startSearchCycle();
@@ -89,7 +93,8 @@ public final class FacebookMarketplaceActivity extends Activity {
     private void buildHiddenCollector(){
         FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.TRANSPARENT);
         webView=new WebView(this);webView.setBackgroundColor(Color.TRANSPARENT);webView.setAlpha(0.01f);
-        WebSettings s=webView.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setMediaPlaybackRequiresUserGesture(true);s.setLoadsImagesAutomatically(true);s.setBlockNetworkImage(false);s.setUserAgentString(s.getUserAgentString()+" H38ResellerScoutMarketplace/"+BuildConfig.VERSION_NAME);
+        webView.setMinimumWidth(1080);webView.setMinimumHeight(1920);
+        WebSettings s=webView.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setMediaPlaybackRequiresUserGesture(true);s.setLoadsImagesAutomatically(true);s.setBlockNetworkImage(false);s.setUseWideViewPort(true);s.setLoadWithOverviewMode(false);s.setUserAgentString(s.getUserAgentString()+" H38ResellerScoutMarketplace/"+BuildConfig.VERSION_NAME);
         CookieManager cm=CookieManager.getInstance();cm.setAcceptCookie(true);cm.setAcceptThirdPartyCookies(webView,true);
         webView.addJavascriptInterface(new BrowserBridge(),"AndroidH38FacebookBrowser");
         webView.setWebViewClient(new WebViewClient(){
@@ -99,7 +104,8 @@ public final class FacebookMarketplaceActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view,String url){super.onPageFinished(view,url);scheduleCapture(generation);}
         });
-        root.addView(webView,new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout.LayoutParams wp=new FrameLayout.LayoutParams(1080,1920);
+        root.addView(webView,wp);
         setContentView(root);
     }
 
@@ -140,7 +146,7 @@ public final class FacebookMarketplaceActivity extends Activity {
   function itemId(v){var m=String(v||'').match(/\\/marketplace\\/item\\/(\\d+)/i);return m?m[1]:''}
   function price(raw){var m=String(raw||'').match(/\\$\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)/);return m?Number(m[1].replace(/,/g,'')):null}
   function distance(raw){var m=String(raw||'').match(/([0-9]+(?:\\.[0-9]+)?)\\s*(?:mi|miles)\\b/i);return m?Number(m[1]):null}
-  function pageLocation(){var nodes=[].slice.call(document.querySelectorAll('[aria-label*="location" i],button,[role="button"]'));for(var i=0;i<nodes.length;i++){var x=T(nodes[i]);if(x.length>2&&x.length<90&&x.indexOf('$')<0&&(/location/i.test(String(nodes[i].getAttribute&&nodes[i].getAttribute('aria-label')||''))||/^[A-Za-z .'-]+(?:,\\s*[A-Za-z]{2})?$/.test(x)))return x}return''}
+  function pageLocation(){var nodes=[].slice.call(document.querySelectorAll('[aria-label*="location" i],button,[role="button"]'));for(var i=0;i<nodes.length;i++){var x=T(nodes[i]);if(x.length>2&&x.length<90&&x.indexOf('$')<0&&(/location/i.test(String(nodes[i].getAttribute&&nodes[i].getAttribute('aria-label')||''))||/^[A-Za-z .\'-]+(?:,\\s*[A-Za-z]{2})?$/.test(x)))return x}return''}
   var body=String((document.body&&document.body.innerText)||''),low=body.toLowerCase(),path=String(location.pathname||'').toLowerCase();
   var anchors=[].slice.call(document.querySelectorAll('a[href*="/marketplace/item/"]'));
   var login=!anchors.length&&(low.indexOf('log in to facebook')>=0||low.indexOf('email or phone')>=0||low.indexOf('security check')>=0||path.indexOf('/login')>=0||path.indexOf('/checkpoint')>=0);
