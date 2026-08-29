@@ -1,12 +1,15 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
-const p='src/main/assets/reseller/';
-const v264=fs.readFileSync(p+'v264-wide-repair.js','utf8');
-const v265=fs.readFileSync(p+'v265-facebook-acquisition-repair.js','utf8');
-const v300=fs.readFileSync(p+'v266-actionable-intake.js','utf8');
-const gradle=fs.readFileSync('build.gradle','utf8');
-const rules=fs.readFileSync('V3-RUNTIME-RULES.md','utf8');
+const here=path.dirname(fileURLToPath(import.meta.url));
+const p=path.join(here,'src/main/assets/reseller');
+const v264=fs.readFileSync(path.join(p,'v264-wide-repair.js'),'utf8');
+const v265=fs.readFileSync(path.join(p,'v265-facebook-acquisition-repair.js'),'utf8');
+const v300=fs.readFileSync(path.join(p,'v266-actionable-intake.js'),'utf8');
+const gradle=fs.readFileSync(path.join(here,'build.gradle'),'utf8');
+const rules=fs.readFileSync(path.join(here,'V3-RUNTIME-RULES.md'),'utf8');
 
 assert.match(v264,/H38_SCOUT_LEGACY_V264_DISABLED=true/);
 assert.match(v265,/H38_SCOUT_LEGACY_V265_DISABLED=true/);
