@@ -19,7 +19,7 @@ has(runtime,'data-h38-image-url','remote image fallback binding missing');
 has(runtime,"window.huntDisplayImage=function(r){return trustedImageUrl(r)}",'group preview image path still bypasses shared candidate pipeline');
 has(runtime,'product_image_url','product image field missing');
 has(runtime,'listing_image_url','listing image field missing');
-has(runtime,'Family Dollar','expected retailer coverage marker missing');
+has(runtime,'source_image_url','source image field missing');
 has(runtime,'data-open','exact source action was not restored');
 has(prior,"Promise.allSettled([fn('reseller-auto-leads-v064'",'Penny provider isolation missing');
 has(prior,"fn('reseller-auto-leads-v058'",'Penny fallback provider missing');
