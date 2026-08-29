@@ -54,7 +54,7 @@ jobs:
           grep -Fq "if(fb.status==='AUTH_REQUIRED')" reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           grep -Fq 'setTimeout(startFacebookAutomatic,350)' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           grep -Fq "h.textContent='Penny Hunt'" reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'Physical UPC/register scan remains final local penny truth.' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'physical UPC/register scan remains final local penny truth.' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           grep -Fq 'listing_image_url' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           grep -Fq 'product_image_url' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           echo PASS > "$report/contracts.txt"
