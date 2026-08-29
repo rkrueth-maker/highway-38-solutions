@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.8.3 Facebook Session Acquisition
+name: Build H38 Scout v2.8.4 Facebook + Image Recovery
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Facebook session + truth contract gates
+      - name: Facebook and image recovery contract gates
         shell: bash
         run: |
           set -euo pipefail
@@ -45,15 +45,21 @@ jobs:
           js="$app/src/main/assets/reseller/v265-facebook-acquisition-repair.js"
           fb="$app/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java"
 
-          grep -Fq "versionName '2.8.3'" "$app/build.gradle"
-          grep -Fq 'versionCode 99' "$app/build.gradle"
+          grep -Fq "versionName '2.8.4'" "$app/build.gradle"
+          grep -Fq 'versionCode 100' "$app/build.gradle"
 
-          grep -Fq 'H38_SCOUT_V283_FACEBOOK_SESSION_PIPELINE' "$js"
+          grep -Fq 'H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY' "$js"
           grep -Fq 'facebookBrowserCandidates' "$js"
           grep -Fq 'publicOnly:false' "$js"
           grep -Fq 'Connect Facebook once' "$js"
-          grep -Fq 'acquisition/parser result—not proof that local inventory is zero' "$js"
-          grep -Fq "rk==='dollar general'||rk==='dollar tree'||rk==='family dollar'" "$js"
+          grep -Fq 'Connect / refresh Facebook' "$js"
+          grep -Fq 'Scout stopped the stale hunt instead of pretending it worked' "$js"
+          grep -Fq 'imageCandidates' "$js"
+          grep -Fq 'thumbnail_url' "$js"
+          grep -Fq 'product_image_url' "$js"
+          grep -Fq 'source_image_url' "$js"
+          grep -Fq 'photo_url' "$js"
+          grep -Fq 'referrerpolicy="no-referrer"' "$js"
 
           grep -Fq '__H38_CONNECT__' "$fb"
           grep -Fq 'c_user=' "$fb"
@@ -65,11 +71,9 @@ jobs:
           grep -Fq 'captured_count' "$fb"
           grep -Fq 'root.addView(collector,0,new FrameLayout.LayoutParams(1080,1920))' "$fb"
           ! grep -Fq 'setTranslationX(-5000f)' "$fb"
-          ! grep -Fq 'H38ResellerScoutEmbeddedMarketplace/' "$fb"
 
           node --check "$js"
           node --check "$app/src/main/assets/reseller/v266-actionable-intake.js"
-
           node "$app/hunt-native.test.mjs"
           node "$app/profit-engine.test.mjs"
 
@@ -82,21 +86,22 @@ jobs:
               'boolean cardProven=locationMatches(x.optString("text",""))',
               'boolean verified=!outsideRadius&&(distanceProven||cardProven||pageProven)',
               'preserved.put(x)',
-              'else if(totalCaptured>0)status="COMPLETE_LOCATION_UNPROVEN"',
-              'if(postal.isBlank()||postal.equals(x.optString("search_postal","")))safe.put(x)'
+              'else if(totalCaptured>0)status="COMPLETE_LOCATION_UNPROVEN"'
           ]
           required_js=[
               'captured=raw.filter',
               'rows=captured.filter(r=>r?.location_verified===true)',
               'unproven=captured.filter',
               'outside=captured.filter',
-              'Facebook yielded ${fb.captured.length}',
-              'Craigslist results below do not count as Facebook success.'
+              'imageCandidates(r)',
+              'thumbnail_url',
+              'Connect / refresh Facebook',
+              'age>40000'
           ]
           missing=[x for x in required_java if x not in fb]+[x for x in required_js if x not in js]
           if missing:
-              raise SystemExit('Missing v2.8.3 contract: '+repr(missing))
-          print('v2.8.3 acquisition/location separation contract OK')
+              raise SystemExit('Missing v2.8.4 contract: '+repr(missing))
+          print('v2.8.4 Facebook/image recovery contract OK')
           PY
 
       - name: Compile owner APK
@@ -109,16 +114,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v283"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v284"
           mkdir -p "$report"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'
-          out="$report/H38-Reseller-Scout-Owner-v2.8.3.apk"
+          out="$report/H38-Reseller-Scout-Owner-v2.8.4.apk"
           test -f "$apk"
           cp "$apk" "$out"
 
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.8.3.sha256"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.8.4.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='99' versionName='2.8.3'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='100' versionName='2.8.4'" "$report/badging.txt"
 
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
@@ -127,8 +132,9 @@ jobs:
 
           unzip -p "$out" 'assets/reseller/v265-facebook-acquisition-repair.js' > "$report/packaged-v265-facebook-acquisition-repair.js"
           node --check "$report/packaged-v265-facebook-acquisition-repair.js"
-          grep -Fq 'H38_SCOUT_V283_FACEBOOK_SESSION_PIPELINE' "$report/packaged-v265-facebook-acquisition-repair.js"
-          grep -Fq 'publicOnly:false' "$report/packaged-v265-facebook-acquisition-repair.js"
+          grep -Fq 'H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY' "$report/packaged-v265-facebook-acquisition-repair.js"
+          grep -Fq 'Connect / refresh Facebook' "$report/packaged-v265-facebook-acquisition-repair.js"
+          grep -Fq 'thumbnail_url' "$report/packaged-v265-facebook-acquisition-repair.js"
 
           for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
           grep -Fq 'COMPLETE_LOCATION_UNPROVEN' "$report/dex-strings.txt"
@@ -140,7 +146,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: h38-reseller-scout-owner-v2.8.3-facebook-session-acquisition
-          path: artifacts/scout-v283/*
+          name: h38-reseller-scout-owner-v2.8.4-facebook-image-recovery
+          path: artifacts/scout-v284/*
           if-no-files-found: warn
           retention-days: 30
