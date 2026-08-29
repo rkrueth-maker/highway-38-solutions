@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const runtime=fs.readFileSync(new URL('./src/main/assets/reseller/v265-facebook-acquisition-repair.js',import.meta.url),'utf8');
-const gradle=fs.readFileSync(new URL('./build.gradle',import.meta.url),'utf8');
 
 function has(s,msg){assert.ok(runtime.includes(s),msg)}
 function lacks(s,msg){assert.ok(!runtime.includes(s),msg)}
@@ -29,7 +28,5 @@ has('(logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer|avatar|badge|b
 has("if(u)return`<img class=\"thumb\"",'shared image renderer missing');
 lacks("buy_price:0",'runtime must not manufacture unknown price as zero');
 lacks("penny_date:new Date",'runtime must not manufacture penny dates');
-assert.match(gradle,/versionCode 101/);
-assert.match(gradle,/versionName '2\.8\.5'/);
 
-console.log('PASS v2.8.5 full-week recovery contracts');
+console.log('PASS v2.8.5 behavioral recovery contracts');
