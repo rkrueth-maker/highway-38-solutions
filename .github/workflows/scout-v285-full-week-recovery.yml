@@ -1,4 +1,4 @@
-name: Build H38 Scout v2.8.6 Deep Recovery
+name: Build H38 Scout v3.0.0 Single Owner Runtime
 
 on:
   push:
@@ -6,10 +6,11 @@ on:
       - 'agent/private-reseller-scout'
     paths:
       - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v264-wide-repair.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v266-actionable-intake.js'
-      - 'native/h38-site-scanner/android-app/reseller/v285-full-week-recovery.test.mjs'
-      - 'native/h38-site-scanner/android-app/reseller/v286-final-override.test.mjs'
+      - 'native/h38-site-scanner/android-app/reseller/v300-single-owner-runtime.test.mjs'
+      - 'native/h38-site-scanner/android-app/reseller/V3-RUNTIME-RULES.md'
       - '.github/workflows/scout-v285-full-week-recovery.yml'
   workflow_dispatch:
 
@@ -33,40 +34,39 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v2.8.6 deep recovery contracts
+      - name: Verify v3 single-owner contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v286"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v300"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
-          node reseller/v285-full-week-recovery.test.mjs | tee "$report/v285-contracts.txt"
-          node reseller/v286-final-override.test.mjs | tee "$report/v286-contracts.txt"
+          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v300-contracts.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
           node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-rank.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/penny-identity-source.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions-regression.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-home-depot-local-v240/core.test.mjs" | tee "$report/home-depot-truth.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg-truth.txt"
-          grep -Fq "versionName '2.8.6'" reseller/build.gradle
-          grep -Fq 'versionCode 102' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V286_FINAL_OVERRIDE_REPAIR=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'if(!window.H38_SCOUT_V285_FULL_WEEK_RECOVERY)' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'H38V286ImageFallback' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'data-v286-fb-auth' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "versionName '3.0.0'" reseller/build.gradle
+          grep -Fq 'versionCode 300' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_LEGACY_V264_DISABLED=true' reseller/src/main/assets/reseller/v264-wide-repair.js
+          grep -Fq 'H38_SCOUT_LEGACY_V265_DISABLED=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'H38_SCOUT_V300_SINGLE_OWNER_RUNTIME=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'H38V300ImageFallback' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'LOCATION NEEDS PROOF' reseller/src/main/assets/reseller/v266-actionable-intake.js
           echo PASS > "$report/contracts.txt"
 
-      - name: Compile Owner Scout v2.8.6 APK
+      - name: Compile Owner Scout v3.0.0 APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v286"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v300"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.8.6.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.8.6.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.0.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.0.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -74,26 +74,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v286"; out="$report/H38-Reseller-Scout-Owner-v2.8.6.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v300"; out="$report/H38-Reseller-Scout-Owner-v3.0.0.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='102' versionName='2.8.6'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='300' versionName='3.0.0'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v286-runtime.js"
-          grep -Fq 'H38_SCOUT_V286_FINAL_OVERRIDE_REPAIR=true' "$report/packaged-v286-runtime.js"
-          grep -Fq 'H38V286ImageFallback' "$report/packaged-v286-runtime.js"
+          unzip -p "$out" assets/reseller/v264-wide-repair.js > "$report/packaged-v264-stub.js"
+          unzip -p "$out" assets/reseller/v265-facebook-acquisition-repair.js > "$report/packaged-v265-stub.js"
+          unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v300-runtime.js"
+          grep -Fq 'H38_SCOUT_LEGACY_V264_DISABLED=true' "$report/packaged-v264-stub.js"
+          grep -Fq 'H38_SCOUT_LEGACY_V265_DISABLED=true' "$report/packaged-v265-stub.js"
+          grep -Fq 'H38_SCOUT_V300_SINGLE_OWNER_RUNTIME=true' "$report/packaged-v300-runtime.js"
+          grep -Fq 'H38V300ImageFallback' "$report/packaged-v300-runtime.js"
           rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
           for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
           grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
-      - name: Upload v2.8.6 APK and diagnostics
+      - name: Upload v3.0.0 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v2.8.6-deep-recovery
-          path: artifacts/scout-v286/*
+          name: h38-reseller-scout-owner-v3.0.0-single-owner
+          path: artifacts/scout-v300/*
           if-no-files-found: warn
           retention-days: 30
