@@ -44,10 +44,11 @@ window.H38_SCOUT_V265_FACEBOOK_ACQUISITION_REPAIR=true;
   if(state.user&&state.page==='discover')renderDiscover();
 })();
 
-setTimeout(function installV283FacebookSessionPipeline(){
-  if(window.H38_SCOUT_V283_FACEBOOK_SESSION_PIPELINE)return;
+setTimeout(function installV284FacebookAndImageRecovery(){
+  if(window.H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY)return;
   window.H38_SCOUT_V282_EVIDENCE_REPAIR=true;
   window.H38_SCOUT_V283_FACEBOOK_SESSION_PIPELINE=true;
+  window.H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY=true;
 
   function rawFacebookRows(){
     try{
@@ -60,7 +61,6 @@ setTimeout(function installV283FacebookSessionPipeline(){
     return{status:txt(system?.status||''),rows,captured,unproven,outside,system};
   }
 
-  // v2.8.3: authenticated browser rows are primary again. The public backend remains supplemental.
   facebookSnapshot=function(){
     const fb=fbState(),notifications=typeof bridgeRows==='function'?bridgeRows('facebookNotificationCandidates'):[],publicRows=(state.v240?.facebookRows||[]).filter(r=>r&&r.location_verified===true),by=new Map();
     for(const r of [...fb.rows,...publicRows]){
@@ -74,62 +74,65 @@ setTimeout(function installV283FacebookSessionPipeline(){
   function connectFacebook(){
     const b=bridge();
     if(!b||typeof b.openFacebookMarketplace!=='function'){notice('Facebook connection requires the Android Scout app.','warn');return}
-    try{
-      b.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,txt(state.location?.label||state.location?.zip||''),'');
-    }catch(e){notice(e.message||String(e),'warn')}
+    state.facebookPassPending=false;state.facebookRanking=false;
+    try{b.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,txt(state.location?.label||state.location?.zip||''),'')}catch(e){notice(e.message||String(e),'warn')}
   }
   window.H38FacebookConnected=function(){
     state.facebookPassPending=false;state.facebookRanking=false;
     notice('Facebook connected. Scout is starting an automatic Marketplace pass.','good');
-    setTimeout(()=>window.H38V270OpenFacebookScan?.(),250);
+    setTimeout(()=>window.H38V270OpenFacebookScan?.(),350);
   };
 
-  function usableRetailImage(u){
+  function usableImage(u){
     const x=txt(u);
-    return /^https:\/\//i.test(x)&&!/(?:^|[\/_.-])(logo|favicon|sprite|pixel|tracking|placeholder|blank)(?:[\/_.-]|$)/i.test(x);
+    return /^(?:https:\/\/|data:image\/)/i.test(x)&&!/(?:^|[\/_.?&=-])(logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer)(?:[\/_.?&=-]|$)/i.test(x);
   }
+  function imageCandidates(r){
+    const fields=[r?.image_data_url,r?.image_url,r?.image,r?.thumbnail_url,r?.thumbnail,r?.product_image_url,r?.product_image,r?.primary_image_url,r?.primary_image,r?.source_image_url,r?.source_image,r?.media_url,r?.photo_url];
+    if(Array.isArray(r?.images))fields.push(...r.images);
+    if(Array.isArray(r?.image_urls))fields.push(...r.image_urls);
+    if(r?.media&&typeof r.media==='object')fields.push(r.media.url,r.media.image_url,r.media.thumbnail_url);
+    return fields.map(v=>typeof v==='string'?v:(v&&typeof v==='object'?(v.url||v.src||v.image_url||''):'')).map(txt).filter(usableImage);
+  }
+  window.H38ScoutImageCandidates=imageCandidates;
+
   const imageBefore=typeof huntImageHtml==='function'?huntImageHtml:null;
   if(imageBefore)huntImageHtml=function(r,title){
-    const rk=retailerKey(r?.retailer),u=txt(r?.image_data_url||r?.image_url),retailImage=(rk==='dollar general'||rk==='dollar tree'||rk==='family dollar')&&usableRetailImage(u);
-    if(retailImage)return`<img class="thumb" loading="lazy" src="${esc(u)}" alt="${esc(title)}" onerror="this.remove();this.closest('.item-card')?.classList.add('no-image')">`;
+    const u=imageCandidates(r)[0]||'';
+    if(u)return`<img class="thumb" loading="lazy" src="${esc(u)}" alt="${esc(title)}" referrerpolicy="no-referrer" onerror="this.remove();this.closest('.item-card')?.classList.add('no-image')">`;
     return imageBefore(r,title);
   };
 
+  function facebookButton(label,action){return` <button class="mini-btn primary" data-v284-facebook-action="${action}">${label}</button>`}
   function patchDiscoverTruth(){
     const p=$('discoverPage');if(!p)return;
     const line=p.querySelector('[data-v270-facebook]');if(!line)return;
-    const fb=fbState(),started=num(state.facebookPassStartedAt)>0,busy=!!state.facebookPassPending||!!state.facebookRanking;
+    const fb=fbState(),started=num(state.facebookPassStartedAt)>0,age=started?Date.now()-num(state.facebookPassStartedAt):0,busy=!!state.facebookPassPending||!!state.facebookRanking;
+    if(busy&&age>40000){state.facebookPassPending=false;state.facebookRanking=false}
     if(fb.status==='AUTH_REQUIRED'){
-      state.facebookPassPending=false;state.facebookRanking=false;
-      line.innerHTML=`<span class="dot warn"></span>Facebook needs a one-time connection before automatic Marketplace hunting can work. <button class="mini-btn primary" data-v283-connect>Connect Facebook once</button>`;
-      line.querySelector('[data-v283-connect]')?.addEventListener('click',connectFacebook);
-      return;
-    }
-    if(fb.rows.length){
+      line.innerHTML=`<span class="dot warn"></span>Facebook needs a one-time connection before automatic Marketplace hunting can work.${facebookButton('Connect Facebook once','connect')}`;
+    }else if(fb.rows.length){
       const held=fb.unproven.length+fb.outside.length;
       line.innerHTML=`<span class="dot live"></span>${fb.rows.length} location-proven Facebook Marketplace listing${fb.rows.length===1?'':'s'} captured by Scout.${held?` ${held} additional card${held===1?' was':'s were'} withheld for location proof.`:''}`;
-      return;
-    }
-    if(busy||fb.status==='SCANNING'){
+    }else if((!!state.facebookPassPending||!!state.facebookRanking||fb.status==='SCANNING')&&age<=40000){
       line.innerHTML='<span class="dot loading"></span>Scout is hunting Facebook Marketplace in the background.';
-      return;
+    }else if(fb.captured.length){
+      line.innerHTML=`<span class="dot warn"></span>Facebook yielded ${fb.captured.length} listing card${fb.captured.length===1?'':'s'}, but ${fb.unproven.length} lacked selected-area proof and ${fb.outside.length} were outside the radius. Scout withheld them instead of calling inventory zero.${facebookButton('Run Facebook again','retry')}`;
+    }else if(fb.status==='COMPLETE_EMPTY'){
+      line.innerHTML=`<span class="dot warn"></span>Facebook loaded, but Scout captured 0 Marketplace item cards. Local inventory remains unknown.${facebookButton('Connect / refresh Facebook','connect')}`;
+    }else if(started&&age>40000){
+      line.innerHTML=`<span class="dot warn"></span>Facebook did not finish a usable pass. Scout stopped the stale hunt instead of pretending it worked.${facebookButton('Connect / refresh Facebook','connect')}`;
+    }else if(started){
+      line.innerHTML=`<span class="dot warn"></span>Facebook produced no usable Marketplace cards in this pass. Craigslist results below do not count as Facebook success.${facebookButton('Run Facebook again','retry')}`;
+    }else{
+      line.innerHTML=`<span class="dot"></span>Facebook is ready to be connected for automatic Marketplace hunting.${facebookButton('Connect Facebook once','connect')}`;
     }
-    if(fb.captured.length){
-      line.innerHTML=`<span class="dot warn"></span>Facebook yielded ${fb.captured.length} listing card${fb.captured.length===1?'':'s'}, but ${fb.unproven.length} lacked selected-area proof and ${fb.outside.length} were outside the radius. Scout withheld them instead of calling inventory zero.`;
-      return;
-    }
-    if(fb.status==='COMPLETE_EMPTY'){
-      line.innerHTML='<span class="dot warn"></span>Facebook loaded, but Scout captured 0 Marketplace item cards. That is an acquisition/parser result—not proof that local inventory is zero.';
-      return;
-    }
-    if(started){
-      line.innerHTML='<span class="dot warn"></span>Facebook produced no usable Marketplace cards in this pass. Craigslist results below do not count as Facebook success.';
-      return;
-    }
-    line.innerHTML='<span class="dot"></span>Facebook has not produced a usable Marketplace listing yet.';
+    line.querySelector('[data-v284-facebook-action="connect"]')?.addEventListener('click',connectFacebook);
+    line.querySelector('[data-v284-facebook-action="retry"]')?.addEventListener('click',()=>window.H38V270OpenFacebookScan?.());
   }
 
   const discoverBefore=renderDiscover;
   renderDiscover=function(){discoverBefore();patchDiscoverTruth()};
+  setInterval(()=>{if(state.page==='discover'&&state.facebookPassPending&&Date.now()-num(state.facebookPassStartedAt)>40000)renderDiscover()},5000);
   if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt()}
 },0);
