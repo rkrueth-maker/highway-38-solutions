@@ -13,7 +13,7 @@ has("fn('reseller-auto-leads-v058'",'independent Penny fallback provider missing
 has("const HUNT_CACHE='h38.scout.v285.hunt-evidence'",'Penny evidence cache missing');
 has("if(!rows.length){const fallback=prior.length?prior:cachedHunt()",'empty provider pass must not erase prior evidence');
 has("h.textContent='Penny Hunt'",'Penny Hunt identity not restored');
-has('Physical UPC/register scan remains final local penny truth.','Penny truth contract missing');
+has('physical UPC/register scan remains final local penny truth.','Penny truth contract missing');
 has("if(fb.status==='AUTH_REQUIRED')",'Facebook auth must be collector-driven');
 has("data-v285-fb-auth",'one-time auth action missing');
 has("window.H38FacebookConnected=function()",'Facebook auth return callback missing');
