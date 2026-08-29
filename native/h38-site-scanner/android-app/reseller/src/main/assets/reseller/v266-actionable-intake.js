@@ -1,73 +1,120 @@
 'use strict';
-window.H38_SCOUT_V266_ACTIONABLE_INTAKE=true;
-window.H38_SCOUT_V267_POLISH=true;
-window.H38_SCOUT_V268_RELIABILITY=true;
-window.H38_SCOUT_V269_AUTOMATIC_FACEBOOK_NATIVE_IMAGES=true;
-window.H38_SCOUT_V270_WIDE_REPAIR=true;
-window.H38_SCOUT_V281_FACEBOOK_DG_REPAIR=true;
-window.H38_SCOUT_V286_FINAL_OVERRIDE_REPAIR=true;
-(function installV270WideRepair(){
-  if(window.H38_SCOUT_V270_INSTALLED)return;
-  window.H38_SCOUT_V270_INSTALLED=true;
-  state.v266=state.v266||{shared:[]};
+window.H38_SCOUT_V300_SINGLE_OWNER_RUNTIME=true;
+(function installV300(){
+  if(window.H38_SCOUT_V300_INSTALLED)return;
+  window.H38_SCOUT_V300_INSTALLED=true;
 
-  function parseShared(text){
-    const raw=txt(text),url=(raw.match(/https?:\/\/[^\s]+/i)||[])[0]||'',price=(raw.match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/)||[])[1]||'',lines=raw.split(/\r?\n/).map(txt).filter(Boolean),title=lines.find(x=>!/^https?:/i.test(x)&&!/^\$/.test(x))||'Shared resale listing';
-    return{title,price:price?Number(price):null,url,source:/facebook\.com|fb\.com/i.test(raw)?'Facebook Marketplace':'Shared listing',shared_text:raw,location_verified:false,truth:'Shared source evidence only. Scout still verifies price, comps and local truth.',received_at:new Date().toISOString()};
+  const FB_TIMEOUT_MS=45000;
+  const HUNT_CACHE='h38.scout.v300.hunt-evidence';
+  const HUNT_CACHE_MAX_AGE=14*86400000;
+  const FB_TERMINAL=new Set(['AUTH_REQUIRED','CHECKPOINT','COMPLETE_WITH_ROWS','COMPLETE_LOCATION_UNPROVEN','COMPLETE_EMPTY','ERROR']);
+  const nativeImagePending=new Set();
+  const nativeImageFailed=new Set();
+  state.v300=state.v300||{facebookStartedAt:0,facebookStatus:'SESSION_UNKNOWN',facebookTerms:[],huntProviders:[]};
+
+  function safeJson(v,f){try{const x=JSON.parse(String(v||''));return x==null?f:x}catch{return f}}
+  function b(){try{return bridge()}catch{return null}}
+  function fbNative(){
+    try{
+      const n=b(),raw=n&&typeof n.facebookBrowserCandidates==='function'?n.facebookBrowserCandidates():'[]';
+      const all=safeJson(raw,[]),rows=Array.isArray(all)?all:[],system=rows.find(r=>r&&r.h38_system===true)||null,captured=rows.filter(r=>r&&r.h38_system!==true);
+      const accepted=captured.filter(r=>r.location_verified===true),outside=captured.filter(r=>txt(r.location_status)==='OUTSIDE_RADIUS'),unproven=captured.filter(r=>r.location_verified!==true&&txt(r.location_status)!=='OUTSIDE_RADIUS');
+      return{status:txt(system?.status||state.v300.facebookStatus||'SESSION_UNKNOWN'),system,captured,accepted,outside,unproven};
+    }catch(e){return{status:'ERROR',system:null,captured:[],accepted:[],outside:[],unproven:[]}}
   }
-  function openShared(row){state.scan.hint=row.title||'';state.scan.buyPrice=row.price==null?'':String(row.price);state.scan.identification={likely_item:row.title||'Shared listing',search_query:row.title||'',confidence:'shared_source'};state.scan.market={marketplace:row.source||'Shared listing',shared_url:row.url||'',shared_text:row.shared_text||''};setPage('scan');renderScan();notice('Listing loaded into Scout. Verify cost and sold comps before BUY.','good')}
-  window.H38SharedOpportunity=function(text){const row=parseShared(text);state.v266.shared.unshift(row);state.v266.shared=state.v266.shared.slice(0,25);try{localStorage.setItem('h38-v266-shared',JSON.stringify(state.v266.shared))}catch{}openShared(row)};
-  try{state.v266.shared=JSON.parse(localStorage.getItem('h38-v266-shared')||'[]')}catch{state.v266.shared=[]}
+  facebookSnapshot=function(){
+    const fb=fbNative(),notifications=typeof bridgeRows==='function'?bridgeRows('facebookNotificationCandidates'):[],publicRows=(state.v240?.facebookRows||[]).filter(r=>r&&r.location_verified===true),seen=new Map();
+    for(const r of [...fb.accepted,...publicRows]){const k=txt(r?.marketplace_listing_id||r?.listing_id||r?.id||r?.url||`${r?.title||''}|${r?.price||''}`);if(k&&!seen.has(k))seen.set(k,r)}
+    let alerts=false;try{alerts=b()?.notificationAccessEnabled?.()===true}catch{}
+    return{browser:fb.accepted.slice(0,180),captured:fb.captured.slice(0,180),unproven:fb.unproven.slice(0,180),outside:fb.outside.slice(0,180),notifications:notifications.slice(0,120),rows:[...seen.values()].slice(0,220),alerts,facebookStatus:fb.status,capturedRows:fb.captured.length,locationUnproven:fb.unproven.length,outsideRadius:fb.outside.length};
+  };
 
-  function scoreLead(r){let s=0;const t=typeof leadDate==='function'?leadDate(r):null,age=t?(Date.now()-t)/86400000:999;if(txt(r?.source_item_scope)==='exact_product'||txt(r?.image_reference_scope)==='exact_product'||/^https?:\/\//i.test(txt(r?.source_item_url)))s+=5;if(typeof isPenny==='function'&&isPenny(r))s+=4;else if(typeof isNearPenny==='function'&&isNearPenny(r))s+=3;if(age<=2)s+=4;else if(age<=7)s+=2;else if(age<=30)s+=1;if(num(r?.signal_source_count||r?.report_count)>=2)s+=2;if(typeof itemCode==='function'&&itemCode(r))s+=2;if(trustedImageUrl(r))s+=1;return s}
-  const huntRowsBefore=typeof huntRows==='function'?huntRows:null;
-  if(huntRowsBefore)huntRows=function(){const rows=huntRowsBefore();if(state.hunt.tab!=='best')return rows;return rows.filter(r=>scoreLead(r)>=8).sort((a,b)=>scoreLead(b)-scoreLead(a)||((leadDate(b)||0)-(leadDate(a)||0)))};
+  function fbTerms(){try{if(typeof facebookTerms==='function')return facebookTerms().slice(0,4)}catch{}try{if(typeof profitTerms==='function')return profitTerms().slice(0,4)}catch{}return['tools','electronics','appliances','lawn mower']}
+  function fbProof(){const loc=locationPayload(),label=txt(state.location?.label||''),postal=txt(loc.postal||state.location?.zip||'');return[label,postal].filter(Boolean).join('|')}
+  function startFacebook(force=false){
+    if(!requireLocation())return false;
+    const n=b();if(!n||typeof n.openFacebookMarketplace!=='function'){state.v300.facebookStatus='ERROR';notice('Facebook Marketplace collection requires the Android Scout app.','warn');return false}
+    const snap=fbNative();
+    if(!force&&(snap.status==='COLLECTING'||snap.status==='SCANNING'))return true;
+    const loc=locationPayload(),terms=fbTerms();state.v300.facebookTerms=terms;state.v300.facebookStartedAt=Date.now();state.v300.facebookStatus='COLLECTING';state.facebookPassPending=true;state.facebookPassStartedAt=state.v300.facebookStartedAt;state.facebookRanking=false;
+    if(state.page==='discover')renderDiscover();
+    try{n.openFacebookMarketplace(JSON.stringify(terms),Number(loc.lat)||0,Number(loc.lon)||0,state.radius,fbProof(),'');return true}catch(e){state.facebookPassPending=false;state.v300.facebookStatus='ERROR';error('facebookV300',e);if(state.page==='discover')renderDiscover();return false}
+  }
+  window.H38V300StartFacebook=startFacebook;
+  openFacebookScan=function(){return startFacebook(true)};
 
-  function usableImageUrl(v){const u=txt(v);if(!/^(?:https:\/\/|data:image\/)/i.test(u))return'';if(/(?:^|[\/_.?&=-])(logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer|avatar|badge|banner|promo|loading)(?:[\/_.?&=-]|$)/i.test(u))return'';return u}
-  function imageCandidates286(r){const a=[r?.image_data_url,r?.image_url,r?.image,r?.thumbnail_url,r?.thumbnail,r?.product_image_url,r?.product_image,r?.primary_image_url,r?.primary_image,r?.listing_image_url,r?.listing_image,r?.source_image_url,r?.source_image,r?.media_url,r?.photo_url];if(Array.isArray(r?.images))a.push(...r.images);if(Array.isArray(r?.image_urls))a.push(...r.image_urls);if(r?.media&&typeof r.media==='object')a.push(r.media.url,r.media.image_url,r.media.thumbnail_url);const out=[];for(const v of a){const raw=typeof v==='string'?v:(v&&typeof v==='object'?(v.url||v.src||v.image_url||''):'');const u=usableImageUrl(raw);if(u&&!out.includes(u))out.push(u)}return out}
-  function trustedImageUrl(r){return imageCandidates286(r)[0]||''}
-  window.H38ScoutImageCandidates=imageCandidates286;
-  window.huntDisplayImage=function(r){return trustedImageUrl(r)};
+  function authenticateFacebook(){
+    const snap=fbNative(),status=txt(snap.status);if(status!=='AUTH_REQUIRED'&&status!=='CHECKPOINT')return;
+    const n=b();if(!n||typeof n.openFacebookMarketplace!=='function')return;
+    state.v300.facebookStatus='AUTHENTICATING';
+    try{n.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,fbProof(),'')}catch(e){state.v300.facebookStatus='ERROR';notice(e.message||String(e),'warn')}
+  }
+  window.H38FacebookConnected=function(){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus='AUTHENTICATED';notice('Facebook session saved. Scout is resuming Marketplace automatically.','good');setTimeout(()=>startFacebook(true),350)};
 
-  const nativePending=new Set(),nativeFailed=new Set();
-  function nativeImageEligible(r){const u=imageCandidates286(r).find(x=>/^https:\/\//i.test(x))||'';return !!u}
-  window.H38V286ImageFallback=function(key,url){const k=txt(key),u=usableImageUrl(url),b=bridge();if(!k||!u||nativePending.has(k)||nativeFailed.has(k)||!b||typeof b.fetchImageData!=='function')return;nativePending.add(k);try{b.fetchImageData(k,u)}catch{nativePending.delete(k);nativeFailed.add(k)}};
-  huntImageHtml=function(r,title){const candidates=imageCandidates286(r),data=candidates.find(x=>/^data:image\//i.test(x))||'',remote=candidates.find(x=>/^https:\/\//i.test(x))||'',key=itemKey(r);if(data)return`<img class="thumb" loading="lazy" src="${esc(data)}" alt="${esc(title)}">`;if(remote)return`<img class="thumb" loading="lazy" src="${esc(remote)}" alt="${esc(title)}" data-h38-image-key="${esc(key)}" data-h38-image-url="${esc(remote)}" onerror="window.H38V286ImageFallback&&window.H38V286ImageFallback(this.dataset.h38ImageKey,this.dataset.h38ImageUrl);this.remove();this.closest('.item-card')?.classList.add('no-image')">`;return''};
-  window.H38NativeImageResult=function(key,dataUrl){nativePending.delete(String(key||''));if(!/^data:image\//i.test(txt(dataUrl)))return;let changed=false;state.hunt.rows=state.hunt.rows.map(r=>{if(itemKey(r)===String(key)){changed=true;return{...r,image_data_url:dataUrl}}return r});if(changed){if(state.page==='hunt')renderHuntListOnly();if(state.page==='discover')renderDiscover()}};
-  window.H38NativeImageError=function(key){nativePending.delete(String(key||''));nativeFailed.add(String(key||''))};
-  const drainBefore=typeof drainHuntImageQueue==='function'?drainHuntImageQueue:null;
-  if(drainBefore)drainHuntImageQueue=function(){const b=bridge(),rest=[];while(huntImageQueue.length){const k=huntImageQueue.shift(),r=state.hunt.rows.find(x=>itemKey(x)===k);if(!r||r.image_data_url)continue;const u=imageCandidates286(r).find(x=>/^https:\/\//i.test(x))||'';if(u&&nativeImageEligible(r)&&b&&typeof b.fetchImageData==='function'){if(!nativePending.has(k)&&!nativeFailed.has(k)){nativePending.add(k);try{b.fetchImageData(k,u)}catch{nativePending.delete(k);nativeFailed.add(k)}}}else rest.push(k)}huntImageQueue.push(...rest);return rest.length?drainBefore():Promise.resolve()};
+  async function rankFacebookCaptured(){
+    const snap=facebookSnapshot(),rows=snap.browser||[];if(!rows.length){state.facebookPassPending=false;return}
+    try{if(typeof rankCapturedFacebookRows==='function')await rankCapturedFacebookRows(false)}catch(e){error('facebookRankV300',e)}finally{state.facebookPassPending=false}
+  }
+  const returnedBase=window.H38ScoutReturned;
+  window.H38ScoutReturned=function(){
+    try{if(typeof returnedBase==='function')returnedBase()}catch{}
+    setTimeout(async()=>{const snap=fbNative();state.v300.facebookStatus=snap.status||'SESSION_UNKNOWN';if(FB_TERMINAL.has(snap.status))state.facebookPassPending=false;if(snap.accepted.length)await rankFacebookCaptured();if(state.page==='discover')renderDiscover()},180);
+  };
 
-  const compactRetailBefore=typeof compactRetail==='function'?compactRetail:null;
-  if(compactRetailBefore)compactRetail=function(r){const s=signalLabel(r),title=txt(r.title||r.canonical_title||'Retail item'),img=huntImageHtml(r,title);return `<article class="item-card ${img?'':'no-image'}">${img}<div class="item-main"><div class="item-top"><span class="badge ${s.cls}">${s.label}</span><span class="badge">${esc(r.retailer||'Retailer')}</span></div><h3>${esc(title)}</h3><div class="meta">${r.upc?`<span>UPC ${esc(r.upc)}</span>`:''}${dateLabel(r)?`<span>${esc(dateLabel(r))}</span>`:''}</div><div class="card-actions"><button class="mini-btn primary" data-discover-lead="${esc(itemKey(r))}">Check item</button></div></div></article>`};
+  function imageCandidates(r){
+    const a=[r?.image_data_url,r?.image_url,r?.image,r?.thumbnail_url,r?.thumbnail,r?.product_image_url,r?.product_image,r?.primary_image_url,r?.primary_image,r?.listing_image_url,r?.listing_image,r?.source_image_url,r?.source_image,r?.media_url,r?.photo_url];
+    if(Array.isArray(r?.images))a.push(...r.images);if(Array.isArray(r?.image_urls))a.push(...r.image_urls);if(r?.media&&typeof r.media==='object')a.push(r.media.url,r.media.image_url,r.media.thumbnail_url);
+    const out=[];for(const v of a){const raw=typeof v==='string'?v:(v&&typeof v==='object'?(v.url||v.src||v.image_url||''):'');const u=txt(raw);if(!/^(?:https:\/\/|data:image\/)/i.test(u))continue;if(/(?:^|[\/_.?&=-])(logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer|avatar|badge|banner|promo|loading)(?:[\/_.?&=-]|$)/i.test(u))continue;if(!out.includes(u))out.push(u)}return out
+  }
+  window.H38ScoutImageCandidates=imageCandidates;
+  window.huntDisplayImage=function(r){return imageCandidates(r)[0]||''};
+  window.H38V300ImageFallback=function(key,url,img){
+    const k=txt(key),u=txt(url),n=b();if(!k||!/^https:\/\//i.test(u)||nativeImagePending.has(k)||nativeImageFailed.has(k)||!n||typeof n.fetchImageData!=='function'){if(img)img.style.display='none';return}
+    nativeImagePending.add(k);try{n.fetchImageData(k,u)}catch{nativeImagePending.delete(k);nativeImageFailed.add(k);if(img)img.style.display='none'}
+  };
+  huntImageHtml=function(r,title){const c=imageCandidates(r),data=c.find(x=>/^data:image\//i.test(x))||'',remote=c.find(x=>/^https:\/\//i.test(x))||'',key=itemKey(r);if(data)return`<img class="thumb" loading="lazy" src="${esc(data)}" alt="${esc(title)}">`;if(remote)return`<img class="thumb" loading="lazy" src="${esc(remote)}" alt="${esc(title)}" data-h38-image-key="${esc(key)}" data-h38-image-url="${esc(remote)}" onerror="window.H38V300ImageFallback&&window.H38V300ImageFallback(this.dataset.h38ImageKey,this.dataset.h38ImageUrl,this)">`;return''};
+  window.H38NativeImageResult=function(key,dataUrl){
+    const k=String(key||'');nativeImagePending.delete(k);if(!/^data:image\//i.test(txt(dataUrl)))return;let changed=false;state.hunt.rows=state.hunt.rows.map(r=>{if(itemKey(r)===k){changed=true;return{...r,image_data_url:dataUrl}}return r});document.querySelectorAll(`img[data-h38-image-key="${CSS.escape(k)}"]`).forEach(img=>{img.src=dataUrl;img.style.display='';img.onerror=null});if(changed&&state.page==='hunt')renderHuntListOnly()
+  };
+  window.H38NativeImageError=function(key){const k=String(key||'');nativeImagePending.delete(k);nativeImageFailed.add(k);document.querySelectorAll(`img[data-h38-image-key="${CSS.escape(k)}"]`).forEach(img=>img.style.display='none')};
 
-  const leadCardBefore=typeof leadCard==='function'?leadCard:null;
-  if(leadCardBefore)leadCard=function(r){const s=signalLabel(r),title=txt(r.title||r.canonical_title||r.raw_title||'Retail candidate'),reports=num(r.signal_source_count||r.report_count),identity=[r.upc?`UPC ${r.upc}`:'',r.sku?`SKU ${r.sku}`:''].filter(Boolean).join(' · '),img=huntImageHtml(r,title),src=typeof bestLeadSourceUrl==='function'?bestLeadSourceUrl(r):txt(r?.source_item_url||r?.source_url);return `<article class="item-card ${img?'':'no-image'}" data-lead="${esc(itemKey(r))}">${img}<div class="item-main"><div class="item-top"><span class="badge ${s.cls}">${s.label}</span><span class="badge">${esc(r.retailer||'Retailer')}</span></div><h3>${esc(title)}</h3><div class="meta">${identity?`<span>${esc(identity)}</span>`:''}${reports?`<span>${reports} source${reports===1?'':'s'}</span>`:''}${num(r.original_price)>0?`<span>ref ${dollars(r.original_price)}</span>`:''}</div>${dateLabel(r)?`<div class="meta" style="margin-top:4px"><span>${esc(dateLabel(r))}</span></div>`:''}<div class="card-actions"><button class="mini-btn primary" data-lead-detail="${esc(itemKey(r))}">Check item</button>${src?`<button class="mini-btn" data-open="${esc(src)}">Source</button>`:''}<button class="mini-btn" data-watch="${esc(title)}">Watch</button></div></div></article>`};
+  function cachedHunt(){const x=read(HUNT_CACHE,null);if(!x||!Array.isArray(x.rows)||!x.rows.length||Date.now()-num(x.at)>HUNT_CACHE_MAX_AGE)return[];return cleanRows(x.rows).filter(r=>!huntArtifact(r))}
+  function saveHunt(rows){if(rows.length)write(HUNT_CACHE,{at:Date.now(),rows:rows.slice(0,500)})}
+  loadHunt=async function(force=false){
+    if(state.hunt.loading)return;state.hunt.loading=true;renderHunt();const prior=Array.isArray(state.hunt.rows)?state.hunt.rows.slice():[];
+    try{
+      const settled=await Promise.allSettled([fn('reseller-auto-leads-v064',{...locationPayload(),force:!!force},80000),fn('reseller-auto-leads-v058',{...locationPayload(),force:!!force},65000)]),payloads=settled.filter(x=>x.status==='fulfilled').map(x=>x.value),all=[];
+      for(const p of payloads)for(const r of Array.isArray(p?.leads)?p.leads:[])all.push(r);
+      let rows=cleanRows(all).filter(r=>!huntArtifact(r)),usedCache=false;if(!rows.length){rows=prior.length?cleanRows(prior).filter(r=>!huntArtifact(r)):cachedHunt();usedCache=rows.length>0}
+      state.hunt.raw=payloads.reduce((n,p)=>n+num(p?.raw_count||(p?.leads||[]).length),0);state.hunt.rows=rows;state.hunt.loaded=true;state.v300.huntProviders=settled.map((x,i)=>({provider:i===0?'reseller-auto-leads-v064':'reseller-auto-leads-v058',status:x.status==='fulfilled'?txt(x.value?.status||'PASS'):'UNAVAILABLE',count:x.status==='fulfilled'&&Array.isArray(x.value?.leads)?x.value.leads.length:0}));state.hunt.sourceHealth={status:rows.length?'PASS':'PARTIAL',actionable:rows.length,providers:state.v300.huntProviders,usedCachedEvidence:usedCache,adapterVersion:'v300-provider-isolated'};if(rows.length&&!usedCache)saveHunt(rows);renderHunt();if(hasPoint()||state.location.zip)void ensureNearbyStores().then(()=>renderHuntListOnly());void hydrateHuntImages();
+    }catch(e){const rows=prior.length?prior:cachedHunt();if(rows.length){state.hunt.rows=rows;state.hunt.loaded=true;notice('Live Penny Hunt refresh failed; Scout preserved prior sourced evidence.','warn')}else notice(`Penny Hunt unavailable: ${error('huntV300',e)}`,'bad')}
+    finally{state.hunt.loading=false;renderHunt()}
+  };
 
-  function facebookSnap(){try{return typeof facebookSnapshot==='function'?facebookSnapshot():{browser:[],notifications:[],rows:[],facebookStatus:'SESSION_UNKNOWN',capturedRows:0,locationUnproven:0,outsideRadius:0}}catch{return{browser:[],notifications:[],rows:[],facebookStatus:'ERROR',capturedRows:0,locationUnproven:0,outsideRadius:0}}}
-  function facebookRows(){return facebookSnap().browser||[]}
-  function facebookAuthOnce(){const fb=facebookSnap(),status=txt(fb.facebookStatus);if(status!=='AUTH_REQUIRED'&&status!=='CHECKPOINT')return;const b=bridge();if(!b||typeof b.openFacebookMarketplace!=='function'){notice('Facebook sign-in requires the Android Scout app.','warn');return}const loc=locationPayload();try{b.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,txt(state.location?.label||loc.postal||''),'')}catch(e){error('facebookAuthV286',e)}}
-  function compactFacebookStatus(){const fb=facebookSnap(),status=txt(fb.facebookStatus),rows=fb.browser||[],captured=num(fb.capturedRows),held=num(fb.locationUnproven)+num(fb.outsideRadius),started=num(state.facebookPassStartedAt),busy=(state.facebookPassPending||state.facebookRanking||status==='SCANNING'||status==='COLLECTING')&&(!started||Date.now()-started<50000);if(rows.length)return`<div class="status-line" data-v270-facebook><span class="dot live"></span>${rows.length} location-proven Facebook Marketplace listing${rows.length===1?'':'s'} captured automatically.${held?` ${held} additional card${held===1?'':'s'} held for location proof.`:''}</div>`;if(status==='AUTH_REQUIRED')return`<div class="status-line" data-v270-facebook><span class="dot warn"></span>Facebook needs a one-time sign-in. After that Scout resumes automatic Marketplace sourcing. <button class="mini-btn primary" data-v286-fb-auth>Sign in once</button></div>`;if(status==='CHECKPOINT')return`<div class="status-line" data-v270-facebook><span class="dot warn"></span>Facebook requires a security checkpoint before Scout can continue. <button class="mini-btn primary" data-v286-fb-auth>Complete checkpoint</button></div>`;if(busy)return`<div class="status-line" data-v270-facebook><span class="dot loading"></span>Scout is collecting Facebook Marketplace automatically.</div>`;if(captured)return`<div class="status-line" data-v270-facebook><span class="dot warn"></span>Scout acquired ${captured} Facebook listing card${captured===1?'':'s'}, but none passed selected-area proof. Acquisition worked; local acceptance is zero.</div>`;if(status==='COMPLETE_EMPTY')return`<div class="status-line" data-v270-facebook><span class="dot warn"></span>Facebook loaded, but the parser captured 0 Marketplace item cards. Scout is not calling that zero local inventory.</div>`;if(status==='ERROR')return`<div class="status-line" data-v270-facebook><span class="dot warn"></span>Facebook acquisition failed in this pass. Craigslist, retail and auctions remain independent.</div>`;return`<div class="status-line" data-v270-facebook><span class="dot"></span>Facebook Marketplace runs automatically with Discover when a saved session is available.</div>`}
-  function dealKey270(r){return txt(r?.url||r?.id||`${r?.source||''}|${r?.title||''}|${r?.buy_price||r?.price||''}`)}
-  function unifiedRows(){const deals=[...(state.discover?.deals?.opportunities||[]),...(state.discover?.deals?.candidates||[])],retail=(state.hunt?.rows||[]).slice().sort((a,b)=>scoreLead(b)-scoreLead(a)),auctions=(state.discover?.auctions?.results||[]),out=[],seen=new Set();for(const x of deals.slice(0,5)){const k=dealKey270(x);if(k&&!seen.has(k)){seen.add(k);out.push({kind:'deal',row:x})}}for(const x of retail.filter(r=>scoreLead(r)>=6).slice(0,6)){const k='retail:'+itemKey(x);if(!seen.has(k)){seen.add(k);out.push({kind:'retail',row:x})}}for(const x of auctions.slice(0,3)){const k='auction:'+dealKey270(x);if(!seen.has(k)){seen.add(k);out.push({kind:'auction',row:x})}}return out.slice(0,10)}
-  function unifiedCard(x){if(x.kind==='deal')return dealCard(x.row);if(x.kind==='auction')return auctionCard(x.row);return compactRetail(x.row)}
-  function stripDuplicateDiscoverSections(p){p.querySelectorAll('[data-v240-intel]').forEach(x=>x.remove());p.querySelectorAll('section').forEach(sec=>{const h=txt(sec.querySelector('h2')?.textContent);if(h==='Ranked local opportunities'||h==='Retail markdowns'||h==='Auctions')sec.remove()})}
-  function polishDiscover(){const p=$('discoverPage');if(!p)return;const rows=unifiedRows();let box=p.querySelector('[data-v270-feed]');if(!box){box=document.createElement('section');box.dataset.v270Feed='true';box.className='card';p.querySelector('.hero')?.insertAdjacentElement('afterend',box)}if(box){box.innerHTML=`<div class="section-head"><h2>Best opportunities now</h2><span>${rows.length} shown</span></div>${compactFacebookStatus()}${rows.length?`<p class="small muted">Pictures, price evidence and the next action stay here in Scout. Highest-signal candidates are first.</p><div class="result-list cols">${rows.map(unifiedCard).join('')}</div>`:`<div class="empty"><strong>Scout is still collecting</strong>Run Discover once. Scout searches supported local listings, retail markdowns and auctions without making you manually hunt another app.</div>`}`;box.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.open));box.querySelectorAll('[data-v286-fb-auth]').forEach(x=>x.onclick=facebookAuthOnce);box.querySelectorAll('[data-discover-lead]').forEach(x=>x.onclick=()=>openLeadDetail(x.dataset.discoverLead));box.querySelectorAll('[data-research-listing]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.researchListing||'';if(price&&Number(x.dataset.researchPrice)>0)price.value=x.dataset.researchPrice},40)});if(typeof bindProxyImages==='function')bindProxyImages(box)}const fb=$('facebookScan');const fbSec=fb?.closest('section.card');if(fbSec)fbSec.remove();stripDuplicateDiscoverSections(p)}
+  function fbStatusHtml(){
+    const s=facebookSnapshot(),status=txt(s.facebookStatus),age=Date.now()-num(state.v300.facebookStartedAt||0),busy=(status==='COLLECTING'||status==='SCANNING'||state.facebookPassPending)&&age<FB_TIMEOUT_MS;
+    if(s.captured.length)return`<div class="status-line"><span class="dot ${s.browser.length?'live':'warn'}"></span>${s.captured.length} Facebook Marketplace card${s.captured.length===1?'':'s'} captured. ${s.browser.length} location-proven${s.unproven.length?` · ${s.unproven.length} need location proof`:''}${s.outside.length?` · ${s.outside.length} outside radius`:''}.</div>`;
+    if(status==='AUTH_REQUIRED')return`<div class="status-line"><span class="dot warn"></span>Facebook needs one sign-in before automatic sourcing can continue. <button class="mini-btn primary" data-v300-fb-auth>Sign in once</button></div>`;
+    if(status==='CHECKPOINT')return`<div class="status-line"><span class="dot warn"></span>Facebook requires a security checkpoint. <button class="mini-btn primary" data-v300-fb-auth>Complete checkpoint</button></div>`;
+    if(busy)return'<div class="status-line"><span class="dot loading"></span>Collecting Facebook Marketplace now…</div>';
+    if(status==='COMPLETE_EMPTY')return'<div class="status-line"><span class="dot warn"></span>Facebook loaded, but Scout captured 0 item cards. This is a parser/source failure, not proof of zero inventory.</div>';
+    if(status==='ERROR')return'<div class="status-line"><span class="dot warn"></span>Facebook acquisition failed. Craigslist, Penny Hunt and auctions remain independent.</div>';
+    return'<div class="status-line"><span class="dot"></span>Facebook starts automatically with Discover when a saved session exists.</div>'
+  }
+  function fbCard(r){const title=txt(r.title||'Facebook Marketplace listing'),img=huntImageHtml(r,title),price=Number(r.price),loc=r.location_verified===true?'LOCATION PROVEN':txt(r.location_status)==='OUTSIDE_RADIUS'?'OUTSIDE RADIUS':'LOCATION NEEDS PROOF';return`<article class="item-card ${img?'':'no-image'}">${img}<div class="item-main"><div class="item-top"><span class="badge ${r.location_verified===true?'good':'warn'}">${loc}</span><span class="badge">Facebook Marketplace</span></div><h3>${esc(title)}</h3><div class="price-line"><span class="price">${Number.isFinite(price)&&price>0?dollars(price):'Price unknown'}</span></div><div class="meta">${Number.isFinite(Number(r.distance_miles))?`<span>${Number(r.distance_miles).toFixed(1)} mi</span>`:''}${r.term?`<span>match: ${esc(r.term)}</span>`:''}</div><div class="card-actions">${r.url?`<button class="mini-btn primary" data-v300-open="${esc(r.url)}">Open listing</button>`:''}<button class="mini-btn" data-v300-research="${esc(title)}" data-v300-price="${Number(price||0)}">Research</button></div></div></article>`}
+  function decorateDiscover(){
+    const p=$('discoverPage');if(!p)return;let sec=p.querySelector('[data-v300-facebook]');if(!sec){sec=document.createElement('section');sec.className='card';sec.dataset.v300Facebook='true';const hero=p.querySelector('.hero');if(hero)hero.insertAdjacentElement('afterend',sec);else p.prepend(sec)}
+    const s=facebookSnapshot(),cards=s.captured.slice(0,8);sec.innerHTML=`<div class="section-head"><h2>Facebook Marketplace</h2><span>${s.captured.length} captured</span></div><p class="small muted">Automatic session-assisted collection. Scout shows captured cards immediately and labels location proof separately instead of silently discarding them.</p>${fbStatusHtml()}${cards.length?`<div class="result-list cols">${cards.map(fbCard).join('')}</div>`:''}<div class="card-actions"><button class="mini-btn" data-v300-fb-refresh>Refresh Facebook</button></div>`;
+    sec.querySelectorAll('[data-v300-fb-auth]').forEach(x=>x.onclick=authenticateFacebook);sec.querySelectorAll('[data-v300-fb-refresh]').forEach(x=>x.onclick=()=>startFacebook(true));sec.querySelectorAll('[data-v300-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.v300Open));sec.querySelectorAll('[data-v300-research]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.v300Research||'';if(price&&Number(x.dataset.v300Price)>0)price.value=x.dataset.v300Price},30)})
+  }
+  function decorateHunt(){const p=$('huntPage');if(!p)return;const h=p.querySelector('.page-head h1');if(h)h.textContent='Penny Hunt';const copy=p.querySelector('.page-head p');if(copy)copy.textContent='Penny, near-penny and markdown evidence. Community/crawler sources tell you what is worth checking; physical UPC/register scan remains final local penny truth.';if(state.page==='hunt'&&$('topSubtitle'))$('topSubtitle').textContent='Penny Hunt'}
 
-  function addBestTab(){const p=$('huntPage');if(!p)return;const existing=p.querySelector('[data-hunt-tab="best"]'),n=(typeof huntBaseRows==='function'?huntBaseRows():[]).filter(r=>scoreLead(r)>=8).length;if(existing){existing.textContent=`Best leads ${n}`;return}const first=p.querySelector('[data-hunt-tab]');if(!first)return;const b=document.createElement('button');b.className=first.className;b.dataset.huntTab='best';b.textContent=`Best leads ${n}`;first.parentElement.insertBefore(b,first);b.onclick=()=>{state.hunt.tab='best';renderHunt()}};
-  function polishAuctions(){const p=$('auctionsPage');if(!p)return;const rows=Array.isArray(state.auctions?.rows)?state.auctions.rows:[],loading=!!state.auctions?.loading;let note=p.querySelector('[data-v270-auction-state]');if(!note){note=document.createElement('div');note.dataset.v270AuctionState='true';note.className='truth-note';p.querySelector('.page-head')?.insertAdjacentElement('afterend',note)}if(!note)return;note.innerHTML=loading?'<strong>AUCTIONS</strong><br>Checking supported sources…':rows.length?`<strong>AUCTIONS</strong><br>${rows.length} lot${rows.length===1?'':'s'} loaded. Scout keeps them here for review.`:'<strong>AUCTIONS</strong><br>No usable lots returned in this pass. That is not a claim that local auctions do not exist.'}
+  const renderDiscoverBase=renderDiscover;renderDiscover=function(){renderDiscoverBase();decorateDiscover()};
+  const renderHuntBase=renderHunt;renderHunt=function(){renderHuntBase();decorateHunt()};
+  const renderHuntListBase=renderHuntListOnly;renderHuntListOnly=function(){renderHuntListBase();decorateHunt()};
+  const runDiscoverBase=runDiscover;runDiscover=async function(){if(state.discover.running)return;startFacebook(false);return runDiscoverBase()};
 
-  if(!window.H38_SCOUT_V285_FULL_WEEK_RECOVERY){window.H38V270OpenFacebookScan=function(){if(!requireLocation())return;const b=bridge();if(!b||typeof b.openFacebookMarketplace!=='function')return;const loc=locationPayload(),terms=typeof facebookTerms==='function'?facebookTerms():[],label=txt(state.location?.label||''),zip=txt(loc.postal||state.location?.zip||''),proof=[label,zip].filter(Boolean).join('|');state.facebookPassPending=true;state.facebookPassStartedAt=Date.now();if(state.page==='discover')renderDiscover();try{b.openFacebookMarketplace(JSON.stringify(terms.slice(0,4)),Number(loc.lat)||0,Number(loc.lon)||0,state.radius,proof,'')}catch(e){state.facebookPassPending=false;state.facebookRanking=false;error('facebookBackgroundLaunch',e);if(state.page==='discover')renderDiscover()}}}
-
-  const priorDiscover=renderDiscover;renderDiscover=function(){priorDiscover();polishDiscover()};
-  const priorHunt=renderHunt;renderHunt=function(){priorHunt();addBestTab()};
-  const priorHuntList=renderHuntListOnly;renderHuntListOnly=function(){priorHuntList();addBestTab()};
-  if(typeof renderAuctions==='function'){const priorAuctions=renderAuctions;renderAuctions=function(){priorAuctions();polishAuctions()}}
-
-  const runBefore=runDiscover;runDiscover=async function(){const launch=!state.facebookPassPending;const task=runBefore();if(launch)setTimeout(()=>{if(!state.facebookPassPending&&typeof window.H38V270OpenFacebookScan==='function')window.H38V270OpenFacebookScan()},250);return task};
-  const returnedBefore=window.H38ScoutReturned;
-  window.H38ScoutReturned=function(){try{if(typeof returnedBefore==='function')returnedBefore()}catch{}if(state.facebookPassPending)setTimeout(async()=>{const before=facebookRows().length;try{if(typeof rankCapturedFacebookRows==='function')await rankCapturedFacebookRows(false)}catch{}const after=facebookRows().length;if(after===0&&before===0){const s=txt(facebookSnap().facebookStatus);if(['AUTH_REQUIRED','CHECKPOINT','COMPLETE_EMPTY','ERROR','COMPLETE_LOCATION_UNPROVEN'].includes(s)){state.facebookPassPending=false;state.facebookRanking=false}if(state.page==='discover')renderDiscover()}},220)};
-  setInterval(()=>{if(state.facebookPassPending&&Date.now()-num(state.facebookPassStartedAt)>50000){state.facebookPassPending=false;state.facebookRanking=false;if(state.page==='discover')renderDiscover()}},5000);
-
-  if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt();if(state.page==='auctions'&&typeof renderAuctions==='function')renderAuctions()}
+  setInterval(()=>{if(state.page!=='discover')return;const snap=fbNative(),started=num(state.v300.facebookStartedAt);if(state.facebookPassPending&&started&&Date.now()-started>=FB_TIMEOUT_MS){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus=snap.status||'ERROR';renderDiscover()}},4000);
+  const restore=cachedHunt();if(!state.hunt.rows.length&&restore.length){state.hunt.rows=restore;state.hunt.loaded=true;state.hunt.sourceHealth={status:'STALE_EVIDENCE',actionable:restore.length,usedCachedEvidence:true,adapterVersion:'v300-provider-isolated'}}
+  if(state.user){if(state.page==='discover')renderDiscover();if(state.page==='hunt')renderHunt()}
 })();
