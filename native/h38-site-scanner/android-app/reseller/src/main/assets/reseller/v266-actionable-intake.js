@@ -90,14 +90,15 @@ window.H38_SCOUT_V304_PUBLIC_INDEX_RECOVERY=true;
   };
   window.H38NativeImageError=function(key){const k=String(key||''),pending=nativeImagePending.get(k);if(!pending){nativeImageFailed.add(k);return}pending.index++;nativeImagePending.set(k,pending);beginNativeImage(k,pending.img)};
 
-  function cachedHunt(){const x=read(HUNT_CACHE,null);if(!x||!Array.isArray(x.rows)||!x.rows.length||Date.now()-num(x.at)>HUNT_CACHE_MAX_AGE)return[];return cleanRows(x.rows).filter(r=>!huntArtifact(r))}
+  function weirdHuntRow(r){const raw=txt(r?.title||r?.name||r?.item_name||r?.product_name),t=raw.toLowerCase().replace(/[^a-z0-9]+/g,'');if(!t)return true;return['1cent','onecent','penny','pennyitem','unknown','na','001','001cent'].includes(t)}
+  function cachedHunt(){const x=read(HUNT_CACHE,null);if(!x||!Array.isArray(x.rows)||!x.rows.length||Date.now()-num(x.at)>HUNT_CACHE_MAX_AGE)return[];return cleanRows(x.rows).filter(r=>!huntArtifact(r)&&!weirdHuntRow(r))}
   function saveHunt(rows){if(rows.length)write(HUNT_CACHE,{at:Date.now(),rows:rows.slice(0,500)})}
   loadHunt=async function(force=false){
     if(state.hunt.loading)return;state.hunt.loading=true;renderHunt();const prior=Array.isArray(state.hunt.rows)?state.hunt.rows.slice():[];
     try{
       const settled=await Promise.allSettled([fn('reseller-auto-leads-v064',{...locationPayload(),force:!!force},80000),fn('reseller-auto-leads-v058',{...locationPayload(),force:!!force},65000)]),payloads=settled.filter(x=>x.status==='fulfilled').map(x=>x.value),all=[];
       for(const p of payloads)for(const r of Array.isArray(p?.leads)?p.leads:[])all.push(r);
-      let rows=cleanRows(all).filter(r=>!huntArtifact(r)),usedCache=false;if(!rows.length){rows=prior.length?cleanRows(prior).filter(r=>!huntArtifact(r)):cachedHunt();usedCache=rows.length>0}
+      let rows=cleanRows(all).filter(r=>!huntArtifact(r)&&!weirdHuntRow(r)),usedCache=false;if(!rows.length){rows=prior.length?cleanRows(prior).filter(r=>!huntArtifact(r)&&!weirdHuntRow(r)):cachedHunt();usedCache=rows.length>0}
       state.hunt.raw=payloads.reduce((n,p)=>n+num(p?.raw_count||(p?.leads||[]).length),0);state.hunt.rows=rows;state.hunt.loaded=true;state.v300.huntProviders=settled.map((x,i)=>({provider:i===0?'reseller-auto-leads-v064':'reseller-auto-leads-v058',status:x.status==='fulfilled'?txt(x.value?.status||'PASS'):'UNAVAILABLE',count:x.status==='fulfilled'&&Array.isArray(x.value?.leads)?x.value.leads.length:0}));state.hunt.sourceHealth={status:rows.length?'PASS':'PARTIAL',actionable:rows.length,providers:state.v300.huntProviders,usedCachedEvidence:usedCache,adapterVersion:'v301-provider-isolated'};if(rows.length&&!usedCache)saveHunt(rows);renderHunt();if(hasPoint()||state.location.zip)void ensureNearbyStores().then(()=>renderHuntListOnly());void hydrateHuntImages();
     }catch(e){const rows=prior.length?prior:cachedHunt();if(rows.length){state.hunt.rows=rows;state.hunt.loaded=true;notice('Live Penny Hunt refresh failed; Scout preserved prior sourced evidence.','warn')}else notice(`Penny Hunt unavailable: ${error('huntV300',e)}`,'bad')}
     finally{state.hunt.loading=false;renderHunt()}
