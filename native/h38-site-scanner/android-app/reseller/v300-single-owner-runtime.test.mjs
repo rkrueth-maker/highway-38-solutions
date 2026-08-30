@@ -26,6 +26,7 @@ assert.match(v300,/facebookPublicCandidates/);
 assert.match(v300,/reseller-facebook-public-v240/);
 assert.match(v300,/No Facebook sign-in is used/i);
 assert.match(v300,/no longer opens Facebook automatically/i);
+assert.match(v300,/legacySec\.remove\(\)/);
 assert.doesNotMatch(v300,/n\.openFacebookMarketplace\(/);
 assert.doesNotMatch(v300,/Repair Facebook session|Sign in once|Complete checkpoint/);
 assert.match(v300,/LOCATION NEEDS PROOF/);
