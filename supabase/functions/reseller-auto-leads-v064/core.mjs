@@ -3,6 +3,7 @@ const digits=v=>txt(v).replace(/\D/g,'');
 const retailerKey=v=>{const s=txt(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(s.includes('dollar general'))return'dollar general';if(s.includes('dollar tree'))return'dollar tree';if(s.includes('family dollar'))return'family dollar';if(s.includes('home depot'))return'home depot';return s};
 function pennyTreeSignal(row){return(Array.isArray(row?.signal_sources)?row.signal_sources:[]).some(s=>{const d=txt(s?.domain).toLowerCase(),u=txt(s?.url).toLowerCase(),n=txt(s?.name).toLowerCase();return d==='pennytree.org'||u.includes('pennytree.org')||n==='penny tree'})||txt(row?.source_url).toLowerCase().includes('pennytree.org')||txt(row?.source_name).toLowerCase()==='penny tree'}
 export function exactPennyTreeUrl(row={}){if(!pennyTreeSignal(row))return'';const r=retailerKey(row.retailer),upc=digits(row.upc||row.gtin||row.barcode);if(upc.length<7||upc.length>14)return'';if(r==='dollar general')return`https://pennytree.org/item.php?sku=${encodeURIComponent('dg:'+upc)}`;if(r==='dollar tree')return`https://pennytree.org/item.php?sku=${encodeURIComponent(upc)}`;return''}
+export function exactDollarGeneralImageSources(row={}){const r=retailerKey(row.retailer),upc=digits(row.upc||row.gtin||row.barcode);if(r!=='dollar general'||upc.length<7||upc.length>14)return[];const out=[];const pt=exactPennyTreeUrl(row);if(pt)out.push({url:pt,provider:'PennyTree',scope:'exact_product'});out.push({url:`https://brickseek.com/dollar-general-inventory-checker?sku=${encodeURIComponent(upc)}`,provider:'BrickSeek',scope:'exact_upc'});return out}
 function htmlDecode(v){return txt(v).replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#0*39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')}
 function safeImageUrl(v,base='https://pennytree.org/'){let raw=htmlDecode(v);if(!raw)return'';try{raw=new URL(raw,base).href}catch{return''}if(!/^https:\/\//i.test(raw))return'';if(/(?:logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer|avatar|badge|banner|loading)/i.test(raw))return'';return raw}
 export function extractSourceImage(html='',base='https://pennytree.org/'){
@@ -18,11 +19,11 @@ export function extractSourceImage(html='',base='https://pennytree.org/'){
   for(const m of imgs){const tag=m[0],u=safeImageUrl(m[1],base);if(!u)continue;if(/product|item|catalog|card|hero/i.test(tag)||/alt=["'][^"']{4,}["']/i.test(tag))return u}
   return'';
 }
-export function applySourceImage(row={},html=''){
+export function applySourceImage(row={},html='',sourceUrl='',provider='exact_source'){
   if(txt(row.image_url))return row;
-  const exact=txt(row.source_item_url||exactPennyTreeUrl(row));if(!exact)return row;
+  const exact=txt(sourceUrl||row.source_item_url||exactPennyTreeUrl(row));if(!exact)return row;
   const image=extractSourceImage(html,exact);if(!image)return row;
-  return{...row,image_url:image,image_source_url:exact,image_source_scope:'exact_product',image_source_proof:'exact_source_page_image_v065'};
+  return{...row,image_url:image,image_source_url:exact,image_source_provider:provider,image_source_scope:'exact_product',image_source_proof:'exact_upc_public_image_v066'};
 }
 export function enrichLead(row={}){const exact=exactPennyTreeUrl(row);if(!exact)return row;const sources=(Array.isArray(row.signal_sources)?row.signal_sources:[]).map(s=>{const d=txt(s?.domain).toLowerCase(),u=txt(s?.url).toLowerCase(),n=txt(s?.name).toLowerCase(),isPt=d==='pennytree.org'||u.includes('pennytree.org')||n==='penny tree';return isPt?{...s,item_url:exact,item_scope:'exact_product'}:s});return{...row,source_item_url:exact,source_item_scope:'exact_product',source_item_proof:'pennytree_upc_route_v064',signal_sources:sources}}
 export function enrichLeads(rows=[]){return(Array.isArray(rows)?rows:[]).map(enrichLead)}
