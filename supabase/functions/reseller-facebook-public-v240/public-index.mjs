@@ -25,7 +25,7 @@ export function locationVariants(label=''){
   return [...new Set(out.filter(Boolean))];
 }
 
-function safeDecode(v){let x=decodeEntities(txt(v));for(let i=0;i<2;i++){try{const d=decodeURIComponent(x);if(d===x)break;x=d}catch{break}}return x}
+function safeDecode(v){let x=decodeEntities(txt(v));for(let i=0;i<3;i++){try{const d=decodeURIComponent(x);if(d===x)break;x=d}catch{break}}return x}
 function unwrapRedirect(href=''){
   let h=safeDecode(href);
   if(!h)return'';
@@ -62,9 +62,10 @@ export function parseSearchHtml(html='',limit=30){
     seen.add(target.id);out.push({...target,title:titleNear(s,m.index,hrefRe.lastIndex),snippet:snippetNear(s,m.index,hrefRe.lastIndex)});
   }
   if(out.length<limit){
+    const decoded=safeDecode(s);
     const rawRe=/https?:\\?\/\\?\/(?:[a-z0-9-]+\\?\.)*facebook\\?\.com\\?\/marketplace\\?\/item\\?\/(\d{6,})/gi;
-    while((m=rawRe.exec(s))&&out.length<limit){
-      const id=m[1];if(seen.has(id))continue;seen.add(id);out.push({id,url:`https://www.facebook.com/marketplace/item/${id}/`,title:titleNear(s,m.index,rawRe.lastIndex),snippet:snippetNear(s,m.index,rawRe.lastIndex)});
+    while((m=rawRe.exec(decoded))&&out.length<limit){
+      const id=m[1];if(seen.has(id))continue;seen.add(id);out.push({id,url:`https://www.facebook.com/marketplace/item/${id}/`,title:titleNear(decoded,m.index,rawRe.lastIndex),snippet:snippetNear(decoded,m.index,rawRe.lastIndex)});
     }
   }
   return out;
@@ -72,11 +73,13 @@ export function parseSearchHtml(html='',limit=30){
 export function parseBingRss(xml='',limit=30){
   const s=String(xml),out=[],seen=new Set(),re=/<item>([\s\S]*?)<\/item>/gi;let m;
   while((m=re.exec(s))&&out.length<limit){
-    const item=m[1],link=rssText((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||''),target=marketplaceTarget(link);
-    if(!target||seen.has(target.id))continue;seen.add(target.id);
+    const item=m[1];
+    const link=rssText((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||'');
     const title=rssText((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'');
     const snippet=rssText((item.match(/<description>([\s\S]*?)<\/description>/i)||[])[1]||'');
-    out.push({...target,title,snippet});
+    const target=marketplaceTarget(link)||marketplaceTarget(snippet)||marketplaceTarget(title)||parseSearchHtml(item,1)[0]||null;
+    if(!target||seen.has(target.id))continue;seen.add(target.id);
+    out.push({id:target.id,url:target.url,title,snippet});
   }
   return out;
 }
@@ -97,9 +100,10 @@ export function listingFromSearch(r={}){
 export function buildIndexQueries(term,label){
   const vars=locationVariants(label),city=vars.at(-1)||'',exact=vars.find(x=>/, [A-Z]{2}$/.test(x))||vars[0]||'';
   const full=vars.find(x=>/, [A-Za-z ]{4,}$/.test(x))||exact;
+  const region=full.split(',').slice(1).join(',').trim();
   return [...new Set([
     `site:facebook.com/marketplace/item "${exact}" ${term}`,
-    `site:facebook.com/marketplace/item "${city}" "${full.split(',').slice(1).join(',').trim()}" ${term}`,
-    `site:facebook.com/marketplace/item ${city} ${term}`
+    `"facebook.com/marketplace/item/" "${exact}" ${term}`,
+    `"facebook.com/marketplace/item/" "${city}" "${region}" ${term}`
   ].map(x=>x.replace(/""\s*/g,'').replace(/\s+/g,' ').trim()))];
 }
