@@ -36,9 +36,9 @@ assert.match(v300,/fn\('reseller-auto-leads-v058'/);
 assert.match(v300,/Penny Hunt/);
 assert.match(v300,/physical UPC\/register scan remains final local penny truth/i);
 
-assert.match(gradle,/versionCode 301/);
-assert.match(gradle,/versionName '3\.0\.1'/);
+assert.match(gradle,/versionCode 302/);
+assert.match(gradle,/versionName '3\.0\.2'/);
 assert.match(rules,/Single-owner runtime rule/);
 assert.match(rules,/Physical Android phone behavior remains final acceptance/);
 
-console.log('PASS v3.0.1 physical recovery single-owner runtime contracts');
+console.log('PASS v3.0.2 single-owner runtime contracts');
