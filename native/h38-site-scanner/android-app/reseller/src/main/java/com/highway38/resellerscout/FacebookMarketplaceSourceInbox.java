@@ -25,6 +25,9 @@ final class FacebookMarketplaceSourceInbox {
     private static final Pattern ITEM_URL = Pattern.compile(
             "https?://(?:[a-z0-9-]+\\.)*facebook\\.com/marketplace/item/(\\d{6,})(?:[^\\s<]*)?",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern SHARE_URL = Pattern.compile(
+            "https?://(?:www\\.|m\\.)?facebook\\.com/share/(?:[a-z]/)?([A-Za-z0-9_-]{5,})(?:[^\\s<]*)?",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern PRICE = Pattern.compile("\\$\\s*([0-9]{1,6}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?)");
 
     private FacebookMarketplaceSourceInbox() {}
@@ -43,35 +46,33 @@ final class FacebookMarketplaceSourceInbox {
                 if (!id.isBlank()) merged.put(id, row);
             }
 
-            Matcher matcher = ITEM_URL.matcher(raw);
             int matched = 0;
             String title = sharedTitle(raw);
             Double price = sharedPrice(raw);
-            while (matcher.find()) {
-                String id = matcher.group(1);
+            Matcher itemMatcher = ITEM_URL.matcher(raw);
+            while (itemMatcher.find()) {
+                String id = itemMatcher.group(1);
                 if (id == null || id.isBlank()) continue;
                 matched++;
                 String canonical = "https://www.facebook.com/marketplace/item/" + id + "/";
-                JSONObject row = new JSONObject();
-                row.put("id", id);
-                row.put("marketplace_listing_id", id);
-                row.put("source", "Facebook Marketplace");
-                row.put("title", title);
-                if (price == null) row.put("price", JSONObject.NULL); else row.put("price", price);
-                row.put("url", canonical);
-                row.put("provider", "facebook_android_share");
-                row.put("capture_method", "ANDROID_SHARE");
-                row.put("user_shared", true);
-                row.put("public_only", false);
-                row.put("browser_session", false);
-                row.put("source_search_bound", false);
-                row.put("location_verified", false);
-                row.put("location_status", "LOCATION_UNPROVEN");
-                row.put("location_evidence", "shared_link_unproven");
-                row.put("freshness_unproven", true);
-                row.put("captured_at", System.currentTimeMillis());
-                row.put("shared_text", raw.length() > 1200 ? raw.substring(0, 1200) : raw);
+                JSONObject row = sharedRow(id, title, price, canonical, raw, true);
                 merged.put(id, row);
+            }
+
+            if (matched == 0) {
+                Matcher shareMatcher = SHARE_URL.matcher(raw);
+                while (shareMatcher.find()) {
+                    String token = shareMatcher.group(1);
+                    String rawUrl = shareMatcher.group(0);
+                    if (token == null || token.isBlank() || rawUrl == null || rawUrl.isBlank()) continue;
+                    matched++;
+                    String id = "facebook_share_" + Integer.toUnsignedString(rawUrl.toLowerCase(Locale.US).hashCode(), 36);
+                    JSONObject row = sharedRow(id, title, price, rawUrl, raw, false);
+                    row.put("source", "Facebook shared lead");
+                    row.put("marketplace_url_proven", false);
+                    row.put("location_evidence", "facebook_share_link_unproven");
+                    merged.put(id, row);
+                }
             }
             if (matched == 0) return 0;
 
@@ -87,6 +88,30 @@ final class FacebookMarketplaceSourceInbox {
         } catch (Exception ignored) {
             return 0;
         }
+    }
+
+    private static JSONObject sharedRow(String id, String title, Double price, String url, String raw, boolean marketplaceProven) throws Exception {
+        JSONObject row = new JSONObject();
+        row.put("id", id);
+        if (marketplaceProven) row.put("marketplace_listing_id", id);
+        row.put("source", marketplaceProven ? "Facebook Marketplace" : "Facebook shared lead");
+        row.put("title", title);
+        if (price == null) row.put("price", JSONObject.NULL); else row.put("price", price);
+        row.put("url", url);
+        row.put("provider", "facebook_android_share");
+        row.put("capture_method", "ANDROID_SHARE");
+        row.put("user_shared", true);
+        row.put("public_only", false);
+        row.put("browser_session", false);
+        row.put("source_search_bound", false);
+        row.put("marketplace_url_proven", marketplaceProven);
+        row.put("location_verified", false);
+        row.put("location_status", "LOCATION_UNPROVEN");
+        row.put("location_evidence", marketplaceProven ? "shared_link_unproven" : "facebook_share_link_unproven");
+        row.put("freshness_unproven", true);
+        row.put("captured_at", System.currentTimeMillis());
+        row.put("shared_text", raw.length() > 1200 ? raw.substring(0, 1200) : raw);
+        return row;
     }
 
     static String mergedRowsJson(Context context, String browserJson, String notificationJson) {
@@ -116,7 +141,7 @@ final class FacebookMarketplaceSourceInbox {
                 JSONObject row = new JSONObject(source.toString());
                 String nativeId = row.optString("id", "");
                 row.put("id", nativeId.isBlank() ? "facebook_notification_" + i : "facebook_notification_" + nativeId);
-                row.put("source", "Facebook Marketplace");
+                row.put("source", "Facebook Marketplace alert");
                 if (row.optString("title", "").isBlank()) row.put("title", "Facebook Marketplace alert");
                 row.put("provider", "facebook_notification");
                 row.put("capture_method", "FACEBOOK_NOTIFICATION");
@@ -124,6 +149,7 @@ final class FacebookMarketplaceSourceInbox {
                 row.put("public_only", false);
                 row.put("browser_session", false);
                 row.put("source_search_bound", false);
+                row.put("marketplace_url_proven", false);
                 row.put("location_verified", false);
                 row.put("location_status", "LOCATION_UNPROVEN");
                 row.put("location_evidence", "notification_unproven");
@@ -160,10 +186,11 @@ final class FacebookMarketplaceSourceInbox {
 
     private static String sharedTitle(String raw) {
         String value = raw == null ? "" : ITEM_URL.matcher(raw).replaceAll(" ");
+        value = SHARE_URL.matcher(value).replaceAll(" ");
         value = value.replaceAll("\\s+", " ").trim();
         String low = value.toLowerCase(Locale.US);
         if (value.length() < 4 || value.length() > 180 || low.equals("facebook") || low.equals("facebook marketplace")) {
-            return "Shared Marketplace listing";
+            return "Shared Facebook lead";
         }
         return value;
     }
