@@ -1,6 +1,7 @@
 'use strict';
 window.H38_SCOUT_V300_SINGLE_OWNER_RUNTIME=true;
 window.H38_SCOUT_V301_PHYSICAL_RECOVERY=true;
+window.H38_SCOUT_V304_PUBLIC_INDEX_RECOVERY=true;
 (function installV300(){
   if(window.H38_SCOUT_V300_INSTALLED)return;
   window.H38_SCOUT_V300_INSTALLED=true;
@@ -8,7 +9,7 @@ window.H38_SCOUT_V301_PHYSICAL_RECOVERY=true;
   const FB_TIMEOUT_MS=45000;
   const HUNT_CACHE='h38.scout.v300.hunt-evidence';
   const HUNT_CACHE_MAX_AGE=14*86400000;
-  const FB_TERMINAL=new Set(['AUTH_REQUIRED','CHECKPOINT','COMPLETE_WITH_ROWS','COMPLETE_LOCATION_UNPROVEN','COMPLETE_EMPTY','ERROR']);
+  const FB_TERMINAL=new Set(['PUBLIC_BLOCKED','COMPLETE_WITH_ROWS','COMPLETE_LOCATION_UNPROVEN','COMPLETE_EMPTY','ERROR']);
   const nativeImagePending=new Map();
   const nativeImageFailed=new Set();
   const imageCandidateMap=new Map();
@@ -45,14 +46,8 @@ window.H38_SCOUT_V301_PHYSICAL_RECOVERY=true;
   window.H38V300StartFacebook=startFacebook;
   openFacebookScan=function(){return startFacebook(true)};
 
-  function authenticateFacebook(){
-    const snap=fbNative(),status=txt(snap.status);
-    if(!['AUTH_REQUIRED','CHECKPOINT','COMPLETE_EMPTY','SESSION_UNKNOWN','ERROR'].includes(status)&&snap.captured.length)return;
-    const n=b();if(!n||typeof n.openFacebookMarketplace!=='function')return;
-    state.v300.facebookStatus='AUTHENTICATING';state.facebookPassPending=false;
-    try{n.openFacebookMarketplace(JSON.stringify(['__H38_CONNECT__']),0,0,state.radius||50,fbProof(),'')}catch(e){state.v300.facebookStatus='ERROR';notice(e.message||String(e),'warn')}
-  }
-  window.H38FacebookConnected=function(){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus='AUTHENTICATED';notice('Facebook session saved. Scout is resuming Marketplace automatically.','good');setTimeout(()=>startFacebook(true),350)};
+  function authenticateFacebook(){notice('Scout v3.0.4 uses public Facebook Marketplace discovery only. No Facebook sign-in is used.','good')}
+  window.H38FacebookConnected=function(){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus='PUBLIC_ONLY';if(state.page==='discover')renderDiscover()};
 
   async function rankFacebookCaptured(){
     const snap=facebookSnapshot(),rows=snap.browser||[];if(!rows.length){state.facebookPassPending=false;return}
@@ -109,20 +104,19 @@ window.H38_SCOUT_V301_PHYSICAL_RECOVERY=true;
   };
 
   function fbStatusHtml(){
-    const s=facebookSnapshot(),status=txt(s.facebookStatus),age=Date.now()-num(state.v300.facebookStartedAt||0),busy=(status==='COLLECTING'||status==='SCANNING'||state.facebookPassPending)&&age<FB_TIMEOUT_MS;
-    if(s.captured.length)return`<div class="status-line"><span class="dot ${s.browser.length?'live':'warn'}"></span>${s.captured.length} Facebook Marketplace card${s.captured.length===1?'':'s'} captured. ${s.browser.length} location-proven${s.unproven.length?` · ${s.unproven.length} need location proof`:''}${s.outside.length?` · ${s.outside.length} outside radius`:''}.</div>`;
-    if(status==='AUTH_REQUIRED')return`<div class="status-line"><span class="dot warn"></span>Facebook needs one sign-in before automatic sourcing can continue. <button class="mini-btn primary" data-v300-fb-auth>Sign in once</button></div>`;
-    if(status==='CHECKPOINT')return`<div class="status-line"><span class="dot warn"></span>Facebook requires a security checkpoint. <button class="mini-btn primary" data-v300-fb-auth>Complete checkpoint</button></div>`;
-    if(busy)return'<div class="status-line"><span class="dot loading"></span>Collecting Facebook Marketplace now…</div>';
-    if(status==='COMPLETE_EMPTY')return'<div class="status-line"><span class="dot warn"></span>Facebook returned 0 capturable cards. Repair the saved session once, then Scout will rerun automatically. <button class="mini-btn primary" data-v300-fb-auth>Repair Facebook session</button></div>';
-    if(status==='ERROR')return'<div class="status-line"><span class="dot warn"></span>Facebook acquisition failed. Repair the session or retry; Craigslist, Penny Hunt and auctions remain independent. <button class="mini-btn primary" data-v300-fb-auth>Repair Facebook session</button></div>';
-    return'<div class="status-line"><span class="dot"></span>Facebook starts automatically with Discover. If no saved session exists, Scout will ask for one sign-in.</div>'
+    const s=facebookSnapshot(),status=txt(s.facebookStatus),age=Date.now()-num(state.v300.facebookStartedAt||0),busy=(status==='COLLECTING'||status==='SCANNING'||status==='SCANNING_PUBLIC'||status==='SEARCHING_PUBLIC_INDEX'||state.facebookPassPending)&&age<FB_TIMEOUT_MS;
+    if(s.captured.length)return`<div class="status-line"><span class="dot ${s.browser.length?'live':'warn'}"></span>${s.captured.length} public Facebook Marketplace card${s.captured.length===1?'':'s'} captured. ${s.browser.length} location-proven${s.unproven.length?` · ${s.unproven.length} need location proof`:''}${s.outside.length?` · ${s.outside.length} outside radius`:''}.</div>`;
+    if(busy)return'<div class="status-line"><span class="dot loading"></span>Searching public Facebook Marketplace and public web indexes…</div>';
+    if(status==='PUBLIC_BLOCKED')return'<div class="status-line"><span class="dot warn"></span>Facebook blocked anonymous Marketplace pages and the public index fallback returned no usable cards. Scout did not ask for or use a Facebook login.</div>';
+    if(status==='COMPLETE_EMPTY')return'<div class="status-line"><span class="dot warn"></span>No public Facebook Marketplace cards were found in this pass. Scout did not use a Facebook login. <button class="mini-btn" data-v300-fb-refresh>Retry public Facebook</button></div>';
+    if(status==='ERROR')return'<div class="status-line"><span class="dot warn"></span>Public Facebook acquisition failed; Craigslist, Penny Hunt and auctions remain independent. <button class="mini-btn" data-v300-fb-refresh>Retry public Facebook</button></div>';
+    return'<div class="status-line"><span class="dot"></span>Scout uses public Facebook Marketplace discovery only. No Facebook login or saved Facebook session is used.</div>'
   }
   function fbCard(r){const title=txt(r.title||'Facebook Marketplace listing'),img=huntImageHtml(r,title),price=Number(r.price),loc=r.location_verified===true?'LOCATION PROVEN':txt(r.location_status)==='OUTSIDE_RADIUS'?'OUTSIDE RADIUS':'LOCATION NEEDS PROOF';return`<article class="item-card ${img?'':'no-image'}">${img}<div class="item-main"><div class="item-top"><span class="badge ${r.location_verified===true?'good':'warn'}">${loc}</span><span class="badge">Facebook Marketplace</span></div><h3>${esc(title)}</h3><div class="price-line"><span class="price">${Number.isFinite(price)&&price>0?dollars(price):'Price unknown'}</span></div><div class="meta">${Number.isFinite(Number(r.distance_miles))?`<span>${Number(r.distance_miles).toFixed(1)} mi</span>`:''}${r.term?`<span>match: ${esc(r.term)}</span>`:''}</div><div class="card-actions">${r.url?`<button class="mini-btn primary" data-v300-open="${esc(r.url)}">Open listing</button>`:''}<button class="mini-btn" data-v300-research="${esc(title)}" data-v300-price="${Number(price||0)}">Research</button></div></div></article>`}
   function decorateDiscover(){
     const p=$('discoverPage');if(!p)return;let sec=p.querySelector('[data-v300-facebook]');if(!sec){sec=document.createElement('section');sec.className='card';sec.dataset.v300Facebook='true';const hero=p.querySelector('.hero');if(hero)hero.insertAdjacentElement('afterend',sec);else p.prepend(sec)}
-    const s=facebookSnapshot(),cards=s.captured.slice(0,8);sec.innerHTML=`<div class="section-head"><h2>Facebook Marketplace</h2><span>${s.captured.length} captured</span></div><p class="small muted">Automatic session-assisted collection. Scout shows captured cards immediately and labels location proof separately instead of silently discarding them.</p>${fbStatusHtml()}${cards.length?`<div class="result-list cols">${cards.map(fbCard).join('')}</div>`:''}<div class="card-actions"><button class="mini-btn" data-v300-fb-refresh>Refresh Facebook</button></div>`;
-    sec.querySelectorAll('[data-v300-fb-auth]').forEach(x=>x.onclick=authenticateFacebook);sec.querySelectorAll('[data-v300-fb-refresh]').forEach(x=>x.onclick=()=>startFacebook(true));sec.querySelectorAll('[data-v300-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.v300Open));sec.querySelectorAll('[data-v300-research]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.v300Research||'';if(price&&Number(x.dataset.v300Price)>0)price.value=x.dataset.v300Price},30)})
+    const s=facebookSnapshot(),cards=s.captured.slice(0,8);sec.innerHTML=`<div class="section-head"><h2>Facebook Marketplace</h2><span>${s.captured.length} captured</span></div><p class="small muted">Public-only Marketplace discovery. Scout never asks you to sign in to Facebook. Direct anonymous pages are supplemented with public web-indexed Marketplace links; location proof stays separate.</p>${fbStatusHtml()}${cards.length?`<div class="result-list cols">${cards.map(fbCard).join('')}</div>`:''}<div class="card-actions"><button class="mini-btn" data-v300-fb-refresh>Refresh Facebook</button></div>`;
+    sec.querySelectorAll('[data-v300-fb-refresh]').forEach(x=>x.onclick=()=>startFacebook(true));sec.querySelectorAll('[data-v300-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.v300Open));sec.querySelectorAll('[data-v300-research]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.v300Research||'';if(price&&Number(x.dataset.v300Price)>0)price.value=x.dataset.v300Price},30)})
   }
   function decorateHunt(){const p=$('huntPage');if(!p)return;const h=p.querySelector('.page-head h1');if(h)h.textContent='Penny Hunt';const copy=p.querySelector('.page-head p');if(copy)copy.textContent='Penny, near-penny and markdown evidence. Community/crawler sources tell you what is worth checking; physical UPC/register scan remains final local penny truth.';if(state.page==='hunt'&&$('topSubtitle'))$('topSubtitle').textContent='Penny Hunt'}
 
