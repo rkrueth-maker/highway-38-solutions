@@ -266,7 +266,8 @@ final class FacebookMarketplaceEmbeddedCollector {
  try{
   function T(e){return String((e&&e.innerText)||'').replace(/\\s+/g,' ').trim()}
   function itemId(v){var m=String(v||'').match(/\\/marketplace\\/item\\/(\\d+)/i);return m?m[1]:''}
-  function cleanUrl(v){var x=String(v||'').replace(/\\\\u002F/g,'/').replace(/\\\\\//g,'/');var m=x.match(/https?:\\/\\/[^\\s\"']*?\\/marketplace\\/item\\/\\d+/i);if(m)return m[0].split('?')[0].replace(/\\/$/,'');var id=itemId(x);return id?'https://www.facebook.com/marketplace/item/'+id:''}
+  function unescapeUrl(v){return String(v||'').split('\\\\u002F').join('/').split('\\\\/').join('/')}
+  function cleanUrl(v){var x=unescapeUrl(v);var m=x.match(/https?:\\/\\/[^\\s\"']*?\\/marketplace\\/item\\/\\d+/i);if(m)return m[0].split('?')[0].replace(/\\/$/,'');var id=itemId(x);return id?'https://www.facebook.com/marketplace/item/'+id:''}
   function price(raw){var m=String(raw||'').match(/\\$\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)/);return m?Number(m[1].replace(/,/g,'')):null}
   function distance(raw){var m=String(raw||'').match(/([0-9]+(?:\\.[0-9]+)?)\\s*(?:mi|miles)\\b/i);return m?Number(m[1]):null}
   function goodImage(v){var x=String(v||'');return /^https:\\/\\//i.test(x)&&!/(?:logo|favicon|sprite|pixel|tracking|placeholder|blank|spacer)/i.test(x)}
@@ -289,7 +290,7 @@ final class FacebookMarketplaceEmbeddedCollector {
   var seen={},rows=[];
   anchors.forEach(function(a){var href=String(a.href||a.getAttribute('href')||''),id=itemId(href);if(!id||seen[id])return;seen[id]=1;var card=cardFor(a),raw=T(card||a);rows.push({id:id,source:'Facebook Marketplace',title:titleFor(a,card||a),text:raw||('Marketplace listing '+id),price:price(raw),url:cleanUrl(href),image_url:imageFor(card||a),distance_miles:distance(raw),captured_at:Date.now(),browser_session:true,capture_method:'DOM_ANCHOR'});});
 
-  var normalizedHtml=html.replace(/\\\\u002F/g,'/').replace(/\\\\\//g,'/'),re=/\\/marketplace\\/item\\/(\\d+)/ig,m,sourceHits=0;
+  var normalizedHtml=unescapeUrl(html),re=/\\/marketplace\\/item\\/(\\d+)/ig,m,sourceHits=0;
   while((m=re.exec(normalizedHtml))&&sourceHits<300){sourceHits++;var id=m[1];if(seen[id])continue;seen[id]=1;var from=Math.max(0,m.index-600),to=Math.min(normalizedHtml.length,m.index+900),near=normalizedHtml.slice(from,to).replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/\\s+/g,' ').trim();var pm=near.match(/\\$\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)/),im=normalizedHtml.slice(from,to).match(/https:\\/\\/[^\"'<> ]+(?:jpg|jpeg|png|webp)[^\"'<> ]*/i);rows.push({id:id,source:'Facebook Marketplace',title:'Marketplace listing '+id,text:near.slice(0,700),price:pm?Number(pm[1].replace(/,/g,'')):null,url:'https://www.facebook.com/marketplace/item/'+id,image_url:im&&goodImage(im[0])?im[0]:'',distance_miles:distance(near),captured_at:Date.now(),browser_session:true,capture_method:'HTML_ITEM_URL'});if(rows.length>=120)break;}
 
   AndroidH38FacebookBrowser.capture(JSON.stringify({login_required:false,location_text:pageLocation(),rows:rows,item_urls_seen:rows.length,diagnostics:{anchor_count:allAnchors.length,dom_item_anchors:anchors.length,html_item_hits:sourceHits,body_chars:body.length,html_chars:html.length,path:path,title:String(document.title||'')}}));
