@@ -1,0 +1,44 @@
+name: Scout DG Source Adapter Gate
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - 'supabase/functions/reseller-auto-leads-v064/source-adapters.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/index.ts'
+      - '.github/workflows/scout-dg-source-adapters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-adapter-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/private-reseller-scout
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify private branch authority
+        run: |
+          test "$(git branch --show-current)" = "agent/private-reseller-scout"
+          echo "Source gate SHA: $(git rev-parse HEAD)"
+      - name: Run source-specific adapter tests
+        run: node supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs
+      - name: Guard source architecture
+        run: |
+          grep -q "DG_SOURCE_ADAPTERS" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "Promise.allSettled" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "search_index_fallback" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "aggregator_feed" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "catalog_community_feed" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "Physical DG app/UPC/register scan remains final local truth" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          ! grep -R "facebook.*password\|captcha.*bypass\|stealth" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+      - name: Source gate result
+        run: echo "DG source adapter BUILD/SOURCE gate succeeded. Physical-phone acceptance is separate."
