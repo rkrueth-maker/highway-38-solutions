@@ -120,7 +120,10 @@ jobs:
           grep -Fq 'H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true' "$report/packaged-v266.js"
           grep -Fq "fn('reseller-facebook-public-v240'" "$report/packaged-v266.js"
           ! grep -Fq 'n.openFacebookMarketplace(' "$report/packaged-v266.js"
-          unzip -p "$out" classes.dex | strings > "$report/classes-strings.txt"
+          dexdir="$report/dex"; rm -rf "$dexdir"; mkdir -p "$dexdir"
+          unzip -q "$out" 'classes*.dex' -d "$dexdir"
+          : > "$report/classes-strings.txt"
+          for dex in "$dexdir"/classes*.dex; do strings "$dex" >> "$report/classes-strings.txt"; done
           grep -Fq 'facebook_android_share' "$report/classes-strings.txt"
           grep -Fq 'FACEBOOK_NOTIFICATION' "$report/classes-strings.txt"
           grep -Fq 'LOCATION_UNPROVEN' "$report/classes-strings.txt"
