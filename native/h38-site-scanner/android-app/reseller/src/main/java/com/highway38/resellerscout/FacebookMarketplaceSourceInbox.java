@@ -44,12 +44,13 @@ final class FacebookMarketplaceSourceInbox {
             }
 
             Matcher matcher = ITEM_URL.matcher(raw);
-            int added = 0;
+            int matched = 0;
             String title = sharedTitle(raw);
             Double price = sharedPrice(raw);
             while (matcher.find()) {
                 String id = matcher.group(1);
                 if (id == null || id.isBlank()) continue;
+                matched++;
                 String canonical = "https://www.facebook.com/marketplace/item/" + id + "/";
                 JSONObject row = new JSONObject();
                 row.put("id", id);
@@ -70,10 +71,9 @@ final class FacebookMarketplaceSourceInbox {
                 row.put("freshness_unproven", true);
                 row.put("captured_at", System.currentTimeMillis());
                 row.put("shared_text", raw.length() > 1200 ? raw.substring(0, 1200) : raw);
-                if (!merged.containsKey(id)) added++;
                 merged.put(id, row);
             }
-            if (added == 0) return 0;
+            if (matched == 0) return 0;
 
             JSONArray save = new JSONArray();
             int skip = Math.max(0, merged.size() - MAX_SHARED);
@@ -83,7 +83,7 @@ final class FacebookMarketplaceSourceInbox {
                 save.put(row);
             }
             prefs.edit().putString(SHARED_ROWS, save.toString()).apply();
-            return added;
+            return matched;
         } catch (Exception ignored) {
             return 0;
         }
