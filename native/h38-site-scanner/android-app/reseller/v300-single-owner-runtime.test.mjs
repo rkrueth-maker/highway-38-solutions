@@ -43,7 +43,7 @@ assert.match(main,/FacebookMarketplaceSourceInbox\.captureSharedText/);
 assert.match(main,/FacebookMarketplaceSourceInbox\.mergedRowsJson/);
 assert.match(main,/facebookNotificationCandidates/);
 assert.match(main,/openNotificationAccessSettings/);
-assert.match(sourceInbox,/\/marketplace\/item\/\(\\d\{6,\}\)/);
+assert.ok(sourceInbox.includes('facebook\\\\.com/marketplace/item/(\\\\d{6,})'), 'direct Facebook Marketplace item URL matcher must require numeric listing id');
 assert.match(sourceInbox,/capture_method", "ANDROID_SHARE"/);
 assert.match(sourceInbox,/capture_method", "FACEBOOK_NOTIFICATION"/);
 assert.match(sourceInbox,/location_verified", false/);
