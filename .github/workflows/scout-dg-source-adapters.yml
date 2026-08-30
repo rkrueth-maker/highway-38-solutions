@@ -45,7 +45,7 @@ jobs:
           grep -q "direct_raw_block" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
           grep -q "source_specific_index" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
           grep -q "REFERENCE_ONLY" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
-          grep -q "future-effective" supabase/functions/reseller-auto-leads-v064/index.ts
+          grep -q "future_truth_rule" supabase/functions/reseller-auto-leads-v064/index.ts
           grep -q "Physical DG app/UPC/register scan remains final local truth" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
           ! grep -R "captcha.*bypass\|stealth\|protection.*bypass.*attempted.*false" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
       - name: Source gate result
