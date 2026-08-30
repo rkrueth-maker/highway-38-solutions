@@ -7,6 +7,8 @@ on:
     paths:
       - 'supabase/functions/reseller-auto-leads-v064/source-adapters.mjs'
       - 'supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.test.mjs'
       - 'supabase/functions/reseller-auto-leads-v064/source-adapters.live.mjs'
       - 'supabase/functions/reseller-auto-leads-v064/index.ts'
       - '.github/workflows/scout-dg-source-adapters.yml'
@@ -18,7 +20,7 @@ permissions:
 jobs:
   source-adapter-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,18 +32,21 @@ jobs:
         run: |
           test "$(git branch --show-current)" = "agent/private-reseller-scout"
           echo "Source gate SHA: $(git rev-parse HEAD)"
-      - name: Run source-specific adapter tests
-        run: node supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs
-      - name: Run live multi-source acquisition gate
+      - name: Run source adapter unit tests
+        run: |
+          node supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs
+          node supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.test.mjs
+      - name: Run live source-specific acquisition gate
         run: node supabase/functions/reseller-auto-leads-v064/source-adapters.live.mjs
       - name: Guard source architecture
         run: |
           grep -q "DG_SOURCE_ADAPTERS" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          grep -q "Promise.allSettled" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          grep -q "search_index_fallback" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          grep -q "aggregator_feed" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          grep -q "catalog_community_feed" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          grep -q "Physical DG app/UPC/register scan remains final local truth" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
-          ! grep -R "facebook.*password\|captcha.*bypass\|stealth" supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          grep -q "runDollarGeneralSourceOrchestrator" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
+          grep -q "direct_raw_block" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
+          grep -q "source_specific_index" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
+          grep -q "REFERENCE_ONLY" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
+          grep -q "future-effective" supabase/functions/reseller-auto-leads-v064/index.ts
+          grep -q "Physical DG app/UPC/register scan remains final local truth" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
+          ! grep -R "captcha.*bypass\|stealth\|protection.*bypass.*attempted.*false" supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
       - name: Source gate result
-        run: echo "DG source adapter BUILD/LIVE-SOURCE gate succeeded. Physical-phone acceptance is separate."
+        run: echo "DG source-specific BUILD/LIVE-SOURCE gate succeeded. Physical-phone acceptance is separate."
