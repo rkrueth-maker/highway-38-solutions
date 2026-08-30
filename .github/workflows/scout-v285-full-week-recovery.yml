@@ -1,4 +1,4 @@
-name: Build H38 Scout v3.0.3 Public Facebook + DG Images
+name: Build H38 Scout v3.0.4 Public Facebook Index + DG Cleanup
 
 on:
   push:
@@ -38,40 +38,64 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.3 public sourcing contracts
+      - name: Verify v3.0.4 public sourcing contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v304"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
-          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v303-runtime-contracts.txt"
+          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v304-runtime-contracts.txt"
           node reseller/facebook-native-capture-contract.test.mjs | tee "$report/facebook-public-capture.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
           node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-rank.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/dg-image-contracts.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions-regression.txt"
-          grep -Fq "versionName '3.0.3'" reseller/build.gradle
-          grep -Fq 'versionCode 303' reseller/build.gradle
-          grep -Fq 'PUBLIC_ONLY' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq "versionName '3.0.4'" reseller/build.gradle
+          grep -Fq 'versionCode 304' reseller/build.gradle
+          grep -Fq 'PUBLIC_ONLY_V304' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
           grep -Fq 'clearFacebookAuthCookies' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          ! grep -Fq 'AUTH_REQUIRED' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'PUBLIC_HTML_ITEM_URL' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          ! grep -Eq 'AUTH_REQUIRED|CHECKPOINT|__H38_CONNECT__' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'PUBLIC_WEB_INDEX' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
           grep -Fq 'PUBLIC_DOM_ANCHOR' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'html.duckduckgo.com/html' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'weirdHuntRow' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'exact_upc_public_image_v066' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs"
           grep -Fq 'brickseek.com/dollar-general-inventory-checker' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs"
           echo PASS > "$report/contracts.txt"
+
+      - name: Live verify public Facebook web index
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v304"; mkdir -p "$report"
+          query='site:facebook.com/marketplace/item/ Minnesota tools'
+          url="https://html.duckduckgo.com/html/?q=$(python - <<'PY'
+          import urllib.parse
+          print(urllib.parse.quote('site:facebook.com/marketplace/item/ Minnesota tools'))
+          PY
+          )"
+          curl -fsSL --max-time 25 -A 'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 H38ResellerScout/3.0.4' -H 'Accept: text/html,application/xhtml+xml' -H 'Accept-Language: en-US,en;q=0.9' "$url" -o "$report/facebook-public-index.html"
+          python - "$report/facebook-public-index.html" <<'PY' | tee "$report/facebook-live-index.txt"
+          import html,re,sys,urllib.parse
+          raw=open(sys.argv[1],encoding='utf-8',errors='ignore').read()
+          text=html.unescape(raw)
+          for _ in range(3): text=urllib.parse.unquote(text)
+          ids=sorted(set(re.findall(r'facebook\.com/marketplace/item/(\d+)',text,re.I)))
+          if not ids: raise SystemExit('No public Facebook Marketplace item URLs found in live public index probe')
+          print('PASS live public Facebook index',len(ids),'item IDs',','.join(ids[:5]))
+          PY
 
       - name: Live verify Dollar General public product image source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v304"; mkdir -p "$report"
           url='https://brickseek.com/dollar-general-inventory-checker?sku=049000028904'
-          curl -fsSL --max-time 20 -A 'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 H38ResellerScout/3' -H 'Accept: text/html,application/xhtml+xml' -H 'Accept-Language: en-US,en;q=0.9' "$url" -o "$report/dg-live-item.html"
+          curl -fsSL --max-time 20 -A 'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 H38ResellerScout/3.0.4' -H 'Accept: text/html,application/xhtml+xml' -H 'Accept-Language: en-US,en;q=0.9' "$url" -o "$report/dg-live-item.html"
           node --input-type=module - "$report/dg-live-item.html" "$url" "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs" <<'NODE' | tee "$report/dg-live-image.txt"
           import fs from 'node:fs';
           import {pathToFileURL} from 'node:url';
@@ -81,19 +105,19 @@ jobs:
           if(!/049000028904/.test(html))throw new Error('Exact DG UPC not present on public source page');
           const image=extractSourceImage(html,url);
           if(!image||!/^https:\/\//i.test(image))throw new Error('No real public Dollar General product image resolved');
-          const r=await fetch(image,{redirect:'follow',headers:{'user-agent':'Mozilla/5.0 H38ResellerScout/3'}});if(!r.ok)throw new Error(`Image HTTP ${r.status}`);const type=r.headers.get('content-type')||'';if(!type.toLowerCase().startsWith('image/'))throw new Error(`Not image content: ${type}`);
+          const r=await fetch(image,{redirect:'follow',headers:{'user-agent':'Mozilla/5.0 H38ResellerScout/3.0.4'}});if(!r.ok)throw new Error(`Image HTTP ${r.status}`);const type=r.headers.get('content-type')||'';if(!type.toLowerCase().startsWith('image/'))throw new Error(`Not image content: ${type}`);
           console.log('PASS live Dollar General exact-UPC image',image,type);
           NODE
 
-      - name: Compile Owner Scout v3.0.3 APK
+      - name: Compile Owner Scout v3.0.4 APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v304"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.3.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.3.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.4.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.4.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -101,9 +125,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; out="$report/H38-Reseller-Scout-Owner-v3.0.3.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v304"; out="$report/H38-Reseller-Scout-Owner-v3.0.4.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='303' versionName='3.0.3'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='304' versionName='3.0.4'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
@@ -111,17 +135,21 @@ jobs:
           rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
           for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
           grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
-          grep -Fq 'PUBLIC_ONLY' "$report/all-dex-strings.txt"
-          grep -Fq 'PUBLIC_HTML_ITEM_URL' "$report/all-dex-strings.txt"
+          grep -Fq 'PUBLIC_ONLY_V304' "$report/all-dex-strings.txt"
+          grep -Fq 'PUBLIC_WEB_INDEX' "$report/all-dex-strings.txt"
           grep -Fq 'PUBLIC_DOM_ANCHOR' "$report/all-dex-strings.txt"
-          ! grep -Fq 'NO_C_USER_COOKIE' "$report/all-dex-strings.txt"
+          ! grep -Eq 'AUTH_REQUIRED|__H38_CONNECT__' "$report/all-dex-strings.txt"
+          unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v266.js"
+          grep -Fq 'H38_SCOUT_V304_PUBLIC_INDEX_RECOVERY=true' "$report/packaged-v266.js"
+          grep -Fq 'weirdHuntRow' "$report/packaged-v266.js"
+          ! grep -Eq 'Repair Facebook session|Sign in once|Complete checkpoint' "$report/packaged-v266.js"
           echo PASS > "$report/smoke.txt"
 
-      - name: Upload v3.0.3 APK and diagnostics
+      - name: Upload v3.0.4 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.3-public-facebook-dg-images
-          path: artifacts/scout-v303/*
+          name: h38-reseller-scout-owner-v3.0.4-public-index-dg-cleanup
+          path: artifacts/scout-v304/*
           if-no-files-found: warn
           retention-days: 30
