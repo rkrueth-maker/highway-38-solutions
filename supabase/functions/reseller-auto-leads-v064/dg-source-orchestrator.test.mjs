@@ -23,9 +23,9 @@ import {parseRetailShoutRaw,parsePennyGeneralRaw,parsePennyTreeIndex,runDollarGe
 {
   const calls=[];
   const fakeFetch=async url=>{calls.push(String(url));const u=String(url);
-    if(u.includes('retailshout.com'))return{ok:true,text:async()=>'<h4>Raw Block Item</h4><div>Penny Date: Aug 25, 2026</div><div>SKU: 12345678 · UPC: 8100009909</div>'};
+    if(u.includes('retailshout.com'))return{ok:true,text:async()=>'<h4>Raw Block Item</h4><div>Penny Date: Aug 25, 2026</div><div><b>SKU:</b></div><div><span>12345678</span></div><div><b>UPC:</b></div><div><span>8100009909</span></div>'};
     if(u.includes('pennytree.org/guide.php'))return{ok:false,status:403,text:async()=>''};
-    if(u.includes('pennygeneral.net'))return{ok:true,text:async()=>'<h2>August 25, 2026</h2><h3>Database Item</h3><div>UPC</div><div>840797138537</div><div>$0.01</div>'};
+    if(u.includes('pennygeneral.net'))return{ok:true,text:async()=>'<h2>August 25, 2026</h2><h3>Database Item</h3><div>Product UPC</div><div>840797138537</div><div>$0.01</div>'};
     if(u.includes('kristiesconnections.com'))return{ok:true,text:async()=>'<a>August 25, 2026 Penny List</a><p>REPUBLICATION OF THESE IMAGES IS NOT PERMITTED</p>'};
     if(u.includes('thekrazycouponlady.com'))return{ok:true,text:async()=>'<p>KCL Item — UPC: 52200010310</p>'};
     if(u.includes('thefreebieguy.com'))return{ok:true,text:async()=>'<p>Freebie Item – 613008756451</p>'};
