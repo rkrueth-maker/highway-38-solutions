@@ -36,7 +36,7 @@ jobs:
       - name: Verify Reseller Scout security and architecture
         run: node scripts/verify-private-reseller-scout.js
 
-      - name: Syntax checks
+      - name: Syntax and source-path checks
         shell: bash
         run: |
           set -euo pipefail
@@ -45,7 +45,9 @@ jobs:
           node --check commercial-app/reseller-scout.js
           node --check scripts/verify-private-reseller-scout.js
           node --check supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
+          node --check supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
           node supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs
+          node supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.test.mjs
 
       - name: Create build manifest
         shell: bash
