@@ -59,25 +59,32 @@ jobs:
           grep -Fq 'NO_FACEBOOK_LOGIN' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
           echo PASS > "$report/contracts.txt"
 
-      - name: Live verify public Facebook index source
+      - name: Live verify public Facebook parser source
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/scout-v305"; mkdir -p "$report"
-          url="https://html.duckduckgo.com/html/?q=$(python - <<'PY'
+          q=$(python - <<'PY'
           import urllib.parse
-          print(urllib.parse.quote('site:facebook.com/marketplace/item/ Minnesota tools'))
+          print(urllib.parse.quote('"facebook.com/marketplace/item/" "Minnesota" tools'))
           PY
-          )"
-          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.5' "$url" -o "$report/facebook-public-index.html"
-          python - "$report/facebook-public-index.html" <<'PY' | tee "$report/facebook-live-index.txt"
-          import html,re,sys,urllib.parse
-          raw=open(sys.argv[1],encoding='utf-8',errors='ignore').read(); text=html.unescape(raw)
-          for _ in range(3): text=urllib.parse.unquote(text)
-          ids=sorted(set(re.findall(r'facebook\.com/marketplace/item/(\d+)',text,re.I)))
-          if not ids: raise SystemExit('No public Facebook Marketplace item URLs found')
-          print('PASS live public Facebook index',len(ids),'item IDs',','.join(ids[:5]))
-          PY
+          )
+          : > "$report/facebook-public-ddg.html"
+          : > "$report/facebook-public-bing.xml"
+          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.5' "https://html.duckduckgo.com/html/?q=$q" -o "$report/facebook-public-ddg.html" || true
+          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.5' "https://www.bing.com/search?q=$q&format=rss&count=30" -o "$report/facebook-public-bing.xml" || true
+          node --input-type=module - "$report/facebook-public-ddg.html" "$report/facebook-public-bing.xml" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/public-index.mjs" <<'JS' | tee "$report/facebook-live-index.txt"
+          import fs from 'node:fs';
+          import {pathToFileURL} from 'node:url';
+          const ddg=fs.readFileSync(process.argv[2],'utf8');
+          const bing=fs.readFileSync(process.argv[3],'utf8');
+          const mod=await import(pathToFileURL(process.argv[4]).href);
+          const rows=[...mod.parseSearchHtml(ddg,30),...mod.parseBingRss(bing,30)];
+          const unique=[...new Map(rows.map(r=>[r.id,r])).values()];
+          if(!unique.length)throw new Error('No public Facebook Marketplace item URLs extracted by backend parsers');
+          if(unique.some(r=>!/^https:\/\/www\.facebook\.com\/marketplace\/item\/\d+\/$/.test(r.url)))throw new Error('Non-Marketplace URL escaped parser gate');
+          console.log('PASS live backend parser public Facebook index',unique.length,'item IDs',unique.slice(0,5).map(r=>r.id).join(','));
+          JS
 
       - name: Compile owner APK
         shell: bash
