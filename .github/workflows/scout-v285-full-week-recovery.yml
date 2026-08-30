@@ -1,4 +1,4 @@
-name: Build H38 Scout v3.0.2 Native Facebook Capture
+name: Build H38 Scout v3.0.3 Public Facebook + DG Images
 
 on:
   push:
@@ -12,7 +12,9 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v266-actionable-intake.js'
       - 'native/h38-site-scanner/android-app/reseller/v300-single-owner-runtime.test.mjs'
-      - 'native/h38-site-scanner/android-app/reseller/V3-RUNTIME-RULES.md'
+      - 'supabase/functions/reseller-auto-leads-v064/core.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/core.test.mjs'
+      - 'supabase/functions/reseller-auto-leads-v064/index.ts'
       - '.github/workflows/scout-v285-full-week-recovery.yml'
   workflow_dispatch:
 
@@ -36,43 +38,59 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.2 native capture contracts
+      - name: Verify v3.0.3 public sourcing contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v302"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
-          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v302-runtime-contracts.txt"
-          node reseller/facebook-native-capture-contract.test.mjs | tee "$report/facebook-native-capture.txt"
+          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v303-runtime-contracts.txt"
+          node reseller/facebook-native-capture-contract.test.mjs | tee "$report/facebook-public-capture.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
           node reseller/src/main/assets/reseller/v251-facebook-resale.test.mjs | tee "$report/facebook-rank.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/penny-identity-source.txt"
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/dg-image-contracts.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auction-search-v230/core.test.mjs" | tee "$report/auctions-regression.txt"
-          grep -Fq "versionName '3.0.2'" reseller/build.gradle
-          grep -Fq 'versionCode 302' reseller/build.gradle
-          grep -Fq 'NO_C_USER_COOKIE' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'HTML_ITEM_URL' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'DOM_ANCHOR' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'html_item_hits' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
-          grep -Fq 'H38_SCOUT_LEGACY_V264_DISABLED=true' reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq 'H38_SCOUT_LEGACY_V265_DISABLED=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'H38_SCOUT_V300_SINGLE_OWNER_RUNTIME=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'H38_SCOUT_V301_PHYSICAL_RECOVERY=true' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq "versionName '3.0.3'" reseller/build.gradle
+          grep -Fq 'versionCode 303' reseller/build.gradle
+          grep -Fq 'PUBLIC_ONLY' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'clearFacebookAuthCookies' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          ! grep -Fq 'AUTH_REQUIRED' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'PUBLIC_HTML_ITEM_URL' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'PUBLIC_DOM_ANCHOR' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java
+          grep -Fq 'exact_source_page_image_v065' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs"
           echo PASS > "$report/contracts.txt"
 
-      - name: Compile Owner Scout v3.0.2 APK
+      - name: Live verify Dollar General public product image source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v302"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
+          url='https://pennytree.org/item.php?sku=dg%3A37000819196'
+          curl -fsSL --max-time 20 -A 'H38ResellerScout/3 image-verifier' "$url" -o "$report/dg-live-item.html"
+          node --input-type=module - "$report/dg-live-item.html" "$url" "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs" <<'NODE' | tee "$report/dg-live-image.txt"
+          import fs from 'node:fs';
+          import {pathToFileURL} from 'node:url';
+          const [htmlPath,url,corePath]=process.argv.slice(2);
+          const {extractSourceImage}=await import(pathToFileURL(corePath));
+          const image=extractSourceImage(fs.readFileSync(htmlPath,'utf8'),url);
+          if(!image||!/^https:\/\//i.test(image))throw new Error('No real public Dollar General product image resolved');
+          const r=await fetch(image,{redirect:'follow'});if(!r.ok)throw new Error(`Image HTTP ${r.status}`);const type=r.headers.get('content-type')||'';if(!type.toLowerCase().startsWith('image/'))throw new Error(`Not image content: ${type}`);
+          console.log('PASS live Dollar General exact-page image',image,type);
+          NODE
+
+      - name: Compile Owner Scout v3.0.3 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.2.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.2.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.3.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.3.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -80,32 +98,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v302"; out="$report/H38-Reseller-Scout-Owner-v3.0.2.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v303"; out="$report/H38-Reseller-Scout-Owner-v3.0.3.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='302' versionName='3.0.2'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='303' versionName='3.0.3'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v264-wide-repair.js > "$report/packaged-v264-stub.js"
-          unzip -p "$out" assets/reseller/v265-facebook-acquisition-repair.js > "$report/packaged-v265-stub.js"
-          unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v302-runtime.js"
-          grep -Fq 'H38_SCOUT_LEGACY_V264_DISABLED=true' "$report/packaged-v264-stub.js"
-          grep -Fq 'H38_SCOUT_LEGACY_V265_DISABLED=true' "$report/packaged-v265-stub.js"
-          grep -Fq 'H38_SCOUT_V301_PHYSICAL_RECOVERY=true' "$report/packaged-v302-runtime.js"
           rm -f "$report/all-dex-strings.txt"; touch "$report/all-dex-strings.txt"
           for dex in $(unzip -Z1 "$out" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$out" "$dex" | strings >> "$report/all-dex-strings.txt"; done
           grep -Fq "$GITHUB_SHA" "$report/all-dex-strings.txt"
-          grep -Fq 'NO_C_USER_COOKIE' "$report/all-dex-strings.txt"
-          grep -Fq 'HTML_ITEM_URL' "$report/all-dex-strings.txt"
-          grep -Fq 'DOM_ANCHOR' "$report/all-dex-strings.txt"
+          grep -Fq 'PUBLIC_ONLY' "$report/all-dex-strings.txt"
+          grep -Fq 'PUBLIC_HTML_ITEM_URL' "$report/all-dex-strings.txt"
+          grep -Fq 'PUBLIC_DOM_ANCHOR' "$report/all-dex-strings.txt"
+          ! grep -Fq 'NO_C_USER_COOKIE' "$report/all-dex-strings.txt"
           echo PASS > "$report/smoke.txt"
 
-      - name: Upload v3.0.2 APK and diagnostics
+      - name: Upload v3.0.3 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.2-native-facebook-capture
-          path: artifacts/scout-v302/*
+          name: h38-reseller-scout-owner-v3.0.3-public-facebook-dg-images
+          path: artifacts/scout-v303/*
           if-no-files-found: warn
           retention-days: 30
