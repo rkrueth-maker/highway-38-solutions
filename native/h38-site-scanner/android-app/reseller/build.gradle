@@ -17,8 +17,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 305
-        versionName '3.0.5'
+        versionCode 306
+        versionName '3.0.6'
         buildConfigField 'String', 'H38_BUILD_SHA', '"' + h38BuildSha + '"'
         buildConfigField 'String', 'H38_BUILD_RUN', '"' + h38BuildRun + '"'
     }
