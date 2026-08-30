@@ -5,9 +5,13 @@ import assert from 'node:assert/strict';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const p=path.join(here,'src/main/assets/reseller');
+const java=path.join(here,'src/main/java/com/highway38/resellerscout');
 const v264=fs.readFileSync(path.join(p,'v264-wide-repair.js'),'utf8');
 const v265=fs.readFileSync(path.join(p,'v265-facebook-acquisition-repair.js'),'utf8');
 const v300=fs.readFileSync(path.join(p,'v266-actionable-intake.js'),'utf8');
+const main=fs.readFileSync(path.join(java,'MainActivity.java'),'utf8');
+const sourceInbox=fs.readFileSync(path.join(java,'FacebookMarketplaceSourceInbox.java'),'utf8');
+const manifest=fs.readFileSync(path.join(here,'src/main/AndroidManifest.xml'),'utf8');
 const gradle=fs.readFileSync(path.join(here,'build.gradle'),'utf8');
 const rules=fs.readFileSync(path.join(here,'V3-RUNTIME-RULES.md'),'utf8');
 
@@ -32,8 +36,23 @@ assert.match(v300,/1cent/);
 assert.match(v300,/Promise\.allSettled\(\[fn\('reseller-auto-leads-v064'/);
 assert.match(v300,/fn\('reseller-auto-leads-v058'/);
 assert.match(v300,/physical UPC\/register scan remains final local penny truth/i);
-assert.match(gradle,/versionCode 305/);
-assert.match(gradle,/versionName '3\.0\.5'/);
+
+assert.match(manifest,/android\.intent\.action\.SEND/);
+assert.match(manifest,/android:mimeType="text\/\*"/);
+assert.match(main,/FacebookMarketplaceSourceInbox\.captureSharedText/);
+assert.match(main,/FacebookMarketplaceSourceInbox\.mergedRowsJson/);
+assert.match(main,/facebookNotificationCandidates/);
+assert.match(main,/openNotificationAccessSettings/);
+assert.match(sourceInbox,/\/marketplace\/item\/\(\\d\{6,\}\)/);
+assert.match(sourceInbox,/capture_method", "ANDROID_SHARE"/);
+assert.match(sourceInbox,/capture_method", "FACEBOOK_NOTIFICATION"/);
+assert.match(sourceInbox,/location_verified", false/);
+assert.match(sourceInbox,/location_status", "LOCATION_UNPROVEN"/);
+assert.match(sourceInbox,/freshness_unproven", true/);
+assert.doesNotMatch(sourceInbox,/c_user|\bxs\b|checkpoint|CookieManager/);
+
+assert.match(gradle,/versionCode 306/);
+assert.match(gradle,/versionName '3\.0\.6'/);
 assert.match(rules,/Single-owner runtime rule/);
 assert.match(rules,/Physical Android phone behavior remains final acceptance/);
-console.log('PASS v3.0.5 backend-only public Facebook + Penny cleanup runtime contracts');
+console.log('PASS v3.0.6 source-specific Facebook share + notification intake contracts');
