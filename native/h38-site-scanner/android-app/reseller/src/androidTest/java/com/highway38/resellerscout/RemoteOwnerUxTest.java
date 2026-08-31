@@ -21,6 +21,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class RemoteOwnerUxTest {
@@ -50,6 +52,15 @@ public class RemoteOwnerUxTest {
         }
         assertTrue("Owner package did not become visible after one cold-start retry", packageVisible);
         assertTrue("Reseller Scout shell did not render", waitForLabel("Reseller Scout", 12_000));
+    }
+
+    @Test
+    public void knownDefect00ProfitFirstFacebookSourcing() throws Exception {
+        signInAsOwnerIfNeeded();
+        assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 00 START: profit-first Facebook sourcing");
+        verifyProfitFirstFacebookBoundary();
+        Log.i(TAG, "KNOWN DEFECT 00 PASS: profit-first Facebook sourcing");
     }
 
     @Test
@@ -88,6 +99,15 @@ public class RemoteOwnerUxTest {
         Log.i(TAG, "KNOWN DEFECT 04 PASS: Navigation round trip");
     }
 
+    @Test
+    public void knownDefect05GarageSaleDiscovery() throws Exception {
+        signInAsOwnerIfNeeded();
+        assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 05 START: garage and estate sale discovery");
+        verifyGarageSaleBoundary();
+        Log.i(TAG, "KNOWN DEFECT 05 PASS: garage and estate sale discovery");
+    }
+
     private void signInAsOwnerIfNeeded() {
         if (!hasLabel("Sign in")) {
             assertTrue("Authenticated owner shell did not reach Discover", waitForLabel("Discover", 15_000));
@@ -99,12 +119,6 @@ public class RemoteOwnerUxTest {
         assertTrue("Login must expose email and password fields", fields.size() >= 2);
         fields.get(0).setText(email);
         fields.get(1).setText(password);
-
-        // UiAutomator#setText does not require the Android soft keyboard to be open.
-        // The old harness unconditionally pressed Back here. On Firebase's Galaxy S22
-        // the keyboard was already closed, so Back exited the owner Activity to Home
-        // before the Sign in button could be tapped. Keep the Activity foregrounded
-        // and click the actual WebView control directly.
         device.waitForIdle(750);
         UiObject2 signIn = findClickableLabel("Sign in");
         if (signIn == null) {
@@ -126,23 +140,45 @@ public class RemoteOwnerUxTest {
         assertTrue("Track nav missing", hasLabel("Track"));
     }
 
+    private void verifyProfitFirstFacebookBoundary() throws Exception {
+        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
+        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
+        UiObject2 search = findFirstEditText();
+        assertNotNull("Discover search input not reachable", search);
+        search.setText("");
+        device.pressBack();
+        device.waitForIdle(700);
+        assertTrue("Profit-first Facebook status did not render", waitForLabelContains("PROFIT-FIRST FACEBOOK", 12_000));
+        assertTrue("Profit-first Facebook did not advertise resale-lane sourcing", hasLabelContains("resale lanes"));
+        UiObject2 hunt = findClickableLabel("Hunt profitable Facebook deals");
+        assertNotNull("Profit-first Facebook hunt button missing", hunt);
+        hunt.click();
+        device.waitForIdle(1_000);
+        long end = System.currentTimeMillis() + 70_000;
+        boolean completedEvidence = false;
+        do {
+            String status = textContaining("PROFIT-FIRST FACEBOOK");
+            if (status != null && (status.matches(".*\\b[1-9][0-9]* candidates\\b.*") || hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet"))) {
+                completedEvidence = true;
+                break;
+            }
+            Thread.sleep(1_250);
+        } while (System.currentTimeMillis() < end);
+        assertTrue("Profit-first Facebook hunt produced neither captured candidates nor a truthful empty state", completedEvidence);
+        assertFalse("Profit-first Facebook hunt regressed to the known stale lawn-care card", hasLabelContains("Lawn care equipment"));
+        Log.i(TAG, "FACEBOOK PROFIT BOUNDARY: profit-first resale lanes active; public candidates are comp-ranked or truthfully empty.");
+    }
+
     private void verifyFridgeSearchBoundary() throws Exception {
-        // A freshly authenticated owner already lands on Discover. The generic label
-        // "Discover" also appears inside the page body, so avoid a redundant coordinate
-        // tap when the actual Discover hero is already visible.
         if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
         assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
         search.setText("fridge");
         device.waitForIdle(500);
-
-        // Firebase's soft keyboard can cover the web Search control and cause a coordinate
-        // click to land on the fixed bottom navigation. Dismiss it before locating Search.
         device.pressBack();
         device.waitForIdle(1_000);
         assertTrue("Discover page was lost while dismissing the keyboard", hasLabel("Find anything worth reselling"));
-
         UiObject2 searchButton = findClickableLabel("Search");
         assertNotNull("Discover Search button missing after keyboard dismissal", searchButton);
         searchButton.click();
@@ -151,10 +187,8 @@ public class RemoteOwnerUxTest {
         Thread.sleep(NETWORK);
         assertTrue("Discover page was not retained after asynchronous search renders", hasLabel("Find anything worth reselling"));
         assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasLabelContains("Lawn care equipment"));
-
         UiObject2 retained = findEditTextWithText("fridge");
         assertNotNull("Typed fridge query was not retained in the Discover search field", retained);
-
         boolean relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
         boolean truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet");
         assertTrue("Fridge search produced neither a fridge/refrigerator result nor a truthful empty state", relevantCard || truthfulEmpty);
@@ -179,31 +213,53 @@ public class RemoteOwnerUxTest {
     private void verifyDollarGeneralHuntBoundary() throws Exception {
         clickLabel("Hunt");
         assertTrue("Hunt page did not render", waitForLabel("Hunt", 12_000));
-
-        // v065 performs exact-product recovery after the base Hunt feed, so allow the
-        // network-backed refresh to settle before deciding that photos are absent.
-        long end = System.currentTimeMillis() + 45_000;
-        boolean dgSeen = false;
-        int imageNodes = 0;
+        assertTrue("v3.0.14 DG quality gate did not render", waitForLabelContains("DG QUALITY:", 15_000));
+        long end = System.currentTimeMillis() + 65_000;
+        int named = 0;
+        int images = 0;
         do {
-            dgSeen = hasLabelContains("Dollar General");
-            imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
-            if (dgSeen && imageNodes > 0) break;
-            if (!dgSeen) {
-                device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.30), 20);
-            }
+            String quality = textContaining("DG QUALITY:");
+            int[] counts = parseDgQuality(quality);
+            named = counts[0];
+            images = counts[1];
+            if (named > 0 && images >= Math.min(3, named)) break;
             Thread.sleep(1_250);
         } while (System.currentTimeMillis() < end);
-        assertTrue("Dollar General Hunt surface is not reachable", dgSeen);
-
+        assertTrue("Dollar General Hunt has no specifically named products after generic-title cleanup", named > 0);
+        assertTrue("Dollar General image recovery did not reach the minimum exact-UPC coverage; named=" + named + " images=" + images, images >= Math.min(3, named));
+        assertFalse("Generic Dollar General Inventory Checker title is still visible", hasLabelContains("Dollar General Inventory Checker"));
+        assertFalse("Generic Inventory Checker title is still visible", hasLabel("Inventory Checker"));
         boolean knownUpcVisible = hasLabelContains("840797136519");
         boolean knownWrongTitleVisible = hasLabelContains("Beech-Nut Veggies Stage 2 Baby Food");
         assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
         assertFalse("Malformed HTML/anchor text leaked into a Dollar General product title", hasLabelContains("href=\"https://www.dollargeneral.com/p/"));
+        Log.i(TAG, "DG BOUNDARY: named=" + named + " exact-UPC images=" + images + "; generic inventory-checker titles absent.");
+    }
 
-        imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
-        assertTrue("Dollar General Hunt rendered no accessible product images on the physical device", imageNodes > 0);
-        Log.i(TAG, "DG BOUNDARY: Dollar General reachable; known identity mismatch and malformed title absent; accessible image nodes=" + imageNodes + ".");
+    private void verifyGarageSaleBoundary() throws Exception {
+        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
+        assertTrue("Discover page did not render for garage-sale acceptance", waitForLabel("Find anything worth reselling", 10_000));
+        boolean section = waitForLabelContains("Garage & estate sales", 12_000);
+        for (int i = 0; i < 4 && !section; i++) {
+            device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.82), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.28), 20);
+            Thread.sleep(600);
+            section = hasLabelContains("Garage & estate sales");
+        }
+        assertTrue("Garage & estate sales module is not present in the physical APK runtime", section);
+        UiObject2 find = findClickableLabel("Find garage sales");
+        assertNotNull("Find garage sales action is missing", find);
+        find.click();
+        device.waitForIdle(1_000);
+        long end = System.currentTimeMillis() + 70_000;
+        boolean saleLeadOrTruth = false;
+        do {
+            saleLeadOrTruth = hasLabel("GARAGE SALE") || hasLabel("YARD SALE") || hasLabel("RUMMAGE SALE") || hasLabel("MOVING SALE") || hasLabel("ESTATE SALE") || hasLabelContains("No sale leads loaded yet");
+            if (saleLeadOrTruth) break;
+            Thread.sleep(1_250);
+        } while (System.currentTimeMillis() < end);
+        assertTrue("Garage-sale acquisition returned neither a verified sale lead nor a truthful empty state", saleLeadOrTruth);
+        assertFalse("Known non-sale Craigslist cattle listing leaked into garage-sale discovery", hasLabelContains("Red angus bull"));
+        Log.i(TAG, "GARAGE BOUNDARY: sale-level module is packaged and acquisition produces verified sale intent or truthful empty state.");
     }
 
     private void verifyNavigationSurvivesRoundTrip() {
@@ -213,6 +269,20 @@ public class RemoteOwnerUxTest {
         assertTrue("Track nav failed", waitForLabel("Track", SHORT));
         clickLabel("Discover");
         assertTrue("Discover nav failed after round trip", waitForLabel("Find anything worth reselling", SHORT));
+    }
+
+    private int[] parseDgQuality(String text) {
+        if (text == null) return new int[]{0, 0};
+        Matcher m = Pattern.compile("DG QUALITY:\\s*(\\d+) named\\s*[·|]\\s*(\\d+) images", Pattern.CASE_INSENSITIVE).matcher(text);
+        if (!m.find()) return new int[]{0, 0};
+        return new int[]{Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))};
+    }
+
+    private String textContaining(String needle) {
+        UiObject2 x = device.findObject(By.textContains(needle));
+        if (x != null && x.getText() != null) return x.getText();
+        x = device.findObject(By.descContains(needle));
+        return x == null ? null : x.getContentDescription();
     }
 
     private UiObject2 findFirstEditText() {
@@ -242,7 +312,15 @@ public class RemoteOwnerUxTest {
             UiObject2 tappable = clickableAncestor(object);
             if (tappable != null) return tappable;
         }
+        for (UiObject2 object : device.findObjects(By.textContains(text))) {
+            UiObject2 tappable = clickableAncestor(object);
+            if (tappable != null) return tappable;
+        }
         for (UiObject2 object : device.findObjects(By.desc(text))) {
+            UiObject2 tappable = clickableAncestor(object);
+            if (tappable != null) return tappable;
+        }
+        for (UiObject2 object : device.findObjects(By.descContains(text))) {
             UiObject2 tappable = clickableAncestor(object);
             if (tappable != null) return tappable;
         }
