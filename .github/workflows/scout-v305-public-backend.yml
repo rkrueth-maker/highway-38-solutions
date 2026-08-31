@@ -1,4 +1,4 @@
-name: Build H38 Scout v3.0.6 Source-Specific Facebook
+name: Build H38 Scout v3.0.6 Phone Failure Repair
 
 on:
   push:
@@ -9,13 +9,11 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceSourceInbox.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceNotificationListener.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v240-data.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v266-actionable-intake.js'
       - 'native/h38-site-scanner/android-app/reseller/v300-single-owner-runtime.test.mjs'
-      - 'supabase/functions/reseller-facebook-public-v240/index.ts'
-      - 'supabase/functions/reseller-facebook-public-v240/core.mjs'
-      - 'supabase/functions/reseller-facebook-public-v240/public-index.mjs'
-      - 'supabase/functions/reseller-facebook-public-v240/core.test.mjs'
-      - 'supabase/functions/reseller-facebook-public-v240/public-index.test.mjs'
+      - 'supabase/functions/reseller-facebook-public-v240/**'
+      - 'supabase/functions/reseller-dg-remodel-radar-v240/**'
       - 'supabase/functions/reseller-auto-leads-v064/**'
       - '.github/workflows/scout-v305-public-backend.yml'
   workflow_dispatch:
@@ -40,12 +38,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.6 source-specific Facebook contracts
+      - name: Verify v3.0.6 phone failure repair contracts
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/scout-v306"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          node --check reseller/src/main/assets/reseller/v240-data.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
           node reseller/v300-single-owner-runtime.test.mjs | tee "$report/runtime.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-core.txt"
@@ -64,9 +63,17 @@ jobs:
           grep -Fq 'freshness_unproven' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceSourceInbox.java
           ! grep -Eq 'c_user|CookieManager|checkpoint' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceSourceInbox.java
           grep -Fq "fn('reseller-facebook-public-v240'" reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'facebookRequestSeq' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'H38_SCOUT_V306_SINGLE_FACEBOOK_OWNER=true' reseller/src/main/assets/reseller/v240-data.js
+          ! grep -Fq 'publicPromise=loadFacebookPublicV240' reseller/src/main/assets/reseller/v240-data.js
+          ! grep -Eqi 'Run signed-in Facebook pass|signed-in device pass|cookies are now explicitly persisted' reseller/src/main/assets/reseller/v240-data.js
           ! grep -Fq 'n.openFacebookMarketplace(' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq "engine:'H38_FACEBOOK_PUBLIC_V305'" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
           grep -Fq 'NO_FACEBOOK_LOGIN' "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "acquisition_strategy:'LOW_FANOUT_INDEX_FIRST'" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/index.ts"
+          grep -Fq "provider_status:'PUBLIC_EVIDENCE'" "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/index.ts"
+          grep -Fq 'device_fallback_recommended:true' "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/index.ts"
+          grep -Fq 'PUBLIC_EVIDENCE' reseller/src/main/assets/reseller/v240-data.js
           echo BUILD_GATE_OK > "$report/contracts.txt"
 
       - name: Probe secondary public Facebook indexes
@@ -119,8 +126,13 @@ jobs:
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/v240-data.js > "$report/packaged-v240.js"
           unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v266.js"
+          grep -Fq 'H38_SCOUT_V306_SINGLE_FACEBOOK_OWNER=true' "$report/packaged-v240.js"
+          grep -Fq 'PUBLIC_EVIDENCE' "$report/packaged-v240.js"
+          ! grep -Fq 'publicPromise=loadFacebookPublicV240' "$report/packaged-v240.js"
           grep -Fq 'H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true' "$report/packaged-v266.js"
+          grep -Fq 'facebookRequestSeq' "$report/packaged-v266.js"
           grep -Fq "fn('reseller-facebook-public-v240'" "$report/packaged-v266.js"
           ! grep -Fq 'n.openFacebookMarketplace(' "$report/packaged-v266.js"
           dexdir="$report/dex"; rm -rf "$dexdir"; mkdir -p "$dexdir"
@@ -138,7 +150,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.6-source-specific-facebook
+          name: h38-reseller-scout-owner-v3.0.6-phone-failure-repair
           path: artifacts/scout-v306/*
           if-no-files-found: warn
           retention-days: 30
