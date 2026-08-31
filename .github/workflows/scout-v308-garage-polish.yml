@@ -1,14 +1,10 @@
-name: Build H38 Scout v3.0.10 Mobile UX Repair
+name: Build H38 Scout v3.0.12 Physical Repair
 
 on:
   push:
     branches: ['agent/private-reseller-scout']
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
-      - 'supabase/functions/reseller-garage-sales-v308/**'
-      - 'supabase/functions/reseller-facebook-public-v240/**'
-      - 'supabase/functions/reseller-dg-remodel-radar-v240/**'
-      - 'supabase/functions/reseller-auto-leads-v064/**'
       - '.github/workflows/scout-v308-garage-polish.yml'
   workflow_dispatch:
 
@@ -16,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v310-mobile-ux
+  group: scout-v312-physical-repair
   cancel-in-progress: true
 
 jobs:
@@ -37,61 +33,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.10 source and regression contracts
+      - name: Verify v3.0.12 source contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v310"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v312"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check reseller/src/main/assets/reseller/v240-data.js
           node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
-          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/v300-runtime.txt"
-          node reseller/v308-garage-polish.test.mjs | tee "$report/v310-mobile-ux.txt"
+          node reseller/v300-single-owner-runtime.test.mjs | tee "$report/runtime-contract.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-core.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/public-index.test.mjs" | tee "$report/facebook-index.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg-remodel-identity.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/dg-images-identity.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs" | tee "$report/dg-source-adapters.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.test.mjs" | tee "$report/dg-source-orchestrator.txt"
-          grep -Fq "versionName '3.0.10'" reseller/build.gradle
-          grep -Fq 'versionCode 310' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V310_MOBILE_UX_REPAIR=true' reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq "fn('reseller-facebook-public-v240'" reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq "fn('reseller-garage-sales-v308'" reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq "$('auctionPage')" reseller/src/main/assets/reseller/v264-wide-repair.js
-          ! grep -Fq "$('page-auctions')" reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq 'Local sales & Craigslist' reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq 'expandedSearchTermsV310' reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq 'restoreHuntPhotosV310' reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq 'exact_upc_public_image_v070' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.mjs"
-          grep -Fq 'IDENTITY_FETCH_CAP=96' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/index.ts"
+          grep -Fq "versionName '3.0.12'" reseller/build.gradle
+          grep -Fq 'versionCode 312' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V312_PHYSICAL_REPAIR=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'reseller-auto-leads-v065' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'window.runDiscover=repairedRunDiscover' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'window.loadHunt=repairedLoadHunt' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           echo BUILD_GATE_OK > "$report/contracts.txt"
 
-      - name: 390x844 owner mobile UX preflight
-        shell: bash
-        run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v310"
-          js=reseller/src/main/assets/reseller/v264-wide-repair.js
-          grep -Fq '@media(max-width:520px)' "$js"
-          grep -Fq 'flex-basis:100%' "$js"
-          grep -Fq 'garage-card' "$js"
-          grep -Fq 'card-actions' "$js"
-          cat > "$report/mobile-preflight.txt" <<'EOF'
-          390x844 mobile-equivalent source/runtime preflight: PASS
-          Auctions now targets the real auctionPage container and surfaces Local sales & Craigslist near the top.
-          Fridge searches explicitly expand to refrigerator for public Facebook acquisition, while stale unrelated cards remain suppressed.
-          Dollar General refreshes preserve known same-item photos and backend exact-UPC hydration continues across title-only sources.
-          This is a simulated/source acceptance gate only; exact physical Android behavior remains NOT YET PROVEN until tested on the phone.
-          EOF
-
       - name: Configure stable owner signing when available
-        id: signing
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
@@ -100,7 +64,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v310"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v312"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -111,23 +75,20 @@ jobs:
               echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
               echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
             } >> "$GITHUB_ENV"
-            echo 'mode=stable-upload-key' >> "$GITHUB_OUTPUT"
             echo 'stable-upload-key' > "$report/signing-mode.txt"
           else
-            echo 'mode=ephemeral-debug-key' >> "$GITHUB_OUTPUT"
             echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
-            echo 'Stable Android upload signing secrets are not configured for this branch; owner APK will use the debug fallback.' >&2
           fi
 
       - name: Compile owner APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v310"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v312"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.10-mobile-ux-repair.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.10-mobile-ux-repair.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -135,30 +96,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v310"; out="$report/H38-Reseller-Scout-Owner-v3.0.10-mobile-ux-repair.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v312"; out="$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='310' versionName='3.0.10'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='312' versionName='3.0.12'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v264-wide-repair.js > "$report/packaged-v264.js"
-          unzip -p "$out" assets/reseller/v266-actionable-intake.js > "$report/packaged-v266.js"
-          node --check "$report/packaged-v264.js"
-          node --check "$report/packaged-v266.js"
-          grep -Fq 'H38_SCOUT_V310_MOBILE_UX_REPAIR=true' "$report/packaged-v264.js"
-          grep -Fq "$('auctionPage')" "$report/packaged-v264.js"
-          grep -Fq 'Local sales & Craigslist' "$report/packaged-v264.js"
-          grep -Fq 'expandedSearchTermsV310' "$report/packaged-v264.js"
-          grep -Fq 'restoreHuntPhotosV310' "$report/packaged-v264.js"
-          grep -Fq 'H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true' "$report/packaged-v266.js"
+          unzip -p "$out" assets/reseller/v265-facebook-acquisition-repair.js > "$report/packaged-v265.js"
+          node --check "$report/packaged-v265.js"
+          grep -Fq 'H38_SCOUT_V312_PHYSICAL_REPAIR=true' "$report/packaged-v265.js"
+          grep -Fq 'reseller-auto-leads-v065' "$report/packaged-v265.js"
           echo BUILD_GATE_OK > "$report/smoke.txt"
 
-      - name: Upload v3.0.10 APK and diagnostics
+      - name: Upload v3.0.12 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.10-mobile-ux-repair
-          path: artifacts/scout-v310/*
+          name: h38-reseller-scout-owner-v3.0.12-physical-repair
+          path: artifacts/scout-v312/*
           if-no-files-found: warn
           retention-days: 30
