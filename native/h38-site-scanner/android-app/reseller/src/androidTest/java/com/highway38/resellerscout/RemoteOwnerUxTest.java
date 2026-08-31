@@ -40,8 +40,8 @@ public class RemoteOwnerUxTest {
         assertNotNull("Owner app launch intent must exist", intent);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         target.startActivity(intent);
-        device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
-        waitForText("Reseller Scout", 12_000);
+        assertTrue("Owner package did not become visible", device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000));
+        assertTrue("Reseller Scout shell did not render", waitForLabel("Reseller Scout", 12_000));
     }
 
     @Test
@@ -81,8 +81,8 @@ public class RemoteOwnerUxTest {
     }
 
     private void signInAsOwnerIfNeeded() {
-        if (!hasText("Sign in")) {
-            waitForText("Discover", 15_000);
+        if (!hasLabel("Sign in")) {
+            assertTrue("Authenticated owner shell did not reach Discover", waitForLabel("Discover", 15_000));
             return;
         }
         String email = requiredArg("SCOUT_EMAIL");
@@ -91,67 +91,69 @@ public class RemoteOwnerUxTest {
         assertTrue("Login must expose email and password fields", fields.size() >= 2);
         fields.get(0).setText(email);
         fields.get(1).setText(password);
-        clickText("Sign in");
-        assertTrue("Owner login must reach Discover", waitForText("Discover", 20_000));
+        clickLabel("Sign in");
+        assertTrue("Owner login must reach Discover", waitForLabel("Discover", 20_000));
     }
 
     private void assertBottomNavigation() {
-        assertTrue("Discover nav missing", hasText("Discover"));
-        assertTrue("Hunt nav missing", hasText("Hunt"));
-        assertTrue("Scan nav missing", hasText("Scan"));
-        assertTrue("Auctions nav missing", hasText("Auctions"));
-        assertTrue("Track nav missing", hasText("Track"));
+        assertTrue("Discover nav missing", hasLabel("Discover"));
+        assertTrue("Hunt nav missing", hasLabel("Hunt"));
+        assertTrue("Scan nav missing", hasLabel("Scan"));
+        assertTrue("Auctions nav missing", hasLabel("Auctions"));
+        assertTrue("Track nav missing", hasLabel("Track"));
     }
 
     private void verifyFridgeSearchBoundary() throws Exception {
-        clickText("Discover");
-        assertTrue("Discover page did not render", waitForText("Find anything worth reselling", 10_000));
+        clickLabel("Discover");
+        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
         search.setText("fridge");
-        UiObject2 searchButton = device.findObject(By.text("Search"));
+        UiObject2 searchButton = findLabel("Search");
         assertNotNull("Discover Search button missing", searchButton);
         searchButton.click();
         device.waitForIdle(2_000);
         Thread.sleep(NETWORK);
-        assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasTextContains("Lawn care equipment"));
+        assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasLabelContains("Lawn care equipment"));
         UiObject2 retained = findFirstEditText();
         assertNotNull("Discover search input disappeared", retained);
         assertTrue("Typed fridge query was not retained", "fridge".equalsIgnoreCase(String.valueOf(retained.getText())));
 
-        boolean relevantCard = hasNonInputTextContains("refrigerator") || hasNonInputTextContains("fridge");
-        boolean truthfulEmpty = hasTextContains("No public Marketplace cards were found") || hasTextContains("Local Facebook inventory remains unknown");
+        boolean relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
+        boolean truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown");
         assertTrue("Fridge search produced neither a fridge/refrigerator result nor the truthful public-index empty state", relevantCard || truthfulEmpty);
         Log.i(TAG, "FRIDGE BOUNDARY: explicit query honored; stale unrelated card absent; result or truthful empty state visible.");
     }
 
     private void verifyLocalSalesInAuctions() throws Exception {
-        clickText("Auctions");
-        assertTrue("Auctions page did not render", waitForText("Auctions", 10_000));
-        boolean found = waitForTextContains("Local sales", 8_000) || hasTextContains("Craigslist");
+        clickLabel("Auctions");
+        assertTrue("Auctions page did not render", waitForLabel("Auctions", 10_000));
+        boolean found = waitForLabelContains("Local sales", 8_000) || hasLabelContains("Craigslist");
         for (int i = 0; i < 3 && !found; i++) {
             device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.78), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.32), 18);
             Thread.sleep(700);
-            found = hasTextContains("Local sales") || hasTextContains("Craigslist");
+            found = hasLabelContains("Local sales") || hasLabelContains("Craigslist");
         }
         assertTrue("Local sales & Craigslist section is not reachable from Auctions", found);
-        Log.i(TAG, "AUCTIONS BOUNDARY: Local sales/Craigslist surface is reachable on device.");
+        assertFalse("Known non-sale Craigslist cattle listing resurfaced", hasLabelContains("Red angus bull"));
+        assertFalse("Known non-sale Craigslist trolling-motor listing resurfaced", hasLabelContains("Mercury trolling motor"));
+        Log.i(TAG, "AUCTIONS BOUNDARY: Local sales/Craigslist surface is reachable and known non-sale classifieds are absent.");
     }
 
     private void verifyDollarGeneralHuntBoundary() throws Exception {
-        clickText("Hunt");
-        assertTrue("Hunt page did not render", waitForText("Hunt", 12_000));
+        clickLabel("Hunt");
+        assertTrue("Hunt page did not render", waitForLabel("Hunt", 12_000));
         Thread.sleep(12_000);
-        boolean dgSeen = hasTextContains("Dollar General");
+        boolean dgSeen = hasLabelContains("Dollar General");
         for (int i = 0; i < 6 && !dgSeen; i++) {
             device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.30), 20);
             Thread.sleep(800);
-            dgSeen = hasTextContains("Dollar General");
+            dgSeen = hasLabelContains("Dollar General");
         }
         assertTrue("Dollar General Hunt surface is not reachable", dgSeen);
 
-        boolean knownUpcVisible = hasTextContains("840797136519");
-        boolean knownWrongTitleVisible = hasTextContains("Beech-Nut Veggies Stage 2 Baby Food");
+        boolean knownUpcVisible = hasLabelContains("840797136519");
+        boolean knownWrongTitleVisible = hasLabelContains("Beech-Nut Veggies Stage 2 Baby Food");
         assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
 
         int imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
@@ -160,12 +162,12 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyNavigationSurvivesRoundTrip() {
-        clickText("Scan");
-        assertTrue("Scan nav failed", waitForText("Scan", SHORT));
-        clickText("Track");
-        assertTrue("Track nav failed", waitForText("Track", SHORT));
-        clickText("Discover");
-        assertTrue("Discover nav failed after round trip", waitForText("Find anything worth reselling", SHORT));
+        clickLabel("Scan");
+        assertTrue("Scan nav failed", waitForLabel("Scan", SHORT));
+        clickLabel("Track");
+        assertTrue("Track nav failed", waitForLabel("Track", SHORT));
+        clickLabel("Discover");
+        assertTrue("Discover nav failed after round trip", waitForLabel("Find anything worth reselling", SHORT));
     }
 
     private UiObject2 findFirstEditText() {
@@ -173,8 +175,21 @@ public class RemoteOwnerUxTest {
         return fields.isEmpty() ? null : fields.get(0);
     }
 
-    private boolean hasNonInputTextContains(String text) {
+    private UiObject2 findLabel(String text) {
+        UiObject2 exactText = device.findObject(By.text(text));
+        if (exactText != null) return exactText;
+        UiObject2 containsText = device.findObject(By.textContains(text));
+        if (containsText != null) return containsText;
+        UiObject2 exactDesc = device.findObject(By.desc(text));
+        if (exactDesc != null) return exactDesc;
+        return device.findObject(By.descContains(text));
+    }
+
+    private boolean hasNonInputLabelContains(String text) {
         for (UiObject2 object : device.findObjects(By.textContains(text))) {
+            if (!"android.widget.EditText".equals(object.getClassName())) return true;
+        }
+        for (UiObject2 object : device.findObjects(By.descContains(text))) {
             if (!"android.widget.EditText".equals(object.getClassName())) return true;
         }
         return false;
@@ -186,26 +201,41 @@ public class RemoteOwnerUxTest {
         return value;
     }
 
-    private void clickText(String text) {
-        UiObject2 object = device.wait(Until.findObject(By.text(text)), SHORT);
-        assertNotNull("Could not find tappable text: " + text, object);
-        object.click();
+    private void clickLabel(String text) {
+        UiObject2 object = device.wait(Until.findObject(By.text(text)), 1_000);
+        if (object == null) object = device.wait(Until.findObject(By.textContains(text)), 1_500);
+        if (object == null) object = device.wait(Until.findObject(By.desc(text)), 1_000);
+        if (object == null) object = device.wait(Until.findObject(By.descContains(text)), 1_500);
+        assertNotNull("Could not find tappable label: " + text, object);
+        UiObject2 tappable = object;
+        while (tappable != null && !tappable.isClickable() && tappable.getParent() != null) tappable = tappable.getParent();
+        (tappable != null ? tappable : object).click();
         device.waitForIdle(1_500);
     }
 
-    private boolean waitForText(String text, long timeout) {
-        return device.wait(Until.hasObject(By.text(text)), timeout);
+    private boolean waitForLabel(String text, long timeout) {
+        long end = System.currentTimeMillis() + timeout;
+        do {
+            if (hasLabel(text)) return true;
+            device.waitForIdle(300);
+        } while (System.currentTimeMillis() < end);
+        return false;
     }
 
-    private boolean waitForTextContains(String text, long timeout) {
-        return device.wait(Until.hasObject(By.textContains(text)), timeout);
+    private boolean waitForLabelContains(String text, long timeout) {
+        long end = System.currentTimeMillis() + timeout;
+        do {
+            if (hasLabelContains(text)) return true;
+            device.waitForIdle(300);
+        } while (System.currentTimeMillis() < end);
+        return false;
     }
 
-    private boolean hasText(String text) {
-        return device.hasObject(By.text(text));
+    private boolean hasLabel(String text) {
+        return device.hasObject(By.text(text)) || device.hasObject(By.textContains(text)) || device.hasObject(By.desc(text)) || device.hasObject(By.descContains(text));
     }
 
-    private boolean hasTextContains(String text) {
-        return device.hasObject(By.textContains(text));
+    private boolean hasLabelContains(String text) {
+        return device.hasObject(By.textContains(text)) || device.hasObject(By.descContains(text));
     }
 }
