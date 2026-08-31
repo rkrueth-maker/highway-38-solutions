@@ -14,7 +14,7 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   const nativeImageFailed=new Set();
   const imageCandidateMap=new Map();
   let facebookRequestSeq=0;
-  state.v300=state.v300||{facebookStartedAt:0,facebookStatus:'SESSION_UNKNOWN',facebookTerms:[],huntProviders:[],facebookPublicCandidates:[]};
+  state.v300=state.v300||{facebookStartedAt:0,facebookStatus:'SESSION_UNKNOWN',facebookTerms:[],facebookQueryKey:'',huntProviders:[],facebookPublicCandidates:[]};
   if(!Array.isArray(state.v300.facebookPublicCandidates))state.v300.facebookPublicCandidates=[];
 
   function safeJson(v,f){try{const x=JSON.parse(String(v||''));return x==null?f:x}catch{return f}}
@@ -35,11 +35,12 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   };
 
   function fbTerms(){try{if(typeof facebookTerms==='function')return facebookTerms().slice(0,4)}catch{}try{if(typeof profitTerms==='function')return profitTerms().slice(0,4)}catch{}return['tools','electronics','appliances','lawn mower']}
-  async function startFacebook(force=false){
+  function normalizeFacebookTerms(explicitTerms){const src=Array.isArray(explicitTerms)?explicitTerms:[],out=[];for(const v of src){const t=txt(v);if(t&&!out.some(x=>norm(x)===norm(t)))out.push(t)}return out.slice(0,4)}
+  async function startFacebook(force=false,explicitTerms=null){
     if(!requireLocation())return false;
     if(state.facebookPassPending)return true;
-    const request=++facebookRequestSeq,terms=fbTerms(),started=Date.now(),priorVerified=Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[],priorCaptured=Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[];
-    state.v300.facebookTerms=terms;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
+    const requested=normalizeFacebookTerms(explicitTerms),terms=requested.length?requested:fbTerms(),queryKey=terms.map(x=>norm(x)).filter(Boolean).join('|'),replaceActive=!!requested.length&&queryKey!==txt(state.v300.facebookQueryKey),request=++facebookRequestSeq,started=Date.now(),priorVerified=replaceActive?[]:(Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[]),priorCaptured=replaceActive?[]:(Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[]);
+    state.v300.facebookTerms=terms;state.v300.facebookQueryKey=queryKey;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
     if(state.page==='discover')renderDiscover();
     try{
       await ensureDefaultLocation();
@@ -138,7 +139,7 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   const renderDiscoverBase=renderDiscover;renderDiscover=function(){renderDiscoverBase();decorateDiscover()};
   const renderHuntBase=renderHunt;renderHunt=function(){renderHuntBase();decorateHunt()};
   const renderHuntListBase=renderHuntListOnly;renderHuntListOnly=function(){renderHuntListBase();decorateHunt()};
-  const runDiscoverBase=runDiscover;runDiscover=async function(){if(state.discover.running)return;const publicPass=startFacebook(false);const basePass=runDiscoverBase();await Promise.allSettled([publicPass,basePass]);renderDiscover()};
+  const runDiscoverBase=runDiscover;runDiscover=async function(){if(state.discover.running)return;const typed=txt($('discoverSearch')?.value??state.discover.query);state.discover.query=typed;write(H38_KEYS.discover,typed);const publicPass=startFacebook(false,typed?[typed]:null);const basePass=runDiscoverBase();await Promise.allSettled([publicPass,basePass]);renderDiscover()};
 
   setInterval(()=>{if(state.page!=='discover')return;const started=num(state.v300.facebookStartedAt);if(state.facebookPassPending&&started&&Date.now()-started>=FB_TIMEOUT_MS){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus='ERROR';renderDiscover()}},4000);
   const restore=cachedHunt();if(!state.hunt.rows.length&&restore.length){state.hunt.rows=restore;state.hunt.loaded=true;state.hunt.sourceHealth={status:'STALE_EVIDENCE',actionable:restore.length,usedCachedEvidence:true,adapterVersion:'v301-provider-isolated'}}
