@@ -13,6 +13,7 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   const nativeImagePending=new Map();
   const nativeImageFailed=new Set();
   const imageCandidateMap=new Map();
+  let facebookRequestSeq=0;
   state.v300=state.v300||{facebookStartedAt:0,facebookStatus:'SESSION_UNKNOWN',facebookTerms:[],huntProviders:[],facebookPublicCandidates:[]};
   if(!Array.isArray(state.v300.facebookPublicCandidates))state.v300.facebookPublicCandidates=[];
 
@@ -36,18 +37,23 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   function fbTerms(){try{if(typeof facebookTerms==='function')return facebookTerms().slice(0,4)}catch{}try{if(typeof profitTerms==='function')return profitTerms().slice(0,4)}catch{}return['tools','electronics','appliances','lawn mower']}
   async function startFacebook(force=false){
     if(!requireLocation())return false;
-    if(state.facebookPassPending&&!force)return true;
-    const terms=fbTerms(),started=Date.now();state.v300.facebookTerms=terms;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
+    if(state.facebookPassPending)return true;
+    const request=++facebookRequestSeq,terms=fbTerms(),started=Date.now(),priorVerified=Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[],priorCaptured=Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[];
+    state.v300.facebookTerms=terms;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
     if(state.page==='discover')renderDiscover();
     try{
       await ensureDefaultLocation();
       const p=await fn('reseller-facebook-public-v240',{...locationPayload(),location_label:state.location?.label||'',terms,max_results:120,force:!!force},75000);
-      state.v240=state.v240||{};state.v240.facebook=p;state.v240.facebookRows=Array.isArray(p?.results)?p.results:[];state.v300.facebookPublicCandidates=Array.isArray(p?.candidates)?p.candidates:state.v240.facebookRows.slice();
+      if(request!==facebookRequestSeq)return true;
+      state.v240=state.v240||{};state.v240.facebook=p;
+      const nextVerified=Array.isArray(p?.results)?p.results:[],nextCaptured=Array.isArray(p?.candidates)?p.candidates:nextVerified.slice();
+      state.v240.facebookRows=mergeFacebookRows([...priorVerified,...nextVerified]);
+      state.v300.facebookPublicCandidates=mergeFacebookRows([...priorCaptured,...nextCaptured,...state.v240.facebookRows]);
       state.v300.facebookStatus=state.v300.facebookPublicCandidates.length?(state.v240.facebookRows.length?'COMPLETE_WITH_ROWS':'COMPLETE_LOCATION_UNPROVEN'):(txt(p?.provider_status)==='PUBLIC_INDEX_EMPTY'?'PUBLIC_INDEX_EMPTY':'COMPLETE_EMPTY');
       if(window.H38V230CacheRows&&state.v240.facebookRows.length)void H38V230CacheRows(state.v240.facebookRows);
       return true;
-    }catch(e){state.v300.facebookStatus='ERROR';error('facebookV305',e);return false}
-    finally{state.facebookPassPending=false;state.facebookRanking=false;if(state.page==='discover')renderDiscover()}
+    }catch(e){if(request===facebookRequestSeq){state.v300.facebookStatus=priorCaptured.length?'COMPLETE_LOCATION_UNPROVEN':'ERROR';error('facebookV305',e)}return false}
+    finally{if(request===facebookRequestSeq){state.facebookPassPending=false;state.facebookRanking=false;if(state.page==='discover')renderDiscover()}}
   }
   window.H38V300StartFacebook=startFacebook;
   openFacebookScan=function(){return startFacebook(true)};
