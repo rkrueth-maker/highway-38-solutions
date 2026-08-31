@@ -45,14 +45,39 @@ public class RemoteOwnerUxTest {
     }
 
     @Test
-    public void ownerUxAcceptancePass() throws Exception {
+    public void knownDefect01FacebookFridgeSearch() throws Exception {
         signInAsOwnerIfNeeded();
         assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 01 START: Facebook fridge search");
         verifyFridgeSearchBoundary();
+        Log.i(TAG, "KNOWN DEFECT 01 PASS: Facebook fridge search");
+    }
+
+    @Test
+    public void knownDefect02LocalSalesInAuctions() throws Exception {
+        signInAsOwnerIfNeeded();
+        assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 02 START: Local sales in Auctions");
         verifyLocalSalesInAuctions();
+        Log.i(TAG, "KNOWN DEFECT 02 PASS: Local sales in Auctions");
+    }
+
+    @Test
+    public void knownDefect03DollarGeneralIdentityAndPhotos() throws Exception {
+        signInAsOwnerIfNeeded();
+        assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 03 START: Dollar General identity/photos");
         verifyDollarGeneralHuntBoundary();
+        Log.i(TAG, "KNOWN DEFECT 03 PASS: Dollar General identity/photos");
+    }
+
+    @Test
+    public void knownDefect04NavigationRoundTrip() {
+        signInAsOwnerIfNeeded();
+        assertBottomNavigation();
+        Log.i(TAG, "KNOWN DEFECT 04 START: Navigation round trip");
         verifyNavigationSurvivesRoundTrip();
-        Log.i(TAG, "REAL DEVICE FARM PASS: scripted owner UX sourcing/navigation boundaries completed.");
+        Log.i(TAG, "KNOWN DEFECT 04 PASS: Navigation round trip");
     }
 
     private void signInAsOwnerIfNeeded() {
