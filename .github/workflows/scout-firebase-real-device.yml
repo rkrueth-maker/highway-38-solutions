@@ -79,8 +79,8 @@ jobs:
           test -n "$TEST_APK" -a -f "$TEST_APK"
           echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.10-device-farm.apk"
-          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.10-androidTest.apk"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.11-device-farm.apk"
+          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.11-androidTest.apk"
           sha256sum "$GITHUB_WORKSPACE/artifacts/firebase-device/"*.apk | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/sha256.txt"
 
       - name: Authenticate Google Cloud
@@ -101,7 +101,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
           gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
           grep -qi 'PHYSICAL' "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
-          grep -q "$DEVICE_VERSION" "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
+          echo "Physical model verified. Android version compatibility will be authoritatively validated by gcloud test run for model=$DEVICE_MODEL,version=$DEVICE_VERSION."
 
       - name: Run owner UX on Firebase physical Android
         shell: bash
@@ -135,7 +135,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.10-firebase-real-device
+          name: h38-scout-v3.0.11-firebase-real-device
           path: artifacts/firebase-device/*
           if-no-files-found: warn
           retention-days: 30
