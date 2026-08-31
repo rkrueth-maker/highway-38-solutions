@@ -6,6 +6,11 @@ on:
       - agent/private-reseller-scout
     paths:
       - '.github/workflows/scout-firebase-real-device.yml'
+      - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
+      - 'supabase/functions/reseller-facebook-public-v240/**'
+      - 'supabase/functions/reseller-garage-sales-v308/**'
+      - 'supabase/functions/reseller-auto-leads-v064/**'
   workflow_dispatch:
     inputs:
       model:
