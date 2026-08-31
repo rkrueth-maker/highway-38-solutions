@@ -90,13 +90,18 @@ jobs:
             echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
           fi
 
-      - name: Compile owner release and instrumentation APKs
+      - name: Compile owner installable APK and instrumentation APK
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/scout-v314"
-          gradle --no-daemon :reseller:assembleOwnerRelease :reseller:assembleOwnerDebugAndroidTest | tee "$report/compile.log"
-          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
+            gradle --no-daemon :reseller:assembleOwnerRelease :reseller:assembleOwnerDebugAndroidTest | tee "$report/compile.log"
+            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          else
+            gradle --no-daemon :reseller:assembleOwnerDebug :reseller:assembleOwnerDebugAndroidTest | tee "$report/compile.log"
+            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          fi
           testapk="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"
           test -n "$apk" -a -f "$apk"
           test -n "$testapk" -a -f "$testapk"
