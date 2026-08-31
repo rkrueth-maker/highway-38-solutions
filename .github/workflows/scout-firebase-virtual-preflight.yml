@@ -1,0 +1,181 @@
+name: H38 Scout Firebase Virtual Preflight
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - '.github/workflows/scout-firebase-virtual-preflight.yml'
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
+      - 'supabase/functions/reseller-facebook-public-v240/**'
+      - 'supabase/functions/reseller-garage-sales-v308/**'
+      - 'supabase/functions/reseller-auto-leads-v064/**'
+      - 'supabase/functions/reseller-image-delivery-v201/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: scout-firebase-virtual-preflight
+  cancel-in-progress: true
+
+jobs:
+  owner-virtual-preflight:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_VERSION: '34'
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce private Scout authority and v3.0.14 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          missing=0
+          for name in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_JSON SCOUT_EMAIL SCOUT_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
+          done
+          test "$missing" -eq 0
+          grep -Fq "versionName '3.0.14'" reseller/build.gradle
+          grep -Fq 'versionCode 314' reseller/build.gradle
+          node --check reseller/src/main/assets/reseller/v308-garage-polish.js
+          node --check reseller/src/main/assets/reseller/v314-source-quality-repair.js
+          grep -Fq 'v308-garage-polish.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'v314-source-quality-repair.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'knownDefect00ProfitFirstFacebookSourcing' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+          grep -Fq 'knownDefect05GarageSaleDiscovery' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+          grep -Fq 'Dollar General Inventory Checker' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build exact owner debug APK and instrumentation APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :reseller:assembleOwnerDebug :reseller:assembleOwnerDebugAndroidTest
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          TEST_APK="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"
+          test -n "$APP_APK" -a -f "$APP_APK"
+          test -n "$TEST_APK" -a -f "$TEST_APK"
+          echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
+          echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
+          report="$GITHUB_WORKSPACE/artifacts/firebase-virtual"
+          mkdir -p "$report"
+          cp "$APP_APK" "$report/H38-Reseller-Scout-Owner-v3.0.14-virtual-preflight-debug.apk"
+          cp "$TEST_APK" "$report/H38-Reseller-Scout-Owner-v3.0.14-androidTest.apk"
+          sha256sum "$report"/*.apk | tee "$report/sha256.txt"
+          unzip -p "$APP_APK" assets/reseller/v308-garage-polish.js | grep -Fq 'Garage & estate sales'
+          unzip -p "$APP_APK" assets/reseller/v314-source-quality-repair.js | grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='314' versionName='3.0.14'" "$report/badging.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Select available Firebase virtual Android 34 phone
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-virtual"
+          gcloud firebase test android models list --filter=virtual --format=json > "$report/virtual-models.json"
+          VIRTUAL_MODEL="$(jq -r --arg v "$DEVICE_VERSION" '[.[] | select((.supportedVersionIds // []) | index($v)) | select((.formFactor // "") == "PHONE") | select(((.tags // []) | index("deprecated")) == null)][0].id // empty' "$report/virtual-models.json")"
+          if [[ -z "$VIRTUAL_MODEL" ]]; then
+            VIRTUAL_MODEL="$(jq -r --arg v "$DEVICE_VERSION" '[.[] | select((.supportedVersionIds // []) | index($v)) | select(((.tags // []) | index("deprecated")) == null)][0].id // empty' "$report/virtual-models.json")"
+          fi
+          test -n "$VIRTUAL_MODEL"
+          echo "VIRTUAL_MODEL=$VIRTUAL_MODEL" >> "$GITHUB_ENV"
+          gcloud firebase test android models describe "$VIRTUAL_MODEL" --format=yaml | tee "$report/virtual-device-model.yml"
+          if grep -qi 'PHYSICAL' "$report/virtual-device-model.yml"; then
+            echo "Selected model unexpectedly physical: $VIRTUAL_MODEL" >&2
+            exit 1
+          fi
+          echo "Selected Firebase virtual preflight model=$VIRTUAL_MODEL version=$DEVICE_VERSION"
+
+      - name: Run exact six-test v3.0.14 defect matrix on Firebase virtual Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-virtual"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          TEST="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$TEST_APK"
+          set +e
+          gcloud firebase test android run \
+            --project "$FIREBASE_PROJECT_ID" \
+            --type instrumentation \
+            --app "$APP" \
+            --test "$TEST" \
+            --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest' \
+            --device "model=$VIRTUAL_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
+            --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
+            --timeout 25m \
+            --results-history-name 'H38 Scout Virtual Defect Preflight' \
+            2>&1 | tee "$report/firebase-virtual.log"
+          status=${PIPESTATUS[0]}
+          set -e
+
+          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^]]+' "$report/firebase-virtual.log" | tail -n1 || true)"
+          if [[ -n "$raw_url" ]]; then
+            raw_path="${raw_url#https://console.developers.google.com/storage/browser/}"
+            bucket="${raw_path%%/*}"
+            prefix="${raw_path#*/}"
+            prefix="${prefix%/}"
+            mkdir -p "$report/firebase-raw-results"
+            gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
+            grep -RniE 'FAILURES!!!|AssertionError|junit.framework|java.lang.AssertionError|KNOWN DEFECT|H38RemoteUx|testcase|failure|DG BOUNDARY|FACEBOOK PROFIT BOUNDARY|GARAGE BOUNDARY' "$report/firebase-raw-results" > "$report/failure-summary.txt" || true
+          fi
+
+          if [[ "$status" -eq 0 ]]; then
+            echo 'FIREBASE VIRTUAL PREFLIGHT PASS — SUPPLEMENTAL ONLY; PHYSICAL STILL REQUIRED' | tee "$report/status.txt"
+          else
+            if grep -Fq 'TEST_QUOTA_EXCEEDED' "$report/firebase-virtual.log"; then
+              echo 'FIREBASE VIRTUAL PREFLIGHT FAIL — INFRASTRUCTURE QUOTA; NO DEVICE EXECUTION' | tee "$report/status.txt"
+            else
+              echo "FIREBASE VIRTUAL PREFLIGHT FAIL — TEST OR DEVICE FAILURE (gcloud exit $status)" | tee "$report/status.txt"
+            fi
+            exit "$status"
+          fi
+
+      - name: Upload Firebase virtual diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.14-firebase-virtual-preflight
+          path: artifacts/firebase-virtual/*
+          if-no-files-found: warn
+          retention-days: 30
