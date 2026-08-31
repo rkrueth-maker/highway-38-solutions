@@ -13,12 +13,14 @@ def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
+    testBuildType 'owner'
     defaultConfig {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
         versionCode 310
         versionName '3.0.10'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'H38_BUILD_SHA', '"' + h38BuildSha + '"'
         buildConfigField 'String', 'H38_BUILD_RUN', '"' + h38BuildRun + '"'
     }
@@ -65,4 +67,8 @@ dependencies {
     implementation 'androidx.camera:camera-view:1.4.2'
     implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }

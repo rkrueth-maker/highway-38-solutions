@@ -1,0 +1,136 @@
+name: H38 Scout Firebase Real Device Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Firebase physical Android model ID'
+        required: true
+        default: 'x1q'
+      version:
+        description: 'Android OS version ID supported by that model'
+        required: true
+        default: '29'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: scout-firebase-real-device
+  cancel-in-progress: false
+
+jobs:
+  owner-real-device:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_MODEL: ${{ inputs.model }}
+      DEVICE_VERSION: ${{ inputs.version }}
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce private Scout authority and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          missing=0
+          for name in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_JSON SCOUT_EMAIL SCOUT_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
+          done
+          test "$missing" -eq 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build exact owner APK and owner instrumentation APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :reseller:assembleOwner :reseller:assembleOwnerAndroidTest
+          test -f reseller/build/outputs/apk/owner/reseller-owner.apk
+          TEST_APK="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"
+          test -n "$TEST_APK" -a -f "$TEST_APK"
+          echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.10-device-farm.apk"
+          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.10-androidTest.apk"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/firebase-device/"*.apk | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/sha256.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Verify selected target is physical
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
+          grep -qi 'PHYSICAL' "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
+          grep -q "$DEVICE_VERSION" "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
+
+      - name: Run owner UX on Firebase physical Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-device"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/reseller/build/outputs/apk/owner/reseller-owner.apk"
+          TEST="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$TEST_APK"
+          set +e
+          gcloud firebase test android run \
+            --project "$FIREBASE_PROJECT_ID" \
+            --type instrumentation \
+            --app "$APP" \
+            --test "$TEST" \
+            --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest#ownerUxAcceptancePass' \
+            --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
+            --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
+            --timeout 20m \
+            --results-history-name 'H38 Scout Real Device Acceptance' \
+            2>&1 | tee "$report/firebase-test-lab.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -eq 0 ]]; then
+            echo 'REAL DEVICE FARM PASS' | tee "$report/status.txt"
+          else
+            echo "REAL DEVICE FARM FAIL (gcloud exit $status)" | tee "$report/status.txt"
+            exit "$status"
+          fi
+
+      - name: Upload device-farm build and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.10-firebase-real-device
+          path: artifacts/firebase-device/*
+          if-no-files-found: warn
+          retention-days: 30
