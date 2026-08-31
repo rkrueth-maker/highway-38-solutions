@@ -1,10 +1,12 @@
-name: Build H38 Scout v3.0.12 Physical Repair
+name: Build H38 Scout v3.0.13 Source Quality Polish
 
 on:
   push:
     branches: ['agent/private-reseller-scout']
     paths:
       - 'native/h38-site-scanner/android-app/reseller/**'
+      - 'supabase/functions/reseller-auto-leads-v065/**'
+      - 'supabase/functions/reseller-dg-remodel-radar-v240/**'
       - '.github/workflows/scout-v308-garage-polish.yml'
   workflow_dispatch:
 
@@ -12,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v312-physical-repair
+  group: scout-v313-source-quality
   cancel-in-progress: true
 
 jobs:
@@ -33,26 +35,31 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.12 source contracts
+      - name: Verify v3.0.13 source and regression contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v312"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v313"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check reseller/src/main/assets/reseller/v240-data.js
           node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
+          node --check "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.mjs"
           node reseller/v300-single-owner-runtime.test.mjs | tee "$report/runtime-contract.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
-          grep -Fq "versionName '3.0.12'" reseller/build.gradle
-          grep -Fq 'versionCode 312' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V312_PHYSICAL_REPAIR=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg-remodel-sanitize.txt"
+          grep -Fq "versionName '3.0.13'" reseller/build.gradle
+          grep -Fq 'versionCode 313' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V313_SOURCE_POLISH=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'genericDgTitle' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'query-tagged but unrelated public card' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           grep -Fq 'reseller-auto-leads-v065' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'window.runDiscover=repairedRunDiscover' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'window.loadHunt=repairedLoadHunt' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
+          grep -Fq 'genericTitle' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v065/index.ts"
+          grep -Fq 'Generic navigation labels such as Permalink are never treated as product names' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v065/index.ts"
+          grep -Fq 'sanitized indicator fixtures' "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs"
           echo BUILD_GATE_OK > "$report/contracts.txt"
 
       - name: Configure stable owner signing when available
@@ -64,7 +71,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v312"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v313"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -84,11 +91,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v312"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v313"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -96,24 +103,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v312"; out="$report/H38-Reseller-Scout-Owner-v3.0.12-physical-repair.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v313"; out="$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='312' versionName='3.0.12'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='313' versionName='3.0.13'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" assets/reseller/v265-facebook-acquisition-repair.js > "$report/packaged-v265.js"
           node --check "$report/packaged-v265.js"
-          grep -Fq 'H38_SCOUT_V312_PHYSICAL_REPAIR=true' "$report/packaged-v265.js"
+          grep -Fq 'H38_SCOUT_V313_SOURCE_POLISH=true' "$report/packaged-v265.js"
+          grep -Fq 'genericDgTitle' "$report/packaged-v265.js"
+          grep -Fq 'query-tagged but unrelated public card' "$report/packaged-v265.js"
           grep -Fq 'reseller-auto-leads-v065' "$report/packaged-v265.js"
           echo BUILD_GATE_OK > "$report/smoke.txt"
 
-      - name: Upload v3.0.12 APK and diagnostics
+      - name: Upload v3.0.13 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.12-physical-repair
-          path: artifacts/scout-v312/*
+          name: h38-reseller-scout-owner-v3.0.13-source-quality
+          path: artifacts/scout-v313/*
           if-no-files-found: warn
           retention-days: 30
