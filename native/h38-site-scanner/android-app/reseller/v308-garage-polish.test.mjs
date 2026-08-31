@@ -29,7 +29,7 @@ assert.match(app,/H38V300StartFacebook\(true,\[typed\]\)/);
 assert.match(app,/window\['render'\+'Auctions'\]/);
 assert.match(app,/window\['load'\+'Auctions'\]/);
 assert.match(dgcore,/description_conflict:true/);
-assert.match(dgcore,/exact-UPC source title disagreed with the aggregated description/);
+assert.match(dgcore,/Exact-UPC source title disagreed with the aggregated description/);
 
 assert.match(backend,/\/search\/gms/);
 assert.match(backend,/estatesales\.net/i);
