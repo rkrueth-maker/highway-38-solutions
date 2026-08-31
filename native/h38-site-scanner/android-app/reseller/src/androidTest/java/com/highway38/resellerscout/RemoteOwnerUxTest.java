@@ -58,7 +58,7 @@ public class RemoteOwnerUxTest {
             packageVisible = device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
         }
         assertTrue("Owner package did not become visible after one cold-start retry", packageVisible);
-        assertTrue("Reseller Scout shell did not render", waitForLabel("Reseller Scout", 12_000));
+        assertTrue("Owner login or Discover shell did not render", waitForOwnerReady(12_000));
     }
 
     @Test
@@ -345,6 +345,16 @@ public class RemoteOwnerUxTest {
         String value = args.getString(key, "").trim();
         assertFalse(key + " instrumentation argument is required for an as-owner run", value.isEmpty());
         return value;
+    }
+
+    private boolean waitForOwnerReady(long timeout) {
+        long end = System.currentTimeMillis() + timeout;
+        do {
+            if (hasLabel("Find anything worth reselling")) return true;
+            if (hasLabel("Sign in") && device.findObjects(By.clazz("android.widget.EditText")).size() >= 2) return true;
+            device.waitForIdle(300);
+        } while (System.currentTimeMillis() < end);
+        return false;
     }
 
     private boolean waitForLabel(String text, long timeout) {
