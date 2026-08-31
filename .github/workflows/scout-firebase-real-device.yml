@@ -103,7 +103,7 @@ jobs:
           grep -qi 'PHYSICAL' "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
           echo "Physical model verified. Android version compatibility will be authoritatively validated by gcloud test run for model=$DEVICE_MODEL,version=$DEVICE_VERSION."
 
-      - name: Run owner UX on Firebase physical Android
+      - name: Run known-defect UX matrix on Firebase physical Android
         shell: bash
         run: |
           set -euo pipefail
@@ -116,7 +116,7 @@ jobs:
             --type instrumentation \
             --app "$APP" \
             --test "$TEST" \
-            --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest#ownerUxAcceptancePass' \
+            --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest' \
             --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
             --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
             --timeout 20m \
