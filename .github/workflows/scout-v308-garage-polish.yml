@@ -1,4 +1,4 @@
-name: Build H38 Scout v3.0.13 Source Quality Polish
+name: Build H38 Scout v3.0.14 Source Quality Repair
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - 'native/h38-site-scanner/android-app/reseller/**'
       - 'supabase/functions/reseller-auto-leads-v065/**'
       - 'supabase/functions/reseller-dg-remodel-radar-v240/**'
+      - 'supabase/functions/reseller-image-delivery-v201/**'
+      - 'supabase/functions/reseller-garage-sales-v308/**'
       - '.github/workflows/scout-v308-garage-polish.yml'
   workflow_dispatch:
 
@@ -14,13 +16,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v313-source-quality
+  group: scout-v314-source-quality
   cancel-in-progress: true
 
 jobs:
   validate-build-package:
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 18
     defaults:
       run:
         working-directory: native/h38-site-scanner/android-app
@@ -35,31 +37,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.13 source and regression contracts
+      - name: Verify v3.0.14 source and regression contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v313"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v314"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check reseller/src/main/assets/reseller/v240-data.js
           node --check reseller/src/main/assets/reseller/v264-wide-repair.js
           node --check reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
+          node --check reseller/src/main/assets/reseller/v308-garage-polish.js
+          node --check reseller/src/main/assets/reseller/v314-source-quality-repair.js
           node --check "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.mjs"
           node reseller/v300-single-owner-runtime.test.mjs | tee "$report/runtime-contract.txt"
           node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
           node reseller/profit-engine.test.mjs | tee "$report/profit-engine.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs" | tee "$report/dg-remodel-sanitize.txt"
-          grep -Fq "versionName '3.0.13'" reseller/build.gradle
-          grep -Fq 'versionCode 313' reseller/build.gradle
-          grep -Fq 'H38_SCOUT_V313_SOURCE_POLISH=true' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'genericDgTitle' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'query-tagged but unrelated public card' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'reseller-auto-leads-v065' reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js
-          grep -Fq 'genericTitle' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v065/index.ts"
-          grep -Fq 'Generic navigation labels such as Permalink are never treated as product names' "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v065/index.ts"
-          grep -Fq 'sanitized indicator fixtures' "$GITHUB_WORKSPACE/supabase/functions/reseller-dg-remodel-radar-v240/core.test.mjs"
+          grep -Fq "versionName '3.0.14'" reseller/build.gradle
+          grep -Fq 'versionCode 314' reseller/build.gradle
+          grep -Fq 'v308-garage-polish.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'v314-source-quality-repair.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true' reseller/src/main/assets/reseller/v314-source-quality-repair.js
+          grep -Fq 'Dollar General Inventory Checker' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+          grep -Fq 'Hunt profitable Facebook deals' reseller/src/main/assets/reseller/v314-source-quality-repair.js
+          grep -Fq 'Garage & estate sales' reseller/src/main/assets/reseller/v308-garage-polish.js
           echo BUILD_GATE_OK > "$report/contracts.txt"
 
       - name: Configure stable owner signing when available
@@ -71,7 +74,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v313"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v314"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -87,15 +90,17 @@ jobs:
             echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
           fi
 
-      - name: Compile owner APK
+      - name: Compile owner and instrumentation APKs
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v313"
-          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v314"
+          gradle --no-daemon :reseller:assembleOwner :reseller:assembleOwnerAndroidTest | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.sha256"
+          testapk="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"; test -n "$testapk" -a -f "$testapk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.14-source-quality.apk"; cp "$apk" "$out"
+          cp "$testapk" "$report/H38-Reseller-Scout-Owner-v3.0.14-androidTest.apk"
+          sha256sum "$report"/*.apk > "$report/sha256.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -103,26 +108,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v313"; out="$report/H38-Reseller-Scout-Owner-v3.0.13-source-quality.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v314"; out="$report/H38-Reseller-Scout-Owner-v3.0.14-source-quality.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='313' versionName='3.0.13'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='314' versionName='3.0.14'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" assets/reseller/v265-facebook-acquisition-repair.js > "$report/packaged-v265.js"
-          node --check "$report/packaged-v265.js"
-          grep -Fq 'H38_SCOUT_V313_SOURCE_POLISH=true' "$report/packaged-v265.js"
-          grep -Fq 'genericDgTitle' "$report/packaged-v265.js"
-          grep -Fq 'query-tagged but unrelated public card' "$report/packaged-v265.js"
-          grep -Fq 'reseller-auto-leads-v065' "$report/packaged-v265.js"
+          unzip -p "$out" assets/reseller/v308-garage-polish.js > "$report/packaged-v308.js"
+          unzip -p "$out" assets/reseller/v314-source-quality-repair.js > "$report/packaged-v314.js"
+          node --check "$report/packaged-v308.js"
+          node --check "$report/packaged-v314.js"
+          grep -Fq 'Garage & estate sales' "$report/packaged-v308.js"
+          grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true' "$report/packaged-v314.js"
+          grep -Fq 'Dollar General Inventory Checker' "$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java"
+          grep -Fq 'Hunt profitable Facebook deals' "$report/packaged-v314.js"
           echo BUILD_GATE_OK > "$report/smoke.txt"
 
-      - name: Upload v3.0.13 APK and diagnostics
+      - name: Upload v3.0.14 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.13-source-quality
-          path: artifacts/scout-v313/*
+          name: h38-reseller-scout-owner-v3.0.14-source-quality
+          path: artifacts/scout-v314/*
           if-no-files-found: warn
           retention-days: 30
