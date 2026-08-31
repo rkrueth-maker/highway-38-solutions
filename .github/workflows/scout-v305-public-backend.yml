@@ -1,4 +1,4 @@
-name: Build H38 Scout v3.0.6 Phone Failure Repair
+name: Build H38 Scout v3.0.7 Typed Facebook Search Repair
 
 on:
   push:
@@ -38,11 +38,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify v3.0.6 phone failure repair contracts
+      - name: Verify v3.0.7 typed Facebook search contracts
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v306"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v307"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           node --check reseller/src/main/assets/reseller/v240-data.js
           node --check reseller/src/main/assets/reseller/v266-actionable-intake.js
@@ -52,8 +52,8 @@ jobs:
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/core.test.mjs" | tee "$report/dg-images.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs" | tee "$report/dg-source-adapters.txt"
           node "$GITHUB_WORKSPACE/supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.test.mjs" | tee "$report/dg-source-orchestrator.txt"
-          grep -Fq "versionName '3.0.6'" reseller/build.gradle
-          grep -Fq 'versionCode 306' reseller/build.gradle
+          grep -Fq "versionName '3.0.7'" reseller/build.gradle
+          grep -Fq 'versionCode 307' reseller/build.gradle
           grep -Fq 'android.intent.action.SEND' reseller/src/main/AndroidManifest.xml
           grep -Fq 'FacebookMarketplaceSourceInbox.captureSharedText' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'FacebookMarketplaceSourceInbox.mergedRowsJson' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
@@ -63,7 +63,12 @@ jobs:
           grep -Fq 'freshness_unproven' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceSourceInbox.java
           ! grep -Eq 'c_user|CookieManager|checkpoint' reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceSourceInbox.java
           grep -Fq "fn('reseller-facebook-public-v240'" reseller/src/main/assets/reseller/v266-actionable-intake.js
-          grep -Fq 'facebookRequestSeq' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'normalizeFacebookTerms(explicitTerms)' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'facebookQueryKey' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'replaceActive=!!requested.length' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'startFacebook(false,typed?[typed]:null)' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'state.v240.facebookRows=[];state.v300.facebookPublicCandidates=[]' reseller/src/main/assets/reseller/v266-actionable-intake.js
+          grep -Fq 'Searching public Facebook Marketplace${termText}' reseller/src/main/assets/reseller/v266-actionable-intake.js
           grep -Fq 'H38_SCOUT_V306_SINGLE_FACEBOOK_OWNER=true' reseller/src/main/assets/reseller/v240-data.js
           ! grep -Fq 'publicPromise=loadFacebookPublicV240' reseller/src/main/assets/reseller/v240-data.js
           ! grep -Eqi 'Run signed-in Facebook pass|signed-in device pass|cookies are now explicitly persisted' reseller/src/main/assets/reseller/v240-data.js
@@ -76,20 +81,20 @@ jobs:
           grep -Fq 'PUBLIC_EVIDENCE' reseller/src/main/assets/reseller/v240-data.js
           echo BUILD_GATE_OK > "$report/contracts.txt"
 
-      - name: Probe secondary public Facebook indexes
+      - name: Probe exact Fridge public Facebook indexes
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v306"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v307"; mkdir -p "$report"
           q=$(python - <<'PY'
           import urllib.parse
-          print(urllib.parse.quote('"facebook.com/marketplace/item/" "Grand Rapids, MN" tools'))
+          print(urllib.parse.quote('"facebook.com/marketplace/item/" "Grand Rapids, MN" fridge'))
           PY
           )
           : > "$report/facebook-public-ddg.html"
           : > "$report/facebook-public-bing.xml"
-          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.6' "https://html.duckduckgo.com/html/?q=$q" -o "$report/facebook-public-ddg.html" || true
-          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.6' "https://www.bing.com/search?q=$q&format=rss&count=30" -o "$report/facebook-public-bing.xml" || true
+          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.7' "https://html.duckduckgo.com/html/?q=$q" -o "$report/facebook-public-ddg.html" || true
+          curl -fsSL --max-time 25 -A 'Mozilla/5.0 H38ResellerScout/3.0.7' "https://www.bing.com/search?q=$q&format=rss&count=30" -o "$report/facebook-public-bing.xml" || true
           node --input-type=module - "$report/facebook-public-ddg.html" "$report/facebook-public-bing.xml" "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/public-index.mjs" <<'JS' | tee "$report/facebook-live-index.txt"
           import fs from 'node:fs';
           import {pathToFileURL} from 'node:url';
@@ -98,20 +103,49 @@ jobs:
           const mod=await import(pathToFileURL(process.argv[4]).href);
           const rows=[...mod.parseSearchHtml(ddg,30),...mod.parseBingRss(bing,30)];
           const unique=[...new Map(rows.map(r=>[r.id,r])).values()];
-          if(unique.some(r=>!/^https:\/\/www\.facebook\.com\/marketplace\/item\/\d+\/$/.test(r.url)))throw new Error('Non-Marketplace URL escaped parser probe');
-          console.log('SECONDARY_INDEX_DIAGNOSTIC exact Grand Rapids candidates',unique.length,unique.slice(0,5).map(r=>r.id).join(','));
-          console.log('This probe is diagnostic only; zero is not treated as zero local Marketplace inventory.');
+          if(unique.some(r=>!/^https:\/\/www\.facebook\.com\/marketplace\/item\/\d+\/$/.test(r.url)))throw new Error('Non-Marketplace URL escaped Fridge parser probe');
+          console.log('FRIDGE_INDEX_DIAGNOSTIC exact Grand Rapids candidates',unique.length,unique.slice(0,5).map(r=>r.id).join(','));
+          console.log('This probe validates the exact typed query path; zero still means public index evidence is unavailable, not zero local inventory.');
           JS
+
+      - name: Configure stable owner signing when available
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v307"; mkdir -p "$report"
+          if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+            chmod 600 "$KEYSTORE_PATH"
+            {
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH"
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+              echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo 'mode=stable-upload-key' >> "$GITHUB_OUTPUT"
+            echo 'stable-upload-key' > "$report/signing-mode.txt"
+          else
+            echo 'mode=ephemeral-debug-key' >> "$GITHUB_OUTPUT"
+            echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
+            echo 'Stable Android upload signing secrets are not configured for this branch; owner APK will use the debug fallback.' >&2
+          fi
 
       - name: Compile owner APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v306"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v307"; mkdir -p "$report"
           gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
           apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.6.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.6.sha256"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.7.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v3.0.7.sha256"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
 
@@ -119,9 +153,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v306"; out="$report/H38-Reseller-Scout-Owner-v3.0.6.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v307"; out="$report/H38-Reseller-Scout-Owner-v3.0.7.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='306' versionName='3.0.6'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='307' versionName='3.0.7'" "$report/badging.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
@@ -132,7 +166,12 @@ jobs:
           grep -Fq 'PUBLIC_EVIDENCE' "$report/packaged-v240.js"
           ! grep -Fq 'publicPromise=loadFacebookPublicV240' "$report/packaged-v240.js"
           grep -Fq 'H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true' "$report/packaged-v266.js"
-          grep -Fq 'facebookRequestSeq' "$report/packaged-v266.js"
+          grep -Fq 'normalizeFacebookTerms(explicitTerms)' "$report/packaged-v266.js"
+          grep -Fq 'facebookQueryKey' "$report/packaged-v266.js"
+          grep -Fq 'replaceActive=!!requested.length' "$report/packaged-v266.js"
+          grep -Fq 'startFacebook(false,typed?[typed]:null)' "$report/packaged-v266.js"
+          grep -Fq 'state.v240.facebookRows=[];state.v300.facebookPublicCandidates=[]' "$report/packaged-v266.js"
+          grep -Fq 'Searching public Facebook Marketplace${termText}' "$report/packaged-v266.js"
           grep -Fq "fn('reseller-facebook-public-v240'" "$report/packaged-v266.js"
           ! grep -Fq 'n.openFacebookMarketplace(' "$report/packaged-v266.js"
           dexdir="$report/dex"; rm -rf "$dexdir"; mkdir -p "$dexdir"
@@ -146,11 +185,11 @@ jobs:
           grep -Fq 'android.intent.action.SEND' "$report/manifest-tree.txt"
           echo BUILD_GATE_OK > "$report/smoke.txt"
 
-      - name: Upload v3.0.6 APK and diagnostics
+      - name: Upload v3.0.7 APK and diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.6-phone-failure-repair
-          path: artifacts/scout-v306/*
+          name: h38-reseller-scout-owner-v3.0.7-fridge-query-repair
+          path: artifacts/scout-v307/*
           if-no-files-found: warn
           retention-days: 30
