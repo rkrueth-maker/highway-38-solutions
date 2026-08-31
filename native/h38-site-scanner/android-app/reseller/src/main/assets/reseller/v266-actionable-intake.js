@@ -39,8 +39,9 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   function currentFacebookSearchTerms(){const typed=txt($('discoverSearch')?.value??state.discover.query);return typed?[typed]:null}
   async function startFacebook(force=false,explicitTerms=null){
     if(!requireLocation())return false;
-    if(state.facebookPassPending)return true;
-    const requested=normalizeFacebookTerms(explicitTerms),terms=requested.length?requested:fbTerms(),queryKey=terms.map(x=>norm(x)).filter(Boolean).join('|'),replaceActive=!!requested.length&&queryKey!==txt(state.v300.facebookQueryKey),request=++facebookRequestSeq,started=Date.now(),priorVerified=replaceActive?[]:(Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[]),priorCaptured=replaceActive?[]:(Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[]);
+    const requested=normalizeFacebookTerms(explicitTerms),terms=requested.length?requested:fbTerms(),queryKey=terms.map(x=>norm(x)).filter(Boolean).join('|'),currentKey=txt(state.v300.facebookQueryKey);
+    if(state.facebookPassPending){if(!(requested.length&&queryKey&&queryKey!==currentKey))return true;state.facebookPassPending=false;state.facebookRanking=false}
+    const replaceActive=!!requested.length&&queryKey!==currentKey,request=++facebookRequestSeq,started=Date.now(),priorVerified=replaceActive?[]:(Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[]),priorCaptured=replaceActive?[]:(Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[]);
     state.v300.facebookTerms=terms;state.v300.facebookQueryKey=queryKey;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
     if(replaceActive){state.v240=state.v240||{};state.v240.facebookRows=[];state.v300.facebookPublicCandidates=[]}
     if(state.page==='discover')renderDiscover();
