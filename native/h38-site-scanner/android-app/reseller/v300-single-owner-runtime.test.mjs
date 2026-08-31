@@ -83,8 +83,8 @@ assert.match(sourceInbox,/location_status", "LOCATION_UNPROVEN"/);
 assert.match(sourceInbox,/freshness_unproven", true/);
 assert.doesNotMatch(sourceInbox,/c_user|\bxs\b|checkpoint|CookieManager/);
 
-assert.match(gradle,/versionCode 309/);
-assert.match(gradle,/versionName '3\.0\.9'/);
+assert.match(gradle,/versionCode 310/);
+assert.match(gradle,/versionName '3\.0\.10'/);
 assert.match(rules,/Single-owner runtime rule/);
 assert.match(rules,/Physical Android phone behavior remains final acceptance/);
-console.log('PASS v3.0.9 typed Discover query supersedes stale Facebook pass + source isolation contracts');
+console.log('PASS v3.0.10 typed Discover query supersedes stale Facebook pass + source isolation contracts');
