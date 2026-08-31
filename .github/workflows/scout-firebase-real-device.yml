@@ -86,21 +86,25 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build exact owner APK and owner instrumentation APK
+      - name: Build exact owner debug APK and owner instrumentation APK
         shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon :reseller:assembleOwner :reseller:assembleOwnerAndroidTest
-          test -f reseller/build/outputs/apk/owner/reseller-owner.apk
+          gradle --no-daemon :reseller:assembleOwnerDebug :reseller:assembleOwnerDebugAndroidTest
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
           TEST_APK="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"
+          test -n "$APP_APK" -a -f "$APP_APK"
           test -n "$TEST_APK" -a -f "$TEST_APK"
+          echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
           echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.14-device-farm.apk"
+          cp "$APP_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.14-device-farm-debug.apk"
           cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.14-androidTest.apk"
           sha256sum "$GITHUB_WORKSPACE/artifacts/firebase-device/"*.apk | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/sha256.txt"
-          unzip -p reseller/build/outputs/apk/owner/reseller-owner.apk assets/reseller/v308-garage-polish.js | grep -Fq 'Garage & estate sales'
-          unzip -p reseller/build/outputs/apk/owner/reseller-owner.apk assets/reseller/v314-source-quality-repair.js | grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true'
+          unzip -p "$APP_APK" assets/reseller/v308-garage-polish.js | grep -Fq 'Garage & estate sales'
+          unzip -p "$APP_APK" assets/reseller/v314-source-quality-repair.js | grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='314' versionName='3.0.14'" "$GITHUB_WORKSPACE/artifacts/firebase-device/badging.txt"
 
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
@@ -127,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/firebase-device"
-          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/reseller/build/outputs/apk/owner/reseller-owner.apk"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
           TEST="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$TEST_APK"
           set +e
           gcloud firebase test android run \
