@@ -6,11 +6,14 @@ on:
       - agent/private-reseller-scout
     paths:
       - '.github/workflows/scout-firebase-real-device.yml'
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
       - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
       - 'supabase/functions/reseller-facebook-public-v240/**'
       - 'supabase/functions/reseller-garage-sales-v308/**'
       - 'supabase/functions/reseller-auto-leads-v064/**'
+      - 'supabase/functions/reseller-image-delivery-v201/**'
   workflow_dispatch:
     inputs:
       model:
@@ -51,7 +54,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce private Scout authority and credentials
+      - name: Enforce private Scout authority and v3.0.14 contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -62,6 +65,15 @@ jobs:
             if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
           done
           test "$missing" -eq 0
+          grep -Fq "versionName '3.0.14'" reseller/build.gradle
+          grep -Fq 'versionCode 314' reseller/build.gradle
+          node --check reseller/src/main/assets/reseller/v308-garage-polish.js
+          node --check reseller/src/main/assets/reseller/v314-source-quality-repair.js
+          grep -Fq 'v308-garage-polish.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'v314-source-quality-repair.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'knownDefect00ProfitFirstFacebookSourcing' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+          grep -Fq 'knownDefect05GarageSaleDiscovery' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+          grep -Fq 'Dollar General Inventory Checker' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
 
       - uses: actions/setup-java@v4
         with:
@@ -84,9 +96,11 @@ jobs:
           test -n "$TEST_APK" -a -f "$TEST_APK"
           echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
-          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.11-device-farm.apk"
-          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.11-androidTest.apk"
+          cp reseller/build/outputs/apk/owner/reseller-owner.apk "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.14-device-farm.apk"
+          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.14-androidTest.apk"
           sha256sum "$GITHUB_WORKSPACE/artifacts/firebase-device/"*.apk | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/sha256.txt"
+          unzip -p reseller/build/outputs/apk/owner/reseller-owner.apk assets/reseller/v308-garage-polish.js | grep -Fq 'Garage & estate sales'
+          unzip -p reseller/build/outputs/apk/owner/reseller-owner.apk assets/reseller/v314-source-quality-repair.js | grep -Fq 'H38_SCOUT_V314_SOURCE_QUALITY=true'
 
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
@@ -108,7 +122,7 @@ jobs:
           grep -qi 'PHYSICAL' "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
           echo "Physical model verified. Android version compatibility will be authoritatively validated by gcloud test run for model=$DEVICE_MODEL,version=$DEVICE_VERSION."
 
-      - name: Run known-defect UX matrix on Firebase physical Android
+      - name: Run v3.0.14 source-quality matrix on Firebase physical Android
         shell: bash
         run: |
           set -euo pipefail
@@ -124,7 +138,7 @@ jobs:
             --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest' \
             --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
             --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
-            --timeout 20m \
+            --timeout 25m \
             --results-history-name 'H38 Scout Real Device Acceptance' \
             2>&1 | tee "$report/firebase-test-lab.log"
           status=${PIPESTATUS[0]}
@@ -138,13 +152,17 @@ jobs:
             prefix="${prefix%/}"
             mkdir -p "$report/firebase-raw-results"
             gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
-            grep -RniE 'FAILURES!!!|AssertionError|junit.framework|java.lang.AssertionError|KNOWN DEFECT|H38RemoteUx|testcase|failure' "$report/firebase-raw-results" > "$report/failure-summary.txt" || true
+            grep -RniE 'FAILURES!!!|AssertionError|junit.framework|java.lang.AssertionError|KNOWN DEFECT|H38RemoteUx|testcase|failure|DG BOUNDARY|FACEBOOK PROFIT BOUNDARY|GARAGE BOUNDARY' "$report/firebase-raw-results" > "$report/failure-summary.txt" || true
           fi
 
           if [[ "$status" -eq 0 ]]; then
             echo 'REAL DEVICE FARM PASS' | tee "$report/status.txt"
           else
-            echo "REAL DEVICE FARM FAIL (gcloud exit $status)" | tee "$report/status.txt"
+            if grep -Fq 'TEST_QUOTA_EXCEEDED' "$report/firebase-test-lab.log"; then
+              echo 'REAL DEVICE FARM FAIL — INFRASTRUCTURE QUOTA; NO DEVICE EXECUTION' | tee "$report/status.txt"
+            else
+              echo "REAL DEVICE FARM FAIL — DEVICE OR APP TEST FAILURE (gcloud exit $status)" | tee "$report/status.txt"
+            fi
             exit "$status"
           fi
 
@@ -152,7 +170,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.11-firebase-real-device
+          name: h38-scout-v3.0.14-firebase-real-device
           path: artifacts/firebase-device/*
           if-no-files-found: warn
           retention-days: 30
