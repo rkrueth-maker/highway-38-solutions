@@ -22,8 +22,11 @@ const withPhoto=applySourceImage({...dg,title:'Crest toothpaste',image_url:''},f
 assert.equal(withPhoto.image_url,'https://brickseek.com/media/products/dg/037000819196.webp');
 assert.equal(withPhoto.image_source_provider,'BrickSeek');
 assert.equal(withPhoto.image_source_scope,'exact_product');
-assert.equal(withPhoto.image_source_proof,'exact_upc_public_image_v069');
+assert.equal(withPhoto.image_source_proof,'exact_upc_public_image_v070');
 assert.equal(withPhoto.description_conflict,undefined);
+
+const jsonLd='<html><head><script type="application/ld+json">{"@type":"Product","name":"DG Product","image":{"url":"/structured/dg-photo.jpg"}}</script></head><body></body></html>';
+assert.equal(extractSourceImage(jsonLd,'https://example.com/item/123'),'https://example.com/structured/dg-photo.jpg');
 
 const badDescription='<html><head><meta property="og:title" content="Believe Beauty Lip Gloss Rose | Penny Tree"><meta property="og:image" content="/img/believe-gloss.webp"></head><body><h1>Believe Beauty Lip Gloss Rose</h1></body></html>';
 const corrected=applySourceImage({retailer:'Dollar General',upc:'840797136519',title:'Beech-Nut Veggies Stage 2 Baby Food, Carrot Zucchini & Pear, 3.5 oz',image_url:''},badDescription,'https://pennytree.org/item.php?sku=dg%3A840797136519','PennyTree');
@@ -46,4 +49,4 @@ assert.equal(exactPennyTreeUrl(unrelated),'');
 assert.equal(exactDollarGeneralImageSources(unrelated).length,1);
 assert.equal(exactDollarGeneralImageSources(unrelated)[0].provider,'BrickSeek');
 assert.equal(enrichLeads([dg,fd,unrelated]).length,3);
-console.log('PASS reseller-auto-leads-v064 exact UPC image + description identity fixtures');
+console.log('PASS reseller-auto-leads-v064 exact UPC image + JSON-LD + description identity fixtures');
