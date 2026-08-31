@@ -34,12 +34,15 @@ assert.match(v300,/replaceActive=!!requested\.length&&queryKey!==txt\(state\.v30
 assert.match(v300,/priorVerified=replaceActive\?\[\]:/);
 assert.match(v300,/priorCaptured=replaceActive\?\[\]:/);
 assert.match(v300,/state\.v300\.facebookQueryKey=queryKey/);
+assert.match(v300,/if\(replaceActive\)\{state\.v240=state\.v240\|\|\{\};state\.v240\.facebookRows=\[\];state\.v300\.facebookPublicCandidates=\[\]\}/);
 assert.match(v300,/const typed=txt\(\$\('discoverSearch'\)\?\.value\?\?state\.discover\.query\);state\.discover\.query=typed;write\(H38_KEYS\.discover,typed\);const publicPass=startFacebook\(false,typed\?\[typed\]:null\);const basePass=runDiscoverBase\(\)/);
 const discoverSync=v300.indexOf("const typed=txt($('discoverSearch')?.value??state.discover.query)");
 const facebookStart=v300.indexOf('const publicPass=startFacebook(false,typed?[typed]:null)');
 assert.ok(discoverSync>=0&&facebookStart>discoverSync,'Discover must copy the typed item into state before Facebook acquisition begins');
+assert.match(v300,/Searching public Facebook Marketplace\$\{termText\}/);
+assert.match(v300,/activeTerm\?`\$\{esc\(activeTerm\)\} · `/);
 assert.match(v300,/No Facebook sign-in is used/i);
-assert.match(v300,/no longer opens Facebook automatically/i);
+assert.match(v300,/does not open Facebook automatically/i);
 assert.match(v300,/legacySec\.remove\(\)/);
 assert.doesNotMatch(v300,/n\.openFacebookMarketplace\(/);
 assert.doesNotMatch(v300,/Repair Facebook session|Sign in once|Complete checkpoint/);
@@ -79,8 +82,8 @@ assert.match(sourceInbox,/location_status", "LOCATION_UNPROVEN"/);
 assert.match(sourceInbox,/freshness_unproven", true/);
 assert.doesNotMatch(sourceInbox,/c_user|\bxs\b|checkpoint|CookieManager/);
 
-assert.match(gradle,/versionCode 306/);
-assert.match(gradle,/versionName '3\.0\.6'/);
+assert.match(gradle,/versionCode 307/);
+assert.match(gradle,/versionName '3\.0\.7'/);
 assert.match(rules,/Single-owner runtime rule/);
 assert.match(rules,/Physical Android phone behavior remains final acceptance/);
-console.log('PASS v3.0.6 typed Discover query -> Facebook acquisition + source isolation contracts');
+console.log('PASS v3.0.7 typed Discover query -> Facebook acquisition + source isolation contracts');
