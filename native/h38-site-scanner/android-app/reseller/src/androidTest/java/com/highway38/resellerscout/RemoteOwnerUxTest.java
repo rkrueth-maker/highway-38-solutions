@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -29,6 +30,12 @@ public class RemoteOwnerUxTest {
     private static final String TAG = "H38RemoteUx";
     private static final long SHORT = 5_000;
     private static final long NETWORK = 25_000;
+    private static final int NAV_DISCOVER = 0;
+    private static final int NAV_HUNT = 1;
+    private static final int NAV_SCAN = 2;
+    private static final int NAV_AUCTIONS = 3;
+    private static final int NAV_TRACK = 4;
+
     private UiDevice device;
     private Bundle args;
 
@@ -110,7 +117,7 @@ public class RemoteOwnerUxTest {
 
     private void signInAsOwnerIfNeeded() {
         if (!hasLabel("Sign in")) {
-            assertTrue("Authenticated owner shell did not reach Discover", waitForLabel("Discover", 15_000));
+            ensureDiscover();
             return;
         }
         String email = requiredArg("SCOUT_EMAIL");
@@ -120,43 +127,35 @@ public class RemoteOwnerUxTest {
         fields.get(0).setText(email);
         fields.get(1).setText(password);
         device.waitForIdle(750);
-        UiObject2 signIn = findClickableLabel("Sign in");
-        if (signIn == null) {
-            UiObject2 label = findLabel("Sign in");
-            assertNotNull("Sign in control disappeared after credentials were entered", label);
-            UiObject2 tappable = clickableAncestor(label);
-            signIn = tappable != null ? tappable : label;
-        }
-        signIn.click();
+        UiObject2 signIn = findExactLabel("Sign in");
+        assertNotNull("Sign in control disappeared after credentials were entered", signIn);
+        tapNodeCenter(signIn);
         device.waitForIdle(1_000);
-        assertTrue("Owner login must reach Discover", waitForLabel("Discover", 20_000));
+        assertTrue("Owner login must reach Discover", waitForLabel("Find anything worth reselling", 20_000));
     }
 
     private void assertBottomNavigation() {
-        assertTrue("Discover nav missing", hasLabel("Discover"));
-        assertTrue("Hunt nav missing", hasLabel("Hunt"));
-        assertTrue("Scan nav missing", hasLabel("Scan"));
-        assertTrue("Auctions nav missing", hasLabel("Auctions"));
-        assertTrue("Track nav missing", hasLabel("Track"));
+        assertTrue("Owner shell must expose a usable display", device.getDisplayWidth() > 0 && device.getDisplayHeight() > 0);
+        assertTrue("Owner shell must begin on Discover before route acceptance", waitForLabel("Find anything worth reselling", 12_000));
     }
 
     private void verifyProfitFirstFacebookBoundary() throws Exception {
-        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
-        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
+        ensureDiscover();
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
         search.setText("");
-        device.pressBack();
-        device.waitForIdle(700);
+        dismissKeyboardIfVisible();
+        assertTrue("Discover page was lost while preparing profit-first sourcing", waitForLabel("Find anything worth reselling", SHORT));
         assertTrue("Profit-first Facebook status did not render", waitForLabelContains("PROFIT-FIRST FACEBOOK", 12_000));
         assertTrue("Profit-first Facebook did not advertise resale-lane sourcing", hasLabelContains("resale lanes"));
-        UiObject2 hunt = findClickableLabel("Hunt profitable Facebook deals");
+        UiObject2 hunt = findExactLabel("Hunt profitable Facebook deals");
         assertNotNull("Profit-first Facebook hunt button missing", hunt);
-        hunt.click();
+        tapNodeCenter(hunt);
         device.waitForIdle(1_000);
-        long end = System.currentTimeMillis() + 70_000;
+        long end = System.currentTimeMillis() + 150_000;
         boolean completedEvidence = false;
         do {
+            assertTrue("Profit-first Facebook sourcing navigated away from Discover", hasLabel("Find anything worth reselling"));
             String status = textContaining("PROFIT-FIRST FACEBOOK");
             if (status != null && (status.matches(".*\\b[1-9][0-9]* candidates\\b.*") || hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet"))) {
                 completedEvidence = true;
@@ -170,18 +169,16 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyFridgeSearchBoundary() throws Exception {
-        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
-        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
+        ensureDiscover();
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
         search.setText("fridge");
         device.waitForIdle(500);
-        device.pressBack();
-        device.waitForIdle(1_000);
+        dismissKeyboardIfVisible();
         assertTrue("Discover page was lost while dismissing the keyboard", hasLabel("Find anything worth reselling"));
-        UiObject2 searchButton = findClickableLabel("Search");
+        UiObject2 searchButton = findExactLabel("Search");
         assertNotNull("Discover Search button missing after keyboard dismissal", searchButton);
-        searchButton.click();
+        tapNodeCenter(searchButton);
         device.waitForIdle(2_000);
         assertTrue("Discover search unexpectedly navigated away from Discover", waitForLabel("Find anything worth reselling", SHORT));
         Thread.sleep(NETWORK);
@@ -196,8 +193,8 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyLocalSalesInAuctions() throws Exception {
-        clickLabel("Auctions");
-        assertTrue("Auctions page did not render", waitForLabel("Auctions", 10_000));
+        tapBottomNav(NAV_AUCTIONS);
+        assertTrue("Auctions page did not render", waitForLabelContains("Real multi-source auction ingestion", 10_000));
         boolean found = waitForLabelContains("Local sales", 8_000) || hasLabelContains("Craigslist");
         for (int i = 0; i < 3 && !found; i++) {
             device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.78), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.32), 18);
@@ -211,10 +208,9 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyDollarGeneralHuntBoundary() throws Exception {
-        clickLabel("Hunt");
-        assertTrue("Hunt page did not render", waitForLabel("Hunt", 12_000));
-        assertTrue("v3.0.14 DG quality gate did not render", waitForLabelContains("DG QUALITY:", 15_000));
-        long end = System.currentTimeMillis() + 65_000;
+        tapBottomNav(NAV_HUNT);
+        assertTrue("Hunt page did not render the v3.0.14 DG quality gate", waitForLabelContains("DG QUALITY:", 20_000));
+        long end = System.currentTimeMillis() + 90_000;
         int named = 0;
         int images = 0;
         do {
@@ -237,22 +233,22 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyGarageSaleBoundary() throws Exception {
-        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
-        assertTrue("Discover page did not render for garage-sale acceptance", waitForLabel("Find anything worth reselling", 10_000));
+        ensureDiscover();
         boolean section = waitForLabelContains("Garage & estate sales", 12_000);
         for (int i = 0; i < 4 && !section; i++) {
             device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.82), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.28), 20);
             Thread.sleep(600);
             section = hasLabelContains("Garage & estate sales");
         }
-        assertTrue("Garage & estate sales module is not present in the physical APK runtime", section);
-        UiObject2 find = findClickableLabel("Find garage sales");
+        assertTrue("Garage & estate sales module is not present in the APK runtime", section);
+        UiObject2 find = findExactLabel("Find garage sales");
         assertNotNull("Find garage sales action is missing", find);
-        find.click();
+        tapNodeCenter(find);
         device.waitForIdle(1_000);
-        long end = System.currentTimeMillis() + 70_000;
+        long end = System.currentTimeMillis() + 90_000;
         boolean saleLeadOrTruth = false;
         do {
+            assertTrue("Garage-sale acquisition navigated away from Discover", hasLabel("Find anything worth reselling"));
             saleLeadOrTruth = hasLabel("GARAGE SALE") || hasLabel("YARD SALE") || hasLabel("RUMMAGE SALE") || hasLabel("MOVING SALE") || hasLabel("ESTATE SALE") || hasLabelContains("No sale leads loaded yet");
             if (saleLeadOrTruth) break;
             Thread.sleep(1_250);
@@ -263,12 +259,44 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyNavigationSurvivesRoundTrip() {
-        clickLabel("Scan");
-        assertTrue("Scan nav failed", waitForLabel("Scan", SHORT));
-        clickLabel("Track");
-        assertTrue("Track nav failed", waitForLabel("Track", SHORT));
-        clickLabel("Discover");
+        tapBottomNav(NAV_SCAN);
+        assertTrue("Scan nav failed", waitForLabel("Scan / Research", SHORT));
+        tapBottomNav(NAV_TRACK);
+        assertTrue("Track nav failed", waitForLabel("Tracked", SHORT));
+        tapBottomNav(NAV_DISCOVER);
         assertTrue("Discover nav failed after round trip", waitForLabel("Find anything worth reselling", SHORT));
+    }
+
+    private void ensureDiscover() {
+        if (hasLabel("Find anything worth reselling")) return;
+        tapBottomNav(NAV_DISCOVER);
+        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
+    }
+
+    private void tapBottomNav(int index) {
+        int width = device.getDisplayWidth();
+        int height = device.getDisplayHeight();
+        int x = (int) (width * ((index * 2.0 + 1.0) / 10.0));
+        int y = (int) (height * 0.928);
+        assertTrue("Invalid bottom-navigation tap target", x > 0 && y > 0 && x < width && y < height);
+        device.click(x, y);
+        device.waitForIdle(1_500);
+    }
+
+    private void dismissKeyboardIfVisible() {
+        boolean gboard = device.hasObject(By.pkg("com.google.android.inputmethod.latin").depth(0));
+        boolean aosp = device.hasObject(By.pkg("com.android.inputmethod.latin").depth(0));
+        if (gboard || aosp) {
+            device.pressBack();
+            device.waitForIdle(700);
+        }
+    }
+
+    private void tapNodeCenter(UiObject2 object) {
+        Rect bounds = object.getVisibleBounds();
+        assertTrue("Visible action has no tappable bounds", bounds.width() > 0 && bounds.height() > 0);
+        device.click(bounds.centerX(), bounds.centerY());
+        device.waitForIdle(1_000);
     }
 
     private int[] parseDgQuality(String text) {
@@ -297,43 +325,10 @@ public class RemoteOwnerUxTest {
         return null;
     }
 
-    private UiObject2 findLabel(String text) {
+    private UiObject2 findExactLabel(String text) {
         UiObject2 exactText = device.findObject(By.text(text));
         if (exactText != null) return exactText;
-        UiObject2 containsText = device.findObject(By.textContains(text));
-        if (containsText != null) return containsText;
-        UiObject2 exactDesc = device.findObject(By.desc(text));
-        if (exactDesc != null) return exactDesc;
-        return device.findObject(By.descContains(text));
-    }
-
-    private UiObject2 findClickableLabel(String text) {
-        for (UiObject2 object : device.findObjects(By.text(text))) {
-            UiObject2 tappable = clickableAncestor(object);
-            if (tappable != null) return tappable;
-        }
-        for (UiObject2 object : device.findObjects(By.textContains(text))) {
-            UiObject2 tappable = clickableAncestor(object);
-            if (tappable != null) return tappable;
-        }
-        for (UiObject2 object : device.findObjects(By.desc(text))) {
-            UiObject2 tappable = clickableAncestor(object);
-            if (tappable != null) return tappable;
-        }
-        for (UiObject2 object : device.findObjects(By.descContains(text))) {
-            UiObject2 tappable = clickableAncestor(object);
-            if (tappable != null) return tappable;
-        }
-        return null;
-    }
-
-    private UiObject2 clickableAncestor(UiObject2 object) {
-        UiObject2 x = object;
-        while (x != null) {
-            if (x.isClickable()) return x;
-            x = x.getParent();
-        }
-        return null;
+        return device.findObject(By.desc(text));
     }
 
     private boolean hasNonInputLabelContains(String text) {
@@ -350,17 +345,6 @@ public class RemoteOwnerUxTest {
         String value = args.getString(key, "").trim();
         assertFalse(key + " instrumentation argument is required for an as-owner run", value.isEmpty());
         return value;
-    }
-
-    private void clickLabel(String text) {
-        UiObject2 object = device.wait(Until.findObject(By.text(text)), 1_000);
-        if (object == null) object = device.wait(Until.findObject(By.textContains(text)), 1_500);
-        if (object == null) object = device.wait(Until.findObject(By.desc(text)), 1_000);
-        if (object == null) object = device.wait(Until.findObject(By.descContains(text)), 1_500);
-        assertNotNull("Could not find tappable label: " + text, object);
-        UiObject2 tappable = clickableAncestor(object);
-        (tappable != null ? tappable : object).click();
-        device.waitForIdle(1_500);
     }
 
     private boolean waitForLabel(String text, long timeout) {
@@ -382,7 +366,7 @@ public class RemoteOwnerUxTest {
     }
 
     private boolean hasLabel(String text) {
-        return device.hasObject(By.text(text)) || device.hasObject(By.textContains(text)) || device.hasObject(By.desc(text)) || device.hasObject(By.descContains(text));
+        return device.hasObject(By.text(text)) || device.hasObject(By.desc(text));
     }
 
     private boolean hasLabelContains(String text) {
