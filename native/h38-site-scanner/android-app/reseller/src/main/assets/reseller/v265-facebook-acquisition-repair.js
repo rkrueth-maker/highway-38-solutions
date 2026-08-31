@@ -1,13 +1,13 @@
 'use strict';
 // H38 Reseller Scout v3.0.12 physical-repair shim.
-// This file loads before v266; install after the single V3 owner runtime so it can
-// repair two physical boundaries without reviving the retired v2.8 acquisition owner.
+// v264 schedules a zero-delay wrapper and v266 installs the V3 owner synchronously.
+// Install this repair after both so its repaired Discover and Hunt functions remain final.
 window.H38_SCOUT_LEGACY_V265_DISABLED=true;
 window.H38_SCOUT_V312_PHYSICAL_REPAIR=true;
 (function scheduleV312Repair(){
   function install(){
     if(window.H38_SCOUT_V312_PHYSICAL_REPAIR_INSTALLED)return;
-    if(!window.H38_SCOUT_V300_SINGLE_OWNER_RUNTIME||typeof window.runDiscover!=='function'||typeof window.loadHunt!=='function'){setTimeout(install,120);return;}
+    if(!window.H38_SCOUT_V300_SINGLE_OWNER_RUNTIME||typeof window.runDiscover!=='function'||typeof window.loadHunt!=='function'){setTimeout(install,250);return;}
     window.H38_SCOUT_V312_PHYSICAL_REPAIR_INSTALLED=true;
 
     const text=v=>String(v??'').trim();
@@ -24,11 +24,8 @@ window.H38_SCOUT_V312_PHYSICAL_REPAIR=true;
       return cleaned&&cleaned!==raw?{...r,raw_title:text(r.raw_title||raw),title:cleaned,canonical_title:cleaned}:r;
     }
 
-    // Keep an explicit Discover query pinned through every asynchronous source render.
-    // Earlier layers could rebuild the page while Facebook/auction/retail requests were
-    // finishing and leave the visible search field blank even though the request used it.
     const priorRunDiscover=window.runDiscover;
-    window.runDiscover=async function H38V312RunDiscover(){
+    const repairedRunDiscover=async function H38V312RunDiscover(){
       const field=document.getElementById('discoverSearch');
       const typed=text(field?.value??state.discover?.query??'');
       state.discover=state.discover||{};
@@ -43,6 +40,8 @@ window.H38_SCOUT_V312_PHYSICAL_REPAIR=true;
         if(current){current.value=typed;current.setAttribute('value',typed);current.setAttribute('aria-label','Discover search');}
       }
     };
+    window.runDiscover=repairedRunDiscover;
+
     const discoverHost=document.getElementById('discoverPage');
     if(discoverHost){
       let pinQueued=false;
@@ -52,12 +51,8 @@ window.H38_SCOUT_V312_PHYSICAL_REPAIR=true;
       }).observe(discoverHost,{childList:true,subtree:true});
     }
 
-    // Use the v065 recovery wrapper as the authoritative live Hunt feed. v065 preserves
-    // v064 source isolation, then follows exact DollarGeneral.com product URLs already
-    // present in source evidence to recover the real published title/photo. It never
-    // invents an image and never treats a product page as local penny-price proof.
     const priorLoadHunt=window.loadHunt;
-    window.loadHunt=async function H38V312LoadHunt(force=false){
+    const repairedLoadHunt=async function H38V312LoadHunt(force=false){
       if(state.hunt?.loading)return;
       state.hunt=state.hunt||{};
       state.hunt.loading=true;
@@ -72,17 +67,28 @@ window.H38_SCOUT_V312_PHYSICAL_REPAIR=true;
         state.hunt.rows=rows;
         state.hunt.loaded=true;
         state.hunt.sourceHealth={status:rows.length?'PASS':'PARTIAL',actionable:rows.length,provider:'reseller-auto-leads-v065',adapterVersion:text(p?.adapter_version||'v065'),dgImageCount:Number(p?.dg_image_count||0),dgDirectImagesRecovered:Number(p?.dg_direct_product_images_recovered||0),dgDirectTitlesRecovered:Number(p?.dg_direct_product_titles_recovered||0),warnings:p?.dg_source_warnings||p?.warnings||[]};
-        try{if(typeof renderHunt==='function')renderHunt();if((hasPoint?.()||state.location?.zip)&&typeof ensureNearbyStores==='function')void ensureNearbyStores().then(()=>renderHuntListOnly());if(typeof hydrateHuntImages==='function')void hydrateHuntImages()}catch{}
+        window.H38_SCOUT_V312_LAST_HUNT_PROVIDER='reseller-auto-leads-v065';
+        window.H38_SCOUT_V312_LAST_HUNT_AT=Date.now();
+        try{if(typeof renderHunt==='function')renderHunt();if(((typeof hasPoint==='function'&&hasPoint())||state.location?.zip)&&typeof ensureNearbyStores==='function')void ensureNearbyStores().then(()=>renderHuntListOnly());if(typeof hydrateHuntImages==='function')void hydrateHuntImages()}catch{}
       }catch(e){
         state.hunt.loading=false;
-        // Preserve the already-proven v300 fallback path if the new wrapper itself is unavailable.
+        window.H38_SCOUT_V312_LAST_HUNT_PROVIDER='v065-fallback';
         return priorLoadHunt.apply(this,arguments);
       }finally{
         state.hunt.loading=false;
         try{if(typeof renderHunt==='function')renderHunt()}catch{}
       }
     };
+    window.loadHunt=repairedLoadHunt;
+
+    // Expose ownership markers to device diagnostics and reassert once after startup.
+    window.H38_SCOUT_V312_RUN_DISCOVER=repairedRunDiscover;
+    window.H38_SCOUT_V312_LOAD_HUNT=repairedLoadHunt;
+    setTimeout(()=>{
+      if(window.H38_SCOUT_V312_RUN_DISCOVER)window.runDiscover=window.H38_SCOUT_V312_RUN_DISCOVER;
+      if(window.H38_SCOUT_V312_LOAD_HUNT)window.loadHunt=window.H38_SCOUT_V312_LOAD_HUNT;
+    },1200);
   }
-  setTimeout(install,0);
-  setTimeout(install,300);
+  // Deliberately later than v264's zero-delay wrapper.
+  setTimeout(install,700);
 })();
