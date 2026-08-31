@@ -20,6 +20,7 @@ export function extractSourceTitle(html=''){
   for(const re of patterns){const m=s.match(re),t=m?cleanSourceTitle(m[1]):'';if(t.length>=4&&!/^(?:penny tree|brickseek|dollar general)$/i.test(t))return t}
   return'';
 }
+function jsonLdImages(value,out=[]){if(value==null)return out;if(typeof value==='string'){out.push(value);return out}if(Array.isArray(value)){for(const x of value)jsonLdImages(x,out);return out}if(typeof value==='object'){for(const k of ['url','contentUrl','imageUrl'])if(typeof value[k]==='string')out.push(value[k]);if(value.image!=null)jsonLdImages(value.image,out);if(value.thumbnailUrl!=null)jsonLdImages(value.thumbnailUrl,out)}return out}
 export function extractSourceImage(html='',base='https://pennytree.org/'){
   const s=String(html||'');
   const meta=[
@@ -29,6 +30,7 @@ export function extractSourceImage(html='',base='https://pennytree.org/'){
     /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
   ];
   for(const re of meta){const m=s.match(re),u=m?safeImageUrl(m[1],base):'';if(u)return u}
+  for(const m of s.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/ig)){try{const data=JSON.parse(htmlDecode(m[1]));for(const raw of jsonLdImages(data,[])){const u=safeImageUrl(raw,base);if(u)return u}}catch{}}
   const imgs=[...s.matchAll(/<img\b[^>]+(?:src|data-src)=["']([^"']+)["'][^>]*>/ig)];
   for(const m of imgs){const tag=m[0],u=safeImageUrl(m[1],base);if(!u)continue;if(/product|item|catalog|card|hero/i.test(tag)||/alt=["'][^"']{4,}["']/i.test(tag))return u}
   return'';
@@ -40,7 +42,7 @@ export function applySourceImage(row={},html='',sourceUrl='',provider='exact_sou
   const identity=sourceTitle?{source_identity_title:sourceTitle,source_identity_provider:provider,source_identity_scope:'exact_upc',source_identity_agreement:agreement.status,source_identity_score:agreement.score}:{};
   const corrected=titleConflict?{raw_title:txt(row.raw_title||row.title||row.name),canonical_title:sourceTitle,title:sourceTitle,description_conflict:true,identity_warning:'Exact-UPC source title disagreed with the aggregated description. Scout replaced the display description with the exact-UPC source title; physical package/register verification remains final.'}:{};
   if(!image)return{...row,...identity,...corrected};
-  return{...row,...identity,...corrected,image_url:image,image_source_url:exact,image_source_provider:provider,image_source_scope:'exact_product',image_source_proof:'exact_upc_public_image_v069'};
+  return{...row,...identity,...corrected,image_url:image,image_source_url:exact,image_source_provider:provider,image_source_scope:'exact_product',image_source_proof:'exact_upc_public_image_v070'};
 }
 export function enrichLead(row={}){const exact=exactPennyTreeUrl(row);if(!exact)return row;const sources=(Array.isArray(row.signal_sources)?row.signal_sources:[]).map(s=>{const d=txt(s?.domain).toLowerCase(),u=txt(s?.url).toLowerCase(),n=txt(s?.name).toLowerCase(),isPt=d==='pennytree.org'||u.includes('pennytree.org')||n==='penny tree';return isPt?{...s,item_url:exact,item_scope:'exact_product'}:s});return{...row,source_item_url:exact,source_item_scope:'exact_product',source_item_proof:'pennytree_upc_route_v064',signal_sources:sources}}
 export function enrichLeads(rows=[]){return(Array.isArray(rows)?rows:[]).map(enrichLead)}
