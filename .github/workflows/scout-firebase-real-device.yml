@@ -124,6 +124,18 @@ jobs:
             2>&1 | tee "$report/firebase-test-lab.log"
           status=${PIPESTATUS[0]}
           set -e
+
+          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^]]+' "$report/firebase-test-lab.log" | tail -n1 || true)"
+          if [[ -n "$raw_url" ]]; then
+            raw_path="${raw_url#https://console.developers.google.com/storage/browser/}"
+            bucket="${raw_path%%/*}"
+            prefix="${raw_path#*/}"
+            prefix="${prefix%/}"
+            mkdir -p "$report/firebase-raw-results"
+            gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
+            grep -RniE 'FAILURES!!!|AssertionError|junit.framework|java.lang.AssertionError|KNOWN DEFECT|H38RemoteUx|testcase|failure' "$report/firebase-raw-results" > "$report/failure-summary.txt" || true
+          fi
+
           if [[ "$status" -eq 0 ]]; then
             echo 'REAL DEVICE FARM PASS' | tee "$report/status.txt"
           else
