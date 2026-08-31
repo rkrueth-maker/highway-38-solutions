@@ -127,7 +127,10 @@ public class RemoteOwnerUxTest {
     }
 
     private void verifyFridgeSearchBoundary() throws Exception {
-        clickLabel("Discover");
+        // A freshly authenticated owner already lands on Discover. The generic label
+        // "Discover" also appears inside the page body, so avoid a redundant coordinate
+        // tap when the actual Discover hero is already visible.
+        if (!hasLabel("Find anything worth reselling")) clickLabel("Discover");
         assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
