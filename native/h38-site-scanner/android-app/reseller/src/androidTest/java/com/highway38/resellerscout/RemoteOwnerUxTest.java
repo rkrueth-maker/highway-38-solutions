@@ -12,7 +12,6 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
-import androidx.test.uiautomator.Direction;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.Until;
@@ -53,7 +52,7 @@ public class RemoteOwnerUxTest {
         verifyLocalSalesInAuctions();
         verifyDollarGeneralHuntBoundary();
         verifyNavigationSurvivesRoundTrip();
-        Log.i(TAG, "REAL DEVICE FARM PASS: scripted owner UX boundaries completed. Dynamic inventory/photo diagnostics still require result review.");
+        Log.i(TAG, "REAL DEVICE FARM PASS: scripted owner UX sourcing/navigation boundaries completed.");
     }
 
     private void signInAsOwnerIfNeeded() {
@@ -94,7 +93,11 @@ public class RemoteOwnerUxTest {
         UiObject2 retained = findFirstEditText();
         assertNotNull("Discover search input disappeared", retained);
         assertTrue("Typed fridge query was not retained", "fridge".equalsIgnoreCase(String.valueOf(retained.getText())));
-        Log.i(TAG, "FRIDGE BOUNDARY: query retained; stale known lawn-care card absent. Live inventory relevance remains network-dependent.");
+
+        boolean relevantCard = hasNonInputTextContains("refrigerator") || hasNonInputTextContains("fridge");
+        boolean truthfulEmpty = hasTextContains("No public Marketplace cards were found") || hasTextContains("Local Facebook inventory remains unknown");
+        assertTrue("Fridge search produced neither a fridge/refrigerator result nor the truthful public-index empty state", relevantCard || truthfulEmpty);
+        Log.i(TAG, "FRIDGE BOUNDARY: explicit query honored; stale unrelated card absent; result or truthful empty state visible.");
     }
 
     private void verifyLocalSalesInAuctions() throws Exception {
@@ -127,7 +130,8 @@ public class RemoteOwnerUxTest {
         assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
 
         int imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
-        Log.i(TAG, "DG BOUNDARY: Dollar General reachable; visible accessibility image nodes=" + imageNodes + ". Photo completeness is reviewed from Test Lab video/screenshots and is not fabricated as a hard assertion when live inventory varies.");
+        assertTrue("Dollar General Hunt rendered no accessible product images on the physical device", imageNodes > 0);
+        Log.i(TAG, "DG BOUNDARY: Dollar General reachable; known identity mismatch absent; accessible image nodes=" + imageNodes + ".");
     }
 
     private void verifyNavigationSurvivesRoundTrip() {
@@ -142,6 +146,13 @@ public class RemoteOwnerUxTest {
     private UiObject2 findFirstEditText() {
         List<UiObject2> fields = device.findObjects(By.clazz("android.widget.EditText"));
         return fields.isEmpty() ? null : fields.get(0);
+    }
+
+    private boolean hasNonInputTextContains(String text) {
+        for (UiObject2 object : device.findObjects(By.textContains(text))) {
+            if (!"android.widget.EditText".equals(object.getClassName())) return true;
+        }
+        return false;
     }
 
     private String requiredArg(String key) {
