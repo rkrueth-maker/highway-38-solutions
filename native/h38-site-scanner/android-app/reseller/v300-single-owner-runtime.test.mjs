@@ -94,8 +94,8 @@ assert.match(sourceInbox,/location_status", "LOCATION_UNPROVEN"/);
 assert.match(sourceInbox,/freshness_unproven", true/);
 assert.doesNotMatch(sourceInbox,/c_user|\bxs\b|checkpoint|CookieManager/);
 
-assert.match(gradle,/versionCode 313/);
-assert.match(gradle,/versionName '3\.0\.13'/);
+assert.match(gradle,/versionCode 314/);
+assert.match(gradle,/versionName '3\.0\.14'/);
 assert.match(rules,/Single-owner runtime rule/);
 assert.match(rules,/Physical Android phone behavior remains final acceptance/);
-console.log('PASS v3.0.13 source-quality repair ownership + typed Discover query + source isolation contracts');
+console.log('PASS v3.0.14 source-quality repair ownership + typed Discover query + source isolation contracts');
