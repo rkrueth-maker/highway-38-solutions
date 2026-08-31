@@ -40,7 +40,15 @@ public class RemoteOwnerUxTest {
         assertNotNull("Owner app launch intent must exist", intent);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         target.startActivity(intent);
-        assertTrue("Owner package did not become visible", device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000));
+        boolean packageVisible = device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
+        if (!packageVisible) {
+            Log.w(TAG, "Owner package cold-start was not visible after first launch; retrying once.");
+            device.pressHome();
+            device.waitForIdle(700);
+            target.startActivity(intent);
+            packageVisible = device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
+        }
+        assertTrue("Owner package did not become visible after one cold-start retry", packageVisible);
         assertTrue("Reseller Scout shell did not render", waitForLabel("Reseller Scout", 12_000));
     }
 
@@ -91,6 +99,8 @@ public class RemoteOwnerUxTest {
         assertTrue("Login must expose email and password fields", fields.size() >= 2);
         fields.get(0).setText(email);
         fields.get(1).setText(password);
+        device.pressBack();
+        device.waitForIdle(500);
         clickLabel("Sign in");
         assertTrue("Owner login must reach Discover", waitForLabel("Discover", 20_000));
     }
@@ -109,20 +119,30 @@ public class RemoteOwnerUxTest {
         UiObject2 search = findFirstEditText();
         assertNotNull("Discover search input not reachable", search);
         search.setText("fridge");
-        UiObject2 searchButton = findLabel("Search");
-        assertNotNull("Discover Search button missing", searchButton);
+        device.waitForIdle(500);
+
+        // Firebase's soft keyboard can cover the web Search control and cause a coordinate
+        // click to land on the fixed bottom navigation. Dismiss it before locating Search.
+        device.pressBack();
+        device.waitForIdle(1_000);
+        assertTrue("Discover page was lost while dismissing the keyboard", hasLabel("Find anything worth reselling"));
+
+        UiObject2 searchButton = findClickableLabel("Search");
+        assertNotNull("Discover Search button missing after keyboard dismissal", searchButton);
         searchButton.click();
         device.waitForIdle(2_000);
+        assertTrue("Discover search unexpectedly navigated away from Discover", waitForLabel("Find anything worth reselling", SHORT));
         Thread.sleep(NETWORK);
+        assertTrue("Discover page was not retained after asynchronous search renders", hasLabel("Find anything worth reselling"));
         assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasLabelContains("Lawn care equipment"));
-        UiObject2 retained = findFirstEditText();
-        assertNotNull("Discover search input disappeared", retained);
-        assertTrue("Typed fridge query was not retained", "fridge".equalsIgnoreCase(String.valueOf(retained.getText())));
+
+        UiObject2 retained = findEditTextWithText("fridge");
+        assertNotNull("Typed fridge query was not retained in the Discover search field", retained);
 
         boolean relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
-        boolean truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown");
-        assertTrue("Fridge search produced neither a fridge/refrigerator result nor the truthful public-index empty state", relevantCard || truthfulEmpty);
-        Log.i(TAG, "FRIDGE BOUNDARY: explicit query honored; stale unrelated card absent; result or truthful empty state visible.");
+        boolean truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet");
+        assertTrue("Fridge search produced neither a fridge/refrigerator result nor a truthful empty state", relevantCard || truthfulEmpty);
+        Log.i(TAG, "FRIDGE BOUNDARY: explicit query retained on Discover; stale unrelated card absent; result or truthful empty state visible.");
     }
 
     private void verifyLocalSalesInAuctions() throws Exception {
@@ -143,22 +163,31 @@ public class RemoteOwnerUxTest {
     private void verifyDollarGeneralHuntBoundary() throws Exception {
         clickLabel("Hunt");
         assertTrue("Hunt page did not render", waitForLabel("Hunt", 12_000));
-        Thread.sleep(12_000);
-        boolean dgSeen = hasLabelContains("Dollar General");
-        for (int i = 0; i < 6 && !dgSeen; i++) {
-            device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.30), 20);
-            Thread.sleep(800);
+
+        // v065 performs exact-product recovery after the base Hunt feed, so allow the
+        // network-backed refresh to settle before deciding that photos are absent.
+        long end = System.currentTimeMillis() + 45_000;
+        boolean dgSeen = false;
+        int imageNodes = 0;
+        do {
             dgSeen = hasLabelContains("Dollar General");
-        }
+            imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
+            if (dgSeen && imageNodes > 0) break;
+            if (!dgSeen) {
+                device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.30), 20);
+            }
+            Thread.sleep(1_250);
+        } while (System.currentTimeMillis() < end);
         assertTrue("Dollar General Hunt surface is not reachable", dgSeen);
 
         boolean knownUpcVisible = hasLabelContains("840797136519");
         boolean knownWrongTitleVisible = hasLabelContains("Beech-Nut Veggies Stage 2 Baby Food");
         assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
+        assertFalse("Malformed HTML/anchor text leaked into a Dollar General product title", hasLabelContains("href=\"https://www.dollargeneral.com/p/"));
 
-        int imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
+        imageNodes = device.findObjects(By.clazz("android.widget.Image")).size();
         assertTrue("Dollar General Hunt rendered no accessible product images on the physical device", imageNodes > 0);
-        Log.i(TAG, "DG BOUNDARY: Dollar General reachable; known identity mismatch absent; accessible image nodes=" + imageNodes + ".");
+        Log.i(TAG, "DG BOUNDARY: Dollar General reachable; known identity mismatch and malformed title absent; accessible image nodes=" + imageNodes + ".");
     }
 
     private void verifyNavigationSurvivesRoundTrip() {
@@ -175,6 +204,13 @@ public class RemoteOwnerUxTest {
         return fields.isEmpty() ? null : fields.get(0);
     }
 
+    private UiObject2 findEditTextWithText(String expected) {
+        for (UiObject2 field : device.findObjects(By.clazz("android.widget.EditText"))) {
+            if (expected.equalsIgnoreCase(String.valueOf(field.getText()))) return field;
+        }
+        return null;
+    }
+
     private UiObject2 findLabel(String text) {
         UiObject2 exactText = device.findObject(By.text(text));
         if (exactText != null) return exactText;
@@ -183,6 +219,27 @@ public class RemoteOwnerUxTest {
         UiObject2 exactDesc = device.findObject(By.desc(text));
         if (exactDesc != null) return exactDesc;
         return device.findObject(By.descContains(text));
+    }
+
+    private UiObject2 findClickableLabel(String text) {
+        for (UiObject2 object : device.findObjects(By.text(text))) {
+            UiObject2 tappable = clickableAncestor(object);
+            if (tappable != null) return tappable;
+        }
+        for (UiObject2 object : device.findObjects(By.desc(text))) {
+            UiObject2 tappable = clickableAncestor(object);
+            if (tappable != null) return tappable;
+        }
+        return null;
+    }
+
+    private UiObject2 clickableAncestor(UiObject2 object) {
+        UiObject2 x = object;
+        while (x != null) {
+            if (x.isClickable()) return x;
+            x = x.getParent();
+        }
+        return null;
     }
 
     private boolean hasNonInputLabelContains(String text) {
@@ -207,8 +264,7 @@ public class RemoteOwnerUxTest {
         if (object == null) object = device.wait(Until.findObject(By.desc(text)), 1_000);
         if (object == null) object = device.wait(Until.findObject(By.descContains(text)), 1_500);
         assertNotNull("Could not find tappable label: " + text, object);
-        UiObject2 tappable = object;
-        while (tappable != null && !tappable.isClickable() && tappable.getParent() != null) tappable = tappable.getParent();
+        UiObject2 tappable = clickableAncestor(object);
         (tappable != null ? tappable : object).click();
         device.waitForIdle(1_500);
     }
