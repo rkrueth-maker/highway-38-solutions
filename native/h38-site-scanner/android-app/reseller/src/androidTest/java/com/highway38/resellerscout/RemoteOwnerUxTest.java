@@ -99,9 +99,22 @@ public class RemoteOwnerUxTest {
         assertTrue("Login must expose email and password fields", fields.size() >= 2);
         fields.get(0).setText(email);
         fields.get(1).setText(password);
-        device.pressBack();
-        device.waitForIdle(500);
-        clickLabel("Sign in");
+
+        // UiAutomator#setText does not require the Android soft keyboard to be open.
+        // The old harness unconditionally pressed Back here. On Firebase's Galaxy S22
+        // the keyboard was already closed, so Back exited the owner Activity to Home
+        // before the Sign in button could be tapped. Keep the Activity foregrounded
+        // and click the actual WebView control directly.
+        device.waitForIdle(750);
+        UiObject2 signIn = findClickableLabel("Sign in");
+        if (signIn == null) {
+            UiObject2 label = findLabel("Sign in");
+            assertNotNull("Sign in control disappeared after credentials were entered", label);
+            UiObject2 tappable = clickableAncestor(label);
+            signIn = tappable != null ? tappable : label;
+        }
+        signIn.click();
+        device.waitForIdle(1_000);
         assertTrue("Owner login must reach Discover", waitForLabel("Discover", 20_000));
     }
 
