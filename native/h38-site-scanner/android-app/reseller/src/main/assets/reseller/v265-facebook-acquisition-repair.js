@@ -97,6 +97,18 @@ window.H38_SCOUT_V313_SOURCE_POLISH=true;
     };
     window.loadHunt=repairedLoadHunt;
 
+    // Hunt previously only rendered when its bottom-nav tab opened. On a fresh owner
+    // session that left the page at "0 shown · 0 loaded" indefinitely because nothing
+    // invoked the authoritative v065 feed. Make page entry own the first load.
+    const priorSetPageV313=window.setPage;
+    if(typeof priorSetPageV313==='function')window.setPage=function(page){
+      const result=priorSetPageV313.apply(this,arguments);
+      if(page==='hunt'&&!state.hunt?.loaded&&!state.hunt?.loading){
+        setTimeout(()=>{if(state.page==='hunt'&&!state.hunt?.loaded&&!state.hunt?.loading&&typeof window.loadHunt==='function')void window.loadHunt(false)},80);
+      }
+      return result;
+    };
+
     const finalRenderDiscover=window.renderDiscover;
     if(typeof finalRenderDiscover==='function')window.renderDiscover=function(){finalRenderDiscover.apply(this,arguments);polishFacebookUi();polishRetailIntel()};
     const finalRenderHunt=window.renderHunt;
