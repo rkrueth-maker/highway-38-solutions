@@ -36,11 +36,13 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
 
   function fbTerms(){try{if(typeof facebookTerms==='function')return facebookTerms().slice(0,4)}catch{}try{if(typeof profitTerms==='function')return profitTerms().slice(0,4)}catch{}return['tools','electronics','appliances','lawn mower']}
   function normalizeFacebookTerms(explicitTerms){const src=Array.isArray(explicitTerms)?explicitTerms:[],out=[];for(const v of src){const t=txt(v);if(t&&!out.some(x=>norm(x)===norm(t)))out.push(t)}return out.slice(0,4)}
+  function currentFacebookSearchTerms(){const typed=txt($('discoverSearch')?.value??state.discover.query);return typed?[typed]:null}
   async function startFacebook(force=false,explicitTerms=null){
     if(!requireLocation())return false;
     if(state.facebookPassPending)return true;
     const requested=normalizeFacebookTerms(explicitTerms),terms=requested.length?requested:fbTerms(),queryKey=terms.map(x=>norm(x)).filter(Boolean).join('|'),replaceActive=!!requested.length&&queryKey!==txt(state.v300.facebookQueryKey),request=++facebookRequestSeq,started=Date.now(),priorVerified=replaceActive?[]:(Array.isArray(state.v240?.facebookRows)?state.v240.facebookRows.slice():[]),priorCaptured=replaceActive?[]:(Array.isArray(state.v300.facebookPublicCandidates)?state.v300.facebookPublicCandidates.slice():[]);
     state.v300.facebookTerms=terms;state.v300.facebookQueryKey=queryKey;state.v300.facebookStartedAt=started;state.v300.facebookStatus='SEARCHING_PUBLIC_INDEX';state.facebookPassPending=true;state.facebookPassStartedAt=started;state.facebookRanking=false;
+    if(replaceActive){state.v240=state.v240||{};state.v240.facebookRows=[];state.v300.facebookPublicCandidates=[]}
     if(state.page==='discover')renderDiscover();
     try{
       await ensureDefaultLocation();
@@ -57,9 +59,9 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
     finally{if(request===facebookRequestSeq){state.facebookPassPending=false;state.facebookRanking=false;if(state.page==='discover')renderDiscover()}}
   }
   window.H38V300StartFacebook=startFacebook;
-  openFacebookScan=function(){return startFacebook(true)};
+  openFacebookScan=function(){return startFacebook(true,currentFacebookSearchTerms())};
 
-  function authenticateFacebook(){notice('Scout v3.0.5 uses public Marketplace sources only. No Facebook sign-in is used.','good')}
+  function authenticateFacebook(){notice('Scout uses public Marketplace sources only. No Facebook sign-in is used.','good')}
   window.H38FacebookConnected=function(){state.facebookPassPending=false;state.facebookRanking=false;state.v300.facebookStatus='PUBLIC_ONLY';if(state.page==='discover')renderDiscover()};
 
   async function rankFacebookCaptured(){
@@ -118,11 +120,11 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
   };
 
   function fbStatusHtml(){
-    const s=facebookSnapshot(),status=txt(s.facebookStatus),age=Date.now()-num(state.v300.facebookStartedAt||0),busy=(status==='COLLECTING'||status==='SCANNING'||status==='SCANNING_PUBLIC'||status==='SEARCHING_PUBLIC_INDEX'||state.facebookPassPending)&&age<FB_TIMEOUT_MS;
-    if(s.captured.length)return`<div class="status-line"><span class="dot ${s.browser.length?'live':'warn'}"></span>${s.captured.length} public Facebook Marketplace card${s.captured.length===1?'':'s'} captured. ${s.browser.length} location-proven${s.unproven.length?` · ${s.unproven.length} need location proof`:''}${s.outside.length?` · ${s.outside.length} outside radius`:''}.</div>`;
-    if(busy)return'<div class="status-line"><span class="dot loading"></span>Searching public Facebook Marketplace indexes…</div>';
+    const s=facebookSnapshot(),status=txt(s.facebookStatus),activeTerm=txt(state.v300.facebookTerms?.[0]||state.discover.query),termText=activeTerm?` for “${esc(activeTerm)}”`:'',age=Date.now()-num(state.v300.facebookStartedAt||0),busy=(status==='COLLECTING'||status==='SCANNING'||status==='SCANNING_PUBLIC'||status==='SEARCHING_PUBLIC_INDEX'||state.facebookPassPending)&&age<FB_TIMEOUT_MS;
+    if(s.captured.length)return`<div class="status-line"><span class="dot ${s.browser.length?'live':'warn'}"></span>${s.captured.length} public Facebook Marketplace card${s.captured.length===1?'':'s'} captured${termText}. ${s.browser.length} location-proven${s.unproven.length?` · ${s.unproven.length} need location proof`:''}${s.outside.length?` · ${s.outside.length} outside radius`:''}.</div>`;
+    if(busy)return`<div class="status-line"><span class="dot loading"></span>Searching public Facebook Marketplace${termText}…</div>`;
     if(status==='PUBLIC_BLOCKED')return'<div class="status-line"><span class="dot warn"></span>Facebook blocked anonymous Marketplace pages and public indexes returned no usable cards. Scout did not ask for or use a Facebook login.</div>';
-    if(status==='PUBLIC_INDEX_EMPTY'||status==='COMPLETE_EMPTY')return'<div class="status-line"><span class="dot warn"></span>No public Marketplace cards were found in this pass. Local Facebook inventory remains unknown—not zero. <button class="mini-btn" data-v300-fb-refresh>Retry public Facebook</button></div>';
+    if(status==='PUBLIC_INDEX_EMPTY'||status==='COMPLETE_EMPTY')return`<div class="status-line"><span class="dot warn"></span>No public Marketplace cards were found${termText} in this pass. Local Facebook inventory remains unknown—not zero. <button class="mini-btn" data-v300-fb-refresh>Retry public Facebook</button></div>`;
     if(status==='ERROR')return'<div class="status-line"><span class="dot warn"></span>Public Facebook acquisition failed; Craigslist, Penny Hunt and auctions remain independent. <button class="mini-btn" data-v300-fb-refresh>Retry public Facebook</button></div>';
     return'<div class="status-line"><span class="dot"></span>Scout uses public Facebook Marketplace discovery only. No Facebook login or saved Facebook session is used.</div>'
   }
@@ -131,8 +133,8 @@ window.H38_SCOUT_V305_PUBLIC_BACKEND_RECOVERY=true;
     const p=$('discoverPage');if(!p)return;
     const legacyButton=p.querySelector('#facebookScan'),legacySec=legacyButton?.closest('section.card');if(legacySec)legacySec.remove();
     let sec=p.querySelector('[data-v300-facebook]');if(!sec){sec=document.createElement('section');sec.className='card';sec.dataset.v300Facebook='true';const hero=p.querySelector('.hero');if(hero)hero.insertAdjacentElement('afterend',sec);else p.prepend(sec)}
-    const s=facebookSnapshot(),cards=s.captured.slice(0,8);sec.innerHTML=`<div class="section-head"><h2>Facebook Marketplace</h2><span>${s.captured.length} captured</span></div><p class="small muted">Public-only Marketplace discovery. Scout never asks you to sign in to Facebook and no longer opens Facebook automatically. Public indexed listings may be shown with location/freshness warnings until proven.</p>${fbStatusHtml()}${cards.length?`<div class="result-list cols">${cards.map(fbCard).join('')}</div>`:''}<div class="card-actions"><button class="mini-btn" data-v300-fb-refresh>Refresh Facebook</button></div>`;
-    sec.querySelectorAll('[data-v300-fb-refresh]').forEach(x=>x.onclick=()=>startFacebook(true));sec.querySelectorAll('[data-v300-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.v300Open));sec.querySelectorAll('[data-v300-research]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.v300Research||'';if(price&&Number(x.dataset.v300Price)>0)price.value=x.dataset.v300Price},30)})
+    const s=facebookSnapshot(),cards=s.captured.slice(0,8),activeTerm=txt(state.v300.facebookTerms?.[0]||state.discover.query);sec.innerHTML=`<div class="section-head"><h2>Facebook Marketplace</h2><span>${activeTerm?`${esc(activeTerm)} · `:''}${s.captured.length} captured</span></div><p class="small muted">Public Marketplace discovery for the active Discover search. Scout never asks you to sign in to Facebook and does not open Facebook automatically. Public indexed listings may be shown with location/freshness warnings until proven.</p>${fbStatusHtml()}${cards.length?`<div class="result-list cols">${cards.map(fbCard).join('')}</div>`:''}<div class="card-actions"><button class="mini-btn" data-v300-fb-refresh>Refresh Facebook</button></div>`;
+    sec.querySelectorAll('[data-v300-fb-refresh]').forEach(x=>x.onclick=()=>{const requested=currentFacebookSearchTerms();if(requested){state.discover.query=requested[0];write(H38_KEYS.discover,requested[0])}startFacebook(true,requested)});sec.querySelectorAll('[data-v300-open]').forEach(x=>x.onclick=()=>openExternal(x.dataset.v300Open));sec.querySelectorAll('[data-v300-research]').forEach(x=>x.onclick=()=>{setPage('scan');setTimeout(()=>{const q=$('scanHint'),price=$('scanPrice');if(q)q.value=x.dataset.v300Research||'';if(price&&Number(x.dataset.v300Price)>0)price.value=x.dataset.v300Price},30)})
   }
   function decorateHunt(){const p=$('huntPage');if(!p)return;const h=p.querySelector('.page-head h1');if(h)h.textContent='Penny Hunt';const copy=p.querySelector('.page-head p');if(copy)copy.textContent='Penny, near-penny and markdown evidence. Community/crawler sources tell you what is worth checking; physical UPC/register scan remains final local penny truth.';if(state.page==='hunt'&&$('topSubtitle'))$('topSubtitle').textContent='Penny Hunt'}
 
