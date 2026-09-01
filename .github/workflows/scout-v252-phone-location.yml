@@ -1,110 +1,16 @@
-name: Build H38 Scout v2.5.2 Phone Location Repair
+name: Archived H38 Scout v2.5.2 Phone Location Repair
 
 on:
-  push:
-    branches:
-      - 'agent/private-reseller-scout'
-    paths:
-      - 'native/h38-site-scanner/android-app/reseller/**'
-      - '.github/workflows/scout-v252-phone-location.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate-and-build:
+  archived:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: native/h38-site-scanner/android-app
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - uses: android-actions/setup-android@v3
-      - name: Install Android platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
-      - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.13' }
-
-      - name: Verify v2.5.2 physical-phone repair contract
-        shell: bash
+      - name: Historical workflow notice
         run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v252"; mkdir -p "$report"
-          check(){ grep -Fq "$1" "$2" || { echo "::error::Missing [$1] in $2"; exit 1; }; }
-          assets='reseller/src/main/assets/reseller'; app="$assets/v200-app.js"; index="$assets/index.html"; physical="$assets/v212-physical.js"; product="$assets/v220-product.js"; profit="$assets/v220-profit.js"; track="$assets/v220-track.js"; data="$assets/v240-data.js"; fb='reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java'
-          check "versionName '2.5.2'" reseller/build.gradle
-          check 'versionCode 82' reseller/build.gradle
-          check 'H38_SCOUT_V251_POLISH=true' "$index"
-          check 'H38_SCOUT_V252_FACEBOOK_LOCATION_REPAIR=true' "$app"
-          check "fn('reseller-location-geocode',{zip},20000)" "$app"
-          check 'Facebook was not opened with an unverified location.' "$app"
-          check 'H38_SCOUT_V216_HUNT_RUNTIME=true' "$physical"
-          check 'H38_SCOUT_V220_PROFIT_ENGINE=true' "$profit"
-          check 'H38_SCOUT_V220_TRACK=true' "$track"
-          check 'PENNY CANDIDATE' "$product"
-          check 'Physical scan/register required.' "$product"
-          check 'H38_SCOUT_V250_PROVIDER_HARDENING=true' "$data"
-          check 'LOCATION_PROOF_TTL_MS' "$fb"
-          check 'Wrong-area cards are withheld.' "$fb"
-          check 'location_verified' "$fb"
-          for f in "$assets"/v200-*.js "$assets"/v210-polish.js "$assets"/v211-wide.js "$assets"/v212-physical.js "$assets"/v220-profit.js "$assets"/v220-track.js "$assets"/v220-product.js "$assets"/v240-data.js; do node --check "$f"; done
-          rm -rf /tmp/h38-inline; mkdir -p /tmp/h38-inline
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          html=Path('reseller/src/main/assets/reseller/index.html').read_text()
-          assert html.index('H38_SCOUT_V251_POLISH=true') < html.index('src="v200-app.js"')
-          for i,s in enumerate(re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html)):
-              if s.strip(): Path(f'/tmp/h38-inline/inline-{i}.js').write_text(s)
-          PY
-          for f in /tmp/h38-inline/*.js; do node --check "$f"; done
-          node reseller/hunt-native.test.mjs | tee "$report/hunt-native.txt"
-          node reseller/profit-engine.test.mjs | tee "$report/profit-track.txt"
-          node "$assets/v251-facebook-resale.test.mjs" | tee "$report/facebook-resale-return.txt"
-          node "$GITHUB_WORKSPACE/supabase/functions/reseller-facebook-public-v240/core.test.mjs" | tee "$report/facebook-public.txt"
-          echo PASS > "$report/contract.txt"
-
-      - name: Compile Owner Scout v2.5.2 APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v252"; mkdir -p "$report"
-          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
-          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'; test -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v2.5.2.apk"; cp "$apk" "$out"
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.5.2.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
-
-      - name: Smoke inspect exact v2.5.2 APK bytes
-        shell: bash
-        run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v252"; out="$report/H38-Reseller-Scout-Owner-v2.5.2.apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='82' versionName='2.5.2'" "$report/badging.txt"
-          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
-          grep -Fq 'Verification succesful' "$report/zipalign.txt"
-          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-          unzip -p "$out" 'assets/reseller/index.html' > "$report/packaged-index.html"
-          unzip -p "$out" 'assets/reseller/v200-app.js' > "$report/packaged-v200-app.js"
-          unzip -p "$out" 'assets/reseller/v240-data.js' > "$report/packaged-v240-data.js"
-          grep -Fq 'H38_SCOUT_V251_POLISH=true' "$report/packaged-index.html"
-          grep -Fq 'H38_SCOUT_V252_FACEBOOK_LOCATION_REPAIR=true' "$report/packaged-v200-app.js"
-          grep -Fq 'Facebook was not opened with an unverified location.' "$report/packaged-v200-app.js"
-          grep -Fq 'H38_SCOUT_V250_PROVIDER_HARDENING=true' "$report/packaged-v240-data.js"
-          node --check "$report/packaged-v200-app.js"
-          echo PASS > "$report/smoke.txt"
-
-      - name: Upload v2.5.2 APK and diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: h38-reseller-scout-owner-v2.5.2
-          path: artifacts/scout-v252/*
-          if-no-files-found: warn
-          retention-days: 30
+          echo 'This v2.5.2 version-pinned workflow is archived and no longer runs on Scout pushes.'
+          echo 'Use Build Private Reseller Scout, the current version gate, and Firebase acceptance workflows for active Scout validation.'
