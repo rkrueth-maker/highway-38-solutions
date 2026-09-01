@@ -30,6 +30,7 @@ for(const file of browserFiles){
 
 const installer=read('supabase/migrations/20260805063000_client_tenant_installer.sql');
 const hardening=read('supabase/migrations/20260805063200_harden_client_tenant_installer_wrappers.sql');
+const advisorHardening=read('supabase/migrations/20260901223000_business_office_advisor_hardening.sql');
 const northernLakes=read('supabase/migrations/20260805063500_northern_lakes_closed_beta_tenant.sql');
 const retirement=read('supabase/migrations/20260805064000_retire_legacy_offices.sql');
 const edge=read('supabase/functions/business-office-invite-activation/index.ts');
@@ -52,8 +53,18 @@ check('legacy root Office route removed',!exists('legacy-business-office.html'))
 check('installer creates onboarding table with RLS',has(installer,[
   'create table if not exists public.business_onboarding_runs',
   'alter table public.business_onboarding_runs enable row level security',
-  'platform owners manage onboarding runs','business administrators read onboarding state'
+  'business administrators read onboarding state'
 ]));
+check('advisor hardening preserves both onboarding read paths and owner writes',has(advisorHardening,[
+  'drop policy if exists "platform owners manage onboarding runs"',
+  'drop policy if exists "business administrators read onboarding state"',
+  'create policy "business administrators and platform owners read onboarding state"',
+  'create policy "platform owners insert onboarding runs"',
+  'create policy "platform owners update onboarding runs"',
+  'create policy "platform owners delete onboarding runs"',
+  'private.platform_owner_access((select auth.uid()))',
+  "private.business_access(business_id, array['owner', 'administrator'])"
+])&&(advisorHardening.match(/on public\.business_onboarding_runs for select/g)||[]).length===1);
 check('installer restricted to active Highway 38 Owner',has(installer,[
   "business.business_key = 'highway38'", "membership.role = 'owner'",
   "membership.status = 'active'", 'Highway 38 Owner authorization is required.'
