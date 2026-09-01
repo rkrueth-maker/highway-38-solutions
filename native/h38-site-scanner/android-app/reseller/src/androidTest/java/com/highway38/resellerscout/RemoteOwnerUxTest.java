@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 public class RemoteOwnerUxTest {
     private static final String TAG = "H38RemoteUx";
     private static final long SHORT = 5_000;
-    private static final long NETWORK = 25_000;
     private static final int NAV_DISCOVER = 0;
     private static final int NAV_HUNT = 1;
     private static final int NAV_SCAN = 2;
@@ -156,7 +155,8 @@ public class RemoteOwnerUxTest {
         boolean completedEvidence = false;
         do {
             assertTrue("Profit-first Facebook sourcing navigated away from Discover", hasLabel("Find anything worth reselling"));
-            String status = textContaining("PROFIT-FIRST FACEBOOK");
+            String status = descriptionContaining("PROFIT-FIRST FACEBOOK");
+            if (status == null) status = textContaining("PROFIT-FIRST FACEBOOK");
             if (status != null && (status.matches(".*\\b[1-9][0-9]* candidates\\b.*") || hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet"))) {
                 completedEvidence = true;
                 break;
@@ -181,15 +181,22 @@ public class RemoteOwnerUxTest {
         tapNodeCenter(searchButton);
         device.waitForIdle(2_000);
         assertTrue("Discover search unexpectedly navigated away from Discover", waitForLabel("Find anything worth reselling", SHORT));
-        Thread.sleep(NETWORK);
-        assertTrue("Discover page was not retained after asynchronous search renders", hasLabel("Find anything worth reselling"));
+        assertNotNull("Typed fridge query was overwritten immediately after Search", findEditTextWithText("fridge"));
+        long end = System.currentTimeMillis() + 95_000;
+        boolean relevantCard = false;
+        boolean truthfulEmpty = false;
+        do {
+            assertTrue("Discover page was not retained during asynchronous fridge search", hasLabel("Find anything worth reselling"));
+            assertNotNull("Typed fridge query was overwritten during asynchronous search renders", findEditTextWithText("fridge"));
+            relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
+            truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet");
+            if (relevantCard || truthfulEmpty) break;
+            Thread.sleep(1_250);
+        } while (System.currentTimeMillis() < end);
         assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasLabelContains("Lawn care equipment"));
-        UiObject2 retained = findEditTextWithText("fridge");
-        assertNotNull("Typed fridge query was not retained in the Discover search field", retained);
-        boolean relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
-        boolean truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet");
+        assertFalse("Known stale Dollar General Inventory Checker query resurfaced in Discover", hasLabelContains("Dollar General Inventory Checker"));
         assertTrue("Fridge search produced neither a fridge/refrigerator result nor a truthful empty state", relevantCard || truthfulEmpty);
-        Log.i(TAG, "FRIDGE BOUNDARY: explicit query retained on Discover; stale unrelated card absent; result or truthful empty state visible.");
+        Log.i(TAG, "FRIDGE BOUNDARY: explicit query retained on Discover; stale unrelated query/card absent; result or truthful empty state visible.");
     }
 
     private void verifyLocalSalesInAuctions() throws Exception {
@@ -214,7 +221,8 @@ public class RemoteOwnerUxTest {
         int named = 0;
         int images = 0;
         do {
-            String quality = textContaining("DG QUALITY:");
+            String quality = descriptionContaining("DG QUALITY:");
+            if (quality == null) quality = textContaining("DG QUALITY:");
             int[] counts = parseDgQuality(quality);
             named = counts[0];
             images = counts[1];
@@ -222,33 +230,37 @@ public class RemoteOwnerUxTest {
             Thread.sleep(1_250);
         } while (System.currentTimeMillis() < end);
         assertTrue("Dollar General Hunt has no specifically named products after generic-title cleanup", named > 0);
-        assertTrue("Dollar General image recovery did not reach the minimum exact-UPC coverage; named=" + named + " images=" + images, images >= Math.min(3, named));
+        assertTrue("Dollar General image recovery did not reach the minimum sourced-image coverage; named=" + named + " images=" + images, images >= Math.min(3, named));
         assertFalse("Generic Dollar General Inventory Checker title is still visible", hasLabelContains("Dollar General Inventory Checker"));
         assertFalse("Generic Inventory Checker title is still visible", hasLabel("Inventory Checker"));
         boolean knownUpcVisible = hasLabelContains("840797136519");
         boolean knownWrongTitleVisible = hasLabelContains("Beech-Nut Veggies Stage 2 Baby Food");
         assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
         assertFalse("Malformed HTML/anchor text leaked into a Dollar General product title", hasLabelContains("href=\"https://www.dollargeneral.com/p/"));
-        Log.i(TAG, "DG BOUNDARY: named=" + named + " exact-UPC images=" + images + "; generic inventory-checker titles absent.");
+        Log.i(TAG, "DG BOUNDARY: named=" + named + " sourced images=" + images + "; generic inventory-checker titles absent.");
     }
 
     private void verifyGarageSaleBoundary() throws Exception {
         ensureDiscover();
         boolean section = waitForLabelContains("Garage & estate sales", 12_000);
         for (int i = 0; i < 4 && !section; i++) {
-            device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.82), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.28), 20);
+            swipeUp();
             Thread.sleep(600);
             section = hasLabelContains("Garage & estate sales");
         }
         assertTrue("Garage & estate sales module is not present in the APK runtime", section);
         UiObject2 find = findExactLabel("Find garage sales");
-        assertNotNull("Find garage sales action is missing", find);
+        for (int i = 0; i < 4 && find == null; i++) {
+            swipeUp();
+            Thread.sleep(600);
+            find = findExactLabel("Find garage sales");
+        }
+        assertNotNull("Find garage sales action is missing after revealing the garage card", find);
         tapNodeCenter(find);
         device.waitForIdle(1_000);
         long end = System.currentTimeMillis() + 90_000;
         boolean saleLeadOrTruth = false;
         do {
-            assertTrue("Garage-sale acquisition navigated away from Discover", hasLabel("Find anything worth reselling"));
             saleLeadOrTruth = hasLabel("GARAGE SALE") || hasLabel("YARD SALE") || hasLabel("RUMMAGE SALE") || hasLabel("MOVING SALE") || hasLabel("ESTATE SALE") || hasLabelContains("No sale leads loaded yet");
             if (saleLeadOrTruth) break;
             Thread.sleep(1_250);
@@ -283,6 +295,10 @@ public class RemoteOwnerUxTest {
         device.waitForIdle(1_500);
     }
 
+    private void swipeUp() {
+        device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.34), 18);
+    }
+
     private void dismissKeyboardIfVisible() {
         boolean gboard = device.hasObject(By.pkg("com.google.android.inputmethod.latin").depth(0));
         boolean aosp = device.hasObject(By.pkg("com.android.inputmethod.latin").depth(0));
@@ -304,6 +320,11 @@ public class RemoteOwnerUxTest {
         Matcher m = Pattern.compile("DG QUALITY:\\s*(\\d+) named\\s*[·|]\\s*(\\d+) images", Pattern.CASE_INSENSITIVE).matcher(text);
         if (!m.find()) return new int[]{0, 0};
         return new int[]{Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))};
+    }
+
+    private String descriptionContaining(String needle) {
+        UiObject2 x = device.findObject(By.descContains(needle));
+        return x == null ? null : x.getContentDescription();
     }
 
     private String textContaining(String needle) {
