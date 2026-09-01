@@ -1,0 +1,40 @@
+name: Dispatch H38 Scout Physical Acceptance From Private Head
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
+      - 'supabase/functions/reseller-facebook-public-v240/**'
+      - 'supabase/functions/reseller-garage-sales-v308/**'
+      - 'supabase/functions/reseller-auto-leads-v064/**'
+      - 'supabase/functions/reseller-image-delivery-v201/**'
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: scout-firebase-real-device-private-push-dispatch
+  cancel-in-progress: true
+
+jobs:
+  dispatch-physical:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Dispatch exact private branch head to physical S22 workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run scout-firebase-real-device.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$GITHUB_REF_NAME" \
+            -f model=r0q \
+            -f version=34
+          echo "Dispatched physical Firebase acceptance for private branch head $GITHUB_SHA"
