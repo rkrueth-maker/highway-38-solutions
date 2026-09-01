@@ -1,0 +1,24 @@
+name: Verify H38 Office Supabase Hardening
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260901173000_h38_office_security_hardening.sql'
+      - 'scripts/verify-h38-office-supabase-hardening.js'
+      - 'docs/architecture/H38_OFFICE_SUPABASE_HARDENING_20260901.md'
+      - '.github/workflows/verify-h38-office-supabase-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify H38 Office Supabase hardening
+        run: node scripts/verify-h38-office-supabase-hardening.js
