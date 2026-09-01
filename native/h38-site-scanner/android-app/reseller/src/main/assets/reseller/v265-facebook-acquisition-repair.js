@@ -47,11 +47,11 @@ window.H38_SCOUT_V313_SOURCE_POLISH=true;
       state.discover=state.discover||{};
       state.discover.query=typed;
       try{if(typeof write==='function'&&window.H38_KEYS?.discover)write(H38_KEYS.discover,typed)}catch{}
-      if(state.page!=='discover'&&typeof setPage==='function')setPage('discover');
       try{return await priorRunDiscover.apply(this,arguments)}finally{
         state.discover.query=typed;
-        if(state.page!=='discover'&&typeof setPage==='function')setPage('discover');
-        try{if(typeof renderDiscover==='function')renderDiscover()}catch{}
+        // A background Discover request must never steal the active bottom-nav page.
+        // Render/pin the query only while the owner is still on Discover.
+        try{if(state.page==='discover'&&typeof renderDiscover==='function')renderDiscover()}catch{}
         const current=document.getElementById('discoverSearch');
         if(current){current.value=typed;current.setAttribute('value',typed);current.setAttribute('aria-label','Discover search');}
       }
