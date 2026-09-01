@@ -1,4 +1,5 @@
 'use strict';
+// Final v3.0.15 source-quality acceptance head: garage safe action + live Discover query authority.
 window.H38_SCOUT_V316_GARAGE_SAFE_ACTION=true;
 window.H38_SCOUT_V316_DISCOVER_QUERY_GUARD=true;
 (function installV316GarageSafeAction(){
