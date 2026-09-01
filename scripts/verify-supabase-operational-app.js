@@ -83,16 +83,19 @@ for(const needle of [
   'price_book_assemblies_approved_by_idx',
   'price_book_assemblies_created_by_idx',
   'drop policy if exists "platform owners manage onboarding runs"',
+  'drop policy if exists "business administrators read onboarding state"',
+  'create policy "business administrators and platform owners read onboarding state"',
   'create policy "platform owners insert onboarding runs"',
   'create policy "platform owners update onboarding runs"',
   'create policy "platform owners delete onboarding runs"',
   'private.platform_owner_access((select auth.uid()))',
+  "private.business_access(business_id, array['owner', 'administrator'])",
   'drop policy if exists "administrators manage business storage settings"',
   'create policy "administrators insert business storage settings"',
   'create policy "administrators update business storage settings"',
   'create policy "administrators delete business storage settings"'
 ])includes(advisorHardening,needle,`Advisor hardening migration is missing ${needle}`);
-expect(!/create\s+policy\s+"platform owners[^\n]*"[\s\S]*?for\s+select/i.test(advisorHardening),'Platform-owner hardening must not restore a second onboarding SELECT policy.');
+expect((advisorHardening.match(/on public\.business_onboarding_runs for select/g)||[]).length===1,'Onboarding must have exactly one consolidated SELECT policy in the hardening migration.');
 expect(!/grant\s+execute|service[_-]?role/i.test(advisorHardening),'Advisor hardening must not broaden function execution or expose service-role access.');
 
 const data=read('commercial-app/supabase-data.js');
