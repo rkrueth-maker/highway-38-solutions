@@ -20,9 +20,22 @@ create index if not exists price_book_assemblies_approved_by_idx
 create index if not exists price_book_assemblies_created_by_idx
   on public.price_book_assemblies (created_by);
 
--- Keep one SELECT policy for onboarding state. Platform-owner write authority remains
--- explicit, while the owner/administrator read policy continues to own SELECT access.
+-- Consolidate onboarding SELECT into one policy while preserving BOTH existing read paths:
+-- 1) Highway 38 platform owners can inspect any client onboarding row.
+-- 2) Owners/administrators of a specific business can inspect that business's onboarding row.
+-- Keeping platform-owner SELECT is also required for any direct UPDATE path under Postgres RLS.
 drop policy if exists "platform owners manage onboarding runs" on public.business_onboarding_runs;
+drop policy if exists "business administrators read onboarding state" on public.business_onboarding_runs;
+drop policy if exists "business administrators and platform owners read onboarding state" on public.business_onboarding_runs;
+create policy "business administrators and platform owners read onboarding state"
+on public.business_onboarding_runs for select
+to authenticated
+using (
+  (select private.platform_owner_access((select auth.uid())))
+  or
+  (select private.business_access(business_id, array['owner', 'administrator']))
+);
+
 drop policy if exists "platform owners insert onboarding runs" on public.business_onboarding_runs;
 create policy "platform owners insert onboarding runs"
 on public.business_onboarding_runs for insert
