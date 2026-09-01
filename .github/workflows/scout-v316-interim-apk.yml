@@ -1,0 +1,117 @@
+name: Package H38 Scout v3.0.16 Interim Phone Test APK
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths:
+      - '.github/workflows/scout-v316-interim-apk.yml'
+      - 'native/h38-site-scanner/android-app/reseller/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scout-v316-interim-apk
+  cancel-in-progress: true
+
+jobs:
+  build-verify-package:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+
+      - name: Verify exact v3.0.16 private source
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"; mkdir -p "$report"
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -Fq "versionName '3.0.16'" reseller/build.gradle
+          grep -Fq 'versionCode 316' reseller/build.gradle
+          node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          grep -Fq 'H38_SCOUT_V316_WIDE_QUALITY=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
+          echo SOURCE_GATE_OK > "$report/source-gate.txt"
+
+      - name: Configure stable owner signing when available
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
+          if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+            chmod 600 "$KEYSTORE_PATH"
+            {
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH"
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+              echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo 'stable-upload-key' > "$report/signing-mode.txt"
+          else
+            echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
+          fi
+
+      - name: Compile owner APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
+          if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
+            gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
+            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          else
+            gradle --no-daemon :reseller:assembleOwnerDebug | tee "$report/compile.log"
+            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          fi
+          test -n "$apk" -a -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.16-interim.apk"
+          cp "$apk" "$out"
+          sha256sum "$out" > "$report/sha256.txt"
+
+      - name: Inspect exact packaged APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.16-interim.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='316' versionName='3.0.16'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"
+          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
+          node --check "$report/packaged-v316.js"
+          grep -Fq 'H38_SCOUT_V316_WIDE_QUALITY=true' "$report/packaged-v316.js"
+          echo APK_GATE_OK > "$report/apk-gate.txt"
+
+      - name: Upload v3.0.16 interim APK and verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v3.0.16-interim
+          path: artifacts/scout-v316-interim/*
+          if-no-files-found: error
+          retention-days: 30
