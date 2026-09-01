@@ -1,152 +1,16 @@
-name: Build H38 Scout v2.8.4 Facebook + Image Recovery
+name: Archived H38 Scout v2.8.4 Facebook + Image Recovery
 
 on:
-  push:
-    branches: ['agent/private-reseller-scout']
-    paths:
-      - 'native/h38-site-scanner/android-app/reseller/**'
-      - '.github/workflows/scout-v266-actionable-intake.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  archived:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: native/h38-site-scanner/android-app
-
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.13'
-
-      - name: Facebook and image recovery contract gates
-        shell: bash
+      - name: Historical workflow notice
         run: |
-          set -euo pipefail
-          app='reseller'
-          js="$app/src/main/assets/reseller/v265-facebook-acquisition-repair.js"
-          fb="$app/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java"
-
-          grep -Fq "versionName '2.8.4'" "$app/build.gradle"
-          grep -Fq 'versionCode 100' "$app/build.gradle"
-
-          grep -Fq 'H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY' "$js"
-          grep -Fq 'facebookBrowserCandidates' "$js"
-          grep -Fq 'publicOnly:false' "$js"
-          grep -Fq 'Connect Facebook once' "$js"
-          grep -Fq 'Connect / refresh Facebook' "$js"
-          grep -Fq 'Scout stopped the stale hunt instead of pretending it worked' "$js"
-          grep -Fq 'imageCandidates' "$js"
-          grep -Fq 'thumbnail_url' "$js"
-          grep -Fq 'product_image_url' "$js"
-          grep -Fq 'source_image_url' "$js"
-          grep -Fq 'photo_url' "$js"
-          grep -Fq 'referrerpolicy="no-referrer"' "$js"
-
-          grep -Fq '__H38_CONNECT__' "$fb"
-          grep -Fq 'c_user=' "$fb"
-          grep -Fq 'COMPLETE_LOCATION_UNPROVEN' "$fb"
-          grep -Fq 'CARD_LOCATION_VERIFIED' "$fb"
-          grep -Fq 'PAGE_LOCATION_VERIFIED' "$fb"
-          grep -Fq 'OUTSIDE_RADIUS' "$fb"
-          grep -Fq 'location_verified' "$fb"
-          grep -Fq 'captured_count' "$fb"
-          grep -Fq 'root.addView(collector,0,new FrameLayout.LayoutParams(1080,1920))' "$fb"
-          ! grep -Fq 'setTranslationX(-5000f)' "$fb"
-
-          node --check "$js"
-          node --check "$app/src/main/assets/reseller/v266-actionable-intake.js"
-          node "$app/hunt-native.test.mjs"
-          node "$app/profit-engine.test.mjs"
-
-          python - <<'PY'
-          from pathlib import Path
-          fb=Path('reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceEmbeddedCollector.java').read_text()
-          js=Path('reseller/src/main/assets/reseller/v265-facebook-acquisition-repair.js').read_text()
-          required_java=[
-              'totalCaptured+=incoming.length()',
-              'boolean cardProven=locationMatches(x.optString("text",""))',
-              'boolean verified=!outsideRadius&&(distanceProven||cardProven||pageProven)',
-              'preserved.put(x)',
-              'else if(totalCaptured>0)status="COMPLETE_LOCATION_UNPROVEN"'
-          ]
-          required_js=[
-              'captured=raw.filter',
-              'rows=captured.filter(r=>r?.location_verified===true)',
-              'unproven=captured.filter',
-              'outside=captured.filter',
-              'imageCandidates(r)',
-              'thumbnail_url',
-              'Connect / refresh Facebook',
-              'age>40000'
-          ]
-          missing=[x for x in required_java if x not in fb]+[x for x in required_js if x not in js]
-          if missing:
-              raise SystemExit('Missing v2.8.4 contract: '+repr(missing))
-          print('v2.8.4 Facebook/image recovery contract OK')
-          PY
-
-      - name: Compile owner APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle --no-daemon :reseller:assembleOwner
-
-      - name: Smoke inspect exact APK bytes
-        shell: bash
-        run: |
-          set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v284"
-          mkdir -p "$report"
-          apk='reseller/build/outputs/apk/owner/reseller-owner.apk'
-          out="$report/H38-Reseller-Scout-Owner-v2.8.4.apk"
-          test -f "$apk"
-          cp "$apk" "$out"
-
-          sha256sum "$out" > "$report/H38-Reseller-Scout-Owner-v2.8.4.sha256"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='100' versionName='2.8.4'" "$report/badging.txt"
-
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
-          unzip -t "$out" > "$report/zip-test.txt"
-          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
-
-          unzip -p "$out" 'assets/reseller/v265-facebook-acquisition-repair.js' > "$report/packaged-v265-facebook-acquisition-repair.js"
-          node --check "$report/packaged-v265-facebook-acquisition-repair.js"
-          grep -Fq 'H38_SCOUT_V284_FACEBOOK_AND_IMAGE_RECOVERY' "$report/packaged-v265-facebook-acquisition-repair.js"
-          grep -Fq 'Connect / refresh Facebook' "$report/packaged-v265-facebook-acquisition-repair.js"
-          grep -Fq 'thumbnail_url' "$report/packaged-v265-facebook-acquisition-repair.js"
-
-          for dex in $(zipinfo -1 "$out" 'classes*.dex'); do unzip -p "$out" "$dex"; done | strings > "$report/dex-strings.txt"
-          grep -Fq 'COMPLETE_LOCATION_UNPROVEN' "$report/dex-strings.txt"
-          grep -Fq 'CARD_LOCATION_VERIFIED' "$report/dex-strings.txt"
-          grep -Fq 'AUTH_REQUIRED' "$report/dex-strings.txt"
-
-          printf '%s\n' 'Dedicated CI/build succeeded. Physical phone acceptance remains separate.' > "$report/ci-result.txt"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: h38-reseller-scout-owner-v2.8.4-facebook-image-recovery
-          path: artifacts/scout-v284/*
-          if-no-files-found: warn
-          retention-days: 30
+          echo 'This v2.8.4 version-pinned workflow is archived and no longer runs on Scout pushes.'
+          echo 'Use Build Private Reseller Scout, the current version gate, and Firebase acceptance workflows for active Scout validation.'
