@@ -55,13 +55,16 @@ check('installer creates onboarding table with RLS',has(installer,[
   'alter table public.business_onboarding_runs enable row level security',
   'business administrators read onboarding state'
 ]));
-check('advisor hardening preserves owner writes with one onboarding read policy',has(advisorHardening,[
+check('advisor hardening preserves both onboarding read paths and owner writes',has(advisorHardening,[
   'drop policy if exists "platform owners manage onboarding runs"',
+  'drop policy if exists "business administrators read onboarding state"',
+  'create policy "business administrators and platform owners read onboarding state"',
   'create policy "platform owners insert onboarding runs"',
   'create policy "platform owners update onboarding runs"',
   'create policy "platform owners delete onboarding runs"',
-  'private.platform_owner_access((select auth.uid()))'
-])&&!/create\s+policy\s+"platform owners[^\n]*"[\s\S]*?for\s+select/i.test(advisorHardening));
+  'private.platform_owner_access((select auth.uid()))',
+  "private.business_access(business_id, array['owner', 'administrator'])"
+])&&(advisorHardening.match(/on public\.business_onboarding_runs for select/g)||[]).length===1);
 check('installer restricted to active Highway 38 Owner',has(installer,[
   "business.business_key = 'highway38'", "membership.role = 'owner'",
   "membership.status = 'active'", 'Highway 38 Owner authorization is required.'
