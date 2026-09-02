@@ -8,7 +8,9 @@ on:
       - '.github/workflows/scout-firebase-virtual-preflight.yml'
       - 'native/h38-site-scanner/android-app/reseller/build.gradle'
       - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/SignInTouchFocusTest.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
       - 'supabase/functions/reseller-facebook-public-v240/**'
       - 'supabase/functions/reseller-garage-sales-v308/**'
@@ -44,7 +46,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce private Scout authority and v3.0.16 contracts
+      - name: Enforce private Scout authority and v3.0.18 contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -55,8 +57,8 @@ jobs:
             if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
           done
           test "$missing" -eq 0
-          grep -Fq "versionName '3.0.16'" reseller/build.gradle
-          grep -Fq 'versionCode 316' reseller/build.gradle
+          grep -Fq "versionName '3.0.18'" reseller/build.gradle
+          grep -Fq 'versionCode 318' reseller/build.gradle
           node --check reseller/src/main/assets/reseller/v308-garage-polish.js
           node --check reseller/src/main/assets/reseller/v314-source-quality-repair.js
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
@@ -64,6 +66,8 @@ jobs:
           grep -Fq 'v314-source-quality-repair.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'v316-garage-safe-action.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -Fq 'onRenderProcessGone' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'PRESERVE_WEBVIEW_TEXT_INPUT_V318' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
+          grep -Fq 'physicalTapFocusesEmailAndPasswordFields' reseller/src/androidTest/java/com/highway38/resellerscout/SignInTouchFocusTest.java
           grep -Fq 'H38_SCOUT_V316_VIDEO_ACCEPTANCE_R2=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
           grep -Fq 'H38_SCOUT_V316_FINAL_ACCEPTANCE=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
           grep -Fq 'IMAGE_TARGET=90' reseller/src/main/assets/reseller/v316-garage-safe-action.js
@@ -94,13 +98,13 @@ jobs:
           echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
           report="$GITHUB_WORKSPACE/artifacts/firebase-virtual"
           mkdir -p "$report"
-          cp "$APP_APK" "$report/H38-Reseller-Scout-Owner-v3.0.16-virtual-preflight-debug.apk"
-          cp "$TEST_APK" "$report/H38-Reseller-Scout-Owner-v3.0.16-androidTest.apk"
+          cp "$APP_APK" "$report/H38-Reseller-Scout-Owner-v3.0.18-virtual-preflight-debug.apk"
+          cp "$TEST_APK" "$report/H38-Reseller-Scout-Owner-v3.0.18-androidTest.apk"
           sha256sum "$report"/*.apk | tee "$report/sha256.txt"
           unzip -p "$APP_APK" assets/reseller/v316-garage-safe-action.js | grep -Fq 'H38_SCOUT_V316_FINAL_ACCEPTANCE=true'
           unzip -p "$APP_APK" assets/reseller/v316-garage-safe-action.js | grep -Fq 'IMAGE_TARGET=90'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='316' versionName='3.0.16'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='318' versionName='3.0.18'" "$report/badging.txt"
 
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
@@ -131,7 +135,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run six-test v3.0.16 defect matrix on Firebase virtual Android
+      - name: Run sign-in touch plus six-test v3.0.18 defect matrix on Firebase virtual Android
         shell: bash
         run: |
           set -euo pipefail
@@ -144,11 +148,12 @@ jobs:
             --type instrumentation \
             --app "$APP" \
             --test "$TEST" \
+            --test-targets 'class com.highway38.resellerscout.SignInTouchFocusTest' \
             --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest' \
             --device "model=$VIRTUAL_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
             --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
             --timeout 25m \
-            --results-history-name 'H38 Scout v3.0.16 Virtual Defect Preflight' \
+            --results-history-name 'H38 Scout v3.0.18 Virtual Defect Preflight' \
             2>&1 | tee "$report/firebase-virtual.log"
           status=${PIPESTATUS[0]}
           set -e
@@ -167,7 +172,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.16-firebase-virtual-preflight
+          name: h38-scout-v3.0.18-firebase-virtual-preflight
           path: artifacts/firebase-virtual/*
           if-no-files-found: warn
           retention-days: 30

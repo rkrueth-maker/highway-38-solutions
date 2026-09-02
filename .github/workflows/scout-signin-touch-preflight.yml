@@ -1,0 +1,62 @@
+name: H38 Scout Sign-In Touch Preflight
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths:
+      - '.github/workflows/scout-signin-touch-preflight.yml'
+      - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/**'
+      - 'native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/SignInTouchFocusTest.java'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scout-signin-touch-preflight
+  cancel-in-progress: true
+
+jobs:
+  signin-touch:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - name: Verify exact v3.0.18 sign-in focus source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd native/h38-site-scanner/android-app
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -Fq "versionName '3.0.18'" reseller/build.gradle
+          grep -Fq 'versionCode 318' reseller/build.gradle
+          grep -Fq 'PRESERVE_WEBVIEW_TEXT_INPUT_V318' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
+          grep -Fq 'physicalTapFocusesEmailAndPasswordFields' reseller/src/androidTest/java/com/highway38/resellerscout/SignInTouchFocusTest.java
+      - name: Run physical-touch login focus test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: cd native/h38-site-scanner/android-app && gradle --no-daemon :reseller:connectedOwnerDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.highway38.resellerscout.SignInTouchFocusTest
+      - name: Upload touch-test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.18-signin-touch-preflight
+          path: native/h38-site-scanner/android-app/reseller/build/reports/androidTests/connected/**
+          if-no-files-found: warn
+          retention-days: 30
