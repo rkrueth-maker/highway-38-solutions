@@ -34,6 +34,9 @@ jobs:
           node --check commercial-app/app-16.js
           node --check commercial-app/app-19.js
           node --check commercial-app/app-20.js
+          node --check commercial-app/profitability-operating-layer.js
+          node --check commercial-app/desktop-navigation-authority.js
+          node --check scripts/verify-profitability-operating-layer.js
           node --check scripts/verify-commercial-system.js
           node --check scripts/verify-commercial-release-pipeline.js
           node --check scripts/verify-commercial-google-native-beta.js
@@ -74,6 +77,9 @@ jobs:
 
       - name: Verify replacement Office parity
         run: node scripts/verify-commercial-office-parity.js
+
+      - name: Verify profitability operating layer
+        run: node scripts/verify-profitability-operating-layer.js
 
       - name: Verify website-to-Office quote delivery contract
         run: node scripts/verify-commercial-delivery-contract.js
