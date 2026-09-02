@@ -4,7 +4,6 @@ window.H38_SCOUT_V316_DISCOVER_QUERY_GUARD=true;
 window.H38_SCOUT_V316_WIDE_QUALITY=true;
 window.H38_SCOUT_V316_VIDEO_ACCEPTANCE_R2=true;
 window.H38_SCOUT_V316_FINAL_ACCEPTANCE=true;
-window.H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true;
 (function installV316Acceptance(){
   if(window.H38_SCOUT_V316_ACCEPTANCE_INSTALLED)return;
   window.H38_SCOUT_V316_ACCEPTANCE_INSTALLED=true;
@@ -22,47 +21,12 @@ window.H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true;
     const email=document.querySelector('#loginForm input[name="email"]');
     const password=document.querySelector('#loginForm input[name="password"]');
     const submit=document.querySelector('#loginForm button[type="submit"]');
-    if(email){email.id='h38OwnerEmail';email.setAttribute('aria-label','Email');email.setAttribute('placeholder','Email');email.setAttribute('inputmode','email');email.setAttribute('autocomplete','username');email.setAttribute('autocapitalize','none');email.setAttribute('autocorrect','off');email.setAttribute('spellcheck','false');email.setAttribute('enterkeyhint','next');}
-    if(password){password.id='h38OwnerPassword';password.setAttribute('aria-label','Password');password.setAttribute('placeholder','Password');password.setAttribute('autocomplete','current-password');password.setAttribute('enterkeyhint','go');}
+    if(email){email.id='h38OwnerEmail';email.setAttribute('aria-label','Email');email.setAttribute('placeholder','Email');email.setAttribute('inputmode','email');}
+    if(password){password.id='h38OwnerPassword';password.setAttribute('aria-label','Password');password.setAttribute('placeholder','Password');}
     if(submit){submit.id='h38OwnerSignIn';submit.setAttribute('aria-label','Sign in');}
     const form=document.getElementById('loginForm');if(form){form.setAttribute('aria-label','Owner sign in');form.setAttribute('role','form');}
   }
-  let signinHandler=null;
-  function installSigninFormRepair(){
-    ensureLoginAccessibility();
-    const form=document.getElementById('loginForm'),email=document.getElementById('h38OwnerEmail'),password=document.getElementById('h38OwnerPassword'),submit=document.getElementById('h38OwnerSignIn');
-    if(!form||!email||!password||!submit)return;
-    if(form.dataset.h38V317SigninBound!=='true'){
-      form.dataset.h38V317SigninBound='true';
-      const capture=()=>{form.dataset.h38EmailValue=String(email.value||'');form.dataset.h38PasswordValue=String(password.value||'');};
-      for(const type of ['input','change','compositionend','blur']){email.addEventListener(type,capture);password.addEventListener(type,capture)}
-      email.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();password.focus()}});
-      password.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();form.requestSubmit()}});
-      capture();
-    }
-    if(!signinHandler)signinHandler=async e=>{
-      e.preventDefault();
-      if(form.dataset.h38SigninBusy==='true')return;
-      try{if(document.activeElement&&typeof document.activeElement.blur==='function')document.activeElement.blur()}catch{}
-      await new Promise(resolve=>setTimeout(resolve,24));
-      const emailValue=String(email.value||form.dataset.h38EmailValue||'').trim(),passwordValue=String(password.value||form.dataset.h38PasswordValue||'');
-      form.dataset.h38EmailValue=emailValue;form.dataset.h38PasswordValue=passwordValue;
-      const message=document.getElementById('loginMessage');
-      if(!emailValue||!passwordValue){if(message)message.innerHTML='<div class="status-line"><span class="dot warn"></span>Enter both email and password.</div>';(!emailValue?email:password).focus();return}
-      form.dataset.h38SigninBusy='true';submit.disabled=true;submit.dataset.h38OldText=submit.textContent;submit.textContent='Signing in…';
-      if(message)message.innerHTML='<div class="status-line"><span class="dot loading"></span>Signing in…</div>';
-      try{
-        if(typeof h38sb==='undefined'||!h38sb?.auth?.signInWithPassword)throw new Error('Sign-in service did not load. Close and reopen Scout.');
-        const {data,error:authError}=await h38sb.auth.signInWithPassword({email:emailValue,password:passwordValue});
-        if(authError)throw authError;
-        if(!data?.session)throw new Error('Sign-in did not return a session.');
-        await authorize(data.session);
-      }catch(err){if(message)message.innerHTML=`<div class="status-line"><span class="dot warn"></span>${typeof esc==='function'?esc(err?.message||err):String(err?.message||err)}</div>`}
-      finally{form.dataset.h38SigninBusy='false';submit.disabled=false;submit.textContent=submit.dataset.h38OldText||'Sign in'}
-    };
-    form.onsubmit=signinHandler;
-  }
-  ensureLoginAccessibility();installSigninFormRepair();setTimeout(installSigninFormRepair,250);setTimeout(installSigninFormRepair,1200);
+  ensureLoginAccessibility();
   Object.assign(state.v316,{videoAcceptanceR2:true,finalAcceptance:true,dgRecovering:false,dgLastRecoveryAt:num(state.v316.dgLastRecoveryAt),dgRecoveryTried:num(state.v316.dgRecoveryTried),dgRecoveryDelivered:num(state.v316.dgRecoveryDelivered),invalidTitlesRemoved:num(state.v316.invalidTitlesRemoved),genericImagesRemoved:num(state.v316.genericImagesRemoved),mismatchedImagesRemoved:num(state.v316.mismatchedImagesRemoved),lastGoodHunt:Array.isArray(state.v316.lastGoodHunt)?state.v316.lastGoodHunt:[],lastGoodAt:num(state.v316.lastGoodAt),huntRestoreCount:num(state.v316.huntRestoreCount)});
 
   const style=document.createElement('style');style.id='h38-v316-acceptance';style.textContent=`
@@ -98,10 +62,10 @@ window.H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true;
   function restoreReturn(){let s;try{s=JSON.parse(sessionStorage.getItem(RETURN_KEY)||'null')}catch{}if(!s||Date.now()-num(s.at)>20*60*1000)return;migrateStaleQuery();if(typeof setPage==='function'&&s.page)setPage(s.page);if(state.discover&&!staleQuery.test(text(s.query)))state.discover.query=text(s.query);setTimeout(()=>window.scrollTo(0,num(s.scrollY)),120)}
   document.addEventListener('click',e=>{const a=e.target?.closest?.('a[href]');if(a&&/^https?:/i.test(a.href))snapshotReturn(a.href)},true);
   window.H38ScoutReturned=function(){restoreReturn();restoreHunt();cleanseKnownState();scrubRendered();sourceHealth();decisionCards();qualityStatus();if(state.page==='hunt')void recoverDgImages(false)};
-  function afterRender(){installSigninFormRepair();restoreHunt();cleanseKnownState();rememberHunt();scrubRendered();sourceHealth();decisionCards();qualityStatus()}
+  function afterRender(){ensureLoginAccessibility();restoreHunt();cleanseKnownState();rememberHunt();scrubRendered();sourceHealth();decisionCards();qualityStatus()}
   for(const name of ['renderDiscover','renderHunt']){const base=window[name];if(typeof base!=='function'||base.__h38v316)return;const wrapped=function(...args){if(name==='renderHunt')restoreHunt();const out=base.apply(this,args);queueMicrotask(afterRender);return out};wrapped.__h38v316=true;window[name]=wrapped}
   if(typeof loadHunt==='function'&&!loadHunt.__h38v316){const base=loadHunt;loadHunt=async function(...args){rememberHunt();try{return await base.apply(this,args)}finally{restoreHunt();cleanseKnownState();rememberHunt();if(state.page==='hunt'&&typeof renderHunt==='function')renderHunt()}};loadHunt.__h38v316=true}
-  const observer=new MutationObserver(()=>{installSigninFormRepair();scrubRendered();decisionCards();if(state.page==='discover')sourceHealth();if(state.page==='hunt')qualityStatus()});observer.observe(document.getElementById('appView')||document.body,{childList:true,subtree:true});
+  const observer=new MutationObserver(()=>{scrubRendered();decisionCards();if(state.page==='discover')sourceHealth();if(state.page==='hunt')qualityStatus()});observer.observe(document.getElementById('appView')||document.body,{childList:true,subtree:true});
   window.H38V316VideoAcceptanceMetrics=()=>({...dgMetrics(),generic_removed:state.v316.genericImagesRemoved,mismatched_removed:state.v316.mismatchedImagesRemoved,invalid_titles_removed:state.v316.invalidTitlesRemoved,hunt_restores:state.v316.huntRestoreCount,facebook_candidates:num(state.v314?.facebookCandidates),facebook_ranked:num(state.v314?.facebookRanked),facebook_verified:num(state.v314?.facebookVerified),garage_rows:Array.isArray(state.v308?.garageRows)?state.v308.garageRows.length:0});
   migrateStaleQuery();restoreHunt();cleanseKnownState();rememberHunt();afterRender();setTimeout(()=>void recoverDgImages(true),900);
 })();

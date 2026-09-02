@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.18 Sign-In Touch Repair APK
+name: Package H38 Scout v3.0.19 Known-Good Sign-In Recovery APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v318-signin-touch-apk
+  group: scout-v319-known-good-signin
   cancel-in-progress: true
 
 jobs:
@@ -33,23 +33,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.18 private source
+      - name: Verify exact v3.0.19 recovery source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v318-signin-touch"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v319-known-good"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.18'" reseller/build.gradle
-          grep -Fq 'versionCode 318' reseller/build.gradle
+          grep -Fq "versionName '3.0.19'" reseller/build.gradle
+          grep -Fq 'versionCode 319' reseller/build.gradle
+          test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = 'a3292b297be8d1ae80295a6f93a8b3bc34119553'
+          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java)" = '30832ce2bf3bb1b6442ad73b57bc9e94c323b26b'
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          grep -Fq 'H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          grep -Fq 'PRESERVE_WEBVIEW_TEXT_INPUT_V318' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          grep -Fq 'physicalTapFocusesEmailAndPasswordFields' reseller/src/androidTest/java/com/highway38/resellerscout/SignInTouchFocusTest.java
+          ! grep -Fq 'H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          ! grep -Fq 'PRESERVE_WEBVIEW_TEXT_INPUT_V318' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
           ! grep -Fq 'SOFT_INPUT_ADJUST_RESIZE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           ! grep -Fq 'setOnTouchListener((v,event)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
-          echo SOURCE_GATE_OK > "$report/source-gate.txt"
+          echo KNOWN_GOOD_RUNTIME_RESTORED > "$report/source-gate.txt"
 
       - name: Configure stable owner signing when available
         shell: bash
@@ -60,7 +61,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v318-signin-touch"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v319-known-good"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -80,7 +81,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v318-signin-touch"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v319-known-good"
           if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
             gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
@@ -89,7 +90,7 @@ jobs:
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
           fi
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.18-signin-touch.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.19-known-good-signin.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
@@ -97,10 +98,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v318-signin-touch"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.18-signin-touch.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v319-known-good"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.19-known-good-signin.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='318' versionName='3.0.18'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='319' versionName='3.0.19'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -108,14 +109,14 @@ jobs:
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
+          test "$(sha1sum "$report/packaged-v316.js" | awk '{print $1}')" = "$(git show df2db03f920994a9fa5fc51b2e6a7c1ca0a8048a:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v316-garage-safe-action.js | sha1sum | awk '{print $1}')"
           node --check "$report/packaged-v316.js"
-          grep -Fq 'H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true' "$report/packaged-v316.js"
           echo APK_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload v3.0.18 sign-in touch APK and verification
+      - name: Upload v3.0.19 recovery APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.18-signin-touch
-          path: artifacts/scout-v318-signin-touch/*
+          name: h38-reseller-scout-owner-v3.0.19-known-good-signin
+          path: artifacts/scout-v319-known-good/*
           if-no-files-found: error
           retention-days: 30
