@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +26,9 @@ def test_add_customer_shortcut_uses_one_ui_authority_and_fresh_phone_assets():
     assert 'customerCreationDelegatedToTopAction:true' in PHONE
     assert 'data-h38-add-customer' not in PHONE
     assert 'jobsDomMutation:false' in PHONE
-    assert 'h38-business-office-20260827-1350' in WORKER
+    cache = re.search(r"const CACHE_NAME='h38-business-office-(\d{8})-(\d{4}|nav-core-\d+)'", WORKER)
+    assert cache, 'Business Office must use an accepted fresh dated or nav-core cache epoch'
+    assert int(cache.group(1)) >= 20260827, 'Add Customer acceptance must not regress to a pre-repair phone cache'
     assert "'owner-phone-visual-fix.js'" in WORKER
     assert "'./owner-phone-visual-fix.js'" in WORKER
 
