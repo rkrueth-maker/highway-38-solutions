@@ -64,10 +64,17 @@ window.H38_SCOUT_V317_FLIPR_RESALE_FLOW=true;
   function clearSession(){state.scan.flipSession=[];writeJson(KEY,[]);renderScan()}
   function quickNext(){try{if(typeof clearScan==='function')clearScan();else{state.scan.photos=[];state.scan.upc='';state.scan.hint='';state.scan.buyPrice='';state.scan.identification=null;state.scan.market=null;renderScan()}}catch{}}
   function resalePanel(){
-    const d=decision(),s=state.scan.flipSettings||defaults,ss=sessionSummary(),klass=d.status==='BUY'?'buy':d.status==='SKIP'?'skip':'maybe',sold=d.sold;
-    const active=sold.active===null?'Unknown':String(Math.round(sold.active)),str=d.str===null?'Unknown':Math.round(d.str*100)+'%';
+    const ss=sessionSummary();
     const rows=(state.scan.flipSession||[]).slice(0,8).map(r=>`<div class="h38-flip-session-row"><div><strong>${esc(r.title)}</strong><div class="small muted">${esc(r.status)} · buy ${money(r.buy)} · resale ${money(r.resale)} · profit ${money(r.profit)}</div></div><div><strong>${r.score??'—'}</strong><div class="small muted">score</div></div></div>`).join('');
-    return `<section class="card" id="h38FlipDecision"><div class="item-top"><span class="badge info">RESELLER DECISION</span><span class="badge">SOLD DATA FIRST</span></div><h2 style="margin:8px 0 4px">Buy / skip before you leave the aisle</h2><p class="small muted">Inspired by the fastest reseller workflows: sold comps, sell-through, exact costs, target ROI and a hard max-offer number. Penny and near-penny Hunt remain separate and untouched.</p><div class="h38-flip-grid"><div class="h38-flip-metric"><strong>${money(d.resale)}</strong><span>CONDITION-ADJUSTED RESALE</span></div><div class="h38-flip-metric"><strong>${money(d.profit)}</strong><span>EXPECTED PROFIT</span></div><div class="h38-flip-metric"><strong>${pct(d.roi)}</strong><span>ROI</span></div><div class="h38-flip-metric"><strong>${money(d.maxOffer)}</strong><span>MAX OFFER</span></div><div class="h38-flip-metric"><strong>${sold.count||0}</strong><span>SOLD COMPS</span></div><div class="h38-flip-metric"><strong>${str}</strong><span>SELL-THROUGH</span></div></div><div class="h38-flip-decision ${klass}">${esc(d.status)} · ${esc(d.reason)}${d.score!==null?` · score ${d.score}/100`:''}</div><div class="small muted" style="margin-top:5px">Active listings: ${active} · confidence: ${esc(sold.confidence||'unknown')}</div><div class="h38-flip-controls" style="margin-top:12px"><label>Condition<select id="h38FlipCondition"><option value="new" ${s.condition==='new'?'selected':''}>New</option><option value="like-new" ${s.condition==='like-new'?'selected':''}>Like new</option><option value="used-good" ${s.condition==='used-good'?'selected':''}>Used / good</option><option value="used-fair" ${s.condition==='used-fair'?'selected':''}>Used / fair</option><option value="parts" ${s.condition==='parts'?'selected':''}>Parts / repair</option></select></label><label>Marketplace fee %<input id="h38FlipFee" inputmode="decimal" value="${(s.feeRate*100).toFixed(2)}"></label><label>Shipping<input id="h38FlipShipping" inputmode="decimal" value="${s.shipping}"></label><label>Supplies / packing<input id="h38FlipSupplies" inputmode="decimal" value="${s.supplies}"></label><label>Target profit<input id="h38FlipProfitTarget" inputmode="decimal" value="${s.targetProfit}"></label><label>Target ROI %<input id="h38FlipRoiTarget" inputmode="decimal" value="${Math.round(s.targetRoi*100)}"></label></div><div class="card-actions" style="margin-top:12px"><button class="primary" id="h38FlipRecalc">Recalculate</button><button class="secondary" id="h38FlipAdd">Add to haul</button><button class="secondary" id="h38FlipNext">Scan next</button></div></section><section class="card"><div class="item-top"><span class="badge">THIS HAUL</span><span class="badge">${ss.count} items</span></div><div class="h38-flip-grid"><div class="h38-flip-metric"><strong>${money(ss.cost)}</strong><span>TOTAL COST</span></div><div class="h38-flip-metric"><strong>${money(ss.resale)}</strong><span>EST. RESALE</span></div><div class="h38-flip-metric"><strong>${money(ss.profit)}</strong><span>EST. PROFIT</span></div></div>${rows||'<p class="small muted">Add researched items as you move through a thrift store, garage sale, estate sale, auction preview, or clearance aisle.</p>'}${ss.count?'<div class="card-actions"><button class="secondary" id="h38FlipClear">Clear haul</button></div>':''}</section>`;
+    return `<section class="card"><div class="item-top"><span class="badge">THIS HAUL</span><span class="badge">${ss.count} items</span></div><div class="h38-flip-grid"><div class="h38-flip-metric"><strong>${money(ss.cost)}</strong><span>TOTAL COST</span></div><div class="h38-flip-metric"><strong>${money(ss.resale)}</strong><span>EST. RESALE</span></div><div class="h38-flip-metric"><strong>${money(ss.profit)}</strong><span>EST. PROFIT</span></div></div>${rows||'<p class="small muted">Add researched items as you move through a thrift store, garage sale, estate sale, auction preview, or clearance aisle.</p>'}${ss.count?'<div class="card-actions"><button class="secondary" id="h38FlipClear">Clear haul</button></div>':''}</section>`;
+  }
+  function decorateDecision(){
+    const card=document.getElementById('profitDecisionCard');if(!card)return;
+    card.querySelectorAll('[data-h38-flip-decision-extra]').forEach(x=>x.remove());
+    const d=decision(),sold=d.sold,active=sold.active===null?'Unknown':String(Math.round(sold.active)),str=d.str===null?'Unknown':Math.round(d.str*100)+'%';
+    const extra=document.createElement('div');extra.dataset.h38FlipDecisionExtra='true';
+    extra.innerHTML=`<div class="h38-flip-grid" style="margin-top:10px"><div class="h38-flip-metric"><strong>${money(d.maxOffer)}</strong><span>MAX RESPONSIBLE OFFER</span></div><div class="h38-flip-metric"><strong>${str}</strong><span>SELL-THROUGH</span></div><div class="h38-flip-metric"><strong>${sold.count||0}</strong><span>SOLD COMPS</span></div><div class="h38-flip-metric"><strong>${active}</strong><span>ACTIVE LISTINGS</span></div></div><div class="card-actions" id="h38FlipActions"><button class="secondary" id="h38FlipNext">Scan next</button></div>`;
+    card.appendChild(extra);
   }
 
   const baseRenderScan=window.renderScan;
@@ -75,12 +82,15 @@ window.H38_SCOUT_V317_FLIPR_RESALE_FLOW=true;
     if(typeof baseRenderScan==='function')baseRenderScan();
     const p=document.getElementById('scanPage');if(!p)return;
     p.querySelectorAll('#h38FlipDecision,[data-h38-flip-session]').forEach(x=>x.remove());
-    const wrap=document.createElement('div');wrap.dataset.h38FlipSession='true';wrap.innerHTML=resalePanel();p.appendChild(wrap);
-    const ids=['h38FlipCondition','h38FlipFee','h38FlipShipping','h38FlipSupplies','h38FlipProfitTarget','h38FlipRoiTarget'];ids.forEach(id=>{const el=document.getElementById(id);if(el)el.onchange=()=>{settingsFromDom();window.renderScan()}});
-    const rec=document.getElementById('h38FlipRecalc');if(rec)rec.onclick=()=>{settingsFromDom();window.renderScan()};
-    const add=document.getElementById('h38FlipAdd');if(add)add.onclick=saveCurrent;
+    const oldResale=p.querySelector('[data-v317-resale]');
+    const oldHaul=p.querySelector('[data-v317-haul]');
+    const oldAdd=document.getElementById('v317Add');
+    decorateDecision();
+    const actions=document.getElementById('h38FlipActions');
+    if(oldAdd&&actions){oldAdd.className='secondary';oldAdd.textContent='Add to haul';actions.insertBefore(oldAdd,actions.firstChild)}
+    if(oldResale)oldResale.remove();
+    if(oldHaul)p.appendChild(oldHaul);
     const next=document.getElementById('h38FlipNext');if(next)next.onclick=quickNext;
-    const clear=document.getElementById('h38FlipClear');if(clear)clear.onclick=clearSession;
   };
 
   let imagePasses=0,imageTimer=0;
