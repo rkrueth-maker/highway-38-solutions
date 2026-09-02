@@ -26,7 +26,7 @@ window.H38_SCOUT_V317_FLIPR_RESALE_FLOW=true;
     .h38-flip-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.h38-flip-controls label{margin:0}
     .h38-flip-session-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 0;border-top:1px solid rgba(18,55,76,.09)}
     .h38-flip-decision{font-weight:800}.h38-flip-decision.buy{color:#0a6b3f}.h38-flip-decision.maybe{color:#8b5a00}.h38-flip-decision.skip{color:#9c2635}
-    @media(max-width:520px){.h38-flip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.h38-flip-controls{grid-template-columns:1fr}}
+    @media(max-width:520px){.h38-flip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.h38-flip-controls{grid-template-columns:1fr}.chip,.seg button,.mini-btn,.card-actions button{min-height:44px}.page{padding-bottom:130px}.quick-chips,.filter-row,.seg{scroll-padding-inline:10px;-webkit-overflow-scrolling:touch}}
   `;
   document.head.appendChild(style);
 
@@ -88,6 +88,28 @@ window.H38_SCOUT_V317_FLIPR_RESALE_FLOW=true;
   function imageFollowup(){clearTimeout(imageTimer);if(state.page!=='hunt'||typeof window.H38V316RecoverDgImages!=='function')return;if(coverage()>=90||imagePasses>=4)return;imagePasses++;try{void window.H38V316RecoverDgImages(true)}catch{}imageTimer=setTimeout(imageFollowup,12000)}
   const baseRenderHunt=window.renderHunt;
   window.renderHunt=function(){if(typeof baseRenderHunt==='function')baseRenderHunt();if(state.page==='hunt'){imageTimer=setTimeout(imageFollowup,1200);const p=document.getElementById('huntPage');if(p&&!p.querySelector('[data-v317-image-action]')){const b=document.createElement('button');b.className='secondary';b.dataset.v317ImageAction='true';b.textContent='Resolve missing product images';b.onclick=()=>{imagePasses=0;imageFollowup()};const q=p.querySelector('[data-v316-video-quality]');if(q)q.insertAdjacentElement('afterend',b);else p.prepend(b)}}};
+
+  function renderTrackPage(){
+    const p=document.getElementById('trackPage');if(!p)return;
+    const api=window.H38Track,tracks=api&&typeof api.list==='function'?api.list():[],events=api&&typeof api.events==='function'?api.events():[],decisions=api&&typeof api.decisions==='function'?api.decisions():[];
+    const trackRows=tracks.slice(0,30).map(x=>`<section class="card"><div class="item-top"><span class="badge ${x.enabled!==false?'good':'warn'}">${x.enabled!==false?'WATCHING':'PAUSED'}</span>${x.retailer?`<span class="badge">${esc(x.retailer)}</span>`:''}</div><h3 style="margin:8px 0 4px">${esc((x.keywords&&x.keywords[0])||x.upc||x.sku||'Tracked item')}</h3><div class="meta"><span>${x.radius?esc(x.radius)+' mi':'Any distance'}</span><span>${x.maxBuyPrice!=null?'Max '+money(x.maxBuyPrice):'No max buy set'}</span><span>${x.minimumExpectedProfit!=null?'Min profit '+money(x.minimumExpectedProfit):'Profit target not set'}</span></div><div class="card-actions"><button class="secondary" data-h38-track-toggle="${esc(x.id)}">${x.enabled!==false?'Pause':'Resume'}</button><button class="danger-text" data-h38-track-remove="${esc(x.id)}">Remove</button></div></section>`).join('');
+    const eventRows=events.slice(0,8).map(x=>`<div class="h38-flip-session-row"><div><strong>${esc(x.title||'Tracked match')}</strong><div class="small muted">${esc(x.recommendedAction||'MATCH')} · ${x.expectedProfit!=null?'profit '+money(x.expectedProfit):'profit not verified'}</div></div><div><strong>${x.dealScore??'—'}</strong><div class="small muted">score</div></div></div>`).join('');
+    const buyCount=decisions.filter(x=>String(x.decision||'').toUpperCase()==='BUY').length;
+    p.innerHTML=`<div class="page-head"><div><h1>Track</h1><p>Watch exact items or keywords and keep deal decisions together. Scout only promotes a match when the saved buy/profit rules are met.</p></div></div><section class="card"><div class="h38-flip-grid"><div class="h38-flip-metric"><strong>${tracks.filter(x=>x.enabled!==false).length}</strong><span>ACTIVE WATCHES</span></div><div class="h38-flip-metric"><strong>${events.length}</strong><span>MATCH EVENTS</span></div><div class="h38-flip-metric"><strong>${buyCount}</strong><span>BUY DECISIONS</span></div></div></section>${trackRows||'<div class="empty"><strong>No tracked items yet</strong>Add an item from Scan / Research or an opportunity card to start watching it.</div>'}${eventRows?`<section class="card"><div class="item-top"><span class="badge">RECENT MATCHES</span></div>${eventRows}</section>`:''}`;
+    p.querySelectorAll('[data-h38-track-toggle]').forEach(b=>b.onclick=()=>{try{api.toggle(b.dataset.h38TrackToggle);renderTrackPage()}catch{}});
+    p.querySelectorAll('[data-h38-track-remove]').forEach(b=>b.onclick=()=>{try{api.remove(b.dataset.h38TrackRemove);renderTrackPage()}catch{}});
+  }
+  const baseSetPage=window.setPage;
+  window.setPage=function(page){
+    if(page!=='track')return baseSetPage(page);
+    state.page='track';
+    for(const id of ['discover','hunt','scan','auction','track','more'])show(`${id}Page`,id==='track');
+    document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page==='track'));
+    const sub=document.getElementById('topSubtitle');if(sub)sub.textContent='Tracked deals';
+    show('locationStrip',true);renderLocationStrip();window.scrollTo({top:0,behavior:'instant'});renderTrackPage();
+  };
+  window.renderTrack=renderTrackPage;
+
   window.H38V317FlipDecision=decision;
   window.H38V317FlipSession=()=>[...(state.scan.flipSession||[])];
   setTimeout(()=>{if(state.page==='scan')window.renderScan();if(state.page==='hunt')window.renderHunt()},0);
