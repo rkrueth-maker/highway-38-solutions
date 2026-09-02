@@ -16,6 +16,9 @@ check('late loader owns profitability module load',loader.includes('./profitabil
 check('late loader uses exact profitability build',loader.includes("const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1'"));
 check('late loader prevents duplicate scripts',loader.includes("document.querySelector('script[data-h38-profitability-layer]')"));
 check('live-first delivery protects late loader',/LIVE_FIRST[^;]+desktop-navigation-authority\.js/s.test(sw));
+check('profitability assumption inputs have capture safety',loader.includes('PROFITABILITY_INPUT_IDS')&&loader.includes("document.addEventListener('change'")&&loader.includes('event.stopImmediatePropagation()'));
+check('profitability assumption rerender is deferred past input event',loader.includes("setTimeout(()=>{")&&loader.includes("window.dispatchEvent(new Event('h38:business-snapshot-updated'))"));
+check('profitability input safety is contract-visible',loader.includes('profitabilityInputSafety:true'));
 [
   ['Profit Guard','profitGuard:true'],['back-costing','backCosting:true'],['Business Health','businessHealth:true'],['profit leak detector','profitLeakDetector:true'],['90-day plan','ninetyDayPlan:true'],['six health dimensions',"['Profit','Sales','Operations','Team','Cash','Systems']"],['Price Book assembly cost','direct_cost_per_unit'],['Price Book item cost','unit_cost'],['unknown cost remains incomplete','Cost data needed'],['recorded job expense cost',"realRows('expenses')"],['recorded job time cost',"realRows('timeEntries')"],['overdue cash signal','overdue recorded balances'],['stale job signal','stale open job'],['financial access check','canSeeFinancial()'],['business-scoped owner settings','h38:profitability:']
 ].forEach(([name,needle])=>check(name,layer.includes(needle)));
@@ -29,4 +32,4 @@ check('no purchase operation',!/(PURCHASE_|placeOrder|buyNow)/.test(layer));
 check('no queueOperation writes',!layer.includes('queueOperation('));
 check('loader still retired from navigation ownership',loader.includes('retired:true')&&loader.includes('mutatesNavigation:false')&&loader.includes('capturesClicks:false'));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
-console.log(JSON.stringify({status:'PASS',features:['Profit Guard','job back-costing','Business Health','profit leak detector','90-day owner plan'],delivery:'late LIVE_FIRST loader',externalActions:false},null,2));
+console.log(JSON.stringify({status:'PASS',features:['Profit Guard','job back-costing','Business Health','profit leak detector','90-day owner plan'],delivery:'late LIVE_FIRST loader with deferred input safety',externalActions:false},null,2));
