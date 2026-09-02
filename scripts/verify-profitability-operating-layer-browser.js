@@ -75,6 +75,7 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
     const contract=await page.evaluate(()=>window.H38_PROFITABILITY_OPERATING_LAYER);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchasing','automaticPayment','automaticScheduling','automaticPublishing'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.ownerActionOnly,true,'ownerActionOnly must remain true');
+    if(errors.length)console.error(`PROFITABILITY_PAGE_ERRORS=${JSON.stringify(errors)}`);
     assert.deepEqual(errors,[],'profitability browser verifier should have no page errors');
     console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions persist','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
   }finally{await browser.close();}
