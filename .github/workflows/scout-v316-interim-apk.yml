@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.16 Interim Phone Test APK
+name: Package H38 Scout v3.0.17 Sign-In Repair Phone Test APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v316-interim-apk
+  group: scout-v317-signin-apk
   cancel-in-progress: true
 
 jobs:
@@ -33,17 +33,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.16 private source
+      - name: Verify exact v3.0.17 private source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v317-signin"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.16'" reseller/build.gradle
-          grep -Fq 'versionCode 316' reseller/build.gradle
+          grep -Fq "versionName '3.0.17'" reseller/build.gradle
+          grep -Fq 'versionCode 317' reseller/build.gradle
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          grep -Fq 'H38_SCOUT_V316_WIDE_QUALITY=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          grep -Fq 'H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          grep -Fq "form.onsubmit=signinHandler" reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          ! grep -Fq 'SOFT_INPUT_ADJUST_RESIZE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          ! grep -Fq 'setOnTouchListener((v,event)' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
           echo SOURCE_GATE_OK > "$report/source-gate.txt"
 
@@ -56,7 +59,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v317-signin"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -76,7 +79,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v317-signin"
           if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
             gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
@@ -85,7 +88,7 @@ jobs:
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
           fi
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.16-interim.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.17-signin.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
@@ -93,10 +96,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v316-interim"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.16-interim.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v317-signin"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.17-signin.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='316' versionName='3.0.16'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='317' versionName='3.0.17'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -105,13 +108,14 @@ jobs:
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
           node --check "$report/packaged-v316.js"
-          grep -Fq 'H38_SCOUT_V316_WIDE_QUALITY=true' "$report/packaged-v316.js"
+          grep -Fq 'H38_SCOUT_V317_SIGNIN_FORM_REPAIR=true' "$report/packaged-v316.js"
+          grep -Fq 'form.onsubmit=signinHandler' "$report/packaged-v316.js"
           echo APK_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload v3.0.16 interim APK and verification
+      - name: Upload v3.0.17 sign-in APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.16-interim
-          path: artifacts/scout-v316-interim/*
+          name: h38-reseller-scout-owner-v3.0.17-signin
+          path: artifacts/scout-v317-signin/*
           if-no-files-found: error
           retention-days: 30
