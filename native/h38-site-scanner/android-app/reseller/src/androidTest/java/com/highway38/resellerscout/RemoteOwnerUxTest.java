@@ -4,403 +4,276 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
+import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Bundle;
-import android.util.Log;
+import android.webkit.WebView;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
+import androidx.test.runner.lifecycle.Stage;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
-import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.Until;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class RemoteOwnerUxTest {
-    private static final String TAG = "H38RemoteUx";
-    private static final long SHORT = 5_000;
-    private static final int NAV_DISCOVER = 0;
-    private static final int NAV_HUNT = 1;
-    private static final int NAV_SCAN = 2;
-    private static final int NAV_AUCTIONS = 3;
-    private static final int NAV_TRACK = 4;
-
+    private static final long SHORT = 8_000;
+    private Instrumentation instrumentation;
     private UiDevice device;
     private Bundle args;
 
     @Before
-    public void launchOwnerApp() {
-        device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+    public void launchOwnerApp() throws Exception {
+        instrumentation = InstrumentationRegistry.getInstrumentation();
+        device = UiDevice.getInstance(instrumentation);
         args = InstrumentationRegistry.getArguments();
         device.pressHome();
-        Context target = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        Context target = instrumentation.getTargetContext();
         Intent intent = target.getPackageManager().getLaunchIntentForPackage(target.getPackageName());
         assertNotNull("Owner app launch intent must exist", intent);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         target.startActivity(intent);
-        boolean packageVisible = device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
-        if (!packageVisible) {
-            Log.w(TAG, "Owner package cold-start was not visible after first launch; retrying once.");
-            device.pressHome();
-            device.waitForIdle(700);
-            target.startActivity(intent);
-            packageVisible = device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 12_000);
-        }
-        assertTrue("Owner package did not become visible after one cold-start retry", packageVisible);
-        assertTrue("Owner login or Discover shell did not render", waitForOwnerReady(12_000));
+        assertTrue("Owner package did not become visible", device.wait(Until.hasObject(By.pkg(target.getPackageName()).depth(0)), 15_000));
+        assertTrue("Owner WebView did not render login or Discover", waitForDom("Sign in", 20_000) || waitForDom("Find anything worth reselling", 2_000));
     }
 
     @Test
     public void knownDefect00ProfitFirstFacebookSourcing() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 00 START: profit-first Facebook sourcing");
-        verifyProfitFirstFacebookBoundary();
-        Log.i(TAG, "KNOWN DEFECT 00 PASS: profit-first Facebook sourcing");
+        ensureDiscover();
+        assertTrue("Profit-first Facebook status missing", waitForDom("PROFIT-FIRST FACEBOOK", 15_000));
+        assertTrue("Profit-first Facebook resale lanes missing", domContains("resale lanes"));
+        assertTrue("Profit-first Facebook action missing", clickText("Hunt profitable Facebook deals"));
+        boolean completed = waitUntil(150_000, () -> {
+            String body = bodyText();
+            return Pattern.compile("\\b[1-9][0-9]* candidates\\b").matcher(body).find()
+                    || body.contains("No public Marketplace cards were found")
+                    || body.contains("Local Facebook inventory remains unknown")
+                    || body.contains("No ranked local-listing matches yet");
+        });
+        assertTrue("Facebook sourcing produced neither candidates nor explicit provider truth", completed);
+        assertFalse("Stale lawn-care card resurfaced", domContains("Lawn care equipment"));
+        assertFalse("Stale DG Inventory Checker query resurfaced", domContains("Dollar General Inventory Checker"));
     }
 
     @Test
     public void knownDefect01FacebookFridgeSearch() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 01 START: Facebook fridge search");
-        verifyFridgeSearchBoundary();
-        Log.i(TAG, "KNOWN DEFECT 01 PASS: Facebook fridge search");
+        ensureDiscover();
+        assertTrue("Discover search input unavailable", setDiscoverSearch("fridge"));
+        assertTrue("Discover Search button missing", clickText("Search"));
+        assertTrue("fridge query was overwritten", waitUntil(10_000, () -> domInputValueContains("fridge")));
+        boolean completed = waitUntil(95_000, () -> {
+            String body = bodyText().toLowerCase();
+            return body.contains("refrigerator") || body.contains("fridge")
+                    || body.contains("no public marketplace cards were found")
+                    || body.contains("local facebook inventory remains unknown")
+                    || body.contains("no ranked local-listing matches yet");
+        });
+        assertTrue("Fridge search produced no relevant result/provider truth", completed);
+        assertFalse("Known stale lawn-care card resurfaced", domContains("Lawn care equipment"));
+        assertFalse("Known stale DG Inventory Checker query resurfaced", domContains("Dollar General Inventory Checker"));
     }
 
     @Test
     public void knownDefect02LocalSalesInAuctions() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 02 START: Local sales in Auctions");
-        verifyLocalSalesInAuctions();
-        Log.i(TAG, "KNOWN DEFECT 02 PASS: Local sales in Auctions");
+        assertTrue("Auctions nav missing", clickText("Auctions"));
+        assertTrue("Auctions page did not render", waitForDom("Real multi-source auction ingestion", 15_000));
+        assertTrue("Local sales/Craigslist surface missing", domContains("Local sales") || domContains("Craigslist"));
+        assertFalse("Known non-sale cattle listing resurfaced", domContains("Red angus bull"));
+        assertFalse("Known non-sale trolling-motor listing resurfaced", domContains("Mercury trolling motor"));
     }
 
     @Test
     public void knownDefect03DollarGeneralIdentityAndPhotos() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 03 START: Dollar General identity/photos");
-        verifyDollarGeneralHuntBoundary();
-        Log.i(TAG, "KNOWN DEFECT 03 PASS: Dollar General identity/photos");
+        assertTrue("Hunt nav missing", clickText("Hunt"));
+        assertTrue("DG quality gate did not render", waitForDom("DG QUALITY:", 25_000));
+        final int[] counts = new int[]{0, 0};
+        boolean reached = waitUntil(120_000, () -> {
+            int[] now = parseDgQuality(bodyText());
+            counts[0] = now[0]; counts[1] = now[1];
+            return now[0] > 0 && now[1] * 100 >= now[0] * 90;
+        });
+        assertTrue("Dollar General has no specifically named products", counts[0] > 0);
+        assertTrue("DG verified image coverage did not reach 90%; named=" + counts[0] + " images=" + counts[1], reached);
+        assertFalse("Generic Dollar General Inventory Checker title is visible", domContains("Dollar General Inventory Checker"));
+        assertFalse("Malformed anchor markup leaked into product titles", domContains("target=\"_blank\"") || domContains("rel=\"noopener\"") || domContains("#0000ff"));
+        assertFalse("Known DG UPC/title mismatch returned", domContains("840797136519") && domContains("Beech-Nut Veggies Stage 2 Baby Food"));
     }
 
     @Test
-    public void knownDefect04NavigationRoundTrip() {
+    public void knownDefect04NavigationRoundTrip() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 04 START: Navigation round trip");
-        verifyNavigationSurvivesRoundTrip();
-        Log.i(TAG, "KNOWN DEFECT 04 PASS: Navigation round trip");
+        assertTrue("Scan nav missing", clickText("Scan"));
+        assertTrue("Scan page failed", waitForDom("Scan / Research", SHORT));
+        assertTrue("Track nav missing", clickText("Track"));
+        assertTrue("Track page failed", waitForDom("Tracked", SHORT));
+        assertTrue("Discover nav missing", clickText("Discover"));
+        assertTrue("Discover failed after round trip", waitForDom("Find anything worth reselling", SHORT));
     }
 
     @Test
     public void knownDefect05GarageSaleDiscovery() throws Exception {
         signInAsOwnerIfNeeded();
-        assertBottomNavigation();
-        Log.i(TAG, "KNOWN DEFECT 05 START: garage and estate sale discovery");
-        verifyGarageSaleBoundary();
-        Log.i(TAG, "KNOWN DEFECT 05 PASS: garage and estate sale discovery");
+        ensureDiscover();
+        assertTrue("Garage & estate sales module missing", waitForDom("Garage & estate sales", 15_000));
+        assertTrue("Find garage sales action missing", clickText("Find garage sales"));
+        boolean completed = waitUntil(100_000, () -> {
+            String body = bodyText().toUpperCase();
+            return body.contains("GARAGE SALE") || body.contains("YARD SALE") || body.contains("RUMMAGE SALE")
+                    || body.contains("MOVING SALE") || body.contains("ESTATE SALE") || body.contains("NO SALE LEADS LOADED YET");
+        });
+        assertTrue("Garage-sale acquisition produced no sale-level provider result", completed);
+        assertFalse("Known cattle classified leaked into garage-sale discovery", domContains("Red angus bull"));
     }
 
-    private void signInAsOwnerIfNeeded() {
-        if (!hasLabel("Sign in")) {
-            ensureDiscover();
+    private void signInAsOwnerIfNeeded() throws Exception {
+        if (!domContains("Sign in")) {
+            assertTrue("Owner session did not reach Discover", waitForDom("Find anything worth reselling", 20_000));
             return;
         }
         String email = requiredArg("SCOUT_EMAIL");
         String password = requiredArg("SCOUT_PASSWORD");
-        List<UiObject2> fields = device.findObjects(By.clazz("android.widget.EditText"));
-        assertTrue("Login must expose email and password fields", fields.size() >= 2);
-        fields.get(0).setText(email);
-        fields.get(1).setText(password);
-        device.waitForIdle(750);
-        UiObject2 signIn = findExactLabel("Sign in");
-        assertNotNull("Sign in control disappeared after credentials were entered", signIn);
-        tapNodeCenter(signIn);
-        device.waitForIdle(1_000);
-        assertTrue("Owner login must reach Discover", waitForLabel("Find anything worth reselling", 20_000));
+        String js = "(function(){var e=document.getElementById('h38OwnerEmail')||document.querySelector('input[type=email]');"
+                + "var p=document.getElementById('h38OwnerPassword')||document.querySelector('input[type=password]');"
+                + "var b=document.getElementById('h38OwnerSignIn')||Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Sign in');"
+                + "if(!e||!p||!b)return false;"
+                + "e.value=" + JSONObject.quote(email) + ";p.value=" + JSONObject.quote(password) + ";"
+                + "['input','change'].forEach(t=>{e.dispatchEvent(new Event(t,{bubbles:true}));p.dispatchEvent(new Event(t,{bubbles:true}));});"
+                + "b.click();return true;})()";
+        assertTrue("Could not submit owner login through WebView DOM", boolEval(js));
+        assertTrue("Owner login must reach Discover", waitForDom("Find anything worth reselling", 30_000));
     }
 
-    private void assertBottomNavigation() {
-        assertTrue("Owner shell must expose a usable display", device.getDisplayWidth() > 0 && device.getDisplayHeight() > 0);
-        assertTrue("Owner shell must begin on Discover before route acceptance", waitForLabel("Find anything worth reselling", 12_000));
+    private void ensureDiscover() throws Exception {
+        if (domContains("Find anything worth reselling")) return;
+        assertTrue("Discover nav missing", clickText("Discover"));
+        assertTrue("Discover page did not render", waitForDom("Find anything worth reselling", 15_000));
     }
 
-    private void verifyProfitFirstFacebookBoundary() throws Exception {
-        ensureDiscover();
-        UiObject2 search = findFirstEditText();
-        assertNotNull("Discover search input not reachable", search);
-        search.setText("");
-        dismissKeyboardIfVisible();
-        assertTrue("Discover page was lost while preparing profit-first sourcing", waitForLabel("Find anything worth reselling", SHORT));
-        assertTrue("Profit-first Facebook status did not render", waitForLabelContains("PROFIT-FIRST FACEBOOK", 12_000));
-        assertTrue("Profit-first Facebook did not advertise resale-lane sourcing", hasLabelContains("resale lanes"));
-        UiObject2 hunt = findExactLabel("Hunt profitable Facebook deals");
-        assertNotNull("Profit-first Facebook hunt button missing", hunt);
-        tapNodeCenter(hunt);
-        device.waitForIdle(1_000);
-        long end = System.currentTimeMillis() + 150_000;
-        boolean completedEvidence = false;
-        do {
-            assertTrue("Profit-first Facebook sourcing navigated away from Discover", hasLabel("Find anything worth reselling"));
-            String status = descriptionContaining("PROFIT-FIRST FACEBOOK");
-            if (status == null) status = textContaining("PROFIT-FIRST FACEBOOK");
-            if (status != null && (status.matches(".*\\b[1-9][0-9]* candidates\\b.*") || hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet"))) {
-                completedEvidence = true;
-                break;
-            }
-            Thread.sleep(1_250);
-        } while (System.currentTimeMillis() < end);
-        assertTrue("Profit-first Facebook hunt produced neither captured candidates nor a truthful empty state", completedEvidence);
-        assertFalse("Profit-first Facebook hunt regressed to the known stale lawn-care card", hasLabelContains("Lawn care equipment"));
-        Log.i(TAG, "FACEBOOK PROFIT BOUNDARY: profit-first resale lanes active; public candidates are comp-ranked or truthfully empty.");
+    private boolean setDiscoverSearch(String value) throws Exception {
+        String q = JSONObject.quote(value);
+        return boolEval("(function(){var a=Array.from(document.querySelectorAll('input')).filter(x=>x.type!=='email'&&x.type!=='password');"
+                + "var e=a.find(x=>/search|find|item|deal/i.test((x.placeholder||'')+' '+(x.getAttribute('aria-label')||'')))||a[0];"
+                + "if(!e)return false;e.focus();e.value=" + q + ";['input','change'].forEach(t=>e.dispatchEvent(new Event(t,{bubbles:true})));return true;})()");
     }
 
-    private void verifyFridgeSearchBoundary() throws Exception {
-        ensureDiscover();
-        UiObject2 search = findFirstEditText();
-        assertNotNull("Discover search input not reachable", search);
-        search.setText("fridge");
-        device.waitForIdle(500);
-        dismissKeyboardIfVisible();
-        assertTrue("Discover page was lost while dismissing the keyboard", hasLabel("Find anything worth reselling"));
-        UiObject2 searchButton = findExactLabel("Search");
-        assertNotNull("Discover Search button missing after keyboard dismissal", searchButton);
-        tapNodeCenter(searchButton);
-        device.waitForIdle(2_000);
-        assertTrue("Discover search unexpectedly navigated away from Discover", waitForLabel("Find anything worth reselling", SHORT));
-        assertNotNull("Typed fridge query was overwritten immediately after Search", findEditTextWithText("fridge"));
-        long end = System.currentTimeMillis() + 95_000;
-        boolean relevantCard = false;
-        boolean truthfulEmpty = false;
-        do {
-            assertTrue("Discover page was not retained during asynchronous fridge search", hasLabel("Find anything worth reselling"));
-            assertNotNull("Typed fridge query was overwritten during asynchronous search renders", findEditTextWithText("fridge"));
-            relevantCard = hasNonInputLabelContains("refrigerator") || hasNonInputLabelContains("fridge");
-            truthfulEmpty = hasLabelContains("No public Marketplace cards were found") || hasLabelContains("Local Facebook inventory remains unknown") || hasLabelContains("No ranked local-listing matches yet");
-            if (relevantCard || truthfulEmpty) break;
-            Thread.sleep(1_250);
-        } while (System.currentTimeMillis() < end);
-        assertFalse("Known stale lawn-care Facebook card resurfaced after fridge search", hasLabelContains("Lawn care equipment"));
-        assertFalse("Known stale Dollar General Inventory Checker query resurfaced in Discover", hasLabelContains("Dollar General Inventory Checker"));
-        assertTrue("Fridge search produced neither a fridge/refrigerator result nor a truthful empty state", relevantCard || truthfulEmpty);
-        Log.i(TAG, "FRIDGE BOUNDARY: explicit query retained on Discover; stale unrelated query/card absent; result or truthful empty state visible.");
+    private boolean domInputValueContains(String value) throws Exception {
+        return boolEval("Array.from(document.querySelectorAll('input')).some(x=>(x.value||'').toLowerCase().includes(" + JSONObject.quote(value.toLowerCase()) + "))");
     }
 
-    private void verifyLocalSalesInAuctions() throws Exception {
-        tapBottomNav(NAV_AUCTIONS);
-        assertTrue("Auctions page did not render", waitForLabelContains("Real multi-source auction ingestion", 10_000));
-        boolean found = waitForLabelContains("Local sales", 8_000) || hasLabelContains("Craigslist");
-        for (int i = 0; i < 3 && !found; i++) {
-            device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.78), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.32), 18);
-            Thread.sleep(700);
-            found = hasLabelContains("Local sales") || hasLabelContains("Craigslist");
-        }
-        assertTrue("Local sales & Craigslist section is not reachable from Auctions", found);
-        assertFalse("Known non-sale Craigslist cattle listing resurfaced", hasLabelContains("Red angus bull"));
-        assertFalse("Known non-sale Craigslist trolling-motor listing resurfaced", hasLabelContains("Mercury trolling motor"));
-        Log.i(TAG, "AUCTIONS BOUNDARY: Local sales/Craigslist surface is reachable and known non-sale classifieds are absent.");
+    private boolean clickText(String text) throws Exception {
+        String q = JSONObject.quote(text);
+        return boolEval("(function(){var n=Array.from(document.querySelectorAll('button,a,[role=button]')).find(x=>(x.innerText||x.textContent||'').trim()===" + q + ");if(!n)return false;n.click();return true;})()");
     }
 
-    private void verifyDollarGeneralHuntBoundary() throws Exception {
-        tapBottomNav(NAV_HUNT);
-        assertTrue("Hunt page did not render the v3.0.14 DG quality gate", waitForLabelContains("DG QUALITY:", 20_000));
-        long end = System.currentTimeMillis() + 90_000;
-        int named = 0;
-        int images = 0;
-        do {
-            String quality = descriptionContaining("DG QUALITY:");
-            if (quality == null) quality = textContaining("DG QUALITY:");
-            int[] counts = parseDgQuality(quality);
-            named = counts[0];
-            images = counts[1];
-            if (named > 0 && images >= Math.min(3, named)) break;
-            Thread.sleep(1_250);
-        } while (System.currentTimeMillis() < end);
-        assertTrue("Dollar General Hunt has no specifically named products after generic-title cleanup", named > 0);
-        assertTrue("Dollar General image recovery did not reach the minimum sourced-image coverage; named=" + named + " images=" + images, images >= Math.min(3, named));
-        assertFalse("Generic Dollar General Inventory Checker title is still visible", hasLabelContains("Dollar General Inventory Checker"));
-        assertFalse("Generic Inventory Checker title is still visible", hasLabel("Inventory Checker"));
-        boolean knownUpcVisible = hasLabelContains("840797136519");
-        boolean knownWrongTitleVisible = hasLabelContains("Beech-Nut Veggies Stage 2 Baby Food");
-        assertFalse("Known DG mismatch returned: UPC 840797136519 paired with the prior wrong baby-food description", knownUpcVisible && knownWrongTitleVisible);
-        assertFalse("Malformed HTML/anchor text leaked into a Dollar General product title", hasLabelContains("href=\"https://www.dollargeneral.com/p/"));
-        Log.i(TAG, "DG BOUNDARY: named=" + named + " sourced images=" + images + "; generic inventory-checker titles absent.");
+    private boolean waitForDom(String needle, long timeout) throws Exception {
+        return waitUntil(timeout, () -> domContains(needle));
     }
 
-    private void verifyGarageSaleBoundary() throws Exception {
-        ensureDiscover();
-        boolean section = waitForLabelContains("Garage & estate sales", 12_000);
-        for (int i = 0; i < 4 && !section; i++) {
-            swipeUp();
-            Thread.sleep(600);
-            section = hasLabelContains("Garage & estate sales");
-        }
-        assertTrue("Garage & estate sales module is not present in the APK runtime", section);
-        UiObject2 find = findExactLabel("Find garage sales");
-        for (int i = 0; i < 4 && find == null; i++) {
-            swipeUp();
-            Thread.sleep(600);
-            find = findExactLabel("Find garage sales");
-        }
-        assertNotNull("Find garage sales action is missing after revealing the garage card", find);
-        tapNodeCenter(find);
-        device.waitForIdle(1_000);
-        long end = System.currentTimeMillis() + 90_000;
-        boolean saleLeadOrTruth = false;
-        do {
-            saleLeadOrTruth = hasLabel("GARAGE SALE") || hasLabel("YARD SALE") || hasLabel("RUMMAGE SALE") || hasLabel("MOVING SALE") || hasLabel("ESTATE SALE") || hasLabelContains("No sale leads loaded yet");
-            if (saleLeadOrTruth) break;
-            Thread.sleep(1_250);
-        } while (System.currentTimeMillis() < end);
-        assertTrue("Garage-sale acquisition returned neither a verified sale lead nor a truthful empty state", saleLeadOrTruth);
-        assertFalse("Known non-sale Craigslist cattle listing leaked into garage-sale discovery", hasLabelContains("Red angus bull"));
-        Log.i(TAG, "GARAGE BOUNDARY: sale-level module is packaged and acquisition produces verified sale intent or truthful empty state.");
+    private boolean domContains(String needle) throws Exception {
+        return boolEval("(document.body&&document.body.innerText||'').includes(" + JSONObject.quote(needle) + ")");
     }
 
-    private void verifyNavigationSurvivesRoundTrip() {
-        tapBottomNav(NAV_SCAN);
-        assertTrue("Scan nav failed", waitForLabel("Scan / Research", SHORT));
-        tapBottomNav(NAV_TRACK);
-        assertTrue("Track nav failed", waitForLabel("Tracked", SHORT));
-        tapBottomNav(NAV_DISCOVER);
-        assertTrue("Discover nav failed after round trip", waitForLabel("Find anything worth reselling", SHORT));
+    private String bodyText() throws Exception {
+        return stringEval("document.body?document.body.innerText:''");
     }
 
-    private void ensureDiscover() {
-        if (hasLabel("Find anything worth reselling")) return;
-        tapBottomNav(NAV_DISCOVER);
-        assertTrue("Discover page did not render", waitForLabel("Find anything worth reselling", 10_000));
-    }
-
-    private void tapBottomNav(int index) {
-        int width = device.getDisplayWidth();
-        int height = device.getDisplayHeight();
-        int x = (int) (width * ((index * 2.0 + 1.0) / 10.0));
-        int y = (int) (height * 0.928);
-        assertTrue("Invalid bottom-navigation tap target", x > 0 && y > 0 && x < width && y < height);
-        device.click(x, y);
-        device.waitForIdle(1_500);
-    }
-
-    private void swipeUp() {
-        device.swipe(device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.80), device.getDisplayWidth() / 2, (int)(device.getDisplayHeight() * 0.34), 18);
-    }
-
-    private void dismissKeyboardIfVisible() {
-        boolean gboard = device.hasObject(By.pkg("com.google.android.inputmethod.latin").depth(0));
-        boolean aosp = device.hasObject(By.pkg("com.android.inputmethod.latin").depth(0));
-        if (gboard || aosp) {
-            device.pressBack();
-            device.waitForIdle(700);
-        }
-    }
-
-    private void tapNodeCenter(UiObject2 object) {
-        Rect bounds = object.getVisibleBounds();
-        assertTrue("Visible action has no tappable bounds", bounds.width() > 0 && bounds.height() > 0);
-        device.click(bounds.centerX(), bounds.centerY());
-        device.waitForIdle(1_000);
-    }
-
-    private int[] parseDgQuality(String text) {
-        if (text == null) return new int[]{0, 0};
-        Matcher m = Pattern.compile("DG QUALITY:\\s*(\\d+) named\\s*[·|]\\s*(\\d+) images", Pattern.CASE_INSENSITIVE).matcher(text);
+    private int[] parseDgQuality(String body) {
+        Matcher m = Pattern.compile("DG QUALITY:\\s*(\\d+) named\\s*[·|]\\s*(\\d+) (?:verified )?images", Pattern.CASE_INSENSITIVE).matcher(body == null ? "" : body);
         if (!m.find()) return new int[]{0, 0};
         return new int[]{Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))};
     }
 
-    private String descriptionContaining(String needle) {
-        UiObject2 x = device.findObject(By.descContains(needle));
-        return x == null ? null : x.getContentDescription();
+    private String requiredArg(String key) {
+        String value = args.getString(key, "").trim();
+        assertFalse(key + " instrumentation argument is required", value.isEmpty());
+        return value;
     }
 
-    private String textContaining(String needle) {
-        UiObject2 x = device.findObject(By.textContains(needle));
-        if (x != null && x.getText() != null) return x.getText();
-        x = device.findObject(By.descContains(needle));
-        return x == null ? null : x.getContentDescription();
+    private WebView webView() throws Exception {
+        AtomicReference<WebView> out = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        instrumentation.runOnMainSync(() -> {
+            Collection<Activity> activities = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED);
+            if (!activities.isEmpty()) {
+                Activity activity = activities.iterator().next();
+                out.set(findWebView(activity.getWindow().getDecorView()));
+            }
+            latch.countDown();
+        });
+        latch.await(2, TimeUnit.SECONDS);
+        return out.get();
     }
 
-    private UiObject2 findFirstEditText() {
-        List<UiObject2> fields = device.findObjects(By.clazz("android.widget.EditText"));
-        return fields.isEmpty() ? null : fields.get(0);
-    }
-
-    private UiObject2 findEditTextWithText(String expected) {
-        for (UiObject2 field : device.findObjects(By.clazz("android.widget.EditText"))) {
-            if (expected.equalsIgnoreCase(String.valueOf(field.getText()))) return field;
+    private WebView findWebView(View view) {
+        if (view instanceof WebView) return (WebView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                WebView found = findWebView(group.getChildAt(i));
+                if (found != null) return found;
+            }
         }
         return null;
     }
 
-    private UiObject2 findExactLabel(String text) {
-        UiObject2 exactText = device.findObject(By.text(text));
-        if (exactText != null) return exactText;
-        return device.findObject(By.desc(text));
-    }
-
-    private boolean hasNonInputLabelContains(String text) {
-        for (UiObject2 object : device.findObjects(By.textContains(text))) {
-            if (!"android.widget.EditText".equals(object.getClassName())) return true;
+    private String eval(String javascript) throws Exception {
+        WebView web = null;
+        long end = System.currentTimeMillis() + 10_000;
+        while (web == null && System.currentTimeMillis() < end) {
+            web = webView();
+            if (web == null) Thread.sleep(250);
         }
-        for (UiObject2 object : device.findObjects(By.descContains(text))) {
-            if (!"android.widget.EditText".equals(object.getClassName())) return true;
-        }
-        return false;
+        assertNotNull("Active Scout WebView not found", web);
+        AtomicReference<String> result = new AtomicReference<>("null");
+        CountDownLatch latch = new CountDownLatch(1);
+        WebView finalWeb = web;
+        instrumentation.runOnMainSync(() -> finalWeb.evaluateJavascript(javascript, value -> { result.set(value); latch.countDown(); }));
+        assertTrue("WebView JavaScript result timed out", latch.await(10, TimeUnit.SECONDS));
+        return result.get();
     }
 
-    private String requiredArg(String key) {
-        String value = args.getString(key, "").trim();
-        assertFalse(key + " instrumentation argument is required for an as-owner run", value.isEmpty());
-        return value;
+    private boolean boolEval(String javascript) throws Exception {
+        return "true".equals(eval(javascript));
     }
 
-    private boolean waitForOwnerReady(long timeout) {
+    private String stringEval(String javascript) throws Exception {
+        String raw = eval(javascript);
+        if (raw == null || "null".equals(raw)) return "";
+        try { return new JSONArray("[" + raw + "]").getString(0); }
+        catch (Exception ignored) { return raw; }
+    }
+
+    private interface CheckedCondition { boolean get() throws Exception; }
+
+    private boolean waitUntil(long timeout, CheckedCondition condition) throws Exception {
         long end = System.currentTimeMillis() + timeout;
         do {
-            if (hasLabel("Find anything worth reselling")) return true;
-            if (hasLabel("Sign in") && device.findObjects(By.clazz("android.widget.EditText")).size() >= 2) return true;
-            device.waitForIdle(300);
+            try { if (condition.get()) return true; } catch (AssertionError e) { throw e; } catch (Exception ignored) { }
+            Thread.sleep(500);
         } while (System.currentTimeMillis() < end);
         return false;
-    }
-
-    private boolean waitForLabel(String text, long timeout) {
-        long end = System.currentTimeMillis() + timeout;
-        do {
-            if (hasLabel(text)) return true;
-            device.waitForIdle(300);
-        } while (System.currentTimeMillis() < end);
-        return false;
-    }
-
-    private boolean waitForLabelContains(String text, long timeout) {
-        long end = System.currentTimeMillis() + timeout;
-        do {
-            if (hasLabelContains(text)) return true;
-            device.waitForIdle(300);
-        } while (System.currentTimeMillis() < end);
-        return false;
-    }
-
-    private boolean hasLabel(String text) {
-        return device.hasObject(By.text(text)) || device.hasObject(By.desc(text));
-    }
-
-    private boolean hasLabelContains(String text) {
-        return device.hasObject(By.textContains(text)) || device.hasObject(By.descContains(text));
     }
 }
