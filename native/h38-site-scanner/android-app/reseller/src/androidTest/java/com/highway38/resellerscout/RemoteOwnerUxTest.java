@@ -250,7 +250,7 @@ public class RemoteOwnerUxTest {
         AtomicReference<String> result = new AtomicReference<>("null");
         CountDownLatch latch = new CountDownLatch(1);
         WebView finalWeb = web;
-        instrumentation.runOnMainSync(() -> finalWeb.evaluateJavascript(javascript, value -> { result.set(value); latch.countDown(); }));
+        assertTrue("Scout WebView rejected JS dispatch", finalWeb.post(() -> finalWeb.evaluateJavascript(javascript, value -> { result.set(value); latch.countDown(); })));
         assertTrue("WebView JavaScript result timed out", latch.await(10, TimeUnit.SECONDS));
         return result.get();
     }
