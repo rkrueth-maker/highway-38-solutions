@@ -4,6 +4,7 @@ const cp=require('child_process');
 const {chromium}=require('playwright');
 const assert=require('assert');
 const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-layer.js');
+const loader=path.resolve(__dirname,'../commercial-app/desktop-navigation-authority.js');
 (async()=>{
   const executablePath=cp.execSync('command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser',{shell:'/bin/bash'}).toString().trim();
   if(!executablePath)throw new Error('No Chrome/Chromium binary available for profitability browser acceptance.');
@@ -49,6 +50,10 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
       window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>({from:table=>({select(){return this;},eq(){return Promise.resolve({data:rows[table]||[],error:null});}})})};
     });
     await page.addScriptTag({path:layer});
+    // Production loads the profitability layer through this late LIVE_FIRST shim.
+    // Load the same shim here after the module so its capture-phase input safety
+    // can be tested without the about:blank harness trying to resolve a relative script URL.
+    await page.addScriptTag({path:loader});
     await page.evaluate(()=>renderQuotes());
     await page.waitForSelector('#h38ProfitGuard');
     const quoteText=await page.locator('#h38ProfitGuard').textContent();
@@ -73,10 +78,12 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
     await page.waitForTimeout(50);
     assert.equal(await page.locator('#h38BusinessHealth').count(),0,'non-financial users must not see profitability data');
     const contract=await page.evaluate(()=>window.H38_PROFITABILITY_OPERATING_LAYER);
+    const loaderContract=await page.evaluate(()=>window.H38_DESKTOP_NAVIGATION_AUTHORITY);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchasing','automaticPayment','automaticScheduling','automaticPublishing'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.ownerActionOnly,true,'ownerActionOnly must remain true');
+    assert.equal(loaderContract.profitabilityInputSafety,true,'late loader must own profitability input safety');
     if(errors.length)console.error(`PROFITABILITY_PAGE_ERRORS=${JSON.stringify(errors)}`);
     assert.deepEqual(errors,[],'profitability browser verifier should have no page errors');
-    console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions persist','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
+    console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions persist without DOM race','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
