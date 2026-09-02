@@ -17,6 +17,16 @@ window.H38_SCOUT_V316_FINAL_ACCEPTANCE=true;
   const IMAGE_BATCH=8,IMAGE_LIMIT=200,IMAGE_TARGET=90;
   const RETURN_KEY='h38-scout-v316-return';
   state.v316=state.v316||{};
+  function ensureLoginAccessibility(){
+    const email=document.querySelector('#loginForm input[name="email"]');
+    const password=document.querySelector('#loginForm input[name="password"]');
+    const submit=document.querySelector('#loginForm button[type="submit"]');
+    if(email){email.id='h38OwnerEmail';email.setAttribute('aria-label','Email');email.setAttribute('placeholder','Email');email.setAttribute('inputmode','email');}
+    if(password){password.id='h38OwnerPassword';password.setAttribute('aria-label','Password');password.setAttribute('placeholder','Password');}
+    if(submit){submit.id='h38OwnerSignIn';submit.setAttribute('aria-label','Sign in');}
+    const form=document.getElementById('loginForm');if(form){form.setAttribute('aria-label','Owner sign in');form.setAttribute('role','form');}
+  }
+  ensureLoginAccessibility();
   Object.assign(state.v316,{videoAcceptanceR2:true,finalAcceptance:true,dgRecovering:false,dgLastRecoveryAt:num(state.v316.dgLastRecoveryAt),dgRecoveryTried:num(state.v316.dgRecoveryTried),dgRecoveryDelivered:num(state.v316.dgRecoveryDelivered),invalidTitlesRemoved:num(state.v316.invalidTitlesRemoved),genericImagesRemoved:num(state.v316.genericImagesRemoved),mismatchedImagesRemoved:num(state.v316.mismatchedImagesRemoved),lastGoodHunt:Array.isArray(state.v316.lastGoodHunt)?state.v316.lastGoodHunt:[],lastGoodAt:num(state.v316.lastGoodAt),huntRestoreCount:num(state.v316.huntRestoreCount)});
 
   const style=document.createElement('style');style.id='h38-v316-acceptance';style.textContent=`
@@ -52,7 +62,7 @@ window.H38_SCOUT_V316_FINAL_ACCEPTANCE=true;
   function restoreReturn(){let s;try{s=JSON.parse(sessionStorage.getItem(RETURN_KEY)||'null')}catch{}if(!s||Date.now()-num(s.at)>20*60*1000)return;migrateStaleQuery();if(typeof setPage==='function'&&s.page)setPage(s.page);if(state.discover&&!staleQuery.test(text(s.query)))state.discover.query=text(s.query);setTimeout(()=>window.scrollTo(0,num(s.scrollY)),120)}
   document.addEventListener('click',e=>{const a=e.target?.closest?.('a[href]');if(a&&/^https?:/i.test(a.href))snapshotReturn(a.href)},true);
   window.H38ScoutReturned=function(){restoreReturn();restoreHunt();cleanseKnownState();scrubRendered();sourceHealth();decisionCards();qualityStatus();if(state.page==='hunt')void recoverDgImages(false)};
-  function afterRender(){restoreHunt();cleanseKnownState();rememberHunt();scrubRendered();sourceHealth();decisionCards();qualityStatus()}
+  function afterRender(){ensureLoginAccessibility();restoreHunt();cleanseKnownState();rememberHunt();scrubRendered();sourceHealth();decisionCards();qualityStatus()}
   for(const name of ['renderDiscover','renderHunt']){const base=window[name];if(typeof base!=='function'||base.__h38v316)return;const wrapped=function(...args){if(name==='renderHunt')restoreHunt();const out=base.apply(this,args);queueMicrotask(afterRender);return out};wrapped.__h38v316=true;window[name]=wrapped}
   if(typeof loadHunt==='function'&&!loadHunt.__h38v316){const base=loadHunt;loadHunt=async function(...args){rememberHunt();try{return await base.apply(this,args)}finally{restoreHunt();cleanseKnownState();rememberHunt();if(state.page==='hunt'&&typeof renderHunt==='function')renderHunt()}};loadHunt.__h38v316=true}
   const observer=new MutationObserver(()=>{scrubRendered();decisionCards();if(state.page==='discover')sourceHealth();if(state.page==='hunt')qualityStatus()});observer.observe(document.getElementById('appView')||document.body,{childList:true,subtree:true});
