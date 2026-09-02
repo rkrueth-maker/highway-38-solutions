@@ -13,6 +13,17 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
   try{
     await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"></main></body></html>');
     await page.evaluate(()=>{
+      // setContent runs on about:blank, whose opaque origin rejects localStorage.
+      // Provide ordinary same-origin storage semantics so the acceptance test matches
+      // the production HTTPS Business Office behavior instead of silently resetting
+      // owner planning assumptions to defaults on every render.
+      const localStore=new Map();
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{
+        getItem:key=>localStore.has(String(key))?localStore.get(String(key)):null,
+        setItem:(key,value)=>localStore.set(String(key),String(value)),
+        removeItem:key=>localStore.delete(String(key)),
+        clear:()=>localStore.clear()
+      }});
       const now=new Date().toISOString(),yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
       window.state={page:'quotes',businessId:'B-OWNER',quote:{quoteId:'Q-1',lines:[{quoteLineId:'QL-1',catalogId:'ASM-DECK',description:'Deck repair assembly',quantity:2,unit:'each',unitPrice:200}]},snapshot:{
         user:{owner:true,permissions:{all:true}},
@@ -47,6 +58,7 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
     await page.locator('#h38ProfitTargetMargin').fill('45');
     await page.locator('#h38ProfitTargetMargin').dispatchEvent('change');
     await page.waitForFunction(()=>document.querySelector('#h38ProfitGuard')?.textContent?.includes('Review margin'));
+    assert.equal(await page.locator('#h38ProfitTargetMargin').inputValue(),'45','owner target margin should survive a Profit Guard rerender');
     await page.evaluate(()=>renderReports());
     await page.waitForSelector('#h38BusinessHealth');
     assert.equal(await page.locator('#h38BusinessHealth .h38-health-card').count(),6,'Business Health should expose six dimensions');
@@ -64,6 +76,6 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchasing','automaticPayment','automaticScheduling','automaticPublishing'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.ownerActionOnly,true,'ownerActionOnly must remain true');
     assert.deepEqual(errors,[],'profitability browser verifier should have no page errors');
-    console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
+    console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions persist','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
