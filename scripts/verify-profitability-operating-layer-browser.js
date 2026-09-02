@@ -1,10 +1,13 @@
 'use strict';
 const path=require('path');
+const cp=require('child_process');
 const {chromium}=require('playwright');
 const assert=require('assert');
 const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-layer.js');
 (async()=>{
-  const browser=await chromium.launch({headless:true});
+  const executablePath=cp.execSync('command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser',{shell:'/bin/bash'}).toString().trim();
+  if(!executablePath)throw new Error('No Chrome/Chromium binary available for profitability browser acceptance.');
+  const browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox','--disable-dev-shm-usage']});
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   try{
@@ -54,13 +57,13 @@ const layer=path.resolve(__dirname,'../commercial-app/profitability-operating-la
     await page.waitForSelector('#h38ProfitabilityToday');
     await page.locator('#h38OpenProfitabilityReport').click();
     await page.waitForSelector('#h38BusinessHealth');
-    await page.evaluate(()=>{state.snapshot.user={owner:false,permissions:{}};renderReports();});
+    await page.evaluate(()=>{state.snapshot.user={owner:false,permissions:{}};window.can=()=>false;renderReports();});
     await page.waitForTimeout(50);
     assert.equal(await page.locator('#h38BusinessHealth').count(),0,'non-financial users must not see profitability data');
     const contract=await page.evaluate(()=>window.H38_PROFITABILITY_OPERATING_LAYER);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchasing','automaticPayment','automaticScheduling','automaticPublishing'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.ownerActionOnly,true,'ownerActionOnly must remain true');
     assert.deepEqual(errors,[],'profitability browser verifier should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['Profit Guard math','cost coverage','owner assumptions','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
+    console.log(JSON.stringify({status:'PASS',chrome:executablePath,checks:['Profit Guard math','cost coverage','owner assumptions','six Business Health dimensions','job back-costing','overdue profit leak','90-day plan','Today shortcut','financial permissions','external-action locks']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
