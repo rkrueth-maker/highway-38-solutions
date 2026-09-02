@@ -9,6 +9,7 @@ import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -214,16 +215,13 @@ public class RemoteOwnerUxTest {
 
     private WebView webView() throws Exception {
         AtomicReference<WebView> out = new AtomicReference<>();
-        CountDownLatch latch = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> {
             Collection<Activity> activities = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED);
             if (!activities.isEmpty()) {
                 Activity activity = activities.iterator().next();
                 out.set(findWebView(activity.getWindow().getDecorView()));
             }
-            latch.countDown();
         });
-        latch.await(2, TimeUnit.SECONDS);
         return out.get();
     }
 
@@ -239,6 +237,13 @@ public class RemoteOwnerUxTest {
         return null;
     }
 
+    private static final class JsResultBridge {
+        private final AtomicReference<String> result;
+        private final CountDownLatch latch;
+        JsResultBridge(AtomicReference<String> result, CountDownLatch latch) { this.result = result; this.latch = latch; }
+        @JavascriptInterface public void deliver(String value) { result.set(value == null ? "null" : value); latch.countDown(); }
+    }
+
     private String eval(String javascript) throws Exception {
         WebView web = null;
         long end = System.currentTimeMillis() + 10_000;
@@ -249,9 +254,15 @@ public class RemoteOwnerUxTest {
         assertNotNull("Active Scout WebView not found", web);
         AtomicReference<String> result = new AtomicReference<>("null");
         CountDownLatch latch = new CountDownLatch(1);
+        JsResultBridge bridge = new JsResultBridge(result, latch);
         WebView finalWeb = web;
-        assertTrue("Scout WebView rejected JS dispatch", finalWeb.post(() -> finalWeb.evaluateJavascript(javascript, value -> { result.set(value); latch.countDown(); })));
-        assertTrue("WebView JavaScript result timed out", latch.await(10, TimeUnit.SECONDS));
+        String script = "javascript:(function(){try{var __v=(" + javascript + ");H38_TEST_RESULT.deliver(JSON.stringify(__v));}catch(e){H38_TEST_RESULT.deliver(JSON.stringify('__H38ERR__'+String(e)));}})()";
+        assertTrue("Scout WebView rejected JS bridge dispatch", finalWeb.post(() -> {
+            finalWeb.addJavascriptInterface(bridge, "H38_TEST_RESULT");
+            finalWeb.loadUrl(script);
+        }));
+        assertTrue("WebView JavaScript bridge timed out", latch.await(10, TimeUnit.SECONDS));
+        finalWeb.post(() -> finalWeb.removeJavascriptInterface("H38_TEST_RESULT"));
         return result.get();
     }
 
