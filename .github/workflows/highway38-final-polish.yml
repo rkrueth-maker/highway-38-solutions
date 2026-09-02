@@ -99,6 +99,12 @@ jobs:
             artifacts/final-polish/browser-verification.txt
             artifacts/final-polish/desktop-navigation-core.txt
             artifacts/final-polish/profitability-browser.txt
+            artifacts/final-polish/business-office-review-demo-desktop-today.png
+            artifacts/final-polish/business-office-review-demo-desktop-customers.png
+            artifacts/final-polish/business-office-review-demo-desktop-quotes.png
+            artifacts/final-polish/business-office-review-demo-mobile-today.png
+            artifacts/final-polish/business-office-review-demo-mobile-customers.png
+            artifacts/final-polish/business-office-review-demo-mobile-quotes.png
           if-no-files-found: error
           retention-days: 90
 
