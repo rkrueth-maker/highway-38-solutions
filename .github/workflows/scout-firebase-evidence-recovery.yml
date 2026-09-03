@@ -1,0 +1,76 @@
+name: H38 Scout Firebase Evidence Recovery
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - .github/workflows/scout-firebase-evidence-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover-evidence:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      RESULT_BUCKET: test-lab-2c7pbqdh4t6ax-yyp3fd4s29th2
+      RESULT_PREFIX: 2026-09-03_08:34:19.030648_YEKr
+      MATRIX_ID: matrix-h5kbgye25pofa
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce private Scout authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -n "$FIREBASE_PROJECT_ID"
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Recover exact Firebase Test Lab raw evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/artifacts/firebase-evidence-recovery"
+          raw="$out/raw"
+          mkdir -p "$raw"
+          gcloud storage ls --recursive "gs://$RESULT_BUCKET/$RESULT_PREFIX/**" | tee "$out/object-list.txt"
+          test -s "$out/object-list.txt"
+          gcloud storage cp --recursive "gs://$RESULT_BUCKET/$RESULT_PREFIX/**" "$raw/"
+          find "$raw" -type f -printf '%P\n' | sort | tee "$out/recovered-files.txt"
+          test -s "$out/recovered-files.txt"
+
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|WebView.*error|net::ERR_|HTTP [45][0-9][0-9]|TypeError|ReferenceError|Unhandled|uncaught' "$raw" > "$out/error-scan.txt" || true
+          grep -RniE 'robo|crawl|action|screen|activity|coverage|click|tap|view' "$raw" > "$out/crawl-evidence.txt" || true
+
+          printf '# Firebase evidence recovery\n\n- Matrix: %s\n- Bucket: %s\n- Prefix: %s\n- Source branch: %s\n- Source SHA: %s\n\n' "$MATRIX_ID" "$RESULT_BUCKET" "$RESULT_PREFIX" "$GITHUB_REF_NAME" "$GITHUB_SHA" > "$out/report.md"
+          printf '## Files\n\n' >> "$out/report.md"
+          sed 's/^/- /' "$out/recovered-files.txt" >> "$out/report.md"
+          printf '\n## Fatal/runtime signature scan\n\n' >> "$out/report.md"
+          if [[ -s "$out/error-scan.txt" ]]; then cat "$out/error-scan.txt" >> "$out/report.md"; else echo 'No matching fatal/runtime signatures found.' >> "$out/report.md"; fi
+
+      - name: Upload recovered Firebase evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.25-firebase-raw-evidence
+          path: artifacts/firebase-evidence-recovery/**
+          if-no-files-found: error
+          retention-days: 30
