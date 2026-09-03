@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.21 Wide Sign-In Repair APK
+name: Package H38 Scout v3.0.22 Native Owner Login APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v321-wide-signin
+  group: scout-v322-native-owner-login
   cancel-in-progress: true
 
 jobs:
@@ -33,23 +33,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.21 wide sign-in source
+      - name: Verify exact v3.0.22 native owner-login source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v322-native-login"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.21'" reseller/build.gradle
-          grep -Fq 'versionCode 321' reseller/build.gradle
+          grep -Fq "versionName '3.0.22'" reseller/build.gradle
+          grep -Fq 'versionCode 322' reseller/build.gradle
           grep -Fq 'android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"' reseller/src/main/AndroidManifest.xml
           test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '2d813ddea762b55aadd1faad1c006d620a196abf'
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
           ! grep -Fq 'ensureLoginAccessibility' reseller/src/main/assets/reseller/v316-garage-safe-action.js
           grep -Fq '<label>Email<input name="email" type="email" autocomplete="username" required></label>' reseller/src/main/assets/reseller/index.html
           grep -Fq "new FormData(e.currentTarget)" reseller/src/main/assets/reseller/v200-app.js
+          grep -Fq 'NativeLoginOverlay.attach(a)' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
+          grep -Fq 'h38-scout-native-login-v322' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          grep -Fq 'new EditText(activity)' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          grep -Fq "f.requestSubmit()" reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          grep -Fq 'JSONObject.quote(e)' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          ! grep -Fq 'SharedPreferences' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
-          echo WIDE_SIGNIN_SOURCE_OK > "$report/source-gate.txt"
+          echo NATIVE_OWNER_LOGIN_SOURCE_OK > "$report/source-gate.txt"
 
       - name: Restore persistent Scout debug signing key
         uses: actions/cache@v4
@@ -66,7 +72,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v322-native-login"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -103,11 +109,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v322-native-login"
           gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
           apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.21-wide-signin.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.22-native-login.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
@@ -115,10 +121,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.21-wide-signin.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v322-native-login"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.22-native-login.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='321' versionName='3.0.21'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='322' versionName='3.0.22'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -136,10 +142,10 @@ jobs:
           fi
           echo APK_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload v3.0.21 APK and verification
+      - name: Upload v3.0.22 APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.21-wide-signin
-          path: artifacts/scout-v321-wide-signin/*
+          name: h38-reseller-scout-owner-v3.0.22-native-login
+          path: artifacts/scout-v322-native-login/*
           if-no-files-found: error
           retention-days: 30
