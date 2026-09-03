@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20260903-1758-erp';
+const CACHE_NAME='h38-business-office-20260903-1758';
 const PREVIOUS_CUSTOMER_ACTION_CACHE_NAME='h38-business-office-20260827-1350';
 const PREVIOUS_EXAMPLE_COMMAND_CACHE_NAME='h38-business-office-20260824-0815';
 const OLDER_EXAMPLE_COMMAND_CACHE_NAME='h38-business-office-20260824-0410';
