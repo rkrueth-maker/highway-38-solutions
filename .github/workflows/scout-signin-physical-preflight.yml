@@ -55,7 +55,7 @@ jobs:
         with:
           api-level: 36
           target: google_apis
-          arch: x86_64
+          arch: arm64-v8a
           profile: pixel_6
           disable-animations: true
           script: cd native/h38-site-scanner/android-app && gradle --no-daemon :reseller:connectedOwnerDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.highway38.resellerscout.SignInPhysicalInputTest -Pandroid.testInstrumentationRunnerArguments.SCOUT_EMAIL="$SCOUT_EMAIL" -Pandroid.testInstrumentationRunnerArguments.SCOUT_PASSWORD="$SCOUT_PASSWORD"
