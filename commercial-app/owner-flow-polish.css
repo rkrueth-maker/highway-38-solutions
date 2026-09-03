@@ -1,22 +1,10 @@
 #h38QuoteQuickBar{display:none!important}
-body.h38-owner-quote-polish #mainContent>.h38-proven-quote-tools,body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:9px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 8px 24px rgba(12,38,57,.09)}
-body.h38-owner-quote-polish .h38-proven-quote-tools>button,body.h38-owner-quote-polish .h38-proven-quote-tools>a{min-height:44px;margin:0;padding:9px 12px;border-radius:11px;font-weight:850}
-body.h38-owner-quote-polish .h38-proven-quote-tools .h38-primary-quote-action{background:var(--blue);color:#fff;border-color:var(--blue)}
-.h38-quote-more-tools{margin:-3px 0 12px;padding:0;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
-.h38-quote-more-tools>summary{min-height:44px;display:flex;align-items:center;padding:8px 12px;cursor:pointer;color:var(--navy);font-weight:850}
-.h38-quote-more-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 9px}.h38-quote-more-actions button{min-height:42px}
-.h38-quote-more-tools>p{margin:0;padding:0 12px 12px;color:var(--muted);font-size:.82rem;line-height:1.4}
-.h38-owner-evidence-details>summary{min-height:46px;display:flex;align-items:center;cursor:pointer;font-weight:750}
-.h38-optional-work{border-left:4px solid var(--blue)!important;background:linear-gradient(90deg,rgba(28,106,153,.07),rgba(255,255,255,0))!important}
-.h38-optional-work::before{content:'OPTIONAL — not part of the base proposal unless selected';display:block;margin:0 0 7px;color:var(--blue);font-size:.72rem;font-weight:900;letter-spacing:.035em}
-@media(max-width:760px){
-  body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{position:sticky;top:0;z-index:24;margin:0 -4px 10px;padding:7px;border-radius:0 0 14px 14px;box-shadow:0 8px 18px rgba(12,38,57,.13);flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain}
-  body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>button,body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>a{flex:1 0 auto;min-height:48px;padding:8px 11px;font-size:.82rem;line-height:1.15;white-space:nowrap}
-  body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>.h38-primary-quote-action{flex:1 0 46%}
-  .h38-quote-more-tools{margin-top:-2px}
-  .h38-quote-more-actions{display:grid;grid-template-columns:1fr}.h38-quote-more-actions button{width:100%;min-height:48px}
-  .h38-owner-evidence-details{margin-block:2px}
-  .h38-owner-evidence-details>summary{min-height:50px;padding-block:7px}
-}
-@media(max-width:420px){body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{gap:5px}.h38-optional-work::before{font-size:.68rem}}
+body.h38-owner-quote-polish #mainContent>.h38-proven-quote-tools,body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 10px;padding:7px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(12,38,57,.07);backdrop-filter:blur(12px)}
+body.h38-owner-quote-polish .h38-proven-quote-tools>button,body.h38-owner-quote-polish .h38-proven-quote-tools>a{min-height:42px;margin:0;padding:8px 11px;border-radius:9px;font-weight:820}
+body.h38-owner-quote-polish .h38-proven-quote-tools .h38-primary-quote-action{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 4px 12px rgba(23,74,112,.16)}
+body.h38-owner-quote-polish .h38-proven-quote-tools .h38-primary-quote-action:hover{background:var(--blue2);border-color:var(--blue2)}
+.h38-quote-more-tools{margin:-2px 0 10px;padding:0;border:1px solid var(--line);border-radius:11px;background:#fff;overflow:hidden}.h38-quote-more-tools>summary{min-height:42px;display:flex;align-items:center;padding:7px 11px;cursor:pointer;color:var(--navy);font-size:.82rem;font-weight:820}.h38-quote-more-tools>summary:hover{background:var(--card-soft,#f8fafc)}.h38-quote-more-actions{display:flex;gap:7px;flex-wrap:wrap;padding:0 11px 9px}.h38-quote-more-actions button{min-height:40px}.h38-quote-more-tools>p{margin:0;padding:0 11px 11px;color:var(--muted);font-size:.78rem;line-height:1.4}
+.h38-owner-evidence-details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:750}.h38-optional-work{border-left:3px solid var(--blue)!important;background:linear-gradient(90deg,rgba(28,106,153,.055),rgba(255,255,255,0))!important}.h38-optional-work::before{content:'OPTIONAL — not part of the base proposal unless selected';display:block;margin:0 0 6px;color:var(--blue);font-size:.68rem;font-weight:900;letter-spacing:.045em}
+@media(max-width:760px){body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{position:sticky;top:0;z-index:24;margin:0 -3px 9px;padding:6px;border-radius:0 0 12px 12px;box-shadow:0 7px 16px rgba(12,38,57,.10);flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;background:rgba(255,255,255,.98)}body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>button,body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>a{flex:1 0 auto;min-height:46px;padding:8px 10px;font-size:.8rem;line-height:1.15;white-space:nowrap}body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools>.h38-primary-quote-action{flex:1 0 44%}.h38-quote-more-tools{margin-top:-1px}.h38-quote-more-actions{display:grid;grid-template-columns:1fr}.h38-quote-more-actions button{width:100%;min-height:46px}.h38-owner-evidence-details{margin-block:2px}.h38-owner-evidence-details>summary{min-height:48px;padding-block:6px}}
+@media(max-width:420px){body.h38-owner-quote-polish #mainContent .h38-proven-quote-tools{gap:5px}.h38-optional-work::before{font-size:.65rem}}
 @media print{#h38QuoteQuickBar,.h38-proven-quote-tools,.h38-quote-more-tools,.h38-optional-work::before{display:none!important}}

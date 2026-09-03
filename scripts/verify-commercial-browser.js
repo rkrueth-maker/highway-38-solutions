@@ -4,6 +4,8 @@ const http=require('http');
 const path=require('path');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
+const evidenceDir=path.join(root,'artifacts','final-polish');
+fs.mkdirSync(evidenceDir,{recursive:true});
 const assetManifest=JSON.parse(fs.readFileSync(path.join(root,'scripts/config/approved-public-assets.json'),'utf8'));
 const approvedLogo=assetManifest.approved_logo;
 const pages=fs.readdirSync(root).filter(file=>file.endsWith('.html')).sort();
@@ -12,6 +14,20 @@ const failures=[];
 const pass=name=>process.stdout.write(`PASS: ${name}\n`);
 const fail=(name,detail='')=>{failures.push({name,detail});process.stderr.write(`FAIL: ${name}${detail?` — ${detail}`:''}\n`);};
 function server(){return http.createServer((req,res)=>{let pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);if(pathname==='/')pathname='/index.html';const file=path.resolve(root,`.${pathname}`);if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,{'content-type':'text/plain'});res.end('Not found');return;}res.writeHead(200,{'content-type':mime[path.extname(file).toLowerCase()]||'application/octet-stream'});fs.createReadStream(file).pipe(res);});}
+async function captureOfficeEvidence(page,viewport){
+  const prefix=`business-office-review-demo-${viewport.name}`;
+  await page.screenshot({path:path.join(evidenceDir,`${prefix}-today.png`),fullPage:true});
+  for(const target of ['customers','quotes']){
+    const button=page.locator(`[data-page="${target}"]`);
+    if(!await button.count()){fail(`${viewport.name} Business Office ${target} screenshot route`,'navigation button missing');continue;}
+    await button.click();
+    await page.waitForTimeout(80);
+    const heading=(await page.locator('#mainContent h1').first().textContent())||'';
+    if(!heading.trim())fail(`${viewport.name} Business Office ${target} screenshot route`,'workspace heading missing after navigation');
+    await page.screenshot({path:path.join(evidenceDir,`${prefix}-${target}.png`),fullPage:true});
+  }
+  pass(`${viewport.name}: Business Office Today, Customers and Quotes screenshots captured`);
+}
 (async()=>{
  const local=server();await new Promise(resolve=>local.listen(0,'127.0.0.1',resolve));
  const base=`http://127.0.0.1:${local.address().port}`;const browser=await chromium.launch({headless:true});
@@ -28,6 +44,7 @@ function server(){return http.createServer((req,res)=>{let pathname=decodeURICom
     const response=await page.goto(`${base}/${file}`,{waitUntil:'networkidle',timeout:20000});if(!response||response.status()>=400)fail(`${viewport.name} ${file} loads`,response?String(response.status()):'no response');
     const overflow=await page.evaluate(()=>Math.max(0,Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-window.innerWidth));if(overflow>1)fail(`${viewport.name} ${file} horizontal overflow`,`${overflow}px`);
     const brokenImages=await page.locator('img').evaluateAll(images=>images.filter(img=>(img.currentSrc||img.getAttribute('src'))&&img.loading!=='lazy'&&(!img.complete||img.naturalWidth===0)).map(img=>img.getAttribute('src')));if(brokenImages.length)fail(`${viewport.name} ${file} images`,brokenImages.join(', '));
+    if(file==='business-office-review-demo.html')await captureOfficeEvidence(page,viewport);
     if(failedAssets.length)fail(`${viewport.name} ${file} asset responses`,failedAssets.join(' | '));if(errors.length)fail(`${viewport.name} ${file} runtime`,errors.join(' | '));await page.close();
    }
    await context.close();pass(`${viewport.name}: ${pages.length} top-level pages load without browser, image, or overflow failures`);
@@ -41,5 +58,5 @@ function server(){return http.createServer((req,res)=>{let pathname=decodeURICom
   await page.goto(`${base}/sample-library-now.html`,{waitUntil:'networkidle'});if(await page.locator('.project-card').count()!==8)fail('eight complete project examples render');else pass('eight complete project examples render');const exact=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];const sources=await page.locator('img').evaluateAll(images=>images.map(img=>img.getAttribute('src')||''));if(!exact.every(name=>sources.some(src=>src.includes(name))))fail('six controlled deck irrigation and kitchen images render');else pass('six controlled deck irrigation and kitchen images render');if(await page.locator('a[href*="contractor-demo"]').count())fail('public examples expose private contractor routes');else pass('public examples keep contractor demo private');
   await page.close();
  }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
- if(failures.length){console.error(JSON.stringify({status:'FAIL',pages:pages.length,failures},null,2));process.exit(1);}console.log(JSON.stringify({status:'PASS',pages:pages.length,viewports:['desktop','mobile'],checks:'load + runtime + images + overflow + navigation + five capabilities + project pricing + Quote Builder examples + eight examples'},null,2));
+ if(failures.length){console.error(JSON.stringify({status:'FAIL',pages:pages.length,failures},null,2));process.exit(1);}console.log(JSON.stringify({status:'PASS',pages:pages.length,viewports:['desktop','mobile'],visualEvidence:['Business Office Today','Business Office Customers','Business Office Quotes'],checks:'load + runtime + images + overflow + navigation + five capabilities + project pricing + Quote Builder examples + eight examples'},null,2));
 })().catch(error=>{console.error(error);process.exit(1);});
