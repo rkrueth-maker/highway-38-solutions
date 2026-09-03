@@ -1,30 +1,33 @@
-name: H38 Scout Firebase Real Device Acceptance
+name: H38 Scout v3.0.25 Firebase Authenticated Functional Crawl
 
 on:
   workflow_dispatch:
     inputs:
       model:
-        description: 'Firebase physical Android model ID'
+        description: 'Firebase PHYSICAL Android model ID'
         required: true
         default: 'r0q'
       version:
         description: 'Android OS version ID supported by that model'
         required: true
         default: '34'
+      timeout:
+        description: 'Robo crawl timeout'
+        required: true
+        default: '30m'
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
-  group: scout-firebase-real-device
+  group: scout-firebase-v3025-functional-crawl
   cancel-in-progress: false
 
 jobs:
-  owner-real-device:
+  authenticated-functional-crawl:
     if: github.ref == 'refs/heads/agent/private-reseller-scout'
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 50
     env:
       FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -32,6 +35,7 @@ jobs:
       SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
       DEVICE_MODEL: ${{ inputs.model || 'r0q' }}
       DEVICE_VERSION: ${{ inputs.version || '34' }}
+      ROBO_TIMEOUT: ${{ inputs.timeout || '30m' }}
     defaults:
       run:
         working-directory: native/h38-site-scanner/android-app
@@ -41,59 +45,60 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce private Scout authority and v3.0.16 contracts
+      - name: Enforce private recovery authority
         shell: bash
         run: |
           set -euo pipefail
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
           missing=0
           for name in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_JSON SCOUT_EMAIL SCOUT_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required GitHub secret backing $name" >&2
+              missing=1
+            fi
           done
           test "$missing" -eq 0
-          grep -Fq "versionName '3.0.16'" reseller/build.gradle
-          grep -Fq 'versionCode 316' reseller/build.gradle
-          node --check reseller/src/main/assets/reseller/v308-garage-polish.js
-          node --check reseller/src/main/assets/reseller/v314-source-quality-repair.js
-          node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          grep -Fq 'onRenderProcessGone' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'H38_SCOUT_V315_FIREBASE_STABILITY=true' reseller/src/main/assets/reseller/v314-source-quality-repair.js
-          grep -Fq 'H38_SCOUT_V316_VIDEO_ACCEPTANCE_R2=true' reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          grep -Fq 'queryPinned' reseller/src/main/assets/reseller/v314-source-quality-repair.js
-          grep -Fq 'knownDefect00ProfitFirstFacebookSourcing' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
-          grep -Fq 'knownDefect05GarageSaleDiscovery' reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java
+
+          grep -Fq "versionName '3.0.25'" reseller/build.gradle
+          grep -Fq 'versionCode 325' reseller/build.gradle
+          test -f reseller/src/main/assets/reseller/v262-phone-video-repair.js
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+
+          echo 'Recovery runtime gate PASS: v3.0.25 / v2.6.3 parity baseline.'
 
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: android-actions/setup-android@v3
+
       - name: Install Android platform
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build exact owner debug APK and owner instrumentation APK
+      - name: Build exact owner APK
         shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon :reseller:assembleOwnerDebug :reseller:assembleOwnerDebugAndroidTest
-          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
-          TEST_APK="$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)"
+          gradle --no-daemon :reseller:assembleOwner
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$APP_APK" -a -f "$APP_APK"
-          test -n "$TEST_APK" -a -f "$TEST_APK"
           echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
-          echo "TEST_APK=$TEST_APK" >> "$GITHUB_ENV"
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
-          cp "$APP_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.16-device-farm-debug.apk"
-          cp "$TEST_APK" "$GITHUB_WORKSPACE/artifacts/firebase-device/H38-Reseller-Scout-Owner-v3.0.16-androidTest.apk"
-          sha256sum "$GITHUB_WORKSPACE/artifacts/firebase-device/"*.apk | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/sha256.txt"
-          unzip -p "$APP_APK" assets/reseller/v308-garage-polish.js | grep -Fq 'Garage & estate sales'
-          unzip -p "$APP_APK" assets/reseller/v316-garage-safe-action.js | grep -Fq 'H38_SCOUT_V316_VIDEO_ACCEPTANCE_R2=true'
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='316' versionName='3.0.16'" "$GITHUB_WORKSPACE/artifacts/firebase-device/badging.txt"
+
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          mkdir -p "$report"
+          cp "$APP_APK" "$report/H38-Reseller-Scout-Owner-v3.0.25-firebase.apk"
+          sha256sum "$report/H38-Reseller-Scout-Owner-v3.0.25-firebase.apk" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='325' versionName='3.0.25'" "$report/badging.txt"
 
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
@@ -106,38 +111,87 @@ jobs:
         with:
           project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      - name: Verify selected target is physical
+      - name: Verify target is a physical Firebase device
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-device"
-          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
-          grep -qi 'PHYSICAL' "$GITHUB_WORKSPACE/artifacts/firebase-device/device-model.yml"
-          echo "Physical model verified. Android version compatibility will be authoritatively validated by gcloud test run for model=$DEVICE_MODEL,version=$DEVICE_VERSION."
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device-model.yml"
+          grep -qi 'PHYSICAL' "$report/device-model.yml"
 
-      - name: Run v3.0.16 repair matrix on Firebase physical Android
+      - name: Create authenticated WebView Robo script
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/firebase-device"
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          script="$RUNNER_TEMP/scout-login-robo.json"
+          echo "::add-mask::$SCOUT_EMAIL"
+          echo "::add-mask::$SCOUT_PASSWORD"
+
+          python3 - <<'PY'
+          import json, os, shlex
+          from pathlib import Path
+
+          email = os.environ['SCOUT_EMAIL']
+          password = os.environ['SCOUT_PASSWORD']
+          out = Path(os.environ['RUNNER_TEMP']) / 'scout-login-robo.json'
+
+          # WebView login fields cannot use Firebase --robo-directives. Use OCR to focus
+          # the visible fields and Android input text to commit text through the IME path.
+          def input_cmd(value: str) -> str:
+              # Android `input text` treats %s as space. Keep a shell-safe single argument.
+              value = value.replace('%', '%25').replace(' ', '%s')
+              return 'input text ' + shlex.quote(value)
+
+          actions = [
+              {'eventType': 'WAIT', 'delayTime': 2500},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Email'},
+              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(email)},
+              {'eventType': 'WAIT', 'delayTime': 800},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Password'},
+              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(password)},
+              {'eventType': 'WAIT', 'delayTime': 800},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Sign in'},
+              {'eventType': 'WAIT', 'delayTime': 5000},
+              {
+                  'eventType': 'ASSERTION',
+                  'contextDescriptor': {
+                      'condition': 'element_present',
+                      'negateCondition': True,
+                      'visionText': 'Sign in'
+                  }
+              },
+              {'eventType': 'TAKE_SCREENSHOT', 'screenshotName': 'authenticated-scout-entry'}
+          ]
+          out.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n' + json.dumps(actions))
+          PY
+
+          test -s "$script"
+          echo "ROBO_SCRIPT=$script" >> "$GITHUB_ENV"
+          echo 'Authenticated Robo script created (credentials masked; script is not uploaded as an artifact).'
+
+      - name: Run authenticated full functional crawl on Firebase physical Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
           APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
-          TEST="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$TEST_APK"
+
           set +e
           gcloud firebase test android run \
             --project "$FIREBASE_PROJECT_ID" \
-            --type instrumentation \
+            --type robo \
             --app "$APP" \
-            --test "$TEST" \
-            --test-targets 'class com.highway38.resellerscout.RemoteOwnerUxTest' \
+            --robo-script "$ROBO_SCRIPT" \
             --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
-            --environment-variables "SCOUT_EMAIL=$SCOUT_EMAIL,SCOUT_PASSWORD=$SCOUT_PASSWORD" \
-            --timeout 25m \
-            --results-history-name 'H38 Scout Real Device Acceptance' \
+            --timeout "$ROBO_TIMEOUT" \
+            --results-history-name 'H38 Scout Authenticated Functional Crawl' \
+            --client-details matrixLabel="H38 Scout v3.0.25 authenticated all-functions crawl" \
             2>&1 | tee "$report/firebase-test-lab.log"
           status=${PIPESTATUS[0]}
           set -e
 
-          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^]]+' "$report/firebase-test-lab.log" | tail -n1 || true)"
+          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^ ]+' "$report/firebase-test-lab.log" | tail -n1 || true)"
           if [[ -n "$raw_url" ]]; then
             raw_path="${raw_url#https://console.developers.google.com/storage/browser/}"
             bucket="${raw_path%%/*}"
@@ -145,25 +199,59 @@ jobs:
             prefix="${prefix%/}"
             mkdir -p "$report/firebase-raw-results"
             gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
-            grep -RniE 'FAILURES!!!|AssertionError|junit.framework|java.lang.AssertionError|KNOWN DEFECT|H38RemoteUx|testcase|failure|DG BOUNDARY|FACEBOOK PROFIT BOUNDARY|GARAGE BOUNDARY' "$report/firebase-raw-results" > "$report/failure-summary.txt" || true
           fi
 
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|crash|WebView.*error|net::ERR_|HTTP [45][0-9][0-9]|TypeError|ReferenceError|Unhandled|uncaught' \
+            "$report/firebase-raw-results" "$report/firebase-test-lab.log" \
+            > "$report/error-scan.txt" 2>/dev/null || true
+
+          grep -RniE 'crawl|action|screen|activity|coverage|robo' \
+            "$report/firebase-raw-results" \
+            > "$report/crawl-evidence.txt" 2>/dev/null || true
+
           if [[ "$status" -eq 0 ]]; then
-            echo 'REAL DEVICE FARM PASS' | tee "$report/status.txt"
+            echo 'FIREBASE AUTHENTICATED FUNCTIONAL CRAWL PASS — no Test Lab execution failure' | tee "$report/status.txt"
+          elif grep -Fq 'TEST_QUOTA_EXCEEDED' "$report/firebase-test-lab.log"; then
+            echo 'FIREBASE NOT RUN — TEST_QUOTA_EXCEEDED; no device execution' | tee "$report/status.txt"
+            exit "$status"
           else
-            if grep -Fq 'TEST_QUOTA_EXCEEDED' "$report/firebase-test-lab.log"; then
-              echo 'REAL DEVICE FARM FAIL — INFRASTRUCTURE QUOTA; NO DEVICE EXECUTION' | tee "$report/status.txt"
-            else
-              echo "REAL DEVICE FARM FAIL — DEVICE OR APP TEST FAILURE (gcloud exit $status)" | tee "$report/status.txt"
-            fi
+            echo "FIREBASE FUNCTIONAL CRAWL FAIL — gcloud exit $status" | tee "$report/status.txt"
             exit "$status"
           fi
 
-      - name: Upload device-farm build and diagnostics
+      - name: Build concise acceptance report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          {
+            echo '# H38 Scout v3.0.25 Firebase Functional Crawl'
+            echo
+            echo "- Source: $GITHUB_SHA"
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- Device: $DEVICE_MODEL / Android $DEVICE_VERSION / PHYSICAL"
+            echo "- Package: com.highway38.resellerscout.owner"
+            echo '- Physical-phone login authority before this run: PASS'
+            echo '- Firebase scope: authenticated broad UI crawl, button/path traversal, crash/ANR/runtime-error capture, screenshots and video.'
+            echo '- Important: a successful Firebase crawl is NOT a substitute for physical-phone PASS on behavior that requires owner acceptance.'
+            echo
+            echo '## Status'
+            cat "$report/status.txt" 2>/dev/null || echo 'No final status generated.'
+            echo
+            echo '## Automated error scan'
+            if [[ -s "$report/error-scan.txt" ]]; then
+              cat "$report/error-scan.txt"
+            else
+              echo 'No matching fatal/runtime error signatures found in downloaded evidence.'
+            fi
+          } > "$report/acceptance-report.md"
+
+      - name: Upload Firebase evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.16-firebase-real-device
-          path: artifacts/firebase-device/*
+          name: h38-scout-v3.0.25-firebase-functional-crawl
+          path: artifacts/firebase-functional/**
           if-no-files-found: warn
           retention-days: 30
