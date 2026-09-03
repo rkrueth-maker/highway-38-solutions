@@ -39,23 +39,38 @@ declare
   v_reason text;
   v_actor uuid;
 begin
-  v_business_id := coalesce(new.business_id,old.business_id);
-  v_record_id := coalesce(new.id,old.id);
-  v_collection := coalesce(new.collection,old.collection);
-  v_record_key := coalesce(new.record_key,old.record_key);
+  if tg_op='DELETE' then
+    v_business_id := old.business_id;
+    v_record_id := old.id;
+    v_collection := old.collection;
+    v_record_key := old.record_key;
+  else
+    v_business_id := new.business_id;
+    v_record_id := new.id;
+    v_collection := new.collection;
+    v_record_key := new.record_key;
+  end if;
+
+  -- Start the append-only ledger with time/attendance. Other ERP collections can opt in later
+  -- without copying every ordinary Business Office record change today.
+  if v_collection <> 'timeEntries' then
+    if tg_op='DELETE' then return old; else return new; end if;
+  end if;
+
   v_before := case when tg_op='INSERT' then null else old.payload end;
   v_after := case when tg_op='DELETE' then null else new.payload end;
   v_actor := coalesce(case when tg_op='DELETE' then old.updated_by else new.updated_by end,auth.uid());
   v_reason := coalesce(
     case when tg_op='DELETE' then old.payload->>'Edit Reason' else new.payload->>'Edit Reason' end,
-    case when tg_op='INSERT' and v_collection='timeEntries' then 'Employee clock in' end,
-    case when tg_op='UPDATE' and v_collection='timeEntries' and coalesce(old.payload->>'End Time','')='' and coalesce(new.payload->>'End Time','')<>'' then 'Employee clock out' end,
+    case when tg_op='INSERT' then 'Employee clock in' end,
+    case when tg_op='UPDATE' and coalesce(old.payload->>'End Time','')='' and coalesce(new.payload->>'End Time','')<>'' then 'Employee clock out' end,
     ''
   );
   insert into public.business_record_revisions(
     business_id,business_record_id,collection,record_key,operation,before_payload,after_payload,change_reason,changed_by
   ) values(v_business_id,v_record_id,v_collection,v_record_key,tg_op,v_before,v_after,v_reason,v_actor);
-  return coalesce(new,old);
+
+  if tg_op='DELETE' then return old; else return new; end if;
 end
 $$;
 revoke all on function private.capture_business_record_revision() from public,anon,authenticated;
@@ -65,7 +80,8 @@ create trigger business_records_revision_ledger
 after insert or update or delete on public.business_records
 for each row execute function private.capture_business_record_revision();
 
--- Staff may punch time through self-scoped RPCs, but may not directly rewrite time records.
+-- All time-entry writes go through audited RPCs. Staff use self-scoped punch RPCs;
+-- owner/administrator corrections require a reason. Generic reads remain available to owners.
 create or replace function private.business_record_access(p_business_id uuid,p_collection text,p_write boolean default false)
 returns boolean
 language sql
@@ -80,7 +96,10 @@ as $$
       and membership.auth_user_id=(select auth.uid())
       and membership.status='active'
       and (
-        membership.role in ('owner','administrator')
+        (
+          membership.role in ('owner','administrator')
+          and not (p_write=true and p_collection='timeEntries')
+        )
         or (
           membership.role='staff'
           and p_collection not in (
@@ -120,7 +139,7 @@ begin
   order by record.created_at desc limit 1;
   select coalesce(jsonb_agg(item.payload order by item.created_at desc),'[]'::jsonb) into v_recent
   from (select record.payload,record.created_at from public.business_records record
-        where record.business_id=p_business_id and record.collection='timeEntries' and record.created_by=v_uid
+        where record.business_id=p_business_id and record.collection='timeEntries' and record.created_by=v_uid and record.record_status='active'
         order by record.created_at desc limit 10) item;
   return jsonb_build_object('role',v_role,'canEdit',v_role in ('owner','administrator'),'currentPunch',v_current,'recent',v_recent);
 end
@@ -230,7 +249,7 @@ begin
   if v_role not in ('owner','administrator') then raise exception 'Owner or administrator access required'; end if;
   select coalesce(jsonb_agg(x order by x.created_at desc),'[]'::jsonb) into v_entries from (
     select record.id,record.record_key,record.payload,record.created_by,record.updated_by,record.created_at,record.updated_at
-    from public.business_records record where record.business_id=p_business_id and record.collection='timeEntries' order by record.created_at desc limit greatest(1,least(p_limit,200))
+    from public.business_records record where record.business_id=p_business_id and record.collection='timeEntries' and record.record_status='active' order by record.created_at desc limit greatest(1,least(p_limit,200))
   ) x;
   select coalesce(jsonb_agg(x order by x.changed_at desc),'[]'::jsonb) into v_revisions from (
     select revision.id,revision.record_key,revision.operation,revision.before_payload,revision.after_payload,revision.change_reason,revision.changed_by,revision.changed_at
@@ -289,17 +308,27 @@ language plpgsql
 security definer
 set search_path='pg_catalog','public','private'
 as $$
-declare v_uid uuid:=auth.uid(); v_run uuid; v_row jsonb; v_index integer:=0; v_collection text; v_key text; v_payload jsonb;
+declare
+  v_uid uuid:=auth.uid();
+  v_run uuid;
+  v_row jsonb;
+  v_index integer:=0;
+  v_collection text;
+  v_key text;
+  v_payload jsonb;
+  v_allowed_collections constant text[]:=array['customers','contacts','properties','jobs','workOrders','tasks','quotes','timeEntries','expenses','invoices','payments','documents','historicalRecords'];
 begin
   if not private.business_access(p_business_id,array['owner','administrator']::text[]) then raise exception 'Owner or administrator access required'; end if;
   if jsonb_typeof(p_rows)<>'array' or jsonb_array_length(p_rows)=0 then raise exception 'Import rows are required'; end if;
   if jsonb_array_length(p_rows)>5000 then raise exception 'Import batches are limited to 5000 rows'; end if;
+  if coalesce(nullif(btrim(p_entity_type),''),'historicalRecords') <> all(v_allowed_collections) then raise exception 'Unsupported import data type'; end if;
   insert into public.business_data_import_runs(business_id,source_name,entity_type,row_count,created_by)
-  values(p_business_id,coalesce(nullif(btrim(p_source_name),''),'Imported data'),coalesce(nullif(btrim(p_entity_type),''),'records'),jsonb_array_length(p_rows),v_uid)
+  values(p_business_id,coalesce(nullif(btrim(p_source_name),''),'Imported data'),coalesce(nullif(btrim(p_entity_type),''),'historicalRecords'),jsonb_array_length(p_rows),v_uid)
   returning id into v_run;
   for v_row in select value from jsonb_array_elements(p_rows) loop
     v_index:=v_index+1;
     v_collection:=coalesce(nullif(v_row->>'targetCollection',''),nullif(p_entity_type,''),'historicalRecords');
+    if v_collection <> all(v_allowed_collections) then raise exception 'Unsupported target collection at row %',v_index; end if;
     v_key:=coalesce(nullif(v_row->>'targetRecordKey',''),'IMPORT-'||replace(gen_random_uuid()::text,'-',''));
     v_payload:=coalesce(v_row->'normalizedPayload',v_row->'rawPayload',v_row,'{}'::jsonb);
     insert into public.business_data_import_rows(run_id,business_id,row_number,target_collection,target_record_key,raw_payload,normalized_payload)
@@ -320,6 +349,7 @@ begin
   select * into v_run from public.business_data_import_runs where id=p_run_id for update;
   if v_run.id is null then raise exception 'Import run not found'; end if;
   if not private.business_access(v_run.business_id,array['owner','administrator']::text[]) then raise exception 'Owner or administrator access required'; end if;
+  if v_run.status not in ('staged','reviewed','failed') then raise exception 'Import run is not ready to apply'; end if;
   update public.business_data_import_runs set status='importing' where id=p_run_id;
   for v_row in select * from public.business_data_import_rows where run_id=p_run_id and status='ready' order by row_number loop
     begin
@@ -355,8 +385,8 @@ begin
     'acceptedQuotes',count(*) filter(where lower(coalesce(payload->>'Status',''))='accepted'),
     'averageQuoteTotal',round(coalesce(avg(case when (payload->>'Total')~'^-?[0-9]+(\.[0-9]+)?$' then (payload->>'Total')::numeric end),0),2),
     'medianQuoteTotal',round(coalesce(percentile_cont(0.5) within group(order by case when (payload->>'Total')~'^-?[0-9]+(\.[0-9]+)?$' then (payload->>'Total')::numeric end) filter(where (payload->>'Total')~'^-?[0-9]+(\.[0-9]+)?$'),0)::numeric,2),
-    'completedJobs',(select count(*) from public.business_records j where j.business_id=p_business_id and j.collection='jobs' and lower(coalesce(j.payload->>'Status',''))='completed'),
-    'timeSamples',(select count(*) from public.business_records t where t.business_id=p_business_id and t.collection='timeEntries' and coalesce(t.payload->>'Hours','')<>'')
+    'completedJobs',(select count(*) from public.business_records j where j.business_id=p_business_id and j.collection='jobs' and j.record_status='active' and lower(coalesce(j.payload->>'Status',''))='completed'),
+    'timeSamples',(select count(*) from public.business_records t where t.business_id=p_business_id and t.collection='timeEntries' and t.record_status='active' and coalesce(t.payload->>'Hours','')<>'')
   ) into v_profile from public.business_records where business_id=p_business_id and collection='quotes' and record_status='active';
   select coalesce(jsonb_agg(pattern order by (pattern->>'samples')::int desc),'[]'::jsonb) into v_patterns from (
     select jsonb_build_object('projectPattern',coalesce(nullif(btrim(payload->>'Project Title'),''),'Unclassified'),'samples',count(*),
