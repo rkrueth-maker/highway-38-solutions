@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/scout-signin-physical-preflight.yml'
       - 'native/h38-site-scanner/android-app/reseller/build.gradle'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/AndroidManifest.xml'
+      - 'native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/index.html'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js'
       - 'native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v316-garage-safe-action.js'
@@ -21,8 +23,8 @@ concurrency:
 
 jobs:
   signin-physical:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    runs-on: macos-14
+    timeout-minutes: 25
     env:
       SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
       SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
@@ -42,28 +44,26 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -n "${SCOUT_EMAIL:-}"
           test -n "${SCOUT_PASSWORD:-}"
-          grep -Fq "versionName '3.0.20'" native/h38-site-scanner/android-app/reseller/build.gradle
+          grep -Fq "versionName '3.0.21'" native/h38-site-scanner/android-app/reseller/build.gradle
+          grep -Fq 'versionCode 321' native/h38-site-scanner/android-app/reseller/build.gradle
+          grep -Fq 'android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"' native/h38-site-scanner/android-app/reseller/src/main/AndroidManifest.xml
           test "$(git hash-object native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '2d813ddea762b55aadd1faad1c006d620a196abf'
+          ! grep -Fq 'ensureLoginAccessibility' native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v316-garage-safe-action.js
           grep -Fq 'androidInputCanSignInThroughOriginalForm' native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/SignInPhysicalInputTest.java
       - name: Run Android physical-input sign-in test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 36
           target: google_apis
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            cd native/h38-site-scanner/android-app
-            timeout 12m gradle --no-daemon :reseller:connectedOwnerDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.highway38.resellerscout.SignInPhysicalInputTest \
-              -Pandroid.testInstrumentationRunnerArguments.SCOUT_EMAIL="$SCOUT_EMAIL" \
-              -Pandroid.testInstrumentationRunnerArguments.SCOUT_PASSWORD="$SCOUT_PASSWORD"
+          script: cd native/h38-site-scanner/android-app && gradle --no-daemon :reseller:connectedOwnerDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.highway38.resellerscout.SignInPhysicalInputTest -Pandroid.testInstrumentationRunnerArguments.SCOUT_EMAIL="$SCOUT_EMAIL" -Pandroid.testInstrumentationRunnerArguments.SCOUT_PASSWORD="$SCOUT_PASSWORD"
       - name: Upload physical sign-in reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.20-physical-signin-preflight
+          name: h38-scout-v3.0.21-physical-signin-preflight
           path: native/h38-site-scanner/android-app/reseller/build/reports/androidTests/connected/**
           if-no-files-found: warn
           retention-days: 30
