@@ -24,13 +24,12 @@ import org.json.JSONTokener;
 /**
  * Native owner-login surface for the Android Scout shell.
  *
- * The WebView keeps the existing Supabase login/authorization implementation.
- * This class only collects credentials with native Android EditTexts, copies them
- * into the existing login form, and submits that form. It never stores a password
- * and never bypasses the Scout owner allow-list.
+ * Credentials are collected by native Android EditTexts and handed directly to the
+ * packaged Scout auth bridge. Supabase authentication and the owner allow-list remain
+ * the authority. The password is never persisted by the Android shell.
  */
 final class NativeLoginOverlay {
-    private static final String TAG = "h38-scout-native-login-v322";
+    private static final String TAG = "h38-scout-native-login-v323";
 
     private NativeLoginOverlay() {}
 
@@ -74,7 +73,8 @@ final class NativeLoginOverlay {
         private Button signIn;
         private TextView status;
         private boolean pendingSignIn;
-        private boolean handlerReady;
+        private boolean bridgeReady;
+        private long installedAt;
 
         Controller(Activity activity, ViewGroup host, WebView webView) {
             this.activity = activity;
@@ -83,6 +83,7 @@ final class NativeLoginOverlay {
         }
 
         void install() {
+            installedAt = System.currentTimeMillis();
             overlay = new LinearLayout(activity);
             overlay.setTag(TAG);
             overlay.setOrientation(LinearLayout.VERTICAL);
@@ -110,7 +111,7 @@ final class NativeLoginOverlay {
             titleParams.topMargin = dp(8);
             card.addView(title, titleParams);
 
-            TextView note = text("Owner authentication stays on the existing H38 Scout account. These are native Android fields, so sign-in no longer depends on WebView keyboard focus.", 14, Color.rgb(82, 97, 109), Typeface.NORMAL);
+            TextView note = text("Owner authentication stays on the existing H38 Scout account. Native Android handles typing; Scout's packaged auth bridge handles Supabase sign-in.", 14, Color.rgb(82, 97, 109), Typeface.NORMAL);
             LinearLayout.LayoutParams noteParams = matchWrap();
             noteParams.topMargin = dp(8);
             noteParams.bottomMargin = dp(18);
@@ -150,7 +151,7 @@ final class NativeLoginOverlay {
             card.addView(signIn, buttonParams);
 
             password.setOnEditorActionListener((v, actionId, event) -> {
-                if (actionId == EditorInfo.IME_ACTION_DONE && handlerReady && !pendingSignIn) {
+                if (actionId == EditorInfo.IME_ACTION_DONE && bridgeReady && !pendingSignIn) {
                     submit();
                     return true;
                 }
@@ -171,11 +172,11 @@ final class NativeLoginOverlay {
             } else {
                 host.addView(overlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
-            pollAuthState(150);
+            pollAuthState(120);
         }
 
         private void submit() {
-            if (!handlerReady || pendingSignIn) return;
+            if (!bridgeReady || pendingSignIn) return;
             String e = email.getText() == null ? "" : email.getText().toString().trim();
             String p = password.getText() == null ? "" : password.getText().toString();
             if (e.isEmpty() || p.isEmpty()) {
@@ -188,22 +189,19 @@ final class NativeLoginOverlay {
             status.setTextColor(Color.rgb(82, 97, 109));
             status.setText("Signing in…");
             String js = "(function(){"
-                    + "var f=document.getElementById('loginForm');if(!f)return 'FORM_MISSING';"
-                    + "if(typeof f.onsubmit!=='function')return 'HANDLER_NOT_READY';"
-                    + "var e=f.querySelector('input[name=\"email\"]'),p=f.querySelector('input[name=\"password\"]');if(!e||!p)return 'FIELDS_MISSING';"
-                    + "e.value=" + JSONObject.quote(e) + ";p.value=" + JSONObject.quote(p) + ";"
-                    + "e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));"
-                    + "p.dispatchEvent(new Event('input',{bubbles:true}));p.dispatchEvent(new Event('change',{bubbles:true}));"
-                    + "if(f.requestSubmit)f.requestSubmit();else{var b=f.querySelector('button[type=\"submit\"]');if(b)b.click();}"
-                    + "return 'SUBMITTED';})()";
+                    + "if(typeof window.H38NativeOwnerSignIn!=='function')return 'AUTH_BRIDGE_MISSING';"
+                    + "try{window.H38NativeOwnerSignIn(" + JSONObject.quote(e) + "," + JSONObject.quote(p) + ");return 'SUBMITTED';}"
+                    + "catch(err){return 'AUTH_BRIDGE_ERROR:'+String(err&&err.message||err);}"
+                    + "})()";
             webView.evaluateJavascript(js, value -> {
                 if (!"\"SUBMITTED\"".equals(value)) {
                     pendingSignIn = false;
-                    signIn.setEnabled(handlerReady);
+                    password.setText("");
+                    signIn.setEnabled(bridgeReady);
                     status.setTextColor(Color.rgb(150, 55, 45));
-                    status.setText("Scout sign-in is not ready yet. Try Sign in again.");
+                    status.setText("Secure sign-in could not start. Reopen Scout and try again.");
                 }
-                pollAuthState(250);
+                pollAuthState(180);
             });
         }
 
@@ -211,9 +209,9 @@ final class NativeLoginOverlay {
             handler.postDelayed(() -> {
                 if (activity.isFinishing() || activity.isDestroyed() || overlay.getParent() == null) return;
                 String js = "(function(){"
-                        + "var l=document.getElementById('loginView'),a=document.getElementById('appView'),m=document.getElementById('loginMessage'),f=document.getElementById('loginForm');"
-                        + "if(!l||!a)return JSON.stringify({state:'loading',ready:false,message:''});"
-                        + "return JSON.stringify({state:(!a.classList.contains('hidden')?'app':(!l.classList.contains('hidden')?'login':'loading')),ready:!!(f&&typeof f.onsubmit==='function'),message:(m?String(m.textContent||'').trim():'')});"
+                        + "var l=document.getElementById('loginView'),a=document.getElementById('appView'),m=document.getElementById('loginMessage'),s=window.H38NativeOwnerAuthState||{};"
+                        + "if(!l||!a)return JSON.stringify({state:'loading',ready:false,busy:false,error:'',result:'STARTING',message:''});"
+                        + "return JSON.stringify({state:(!a.classList.contains('hidden')?'app':(!l.classList.contains('hidden')?'login':'loading')),ready:(typeof window.H38NativeOwnerSignIn==='function'&&s.ready===true),busy:s.busy===true,error:String(s.error||''),result:String(s.result||''),message:(m?String(m.textContent||'').trim():'')});"
                         + "})()";
                 webView.evaluateJavascript(js, this::handleAuthState);
             }, delayMs);
@@ -223,18 +221,24 @@ final class NativeLoginOverlay {
             if (activity.isFinishing() || activity.isDestroyed() || overlay.getParent() == null) return;
             String state = "loading";
             String message = "";
+            String bridgeError = "";
+            String result = "STARTING";
             boolean ready = false;
+            boolean busy = false;
             try {
                 Object decoded = new JSONTokener(raw == null ? "null" : raw).nextValue();
                 String json = decoded instanceof String ? (String) decoded : String.valueOf(decoded);
                 JSONObject obj = new JSONObject(json);
                 state = obj.optString("state", "loading");
                 ready = obj.optBoolean("ready", false);
+                busy = obj.optBoolean("busy", false);
+                bridgeError = obj.optString("error", "");
+                result = obj.optString("result", "STARTING");
                 message = obj.optString("message", "");
             } catch (Exception ignored) {}
-            handlerReady = ready;
+            bridgeReady = ready;
 
-            if ("app".equals(state)) {
+            if ("app".equals(state) || "PASS".equals(result)) {
                 pendingSignIn = false;
                 password.setText("");
                 signIn.setEnabled(false);
@@ -246,22 +250,45 @@ final class NativeLoginOverlay {
 
             if ("login".equals(state)) {
                 overlay.setVisibility(View.VISIBLE);
-                if (pendingSignIn && !message.isEmpty() && !message.toLowerCase().contains("signing in")) {
+                if (busy) {
+                    pendingSignIn = true;
+                    signIn.setEnabled(false);
+                    status.setTextColor(Color.rgb(82, 97, 109));
+                    status.setText("Signing in…");
+                    pollAuthState(220);
+                    return;
+                }
+                if (pendingSignIn) {
                     pendingSignIn = false;
+                    password.setText("");
+                }
+                if (!bridgeError.isEmpty()) {
+                    status.setTextColor(Color.rgb(150, 55, 45));
+                    status.setText(bridgeError);
+                } else if (!message.isEmpty() && !message.toLowerCase().contains("signing in")) {
                     status.setTextColor(Color.rgb(150, 55, 45));
                     status.setText(message);
-                } else if (!pendingSignIn && !handlerReady) {
+                } else if (!bridgeReady) {
                     status.setTextColor(Color.rgb(82, 97, 109));
-                    status.setText("Preparing secure sign-in…");
-                } else if (!pendingSignIn && handlerReady && status.getText().toString().contains("Preparing secure")) {
+                    if (System.currentTimeMillis() - installedAt > 8000) {
+                        status.setTextColor(Color.rgb(150, 55, 45));
+                        status.setText("Secure sign-in runtime did not finish loading. Check the connection and reopen Scout.");
+                    } else {
+                        status.setText("Preparing secure sign-in…");
+                    }
+                } else if (status.getText().toString().contains("Preparing secure") || status.getText().toString().contains("did not finish")) {
                     status.setText("");
                 }
-                signIn.setEnabled(handlerReady && !pendingSignIn);
-                pollAuthState(pendingSignIn ? 300 : 700);
+                signIn.setEnabled(bridgeReady && !pendingSignIn);
+                pollAuthState(bridgeReady ? 650 : 250);
                 return;
             }
 
             signIn.setEnabled(false);
+            if (System.currentTimeMillis() - installedAt > 8000) {
+                status.setTextColor(Color.rgb(150, 55, 45));
+                status.setText("Scout sign-in page did not finish loading. Check the connection and reopen Scout.");
+            }
             pollAuthState(250);
         }
 
