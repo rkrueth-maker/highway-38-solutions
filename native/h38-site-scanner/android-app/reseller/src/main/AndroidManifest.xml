@@ -42,6 +42,7 @@
         <activity android:name=".NativePhotoCaptureActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <activity
             android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
