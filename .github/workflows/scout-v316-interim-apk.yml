@@ -42,9 +42,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           grep -Fq "versionName '3.0.25'" reseller/build.gradle
           grep -Fq 'versionCode 325' reseller/build.gradle
-          changed="$(git diff --name-only 64ef9a193958c0fbfc75a8b0e47777857d8bafe5 -- reseller | grep -v '^reseller/build.gradle$' || true)"
-          test -z "$changed"
-          git diff -- reseller/build.gradle > "$report/build-version-diff.txt" || true
+          changed="$(git diff --name-only 64ef9a193958c0fbfc75a8b0e47777857d8bafe5 -- reseller | grep -Ev '^(reseller/build.gradle|native/h38-site-scanner/android-app/reseller/build.gradle)$' || true)"
+          if [[ -n "$changed" ]]; then printf '%s\n' "$changed"; exit 1; fi
+          git diff 64ef9a193958c0fbfc75a8b0e47777857d8bafe5 -- reseller/build.gradle > "$report/build-version-diff.txt" || true
           test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           test -f reseller/src/main/assets/reseller/v200-app.js
           test -f reseller/src/main/assets/reseller/v262-phone-video-repair.js
