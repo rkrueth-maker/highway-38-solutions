@@ -2,55 +2,65 @@ plugins {
     id 'com.android.application'
 }
 
-def h38BuildSha = System.getenv('GITHUB_SHA') ?: 'local'
-def h38BuildRun = System.getenv('GITHUB_RUN_ID') ?: 'local'
-def h38KeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH') ?: ''
-def h38KeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD') ?: ''
-def h38KeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS') ?: ''
-def h38KeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD') ?: ''
+def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
+def releaseKeystorePassword = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('H38_ANDROID_UPLOAD_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('H38_ANDROID_UPLOAD_KEY_PASSWORD')
+def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
+def h38BuildSha = (System.getenv('GITHUB_SHA') ?: 'local').replace('"', '')
+def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '')
 
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
-
     defaultConfig {
         applicationId 'com.highway38.resellerscout'
-        minSdk 26
+        minSdk 24
         targetSdk 36
-        versionCode 324
-        versionName '3.0.24'
+        versionCode 325
+        versionName '3.0.25'
         buildConfigField 'String', 'H38_BUILD_SHA', '"' + h38BuildSha + '"'
         buildConfigField 'String', 'H38_BUILD_RUN', '"' + h38BuildRun + '"'
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
-
-    signingConfigs {
-        if (h38KeystorePath && h38KeystorePassword && h38KeyAlias && h38KeyPassword) {
-            stableUpload {
-                storeFile file(h38KeystorePath)
-                storePassword h38KeystorePassword
-                keyAlias h38KeyAlias
-                keyPassword h38KeyPassword
-            }
-        }
-    }
-
-    flavorDimensions 'audience'
-    productFlavors {
-        owner {
-            dimension 'audience'
-            applicationId 'com.highway38.resellerscout.owner'
-            versionNameSuffix ''
-            if (signingConfigs.findByName('stableUpload') != null) {
-                signingConfig signingConfigs.stableUpload
-            }
-        }
-    }
-
     buildFeatures {
         buildConfig true
     }
-
+    signingConfigs {
+        debug {
+            enableV1Signing true
+            enableV2Signing true
+        }
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.dev'
+            versionNameSuffix '-dev'
+            signingConfig signingConfigs.debug
+        }
+        owner {
+            initWith debug
+            applicationIdSuffix '.owner'
+            versionNameSuffix ''
+            matchingFallbacks = ['debug']
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+            else signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -61,13 +71,10 @@ dependencies {
     implementation 'androidx.core:core:1.15.0'
     implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.browser:browser:1.8.0'
-    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
-    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'androidx.camera:camera-core:1.4.2'
     implementation 'androidx.camera:camera-camera2:1.4.2'
     implementation 'androidx.camera:camera-lifecycle:1.4.2'
     implementation 'androidx.camera:camera-view:1.4.2'
-    androidTestImplementation 'androidx.test:runner:1.6.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
 }

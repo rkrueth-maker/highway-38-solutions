@@ -17,7 +17,6 @@ import android.provider.Settings;
 import android.util.Base64;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
-import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -28,91 +27,182 @@ import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
+
 import org.json.JSONObject;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity {
-    public static final String V200_RUNTIME="H38_SCOUT_V200_CLEAN_RUNTIME";
-    public static final String V250_PACKAGED_PROVIDER_LAYER="V250_PACKAGED_PROVIDER_LAYER";
-    private static final String APP_BASE_URL="https://highway38solutions.com/commercial-app/reseller-owner-test/";
-    private static final int REQUEST_LOCATION=3901,REQUEST_PHOTO=3902;
-    private FrameLayout contentRoot; private WebView webView; private String pendingPhotoRole="item"; private FacebookMarketplaceEmbeddedCollector facebookCollector;
+    public static final String V200_RUNTIME = "H38_SCOUT_V200_CLEAN_RUNTIME";
+    public static final String V250_PACKAGED_PROVIDER_LAYER = "V250_PACKAGED_PROVIDER_LAYER";
+    private static final String APP_BASE_URL = "https://highway38solutions.com/commercial-app/reseller-owner-test/";
+    private static final int REQUEST_LOCATION = 3901;
+    private static final int REQUEST_PHOTO = 3902;
+    private FrameLayout contentRoot;
+    private WebView webView;
+    private String pendingPhotoRole = "item";
 
-    @Override public void onCreate(Bundle state){
+    @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(13,42,62));
+        getWindow().setStatusBarColor(Color.rgb(13, 42, 62));
         getWindow().setNavigationBarColor(Color.WHITE);
-        contentRoot=new FrameLayout(this);
-        contentRoot.setBackgroundColor(Color.rgb(243,246,248));
-        webView=new WebView(this);
-        webView.setBackgroundColor(Color.rgb(243,246,248));
-        contentRoot.addView(webView,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        contentRoot = new FrameLayout(this);
+        contentRoot.setBackgroundColor(Color.rgb(243, 246, 248));
+        webView = new WebView(this);
+        webView.setBackgroundColor(Color.rgb(243, 246, 248));
+        contentRoot.addView(webView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(contentRoot);
         applyInsets();
-        WebSettings settings=webView.getSettings();
-        settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setDatabaseEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setUserAgentString(settings.getUserAgentString()+" H38ResellerScoutAndroid/"+BuildConfig.VERSION_NAME);
-        NativeBridge bridge=new NativeBridge();
-        webView.addJavascriptInterface(bridge,"AndroidH38Reseller");
-        webView.addJavascriptInterface(bridge,"AndroidH38Scout");
-        webView.setWebViewClient(new WebViewClient(){
-            @Override public boolean shouldOverrideUrlLoading(WebView view,String url){if(url==null)return false;if(url.startsWith(APP_BASE_URL))return false;if(url.startsWith("http://")||url.startsWith("https://")){openExternal(url);return true;}return false;}
-            @Override public void onPageFinished(WebView view,String url){deliverSharedText(getIntent());}
-            @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){return handleMainRendererGone(view,detail);}
+
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setUserAgentString(settings.getUserAgentString() + " H38ResellerScoutAndroid/2.5.0");
+
+        NativeBridge bridge = new NativeBridge();
+        webView.addJavascriptInterface(bridge, "AndroidH38Reseller");
+        webView.addJavascriptInterface(bridge, "AndroidH38Scout");
+        webView.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url == null) return false;
+                if (url.startsWith(APP_BASE_URL)) return false;
+                if (url.startsWith("http://") || url.startsWith("https://")) { openExternal(url); return true; }
+                return false;
+            }
+            @Override public void onPageFinished(WebView view, String url) { deliverSharedText(getIntent()); }
         });
-        webView.loadDataWithBaseURL(APP_BASE_URL,bundledPage(),"text/html","UTF-8",null);
+        webView.loadDataWithBaseURL(APP_BASE_URL, bundledPage(), "text/html", "UTF-8", null);
     }
-    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);deliverSharedText(intent);}
-    @Override protected void onResume(){super.onResume();WebView w=webView;if(w!=null)w.postDelayed(()->{if(webView==w)w.evaluateJavascript("window.H38ScoutReturned&&window.H38ScoutReturned();",null);},180);}
-    @Override protected void onDestroy(){try{if(facebookCollector!=null)facebookCollector.destroy();}catch(Exception ignored){}super.onDestroy();}
-    private boolean handleMainRendererGone(WebView view,RenderProcessGoneDetail detail){if(view==null||view!=webView)return false;try{if(contentRoot!=null)contentRoot.removeView(view);}catch(Exception ignored){}try{view.removeJavascriptInterface("AndroidH38Reseller");view.removeJavascriptInterface("AndroidH38Scout");view.removeAllViews();view.destroy();}catch(Exception ignored){}webView=null;runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())recreate();});return true;}
-    private void applyInsets(){ViewCompat.setOnApplyWindowInsetsListener(contentRoot,(view,insets)->{Insets bars=insets.getInsets(WindowInsetsCompat.Type.systemBars()|WindowInsetsCompat.Type.displayCutout());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);return WindowInsetsCompat.CONSUMED;});ViewCompat.requestApplyInsets(contentRoot);}
-    private String bundledPage(){String html=readAsset("reseller/index.html");html=html.replace("<link rel=\"stylesheet\" href=\"v200-ui.css\">","<style>"+readAsset("reseller/v200-ui.css")+"</style>");for(String name:new String[]{"v200-core.js","v200-hunt.js","v200-auctions.js","v200-discover.js","v200-scan.js","v200-more.js","v210-polish.js","v211-wide.js","v212-physical.js","v220-profit.js","v220-track.js","v220-product.js","v200-app.js"})html=html.replace("<script src=\""+name+"\"></script>","<script data-h38-bundled-module=\""+name+"\">"+readAsset("reseller/"+name)+"</script>");String appMarker="<script data-h38-bundled-module=\"v200-app.js\">";html=html.replace(appMarker,"<script data-h38-bundled-module=\"v240-data.js\">"+readAsset("reseller/v240-data.js")+"</script>"+appMarker);String repairs="<script data-h38-bundled-module=\"v264-wide-repair.js\">"+readAsset("reseller/v264-wide-repair.js")+"</script><script data-h38-bundled-module=\"v265-facebook-acquisition-repair.js\">"+readAsset("reseller/v265-facebook-acquisition-repair.js")+"</script><script data-h38-bundled-module=\"v266-actionable-intake.js\">"+readAsset("reseller/v266-actionable-intake.js")+"</script><script data-h38-bundled-module=\"v308-garage-polish.js\">"+readAsset("reseller/v308-garage-polish.js")+"</script><script data-h38-bundled-module=\"v314-source-quality-repair.js\">"+readAsset("reseller/v314-source-quality-repair.js")+"</script><script data-h38-bundled-module=\"v316-garage-safe-action.js\">"+readAsset("reseller/v316-garage-safe-action.js")+"</script>";return html.replace("</body>",repairs+"</body>");}
-    private String readAsset(String path){try(InputStream in=getAssets().open(path);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int count;while((count=in.read(buffer))>0)out.write(buffer,0,count);return new String(out.toByteArray(),StandardCharsets.UTF_8);}catch(Exception e){return"<!doctype html><body><h2>Scout asset failed to load</h2><pre>"+e.getMessage()+"</pre></body>";}}
-    private void openExternal(String url){try{if(url==null||!(url.startsWith("https://")||url.startsWith("http://")))return;new CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(this,Uri.parse(url));}catch(Exception first){try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(Exception second){Toast.makeText(this,"Could not open link.",Toast.LENGTH_SHORT).show();}}}
-    private static String first(String... values){for(String value:values)if(value!=null&&!value.trim().isEmpty())return value.trim();return"";}
-    private void deliverSharedText(Intent intent){if(intent==null||!Intent.ACTION_SEND.equals(intent.getAction()))return;String type=intent.getType();if(type!=null&&!type.startsWith("text/"))return;String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text==null||text.trim().isEmpty())text=intent.getStringExtra(Intent.EXTRA_SUBJECT);if(text==null||text.trim().isEmpty())return;String shared=text.trim();int added=FacebookMarketplaceSourceInbox.captureSharedText(this,shared);String js="window.H38SharedOpportunity&&window.H38SharedOpportunity("+JSONObject.quote(shared)+");";WebView w=webView;if(w==null)return;w.postDelayed(()->{if(webView!=w)return;w.evaluateJavascript(js,null);if(added>0){w.evaluateJavascript("try{if(typeof setPage==='function')setPage('discover');if(typeof renderDiscover==='function')renderDiscover();if(typeof notice==='function')notice('Facebook Marketplace link imported. Location and freshness still need proof.','good');}catch(e){}",null);Toast.makeText(MainActivity.this,"Marketplace listing imported to Scout",Toast.LENGTH_SHORT).show();}else Toast.makeText(MainActivity.this,"Share a direct Facebook Marketplace item link to Scout",Toast.LENGTH_LONG).show();},350);intent.setAction(null);}
-    private void requestPhoneLocation(){if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},REQUEST_LOCATION);return;}deliverLocation();}
-    private void deliverLocation(){try{LocationManager manager=(LocationManager)getSystemService(LOCATION_SERVICE);Location best=null;for(String provider:new String[]{LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER,LocationManager.PASSIVE_PROVIDER})try{Location c=manager.getLastKnownLocation(provider);if(c!=null&&(best==null||c.getAccuracy()<best.getAccuracy()))best=c;}catch(SecurityException ignored){}if(best!=null&&System.currentTimeMillis()-best.getTime()<900000){sendLocation(best.getLatitude(),best.getLongitude());return;}String provider=manager.isProviderEnabled(LocationManager.GPS_PROVIDER)?LocationManager.GPS_PROVIDER:LocationManager.NETWORK_PROVIDER;manager.requestSingleUpdate(provider,new LocationListener(){@Override public void onLocationChanged(Location l){sendLocation(l.getLatitude(),l.getLongitude());}@Override public void onProviderEnabled(String p){}@Override public void onProviderDisabled(String p){}@Override public void onStatusChanged(String p,int s,Bundle e){}},Looper.getMainLooper());}catch(Exception e){sendLocationError(e.getMessage()==null?"Location unavailable":e.getMessage());}}
-    private void sendLocation(double lat,double lon){WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeLocationResult&&window.H38NativeLocationResult("+lat+","+lon+");",null);});}
-    private void sendLocationError(String t){WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeLocationError&&window.H38NativeLocationError("+JSONObject.quote(t)+");",null);});}
-    private void sendBarcode(String v){String x=v==null?"":v.trim();WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeBarcodeResult&&window.H38NativeBarcodeResult("+JSONObject.quote(x)+");",null);});}
-    private void sendBarcodeError(String t){String x=t==null||t.isBlank()?"Barcode scan failed.":t;WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeBarcodeError&&window.H38NativeBarcodeError("+JSONObject.quote(x)+");",null);});}
-    private void scanBarcode(){GmsBarcodeScannerOptions o=new GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS).enableAutoZoom().build();GmsBarcodeScanning.getClient(this,o).startScan().addOnSuccessListener(b->{String v=b.getRawValue();if(v==null)v=b.getDisplayValue();sendBarcode(v);}).addOnCanceledListener(()->sendBarcodeError("Scan canceled")).addOnFailureListener(e->runOnUiThread(this::startFallbackBarcodeScanner));}
-    private void startFallbackBarcodeScanner(){try{IntentIntegrator i=new IntentIntegrator(this);i.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);i.setPrompt("Point the camera at the barcode");i.setBeepEnabled(false);i.setOrientationLocked(true);i.initiateScan();}catch(Exception e){sendBarcodeError("Barcode scanner unavailable. Type the UPC instead.");}}
-    private void takePhoto(String role){pendingPhotoRole=role==null||role.trim().isEmpty()?"item":role.trim();try{Intent i=new Intent(this,NativePhotoCaptureActivity.class);i.putExtra(NativePhotoCaptureActivity.EXTRA_ROLE,pendingPhotoRole);startActivityForResult(i,REQUEST_PHOTO);}catch(Exception e){WebView w=webView;if(w!=null)w.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Scout camera could not open.');",null);}}
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);IntentResult sr=IntentIntegrator.parseActivityResult(requestCode,resultCode,data);if(sr!=null){if(sr.getContents()==null||sr.getContents().isBlank())sendBarcodeError("Scan canceled");else sendBarcode(sr.getContents());return;}if(requestCode!=REQUEST_PHOTO)return;WebView w=webView;if(resultCode!=RESULT_OK){if(w!=null)w.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Photo canceled');",null);return;}String path=data==null?"":data.getStringExtra(NativePhotoCaptureActivity.EXTRA_PATH),role=data==null?pendingPhotoRole:data.getStringExtra(NativePhotoCaptureActivity.EXTRA_ROLE);File file=path==null||path.isBlank()?null:new File(path);Bitmap bitmap=null;try{if(file==null||!file.isFile())throw new IllegalStateException();bitmap=BitmapFactory.decodeFile(file.getAbsolutePath());if(bitmap==null)throw new IllegalStateException();bitmap=scaleForResearch(bitmap,1600);try(ByteArrayOutputStream out=new ByteArrayOutputStream()){bitmap.compress(Bitmap.CompressFormat.JPEG,84,out);String d="data:image/jpeg;base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);if(w!=null&&webView==w)w.evaluateJavascript("window.H38NativePhotoResult&&window.H38NativePhotoResult("+JSONObject.quote(role)+","+JSONObject.quote(d)+");",null);}}catch(Exception e){if(w!=null&&webView==w)w.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera returned an unreadable image.');",null);}finally{try{if(file!=null)file.delete();}catch(Exception ignored){}if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();}}
-    private static Bitmap scaleForResearch(Bitmap s,int m){int w=s.getWidth(),h=s.getHeight();if(w<=m&&h<=m)return s;double z=Math.min((double)m/Math.max(1,w),(double)m/Math.max(1,h));Bitmap x=Bitmap.createScaledBitmap(s,Math.max(1,(int)Math.round(w*z)),Math.max(1,(int)Math.round(h*z)),true);if(x!=s)s.recycle();return x;}
-    private static boolean unsafeImageHost(String host){String h=host==null?"":host.toLowerCase();if(h.isBlank()||h.equals("localhost")||h.endsWith(".local")||h.startsWith("127.")||h.startsWith("10.")||h.startsWith("192.168."))return true;if(h.startsWith("172.")){String[] p=h.split("\\.");if(p.length>1)try{int n=Integer.parseInt(p[1]);if(n>=16&&n<=31)return true;}catch(Exception ignored){}}return false;}
-    private void fetchImageData(String key,String rawUrl){final String k=key==null?"":key.trim(),u=rawUrl==null?"":rawUrl.trim();new Thread(()->{HttpURLConnection c=null;try{URL url=new URL(u);if(!"https".equalsIgnoreCase(url.getProtocol())||unsafeImageHost(url.getHost()))throw new IllegalArgumentException("unsafe image URL");c=(HttpURLConnection)url.openConnection();c.setConnectTimeout(9000);c.setReadTimeout(12000);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 H38ResellerScoutAndroid/"+BuildConfig.VERSION_NAME);c.setRequestProperty("Accept","image/avif,image/webp,image/apng,image/*,*/*;q=0.8");int code=c.getResponseCode();String type=c.getContentType()==null?"":c.getContentType().split(";")[0].trim().toLowerCase();if(code<200||code>=300||!type.startsWith("image/"))throw new IllegalStateException("image response "+code);int declared=c.getContentLength();if(declared>3_500_000)throw new IllegalStateException("image too large");try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[16384];int n,total=0;while((n=in.read(buf))>0){total+=n;if(total>3_500_000)throw new IllegalStateException("image too large");out.write(buf,0,n);}String data="data:"+type+";base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeImageResult&&window.H38NativeImageResult("+JSONObject.quote(k)+","+JSONObject.quote(data)+");",null);});}}catch(Exception e){String msg=e.getMessage()==null?"image fetch failed":e.getMessage();WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38NativeImageError&&window.H38NativeImageError("+JSONObject.quote(k)+","+JSONObject.quote(msg)+");",null);});}finally{if(c!=null)c.disconnect();}}).start();}
-    private boolean bypassAutomaticDollarGeneralCheck(String requestId,String bodyJson){try{JSONObject b=new JSONObject(bodyJson==null?"{}":bodyJson);if(!"Dollar General".equalsIgnoreCase(b.optString("retailer","")))return false;JSONObject p=new JSONObject();p.put("status","device_unavailable");p.put("retailer","Dollar General");p.put("stock_checked",false);p.put("stock_status","unknown");p.put("stock_count",JSONObject.NULL);p.put("current_price",JSONObject.NULL);p.put("regular_price",JSONObject.NULL);p.put("store_bound",false);p.put("source_mode","backend_preferred_v315");p.put("session_persisted",false);p.put("availability_label","Automatic background Dollar General browser checking is disabled for stability. Scout keeps backend evidence and explicit retailer verification available without risking the app renderer.");String payload=p.toString(),id=requestId==null?"":requestId;WebView w=webView;if(w!=null)w.post(()->{if(webView==w)w.evaluateJavascript("window.H38DeviceStockResult&&window.H38DeviceStockResult("+JSONObject.quote(id)+","+JSONObject.quote(payload)+");",null);});return true;}catch(Exception ignored){return false;}}
-    @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r!=REQUEST_LOCATION)return;for(int x:g)if(x==PackageManager.PERMISSION_GRANTED){deliverLocation();return;}sendLocationError("Location permission denied");}
-    @Override public void onBackPressed(){WebView w=webView;if(w==null){super.onBackPressed();return;}w.evaluateJavascript("(window.H38HandleBack?window.H38HandleBack():false)",v->{if(!"true".equals(String.valueOf(v)))MainActivity.super.onBackPressed();});}
-    private String buildIdentity(){String sha=BuildConfig.H38_BUILD_SHA==null?"local":BuildConfig.H38_BUILD_SHA;if(sha.length()>12)sha=sha.substring(0,12);return"v"+BuildConfig.VERSION_NAME+" · code "+BuildConfig.VERSION_CODE+" · "+sha+" · run "+BuildConfig.H38_BUILD_RUN;}
-    private final class NativeBridge{
-        @JavascriptInterface public void requestLocation(){runOnUiThread(MainActivity.this::requestPhoneLocation);}
-        @JavascriptInterface public void scanBarcode(){runOnUiThread(MainActivity.this::scanBarcode);}
-        @JavascriptInterface public void takePhoto(String r){runOnUiThread(()->MainActivity.this.takePhoto(r));}
-        @JavascriptInterface public String build(){return buildIdentity();}
-        @JavascriptInterface public void reloadScout(){runOnUiThread(MainActivity.this::recreate);}
-        @JavascriptInterface public void fetchImageData(String key,String url){MainActivity.this.fetchImageData(key,url);}
-        @JavascriptInterface public boolean notificationAccessEnabled(){try{String e=Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners");return e!=null&&e.contains(getPackageName());}catch(Exception ignored){return false;}}
-        @JavascriptInterface public void openNotificationAccessSettings(){runOnUiThread(()->{try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}catch(Exception ignored){}});}
-        @JavascriptInterface public String facebookNotificationCandidates(){return FacebookMarketplaceNotificationListener.rowsJson(MainActivity.this);}
-        @JavascriptInterface public String facebookBrowserCandidates(){return FacebookMarketplaceSourceInbox.mergedRowsJson(MainActivity.this,FacebookMarketplaceEmbeddedCollector.rowsJson(MainActivity.this),FacebookMarketplaceNotificationListener.rowsJson(MainActivity.this));}
-        @JavascriptInterface public void openFacebookMarketplace(String t,double lat,double lon,int radius,String postal,String url){runOnUiThread(()->{if(facebookCollector==null)facebookCollector=new FacebookMarketplaceEmbeddedCollector(MainActivity.this,contentRoot,webView);facebookCollector.start(t==null?"[]":t,lat,lon,radius,postal==null?"":postal);});}
-        @JavascriptInterface public void openExternalUrl(String url){runOnUiThread(()->openExternal(url));}
-        @JavascriptInterface public void startDeviceStockCheck(String requestId,String bodyJson){if(bypassAutomaticDollarGeneralCheck(requestId,bodyJson))return;RetailerDeviceCheckManager.check(MainActivity.this,webView,requestId,bodyJson);}
-        @JavascriptInterface public void openRetailerSession(String bodyJson){runOnUiThread(()->{try{JSONObject b=new JSONObject(bodyJson==null?"{}":bodyJson);String retailer=b.optString("retailer","");String query=first(b.optString("upc",""),b.optString("sku",""),b.optString("title",""),"tools");Intent i=new Intent(MainActivity.this,RetailerVerificationActivity.class);i.putExtra(RetailerVerificationActivity.EXTRA_RETAILER,retailer);i.putExtra(RetailerVerificationActivity.EXTRA_QUERY,query);i.putExtra(RetailerVerificationActivity.EXTRA_SOURCE_URL,b.optString("source_url",""));i.putExtra(RetailerVerificationActivity.EXTRA_STORE,b.optString("store_address",b.optString("store_name","")));startActivity(i);}catch(Exception ignored){}});}
+
+    private void applyInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(contentRoot, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            webView.setPadding(0, 0, 0, 0);
+            return WindowInsetsCompat.CONSUMED;
+        });
+        ViewCompat.requestApplyInsets(contentRoot);
+    }
+
+    private String bundledPage() {
+        String html = readAsset("reseller/index.html");
+        html = html.replace("<link rel=\"stylesheet\" href=\"v200-ui.css\">", "<style>" + readAsset("reseller/v200-ui.css") + "</style>");
+        for (String name : new String[]{"v200-core.js", "v200-hunt.js", "v200-auctions.js", "v200-discover.js", "v200-scan.js", "v200-more.js", "v210-polish.js", "v211-wide.js", "v212-physical.js", "v220-profit.js", "v220-track.js", "v220-product.js", "v200-app.js"}) {
+            html = html.replace("<script src=\"" + name + "\"></script>", "<script data-h38-bundled-module=\"" + name + "\">" + readAsset("reseller/" + name) + "</script>");
+        }
+        String appMarker = "<script data-h38-bundled-module=\"v200-app.js\">";
+        String providerLayer = "<script data-h38-bundled-module=\"v240-data.js\">" + readAsset("reseller/v240-data.js") + "</script>";
+        html = html.replace(appMarker, providerLayer + appMarker);
+        return html;
+    }
+
+    private String readAsset(String path) {
+        try (InputStream in = getAssets().open(path); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192]; int count;
+            while ((count = in.read(buffer)) > 0) out.write(buffer, 0, count);
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "<!doctype html><body><h2>Scout asset failed to load</h2><pre>" + e.getMessage() + "</pre></body>";
+        }
+    }
+
+    private void openExternal(String url) {
+        try {
+            if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) return;
+            CustomTabsIntent tabs = new CustomTabsIntent.Builder().setShowTitle(true).build(); tabs.launchUrl(this, Uri.parse(url));
+        } catch (Exception first) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+            catch (Exception second) { Toast.makeText(this, "Could not open link.", Toast.LENGTH_SHORT).show(); }
+        }
+    }
+
+    private static String first(String... values) { for (String value : values) if (value != null && !value.trim().isEmpty()) return value.trim(); return ""; }
+    private void deliverSharedText(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+        String type = intent.getType(); if (type != null && !type.startsWith("text/")) return;
+        String text = intent.getStringExtra(Intent.EXTRA_TEXT); if (text == null || text.trim().isEmpty()) text = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        if (text == null || text.trim().isEmpty()) return;
+        webView.evaluateJavascript("window.H38SharedOpportunity&&window.H38SharedOpportunity(" + JSONObject.quote(text.trim()) + ");", null); intent.setAction(null);
+    }
+    private void requestPhoneLocation() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) { requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_LOCATION); return; }
+        deliverLocation();
+    }
+    private void deliverLocation() {
+        try {
+            LocationManager manager = (LocationManager) getSystemService(LOCATION_SERVICE); Location best = null;
+            for (String provider : new String[]{LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER}) { try { Location candidate = manager.getLastKnownLocation(provider); if (candidate != null && (best == null || candidate.getAccuracy() < best.getAccuracy())) best = candidate; } catch (SecurityException ignored) {} }
+            if (best != null && System.currentTimeMillis() - best.getTime() < 15 * 60 * 1000L) { sendLocation(best.getLatitude(), best.getLongitude()); return; }
+            String provider = manager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? LocationManager.GPS_PROVIDER : LocationManager.NETWORK_PROVIDER;
+            manager.requestSingleUpdate(provider, new LocationListener() {
+                @Override public void onLocationChanged(Location location) { sendLocation(location.getLatitude(), location.getLongitude()); }
+                @Override public void onProviderEnabled(String p) {} @Override public void onProviderDisabled(String p) {} @Override public void onStatusChanged(String p, int status, Bundle extras) {}
+            }, Looper.getMainLooper());
+        } catch (Exception e) { sendLocationError(e.getMessage() == null ? "Location unavailable" : e.getMessage()); }
+    }
+    private void sendLocation(double lat, double lon) { webView.post(() -> webView.evaluateJavascript("window.H38NativeLocationResult&&window.H38NativeLocationResult(" + lat + "," + lon + ");", null)); }
+    private void sendLocationError(String text) { webView.post(() -> webView.evaluateJavascript("window.H38NativeLocationError&&window.H38NativeLocationError(" + JSONObject.quote(text) + ");", null)); }
+    private void sendBarcode(String value) { String finalValue = value == null ? "" : value.trim(); webView.post(() -> webView.evaluateJavascript("window.H38NativeBarcodeResult&&window.H38NativeBarcodeResult(" + JSONObject.quote(finalValue) + ");", null)); }
+    private void sendBarcodeError(String text) { String finalText = text == null || text.isBlank() ? "Barcode scan failed." : text; webView.post(() -> webView.evaluateJavascript("window.H38NativeBarcodeError&&window.H38NativeBarcodeError(" + JSONObject.quote(finalText) + ");", null)); }
+    private void scanBarcode() {
+        GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS).enableAutoZoom().build();
+        GmsBarcodeScanner scanner = GmsBarcodeScanning.getClient(this, options);
+        scanner.startScan().addOnSuccessListener(barcode -> { String value = barcode.getRawValue(); if (value == null) value = barcode.getDisplayValue(); sendBarcode(value); }).addOnCanceledListener(() -> sendBarcodeError("Scan canceled")).addOnFailureListener(e -> runOnUiThread(this::startFallbackBarcodeScanner));
+    }
+    private void startFallbackBarcodeScanner() {
+        try { IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES); integrator.setPrompt("Point the camera at the barcode"); integrator.setBeepEnabled(false); integrator.setOrientationLocked(true); integrator.initiateScan(); }
+        catch (Exception e) { sendBarcodeError("Barcode scanner unavailable. Type the UPC instead."); }
+    }
+    private void takePhoto(String role) {
+        pendingPhotoRole = role == null || role.trim().isEmpty() ? "item" : role.trim();
+        try { Intent intent = new Intent(this, NativePhotoCaptureActivity.class); intent.putExtra(NativePhotoCaptureActivity.EXTRA_ROLE, pendingPhotoRole); startActivityForResult(intent, REQUEST_PHOTO); }
+        catch (Exception e) { webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Scout camera could not open.');", null); }
+    }
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (scanResult != null) { if (scanResult.getContents() == null || scanResult.getContents().isBlank()) sendBarcodeError("Scan canceled"); else sendBarcode(scanResult.getContents()); return; }
+        if (requestCode != REQUEST_PHOTO) return;
+        if (resultCode != RESULT_OK) { String error = data == null ? "Photo canceled" : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_ERROR); if (error == null || error.isBlank()) error = "Photo canceled"; String finalError = error; webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError(" + JSONObject.quote(finalError) + ");", null); return; }
+        String path = data == null ? "" : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_PATH); String role = data == null ? pendingPhotoRole : data.getStringExtra(NativePhotoCaptureActivity.EXTRA_ROLE); File file = path == null || path.isBlank() ? null : new File(path); Bitmap bitmap = null;
+        try {
+            if (file == null || !file.isFile() || file.length() <= 0) throw new IllegalStateException("Camera did not return an image"); bitmap = BitmapFactory.decodeFile(file.getAbsolutePath()); if (bitmap == null) throw new IllegalStateException("Camera returned an unreadable image"); bitmap = scaleForResearch(bitmap, 1600);
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) { bitmap.compress(Bitmap.CompressFormat.JPEG, 84, out); String b64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP); String dataUrl = "data:image/jpeg;base64," + b64; String js = "window.H38NativePhotoResult&&window.H38NativePhotoResult(" + JSONObject.quote(role == null ? pendingPhotoRole : role) + "," + JSONObject.quote(dataUrl) + ");"; webView.evaluateJavascript(js, null); }
+        } catch (Exception e) { webView.evaluateJavascript("window.H38NativePhotoError&&window.H38NativePhotoError('Camera returned an unreadable image.');", null); }
+        finally { try { if (file != null && file.exists()) file.delete(); } catch (Exception ignored) {} if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle(); }
+    }
+    private static Bitmap scaleForResearch(Bitmap source, int maxDimension) { int w = source.getWidth(), h = source.getHeight(); if (w <= maxDimension && h <= maxDimension) return source; double scale = Math.min((double) maxDimension / Math.max(1, w), (double) maxDimension / Math.max(1, h)); int nw = Math.max(1, (int) Math.round(w * scale)), nh = Math.max(1, (int) Math.round(h * scale)); Bitmap scaled = Bitmap.createScaledBitmap(source, nw, nh, true); if (scaled != source) source.recycle(); return scaled; }
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) { super.onRequestPermissionsResult(requestCode, permissions, grantResults); if (requestCode != REQUEST_LOCATION) return; boolean granted = false; for (int result : grantResults) if (result == PackageManager.PERMISSION_GRANTED) granted = true; if (granted) deliverLocation(); else sendLocationError("Location permission denied"); }
+    @Override public void onBackPressed() { if (webView == null) { super.onBackPressed(); return; } webView.evaluateJavascript("(window.H38HandleBack?window.H38HandleBack():false)", value -> { if (!"true".equals(String.valueOf(value))) MainActivity.super.onBackPressed(); }); }
+    private String buildIdentity() { String sha = BuildConfig.H38_BUILD_SHA == null ? "local" : BuildConfig.H38_BUILD_SHA; if (sha.length() > 12) sha = sha.substring(0, 12); return "v" + BuildConfig.VERSION_NAME + " · code " + BuildConfig.VERSION_CODE + " · " + sha + " · run " + BuildConfig.H38_BUILD_RUN; }
+
+    private final class NativeBridge {
+        @JavascriptInterface public void requestLocation() { runOnUiThread(MainActivity.this::requestPhoneLocation); }
+        @JavascriptInterface public void scanBarcode() { runOnUiThread(MainActivity.this::scanBarcode); }
+        @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
+        @JavascriptInterface public String build() { return buildIdentity(); }
+        @JavascriptInterface public void reloadScout() { runOnUiThread(MainActivity.this::recreate); }
+        @JavascriptInterface public boolean notificationAccessEnabled() { try { String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners"); return enabled != null && enabled.contains(getPackageName()); } catch (Exception ignored) { return false; } }
+        @JavascriptInterface public void openNotificationAccessSettings() { runOnUiThread(() -> { try { startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); } catch (Exception ignored) {} }); }
+        @JavascriptInterface public String facebookNotificationCandidates() { return FacebookMarketplaceNotificationListener.rowsJson(MainActivity.this); }
+        @JavascriptInterface public String facebookBrowserCandidates() { return FacebookMarketplaceActivity.rowsJson(MainActivity.this); }
+        @JavascriptInterface public void openFacebookMarketplace(String termsJson, double lat, double lon, int radius, String postal, String url) { runOnUiThread(() -> { Intent i = new Intent(MainActivity.this, FacebookMarketplaceActivity.class); i.putExtra(FacebookMarketplaceActivity.EXTRA_TERMS, termsJson == null ? "[]" : termsJson); if (Double.isFinite(lat) && Double.isFinite(lon) && !(lat == 0d && lon == 0d)) { i.putExtra(FacebookMarketplaceActivity.EXTRA_LAT, lat); i.putExtra(FacebookMarketplaceActivity.EXTRA_LON, lon); } i.putExtra(FacebookMarketplaceActivity.EXTRA_RADIUS, radius); i.putExtra(FacebookMarketplaceActivity.EXTRA_POSTAL, postal == null ? "" : postal); if (url != null && url.startsWith("https://www.facebook.com/marketplace/")) i.putExtra(FacebookMarketplaceActivity.EXTRA_URL, url); startActivity(i); }); }
+        @JavascriptInterface public void openExternalUrl(String url) { runOnUiThread(() -> openExternal(url)); }
+        @JavascriptInterface public void startDeviceStockCheck(String requestId, String bodyJson) { RetailerDeviceCheckManager.check(MainActivity.this, webView, requestId, bodyJson); }
+        @JavascriptInterface public void openRetailerSession(String bodyJson) { runOnUiThread(() -> { try { JSONObject b = new JSONObject(bodyJson == null ? "{}" : bodyJson); String retailer = b.optString("retailer", ""); String query = first(b.optString("upc", ""), b.optString("sku", ""), b.optString("title", ""), "tools"); Intent i = new Intent(MainActivity.this, RetailerVerificationActivity.class); i.putExtra(RetailerVerificationActivity.EXTRA_RETAILER, retailer); i.putExtra(RetailerVerificationActivity.EXTRA_QUERY, query); i.putExtra(RetailerVerificationActivity.EXTRA_SOURCE_URL, b.optString("source_url", "")); i.putExtra(RetailerVerificationActivity.EXTRA_STORE, b.optString("store_address", b.optString("store_name", ""))); startActivity(i); } catch (Exception ignored) {} }); }
     }
 }

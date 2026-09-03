@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.24 v3.0.16 Phone Rollback APK
+name: Package H38 Scout v3.0.25 v2.6.3 Physical-PASS Recovery APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v324-v316-phone-rollback
+  group: scout-v325-v263-physical-pass-recovery
   cancel-in-progress: true
 
 jobs:
@@ -33,48 +33,40 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.16 phone-runtime rollback
+      - name: Verify exact v2.6.3 physical-PASS runtime recovery
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v325-v263-recovery"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.24'" reseller/build.gradle
-          grep -Fq 'versionCode 324' reseller/build.gradle
-          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/MainActivity.java)" = '0e07458dc7051f2b6bfdbe613519f9b11c84b250'
-          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java)" = '30832ce2bf3bb1b6442ad73b57bc9e94c323b26b'
-          test "$(git hash-object reseller/src/main/AndroidManifest.xml)" = 'c5a2560ca8c8247c77de6868dba76b5eff265c1a'
-          test "$(git hash-object reseller/src/main/assets/reseller/v200-scan.js)" = '2bd7d6a7af43908f8842c19227533e4c0576dcc7'
-          test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '74e42fd9631454066254355f0a1fe62b4f683840'
-          test "$(git hash-object reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java)" = 'ff7d19168ff24439265404aef26238d008af9aba'
+          grep -Fq "versionName '3.0.25'" reseller/build.gradle
+          grep -Fq 'versionCode 325' reseller/build.gradle
+          changed="$(git diff --name-only 64ef9a193958c0fbfc75a8b0e47777857d8bafe5 -- reseller | grep -v '^reseller/build.gradle$' || true)"
+          test -z "$changed"
+          git diff -- reseller/build.gradle > "$report/build-version-diff.txt" || true
+          test -f reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          test -f reseller/src/main/assets/reseller/v200-app.js
+          test -f reseller/src/main/assets/reseller/v262-phone-video-repair.js
           test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
           test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
           test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-          test ! -e reseller/src/main/assets/reseller/v316-final-acceptance.js
-          test ! -e reseller/src/main/assets/reseller/v316-final-gate.txt
-          test ! -e reseller/src/androidTest/java/com/highway38/resellerscout/SignInPhysicalInputTest.java
-          ! grep -Fq 'configChanges="keyboard|keyboardHidden' reseller/src/main/AndroidManifest.xml
-          ! grep -Fq 'NativeLoginOverlay' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
-          ! grep -Fq 'SOFT_INPUT_ADJUST_RESIZE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          ! grep -Fq 'supabase-js@2.112.4' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          node --check reseller/src/main/assets/reseller/v200-scan.js
-          node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
-          printf '%s\n' 'e781d0f01e897ff27be92b2172d13736db4b8003' > "$report/restored-runtime-source.txt"
-          echo V316_PHONE_RUNTIME_ROLLBACK_OK > "$report/source-gate.txt"
+          printf '%s\n' '64ef9a193958c0fbfc75a8b0e47777857d8bafe5' > "$report/restored-runtime-source.txt"
+          echo V263_PHYSICAL_PASS_RUNTIME_RECOVERY_OK > "$report/source-gate.txt"
 
-      - name: Restore exact persistent Scout signing key
+      - name: Restore persistent Scout signing key
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: h38-reseller-scout-owner-debug-signing-v1
 
-      - name: Require persistent signer continuity
+      - name: Require current signer continuity
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v325-v263-recovery"
           test -f "$HOME/.android/debug.keystore"
           {
             echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$HOME/.android/debug.keystore"
@@ -88,22 +80,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
-          gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
-          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v325-v263-recovery"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.24-ROLLBACK-v3.0.16-PHONE.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.25-RECOVERY-v2.6.3-PHYSICAL-PASS.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
-      - name: Inspect exact rollback APK
+      - name: Inspect exact recovery APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.24-ROLLBACK-v3.0.16-PHONE.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v325-v263-recovery"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.25-RECOVERY-v2.6.3-PHYSICAL-PASS.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='324' versionName='3.0.24'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='325' versionName='3.0.25'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -112,19 +104,17 @@ jobs:
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
           actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
           test "$actual" = 'cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46'
-          unzip -p "$out" assets/reseller/v200-scan.js > "$report/packaged-v200-scan.js"
-          unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
-          test "$(git hash-object "$report/packaged-v200-scan.js")" = '2bd7d6a7af43908f8842c19227533e4c0576dcc7'
-          test "$(git hash-object "$report/packaged-v316.js")" = '74e42fd9631454066254355f0a1fe62b4f683840'
           unzip -l "$out" > "$report/apk-files.txt"
-          ! grep -Fq 'v323-native-auth-bridge.js' "$report/apk-files.txt"
+          grep -Fq 'assets/reseller/v262-phone-video-repair.js' "$report/apk-files.txt"
+          ! grep -Fq 'v316-garage-safe-action.js' "$report/apk-files.txt"
           ! grep -Fq 'v317-flipr-resale-flow.js' "$report/apk-files.txt"
-          echo APK_ROLLBACK_GATE_OK > "$report/apk-gate.txt"
+          ! grep -Fq 'v323-native-auth-bridge.js' "$report/apk-files.txt"
+          echo APK_V263_RECOVERY_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload rollback APK and verification
+      - name: Upload recovery APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.24-v316-phone-rollback
-          path: artifacts/scout-v324-v316-rollback/*
+          name: h38-reseller-scout-owner-v3.0.25-v263-physical-pass-recovery
+          path: artifacts/scout-v325-v263-recovery/*
           if-no-files-found: error
           retention-days: 30
