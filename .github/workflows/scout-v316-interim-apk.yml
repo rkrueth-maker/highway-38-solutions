@@ -90,6 +90,12 @@ jobs:
                 -keyalg RSA -keysize 2048 -validity 10000
             fi
             keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > "$report/debug-key.txt"
+            {
+              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$HOME/.android/debug.keystore"
+              echo 'H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android'
+              echo 'H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey'
+              echo 'H38_ANDROID_UPLOAD_KEY_PASSWORD=android'
+            } >> "$GITHUB_ENV"
             echo 'persistent-debug-key-v1' > "$report/signing-mode.txt"
           fi
 
@@ -98,13 +104,8 @@ jobs:
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
-          if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
-            gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
-            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
-          else
-            gradle --no-daemon :reseller:assembleOwnerDebug | tee "$report/compile.log"
-            apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
-          fi
+          gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
+          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$apk" -a -f "$apk"
           out="$report/H38-Reseller-Scout-Owner-v3.0.21-wide-signin.apk"
           cp "$apk" "$out"
@@ -127,6 +128,12 @@ jobs:
           unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
           test "$(git hash-object "$report/packaged-v316.js")" = '2d813ddea762b55aadd1faad1c006d620a196abf'
           ! grep -Fq 'ensureLoginAccessibility' "$report/packaged-v316.js"
+          if grep -Fxq 'persistent-debug-key-v1' "$report/signing-mode.txt"; then
+            expected="$(grep -m1 'SHA256:' "$report/debug-key.txt" | sed 's/.*SHA256:[[:space:]]*//' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+            actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+            test -n "$expected" -a -n "$actual" -a "$expected" = "$actual"
+            echo SIGNER_KEY_MATCH_OK > "$report/signer-key-gate.txt"
+          fi
           echo APK_GATE_OK > "$report/apk-gate.txt"
 
       - name: Upload v3.0.21 APK and verification
