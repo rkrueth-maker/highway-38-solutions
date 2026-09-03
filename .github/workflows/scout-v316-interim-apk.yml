@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.20 Original Sign-In Rollback APK
+name: Package H38 Scout v3.0.21 Wide Sign-In Repair APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v320-original-signin
+  group: scout-v321-wide-signin
   cancel-in-progress: true
 
 jobs:
@@ -33,24 +33,31 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.20 rollback source
+      - name: Verify exact v3.0.21 wide sign-in source
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v320-original-signin"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.20'" reseller/build.gradle
-          grep -Fq 'versionCode 320' reseller/build.gradle
+          grep -Fq "versionName '3.0.21'" reseller/build.gradle
+          grep -Fq 'versionCode 321' reseller/build.gradle
+          grep -Fq 'android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"' reseller/src/main/AndroidManifest.xml
           test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '2d813ddea762b55aadd1faad1c006d620a196abf'
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
           ! grep -Fq 'ensureLoginAccessibility' reseller/src/main/assets/reseller/v316-garage-safe-action.js
           grep -Fq '<label>Email<input name="email" type="email" autocomplete="username" required></label>' reseller/src/main/assets/reseller/index.html
           grep -Fq "new FormData(e.currentTarget)" reseller/src/main/assets/reseller/v200-app.js
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
-          echo ORIGINAL_LOGIN_RUNTIME_RESTORED > "$report/source-gate.txt"
+          echo WIDE_SIGNIN_SOURCE_OK > "$report/source-gate.txt"
 
-      - name: Configure stable owner signing when available
+      - name: Restore persistent Scout debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Configure stable owner signing or persistent debug signing
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
@@ -59,7 +66,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v320-original-signin"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
           if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
@@ -72,14 +79,25 @@ jobs:
             } >> "$GITHUB_ENV"
             echo 'stable-upload-key' > "$report/signing-mode.txt"
           else
-            echo 'ephemeral-debug-key' > "$report/signing-mode.txt"
+            mkdir -p "$HOME/.android"
+            if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+              keytool -genkeypair -v \
+                -keystore "$HOME/.android/debug.keystore" \
+                -storepass android \
+                -alias androiddebugkey \
+                -keypass android \
+                -dname 'CN=H38 Scout Owner Test,O=Highway 38 Solutions,C=US' \
+                -keyalg RSA -keysize 2048 -validity 10000
+            fi
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > "$report/debug-key.txt"
+            echo 'persistent-debug-key-v1' > "$report/signing-mode.txt"
           fi
 
       - name: Compile owner APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v320-original-signin"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
           if [[ -n "${H38_ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
             gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
@@ -88,7 +106,7 @@ jobs:
             apk="$(find reseller/build/outputs/apk -type f -path '*/owner/debug/*.apk' ! -path '*/androidTest/*' | head -n1)"
           fi
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.20-original-signin.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.21-wide-signin.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
@@ -96,10 +114,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v320-original-signin"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.20-original-signin.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v321-wide-signin"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.21-wide-signin.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='320' versionName='3.0.20'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='321' versionName='3.0.21'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
@@ -111,10 +129,10 @@ jobs:
           ! grep -Fq 'ensureLoginAccessibility' "$report/packaged-v316.js"
           echo APK_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload v3.0.20 APK and verification
+      - name: Upload v3.0.21 APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.20-original-signin
-          path: artifacts/scout-v320-original-signin/*
+          name: h38-reseller-scout-owner-v3.0.21-wide-signin
+          path: artifacts/scout-v321-wide-signin/*
           if-no-files-found: error
           retention-days: 30
