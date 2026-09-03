@@ -17,6 +17,8 @@ const browserScripts=[
   'commercial-app/supabase-storage-provider.js',
   'commercial-app/supabase-portal-hydration.js',
   'commercial-app/supabase-final-startup.js',
+  'commercial-app/erp-foundation.js',
+  'commercial-app/quote-learning-context.js',
   'commercial-app/site-scanner.js'
 ];
 
@@ -98,6 +100,85 @@ for(const needle of [
 expect((advisorHardening.match(/on public\.business_onboarding_runs for select/g)||[]).length===1,'Onboarding must have exactly one consolidated SELECT policy in the hardening migration.');
 expect(!/grant\s+execute|service[_-]?role/i.test(advisorHardening),'Advisor hardening must not broaden function execution or expose service-role access.');
 
+const erpMigration=read('supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql');
+for(const needle of [
+  'create table if not exists public.business_record_revisions',
+  "if v_collection <> 'timeEntries'",
+  "not (p_write=true and p_collection='timeEntries')",
+  'create or replace function public.business_office_time_state',
+  'create or replace function public.business_office_clock_in',
+  'create or replace function public.business_office_clock_out',
+  'create or replace function public.business_office_edit_time_entry',
+  "raise exception 'An edit reason is required'",
+  'create or replace function public.business_office_time_admin',
+  'create table if not exists public.business_data_import_runs',
+  'create table if not exists public.business_data_import_rows',
+  'create or replace function public.business_office_stage_import',
+  'create or replace function public.business_office_apply_import',
+  "'historicalRecords'",
+  "if jsonb_array_length(p_rows)>5000",
+  "grant execute on function public.business_office_clock_in",
+  "grant execute on function public.business_office_stage_import"
+])includes(erpMigration,needle,`ERP foundation migration is missing ${needle}`);
+expect(!/grant\s+.*\s+to\s+anon/i.test(erpMigration),'ERP RPCs must never be granted to anon.');
+includes(erpMigration,'revoke all on function public.business_office_clock_in(uuid,text,text,text) from public,anon','Time clock must explicitly revoke public/anon execution.');
+includes(erpMigration,"v_allowed_collections constant text[]:=array['customers','contacts','properties','jobs','workOrders','tasks','quotes','timeEntries','expenses','invoices','payments','documents','historicalRecords']",'Data uptake must be constrained to approved business-record collections.');
+
+const learningMigration=read('supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql');
+for(const needle of [
+  'recordedLaborHours',
+  'averageQuotedLabor',
+  'averageQuotedMaterials',
+  'averageRecordedHours',
+  "'historicalContextForQuoting',true",
+  "'automaticPriceChanges',false",
+  "'automaticApproval',false",
+  "'automaticCustomerSending',false"
+])includes(learningMigration,needle,`Tenant quote learning is missing ${needle}`);
+
+const erp=read('commercial-app/erp-foundation.js');
+for(const needle of [
+  "id:'timeAttendance'",
+  "id:'taskManager'",
+  "id:'dataUptake'",
+  "id:'quoteLearning'",
+  "availability:'add-on',status:'hidden'",
+  'Time clock',
+  'ERP Center',
+  'Task Manager / deployment',
+  'Existing-data uptake',
+  'Business-specific quote learning',
+  'data-h38-edit-time',
+  'Required edit reason',
+  'Stage & review',
+  'Apply staged data',
+  'taskManagerDeploymentAuthority:true',
+  'stagedDataUptake:true',
+  'tenantIsolatedLearning:true',
+  'timeEditAudit:true',
+  'automaticApproval:false',
+  'automaticCustomerSending:false',
+  'automaticPurchasing:false',
+  'automaticPayment:false',
+  'automaticScheduling:false',
+  'externalActionsEnabled:false'
+])includes(erp,needle,`ERP browser foundation is missing ${needle}`);
+
+const quoteLearningHook=read('commercial-app/quote-learning-context.js');
+for(const needle of [
+  'Past-job & quote context',
+  'business_office_quote_learning_profile',
+  'tenantIsolated:true',
+  'advisoryOnly:true',
+  'automaticPriceChanges:false',
+  'automaticApproval:false',
+  'automaticCustomerSending:false'
+])includes(quoteLearningHook,needle,`Hidden quote-learning hook is missing ${needle}`);
+
+const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
+includes(runtimeGlobals,"script.src = './erp-foundation.js?build=20260903-erp-time-uptake-learning-1'",'Supabase runtime must load the ERP foundation without a second app shell.');
+includes(runtimeGlobals,'loadErpFoundation();','ERP foundation loader must run after Office globals are exposed.');
+
 const data=read('commercial-app/supabase-data.js');
 for(const needle of [
   "startupMode = 'SUPABASE_OPERATIONAL_APP'",
@@ -144,7 +225,7 @@ includes(portal,'googleRecordsImported:false','Portal hydration must remain read
 const serviceWorker=read('commercial-app/service-worker.js');
 includes(serviceWorker,"const CACHE_NAME='h38-business-office-",'Installable app cache is missing.');
 includes(serviceWorker,"const SUPABASE_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'",'Offline shell must cache the browser Supabase client.');
-for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js','site-scanner.js'])
+for(const file of ['supabase-data.js','supabase-operation-coverage.js','supabase-ai-fallback.js','supabase-storage-provider.js','supabase-portal-hydration.js','supabase-final-startup.js','erp-foundation.js','site-scanner.js'])
   includes(serviceWorker,`'./${file}'`,`Offline app shell must cache ${file}`);
 expect(!serviceWorker.includes('registration.unregister()'),'The operational PWA service worker must not unregister itself.');
 
