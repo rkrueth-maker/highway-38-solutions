@@ -1,4 +1,0 @@
-H38 Scout v3.0.16 exact-head final acceptance gate
-Runtime repair: v316-garage-safe-action.js
-Virtual preflight: v3.0.16 / versionCode 316
-Physical target: Firebase r0q Android 34 portrait

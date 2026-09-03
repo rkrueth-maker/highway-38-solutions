@@ -21,9 +21,7 @@ public final class ResellerScoutApplication extends Application {
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityCreated(Activity a, Bundle b) {}
             @Override public void onActivityStarted(Activity a) {}
-            @Override public void onActivityResumed(Activity a) {
-                if (a instanceof MainActivity) NativeLoginOverlay.attach(a);
-            }
+            @Override public void onActivityResumed(Activity a) {}
             @Override public void onActivityPaused(Activity a) { flushWebCookies(); }
             @Override public void onActivityStopped(Activity a) { flushWebCookies(); }
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}

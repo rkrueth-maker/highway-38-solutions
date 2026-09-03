@@ -1,4 +1,4 @@
-name: Package H38 Scout v3.0.23 Wide Auth Recovery APK
+name: Package H38 Scout v3.0.24 v3.0.16 Phone Rollback APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scout-v323-wide-auth-recovery
+  group: scout-v324-v316-phone-rollback
   cancel-in-progress: true
 
 jobs:
@@ -33,163 +33,98 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
 
-      - name: Verify exact v3.0.23 wide auth source
+      - name: Verify exact v3.0.16 phone-runtime rollback
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v323-wide-auth"; mkdir -p "$report"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"; mkdir -p "$report"
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          grep -Fq "versionName '3.0.23'" reseller/build.gradle
-          grep -Fq 'versionCode 323' reseller/build.gradle
-          grep -Fq 'android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"' reseller/src/main/AndroidManifest.xml
-          test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '2d813ddea762b55aadd1faad1c006d620a196abf'
+          grep -Fq "versionName '3.0.24'" reseller/build.gradle
+          grep -Fq 'versionCode 324' reseller/build.gradle
+          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/MainActivity.java)" = '0e07458dc7051f2b6bfdbe613519f9b11c84b250'
+          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java)" = '30832ce2bf3bb1b6442ad73b57bc9e94c323b26b'
+          test "$(git hash-object reseller/src/main/AndroidManifest.xml)" = 'c5a2560ca8c8247c77de6868dba76b5eff265c1a'
+          test "$(git hash-object reseller/src/main/assets/reseller/v200-scan.js)" = '2bd7d6a7af43908f8842c19227533e4c0576dcc7'
+          test "$(git hash-object reseller/src/main/assets/reseller/v316-garage-safe-action.js)" = '74e42fd9631454066254355f0a1fe62b4f683840'
+          test "$(git hash-object reseller/src/androidTest/java/com/highway38/resellerscout/RemoteOwnerUxTest.java)" = 'ff7d19168ff24439265404aef26238d008af9aba'
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+          test ! -e reseller/src/main/assets/reseller/v316-final-acceptance.js
+          test ! -e reseller/src/main/assets/reseller/v316-final-gate.txt
+          test ! -e reseller/src/androidTest/java/com/highway38/resellerscout/SignInPhysicalInputTest.java
+          ! grep -Fq 'configChanges="keyboard|keyboardHidden' reseller/src/main/AndroidManifest.xml
+          ! grep -Fq 'NativeLoginOverlay' reseller/src/main/java/com/highway38/resellerscout/ResellerScoutApplication.java
+          ! grep -Fq 'SOFT_INPUT_ADJUST_RESIZE' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          ! grep -Fq 'supabase-js@2.112.4' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          node --check reseller/src/main/assets/reseller/v200-scan.js
           node --check reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          ! grep -Fq 'ensureLoginAccessibility' reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          node --check reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-          grep -Fq 'H38_SCOUT_V323_NATIVE_AUTH_BRIDGE' reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-          grep -Fq 'window.H38NativeOwnerSignIn' reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-          grep -Fq 'AUTH_RUNTIME_UNAVAILABLE' reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-          grep -Fq 'supabase-js@2.112.4' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          test "$(grep -Fo 'supabase-js@2.112.4' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | wc -l)" -ge 2
-          grep -Fq 'v323-native-auth-bridge.js' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
-          grep -Fq 'h38-scout-native-login-v323' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
-          grep -Fq 'window.H38NativeOwnerSignIn' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
-          ! grep -Fq 'f.onsubmit' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
-          ! grep -Fq 'requestSubmit' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
-          ! grep -Fq 'SharedPreferences' reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
-          grep -Fq 'signInWithPassword' reseller/src/main/assets/reseller/v200-app.js
           printf '%s\n' "$GITHUB_SHA" > "$report/source-sha.txt"
-          echo WIDE_AUTH_SOURCE_OK > "$report/source-gate.txt"
+          printf '%s\n' 'e781d0f01e897ff27be92b2172d13736db4b8003' > "$report/restored-runtime-source.txt"
+          echo V316_PHONE_RUNTIME_ROLLBACK_OK > "$report/source-gate.txt"
 
-      - name: Exercise packaged auth bridge states
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs=require('fs');
-          const vm=require('vm');
-          const code=fs.readFileSync('reseller/src/main/assets/reseller/v323-native-auth-bridge.js','utf8');
-          function makeContext(withRuntime){
-            const loginMessage={innerHTML:'',textContent:''};
-            const ctx={console,document:{getElementById:id=>id==='loginMessage'?loginMessage:null}};
-            ctx.window=ctx;
-            ctx.showLogin=()=>{};
-            if(withRuntime){
-              ctx.state={user:null};
-              ctx.h38sb={auth:{signInWithPassword:async({email})=>({data:{session:{user:{id:'owner',email}}},error:null})}};
-              ctx.authorize=async session=>{ctx.state.user=session.user};
-            }
-            vm.createContext(ctx);
-            vm.runInContext(code,ctx);
-            return ctx;
-          }
-          (async()=>{
-            const ready=makeContext(true);
-            if(ready.H38NativeOwnerAuthState.ready!==true||ready.H38NativeOwnerAuthState.result!=='READY')throw Error('ready runtime did not become READY');
-            const ok=await ready.H38NativeOwnerSignIn('owner@example.com','password');
-            if(ok!==true||ready.H38NativeOwnerAuthState.result!=='PASS')throw Error('ready runtime did not reach PASS');
-            const unavailable=makeContext(false);
-            if(unavailable.H38NativeOwnerAuthState.ready!==false||unavailable.H38NativeOwnerAuthState.result!=='AUTH_RUNTIME_UNAVAILABLE')throw Error('missing runtime did not fail explicitly');
-            console.log('AUTH_BRIDGE_STATE_TEST_OK');
-          })().catch(e=>{console.error(e);process.exit(1)});
-          NODE
-
-      - name: Restore persistent Scout debug signing key
+      - name: Restore exact persistent Scout signing key
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: h38-reseller-scout-owner-debug-signing-v1
 
-      - name: Configure stable owner signing or persistent debug signing
+      - name: Require persistent signer continuity
         shell: bash
-        env:
-          KEYSTORE_B64: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_B64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.H38_ANDROID_UPLOAD_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v323-wide-auth"
-          if [[ -n "${KEYSTORE_B64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
-            KEYSTORE_PATH="$RUNNER_TEMP/h38-upload-keystore.jks"
-            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
-            chmod 600 "$KEYSTORE_PATH"
-            {
-              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$KEYSTORE_PATH"
-              echo "H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
-              echo "H38_ANDROID_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
-              echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
-            } >> "$GITHUB_ENV"
-            echo 'stable-upload-key' > "$report/signing-mode.txt"
-          else
-            mkdir -p "$HOME/.android"
-            if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
-              keytool -genkeypair -v \
-                -keystore "$HOME/.android/debug.keystore" \
-                -storepass android \
-                -alias androiddebugkey \
-                -keypass android \
-                -dname 'CN=H38 Scout Owner Test,O=Highway 38 Solutions,C=US' \
-                -keyalg RSA -keysize 2048 -validity 10000
-            fi
-            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > "$report/debug-key.txt"
-            {
-              echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$HOME/.android/debug.keystore"
-              echo 'H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android'
-              echo 'H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey'
-              echo 'H38_ANDROID_UPLOAD_KEY_PASSWORD=android'
-            } >> "$GITHUB_ENV"
-            echo 'persistent-debug-key-v1' > "$report/signing-mode.txt"
-          fi
+          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
+          test -f "$HOME/.android/debug.keystore"
+          {
+            echo "H38_ANDROID_UPLOAD_KEYSTORE_PATH=$HOME/.android/debug.keystore"
+            echo 'H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android'
+            echo 'H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey'
+            echo 'H38_ANDROID_UPLOAD_KEY_PASSWORD=android'
+          } >> "$GITHUB_ENV"
+          echo 'persistent-debug-key-v1' > "$report/signing-mode.txt"
 
       - name: Compile owner APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v323-wide-auth"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
           gradle --no-daemon :reseller:assembleOwnerRelease | tee "$report/compile.log"
           apk="$(find reseller/build/outputs/apk -type f -path '*/owner/release/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$apk" -a -f "$apk"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.23-wide-auth.apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.24-ROLLBACK-v3.0.16-PHONE.apk"
           cp "$apk" "$out"
           sha256sum "$out" > "$report/sha256.txt"
 
-      - name: Inspect exact packaged APK
+      - name: Inspect exact rollback APK
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/scout-v323-wide-auth"
-          out="$report/H38-Reseller-Scout-Owner-v3.0.23-wide-auth.apk"
+          report="$GITHUB_WORKSPACE/artifacts/scout-v324-v316-rollback"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.24-ROLLBACK-v3.0.16-PHONE.apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='323' versionName='3.0.23'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='324' versionName='3.0.24'" "$report/badging.txt"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
           grep -Fq 'Verification succesful' "$report/zipalign.txt"
           unzip -t "$out" > "$report/zip-test.txt"
           grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = 'cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46'
+          unzip -p "$out" assets/reseller/v200-scan.js > "$report/packaged-v200-scan.js"
           unzip -p "$out" assets/reseller/v316-garage-safe-action.js > "$report/packaged-v316.js"
-          test "$(git hash-object "$report/packaged-v316.js")" = '2d813ddea762b55aadd1faad1c006d620a196abf'
-          unzip -p "$out" assets/reseller/v323-native-auth-bridge.js > "$report/packaged-v323-auth.js"
-          test "$(git hash-object "$report/packaged-v323-auth.js")" = "$(git hash-object reseller/src/main/assets/reseller/v323-native-auth-bridge.js)"
-          unzip -p "$out" 'classes*.dex' | strings > "$report/dex-strings.txt"
-          grep -Fq 'h38-scout-native-login-v323' "$report/dex-strings.txt"
-          grep -Fq 'H38NativeOwnerSignIn' "$report/dex-strings.txt"
-          grep -Fq 'supabase-js@2.112.4' "$report/dex-strings.txt"
-          grep -Fq 'v323-native-auth-bridge.js' "$report/dex-strings.txt"
-          if grep -Fxq 'persistent-debug-key-v1' "$report/signing-mode.txt"; then
-            expected="$(grep -m1 'SHA256:' "$report/debug-key.txt" | sed 's/.*SHA256:[[:space:]]*//' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-            actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
-            test -n "$expected" -a -n "$actual" -a "$expected" = "$actual"
-            echo SIGNER_KEY_MATCH_OK > "$report/signer-key-gate.txt"
-          fi
-          echo APK_GATE_OK > "$report/apk-gate.txt"
+          test "$(git hash-object "$report/packaged-v200-scan.js")" = '2bd7d6a7af43908f8842c19227533e4c0576dcc7'
+          test "$(git hash-object "$report/packaged-v316.js")" = '74e42fd9631454066254355f0a1fe62b4f683840'
+          unzip -l "$out" > "$report/apk-files.txt"
+          ! grep -Fq 'v323-native-auth-bridge.js' "$report/apk-files.txt"
+          ! grep -Fq 'v317-flipr-resale-flow.js' "$report/apk-files.txt"
+          echo APK_ROLLBACK_GATE_OK > "$report/apk-gate.txt"
 
-      - name: Upload v3.0.23 APK and verification
+      - name: Upload rollback APK and verification
         uses: actions/upload-artifact@v4
         with:
-          name: h38-reseller-scout-owner-v3.0.23-wide-auth-recovery
-          path: artifacts/scout-v323-wide-auth/*
+          name: h38-reseller-scout-owner-v3.0.24-v316-phone-rollback
+          path: artifacts/scout-v324-v316-rollback/*
           if-no-files-found: error
           retention-days: 30
