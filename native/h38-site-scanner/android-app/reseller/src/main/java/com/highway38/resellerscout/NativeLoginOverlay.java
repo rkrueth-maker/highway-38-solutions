@@ -74,6 +74,7 @@ final class NativeLoginOverlay {
         private Button signIn;
         private TextView status;
         private boolean pendingSignIn;
+        private boolean handlerReady;
 
         Controller(Activity activity, ViewGroup host, WebView webView) {
             this.activity = activity;
@@ -109,7 +110,7 @@ final class NativeLoginOverlay {
             titleParams.topMargin = dp(8);
             card.addView(title, titleParams);
 
-            TextView note = text("Owner authentication stays on the existing H38 Scout account. These fields are native Android controls so the phone keyboard cannot be blocked by the WebView.", 14, Color.rgb(82, 97, 109), Typeface.NORMAL);
+            TextView note = text("Owner authentication stays on the existing H38 Scout account. These are native Android fields, so sign-in no longer depends on WebView keyboard focus.", 14, Color.rgb(82, 97, 109), Typeface.NORMAL);
             LinearLayout.LayoutParams noteParams = matchWrap();
             noteParams.topMargin = dp(8);
             noteParams.bottomMargin = dp(18);
@@ -142,20 +143,21 @@ final class NativeLoginOverlay {
             signIn.setText("Sign in");
             signIn.setTextSize(16);
             signIn.setAllCaps(false);
+            signIn.setEnabled(false);
             signIn.setOnClickListener(v -> submit());
             LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
             buttonParams.topMargin = dp(8);
             card.addView(signIn, buttonParams);
 
             password.setOnEditorActionListener((v, actionId, event) -> {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                if (actionId == EditorInfo.IME_ACTION_DONE && handlerReady && !pendingSignIn) {
                     submit();
                     return true;
                 }
                 return false;
             });
 
-            status = text("", 13, Color.rgb(150, 55, 45), Typeface.NORMAL);
+            status = text("Preparing secure sign-in…", 13, Color.rgb(82, 97, 109), Typeface.NORMAL);
             LinearLayout.LayoutParams statusParams = matchWrap();
             statusParams.topMargin = dp(10);
             card.addView(status, statusParams);
@@ -173,9 +175,11 @@ final class NativeLoginOverlay {
         }
 
         private void submit() {
+            if (!handlerReady || pendingSignIn) return;
             String e = email.getText() == null ? "" : email.getText().toString().trim();
             String p = password.getText() == null ? "" : password.getText().toString();
             if (e.isEmpty() || p.isEmpty()) {
+                status.setTextColor(Color.rgb(150, 55, 45));
                 status.setText("Enter your owner email and password.");
                 return;
             }
@@ -185,6 +189,7 @@ final class NativeLoginOverlay {
             status.setText("Signing in…");
             String js = "(function(){"
                     + "var f=document.getElementById('loginForm');if(!f)return 'FORM_MISSING';"
+                    + "if(typeof f.onsubmit!=='function')return 'HANDLER_NOT_READY';"
                     + "var e=f.querySelector('input[name=\"email\"]'),p=f.querySelector('input[name=\"password\"]');if(!e||!p)return 'FIELDS_MISSING';"
                     + "e.value=" + JSONObject.quote(e) + ";p.value=" + JSONObject.quote(p) + ";"
                     + "e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));"
@@ -194,9 +199,9 @@ final class NativeLoginOverlay {
             webView.evaluateJavascript(js, value -> {
                 if (!"\"SUBMITTED\"".equals(value)) {
                     pendingSignIn = false;
-                    signIn.setEnabled(true);
+                    signIn.setEnabled(handlerReady);
                     status.setTextColor(Color.rgb(150, 55, 45));
-                    status.setText("Scout sign-in form is not ready. Close and reopen the app.");
+                    status.setText("Scout sign-in is not ready yet. Try Sign in again.");
                 }
                 pollAuthState(250);
             });
@@ -206,9 +211,9 @@ final class NativeLoginOverlay {
             handler.postDelayed(() -> {
                 if (activity.isFinishing() || activity.isDestroyed() || overlay.getParent() == null) return;
                 String js = "(function(){"
-                        + "var l=document.getElementById('loginView'),a=document.getElementById('appView'),m=document.getElementById('loginMessage');"
-                        + "if(!l||!a)return JSON.stringify({state:'loading',message:''});"
-                        + "return JSON.stringify({state:(!a.classList.contains('hidden')?'app':(!l.classList.contains('hidden')?'login':'loading')),message:(m?String(m.textContent||'').trim():'')});"
+                        + "var l=document.getElementById('loginView'),a=document.getElementById('appView'),m=document.getElementById('loginMessage'),f=document.getElementById('loginForm');"
+                        + "if(!l||!a)return JSON.stringify({state:'loading',ready:false,message:''});"
+                        + "return JSON.stringify({state:(!a.classList.contains('hidden')?'app':(!l.classList.contains('hidden')?'login':'loading')),ready:!!(f&&typeof f.onsubmit==='function'),message:(m?String(m.textContent||'').trim():'')});"
                         + "})()";
                 webView.evaluateJavascript(js, this::handleAuthState);
             }, delayMs);
@@ -218,18 +223,21 @@ final class NativeLoginOverlay {
             if (activity.isFinishing() || activity.isDestroyed() || overlay.getParent() == null) return;
             String state = "loading";
             String message = "";
+            boolean ready = false;
             try {
                 Object decoded = new JSONTokener(raw == null ? "null" : raw).nextValue();
                 String json = decoded instanceof String ? (String) decoded : String.valueOf(decoded);
                 JSONObject obj = new JSONObject(json);
                 state = obj.optString("state", "loading");
+                ready = obj.optBoolean("ready", false);
                 message = obj.optString("message", "");
             } catch (Exception ignored) {}
+            handlerReady = ready;
 
             if ("app".equals(state)) {
                 pendingSignIn = false;
                 password.setText("");
-                signIn.setEnabled(true);
+                signIn.setEnabled(false);
                 status.setText("");
                 overlay.setVisibility(View.GONE);
                 pollAuthState(900);
@@ -240,16 +248,20 @@ final class NativeLoginOverlay {
                 overlay.setVisibility(View.VISIBLE);
                 if (pendingSignIn && !message.isEmpty() && !message.toLowerCase().contains("signing in")) {
                     pendingSignIn = false;
-                    signIn.setEnabled(true);
                     status.setTextColor(Color.rgb(150, 55, 45));
                     status.setText(message);
-                } else if (!pendingSignIn && status.getText().length() == 0) {
+                } else if (!pendingSignIn && !handlerReady) {
+                    status.setTextColor(Color.rgb(82, 97, 109));
+                    status.setText("Preparing secure sign-in…");
+                } else if (!pendingSignIn && handlerReady && status.getText().toString().contains("Preparing secure")) {
                     status.setText("");
                 }
+                signIn.setEnabled(handlerReady && !pendingSignIn);
                 pollAuthState(pendingSignIn ? 300 : 700);
                 return;
             }
 
+            signIn.setEnabled(false);
             pollAuthState(250);
         }
 
