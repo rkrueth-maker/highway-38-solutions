@@ -1,0 +1,103 @@
+name: Build H38 Scout v3.0.27 Clean Sourcing
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v327-build-final.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gate frozen physical-PASS login shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+      - name: Reconstruct cleaned v3.0.27 sourcing runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 reseller/v327-clean-sourcing-reconstruct.py
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq 'H38_SCOUT_V327_CLEAN_SOURCING=true' reseller/src/main/assets/reseller/v240-data.js
+          ! grep -Fq 'H38_SCOUT_V326_SOURCE_RECOVERY=true' reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "versionName '3.0.27'" reseller/build.gradle
+          grep -Fq 'versionCode 327' reseller/build.gradle
+      - name: Commit cleaned runtime to private Scout only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name h38-scout-builder
+          git config user.email actions@users.noreply.github.com
+          git add reseller/src/main/assets/reseller/v240-data.js reseller/build.gradle
+          git commit -m 'Reconstruct Scout v3.0.27 sourcing quality'
+          git push origin HEAD:agent/private-reseller-scout
+          git rev-parse HEAD > /tmp/v327-source-sha
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+      - name: Build and verify exact APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v327"
+          mkdir -p "$report"
+          test -f "$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.27-CLEAN-SOURCING.apk"
+          cp "$apk" "$out"
+          sha256sum "$out" > "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='327' versionName='3.0.27'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = 'cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46'
+          unzip -t "$out" > "$report/zip-test.txt"
+          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          test "$(unzip -p "$out" assets/reseller/v200-app.js | sha256sum | awk '{print $1}')" = "$(git show 64ef9a193958c0fbfc75a8b0e47777857d8bafe5:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js | sha256sum | awk '{print $1}')"
+          unzip -p "$out" assets/reseller/v240-data.js | grep -Fq 'H38_SCOUT_V327_CLEAN_SOURCING=true'
+          cp /tmp/v327-source-sha "$report/source-sha.txt"
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v3.0.27-clean-sourcing
+          path: artifacts/scout-v327/*
+          if-no-files-found: error
+          retention-days: 30
