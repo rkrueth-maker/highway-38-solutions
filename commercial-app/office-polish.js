@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260904-cross-platform-assistant-polish-1';
+const BUILD='20260904-cross-platform-assistant-polish-2';
 let lastSearchTrigger=null;
 let shellSyncTimer=0;
 
 function text(value){return String(value==null?'':value).trim();}
+function setText(node,value){const next=String(value==null?'':value);if(node&&node.textContent!==next)node.textContent=next;}
 function searchDialog(){return document.getElementById('h38OfficeSearchDialog');}
 function androidNative(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;}
 function iosLike(){return /iPhone|iPad|iPod/i.test(String(navigator.userAgent||''));}
@@ -22,7 +23,7 @@ function resetSearch(dialog){
   const input=dialog?.querySelector('#h38OfficeSearchInput');
   const results=dialog?.querySelector('#h38OfficeSearchResults');
   if(input){input.value='';input.blur();}
-  if(results)results.innerHTML='<p class="muted">Type at least two characters.</p>';
+  if(results&&results.innerHTML!=='<p class="muted">Type at least two characters.</p>')results.innerHTML='<p class="muted">Type at least two characters.</p>';
 }
 function closeSearch(reason='close'){
   const dialog=searchDialog();
@@ -80,7 +81,10 @@ function syncShellTop(){
         bottom=Math.max(bottom,Math.ceil(node.getBoundingClientRect().bottom));
       }catch(_){}
     }
-    if(bottom>0)document.documentElement.style.setProperty('--h38-office-shell-top',`${bottom}px`);
+    if(bottom>0){
+      const next=`${bottom}px`;
+      if(document.documentElement.style.getPropertyValue('--h38-office-shell-top')!==next)document.documentElement.style.setProperty('--h38-office-shell-top',next);
+    }
   },0);
 }
 function openUnifiedAssistant(event){
@@ -109,7 +113,7 @@ function syncAssistantBadge(){
   const count=text(source?.textContent);
   if(!count){badge?.remove();return;}
   if(!badge){badge=document.createElement('span');badge.className='h38-floating-due';launcher.appendChild(badge);}
-  badge.textContent=count;
+  setText(badge,count);
 }
 function polishAssistantLauncher(){
   const personal=document.getElementById('personalAssistantButton');
@@ -141,30 +145,36 @@ function commandButton(label,command){
   });
   return button;
 }
+function ensureOwnerNote(main){
+  let note=main.querySelector('.h38-owner-assistant-note');
+  if(note)return note;
+  note=document.createElement('div');
+  note.className='h38-owner-assistant-note';
+  const strong=document.createElement('strong');strong.textContent='Your private assistant';
+  const span=document.createElement('span');
+  note.append(strong,span);
+  main.querySelector('.pa-shell')?.prepend(note);
+  return note;
+}
 function decorateAssistantPage(){
   if(window.state?.page!=='assistant')return;
   const main=document.getElementById('mainContent');
   const form=document.getElementById('paCommandForm');
   if(!main||!form)return;
   const heading=main.querySelector('.page-head h1');
-  if(heading)heading.textContent='My H38 Assistant';
+  setText(heading,'My H38 Assistant');
   const intro=main.querySelector('.page-head p');
-  if(intro)intro.textContent='Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.';
+  setText(intro,'Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.');
   const label=form.querySelector('label');
-  if(label)label.textContent='Ask or command H38';
+  setText(label,'Ask or command H38');
   const input=form.querySelector('[name="command"]');
   if(input){
     input.setAttribute('placeholder','Open Smith customer  |  Start quote for Johnson  |  Show inventory  |  Remind me to call supplier tomorrow');
     input.setAttribute('enterkeyhint','send');
   }
-  let ownerNote=main.querySelector('.h38-owner-assistant-note');
-  if(!ownerNote){
-    ownerNote=document.createElement('div');
-    ownerNote.className='h38-owner-assistant-note';
-    const shell=main.querySelector('.pa-shell');
-    shell?.prepend(ownerNote);
-  }
-  if(ownerNote)ownerNote.innerHTML=`<strong>Your private assistant</strong><span>Personal items belong only to ${text(ownerLabel()).replace(/[&<>"']/g,'')}. Business commands use your current Office permissions and existing review gates.</span>`;
+  const ownerNote=ensureOwnerNote(main);
+  const ownerSpan=ownerNote?.querySelector('span');
+  setText(ownerSpan,`Personal items belong only to ${ownerLabel()}. Business commands use your current Office permissions and existing review gates.`);
   if(!form.querySelector('.h38-assistant-command-chips')){
     const chips=document.createElement('div');
     chips.className='h38-assistant-command-chips';
@@ -214,6 +224,7 @@ window.H38_OFFICE_POLISH=Object.freeze({
   businessCommandBusPreserved:true,
   androidSafeArea:true,
   iosSafeAreaReady:true,
+  mutationFeedbackLoopPrevented:true,
   nativeIosShellCreated:false
 });
 })();
