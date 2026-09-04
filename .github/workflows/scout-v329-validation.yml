@@ -1,0 +1,179 @@
+name: H38 Scout v3.0.29 Validation Only
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v329-validation.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-scout-v329-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+      ROBO_TIMEOUT: 30m
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate exact v3.0.29 source without changing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+          grep -Fq "versionName '3.0.29'" reseller/build.gradle
+          grep -Fq 'versionCode 329' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V329_POST_LOGIN_SOURCE_AUTHORITY=true' reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "['reseller-auto-leads-v065','reseller-auto-leads-v064','reseller-auto-leads-v063']" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "b.textContent='Run Facebook Marketplace scan'" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq 'nativeFacebookRows()' reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "image_source_proof:'exact_barcode_v201'" reseller/src/main/assets/reseller/v240-data.js
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          test -z "$(git status --porcelain -- reseller/build.gradle reseller/src/main/assets/reseller/v200-app.js reseller/src/main/assets/reseller/v240-data.js reseller/src/main/java/com/highway38/resellerscout/MainActivity.java)"
+          echo V329_EXACT_SOURCE_GATE_PASS
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify exact v3.0.29 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v329-validation"; mkdir -p "$report"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          test -f "$H38_ANDROID_UPLOAD_KEYSTORE_PATH"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$APP_APK"; echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.29-DG-FB-RESTORED.apk"; cp "$APP_APK" "$out"
+          echo "FINAL_APK=$out" >> "$GITHUB_ENV"
+          sha256sum "$out" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='329' versionName='3.0.29'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" | tee "$report/zipalign.txt"
+          unzip -t "$out" | tee "$report/zip-test.txt"
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          test "$(unzip -p "$out" assets/reseller/v200-app.js | sha256sum | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          unzip -p "$out" assets/reseller/v240-data.js > "$report/packaged-v240-data.js"
+          grep -Fq 'H38_SCOUT_V329_POST_LOGIN_SOURCE_AUTHORITY=true' "$report/packaged-v240-data.js"
+          grep -Fq 'Run Facebook Marketplace scan' "$report/packaged-v240-data.js"
+          grep -Fq 'reseller-auto-leads-v065' "$report/packaged-v240-data.js"
+          echo V329_APK_GATE_PASS | tee "$report/apk-gate.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Verify physical target
+        shell: bash
+        run: |
+          report="$GITHUB_WORKSPACE/artifacts/v329-validation"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
+          grep -qi PHYSICAL "$report/device.yml"
+
+      - name: Create valid authenticated Robo script
+        shell: bash
+        run: |
+          echo "::add-mask::$SCOUT_EMAIL"; echo "::add-mask::$SCOUT_PASSWORD"
+          python3 - <<'PY'
+          import json,os,shlex
+          from pathlib import Path
+          def cmd(v): return 'input text '+shlex.quote(v.replace('%','%25').replace(' ','%s'))
+          a=[
+            {'eventType':'WAIT','delayTime':2500},
+            {'eventType':'VIEW_CLICKED','visionText':'Email'},
+            {'eventType':'ADB_SHELL_COMMAND','command':cmd(os.environ['SCOUT_EMAIL'])},
+            {'eventType':'VIEW_CLICKED','visionText':'Password'},
+            {'eventType':'ADB_SHELL_COMMAND','command':cmd(os.environ['SCOUT_PASSWORD'])},
+            {'eventType':'VIEW_CLICKED','visionText':'Sign in'},
+            {'eventType':'WAIT','delayTime':7000},
+            {'eventType':'TAKE_SCREENSHOT','screenshotName':'v329-after-login'},
+            {'eventType':'VIEW_CLICKED','visionText':'Hunt'},
+            {'eventType':'WAIT','delayTime':12000},
+            {'eventType':'TAKE_SCREENSHOT','screenshotName':'v329-hunt-v065'},
+            {'eventType':'VIEW_CLICKED','visionText':'Discover'},
+            {'eventType':'WAIT','delayTime':5000},
+            {'eventType':'TAKE_SCREENSHOT','screenshotName':'v329-discover'},
+            {'eventType':'VIEW_CLICKED','visionText':'Run Facebook Marketplace scan'},
+            {'eventType':'WAIT','delayTime':5000},
+            {'eventType':'TAKE_SCREENSHOT','screenshotName':'v329-facebook-scan-opened'},
+            {'eventType':'ADB_SHELL_COMMAND','command':'input keyevent KEYCODE_BACK'},
+            {'eventType':'WAIT','delayTime':2500}
+          ]
+          p=Path(os.environ['RUNNER_TEMP'])/'v329-validation.json'
+          p.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n'+json.dumps(a))
+          PY
+          echo "ROBO_SCRIPT=$RUNNER_TEMP/v329-validation.json" >> "$GITHUB_ENV"
+
+      - name: Firebase physical-device validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v329-validation"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$APP" --robo-script "$ROBO_SCRIPT" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout "$ROBO_TIMEOUT" --results-history-name 'H38 Scout v3.0.29 Validation Only' --client-details matrixLabel='H38 Scout v3.0.29 exact source validation' 2>&1 | tee "$report/firebase.log"
+          grep -RniE 'Invalid action|FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|TypeError|ReferenceError|Unhandled|uncaught' "$report/firebase.log" > "$report/runtime-errors.txt" || true
+          test ! -s "$report/runtime-errors.txt"
+          echo FIREBASE_PHYSICAL_VALIDATION_PASS | tee "$report/firebase-status.txt"
+
+      - name: Upload exact verified v3.0.29
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.29-exact-validation
+          path: artifacts/v329-validation/**
+          if-no-files-found: error
+          retention-days: 30
