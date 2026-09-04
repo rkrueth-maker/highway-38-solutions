@@ -1,0 +1,41 @@
+name: Verify ERP time and learning data quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/erp-foundation.js'
+      - 'commercial-app/quote-learning-context.js'
+      - 'supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql'
+      - 'supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql'
+      - 'supabase/migrations/20260903232000_erp_time_learning_data_quality.sql'
+      - 'scripts/verify-erp-time-learning-data-quality.js'
+      - '.github/workflows/verify-erp-time-learning-data-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/erp-foundation.js'
+      - 'commercial-app/quote-learning-context.js'
+      - 'supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql'
+      - 'supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql'
+      - 'supabase/migrations/20260903232000_erp_time_learning_data_quality.sql'
+      - 'scripts/verify-erp-time-learning-data-quality.js'
+      - '.github/workflows/verify-erp-time-learning-data-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check data-quality verifier
+        run: node --check scripts/verify-erp-time-learning-data-quality.js
+      - name: Verify audited time and job-level learning
+        run: node scripts/verify-erp-time-learning-data-quality.js
