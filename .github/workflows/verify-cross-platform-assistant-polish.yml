@@ -1,0 +1,47 @@
+name: Verify cross-platform H38 assistant polish
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/office-polish.js'
+      - 'commercial-app/office-polish.css'
+      - 'commercial-app/personal-assistant.js'
+      - 'commercial-app/assistant-command-bus.js'
+      - 'commercial-app/assistant-command-bus-input.js'
+      - 'commercial-app/supabase-ai-fallback.js'
+      - 'commercial-app/employee-workspace.js'
+      - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
+      - 'docs/architecture/H38_ASSISTANT_AUTHORITY.md'
+      - 'scripts/verify-cross-platform-assistant-polish.js'
+      - 'scripts/verify-personal-assistant-command-bus.js'
+      - '.github/workflows/verify-cross-platform-assistant-polish.yml'
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check cross-platform polish
+        run: node --check commercial-app/office-polish.js && node --check scripts/verify-cross-platform-assistant-polish.js
+      - name: Verify Personal Assistant business command bus
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          node scripts/verify-personal-assistant-command-bus.js
+
+  verify-chromium-webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify Android-safe and iPhone-WebKit polish
+        run: node scripts/verify-cross-platform-assistant-polish.js
