@@ -10,6 +10,7 @@ const includes=(text,needle,message)=>expect(text.includes(needle),message||`Exp
 const foundation=read('supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql');
 const enrichment=read('supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql');
 const hardening=read('supabase/migrations/20260903232000_erp_time_learning_data_quality.sql');
+const importIndex=read('supabase/migrations/20260904001500_erp_import_rows_business_index.sql');
 const erp=read('commercial-app/erp-foundation.js');
 const quoteContext=read('commercial-app/quote-learning-context.js');
 
@@ -46,6 +47,9 @@ for(const needle of [
   "'automaticCustomerSending',false"
 ])includes(hardening,needle,`Learning safety boundary is missing ${needle}`);
 
+includes(importIndex,'business_data_import_rows_business_id_idx','Existing-data uptake must cover the business_id foreign key.');
+includes(importIndex,'on public.business_data_import_rows(business_id)','Import-row business index must lead on business_id.');
+
 includes(erp,"label:'Task Manager / deployment'",'Task Manager must remain the deployment/assignment surface.');
 includes(erp,"label:'Existing-data uptake'",'ERP Center must retain existing-data uptake.');
 includes(erp,"label:'Time & attendance'",'ERP Center must retain time and attendance.');
@@ -63,6 +67,7 @@ console.log(JSON.stringify({
   laborAggregation:'job-level',
   taskManagerDeploymentAuthority:true,
   stagedDataUptake:true,
+  importRowsBusinessIndex:true,
   tenantIsolated:true,
   advisoryOnly:true,
   automaticPriceChanges:false,
