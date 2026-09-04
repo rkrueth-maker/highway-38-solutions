@@ -1,0 +1,235 @@
+name: H38 Scout v3.0.28 Firebase Verified Rerun
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v328-firebase-rerun.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-scout-v328-firebase-rerun
+  cancel-in-progress: false
+
+jobs:
+  firebase-verified-rerun:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 55
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+      ROBO_TIMEOUT: 30m
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate exact v3.0.28 runtime and frozen phone-PASS login shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -Fq "versionName '3.0.28'" reseller/build.gradle
+          grep -Fq 'versionCode 328' reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V328_SOURCE_QUALITY=true' reseller/src/main/assets/reseller/v240-data.js
+          ! grep -Fq 'H38_SCOUT_V327_CLEAN_SOURCING=true' reseller/src/main/assets/reseller/v240-data.js
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+          for name in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_JSON SCOUT_EMAIL SCOUT_PASSWORD; do
+            test -n "${!name:-}" || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          node reseller/v328-source-quality.test.mjs | tee /tmp/v328-tests.txt
+          grep -Fq V328_SOURCE_QUALITY_TESTS_PASS /tmp/v328-tests.txt
+          echo V328_RUNTIME_AND_SOURCE_QUALITY_GATES_PASS
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify exact owner APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v328-rerun"
+          mkdir -p "$report"
+          cp /tmp/v328-tests.txt "$report/source-quality-tests.txt"
+          test -f "$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -n "$APP_APK" -a -f "$APP_APK"
+          echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.28-FIREBASE-VERIFIED.apk"
+          cp "$APP_APK" "$out"
+          sha256sum "$out" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='328' versionName='3.0.28'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" | tee "$report/zipalign.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          unzip -t "$out" | tee "$report/zip-test.txt"
+          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          test "$(unzip -p "$out" assets/reseller/v200-app.js | sha256sum | awk '{print $1}')" = "$(git show 64ef9a193958c0fbfc75a8b0e47777857d8bafe5:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js | sha256sum | awk '{print $1}')"
+          unzip -p "$out" assets/reseller/v240-data.js > "$report/packaged-v240-data.js"
+          grep -Fq 'H38_SCOUT_V328_SOURCE_QUALITY=true' "$report/packaged-v240-data.js"
+          echo APK_PACKAGE_SIGNING_LOGIN_SOURCE_QUALITY_PASS | tee "$report/apk-gate.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Verify target is a physical Firebase device
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v328-rerun"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device-model.yml"
+          grep -qi PHYSICAL "$report/device-model.yml"
+
+      - name: Create authenticated WebView Robo script
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$SCOUT_EMAIL"
+          echo "::add-mask::$SCOUT_PASSWORD"
+          python3 - <<'PY'
+          import json, os, shlex
+          from pathlib import Path
+          def input_cmd(value: str) -> str:
+              value = value.replace('%', '%25').replace(' ', '%s')
+              return 'input text ' + shlex.quote(value)
+          actions = [
+              {'eventType': 'WAIT', 'delayTime': 2500},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Email'},
+              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(os.environ['SCOUT_EMAIL'])},
+              {'eventType': 'WAIT', 'delayTime': 800},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Password'},
+              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(os.environ['SCOUT_PASSWORD'])},
+              {'eventType': 'WAIT', 'delayTime': 800},
+              {'eventType': 'VIEW_CLICKED', 'visionText': 'Sign in'},
+              {'eventType': 'WAIT', 'delayTime': 5000},
+              {'eventType': 'ASSERTION', 'contextDescriptor': {'condition': 'element_present', 'negateCondition': True, 'visionText': 'Sign in'}},
+              {'eventType': 'TAKE_SCREENSHOT', 'screenshotName': 'v328-authenticated-entry'}
+          ]
+          out = Path(os.environ['RUNNER_TEMP']) / 'scout-v328-login-robo.json'
+          out.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n' + json.dumps(actions))
+          PY
+          test -s "$RUNNER_TEMP/scout-v328-login-robo.json"
+          echo "ROBO_SCRIPT=$RUNNER_TEMP/scout-v328-login-robo.json" >> "$GITHUB_ENV"
+
+      - name: Run authenticated Firebase physical-device crawl
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v328-rerun"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          test -f "$APP"
+          set +e
+          gcloud firebase test android run \
+            --project "$FIREBASE_PROJECT_ID" \
+            --type robo \
+            --app "$APP" \
+            --robo-script "$ROBO_SCRIPT" \
+            --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
+            --timeout "$ROBO_TIMEOUT" \
+            --results-history-name 'H38 Scout v3.0.28 Source Quality' \
+            --client-details matrixLabel='H38 Scout v3.0.28 verified authenticated crawl' \
+            2>&1 | tee "$report/firebase-test-lab.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if grep -Fq TEST_QUOTA_EXCEEDED "$report/firebase-test-lab.log"; then
+            echo FIREBASE_NOT_RUN_TEST_QUOTA_EXCEEDED | tee "$report/firebase-status.txt"
+            exit 2
+          fi
+          test "$status" -eq 0
+          echo FIREBASE_PHYSICAL_EXECUTION_PASS | tee "$report/firebase-status.txt"
+          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^ ]+' "$report/firebase-test-lab.log" | tail -n1 || true)"
+          if [[ -n "$raw_url" ]]; then
+            raw_path="${raw_url#https://console.developers.google.com/storage/browser/}"
+            bucket="${raw_path%%/*}"
+            prefix="${raw_path#*/}"; prefix="${prefix%/}"
+            mkdir -p "$report/firebase-raw-results"
+            gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
+          fi
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|WebView.*error|net::ERR_|TypeError|ReferenceError|Unhandled|uncaught' "$report/firebase-raw-results" "$report/firebase-test-lab.log" > "$report/runtime-error-scan.txt" 2>/dev/null || true
+          if [[ -s "$report/runtime-error-scan.txt" ]]; then
+            cat "$report/runtime-error-scan.txt"
+            echo FIREBASE_RUNTIME_ERROR_SIGNATURES_FOUND | tee -a "$report/firebase-status.txt"
+            exit 3
+          fi
+          echo FIREBASE_RUNTIME_ERROR_SCAN_PASS | tee -a "$report/firebase-status.txt"
+
+      - name: Build acceptance report
+        if: always()
+        shell: bash
+        run: |
+          report="$GITHUB_WORKSPACE/artifacts/scout-v328-rerun"; mkdir -p "$report"
+          {
+            echo '# H38 Scout v3.0.28 automated acceptance'
+            echo
+            echo "- Source: $GITHUB_SHA"
+            echo '- Branch: agent/private-reseller-scout only'
+            echo '- App runtime: v3.0.28 source-quality hardening'
+            echo '- Login/native shell: byte-gated to physical-PASS v2.6.3 baseline'
+            echo '- Firebase: Samsung Galaxy S22 r0q / Android 34 / PHYSICAL'
+            echo '- Owner phone remains final acceptance authority.'
+            echo
+            cat "$report/apk-gate.txt" 2>/dev/null || true
+            cat "$report/firebase-status.txt" 2>/dev/null || true
+          } > "$report/acceptance-report.md"
+
+      - name: Upload verified APK and Firebase evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v3.0.28-firebase-verified
+          path: artifacts/scout-v328-rerun/**
+          if-no-files-found: error
+          retention-days: 30
