@@ -1,0 +1,60 @@
+name: Verify employee phone and web workspace
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/migrations/20260903233000_employee_workspace_team_access.sql'
+      - 'supabase/migrations/20260903233100_employee_workspace_direct_access_hardening.sql'
+      - 'scripts/verify-employee-workspace.js'
+      - 'scripts/verify-employee-workspace-browser.js'
+      - '.github/workflows/verify-employee-workspace.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/migrations/20260903233000_employee_workspace_team_access.sql'
+      - 'supabase/migrations/20260903233100_employee_workspace_direct_access_hardening.sql'
+      - 'scripts/verify-employee-workspace.js'
+      - 'scripts/verify-employee-workspace-browser.js'
+      - '.github/workflows/verify-employee-workspace.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check employee workspace
+        run: |
+          node --check commercial-app/employee-workspace.js
+          node --check scripts/verify-employee-workspace.js
+          node --check scripts/verify-employee-workspace-browser.js
+      - name: Verify employee workspace contract
+        run: node scripts/verify-employee-workspace.js
+
+  verify-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify employee phone and web UX
+        run: node scripts/verify-employee-workspace-browser.js
