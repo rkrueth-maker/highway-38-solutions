@@ -5,10 +5,27 @@
 #h38OfficeSearchInput{font-size:16px;flex:0 0 auto}
 .h38-search-results{min-height:0;overscroll-behavior:contain}
 .h38-search-results button{min-height:48px;touch-action:manipulation}
-#h38OfficeSearchButton.h38-polish-touch,#personalAssistantButton.h38-polish-touch{min-width:44px;min-height:44px;touch-action:manipulation}
+#h38OfficeSearchButton.h38-polish-touch,#personalAssistantButton.h38-polish-touch,#globalAiButton.h38-polish-touch{min-width:44px;min-height:44px;touch-action:manipulation}
+#personalAssistantButton[hidden]{display:none!important}
+.h38-floating-assistant{position:fixed!important;right:22px!important;bottom:22px!important;left:auto!important;top:auto!important;z-index:2850!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;width:auto!important;height:50px!important;min-width:50px!important;min-height:50px!important;padding:0 16px!important;border:1px solid rgba(255,255,255,.5)!important;border-radius:999px!important;background:var(--navy,#0b2438)!important;color:#fff!important;box-shadow:0 14px 36px rgba(11,36,56,.28)!important;font-weight:900!important;letter-spacing:.01em!important;transform:translateZ(0);-webkit-tap-highlight-color:transparent}
+.h38-floating-assistant[hidden],body.h38-employee-mode .h38-floating-assistant,body.scanner-focus-mode .h38-floating-assistant,body.h38-field-scroll-lock .h38-floating-assistant{display:none!important}
+.h38-floating-assistant-icon{font-size:1.15rem;line-height:1}.h38-floating-assistant-label{font-size:.84rem;line-height:1}
+.h38-floating-due{position:absolute;top:-5px;right:-3px;min-width:20px;height:20px;padding:0 5px;display:grid;place-items:center;border:2px solid #fff;border-radius:999px;background:#b42318;color:#fff;font-size:.68rem;font-weight:900;line-height:1}
+.h38-owner-assistant-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line,#d9e2e8);border-radius:12px;background:var(--card-soft,#f8fafc);font-size:.82rem;line-height:1.35}.h38-owner-assistant-note strong{color:var(--navy,#0b2438)}.h38-owner-assistant-note span{color:var(--muted,#617487)}
+.h38-assistant-command-chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 9px}.h38-assistant-command-chips .h38-assistant-chip{min-height:38px;padding:7px 10px;border-radius:999px;font-size:.76rem;font-weight:800;touch-action:manipulation}
+html.h38-ios-like body .topbar{padding-top:calc(6px + env(safe-area-inset-top,0px))!important}
+html.h38-native-android body .topbar{padding-top:calc(6px + max(env(safe-area-inset-top,0px),24px))!important}
+html.h38-cross-platform-shell dialog{max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 16px)}
 @media(max-width:760px){
- .h38-office-search{width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - 16px);margin:auto;border-radius:16px}
- .h38-office-search .h38-search-shell{max-height:calc(100dvh - 16px)}
+ html body .topbar{box-sizing:border-box!important}
+ html.h38-native-android body .topbar{min-height:76px!important}
+ html.h38-ios-like body .topbar{min-height:calc(52px + env(safe-area-inset-top,0px))!important}
+ .topbar #networkBadge,.topbar #gatewayBadge,.topbar #voiceButton,.topbar #syncButton{display:none!important}
+ .topbar #syncBadge{max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .h38-floating-assistant{right:12px!important;bottom:calc(78px + env(safe-area-inset-bottom,0px))!important;height:52px!important;min-height:52px!important;padding:0 15px!important;box-shadow:0 12px 30px rgba(11,36,56,.3)!important}
+ .h38-floating-assistant-label{font-size:.8rem}
+ .h38-office-search{width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 12px);margin:auto;border-radius:16px}
+ .h38-office-search .h38-search-shell{max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 12px)}
  .h38-search-shell header{padding:12px;gap:10px}
  .h38-search-shell header small{font-size:.74rem;line-height:1.25}
  .h38-search-close{min-width:82px;min-height:48px}
@@ -16,4 +33,8 @@
  .h38-search-results{flex:1;max-height:none;padding:0 12px 12px}
  .h38-search-results button{min-height:52px;padding:12px 10px}
  .pa-toolbar button,.pa-filters button,.pa-item-actions button,.pa-business-actions button{min-height:44px;touch-action:manipulation}
+ .h38-assistant-command-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.h38-assistant-command-chips .h38-assistant-chip{width:100%;min-height:42px;border-radius:10px}
+ .pa-shell{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+ .h38-erp-dialog,.h38-erp-edit{margin-top:max(6px,env(safe-area-inset-top,0px));margin-bottom:max(6px,env(safe-area-inset-bottom,0px))}
 }
+@media(min-width:761px){.h38-floating-assistant{bottom:24px!important;right:24px!important}}
