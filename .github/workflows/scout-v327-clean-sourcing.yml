@@ -1,0 +1,142 @@
+name: H38 Scout v3.0.27 Clean Sourcing Reconstruction
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v327-clean-sourcing.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  clean-rebuild-package:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Enforce private branch and frozen login shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          app='reseller/src/main/assets/reseller/v200-app.js'
+          main='reseller/src/main/java/com/highway38/resellerscout/MainActivity.java'
+          base='64ef9a193958c0fbfc75a8b0e47777857d8bafe5'
+          test "$(sha256sum "$app" | awk '{print $1}')" = "$(git show "$base:$app" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum "$main" | awk '{print $1}')" = "$(git show "$base:$main" | sha256sum | awk '{print $1}')"
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+
+      - name: Clean temporary sourcing overlay and install v3.0.27 consolidated quality layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('reseller/src/main/assets/reseller/v240-data.js')
+          s=p.read_text()
+          marker='// v3.0.26 source recovery:'
+          if marker in s:s=s.split(marker,1)[0].rstrip()+"\n\n"
+          patch=r'''// v3.0.27 consolidated sourcing-quality reconstruction.
+          // Physical-PASS login/native shell is intentionally untouched.
+          window.H38_SCOUT_V327_CLEAN_SOURCING=true;
+          (function installV327(){
+            if(window.H38_SCOUT_V327_INSTALLED)return;window.H38_SCOUT_V327_INSTALLED=true;
+            const FB_TERMS=['power tools','Milwaukee tools','DeWalt tools','Snap-on tools','generator','air compressor','welder','shop equipment','lawn mower','snowblower','chainsaw','pressure washer','refrigerator','freezer','washer dryer','gaming console'];
+            const GARAGE_TERMS=['garage sale','yard sale','rummage sale','moving sale','estate sale'];
+            state.v327={fb:[],garage:[],garageHealth:{},fbStatus:'NOT_RUN',garageStatus:'NOT_RUN',dgNamed:0,dgImages:0,dgRemoved:0,loading:false};
+            const authRe=/(?:session expired|jwt(?: token)? expired|invalid jwt|sign in again|not authenticated|unauthorized|http\s*401|\b401\b)/i;
+            async function session(){let {data,error}=await h38sb.auth.getSession();if(error)throw error;let x=data?.session;if(x?.access_token&&(!x.expires_at||x.expires_at*1000>Date.now()+90000))return x;const r=await h38sb.auth.refreshSession();if(r.error||!r.data?.session?.access_token)throw(r.error||Error('Session refresh failed'));return r.data.session}
+            async function call(name,body={},timeout=70000,retry=true){const x=await session(),c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(`${H38_BASE}/functions/v1/${name}`,{method:'POST',headers:{Authorization:`Bearer ${x.access_token}`,apikey:H38_KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:c.signal}),j=await r.json().catch(()=>({}));if(!r.ok){const e=Error(j.error||j.message||`${name} HTTP ${r.status}`);if(retry&&(r.status===401||authRe.test(e.message))){await h38sb.auth.refreshSession();return call(name,body,timeout,false)}throw e}return j}finally{clearTimeout(t)}}
+            function uniq(rows){const m=new Map();for(const r of rows||[]){if(!r)continue;const k=txt(r.marketplace_listing_id||r.listing_id||r.id||r.url||r.source_url||`${r.title||r.name||''}|${r.price||''}|${r.location_label||''}`);if(k&&!m.has(k))m.set(k,r)}return[...m.values()]}
+            function badTitle(v){const s=txt(v).replace(/\s+/g,' ').trim();return !s||s.length<4||/^(?:dollar general(?: inventory checker)?|inventory checker|search|clearance|penny|item|product|unknown|n\/a)$/i.test(s)||/href\s*=|<\/?[a-z][^>]*>|(?:search|clearance|penny)\s*[|–—:-]\s*dollar general/i.test(s)}
+            function dgName(r){for(const x of [r.source_identity_title,r.product_name,r.item_name,r.name,r.canonical_title,r.raw_title,r.title,...((r.signal_sources||[]).flatMap(s=>[s?.source_identity_title,s?.product_name,s?.item_name,s?.title,s?.name]))]){const v=txt(x).replace(/\s+/g,' ').trim();if(v&&!badTitle(v)&&!/^dollar general\b/i.test(v))return v}return''}
+            function isDG(r){return retailerKey(r?.retailer)==='dollar general'}
+            function cleanDG(){let removed=0,named=0;const out=[];for(const r of state.hunt.rows||[]){if(!isDG(r)){out.push(r);continue}const n=dgName(r);if(!n){removed++;continue}named++;out.push({...r,title:n,canonical_title:n,h38_identity_clean:true})}state.hunt.rows=out;state.v327.dgRemoved=removed;state.v327.dgNamed=named;return out}
+            async function dgImages(){cleanDG();const rows=(state.hunt.rows||[]).filter(r=>isDG(r)&&!txt(r.image_data_url||r.image_url)&&digits(r.upc||r.gtin||r.barcode).length>=6).slice(0,24);for(let i=0;i<rows.length;i+=8){const batch=rows.slice(i,i+8).map(r=>({key:itemKey(r),retailer:r.retailer,barcode:r.upc||r.gtin||r.barcode||'',proof:r.image_match_barcode||'',image_url:r.image_url||'',reference_url:r.image_reference_url||r.source_url||r.url||''}));try{const p=await call('reseller-image-delivery-v201',{items:batch},45000),mm=new Map((p.images||[]).map(x=>[txt(x.key),x]));state.hunt.rows=(state.hunt.rows||[]).map(r=>{const x=mm.get(itemKey(r));return x?.data_url?{...r,image_data_url:x.data_url,image_delivery_source:x.image_source||x.source_url||'exact UPC image'}:r})}catch(e){error('v327DgImages',e)}}state.v327.dgImages=(state.hunt.rows||[]).filter(r=>isDG(r)&&!!txt(r.image_data_url||r.image_url)).length;if(state.page==='hunt')renderHunt()}
+            async function facebook(force=false){if(!requireLocation())return[];await ensureDefaultLocation();const batches=[];for(let i=0;i<FB_TERMS.length;i+=4)batches.push(FB_TERMS.slice(i,i+4));const settled=await Promise.allSettled(batches.map(terms=>call('reseller-facebook-public-v240',{...locationPayload(),location_label:state.location.label||'',terms,max_results:80,force,deal_intent:'resale_profit'},80000)));let rows=[];for(const x of settled)if(x.status==='fulfilled')rows.push(...(x.value.candidates||[]),...(x.value.results||[]));rows=uniq(rows).slice(0,160);state.v327.fb=rows;state.v327.fbStatus=rows.length?'PASS':'EMPTY';state.v240=state.v240||{};state.v240.facebookRows=rows;try{if(rows.length){const ranked=await call('reseller-opportunity-scan-v060',{sources:['Facebook Marketplace'],terms:FB_TERMS.slice(0,12),facebookCandidates:rows,...locationPayload()},80000);state.discover.deals=typeof mergeDealPayload==='function'?mergeDealPayload([state.discover.deals||{},ranked],FB_TERMS):ranked}}catch(e){error('v327FbRank',e)}return rows}
+            function saleRows(p){return uniq([...(p?.candidates||[]),...(p?.results||[])]).filter(r=>GARAGE_TERMS.some(t=>norm(`${r.title||''} ${r.text||''}`).includes(norm(t)))).map(r=>({...r,source:r.source||'Facebook Marketplace',event_type:/estate/i.test(r.title||'')?'ESTATE SALE':/moving/i.test(r.title||'')?'MOVING SALE':/rummage/i.test(r.title||'')?'RUMMAGE SALE':/yard/i.test(r.title||'')?'YARD SALE':'GARAGE SALE'}))}
+            async function garage(force=false){if(!requireLocation())return[];await ensureDefaultLocation();const [g,f]=await Promise.allSettled([call('reseller-garage-sales-v308',{...locationPayload(),location_label:state.location.label||'',postal:digits(state.location.zip||'').slice(0,5),force},80000),call('reseller-facebook-public-v240',{...locationPayload(),location_label:state.location.label||'',terms:GARAGE_TERMS,max_results:100,force},80000)]);let rows=[];if(g.status==='fulfilled'){rows.push(...(g.value.results||[]));state.v327.garageHealth=g.value.source_health||{}}if(f.status==='fulfilled')rows.push(...saleRows(f.value));state.v327.garage=uniq(rows).slice(0,60);state.v327.garageStatus=state.v327.garage.length?'PASS':'EMPTY';return state.v327.garage}
+            function qualityPanel(){const p=$('huntPage');if(!p)return;let n=p.querySelector('[data-v327-quality]');if(!n){n=document.createElement('div');n.dataset.v327Quality='true';n.className='status-line';p.prepend(n)}n.innerHTML=`<span class="dot ${state.v327.dgImages?'live':''}"></span><strong>DG QUALITY</strong> · ${state.v327.dgNamed} named · ${state.v327.dgImages} images · ${state.v327.dgRemoved} generic removed`}
+            function discoverPanels(){const p=$('discoverPage');if(!p)return;p.querySelectorAll('[data-v327-source]').forEach(x=>x.remove());const fb=$('facebookScan')?.closest('section.card');const a=document.createElement('section');a.className='card';a.dataset.v327Source='facebook';a.innerHTML=`<div class="section-head"><h2>Facebook Marketplace results</h2><span>${state.v327.fb.length} captured</span></div>${state.v327.fb.length?`<div class="result-list">${state.v327.fb.slice(0,12).map(r=>`<div class="item-card"><div class="item-main"><strong>${esc(txt(r.title||r.name||'Marketplace listing'))}</strong><div class="small">${dollars(r.price||r.buy_price)} · ${r.location_verified===true?'LOCAL LOCATION PROVEN':'LOCATION NEEDS PROOF'}</div></div></div>`).join('')}</div>`:'<div class="empty">No public Facebook cards captured.</div>'}`;const g=document.createElement('section');g.className='card';g.dataset.v327Source='garage';g.innerHTML=`<div class="section-head"><h2>Garage & estate sales</h2><span>${state.v327.garage.length} leads</span></div><button id="v327GarageRefresh" class="secondary wide">Refresh garage & estate sales</button>${state.v327.garage.length?`<div class="result-list">${state.v327.garage.slice(0,18).map(r=>`<div class="item-card"><div class="item-main"><strong>${esc(txt(r.title||r.event_type||'Local sale'))}</strong><div class="small">${esc(txt(r.event_type||'SALE'))}${txt(r.location_label)?` · ${esc(txt(r.location_label))}`:''}${Number.isFinite(Number(r.distance_miles))?` · ${Number(r.distance_miles).toFixed(1)} mi`:''}</div></div></div>`).join('')}</div>`:'<div class="empty">No current sale rows returned.</div>'}`;if(fb){fb.insertAdjacentElement('afterend',a);a.insertAdjacentElement('afterend',g)}else{p.append(a,g)}$('v327GarageRefresh')?.addEventListener('click',()=>garage(true).then(()=>renderDiscover()))}
+            const oldRenderDiscover=renderDiscover;renderDiscover=function(){oldRenderDiscover();discoverPanels()};
+            const oldRenderHunt=renderHunt;renderHunt=function(){cleanDG();oldRenderHunt();qualityPanel()};
+            const oldLoadHunt=loadHunt;loadHunt=async function(force=false){try{if(typeof window.H38V263BootstrapStores==='function')await window.H38V263BootstrapStores(force)}catch(e){error('v327Stores',e)}let out;try{out=await oldLoadHunt(force)}catch(e){if(authRe.test(String(e?.message||e))){await session();out=await oldLoadHunt(force)}else throw e}cleanDG();void dgImages();return out};
+            const oldRunDiscover=runDiscover;runDiscover=async function(force=false){state.v327.loading=true;try{await Promise.allSettled([oldRunDiscover(force),facebook(force),garage(force)]);if(typeof window.H38V263BootstrapStores==='function')await window.H38V263BootstrapStores(force)}finally{state.v327.loading=false;renderDiscover()}};
+            setTimeout(()=>{if(state.user&&state.page==='discover')void Promise.allSettled([facebook(false),garage(false)]).then(()=>renderDiscover());if(state.user&&state.page==='hunt')void dgImages()},1200);
+          })();
+          '''
+          p.write_text(s+patch)
+          g=Path('reseller/build.gradle');t=g.read_text();t=t.replace("versionCode 326","versionCode 327").replace("versionName '3.0.26'","versionName '3.0.27'");g.write_text(t)
+          PY
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq 'H38_SCOUT_V327_CLEAN_SOURCING=true' reseller/src/main/assets/reseller/v240-data.js
+          ! grep -Fq 'H38_SCOUT_V326_SOURCE_RECOVERY=true' reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "versionName '3.0.27'" reseller/build.gradle
+          grep -Fq 'versionCode 327' reseller/build.gradle
+
+      - name: Commit cleaned runtime only to private Scout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'h38-scout-builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add reseller/src/main/assets/reseller/v240-data.js reseller/build.gradle
+          git commit -m 'Reconstruct Scout v3.0.27 sourcing quality'
+          git push origin HEAD:agent/private-reseller-scout
+          git rev-parse HEAD > /tmp/v327-source-sha
+
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify v3.0.27 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/scout-v327"; mkdir -p "$report"
+          test -f "$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore" H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          apk="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"; test -f "$apk"
+          out="$report/H38-Reseller-Scout-Owner-v3.0.27-CLEAN-SOURCING.apk"; cp "$apk" "$out"
+          sha256sum "$out" > "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" > "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='327' versionName='3.0.27'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" > "$report/signing.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          grep -Fq 'Verification succesful' "$report/zipalign.txt"
+          actual="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$actual" = 'cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46'
+          unzip -t "$out" > "$report/zip-test.txt"; grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$out" assets/reseller/v200-app.js | sha256sum > "$report/login-shell.sha256"
+          test "$(unzip -p "$out" assets/reseller/v200-app.js | sha256sum | awk '{print $1}')" = "$(git show 64ef9a193958c0fbfc75a8b0e47777857d8bafe5:reseller/src/main/assets/reseller/v200-app.js | sha256sum | awk '{print $1}')"
+          unzip -p "$out" assets/reseller/v240-data.js | grep -Fq 'H38_SCOUT_V327_CLEAN_SOURCING=true'
+          cp /tmp/v327-source-sha "$report/source-sha.txt"
+
+      - name: Upload v3.0.27 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-reseller-scout-owner-v3.0.27-clean-sourcing
+          path: artifacts/scout-v327/*
+          if-no-files-found: error
+          retention-days: 30
