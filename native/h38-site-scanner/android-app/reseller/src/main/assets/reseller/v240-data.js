@@ -44,220 +44,31 @@ window.H38_SCOUT_V250_PROVIDER_HARDENING=true;
   const rh=renderHunt;renderHunt=function(){rh();decorateV250()};
 })();
 
-// v3.0.26 source recovery: preserve the v2.6.3 physical-PASS login/native shell and
-// restore only post-login sourcing capabilities removed by the whole-module rollback.
-window.H38_SCOUT_V326_SOURCE_RECOVERY=true;
-(function installV326SourceRecovery(){
-  if(window.H38_SCOUT_V326_SOURCE_RECOVERY_INSTALLED)return;
-  window.H38_SCOUT_V326_SOURCE_RECOVERY_INSTALLED=true;
-  state.v326=state.v326||{
-    facebookLoading:false,facebookLoaded:false,facebookCandidates:[],facebookStatus:'NOT_RUN',
-    garageLoading:false,garageLoaded:false,garageRows:[],garageHealth:{},garageStatus:'NOT_RUN',
-    huntProviders:[]
-  };
-
-  const baseFn=fn;
-  function authFailure(e){
-    return /(?:session expired|jwt(?: token)? expired|invalid jwt|sign in again|not authenticated|unauthorized|http\s*401|\b401\b)/i.test(String(e?.message||e||''));
-  }
-  fn=async function(name,body={},timeout=45000){
-    try{return await baseFn(name,body,timeout)}
-    catch(e){
-      if(!authFailure(e))throw e;
-      try{
-        const {data,error:refreshError}=await h38sb.auth.refreshSession();
-        if(refreshError||!data?.session?.access_token)throw e;
-        return await baseFn(name,body,timeout);
-      }catch(refreshFailure){throw refreshFailure}
-    }
-  };
-
-  function uniqueRows(rows){
-    const seen=new Map();
-    for(const r of Array.isArray(rows)?rows:[]){
-      if(!r||typeof r!=='object')continue;
-      const key=txt(r.marketplace_listing_id||r.listing_id||r.id||r.url||r.source_url||`${r.title||r.name||''}|${r.price||''}|${r.location_label||''}`);
-      if(key&&!seen.has(key))seen.set(key,r);
-    }
-    return [...seen.values()];
-  }
-  function currentTerms(){
-    const typed=txt($('discoverSearch')?.value??state.discover?.query);
-    if(typed)return[typed];
-    try{if(typeof profitTerms==='function'){const x=profitTerms().map(txt).filter(Boolean);if(x.length)return x.slice(0,6)}}catch{}
-    return['tools','electronics','appliances','lawn mower','generator','toolbox'];
-  }
-  function sourceLink(r,label='Open source'){
-    const u=txt(r?.url||r?.source_url||r?.listing_url);
-    return /^https:\/\//i.test(u)?`<a class="mini-btn" href="${esc(u)}" target="_blank" rel="noopener">${esc(label)}</a>`:'';
-  }
-  function priceLabel(r){
-    const p=Number(r?.price??r?.current_price??r?.sale_price);
-    return Number.isFinite(p)&&p>=0?`$${p.toFixed(2)}`:'Price not captured';
-  }
-
-  async function loadFacebookV326(force=false){
-    if(state.v326.facebookLoading||!requireLocation())return;
-    state.v326.facebookLoading=true;state.v326.facebookStatus='SEARCHING';decorateDiscoverV326();
-    try{
-      if(typeof window.H38V263ResolveLocation==='function')await window.H38V263ResolveLocation();
-      const p=await fn('reseller-facebook-public-v240',{
-        ...locationPayload(),
-        location_label:txt(state.location?.label),
-        terms:currentTerms(),
-        max_results:120,
-        force:!!force
-      },80000);
-      state.v240=state.v240||{};
-      state.v240.facebook=p;
-      const verified=uniqueRows(p?.results||[]);
-      const captured=uniqueRows([...(p?.candidates||[]),...verified]);
-      state.v240.facebookRows=verified;
-      state.v326.facebookCandidates=captured;
-      state.v326.facebookLoaded=true;
-      state.v326.facebookStatus=captured.length?(verified.length?'PASS':'LOCATION_UNPROVEN'):txt(p?.provider_status||p?.status||'EMPTY');
-    }catch(e){
-      state.v326.facebookStatus=`ERROR: ${String(e?.message||e)}`;
-      error('facebookV326',e);
-    }finally{
-      state.v326.facebookLoading=false;
-      if(state.page==='discover')renderDiscover();
-    }
-  }
-  window.H38V326LoadFacebook=loadFacebookV326;
-
-  async function loadGarageV326(force=false){
-    if(state.v326.garageLoading||!requireLocation())return;
-    state.v326.garageLoading=true;state.v326.garageStatus='SEARCHING';decorateDiscoverV326();
-    try{
-      if(typeof window.H38V263ResolveLocation==='function')await window.H38V263ResolveLocation();
-      const p=await fn('reseller-garage-sales-v308',{
-        ...locationPayload(),
-        location_label:txt(state.location?.label),
-        postal:digits(state.location?.zip||'').slice(0,5),
-        force:!!force
-      },80000);
-      state.v326.garageRows=uniqueRows(p?.results||[]);
-      state.v326.garageHealth=p?.source_health||{};
-      state.v326.garageLoaded=true;
-      state.v326.garageStatus=txt(p?.status||'PARTIAL');
-    }catch(e){
-      state.v326.garageStatus=`ERROR: ${String(e?.message||e)}`;
-      error('garageV326',e);
-    }finally{
-      state.v326.garageLoading=false;
-      if(state.page==='discover')renderDiscover();
-    }
-  }
-  window.H38V326LoadGarage=loadGarageV326;
-
-  function facebookDetailHtml(){
-    const verified=uniqueRows(state.v240?.facebookRows||[]);
-    const captured=uniqueRows(state.v326.facebookCandidates||[]);
-    const unproven=captured.filter(r=>r.location_verified!==true&&txt(r.location_status)!=='OUTSIDE_RADIUS');
-    const shown=uniqueRows([...verified,...unproven]).slice(0,12);
-    const status=state.v326.facebookLoading?'Searching public Marketplace…':
-      captured.length?`${verified.length} location-proven · ${captured.length} public captured`:
-      state.v326.facebookLoaded?`No public cards captured · ${esc(state.v326.facebookStatus)}`:'Not searched yet';
-    return `<section class="card" data-v326-facebook-results>
-      <div class="section-head"><strong>Facebook Marketplace results</strong><span>${status}</span></div>
-      <p class="small muted">Location-proven cards are separated from public cards whose local location still needs proof. Captured cards are not presented as verified local deals.</p>
-      ${shown.length?`<div class="result-list">${shown.map(r=>`<div class="item-card">
-        <div class="item-main"><strong>${esc(txt(r.title||r.name||'Marketplace listing'))}</strong>
-        <div class="small">${esc(priceLabel(r))} · ${r.location_verified===true?'LOCAL LOCATION PROVEN':'LOCATION NEEDS PROOF'}${txt(r.location_label)?` · ${esc(txt(r.location_label))}`:''}</div></div>
-        <div class="item-actions">${sourceLink(r,'Open listing')}</div>
-      </div>`).join('')}</div>`:`<div class="empty"><strong>${state.v326.facebookLoading?'Searching…':'No Facebook cards yet'}</strong><span>Run the public Facebook search for this location.</span></div>`}
-    </section>`;
-  }
-  function garageHtml(){
-    const rows=state.v326.garageRows||[],health=state.v326.garageHealth||{};
-    const live=Object.values(health).filter(x=>x&&['live','partial_live'].includes(txt(x.status).toLowerCase())).length;
-    const status=state.v326.garageLoading?'Searching local sales…':
-      state.v326.garageLoaded?`${rows.length} sale${rows.length===1?'':'s'} · ${live} live source${live===1?'':'s'}`:'Not searched yet';
-    return `<section class="card" data-v326-garage>
-      <div class="section-head"><strong>Garage & estate sales</strong><span>${status}</span></div>
-      <p class="small muted">Current public garage, yard, moving and estate-sale events near the selected location. Sale events are not assigned resale profit until actual items are identified.</p>
-      <button id="v326GarageRefresh" class="secondary wide">${state.v326.garageLoading?'Searching…':'Refresh garage & estate sales'}</button>
-      ${rows.length?`<div class="result-list">${rows.slice(0,16).map(r=>`<div class="item-card">
-        <div class="item-main"><strong>${esc(txt(r.title||r.event_type||'Local sale'))}</strong>
-        <div class="small">${esc(txt(r.event_type||'SALE'))}${txt(r.location_label)?` · ${esc(txt(r.location_label))}`:''}${Number.isFinite(Number(r.distance_miles))?` · ${Number(r.distance_miles).toFixed(1)} mi`:''}${txt(r.event_time||r.date_label)?` · ${esc(txt(r.event_time||r.date_label))}`:''}</div></div>
-        <div class="item-actions">${sourceLink(r,'Open sale')}</div>
-      </div>`).join('')}</div>`:`<div class="empty"><strong>${state.v326.garageLoading?'Searching…':'No current sale rows returned'}</strong><span>${esc(state.v326.garageStatus)}</span></div>`}
-    </section>`;
-  }
-  function decorateDiscoverV326(){
-    const p=$('discoverPage');if(!p)return;
-    const fbButton=$('facebookScan');
-    if(fbButton){
-      fbButton.textContent=state.v326.facebookLoading?'Searching public Facebook…':'Search public Facebook';
-      fbButton.disabled=state.v326.facebookLoading;
-      fbButton.onclick=()=>void loadFacebookV326(true);
-      const sec=fbButton.closest('section.card'),head=sec?.querySelector('.section-head span');
-      if(head){
-        const verified=(state.v240?.facebookRows||[]).length,captured=(state.v326.facebookCandidates||[]).length;
-        head.textContent=`${verified} local-proven · ${captured} captured`;
-      }
-    }
-    p.querySelector('[data-v326-facebook-results]')?.remove();
-    p.querySelector('[data-v326-garage]')?.remove();
-    const fbSection=fbButton?.closest('section.card');
-    if(fbSection)fbSection.insertAdjacentHTML('afterend',facebookDetailHtml()+garageHtml());
-    else p.insertAdjacentHTML('beforeend',facebookDetailHtml()+garageHtml());
-    const g=$('v326GarageRefresh');if(g){g.disabled=state.v326.garageLoading;g.onclick=()=>void loadGarageV326(true)}
-  }
-
-  const baseRenderDiscover=renderDiscover;
-  renderDiscover=function(){
-    baseRenderDiscover();
-    decorateDiscoverV326();
-    if(state.user&&state.page==='discover'){
-      if(!state.v326.facebookLoaded&&!state.v326.facebookLoading)setTimeout(()=>void loadFacebookV326(false),80);
-      if(!state.v326.garageLoaded&&!state.v326.garageLoading)setTimeout(()=>void loadGarageV326(false),140);
-    }
-  };
-
-  function weirdHuntRow(r){
-    const raw=txt(r?.title||r?.name||r?.item_name||r?.product_name),t=raw.toLowerCase().replace(/[^a-z0-9]+/g,'');
-    return !t||['1cent','onecent','penny','pennyitem','unknown','na','001','001cent'].includes(t);
-  }
-  loadHunt=async function(force=false){
-    if(state.hunt.loading)return;
-    state.hunt.loading=true;renderHunt();
-    const prior=Array.isArray(state.hunt.rows)?state.hunt.rows.slice():[];
-    try{
-      const calls=[
-        ['reseller-auto-leads-v064',80000],
-        ['reseller-auto-leads-v058',65000]
-      ];
-      const settled=await Promise.allSettled(calls.map(([name,timeout])=>fn(name,{...locationPayload(),force:!!force},timeout)));
-      const payloads=settled.filter(x=>x.status==='fulfilled').map(x=>x.value);
-      let all=[];for(const p of payloads)all.push(...(Array.isArray(p?.leads)?p.leads:[]));
-      if(!all.length){
-        try{const p=await fn('reseller-auto-leads-v063',{...locationPayload(),force:!!force},70000);payloads.push(p);all.push(...(Array.isArray(p?.leads)?p.leads:[]))}catch(e){error('huntV326Fallback',e)}
-      }
-      let rows=cleanRows(all).filter(r=>!huntArtifact(r)&&!weirdHuntRow(r));
-      if(!rows.length&&prior.length)rows=cleanRows(prior).filter(r=>!huntArtifact(r)&&!weirdHuntRow(r));
-      state.hunt.raw=payloads.reduce((n,p)=>n+num(p?.raw_count||(p?.leads||[]).length),0);
-      state.hunt.rows=rows;state.hunt.loaded=true;
-      state.v326.huntProviders=settled.map((x,i)=>({
-        provider:i===0?'reseller-auto-leads-v064':'reseller-auto-leads-v058',
-        status:x.status==='fulfilled'?txt(x.value?.status||'PASS'):'UNAVAILABLE',
-        count:x.status==='fulfilled'&&Array.isArray(x.value?.leads)?x.value.leads.length:0
-      }));
-      state.hunt.sourceHealth={
-        status:rows.length?'PASS':'PARTIAL',
-        actionable:rows.length,
-        providers:state.v326.huntProviders,
-        recovery:'v3.0.26 source-only recovery; login shell unchanged'
-      };
-      renderHunt();
-      if(hasPoint()||state.location.zip)void ensureNearbyStores().then(()=>renderHuntListOnly());
-      void hydrateHuntImages();
-    }catch(e){
-      if(prior.length){state.hunt.rows=prior;state.hunt.loaded=true;notice('Live Hunt refresh failed; prior sourced evidence was preserved.','warn')}
-      else notice(`Retail Hunt unavailable: ${error('huntV326',e)}`,'bad');
-    }finally{state.hunt.loading=false;renderHunt()}
-  };
-
-  setTimeout(()=>{if(state.user&&state.page==='discover')renderDiscover()},250);
+// v3.0.27 consolidated sourcing-quality reconstruction.
+// Physical-PASS login/native shell is intentionally untouched.
+window.H38_SCOUT_V327_CLEAN_SOURCING=true;
+(function installV327(){
+  if(window.H38_SCOUT_V327_INSTALLED)return;window.H38_SCOUT_V327_INSTALLED=true;
+  const FB_TERMS=['power tools','Milwaukee tools','DeWalt tools','Snap-on tools','generator','air compressor','welder','shop equipment','lawn mower','snowblower','chainsaw','pressure washer','refrigerator','freezer','washer dryer','gaming console'];
+  const GARAGE_TERMS=['garage sale','yard sale','rummage sale','moving sale','estate sale'];
+  state.v327={fb:[],garage:[],garageHealth:{},fbStatus:'NOT_RUN',garageStatus:'NOT_RUN',dgNamed:0,dgImages:0,dgRemoved:0,loading:false};
+  const authRe=/(?:session expired|jwt(?: token)? expired|invalid jwt|sign in again|not authenticated|unauthorized|http\s*401|\b401\b)/i;
+  async function session(){let {data,error}=await h38sb.auth.getSession();if(error)throw error;let x=data?.session;if(x?.access_token&&(!x.expires_at||x.expires_at*1000>Date.now()+90000))return x;const r=await h38sb.auth.refreshSession();if(r.error||!r.data?.session?.access_token)throw(r.error||Error('Session refresh failed'));return r.data.session}
+  async function call(name,body={},timeout=70000,retry=true){const x=await session(),c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(`${H38_BASE}/functions/v1/${name}`,{method:'POST',headers:{Authorization:`Bearer ${x.access_token}`,apikey:H38_KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:c.signal}),j=await r.json().catch(()=>({}));if(!r.ok){const e=Error(j.error||j.message||`${name} HTTP ${r.status}`);if(retry&&(r.status===401||authRe.test(e.message))){await h38sb.auth.refreshSession();return call(name,body,timeout,false)}throw e}return j}finally{clearTimeout(t)}}
+  function uniq(rows){const m=new Map();for(const r of rows||[]){if(!r)continue;const k=txt(r.marketplace_listing_id||r.listing_id||r.id||r.url||r.source_url||`${r.title||r.name||''}|${r.price||''}|${r.location_label||''}`);if(k&&!m.has(k))m.set(k,r)}return[...m.values()]}
+  function badTitle(v){const s=txt(v).replace(/\s+/g,' ').trim();return !s||s.length<4||/^(?:dollar general(?: inventory checker)?|inventory checker|search|clearance|penny|item|product|unknown|n\/a)$/i.test(s)||/href\s*=|<\/?[a-z][^>]*>|(?:search|clearance|penny)\s*[|–—:-]\s*dollar general/i.test(s)}
+  function dgName(r){for(const x of [r.source_identity_title,r.product_name,r.item_name,r.name,r.canonical_title,r.raw_title,r.title,...((r.signal_sources||[]).flatMap(s=>[s?.source_identity_title,s?.product_name,s?.item_name,s?.title,s?.name]))]){const v=txt(x).replace(/\s+/g,' ').trim();if(v&&!badTitle(v)&&!/^dollar general\b/i.test(v))return v}return''}
+  function isDG(r){return retailerKey(r?.retailer)==='dollar general'}
+  function cleanDG(){let removed=0,named=0;const out=[];for(const r of state.hunt.rows||[]){if(!isDG(r)){out.push(r);continue}const n=dgName(r);if(!n){removed++;continue}named++;out.push({...r,title:n,canonical_title:n,h38_identity_clean:true})}state.hunt.rows=out;state.v327.dgRemoved=removed;state.v327.dgNamed=named;return out}
+  async function dgImages(){cleanDG();const rows=(state.hunt.rows||[]).filter(r=>isDG(r)&&!txt(r.image_data_url||r.image_url)&&digits(r.upc||r.gtin||r.barcode).length>=6).slice(0,24);for(let i=0;i<rows.length;i+=8){const batch=rows.slice(i,i+8).map(r=>({key:itemKey(r),retailer:r.retailer,barcode:r.upc||r.gtin||r.barcode||'',proof:r.image_match_barcode||'',image_url:r.image_url||'',reference_url:r.image_reference_url||r.source_url||r.url||''}));try{const p=await call('reseller-image-delivery-v201',{items:batch},45000),mm=new Map((p.images||[]).map(x=>[txt(x.key),x]));state.hunt.rows=(state.hunt.rows||[]).map(r=>{const x=mm.get(itemKey(r));return x?.data_url?{...r,image_data_url:x.data_url,image_delivery_source:x.image_source||x.source_url||'exact UPC image'}:r})}catch(e){error('v327DgImages',e)}}state.v327.dgImages=(state.hunt.rows||[]).filter(r=>isDG(r)&&!!txt(r.image_data_url||r.image_url)).length;if(state.page==='hunt')renderHunt()}
+  async function facebook(force=false){if(!requireLocation())return[];await ensureDefaultLocation();const batches=[];for(let i=0;i<FB_TERMS.length;i+=4)batches.push(FB_TERMS.slice(i,i+4));const settled=await Promise.allSettled(batches.map(terms=>call('reseller-facebook-public-v240',{...locationPayload(),location_label:state.location.label||'',terms,max_results:80,force,deal_intent:'resale_profit'},80000)));let rows=[];for(const x of settled)if(x.status==='fulfilled')rows.push(...(x.value.candidates||[]),...(x.value.results||[]));rows=uniq(rows).slice(0,160);state.v327.fb=rows;state.v327.fbStatus=rows.length?'PASS':'EMPTY';state.v240=state.v240||{};state.v240.facebookRows=rows;try{if(rows.length){const ranked=await call('reseller-opportunity-scan-v060',{sources:['Facebook Marketplace'],terms:FB_TERMS.slice(0,12),facebookCandidates:rows,...locationPayload()},80000);state.discover.deals=typeof mergeDealPayload==='function'?mergeDealPayload([state.discover.deals||{},ranked],FB_TERMS):ranked}}catch(e){error('v327FbRank',e)}return rows}
+  function saleRows(p){return uniq([...(p?.candidates||[]),...(p?.results||[])]).filter(r=>GARAGE_TERMS.some(t=>norm(`${r.title||''} ${r.text||''}`).includes(norm(t)))).map(r=>({...r,source:r.source||'Facebook Marketplace',event_type:/estate/i.test(r.title||'')?'ESTATE SALE':/moving/i.test(r.title||'')?'MOVING SALE':/rummage/i.test(r.title||'')?'RUMMAGE SALE':/yard/i.test(r.title||'')?'YARD SALE':'GARAGE SALE'}))}
+  async function garage(force=false){if(!requireLocation())return[];await ensureDefaultLocation();const [g,f]=await Promise.allSettled([call('reseller-garage-sales-v308',{...locationPayload(),location_label:state.location.label||'',postal:digits(state.location.zip||'').slice(0,5),force},80000),call('reseller-facebook-public-v240',{...locationPayload(),location_label:state.location.label||'',terms:GARAGE_TERMS,max_results:100,force},80000)]);let rows=[];if(g.status==='fulfilled'){rows.push(...(g.value.results||[]));state.v327.garageHealth=g.value.source_health||{}}if(f.status==='fulfilled')rows.push(...saleRows(f.value));state.v327.garage=uniq(rows).slice(0,60);state.v327.garageStatus=state.v327.garage.length?'PASS':'EMPTY';return state.v327.garage}
+  function qualityPanel(){const p=$('huntPage');if(!p)return;let n=p.querySelector('[data-v327-quality]');if(!n){n=document.createElement('div');n.dataset.v327Quality='true';n.className='status-line';p.prepend(n)}n.innerHTML=`<span class="dot ${state.v327.dgImages?'live':''}"></span><strong>DG QUALITY</strong> · ${state.v327.dgNamed} named · ${state.v327.dgImages} images · ${state.v327.dgRemoved} generic removed`}
+  function discoverPanels(){const p=$('discoverPage');if(!p)return;p.querySelectorAll('[data-v327-source]').forEach(x=>x.remove());const fb=$('facebookScan')?.closest('section.card');const a=document.createElement('section');a.className='card';a.dataset.v327Source='facebook';a.innerHTML=`<div class="section-head"><h2>Facebook Marketplace results</h2><span>${state.v327.fb.length} captured</span></div>${state.v327.fb.length?`<div class="result-list">${state.v327.fb.slice(0,12).map(r=>`<div class="item-card"><div class="item-main"><strong>${esc(txt(r.title||r.name||'Marketplace listing'))}</strong><div class="small">${dollars(r.price||r.buy_price)} · ${r.location_verified===true?'LOCAL LOCATION PROVEN':'LOCATION NEEDS PROOF'}</div></div></div>`).join('')}</div>`:'<div class="empty">No public Facebook cards captured.</div>'}`;const g=document.createElement('section');g.className='card';g.dataset.v327Source='garage';g.innerHTML=`<div class="section-head"><h2>Garage & estate sales</h2><span>${state.v327.garage.length} leads</span></div><button id="v327GarageRefresh" class="secondary wide">Refresh garage & estate sales</button>${state.v327.garage.length?`<div class="result-list">${state.v327.garage.slice(0,18).map(r=>`<div class="item-card"><div class="item-main"><strong>${esc(txt(r.title||r.event_type||'Local sale'))}</strong><div class="small">${esc(txt(r.event_type||'SALE'))}${txt(r.location_label)?` · ${esc(txt(r.location_label))}`:''}${Number.isFinite(Number(r.distance_miles))?` · ${Number(r.distance_miles).toFixed(1)} mi`:''}</div></div></div>`).join('')}</div>`:'<div class="empty">No current sale rows returned.</div>'}`;if(fb){fb.insertAdjacentElement('afterend',a);a.insertAdjacentElement('afterend',g)}else{p.append(a,g)}$('v327GarageRefresh')?.addEventListener('click',()=>garage(true).then(()=>renderDiscover()))}
+  const oldRenderDiscover=renderDiscover;renderDiscover=function(){oldRenderDiscover();discoverPanels()};
+  const oldRenderHunt=renderHunt;renderHunt=function(){cleanDG();oldRenderHunt();qualityPanel()};
+  const oldLoadHunt=loadHunt;loadHunt=async function(force=false){try{if(typeof window.H38V263BootstrapStores==='function')await window.H38V263BootstrapStores(force)}catch(e){error('v327Stores',e)}let out;try{out=await oldLoadHunt(force)}catch(e){if(authRe.test(String(e?.message||e))){await session();out=await oldLoadHunt(force)}else throw e}cleanDG();void dgImages();return out};
+  const oldRunDiscover=runDiscover;runDiscover=async function(force=false){state.v327.loading=true;try{await Promise.allSettled([oldRunDiscover(force),facebook(force),garage(force)]);if(typeof window.H38V263BootstrapStores==='function')await window.H38V263BootstrapStores(force)}finally{state.v327.loading=false;renderDiscover()}};
+  setTimeout(()=>{if(state.user&&state.page==='discover')void Promise.allSettled([facebook(false),garage(false)]).then(()=>renderDiscover());if(state.user&&state.page==='hunt')void dgImages()},1200);
 })();
