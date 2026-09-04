@@ -45,3 +45,11 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Verify Android-safe and iPhone-WebKit polish
         run: node scripts/verify-cross-platform-assistant-polish.js
+      - name: Upload cross-platform visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-cross-platform-assistant-${{ github.run_id }}
+          path: |
+            artifacts/cross-platform-assistant/android-assistant-390x844.png
+            artifacts/cross-platform-assistant/iphone-webkit-assistant-390x844.png
+          if-no-files-found: error
