@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql'
       - 'supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql'
       - 'supabase/migrations/20260903232000_erp_time_learning_data_quality.sql'
+      - 'supabase/migrations/20260904001500_erp_import_rows_business_index.sql'
       - 'scripts/verify-erp-time-learning-data-quality.js'
       - '.github/workflows/verify-erp-time-learning-data-quality.yml'
   push:
@@ -19,6 +20,7 @@ on:
       - 'supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql'
       - 'supabase/migrations/20260903231000_erp_quote_learning_enrichment.sql'
       - 'supabase/migrations/20260903232000_erp_time_learning_data_quality.sql'
+      - 'supabase/migrations/20260904001500_erp_import_rows_business_index.sql'
       - 'scripts/verify-erp-time-learning-data-quality.js'
       - '.github/workflows/verify-erp-time-learning-data-quality.yml'
   workflow_dispatch:
@@ -37,5 +39,5 @@ jobs:
           node-version: '22'
       - name: Syntax check data-quality verifier
         run: node --check scripts/verify-erp-time-learning-data-quality.js
-      - name: Verify audited time and job-level learning
+      - name: Verify audited time, job-level learning, and import index
         run: node scripts/verify-erp-time-learning-data-quality.js
