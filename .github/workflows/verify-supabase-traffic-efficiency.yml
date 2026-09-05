@@ -1,0 +1,34 @@
+name: Verify Supabase traffic efficiency
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/supabase-session-recovery.js'
+      - 'supabase/migrations/20260905233000_supabase_traffic_efficiency.sql'
+      - 'scripts/verify-supabase-traffic-efficiency.js'
+      - '.github/workflows/verify-supabase-traffic-efficiency.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/supabase-session-recovery.js'
+      - 'supabase/migrations/20260905233000_supabase_traffic_efficiency.sql'
+      - 'scripts/verify-supabase-traffic-efficiency.js'
+      - '.github/workflows/verify-supabase-traffic-efficiency.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check commercial-app/supabase-session-recovery.js
+          node --check scripts/verify-supabase-traffic-efficiency.js
+      - name: Verify request and RLS efficiency contract
+        run: node scripts/verify-supabase-traffic-efficiency.js
