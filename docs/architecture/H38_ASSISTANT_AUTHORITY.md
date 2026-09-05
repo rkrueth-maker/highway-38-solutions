@@ -22,6 +22,10 @@ The Supabase Business Office has one shared advisory AI route, one owner-facing 
 ### Business Office command bus
 - `commercial-app/assistant-command-bus.js` is the deterministic command router for supported internal Business Office commands.
 - It may navigate to permitted pages, resolve a permitted customer, open Customer 360, prepare a working quote context, open Site Visit, open a meeting, open jobs, and prepare other internal workflows supported by existing specialist modules.
+- The cross-platform Assistant polish extends that same command-bus authority for the newer management intents: **ERP Center, Time & Attendance, Team Access, Existing-data uptake, Business-specific quote learning / quote-history analysis, and Task Manager / deployment**.
+- Those management commands open the existing specialist controls rather than creating a second ERP, time, employee-access, import, learning, or task authority.
+- An explicit request to analyze quote history may start the existing tenant-only advisory quote-learning analysis. It still cannot change prices, mutate a quote, approve, or send anything.
+- Time commands never clock a user in/out or edit a punch automatically. Team Access commands never invite, remove, or change employee access automatically. Data-uptake commands never stage or apply an import automatically. Task Manager commands never deploy or reassign work automatically.
 - It does not bypass specialist validation or review controls.
 - Sending, approval, purchasing, payment, deletion, permission changes, publishing, deployment, payroll export, tax filing, or other external commitments remain blocked and must use the existing explicit Business Office control.
 
@@ -30,6 +34,7 @@ The Supabase Business Office has one shared advisory AI route, one owner-facing 
 - Site Visit: field capture, walkthrough evidence, photos and measurements.
 - Work / Task Manager: jobs, deployment and employee tasks.
 - Time & Attendance: employee punches and audited owner/admin corrections.
+- Team Access: employee membership/access administration for owner/administrator roles.
 - Schedule: schedule records.
 - Money: invoices, expenses and payment records.
 - Documents: files and document workflow.
