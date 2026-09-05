@@ -228,3 +228,201 @@ window.H38_OFFICE_POLISH=Object.freeze({
   nativeIosShellCreated:false
 });
 })();
+
+(function(){
+'use strict';
+const BUILD='20260905-assistant-management-commands-1';
+const text=value=>String(value==null?'':value).trim();
+const lower=value=>text(value).toLowerCase();
+let scheduled=false;
+
+function isStaff(){
+  const user=window.state?.snapshot?.user||{};
+  const role=lower(user.roleId||user.roleName||user.role);
+  return role==='staff'||document.body.classList.contains('h38-employee-mode');
+}
+function businessControlKind(command){
+  const q=lower(command);
+  if(!q)return'';
+  if(/\b(team access|team directory|employee access|staff access|manage employees?|employee accounts?)\b/.test(q))return'team';
+  if(/\b(existing[- ]data uptake|data uptake|import (?:existing|historical|old) data|historical import|bring in (?:old|existing) data)\b/.test(q))return'data';
+  if(/\b(quote learning|business quote learning|quote history|pricing history|labor history|learn(?:ing)? from (?:quotes|jobs|history)|analy[sz]e (?:this )?business|analy[sz]e .*quote)\b/.test(q))return'learning';
+  if(/\b(time\s*&\s*attendance|time and attendance|time attendance|time clock|time details|timesheets?|time entries|attendance)\b/.test(q))return'time';
+  if(/\b(task manager|deployment|assign(?:ed)? tasks?|team tasks?)\b/.test(q))return'tasks';
+  if(/\b(erp center|h38 erp|erp)\b/.test(q))return'erp';
+  return'';
+}
+function focusWhenReady(selector,activate=false){
+  if(!selector)return;
+  let tries=0;
+  const check=()=>{
+    const node=document.querySelector(selector);
+    if(node){
+      try{(node.closest?.('.h38-erp-section')||node).scrollIntoView?.({block:'start'});}catch(_){}
+      if(activate)try{node.click?.();}catch(_){}
+      return;
+    }
+    if(++tries<30)setTimeout(check,100);
+  };
+  setTimeout(check,60);
+}
+function triggerErp(target){
+  if(!document.body)return false;
+  const selector=`[data-h38-erp-open="${target}"]`;
+  const existing=document.querySelector(selector);
+  if(existing){existing.click();return true;}
+  const proxy=document.createElement('button');
+  proxy.type='button';
+  proxy.hidden=true;
+  proxy.dataset.h38ErpOpen=target;
+  document.body.appendChild(proxy);
+  proxy.click();
+  proxy.remove();
+  return true;
+}
+function openErpSurface(target='erp',selector='',activate=false){
+  let opened=false;
+  const run=()=>{
+    if(opened||!window.H38_ERP_FOUNDATION)return false;
+    opened=true;
+    triggerErp(target);
+    focusWhenReady(selector,activate);
+    return true;
+  };
+  if(run())return true;
+  let script=document.querySelector('script[data-h38-erp-foundation]');
+  if(!script&&document.body){
+    script=document.createElement('script');
+    script.src='./erp-foundation.js?build=20260903-erp-time-uptake-learning-2';
+    script.async=false;
+    script.dataset.h38ErpFoundation='assistant-management-commands';
+    document.body.appendChild(script);
+  }
+  let tries=0;
+  const timer=setInterval(()=>{if(run()||++tries>=30)clearInterval(timer);},100);
+  return true;
+}
+async function handleBusinessControl(command){
+  const kind=businessControlKind(command);
+  if(!kind)return'';
+  if(kind==='tasks'){
+    try{window.openPage?.('work');}catch(_){}
+    return'Opened Jobs & Task Manager. Assignment and deployment changes still require the explicit Task Manager controls.';
+  }
+  if(isStaff())return'That management control is owner/administrator-only. Employee mode stays limited to your assigned work and your own time punch.';
+  if(kind==='time'){
+    openErpSurface('time','#h38ErpTime',false);
+    return'Opened Time & attendance. The assistant does not clock, edit, or approve time; use the audited time controls.';
+  }
+  if(kind==='team'){
+    openErpSurface('erp','#h38TeamAccess',false);
+    return'Opened Team Access in ERP Center. Adding, changing, or removing employee access still requires the explicit Team Access controls.';
+  }
+  if(kind==='data'){
+    openErpSurface('erp','#h38DataUptake',false);
+    return'Opened Existing-data uptake in ERP Center. H38 does not stage or apply an import until you use those explicit controls.';
+  }
+  if(kind==='learning'){
+    const runAnalysis=/\b(analy[sz]e|run|check|review|learn from)\b/.test(lower(command));
+    openErpSurface('erp',runAnalysis?'[data-h38-learning]':'#h38QuoteLearning',runAnalysis);
+    return runAnalysis?'Opened Business-specific quote learning and started the internal advisory analysis. It does not change quote prices, approve, or send anything.':'Opened Business-specific quote learning. It remains tenant-only and advisory.';
+  }
+  openErpSurface('erp','',false);
+  return'Opened H38 ERP Center. External actions remain owner-controlled.';
+}
+function augmentCommandBus(){
+  const base=window.H38_ASSISTANT_COMMAND_BUS;
+  if(!base?.canHandle||!base?.handle||base.h38CrossPlatformBusinessControls===true)return;
+  const baseCanHandle=base.canHandle.bind(base);
+  const baseHandle=base.handle.bind(base);
+  const canHandle=command=>!!businessControlKind(command)||baseCanHandle(command);
+  const handle=async(command,options={})=>businessControlKind(command)?handleBusinessControl(command):baseHandle(command,options);
+  window.H38_ASSISTANT_COMMAND_BUS=Object.freeze({
+    ...base,
+    build:`${text(base.build)||'assistant-command-bus'}+${BUILD}`,
+    canHandle,
+    handle,
+    h38CrossPlatformBusinessControls:true,
+    erpCenterCommands:true,
+    timeAttendanceCommands:true,
+    teamAccessCommands:true,
+    dataUptakeCommands:true,
+    quoteLearningCommands:true,
+    taskManagerCommands:true,
+    automaticTimePunch:false,
+    automaticTeamAccessChange:false,
+    automaticDataImportApply:false,
+    automaticQuoteLearningMutation:false
+  });
+  window.dispatchEvent(new CustomEvent('h38:assistant-command-bus-ready',{detail:{build:BUILD,managementCommands:true}}));
+}
+function augmentPersonalAssistant(){
+  const pa=window.H38_PERSONAL_ASSISTANT;
+  const bus=window.H38_ASSISTANT_COMMAND_BUS;
+  if(!pa?.runCommand||!bus?.h38CrossPlatformBusinessControls||pa.h38CrossPlatformBusinessControls===true)return;
+  const baseRun=pa.runCommand.bind(pa);
+  window.H38_PERSONAL_ASSISTANT=Object.freeze({
+    ...pa,
+    build:`${text(pa.build)||'personal-assistant'}+${BUILD}`,
+    runCommand:async command=>businessControlKind(command)?bus.handle(command,{source:'my-h38-assistant-management'}):baseRun(command),
+    h38CrossPlatformBusinessControls:true,
+    managementCommandsUseExistingAuthorities:true
+  });
+}
+function managementChip(container,label,command,key){
+  if(container.querySelector(`[data-h38-business-control-chip="${key}"]`))return;
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='secondary h38-assistant-chip';
+  button.dataset.h38BusinessControlChip=key;
+  button.textContent=label;
+  button.addEventListener('click',()=>{
+    const form=document.getElementById('paCommandForm'),input=form?.querySelector('[name="command"]');
+    if(!form||!input)return;
+    input.value=command;
+    form.requestSubmit();
+  });
+  container.appendChild(button);
+}
+function addManagementChips(){
+  if(window.state?.page!=='assistant'||isStaff())return;
+  const chips=document.querySelector('#paCommandForm .h38-assistant-command-chips');
+  if(!chips)return;
+  managementChip(chips,'ERP center','Open ERP Center','erp');
+  managementChip(chips,'Time & attendance','Open Time & Attendance','time');
+  managementChip(chips,'Team access','Open Team Access','team');
+}
+function publishFlags(){
+  const current=window.H38_OFFICE_POLISH||{};
+  if(current.erpAssistantCommands===true)return;
+  window.H38_OFFICE_POLISH=Object.freeze({
+    ...current,
+    erpAssistantCommands:true,
+    timeAttendanceAssistantCommands:true,
+    teamAccessAssistantCommands:true,
+    dataUptakeAssistantCommands:true,
+    quoteLearningAssistantCommands:true,
+    taskManagerAssistantCommands:true,
+    automaticTimePunch:false,
+    automaticTeamAccessChange:false,
+    automaticDataImportApply:false,
+    automaticQuoteLearningMutation:false
+  });
+}
+function apply(){
+  augmentCommandBus();
+  augmentPersonalAssistant();
+  addManagementChips();
+  publishFlags();
+}
+function schedule(){
+  if(scheduled)return;
+  scheduled=true;
+  queueMicrotask(()=>{scheduled=false;apply();});
+}
+new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
+window.addEventListener('h38:assistant-command-bus-ready',schedule);
+window.addEventListener('h38:business-snapshot-updated',schedule);
+window.addEventListener('pageshow',schedule);
+apply();
+})();
