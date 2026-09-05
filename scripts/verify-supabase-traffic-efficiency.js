@@ -22,7 +22,8 @@ for(const needle of [
   "p_collection='timeEntries'"
 ]) assert(migration.includes(needle),`traffic migration missing ${needle}`);
 assert(!/disable row level security/i.test(migration),'traffic repair must not disable RLS');
-assert(!/service[_-]?role/i.test(migration.replace(/No service-role credentials[^\n]*/i,'')),'traffic repair must not introduce service-role access');
+const executableSql=migration.replace(/--[^\n]*/g,'');
+assert(!/\bservice_role\b/i.test(executableSql),'traffic repair must not introduce service_role access');
 for(const needle of [
   'H38_SUPABASE_TRAFFIC_GUARD',
   "AUDIT_TABLES=new Set(['business_proof_log','business_error_log'])",
