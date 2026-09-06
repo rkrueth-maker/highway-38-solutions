@@ -13,6 +13,7 @@ on:
       - 'supabase/migrations/20260808034500_personal_assistant_private_records.sql'
       - 'docs/architecture/H38_ASSISTANT_AUTHORITY.md'
       - 'scripts/verify-cross-platform-assistant-polish.js'
+      - 'scripts/verify-assistant-management-commands.js'
       - 'scripts/verify-personal-assistant-command-bus.js'
       - '.github/workflows/verify-cross-platform-assistant-polish.yml'
 
@@ -25,12 +26,16 @@ jobs:
         with:
           node-version: '22'
       - name: Syntax check cross-platform polish
-        run: node --check commercial-app/office-polish.js && node --check scripts/verify-cross-platform-assistant-polish.js
+        run: |
+          node --check commercial-app/office-polish.js
+          node --check scripts/verify-cross-platform-assistant-polish.js
+          node --check scripts/verify-assistant-management-commands.js
       - name: Verify Personal Assistant business command bus
         run: |
           npm ci
           npx playwright install --with-deps chromium
           node scripts/verify-personal-assistant-command-bus.js
+          node scripts/verify-assistant-management-commands.js
 
   verify-chromium-webkit:
     runs-on: ubuntu-latest
