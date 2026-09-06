@@ -1,0 +1,183 @@
+name: H38 Scout v3.0.31 Proven Acquisition Restore
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v331-proven-acquisition-restore.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: h38-scout-v331-proven-acquisition-restore
+  cancel-in-progress: false
+
+jobs:
+  build-test:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore proven Facebook collector and DG pairing client
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          login_base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          fb_base=500093ce747a545b8a4cf0f9ab901f86712c8cd2
+          fb_path=native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$login_base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$login_base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          grep -Fq "versionCode 330" reseller/build.gradle
+          grep -Fq "versionName '3.0.30'" reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V329_POST_LOGIN_SOURCE_AUTHORITY=true' reseller/src/main/assets/reseller/v240-data.js
+          git show "$fb_base:$fb_path" > reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java | awk '{print $1}')" = "$(git show "$fb_base:$fb_path" | sha256sum | awk '{print $1}')"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('reseller/src/main/assets/reseller/v240-data.js')
+          s=p.read_text()
+          old="['reseller-auto-leads-v065','reseller-auto-leads-v064','reseller-auto-leads-v063']"
+          new="['reseller-auto-leads-v066','reseller-auto-leads-v065','reseller-auto-leads-v064','reseller-auto-leads-v063']"
+          assert s.count(old)==1, s.count(old)
+          s=s.replace(old,new)
+          old_bad="function badName(v){const s=txt(v).replace(/\\s+/g,' ').trim(),n=norm(s);"
+          new_bad="function badName(v){const s=txt(v).replace(/&cent;|&#0*162;|&#x0*a2;/gi,'¢').replace(/\\s+/g,' ').trim(),n=norm(s);"
+          assert s.count(old_bad)==1, s.count(old_bad)
+          s=s.replace(old_bad,new_bad)
+          old_exact="function exactImageProof(r){const item=itemCode(r),proof=code(r?.image_match_barcode||r?.image_proof_barcode||r?.image_barcode);if(item&&proof&&item===proof)return true;return /exact[_ -]?barcode|exact[_ -]?upc/i.test(txt(r?.image_source_proof||r?.image_delivery_source))&&!!item}"
+          new_exact="function exactImageProof(r){const item=itemCode(r),proof=code(r?.image_match_barcode||r?.image_proof_barcode||r?.image_barcode);if(item&&proof&&item===proof)return true;if(/exact[_ -]?barcode|exact[_ -]?upc/i.test(txt(r?.image_source_proof||r?.image_delivery_source))&&!!item)return true;const page=txt(r?.source_item_url),imgPage=txt(r?.image_source_url);return /same_direct_dg_product_page_v066/i.test(txt(r?.image_source_proof||r?.image_title_pair_proof))&&/exact_product_url/i.test(txt(r?.source_identity_scope))&&/dollar general product page/i.test(txt(r?.source_identity_provider))&&/^https:\\/\\/(?:www\\.)?dollargeneral\\.com\\/p\\//i.test(page)&&!!imgPage&&page.split('#')[0]===imgPage.split('#')[0]}"
+          assert s.count(old_exact)==1, s.count(old_exact)
+          s=s.replace(old_exact,new_exact)
+          marker='\nwindow.H38_SCOUT_V331_PROVEN_ACQUISITION_RESTORE=true;\n'
+          if marker.strip() not in s: s+=marker
+          p.write_text(s)
+          b=Path('reseller/build.gradle')
+          x=b.read_text()
+          assert x.count('versionCode 330')==1
+          assert x.count("versionName '3.0.30'")==1
+          b.write_text(x.replace('versionCode 330','versionCode 331').replace("versionName '3.0.30'","versionName '3.0.31'"))
+          PY
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "reseller-auto-leads-v066" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "same_direct_dg_product_page_v066" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "H38_SCOUT_V331_PROVEN_ACQUISITION_RESTORE=true" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "versionCode 331" reseller/build.gradle
+          grep -Fq "versionName '3.0.31'" reseller/build.gradle
+          grep -Fq "Automatic Marketplace collector used by Scout" reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq "FLAG_NOT_TOUCHABLE" reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          grep -Fq "scheduleCapture" reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$login_base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$login_base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          echo V331_SOURCE_GATE_PASS
+
+      - name: Commit repair to private Scout only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add reseller/build.gradle reseller/src/main/assets/reseller/v240-data.js reseller/src/main/java/com/highway38/resellerscout/FacebookMarketplaceActivity.java
+          mapfile -t files < <(git diff --cached --name-only)
+          printf '%s\n' "${files[@]}"
+          test "${#files[@]}" -eq 3
+          git commit -m 'Restore v3.0.31 proven Facebook collector and exact DG pairing'
+          git push origin HEAD:agent/private-reseller-scout
+          echo "APP_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify exact owner APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v331"; mkdir -p "$report"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon clean :reseller:assembleOwner | tee "$report/compile.log"
+          src="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$src"
+          apk="$report/H38-Scout-v3.0.31.apk"; cp "$src" "$apk"
+          echo "APP_APK=$apk" >> "$GITHUB_ENV"
+          sha256sum "$apk" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='331' versionName='3.0.31'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" >/dev/null
+          unzip -t "$apk" >/dev/null
+          login_base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          fb_base=500093ce747a545b8a4cf0f9ab901f86712c8cd2
+          test "$(unzip -p "$apk" assets/reseller/v200-app.js | sha256sum | awk '{print $1}')" = "$(git show "$login_base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          unzip -p "$apk" assets/reseller/v240-data.js > "$report/packaged-v240.js"
+          grep -Fq 'reseller-auto-leads-v066' "$report/packaged-v240.js"
+          grep -Fq 'same_direct_dg_product_page_v066' "$report/packaged-v240.js"
+          echo V331_APK_GATE_PASS | tee "$report/apk-gate.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Firebase physical install and smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v331"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
+          grep -qi PHYSICAL "$report/device.yml"
+          app="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$app" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 8m --results-history-name 'H38 Scout v3.0.31 Proven Acquisition Restore' --client-details matrixLabel='H38 Scout v3.0.31 install smoke' 2>&1 | tee "$report/firebase.log"
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|TypeError|ReferenceError|Unhandled|uncaught' "$report/firebase.log" > "$report/runtime-errors.txt" || true
+          test ! -s "$report/runtime-errors.txt"
+          echo FIREBASE_INSTALL_SMOKE_PASS | tee "$report/firebase-status.txt"
+
+      - name: Upload v3.0.31
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.31-proven-acquisition-restore
+          path: artifacts/v331/**
+          if-no-files-found: error
+          retention-days: 30
