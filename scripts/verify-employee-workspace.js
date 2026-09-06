@@ -77,6 +77,13 @@ includes(loader,"script.addEventListener('error',",'Staff navigation mask must f
 includes(loader,'staffInternalIdentityHidden:true','Staff shell must declare internal identity cleanup.');
 includes(loader,"sub.textContent='Your shift and assigned work'",'Internal-looking Staff aliases must not be rendered as welcome names.');
 includes(loader,"!/[+@]/.test(value)",'Legitimate Staff display names must be preserved while internal account-style labels are filtered.');
+includes(loader,'installStaffWorkRendererGuard','Staff shell must fence the generic Work renderer.');
+includes(loader,'staffWorkRendererFence:true','Staff generic Work renderer fence must be declared.');
+includes(loader,'staffMainContentIsolation:true','Staff main content isolation must be declared.');
+includes(loader,'current.h38StaffEmployeeBoundary===true','Staff Work fence must be idempotent.');
+includes(loader,"employee.render('work')",'Late generic Work requests must route back to employee My Tasks.');
+includes(loader,'enforceStaffMainIsolation','Staff shell must clean generic content injected outside the Work renderer.');
+includes(loader,'view.direct.length===1','Staff main content must converge to one employee workspace root.');
 includes(worker,"'employee-workspace.js'",'Employee workspace must be LIVE_FIRST.');
 includes(worker,"'./employee-workspace.js'",'Employee workspace must be in offline shell.');
 expect(/const CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(worker),'Service-worker cache must keep accepted dated format.');
@@ -93,6 +100,9 @@ console.log(JSON.stringify({
   ownerAdminTeamAccess:true,
   staffGenericNavFlashBlocked:true,
   staffInternalIdentityHidden:true,
+  staffGenericWorkFence:true,
+  staffMainContentIsolation:true,
+  staffSiteVisitLeakBlocked:true,
   directAdminDataHiddenFromStaff:true,
   automaticInvitationEmail:false,
   automaticExternalActions:false
