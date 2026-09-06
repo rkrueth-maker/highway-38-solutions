@@ -15,6 +15,7 @@ on:
       - 'scripts/verify-cross-platform-assistant-polish.js'
       - 'scripts/verify-assistant-management-commands.js'
       - 'scripts/verify-personal-assistant-command-bus.js'
+      - 'scripts/verify-employee-desktop-shell.js'
       - '.github/workflows/verify-cross-platform-assistant-polish.yml'
 
 jobs:
@@ -30,6 +31,7 @@ jobs:
           node --check commercial-app/office-polish.js
           node --check scripts/verify-cross-platform-assistant-polish.js
           node --check scripts/verify-assistant-management-commands.js
+          node --check scripts/verify-employee-desktop-shell.js
       - name: Verify Personal Assistant business command bus
         run: |
           npm ci
@@ -50,6 +52,8 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Verify Android-safe and iPhone-WebKit polish
         run: node scripts/verify-cross-platform-assistant-polish.js
+      - name: Verify staff desktop shell geometry
+        run: node scripts/verify-employee-desktop-shell.js
       - name: Upload cross-platform visual evidence
         uses: actions/upload-artifact@v4
         with:
@@ -57,4 +61,5 @@ jobs:
           path: |
             artifacts/cross-platform-assistant/android-assistant-390x844.png
             artifacts/cross-platform-assistant/iphone-webkit-assistant-390x844.png
+            artifacts/employee-desktop-shell/staff-desktop-1600x900.png
           if-no-files-found: error
