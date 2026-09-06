@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260906-desktop-navigation-authority-staff-work-fence-1';
+const BUILD='20260906-desktop-navigation-authority-staff-work-fence-2';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const EMPLOYEE_WORKSPACE_BUILD='20260903-employee-workspace-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
@@ -138,6 +138,7 @@ installProfitabilityInputSafety();
 loadProfitabilityLayer();
 installStaffWorkRendererGuard();
 loadEmployeeWorkspace();
+installStaffIdentityGuard();
 window.addEventListener('h38:business-snapshot-updated',installStaffWorkRendererGuard);
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:false,
