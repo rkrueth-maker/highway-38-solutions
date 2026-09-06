@@ -16,6 +16,7 @@ body #globalAiButton.h38-floating-assistant[hidden],body.h38-employee-mode #glob
 html.h38-ios-like body .topbar{padding-top:calc(6px + env(safe-area-inset-top,0px))!important}
 html.h38-native-android body .topbar{padding-top:calc(6px + max(env(safe-area-inset-top,0px),24px))!important}
 html.h38-cross-platform-shell dialog{max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 16px)}
+body.h38-employee-mode{display:block!important;width:100%!important;max-width:none!important;min-height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;white-space:normal!important;font-size:inherit!important;font-weight:inherit!important;line-height:normal!important;color:inherit!important;align-items:initial!important;justify-content:initial!important}
 body.h38-employee-mode #h38TimeClockCard{display:none!important}
 @media(max-width:760px){
  html body .topbar{box-sizing:border-box!important}
@@ -39,7 +40,6 @@ body.h38-employee-mode #h38TimeClockCard{display:none!important}
 }
 @media(min-width:761px){
  body #globalAiButton.h38-floating-assistant{bottom:24px!important;right:24px!important}
- body.h38-employee-mode{display:block!important;width:100%!important;max-width:none!important;min-height:100%!important;margin:0!important;align-items:initial!important;justify-content:initial!important}
  body.h38-employee-mode>.topbar{position:sticky!important;top:0!important;left:auto!important;right:auto!important;width:100%!important;max-width:none!important;margin:0!important}
  body.h38-employee-mode>.business-bar{position:sticky!important;top:58px!important;left:auto!important;right:auto!important;width:100%!important;max-width:none!important;margin:0!important}
  body.h38-employee-mode>.app-shell{display:grid!important;grid-template-columns:196px minmax(0,1fr)!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:calc(100vh - 104px)!important;margin:0!important;align-items:stretch!important}
