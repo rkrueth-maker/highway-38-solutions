@@ -1,0 +1,184 @@
+name: H38 Scout v3.0.30 Install Repair
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v330-install-repair.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: h38-scout-v330-install-repair
+  cancel-in-progress: false
+
+jobs:
+  build-test:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate v3.0.29 authority and bump install metadata only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          test "$(sha256sum reseller/src/main/assets/reseller/v200-app.js | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js" | sha256sum | awk '{print $1}')"
+          test "$(sha256sum reseller/src/main/java/com/highway38/resellerscout/MainActivity.java | awk '{print $1}')" = "$(git show "$base:native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java" | sha256sum | awk '{print $1}')"
+          grep -Fq "versionCode 329" reseller/build.gradle
+          grep -Fq "versionName '3.0.29'" reseller/build.gradle
+          grep -Fq 'H38_SCOUT_V329_POST_LOGIN_SOURCE_AUTHORITY=true' reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "['reseller-auto-leads-v065','reseller-auto-leads-v064','reseller-auto-leads-v063']" reseller/src/main/assets/reseller/v240-data.js
+          grep -Fq "b.textContent='Run Facebook Marketplace scan'" reseller/src/main/assets/reseller/v240-data.js
+          node --check reseller/src/main/assets/reseller/v240-data.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('reseller/build.gradle')
+          s=p.read_text()
+          assert s.count('versionCode 329')==1
+          assert s.count("versionName '3.0.29'")==1
+          s=s.replace('versionCode 329','versionCode 330').replace("versionName '3.0.29'","versionName '3.0.30'")
+          p.write_text(s)
+          PY
+          mapfile -t changed < <(git diff --name-only)
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'native/h38-site-scanner/android-app/reseller/build.gradle'
+          echo V330_METADATA_ONLY_GATE_PASS
+
+      - name: Commit v3.0.30 metadata to private Scout only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add reseller/build.gradle
+          git commit -m 'Bump Scout to v3.0.30 install repair'
+          git push origin HEAD:agent/private-reseller-scout
+          echo "APP_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build normal update and clean-install rescue APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v330"; mkdir -p "$report"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          test -f "$H38_ANDROID_UPLOAD_KEYSTORE_PATH"
+          gradle --no-daemon clean :reseller:assembleOwner
+          normal_src="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$normal_src"
+          normal="$report/H38-Reseller-Scout-Owner-v3.0.30-INSTALL-REPAIR.apk"
+          cp "$normal_src" "$normal"
+
+          cp reseller/build.gradle "$RUNNER_TEMP/build.gradle.v330"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('reseller/build.gradle')
+          s=p.read_text()
+          old="applicationIdSuffix '.owner'"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,"applicationIdSuffix '.ownerfix'"))
+          PY
+          gradle --no-daemon clean :reseller:assembleOwner
+          rescue_src="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$rescue_src"
+          rescue="$report/H38-Reseller-Scout-v3.0.30-CLEAN-INSTALL-RESCUE.apk"
+          cp "$rescue_src" "$rescue"
+          cp "$RUNNER_TEMP/build.gradle.v330" reseller/build.gradle
+
+          for apk in "$normal" "$rescue"; do
+            sha256sum "$apk" | tee -a "$report/sha256.txt"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > "$apk.signing.txt"
+            grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$apk.signing.txt"
+            cert="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$apk.signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+            test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+            "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" >/dev/null
+            unzip -t "$apk" >/dev/null
+            unzip -p "$apk" assets/reseller/v200-app.js | sha256sum
+            unzip -p "$apk" assets/reseller/v240-data.js > "$apk.v240.js"
+            grep -Fq 'H38_SCOUT_V329_POST_LOGIN_SOURCE_AUTHORITY=true' "$apk.v240.js"
+          done
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$normal" | tee "$report/normal-badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$rescue" | tee "$report/rescue-badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='330' versionName='3.0.30'" "$report/normal-badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.ownerfix' versionCode='330' versionName='3.0.30'" "$report/rescue-badging.txt"
+          cmp <(unzip -p "$normal" assets/reseller/v200-app.js) <(unzip -p "$rescue" assets/reseller/v200-app.js)
+          cmp <(unzip -p "$normal" assets/reseller/v240-data.js) <(unzip -p "$rescue" assets/reseller/v240-data.js)
+          echo "NORMAL_APK=$normal" >> "$GITHUB_ENV"
+          echo "RESCUE_APK=$rescue" >> "$GITHUB_ENV"
+          echo V330_BOTH_APKS_VERIFIED | tee "$report/apk-gate.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Verify physical target
+        shell: bash
+        run: |
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$GITHUB_WORKSPACE/artifacts/v330/device.yml"
+          grep -qi PHYSICAL "$GITHUB_WORKSPACE/artifacts/v330/device.yml"
+
+      - name: Firebase install-launch smoke — normal update package
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$NORMAL_APK" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 3m --results-history-name 'H38 Scout v3.0.30 Install Repair Normal' 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/v330/firebase-normal.log"
+
+      - name: Firebase install-launch smoke — clean rescue package
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$RESCUE_APK" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 3m --results-history-name 'H38 Scout v3.0.30 Install Repair Rescue' 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/v330/firebase-rescue.log"
+
+      - name: Upload v3.0.30 install-repair packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.30-install-repair
+          path: artifacts/v330/**
+          if-no-files-found: error
+          retention-days: 30
