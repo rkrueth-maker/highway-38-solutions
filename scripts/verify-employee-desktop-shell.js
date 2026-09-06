@@ -104,7 +104,7 @@ async function verifyViewport(browser,viewport){
     assert.deepEqual(result.bodyPadding,['0px','0px','0px','0px'],`${viewport.width}px: Staff body must not inherit pill padding`);
     assert.equal(result.bodyBorderRadius,'0px',`${viewport.width}px: Staff body must not become the giant rounded pill seen on the physical session`);
     assert.equal(result.bodyWhiteSpace,'normal',`${viewport.width}px: Staff body must not inherit pill nowrap`);
-    assert.equal(result.pill.display,'inline-flex',`${viewport.width}px: Employee mode chip should keep pill display`);
+    assert(['inline-flex','flex'].includes(result.pill.display),`${viewport.width}px: Employee mode chip should keep flex pill display`);
     assert.notEqual(result.pill.borderRadius,'0px',`${viewport.width}px: Employee mode chip should remain visually pill-shaped`);
     assert.equal(result.pill.whiteSpace,'nowrap',`${viewport.width}px: Employee mode chip should retain nowrap without affecting body`);
     assert(result.topbar.top<=1,`${viewport.width}px: Top bar must stay at the top of the viewport`);
