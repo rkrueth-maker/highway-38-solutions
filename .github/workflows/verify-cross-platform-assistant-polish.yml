@@ -61,5 +61,5 @@ jobs:
           path: |
             artifacts/cross-platform-assistant/android-assistant-390x844.png
             artifacts/cross-platform-assistant/iphone-webkit-assistant-390x844.png
-            artifacts/employee-desktop-shell/staff-desktop-1600x900.png
+            artifacts/employee-desktop-shell/*.png
           if-no-files-found: error
