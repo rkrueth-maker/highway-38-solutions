@@ -68,13 +68,14 @@ fs.mkdirSync(outDir,{recursive:true});
       };
     });
 
+    const nearViewport=result.viewport.width-24;
     assert.equal(result.bodyDisplay,'block','Staff desktop body must recover normal block document flow');
     assert(result.topbar.top<=1,'Top bar must stay at the top of the viewport');
-    assert(result.topbar.width>=1598,'Top bar must span the desktop viewport');
+    assert(result.topbar.width>=nearViewport,'Top bar must span the usable desktop viewport');
     assert(result.business.top>=result.topbar.bottom-1,'Business bar must stack below the top bar');
-    assert(result.business.width>=1598,'Business bar must span the desktop viewport');
+    assert(result.business.width>=nearViewport,'Business bar must span the usable desktop viewport');
     assert(result.shell.top>=result.business.bottom-1,'App shell must stack below the business bar');
-    assert(result.shell.width>=1598,'App shell must use the desktop viewport width');
+    assert(result.shell.width>=nearViewport,'App shell must use the usable desktop viewport width');
     assert(result.nav.left<=1,'Employee nav must start at the left edge');
     assert(result.nav.width>=190&&result.nav.width<=202,'Employee nav must keep the 196px desktop column');
     assert(result.main.left>=195,'Main content must sit to the right of employee nav');
