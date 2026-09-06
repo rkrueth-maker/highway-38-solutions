@@ -1,9 +1,10 @@
 (function(){
 'use strict';
-const BUILD='20260905-desktop-navigation-authority-staff-load-mask-2';
+const BUILD='20260905-desktop-navigation-authority-staff-shell-3';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const EMPLOYEE_WORKSPACE_BUILD='20260903-employee-workspace-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
+let staffLabelObserver=null;
 function text(value){return String(value==null?'':value).trim();}
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
 function reconcile(){return core()?.reconcile?.()||false;}
@@ -22,6 +23,29 @@ function releaseStaffNav(nav){
   if(!nav)return false;
   nav.style.removeProperty('visibility');
   delete nav.dataset.h38EmployeeWorkspaceLoading;
+  return true;
+}
+function sanitizeStaffIdentity(root=document){
+  if(!staffRole())return false;
+  const sub=root.querySelector?.('.h38-employee-sub');
+  if(!sub)return false;
+  const value=text(sub.textContent);
+  if(!/^welcome,\s*/i.test(value)||!/[+@]/.test(value))return false;
+  sub.textContent='Your shift and assigned work';
+  return true;
+}
+function installStaffIdentityGuard(){
+  if(!staffRole())return false;
+  const main=document.getElementById('mainContent');
+  if(!main)return false;
+  sanitizeStaffIdentity(main);
+  if(staffLabelObserver)return true;
+  staffLabelObserver=new MutationObserver(()=>sanitizeStaffIdentity(main));
+  staffLabelObserver.observe(main,{childList:true,subtree:true});
+  window.addEventListener('h38:auth-cleared',()=>{
+    staffLabelObserver?.disconnect();
+    staffLabelObserver=null;
+  },{once:true});
   return true;
 }
 function installProfitabilityInputSafety(){
@@ -60,9 +84,12 @@ function loadEmployeeWorkspace(){
   script.src=`./employee-workspace.js?build=${EMPLOYEE_WORKSPACE_BUILD}`;
   script.async=false;
   script.dataset.h38EmployeeWorkspace='true';
-  const release=()=>requestAnimationFrame(()=>releaseStaffNav(heldNav));
+  const release=()=>requestAnimationFrame(()=>{
+    installStaffIdentityGuard();
+    releaseStaffNav(heldNav);
+  });
   script.addEventListener('load',release,{once:true});
-  script.addEventListener('error',release,{once:true});
+  script.addEventListener('error',()=>requestAnimationFrame(()=>releaseStaffNav(heldNav)),{once:true});
   document.body.appendChild(script);
   return true;
 }
@@ -83,6 +110,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   employeeWorkspaceBuild:EMPLOYEE_WORKSPACE_BUILD,
   employeeWorkspaceLoader:true,
   staffNavLoadMask:true,
+  staffInternalIdentityHidden:true,
   mutatesNavigation:false,
   capturesClicks:false,
   createsProxyButtons:false,
