@@ -73,7 +73,10 @@ includes(loader,'employee-workspace.js','Employee workspace loader path is missi
 includes(loader,'staffNavLoadMask:true','Staff loader must declare the pre-workspace nav mask.');
 includes(loader,"nav.style.visibility='hidden'",'Known Staff role must hide the generic navigation while employee workspace loads.');
 includes(loader,"script.addEventListener('load',release",'Staff navigation mask must release after employee workspace loads.');
-includes(loader,"script.addEventListener('error',release",'Staff navigation mask must fail open if employee workspace fails to load.');
+includes(loader,"script.addEventListener('error',",'Staff navigation mask must fail open if employee workspace fails to load.');
+includes(loader,'staffInternalIdentityHidden:true','Staff shell must declare internal identity cleanup.');
+includes(loader,"sub.textContent='Your shift and assigned work'",'Internal-looking Staff aliases must not be rendered as welcome names.');
+includes(loader,"!/[+@]/.test(value)",'Legitimate Staff display names must be preserved while internal account-style labels are filtered.');
 includes(worker,"'employee-workspace.js'",'Employee workspace must be LIVE_FIRST.');
 includes(worker,"'./employee-workspace.js'",'Employee workspace must be in offline shell.');
 expect(/const CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(worker),'Service-worker cache must keep accepted dated format.');
@@ -89,6 +92,7 @@ console.log(JSON.stringify({
   employeeSelfPunch:true,
   ownerAdminTeamAccess:true,
   staffGenericNavFlashBlocked:true,
+  staffInternalIdentityHidden:true,
   directAdminDataHiddenFromStaff:true,
   automaticInvitationEmail:false,
   automaticExternalActions:false
