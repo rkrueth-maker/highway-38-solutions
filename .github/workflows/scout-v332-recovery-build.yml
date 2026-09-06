@@ -1,0 +1,104 @@
+name: H38 Scout v3.0.32 v2.6.3 Recovery Build
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/scout-v332-recovery-build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-scout-v332-recovery-build
+  cancel-in-progress: false
+
+jobs:
+  build-recovery-apk:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove exact v2.6.3 runtime recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'agent/private-reseller-scout'
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          base=64ef9a193958c0fbfc75a8b0e47777857d8bafe5
+          module='native/h38-site-scanner/android-app/reseller'
+          git -C "$GITHUB_WORKSPACE" diff --exit-code "$base" "$GITHUB_SHA" -- "$module" ":(exclude)$module/build.gradle"
+          test "$(git hash-object reseller/src/main/assets/reseller/v200-app.js)" = "$(git -C "$GITHUB_WORKSPACE" rev-parse "$base:$module/src/main/assets/reseller/v200-app.js")"
+          test "$(git hash-object reseller/src/main/java/com/highway38/resellerscout/MainActivity.java)" = "$(git -C "$GITHUB_WORKSPACE" rev-parse "$base:$module/src/main/java/com/highway38/resellerscout/MainActivity.java")"
+          grep -Fq "versionCode 332" reseller/build.gradle
+          grep -Fq "versionName '3.0.32'" reseller/build.gradle
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
+          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
+          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/v332"
+          printf 'BASE=%s\nHEAD=%s\nRUNTIME_PARITY=PASS\n' "$base" "$GITHUB_SHA" | tee "$GITHUB_WORKSPACE/artifacts/v332/runtime-parity.txt"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+          fail-on-cache-miss: true
+
+      - name: Build and verify exact recovery APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v332"; mkdir -p "$report"
+          test -f "$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon clean :reseller:assembleOwner | tee "$report/compile.log"
+          src="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$src"
+          apk="$report/H38-Reseller-Scout-Owner-v3.0.32-RECOVERY-v2.6.3.apk"
+          cp "$src" "$apk"
+          sha256sum "$apk" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='332' versionName='3.0.32'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" | tee "$report/zipalign.txt"
+          unzip -t "$apk" | tee "$report/zip-test.txt"
+          grep -Fq 'No errors detected in compressed data' "$report/zip-test.txt"
+          unzip -p "$apk" assets/reseller/v200-app.js > "$report/packaged-v200-app.js"
+          test "$(sha256sum "$report/packaged-v200-app.js" | awk '{print $1}')" = "$(git -C "$GITHUB_WORKSPACE" show 64ef9a193958c0fbfc75a8b0e47777857d8bafe5:native/h38-site-scanner/android-app/reseller/src/main/assets/reseller/v200-app.js | sha256sum | awk '{print $1}')"
+          echo V332_RECOVERY_APK_GATE_PASS | tee "$report/apk-gate.txt"
+
+      - name: Upload v3.0.32 recovery APK and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-v3.0.32-recovery-v2.6.3
+          path: artifacts/v332/**
+          if-no-files-found: error
+          retention-days: 30
