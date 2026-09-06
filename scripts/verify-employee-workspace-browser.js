@@ -3,9 +3,10 @@ const path=require('path');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const employeeScript=path.join(root,'commercial-app','employee-workspace.js');
+const authorityScript=path.join(root,'commercial-app','desktop-navigation-authority.js');
 
 function assert(condition,message){if(!condition)throw new Error(message);}
-async function installHarness(page,{role='staff',authForm=false}={}){
+async function installHarness(page,{role='staff',authForm=false,authority=false}={}){
   await page.setContent(`<!doctype html><html><body>
     <header><button id="globalAiButton">AI</button><button id="voiceButton">Voice</button></header>
     <section class="business-bar"><select><option>Business</option></select><button>Open</button><span id="businessStatus"></span></section>
@@ -44,11 +45,17 @@ async function installHarness(page,{role='staff',authForm=false}={}){
     };
     window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>db};
     window.H38_ACTIVE_BRIDGE={connect:()=>{window.__calls.push({type:'connect'});}};
+    window.H38_PROFITABILITY_OPERATING_LAYER={writeSettings:()=>true};
     window.openPage=function(pageName){window.state.page=pageName;document.getElementById('mainContent').innerHTML=`<h1>Base ${pageName}</h1>`;};
     window.renderNav=function(){document.getElementById('mainNav').innerHTML='<button>Base nav</button>';};
+    window.renderWork=function(){
+      window.__calls.push({type:'generic-work-render'});
+      document.getElementById('mainContent').insertAdjacentHTML('afterbegin','<section data-generic-site-visits><h2>Site Visits</h2><p>Open, edit or delete a Site Visit directly.</p><button>Start Site Visit</button><div>No Site Visits yet.</div></section>');
+    };
     window.toast=function(message,bad){window.__calls.push({type:'toast',message,bad:!!bad});};
   },{role,authForm});
   await page.addScriptTag({path:employeeScript});
+  if(authority)await page.addScriptTag({path:authorityScript});
 }
 
 (async()=>{
@@ -57,7 +64,7 @@ async function installHarness(page,{role='staff',authForm=false}={}){
     const phone=await browser.newContext({viewport:{width:390,height:844},userAgent:'Mozilla/5.0 Android H38SiteScannerAndroid/0.5.32'});
     const page=await phone.newPage();
     const errors=[];page.on('pageerror',error=>errors.push(String(error.message||error)));
-    await installHarness(page,{role:'staff'});
+    await installHarness(page,{role:'staff',authority:true});
     await page.waitForSelector('.h38-employee-page h1',{state:'visible'});
     assert(await page.locator('.h38-employee-page h1').textContent()==='Today','Staff should land on Today.');
     const nav=await page.locator('#mainNav').innerText();
@@ -72,6 +79,24 @@ async function installHarness(page,{role='staff',authForm=false}={}){
     assert(clockCall&&clockCall.args.p_job_id==='JOB-1'&&clockCall.args.p_task_id==='TASK-1','Task punch must carry Job ID and Task ID.');
     await page.locator('[data-h38-open-my-tasks]').first().click();
     await page.waitForFunction(()=>document.querySelector('.h38-employee-page h1')?.textContent==='My Tasks');
+
+    // Reproduce the production screenshot failure: a late generic Work renderer
+    // fires after Staff My Tasks is already visible and tries to prepend Site Visits.
+    await page.evaluate(()=>window.renderWork());
+    await page.waitForTimeout(40);
+    let mainText=await page.locator('#mainContent').innerText();
+    assert(!mainText.includes('Site Visits')&&!mainText.includes('Start Site Visit'),'Staff My Tasks must reject late generic Site Visits rendering.');
+    assert(await page.locator('#mainContent > .h38-employee-page').count()===1,'Staff My Tasks must retain one employee workspace root.');
+    assert(await page.locator('#mainContent > *').count()===1,'Staff My Tasks must contain no generic top-level Work/Jobs/Site Visits panels.');
+
+    // Also prove the safety net cleans a captured/legacy injector that bypasses renderWork.
+    await page.evaluate(()=>document.getElementById('mainContent').insertAdjacentHTML('afterbegin','<section data-generic-site-visits><h2>Site Visits</h2><button>Start Site Visit</button></section>'));
+    await page.waitForFunction(()=>!document.querySelector('[data-generic-site-visits]'));
+    await page.waitForFunction(()=>document.querySelector('.h38-employee-page h1')?.textContent==='My Tasks');
+    mainText=await page.locator('#mainContent').innerText();
+    assert(!mainText.includes('Site Visits')&&!mainText.includes('Start Site Visit'),'Staff isolation observer must remove bypassed Site Visit content.');
+    assert(await page.locator('#mainContent > *').count()===1,'Staff isolation must restore employee-only main content after bypass injection.');
+
     await page.locator('[data-h38-task-status="TASK-1"]').selectOption({label:'Started'});
     await page.locator('[data-h38-task-note="TASK-1"]').fill('Started layout.');
     await page.locator('[data-h38-save-task="TASK-1"]').click();
@@ -116,6 +141,6 @@ async function installHarness(page,{role='staff',authForm=false}={}){
     assert(calls.find(call=>call.type==='signup')?.payload?.email==='invited@example.com','Invited employee signup must use the exact entered email.');
     await signupContext.close();
 
-    console.log(JSON.stringify({status:'PASS',mobileViewport:'390x844',desktopViewport:'1440x1000',staffAssignedWorkOnly:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,employeeSignup:true,appWebParity:true},null,2));
+    console.log(JSON.stringify({status:'PASS',mobileViewport:'390x844',desktopViewport:'1440x1000',staffAssignedWorkOnly:true,staffGenericWorkFence:true,staffSiteVisitLeakBlocked:true,staffBypassInjectionCleaned:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,employeeSignup:true,appWebParity:true},null,2));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
