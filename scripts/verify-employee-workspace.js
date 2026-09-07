@@ -9,6 +9,7 @@ const includes=(source,needle,message)=>expect(source.includes(needle),message||
 const migration=read('supabase/migrations/20260903233000_employee_workspace_team_access.sql');
 const hardening=read('supabase/migrations/20260903233100_employee_workspace_direct_access_hardening.sql');
 const ui=read('commercial-app/employee-workspace.js');
+const startup=read('commercial-app/supabase-final-startup.js');
 const loader=read('commercial-app/desktop-navigation-authority.js');
 const worker=read('commercial-app/service-worker.js');
 
@@ -22,7 +23,7 @@ for(const needle of [
   'private.employee_job_assigned',
   'private.business_record_row_access',
   "membership.role='staff'",
-  "Assigned User ID",
+  'Assigned User ID',
   'exactEmailClaim',
   'automaticEmailSent',
   'business_data_import_rows_business_id_idx'
@@ -47,6 +48,8 @@ expect(!hardening.includes("array['owner','administrator','staff']"),'Direct adm
 for(const needle of [
   'H38_EMPLOYEE_WORKSPACE',
   'H38_SUPABASE_SHARED_CLIENT',
+  "const STAFF_TASKS_PAGE='my-tasks'",
+  'normalizeStaffPage',
   'business_office_employee_workspace',
   'business_office_clock_in',
   'business_office_clock_out',
@@ -58,8 +61,13 @@ for(const needle of [
   'H38 phone app',
   'H38 web app',
   'Task Manager assigns work',
+  'canonicalStartupAuthority:true',
+  'genericWorkRouteUsedByStaff:false',
+  'delayedRolePolling:false',
   'assignedWorkOnly:true',
   'sameSupabaseAccountAndRecords:true',
+  'window.renderWork.h38StaffEmployeeBoundary=true',
+  'ensureTeamSection();if(isStaff())',
   'automaticInvitationEmail:false',
   'automaticApproval:false',
   'automaticCustomerSending:false',
@@ -68,22 +76,30 @@ for(const needle of [
   'automaticScheduling:false'
 ])includes(ui,needle,`Employee UI contract missing ${needle}`);
 
-includes(loader,'loadEmployeeWorkspace','Final Office loader must load employee workspace.');
-includes(loader,'employee-workspace.js','Employee workspace loader path is missing.');
-includes(loader,'staffNavLoadMask:true','Staff loader must declare the pre-workspace nav mask.');
-includes(loader,"nav.style.visibility='hidden'",'Known Staff role must hide the generic navigation while employee workspace loads.');
-includes(loader,"script.addEventListener('load',release",'Staff navigation mask must release after employee workspace loads.');
-includes(loader,"script.addEventListener('error',",'Staff navigation mask must fail open if employee workspace fails to load.');
-includes(loader,'staffInternalIdentityHidden:true','Staff shell must declare internal identity cleanup.');
-includes(loader,"sub.textContent='Your shift and assigned work'",'Internal-looking Staff aliases must not be rendered as welcome names.');
-includes(loader,"!/[+@]/.test(value)",'Legitimate Staff display names must be preserved while internal account-style labels are filtered.');
-includes(loader,'installStaffWorkRendererGuard','Staff shell must fence the generic Work renderer.');
-includes(loader,'staffWorkRendererFence:true','Staff generic Work renderer fence must be declared.');
-includes(loader,'staffMainContentIsolation:true','Staff main content isolation must be declared.');
-includes(loader,'current.h38StaffEmployeeBoundary===true','Staff Work fence must be idempotent.');
-includes(loader,"employee.render('work')",'Late generic Work requests must route back to employee My Tasks.');
-includes(loader,'enforceStaffMainIsolation','Staff shell must clean generic content injected outside the Work renderer.');
-includes(loader,'view.direct.length===1','Staff main content must converge to one employee workspace root.');
+expect(!ui.includes("setInterval(()=>{ensureTeamSection();enhanceAuthPanel();if(isStaff()"),'Staff role must not be polled on a timer to take over an already-rendered Office.');
+expect(!ui.includes("state().page=target==='work'?'work':'today'"),'Staff My Tasks must not reuse the generic work route.');
+includes(ui,"if(isStaff())return renderEmployeePage(STAFF_TASKS_PAGE)",'Generic Work renderer must terminate at the Staff renderer boundary.');
+includes(ui,"return name&&!/[+@]/.test(name)?name:''",'Internal-looking Staff aliases must be filtered in the employee renderer itself.');
+
+for(const needle of [
+  "const EMPLOYEE_WORKSPACE_BUILD='20260906-employee-startup-authority-1'",
+  'function ensureEmployeeWorkspace()',
+  "script.src=`./employee-workspace.js?build=${EMPLOYEE_WORKSPACE_BUILD}`",
+  'handleFullSnapshot=async function(snapshot,businessId)',
+  'if(isStaffSnapshot(snapshot))await ensureEmployeeWorkspace();',
+  'if(isStaffSnapshot(startup.snapshot))await ensureEmployeeWorkspace();',
+  'staffWorkspaceBeforeFirstRender:true',
+  'delayedStaffTakeover:false'
+])includes(startup,needle,`Authenticated Staff startup authority missing ${needle}`);
+
+includes(loader,'employeeWorkspaceLoader:false','Retired desktop authority must not dynamically load Staff after Office startup.');
+includes(loader,"employeeWorkspaceStartupAuthority:'supabase-final-startup.js'",'Staff startup ownership must be declared at authenticated startup.');
+includes(loader,'staffNavLoadMask:false','Late Staff navigation masking workaround must remain retired.');
+includes(loader,'staffMainContentCleanupObserver:false','Late Staff main-content cleanup observer must remain retired.');
+includes(loader,'staffWorkRendererFenceHandledByEmployeeRenderer:true','Staff Work fence belongs to the employee renderer boundary.');
+expect(!loader.includes("script.src=`./employee-workspace.js"),'Retired desktop authority must not inject the employee workspace script late.');
+expect(!loader.includes('new MutationObserver'),'Retired desktop authority must not observe Staff main content.');
+
 includes(worker,"'employee-workspace.js'",'Employee workspace must be LIVE_FIRST.');
 includes(worker,"'./employee-workspace.js'",'Employee workspace must be in offline shell.');
 expect(/const CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(worker),'Service-worker cache must keep accepted dated format.');
@@ -98,12 +114,14 @@ console.log(JSON.stringify({
   taskManagerAssignmentAuthority:true,
   employeeSelfPunch:true,
   ownerAdminTeamAccess:true,
-  staffGenericNavFlashBlocked:true,
-  staffInternalIdentityHidden:true,
+  staffStartupAuthority:true,
+  delayedStaffTakeover:false,
+  staffTasksRoute:'my-tasks',
+  genericOfficeFirstRenderBlocked:true,
   staffGenericWorkFence:true,
-  staffMainContentIsolation:true,
   staffSiteVisitLeakBlocked:true,
   directAdminDataHiddenFromStaff:true,
+  lateStaffCleanupObserver:false,
   automaticInvitationEmail:false,
   automaticExternalActions:false
 },null,2));
