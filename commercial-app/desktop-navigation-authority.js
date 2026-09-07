@@ -1,93 +1,10 @@
 (function(){
 'use strict';
-const BUILD='20260906-desktop-navigation-authority-staff-work-fence-2';
+const BUILD='20260906-desktop-navigation-authority-retired-staff-1';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
-const EMPLOYEE_WORKSPACE_BUILD='20260903-employee-workspace-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-let staffLabelObserver=null;
-function text(value){return String(value==null?'':value).trim();}
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
 function reconcile(){return core()?.reconcile?.()||false;}
-function staffRole(){
-  const user=window.state?.snapshot?.user||{};
-  return text(user.roleId||user.roleName||user.role).toLowerCase()==='staff';
-}
-function staffEmployeePage(){
-  const main=document.getElementById('mainContent');
-  if(!main)return null;
-  const direct=Array.from(main.children||[]).filter(node=>node?.nodeType===1);
-  const employee=direct.find(node=>node.classList?.contains('h38-employee-page'))||null;
-  return {main,direct,employee};
-}
-function enforceStaffMainIsolation(){
-  if(!staffRole()||!document.body.classList.contains('h38-employee-mode'))return false;
-  const view=staffEmployeePage();
-  if(!view?.employee||view.direct.length===1)return false;
-  const employee=window.H38_EMPLOYEE_WORKSPACE;
-  if(typeof employee?.render!=='function')return false;
-  const page=text(window.state?.page)==='work'?'work':'today';
-  employee.render(page);
-  return true;
-}
-function installStaffWorkRendererGuard(){
-  const current=window.renderWork;
-  if(typeof current!=='function')return false;
-  if(current.h38StaffEmployeeBoundary===true)return true;
-  function guardedStaffWork(){
-    if(staffRole()||document.body.classList.contains('h38-employee-mode')){
-      const view=staffEmployeePage();
-      if(view?.employee&&view.direct.length===1)return true;
-      const employee=window.H38_EMPLOYEE_WORKSPACE;
-      if(typeof employee?.render==='function')return employee.render('work');
-      return true;
-    }
-    return current.apply(this,arguments);
-  }
-  guardedStaffWork.h38StaffEmployeeBoundary=true;
-  guardedStaffWork.h38Base=current;
-  window.renderWork=guardedStaffWork;
-  return true;
-}
-function holdStaffNav(){
-  const nav=document.getElementById('mainNav');
-  if(!staffRole()||!nav)return null;
-  nav.dataset.h38EmployeeWorkspaceLoading='true';
-  nav.style.visibility='hidden';
-  return nav;
-}
-function releaseStaffNav(nav){
-  if(!nav)return false;
-  nav.style.removeProperty('visibility');
-  delete nav.dataset.h38EmployeeWorkspaceLoading;
-  return true;
-}
-function sanitizeStaffIdentity(root=document){
-  if(!staffRole())return false;
-  const sub=root.querySelector?.('.h38-employee-sub');
-  if(!sub)return false;
-  const value=text(sub.textContent);
-  if(!/^welcome,\s*/i.test(value)||!/[+@]/.test(value))return false;
-  sub.textContent='Your shift and assigned work';
-  return true;
-}
-function installStaffIdentityGuard(){
-  if(!staffRole())return false;
-  const main=document.getElementById('mainContent');
-  if(!main)return false;
-  sanitizeStaffIdentity(main);
-  enforceStaffMainIsolation();
-  if(staffLabelObserver)return true;
-  staffLabelObserver=new MutationObserver(()=>{
-    sanitizeStaffIdentity(main);
-    enforceStaffMainIsolation();
-  });
-  staffLabelObserver.observe(main,{childList:true,subtree:true});
-  window.addEventListener('h38:auth-cleared',()=>{
-    staffLabelObserver?.disconnect();
-    staffLabelObserver=null;
-  },{once:true});
-  return true;
-}
 function installProfitabilityInputSafety(){
   if(document.documentElement.dataset.h38ProfitabilityInputSafety==='true')return false;
   document.documentElement.dataset.h38ProfitabilityInputSafety='true';
@@ -118,28 +35,10 @@ function loadProfitabilityLayer(){
   return true;
 }
 function loadEmployeeWorkspace(){
-  if(window.H38_EMPLOYEE_WORKSPACE||document.querySelector('script[data-h38-employee-workspace]'))return false;
-  const heldNav=holdStaffNav();
-  const script=document.createElement('script');
-  script.src=`./employee-workspace.js?build=${EMPLOYEE_WORKSPACE_BUILD}`;
-  script.async=false;
-  script.dataset.h38EmployeeWorkspace='true';
-  const release=()=>requestAnimationFrame(()=>{
-    installStaffWorkRendererGuard();
-    installStaffIdentityGuard();
-    releaseStaffNav(heldNav);
-  });
-  script.addEventListener('load',release,{once:true});
-  script.addEventListener('error',()=>requestAnimationFrame(()=>releaseStaffNav(heldNav)),{once:true});
-  document.body.appendChild(script);
-  return true;
+  return !!window.H38_EMPLOYEE_WORKSPACE?.canonicalStartupAuthority;
 }
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
-installStaffWorkRendererGuard();
-loadEmployeeWorkspace();
-installStaffIdentityGuard();
-window.addEventListener('h38:business-snapshot-updated',installStaffWorkRendererGuard);
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:false,
   retired:true,
@@ -149,15 +48,15 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   loadProfitabilityLayer,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
-  installStaffWorkRendererGuard,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
-  employeeWorkspaceBuild:EMPLOYEE_WORKSPACE_BUILD,
-  employeeWorkspaceLoader:true,
-  staffNavLoadMask:true,
-  staffInternalIdentityHidden:true,
-  staffWorkRendererFence:true,
-  staffMainContentIsolation:true,
+  employeeWorkspaceBuild:'20260906-employee-startup-authority-1',
+  employeeWorkspaceLoader:false,
+  employeeWorkspaceStartupAuthority:'supabase-final-startup.js',
+  staffNavLoadMask:false,
+  staffInternalIdentityHandledByEmployeeRenderer:true,
+  staffWorkRendererFenceHandledByEmployeeRenderer:true,
+  staffMainContentCleanupObserver:false,
   mutatesNavigation:false,
   capturesClicks:false,
   createsProxyButtons:false,
