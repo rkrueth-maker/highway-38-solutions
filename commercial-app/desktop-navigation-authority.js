@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260906-desktop-navigation-authority-retired-staff-1';
+const BUILD='20260907-desktop-navigation-authority-retired-staff-shell-1';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
@@ -34,9 +34,7 @@ function loadProfitabilityLayer(){
   document.body.appendChild(script);
   return true;
 }
-function loadEmployeeWorkspace(){
-  return !!window.H38_EMPLOYEE_WORKSPACE?.canonicalStartupAuthority;
-}
+function loadEmployeeWorkspace(){return false;}
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
@@ -50,12 +48,14 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
-  employeeWorkspaceBuild:'20260906-employee-startup-authority-1',
   employeeWorkspaceLoader:false,
-  employeeWorkspaceStartupAuthority:'supabase-final-startup.js',
+  employeeWorkspaceStartupAuthority:'none',
+  employeeWorkspaceCompanionOnly:true,
+  staffUsesCanonicalOfficeNavigation:true,
+  staffUsesPermissionFilteredNavigation:true,
   staffNavLoadMask:false,
-  staffInternalIdentityHandledByEmployeeRenderer:true,
-  staffWorkRendererFenceHandledByEmployeeRenderer:true,
+  staffInternalIdentityHandledByEmployeeRenderer:false,
+  staffWorkRendererFenceHandledByEmployeeRenderer:false,
   staffMainContentCleanupObserver:false,
   mutatesNavigation:false,
   capturesClicks:false,
