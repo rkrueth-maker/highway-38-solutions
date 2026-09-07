@@ -6,140 +6,134 @@ const employeeScript=path.join(root,'commercial-app','employee-workspace.js');
 const authorityScript=path.join(root,'commercial-app','desktop-navigation-authority.js');
 
 function assert(condition,message){if(!condition)throw new Error(message);}
-async function installHarness(page,{role='staff',authForm=false,authority=false,deferredRole=false}={}){
+const STAFF_PERMISSIONS={
+  viewCustomers:true,manageWork:true,viewAssignedWork:true,manageAssignedWork:true,
+  manageQuotes:true,manageSchedule:true,manageCommunications:true,manageField:true,
+  captureEvidence:true,useInventory:true,useAssets:true
+};
+async function installHarness(page,{role='',authForm=false,deferredRole=false}={}){
   await page.setContent(`<!doctype html><html><body>
     <header><button id="globalAiButton">AI</button><button id="voiceButton">Voice</button></header>
     <section class="business-bar"><select><option>Business</option></select><button>Open</button><span id="businessStatus"></span></section>
-    <nav id="mainNav"></nav><main id="mainContent" tabindex="-1">${authForm?'<form id="h38AuthForm"><input id="h38AuthEmail"><input id="h38AuthPassword"></form>':'<div data-base-office>Base office</div>'}</main>
+    <div class="app-shell"><nav id="mainNav"></nav><main id="mainContent" tabindex="-1">${authForm?'<form id="h38AuthForm"><input id="h38AuthEmail"><input id="h38AuthPassword"></form>':'<div data-base-office>Base office</div>'}</main></div>
     <div id="toast" class="hidden"></div><div id="h38ErpBody"></div>
   </body></html>`);
-  await page.evaluate(({role,authForm,deferredRole})=>{
-    const now='2026-09-03T20:00:00.000Z';
-    const snapshot=authForm||deferredRole?null:{user:{roleId:role,roleName:role},business:{businessId:'B-1',businessName:'Test Business'}};
-    window.state={page:'today',businessId:'B-1',snapshot};
+  await page.evaluate(({role,authForm,deferredRole,permissions})=>{
+    const pageDefs={today:['🏠','Today'],customers:['👥','Customers'],work:['🧰','Work'],quotes:['🧾','Quotes'],measure:['📐','Measure'],schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Field'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],money:['💵','Money'],documents:['📁','Documents'],social:['📣','Social'],ai:['✨','H38 AI'],settings:['⚙️','Settings']};
+    const officePages=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
+    const requirements={customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],settings:['manageSettings','manageUsers']};
+    window.PAGE_DEFS=pageDefs;
+    const snapshot=authForm||deferredRole?null:{user:{roleId:role,roleName:role,permissions:role==='staff'?permissions:{all:true}},business:{businessId:'B-1',businessName:'Test Business'}};
+    window.state={shell:'office',page:'today',businessId:'B-1',snapshot};
     window.__calls=[];
     window.__workspace={
       profile:{membershipId:'M-1',authUserId:'U-1',email:'employee@example.com',displayName:'Alex Employee',jobTitle:'Installer',role:'staff'},
       time:{role:'staff',canEdit:false,currentPunch:null,recent:[]},
-      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Due Time':'2026-09-04T15:00:00.000Z'}],
+      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Due Time':'2026-09-08T15:00:00.000Z'}],
       jobs:[{'Job ID':'JOB-1','Customer ID':'CUS-1','Project Title':'Kitchen project','Status':'Active'}],
-      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer'}],schedule:[],androidAndWebSameAccount:true,assignedWorkOnly:true
+      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer'}]
+    };
+    window.allowedPages=function(){
+      const user=window.state.snapshot?.user;
+      const can=cap=>!user||user.permissions?.all===true||user.permissions?.[cap]===true;
+      return officePages.filter(key=>!requirements[key]||requirements[key].some(can));
+    };
+    window.renderNav=function(){
+      window.__calls.push({type:'base-nav'});
+      const nav=document.getElementById('mainNav');
+      nav.innerHTML=window.allowedPages().map(key=>`<button type="button" data-page="${key}" class="${key===window.state.page?'active':''}"><span>${pageDefs[key][1]}</span></button>`).join('');
+      nav.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>window.openPage(button.dataset.page));
+    };
+    window.openPage=function(pageName){
+      if(!window.allowedPages().includes(pageName))pageName='today';
+      window.__calls.push({type:'base-open',pageName});window.state.page=pageName;
+      document.getElementById('mainContent').innerHTML=`<section data-canonical-office><h1>${pageDefs[pageName]?.[1]||pageName}</h1><p>Canonical Business Office</p></section>`;
+      window.renderNav();return true;
     };
     const db={
       rpc:async(name,args)=>{
         window.__calls.push({type:'rpc',name,args});
         if(name==='business_office_employee_workspace')return {data:structuredClone(window.__workspace),error:null};
-        if(name==='business_office_clock_in'){
-          window.__workspace.time.currentPunch={'Time Entry ID':'TIME-1','Job ID':args.p_job_id||'','Task ID':args.p_task_id||'','Start Time':now,'Status':'Clocked In'};
-          return {data:structuredClone(window.__workspace.time.currentPunch),error:null};
-        }
-        if(name==='business_office_clock_out'){window.__workspace.time.currentPunch=null;return {data:{Status:'Recorded'},error:null};}
-        if(name==='business_office_employee_update_task'){
-          const task=window.__workspace.tasks.find(row=>row['Task ID']===args.p_task_id);if(task)task.Status=args.p_status;
-          return {data:structuredClone(task||{}),error:null};
-        }
-        if(name==='business_office_team_directory')return {data:{employees:[{membershipId:'M-2',authUserId:'U-2',email:'alice@example.com',displayName:'Alice',jobTitle:'Installer',status:'active'}],automaticEmailSending:false,taskManagerAssignmentAuthority:true},error:null};
-        if(name==='business_office_invite_employee')return {data:{membershipId:'M-3',email:args.p_email,displayName:args.p_display_name||args.p_email,jobTitle:args.p_job_title||'',role:'staff',status:'invited',automaticEmailSent:false},error:null};
+        if(name==='business_office_clock_in')return {data:{'Time Entry ID':'TIME-1','Task ID':args.p_task_id||'','Job ID':args.p_job_id||''},error:null};
+        if(name==='business_office_clock_out')return {data:{Status:'Recorded'},error:null};
+        if(name==='business_office_employee_update_task'){const task=window.__workspace.tasks[0];task.Status=args.p_status;return {data:structuredClone(task),error:null};}
+        if(name==='business_office_team_directory')return {data:{employees:[{authUserId:'U-2',email:'alice@example.com',displayName:'Alice',jobTitle:'Installer',status:'active'}]},error:null};
+        if(name==='business_office_invite_employee')return {data:{email:args.p_email,displayName:args.p_display_name||args.p_email},error:null};
         return {data:{},error:null};
       },
       auth:{signUp:async(payload)=>{window.__calls.push({type:'signup',payload});return {data:{session:null,user:{email:payload.email}},error:null};}}
     };
     window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>db};
-    window.H38_ACTIVE_BRIDGE={connect:()=>{window.__calls.push({type:'connect'});}};
+    window.H38_ACTIVE_BRIDGE={connect:()=>window.__calls.push({type:'connect'})};
     window.H38_PROFITABILITY_OPERATING_LAYER={writeSettings:()=>true};
-    window.openPage=function(pageName){window.__calls.push({type:'base-open',pageName});window.state.page=pageName;document.getElementById('mainContent').innerHTML=`<h1>Base ${pageName}</h1>`;};
-    window.renderNav=function(){window.__calls.push({type:'base-nav'});document.getElementById('mainNav').innerHTML='<button>Base nav</button>';};
-    window.renderWork=function(){
-      window.__calls.push({type:'generic-work-render'});
-      document.getElementById('mainContent').insertAdjacentHTML('afterbegin','<section data-generic-site-visits><h2>Site Visits</h2><p>Open, edit or delete a Site Visit directly.</p><button>Start Site Visit</button><div>No Site Visits yet.</div></section>');
-    };
-    window.toast=function(message,bad){window.__calls.push({type:'toast',message,bad:!!bad});};
-  },{role,authForm,deferredRole});
+    window.toast=(message,bad)=>window.__calls.push({type:'toast',message,bad:!!bad});
+    if(snapshot)window.renderNav();
+  },{role,authForm,deferredRole,permissions:STAFF_PERMISSIONS});
   await page.addScriptTag({path:employeeScript});
-  if(authority)await page.addScriptTag({path:authorityScript});
+  await page.addScriptTag({path:authorityScript});
 }
 
 (async()=>{
   const browser=await chromium.launch({headless:true});
   try{
-    const phone=await browser.newContext({viewport:{width:390,height:844},userAgent:'Mozilla/5.0 Android H38SiteScannerAndroid/0.5.32'});
-    const page=await phone.newPage();
+    const desktop=await browser.newContext({viewport:{width:1366,height:768}});
+    const page=await desktop.newPage();
     const errors=[];page.on('pageerror',error=>errors.push(String(error.message||error)));
 
-    // Reproduce the real production lifecycle: Office exists first, Staff role is unknown,
-    // then authenticated Staff identity arrives later. Role resolution by itself must NOT
-    // trigger a timer-based takeover. The canonical startup openPage call owns the transition.
-    await installHarness(page,{role:'staff',authority:true,deferredRole:true});
-    assert(await page.locator('[data-base-office]').count()===1,'Deferred Staff test must begin on the base Office surface.');
-    assert(await page.locator('.h38-employee-page').count()===0,'Employee UI must not guess Staff before auth resolves.');
-    await page.evaluate(()=>{window.state.snapshot={user:{roleId:'staff',roleName:'staff'},business:{businessId:'B-1',businessName:'Test Business'}};});
-    await page.waitForTimeout(1350);
-    assert(await page.locator('[data-base-office]').count()===1,'Resolved Staff role must not cause a delayed polling takeover.');
-    assert(await page.locator('.h38-employee-page').count()===0,'No 1.2-second Staff takeover is allowed.');
+    await installHarness(page,{deferredRole:true});
+    assert(await page.locator('[data-base-office]').count()===1,'Test must begin on the canonical Office surface before auth resolves.');
+    assert(await page.locator('.h38-employee-page').count()===0,'Employee companion must not create a replacement page before auth.');
+    await page.evaluate(({permissions})=>{window.state.snapshot={user:{roleId:'staff',roleName:'staff',permissions},business:{businessId:'B-1',businessName:'Test Business'}};window.renderNav();},{permissions:STAFF_PERMISSIONS});
+    await page.waitForTimeout(1400);
+    assert(await page.locator('[data-base-office]').count()===1,'Staff role resolution must not replace an already-correct Office surface.');
+    assert(await page.locator('.h38-employee-page').count()===0,'Employee companion must never auto-render a Today/My Tasks shell.');
+    assert(!(await page.locator('body').evaluate(el=>el.classList.contains('h38-employee-mode'))),'Staff must not be switched into employee-only body mode.');
 
-    await page.evaluate(()=>window.openPage('today'));
-    await page.waitForSelector('.h38-employee-page h1',{state:'visible'});
-    assert(await page.locator('.h38-employee-page h1').textContent()==='Today','Canonical Staff startup should land directly on Today.');
-    let calls=await page.evaluate(()=>window.__calls);
-    assert(!calls.some(call=>call.type==='base-open'),'Authenticated Staff startup must not invoke the generic Office renderer first.');
-    const nav=await page.locator('#mainNav').innerText();
-    assert(nav.includes('Today')&&nav.includes('My Tasks')&&!nav.includes('Quotes'),'Staff nav must be Today + My Tasks only.');
-    assert((await page.locator('.h38-employee-mode').first().innerText()).includes('H38 phone app'),'Native shell must identify phone-app experience.');
-    assert(await page.locator('#globalAiButton').isHidden(),'Employee shell should hide owner AI launcher.');
-    assert((await page.locator('body').innerText()).includes('Install cabinet'),'Assigned task must be visible on Today.');
+    const navText=await page.locator('#mainNav').innerText();
+    for(const label of ['Today','Customers','Work','Quotes','Schedule','Messages','Field','Inventory','Fleet','Documents'])
+      assert(navText.includes(label),`Canonical Staff navigation must include ${label}.`);
+    for(const label of ['Money','Social','Settings'])assert(!navText.includes(label),`Staff navigation must not expose unpermitted ${label}.`);
+    assert(!navText.includes('My Tasks'),'Replacement two-button employee navigation must be gone.');
 
-    await page.locator('[data-h38-clock-task="TASK-1"]').click();
-    await page.waitForFunction(()=>window.__workspace.time.currentPunch?.['Task ID']==='TASK-1');
-    calls=await page.evaluate(()=>window.__calls);
-    const clockCall=calls.find(call=>call.name==='business_office_clock_in');
-    assert(clockCall&&clockCall.args.p_job_id==='JOB-1'&&clockCall.args.p_task_id==='TASK-1','Task punch must carry Job ID and Task ID.');
-
-    await page.locator('[data-h38-open-my-tasks]').first().click();
-    await page.waitForFunction(()=>document.querySelector('.h38-employee-page h1')?.textContent==='My Tasks');
-    assert(await page.evaluate(()=>window.state.page)==='my-tasks','Staff My Tasks must use its own route instead of generic work.');
-
-    // Even if legacy code calls the generic Work renderer directly, the Staff renderer boundary
-    // must route back to My Tasks and leave state.page outside the generic work route.
-    await page.evaluate(()=>window.renderWork());
-    await page.waitForFunction(()=>document.querySelector('.h38-employee-page h1')?.textContent==='My Tasks');
-    const mainText=await page.locator('#mainContent').innerText();
-    assert(!mainText.includes('Site Visits')&&!mainText.includes('Start Site Visit'),'Staff renderer boundary must reject generic Site Visits rendering.');
-    assert(await page.evaluate(()=>window.state.page)==='my-tasks','Generic renderWork must not put Staff back on state.page=work.');
-    assert(await page.locator('#mainContent > .h38-employee-page').count()===1,'Staff My Tasks must retain one employee workspace root.');
-
-    await page.locator('[data-h38-task-status="TASK-1"]').selectOption({label:'Started'});
-    await page.locator('[data-h38-task-note="TASK-1"]').fill('Started layout.');
-    await page.locator('[data-h38-save-task="TASK-1"]').click();
-    await page.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_employee_update_task'));
-    calls=await page.evaluate(()=>window.__calls);
-    const taskCall=calls.find(call=>call.name==='business_office_employee_update_task');
-    assert(taskCall.args.p_status==='Started'&&taskCall.args.p_note==='Started layout.','Employee task status/note update must use bounded RPC.');
     await page.evaluate(()=>window.openPage('quotes'));
-    await page.waitForFunction(()=>document.querySelector('.h38-employee-page h1')?.textContent==='Today');
-    assert(!errors.length,`Staff phone browser error(s): ${errors.join(' | ')}`);
-    await phone.close();
+    await page.waitForFunction(()=>document.querySelector('[data-canonical-office] h1')?.textContent==='Quotes');
+    assert(await page.evaluate(()=>window.state.page)==='quotes','Staff must remain on the canonical Quotes route.');
+    assert(await page.locator('[data-canonical-office]').count()===1,'Canonical Office renderer must own Staff pages.');
+    let calls=await page.evaluate(()=>window.__calls);
+    assert(calls.some(call=>call.type==='base-open'&&call.pageName==='quotes'),'Canonical openPage must receive the Staff navigation action.');
 
-    const desktop=await browser.newContext({viewport:{width:1440,height:1000}});
-    const owner=await desktop.newPage();
-    const ownerErrors=[];owner.on('pageerror',error=>ownerErrors.push(String(error.message||error)));
+    const workspace=await page.evaluate(()=>window.H38_EMPLOYEE_WORKSPACE.refresh());
+    assert(workspace?.tasks?.[0]?.['Task ID']==='TASK-1','Employee companion must retain assigned-work RPC access without owning the shell.');
+    assert(await page.locator('[data-canonical-office] h1').textContent()==='Quotes','Refreshing employee data must not change the current Office page.');
+    await page.evaluate(()=>window.H38_EMPLOYEE_WORKSPACE.clockInToTask(window.__workspace.tasks[0]));
+    await page.evaluate(()=>window.H38_EMPLOYEE_WORKSPACE.updateAssignedTask('TASK-1','Started','Started layout.'));
+    calls=await page.evaluate(()=>window.__calls);
+    const clock=calls.find(call=>call.name==='business_office_clock_in');
+    assert(clock?.args?.p_job_id==='JOB-1'&&clock?.args?.p_task_id==='TASK-1','Task punch must stay linked to assigned Job ID and Task ID.');
+    const update=calls.find(call=>call.name==='business_office_employee_update_task');
+    assert(update?.args?.p_status==='Started'&&update?.args?.p_note==='Started layout.','Bounded task update RPC must remain available.');
+    assert(await page.locator('[data-canonical-office] h1').textContent()==='Quotes','Time/task RPCs must not hijack the Office page.');
+    assert(!errors.length,`Staff canonical Office browser error(s): ${errors.join(' | ')}`);
+    await desktop.close();
+
+    const ownerContext=await browser.newContext({viewport:{width:1440,height:1000}});
+    const owner=await ownerContext.newPage();
     await installHarness(owner,{role:'owner'});
     await owner.waitForSelector('#h38TeamAccess',{state:'attached'});
-    assert((await owner.locator('#h38TeamAccess').innerText()).includes('same account works in the phone app and web app'),'Owner Team Access must explain app/web parity.');
-    assert((await owner.locator('#h38TeamAccess').innerText()).includes('Task Manager'),'Task Manager must remain assignment authority.');
+    const teamText=await owner.locator('#h38TeamAccess').innerText();
+    assert(teamText.includes('normal Business Office pages allowed by their role'),'Team Access must describe canonical role-filtered Office behavior.');
+    assert(teamText.includes('Task Manager assigns work'),'Task Manager must remain assignment authority.');
     await owner.locator('#h38EmployeeName').fill('Bob Builder');
     await owner.locator('#h38EmployeeEmail').fill('bob@example.com');
     await owner.locator('#h38EmployeeTitle').fill('Installer');
     await owner.locator('#h38EmployeeInviteForm button[type="submit"]').click();
     await owner.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_invite_employee'));
-    calls=await owner.evaluate(()=>window.__calls);
-    const inviteCall=calls.find(call=>call.name==='business_office_invite_employee');
-    assert(inviteCall.args.p_email==='bob@example.com','Owner must prepare exact-email employee membership.');
-    assert(!ownerErrors.length,`Owner desktop browser error(s): ${ownerErrors.join(' | ')}`);
-    await desktop.close();
+    assert((await owner.evaluate(()=>window.__calls.find(call=>call.name==='business_office_invite_employee')?.args?.p_email))==='bob@example.com','Owner Team Access must preserve exact-email membership preparation.');
+    await ownerContext.close();
 
     const signupContext=await browser.newContext({viewport:{width:390,height:844}});
     const signup=await signupContext.newPage();
-    await installHarness(signup,{role:'',authForm:true});
+    await installHarness(signup,{authForm:true});
     await signup.waitForSelector('[data-h38-show-signup]');
     await signup.locator('[data-h38-show-signup]').click();
     await signup.locator('#h38EmployeeSignupEmail').fill('invited@example.com');
@@ -147,10 +141,9 @@ async function installHarness(page,{role='staff',authForm=false,authority=false,
     await signup.locator('#h38EmployeeSignupConfirm').fill('very-secure-123');
     await signup.locator('#h38EmployeeSignupForm button[type="submit"]').click();
     await signup.waitForFunction(()=>window.__calls.some(call=>call.type==='signup'));
-    calls=await signup.evaluate(()=>window.__calls);
-    assert(calls.find(call=>call.type==='signup')?.payload?.email==='invited@example.com','Invited employee signup must use the exact entered email.');
+    assert((await signup.evaluate(()=>window.__calls.find(call=>call.type==='signup')?.payload?.email))==='invited@example.com','Invited employee signup must preserve exact email.');
     await signupContext.close();
 
-    console.log(JSON.stringify({status:'PASS',mobileViewport:'390x844',desktopViewport:'1440x1000',deferredStaffRoleTested:true,delayedRolePollingBlocked:true,genericOfficeFirstRenderBlocked:true,staffAssignedWorkOnly:true,staffTasksRoute:'my-tasks',staffGenericWorkFence:true,staffSiteVisitLeakBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,employeeSignup:true,appWebParity:true},null,2));
+    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,employeeSignup:true},null,2));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});

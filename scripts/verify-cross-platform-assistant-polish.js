@@ -15,46 +15,22 @@ const employee=read('commercial-app/employee-workspace.js');
 const authority=read('docs/architecture/H38_ASSISTANT_AUTHORITY.md');
 
 for(const needle of [
-  "unifiedAssistantLauncher:true",
-  "personalAssistantPrivatePerUser:true",
-  "businessCommandBusPreserved:true",
-  "androidSafeArea:true",
-  "iosSafeAreaReady:true",
-  "mutationFeedbackLoopPrevented:true",
-  "nativeIosShellCreated:false",
-  "openPage('assistant')",
-  "h38-floating-assistant",
-  "My H38 Assistant"
+  "unifiedAssistantLauncher:true","personalAssistantPrivatePerUser:true","businessCommandBusPreserved:true",
+  "androidSafeArea:true","iosSafeAreaReady:true","mutationFeedbackLoopPrevented:true","nativeIosShellCreated:false",
+  "openPage('assistant')","h38-floating-assistant","My H38 Assistant"
 ])assert(polish.includes(needle),`office polish missing ${needle}`);
 for(const needle of [
-  'html.h38-native-android body .topbar',
-  'max(env(safe-area-inset-top,0px),24px)',
-  'html.h38-ios-like body .topbar',
-  'env(safe-area-inset-top,0px)',
-  'env(safe-area-inset-bottom,0px)',
-  'body #globalAiButton.h38-floating-assistant',
-  'body.h38-employee-mode #globalAiButton.h38-floating-assistant',
-  '#personalAssistantButton[hidden]'
+  'html.h38-native-android body .topbar','max(env(safe-area-inset-top,0px),24px)','html.h38-ios-like body .topbar',
+  'env(safe-area-inset-top,0px)','env(safe-area-inset-bottom,0px)','body #globalAiButton.h38-floating-assistant',
+  'body.h38-employee-mode #globalAiButton.h38-floating-assistant','#personalAssistantButton[hidden]'
 ])assert(css.includes(needle),`cross-platform css missing ${needle}`);
+for(const needle of ['personal assistant select own','personal assistant insert own','personal assistant update own','personal assistant delete own','auth.uid()'])assert(paMigration.includes(needle),`owner-private personal assistant migration missing ${needle}`);
 for(const needle of [
-  'personal assistant select own',
-  'personal assistant insert own',
-  'personal assistant update own',
-  'personal assistant delete own',
-  'auth.uid()'
-])assert(paMigration.includes(needle),`owner-private personal assistant migration missing ${needle}`);
-for(const needle of [
-  'H38_ASSISTANT_COMMAND_BUS',
-  'specialistExecution:true',
-  'internalNavigation:true',
-  'internalPreparation:true',
-  'externalActionsEnabled:false',
-  'automaticCustomerSending:false',
-  'automaticApproval:false',
-  'automaticPurchasing:false',
-  'automaticPayment:false'
+  'H38_ASSISTANT_COMMAND_BUS','specialistExecution:true','internalNavigation:true','internalPreparation:true','externalActionsEnabled:false',
+  'automaticCustomerSending:false','automaticApproval:false','automaticPurchasing:false','automaticPayment:false'
 ])assert(commandBus.includes(needle),`command bus missing ${needle}`);
-assert(employee.includes("body.h38-employee-mode #globalAiButton"),'employee mode must keep owner assistant hidden');
+for(const needle of ['companionOnly:true','desktopShellAuthority:false','autoRenderForStaff:false','preservesCanonicalOfficeNavigation:true'])assert(employee.includes(needle),`employee companion missing ${needle}`);
+assert(!employee.includes("document.body.classList.add('h38-employee-mode')"),'employee companion must not activate the legacy employee-only body mode');
 for(const needle of ['Each signed-in owner or administrator gets their own private assistant state','Business Office command bus','native iOS','safe-area-inset-top'])assert(authority.includes(needle),`assistant authority missing ${needle}`);
 
 async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactName){
@@ -81,16 +57,13 @@ async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactNa
       window.state={page:'assistant',businessId:'B1',snapshot:{business:{businessName:'Highway 38'},user:{roleName:'owner',email:'owner-one@example.com'}}};
       window.H38_SUPABASE_AUTH={getState:()=>({user:{email:'owner-one@example.com'}})};
       window.H38_PERSONAL_ASSISTANT={enabled:true,load:async()=>{}};
-      window.openPage=page=>{window.state.page=page;};
-      window.openGlobalAi=()=>{window.__oldAiOpened=true;};
+      window.openPage=page=>{window.state.page=page;};window.openGlobalAi=()=>{window.__oldAiOpened=true;};
       document.getElementById('paCommandForm').addEventListener('submit',event=>{event.preventDefault();window.__submitted.push(new FormData(event.currentTarget).get('command'));});
     });
-    await page.addStyleTag({path:path.join(root,'commercial-app/office-polish.css')});
-    await page.addScriptTag({path:path.join(root,'commercial-app/office-polish.js')});
+    await page.addStyleTag({path:path.join(root,'commercial-app','office-polish.css')});
+    await page.addScriptTag({path:path.join(root,'commercial-app','office-polish.js')});
     await page.waitForTimeout(120);
-    const mutationCheckpoint=await page.evaluate(()=>__polishMutationCount);
-    await page.waitForTimeout(100);
-    const mutationAfterIdle=await page.evaluate(()=>__polishMutationCount);
+    const mutationCheckpoint=await page.evaluate(()=>__polishMutationCount);await page.waitForTimeout(100);const mutationAfterIdle=await page.evaluate(()=>__polishMutationCount);
     assert(mutationAfterIdle-mutationCheckpoint<5,`${name}: assistant polish is still producing mutation churn (${mutationAfterIdle-mutationCheckpoint} idle mutations)`);
     assert(await page.locator('html').evaluate((el,c)=>el.classList.contains(c),expectedClass),`${name}: platform class missing`);
     assert(await page.locator('#personalAssistantButton').evaluate(el=>el.hidden),`${name}: duplicate personal assistant launcher must be hidden`);
@@ -101,27 +74,20 @@ async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactNa
     assert((await page.locator('.h38-owner-assistant-note').textContent()).includes('owner-one@example.com'),`${name}: owner-private identity note missing`);
     assert((await page.locator('#paCommandForm textarea').getAttribute('placeholder')).includes('Start quote'),`${name}: business command examples missing`);
     assert((await page.locator('.h38-assistant-command-chips button').count())>=5,`${name}: quick command chips missing`);
-    const floatingBox=await page.locator('#globalAiButton').boundingBox();
-    const navBox=await page.locator('#mainNav').boundingBox();
-    assert(floatingBox&&floatingBox.width>=88&&floatingBox.height>=50,`${name}: production topbar sizing overrode the floating assistant (${JSON.stringify(floatingBox)})`);
+    const floatingBox=await page.locator('#globalAiButton').boundingBox(),navBox=await page.locator('#mainNav').boundingBox();
+    assert(floatingBox&&floatingBox.width>=88&&floatingBox.height>=50,`${name}: production topbar sizing overrode floating assistant (${JSON.stringify(floatingBox)})`);
     assert(floatingBox&&navBox&&floatingBox.y+floatingBox.height<=navBox.y+4,`${name}: floating assistant overlaps bottom navigation`);
     await page.screenshot({path:path.join(artifactDir,artifactName),fullPage:true});
-    await page.locator('#globalAiButton').click();
-    assert.equal(await page.evaluate(()=>state.page),'assistant',`${name}: unified launcher did not open assistant`);
-    assert.equal(await page.evaluate(()=>__oldAiOpened),false,`${name}: old AI drawer should not win launcher click`);
-    await page.locator('.h38-assistant-command-chips button').filter({hasText:'Open jobs'}).click();
-    assert((await page.evaluate(()=>__submitted)).includes('Open jobs'),`${name}: quick command did not submit through Personal Assistant form`);
-    const topPadding=parseFloat(await page.locator('.topbar').evaluate(el=>getComputedStyle(el).paddingTop));
-    if(expectedClass==='h38-native-android')assert(topPadding>=30,`${name}: Android top safe area is too small: ${topPadding}`);
-    await page.locator('body').evaluate(el=>el.classList.add('h38-employee-mode'));
-    assert.equal(await page.locator('#globalAiButton').evaluate(el=>getComputedStyle(el).display),'none',`${name}: employee mode must hide owner assistant`);
-    assert.deepEqual(errors,[],`${name}: browser errors: ${errors.join('; ')}`);
-    return {name,topPadding,artifact:artifactName};
+    await page.locator('#globalAiButton').click();assert.equal(await page.evaluate(()=>state.page),'assistant',`${name}: unified launcher did not open assistant`);assert.equal(await page.evaluate(()=>__oldAiOpened),false,`${name}: old AI drawer should not win launcher click`);
+    await page.locator('.h38-assistant-command-chips button').filter({hasText:'Open jobs'}).click();assert((await page.evaluate(()=>__submitted)).includes('Open jobs'),`${name}: quick command did not submit through Personal Assistant form`);
+    const topPadding=parseFloat(await page.locator('.topbar').evaluate(el=>getComputedStyle(el).paddingTop));if(expectedClass==='h38-native-android')assert(topPadding>=30,`${name}: Android top safe area is too small: ${topPadding}`);
+    await page.locator('body').evaluate(el=>el.classList.add('h38-employee-mode'));assert.equal(await page.locator('#globalAiButton').evaluate(el=>getComputedStyle(el).display),'none',`${name}: legacy employee mode CSS must still hide owner assistant if that class is used by an older client`);
+    assert.deepEqual(errors,[],`${name}: browser errors: ${errors.join('; ')}`);return {name,topPadding,artifact:artifactName};
   }finally{await browser.close();}
 }
 
 (async()=>{
   const android=await verifyBrowser(chromium,'Chromium Android shell','Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/151 Mobile Safari/537.36 H38SiteScannerAndroid/0.5.35','h38-native-android','android-assistant-390x844.png');
   const ios=await verifyBrowser(webkit,'WebKit iPhone web','Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Version/18.6 Mobile/15E148 Safari/604.1','h38-ios-like','iphone-webkit-assistant-390x844.png');
-  console.log(JSON.stringify({status:'PASS',android,ios,ownerPrivateAssistant:true,businessCommands:true,unifiedFloatingLauncher:true,mutationStable:true,nativeIosShellCreated:false},null,2));
+  console.log(JSON.stringify({status:'PASS',android,ios,ownerPrivateAssistant:true,businessCommands:true,unifiedFloatingLauncher:true,mutationStable:true,nativeIosShellCreated:false,staffCanonicalOfficePreserved:true},null,2));
 })().catch(error=>{console.error(error);process.exit(1);});
