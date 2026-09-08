@@ -1,0 +1,211 @@
+name: H38 Deals v3.1.1 Physical Sign-In Recovery
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths:
+      - '.github/workflows/h38-deals-v311-login-repair.yml'
+      - 'deals-app/h38-deals-shell-v312.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-deals-v311-login-repair
+  cancel-in-progress: false
+
+jobs:
+  physical-signin:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+      ROBO_TIMEOUT: 20m
+      LIVE_SHELL: https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-deals-shell
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Freeze branch and login boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          grep -Fq "versionName '3.1.1'" reseller/build.gradle
+          grep -Fq 'versionCode 341' reseller/build.gradle
+          grep -Fq 'H38_DEALS_THIN_SHELL_V311' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'HostedHtmlWebViewClient' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          test ! -e reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+          src="$GITHUB_WORKSPACE/deals-app/h38-deals-shell-v312.ts"
+          test -f "$src"
+          grep -Fq 'data-h38-login-repair="v312"' "$src"
+          grep -Fq 'id="loginForm"' "$src"
+          grep -Fq 'type="submit"' "$src"
+          grep -Fq "addEventListener('submit'" "$src"
+          grep -Fq 'signInWithPassword' "$src"
+          grep -Fq 'Secure sign-in could not start' "$src"
+          grep -Fq '/functions/v1/h38-penny-web' "$src"
+          grep -Fq '/functions/v1/h38-resale-web' "$src"
+          grep -Fq '/functions/v1/h38-coupon-web' "$src"
+          ! grep -Fq 'v323-native-auth-bridge.js' "$src"
+          echo H38_DEALS_FROZEN_SIGNIN_BOUNDARY_PASS
+
+      - name: Verify live shell is repaired HTML
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/v311-login
+          curl --fail --silent --show-error --location --max-time 30 -H 'Cache-Control: no-cache' "$LIVE_SHELL" -o artifacts/v311-login/live-shell.html
+          head -c 32 artifacts/v311-login/live-shell.html | grep -qi '<!doctype html'
+          grep -Fq 'data-h38-login-repair="v312"' artifacts/v311-login/live-shell.html
+          grep -Fq 'id="loginForm"' artifacts/v311-login/live-shell.html
+          grep -Fq 'signInWithPassword' artifacts/v311-login/live-shell.html
+          grep -Fq 'Starting secure sign-in' artifacts/v311-login/live-shell.html
+          echo LIVE_H38_DEALS_SIGNIN_REPAIR_PRESENT | tee artifacts/v311-login/live-shell-gate.txt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore owner signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify exact owner APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v311-login"; mkdir -p "$report"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          test -f "$H38_ANDROID_UPLOAD_KEYSTORE_PATH"
+          gradle --no-daemon :reseller:assembleOwner | tee "$report/compile.log"
+          APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
+          test -f "$APP_APK"
+          echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
+          out="$report/H38-Deals-3.1.1.apk"
+          cp "$APP_APK" "$out"
+          sha256sum "$out" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$out" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='341' versionName='3.1.1'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$out" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$out" > "$report/zipalign.txt"
+          unzip -t "$out" > "$report/zip-test.txt"
+          echo H38_DEALS_V311_APK_GATE_PASS | tee "$report/apk-gate.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Verify physical target and test secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v311-login"
+          test -n "$FIREBASE_PROJECT_ID"
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          test -n "$SCOUT_EMAIL"
+          test -n "$SCOUT_PASSWORD"
+          echo "::add-mask::$SCOUT_EMAIL"
+          echo "::add-mask::$SCOUT_PASSWORD"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
+          grep -qi PHYSICAL "$report/device.yml"
+          echo FIREBASE_PHYSICAL_TARGET_PASS | tee "$report/device-gate.txt"
+
+      - name: Create physical sign-in Robo script
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$SCOUT_EMAIL"
+          echo "::add-mask::$SCOUT_PASSWORD"
+          python3 - <<'PY'
+          import json, os, shlex
+          from pathlib import Path
+          def cmd(v):
+              return 'input text ' + shlex.quote(v.replace('%','%25').replace(' ','%s'))
+          actions = [
+            {'eventType':'WAIT','delayTime':3500},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','visionText':'Sign in'}},
+            {'eventType':'VIEW_CLICKED','visionText':'Email'},
+            {'eventType':'ADB_SHELL_COMMAND','command':cmd(os.environ['SCOUT_EMAIL'])},
+            {'eventType':'VIEW_CLICKED','visionText':'Password'},
+            {'eventType':'ADB_SHELL_COMMAND','command':cmd(os.environ['SCOUT_PASSWORD'])},
+            {'eventType':'VIEW_CLICKED','visionText':'Sign in'},
+            {'eventType':'WAIT','delayTime':9000},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','negateCondition':True,'visionText':'One account controls which products you can open.'}},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','visionText':'Penny Deals'}},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','visionText':'Resale'}},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','visionText':'Couponing'}},
+            {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','visionText':'Sign out'}},
+            {'eventType':'TAKE_SCREENSHOT','screenshotName':'h38-deals-v311-physical-signin-pass'}
+          ]
+          p = Path(os.environ['RUNNER_TEMP']) / 'h38-deals-v311-login.json'
+          p.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n' + json.dumps(actions))
+          print('Robo sign-in script created without emitting credentials')
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('ROBO_SCRIPT=' + str(p) + '\n')
+          PY
+
+      - name: Firebase physical sign-in acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v311-login"
+          APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          gcloud firebase test android run \
+            --project "$FIREBASE_PROJECT_ID" \
+            --type robo \
+            --app "$APP" \
+            --robo-script "$ROBO_SCRIPT" \
+            --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
+            --timeout "$ROBO_TIMEOUT" \
+            --results-history-name 'H38 Deals v3.1.1 Physical Sign-In Recovery' \
+            --client-details matrixLabel='H38 Deals v3.1.1 real credential sign-in' \
+            2>&1 | tee "$report/firebase-signin.log"
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|TypeError|ReferenceError|Unhandled|uncaught' "$report/firebase-signin.log" > "$report/runtime-errors.txt" || true
+          test ! -s "$report/runtime-errors.txt"
+          echo FIREBASE_PHYSICAL_SIGNIN_AND_PRODUCT_CHOOSER_PASS | tee "$report/firebase-status.txt"
+
+      - name: Upload sign-in recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-deals-v3.1.1-physical-signin-recovery
+          path: artifacts/v311-login/**
+          if-no-files-found: error
+          retention-days: 30
