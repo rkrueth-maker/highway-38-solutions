@@ -1,0 +1,22 @@
+const fs=require('fs'),path=require('path'),root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const gate=read('commercial-app/office-onboarding-release-gate.js');
+const loader=read('commercial-app/site-visit-quote-wide-pass-loader.js');
+const edge=read('supabase/functions/h38-quote-release-gate/index.ts');
+const migration=read('supabase/migrations/20260905233000_supabase_traffic_efficiency.sql');
+function ok(condition,message){if(!condition){console.error('FAIL:',message);process.exitCode=1;}else console.log('PASS:',message);}
+for(const marker of ['quotePhotosCanBeAddedLater:true','quoteVideoAddOnsCanBeAddedLater:true','videoFramesBecomeQuoteEvidence:true','noLumpSumContract:true','specialtyQuoteVerification:true','staffPermissionRlsAligned:true','staffUsageTelemetrySuppressed:true'])ok(gate.includes(marker),`browser gate ${marker}`);
+ok(gate.includes("handleAttachmentFiles(files,'Quote',quoteId(),'Internal')"),'later photos are stored as Quote evidence');
+ok(gate.includes("'Source Type':'Quote','Source ID':qid,'Evidence Type':'Media Review Frame'"),'video frames become Quote evidence');
+ok(gate.includes("'Quote ID':qid")&&gate.includes("'Purpose':'Quote Add-On'"),'video session retains Quote identity');
+ok(gate.includes("saveRecord('specialtyQuoteRequests'"),'specialty quote requests are persisted separately');
+ok(gate.includes("action==='completionSync'&&isStaff()")&&gate.includes('RECORD_USAGE_EVENT'),'Staff usage retry loop is suppressed client-side');
+ok(gate.includes('viewAssignedWork:true')&&!gate.includes('manageQuotes:true'),'Staff browser permissions align to bounded employee authority');
+ok(loader.indexOf('./office-onboarding-release-gate.js')>loader.indexOf('./quote-agent-contract.js'),'release gate loads after canonical quote agent');
+for(const marker of ["CANONICAL_AGENT='h38-quote-agent'",'lump-sum/LS line','forceAiReinterpretation:true','preserveSavedBaseline:false','specialtyVerificationSupported:true','entryPathIndependent:true'])ok(edge.includes(marker),`server release gate ${marker}`);
+ok(edge.includes("u==='lump sum'")&&edge.includes('non-positive quantity')&&edge.includes('non-positive rate'),'server blocks lump sums and incomplete lines');
+ok(edge.includes('physical work has no distinct measurable labor line'),'physical service requires distinct labor');
+ok(edge.includes('material-bearing physical scope has no distinct material line'),'material-bearing service requires material line');
+ok(edge.includes("collection','mediaAnalysisSessions'")&&edge.includes("collection','mediaAnalyses'"),'server includes linked quote video analysis on rebuild');
+ok(migration.includes('current_business_access_context')&&migration.includes('dedupe_business_error_log'),'traffic/RLS migration remains in release');
+if(process.exitCode)process.exit(process.exitCode);console.log('Office onboarding release gate verification passed.');
