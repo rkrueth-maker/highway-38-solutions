@@ -19,10 +19,8 @@ import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -46,11 +44,11 @@ import java.util.Locale;
  * H38 Deals native shell.
  *
  * Product logic lives on the hosted Penny, Resale and Couponing web apps. This
- * activity intentionally owns only reusable phone capabilities so product fixes
- * can ship without replacing the APK.
+ * activity owns reusable phone capabilities plus a strict top-level HTML
+ * transport boundary so hosted product pages cannot be displayed as source.
  */
 public final class MainActivity extends Activity {
-    public static final String H38_DEALS_THIN_SHELL = "H38_DEALS_THIN_SHELL_V310";
+    public static final String H38_DEALS_THIN_SHELL = "H38_DEALS_THIN_SHELL_V311";
     private static final String SHELL_URL = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-deals-shell";
     private static final String INTERNAL_PREFIX = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-";
     private static final int REQUEST_LOCATION = 4101;
@@ -84,18 +82,11 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.1.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.1.1");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Deals");
-        webView.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                return routeUrl(url);
-            }
-            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return routeUrl(request == null || request.getUrl() == null ? null : request.getUrl().toString());
-            }
-        });
+        webView.setWebViewClient(new HostedHtmlWebViewClient(this, this::routeUrl));
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileChooser != null) fileChooser.onReceiveValue(null);
@@ -113,6 +104,7 @@ public final class MainActivity extends Activity {
 
     private boolean routeUrl(String url) {
         if (url == null || url.isBlank()) return false;
+        if (HostedHtmlWebViewClient.isHostedHtmlPage(url)) return false;
         if (url.startsWith(INTERNAL_PREFIX)) return false;
         if (url.startsWith("https://") || url.startsWith("http://")) {
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
