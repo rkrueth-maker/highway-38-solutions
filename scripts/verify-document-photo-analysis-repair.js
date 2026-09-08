@@ -1,0 +1,28 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const client=read('commercial-app/document-photo-analysis-repair.js');
+const runtime=read('commercial-app/assistant-command-runtime.js');
+const edge=read('supabase/functions/h38-document-photo-analysis/index.ts');
+function must(condition,message){if(!condition){console.error('FAIL:',message);process.exit(1);}console.log('PASS:',message);}
+new Function(client);
+new Function(runtime);
+must(client.includes("functionName:'h38-document-photo-analysis'"),'client uses dedicated document photo analysis function');
+must(client.includes("api.functions.invoke('h38-document-photo-analysis'"),'Analyze first photo invokes dedicated function');
+must(client.includes('TARGET_DATA_URL=2200000'),'client caps prepared photo payload below function ceiling');
+must(client.includes("context.clone().json()"),'client extracts safe edge-function failure details');
+must(client.includes("queueOperation('SAVE_ENTITY','Document Photo Analysis'"),'successful analysis is recorded through secure internal save queue');
+must(client.includes('ownerReviewRequired:true'),'client preserves owner review requirement');
+for(const token of ['automaticAssignment:false','automaticCustomerRelease:false','automaticCustomerSending:false','automaticApproval:false','automaticScheduling:false','automaticPurchasing:false','automaticPayment:false'])must(client.includes(token),`client preserves ${token}`);
+must(runtime.includes("document-photo-analysis-repair.js?build=20260908-document-photo-analysis-repair-1"),'supported runtime loads repair');
+must(runtime.includes('loadDocumentPhotoAnalysisRepair();'),'supported runtime invokes repair loader');
+must(edge.includes('const PRIMARY_MODEL=Deno.env.get("OPENAI_DOCUMENT_MODEL")||"gpt-5.6-luna"'),'edge authority defaults to current image-capable model');
+must(edge.includes('const FALLBACK_MODEL="gpt-5-mini-2025-08-07"'),'edge authority has bounded fallback model');
+must(edge.includes('DOCUMENT_PHOTO_ANALYZED'),'successful edge analysis writes proof log');
+must(edge.includes('DOCUMENT_PHOTO_ANALYSIS_FAILED'),'edge failure writes error log');
+must(edge.includes('detail:"low"'),'edge image input uses low-detail bounded analysis');
+must(edge.includes('verify')===false,'source code does not attempt to disable JWT verification');
+for(const token of ['automaticAssignment:false','automaticCustomerRelease:false','automaticCustomerSending:false','automaticApproval:false','automaticScheduling:false','automaticPurchasing:false','automaticPayment:false','automaticFinancialAction:false'])must(edge.includes(token),`edge preserves ${token}`);
+must(!/service_role\s*[:=]\s*['"][^'"]+/i.test(client+runtime),'browser runtime contains no privileged credential');
+console.log('Document photo analysis repair verification PASS');
