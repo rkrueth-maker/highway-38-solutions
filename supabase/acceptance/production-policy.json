@@ -69,5 +69,18 @@
     "h38-penny-api",
     "h38-resale-api",
     "h38-coupon-api"
-  ]
+  ],
+  "legacy_migration_replay_versions": {
+    "20260716_customer_portal.sql": "20260716000000",
+    "20260716_customer_portal_invite_activation.sql": "20260716000001",
+    "20260716_lock_customer_portal_functions.sql": "20260716000002",
+    "20260717_customer_portal_quote_project_ux.sql": "20260717000000",
+    "20260718_customer_quote_decisions.sql": "20260718000000",
+    "20260804_business_office_foundation.sql": "20260804000000",
+    "20260804_business_office_performance_hardening.sql": "20260804000001",
+    "20260804_lock_rls_auto_enable.sql": "20260804000002",
+    "202608050945_northern_lakes_customer_portal_release.sql": "20260805094500",
+    "202608050955_northern_lakes_customer_payment_index.sql": "20260805095500",
+    "202608051005_northern_lakes_single_logo.sql": "20260805100500"
+  }
 }

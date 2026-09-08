@@ -48,6 +48,40 @@ for slug in policy.get('required_source_functions',[]): check(f'required Edge Fu
 for name in ('multitenant_foundation.test.sql','security_invariants.test.sql'): check(f'database acceptance exists: {name}',(ROOT/'supabase/tests/database'/name).is_file())
 check('browser config contains only publishable key','sb_publishable_' in ct)
 check('browser config has no secret/service-role key',not any(x.search(ct) for x in secrets))
+
+migrations=sorted((ROOT/'supabase'/'migrations').glob('*.sql'))
+legacy_map=policy.get('legacy_migration_replay_versions',{})
+version_re=re.compile(r'^(\d+)_')
+noncanonical=set()
+raw_versions={}
+for p in migrations:
+    m=version_re.match(p.name)
+    if not m:
+        noncanonical.add(p.name)
+        continue
+    v=m.group(1)
+    raw_versions.setdefault(v,[]).append(p.name)
+    if not re.fullmatch(r'\d{14}',v): noncanonical.add(p.name)
+mapped=set(legacy_map)
+missing_map=sorted(noncanonical-mapped); stale_map=sorted(mapped-{p.name for p in migrations})
+check('legacy migration replay map covers every noncanonical filename',not missing_map,', '.join(missing_map))
+check('legacy migration replay map has no stale filenames',not stale_map,', '.join(stale_map))
+replay_versions={}; replay_errors=[]
+for p in migrations:
+    m=version_re.match(p.name)
+    if not m: continue
+    v=legacy_map.get(p.name,m.group(1))
+    if not re.fullmatch(r'\d{14}',str(v)): replay_errors.append(f'{p.name}->{v}')
+    elif v in replay_versions: replay_errors.append(f'{v}: {replay_versions[v]}, {p.name}')
+    else: replay_versions[v]=p.name
+check('CI replay versions are unique 14-digit Supabase versions',not replay_errors,'; '.join(replay_errors[:12]))
+new_duplicate_files=[]
+for version,names in raw_versions.items():
+    if len(names)>1:
+        for name in names:
+            if name not in legacy_map: new_duplicate_files.append(name)
+check('no unapproved duplicate migration version exists',not new_duplicate_files,', '.join(sorted(new_duplicate_files)))
+
 print(f"\nRESULT: {'FAIL' if FAIL else 'PASS'} — {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     for x in FAIL: print('  - '+x)

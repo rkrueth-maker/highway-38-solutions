@@ -2,10 +2,10 @@ name: Verify Supabase acceptance
 on:
   pull_request:
     branches: [main]
-    paths: ['commercial-app/**','native/**','supabase/**','scripts/verify-supabase-*','.github/workflows/verify-supabase-acceptance.yml']
+    paths: ['commercial-app/**','native/**','supabase/**','scripts/verify-supabase-*','scripts/prepare-supabase-test-migrations.py','.github/workflows/verify-supabase-acceptance.yml']
   push:
     branches: [main]
-    paths: ['commercial-app/**','native/**','supabase/**','scripts/verify-supabase-*','.github/workflows/verify-supabase-acceptance.yml']
+    paths: ['commercial-app/**','native/**','supabase/**','scripts/verify-supabase-*','scripts/prepare-supabase-test-migrations.py','.github/workflows/verify-supabase-acceptance.yml']
   workflow_dispatch:
   schedule:
     - cron: '23 11 * * *'
@@ -22,12 +22,27 @@ jobs:
       - run: python scripts/verify-supabase-source-acceptance.py
   database-rls-isolation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
       - uses: supabase/setup-cli@v1
-      - run: supabase start
-      - run: supabase test db supabase/tests/database
+      - name: Prepare disposable migration replay
+        run: |
+          mkdir -p "${RUNNER_TEMP}/h38-supabase-test"
+          cp -R supabase "${RUNNER_TEMP}/h38-supabase-test/supabase"
+          python scripts/prepare-supabase-test-migrations.py --directory "${RUNNER_TEMP}/h38-supabase-test/supabase/migrations"
+      - name: Start isolated Supabase stack
+        working-directory: ${{ runner.temp }}/h38-supabase-test
+        run: supabase start
+      - name: Attack RLS and tenant boundaries
+        working-directory: ${{ runner.temp }}/h38-supabase-test
+        run: supabase test db supabase/tests/database
+      - name: Stop isolated Supabase stack
+        if: always()
+        working-directory: ${{ runner.temp }}/h38-supabase-test
+        run: supabase stop --no-backup || true
   live-production-readonly:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
