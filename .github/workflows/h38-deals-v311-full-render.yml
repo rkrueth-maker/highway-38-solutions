@@ -45,7 +45,7 @@ jobs:
           test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedRenderInstrumentedTest.java
           test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
           grep -Fq 'realCredentialsCreateSessionAndShowProductChooser' native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
-          grep -Fq "data.h38LoginRepair==='v312'" native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
+          grep -Fq "document.body.dataset.h38LoginRepair==='v312'" native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
           test ! -e native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
 
       - name: Validate v3.1.1 acceptance syntax
