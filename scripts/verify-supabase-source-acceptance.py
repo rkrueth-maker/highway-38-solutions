@@ -44,7 +44,7 @@ check('runtime contains no Firebase/Firestore dependency',not fbhits,', '.join(s
 check('browser/mobile source contains no Supabase server secret',not shits,', '.join(sorted(set(shits))[:12]))
 froot=ROOT/'supabase'/'functions'; tracked={p.name for p in froot.iterdir() if p.is_dir()} if froot.is_dir() else set()
 for slug in policy.get('forbidden_active_functions',[]): check(f'forbidden recovery function is not source-controlled: {slug}',slug not in tracked)
-for slug in policy.get('required_functions',[]): check(f'required Edge Function source exists: {slug}',(froot/slug/'index.ts').is_file())
+for slug in policy.get('required_source_functions',[]): check(f'required Edge Function source exists: {slug}',(froot/slug/'index.ts').is_file())
 for name in ('multitenant_foundation.test.sql','security_invariants.test.sql'): check(f'database acceptance exists: {name}',(ROOT/'supabase/tests/database'/name).is_file())
 check('browser config contains only publishable key','sb_publishable_' in ct)
 check('browser config has no secret/service-role key',not any(x.search(ct) for x in secrets))
