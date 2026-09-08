@@ -6,11 +6,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:name=".ResellerScoutApplication"
         android:allowBackup="false"
         android:icon="@drawable/reseller_scout_icon"
         android:roundIcon="@drawable/reseller_scout_icon"
-        android:label="H38 Reseller Scout"
+        android:label="H38 Deals"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <meta-data
@@ -25,27 +24,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/reseller_file_paths" />
         </provider>
-        <provider
-            android:name=".ResellerScoutPatchProvider"
-            android:authorities="${applicationId}.resellerpatch"
-            android:exported="false" />
-        <service
-            android:name=".FacebookMarketplaceNotificationListener"
-            android:label="H38 Facebook Marketplace Alerts"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
-        <activity
-            android:name=".FacebookMarketplaceActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name=".RetailerVerificationActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
         <activity
             android:name=".NativePhotoCaptureActivity"
             android:exported="false"
@@ -58,11 +36,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
     </application>
