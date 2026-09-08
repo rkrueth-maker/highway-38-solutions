@@ -1,0 +1,59 @@
+name: Verify Documents photo analysis repair
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/document-photo-analysis-repair.js'
+      - 'commercial-app/assistant-command-runtime.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-document-photo-analysis/**'
+      - 'scripts/verify-document-photo-analysis-repair.js'
+      - 'scripts/verify-document-photo-analysis-repair-browser.js'
+      - '.github/workflows/verify-document-photo-analysis-repair.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/document-photo-analysis-repair.js'
+      - 'commercial-app/assistant-command-runtime.js'
+      - 'commercial-app/service-worker.js'
+      - 'supabase/functions/h38-document-photo-analysis/**'
+      - 'scripts/verify-document-photo-analysis-repair.js'
+      - 'scripts/verify-document-photo-analysis-repair-browser.js'
+      - '.github/workflows/verify-document-photo-analysis-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check repaired browser runtime
+        run: |
+          node --check commercial-app/document-photo-analysis-repair.js
+          node --check commercial-app/assistant-command-runtime.js
+          node --check scripts/verify-document-photo-analysis-repair.js
+          node --check scripts/verify-document-photo-analysis-repair-browser.js
+      - name: Verify repair and edge authority contract
+        run: node scripts/verify-document-photo-analysis-repair.js
+
+  verify-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Reproduce and repair Analyze first photo failure
+        run: node scripts/verify-document-photo-analysis-repair-browser.js
