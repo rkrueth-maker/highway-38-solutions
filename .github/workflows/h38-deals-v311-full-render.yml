@@ -35,6 +35,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Freeze private branch and auth gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedRenderInstrumentedTest.java
+          test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
+          grep -Fq 'realCredentialsCreateSessionAndShowProductChooser' native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
+          grep -Fq "data.h38LoginRepair==='v312'" native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
+          test ! -e native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
+
       - name: Validate v3.1.1 acceptance syntax
         shell: bash
         run: bash -n deals-app/acceptance-v311.sh
@@ -64,7 +77,7 @@ jobs:
           path: ~/.android/debug.keystore
           key: h38-reseller-scout-owner-debug-signing-v1
 
-      - name: Build app, render test, and verify H38 Deals 3.1.1
+      - name: Build app, render test, auth test, and verify H38 Deals 3.1.1
         shell: bash
         run: |
           set -euo pipefail
@@ -82,7 +95,7 @@ jobs:
           cp "$src" "$apk"
           test_src=$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)
           test -f "$test_src"
-          test_apk="$report/H38-Deals-3.1.1-render-test.apk"
+          test_apk="$report/H38-Deals-3.1.1-render-auth-test.apk"
           cp "$test_src" "$test_apk"
           echo "APP_APK=$apk" >> "$GITHUB_ENV"
           echo "TEST_APK=$test_apk" >> "$GITHUB_ENV"
@@ -120,17 +133,31 @@ jobs:
         with:
           project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      - name: Firebase physical rendered-DOM assertion
+      - name: Firebase physical rendered-DOM and real sign-in assertions
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/v311"
+          test -n "$SCOUT_EMAIL"
+          test -n "$SCOUT_PASSWORD"
+          echo "::add-mask::$SCOUT_EMAIL"
+          echo "::add-mask::$SCOUT_PASSWORD"
           gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
           grep -qi PHYSICAL "$report/device.yml"
-          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type instrumentation --app "$APP_APK" --test "$TEST_APK" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 4m --results-history-name 'H38 Deals v3.1.1 Render Assertion' --client-details matrixLabel='H38 Deals v3.1.1 rendered DOM assertion' 2>&1 | tee "$report/firebase-render.log"
-          grep -Eq 'Passed|PASSED' "$report/firebase-render.log"
-          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|Failed[[:space:]]*\|' "$report/firebase-render.log"; then exit 1; fi
-          echo FIREBASE_PHYSICAL_RENDERED_DOM_PASS | tee "$report/firebase-render-status.txt"
+          gcloud firebase test android run \
+            --project "$FIREBASE_PROJECT_ID" \
+            --type instrumentation \
+            --app "$APP_APK" \
+            --test "$TEST_APK" \
+            --environment-variables "^:^SCOUT_EMAIL=$SCOUT_EMAIL:SCOUT_PASSWORD=$SCOUT_PASSWORD" \
+            --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
+            --timeout 6m \
+            --results-history-name 'H38 Deals v3.1.1 Render And Sign-In Assertion' \
+            --client-details matrixLabel='H38 Deals v3.1.1 rendered DOM and real sign-in assertion' \
+            2>&1 | tee "$report/firebase-render-auth.log"
+          grep -Eq 'Passed|PASSED' "$report/firebase-render-auth.log"
+          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|Failed[[:space:]]*\|' "$report/firebase-render-auth.log"; then exit 1; fi
+          echo FIREBASE_PHYSICAL_RENDERED_DOM_AND_REAL_SIGNIN_PASS | tee "$report/firebase-render-auth-status.txt"
 
       - name: Firebase physical install and launch
         shell: bash
@@ -146,7 +173,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-deals-3.1.1-full-render
+          name: h38-deals-3.1.1-full-render-auth
           path: artifacts/v311/**
           if-no-files-found: error
           retention-days: 30
