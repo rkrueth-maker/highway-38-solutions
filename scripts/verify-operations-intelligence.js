@@ -1,0 +1,27 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const ops=read('commercial-app/operations-intelligence.js');
+const loader=read('commercial-app/supabase-no-legacy-office.js');
+function must(condition,message){if(!condition){console.error('FAIL:',message);process.exit(1);}console.log('PASS:',message);}
+new Function(ops);
+must(ops.includes("H38_OPERATIONS_INTELLIGENCE"),'operations intelligence exports a runtime contract');
+must(ops.includes('assetPassport:true'),'asset passports are enabled');
+must(ops.includes('preVisitBrief:true'),'pre-visit brief is enabled');
+must(ops.includes('pullThroughWorkFinder:true'),'explicit follow-up work finder is enabled');
+must(ops.includes('quoteJobHandoffAudit:true'),'quote-to-job handoff audit is enabled');
+must(ops.includes('customerPropertyAssetHistory:true'),'customer/property/asset history is enabled');
+must(ops.includes("Owner or administrator access is required."),'manager write boundary is enforced');
+must(ops.includes("await window.queueOperation('SAVE_ENTITY'"),'writes use the secure tenant-scoped save queue');
+must(ops.includes("'Owner Review Required':true"),'generated opportunity records require owner review');
+must(ops.includes("'Automatic Quote Creation':false"),'follow-up findings cannot automatically create quotes');
+must(ops.includes("'Automatic Customer Sending':false"),'follow-up findings cannot automatically contact customers');
+must(ops.includes("'Automatic Scheduling':false"),'follow-up findings cannot automatically schedule work');
+must(ops.includes('automaticPurchasing:false'),'runtime contract forbids automatic purchasing');
+must(ops.includes('automaticPayment:false'),'runtime contract forbids automatic payment');
+must(!/fetch\s*\(/.test(ops),'operations intelligence performs no direct external network actions');
+must(!/\.functions\.invoke\s*\(/.test(ops),'operations intelligence performs no direct edge-function external action');
+must(loader.includes("operations-intelligence.js?build=20260908-operations-intelligence-1"),'supported Supabase Office loads operations intelligence');
+must(loader.includes('loadOperationsIntelligence();'),'supported Office startup invokes operations intelligence loader');
+console.log('Operations intelligence verification PASS');

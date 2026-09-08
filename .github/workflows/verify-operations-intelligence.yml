@@ -1,0 +1,57 @@
+name: Verify Business Office operations intelligence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/operations-intelligence.js'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'scripts/verify-operations-intelligence.js'
+      - 'scripts/verify-operations-intelligence-browser.js'
+      - '.github/workflows/verify-operations-intelligence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/operations-intelligence.js'
+      - 'commercial-app/supabase-no-legacy-office.js'
+      - 'commercial-app/service-worker.js'
+      - 'scripts/verify-operations-intelligence.js'
+      - 'scripts/verify-operations-intelligence-browser.js'
+      - '.github/workflows/verify-operations-intelligence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check operations intelligence
+        run: |
+          node --check commercial-app/operations-intelligence.js
+          node --check commercial-app/supabase-no-legacy-office.js
+          node --check scripts/verify-operations-intelligence.js
+          node --check scripts/verify-operations-intelligence-browser.js
+      - name: Verify operations intelligence contract
+        run: node scripts/verify-operations-intelligence.js
+
+  verify-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify operations intelligence desktop and phone UX
+        run: node scripts/verify-operations-intelligence-browser.js
