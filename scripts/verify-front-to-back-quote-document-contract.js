@@ -38,7 +38,7 @@ must(data.includes("case 'SAVE_INVOICE'"),'Supabase data authority persists invo
 must(delivery.includes('const lines = quoteLines(quote);'),'quote delivery rebuilds from saved itemized quote lines');
 must(delivery.includes('if (!lines.length) throw new Error("Add at least one reviewed quote line before sending.")'),'quote delivery rejects empty quote documentation');
 must(delivery.includes('const pdfBytes = await createQuotePdf'),'quote delivery generates PDF from reviewed revision');
-must(delivery.includes('customer_files').toString(),'quote PDF is represented in customer files');
+must(delivery.includes('customer_files'),'quote PDF is represented in customer files');
 must(delivery.includes('available_to_customer: false'),'quote PDF stages private before external delivery');
 must(delivery.includes('available_to_customer: true'),'quote PDF becomes available only after delivery finalization');
 must(!/service[_-]?role\s*[:=]\s*['"][^'"]+/i.test(release+docs+photo+loader),'browser document runtimes contain no service-role credential');
