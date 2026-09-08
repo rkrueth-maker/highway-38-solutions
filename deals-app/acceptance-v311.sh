@@ -24,11 +24,16 @@ grep -Fq 'HostedHtmlWebViewClient' "$MAIN"
 grep -Fq 'H38DealsAndroid/3.1.1' "$MAIN"
 grep -Fq 'H38_HOSTED_HTML_TRANSPORT_V311' "$TRANSPORT"
 grep -Fq 'H38_RAW_SOURCE_GUARD_V311' "$TRANSPORT"
+grep -Fq 'H38_HOSTED_CSP_REPAIR_V311' "$TRANSPORT"
 for page in h38-deals-shell h38-penny-web h38-resale-web h38-coupon-web; do grep -Fq "/functions/v1/$page" "$TRANSPORT"; done
 grep -Fq 'request.isForMainFrame()' "$TRANSPORT"
 grep -Fq '"text/html"' "$TRANSPORT"
 grep -Fq 'startsWith("<!doctype html")' "$TRANSPORT"
 grep -Fq "document.contentType==='text/html'" "$TRANSPORT"
+grep -Fq 'documentHeaders()' "$TRANSPORT"
+grep -Fq 'Content-Security-Policy' "$TRANSPORT"
+grep -Fq "script-src 'self' https: 'unsafe-inline' 'unsafe-eval'" "$TRANSPORT"
+! grep -Fq 'getHeaderFields()' "$TRANSPORT"
 grep -Fq 'AndroidH38Deals' "$MAIN"
 grep -Fq 'speakList' "$MAIN"
 ! grep -Fq 'bundledPage' "$MAIN"
@@ -36,11 +41,11 @@ grep -Fq 'speakList' "$MAIN"
 grep -Fq 'Product 1 — Penny Deals' "$ROOT/deals-app/ARCHITECTURE.md"
 grep -Fq 'Product 2 — Resale' "$ROOT/deals-app/ARCHITECTURE.md"
 grep -Fq 'Product 3 — Couponing' "$ROOT/deals-app/ARCHITECTURE.md"
-echo HOSTED_HTML_TRANSPORT_AND_ISOLATION_PASS | tee "$REPORT/source-status.txt"
+echo HOSTED_HTML_TRANSPORT_CSP_AND_ISOLATION_PASS | tee "$REPORT/source-status.txt"
 
-# 2. Supabase hosted Edge Functions intentionally rewrite HTML GETs to text/plain.
-#    The body still must be a real HTML document and valid JS; Android must force
-#    only these four main-frame documents back to text/html.
+# 2. Supabase hosted Edge Functions intentionally rewrite HTML GETs to text/plain
+# and add a sandbox CSP. The body must still be valid HTML/JS; Android strips
+# that platform document policy only for the four known H38 main-frame pages.
 for app in deals-shell penny-web resale-web coupon-web; do
   curl --retry 3 --max-time 30 -fsSL -D "$REPORT/$app.headers" "$SB_URL/functions/v1/h38-$app" -o "$REPORT/$app.html"
   grep -Eiq '^content-type:[[:space:]]*text/plain' "$REPORT/$app.headers"
@@ -116,7 +121,10 @@ echo COUPONING_DATA_AND_OPTIMIZER_PASS | tee "$REPORT/coupon-status.txt"
 
 # 5. Every Penny and Resale lane must answer successfully.
 call_lane(){
-  local product="$1" action="$2" timeout="$3" out="$REPORT/$product-$action.json"
+  local product="$1"
+  local action="$2"
+  local timeout="$3"
+  local out="$REPORT/$product-$action.json"
   curl --max-time "$timeout" -fsS -X POST "$SB_URL/functions/v1/h38-$product-api" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data "{\"action\":\"$action\",\"payload\":{\"postal\":\"55744\",\"zip\":\"55744\",\"radius\":50,\"radius_miles\":50,\"terms\":[\"tools\",\"electronics\"]}}" | tee "$out"
   jq -e '.ok==true' "$out"
 }
