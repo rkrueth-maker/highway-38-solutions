@@ -1,0 +1,113 @@
+name: Verify front-to-back quotes and documents
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/**'
+      - 'supabase/functions/h38-quote-delivery/**'
+      - 'supabase/functions/h38-document-photo-analysis/**'
+      - 'scripts/verify-front-to-back-quote-document-contract.js'
+      - 'scripts/verify-document-release-portal-repair-browser.js'
+      - 'scripts/verify-front-to-back-quote-document-visibility-browser.js'
+      - 'scripts/verify-document-photo-analysis-repair*'
+      - 'scripts/verify-operations-intelligence*'
+      - 'scripts/verify-quote*'
+      - 'tests/test_site_visit_quote*'
+      - 'tests/test_quote*'
+      - 'tests/test_document_photo_service_runtime.py'
+      - 'tests/test_web_media_intake_runtime.py'
+      - '.github/workflows/verify-front-to-back-quote-documents.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/**'
+      - 'supabase/functions/h38-quote-delivery/**'
+      - 'supabase/functions/h38-document-photo-analysis/**'
+      - 'scripts/verify-front-to-back-quote-document-contract.js'
+      - 'scripts/verify-document-release-portal-repair-browser.js'
+      - 'scripts/verify-front-to-back-quote-document-visibility-browser.js'
+      - 'scripts/verify-document-photo-analysis-repair*'
+      - 'scripts/verify-operations-intelligence*'
+      - 'scripts/verify-quote*'
+      - 'tests/test_site_visit_quote*'
+      - 'tests/test_quote*'
+      - 'tests/test_document_photo_service_runtime.py'
+      - 'tests/test_web_media_intake_runtime.py'
+      - '.github/workflows/verify-front-to-back-quote-documents.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quote-rebuild-and-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check front-to-back repair and tests
+        run: |
+          node --check commercial-app/document-release-portal-repair.js
+          node --check commercial-app/document-photo-analysis-repair.js
+          node --check commercial-app/assistant-command-runtime.js
+          node --check scripts/verify-front-to-back-quote-document-contract.js
+          node --check scripts/verify-document-release-portal-repair-browser.js
+          node --check scripts/verify-front-to-back-quote-document-visibility-browser.js
+      - name: Verify quote and document lifecycle contract
+        run: node scripts/verify-front-to-back-quote-document-contract.js
+      - name: Rebuild and verify quote systems
+        run: |
+          node scripts/verify-quote-builder-complete.js
+          node scripts/verify-universal-quote-builder.js
+          node scripts/verify-universal-quote-builder-complete.js
+          node scripts/verify-quote-camera-polish.js
+          node scripts/verify-quote-generic-photo-first.js
+          node scripts/verify-quote-mobile-ai-photo-pricing.js
+          node scripts/verify-quote-builder-business-office-routing.js
+          node scripts/verify-document-photo-analysis-repair.js
+          node scripts/verify-operations-intelligence.js
+
+  browser-front-to-back:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify photo analysis and private intake boundary
+        run: node scripts/verify-document-photo-analysis-repair-browser.js
+      - name: Verify customer portal document release boundary
+        run: node scripts/verify-document-release-portal-repair-browser.js
+      - name: Verify quote documentation moves through Work and pre-visit brief
+        run: node scripts/verify-front-to-back-quote-document-visibility-browser.js
+      - name: Verify operations intelligence with document handoff
+        run: node scripts/verify-operations-intelligence-browser.js
+      - name: Verify web media intake still reaches document workflow
+        run: node scripts/verify-web-media-intake-browser.js
+
+  site-quote-evidence-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip pytest
+      - name: Verify Site Visit to quote to evidence chain
+        run: |
+          python -m pytest -q \
+            tests/test_site_visit_quote_wide_pass_final.py \
+            tests/test_site_visit_quote_runtime_authority.py \
+            tests/test_quote_reproduction_deep_polish_20260823.py \
+            tests/test_phone_authority_delivery_20260825.py \
+            tests/test_document_photo_service_runtime.py \
+            tests/test_web_media_intake_runtime.py
