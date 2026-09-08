@@ -1,0 +1,216 @@
+name: H38 Deals v3.1.0 Three Product Split
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths:
+      - 'native/h38-site-scanner/android-app/reseller/**'
+      - 'deals-app/**'
+      - 'supabase/migrations/20260908073300_h38_deals_three_product_split.sql'
+      - 'supabase/migrations/20260908073717_coupon_barcode_support.sql'
+      - '.github/workflows/h38-deals-v310-split.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-deals-v310-split
+  cancel-in-progress: false
+
+jobs:
+  test-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 55
+    env:
+      SB_URL: https://jqukmwtsgcsaruucnqja.supabase.co
+      SB_KEY: sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      DEVICE_MODEL: r0q
+      DEVICE_VERSION: '34'
+    defaults:
+      run:
+        working-directory: native/h38-site-scanner/android-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Enforce isolated three-product shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          grep -Fq "versionCode 340" reseller/build.gradle
+          grep -Fq "versionName '3.1.0'" reseller/build.gradle
+          grep -Fq 'android:label="H38 Deals"' reseller/src/main/AndroidManifest.xml
+          grep -Fq 'H38_DEALS_THIN_SHELL_V310' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'h38-deals-shell' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'AndroidH38Deals' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -Fq 'speakList' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          if grep -Fq 'bundledPage' reseller/src/main/java/com/highway38/resellerscout/MainActivity.java; then exit 1; fi
+          if grep -Fq 'FacebookMarketplaceActivity' reseller/src/main/AndroidManifest.xml; then exit 1; fi
+          grep -Fq 'Product 1 — Penny Deals' "$GITHUB_WORKSPACE/deals-app/ARCHITECTURE.md"
+          grep -Fq 'Product 2 — Resale' "$GITHUB_WORKSPACE/deals-app/ARCHITECTURE.md"
+          grep -Fq 'Product 3 — Couponing' "$GITHUB_WORKSPACE/deals-app/ARCHITECTURE.md"
+          echo SHELL_ISOLATION_PASS
+
+      - name: Fetch and syntax-check all mobile web apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"; mkdir -p "$report/web-js"
+          curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-deals-shell" -o "$report/shell.html"
+          curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-penny-web" -o "$report/penny.html"
+          curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-resale-web" -o "$report/resale.html"
+          curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-coupon-web" -o "$report/coupon.html"
+          grep -Fq 'Choose your shopping tool.' "$report/shell.html"
+          grep -Fq 'Penny Deals' "$report/penny.html"
+          grep -Fq '>Resale<' "$report/resale.html"
+          grep -Fq 'Savings Copilot' "$report/coupon.html"
+          grep -Fq 'SHOP' "$report/coupon.html"; grep -Fq 'SAVE' "$report/coupon.html"; grep -Fq 'SCAN' "$report/coupon.html"; grep -Fq 'DEALS' "$report/coupon.html"; grep -Fq 'RECEIPTS' "$report/coupon.html"
+          grep -Fq 'h38-penny-api' "$report/penny.html"
+          ! grep -Fq 'h38-resale-api' "$report/penny.html"
+          ! grep -Fq 'h38-coupon-api' "$report/penny.html"
+          grep -Fq 'h38-resale-api' "$report/resale.html"
+          ! grep -Fq 'h38-penny-api' "$report/resale.html"
+          ! grep -Fq 'h38-coupon-api' "$report/resale.html"
+          grep -Fq 'h38-coupon-api' "$report/coupon.html"
+          ! grep -Fq 'h38-penny-api' "$report/coupon.html"
+          ! grep -Fq 'h38-resale-api' "$report/coupon.html"
+          python3 - "$report" <<'PY'
+          import pathlib,re,sys
+          root=pathlib.Path(sys.argv[1]); out=root/'web-js'
+          for html in ['shell','penny','resale','coupon']:
+              text=(root/f'{html}.html').read_text(encoding='utf-8')
+              scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',text,re.I)
+              for i,s in enumerate(scripts):
+                  if s.strip(): (out/f'{html}-{i}.js').write_text(s,encoding='utf-8')
+          PY
+          for f in "$report"/web-js/*.js; do node --check "$f"; done
+          echo MOBILE_WEB_SYNTAX_AND_ISOLATION_PASS | tee "$report/web-status.txt"
+
+      - name: Authenticate and verify three-product entitlements
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"
+          test -n "$SCOUT_EMAIL"; test -n "$SCOUT_PASSWORD"
+          auth=$(curl --max-time 30 -fsS -X POST "$SB_URL/auth/v1/token?grant_type=password" -H "apikey: $SB_KEY" -H 'Content-Type: application/json' --data "$(jq -nc --arg e "$SCOUT_EMAIL" --arg p "$SCOUT_PASSWORD" '{email:$e,password:$p}')")
+          token=$(printf '%s' "$auth" | jq -r '.access_token // empty'); test -n "$token"
+          printf '%s' "$token" > /tmp/h38-token
+          curl --max-time 30 -fsS "$SB_URL/rest/v1/h38_product_entitlements?select=product_key,active&active=eq.true" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" | tee "$report/entitlements.json"
+          jq -e '([.[].product_key]|unique|sort)==["coupon","penny","resale"]' "$report/entitlements.json"
+          code=$(curl -sS -o "$report/noauth.txt" -w '%{http_code}' -X POST "$SB_URL/functions/v1/h38-coupon-api" -H "apikey: $SB_KEY" -H 'Content-Type: application/json' --data '{"action":"assistant","text":"test"}')
+          test "$code" = 401
+          echo ENTITLEMENT_AUTH_PASS | tee "$report/auth-status.txt"
+
+      - name: Exercise Couponing CRUD and optimizer
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"; token=$(cat /tmp/h38-token); marker="h38-ci-$GITHUB_RUN_ID"
+          headers=(-H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' -H 'Prefer: return=representation')
+          cleanup(){
+            for pair in "coupon_watch_rules:$watch_id" "coupon_receipts:$receipt_id" "coupon_price_observations:$price_id" "coupon_list_items:$item_id" "coupon_shopping_lists:$list_id"; do t=${pair%%:*}; id=${pair#*:}; if [ -n "${id:-}" ]; then curl -sS -X DELETE "$SB_URL/rest/v1/$t?id=eq.$id" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" >/dev/null || true; fi; done
+          }
+          list_id=''; item_id=''; price_id=''; receipt_id=''; watch_id=''; trap cleanup EXIT
+          list_id=$(curl -fsS -X POST "$SB_URL/rest/v1/coupon_shopping_lists" "${headers[@]}" --data "$(jq -nc --arg n "$marker" '{name:$n,max_stores:2,optimize_mode:"practical"}')" | jq -r '.[0].id'); test -n "$list_id"
+          item_id=$(curl -fsS -X POST "$SB_URL/rest/v1/coupon_list_items" "${headers[@]}" --data "$(jq -nc --arg l "$list_id" '{list_id:$l,item_name:"Tide detergent",quantity:1}')" | jq -r '.[0].id'); test -n "$item_id"
+          price_id=$(curl -fsS -X POST "$SB_URL/rest/v1/coupon_price_observations" "${headers[@]}" --data '{"item_name":"Tide detergent","barcode":"012345678905","store":"Walmart","shelf_price":15.99,"sale_discount":3,"manufacturer_coupon":3,"rebate":2,"loyalty_value":1,"package_qty":92,"unit_label":"oz","distance_miles":2,"confidence":"high","source_note":"CI verified sample"}' | jq -r '.[0].id'); test -n "$price_id"
+          receipt_id=$(curl -fsS -X POST "$SB_URL/rest/v1/coupon_receipts" "${headers[@]}" --data '{"store":"Walmart","total":42.17,"items":[{"name":"Tide detergent","price":6.99}],"notes":"CI sample"}' | jq -r '.[0].id'); test -n "$receipt_id"
+          watch_id=$(curl -fsS -X POST "$SB_URL/rest/v1/coupon_watch_rules" "${headers[@]}" --data '{"item_name":"Tide detergent","target_effective_price":7.00}' | jq -r '.[0].id'); test -n "$watch_id"
+          curl -fsS "$SB_URL/rest/v1/coupon_list_items?id=eq.$item_id&select=id,item_name" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" | jq -e 'length==1'
+          curl -fsS -X POST "$SB_URL/functions/v1/h38-coupon-api" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data '{"action":"assistant","text":"keep this under $80 and no more than two stores"}' | tee "$report/coupon-assistant.json" | jq -e '.ok==true and .intent.max_stores==2 and .intent.budget==80'
+          curl -fsS -X POST "$SB_URL/functions/v1/h38-coupon-api" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data '{"action":"stack","price":{"shelf_price":15.99,"sale_discount":3,"manufacturer_coupon":3,"rebate":2,"loyalty_value":1}}' | tee "$report/coupon-stack.json" | jq -e '.ok==true and (.stack.effective>6.98 and .stack.effective<7.00)'
+          curl -fsS -X POST "$SB_URL/functions/v1/h38-coupon-api" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data '{"action":"optimize","max_stores":2,"travel_cost_per_mile":0.25,"items":[{"item_name":"milk","quantity":1},{"item_name":"eggs","quantity":1}],"prices":[{"item_name":"milk","store":"Walmart","shelf_price":3.29,"distance_miles":2},{"item_name":"eggs","store":"Walmart","shelf_price":2.69,"distance_miles":2},{"item_name":"milk","store":"Target","shelf_price":2.99,"distance_miles":7},{"item_name":"eggs","store":"Target","shelf_price":2.99,"distance_miles":7}]}' | tee "$report/coupon-optimize.json" | jq -e '.ok==true and .best!=null and .best.stores|length>=1'
+          echo COUPONING_DATA_AND_OPTIMIZER_PASS | tee "$report/coupon-status.txt"
+
+      - name: Exercise every Penny and Resale source lane
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"; token=$(cat /tmp/h38-token)
+          call(){ product=$1; action=$2; timeout=$3; out="$report/${product}-${action}.json"; curl --max-time "$timeout" -fsS -X POST "$SB_URL/functions/v1/h38-${product}-api" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data "{\"action\":\"$action\",\"payload\":{\"postal\":\"55744\",\"zip\":\"55744\",\"radius\":50,\"radius_miles\":50,\"terms\":[\"tools\",\"electronics\"]}}" | tee "$out"; jq -e '.ok==true' "$out"; }
+          call penny stores 90
+          call penny hunt 150
+          call penny remodel 120
+          call resale deals 120
+          call resale facebook 120
+          call resale auctions 120
+          call resale stores 120
+          call resale garage 120
+          echo PENNY_AND_RESALE_ALL_LANES_PASS | tee "$report/source-status.txt"
+
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify H38 Deals APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"; mkdir -p "$report"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          gradle --no-daemon clean :reseller:assembleOwner | tee "$report/compile.log"
+          src=$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1); test -f "$src"
+          apk="$report/H38-Deals-3.1.0.apk"; cp "$src" "$apk"; echo "APP_APK=$apk" >> "$GITHUB_ENV"
+          sha256sum "$apk" | tee "$report/sha256.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='340' versionName='3.1.0'" "$report/badging.txt"
+          grep -Fq "application-label:'H38 Deals'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert=$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" >/dev/null
+          unzip -t "$apk" >/dev/null
+          for dex in $(unzip -Z1 "$apk" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$apk" "$dex"; done | strings > "$report/dex.txt"
+          grep -Fq 'H38_DEALS_THIN_SHELL_V310' "$report/dex.txt"
+          grep -Fq 'h38-deals-shell' "$report/dex.txt"
+          if grep -Fq 'H38_SCOUT_V263_PHYSICAL_BUNDLE_AUTHORITY' "$report/dex.txt"; then exit 1; fi
+          echo APK_THIN_SHELL_PASS | tee "$report/apk-status.txt"
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with: { project_id: ${{ secrets.FIREBASE_PROJECT_ID }} }
+
+      - name: Firebase physical install and launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v310"
+          gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
+          grep -qi PHYSICAL "$report/device.yml"
+          app="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$app" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 5m --results-history-name 'H38 Deals v3.1.0 Three Product Split' --client-details matrixLabel='H38 Deals v3.1.0 install launch' 2>&1 | tee "$report/firebase.log"
+          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!' "$report/firebase.log"; then exit 1; fi
+          echo FIREBASE_PHYSICAL_INSTALL_LAUNCH_PASS | tee "$report/firebase-status.txt"
+
+      - name: Upload fresh H38 Deals APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-deals-3.1.0
+          path: artifacts/v310/**
+          if-no-files-found: error
+          retention-days: 30
