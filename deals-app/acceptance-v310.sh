@@ -101,7 +101,10 @@ echo COUPONING_DATA_AND_OPTIMIZER_PASS | tee "$REPORT/coupon-status.txt"
 
 # 5. Every Penny and Resale API lane must answer successfully.
 call_lane(){
-  local product="$1" action="$2" timeout="$3" out="$REPORT/$product-$action.json"
+  local product="$1"
+  local action="$2"
+  local timeout="$3"
+  local out="$REPORT/$product-$action.json"
   curl --max-time "$timeout" -fsS -X POST "$SB_URL/functions/v1/h38-$product-api" \
     -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
     --data "{\"action\":\"$action\",\"payload\":{\"postal\":\"55744\",\"zip\":\"55744\",\"radius\":50,\"radius_miles\":50,\"terms\":[\"tools\",\"electronics\"]}}" \
