@@ -28,7 +28,7 @@ for page in h38-deals-shell h38-penny-web h38-resale-web h38-coupon-web; do grep
 grep -Fq 'request.isForMainFrame()' "$TRANSPORT"
 grep -Fq '"text/html"' "$TRANSPORT"
 grep -Fq 'startsWith("<!doctype html")' "$TRANSPORT"
-grep -Fq 'document.contentType===\x27text/html\x27' <(sed "s/'/\\x27/g" "$TRANSPORT") || grep -Fq "document.contentType==='text/html'" "$TRANSPORT"
+grep -Fq "document.contentType==='text/html'" "$TRANSPORT"
 grep -Fq 'AndroidH38Deals' "$MAIN"
 grep -Fq 'speakList' "$MAIN"
 ! grep -Fq 'bundledPage' "$MAIN"
@@ -38,10 +38,13 @@ grep -Fq 'Product 2 — Resale' "$ROOT/deals-app/ARCHITECTURE.md"
 grep -Fq 'Product 3 — Couponing' "$ROOT/deals-app/ARCHITECTURE.md"
 echo HOSTED_HTML_TRANSPORT_AND_ISOLATION_PASS | tee "$REPORT/source-status.txt"
 
-# 2. Hosted documents must be real HTML at the backend and valid JavaScript.
+# 2. Supabase hosted Edge Functions intentionally rewrite HTML GETs to text/plain.
+#    The body still must be a real HTML document and valid JS; Android must force
+#    only these four main-frame documents back to text/html.
 for app in deals-shell penny-web resale-web coupon-web; do
   curl --retry 3 --max-time 30 -fsSL -D "$REPORT/$app.headers" "$SB_URL/functions/v1/h38-$app" -o "$REPORT/$app.html"
-  grep -Eiq '^content-type:[[:space:]]*text/html' "$REPORT/$app.headers"
+  grep -Eiq '^content-type:[[:space:]]*text/plain' "$REPORT/$app.headers"
+  grep -Eiq '^content-security-policy:.*sandbox' "$REPORT/$app.headers"
   python3 - "$REPORT/$app.html" <<'PY'
 import pathlib,sys
 p=pathlib.Path(sys.argv[1]); t=p.read_text(encoding='utf-8').lstrip().lower()
@@ -72,7 +75,7 @@ for name in ['deals-shell','penny-web','resale-web','coupon-web']:
         if script.strip(): (out/f'{name}-{i}.js').write_text(script,encoding='utf-8')
 PY
 for f in "$REPORT"/web-js/*.js; do node --check "$f"; done
-echo HOSTED_HTML_BACKEND_AND_JS_PASS | tee "$REPORT/web-status.txt"
+echo SUPABASE_EDGE_REWRITE_AND_HTML_BODY_PASS | tee "$REPORT/web-status.txt"
 
 # 3. Auth and entitlements.
 auth="$(curl --max-time 30 -fsS -X POST "$SB_URL/auth/v1/token?grant_type=password" -H "apikey: $SB_KEY" -H 'Content-Type: application/json' --data "$(jq -nc --arg e "$SCOUT_EMAIL" --arg p "$SCOUT_PASSWORD" '{email:$e,password:$p}')")"
