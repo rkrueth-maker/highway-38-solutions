@@ -13,6 +13,7 @@ def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
+    testBuildType 'owner'
     defaultConfig {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
