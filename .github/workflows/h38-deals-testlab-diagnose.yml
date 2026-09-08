@@ -1,0 +1,76 @@
+name: H38 Deals Test Lab Sign-In Diagnostic
+
+on:
+  push:
+    branches: ['agent/private-reseller-scout']
+    paths: ['.github/workflows/h38-deals-testlab-diagnose.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.ref == 'refs/heads/agent/private-reseller-scout'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      MATRIX_ID: matrix-1n0kynx7pcu1a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Freeze private branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Fetch raw Test Lab matrix and result files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/testlab-diagnostic/raw
+          token="$(gcloud auth print-access-token)"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $token" \
+            "https://testing.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/testMatrices/${MATRIX_ID}" \
+            -o artifacts/testlab-diagnostic/matrix.json
+          jq . artifacts/testlab-diagnostic/matrix.json > artifacts/testlab-diagnostic/matrix.pretty.json
+          jq '{testMatrixId,state,outcomeSummary,invalidMatrixDetails,environmentMatrix,testExecutions,resultStorage}' artifacts/testlab-diagnostic/matrix.json | tee artifacts/testlab-diagnostic/summary.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('artifacts/testlab-diagnostic/matrix.json').read_text())
+          p=(m.get('resultStorage') or {}).get('googleCloudStorage',{}).get('gcsPath','')
+          Path('artifacts/testlab-diagnostic/gcs-path.txt').write_text(p+'\n')
+          print('GCS_PATH='+p)
+          with open(__import__('os').environ['GITHUB_ENV'],'a') as f: f.write('TEST_GCS_PATH='+p+'\n')
+          PY
+          if [[ -n "${TEST_GCS_PATH:-}" ]]; then
+            gcloud storage ls --recursive "$TEST_GCS_PATH/**" | tee artifacts/testlab-diagnostic/gcs-list.txt || true
+            gcloud storage cp --recursive "$TEST_GCS_PATH" artifacts/testlab-diagnostic/raw/ || true
+          fi
+          find artifacts/testlab-diagnostic -type f -maxdepth 12 -print | sort | tee artifacts/testlab-diagnostic/files.txt
+          grep -RniE 'failed|failure|error|exception|robo|assert|script|invalid|infra|timeout' artifacts/testlab-diagnostic/raw artifacts/testlab-diagnostic/matrix.pretty.json > artifacts/testlab-diagnostic/failure-grep.txt || true
+          cat artifacts/testlab-diagnostic/failure-grep.txt || true
+      - name: Upload raw diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-deals-testlab-matrix-1n0kynx7pcu1a-diagnostic
+          path: artifacts/testlab-diagnostic/**
+          if-no-files-found: error
+          retention-days: 30
