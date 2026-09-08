@@ -34,7 +34,7 @@ need(client,"direct('boApproveAiCompletionVisualForQuote'",'explicit owner attac
 need(client,'Approve Selected & Attach to Quote','owner approval action');
 need(client,"window.H38_QB_ACTIVE_QUOTE_ID",'saved quote connection');
 need(client,'Nothing is sent or attached until you explicitly approve a concept.','no automatic attachment boundary');
-need(client,'not proof of completed work','concept-only warning');
+need(client,'Concepts are not measurements, engineering, permit approval, customer approval, or proof of completed work.','concept-only warning');
 reject(client,'fetch(','browser fetch in Render Studio photo preparation');
 reject(client,'.click()','programmatic picker click in Render Studio');
 
