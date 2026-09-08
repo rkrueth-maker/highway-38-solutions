@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "project_ref": "jqukmwtsgcsaruucnqja",
+  "required_functions": ["h38-office-gateway","business-office-invite-activation","h38-quote-ai","h38-quote-delivery","h38-site-scanner","h38-field-note-transcription","h38-assistant-ai","h38-owner-maintenance","h38-quote-agent","h38-conversation-transcription","h38-conversation-organize","h38-media-intake-ai","h38-web-video-measurements","h38-quote-release-gate","h38-document-photo-analysis","h38-penny-api","h38-resale-api","h38-coupon-api"],
+  "forbidden_active_functions": ["amanda-direct-signin","amanda-auth-finalize"],
+  "allowed_verify_jwt_false": ["business-office-invite-activation","business-office-passwordless-login","h38-coupon-web","h38-deals-shell","h38-office-gateway","h38-owner-maintenance","h38-owner-maintenance-oidc","h38-penny-web","h38-quote-ai","h38-quote-delivery","h38-quote-options","h38-resale-web","h38-site-scanner","h38-site-visit-cleanup","h38-site-visit-context","h38-video-measurements","h38-walkthrough-transcription","reseller-owner-maintenance-v240"],
+  "reviewed_security_advisor_lints": ["authenticated_security_definer_function_executable","rls_enabled_no_policy"],
+  "blocking_security_advisor_lints": ["auth_leaked_password_protection","function_search_path_mutable"]
+}
