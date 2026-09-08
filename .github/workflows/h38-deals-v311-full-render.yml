@@ -64,7 +64,7 @@ jobs:
           path: ~/.android/debug.keystore
           key: h38-reseller-scout-owner-debug-signing-v1
 
-      - name: Build and verify H38 Deals 3.1.1 APK
+      - name: Build app, render test, and verify H38 Deals 3.1.1
         shell: bash
         run: |
           set -euo pipefail
@@ -75,13 +75,19 @@ jobs:
           export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
           export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
           cd "$GITHUB_WORKSPACE/native/h38-site-scanner/android-app"
-          gradle --no-daemon clean :reseller:assembleOwner | tee "$report/compile.log"
+          gradle --no-daemon clean :reseller:assembleOwner :reseller:assembleOwnerAndroidTest | tee "$report/compile.log"
           src=$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)
           test -f "$src"
           apk="$report/H38-Deals-3.1.1.apk"
           cp "$src" "$apk"
+          test_src=$(find reseller/build/outputs/apk/androidTest -type f -name '*.apk' | head -n1)
+          test -f "$test_src"
+          test_apk="$report/H38-Deals-3.1.1-render-test.apk"
+          cp "$test_src" "$test_apk"
           echo "APP_APK=$apk" >> "$GITHUB_ENV"
+          echo "TEST_APK=$test_apk" >> "$GITHUB_ENV"
           sha256sum "$apk" | tee "$report/sha256.txt"
+          sha256sum "$test_apk" | tee "$report/test-sha256.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee "$report/badging.txt"
           grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='341' versionName='3.1.1'" "$report/badging.txt"
           grep -Fq "application-label:'H38 Deals'" "$report/badging.txt"
@@ -91,10 +97,12 @@ jobs:
           test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" >/dev/null
           unzip -t "$apk" >/dev/null
+          unzip -t "$test_apk" >/dev/null
           for dex in $(unzip -Z1 "$apk" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$apk" "$dex"; done | strings > "$report/dex.txt"
           grep -Fq 'H38_DEALS_THIN_SHELL_V311' "$report/dex.txt"
           grep -Fq 'H38_HOSTED_HTML_TRANSPORT_V311' "$report/dex.txt"
           grep -Fq 'H38_RAW_SOURCE_GUARD_V311' "$report/dex.txt"
+          grep -Fq 'H38_HOSTED_CSP_REPAIR_V311' "$report/dex.txt"
           grep -Fq '/functions/v1/h38-deals-shell' "$report/dex.txt"
           grep -Fq '/functions/v1/h38-penny-web' "$report/dex.txt"
           grep -Fq '/functions/v1/h38-resale-web' "$report/dex.txt"
@@ -112,15 +120,26 @@ jobs:
         with:
           project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      - name: Firebase physical install and launch
+      - name: Firebase physical rendered-DOM assertion
         shell: bash
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/v311"
           gcloud firebase test android models describe "$DEVICE_MODEL" --format=yaml | tee "$report/device.yml"
           grep -qi PHYSICAL "$report/device.yml"
+          gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type instrumentation --app "$APP_APK" --test "$TEST_APK" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 4m --results-history-name 'H38 Deals v3.1.1 Render Assertion' --client-details matrixLabel='H38 Deals v3.1.1 rendered DOM assertion' 2>&1 | tee "$report/firebase-render.log"
+          grep -Eq 'Passed|PASSED' "$report/firebase-render.log"
+          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|Failed[[:space:]]*\|' "$report/firebase-render.log"; then exit 1; fi
+          echo FIREBASE_PHYSICAL_RENDERED_DOM_PASS | tee "$report/firebase-render-status.txt"
+
+      - name: Firebase physical install and launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v311"
           gcloud firebase test android run --project "$FIREBASE_PROJECT_ID" --type robo --app "$APP_APK" --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" --timeout 5m --results-history-name 'H38 Deals v3.1.1 Full Hosted Render Repair' --client-details matrixLabel='H38 Deals v3.1.1 hosted render repair' 2>&1 | tee "$report/firebase.log"
-          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!' "$report/firebase.log"; then exit 1; fi
+          grep -Eq 'Passed|PASSED' "$report/firebase.log"
+          if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|Failed[[:space:]]*\|' "$report/firebase.log"; then exit 1; fi
           echo FIREBASE_PHYSICAL_INSTALL_LAUNCH_PASS | tee "$report/firebase-status.txt"
 
       - name: Upload exact H38 Deals 3.1.1 APK and diagnostics
