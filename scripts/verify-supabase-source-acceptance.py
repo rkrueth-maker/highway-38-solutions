@@ -52,18 +52,15 @@ check('browser config has no secret/service-role key',not any(x.search(ct) for x
 migrations=sorted((ROOT/'supabase'/'migrations').glob('*.sql'))
 legacy_map=policy.get('legacy_migration_replay_versions',{})
 version_re=re.compile(r'^(\d+)_')
-noncanonical=set()
-raw_versions={}
+noncanonical=set(); raw_versions={}
 for p in migrations:
     m=version_re.match(p.name)
     if not m:
-        noncanonical.add(p.name)
-        continue
-    v=m.group(1)
-    raw_versions.setdefault(v,[]).append(p.name)
+        noncanonical.add(p.name); continue
+    v=m.group(1); raw_versions.setdefault(v,[]).append(p.name)
     if not re.fullmatch(r'\d{14}',v): noncanonical.add(p.name)
-mapped=set(legacy_map)
-missing_map=sorted(noncanonical-mapped); stale_map=sorted(mapped-{p.name for p in migrations})
+mapped=set(legacy_map); migration_names={p.name for p in migrations}
+missing_map=sorted(noncanonical-mapped); stale_map=sorted(mapped-migration_names)
 check('legacy migration replay map covers every noncanonical filename',not missing_map,', '.join(missing_map))
 check('legacy migration replay map has no stale filenames',not stale_map,', '.join(stale_map))
 replay_versions={}; replay_errors=[]
@@ -81,6 +78,16 @@ for version,names in raw_versions.items():
         for name in names:
             if name not in legacy_map: new_duplicate_files.append(name)
 check('no unapproved duplicate migration version exists',not new_duplicate_files,', '.join(sorted(new_duplicate_files)))
+
+fixture_errors=[]
+for fixture in policy.get('legacy_replay_fixtures',[]):
+    source=fixture.get('source',''); filename=fixture.get('filename','')
+    src=ROOT/source
+    m=version_re.match(filename)
+    if not src.is_file(): fixture_errors.append(f'missing {source}')
+    if not m or not re.fullmatch(r'\d{14}',m.group(1)): fixture_errors.append(f'bad filename {filename}')
+    elif m.group(1) in replay_versions: fixture_errors.append(f'version collision {filename}')
+check('CI-only historical replay fixtures are valid',not fixture_errors,'; '.join(fixture_errors))
 
 print(f"\nRESULT: {'FAIL' if FAIL else 'PASS'} — {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

@@ -2,15 +2,16 @@
 """Prepare a disposable Supabase migration tree for clean-replay tests.
 
 Historical H38 migrations predate the current 14-digit Supabase migration
-version convention. Production migration history must not be renamed in place,
-so CI copies the supabase directory and this script canonicalizes only that
-throw-away copy according to the checked-in acceptance policy.
+version convention and one historical tenant-provisioning migration depended
+on a real production owner account. Production history must not be rewritten,
+so CI fixes those constraints only inside a throw-away copy.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -41,6 +42,7 @@ def main() -> int:
 
     policy = json.loads(POLICY.read_text("utf-8"))
     mapping: dict[str, str] = policy.get("legacy_migration_replay_versions", {})
+    fixtures: list[dict[str, str]] = policy.get("legacy_replay_fixtures", [])
     files = sorted(migrations.glob("*.sql"))
     names = {p.name for p in files}
 
@@ -87,17 +89,36 @@ def main() -> int:
         print(f"REPLAY {source.name} -> {target.name}")
         source.rename(target)
 
+    for fixture in fixtures:
+        source_rel = fixture.get("source", "")
+        filename = fixture.get("filename", "")
+        source = (ROOT / source_rel).resolve()
+        target = migrations / filename
+        match = VERSION_RE.match(filename)
+        if not source.is_file():
+            fail(f"CI replay fixture source is missing: {source_rel}")
+        if not match or not CANONICAL_RE.fullmatch(match.group(1)):
+            fail(f"CI replay fixture filename must use a 14-digit version: {filename}")
+        if target.exists():
+            fail(f"CI replay fixture target already exists: {filename}")
+        print(f"FIXTURE {source_rel} -> {filename}")
+        shutil.copyfile(source, target)
+
     final_files = sorted(migrations.glob("*.sql"))
-    versions: set[str] = set()
+    versions: dict[str, str] = {}
     for p in final_files:
         match = VERSION_RE.match(p.name)
         if not match or not CANONICAL_RE.fullmatch(match.group(1)):
             fail(f"noncanonical migration remains after preparation: {p.name}")
-        if match.group(1) in versions:
-            fail(f"duplicate migration version remains after preparation: {match.group(1)}")
-        versions.add(match.group(1))
+        prior = versions.get(match.group(1))
+        if prior:
+            fail(f"duplicate migration version remains after preparation: {prior}, {p.name}")
+        versions[match.group(1)] = p.name
 
-    print(f"PASS  prepared {len(final_files)} migration(s); remapped {len(planned)} legacy filename(s)")
+    print(
+        f"PASS  prepared {len(final_files)} migration(s); "
+        f"remapped {len(planned)} legacy filename(s); injected {len(fixtures)} CI fixture(s)"
+    )
     return 0
 
 

@@ -82,5 +82,11 @@
     "202608050945_northern_lakes_customer_portal_release.sql": "20260805094500",
     "202608050955_northern_lakes_customer_payment_index.sql": "20260805095500",
     "202608051005_northern_lakes_single_logo.sql": "20260805100500"
-  }
+  },
+  "legacy_replay_fixtures": [
+    {
+      "source": "supabase/tests/fixtures/legacy_replay_platform_owner.sql",
+      "filename": "20260805063300_ci_platform_owner_fixture.sql"
+    }
+  ]
 }
