@@ -39,7 +39,14 @@ jobs:
         run: supabase start
       - name: Attack RLS and tenant boundaries
         working-directory: ${{ runner.temp }}/h38-supabase-test
-        run: supabase test db supabase/tests/database
+        run: |
+          set -euo pipefail
+          for test_file in supabase/tests/database/*.test.sql; do
+            echo "Running ${test_file}"
+            psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+              -v ON_ERROR_STOP=1 \
+              -f "${test_file}"
+          done
       - name: Stop isolated Supabase stack
         if: always()
         working-directory: ${{ runner.temp }}/h38-supabase-test
