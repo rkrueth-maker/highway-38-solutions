@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "project_ref": "jqukmwtsgcsaruucnqja",
+  "forbidden_active_functions": [
+    "amanda-direct-signin",
+    "amanda-auth-finalize"
+  ],
+  "allowed_verify_jwt_false": [
+    "business-office-invite-activation",
+    "business-office-passwordless-login",
+    "h38-coupon-web",
+    "h38-deals-shell",
+    "h38-office-gateway",
+    "h38-owner-maintenance",
+    "h38-owner-maintenance-oidc",
+    "h38-penny-web",
+    "h38-quote-ai",
+    "h38-quote-delivery",
+    "h38-quote-options",
+    "h38-resale-web",
+    "h38-site-scanner",
+    "h38-site-visit-cleanup",
+    "h38-site-visit-context",
+    "h38-video-measurements",
+    "h38-walkthrough-transcription",
+    "reseller-owner-maintenance-v240"
+  ],
+  "reviewed_security_advisor_lints": [
+    "authenticated_security_definer_function_executable",
+    "rls_enabled_no_policy"
+  ],
+  "blocking_security_advisor_lints": [
+    "auth_leaked_password_protection",
+    "function_search_path_mutable"
+  ],
+  "required_source_functions": [
+    "h38-office-gateway",
+    "business-office-invite-activation",
+    "h38-quote-ai",
+    "h38-quote-delivery",
+    "h38-site-scanner",
+    "h38-field-note-transcription",
+    "h38-assistant-ai",
+    "h38-owner-maintenance",
+    "h38-quote-agent",
+    "h38-conversation-transcription",
+    "h38-conversation-organize",
+    "h38-media-intake-ai",
+    "h38-web-video-measurements",
+    "h38-quote-release-gate",
+    "h38-document-photo-analysis"
+  ],
+  "required_live_functions": [
+    "h38-office-gateway",
+    "business-office-invite-activation",
+    "h38-quote-ai",
+    "h38-quote-delivery",
+    "h38-site-scanner",
+    "h38-field-note-transcription",
+    "h38-assistant-ai",
+    "h38-owner-maintenance",
+    "h38-quote-agent",
+    "h38-conversation-transcription",
+    "h38-conversation-organize",
+    "h38-media-intake-ai",
+    "h38-web-video-measurements",
+    "h38-quote-release-gate",
+    "h38-document-photo-analysis",
+    "h38-penny-api",
+    "h38-resale-api",
+    "h38-coupon-api"
+  ],
+  "legacy_migration_replay_versions": {
+    "20260716_customer_portal.sql": "20260716000000",
+    "20260716_customer_portal_invite_activation.sql": "20260716000001",
+    "20260716_lock_customer_portal_functions.sql": "20260716000002",
+    "20260717_customer_portal_quote_project_ux.sql": "20260717000000",
+    "20260718_customer_quote_decisions.sql": "20260718000000",
+    "20260804_business_office_foundation.sql": "20260804000000",
+    "20260804_business_office_performance_hardening.sql": "20260804000001",
+    "20260804_lock_rls_auto_enable.sql": "20260804000002",
+    "202608050945_northern_lakes_customer_portal_release.sql": "20260805094500",
+    "202608050955_northern_lakes_customer_payment_index.sql": "20260805095500",
+    "202608051005_northern_lakes_single_logo.sql": "20260805100500"
+  },
+  "legacy_replay_fixtures": [
+    {
+      "source": "supabase/tests/fixtures/legacy_replay_platform_owner.sql",
+      "filename": "20260805063300_ci_platform_owner_fixture.sql"
+    }
+  ]
+}
