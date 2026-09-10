@@ -1,6 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260910-mobile-only-nav-authority-1';
+const BUILD='20260827-mobile-physical-stability-5-fixed-nav-order';
+const PATCH='20260910-mobile-only-nav-authority-1';
 const main=document.getElementById('mainContent');
 const MOBILE='(max-width: 760px)';
 const JOBS_SOURCE=/(site-visit-wide-acceptance-final|site-visit-work-dedupe-final|site-visit-work-list-grouping-repair)\.js/i;
@@ -143,6 +144,7 @@ const mobileQuery=window.matchMedia?.(MOBILE);
 mobileQuery?.addEventListener?.('change',event=>{if(event.matches)installStableRenderNavAuthority();});
 window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   build:BUILD,
+  patch:PATCH,
   enabled:true,
   scrollSurface:'mainContent',
   nativeScrollOnly:true,
