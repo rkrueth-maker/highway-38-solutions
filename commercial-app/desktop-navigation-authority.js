@@ -1,7 +1,8 @@
 (function(){
 'use strict';
-const BUILD='20260907-desktop-navigation-authority-retired-staff-shell-1';
+const BUILD='20260910-desktop-navigation-authority-nav-integrity-loader-1';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
+const NAVIGATION_INTEGRITY_BUILD='20260910-office-navigation-integrity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
 function reconcile(){return core()?.reconcile?.()||false;}
@@ -34,9 +35,19 @@ function loadProfitabilityLayer(){
   document.body.appendChild(script);
   return true;
 }
+function loadNavigationIntegrity(){
+  if(window.H38_OFFICE_NAVIGATION_INTEGRITY||document.querySelector('script[data-h38-office-navigation-integrity]'))return false;
+  const script=document.createElement('script');
+  script.src=`./office-navigation-integrity.js?build=${NAVIGATION_INTEGRITY_BUILD}`;
+  script.async=false;
+  script.dataset.h38OfficeNavigationIntegrity='true';
+  document.body.appendChild(script);
+  return true;
+}
 function loadEmployeeWorkspace(){return false;}
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
+loadNavigationIntegrity();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:false,
   retired:true,
@@ -44,10 +55,13 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   replacement:'desktop-navigation-core.js',
   reconcile,
   loadProfitabilityLayer,
+  loadNavigationIntegrity,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
+  navigationIntegrityLoader:true,
+  navigationIntegrityBuild:NAVIGATION_INTEGRITY_BUILD,
   employeeWorkspaceLoader:false,
   employeeWorkspaceStartupAuthority:'none',
   employeeWorkspaceCompanionOnly:true,

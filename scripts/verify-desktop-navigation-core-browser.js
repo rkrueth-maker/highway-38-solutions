@@ -11,70 +11,114 @@ const officeRoot=path.join(root,'commercial-app');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'};
 function server(){return http.createServer((req,res)=>{let pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);if(pathname==='/')pathname='/index.html';const file=path.resolve(root,`.${pathname}`);if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,{'content-type':'text/plain'});res.end('Not found');return;}res.writeHead(200,{'content-type':mime[path.extname(file).toLowerCase()]||'application/octet-stream','cache-control':'no-store'});fs.createReadStream(file).pipe(res);});}
 function verifyOfficeSyntax(){const failures=[];for(const name of fs.readdirSync(officeRoot).filter(name=>name.endsWith('.js')).sort()){const file=path.join(officeRoot,name);const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8'});if(result.status!==0)failures.push(`${name}: ${(result.stderr||result.stdout||'syntax check failed').trim()}`);}if(failures.length)throw new Error(`Business Office JavaScript syntax failure(s):\n${failures.join('\n\n')}`);}
+function snapshot(){
+  const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
+  const value={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};
+  emptyCollections.forEach(name=>value[name]=[]);
+  value.customers=[{'Customer ID':'C-JOHN','Customer Name':'Johnson','Email':'johnson@example.com','Phone':'218-555-0101','Status':'Active'}];
+  value.properties=[{'Property ID':'P-JOHN','Customer ID':'C-JOHN','Property Name':'Johnson Home','Address':'129 Hwy 38','Updated Time':'2026-09-09T12:00:00Z'}];
+  value.jobs=[{'Job ID':'J-JOHN','Customer ID':'C-JOHN','Project Title':'Gutter repair','Status':'Open','Updated Time':'2026-09-09T13:00:00Z'}];
+  value.quotes=[{'Quote ID':'Q-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Project Title':'Gutters','Quote Number':'Q-101','Status':'Draft','Updated Time':'2026-09-09T14:00:00Z'}];
+  value.meetings=[{'Meeting ID':'MT-JOHN','Customer ID':'C-JOHN','Title':'Johnson follow-up','Meeting Type':'Customer Meeting','Status':'Review','Updated Time':'2026-09-09T15:00:00Z','followUps':[{'text':'Confirm gutter color'}]}];
+  value.followUps=[{'Follow-up ID':'F-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Title':'Confirm gutter color','Status':'Open','Updated Time':'2026-09-09T15:10:00Z'}];
+  value.invoices=[{'Invoice ID':'I-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Invoice Number':'INV-101','Status':'Draft','Total':1200,'Balance Due':1200,'Updated Time':'2026-09-09T16:00:00Z'}];
+  value.documents=[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Quote ID':'Q-JOHN','File Name':'gutter-before.jpg','Updated Time':'2026-09-09T14:10:00Z'}];
+  return value;
+}
+async function instrument(context){
+  await context.addInitScript(()=>{
+    const original=EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener=function(type,listener,options){if(type==='click'&&this instanceof Element)this.__h38DirectClickListener=true;return original.call(this,type,listener,options);};
+  });
+}
+async function boot(page,base){
+  const runtimeErrors=[];page.on('pageerror',error=>runtimeErrors.push(String(error.stack||error.message).replace(/\s+/g,' ')));
+  await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
+  await page.waitForFunction(()=>typeof window.openPage==='function'&&typeof window.renderNav==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
+  await page.waitForFunction(()=>window.H38_FLOW_TIGHTENING&&window.H38_MOBILE_RUNTIME_STABILITY&&window.H38_CONVERSATION_MEETING_ASSISTANT&&window.H38_OFFICE_NAVIGATION_INTEGRITY,{timeout:10000});
+  await page.evaluate(seed=>{
+    window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=seed;window.state.bridgeReady=true;
+    if(typeof window.h38SetAuthorizedChrome!=='function')throw new Error('Authorized Office chrome transition is unavailable.');
+    window.h38SetAuthorizedChrome(true);window.renderNav();window.openPage('today',false);
+  },snapshot());
+  await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!document.body.classList.contains('h38-auth-locked'),{timeout:5000});
+  await page.waitForTimeout(350);
+  if(runtimeErrors.length)throw new Error(`real Business Office startup browser error(s): ${runtimeErrors.join(' | ')}`);
+  return runtimeErrors;
+}
+async function deadButtons(page,scope='#mainContent'){
+  return page.locator(`${scope} button:visible:not([disabled])`).evaluateAll(nodes=>nodes.filter(node=>{
+    const type=String(node.getAttribute('type')||'submit').toLowerCase();
+    if(typeof node.onclick==='function'||node.__h38DirectClickListener===true)return false;
+    if((type==='submit'||type==='reset')&&node.form)return false;
+    if(window.H38_OPERATIONS_INTELLIGENCE&&node.matches('[data-h38-ops],[data-h38-asset-edit]'))return false;
+    return true;
+  }).map(node=>({text:String(node.textContent||node.getAttribute('aria-label')||'').trim().replace(/\s+/g,' ').slice(0,100),id:node.id||'',data:{...node.dataset},type:node.getAttribute('type')||'submit'})));
+}
+async function assertNoDeadButtons(page,label,scope='#mainContent'){
+  const dead=await deadButtons(page,scope);assert.deepEqual(dead,[],`${label} contains visible enabled button(s) with no proven action owner: ${JSON.stringify(dead)}`);
+}
+async function selectJohnson(page){
+  await page.waitForSelector('#h38Customer360Search',{state:'visible',timeout:4000});
+  await page.locator('#h38Customer360Search').fill('Johnson');
+  const result=page.locator('#h38Customer360Matches button:visible').filter({hasText:'Johnson'}).first();
+  await result.waitFor({state:'visible',timeout:3000});
+  const resolvedCustomerId=await result.evaluate(node=>node.dataset.c360PolicyCustomer||node.dataset.c360Customer||'');
+  assert.equal(resolvedCustomerId,'C-JOHN','visible Johnson search result must resolve to the Johnson customer record');
+  await result.click();
+  await page.waitForFunction(()=>window.H38_CUSTOMER_360?.selectedCustomerId==='C-JOHN'&&window.state?.page==='customers',{timeout:3000});
+  await page.waitForFunction(()=>document.querySelector('.h38-c360 h2')?.textContent?.trim()==='Johnson',{timeout:3000});
+  assert.equal(await page.locator('#h38MeetingDialog[open]').count(),0,'selecting a customer must not open a meeting dialog');
+  assert.equal(await page.evaluate(()=>window.state.page),'customers','selecting a customer must stay in Customer 360');
+}
+async function verifyWorkDelegatedActions(page){
+  await page.locator('#mainNav > button[data-page="work"]').click();
+  await page.waitForFunction(()=>window.state.page==='work',{timeout:3000});
+  const brief=page.locator('[data-h38-ops="brief"]').first();
+  const opportunities=page.locator('[data-h38-ops="opportunities"]').first();
+  assert.equal(await brief.count(),1,'Work must expose Pre-visit brief');
+  assert.equal(await opportunities.count(),1,'Work must expose Review follow-up work');
+  await brief.click();
+  await page.waitForSelector('#h38PreVisitBriefDialog[open]',{timeout:3000});
+  await page.locator('#h38PreVisitBriefDialog button[value="cancel"]').first().click();
+  await opportunities.click();
+  await page.waitForSelector('#h38OpportunityFinderDialog[open]',{timeout:3000});
+  await page.locator('#h38OpportunityFinderDialog button[value="cancel"]').first().click();
+}
 
 (async()=>{
   verifyOfficeSyntax();
   const local=server();await new Promise(resolve=>local.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${local.address().port}`;
   const browser=await chromium.launch({headless:true});
-  const context=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});
-  await context.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:`window.supabase=window.supabase||{createClient:function(){return{auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:function(){return new Proxy({}, {get:function(){return function(){return this;};}});},functions:{invoke:async()=>({data:null,error:null})},storage:{from:function(){return{upload:async()=>({data:null,error:null}),createSignedUrl:async()=>({data:{signedUrl:''},error:null})};}}};}};window.PDFLib=window.PDFLib||{};`}));
-  const page=await context.newPage();
-  const runtimeErrors=[];page.on('pageerror',error=>runtimeErrors.push(String(error.stack||error.message).replace(/\s+/g,' ')));
   try{
-    await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
-    await page.waitForFunction(()=>typeof window.openPage==='function'&&typeof window.renderNav==='function'&&window.PAGE_DEFS&&window.state,{timeout:10000});
-    await page.waitForFunction(()=>window.H38_FLOW_TIGHTENING&&window.H38_MOBILE_RUNTIME_STABILITY&&window.H38_CONVERSATION_MEETING_ASSISTANT,{timeout:10000});
-    await page.waitForTimeout(250);
-    if(runtimeErrors.length)throw new Error(`real Business Office startup browser error(s): ${runtimeErrors.join(' | ')}`);
-
-    await page.evaluate(()=>{
-      const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
-      const snapshot={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};
-      emptyCollections.forEach(name=>snapshot[name]=[]);
-      window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=snapshot;window.state.bridgeReady=true;
-      if(typeof window.h38SetAuthorizedChrome!=='function')throw new Error('Authorized Office chrome transition is unavailable.');
-      window.h38SetAuthorizedChrome(true);
-      window.renderNav();window.openPage('today',false);
-    });
-
-    await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!document.body.classList.contains('h38-auth-locked'),{timeout:5000});
+    const desktopContext=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});await instrument(desktopContext);
+    await desktopContext.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:`window.supabase=window.supabase||{createClient:function(){return{auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:function(){return new Proxy({}, {get:function(){return function(){return this;};}});},functions:{invoke:async()=>({data:null,error:null})},storage:{from:function(){return{upload:async()=>({data:null,error:null}),createSignedUrl:async()=>({data:{signedUrl:''},error:null})};}}};}};window.PDFLib=window.PDFLib||{};`}));
+    const page=await desktopContext.newPage();const runtimeErrors=await boot(page,base);
     await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-page]').length>=7,{timeout:5000});
-    const ownership=await page.evaluate(()=>({
-      interceptorLoaded:!!window.H38_DESKTOP_NAVIGATION_CORE,
-      interceptorScript:!!document.querySelector('script[data-h38-desktop-navigation-core]'),
-      flow:!!window.H38_FLOW_TIGHTENING,
-      mobile:!!window.H38_MOBILE_RUNTIME_STABILITY,
-      meetings:!!window.H38_CONVERSATION_MEETING_ASSISTANT,
-      ownerRole:window.state?.snapshot?.user?.roleName||'',
-      users:(window.state?.snapshot?.users||[]).length,
-      pages:Array.from(document.querySelectorAll('#mainNav > button[data-page]')).map(button=>({page:button.dataset.page,onclick:typeof button.onclick}))
-    }));
-    assert.equal(ownership.interceptorLoaded,false,'retired desktop click interceptor must not load');
-    assert.equal(ownership.interceptorScript,false,'retired desktop click interceptor script must not load');
-    assert(ownership.flow&&ownership.mobile&&ownership.meetings,'final production navigation runtimes must all be installed before acceptance');
-    assert.equal(ownership.ownerRole,'Owner','browser acceptance must use Owner authority');
-    assert.equal(ownership.users,0,'owner standalone acceptance must contain no employee or Site Manager dependency');
+    const ownership=await page.evaluate(()=>({interceptorLoaded:!!window.H38_DESKTOP_NAVIGATION_CORE,interceptorScript:!!document.querySelector('script[data-h38-desktop-navigation-core]'),flow:!!window.H38_FLOW_TIGHTENING,mobile:!!window.H38_MOBILE_RUNTIME_STABILITY,meetings:!!window.H38_CONVERSATION_MEETING_ASSISTANT,integrity:!!window.H38_OFFICE_NAVIGATION_INTEGRITY,ownerRole:window.state?.snapshot?.user?.roleName||'',users:(window.state?.snapshot?.users||[]).length,pages:Array.from(document.querySelectorAll('#mainNav > button[data-page]')).map(button=>({page:button.dataset.page,onclick:typeof button.onclick}))}));
+    assert.equal(ownership.interceptorLoaded,false,'retired desktop click interceptor must not load');assert.equal(ownership.interceptorScript,false,'retired desktop click interceptor script must not load');assert(ownership.flow&&ownership.mobile&&ownership.meetings&&ownership.integrity,'all final navigation runtimes must be installed before acceptance');assert.equal(ownership.ownerRole,'Owner');assert.equal(ownership.users,0,'owner standalone acceptance must contain no employee or Site Manager dependency');
 
-    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['money',/invoice|payment|money|balance/i],['documents',/document|file/i],['schedule',/schedule/i],['messages',/message|communication/i]];
-    const proof=[];
-    for(const [key,contentPattern] of sequence){
-      const button=page.locator(`#mainNav > button[data-page="${key}"]`);
-      assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar for Owner without a Site Manager`);
-      assert.equal(await button.evaluate(node=>typeof node.onclick),'function',`${key} must keep its native Business Office click handler`);
-      const before=(await page.locator('#mainContent').innerText()).trim();
-      await button.click();
-      await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});
-      await page.waitForTimeout(60);
-      const after=(await page.locator('#mainContent').innerText()).trim();
-      assert.notEqual(after,before,`${key} click must change the real main content`);
-      assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);
-      const active=await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page');
-      assert.equal(active,true,`${key} must become the active sidebar page`);
-      proof.push({page:key,content:after.slice(0,100)});
-    }
+    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['money',/invoice|payment|money|balance/i],['documents',/document|file/i],['schedule',/schedule/i],['messages',/message|communication/i]];const proof=[];
+    for(const [key,contentPattern] of sequence){const button=page.locator(`#mainNav > button[data-page="${key}"]`);assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar`);assert.equal(await button.evaluate(node=>typeof node.onclick),'function',`${key} must keep a direct click handler`);const before=(await page.locator('#mainContent').innerText()).trim();await button.click();await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});await page.waitForTimeout(80);const after=(await page.locator('#mainContent').innerText()).trim();assert.notEqual(after,before,`${key} click must change main content`);assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);assert.equal(await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page'),true,`${key} must become active`);await assertNoDeadButtons(page,`desktop ${key}`);proof.push({page:key,content:after.slice(0,100)});}
+    await verifyWorkDelegatedActions(page);
 
-    if(runtimeErrors.length)throw new Error(`real sidebar sequence browser error(s): ${runtimeErrors.join(' | ')}`);
-    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,quoteMoneyDocumentsRendered:true,sequence:proof,ownership,checks:['all Business Office JavaScript syntax','real Business Office startup','Owner snapshot with zero users/Site Managers','flow-tightening installed','mobile runtime installed','Meetings integration installed','retired desktop interceptor absent','native sidebar onclicks preserved','Customers → Meetings → Jobs → Quotes → Money → Documents → Schedule → Messages','main content changes']},null,2));
+    await page.locator('#mainNav > button[data-page="customers"]').click();await page.waitForFunction(()=>window.state.page==='customers');await selectJohnson(page);
+    const customerText=(await page.locator('#mainContent').innerText()).trim();assert(/Johnson/.test(customerText),'selected Johnson customer must render');
+    const meetingAction=page.locator('[data-c360-action="meeting"]');assert.equal(await meetingAction.count(),1,'Customer 360 must expose Meeting as a separate explicit action');await meetingAction.click();await page.waitForSelector('#h38MeetingDialog[open]',{timeout:3000});assert.equal(await page.evaluate(()=>window.state.page),'customers','explicit Meeting may open its dialog but must not replace the selected customer page before creation');await page.evaluate(()=>document.getElementById('h38MeetingDialog')?.close());
+    await assertNoDeadButtons(page,'desktop selected customer');await assertNoDeadButtons(page,'desktop topbar','.topbar');
+    assert.deepEqual(runtimeErrors,[],'desktop browser should have no page errors');await desktopContext.close();
+
+    const mobileContext=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});await instrument(mobileContext);
+    await mobileContext.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:`window.supabase=window.supabase||{createClient:function(){return{auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:function(){return new Proxy({}, {get:function(){return function(){return this;};}});},functions:{invoke:async()=>({data:null,error:null})},storage:{from:function(){return{upload:async()=>({data:null,error:null}),createSignedUrl:async()=>({data:{signedUrl:''},error:null})};}}};}};window.PDFLib=window.PDFLib||{};`}));
+    const phone=await mobileContext.newPage();const phoneErrors=await boot(phone,base);await phone.waitForFunction(()=>document.getElementById('mainNav')?.classList.contains('h38-five-primary-nav'),{timeout:5000});await phone.waitForTimeout(500);
+    assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,'mobile primary nav must not contain a late injected sixth Meetings button');
+    const customerButton=phone.locator('#mainNav > button[data-h38-primary="customers"]');assert.equal(await customerButton.count(),1,'mobile Customers primary button must exist');const hit=await customerButton.evaluate(node=>{const r=node.getBoundingClientRect(),target=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button');return{primary:target?.dataset?.h38Primary||'',page:target?.dataset?.page||'',text:String(target?.textContent||'').trim()};});assert.equal(hit.primary,'customers',`physical center of Customers must hit Customers, got ${JSON.stringify(hit)}`);await customerButton.click();await phone.waitForFunction(()=>window.state.page==='customers',{timeout:3000});await selectJohnson(phone);assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,'selecting a customer must not inject Meetings into mobile primary nav');await assertNoDeadButtons(phone,'mobile selected customer');
+
+    for(const key of ['today','work','customers','messages']){const button=phone.locator(`#mainNav > button[data-h38-primary="${key}"]`);assert.equal(await button.count(),1,`mobile ${key} primary button must exist`);await button.click();await phone.waitForFunction(expected=>window.state.page===expected,key,{timeout:3000});await phone.waitForTimeout(80);assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,`mobile ${key} must not grow a sixth Meetings button`);await assertNoDeadButtons(phone,`mobile ${key}`);}
+    for(const key of ['quotes','documents','money','schedule']){await phone.locator('#mainNav > button[data-h38-primary="more"]').click();await phone.waitForSelector('#h38PrimaryMoreDialog[open]',{timeout:3000});const button=phone.locator(`#h38PrimaryMoreDialog [data-more-page="${key}"]`);assert.equal(await button.count(),1,`More must expose ${key}`);await button.click();await phone.waitForFunction(expected=>window.state.page===expected,key,{timeout:3000});await phone.waitForTimeout(80);assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,`mobile ${key} must not grow a sixth Meetings button`);await assertNoDeadButtons(phone,`mobile ${key}`);}
+    await assertNoDeadButtons(phone,'mobile topbar','.topbar');assert.deepEqual(phoneErrors,[],'mobile browser should have no page errors');await mobileContext.close();
+
+    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,delegatedWorkActionsVerified:true,desktopSequence:proof,checks:['all Business Office JavaScript syntax','real Office desktop and mobile startup','Owner snapshot with zero users/Site Managers','all desktop sidebar destinations','visible Johnson Customer 360 search-result click remains Customers','Meeting is explicit separate customer action','Pre-visit brief delegated action opens dialog','Review follow-up work delegated action opens dialog','mobile Customers physical hit target','no late sixth Meetings button on mobile','mobile primary navigation','More routes to Quotes/Documents/Money/Schedule','visible enabled buttons have proven action ownership']},null,2));
   }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1);});
