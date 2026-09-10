@@ -1,20 +1,56 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-1';
+const BUILD='20260910-desktop-navigation-final-authority-2';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
+const OFFICE_REQUIREMENTS=Object.freeze({
+  customers:['viewCustomers','manageWork','manageQuotes'],
+  meetings:['viewCustomers','manageCommunications','manageWork'],
+  people:['manageUsers'],
+  work:['manageWork','viewAssignedWork','manageAssignedWork'],
+  quotes:['manageQuotes','manageWork'],
+  measure:['manageField','manageQuotes','captureEvidence'],
+  schedule:['manageSchedule','manageWork','viewAssignedWork'],
+  messages:['manageCommunications'],
+  field:['manageField','viewAssignedWork','captureEvidence'],
+  inventory:['manageInventory','useInventory'],
+  fleet:['manageAssets','useAssets','manageMaintenance'],
+  money:['manageFinancial','viewFinancial'],
+  accounting:['manageFinancial','viewFinancial'],
+  payroll:['manageFinancial'],
+  tax:['manageFinancial'],
+  documents:['manageWork','manageQuotes','manageField','captureEvidence'],
+  social:['manageSocial'],
+  controls:['manageSettings'],
+  reports:['manageFinancial','viewFinancial','manageSettings'],
+  settings:['manageSettings','manageUsers']
+});
 const inheritedRenderNav=typeof window.renderNav==='function'?window.renderNav:null;
 const inheritedAllowedPages=typeof window.allowedPages==='function'?window.allowedPages:null;
 function desktop(){return !window.matchMedia?.('(max-width: 760px)').matches;}
 function officeState(){try{return window.state||(typeof state!=='undefined'?state:null);}catch(_){return window.state||null;}}
 function definitions(){try{return window.PAGE_DEFS||(typeof PAGE_DEFS!=='undefined'?PAGE_DEFS:{});}catch(_){return window.PAGE_DEFS||{};}}
+function roleName(user={}){return String(user.roleId||user.roleName||user.role||'').trim().toLowerCase();}
+function can(user,capability){if(!user)return false;if(user.owner===true||user.permissions?.all===true)return true;return user.permissions?.[capability]===true;}
+function canonicalOfficePages(){
+  const pages=Array.isArray(window.H38_OFFICE_PAGES)?window.H38_OFFICE_PAGES.slice():[];
+  if(!pages.includes('meetings')){const at=Math.max(0,pages.indexOf('customers')+1);pages.splice(at,0,'meetings');}
+  const defs=definitions();
+  if(defs.assistant&&!pages.includes('assistant')){const at=pages.indexOf('settings');pages.splice(at>=0?at:pages.length,0,'assistant');}
+  return Array.from(new Set(pages));
+}
 function allowedPages(){
-  let pages=[];
-  try{pages=Array.isArray(inheritedAllowedPages?.())?inheritedAllowedPages():[];}catch(_){pages=[];}
-  const s=officeState(),user=s?.snapshot?.user||{};
-  const role=String(user.roleId||user.roleName||user.role||'').trim().toLowerCase();
-  if(role==='staff')pages=pages.filter(page=>page!=='assistant');
-  return pages;
+  const s=officeState(),user=s?.snapshot?.user;
+  if(!user)return[];
+  if((s.shell||'office')!=='office'){
+    try{return Array.isArray(inheritedAllowedPages?.())?inheritedAllowedPages():[];}catch(_){return[];}
+  }
+  const role=roleName(user);
+  return canonicalOfficePages().filter(page=>{
+    if(page==='assistant')return role!=='staff';
+    const requirements=OFFICE_REQUIREMENTS[page];
+    return !requirements||requirements.some(capability=>can(user,capability));
+  });
 }
 function updateActive(page=officeState()?.page){
   const nav=document.getElementById('mainNav');if(!nav)return;
@@ -46,6 +82,8 @@ function renderNav(){
   if(!desktop())return inheritedRenderNav?.apply(this,arguments);
   return renderDesktopNavigation();
 }
+allowedPages.__h38Meetings=true;
+allowedPages.__h38FinalDesktopAuthority=true;
 renderNav.__h38Meetings=true;
 renderNav.__h38FinalDesktopAuthority=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
@@ -78,6 +116,7 @@ function loadProfitabilityLayer(){
 }
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
+window.allowedPages=allowedPages;
 window.renderNav=renderNav;
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
@@ -90,6 +129,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   reconcile,
   renderDesktopNavigation,
   allowedPages,
+  canonicalOfficePages,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
@@ -104,6 +144,8 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   staffUsesPermissionFilteredNavigation:true,
   staffAssistantHidden:true,
   staffNavLoadMask:false,
+  canonicalOfficePermissionResolver:true,
+  wrapperChainPermissionDependency:false,
   mutatesNavigation:true,
   capturesClicks:false,
   createsProxyButtons:false,
