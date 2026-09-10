@@ -30,6 +30,6 @@ check('no customer send operation',!/(sendQuote|deliverQuote|SEND_CUSTOMER|sendC
 check('no payment operation',!/(chargeCustomer|PROCESS_PAYMENT|createPaymentIntent)/.test(layer));
 check('no purchase operation',!/(PURCHASE_|placeOrder|buyNow)/.test(layer));
 check('no queueOperation writes',!layer.includes('queueOperation('));
-check('loader still retired from navigation ownership',loader.includes('retired:true')&&loader.includes('mutatesNavigation:false')&&loader.includes('capturesClicks:false'));
+check('final navigation authority stays non-intercepting',loader.includes('enabled:true')&&loader.includes('stableAccessSignature:true')&&loader.includes('samePermissionRefreshPreservesNodes:true')&&loader.includes('capturesClicks:false')&&loader.includes('createsProxyButtons:false'));
 if(failures.length){console.error(JSON.stringify({status:'FAIL',failures},null,2));process.exit(1);}
 console.log(JSON.stringify({status:'PASS',features:['Profit Guard','job back-costing','Business Health','profit leak detector','90-day owner plan'],delivery:'late LIVE_FIRST loader with deferred input safety',externalActions:false},null,2));
