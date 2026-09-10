@@ -1,11 +1,9 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-authority-nav-integrity-loader-1';
+const BUILD='20260910-desktop-navigation-authority-retired-2';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
-const NAVIGATION_INTEGRITY_BUILD='20260910-office-navigation-integrity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
-function reconcile(){return core()?.reconcile?.()||false;}
+function reconcile(){return false;}
 function installProfitabilityInputSafety(){
   if(document.documentElement.dataset.h38ProfitabilityInputSafety==='true')return false;
   document.documentElement.dataset.h38ProfitabilityInputSafety='true';
@@ -20,9 +18,7 @@ function installProfitabilityInputSafety(){
       laborBurdenPct:document.getElementById('h38ProfitLaborBurden')?.value,
       overheadPct:document.getElementById('h38ProfitOverhead')?.value
     });
-    setTimeout(()=>{
-      window.dispatchEvent(new Event('h38:business-snapshot-updated'));
-    },0);
+    setTimeout(()=>window.dispatchEvent(new Event('h38:business-snapshot-updated')),0);
   },true);
   return true;
 }
@@ -35,24 +31,15 @@ function loadProfitabilityLayer(){
   document.body.appendChild(script);
   return true;
 }
-function loadNavigationIntegrity(){
-  if(window.H38_OFFICE_NAVIGATION_INTEGRITY||document.querySelector('script[data-h38-office-navigation-integrity]'))return false;
-  const script=document.createElement('script');
-  script.src=`./office-navigation-integrity.js?build=${NAVIGATION_INTEGRITY_BUILD}`;
-  script.async=false;
-  script.dataset.h38OfficeNavigationIntegrity='true';
-  document.body.appendChild(script);
-  return true;
-}
+function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
-loadNavigationIntegrity();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:false,
   retired:true,
   build:BUILD,
-  replacement:'desktop-navigation-core.js',
+  replacement:'app-01.js canonical renderNav',
   reconcile,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
@@ -60,17 +47,13 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
-  navigationIntegrityLoader:true,
-  navigationIntegrityBuild:NAVIGATION_INTEGRITY_BUILD,
+  navigationIntegrityLoader:false,
   employeeWorkspaceLoader:false,
   employeeWorkspaceStartupAuthority:'none',
   employeeWorkspaceCompanionOnly:true,
   staffUsesCanonicalOfficeNavigation:true,
   staffUsesPermissionFilteredNavigation:true,
   staffNavLoadMask:false,
-  staffInternalIdentityHandledByEmployeeRenderer:false,
-  staffWorkRendererFenceHandledByEmployeeRenderer:false,
-  staffMainContentCleanupObserver:false,
   mutatesNavigation:false,
   capturesClicks:false,
   createsProxyButtons:false,
