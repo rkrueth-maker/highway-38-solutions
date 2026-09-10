@@ -1,0 +1,50 @@
+name: Quote to Payment Owner Standalone
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/run-owner-maintenance-regression.js'
+      - 'scripts/verify-owner-standalone-quote-to-payment.js'
+      - '.github/workflows/owner-maintenance-regression.yml'
+      - '.github/workflows/quote-to-payment-owner-standalone.yml'
+      - 'apps-script/business-office/BusinessOffice_ModuleContract.gs'
+      - 'apps-script/core-engine/owner-portal-next/Portal_Application_UX.js'
+      - 'supabase/functions/h38-quote-release-gate/index.ts'
+      - 'customer-portal.html'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/run-owner-maintenance-regression.js'
+      - 'scripts/verify-owner-standalone-quote-to-payment.js'
+      - '.github/workflows/owner-maintenance-regression.yml'
+      - '.github/workflows/quote-to-payment-owner-standalone.yml'
+      - 'apps-script/business-office/BusinessOffice_ModuleContract.gs'
+      - 'apps-script/core-engine/owner-portal-next/Portal_Application_UX.js'
+      - 'supabase/functions/h38-quote-release-gate/index.ts'
+      - 'customer-portal.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify owner standalone quote-to-payment contract
+        run: node scripts/verify-owner-standalone-quote-to-payment.js
+      - name: Syntax check quote regression harness
+        run: node --check scripts/run-owner-maintenance-regression.js
+      - name: Confirm production-writing regression stays manual-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^  workflow_dispatch:' .github/workflows/owner-maintenance-regression.yml
+          ! grep -q '^  push:' .github/workflows/owner-maintenance-regression.yml
+          ! grep -q '^  pull_request:' .github/workflows/owner-maintenance-regression.yml
