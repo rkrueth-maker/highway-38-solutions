@@ -25,7 +25,7 @@ function verifyArchitectureContract(){
   assert(!guard.includes("addEventListener('click'")&&!guard.includes('stopImmediatePropagation'),'retired Customer guard must not intercept clicks');
   const liveFirst=(worker.match(/const LIVE_FIRST=new Set\(\[([^]*?)\]\);/)||[])[1]||'';
   assert(liveFirst.includes("'app-01.js'")&&liveFirst.includes("'app-02.js'"),'canonical router files must be network/live-first for warm clients');
-  assert(worker.includes("CACHE_NAME='h38-business-office-20260910-single-navigation-1'"),'single-navigation deployment must rotate the service-worker cache');
+  assert(worker.includes("CACHE_NAME='h38-business-office-20260910-nav-core-2'"),'single-navigation deployment must rotate the service-worker cache using the accepted nav-core generation');
 }
 function snapshot(){
   const emptyCollections=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
