@@ -6,16 +6,13 @@
   const Bridge=window.H38Bridge;
   if(!auth || auth.enabled!==true || !Bridge || !Bridge.prototype || !window.supabase)return;
 
-  let inviteClient=null;
   const previousRequest=Bridge.prototype.request;
 
   function client(){
-    if(inviteClient)return inviteClient;
-    inviteClient=window.supabase.createClient(config.url,config.publishableKey,{
+    return window.H38_SUPABASE_SHARED_CLIENT?.ensure?.() || window.supabase.createClient(config.url,config.publishableKey,{
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},
       global:{headers:{'x-client-info':'h38-business-office-invite-activation-client'}}
     });
-    return inviteClient;
   }
   function text(value){return String(value==null?'':value);}
   function requestedBusinessKey(){
@@ -57,7 +54,7 @@
 
     const explanation=document.createElement('p');
     explanation.className='muted small';
-    explanation.textContent='New client owner or staff? Enter the invited email and request the secure activation email. No password is handled by Highway 38.';
+    explanation.textContent='Invited owner, administrator, site manager, foreman, or employee? Enter the exact invited email and request the secure activation email. No password is handled by Highway 38.';
     form.appendChild(explanation);
 
     button.onclick=async()=>{
@@ -78,8 +75,7 @@
     };
   }
 
-  const observer=new MutationObserver(()=>installActivationControl());
-  observer.observe(document.documentElement,{childList:true,subtree:true});
+  addEventListener('h38:auth-panel-rendered',installActivationControl);
   addEventListener('DOMContentLoaded',installActivationControl,{once:true});
   installActivationControl();
 

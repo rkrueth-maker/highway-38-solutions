@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const BUILD = '20260810-owner-login-one-step-2040';
+  const BUILD = '20260910-office-access-1';
   let scheduled = false;
   let invitationTimer = 0;
   let nativeAutofillDisabled = false;
@@ -79,7 +79,7 @@
     const secret = String(password?.value || '');
     if (!form || !username || !secret) return;
     automaticSubmitBusy = true;
-    if (help) help.textContent = 'Saved owner login found. Signing in…';
+    if (help) help.textContent = 'Saved H38 Office login found. Signing in…';
     requestAnimationFrame(() => {
       try {
         if (typeof form.requestSubmit === 'function') form.requestSubmit();
@@ -115,17 +115,17 @@
     if (isAndroidApp() && !button) {
       button = document.createElement('button');
       button.id = 'h38UseSavedLogin'; button.type = 'button'; button.className = 'secondary h38-saved-login';
-      button.textContent = '🔐 Sign in with saved owner login'; button.addEventListener('click', requestAutofill);
+      button.textContent = '🔐 Sign in with saved H38 Office login'; button.addEventListener('click', requestAutofill);
       const actions = form.querySelector('.welcome-actions');
       if (actions) actions.appendChild(button); else form.appendChild(button);
     } else if (!isAndroidApp() && button) { button.remove(); button = null; }
 
     let help = document.getElementById('h38AutofillHelp');
     if (!help) { help=document.createElement('p'); help.id='h38AutofillHelp'; help.className='muted h38-autofill-help'; form.appendChild(help); }
-    help.textContent = isAndroidApp() ? 'H38 will use the saved owner login on this phone and sign in automatically.' : 'Enter your email and password, then tap Sign in.';
+    help.textContent = isAndroidApp() ? 'H38 will use the saved Office login on this phone and sign in automatically.' : 'Enter your Office email and password, then tap Sign in securely.';
 
     window.addEventListener('h38:saved-login-filled', () => {
-      if (help) help.textContent = 'Saved owner login filled. Signing in…';
+      if (help) help.textContent = 'Saved H38 Office login filled. Signing in…';
       submitSavedLogin(form,email,password,help);
     });
     window.addEventListener('h38:saved-login-unavailable', () => {
@@ -142,13 +142,12 @@
   function schedule() { if (scheduled) return; scheduled = true; requestAnimationFrame(enhance); }
   function start() {
     disableWebAutofillInterference();
-    const main = document.getElementById('mainContent');
-    if (main) new MutationObserver(schedule).observe(main,{childList:true,subtree:true});
+    window.addEventListener('h38:auth-panel-rendered',schedule);
     if (invitationPending() && !invitationTimer) invitationTimer = setInterval(enforceInvitationPasswordSetup, 150);
     schedule();
   }
 
-  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill,automaticSavedOwnerFill:true,automaticSavedOwnerSignIn:true};
+  window.H38_AUTH_AUTOFILL = {build:BUILD,request:requestAutofill,automaticSavedOfficeFill:true,automaticSavedOfficeSignIn:true,automaticSavedOwnerFill:true,automaticSavedOwnerSignIn:true};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();

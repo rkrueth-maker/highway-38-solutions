@@ -120,7 +120,7 @@ function startFallbackWatch(){
     if(stable<2)return;
     stopFallbackWatch();
     const help=document.getElementById('h38AutofillHelp');
-    if(help)help.textContent='Saved owner login filled. Signing in…';
+    if(help)help.textContent='Saved H38 Office login filled. Signing in…';
     try{if(typeof form.requestSubmit==='function')form.requestSubmit();else form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));}catch(_){}
   },140);
 }
