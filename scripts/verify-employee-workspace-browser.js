@@ -19,10 +19,11 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     <div id="toast" class="hidden"></div><div id="h38ErpBody"></div>
   </body></html>`);
   await page.evaluate(({role,authForm,deferredRole,permissions})=>{
-    const pageDefs={today:['🏠','Today'],customers:['👥','Customers'],work:['🧰','Work'],quotes:['🧾','Quotes'],measure:['📐','Measure'],schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Field'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],money:['💵','Money'],documents:['📁','Documents'],social:['📣','Social'],ai:['✨','H38 AI'],settings:['⚙️','Settings']};
-    const officePages=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
-    const requirements={customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],settings:['manageSettings','manageUsers']};
+    const pageDefs={today:['🏠','Today'],customers:['👥','Customers'],meetings:['📋','Meetings'],work:['🧰','Work'],quotes:['🧾','Quotes'],measure:['📐','Measure'],schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Field'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],money:['💵','Money'],documents:['📁','Documents'],social:['📣','Social'],ai:['✨','H38 AI'],settings:['⚙️','Settings']};
+    const officePages=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
+    const requirements={customers:['viewCustomers','manageWork','manageQuotes'],meetings:['viewCustomers','manageCommunications','manageWork'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],settings:['manageSettings','manageUsers']};
     window.PAGE_DEFS=pageDefs;
+    window.H38_OFFICE_PAGES=officePages;
     const snapshot=authForm||deferredRole?null:{user:{roleId:role,roleName:role,permissions:role==='staff'?permissions:{all:true}},business:{businessId:'B-1',businessName:'Test Business'}};
     window.state={shell:'office',page:'today',businessId:'B-1',snapshot};
     window.__calls=[];
@@ -90,7 +91,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     assert(!(await page.locator('body').evaluate(el=>el.classList.contains('h38-employee-mode'))),'Staff must not be switched into employee-only body mode.');
 
     const navText=await page.locator('#mainNav').innerText();
-    for(const label of ['Today','Customers','Work','Quotes','Schedule','Messages','Field','Inventory','Fleet','Documents'])
+    for(const label of ['Today','Customers','Meetings','Work','Quotes','Schedule','Messages','Field','Inventory','Fleet','Documents'])
       assert(navText.includes(label),`Canonical Staff navigation must include ${label}.`);
     for(const label of ['Money','Social','Settings'])assert(!navText.includes(label),`Staff navigation must not expose unpermitted ${label}.`);
     assert(!navText.includes('My Tasks'),'Replacement two-button employee navigation must be gone.');
