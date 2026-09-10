@@ -13,6 +13,7 @@ const startup=read('commercial-app/supabase-final-startup.js');
 const loader=read('commercial-app/desktop-navigation-authority.js');
 const auth=read('commercial-app/supabase-auth.js');
 const office=read('commercial-app/app-01.js');
+const parity=read('commercial-app/app-19.js');
 const worker=read('commercial-app/service-worker.js');
 
 for(const needle of [
@@ -34,11 +35,14 @@ expect(!hardening.includes("array['owner','administrator','staff']"),'Direct adm
 for(const needle of [
   'H38_EMPLOYEE_WORKSPACE','H38_SUPABASE_SHARED_CLIENT','business_office_employee_workspace','business_office_clock_in',
   'business_office_clock_out','business_office_employee_update_task','business_office_invite_employee','business_office_team_directory',
-  'Invited employee? Create account','.auth.signUp','Task Manager assigns work','canonicalStartupAuthority:false','companionOnly:true',
+  'Add &amp; send activation','business-office-invite-activation','Site manager','canonicalStartupAuthority:false','companionOnly:true',
   'desktopShellAuthority:false','autoRenderForStaff:false','preservesCanonicalOfficeNavigation:true','genericWorkRouteUsedByStaff:true',
   'delayedRolePolling:false','sameSupabaseAccountAndRecords:true','assignedWorkOnly:true','automaticInvitationEmail:false',
-  'automaticApproval:false','automaticCustomerSending:false','automaticPurchasing:false','automaticPayment:false','automaticScheduling:false'
+  'userRequestedInvitationEmail:true','duplicateActivationGuard:true','directAuthSignup:false','siteManagerProfile:true','automaticApproval:false',
+  'automaticCustomerSending:false','automaticPurchasing:false','automaticPayment:false','automaticScheduling:false'
 ])includes(ui,needle,`Employee companion contract missing ${needle}`);
+expect(!ui.includes('.auth.signUp'),'Employee companion must not expose browser-side Auth user creation.');
+expect(!ui.includes('Create employee account'),'Employee companion must use invitation-bound activation instead of public account creation.');
 expect(!ui.includes('function installNavigation('),'Employee companion must not install a second navigation authority.');
 expect(!ui.includes('window.openPage=function'),'Employee companion must not replace canonical openPage.');
 expect(!ui.includes('window.renderNav=function'),'Employee companion must not replace canonical renderNav.');
@@ -46,6 +50,12 @@ expect(!ui.includes('window.renderWork=function'),'Employee companion must not r
 expect(!ui.includes("document.body.classList.add('h38-employee-mode')"),'Employee companion must not switch the whole Office into employee-only mode.');
 expect(!ui.includes('renderEmployeePage('),'Employee companion must not own a separate full-page Staff renderer.');
 expect(!ui.includes('STAFF_PAGES'),'Employee companion must not define a replacement two-page Staff navigation.');
+
+for(const needle of [
+  "people:['manageUsers']",'h38LoadTeamAccessCompanion','H38_TEAM_ACCESS_COMPANION_BUILD',
+  'h38TeamAccessMount','employee-workspace.js?build=${H38_TEAM_ACCESS_COMPANION_BUILD}'
+])includes(parity,needle,`Canonical People route missing ${needle}`);
+expect(!parity.includes("people:['manageUsers','manageField']"),'Staff field access must not expose employee/payroll administration.');
 
 for(const needle of [
   "if (role === 'staff') return {","viewCustomers: true, manageWork: true, viewAssignedWork: true, manageAssignedWork: true",
@@ -81,5 +91,6 @@ console.log(JSON.stringify({
   status:'PASS',staffShell:'canonical Business Office',staffNavigation:'permission-filtered allowedPages',
   employeeWorkspace:'non-owning companion',employeeAutoLoad:false,employeeDesktopTakeover:false,
   taskManagerAssignmentAuthority:true,employeeSelfPunch:true,ownerAdminTeamAccess:true,
+  siteManagerProfile:true,directAuthSignup:false,invitationBoundActivation:true,duplicateActivationGuard:true,
   directAdminDataHiddenFromStaff:true,automaticInvitationEmail:false,automaticExternalActions:false
 },null,2));

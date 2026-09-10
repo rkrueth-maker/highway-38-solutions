@@ -61,7 +61,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
         if(name==='business_office_invite_employee')return {data:{email:args.p_email,displayName:args.p_display_name||args.p_email},error:null};
         return {data:{},error:null};
       },
-      auth:{signUp:async(payload)=>{window.__calls.push({type:'signup',payload});return {data:{session:null,user:{email:payload.email}},error:null};}}
+      functions:{invoke:async(name,payload)=>{window.__calls.push({type:'function',name,payload});return {data:{status:'PASS',message:'Activation requested.'},error:null};}}
     };
     window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>db};
     window.H38_ACTIVE_BRIDGE={connect:()=>window.__calls.push({type:'connect'})};
@@ -121,29 +121,29 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     await installHarness(owner,{role:'owner'});
     await owner.waitForSelector('#h38TeamAccess',{state:'attached'});
     const teamText=await owner.locator('#h38TeamAccess').innerText();
-    assert(teamText.includes('normal Business Office pages allowed by their role'),'Team Access must describe canonical role-filtered Office behavior.');
-    assert(teamText.includes('Task Manager assigns work'),'Task Manager must remain assignment authority.');
+    assert(teamText.includes('exact-email H38 Office membership'),'Team Access must describe exact-email membership preparation.');
+    assert(teamText.includes('assigned-work Staff access'),'Team Access must explain the Site Manager and Employee authorization boundary.');
     await owner.locator('#h38EmployeeName').fill('Bob Builder');
     await owner.locator('#h38EmployeeEmail').fill('bob@example.com');
-    await owner.locator('#h38EmployeeTitle').fill('Installer');
-    await owner.locator('#h38EmployeeInviteForm button[type="submit"]').click();
-    await owner.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_invite_employee'));
+    await owner.locator('#h38EmployeeAccessProfile').selectOption('site-manager');
+    await owner.locator('#h38EmployeeTitle').fill('Crew lead');
+    await owner.evaluate(()=>{const form=document.getElementById('h38EmployeeInviteForm');form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));});
+    await owner.waitForFunction(()=>window.__calls.some(call=>call.type==='function'&&call.name==='business-office-invite-activation'));
+    assert((await owner.evaluate(()=>window.__calls.filter(call=>call.name==='business_office_invite_employee').length))===1,'One owner action must prepare only one membership request.');
+    assert((await owner.evaluate(()=>window.__calls.filter(call=>call.type==='function'&&call.name==='business-office-invite-activation').length))===1,'One owner action must request only one activation email.');
     assert((await owner.evaluate(()=>window.__calls.find(call=>call.name==='business_office_invite_employee')?.args?.p_email))==='bob@example.com','Owner Team Access must preserve exact-email membership preparation.');
+    assert((await owner.evaluate(()=>window.__calls.find(call=>call.name==='business_office_invite_employee')?.args?.p_job_title))==='Site Manager · Crew lead','Site Manager profile must remain an explicit presentation label on Staff access.');
+    assert((await owner.evaluate(()=>window.__calls.find(call=>call.type==='function')?.name))==='business-office-invite-activation','Owner action must request the invitation-bound activation function.');
     await ownerContext.close();
 
     const signupContext=await browser.newContext({viewport:{width:390,height:844}});
     const signup=await signupContext.newPage();
     await installHarness(signup,{authForm:true});
-    await signup.waitForSelector('[data-h38-show-signup]');
-    await signup.locator('[data-h38-show-signup]').click();
-    await signup.locator('#h38EmployeeSignupEmail').fill('invited@example.com');
-    await signup.locator('#h38EmployeeSignupPassword').fill('very-secure-123');
-    await signup.locator('#h38EmployeeSignupConfirm').fill('very-secure-123');
-    await signup.locator('#h38EmployeeSignupForm button[type="submit"]').click();
-    await signup.waitForFunction(()=>window.__calls.some(call=>call.type==='signup'));
-    assert((await signup.evaluate(()=>window.__calls.find(call=>call.type==='signup')?.payload?.email))==='invited@example.com','Invited employee signup must preserve exact email.');
+    assert(await signup.locator('[data-h38-show-signup],#h38EmployeeSignupForm').count()===0,'Employee companion must not expose browser-side account creation.');
+    assert(await signup.evaluate(()=>window.H38_EMPLOYEE_WORKSPACE.directAuthSignup===false),'Employee companion must advertise invitation-bound Auth only.');
+    assert(!(await signup.evaluate(()=>window.__calls.some(call=>call.type==='signup'))),'No browser Auth signup call may occur.');
     await signupContext.close();
 
-    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,employeeSignup:true},null,2));
+    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,managerTeamAccess:true,siteManagerProfile:true,invitationActivation:true,duplicateActivationGuard:true,directAuthSignup:false},null,2));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});

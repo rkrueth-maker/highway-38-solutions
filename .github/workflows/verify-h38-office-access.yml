@@ -1,0 +1,86 @@
+name: Verify H38 Office access
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/styles.css'
+      - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-startup.js'
+      - 'commercial-app/supabase-invite-activation.js'
+      - 'commercial-app/auth-autofill.*'
+      - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/app-19.js'
+      - 'commercial-app/owner-flow-polish.js'
+      - 'commercial-app/service-worker.js'
+      - 'customer-portal.html'
+      - 'customer-portal-supabase.js'
+      - 'ux-unified-public.css'
+      - 'commercial.css'
+      - 'platform-unified.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/verify-h38-office-access*.js'
+      - 'scripts/verify-employee-workspace*.js'
+      - '.github/workflows/verify-h38-office-access.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/styles.css'
+      - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-startup.js'
+      - 'commercial-app/supabase-invite-activation.js'
+      - 'commercial-app/auth-autofill.*'
+      - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/app-19.js'
+      - 'commercial-app/owner-flow-polish.js'
+      - 'commercial-app/service-worker.js'
+      - 'customer-portal.html'
+      - 'customer-portal-supabase.js'
+      - 'ux-unified-public.css'
+      - 'commercial.css'
+      - 'platform-unified.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/verify-h38-office-access*.js'
+      - 'scripts/verify-employee-workspace*.js'
+      - '.github/workflows/verify-h38-office-access.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify Office and customer access contracts
+        run: |
+          node scripts/verify-h38-office-access.js
+          node scripts/verify-supabase-business-office-auth.js
+          node scripts/verify-supabase-business-office-auth-runtime.js
+          node scripts/verify-employee-workspace.js
+          node scripts/verify-customer-portal-security.js
+
+  verify-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Exercise signed-out, role-guidance, activation, and customer states
+        run: |
+          node scripts/verify-h38-office-access-browser.js
+          node scripts/verify-employee-workspace-browser.js
