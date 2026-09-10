@@ -104,7 +104,7 @@ jobs:
 
           check_page 'index.html' 'Bring us the problem.'
           check_page 'ecosystem-status.html' 'Highway 38 Solutions · Ecosystem'
-          check_page 'customer-portal.html' 'No customer records, files, quotes, invoices, payments, deliverables, or communications are exposed'
+          check_page 'customer-portal.html' 'Customer accounts cannot be created from this page.'
           check_page 'business-concept-builder.html' 'Turn a rough idea into a structured launch package.'
           check_page 'tool-center.html' 'data-tool="project"'
           check_page 'proof-center.html' 'Public proof now has one home.'
