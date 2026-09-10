@@ -1,9 +1,9 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-authority-control-integrity-loader-2';
+const BUILD='20260910-desktop-navigation-authority-control-integrity-loader-3';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const NAVIGATION_INTEGRITY_BUILD='20260910-office-navigation-integrity-1';
-const CONTROL_INTEGRITY_BUILD='20260910-office-control-integrity-2';
+const CONTROL_INTEGRITY_BUILD='20260910-office-control-integrity-3';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
 function reconcile(){return window.H38_OFFICE_CONTROL_INTEGRITY?.normalizeDesktopNav?.()||window.H38_OFFICE_NAVIGATION_INTEGRITY?.reconcile?.()||core()?.reconcile?.()||false;}
@@ -76,6 +76,8 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   navigationIntegrityBuild:NAVIGATION_INTEGRITY_BUILD,
   controlIntegrityLoader:true,
   controlIntegrityBuild:CONTROL_INTEGRITY_BUILD,
+  canonicalDesktopRouteAuthority:true,
+  desktopNavDomPersistent:true,
   meetingSidebarCollapseRepair:true,
   meetingPhysicalClickCapture:true,
   employeeWorkspaceLoader:false,
