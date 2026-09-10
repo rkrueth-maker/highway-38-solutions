@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-office-control-integrity-2';
+const BUILD='20260910-office-control-integrity-3';
 const DESKTOP_QUERY='(min-width: 761px)';
 let previousOpenPage=null;
 let installed=false;
@@ -47,38 +47,42 @@ function scheduleNormalize(){
   repairTimer=setTimeout(()=>normalizeDesktopNav(),0);
   [40,120,300,700].forEach(delay=>setTimeout(()=>normalizeDesktopNav(),delay));
 }
-function renderMeetingWithoutNavRebuild(track=true){
+function allowed(){
+  try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}
+}
+function openCanonicalDesktopPage(page,track=true){
+  const pages=allowed();
+  let target=text(page);
+  if(!pages.includes(target))target=pages[0]||'today';
   const state=office();
-  state.page='meetings';
+  state.page=target;
   normalizeDesktopNav();
-  activeNav('meetings');
+  activeNav(target);
   if(typeof window.renderPage==='function')window.renderPage();
-  else if(typeof window.renderMeetings==='function')window.renderMeetings();
   main()?.focus?.({preventScroll:true});
   if(track!==false&&typeof window.recordUsage==='function'){
-    try{Promise.resolve(window.recordUsage('meetings','open-page')).catch(()=>{});}catch(_){}
+    try{Promise.resolve(window.recordUsage(target,'open-page')).catch(()=>{});}catch(_){}
   }
   scheduleNormalize();
   return true;
 }
-function meetingNavButton(event){
+function desktopNavButton(event){
   const target=event.target instanceof Element?event.target:null;
-  const button=target?.closest?.('#mainNav > button[data-page="meetings"],#mainNav > button[data-h38-primary="meetings"]')||null;
+  const button=target?.closest?.('#mainNav > button[data-page]')||null;
   return button&&nav()?.contains(button)?button:null;
 }
-function interceptMeetingNavClick(event){
-  if(!desktop()||!officeActive()||!meetingNavButton(event))return;
+function interceptDesktopNavClick(event){
+  if(!desktop()||!officeActive())return;
+  const button=desktopNavButton(event);if(!button)return;
+  const target=text(button.dataset.page);if(!target)return;
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
-  renderMeetingWithoutNavRebuild(true);
+  openCanonicalDesktopPage(target,true);
 }
 function stableOpenPage(page){
-  const target=text(page);
-  if(target==='meetings'&&desktop()&&officeActive())return renderMeetingWithoutNavRebuild(arguments.length<2?true:arguments[1]!==false);
-  const result=previousOpenPage?.apply(this,arguments);
-  if(desktop())scheduleNormalize();
-  return result;
+  if(desktop()&&officeActive())return openCanonicalDesktopPage(page,arguments.length<2?true:arguments[1]!==false);
+  return previousOpenPage?.apply(this,arguments);
 }
 function install(){
   if(installed)return true;
@@ -88,7 +92,7 @@ function install(){
   stableOpenPage.__h38OfficeControlIntegrity=true;
   stableOpenPage.__h38OfficeControlIntegrityBase=previousOpenPage;
   window.openPage=stableOpenPage;
-  window.addEventListener('click',interceptMeetingNavClick,true);
+  window.addEventListener('click',interceptDesktopNavClick,true);
   ensureStyle();
   normalizeDesktopNav();
   window.addEventListener('resize',scheduleNormalize);
@@ -101,11 +105,14 @@ let attempts=0;const timer=setInterval(()=>{if(install()||++attempts>80)clearInt
 window.H38_OFFICE_CONTROL_INTEGRITY=Object.freeze({
   build:BUILD,
   enabled:true,
+  canonicalDesktopRouteAuthority:true,
+  desktopNavDomPersistent:true,
+  desktopPhysicalNavClickCaptured:true,
   desktopMeetingRouteWithoutNavRebuild:true,
-  desktopMeetingPhysicalClickCaptured:true,
   desktopSidebarGeometryPinned:true,
   desktopMobileNavClassesRetired:true,
   normalizeDesktopNav,
+  openCanonicalDesktopPage,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticPurchase:false,
