@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-office-control-integrity-1';
+const BUILD='20260910-office-control-integrity-2';
 const DESKTOP_QUERY='(min-width: 761px)';
 let previousOpenPage=null;
 let installed=false;
@@ -61,6 +61,18 @@ function renderMeetingWithoutNavRebuild(track=true){
   scheduleNormalize();
   return true;
 }
+function meetingNavButton(event){
+  const target=event.target instanceof Element?event.target:null;
+  const button=target?.closest?.('#mainNav > button[data-page="meetings"],#mainNav > button[data-h38-primary="meetings"]')||null;
+  return button&&nav()?.contains(button)?button:null;
+}
+function interceptMeetingNavClick(event){
+  if(!desktop()||!officeActive()||!meetingNavButton(event))return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  renderMeetingWithoutNavRebuild(true);
+}
 function stableOpenPage(page){
   const target=text(page);
   if(target==='meetings'&&desktop()&&officeActive())return renderMeetingWithoutNavRebuild(arguments.length<2?true:arguments[1]!==false);
@@ -76,6 +88,7 @@ function install(){
   stableOpenPage.__h38OfficeControlIntegrity=true;
   stableOpenPage.__h38OfficeControlIntegrityBase=previousOpenPage;
   window.openPage=stableOpenPage;
+  window.addEventListener('click',interceptMeetingNavClick,true);
   ensureStyle();
   normalizeDesktopNav();
   window.addEventListener('resize',scheduleNormalize);
@@ -89,6 +102,7 @@ window.H38_OFFICE_CONTROL_INTEGRITY=Object.freeze({
   build:BUILD,
   enabled:true,
   desktopMeetingRouteWithoutNavRebuild:true,
+  desktopMeetingPhysicalClickCaptured:true,
   desktopSidebarGeometryPinned:true,
   desktopMobileNavClassesRetired:true,
   normalizeDesktopNav,
