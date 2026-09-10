@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-3';
+const BUILD='20260910-desktop-navigation-final-authority-4';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 const OFFICE_REQUIREMENTS=Object.freeze({
@@ -27,6 +27,7 @@ const OFFICE_REQUIREMENTS=Object.freeze({
 });
 const inheritedRenderNav=typeof window.renderNav==='function'?window.renderNav:null;
 const inheritedAllowedPages=typeof window.allowedPages==='function'?window.allowedPages:null;
+let desktopRenderNavWriteShield=false;
 function desktop(){return !window.matchMedia?.('(max-width: 760px)').matches;}
 function officeState(){try{return window.state||(typeof state!=='undefined'?state:null);}catch(_){return window.state||null;}}
 function definitions(){try{return window.PAGE_DEFS||(typeof PAGE_DEFS!=='undefined'?PAGE_DEFS:{});}catch(_){return window.PAGE_DEFS||{};}}
@@ -89,10 +90,28 @@ renderNav.__h38FinalDesktopAuthority=true;
 renderNav.h38PhysicalNavStable=true;
 renderNav.h38MobileFirstFrameStable=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
+function shieldDesktopRenderNav(){
+  if(!desktop()||desktopRenderNavWriteShield)return false;
+  const descriptor=Object.getOwnPropertyDescriptor(window,'renderNav');
+  if(descriptor&&!descriptor.configurable)return false;
+  Object.defineProperty(window,'renderNav',{
+    configurable:true,
+    enumerable:true,
+    get(){return renderNav;},
+    set(candidate){
+      if(desktop())return;
+      desktopRenderNavWriteShield=false;
+      Object.defineProperty(window,'renderNav',{configurable:true,enumerable:true,writable:true,value:candidate});
+    }
+  });
+  desktopRenderNavWriteShield=true;
+  return true;
+}
 function installAsFinalAuthority(){
   if(!desktop())return false;
   window.allowedPages=allowedPages;
   window.renderNav=renderNav;
+  shieldDesktopRenderNav();
   reconcile();
   return true;
 }
@@ -129,6 +148,7 @@ function loadEmployeeWorkspace(){return false;}
 installAsFinalAuthority();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueFinalAuthority,{once:true});else queueFinalAuthority();
 window.addEventListener('load',queueFinalAuthority,{once:true});
+window.matchMedia?.('(max-width: 760px)')?.addEventListener?.('change',event=>{if(!event.matches)installAsFinalAuthority();});
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
@@ -141,6 +161,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   allowedPages,
   canonicalOfficePages,
   installAsFinalAuthority,
+  shieldDesktopRenderNav,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
@@ -158,6 +179,8 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   canonicalOfficePermissionResolver:true,
   wrapperChainPermissionDependency:false,
   finalAuthorityReassertedAfterDeferredWrappers:true,
+  desktopRenderNavWriteShield:true,
+  mobileRenderNavWriteShield:false,
   mutatesNavigation:true,
   capturesClicks:false,
   createsProxyButtons:false,
