@@ -61,8 +61,11 @@ async function assertNoDeadButtons(page,label,scope='#mainContent'){
 async function selectJohnson(page){
   await page.waitForSelector('#h38Customer360Search',{state:'visible',timeout:4000});
   await page.locator('#h38Customer360Search').fill('Johnson');
-  await page.waitForSelector('[data-c360-customer="C-JOHN"]',{state:'visible',timeout:3000});
-  await page.locator('[data-c360-customer="C-JOHN"]').click();
+  const result=page.locator('#h38Customer360Matches button:visible').filter({hasText:'Johnson'}).first();
+  await result.waitFor({state:'visible',timeout:3000});
+  const resolvedCustomerId=await result.evaluate(node=>node.dataset.c360PolicyCustomer||node.dataset.c360Customer||'');
+  assert.equal(resolvedCustomerId,'C-JOHN','visible Johnson search result must resolve to the Johnson customer record');
+  await result.click();
   await page.waitForFunction(()=>window.H38_CUSTOMER_360?.selectedCustomerId==='C-JOHN'&&window.state?.page==='customers',{timeout:3000});
   await page.waitForFunction(()=>document.querySelector('.h38-c360 h2')?.textContent?.trim()==='Johnson',{timeout:3000});
   assert.equal(await page.locator('#h38MeetingDialog[open]').count(),0,'selecting a customer must not open a meeting dialog');
@@ -116,6 +119,6 @@ async function verifyWorkDelegatedActions(page){
     for(const key of ['quotes','documents','money','schedule']){await phone.locator('#mainNav > button[data-h38-primary="more"]').click();await phone.waitForSelector('#h38PrimaryMoreDialog[open]',{timeout:3000});const button=phone.locator(`#h38PrimaryMoreDialog [data-more-page="${key}"]`);assert.equal(await button.count(),1,`More must expose ${key}`);await button.click();await phone.waitForFunction(expected=>window.state.page===expected,key,{timeout:3000});await phone.waitForTimeout(80);assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,`mobile ${key} must not grow a sixth Meetings button`);await assertNoDeadButtons(phone,`mobile ${key}`);}
     await assertNoDeadButtons(phone,'mobile topbar','.topbar');assert.deepEqual(phoneErrors,[],'mobile browser should have no page errors');await mobileContext.close();
 
-    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,delegatedWorkActionsVerified:true,desktopSequence:proof,checks:['all Business Office JavaScript syntax','real Office desktop and mobile startup','Owner snapshot with zero users/Site Managers','all desktop sidebar destinations','Johnson Customer 360 search-result click remains Customers','Meeting is explicit separate customer action','Pre-visit brief delegated action opens dialog','Review follow-up work delegated action opens dialog','mobile Customers physical hit target','no late sixth Meetings button on mobile','mobile primary navigation','More routes to Quotes/Documents/Money/Schedule','visible enabled buttons have proven action ownership']},null,2));
+    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,delegatedWorkActionsVerified:true,desktopSequence:proof,checks:['all Business Office JavaScript syntax','real Office desktop and mobile startup','Owner snapshot with zero users/Site Managers','all desktop sidebar destinations','visible Johnson Customer 360 search-result click remains Customers','Meeting is explicit separate customer action','Pre-visit brief delegated action opens dialog','Review follow-up work delegated action opens dialog','mobile Customers physical hit target','no late sixth Meetings button on mobile','mobile primary navigation','More routes to Quotes/Documents/Money/Schedule','visible enabled buttons have proven action ownership']},null,2));
   }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1);});
