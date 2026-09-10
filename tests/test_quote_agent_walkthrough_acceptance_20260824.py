@@ -151,13 +151,15 @@ def test_oidc_gateway_is_repo_workflow_actor_and_action_bounded():
         assert forbidden not in src
 
 
-def test_workflow_uses_oidc_not_stored_google_owner_credentials():
+def test_workflow_uses_oidc_and_is_manual_only_not_stored_google_owner_credentials():
     workflow = read(WORKFLOW)
     runner = read(RUNNER)
     assert 'id-token: write' in workflow
     assert 'audience=h38-owner-maintenance' in workflow
     assert 'H38_GITHUB_OIDC_TOKEN_FILE' in workflow
-    assert 'github.event.pull_request.head.repo.full_name == github.repository' in workflow
+    assert 'workflow_dispatch:' in workflow
+    assert '\n  push:' not in workflow
+    assert '\n  pull_request:' not in workflow
     assert 'CLASPRC_JSON' not in workflow
     assert 'GOOGLE_CLASPRC_JSON' not in workflow
     assert 'h38-owner-maintenance-oidc' in runner
