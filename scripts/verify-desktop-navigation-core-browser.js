@@ -46,17 +46,21 @@ function verifyOfficeSyntax(){const failures=[];for(const name of fs.readdirSync
       flow:!!window.H38_FLOW_TIGHTENING,
       mobile:!!window.H38_MOBILE_RUNTIME_STABILITY,
       meetings:!!window.H38_CONVERSATION_MEETING_ASSISTANT,
+      ownerRole:window.state?.snapshot?.user?.roleName||'',
+      users:(window.state?.snapshot?.users||[]).length,
       pages:Array.from(document.querySelectorAll('#mainNav > button[data-page]')).map(button=>({page:button.dataset.page,onclick:typeof button.onclick}))
     }));
     assert.equal(ownership.interceptorLoaded,false,'retired desktop click interceptor must not load');
     assert.equal(ownership.interceptorScript,false,'retired desktop click interceptor script must not load');
     assert(ownership.flow&&ownership.mobile&&ownership.meetings,'final production navigation runtimes must all be installed before acceptance');
+    assert.equal(ownership.ownerRole,'Owner','browser acceptance must use Owner authority');
+    assert.equal(ownership.users,0,'owner standalone acceptance must contain no employee or Site Manager dependency');
 
-    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['schedule',/schedule/i],['messages',/message|communication/i]];
+    const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['money',/invoice|payment|money|balance/i],['documents',/document|file/i],['schedule',/schedule/i],['messages',/message|communication/i]];
     const proof=[];
     for(const [key,contentPattern] of sequence){
       const button=page.locator(`#mainNav > button[data-page="${key}"]`);
-      assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar`);
+      assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar for Owner without a Site Manager`);
       assert.equal(await button.evaluate(node=>typeof node.onclick),'function',`${key} must keep its native Business Office click handler`);
       const before=(await page.locator('#mainContent').innerText()).trim();
       await button.click();
@@ -67,10 +71,10 @@ function verifyOfficeSyntax(){const failures=[];for(const name of fs.readdirSync
       assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);
       const active=await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page');
       assert.equal(active,true,`${key} must become the active sidebar page`);
-      proof.push({page:key,content:after.slice(0,80)});
+      proof.push({page:key,content:after.slice(0,100)});
     }
 
     if(runtimeErrors.length)throw new Error(`real sidebar sequence browser error(s): ${runtimeErrors.join(' | ')}`);
-    console.log(JSON.stringify({status:'PASS',sequence:proof,ownership,checks:['all Business Office JavaScript syntax','real Business Office startup','flow-tightening installed','mobile runtime installed','Meetings integration installed','retired desktop interceptor absent','native sidebar onclicks preserved','Customers → Meetings → Jobs → Quotes → Schedule → Messages','main content changes']},null,2));
+    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,quoteMoneyDocumentsRendered:true,sequence:proof,ownership,checks:['all Business Office JavaScript syntax','real Business Office startup','Owner snapshot with zero users/Site Managers','flow-tightening installed','mobile runtime installed','Meetings integration installed','retired desktop interceptor absent','native sidebar onclicks preserved','Customers → Meetings → Jobs → Quotes → Money → Documents → Schedule → Messages','main content changes']},null,2));
   }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1);});
