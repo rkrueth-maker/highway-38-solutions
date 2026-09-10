@@ -45,6 +45,22 @@ check('browser/mobile source contains no Supabase server secret',not shits,', '.
 froot=ROOT/'supabase'/'functions'; tracked={p.name for p in froot.iterdir() if p.is_dir()} if froot.is_dir() else set()
 for slug in policy.get('forbidden_active_functions',[]): check(f'forbidden recovery function is not source-controlled: {slug}',slug not in tracked)
 for slug in policy.get('required_source_functions',[]): check(f'required Edge Function source exists: {slug}',(froot/slug/'index.ts').is_file())
+tombstone_marker=policy.get('tombstone_marker','')
+for slug in policy.get('required_tombstone_functions',[]):
+    source=froot/slug/'index.ts'; body=source.read_text('utf-8') if source.is_file() else ''
+    safe=(tombstone_marker and tombstone_marker in body and 'SUPABASE_SERVICE_ROLE_KEY' not in body and
+          'auth.admin' not in body and 'updateUserById' not in body and 'signInWithPassword' not in body)
+    check(f'legacy recovery function is a fail-closed tombstone: {slug}',bool(safe))
+passwordless=froot/'business-office-passwordless-login'/'index.ts'
+passwordless_body=passwordless.read_text('utf-8') if passwordless.is_file() else ''
+check('passwordless login is existing-user only',
+      'H38_EXISTING_USER_MAGIC_LINK_V1' in passwordless_body and
+      bool(re.search(r'shouldCreateUser\s*:\s*false',passwordless_body)) and
+      not bool(re.search(r'shouldCreateUser\s*:\s*true',passwordless_body)))
+function_config=(ROOT/'supabase'/'config.toml').read_text('utf-8') if (ROOT/'supabase'/'config.toml').is_file() else ''
+for slug in policy.get('required_tombstone_functions',[]):
+    block=re.search(rf'\[functions\.{re.escape(slug)}\](.*?)(?=\n\[|\Z)',function_config,re.S)
+    check(f'legacy recovery tombstone requires platform JWT: {slug}',bool(block and re.search(r'verify_jwt\s*=\s*true',block.group(1))))
 for name in ('multitenant_foundation.test.sql','security_invariants.test.sql'): check(f'database acceptance exists: {name}',(ROOT/'supabase/tests/database'/name).is_file())
 check('browser config contains only publishable key','sb_publishable_' in ct)
 check('browser config has no secret/service-role key',not any(x.search(ct) for x in secrets))

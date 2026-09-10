@@ -53,11 +53,11 @@ check('browser authentication cannot create public accounts',
   /type="password"/.test(html) &&
   client.includes('signInWithPassword') &&
   client.includes('signInWithOtp') &&
-  client.includes('shouldCreateUser: false')
+  /shouldCreateUser\s*:\s*false/.test(client)
 );
 
 check('every browser customer query is account filtered',
-  client.includes(".eq('customer_id', state.account.id)")
+  /\.eq\(\s*['"]customer_id['"]\s*,\s*state\.account\.id\s*\)/.test(client)
 );
 
 check('customer account mapping requires authenticated active account',
@@ -105,8 +105,8 @@ check('quote approval requires complete review details',
 );
 
 check('customer messages stay project bound and owner reviewed',
-  client.includes('job_id: state.selectedJobId || null') &&
-  client.includes("status: 'pending_owner_review'") &&
+  /job_id\s*:\s*state\.selectedJobId\s*\|\|\s*null/.test(client) &&
+  /status\s*:\s*['"]pending_owner_review['"]/.test(client) &&
   client.includes('No automatic text or email was sent') &&
   sql.includes("direction = 'customer_to_business'")
 );

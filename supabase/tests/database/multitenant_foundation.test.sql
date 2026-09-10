@@ -113,6 +113,21 @@ values
   ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', 'admin-a@example.test', 'administrator', 'active'),
   ('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'owner-b@example.test', 'owner', 'active');
 
+insert into public.business_employee_profiles (
+  membership_id, business_id, display_name, job_title, created_by
+)
+select
+  membership.id,
+  membership.business_id,
+  case membership.invited_email
+    when 'staff-a@example.test' then 'Staff A'
+    else 'Owner B'
+  end,
+  'Acceptance fixture',
+  membership.auth_user_id
+from public.business_memberships membership
+where membership.invited_email in ('staff-a@example.test', 'owner-b@example.test');
+
 insert into public.business_module_settings (business_id, module_key, enabled)
 values
   ('10000000-0000-0000-0000-000000000001', 'a-module', false),
@@ -137,6 +152,7 @@ set local role authenticated;
 
 select pg_temp.assert_true((select count(*) = 1 from public.businesses), 'owner sees only own business');
 select pg_temp.assert_true((select count(*) = 1 from public.business_module_settings), 'owner sees only own module settings');
+select pg_temp.assert_true((select count(*) = 1 from public.business_employee_profiles), 'owner sees employee profiles only in own business');
 select pg_temp.assert_affected(
   $$update public.business_module_settings set enabled = true
     where business_id = '10000000-0000-0000-0000-000000000002'
@@ -150,6 +166,12 @@ select pg_temp.assert_affected(
       and module_key = 'a-module'$$,
   1,
   'owner can update own module setting'
+);
+select pg_temp.assert_affected(
+  $$update public.business_employee_profiles set job_title = 'cross-tenant attempt'
+    where business_id = '10000000-0000-0000-0000-000000000002'$$,
+  0,
+  'owner cannot update another business employee profile'
 );
 
 reset role;
@@ -165,12 +187,23 @@ select pg_temp.assert_affected(
   0,
   'viewer cannot change module settings'
 );
+select pg_temp.assert_true((select count(*) = 0 from public.business_employee_profiles), 'viewer cannot browse employee profiles');
 
 reset role;
 
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000004', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
+
+select pg_temp.assert_true((select count(*) = 1 from public.business_employee_profiles), 'staff sees only own employee profile');
+select pg_temp.assert_affected(
+  $$update public.business_employee_profiles set job_title = 'self-elevated'
+    where membership_id = (
+      select id from public.business_memberships where invited_email = 'staff-a@example.test'
+    )$$,
+  0,
+  'staff cannot update own employee profile'
+);
 
 insert into public.external_action_queue (
   id, business_id, action_type, entity_type, entity_id, status, created_by
@@ -224,6 +257,20 @@ reset role;
 select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000005', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
+
+select pg_temp.assert_true((select count(*) = 1 from public.business_employee_profiles), 'administrator sees employee profiles only in own business');
+select pg_temp.assert_affected(
+  $$update public.business_employee_profiles set job_title = 'Administrator reviewed'
+    where business_id = '10000000-0000-0000-0000-000000000001'$$,
+  1,
+  'administrator can update an own-business employee profile'
+);
+select pg_temp.assert_affected(
+  $$update public.business_employee_profiles set job_title = 'cross-tenant attempt'
+    where business_id = '10000000-0000-0000-0000-000000000002'$$,
+  0,
+  'administrator cannot update another business employee profile'
+);
 
 select pg_temp.assert_affected(
   $$update public.business_approvals
