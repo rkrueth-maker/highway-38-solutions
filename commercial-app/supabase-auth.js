@@ -215,10 +215,54 @@
     node.className = `notice${bad ? ' warn' : ''}`;
   }
 
+  function authPanelRendered(mode) {
+    window.dispatchEvent(new CustomEvent('h38:auth-panel-rendered', { detail: { mode } }));
+  }
+
+  function installAccessIntentControls(target) {
+    const controls = target && typeof target.querySelectorAll === 'function'
+      ? target.querySelectorAll('[data-h38-access-intent]')
+      : [];
+    const copy = {
+      office: {
+        label: 'Owner or administrator',
+        title: 'Sign in to manage H38 Office',
+        help: 'Use the account connected to your active owner or administrator membership.'
+      },
+      'site-manager': {
+        label: 'Site manager / foreman',
+        title: 'Sign in for site operations',
+        help: 'Use the exact email your owner or administrator added for assigned site and crew work.'
+      },
+      employee: {
+        label: 'Employee',
+        title: 'Sign in for assigned work',
+        help: 'Use the exact email your employer added for tasks, time, schedule, and field updates.'
+      }
+    };
+    const choose = intent => {
+      const selected = copy[intent] || copy.office;
+      controls.forEach(control => {
+        const active = control.dataset.h38AccessIntent === intent;
+        control.classList.toggle('is-active', active);
+        control.setAttribute('aria-pressed', String(active));
+      });
+      const audience = document.getElementById('h38AuthAudience');
+      const title = document.getElementById('h38AuthTitle');
+      const help = document.getElementById('h38AuthRoleHelp');
+      if (audience) audience.textContent = selected.label;
+      if (title) title.textContent = selected.title;
+      if (help) help.textContent = selected.help;
+      document.getElementById('h38AuthEmail')?.focus?.({ preventScroll: true });
+    };
+    controls.forEach(control => {
+      control.addEventListener('click', () => choose(control.dataset.h38AccessIntent || 'office'));
+    });
+  }
+
   function authPanel(mode, detail) {
     const target = document.getElementById('mainContent');
     if (!target) return;
-    const fallback = esc(config.fallbackUrl || '/open-business-office.html');
     const states = {
       'membership-suspended': ['Access suspended', 'This account is signed in, but its Business Office membership is suspended. A cached business cannot override this result.'],
       'membership-revoked': ['Access removed', 'This account no longer has an active Business Office membership. A direct link or saved business cannot reopen it.'],
@@ -227,7 +271,7 @@
       'auth-expired': ['Session expired', 'Sign in again to reopen the Business Office securely.']
     };
     if (mode === 'recovery') {
-      target.innerHTML = `<section class="welcome"><h1>Set a new password</h1><p>Choose a new password for this Supabase Auth account.</p><form id="h38RecoveryForm" class="auth-form"><label><span>New password</span><input id="h38NewPassword" type="password" autocomplete="new-password" minlength="10" required></label><button class="primary" type="submit">Save new password</button></form><div id="h38AuthNotice" class="notice">Passwords go directly to Supabase Auth and are never stored in this page.</div></section>`;
+      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">H38 Office secure access</p><h1>Set a new password</h1><p>Choose a new password for this Supabase Auth account.</p><form id="h38RecoveryForm" class="auth-form"><label><span>New password</span><input id="h38NewPassword" type="password" autocomplete="new-password" minlength="10" required></label><button class="primary" type="submit">Save new password</button></form><div id="h38AuthNotice" class="notice">Passwords go directly to Supabase Auth and are never stored in this page.</div></section>`;
       document.getElementById('h38RecoveryForm').onsubmit = async event => {
         event.preventDefault();
         try {
@@ -240,15 +284,18 @@
           runtime.bridge?.connect();
         } catch (error) { showNotice(safeMessage(error), true); }
       };
+      authPanelRendered(mode);
       return;
     }
     if (states[mode]) {
       const [title, text] = states[mode];
-      target.innerHTML = `<section class="welcome"><h1>${esc(title)}</h1><p>${esc(detail || text)}</p><div class="welcome-actions"><button id="h38SignOutDenied" class="primary" type="button">Sign out</button><a class="secondary" href="${fallback}">Use current Google Office fallback</a></div><div id="h38AuthNotice" class="notice">Nothing is sent, approved, purchased, paid, published, or executed automatically.</div></section>`;
+      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">H38 Office secure access</p><h1>${esc(title)}</h1><p>${esc(detail || text)}</p><div class="welcome-actions"><button id="h38SignOutDenied" class="primary" type="button">Sign out</button><a class="secondary" href="../customer-portal.html">Customer login</a></div><div id="h38AuthNotice" class="notice">Nothing is sent, approved, purchased, paid, published, or executed automatically.</div></section>`;
       document.getElementById('h38SignOutDenied').onclick = () => signOut();
+      authPanelRendered(mode);
       return;
     }
-    target.innerHTML = `<section class="welcome"><h1>Sign in to Business Office</h1><p>${esc(detail || 'Use the email and password connected to an active business membership.')}</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><a class="secondary" href="${fallback}">Use current Google Office fallback</a><div id="h38AuthNotice" class="notice">Supabase Auth and RLS determine access. Saved business IDs never grant permission.</div></section>`;
+    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">H38 Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure H38 Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage H38 Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div id="h38AuthNotice" class="notice">Supabase Auth and RLS determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
+    installAccessIntentControls(target);
     document.getElementById('h38AuthForm').onsubmit = async event => {
       event.preventDefault();
       try {
@@ -271,6 +318,7 @@
         showNotice('Check your email for the password reset link. The page does not confirm whether an address is registered.', false);
       } catch (error) { showNotice(safeMessage(error), true); }
     };
+    authPanelRendered(mode || 'signin');
   }
 
   async function signOut() {

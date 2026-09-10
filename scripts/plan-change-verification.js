@@ -53,10 +53,12 @@ const publicPatterns=[
   /^\.github\/workflows\/pages-branch-fallback\.yml$/
 ];
 const appPatterns=[
+  /^commercial-app\//,
   /^apps-script\/business-office\//,
   /^apps-script\/business-office-sync\//,
   /^apps-script\/core-engine\/owner-portal-next\//,
   /^scripts\/verify-(business-office|owner-portal|unified-app|unified-client|task-messaging|quote-builder|field-role|user-access|owner-role|single-apps-script|ai-approval)/,
+  /^scripts\/verify-h38-office-access/,
   /^\.github\/workflows\/deploy-owner-portal-hard-rule-production\.yml$/,
   /^\.github\/workflows\/business-office-authorized-acceptance\.yml$/
 ];
@@ -104,7 +106,7 @@ const risk={
   schemaOrDataOwner:files.some(file=>/Schema|Seeder|Migration|Config\.gs|ModuleContract|ActionContract|business-office\/.*\.gs$/.test(file)),
   approvedAssets:files.some(file=>/^assets\/(images|demo-workthroughs)\//.test(file)||/approved-public-(assets|image-placements)\.json$/.test(file)),
   publicRendering:files.some(file=>/\.html$/.test(file)||/^assets\/(css|js)\//.test(file)),
-  authenticatedRendering:files.some(file=>/^apps-script\/(business-office|core-engine\/owner-portal-next)\/.+\.(html|js|gs)$/.test(file)),
+  authenticatedRendering:files.some(file=>/^commercial-app\/.+\.(html|css|js)$/.test(file)||/^apps-script\/(business-office|core-engine\/owner-portal-next)\/.+\.(html|js|gs)$/.test(file)),
   externalActionBoundary:files.some(file=>/Approval|Payment|Invoice|Purchase|Messaging|Notification|Deployment|External/i.test(file)),
   longRunningData:files.some(file=>/Seeder|Migration|Backup|Pdf|OCR|Import|Generate/i.test(file))
 };
@@ -123,6 +125,7 @@ if(scopes.authenticatedApp||scopes.sharedArchitecture){
   fastChecks.push('node scripts/verify-business-office.js');
 }
 if(scopes.customerPortal)fastChecks.push('node scripts/verify-customer-portal-security.js');
+if(files.some(file=>/^(commercial-app\/(index\.html|supabase-auth\.js|supabase-startup\.js|supabase-invite-activation\.js|auth-autofill\.(?:js|css)|employee-workspace\.js|app-19\.js|owner-flow-polish\.js|service-worker\.js)|customer-portal(?:-supabase\.js|\.html)|ux-unified-public\.css|scripts\/verify-h38-office-access)/.test(file)))fastChecks.push('node scripts/verify-h38-office-access.js');
 
 const expensiveChecks=[];
 if(risk.publicRendering)expensiveChecks.push('desktop and mobile public browser verification for affected routes');

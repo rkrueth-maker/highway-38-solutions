@@ -67,6 +67,13 @@ function isMigrationFilenameCandidate(body, candidateStart, rawCandidate, digits
   return /^_[a-z0-9_]+\.sql\b/i.test(suffix);
 }
 
+function isMigrationVersionMappingCandidate(body, candidateStart, rawCandidate, digits) {
+  if (digits.length !== 14 || !isPlausibleMigrationTimestamp(digits)) return false;
+  const prefix = body.slice(Math.max(0, candidateStart - 180), candidateStart);
+  const suffix = body.slice(candidateStart + rawCandidate.length, candidateStart + rawCandidate.length + 20);
+  return /\.sql"\s*:\s*"\s*$/i.test(prefix) && /^"\s*[,}]/.test(suffix);
+}
+
 function hasPaymentCardCandidate(body) {
   const candidatePattern = /(?:^|[^A-Za-z0-9])(\d{13,19}|(?:\d{4}[ -]){2,4}\d{3,4}|\d{4}[ -]\d{6}[ -]\d{5})(?![A-Za-z0-9])/g;
   let match;
@@ -75,6 +82,7 @@ function hasPaymentCardCandidate(body) {
     const digits = rawCandidate.replace(/\D/g, '');
     const candidateStart = match.index + match[0].indexOf(rawCandidate);
     if (isMigrationFilenameCandidate(body, candidateStart, rawCandidate, digits)) continue;
+    if (isMigrationVersionMappingCandidate(body, candidateStart, rawCandidate, digits)) continue;
     if (digits.length >= 13 && digits.length <= 19 && luhnValid(digits)) return true;
   }
   return false;
@@ -82,6 +90,9 @@ function hasPaymentCardCandidate(body) {
 
 check('payment-card scanner still detects a Luhn-valid number', hasPaymentCardCandidate(['4111','1111','1111','1111'].join('')));
 check('Supabase migration timestamps are not treated as cards', !hasPaymentCardCandidate('supabase/migrations/' + ['20260805','004500'].join('') + '_business_office_auth_resolution.sql'));
+const replayVersionFixture = ['20260716','000001'].join('');
+check('Supabase replay version mappings are not treated as cards', !hasPaymentCardCandidate(`"20260716_example.sql": "${replayVersionFixture}",`));
+check('replay-like numbers outside migration mappings remain detectable', hasPaymentCardCandidate(`note: ${replayVersionFixture}`));
 
 check('launch manifest exists', fs.existsSync(MANIFEST));
 let manifest = null;

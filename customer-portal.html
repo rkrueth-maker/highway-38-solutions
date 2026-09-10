@@ -12,11 +12,11 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="commercial.css?v=20260714-commercial-evolution">
   <link rel="stylesheet" href="brand-global.css?v=20260713-cleanup1">
-  <link rel="stylesheet" href="ux-unified-public.css?v=20260717-p0-refinement">
+  <link rel="stylesheet" href="ux-unified-public.css?v=20260910-office-access-1">
   <link rel="stylesheet" href="platform-unified.css?v=20260719-product-unification">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="customer-portal-config.js?v=20260807-1435" defer></script>
-  <script src="customer-portal-supabase.js?v=20260807-1720" defer></script>
+  <script src="customer-portal-supabase.js?v=20260910-office-access-1" defer></script>
   <script src="business-office-invite-finish.js?v=20260817-1055" defer></script>
   <script defer src="brand-global.js?v=20260719-product-unification"></script>
   <script defer src="public-expansion.js?v=20260717-one-shot"></script>
@@ -26,14 +26,14 @@
   <script defer src="customer-portal-quote-delivery.js?v=20260807-1720"></script>
   <script defer src="customer-portal-unification.js?v=20260719-product-unification"></script>
 </head>
-<body class="h38-site h38-one-shot h38-customer-portal" data-page="customer">
+<body class="h38-site h38-one-shot h38-customer-portal" data-page="customer" data-portal-view="opening">
   <a class="skip-link" href="#main">Skip to main content</a>
   <nav class="site-nav" aria-label="Main navigation"></nav>
   <main id="main" class="customer-shell">
-    <header class="customer-head"><div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div><div class="portal-actions"><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div></header>
+    <header class="customer-head"><div><span class="badge">Secure customer access</span><h1>Customer Portal</h1><p>See what needs your attention, what is happening next, and the records Highway 38 has made available to you.</p></div><div id="portalAccountActions" class="portal-actions" hidden><a class="btn" href="start-request.html">Start a new request</a><button id="refreshPortal" class="btn" type="button">Refresh</button><button id="signOutButton" class="btn" type="button">Sign out</button></div></header>
     <div id="portalNotice" class="portal-notice" aria-live="polite">Opening secure customer portal…</div>
     <section id="portal-hold" class="portal-panel" hidden><h2>Customer Portal temporarily unavailable</h2><p>The portal stopped before opening because its secure configuration did not pass validation. No customer data is exposed in this state.</p><p><strong>Highway 38 must verify the Supabase project, publishable key, authentication settings, and Row Level Security before access resumes.</strong></p></section>
-    <section id="portal-login" class="portal-panel portal-login" hidden><h2>Sign in securely</h2><p>Use the email address and password connected to your Highway 38 customer account. A one-time email link is also available.</p><form id="loginForm"><label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" required></label><label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password"></label><div class="portal-actions"><button class="btn btn-primary" type="submit">Sign in</button><button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button></div><p class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p></form></section>
+    <section id="portal-login" class="portal-panel portal-login" hidden><div class="h38-customer-login-layout"><div><span class="h38-portal-kicker">Existing customer account</span><h2>Sign in securely</h2><p>Use the email connected to your Highway 38 customer account. Sign in with your password or request a one-time secure email link.</p><form id="loginForm"><label><span>Email address</span><input id="portalEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="portalPassword" type="password" autocomplete="current-password" aria-describedby="portalPasswordHelp"></label><div class="portal-actions"><button class="btn btn-primary" type="submit">Sign in securely</button><button id="magicLinkButton" class="btn" type="button">Email secure sign-in link</button></div><p id="portalPasswordHelp" class="portal-help">Passwords go directly to Supabase Auth and are never stored in this webpage or repository.</p></form></div><aside class="h38-customer-login-help"><h3>First time here?</h3><ol><li>Enter the exact email Highway 38 invited.</li><li>Choose <strong>Email secure sign-in link</strong>.</li><li>Open the newest link on this device.</li></ol><p>Customer accounts cannot be created from this page. If your email is not connected to an active customer record, no project data opens.</p><div class="h38-customer-login-links"><a class="btn" href="start-request.html">Need service? Start a request</a><a class="btn" href="open-business-office.html">Owner, site manager, or employee? Open H38 Office</a></div></aside></div></section>
     <section id="portal-app" hidden>
       <div class="h38-portal-layout">
         <nav class="h38-portal-nav" aria-label="Customer Portal sections"><a class="is-active" href="#portal-home">⌂ <span>Home</span></a><a href="#projects-section">▣ <span>Projects</span></a><a href="#quotes-section">✓ <span>Quotes</span></a><a href="#invoices-section">$ <span>Invoices</span></a><a href="#files-section">▤ <span>Files</span></a><a href="#messages-section">○ <span>Messages</span></a><button class="btn signout" type="button" onclick="document.getElementById('signOutButton').click()">Sign out</button></nav>

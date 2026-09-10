@@ -23,6 +23,8 @@ function h38RegisterOfficeServiceWorker(){
 }
 function h38SetAuthorizedChrome(authorized){
   const allowed=authorized===true&&!!state.snapshot;
+  document.body?.classList.toggle('h38-auth-locked',!allowed);
+  document.body?.classList.toggle('h38-auth-authorized',allowed);
   const nav=$('mainNav');
   if(nav&&!allowed)nav.innerHTML='';
   ['globalAiButton','voiceButton'].forEach(id=>{const node=$(id);if(node)node.disabled=!allowed;});
