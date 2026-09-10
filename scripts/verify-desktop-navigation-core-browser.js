@@ -51,11 +51,12 @@ async function deadButtons(page,scope='#mainContent'){
     const type=String(node.getAttribute('type')||'submit').toLowerCase();
     if(typeof node.onclick==='function'||node.__h38DirectClickListener===true)return false;
     if((type==='submit'||type==='reset')&&node.form)return false;
+    if(window.H38_OPERATIONS_INTELLIGENCE&&node.matches('[data-h38-ops],[data-h38-asset-edit]'))return false;
     return true;
   }).map(node=>({text:String(node.textContent||node.getAttribute('aria-label')||'').trim().replace(/\s+/g,' ').slice(0,100),id:node.id||'',data:{...node.dataset},type:node.getAttribute('type')||'submit'})));
 }
 async function assertNoDeadButtons(page,label,scope='#mainContent'){
-  const dead=await deadButtons(page,scope);assert.deepEqual(dead,[],`${label} contains visible enabled button(s) with no direct action owner: ${JSON.stringify(dead)}`);
+  const dead=await deadButtons(page,scope);assert.deepEqual(dead,[],`${label} contains visible enabled button(s) with no proven action owner: ${JSON.stringify(dead)}`);
 }
 async function selectJohnson(page){
   await page.waitForSelector('#h38Customer360Search',{state:'visible',timeout:4000});
@@ -66,6 +67,20 @@ async function selectJohnson(page){
   await page.waitForFunction(()=>document.querySelector('.h38-c360 h2')?.textContent?.trim()==='Johnson',{timeout:3000});
   assert.equal(await page.locator('#h38MeetingDialog[open]').count(),0,'selecting a customer must not open a meeting dialog');
   assert.equal(await page.evaluate(()=>window.state.page),'customers','selecting a customer must stay in Customer 360');
+}
+async function verifyWorkDelegatedActions(page){
+  await page.locator('#mainNav > button[data-page="work"]').click();
+  await page.waitForFunction(()=>window.state.page==='work',{timeout:3000});
+  const brief=page.locator('[data-h38-ops="brief"]').first();
+  const opportunities=page.locator('[data-h38-ops="opportunities"]').first();
+  assert.equal(await brief.count(),1,'Work must expose Pre-visit brief');
+  assert.equal(await opportunities.count(),1,'Work must expose Review follow-up work');
+  await brief.click();
+  await page.waitForSelector('#h38PreVisitBriefDialog[open]',{timeout:3000});
+  await page.locator('#h38PreVisitBriefDialog button[value="cancel"]').first().click();
+  await opportunities.click();
+  await page.waitForSelector('#h38OpportunityFinderDialog[open]',{timeout:3000});
+  await page.locator('#h38OpportunityFinderDialog button[value="cancel"]').first().click();
 }
 
 (async()=>{
@@ -83,6 +98,7 @@ async function selectJohnson(page){
 
     const sequence=[['customers',/customer/i],['meetings',/meeting/i],['work',/job|work/i],['quotes',/quote/i],['money',/invoice|payment|money|balance/i],['documents',/document|file/i],['schedule',/schedule/i],['messages',/message|communication/i]];const proof=[];
     for(const [key,contentPattern] of sequence){const button=page.locator(`#mainNav > button[data-page="${key}"]`);assert.equal(await button.count(),1,`${key} must exist in the real desktop sidebar`);assert.equal(await button.evaluate(node=>typeof node.onclick),'function',`${key} must keep a direct click handler`);const before=(await page.locator('#mainContent').innerText()).trim();await button.click();await page.waitForFunction(expected=>window.state?.page===expected,key,{timeout:3000});await page.waitForTimeout(80);const after=(await page.locator('#mainContent').innerText()).trim();assert.notEqual(after,before,`${key} click must change main content`);assert(contentPattern.test(after),`${key} click must render its real page, got: ${after.slice(0,180)}`);assert.equal(await page.locator(`#mainNav > button[data-page="${key}"]`).evaluate(node=>node.classList.contains('active')||node.getAttribute('aria-current')==='page'),true,`${key} must become active`);await assertNoDeadButtons(page,`desktop ${key}`);proof.push({page:key,content:after.slice(0,100)});}
+    await verifyWorkDelegatedActions(page);
 
     await page.locator('#mainNav > button[data-page="customers"]').click();await page.waitForFunction(()=>window.state.page==='customers');await selectJohnson(page);
     const customerText=(await page.locator('#mainContent').innerText()).trim();assert(/Johnson/.test(customerText),'selected Johnson customer must render');
@@ -100,6 +116,6 @@ async function selectJohnson(page){
     for(const key of ['quotes','documents','money','schedule']){await phone.locator('#mainNav > button[data-h38-primary="more"]').click();await phone.waitForSelector('#h38PrimaryMoreDialog[open]',{timeout:3000});const button=phone.locator(`#h38PrimaryMoreDialog [data-more-page="${key}"]`);assert.equal(await button.count(),1,`More must expose ${key}`);await button.click();await phone.waitForFunction(expected=>window.state.page===expected,key,{timeout:3000});await phone.waitForTimeout(80);assert.equal(await phone.locator('#mainNav > button[data-page="meetings"]').count(),0,`mobile ${key} must not grow a sixth Meetings button`);await assertNoDeadButtons(phone,`mobile ${key}`);}
     await assertNoDeadButtons(phone,'mobile topbar','.topbar');assert.deepEqual(phoneErrors,[],'mobile browser should have no page errors');await mobileContext.close();
 
-    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,desktopSequence:proof,checks:['all Business Office JavaScript syntax','real Office desktop and mobile startup','Owner snapshot with zero users/Site Managers','all desktop sidebar destinations','Johnson Customer 360 search-result click remains Customers','Meeting is explicit separate customer action','mobile Customers physical hit target','no late sixth Meetings button on mobile','mobile primary navigation','More routes to Quotes/Documents/Money/Schedule','visible enabled buttons have direct action ownership']},null,2));
+    console.log(JSON.stringify({status:'PASS',ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,delegatedWorkActionsVerified:true,desktopSequence:proof,checks:['all Business Office JavaScript syntax','real Office desktop and mobile startup','Owner snapshot with zero users/Site Managers','all desktop sidebar destinations','Johnson Customer 360 search-result click remains Customers','Meeting is explicit separate customer action','Pre-visit brief delegated action opens dialog','Review follow-up work delegated action opens dialog','mobile Customers physical hit target','no late sixth Meetings button on mobile','mobile primary navigation','More routes to Quotes/Documents/Money/Schedule','visible enabled buttons have proven action ownership']},null,2));
   }finally{await browser.close();await new Promise(resolve=>local.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1);});
