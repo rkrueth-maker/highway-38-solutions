@@ -169,7 +169,7 @@ function decorateFieldVisit(){
 function install(){
   if(installed)return;installed=true;document.body.classList.add('h38-flow-tightening');
   if(!document.getElementById('h38ScrollableNavStyle')){const style=document.createElement('style');style.id='h38ScrollableNavStyle';style.textContent='@media(max-width:760px){body.h38-flow-tightening .main-nav.h38-operator-scroll-nav{display:flex!important;justify-content:flex-start!important;gap:4px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav::-webkit-scrollbar{display:none}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav button{flex:0 0 76px!important;min-width:76px!important;max-width:76px!important;padding:5px 3px!important;scroll-snap-align:start}body.h38-flow-tightening .main-nav.h38-operator-scroll-nav .h38-nav-add,[data-h38-nav-action="add"],[data-h38-nav-action="more"]{display:none!important}}';document.head.appendChild(style);}
-  if(typeof window.renderNav==='function'){
+  if(typeof window.renderNav==='function'&&window.matchMedia?.('(max-width: 760px)').matches){
     const base=window.renderNav;window.renderNav=function(){return compactRenderNav(base);};window.renderNav();
   }
   if(typeof window.renderWork==='function'){
