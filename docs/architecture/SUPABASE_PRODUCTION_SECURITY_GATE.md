@@ -24,6 +24,7 @@ The three historical Amanda recovery slugs are permanent tombstones. They requir
 ## Database contract
 
 - Every exposed public table has RLS enabled.
+- The four service-owned Reseller cache/discovery tables and their sanitizer trigger are reconstructed from migration source rather than live-only DDL.
 - Service-only cache/discovery tables have explicit deny-all policies for `anon` and `authenticated`.
 - Tenant and role behavior is attacked with deterministic `.example.test` identities.
 - Public `SECURITY DEFINER` functions pin `search_path` and are never executable by `anon` or `PUBLIC`.

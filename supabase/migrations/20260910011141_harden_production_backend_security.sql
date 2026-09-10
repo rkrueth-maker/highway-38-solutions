@@ -1,9 +1,116 @@
 -- Production backend hardening identified by the Supabase acceptance gate.
 -- This migration is intentionally idempotent and preserves all business data.
 
+-- These service-owned Reseller tables predated migration coverage in production.
+-- Reconstruct their exact live schema so clean-room replay and production share
+-- one source of truth. Existing production rows and table definitions remain in
+-- place because every creation statement is conditional.
+create table if not exists public.reseller_hunt_cache (
+  canonical_key text primary key,
+  retailer text not null default '',
+  title text not null default '',
+  upc text not null default '',
+  sku text not null default '',
+  deal_type text not null default 'candidate',
+  buy_price numeric,
+  retail_price numeric,
+  image_url text not null default '',
+  source_url text not null default '',
+  source_bucket text not null default '',
+  payload jsonb not null default '{}'::jsonb
+    constraint reseller_hunt_cache_payload_check check (jsonb_typeof(payload) = 'object'),
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  last_changed_at timestamptz not null default now(),
+  seen_count integer not null default 1
+    constraint reseller_hunt_cache_seen_count_check check (seen_count >= 1),
+  active boolean not null default true
+);
+
+create table if not exists public.reseller_hunt_cache_meta (
+  cache_key text primary key,
+  scan_status text not null default 'idle',
+  scan_started_at timestamptz,
+  scan_finished_at timestamptz,
+  last_fast_scan_at timestamptz,
+  last_full_scan_at timestamptz,
+  last_new_count integer not null default 0,
+  last_updated_count integer not null default 0,
+  last_total_count integer not null default 0,
+  last_error text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.reseller_store_discovery_snapshots (
+  snapshot_key text primary key,
+  lat double precision not null,
+  lon double precision not null,
+  radius_miles integer not null,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.reseller_store_discovery_tiles (
+  area_key text not null,
+  tile_index integer not null,
+  lat double precision not null,
+  lon double precision not null,
+  radius_miles integer not null,
+  stores jsonb not null default '[]'::jsonb,
+  source text,
+  updated_at timestamptz not null default now(),
+  primary key (area_key, tile_index)
+);
+
+create index if not exists reseller_hunt_cache_active_seen_idx
+  on public.reseller_hunt_cache (active, last_seen_at desc);
+create index if not exists reseller_hunt_cache_retailer_idx
+  on public.reseller_hunt_cache (retailer, active, last_seen_at desc);
+create index if not exists reseller_store_discovery_snapshots_geo_idx
+  on public.reseller_store_discovery_snapshots (radius_miles, lat, lon);
+create index if not exists reseller_store_discovery_snapshots_updated_at_idx
+  on public.reseller_store_discovery_snapshots (updated_at desc);
+create index if not exists reseller_store_discovery_tiles_lookup_idx
+  on public.reseller_store_discovery_tiles (area_key, updated_at desc);
+
+alter table public.reseller_hunt_cache enable row level security;
+alter table public.reseller_hunt_cache_meta enable row level security;
+alter table public.reseller_store_discovery_snapshots enable row level security;
+alter table public.reseller_store_discovery_tiles enable row level security;
+
+revoke all on table public.reseller_hunt_cache from public, anon, authenticated;
+revoke all on table public.reseller_hunt_cache_meta from public, anon, authenticated;
+revoke all on table public.reseller_store_discovery_snapshots from public, anon, authenticated;
+revoke all on table public.reseller_store_discovery_tiles from public, anon, authenticated;
+grant all on table public.reseller_hunt_cache to service_role;
+grant all on table public.reseller_hunt_cache_meta to service_role;
+grant all on table public.reseller_store_discovery_snapshots to service_role;
+grant all on table public.reseller_store_discovery_tiles to service_role;
+
 -- Trigger code resolves only built-in functions and operators.
-alter function public.sanitize_reseller_store_discovery_tiles()
-  set search_path = pg_catalog;
+create or replace function public.sanitize_reseller_store_discovery_tiles()
+returns trigger
+language plpgsql
+set search_path = pg_catalog
+as $function$
+begin
+  new.stores := coalesce((
+    select jsonb_agg(item)
+    from jsonb_array_elements(coalesce(new.stores, '[]'::jsonb)) item
+    where lower(coalesce(item->>'store_name', '')) not like '%burlington northern%'
+      and lower(coalesce(item->>'store_name', '')) not like '%bnsf%'
+      and lower(coalesce(item->>'store_name', '')) <> 'kmart'
+      and lower(coalesce(item->>'retailer', '')) <> 'kmart'
+  ), '[]'::jsonb);
+  return new;
+end
+$function$;
+
+drop trigger if exists trg_sanitize_reseller_store_discovery_tiles
+  on public.reseller_store_discovery_tiles;
+create trigger trg_sanitize_reseller_store_discovery_tiles
+before insert or update on public.reseller_store_discovery_tiles
+for each row execute function public.sanitize_reseller_store_discovery_tiles();
 
 -- Make service-only tables explicitly fail closed for direct Data API clients.
 do $policy$
