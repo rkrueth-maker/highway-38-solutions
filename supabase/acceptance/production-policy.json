@@ -1,9 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_ref": "jqukmwtsgcsaruucnqja",
-  "forbidden_active_functions": [
+  "forbidden_active_functions": [],
+  "required_tombstone_functions": [
     "amanda-direct-signin",
-    "amanda-auth-finalize"
+    "amanda-auth-finalize",
+    "one-time-amanda-auth-repair"
+  ],
+  "tombstone_marker": "H38_DISABLED_LEGACY_RECOVERY_V1",
+  "hardened_public_functions": [
+    "business-office-passwordless-login"
   ],
   "allowed_verify_jwt_false": [
     "business-office-invite-activation",
@@ -26,16 +32,45 @@
     "reseller-owner-maintenance-v240"
   ],
   "reviewed_security_advisor_lints": [
-    "authenticated_security_definer_function_executable",
-    "rls_enabled_no_policy"
+    "authenticated_security_definer_function_executable"
   ],
   "blocking_security_advisor_lints": [
     "auth_leaked_password_protection",
-    "function_search_path_mutable"
+    "function_search_path_mutable",
+    "rls_enabled_no_policy"
+  ],
+  "blocking_performance_advisor_lints": [
+    "unindexed_foreign_keys",
+    "multiple_permissive_policies"
+  ],
+  "approved_authenticated_security_definer_functions": [
+    "activate_client_business(p_business_id uuid)",
+    "business_office_apply_import(p_run_id uuid)",
+    "business_office_clock_in(p_business_id uuid, p_job_id text, p_task_id text, p_notes text)",
+    "business_office_clock_out(p_business_id uuid, p_notes text)",
+    "business_office_edit_time_entry(p_business_id uuid, p_time_entry_id text, p_reason text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_break_minutes numeric, p_job_id text, p_task_id text, p_notes text)",
+    "business_office_employee_update_task(p_business_id uuid, p_task_id text, p_status text, p_note text)",
+    "business_office_employee_workspace(p_business_id uuid)",
+    "business_office_invite_employee(p_business_id uuid, p_email text, p_display_name text, p_job_title text)",
+    "business_office_quote_learning_profile(p_business_id uuid)",
+    "business_office_stage_import(p_business_id uuid, p_source_name text, p_entity_type text, p_rows jsonb)",
+    "business_office_team_directory(p_business_id uuid)",
+    "business_office_time_admin(p_business_id uuid, p_limit integer)",
+    "business_office_time_state(p_business_id uuid)",
+    "client_tenant_installer_state()",
+    "customer_portal_approve_quote(p_quote_id uuid, p_expected_version integer)",
+    "customer_portal_customer_id()",
+    "customer_portal_decide_quote(p_quote_id uuid, p_expected_version integer, p_decision text, p_notes text)",
+    "provision_client_business(p_business_key text, p_legal_name text, p_display_name text, p_owner_email text, p_timezone text, p_brand_config jsonb, p_module_keys text[], p_package_id text, p_support_email text)",
+    "suspend_client_business(p_business_id uuid, p_reason text)"
   ],
   "required_source_functions": [
     "h38-office-gateway",
     "business-office-invite-activation",
+    "business-office-passwordless-login",
+    "amanda-direct-signin",
+    "amanda-auth-finalize",
+    "one-time-amanda-auth-repair",
     "h38-quote-ai",
     "h38-quote-delivery",
     "h38-site-scanner",
@@ -53,6 +88,10 @@
   "required_live_functions": [
     "h38-office-gateway",
     "business-office-invite-activation",
+    "business-office-passwordless-login",
+    "amanda-direct-signin",
+    "amanda-auth-finalize",
+    "one-time-amanda-auth-repair",
     "h38-quote-ai",
     "h38-quote-delivery",
     "h38-site-scanner",

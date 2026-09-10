@@ -6,3 +6,15 @@ verify_jwt = false
 
 [functions.h38-assistant-ai]
 verify_jwt = true
+
+[functions.business-office-passwordless-login]
+verify_jwt = false
+
+[functions.amanda-direct-signin]
+verify_jwt = true
+
+[functions.amanda-auth-finalize]
+verify_jwt = true
+
+[functions.one-time-amanda-auth-repair]
+verify_jwt = true
