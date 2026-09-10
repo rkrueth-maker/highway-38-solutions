@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-2';
+const BUILD='20260910-desktop-navigation-final-authority-3';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 const OFFICE_REQUIREMENTS=Object.freeze({
@@ -87,6 +87,14 @@ allowedPages.__h38FinalDesktopAuthority=true;
 renderNav.__h38Meetings=true;
 renderNav.__h38FinalDesktopAuthority=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
+function installAsFinalAuthority(){
+  if(!desktop())return false;
+  window.allowedPages=allowedPages;
+  window.renderNav=renderNav;
+  reconcile();
+  return true;
+}
+function queueFinalAuthority(){setTimeout(installAsFinalAuthority,0);}
 function installProfitabilityInputSafety(){
   if(document.documentElement.dataset.h38ProfitabilityInputSafety==='true')return false;
   document.documentElement.dataset.h38ProfitabilityInputSafety='true';
@@ -116,11 +124,11 @@ function loadProfitabilityLayer(){
 }
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
-window.allowedPages=allowedPages;
-window.renderNav=renderNav;
+installAsFinalAuthority();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueFinalAuthority,{once:true});else queueFinalAuthority();
+window.addEventListener('load',queueFinalAuthority,{once:true});
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
-reconcile();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:true,
   retired:false,
@@ -130,6 +138,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   renderDesktopNavigation,
   allowedPages,
   canonicalOfficePages,
+  installAsFinalAuthority,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
@@ -146,6 +155,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   staffNavLoadMask:false,
   canonicalOfficePermissionResolver:true,
   wrapperChainPermissionDependency:false,
+  finalAuthorityReassertedAfterDeferredWrappers:true,
   mutatesNavigation:true,
   capturesClicks:false,
   createsProxyButtons:false,
