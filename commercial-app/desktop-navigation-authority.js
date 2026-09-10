@@ -18,7 +18,9 @@ function installProfitabilityInputSafety(){
       laborBurdenPct:document.getElementById('h38ProfitLaborBurden')?.value,
       overheadPct:document.getElementById('h38ProfitOverhead')?.value
     });
-    setTimeout(()=>window.dispatchEvent(new Event('h38:business-snapshot-updated')),0);
+    setTimeout(()=>{
+      window.dispatchEvent(new Event('h38:business-snapshot-updated'));
+    },0);
   },true);
   return true;
 }
