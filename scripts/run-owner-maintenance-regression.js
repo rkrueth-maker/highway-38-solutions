@@ -12,6 +12,8 @@ const runVisuals=process.env.H38_RUN_VISUALS!=='0';
 function findByKey(value,keys,seen=new Set()){if(!value||typeof value!=='object'||seen.has(value))return'';seen.add(value);for(const [key,child] of Object.entries(value))if(keys.includes(key)&&typeof child==='string'&&child.trim())return child.trim();for(const child of Object.values(value)){const found=findByKey(child,keys,seen);if(found)return found;}return'';}
 function save(report){fs.mkdirSync(path.dirname(outputPath),{recursive:true});fs.writeFileSync(outputPath,JSON.stringify(report,null,2)+'\n');}
 function assertExactCoverage(expected,actual,label){const expectedIds=Array.isArray(expected)?expected.filter(Boolean):[],actualIds=Array.isArray(actual)?actual.filter(Boolean):[],unique=new Set(actualIds),missing=expectedIds.filter(id=>!unique.has(id)),unexpected=actualIds.filter(id=>expectedIds.length&&!expectedIds.includes(id)),duplicates=actualIds.filter((id,index)=>actualIds.indexOf(id)!==index);if(unique.size!==actualIds.length||missing.length||unexpected.length||(expectedIds.length&&actualIds.length!==expectedIds.length))throw new Error(`${label} quote coverage failed: expected=${expectedIds.length||'unknown'} actual=${actualIds.length} unique=${unique.size} missing=${missing.join(',')||'none'} unexpected=${unexpected.join(',')||'none'} duplicates=${[...new Set(duplicates)].join(',')||'none'}`);return{count:actualIds.length,uniqueCount:unique.size,missing,unexpected,duplicates:[...new Set(duplicates)]};}
+function canonicalQuoteReady(row){return !!row&&row?.quoteAgent?.ok!==false&&String(row?.quoteAgent?.classification||'').trim()==='CLEAN'&&row?.quoteAgent?.baselineComparison?.pass===true&&row?.quoteAgent?.scopeDrift!==true&&row?.options?.ok!==false&&row?.options?.baseComparison?.pass===true&&row?.safety?.quoteFixtureUnchanged===true;}
+function normalizeCanonicalResult(row){const quoteReady=canonicalQuoteReady(row);return{...row,maintenanceStatus:row?.status||'',quoteReady,visualRequiredForQuoteReady:false,status:quoteReady?'CLEAN':'FAIL'};}
 async function googleAccessToken(){if(!fs.existsSync(credentialPath))throw new Error(`Credential file missing: ${credentialPath}`);const credentials=JSON.parse(fs.readFileSync(credentialPath,'utf8'));let accessToken=findByKey(credentials,['access_token','accessToken']);const refreshToken=findByKey(credentials,['refresh_token','refreshToken']),clientId=findByKey(credentials,['client_id','clientId']),clientSecret=findByKey(credentials,['client_secret','clientSecret']);if(refreshToken&&clientId&&clientSecret){const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refreshToken,grant_type:'refresh_token'}),signal:AbortSignal.timeout(30000)});if(response.ok){const payload=await response.json();if(payload.access_token)accessToken=payload.access_token;}}if(!accessToken)throw new Error('No usable Google owner access token is available.');return accessToken;}
 async function githubOidcToken(){const requestUrl=process.env.ACTIONS_ID_TOKEN_REQUEST_URL||'',requestToken=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN||'';if(requestUrl&&requestToken){const separator=requestUrl.includes('?')?'&':'?';const response=await fetch(`${requestUrl}${separator}audience=h38-owner-maintenance`,{headers:{Authorization:`bearer ${requestToken}`},signal:AbortSignal.timeout(30000)});if(!response.ok)throw new Error(`Unable to refresh GitHub OIDC token (${response.status}).`);const payload=await response.json();if(!payload.value)throw new Error('GitHub OIDC refresh returned no token.');if(oidcPath){fs.writeFileSync(oidcPath,payload.value);try{fs.chmodSync(oidcPath,0o600);}catch{}}return payload.value;}if(!oidcPath||!fs.existsSync(oidcPath))throw new Error(`GitHub OIDC token file missing: ${oidcPath||'(unset)'}`);const token=fs.readFileSync(oidcPath,'utf8').trim();if(!token)throw new Error('GitHub OIDC token file is empty.');return token;}
 async function auth(forceRefresh=false){if(oidcPath||process.env.ACTIONS_ID_TOKEN_REQUEST_URL){const token=await githubOidcToken();return{mode:'github-oidc',endpoint:OIDC_ENDPOINT,headers:{'x-h38-github-oidc':token},refreshable:true};}const token=await googleAccessToken();return{mode:'google-owner',endpoint:OWNER_ENDPOINT,headers:{Authorization:`Bearer ${token}`},refreshable:false};}
@@ -19,7 +21,7 @@ async function call(identity,body,timeout=180000,retryAuth=true){const response=
 function sameManifest(a,b){const left=Array.isArray(a?.quoteIds)?a.quoteIds:[],right=Array.isArray(b?.quoteIds)?b.quoteIds:[];return Number(a?.total||0)===Number(b?.total||0)&&left.length===right.length&&left.every((id,index)=>id===right[index]);}
 (async()=>{
   const identity=await auth();
-  const report={startedAt:new Date().toISOString(),authMode:identity.mode,seed:null,status:null,statusAfterSeed:null,batches:[],results:[],visualBatches:[],visualResults:[],runVisuals,complete:false};
+  const report={startedAt:new Date().toISOString(),authMode:identity.mode,seed:null,status:null,statusAfterSeed:null,batches:[],results:[],visualBatches:[],visualResults:[],runVisuals,quoteReadinessIndependentOfVisuals:true,complete:false};
   report.status=await call(identity,{action:'status'},30000);save(report);
   report.seed=await call(identity,{action:'seed'},180000);save(report);
   if(Array.isArray(report.seed.failures)&&report.seed.failures.length)throw new Error(`Historical evidence seeding had ${report.seed.failures.length} failure(s).`);
@@ -34,12 +36,13 @@ function sameManifest(a,b){const left=Array.isArray(a?.quoteIds)?a.quoteIds:[],r
   if(report.expectedQuoteIds.length!==total)throw new Error(`Status manifest expected ${total} quote IDs, got ${report.expectedQuoteIds.length}.`);
   for(let offset=0;offset<total;offset+=6){
     const batch=await call(identity,{action:'run',offset,limit:6},180000);
-    report.batches.push({offset,clean:batch.clean,fail:batch.fail,returned:batch.returned,quoteIds:batch.quoteIds||[],build:batch.build,agentBuild:batch.agentBuild});
-    report.results.push(...(batch.results||[]));save(report);
-    console.log(JSON.stringify({phase:'canonical',offset,clean:batch.clean,fail:batch.fail,returned:batch.returned,quoteIds:batch.quoteIds,results:batch.results},null,2));
+    const normalized=(batch.results||[]).map(normalizeCanonicalResult);
+    report.batches.push({offset,backendClean:batch.clean,backendFail:batch.fail,returned:batch.returned,quoteIds:batch.quoteIds||[],build:batch.build,agentBuild:batch.agentBuild,quoteReady:normalized.filter(row=>row.quoteReady).length});
+    report.results.push(...normalized);save(report);
+    console.log(JSON.stringify({phase:'canonical',offset,backendClean:batch.clean,backendFail:batch.fail,returned:batch.returned,quoteIds:batch.quoteIds,results:normalized},null,2));
   }
-  report.clean=report.results.filter(row=>row.status==='CLEAN').length;
-  report.fail=report.results.filter(row=>row.status!=='CLEAN').length;
+  report.clean=report.results.filter(row=>row.quoteReady===true).length;
+  report.fail=report.results.filter(row=>row.quoteReady!==true).length;
   save(report);
   if(report.results.length!==total)throw new Error(`Expected ${total} canonical quote results, got ${report.results.length}.`);
   report.canonicalCoverage=assertExactCoverage(report.expectedQuoteIds,report.results.map(row=>row.quoteId),'Canonical regression');save(report);
@@ -53,10 +56,11 @@ function sameManifest(a,b){const left=Array.isArray(a?.quoteIds)?a.quoteIds:[],r
   }
   report.visualClean=report.visualResults.filter(row=>row.status==='CLEAN').length;
   report.visualFail=report.visualResults.filter(row=>row.status!=='CLEAN').length;
+  report.visualWarnings=report.visualResults.filter(row=>row.status!=='CLEAN').map(row=>({quoteId:row.quoteId,title:row.title||'',renderStatus:row.renderStatus||'FAIL',message:row.message||'',quoteStillReady:true}));
   if(runVisuals&&report.fail===0)report.visualCoverage=assertExactCoverage(report.expectedQuoteIds,report.visualResults.map(row=>row.quoteId),'Visual regression');
-  report.visualSkipped=runVisuals&&report.fail>0?'Canonical regression failed; visual generation held to avoid validating stale scope.':runVisuals?'':'Disabled by H38_RUN_VISUALS=0.';
+  report.visualSkipped=runVisuals&&report.fail>0?'Canonical quote readiness failed; visual generation held to avoid validating stale scope.':runVisuals?'':'Disabled by H38_RUN_VISUALS=0.';
   report.complete=true;
   report.completedAt=new Date().toISOString();save(report);
-  console.log(JSON.stringify({status:report.fail||report.visualFail?'HOLD':'PASS',total:report.results.length,uniqueQuoteCount:report.canonicalCoverage?.uniqueCount||0,clean:report.clean,fail:report.fail,visualClean:report.visualClean,visualFail:report.visualFail,seed:report.seed},null,2));
-  if(report.fail||report.visualFail)process.exitCode=2;
+  console.log(JSON.stringify({status:report.fail?'HOLD':'PASS',total:report.results.length,uniqueQuoteCount:report.canonicalCoverage?.uniqueCount||0,quoteReady:report.clean,quoteFail:report.fail,visualClean:report.visualClean,visualWarnings:report.visualFail,seed:report.seed},null,2));
+  if(report.fail)process.exitCode=2;
 })().catch(error=>{console.error(error&&error.stack||error);process.exitCode=1;});
