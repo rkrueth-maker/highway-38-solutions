@@ -33,9 +33,12 @@ function verifyOfficeSyntax(){const failures=[];for(const name of fs.readdirSync
       const snapshot={business:{businessId:'B-NAV-TEST',businessName:'Highway 38 Solutions'},user:{userId:'U-OWNER',roleName:'Owner',owner:true,permissions:{all:true}},authorizationStatus:'active',authUserId:'U-OWNER'};
       emptyCollections.forEach(name=>snapshot[name]=[]);
       window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=snapshot;window.state.bridgeReady=true;
+      if(typeof window.h38SetAuthorizedChrome!=='function')throw new Error('Authorized Office chrome transition is unavailable.');
+      window.h38SetAuthorizedChrome(true);
       window.renderNav();window.openPage('today',false);
     });
 
+    await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!document.body.classList.contains('h38-auth-locked'),{timeout:5000});
     await page.waitForFunction(()=>document.querySelectorAll('#mainNav > button[data-page]').length>=7,{timeout:5000});
     const ownership=await page.evaluate(()=>({
       interceptorLoaded:!!window.H38_DESKTOP_NAVIGATION_CORE,
