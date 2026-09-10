@@ -1,11 +1,12 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-authority-nav-integrity-loader-1';
+const BUILD='20260910-desktop-navigation-authority-control-integrity-loader-3';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const NAVIGATION_INTEGRITY_BUILD='20260910-office-navigation-integrity-1';
+const CONTROL_INTEGRITY_BUILD='20260910-office-control-integrity-3';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
-function reconcile(){return core()?.reconcile?.()||false;}
+function reconcile(){return window.H38_OFFICE_CONTROL_INTEGRITY?.normalizeDesktopNav?.()||window.H38_OFFICE_NAVIGATION_INTEGRITY?.reconcile?.()||core()?.reconcile?.()||false;}
 function installProfitabilityInputSafety(){
   if(document.documentElement.dataset.h38ProfitabilityInputSafety==='true')return false;
   document.documentElement.dataset.h38ProfitabilityInputSafety='true';
@@ -44,24 +45,41 @@ function loadNavigationIntegrity(){
   document.body.appendChild(script);
   return true;
 }
+function loadControlIntegrity(){
+  if(window.H38_OFFICE_CONTROL_INTEGRITY||document.querySelector('script[data-h38-office-control-integrity]'))return false;
+  const script=document.createElement('script');
+  script.src=`./office-control-integrity-20260910.js?build=${CONTROL_INTEGRITY_BUILD}`;
+  script.async=false;
+  script.dataset.h38OfficeControlIntegrity='true';
+  document.body.appendChild(script);
+  return true;
+}
 function loadEmployeeWorkspace(){return false;}
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
 loadNavigationIntegrity();
+loadControlIntegrity();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:false,
   retired:true,
   build:BUILD,
-  replacement:'desktop-navigation-core.js',
+  replacement:'native Business Office navigation + office-control-integrity',
   reconcile,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
+  loadControlIntegrity,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
   navigationIntegrityLoader:true,
   navigationIntegrityBuild:NAVIGATION_INTEGRITY_BUILD,
+  controlIntegrityLoader:true,
+  controlIntegrityBuild:CONTROL_INTEGRITY_BUILD,
+  canonicalDesktopRouteAuthority:true,
+  desktopNavDomPersistent:true,
+  meetingSidebarCollapseRepair:true,
+  meetingPhysicalClickCapture:true,
   employeeWorkspaceLoader:false,
   employeeWorkspaceStartupAuthority:'none',
   employeeWorkspaceCompanionOnly:true,
