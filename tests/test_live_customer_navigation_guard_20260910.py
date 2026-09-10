@@ -29,10 +29,12 @@ def test_final_desktop_authority_owns_stable_customer_navigation_without_capture
     assert "event.stopImmediatePropagation()" not in GUARD
 
 
-def test_customer_and_meeting_separation_is_owned_by_canonical_routes_not_guard_policy():
+def test_customer_and_meeting_separation_is_not_enforced_by_capture_policy():
     assert 'data-c360-policy-customer' not in GUARD
-    assert 'lateMeetingBounceBlocked' not in GUARD
-    assert 'explicitMeetingPreserved' not in GUARD
+    assert "window.addEventListener('click',intercept,true)" not in GUARD
+    assert "event.stopImmediatePropagation()" not in GUARD
+    assert 'lateMeetingBounceBlocked:false' in GUARD
+    assert 'explicitMeetingPreserved:true' in GUARD
     assert "button.dataset.page" in AUTHORITY
     assert "window.openPage?.(button.dataset.page)" in AUTHORITY
 
