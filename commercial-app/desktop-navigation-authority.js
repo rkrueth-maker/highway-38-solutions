@@ -86,6 +86,7 @@ allowedPages.__h38Meetings=true;
 allowedPages.__h38FinalDesktopAuthority=true;
 renderNav.__h38Meetings=true;
 renderNav.__h38FinalDesktopAuthority=true;
+renderNav.h38PhysicalNavStable=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
 function installAsFinalAuthority(){
   if(!desktop())return false;
