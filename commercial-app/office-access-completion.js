@@ -1,9 +1,10 @@
 (function(){
 'use strict';
-const BUILD='20260910-office-access-completion-1';
+const BUILD='20260910-office-access-completion-2-deep-wide';
 const FINANCE_PAGES=['money','accounting','payroll','tax','reports'];
 const ADMIN_PAGES=['people','controls','settings'];
 const text=value=>String(value==null?'':value).trim();
+let enhanceQueued=false;
 function state(){try{return window.state||(typeof globalThis.state!=='undefined'?globalThis.state:null);}catch(_){return window.state||null;}}
 function allowed(){try{return new Set(typeof window.allowedPages==='function'?window.allowedPages():[]);}catch(_){return new Set();}}
 function role(){const user=state()?.snapshot?.user||{};return text(user.roleName||user.roleId||user.role||'').toLowerCase();}
@@ -78,10 +79,20 @@ function enhance(){
   if(page==='people'){peopleStrip();return;}
   if(page==='settings'||page==='controls'){adminStrip(page);}
 }
-function wrap(name){const base=window[name];if(typeof base!=='function'||base.__h38CompleteOfficeAccess)return false;const wrapped=function(){const result=base.apply(this,arguments);queueMicrotask(enhance);return result;};wrapped.__h38CompleteOfficeAccess=true;wrapped.__h38CompleteOfficeAccessBase=base;window[name]=wrapped;return true;}
+function queueEnhance(){if(enhanceQueued)return;enhanceQueued=true;queueMicrotask(()=>{enhanceQueued=false;enhance();});}
+function wrap(name){const base=window[name];if(typeof base!=='function'||base.__h38CompleteOfficeAccess)return false;const wrapped=function(){const result=base.apply(this,arguments);queueEnhance();return result;};wrapped.__h38CompleteOfficeAccess=true;wrapped.__h38CompleteOfficeAccessBase=base;window[name]=wrapped;return true;}
+function installOpenPageReconcile(){
+  const base=window.openPage;if(typeof base!=='function')return false;if(base.__h38CompleteOfficeAccessOpenPage)return true;
+  const wrapped=function(){const result=base.apply(this,arguments);queueEnhance();setTimeout(queueEnhance,0);return result;};
+  wrapped.__h38CompleteOfficeAccessOpenPage=true;wrapped.__h38CompleteOfficeAccessOpenPageBase=base;window.openPage=wrapped;
+  try{openPage=wrapped;}catch(_){ }
+  return true;
+}
 ['renderToday','renderMoney','renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderReports','renderControls','renderSettings'].forEach(wrap);
-window.addEventListener('h38:office-navigation-access-updated',()=>queueMicrotask(enhance));
-window.addEventListener('pageshow',()=>queueMicrotask(enhance));
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>queueMicrotask(enhance),{once:true});else queueMicrotask(enhance);
-window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance});
+installOpenPageReconcile();
+window.addEventListener('h38:office-navigation-access-updated',()=>{installOpenPageReconcile();queueEnhance();});
+window.addEventListener('h38:business-snapshot-updated',queueEnhance);
+window.addEventListener('pageshow',()=>{installOpenPageReconcile();queueEnhance();});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{installOpenPageReconcile();queueEnhance();},{once:true});else queueEnhance();
+window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,livePageNavigationReconcile:true,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance,queueEnhance,installOpenPageReconcile});
 })();
