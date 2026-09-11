@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260827-mobile-physical-stability-5-fixed-nav-order';
+const PATCH='20260910-mobile-only-nav-authority-1';
 const main=document.getElementById('mainContent');
 const MOBILE='(max-width: 760px)';
 const JOBS_SOURCE=/(site-visit-wide-acceptance-final|site-visit-work-dedupe-final|site-visit-work-list-grouping-repair)\.js/i;
@@ -87,7 +88,7 @@ function syncCanonicalNavState(){
   return true;
 }
 function installStableRenderNavAuthority(){
-  if(renderNavFreezeInstalled)return;
+  if(renderNavFreezeInstalled||!mobile())return;
   const base=window.renderNav;
   if(typeof base!=='function')return;
   function fixedRenderNav(...args){
@@ -136,11 +137,14 @@ function finalizeJobsFirstFrame(){
 installPhysicalNavOrderStyle();
 document.addEventListener('click',capturePrimaryIntent,true);
 document.addEventListener('click',finalizeJobsFirstFrame);
-// Install after parser-time wrappers (flow tightening/mobile runtime) have finished composing renderNav.
+// Install only when the mobile viewport owns navigation. Desktop must remain under the final desktop authority.
 originalSetTimeout(installStableRenderNavAuthority,0);
 window.addEventListener('load',installStableRenderNavAuthority,{once:true});
+const mobileQuery=window.matchMedia?.(MOBILE);
+mobileQuery?.addEventListener?.('change',event=>{if(event.matches)installStableRenderNavAuthority();});
 window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   build:BUILD,
+  patch:PATCH,
   enabled:true,
   scrollSurface:'mainContent',
   nativeScrollOnly:true,
@@ -154,6 +158,8 @@ window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   physicalPrimaryNavOrderLocked:true,
   jobsBeforeCustomersFixedOrder:true,
   mobileRenderNavBaseSuppressedWhenCanonical:true,
+  mobileOnlyRenderNavWrapper:true,
+  desktopNavigationAuthorityUntouched:true,
   broadPostPaintCoalescerRemoved:true,
   customerTimersUnmodified:true,
   intervalMonkeypatch:false,

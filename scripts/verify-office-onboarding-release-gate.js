@@ -5,13 +5,14 @@ const loader=read('commercial-app/site-visit-quote-wide-pass-loader.js');
 const edge=read('supabase/functions/h38-quote-release-gate/index.ts');
 const migration=read('supabase/migrations/20260905233000_supabase_traffic_efficiency.sql');
 function ok(condition,message){if(!condition){console.error('FAIL:',message);process.exitCode=1;}else console.log('PASS:',message);}
-for(const marker of ['quotePhotosCanBeAddedLater:true','quoteVideoAddOnsCanBeAddedLater:true','videoFramesBecomeQuoteEvidence:true','noLumpSumContract:true','specialtyQuoteVerification:true','staffPermissionRlsAligned:true','staffUsageTelemetrySuppressed:true'])ok(gate.includes(marker),`browser gate ${marker}`);
+for(const marker of ['quotePhotosCanBeAddedLater:true','quoteVideoAddOnsCanBeAddedLater:true','videoFramesBecomeQuoteEvidence:true','noLumpSumContract:true','specialtyQuoteVerification:true','staffPermissionRlsAligned:true','staffPermissionMutation:false',"navigationAuthority:'canonical-business-office'",'navigationWrapper:false','staffUsageTelemetrySuppressed:true'])ok(gate.includes(marker),`browser gate ${marker}`);
 ok(gate.includes("handleAttachmentFiles(files,'Quote',quoteId(),'Internal')"),'later photos are stored as Quote evidence');
 ok(gate.includes("'Source Type':'Quote','Source ID':qid,'Evidence Type':'Media Review Frame'"),'video frames become Quote evidence');
 ok(gate.includes("'Quote ID':qid")&&gate.includes("'Purpose':'Quote Add-On'"),'video session retains Quote identity');
 ok(gate.includes("saveRecord('specialtyQuoteRequests'"),'specialty quote requests are persisted separately');
 ok(gate.includes("action==='completionSync'&&isStaff()")&&gate.includes('RECORD_USAGE_EVENT'),'Staff usage retry loop is suppressed client-side');
-ok(gate.includes('viewAssignedWork:true')&&!gate.includes('manageQuotes:true'),'Staff browser permissions align to bounded employee authority');
+ok(!gate.includes('user.permissions=next'),'release gate does not overwrite authenticated Staff permissions');
+ok(!gate.includes('window.renderNav=wrapped'),'release gate does not take navigation ownership');
 ok(loader.indexOf('./office-onboarding-release-gate.js')>loader.indexOf('./quote-agent-contract.js'),'release gate loads after canonical quote agent');
 for(const marker of ["CANONICAL_AGENT='h38-quote-agent'",'lump-sum/LS line','forceAiReinterpretation:true','preserveSavedBaseline:false','specialtyVerificationSupported:true','entryPathIndependent:true'])ok(edge.includes(marker),`server release gate ${marker}`);
 ok(edge.includes("u==='lump sum'")&&edge.includes('non-positive quantity')&&edge.includes('non-positive rate'),'server blocks lump sums and incomplete lines');

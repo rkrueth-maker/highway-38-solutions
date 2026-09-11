@@ -63,8 +63,8 @@ for(const needle of [
   'captureEvidence: true, useInventory: true, useAssets: true'
 ])includes(auth,needle,`Staff permission model missing ${needle}`);
 for(const needle of [
-  "const OFFICE_PAGES=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings']",
-  'function allowedPages()','requirements={customers:',"$('mainNav').innerHTML=pages.map"
+  "const OFFICE_PAGES=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings']",
+  'function allowedPages()','requirements={customers:'
 ])includes(office,needle,`Canonical Business Office navigation missing ${needle}`);
 
 for(const needle of [
@@ -76,19 +76,19 @@ expect(!startup.includes('employee-workspace.js'),'Startup must not inject emplo
 expect(!startup.includes('handleFullSnapshot=async function'),'Full snapshot must not be wrapped to install Staff UI ownership.');
 
 for(const needle of [
-  'employeeWorkspaceLoader:false',"employeeWorkspaceStartupAuthority:'none'",'employeeWorkspaceCompanionOnly:true',
-  'staffUsesCanonicalOfficeNavigation:true','staffUsesPermissionFilteredNavigation:true','staffWorkRendererFenceHandledByEmployeeRenderer:false',
-  'staffMainContentCleanupObserver:false','mutatesNavigation:false','capturesClicks:false'
-])includes(loader,needle,`Retired desktop authority missing ${needle}`);
-expect(!loader.includes('new MutationObserver'),'Retired desktop authority must not observe Staff content.');
-expect(!loader.includes('script.src=`./employee-workspace.js'),'Retired desktop authority must not inject employee workspace code.');
+  'enabled:true','retired:false','renderDesktopNavigation','employeeWorkspaceLoader:false',"employeeWorkspaceStartupAuthority:'none'",'employeeWorkspaceCompanionOnly:true',
+  'staffUsesCanonicalOfficeNavigation:true','staffUsesPermissionFilteredNavigation:true','staffAssistantHidden:true',
+  'stableAccessSignature:true','samePermissionRefreshPreservesNodes:true','mutatesNavigation:true','capturesClicks:false','createsProxyButtons:false','geometryHitTesting:false'
+])includes(loader,needle,`Final desktop navigation authority missing ${needle}`);
+expect(!loader.includes('new MutationObserver'),'Final desktop authority must not observe Staff content.');
+expect(!loader.includes('script.src=`./employee-workspace.js'),'Final desktop authority must not inject employee workspace code.');
 
 includes(worker,"'employee-workspace.js'",'Employee companion may remain LIVE_FIRST if explicitly requested.');
 includes(worker,"'./employee-workspace.js'",'Employee companion must remain available offline.');
-expect(/const CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(worker),'Service-worker cache must keep accepted dated format.');
+expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated or navigation-generation format.');
 
 console.log(JSON.stringify({
-  status:'PASS',staffShell:'canonical Business Office',staffNavigation:'permission-filtered allowedPages',
+  status:'PASS',staffShell:'canonical Business Office',staffNavigation:'permission-filtered final authority',
   employeeWorkspace:'non-owning companion',employeeAutoLoad:false,employeeDesktopTakeover:false,
   taskManagerAssignmentAuthority:true,employeeSelfPunch:true,ownerAdminTeamAccess:true,
   siteManagerProfile:true,directAuthSignup:false,invitationBoundActivation:true,duplicateActivationGuard:true,

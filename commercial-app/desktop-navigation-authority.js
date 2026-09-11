@@ -1,11 +1,122 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-authority-nav-integrity-loader-1';
+const BUILD='20260910-desktop-navigation-final-authority-5';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
-const NAVIGATION_INTEGRITY_BUILD='20260910-office-navigation-integrity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-function core(){return window.H38_DESKTOP_NAVIGATION_CORE||null;}
-function reconcile(){return core()?.reconcile?.()||false;}
+const OFFICE_REQUIREMENTS=Object.freeze({
+  customers:['viewCustomers','manageWork','manageQuotes'],
+  meetings:['viewCustomers','manageCommunications','manageWork'],
+  people:['manageUsers'],
+  work:['manageWork','viewAssignedWork','manageAssignedWork'],
+  quotes:['manageQuotes','manageWork'],
+  measure:['manageField','manageQuotes','captureEvidence'],
+  schedule:['manageSchedule','manageWork','viewAssignedWork'],
+  messages:['manageCommunications'],
+  field:['manageField','viewAssignedWork','captureEvidence'],
+  inventory:['manageInventory','useInventory'],
+  fleet:['manageAssets','useAssets','manageMaintenance'],
+  money:['manageFinancial','viewFinancial'],
+  accounting:['manageFinancial','viewFinancial'],
+  payroll:['manageFinancial'],
+  tax:['manageFinancial'],
+  documents:['manageWork','manageQuotes','manageField','captureEvidence'],
+  social:['manageSocial'],
+  controls:['manageSettings'],
+  reports:['manageFinancial','viewFinancial','manageSettings'],
+  settings:['manageSettings','manageUsers']
+});
+const inheritedRenderNav=typeof window.renderNav==='function'?window.renderNav:null;
+const inheritedAllowedPages=typeof window.allowedPages==='function'?window.allowedPages:null;
+let desktopRenderNavWriteShield=false;
+function desktop(){return !window.matchMedia?.('(max-width: 760px)').matches;}
+function officeState(){try{return window.state||(typeof state!=='undefined'?state:null);}catch(_){return window.state||null;}}
+function definitions(){try{return window.PAGE_DEFS||(typeof PAGE_DEFS!=='undefined'?PAGE_DEFS:{});}catch(_){return window.PAGE_DEFS||{};}}
+function roleName(user={}){return String(user.roleId||user.roleName||user.role||'').trim().toLowerCase();}
+function can(user,capability){if(!user)return false;if(user.owner===true||user.permissions?.all===true)return true;return user.permissions?.[capability]===true;}
+function canonicalOfficePages(){
+  const pages=Array.isArray(window.H38_OFFICE_PAGES)?window.H38_OFFICE_PAGES.slice():[];
+  if(!pages.includes('meetings')){const at=Math.max(0,pages.indexOf('customers')+1);pages.splice(at,0,'meetings');}
+  const defs=definitions();
+  if(defs.assistant&&!pages.includes('assistant')){const at=pages.indexOf('settings');pages.splice(at>=0?at:pages.length,0,'assistant');}
+  return Array.from(new Set(pages));
+}
+function allowedPages(){
+  const s=officeState(),user=s?.snapshot?.user;
+  if(!user)return[];
+  if((s.shell||'office')!=='office'){
+    try{return Array.isArray(inheritedAllowedPages?.())?inheritedAllowedPages():[];}catch(_){return[];}
+  }
+  const role=roleName(user);
+  return canonicalOfficePages().filter(page=>{
+    if(page==='assistant')return role!=='staff';
+    const requirements=OFFICE_REQUIREMENTS[page];
+    return !requirements||requirements.some(capability=>can(user,capability));
+  });
+}
+function updateActive(page=officeState()?.page){
+  const nav=document.getElementById('mainNav');if(!nav)return;
+  nav.querySelectorAll(':scope > button[data-page]').forEach(button=>{
+    const active=button.dataset.page===page;
+    button.classList.toggle('active',active);
+    if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+  });
+}
+function renderDesktopNavigation(){
+  const s=officeState(),nav=document.getElementById('mainNav');if(!nav)return;
+  const pages=allowedPages();
+  if(!s?.snapshot?.user||!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}
+  const signature=`${s.shell||'office'}|${pages.join('|')}`;
+  if(nav.dataset.h38AccessSignature===signature){updateActive();return;}
+  const defs=definitions();
+  nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
+  delete nav.dataset.h38PrimaryNav;
+  nav.innerHTML=pages.map(key=>{
+    const def=defs[key]||['•',key];
+    return `<button type="button" data-page="${String(key)}" class="${key===s.page?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`;
+  }).join('');
+  nav.dataset.h38AccessSignature=signature;
+  nav.querySelectorAll(':scope > button[data-page]').forEach(button=>button.onclick=()=>window.openPage?.(button.dataset.page));
+  updateActive();
+  window.dispatchEvent(new CustomEvent('h38:office-navigation-access-updated',{detail:{shell:s.shell,pages:pages.slice()}}));
+}
+function renderNav(){
+  if(!desktop())return inheritedRenderNav?.apply(this,arguments);
+  return renderDesktopNavigation();
+}
+allowedPages.__h38Meetings=true;
+allowedPages.__h38FinalDesktopAuthority=true;
+renderNav.__h38Meetings=true;
+renderNav.__h38FinalDesktopAuthority=true;
+renderNav.__h38OnboardingGate=true;
+renderNav.h38PhysicalNavStable=true;
+renderNav.h38MobileFirstFrameStable=true;
+function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
+function shieldDesktopRenderNav(){
+  if(!desktop()||desktopRenderNavWriteShield)return false;
+  const descriptor=Object.getOwnPropertyDescriptor(window,'renderNav');
+  if(descriptor&&!descriptor.configurable)return false;
+  Object.defineProperty(window,'renderNav',{
+    configurable:true,
+    enumerable:true,
+    get(){return renderNav;},
+    set(candidate){
+      if(desktop())return;
+      desktopRenderNavWriteShield=false;
+      Object.defineProperty(window,'renderNav',{configurable:true,enumerable:true,writable:true,value:candidate});
+    }
+  });
+  desktopRenderNavWriteShield=true;
+  return true;
+}
+function installAsFinalAuthority(){
+  if(!desktop())return false;
+  window.allowedPages=allowedPages;
+  window.renderNav=renderNav;
+  shieldDesktopRenderNav();
+  reconcile();
+  return true;
+}
+function queueFinalAuthority(){setTimeout(installAsFinalAuthority,0);}
 function installProfitabilityInputSafety(){
   if(document.documentElement.dataset.h38ProfitabilityInputSafety==='true')return false;
   document.documentElement.dataset.h38ProfitabilityInputSafety='true';
@@ -20,9 +131,7 @@ function installProfitabilityInputSafety(){
       laborBurdenPct:document.getElementById('h38ProfitLaborBurden')?.value,
       overheadPct:document.getElementById('h38ProfitOverhead')?.value
     });
-    setTimeout(()=>{
-      window.dispatchEvent(new Event('h38:business-snapshot-updated'));
-    },0);
+    setTimeout(()=>{window.dispatchEvent(new Event('h38:business-snapshot-updated'));},0);
   },true);
   return true;
 }
@@ -35,46 +144,51 @@ function loadProfitabilityLayer(){
   document.body.appendChild(script);
   return true;
 }
-function loadNavigationIntegrity(){
-  if(window.H38_OFFICE_NAVIGATION_INTEGRITY||document.querySelector('script[data-h38-office-navigation-integrity]'))return false;
-  const script=document.createElement('script');
-  script.src=`./office-navigation-integrity.js?build=${NAVIGATION_INTEGRITY_BUILD}`;
-  script.async=false;
-  script.dataset.h38OfficeNavigationIntegrity='true';
-  document.body.appendChild(script);
-  return true;
-}
+function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
+installAsFinalAuthority();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueFinalAuthority,{once:true});else queueFinalAuthority();
+window.addEventListener('load',queueFinalAuthority,{once:true});
+window.matchMedia?.('(max-width: 760px)')?.addEventListener?.('change',event=>{if(!event.matches)installAsFinalAuthority();});
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
-loadNavigationIntegrity();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
-  enabled:false,
-  retired:true,
+  enabled:true,
+  retired:false,
   build:BUILD,
-  replacement:'desktop-navigation-core.js',
+  replacement:'final desktop authority over canonical Office routes',
   reconcile,
+  renderDesktopNavigation,
+  allowedPages,
+  canonicalOfficePages,
+  installAsFinalAuthority,
+  shieldDesktopRenderNav,
   loadProfitabilityLayer,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
-  navigationIntegrityLoader:true,
-  navigationIntegrityBuild:NAVIGATION_INTEGRITY_BUILD,
+  navigationIntegrityLoader:false,
   employeeWorkspaceLoader:false,
   employeeWorkspaceStartupAuthority:'none',
   employeeWorkspaceCompanionOnly:true,
   staffUsesCanonicalOfficeNavigation:true,
   staffUsesPermissionFilteredNavigation:true,
+  staffAssistantHidden:true,
   staffNavLoadMask:false,
-  staffInternalIdentityHandledByEmployeeRenderer:false,
-  staffWorkRendererFenceHandledByEmployeeRenderer:false,
-  staffMainContentCleanupObserver:false,
-  mutatesNavigation:false,
+  canonicalOfficePermissionResolver:true,
+  wrapperChainPermissionDependency:false,
+  finalAuthorityReassertedAfterDeferredWrappers:true,
+  desktopRenderNavWriteShield:true,
+  onboardingGateRenderNavCompatibility:true,
+  mobileRenderNavWriteShield:false,
+  mutatesNavigation:true,
   capturesClicks:false,
   createsProxyButtons:false,
   geometryHitTesting:false,
+  stableAccessSignature:true,
+  samePermissionRefreshPreservesNodes:true,
   automaticApproval:false,
   automaticCustomerSending:false,
   automaticPurchase:false,
