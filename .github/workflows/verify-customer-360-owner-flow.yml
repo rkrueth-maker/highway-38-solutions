@@ -5,6 +5,11 @@ on:
     branches:
       - main
     paths:
+      - 'commercial-app/app-04.js'
+      - 'commercial-app/app-13.js'
+      - 'commercial-app/app-14.js'
+      - 'commercial-app/customer-workspace-documents.js'
+      - 'commercial-app/customer-workspace-documents.css'
       - 'commercial-app/customer-360-authority.js'
       - 'commercial-app/customer-360-authority.css'
       - 'commercial-app/customer-360-browser-integration-v3.js'
@@ -32,6 +37,7 @@ on:
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-customer-workspace-documents-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'scripts/verify-customer-top-actions-browser.js'
       - 'scripts/verify-web-media-intake-browser.js'
@@ -45,6 +51,11 @@ on:
       - '.github/workflows/verify-customer-360-owner-flow.yml'
   pull_request:
     paths:
+      - 'commercial-app/app-04.js'
+      - 'commercial-app/app-13.js'
+      - 'commercial-app/app-14.js'
+      - 'commercial-app/customer-workspace-documents.js'
+      - 'commercial-app/customer-workspace-documents.css'
       - 'commercial-app/customer-360-authority.js'
       - 'commercial-app/customer-360-authority.css'
       - 'commercial-app/customer-360-browser-integration-v3.js'
@@ -72,6 +83,7 @@ on:
       - 'scripts/verify-customer-360-owner-flow.js'
       - 'scripts/verify-customer-360-policy.js'
       - 'scripts/verify-customer-360-browser.js'
+      - 'scripts/verify-customer-workspace-documents-browser.js'
       - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'scripts/verify-customer-top-actions-browser.js'
       - 'scripts/verify-web-media-intake-browser.js'
@@ -100,6 +112,10 @@ jobs:
         run: python -m pip install pytest
       - name: JavaScript syntax
         run: |
+          node -c commercial-app/app-04.js
+          node -c commercial-app/app-13.js
+          node -c commercial-app/app-14.js
+          node -c commercial-app/customer-workspace-documents.js
           node -c commercial-app/customer-360-authority.js
           node -c commercial-app/customer-360-browser-integration-v3.js
           node -c commercial-app/customer-readiness-polish.js
@@ -117,6 +133,7 @@ jobs:
           node -c commercial-app/web-media-intake-runtime.js
           node -c scripts/verify-customer-360-policy.js
           node -c scripts/verify-customer-360-browser.js
+          node -c scripts/verify-customer-workspace-documents-browser.js
           node -c scripts/verify-customer-readiness-polish-browser.js
           node -c scripts/verify-customer-top-actions-browser.js
           node -c scripts/verify-web-media-intake-browser.js
@@ -145,6 +162,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run Customer 360 Chromium owner flow
         run: node scripts/verify-customer-360-browser.js
+      - name: Run customer cards, edit, notes and document upload flow
+        run: node scripts/verify-customer-workspace-documents-browser.js
       - name: Run customer readiness polish as owner
         run: node scripts/verify-customer-readiness-polish-browser.js
       - name: Run Customers top actions on mobile
