@@ -172,24 +172,29 @@
     return {status:'PASS',transport:'supabase-operational-app',results,externalActionOccurred:false};
   };
 
-  const baseRenderSettings=renderSettings;
-  renderSettings=function(){
-    baseRenderSettings();
+  function renderStorageSettingsCard(){
+    if(window.state?.page!=='settings')return false;
     const grid=document.querySelector('#mainContent .grid');
-    if(!grid || document.getElementById('businessStorageProviderCard'))return;
-    const storage=state.snapshot?.storageSettings || {provider:'supabase',connectionStatus:'connected'};
+    if(!grid)return false;
+    document.getElementById('businessStorageProviderCard')?.remove();
+    const storage=window.state?.snapshot?.storageSettings || {provider:'supabase',connectionStatus:'connected'};
     const drive=storage.provider==='google_drive';
     const card=document.createElement('section');
     card.id='businessStorageProviderCard';card.className='card span6';
-    card.innerHTML=`<h2>File storage</h2><div class="row"><div><strong>${drive?'Client Google Drive':'Supabase private storage'}</strong><small>${drive?`Business-owned Drive${storage.providerAccountEmail?' · '+esc(storage.providerAccountEmail):''}`:'Default private storage inside the business Supabase tenant'}</small></div>${pill(storage.connectionStatus==='connected'?'Connected':'Setup required',storage.connectionStatus==='connected'?'good':'pending')}</div><p class="muted">Supabase remains the system of record. File metadata, permissions, assignments, proof and error history stay in Supabase even when the original file is stored in the client’s own Google Drive.</p><div class="notice">Google Drive is connected separately during client onboarding. OAuth credentials never enter browser code, and one business cannot access another business’s folder.</div>`;
+    card.innerHTML=`<h2>File storage</h2><div class="row"><div><strong>${drive?'Client Google Drive':'Supabase private storage'}</strong><small>${drive?`Business-owned Drive${storage.providerAccountEmail?' · '+window.esc(storage.providerAccountEmail):''}`:'Default private storage inside the business Supabase tenant'}</small></div>${window.pill(storage.connectionStatus==='connected'?'Connected':'Setup required',storage.connectionStatus==='connected'?'good':'pending')}</div><p class="muted">Supabase remains the system of record. File metadata, permissions, assignments, proof and error history stay in Supabase even when the original file is stored in the client’s own Google Drive.</p><div class="notice">Google Drive is connected separately during client onboarding. OAuth credentials never enter browser code, and one business cannot access another business’s folder.</div>`;
     grid.appendChild(card);
-  };
-  window.renderSettings=renderSettings;
+    return true;
+  }
+  function scheduleStorageSettingsCard(){queueMicrotask(()=>{try{renderStorageSettingsCard();}catch(error){console.warn('Storage Settings card:',error.message||error);}});}
+  window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')scheduleStorageSettingsCard();});
+  window.addEventListener('h38:business-snapshot-updated',()=>{if(window.state?.page==='settings')scheduleStorageSettingsCard();});
 
   window.H38_STORAGE_PROVIDER={
     get:businessId=>setting(businessId,true),
     supported:['supabase','google_drive'],
     defaultProvider:'supabase',
+    renderSettingsCard:renderStorageSettingsCard,
+    settingsRendererOwnership:false,
     safeguards:{credentialsInBrowser:false,crossTenantAccess:false,automaticCustomerRelease:false}
   };
 })();
