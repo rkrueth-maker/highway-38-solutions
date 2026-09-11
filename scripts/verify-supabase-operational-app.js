@@ -191,7 +191,7 @@ for(const needle of [
   "externalActionOccurred:false",
   'Task board and punch list',
   'Daily job log',
-  'Install H38 Office'
+  'Install Business Office'
 ])includes(data,needle,`Supabase data adapter is missing ${needle}`);
 
 const coverage=read('commercial-app/supabase-operation-coverage.js');

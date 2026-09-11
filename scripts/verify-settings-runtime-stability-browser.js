@@ -21,6 +21,7 @@ const check=(condition,message)=>{if(!condition)failures.push(message);else cons
     window.renderSettings=function(){
       window.state.page='settings';
       document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Settings</h1></div><div class="grid"></div>';
+      window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page:'settings'}}));
     };
     window.H38_SUPABASE_AUTH={enabled:true};
     window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://example.supabase.co',publishableKey:'test'};
@@ -49,5 +50,5 @@ const check=(condition,message)=>{if(!condition)failures.push(message);else cons
   check(errors.length===0,`Browser runtime errors: ${errors.join(' | ')}`);
   await browser.close();
   if(failures.length){console.error(JSON.stringify({status:'FAIL',acceptance:'SETTINGS_RUNTIME_STABILITY',failures},null,2));process.exit(1);}
-  console.log(JSON.stringify({status:'PASS',acceptance:'SETTINGS_RUNTIME_STABILITY',settingsBlockingRpc:false,explicitTenantRefresh:true,northernParity:true,externalActionsOccurred:false},null,2));
+  console.log(JSON.stringify({status:'PASS',acceptance:'SETTINGS_RUNTIME_STABILITY',settingsBlockingRpc:false,explicitTenantRefresh:true,northernParity:true,eventDrivenEnhancements:true,externalActionsOccurred:false},null,2));
 })().catch(error=>{console.error(error);process.exit(1);});
