@@ -63,9 +63,44 @@ async function stubExternal(context){
   await context.route('https://script.google.com/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><html><body>stub</body></html>'}));
 }
 
+async function installRuntimeDiagnostics(page){
+  await page.addInitScript(()=>{
+    const NativeMutationObserver=window.MutationObserver;
+    if(typeof NativeMutationObserver!=='function')return;
+    let observerId=0,burst=0,resetScheduled=false;
+    window.__h38MutationDiagnostics={storm:null,recent:[]};
+    function WrappedMutationObserver(callback){
+      const id=++observerId;
+      const origin=String(new Error(`MutationObserver ${id}`).stack||'').replace(/\s+/g,' ').slice(0,1200);
+      const native=new NativeMutationObserver((records,observer)=>{
+        if(!resetScheduled){
+          resetScheduled=true;
+          setTimeout(()=>{burst=0;resetScheduled=false;window.__h38MutationDiagnostics.recent=[];},0);
+        }
+        burst+=1;
+        window.__h38MutationDiagnostics.recent.push({id,count:burst,origin});
+        if(window.__h38MutationDiagnostics.recent.length>24)window.__h38MutationDiagnostics.recent.shift();
+        if(burst>250){
+          const storm={id,count:burst,origin,recent:window.__h38MutationDiagnostics.recent.slice()};
+          window.__h38MutationDiagnostics.storm=storm;
+          observer.disconnect();
+          console.error('H38_MUTATION_OBSERVER_STORM',JSON.stringify(storm));
+          throw new Error(`MutationObserver storm from observer ${id}`);
+        }
+        return callback(records,observer);
+      });
+      return native;
+    }
+    WrappedMutationObserver.prototype=NativeMutationObserver.prototype;
+    try{Object.setPrototypeOf(WrappedMutationObserver,NativeMutationObserver);}catch(_){}
+    window.MutationObserver=WrappedMutationObserver;
+  });
+}
+
 async function boot(page,base,key){
   const errors=[];
   page.on('pageerror',error=>errors.push(String(error.stack||error.message||error).replace(/\s+/g,' ')));
+  await installRuntimeDiagnostics(page);
   await page.goto(`${base}/commercial-app/index.html${key==='northern-lakes'?'?businessKey=northern-lakes':''}`,{waitUntil:'domcontentloaded',timeout:20000});
   await page.waitForFunction(()=>typeof window.openPage==='function'&&window.state&&window.H38_DESKTOP_NAVIGATION_AUTHORITY,{timeout:12000});
   await page.waitForTimeout(1600);
@@ -84,11 +119,29 @@ async function boot(page,base,key){
   return errors;
 }
 
+async function timeoutDiagnostic(page){
+  const inspect=page.evaluate(()=>({
+    responsive:true,
+    page:window.state?.page||'',
+    heading:document.querySelector('#mainContent h1')?.textContent||'',
+    activeElement:document.activeElement?.outerHTML?.slice(0,400)||'',
+    mutation:window.__h38MutationDiagnostics||null,
+    rpcCount:window.__h38SettingsRpcCalls?.length||0
+  })).catch(error=>({responsive:false,error:String(error?.message||error)}));
+  return Promise.race([inspect,new Promise(resolve=>setTimeout(()=>resolve({responsive:false,timeout:true}),500))]);
+}
+
 async function clickRoute(page,key,headingPattern){
   const button=page.locator(`#mainNav > button[data-page="${key}"]`);
   assert.equal(await button.count(),1,`${key} navigation button missing`);
   const started=Date.now();
-  await button.click({timeout:1500});
+  try{
+    await button.click({timeout:1500});
+  }catch(error){
+    const diagnostic=await timeoutDiagnostic(page);
+    console.error('H38_SETTINGS_CLICK_DIAGNOSTIC',JSON.stringify({key,diagnostic}));
+    throw error;
+  }
   await page.waitForFunction(k=>window.state?.page===k,key,{timeout:1000});
   await page.waitForFunction(pattern=>pattern.test(document.querySelector('#mainContent h1')?.textContent||''),headingPattern,{timeout:1000});
   const elapsed=Date.now()-started;
