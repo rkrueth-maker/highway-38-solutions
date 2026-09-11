@@ -116,9 +116,10 @@
   }
 
   function renderCard(){
-    if(!isPlatformOwner())return;
+    if(!isPlatformOwner() || !settingsVisible())return false;
     const grid=document.querySelector('#mainContent .grid');
-    if(!grid || document.getElementById('clientTenantInstallerCard'))return;
+    if(!grid)return false;
+    if(document.getElementById('clientTenantInstallerCard'))return true;
 
     const card=document.createElement('section');
     card.id='clientTenantInstallerCard';
@@ -160,14 +161,7 @@
           p_display_name:text(data.get('displayName')).trim(),
           p_owner_email:text(data.get('ownerEmail')).trim().toLowerCase(),
           p_timezone:text(data.get('timezone')).trim(),
-          p_brand_config:{
-            currency:'USD',
-            industryPack:businessKey==='northern-lakes'?'property-maintenance':'service-business',
-            logoUrl:text(data.get('logoUrl')).trim(),
-            primaryColor:text(data.get('primaryColor')).trim(),
-            accentColor:text(data.get('accentColor')).trim(),
-            secondaryColor:businessKey==='northern-lakes'?'#f4efe5':'#eef3f7'
-          },
+          p_brand_config:{currency:'USD',industryPack:businessKey==='northern-lakes'?'property-maintenance':'service-business',logoUrl:text(data.get('logoUrl')).trim(),primaryColor:text(data.get('primaryColor')).trim(),accentColor:text(data.get('accentColor')).trim(),secondaryColor:businessKey==='northern-lakes'?'#f4efe5':'#eef3f7'},
           p_module_keys:DEFAULT_MODULES,
           p_package_id:text(data.get('packageId')).trim().toLowerCase(),
           p_support_email:text(data.get('supportEmail')).trim().toLowerCase() || null
@@ -179,6 +173,7 @@
     };
 
     bindActions(card);
+    return true;
   }
 
   function bindActions(card){
@@ -186,24 +181,16 @@
       button.onclick=async()=>{
         const businessId=button.dataset.activateClient;
         if(!confirm('Activate this client for the closed beta? This allows active members to open its isolated Supabase data. External actions remain disabled.'))return;
-        try{
-          button.disabled=true;
-          await activate(businessId);
-          window.toast?.('Client closed beta activated.');
-          await refreshAndRender();
-        }catch(error){window.toast?.(text(error && error.message || error),true);button.disabled=false;}
+        try{button.disabled=true;await activate(businessId);window.toast?.('Client closed beta activated.');await refreshAndRender();}
+        catch(error){window.toast?.(text(error && error.message || error),true);button.disabled=false;}
       };
     });
     card.querySelectorAll('[data-suspend-client]').forEach(button=>{
       button.onclick=async()=>{
         const businessId=button.dataset.suspendClient;
         if(!confirm('Suspend this client Business Office now? Cached data cannot override an online suspension.'))return;
-        try{
-          button.disabled=true;
-          await suspend(businessId,'Suspended by Highway 38 Owner from Client Tenant Installer.');
-          window.toast?.('Client access suspended.');
-          await refreshAndRender();
-        }catch(error){window.toast?.(text(error && error.message || error),true);button.disabled=false;}
+        try{button.disabled=true;await suspend(businessId,'Suspended by Highway 38 Owner from Client Tenant Installer.');window.toast?.('Client access suspended.');await refreshAndRender();}
+        catch(error){window.toast?.(text(error && error.message || error),true);button.disabled=false;}
       };
     });
   }
@@ -211,32 +198,15 @@
   async function refreshAndRender(){
     if(!isPlatformOwner())return null;
     const promise=refreshState();
-    if(settingsVisible()){
-      document.getElementById('clientTenantInstallerCard')?.remove();
-      renderCard();
-    }
+    if(settingsVisible()){document.getElementById('clientTenantInstallerCard')?.remove();renderCard();}
     try{return await promise;}
     catch(error){window.toast?.(text(error && error.message || error),true);return null;}
-    finally{
-      if(settingsVisible()){
-        document.getElementById('clientTenantInstallerCard')?.remove();
-        renderCard();
-      }
-    }
+    finally{if(settingsVisible()){document.getElementById('clientTenantInstallerCard')?.remove();renderCard();}}
   }
 
-  const baseRenderSettings=window.renderSettings || (typeof renderSettings==='function'?renderSettings:null);
-  if(typeof baseRenderSettings==='function'){
-    const wrapped=function(){
-      const result=baseRenderSettings.apply(this,arguments);
-      queueMicrotask(renderCard);
-      return result;
-    };
-    wrapped.__h38ClientTenantInstaller=true;
-    wrapped.__h38ClientTenantInstallerBase=baseRenderSettings;
-    window.renderSettings=wrapped;
-    try{renderSettings=wrapped;}catch(ignore){}
-  }
+  function scheduleCard(){queueMicrotask(()=>{try{renderCard();}catch(error){console.warn('Client tenant Settings card:',error.message||error);}});}
+  window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')scheduleCard();});
+  window.addEventListener('h38:business-snapshot-updated',()=>{if(settingsVisible())scheduleCard();});
 
   window.H38_CLIENT_TENANT_INSTALLER={
     enabled:true,
@@ -248,6 +218,8 @@
     refreshTimeoutMs:CLIENT_TENANT_REFRESH_TIMEOUT_MS,
     googleDataImport:false,
     appsScriptMutation:false,
+    settingsRendererOwnership:false,
+    renderCard,
     refresh:refreshState
   };
 })();
