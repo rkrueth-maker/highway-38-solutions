@@ -1,0 +1,31 @@
+.h38-record-pdf{margin-top:8px;align-self:flex-start}
+.h38-office-document-root{display:none}
+@media print{
+  body.h38-printing #h38SafePrintRoot.h38-office-document-root{display:block!important}
+  .h38-office-stationery{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}
+  .h38-office-stationery-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #1f2937;padding:0 0 12px;margin:0 0 18px}
+  .h38-office-stationery-head img{width:70px;max-height:70px;object-fit:contain}
+  .h38-office-stationery-head strong{display:block;font-size:18px}
+  .h38-office-stationery-head span{display:block;font-size:11px;color:#5b6470;margin-top:2px}
+  .h38-office-document-title{margin:0 0 18px}
+  .h38-office-document-title p{margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#667085}
+  .h38-office-document-title h1{margin:0 0 5px;font-size:24px;line-height:1.15}
+  .h38-office-document-title small{color:#667085}
+  .h38-office-document-body .page-head{display:none!important}
+  .h38-office-document-body .grid{display:block!important}
+  .h38-office-document-body .card{break-inside:avoid;margin:0 0 14px;border:1px solid #d8dde3;border-radius:8px;padding:12px;box-shadow:none!important;background:#fff!important}
+  .h38-office-document-body .row{break-inside:avoid;border-bottom:1px solid #e7e9ec;padding:7px 0}
+  .h38-office-document-body .row:last-child{border-bottom:0}
+  .h38-office-document-body .stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .h38-office-document-body .stat{border:1px solid #e5e7eb;border-radius:6px;padding:8px}
+  .h38-office-document-body .h38-record-pdf{display:none!important}
+  .h38-doc-block{margin:0 0 18px}
+  .h38-doc-block h2{font-size:15px;margin:0 0 10px}
+  .h38-doc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
+  .h38-doc-field{break-inside:avoid;border-bottom:1px solid #e5e7eb;padding:5px 0}
+  .h38-doc-field span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#667085}
+  .h38-doc-field strong{display:block;font-size:12px;margin-top:2px}
+  .h38-office-stationery footer{display:flex;justify-content:space-between;border-top:1px solid #d8dde3;margin-top:22px;padding-top:8px;font-size:9px;color:#667085}
+  @page{size:letter portrait;margin:.5in}
+}
+@media(max-width:760px){.h38-record-pdf{min-height:44px}}

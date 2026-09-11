@@ -25,6 +25,13 @@ jobs:
           node-version: '24'
       - name: Verify final polish contract
         run: node scripts/verify-highway38-final-polish.js
+      - name: Verify Northern Lakes shared Office parity
+        run: node scripts/verify-northern-lakes-business-office.js
+      - name: Verify Office PDF and stationery coverage
+        run: |
+          node -c commercial-app/office-document-export.js
+          node -c scripts/verify-office-document-export.js
+          node scripts/verify-office-document-export.js
       - name: Verify owner mobile smoke contract
         run: node scripts/verify-owner-mobile-smoke.js
       - name: Verify public Highway 38 Helper
