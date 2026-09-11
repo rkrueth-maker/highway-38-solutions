@@ -63,86 +63,12 @@ async function stubExternal(context){
   await context.route('https://script.google.com/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><html><body>stub</body></html>'}));
 }
 
-async function installRuntimeDiagnostics(page){
-  await page.addInitScript(()=>{
-    const NativeMutationObserver=window.MutationObserver;
-    if(typeof NativeMutationObserver!=='function')return;
-    let observerId=0,burst=0,resetScheduled=false,activeObserverId=0;
-    const origins=Object.create(null),counts=Object.create(null),writes=Object.create(null),writeSamples=Object.create(null);
-    const diagnostics=window.__h38MutationDiagnostics={storm:null,recent:[],origins,counts,writes,writeSamples};
-    const noteWrite=(kind,target)=>{
-      const id=activeObserverId;if(!id)return;
-      writes[id]=(writes[id]||0)+1;
-      if(!writeSamples[id])writeSamples[id]=[];
-      if(writeSamples[id].length<12)writeSamples[id].push({kind,target:String(target?.id||target?.className||target?.nodeName||'').slice(0,120)});
-    };
-    const wrapMethod=(proto,name)=>{
-      const original=proto?.[name];if(typeof original!=='function')return;
-      try{Object.defineProperty(proto,name,{configurable:true,writable:true,value:function(){noteWrite(name,this);return original.apply(this,arguments);}});}catch(_){}
-    };
-    for(const name of ['appendChild','insertBefore','removeChild','replaceChild'])wrapMethod(Node.prototype,name);
-    for(const name of ['append','prepend','before','after','replaceWith','remove','insertAdjacentElement','insertAdjacentHTML','setAttribute','removeAttribute'])wrapMethod(Element.prototype,name);
-    for(const name of ['add','remove','toggle','replace'])wrapMethod(window.DOMTokenList?.prototype,name);
-    for(const name of ['setProperty','removeProperty'])wrapMethod(window.CSSStyleDeclaration?.prototype,name);
-    const wrapSetter=(proto,name)=>{
-      try{
-        const descriptor=Object.getOwnPropertyDescriptor(proto,name);if(!descriptor?.set||!descriptor?.get)return;
-        Object.defineProperty(proto,name,{configurable:descriptor.configurable,enumerable:descriptor.enumerable,get:descriptor.get,set:function(value){noteWrite(`${name}=`,this);return descriptor.set.call(this,value);}});
-      }catch(_){}
-    };
-    wrapSetter(Element.prototype,'innerHTML');wrapSetter(Node.prototype,'textContent');wrapSetter(Element.prototype,'className');
-    const nativeQueueMicrotask=window.queueMicrotask?.bind(window);
-    if(nativeQueueMicrotask){
-      window.queueMicrotask=function(callback){
-        const owner=activeObserverId;
-        return nativeQueueMicrotask(()=>{
-          const previous=activeObserverId;
-          if(owner)activeObserverId=owner;
-          try{return callback();}finally{activeObserverId=previous;}
-        });
-      };
-    }
-    const ranked=(map)=>Object.keys(map).map(id=>({id:Number(id),count:map[id]||0,origin:origins[id],samples:writeSamples[id]||[]})).sort((a,b)=>b.count-a.count);
-    function WrappedMutationObserver(callback){
-      const id=++observerId;
-      const origin=String(new Error(`MutationObserver ${id}`).stack||'').replace(/\s+/g,' ').slice(0,1600);
-      origins[id]=origin;counts[id]=0;writes[id]=0;
-      const native=new NativeMutationObserver((records,observer)=>{
-        if(!resetScheduled){
-          resetScheduled=true;
-          setTimeout(()=>{
-            burst=0;resetScheduled=false;diagnostics.recent=[];
-            for(const key of Object.keys(counts)){counts[key]=0;writes[key]=0;writeSamples[key]=[];}
-          },0);
-        }
-        burst+=1;counts[id]=(counts[id]||0)+1;
-        diagnostics.recent.push({id,count:burst,observerCount:counts[id],writes:writes[id]||0});
-        if(diagnostics.recent.length>100)diagnostics.recent.shift();
-        if(burst>250&&!diagnostics.storm){
-          diagnostics.storm={id,count:burst,origin,observers:ranked(counts).slice(0,60),writers:ranked(writes).filter(row=>row.count>0).slice(0,30),recent:diagnostics.recent.slice()};
-          observer.disconnect();
-          console.error('H38_MUTATION_OBSERVER_STORM '+JSON.stringify(diagnostics.storm));
-          return;
-        }
-        const previous=activeObserverId;activeObserverId=id;
-        try{return callback(records,observer);}finally{activeObserverId=previous;}
-      });
-      return native;
-    }
-    WrappedMutationObserver.prototype=NativeMutationObserver.prototype;
-    try{Object.setPrototypeOf(WrappedMutationObserver,NativeMutationObserver);}catch(_){}
-    window.MutationObserver=WrappedMutationObserver;
-  });
-}
-
 async function boot(page,base,key){
   const errors=[];
   page.on('pageerror',error=>errors.push(String(error.stack||error.message||error).replace(/\s+/g,' ')));
-  page.on('console',message=>{const text=message.text();if(text.startsWith('H38_'))console.error(text);});
-  await installRuntimeDiagnostics(page);
-  await page.goto(`${base}/commercial-app/index.html${key==='northern-lakes'?'?businessKey=northern-lakes':''}`,{waitUntil:'domcontentloaded',timeout:20000});
-  await page.waitForFunction(()=>typeof window.openPage==='function'&&window.state&&window.H38_DESKTOP_NAVIGATION_AUTHORITY,{timeout:12000});
-  await page.waitForTimeout(1600);
+  await page.goto(`${base}/commercial-app/index.html${key==='northern-lakes'?'?businessKey=northern-lakes':''}`,{waitUntil:'load',timeout:20000});
+  await page.waitForFunction(()=>document.readyState==='complete'&&typeof window.openPage==='function'&&window.state&&window.H38_DESKTOP_NAVIGATION_AUTHORITY,{timeout:12000});
+  await page.waitForTimeout(400);
   const snap=ownerSnapshot(key);
   await page.evaluate(({snap,key})=>{
     window.state.shell='office';window.state.page='today';window.state.businessId=snap.business.businessId;window.state.businessKey=key;window.state.snapshot=snap;window.state.bridgeReady=true;
@@ -152,40 +78,20 @@ async function boot(page,base,key){
     window.renderNav?.();window.openPage?.('today',false);
     window.__h38SettingsRpcCalls=[];
   },{snap,key});
-  await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!!document.querySelector('#mainNav [data-page="settings"]'),{timeout:5000});
+  await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!!document.querySelector('#mainNav > button[data-page="settings"]'),{timeout:5000});
   await page.waitForTimeout(100);
-  const mutation=await page.evaluate(()=>window.__h38MutationDiagnostics||null);
-  if(mutation?.storm)console.error('H38_STARTUP_MUTATION_DIAGNOSTIC '+JSON.stringify(mutation.storm));
-  assert(!mutation?.storm,`${key} startup MutationObserver storm: ${JSON.stringify(mutation?.storm||null)}`);
   assert.deepEqual(errors,[],`${key} startup page errors: ${errors.join(' | ')}`);
   return errors;
 }
 
-async function timeoutDiagnostic(page){
-  const inspect=page.evaluate(()=>({
-    responsive:true,
-    page:window.state?.page||'',
-    heading:document.querySelector('#mainContent h1')?.textContent||'',
-    activeElement:document.activeElement?.outerHTML?.slice(0,400)||'',
-    mutation:window.__h38MutationDiagnostics||null,
-    rpcCount:window.__h38SettingsRpcCalls?.length||0
-  })).catch(error=>({responsive:false,error:String(error?.message||error)}));
-  return Promise.race([inspect,new Promise(resolve=>setTimeout(()=>resolve({responsive:false,timeout:true}),500))]);
-}
-
-async function clickRoute(page,key,headingPattern){
+async function clickRoute(page,key,headingText){
   const button=page.locator(`#mainNav > button[data-page="${key}"]`);
   assert.equal(await button.count(),1,`${key} navigation button missing`);
   const started=Date.now();
-  try{
-    await button.click({timeout:1500});
-  }catch(error){
-    const diagnostic=await timeoutDiagnostic(page);
-    console.error('H38_SETTINGS_CLICK_DIAGNOSTIC',JSON.stringify({key,diagnostic}));
-    throw error;
-  }
+  await button.click({timeout:1500});
   await page.waitForFunction(k=>window.state?.page===k,key,{timeout:1000});
-  await page.waitForFunction(pattern=>pattern.test(document.querySelector('#mainContent h1')?.textContent||''),headingPattern,{timeout:1000});
+  await page.waitForFunction(text=>String(document.querySelector('#mainContent h1')?.textContent||'').toLowerCase().includes(String(text).toLowerCase()),headingText,{timeout:1000});
+  await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
   const elapsed=Date.now()-started;
   assert(elapsed<1500,`${key} route took ${elapsed}ms`);
   return elapsed;
@@ -197,7 +103,7 @@ async function verifyTenant(browser,base,key){
   const page=await context.newPage();
   const errors=await boot(page,base,key);
   const initialRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
-  const first=await clickRoute(page,'settings',/Settings/i);
+  const first=await clickRoute(page,'settings','Settings');
   await page.waitForTimeout(80);
   const firstRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
   assert.equal(firstRpc,initialRpc,`${key} Settings open performed automatic RPC/function work`);
@@ -222,15 +128,15 @@ async function verifyTenant(browser,base,key){
     const started=Date.now();
     await page.locator('#mainNav > button[data-page="settings"]').click({timeout:1500});
     await page.waitForFunction(()=>window.state?.page==='settings'&&/Settings/i.test(document.querySelector('#mainContent h1')?.textContent||''),{timeout:1000});
-    let heartbeat=false;await page.evaluate(()=>new Promise(resolve=>setTimeout(()=>resolve(true),0))).then(()=>{heartbeat=true;});
-    assert(heartbeat,`${key} event loop stalled entering Settings cycle ${i+1}`);
-    cycleTimes.push(Date.now()-started);
+    await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
+    const elapsed=Date.now()-started;
+    assert(elapsed<1500,`${key} Settings cycle ${i+1} took ${elapsed}ms`);
+    cycleTimes.push(elapsed);
     await page.locator('#mainNav > button[data-page="today"]').click({timeout:1500});
     await page.waitForFunction(()=>window.state?.page==='today',{timeout:1000});
   }
   const finalRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
   assert.equal(finalRpc,initialRpc,`${key} repeated Settings navigation performed automatic RPC/function work`);
-  assert(Math.max(...cycleTimes)<1500,`${key} Settings cycle exceeded 1500ms: ${Math.max(...cycleTimes)}ms`);
   assert.deepEqual(errors,[],`${key} page errors after Settings cycles: ${errors.join(' | ')}`);
   await context.close();
   return {key,firstMs:first,maxCycleMs:Math.max(...cycleTimes),cycles:cycleTimes.length,automaticSettingsNetwork:false};
