@@ -82,12 +82,12 @@ async function reconcileAcceptedQuoteTasks(){if(reconciling||typeof window.queue
 function enhance(){scheduled=false;enhanceRaw();boundRenderedLists();window.H38_OFFICE_DOCUMENT_EXPORT?.enhance?.();void reconcileAcceptedQuoteTasks();}
 function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(enhance);}
 function wrap(name){const base=window[name];if(typeof base!=='function'||base.__h38ScaleWrapped)return;const wrapped=function(){const result=base.apply(this,arguments);schedule();return result;};wrapped.__h38ScaleWrapped=true;wrapped.__h38ScaleBase=base;window[name]=wrapped;}
-['renderCustomers','renderWork','renderQuotes','renderSchedule','renderMessages','renderField','renderInventory','renderFleet','renderMoney','renderDocuments','renderSocial','renderAi','renderSettings','renderPeople'].forEach(wrap);
+['renderCustomers','renderWork','renderQuotes','renderSchedule','renderMessages','renderField','renderInventory','renderFleet','renderMoney','renderDocuments','renderSocial','renderAi','renderPeople'].forEach(wrap);
 window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 document.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
 const style=document.createElement('style');style.textContent=`.h38-scale-tools{display:grid;grid-template-columns:minmax(180px,1fr) auto auto;gap:10px;align-items:center;margin:8px 0 12px}.h38-scale-tools input{width:100%;min-height:42px}.h38-scale-count{font-size:.82rem;color:var(--muted);white-space:nowrap}.h38-scale-pages{display:flex;align-items:center;gap:7px}.h38-scale-pages button{min-height:40px}.h38-task-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:9px}.h38-task-controls label{display:flex;align-items:center;gap:6px;margin:0}.h38-task-controls select{min-width:150px;min-height:38px}@media(max-width:720px){.h38-scale-tools{grid-template-columns:1fr}.h38-scale-pages{justify-content:space-between}.h38-scale-pages button{flex:1}.h38-task-controls{display:grid}.h38-task-controls select{width:100%}}`;document.head.appendChild(style);
-window.H38_OFFICE_SCALE_WORKFLOW=Object.freeze({enabled:true,build:BUILD,pageSize:PAGE_SIZE,fullDatasetSearch:true,customerDirectorySearch:true,boundedLongLists:true,acceptedQuoteChecklist:true,deterministicQuoteTaskIds:true,taskAssignmentControls:true,taskCheckoffControls:true,automaticExternalActions:false,reconcileAcceptedQuoteTasks,enhance});
+window.H38_OFFICE_SCALE_WORKFLOW=Object.freeze({enabled:true,build:BUILD,pageSize:PAGE_SIZE,fullDatasetSearch:true,customerDirectorySearch:true,boundedLongLists:true,acceptedQuoteChecklist:true,deterministicQuoteTaskIds:true,taskAssignmentControls:true,taskCheckoffControls:true,settingsRendererOwnership:false,automaticExternalActions:false,reconcileAcceptedQuoteTasks,enhance});
 schedule();
 })();

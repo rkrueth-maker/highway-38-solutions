@@ -487,12 +487,15 @@
   }
 
   function enhanceSettings() {
+    if (window.state?.page!=='settings') return false;
     const grid = document.querySelector('#mainContent .grid');
-    if (!grid || document.getElementById('supabaseAppInstall')) return;
+    if (!grid || document.getElementById('supabaseAppInstall')) return false;
+    const businessName=text(window.state?.snapshot?.business?.businessName || 'Business Office');
     const card = document.createElement('section');card.id='supabaseAppInstall';card.className='card span6';
-    card.innerHTML=`<h2>Install H38 Office</h2><p class="muted">Install this Supabase Business Office on Android or Chromebook for a standalone app window and offline shell.</p><div class="actions"><button id="installH38App" ${installPrompt?'':'disabled'}>Install app</button></div><div class="notice">Operational records synchronize to Supabase. Google Office remains rollback only, and no legacy records are copied automatically.</div>`;
+    card.innerHTML=`<h2>Install Business Office</h2><p class="muted">Install ${window.esc(businessName)} on Android or Chromebook for a focused app window with offline access.</p><div class="actions"><button id="installH38App" ${installPrompt?'':'disabled'}>${installPrompt?'Install app':'Already installed or unavailable'}</button></div><div class="notice">Operational records synchronize securely. Opening Settings never installs software or copies legacy records automatically.</div>`;
     grid.appendChild(card);
-    document.getElementById('installH38App').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;window.renderSettings();};
+    document.getElementById('installH38App').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;document.getElementById('supabaseAppInstall')?.remove();enhanceSettings();};
+    return true;
   }
 
   function wrapRenderer(name,enhancer) {
@@ -510,10 +513,11 @@
   wrapRenderer('renderToday',enhanceToday);
   wrapRenderer('renderWork',enhanceWork);
   wrapRenderer('renderField',enhanceField);
-  wrapRenderer('renderSettings',enhanceSettings);
 
-  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;});
-  window.addEventListener('appinstalled',()=>{installPrompt=null;});
+  const scheduleSettingsEnhancement=()=>queueMicrotask(()=>{try{enhanceSettings();}catch(error){console.warn('[H38 Supabase] Settings install card:',error?.message||error);}});
+  window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')scheduleSettingsEnhancement();});
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;if(window.state?.page==='settings'){document.getElementById('supabaseAppInstall')?.remove();scheduleSettingsEnhancement();}});
+  window.addEventListener('appinstalled',()=>{installPrompt=null;if(window.state?.page==='settings'){document.getElementById('supabaseAppInstall')?.remove();scheduleSettingsEnhancement();}});
   window.H38_SUPABASE_OPERATIONAL = {
     enabled:true,
     storageBucket:STORAGE_BUCKET,
@@ -521,4 +525,5 @@
     synchronize,
     safeguards:{externalActionsEnabled:false,googleDataImported:false,northernLakesEnabled:false}
   };
+  window.H38_SUPABASE_OPERATIONAL.settingsRendererOwnership=false;
 })();

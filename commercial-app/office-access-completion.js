@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-office-access-completion-1';
+const BUILD='20260911-office-access-settings-event-only-2';
 const FINANCE_PAGES=['money','accounting','payroll','tax','reports'];
 const ADMIN_PAGES=['people','controls','settings'];
 const text=value=>String(value==null?'':value).trim();
@@ -30,39 +30,10 @@ function makeStrip(id,title,entries,currentPage){
   const anchor=head();if(anchor)anchor.insertAdjacentElement('afterend',strip);else document.getElementById('mainContent')?.prepend(strip);return strip;
 }
 function scrollToHeading(name){const wanted=text(name).toLowerCase();const headings=Array.from(document.querySelectorAll('#mainContent h2,#mainContent h3'));const target=headings.find(node=>text(node.textContent).toLowerCase()===wanted||text(node.textContent).toLowerCase().includes(wanted));if(!target)return false;target.scrollIntoView({behavior:'smooth',block:'start'});target.closest('.card')?.querySelector('input,select,textarea,button')?.focus?.({preventScroll:true});return true;}
-function financeStrip(current){return makeStrip('h38FinanceAccessStrip','Money & accounting',[
-  {kind:'section',label:'Invoices',section:'Invoices'},
-  {kind:'section',label:'Payments',section:'Record payment'},
-  {kind:'section',label:'Expenses',section:'Expenses'},
-  {page:'accounting',label:'Accounting'},
-  {page:'payroll',label:'Payroll Prep'},
-  {page:'tax',label:'Tax Prep'},
-  {page:'reports',label:'Reports'}
-],current);}
-function accountingStrip(current){return makeStrip('h38FinanceAccessStrip','Money & accounting',[
-  {page:'money',label:'Invoices & Money'},
-  {kind:'section',label:'Vendors',section:'Vendors'},
-  {kind:'section',label:'Purchase Orders',section:'Purchase orders'},
-  {page:'accounting',label:'Accounting'},
-  {page:'payroll',label:'Payroll Prep'},
-  {page:'tax',label:'Tax Prep'},
-  {page:'reports',label:'Reports'}
-],current);}
-function peopleStrip(){return makeStrip('h38PeopleAccessStrip','Team & employees',[
-  {kind:'section',label:'Team Access',section:'Team Access'},
-  {kind:'section',label:'Employees',section:'Employees'},
-  {kind:'section',label:'Time Records',section:'Recent time'},
-  {page:'payroll',label:'Payroll Prep'},
-  {page:'settings',label:'Users & Settings'}
-],'people');}
-function adminStrip(current){return makeStrip('h38AdminAccessStrip','Office administration',[
-  {page:'people',label:'Employees & Users'},
-  {page:'money',label:'Invoices & Money'},
-  {page:'accounting',label:'Accounting'},
-  {page:'reports',label:'Reports'},
-  {page:'controls',label:'Controls'},
-  {page:'settings',label:'Settings'}
-],current);}
+function financeStrip(current){return makeStrip('h38FinanceAccessStrip','Money & accounting',[{kind:'section',label:'Invoices',section:'Invoices'},{kind:'section',label:'Payments',section:'Record payment'},{kind:'section',label:'Expenses',section:'Expenses'},{page:'accounting',label:'Accounting'},{page:'payroll',label:'Payroll Prep'},{page:'tax',label:'Tax Prep'},{page:'reports',label:'Reports'}],current);}
+function accountingStrip(current){return makeStrip('h38FinanceAccessStrip','Money & accounting',[{page:'money',label:'Invoices & Money'},{kind:'section',label:'Vendors',section:'Vendors'},{kind:'section',label:'Purchase Orders',section:'Purchase orders'},{page:'accounting',label:'Accounting'},{page:'payroll',label:'Payroll Prep'},{page:'tax',label:'Tax Prep'},{page:'reports',label:'Reports'}],current);}
+function peopleStrip(){return makeStrip('h38PeopleAccessStrip','Team & employees',[{kind:'section',label:'Team Access',section:'Team Access'},{kind:'section',label:'Employees',section:'Employees'},{kind:'section',label:'Time Records',section:'Recent time'},{page:'payroll',label:'Payroll Prep'},{page:'settings',label:'Users & Settings'}],'people');}
+function adminStrip(current){return makeStrip('h38AdminAccessStrip','Office administration',[{page:'people',label:'Employees & Users'},{page:'money',label:'Invoices & Money'},{page:'accounting',label:'Accounting'},{page:'reports',label:'Reports'},{page:'controls',label:'Controls'},{page:'settings',label:'Settings'}],current);}
 function enhanceToday(){
   removeExisting('h38AccessRoleContext');const s=state();if(s?.page!=='today'||!s.snapshot?.user)return;
   const node=document.createElement('section');node.id='h38AccessRoleContext';node.className='h38-access-context';const full=can('manageUsers')||can('manageFinancial')||s.snapshot.user.owner===true||s.snapshot.user.permissions?.all===true;
@@ -79,9 +50,10 @@ function enhance(){
   if(page==='settings'||page==='controls'){adminStrip(page);}
 }
 function wrap(name){const base=window[name];if(typeof base!=='function'||base.__h38CompleteOfficeAccess)return false;const wrapped=function(){const result=base.apply(this,arguments);queueMicrotask(enhance);return result;};wrapped.__h38CompleteOfficeAccess=true;wrapped.__h38CompleteOfficeAccessBase=base;window[name]=wrapped;return true;}
-['renderToday','renderMoney','renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderReports','renderControls','renderSettings'].forEach(wrap);
+['renderToday','renderMoney','renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderReports','renderControls'].forEach(wrap);
+window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')queueMicrotask(enhance);});
 window.addEventListener('h38:office-navigation-access-updated',()=>queueMicrotask(enhance));
 window.addEventListener('pageshow',()=>queueMicrotask(enhance));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>queueMicrotask(enhance),{once:true});else queueMicrotask(enhance);
-window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance});
+window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,settingsRendererOwnership:false,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance});
 })();

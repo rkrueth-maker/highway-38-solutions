@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-play-compliance-event-driven-1';
+const BUILD='20260911-play-compliance-settings-event-only-2';
 const PRIVACY_URL='https://highway38solutions.com/privacy.html';
 const DELETE_URL='https://highway38solutions.com/account-deletion.html';
 let scheduled=false;
@@ -8,9 +8,8 @@ let scheduled=false;
 function addCard(){
   const main=document.getElementById('mainContent');
   if(!main||document.getElementById('h38AccountPrivacyCard'))return;
-  const heading=main.querySelector('.page-head h1')?.textContent||'';
   let settings=false;
-  try{settings=(typeof state!=='undefined'&&state?.page==='settings')||/settings/i.test(heading);}catch(_){settings=/settings/i.test(heading);}
+  try{settings=(typeof state!=='undefined'&&state?.page==='settings');}catch(_){}
   if(!settings)return;
   const grid=main.querySelector('.grid');
   if(!grid)return;
@@ -20,31 +19,15 @@ function addCard(){
   card.innerHTML=`<h2>Account & privacy</h2><p class="muted">Review how H38 handles Business Office data or request deletion of your signed-in H38 account and user-private records.</p><div class="actions"><a class="secondary" href="${PRIVACY_URL}" target="_self">Privacy policy</a><a class="secondary" href="${DELETE_URL}" target="_self">Delete account / data</a></div><p class="muted small">Shared business records may be retained by the business for legitimate accounting, audit, security, contractual, or legal purposes after a user's access is removed.</p>`;
   grid.appendChild(card);
 }
-
-function wrapSettings(){
-  try{
-    if(typeof renderSettings!=='function'||renderSettings.__h38PlayCompliance)return;
-    const original=renderSettings;
-    const wrapped=function(){const result=original.apply(this,arguments);queueMicrotask(addCard);return result;};
-    wrapped.__h38PlayCompliance=true;
-    wrapped.__h38PlayComplianceBase=original;
-    renderSettings=wrapped;
-    window.renderSettings=wrapped;
-  }catch(_){}
-}
-
-function apply(){wrapSettings();addCard();}
 function schedule(){
   if(scheduled)return;
   scheduled=true;
-  queueMicrotask(()=>{scheduled=false;apply();});
+  queueMicrotask(()=>{scheduled=false;try{addCard();}catch(error){console.warn('[H38 privacy] Settings card:',error);}});
 }
 
-window.addEventListener('h38:office-page-rendered',schedule);
-window.addEventListener('pageshow',schedule);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
-apply();
-setTimeout(apply,400);
-setTimeout(apply,1200);
-window.H38_PLAY_COMPLIANCE=Object.freeze({enabled:true,build:BUILD,privacyUrl:PRIVACY_URL,accountDeletionUrl:DELETE_URL,eventDriven:true,globalMutationObserver:false});
+window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')schedule();});
+window.addEventListener('pageshow',()=>{try{if(window.state?.page==='settings')schedule();}catch(_){}});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{try{if(window.state?.page==='settings')schedule();}catch(_){}},{once:true});
+else{try{if(window.state?.page==='settings')schedule();}catch(_){}}
+window.H38_PLAY_COMPLIANCE=Object.freeze({enabled:true,build:BUILD,privacyUrl:PRIVACY_URL,accountDeletionUrl:DELETE_URL,eventDriven:true,settingsRendererOwnership:false,globalMutationObserver:false});
 })();
