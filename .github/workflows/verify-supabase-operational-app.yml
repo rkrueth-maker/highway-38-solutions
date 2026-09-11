@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'scripts/verify-supabase-operational-app.js'
+      - 'scripts/verify-staff-usage-telemetry-boundary.js'
       - 'scripts/verify-supabase-quote-mobile-stabilization.js'
       - 'scripts/verify-supabase-quote-ai.js'
       - 'scripts/verify-supabase-quote-delivery.js'
@@ -25,6 +26,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'scripts/verify-supabase-operational-app.js'
+      - 'scripts/verify-staff-usage-telemetry-boundary.js'
       - 'scripts/verify-supabase-quote-mobile-stabilization.js'
       - 'scripts/verify-supabase-quote-ai.js'
       - 'scripts/verify-supabase-quote-delivery.js'
@@ -47,6 +49,8 @@ jobs:
           node-version: '22'
       - name: Verify Supabase operational app
         run: node scripts/verify-supabase-operational-app.js
+      - name: Verify Staff usage telemetry stops at the RLS boundary
+        run: node scripts/verify-staff-usage-telemetry-boundary.js
       - name: Verify Android Quote Builder stabilization
         run: |
           node --check commercial-app/quote-mobile-stabilization.js
