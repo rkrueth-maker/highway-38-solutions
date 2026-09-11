@@ -226,7 +226,7 @@
     const copy = {
       office: {
         label: 'Owner or administrator',
-        title: 'Sign in to manage H38 Office',
+        title: 'Sign in to manage your Office',
         help: 'Use the account connected to your active owner or administrator membership.'
       },
       'site-manager': {
@@ -271,7 +271,7 @@
       'auth-expired': ['Session expired', 'Sign in again to reopen the Business Office securely.']
     };
     if (mode === 'recovery') {
-      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">H38 Office secure access</p><h1>Set a new password</h1><p>Choose a new password for this Supabase Auth account.</p><form id="h38RecoveryForm" class="auth-form"><label><span>New password</span><input id="h38NewPassword" type="password" autocomplete="new-password" minlength="10" required></label><button class="primary" type="submit">Save new password</button></form><div id="h38AuthNotice" class="notice">Passwords go directly to Supabase Auth and are never stored in this page.</div></section>`;
+      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">Business Office secure access</p><h1>Set a new password</h1><p>Choose a new password for this Supabase Auth account.</p><form id="h38RecoveryForm" class="auth-form"><label><span>New password</span><input id="h38NewPassword" type="password" autocomplete="new-password" minlength="10" required></label><button class="primary" type="submit">Save new password</button></form><div id="h38AuthNotice" class="notice">Passwords go directly to Supabase Auth and are never stored in this page.</div></section>`;
       document.getElementById('h38RecoveryForm').onsubmit = async event => {
         event.preventDefault();
         try {
@@ -289,12 +289,12 @@
     }
     if (states[mode]) {
       const [title, text] = states[mode];
-      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">H38 Office secure access</p><h1>${esc(title)}</h1><p>${esc(detail || text)}</p><div class="welcome-actions"><button id="h38SignOutDenied" class="primary" type="button">Sign out</button><a class="secondary" href="../customer-portal.html">Customer login</a></div><div id="h38AuthNotice" class="notice">Nothing is sent, approved, purchased, paid, published, or executed automatically.</div></section>`;
+      target.innerHTML = `<section class="welcome h38-recovery-card"><p class="h38-access-kicker">Business Office secure access</p><h1>${esc(title)}</h1><p>${esc(detail || text)}</p><div class="welcome-actions"><button id="h38SignOutDenied" class="primary" type="button">Sign out</button><a class="secondary" href="../customer-portal.html">Customer login</a></div><div id="h38AuthNotice" class="notice">Nothing is sent, approved, purchased, paid, published, or executed automatically.</div></section>`;
       document.getElementById('h38SignOutDenied').onclick = () => signOut();
       authPanelRendered(mode);
       return;
     }
-    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">H38 Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure H38 Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage H38 Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div id="h38AuthNotice" class="notice">Supabase Auth and RLS determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
+    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">Business Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage your Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div id="h38AuthNotice" class="notice">Supabase Auth and RLS determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
     installAccessIntentControls(target);
     document.getElementById('h38AuthForm').onsubmit = async event => {
       event.preventDefault();
@@ -411,8 +411,20 @@
           this.onStatus(status);
           return;
         }
+        const requestedKey = String(new URLSearchParams(location.search).get('businessKey') || '').trim().toLowerCase();
         const preferred = readPreferredBusiness(session.user.id);
-        let selected = runtime.activeMemberships.find(row => row.businessId === preferred) || null;
+        // A branded entry is a selection hint, never authorization. Resolve it only
+        // against active server memberships, before any saved-business snapshot paints.
+        let selected = requestedKey
+          ? runtime.activeMemberships.find(row => String(row.businessKey || '').toLowerCase() === requestedKey) || null
+          : runtime.activeMemberships.find(row => row.businessId === preferred) || null;
+        if (requestedKey && !selected) {
+          runtime.selectedMembership = null;
+          await writeAuthorization('no-membership', session.user.id, '');
+          this.ready = false;
+          this.onStatus('no-membership');
+          return;
+        }
         if (!selected && runtime.activeMemberships.length === 1) selected = runtime.activeMemberships[0];
         runtime.selectedMembership = selected;
         if (selected) {

@@ -6,8 +6,6 @@
   const Bridge=window.H38Bridge;
   if(!auth || auth.enabled!==true || !Bridge || !Bridge.prototype || !window.supabase)return;
 
-  const previousRequest=Bridge.prototype.request;
-
   function client(){
     return window.H38_SUPABASE_SHARED_CLIENT?.ensure?.() || window.supabase.createClient(config.url,config.publishableKey,{
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},
@@ -15,29 +13,12 @@
     });
   }
   function text(value){return String(value==null?'':value);}
-  function requestedBusinessKey(){
-    return text(new URLSearchParams(location.search).get('businessKey')).trim().toLowerCase();
-  }
   function notice(message,bad){
     const node=document.getElementById('h38AuthNotice');
     if(!node)return;
     node.textContent=message;
     node.className=`notice${bad?' warn':''}`;
   }
-
-  Bridge.prototype.request=async function(action,args,timeout){
-    const result=await previousRequest.call(this,action,args,timeout);
-    if(action==='listBusinesses'){
-      const key=requestedBusinessKey();
-      const rows=Array.isArray(result)?result:[];
-      const match=key?rows.find(row=>text(row.businessKey).toLowerCase()===key):null;
-      if(match && window.state){
-        window.state.businessId=match.businessId;
-        try{await window.H38DB.put('meta',{id:'selectedBusiness',businessId:match.businessId});}catch(ignore){}
-      }
-    }
-    return result;
-  };
 
   function installActivationControl(){
     const form=document.getElementById('h38AuthForm');
