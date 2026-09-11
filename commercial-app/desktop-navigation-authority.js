@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-4';
+const BUILD='20260910-desktop-navigation-final-authority-5';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 const OFFICE_REQUIREMENTS=Object.freeze({
@@ -87,6 +87,7 @@ allowedPages.__h38Meetings=true;
 allowedPages.__h38FinalDesktopAuthority=true;
 renderNav.__h38Meetings=true;
 renderNav.__h38FinalDesktopAuthority=true;
+renderNav.__h38OnboardingGate=true;
 renderNav.h38PhysicalNavStable=true;
 renderNav.h38MobileFirstFrameStable=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
@@ -180,6 +181,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   wrapperChainPermissionDependency:false,
   finalAuthorityReassertedAfterDeferredWrappers:true,
   desktopRenderNavWriteShield:true,
+  onboardingGateRenderNavCompatibility:true,
   mobileRenderNavWriteShield:false,
   mutatesNavigation:true,
   capturesClicks:false,
