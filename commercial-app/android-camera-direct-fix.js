@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260911-web-first-site-visit-2';
-const MOBILE_FIELD_BUILD='20260911-mobile-field-view-1';
+const BUILD='20260911-web-first-site-visit-3';
+const MOBILE_FIELD_BUILD='20260911-mobile-field-view-2';
 
 /*
  * Web-first Site Visit authority.
@@ -15,6 +15,8 @@ const MOBILE_FIELD_BUILD='20260911-mobile-field-view-1';
  * Phone presentation is intentionally separate from Office setup. The normal
  * Business Office remains authoritative; mobile-field-view.js only selects a
  * simplified Field & Crew presentation on phones and always offers Full Office.
+ * Staff/site-manager phones default to Field View. Owner/admin phones keep the
+ * accepted full Office default unless that user explicitly chooses Field View.
  */
 function nativeShell(){
   return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;
@@ -54,7 +56,7 @@ function decorateWebFirstCopy(){
     const note=document.createElement('div');
     note.dataset.h38SiteManagerProfileNote='1';
     note.className='h38-erp-note';
-    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office and records. Phones can use the simplified Field View; Full Office remains available.';
+    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office and records. Staff/site-manager phones default to the simplified Field View; Full Office remains available.';
     const head=team.querySelector('.h38-team-head');
     if(head)head.insertAdjacentElement('afterend',note);else team.prepend(note);
   }
@@ -86,7 +88,8 @@ window.H38_SITE_VISIT_CAPTURE_AUTHORITY=Object.freeze({
   nativeAppRequired:false,
   nativeCompanionOptional:true,
   sameOfficeForOwnerEmployeesAndSiteManagers:true,
-  mobileFieldViewDefault:true,
+  mobileFieldViewDefaultForStaff:true,
+  mobileFullOfficeDefaultForOwnerAdmin:true,
   fullOfficeChoiceAlwaysAvailable:true,
   cameraMicrophoneViaBrowser:true,
   offlineDraftPersistence:true,
