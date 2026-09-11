@@ -1,8 +1,9 @@
 (function(){
 'use strict';
-const BUILD='20260904-cross-platform-assistant-polish-2';
+const BUILD='20260911-cross-platform-assistant-polish-3-launch-stability';
 let lastSearchTrigger=null;
 let shellSyncTimer=0;
+let applyScheduled=false;
 
 function text(value){return String(value==null?'':value).trim();}
 function setText(node,value){const next=String(value==null?'':value);if(node&&node.textContent!==next)node.textContent=next;}
@@ -202,14 +203,20 @@ function apply(){
   decorateAssistantPage();
   syncShellTop();
 }
+function scheduleApply(){
+  if(applyScheduled)return;
+  applyScheduled=true;
+  const run=()=>{applyScheduled=false;apply();};
+  if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
+}
 
-const observer=new MutationObserver(apply);
+const observer=new MutationObserver(scheduleApply);
 observer.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&searchDialog()?.open){event.preventDefault();closeSearch('escape');}},true);
 window.addEventListener('resize',syncShellTop,{passive:true});
 window.visualViewport?.addEventListener('resize',syncShellTop,{passive:true});
 window.visualViewport?.addEventListener('scroll',syncShellTop,{passive:true});
-window.addEventListener('pageshow',apply);
+window.addEventListener('pageshow',scheduleApply);
 apply();
 
 window.H38_OFFICE_POLISH=Object.freeze({
@@ -225,6 +232,7 @@ window.H38_OFFICE_POLISH=Object.freeze({
   androidSafeArea:true,
   iosSafeAreaReady:true,
   mutationFeedbackLoopPrevented:true,
+  mutationObserverCoalesced:true,
   nativeIosShellCreated:false
 });
 })();
