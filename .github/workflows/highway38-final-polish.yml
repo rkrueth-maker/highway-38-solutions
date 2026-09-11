@@ -30,6 +30,10 @@ jobs:
       - name: Verify Office PDF and stationery coverage
         run: |
           node -c commercial-app/office-document-export.js
+          node -c commercial-app/office-scale-workflow.js
+          node -c commercial-app/office-scale-task-guard.js
+          node -c commercial-app/office-document-packet.js
+          node -c commercial-app/live-customer-navigation-guard-20260910.js
           node -c scripts/verify-office-document-export.js
           node scripts/verify-office-document-export.js
       - name: Verify owner mobile smoke contract
@@ -81,6 +85,12 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Verify scalable Office record search task and packet workflow
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/final-polish
+          node scripts/verify-office-scale-workflow-browser.js 2>&1 | tee artifacts/final-polish/office-scale-workflow-browser.txt
       - name: Verify consolidated desktop navigation core
         shell: bash
         run: |
@@ -105,6 +115,7 @@ jobs:
           path: |
             artifacts/final-polish/browser-verification.txt
             artifacts/final-polish/desktop-navigation-core.txt
+            artifacts/final-polish/office-scale-workflow-browser.txt
             artifacts/final-polish/northern-lakes-*.png
             artifacts/final-polish/profitability-browser.txt
             artifacts/final-polish/business-office-review-demo-desktop-today.png
