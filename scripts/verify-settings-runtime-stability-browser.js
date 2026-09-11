@@ -1,0 +1,53 @@
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const {chromium}=require('playwright');
+const root=path.resolve(__dirname,'..');
+const source=fs.readFileSync(path.join(root,'commercial-app','supabase-client-installer.js'),'utf8');
+const failures=[];
+const check=(condition,message)=>{if(!condition)failures.push(message);else console.log('PASS:',message);};
+(async()=>{
+  const browser=await chromium.launch({headless:true});
+  const page=await browser.newPage({viewport:{width:1280,height:900}});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://h38-settings.test/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><html><body><main id="mainContent"><div class="grid"></div></main></body></html>'}));
+  await page.goto('https://h38-settings.test/commercial-app/',{waitUntil:'domcontentloaded'});
+  await page.evaluate(()=>{
+    window.__rpcCalls=[];
+    window.state={page:'settings',snapshot:{business:{businessKey:'highway38'},user:{owner:true}}};
+    window.esc=value=>String(value==null?'':value);
+    window.pill=value=>`<span>${value}</span>`;
+    window.toast=()=>{};
+    window.renderSettings=function(){
+      window.state.page='settings';
+      document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Settings</h1></div><div class="grid"></div>';
+    };
+    window.H38_SUPABASE_AUTH={enabled:true};
+    window.H38_BUSINESS_OFFICE_SUPABASE={url:'https://example.supabase.co',publishableKey:'test'};
+    window.supabase={createClient:()=>({rpc:async(name,args)=>{window.__rpcCalls.push({name,args});if(name==='client_tenant_installer_state')return{data:{status:'PASS',businesses:[{businessId:'NL',businessKey:'northern-lakes',displayName:'Northern Lakes Property Maintenance',ownerEmail:'owner@example.com',businessStatus:'active',enabledModuleCount:22,recordCount:0,storageProvider:'supabase',storageConnectionStatus:'connected'}]},error:null};return{data:{status:'PASS',businessKey:'northern-lakes'},error:null};}})};
+  });
+  await page.addScriptTag({content:source});
+  const started=Date.now();
+  await page.evaluate(()=>window.renderSettings());
+  await page.waitForTimeout(60);
+  const elapsed=Date.now()-started;
+  check(elapsed<500,'Settings renderer returns without waiting on tenant RPC');
+  check((await page.evaluate(()=>window.__rpcCalls.length))===0,'Settings render does not automatically query client tenant state');
+  check(await page.locator('#clientTenantInstallerCard').count()===1,'Settings renders client tenant installer card immediately');
+  check(await page.locator('#refreshClientTenants').count()===1,'Settings exposes explicit Load client tenants control');
+  check(/not loaded automatically/i.test(await page.locator('#clientTenantList').innerText()),'Settings explains deferred tenant loading');
+  await page.locator('#refreshClientTenants').click();
+  await page.waitForTimeout(80);
+  check((await page.evaluate(()=>window.__rpcCalls.filter(row=>row.name==='client_tenant_installer_state').length))===1,'Explicit tenant load performs exactly one state RPC');
+  check(/Northern Lakes Property Maintenance/.test(await page.locator('#clientTenantList').innerText()),'Explicit tenant load renders returned tenant status');
+  await page.evaluate(()=>window.renderSettings());
+  await page.waitForTimeout(50);
+  check((await page.evaluate(()=>window.__rpcCalls.filter(row=>row.name==='client_tenant_installer_state').length))===1,'Repeated Settings render does not re-query tenant state');
+  await page.evaluate(()=>{window.state.snapshot.business.businessKey='northern-lakes';window.state.snapshot.user.owner=true;window.renderSettings();});
+  await page.waitForTimeout(30);
+  check(await page.locator('#clientTenantInstallerCard').count()===0,'Northern Lakes Settings does not expose H38 platform tenant controls');
+  check(errors.length===0,`Browser runtime errors: ${errors.join(' | ')}`);
+  await browser.close();
+  if(failures.length){console.error(JSON.stringify({status:'FAIL',acceptance:'SETTINGS_RUNTIME_STABILITY',failures},null,2));process.exit(1);}
+  console.log(JSON.stringify({status:'PASS',acceptance:'SETTINGS_RUNTIME_STABILITY',settingsBlockingRpc:false,explicitTenantRefresh:true,northernParity:true,externalActionsOccurred:false},null,2));
+})().catch(error=>{console.error(error);process.exit(1);});
