@@ -11,6 +11,7 @@ on:
       - 'commercial-app/app-19.js'
       - 'scripts/verify-complete-office-access-browser.js'
       - 'scripts/verify-office-live-delivery-browser.js'
+      - 'scripts/verify-office-late-auth-navigation-browser.js'
       - '.github/workflows/verify-complete-office-access.yml'
   push:
     branches: [main]
@@ -23,6 +24,7 @@ on:
       - 'commercial-app/app-19.js'
       - 'scripts/verify-complete-office-access-browser.js'
       - 'scripts/verify-office-live-delivery-browser.js'
+      - 'scripts/verify-office-late-auth-navigation-browser.js'
       - '.github/workflows/verify-complete-office-access.yml'
 
 permissions:
@@ -48,3 +50,5 @@ jobs:
         run: node scripts/verify-complete-office-access-browser.js
       - name: Verify warm-browser delivery and signed-in account identity
         run: node scripts/verify-office-live-delivery-browser.js
+      - name: Verify late-auth desktop navigation repaint
+        run: node scripts/verify-office-late-auth-navigation-browser.js
