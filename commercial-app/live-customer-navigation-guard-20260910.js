@@ -24,7 +24,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','h38-office-scale-task-guard',()=>window.H38_OFFICE_SCALE_TASK_GUARD);
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
   loadRuntime('./office-reference-samples.js?build=20260911-office-reference-samples-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
-  loadRuntime('./customer-import-intelligence.js?build=20260911-smart-customer-import-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
+  loadRuntime('./customer-import-intelligence.js?build=20260911-smart-customer-import-2','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
