@@ -32,8 +32,9 @@
 
   async function hydrate(snapshot,businessId){
     const db=client();
-    const [customers,jobs,quotes,quoteItems,invoices,messages,files]=await Promise.all([
+    const [customers,businessRecordCustomers,jobs,quotes,quoteItems,invoices,messages,files]=await Promise.all([
       optional(db.from('customer_accounts').select('id,customer_code,display_name,email,status,portal_enabled,created_at,updated_at').eq('business_id',businessId).order('updated_at',{ascending:false}).limit(1000)),
+      optional(db.from('business_records').select('record_key,payload,created_at,updated_at').eq('business_id',businessId).eq('collection','customers').eq('record_status','active').order('updated_at',{ascending:false}).limit(5000)),
       optional(db.from('customer_jobs').select('id,customer_id,job_number,title,status,next_action,due_date,progress_percent,expected_update_date,created_at,updated_at').eq('business_id',businessId).order('updated_at',{ascending:false}).limit(1000)),
       optional(db.from('customer_quotes').select('id,customer_id,job_id,quote_number,title,amount,status,version,customer_decision,decision_at,deliverables,timing,revision_allowance,exclusions,approval_consequence,created_at,updated_at').eq('business_id',businessId).order('updated_at',{ascending:false}).limit(1000)),
       optional(db.from('quote_items').select('id,quote_id,line_number,work_package,item_type,description,quantity,unit,unit_price,amount,pricing_source,owner_review_required,approved,created_at,updated_at').eq('business_id',businessId).order('quote_id').order('line_number').limit(5000)),
@@ -49,6 +50,21 @@
       'Portal Enabled':row.portal_enabled===true,'Created Time':row.created_at,
       'Updated Time':row.updated_at,'Record Version':1,'Supabase Portal Record':true
     }));
+    const businessRecordCustomerRows=businessRecordCustomers
+      .filter(row=>text(row.record_key)!=='GENERIC-QUOTE-CUSTOMER')
+      .map(row=>{
+        const payload=row.payload && typeof row.payload==='object' && !Array.isArray(row.payload)?row.payload:{};
+        return {
+          ...payload,
+          'Customer ID':text(payload['Customer ID'] || row.record_key),
+          'Business ID':businessId,
+          'Status':text(payload['Status'] || 'Active'),
+          'Created Time':payload['Created Time'] || row.created_at,
+          'Updated Time':payload['Updated Time'] || row.updated_at,
+          'Record Version':payload['Record Version'] || 1,
+          'Supabase Business Record':true
+        };
+      });
     const jobRows=jobs.map(row=>({
       'Job ID':row.id,'Business ID':businessId,'Customer ID':row.customer_id,
       'Job Number':row.job_number,'Project Title':row.title,'Status':row.status,
@@ -113,7 +129,11 @@
       'Supabase Portal Record':true
     }));
 
-    snapshot.customers=merge(snapshot.customers,customerRows,'Customer ID');
+    const allCustomerRows=merge(customerRows,businessRecordCustomerRows,'Customer ID');
+    snapshot.customers=merge(snapshot.customers,allCustomerRows,'Customer ID');
+    if(text(snapshot?.business?.businessKey)==='northern-lakes'){
+      snapshot.customers=(snapshot.customers || []).filter(row=>text(row['Customer ID'])!=='GENERIC-QUOTE-CUSTOMER');
+    }
     snapshot.jobs=merge(snapshot.jobs,jobRows,'Job ID');
     snapshot.quotes=merge(snapshot.quotes,quoteRows,'Quote ID');
     snapshot.invoices=merge(snapshot.invoices,invoiceRows,'Invoice ID');
@@ -131,5 +151,5 @@
     return businessId?hydrate(result,businessId):result;
   };
 
-  window.H38_SUPABASE_PORTAL_HYDRATION={enabled:true,readOnly:true,googleRecordsImported:false};
+  window.H38_SUPABASE_PORTAL_HYDRATION={enabled:true,readOnly:true,googleRecordsImported:false,businessRecordsHydrated:true};
 })();
