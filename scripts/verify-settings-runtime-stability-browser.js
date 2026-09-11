@@ -10,7 +10,8 @@ const check=(condition,message)=>{if(!condition)failures.push(message);else cons
   const browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:1280,height:900}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.setContent('<!doctype html><html><body><main id="mainContent"><div class="grid"></div></main></body></html>');
+  await page.route('https://h38-settings.test/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><html><body><main id="mainContent"><div class="grid"></div></main></body></html>'}));
+  await page.goto('https://h38-settings.test/commercial-app/',{waitUntil:'domcontentloaded'});
   await page.evaluate(()=>{
     window.__rpcCalls=[];
     window.state={page:'settings',snapshot:{business:{businessKey:'highway38'},user:{owner:true}}};
