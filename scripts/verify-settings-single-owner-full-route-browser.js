@@ -125,6 +125,7 @@ async function verifyTenant(browser,base,key){
       await page.locator('#mainNav > button[data-page="today"]').click({timeout:1500});
       await page.waitForFunction(()=>window.state?.page==='today',{timeout:1000});
     }
+    await page.waitForTimeout(100);
     await page.evaluate(()=>{window.__h38SettingsRpcCalls=[];});
     const started=Date.now();
     await page.locator('#mainNav > button[data-page="settings"]').click({timeout:1500});
