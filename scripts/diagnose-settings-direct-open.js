@@ -14,17 +14,18 @@ async function stub(context){await context.route('https://cdn.jsdelivr.net/**',r
  const context=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});await stub(context);
  const page=await context.newPage();
  await page.addInitScript(()=>{
-   const events=[];let active=false;
-   const stack=label=>String(new Error(label).stack||'').replace(/\s+/g,' ').slice(0,1800);
+   const events=[];let active=false;const LIMIT=16;
+   const stack=label=>String(new Error(label).stack||'').replace(/\s+/g,' ').slice(0,2200);
    const target=node=>node?.id==='h38AgentStatusSettings'||node?.querySelector?.('#h38AgentStatusSettings');
+   const record=(op)=>{if(!active)return false;if(events.length<LIMIT)events.push({op,stack:stack(op)});return events.length>=LIMIT;};
    const ap=Node.prototype.appendChild,ib=Node.prototype.insertBefore,rc=Node.prototype.removeChild,rep=Node.prototype.replaceChild,rm=Element.prototype.remove,iah=Element.prototype.insertAdjacentHTML,iae=Element.prototype.insertAdjacentElement;
-   Node.prototype.appendChild=function(node){if(active&&target(node)&&events.length<40)events.push({op:'appendChild',stack:stack('agent-card-append')});return ap.call(this,node);};
-   Node.prototype.insertBefore=function(node,ref){if(active&&target(node)&&events.length<40)events.push({op:'insertBefore',stack:stack('agent-card-insert-before')});return ib.call(this,node,ref);};
-   Node.prototype.removeChild=function(node){if(active&&target(node)&&events.length<40)events.push({op:'removeChild',stack:stack('agent-card-remove-child')});return rc.call(this,node);};
-   Node.prototype.replaceChild=function(node,old){if(active&&(target(node)||target(old))&&events.length<40)events.push({op:'replaceChild',stack:stack('agent-card-replace')});return rep.call(this,node,old);};
-   Element.prototype.remove=function(){if(active&&target(this)&&events.length<40)events.push({op:'remove',stack:stack('agent-card-remove')});return rm.call(this);};
-   Element.prototype.insertAdjacentElement=function(pos,node){if(active&&target(node)&&events.length<40)events.push({op:'insertAdjacentElement',stack:stack('agent-card-adjacent-element')});return iae.call(this,pos,node);};
-   Element.prototype.insertAdjacentHTML=function(pos,html){if(active&&String(html).includes('h38AgentStatusSettings')&&events.length<40)events.push({op:'insertAdjacentHTML',stack:stack('agent-card-adjacent-html')});return iah.call(this,pos,html);};
+   Node.prototype.appendChild=function(node){if(target(node)&&record('agent-card-append'))return node;return ap.call(this,node);};
+   Node.prototype.insertBefore=function(node,ref){if(target(node)&&record('agent-card-insert-before'))return node;return ib.call(this,node,ref);};
+   Node.prototype.removeChild=function(node){if(target(node)&&record('agent-card-remove-child'))return node;return rc.call(this,node);};
+   Node.prototype.replaceChild=function(node,old){if((target(node)||target(old))&&record('agent-card-replace'))return old;return rep.call(this,node,old);};
+   Element.prototype.remove=function(){if(target(this)&&record('agent-card-remove'))return;return rm.call(this);};
+   Element.prototype.insertAdjacentElement=function(pos,node){if(target(node)&&record('agent-card-adjacent-element'))return node;return iae.call(this,pos,node);};
+   Element.prototype.insertAdjacentHTML=function(pos,html){if(String(html).includes('h38AgentStatusSettings')&&record('agent-card-adjacent-html'))return;return iah.call(this,pos,html);};
    window.__h38AgentCardTrace={events,setActive(v){active=!!v;}};
  });
  const base=`http://127.0.0.1:${local.address().port}`;
@@ -32,7 +33,7 @@ async function stub(context){await context.route('https://cdn.jsdelivr.net/**',r
  await page.waitForFunction(()=>document.readyState==='complete'&&typeof window.openPage==='function'&&window.H38_DESKTOP_NAVIGATION_AUTHORITY,{timeout:12000});
  await page.evaluate(s=>{window.state.shell='office';window.state.page='today';window.state.businessId='B-H38';window.state.businessKey='highway38';window.state.snapshot=s;window.state.bridgeReady=true;window.h38SetAuthorizedChrome?.(true);window.H38_DESKTOP_NAVIGATION_AUTHORITY?.installAsFinalAuthority?.();window.renderNav?.();window.openPage?.('today',false);},snap());
  await page.waitForTimeout(250);await page.evaluate(()=>{window.__h38AgentCardTrace.setActive(true);setTimeout(()=>window.openPage('settings',false),0);});
- await page.waitForTimeout(1200);
+ await page.waitForTimeout(800);
  const result=await page.evaluate(()=>({page:window.state?.page,heading:document.querySelector('#mainContent h1')?.textContent||'',events:window.__h38AgentCardTrace?.events||[]}));
  fs.writeFileSync(path.join(root,'settings-diagnostic.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));
  await browser.close();await new Promise(r=>local.close(r));
