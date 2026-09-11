@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260908-office-onboarding-release-gate-1';
+const BUILD='20260910-office-onboarding-release-gate-2';
 const QUOTE_GATE='h38-quote-release-gate';
 const BUCKET='business-office-files';
 const TUS_CHUNK=6*1024*1024;
@@ -18,23 +18,11 @@ const quoteId=()=>text(window.state?.quote?.quoteId||value((window.state?.snapsh
 const businessId=()=>text(window.state?.businessId||window.H38_SUPABASE_AUTH?.getState?.().selectedBusinessId);
 const client=()=>window.H38_SUPABASE_SHARED_CLIENT?.ensure?.()||null;
 function toast(message,bad=false){if(typeof window.toast==='function')window.toast(message,!!bad);else console[bad?'error':'log'](message);}
-function staffPermissions(){return{viewAssignedWork:true,manageAssignedWork:true,manageField:true,captureEvidence:true};}
-function alignStaffPermissions(){
-  if(!isStaff())return false;
-  const user=window.state?.snapshot?.user;
-  if(!user)return false;
-  const next=staffPermissions(),before=JSON.stringify(user.permissions||{}),after=JSON.stringify(next);
-  if(before===after)return false;
-  user.permissions=next;
-  return true;
-}
-function safeRenderNav(){if(alignStaffPermissions()&&typeof window.renderNav==='function')try{window.renderNav();}catch(_){};}
-function wrapRenderNav(){
-  const base=window.renderNav;
-  if(typeof base!=='function'||base.__h38OnboardingGate)return;
-  const wrapped=function(...args){alignStaffPermissions();return base.apply(this,args);};
-  wrapped.__h38OnboardingGate=true;window.renderNav=wrapped;try{renderNav=wrapped;}catch(_){}
-}
+// Staff permissions are resolved by the authenticated Business Office/RLS authority.
+// This quote/media gate must never replace that permission set or own navigation.
+function alignStaffPermissions(){return false;}
+function safeRenderNav(){return false;}
+function wrapRenderNav(){return false;}
 function operationId(op){return text(op?.operationId||op?.id||op?.recordId);}
 function suppressStaffUsageSync(args){
   const operations=Array.isArray(args?.operations)?args.operations:[];
@@ -119,7 +107,7 @@ async function uploadQuoteVideo(file,scopeNotes,onProgress){
   const qid=quoteId();if(!qid)throw new Error('Save or open a quote before adding video evidence.');
   if(!file||!String(file.type||'').startsWith('video/'))throw new Error('Choose a video file.');
   const mediaSessionId=uid('QUOTE-ADDON'),docId=uid('QUOTE-ADDON-VIDEO'),path=`${businessId()}/Quote/${qid}/addons/${mediaSessionId}/original/${cleanName(file.name)}`,scope=text(scopeNotes).slice(0,4000);
-  await saveRecord('mediaAnalysisSessions',mediaSessionId,{'Media Analysis Session ID':mediaSessionId,'Business ID':businessId(),'Quote ID':qid,'Customer ID':text(window.state?.quote?.customerId),'Job ID':text(window.state?.quote?.jobId),'Purpose':'Quote Add-On','Title':scope||`Quote add-on video — ${file.name}`,'Owner Add-On Scope':scope,'Original Document ID':docId,'Original File Name':file.name,'Original Mime Type':file.type,'Original File Size':file.size,'Frame Document IDs':[],'Status':'UPLOADING','Transcript Status':'PENDING','Private':true,'Customer Released':false,'Owner Review Required':true,'Measurements Verified':false,'Automatic Customer Release':false,'Automatic Customer Sending':false,'Automatic Approval':false,'Automatic Scheduling':false,'Automatic Financial Action':false,'Created Time':now(),'Updated Time':now(),'Build':BUILD});
+  await saveRecord('mediaAnalysisSessions',mediaSessionId,{'Media Analysis Session ID':mediaSessionId,'Business ID':businessId(),'Quote ID':qid,'Customer ID':text(window.state?.quote?.customerId),'Job ID':text(window.state?.quote?.jobId),'Purpose':'Quote Add-On','Title':scope||`Quote add-on video — ${file.name}`,'Owner Add-On Scope':scope,'Original Document ID':docId,'Original File Name':file.name,'Original Mime Type':file.type,'Original File Size':file.size,'Frame Document IDs':[],'Status':'UPLOADING','Transcript Status':'PENDING','Private':true,'Customer Released':false,'Owner Review Required':true,'Measurements Verified':false,'Automatic Customer Release':false,'Automatic Customer Sending':false,'Automatic Approval':false,'Automatic Scheduling':false,'AutomaticFinancialAction':false,'Created Time':now(),'Updated Time':now(),'Build':BUILD});
   await uploadTus(file,path,p=>onProgress?.(.05+p*.6,`Uploading video… ${Math.round(p*100)}%`));
   await saveDocument(docId,{'Media Analysis Session ID':mediaSessionId,'Quote ID':qid,'Source Type':'Quote','Source ID':qid,'Evidence Type':'Uploaded Video','Quote Add-On Evidence':true,'File Name':file.name,'Mime Type':file.type,'File Size':file.size,'Storage Path':path});
   onProgress?.(.7,'Extracting quote review frames…');const frames=await extractQuoteFrames(file,mediaSessionId,qid);
@@ -142,8 +130,8 @@ function addQuoteControls(){
   const specialty=document.createElement('button');specialty.type='button';specialty.className='secondary';specialty.textContent='🧾 Specialty quote verification';specialty.onclick=()=>ensureSpecialtyDialog().showModal();tools.appendChild(specialty);
 }
 function wrapRenderQuotes(){const base=window.renderQuotes;if(typeof base!=='function'||base.__h38OnboardingReleaseGate)return;const wrapped=function(...args){const out=base.apply(this,args);setTimeout(addQuoteControls,0);return out;};wrapped.__h38OnboardingReleaseGate=true;window.renderQuotes=wrapped;try{renderQuotes=wrapped;}catch(_){};if(window.state?.page==='quotes')setTimeout(addQuoteControls,0);}
-function install(){alignStaffPermissions();wrapRenderNav();installBridgeGate();installQueueGate();installRuntimeGate();wrapRenderQuotes();safeRenderNav();}
+function install(){installBridgeGate();installQueueGate();installRuntimeGate();wrapRenderQuotes();}
 window.addEventListener('h38:business-snapshot-updated',install);window.addEventListener('h38:quote-agent-contract-ready',install);window.addEventListener('pageshow',install);document.addEventListener('visibilitychange',()=>{if(!document.hidden)install();});
 let ticks=0;const timer=setInterval(()=>{install();if(++ticks>30)clearInterval(timer);},150);install();
-window.H38_OFFICE_ONBOARDING_RELEASE_GATE=Object.freeze({enabled:true,build:BUILD,canonicalQuotePipeline:'h38-quote-agent via h38-quote-release-gate',entryPathIndependent:true,quotePhotosCanBeAddedLater:true,quoteVideoAddOnsCanBeAddedLater:true,videoFramesBecomeQuoteEvidence:true,noLumpSumContract:true,specialtyQuoteVerification:true,staffPermissionRlsAligned:true,staffUsageTelemetrySuppressed:true,buildQuote:buildQuoteThroughGate,uploadQuoteVideo,automaticApproval:false,automaticCustomerSending:false,automaticVendorSending:false,automaticScheduling:false,automaticPurchase:false,automaticPayment:false,automaticFinancialAction:false});
+window.H38_OFFICE_ONBOARDING_RELEASE_GATE=Object.freeze({enabled:true,build:BUILD,canonicalQuotePipeline:'h38-quote-agent via h38-quote-release-gate',entryPathIndependent:true,quotePhotosCanBeAddedLater:true,quoteVideoAddOnsCanBeAddedLater:true,videoFramesBecomeQuoteEvidence:true,noLumpSumContract:true,specialtyQuoteVerification:true,staffPermissionRlsAligned:true,staffPermissionMutation:false,navigationAuthority:'canonical-business-office',navigationWrapper:false,staffUsageTelemetrySuppressed:true,buildQuote:buildQuoteThroughGate,uploadQuoteVideo,automaticApproval:false,automaticCustomerSending:false,automaticVendorSending:false,automaticScheduling:false,automaticPurchase:false,automaticPayment:false,automaticFinancialAction:false});
 })();
