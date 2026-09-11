@@ -5,18 +5,24 @@ on:
     paths:
       - 'commercial-app/desktop-navigation-authority.js'
       - 'commercial-app/office-access-completion.js'
+      - 'commercial-app/office-account-identity.js'
+      - 'commercial-app/service-worker.js'
       - 'commercial-app/app-13.js'
       - 'commercial-app/app-19.js'
       - 'scripts/verify-complete-office-access-browser.js'
+      - 'scripts/verify-office-live-delivery-browser.js'
       - '.github/workflows/verify-complete-office-access.yml'
   push:
     branches: [main]
     paths:
       - 'commercial-app/desktop-navigation-authority.js'
       - 'commercial-app/office-access-completion.js'
+      - 'commercial-app/office-account-identity.js'
+      - 'commercial-app/service-worker.js'
       - 'commercial-app/app-13.js'
       - 'commercial-app/app-19.js'
       - 'scripts/verify-complete-office-access-browser.js'
+      - 'scripts/verify-office-live-delivery-browser.js'
       - '.github/workflows/verify-complete-office-access.yml'
 
 permissions:
@@ -40,3 +46,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify complete Owner and Staff Office access
         run: node scripts/verify-complete-office-access-browser.js
+      - name: Verify warm-browser delivery and signed-in account identity
+        run: node scripts/verify-office-live-delivery-browser.js
