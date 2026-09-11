@@ -1,0 +1,35 @@
+name: Verify Today time clock dedupe
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/erp-foundation.js'
+      - 'scripts/verify-time-clock-dedupe-browser.js'
+      - '.github/workflows/verify-time-clock-dedupe.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/erp-foundation.js'
+      - 'scripts/verify-time-clock-dedupe-browser.js'
+      - '.github/workflows/verify-time-clock-dedupe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify single-flight Today time clock
+        run: node scripts/verify-time-clock-dedupe-browser.js
