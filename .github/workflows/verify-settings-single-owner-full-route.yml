@@ -14,6 +14,7 @@ on:
       - 'commercial-app/office-access-completion.js'
       - 'commercial-app/office-scale-workflow.js'
       - 'scripts/verify-settings-single-owner-full-route-browser.js'
+      - 'scripts/diagnose-office-mutation-loop.js'
       - '.github/workflows/verify-settings-single-owner-full-route.yml'
   push:
     branches: [main]
@@ -28,6 +29,7 @@ on:
       - 'commercial-app/office-access-completion.js'
       - 'commercial-app/office-scale-workflow.js'
       - 'scripts/verify-settings-single-owner-full-route-browser.js'
+      - 'scripts/diagnose-office-mutation-loop.js'
       - '.github/workflows/verify-settings-single-owner-full-route.yml'
   workflow_dispatch:
 
@@ -48,5 +50,7 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Diagnose shared Office mutation target
+        run: node scripts/diagnose-office-mutation-loop.js
       - name: Verify H38 and Northern Settings full route
         run: node scripts/verify-settings-single-owner-full-route-browser.js
