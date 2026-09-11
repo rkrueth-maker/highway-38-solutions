@@ -102,11 +102,11 @@ async function verifyTenant(browser,base,key){
   await stubExternal(context);
   const page=await context.newPage();
   const errors=await boot(page,base,key);
-  const initialRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
+  await page.evaluate(()=>{window.__h38SettingsRpcCalls=[];});
   const first=await clickRoute(page,'settings','Settings');
   await page.waitForTimeout(80);
-  const firstRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
-  assert.equal(firstRpc,initialRpc,`${key} Settings open performed automatic RPC/function work`);
+  const firstRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls||[]);
+  assert.equal(firstRpc.length,0,`${key} Settings open performed automatic RPC/function work: ${JSON.stringify(firstRpc)}`);
   const cardCounts=await page.evaluate(()=>({
     storage:document.querySelectorAll('#businessStorageProviderCard').length,
     privacy:document.querySelectorAll('#h38AccountPrivacyCard').length,
@@ -125,18 +125,19 @@ async function verifyTenant(browser,base,key){
       await page.locator('#mainNav > button[data-page="today"]').click({timeout:1500});
       await page.waitForFunction(()=>window.state?.page==='today',{timeout:1000});
     }
+    await page.evaluate(()=>{window.__h38SettingsRpcCalls=[];});
     const started=Date.now();
     await page.locator('#mainNav > button[data-page="settings"]').click({timeout:1500});
     await page.waitForFunction(()=>window.state?.page==='settings'&&/Settings/i.test(document.querySelector('#mainContent h1')?.textContent||''),{timeout:1000});
     await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,0)));
     const elapsed=Date.now()-started;
     assert(elapsed<1500,`${key} Settings cycle ${i+1} took ${elapsed}ms`);
+    const settingsRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls||[]);
+    assert.equal(settingsRpc.length,0,`${key} Settings cycle ${i+1} performed automatic RPC/function work: ${JSON.stringify(settingsRpc)}`);
     cycleTimes.push(elapsed);
     await page.locator('#mainNav > button[data-page="today"]').click({timeout:1500});
     await page.waitForFunction(()=>window.state?.page==='today',{timeout:1000});
   }
-  const finalRpc=await page.evaluate(()=>window.__h38SettingsRpcCalls?.length||0);
-  assert.equal(finalRpc,initialRpc,`${key} repeated Settings navigation performed automatic RPC/function work`);
   assert.deepEqual(errors,[],`${key} page errors after Settings cycles: ${errors.join(' | ')}`);
   await context.close();
   return {key,firstMs:first,maxCycleMs:Math.max(...cycleTimes),cycles:cycleTimes.length,automaticSettingsNetwork:false};
