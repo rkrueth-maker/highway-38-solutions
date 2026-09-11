@@ -74,7 +74,7 @@ async function installRuntimeDiagnostics(page){
       const id=activeObserverId;if(!id)return;
       writes[id]=(writes[id]||0)+1;
       if(!writeSamples[id])writeSamples[id]=[];
-      if(writeSamples[id].length<8)writeSamples[id].push({kind,target:String(target?.id||target?.className||target?.nodeName||'').slice(0,120)});
+      if(writeSamples[id].length<12)writeSamples[id].push({kind,target:String(target?.id||target?.className||target?.nodeName||'').slice(0,120)});
     };
     const wrapMethod=(proto,name)=>{
       const original=proto?.[name];if(typeof original!=='function')return;
@@ -82,13 +82,26 @@ async function installRuntimeDiagnostics(page){
     };
     for(const name of ['appendChild','insertBefore','removeChild','replaceChild'])wrapMethod(Node.prototype,name);
     for(const name of ['append','prepend','before','after','replaceWith','remove','insertAdjacentElement','insertAdjacentHTML','setAttribute','removeAttribute'])wrapMethod(Element.prototype,name);
+    for(const name of ['add','remove','toggle','replace'])wrapMethod(window.DOMTokenList?.prototype,name);
+    for(const name of ['setProperty','removeProperty'])wrapMethod(window.CSSStyleDeclaration?.prototype,name);
     const wrapSetter=(proto,name)=>{
       try{
         const descriptor=Object.getOwnPropertyDescriptor(proto,name);if(!descriptor?.set||!descriptor?.get)return;
         Object.defineProperty(proto,name,{configurable:descriptor.configurable,enumerable:descriptor.enumerable,get:descriptor.get,set:function(value){noteWrite(`${name}=`,this);return descriptor.set.call(this,value);}});
       }catch(_){}
     };
-    wrapSetter(Element.prototype,'innerHTML');wrapSetter(Node.prototype,'textContent');
+    wrapSetter(Element.prototype,'innerHTML');wrapSetter(Node.prototype,'textContent');wrapSetter(Element.prototype,'className');
+    const nativeQueueMicrotask=window.queueMicrotask?.bind(window);
+    if(nativeQueueMicrotask){
+      window.queueMicrotask=function(callback){
+        const owner=activeObserverId;
+        return nativeQueueMicrotask(()=>{
+          const previous=activeObserverId;
+          if(owner)activeObserverId=owner;
+          try{return callback();}finally{activeObserverId=previous;}
+        });
+      };
+    }
     const ranked=(map)=>Object.keys(map).map(id=>({id:Number(id),count:map[id]||0,origin:origins[id],samples:writeSamples[id]||[]})).sort((a,b)=>b.count-a.count);
     function WrappedMutationObserver(callback){
       const id=++observerId;
