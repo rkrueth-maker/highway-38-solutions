@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/mobile-field-view.js'
+      - 'commercial-app/android-camera-direct-fix.js'
       - 'commercial-app/supabase-final-startup.js'
       - 'commercial-app/desktop-navigation-authority.js'
       - 'commercial-app/service-worker.js'
@@ -17,6 +19,8 @@ on:
     branches: [main]
     paths:
       - 'commercial-app/employee-workspace.js'
+      - 'commercial-app/mobile-field-view.js'
+      - 'commercial-app/android-camera-direct-fix.js'
       - 'commercial-app/supabase-final-startup.js'
       - 'commercial-app/desktop-navigation-authority.js'
       - 'commercial-app/service-worker.js'
@@ -42,6 +46,8 @@ jobs:
       - name: Syntax check employee workspace
         run: |
           node --check commercial-app/employee-workspace.js
+          node --check commercial-app/mobile-field-view.js
+          node --check commercial-app/android-camera-direct-fix.js
           node --check commercial-app/supabase-final-startup.js
           node --check commercial-app/desktop-navigation-authority.js
           node --check scripts/verify-employee-workspace.js
