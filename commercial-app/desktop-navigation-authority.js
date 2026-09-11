@@ -1,8 +1,9 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-6-complete-office';
+const BUILD='20260910-desktop-navigation-final-authority-7-deep-wide-live';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
-const OFFICE_ACCESS_BUILD='20260910-office-access-completion-1';
+const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
+const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
 const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings']);
 const NAV_GROUPS=Object.freeze([
@@ -94,7 +95,7 @@ function renderDesktopNavigation(){
   installNavigationStyle();
   const pages=allowedPages();
   if(!s?.snapshot?.user||!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}
-  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-1`;
+  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-2-live`;
   if(nav.dataset.h38AccessSignature===signature){updateActive();return;}
   const defs=definitions();
   nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
@@ -174,6 +175,10 @@ function loadOfficeAccessCompletion(){
   if(window.H38_OFFICE_ACCESS_COMPLETION||document.querySelector('script[data-h38-office-access-completion]'))return false;
   const script=document.createElement('script');script.src=`./office-access-completion.js?build=${OFFICE_ACCESS_BUILD}`;script.async=false;script.dataset.h38OfficeAccessCompletion='true';document.body.appendChild(script);return true;
 }
+function loadOfficeAccountIdentity(){
+  if(window.H38_OFFICE_ACCOUNT_IDENTITY||document.querySelector('script[data-h38-office-account-identity]'))return false;
+  const script=document.createElement('script');script.src=`./office-account-identity.js?build=${ACCOUNT_IDENTITY_BUILD}`;script.async=false;script.dataset.h38OfficeAccountIdentity='true';document.body.appendChild(script);return true;
+}
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
 installAsFinalAuthority();
@@ -183,11 +188,12 @@ window.matchMedia?.('(max-width: 760px)')?.addEventListener?.('change',event=>{i
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
 loadOfficeAccessCompletion();
+loadOfficeAccountIdentity();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:true,
   retired:false,
   build:BUILD,
-  replacement:'final grouped desktop authority over complete canonical Office routes',
+  replacement:'final grouped desktop authority over complete canonical Office routes with live account identity',
   reconcile,
   renderDesktopNavigation,
   allowedPages,
@@ -197,14 +203,17 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   shieldDesktopRenderNav,
   loadProfitabilityLayer,
   loadOfficeAccessCompletion,
+  loadOfficeAccountIdentity,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
   officeAccessBuild:OFFICE_ACCESS_BUILD,
+  accountIdentityBuild:ACCOUNT_IDENTITY_BUILD,
   completeOwnerOfficeNavigation:true,
   groupedOwnerOfficeNavigation:true,
+  explicitSignedInAccountIdentity:true,
   completeOfficeOrder:COMPLETE_OFFICE_ORDER.slice(),
   navigationIntegrityLoader:false,
   employeeWorkspaceLoader:false,
