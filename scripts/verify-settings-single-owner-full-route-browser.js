@@ -67,34 +67,52 @@ async function installRuntimeDiagnostics(page){
   await page.addInitScript(()=>{
     const NativeMutationObserver=window.MutationObserver;
     if(typeof NativeMutationObserver!=='function')return;
-    let observerId=0,burst=0,resetScheduled=false;
-    const origins=Object.create(null),counts=Object.create(null);
-    const diagnostics=window.__h38MutationDiagnostics={storm:null,recent:[],origins,counts};
-    function topObservers(){
-      return Object.keys(counts).map(id=>({id:Number(id),count:counts[id],origin:origins[id]})).sort((a,b)=>b.count-a.count).slice(0,12);
-    }
+    let observerId=0,burst=0,resetScheduled=false,activeObserverId=0;
+    const origins=Object.create(null),counts=Object.create(null),writes=Object.create(null),writeSamples=Object.create(null);
+    const diagnostics=window.__h38MutationDiagnostics={storm:null,recent:[],origins,counts,writes,writeSamples};
+    const noteWrite=(kind,target)=>{
+      const id=activeObserverId;if(!id)return;
+      writes[id]=(writes[id]||0)+1;
+      if(!writeSamples[id])writeSamples[id]=[];
+      if(writeSamples[id].length<8)writeSamples[id].push({kind,target:String(target?.id||target?.className||target?.nodeName||'').slice(0,120)});
+    };
+    const wrapMethod=(proto,name)=>{
+      const original=proto?.[name];if(typeof original!=='function')return;
+      try{Object.defineProperty(proto,name,{configurable:true,writable:true,value:function(){noteWrite(name,this);return original.apply(this,arguments);}});}catch(_){}
+    };
+    for(const name of ['appendChild','insertBefore','removeChild','replaceChild'])wrapMethod(Node.prototype,name);
+    for(const name of ['append','prepend','before','after','replaceWith','remove','insertAdjacentElement','insertAdjacentHTML','setAttribute','removeAttribute'])wrapMethod(Element.prototype,name);
+    const wrapSetter=(proto,name)=>{
+      try{
+        const descriptor=Object.getOwnPropertyDescriptor(proto,name);if(!descriptor?.set||!descriptor?.get)return;
+        Object.defineProperty(proto,name,{configurable:descriptor.configurable,enumerable:descriptor.enumerable,get:descriptor.get,set:function(value){noteWrite(`${name}=`,this);return descriptor.set.call(this,value);}});
+      }catch(_){}
+    };
+    wrapSetter(Element.prototype,'innerHTML');wrapSetter(Node.prototype,'textContent');
+    const ranked=(map)=>Object.keys(map).map(id=>({id:Number(id),count:map[id]||0,origin:origins[id],samples:writeSamples[id]||[]})).sort((a,b)=>b.count-a.count);
     function WrappedMutationObserver(callback){
       const id=++observerId;
       const origin=String(new Error(`MutationObserver ${id}`).stack||'').replace(/\s+/g,' ').slice(0,1600);
-      origins[id]=origin;counts[id]=0;
+      origins[id]=origin;counts[id]=0;writes[id]=0;
       const native=new NativeMutationObserver((records,observer)=>{
         if(!resetScheduled){
           resetScheduled=true;
           setTimeout(()=>{
             burst=0;resetScheduled=false;diagnostics.recent=[];
-            for(const key of Object.keys(counts))counts[key]=0;
+            for(const key of Object.keys(counts)){counts[key]=0;writes[key]=0;writeSamples[key]=[];}
           },0);
         }
         burst+=1;counts[id]=(counts[id]||0)+1;
-        diagnostics.recent.push({id,count:burst,observerCount:counts[id]});
-        if(diagnostics.recent.length>80)diagnostics.recent.shift();
+        diagnostics.recent.push({id,count:burst,observerCount:counts[id],writes:writes[id]||0});
+        if(diagnostics.recent.length>100)diagnostics.recent.shift();
         if(burst>250&&!diagnostics.storm){
-          diagnostics.storm={id,count:burst,origin,top:topObservers(),recent:diagnostics.recent.slice()};
+          diagnostics.storm={id,count:burst,origin,observers:ranked(counts).slice(0,60),writers:ranked(writes).filter(row=>row.count>0).slice(0,30),recent:diagnostics.recent.slice()};
           observer.disconnect();
           console.error('H38_MUTATION_OBSERVER_STORM '+JSON.stringify(diagnostics.storm));
           return;
         }
-        return callback(records,observer);
+        const previous=activeObserverId;activeObserverId=id;
+        try{return callback(records,observer);}finally{activeObserverId=previous;}
       });
       return native;
     }
