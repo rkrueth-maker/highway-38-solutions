@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
       - name: Verify final polish contract
         run: node scripts/verify-highway38-final-polish.js
+      - name: Verify Northern Lakes shared Office parity
+        run: node scripts/verify-northern-lakes-business-office.js
       - name: Verify owner mobile smoke contract
         run: node scripts/verify-owner-mobile-smoke.js
       - name: Verify public Highway 38 Helper
@@ -80,6 +82,11 @@ jobs:
           set -o pipefail
           mkdir -p artifacts/final-polish
           node scripts/verify-desktop-navigation-core-browser.js 2>&1 | tee artifacts/final-polish/desktop-navigation-core.txt
+      - name: Verify H38 and Northern Office launch endurance
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-office-navigation-endurance-browser.js 2>&1 | tee artifacts/final-polish/office-navigation-endurance.txt
       - name: Verify profitability operating layer on mobile
         shell: bash
         run: |
@@ -98,6 +105,7 @@ jobs:
           path: |
             artifacts/final-polish/browser-verification.txt
             artifacts/final-polish/desktop-navigation-core.txt
+            artifacts/final-polish/office-navigation-endurance.txt
             artifacts/final-polish/northern-lakes-*.png
             artifacts/final-polish/profitability-browser.txt
             artifacts/final-polish/business-office-review-demo-desktop-today.png
