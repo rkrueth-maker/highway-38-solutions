@@ -9,6 +9,15 @@
 
   function text(value){return String(value==null?'':value).trim();}
 
+  function loadStaffUsageTelemetryBoundary(){
+    if(document.querySelector('script[data-h38-staff-usage-telemetry-boundary]'))return;
+    const script=document.createElement('script');
+    script.src='./staff-usage-telemetry-boundary-20260911.js?build=20260911-staff-usage-telemetry-boundary-1';
+    script.async=false;
+    script.dataset.h38StaffUsageTelemetryBoundary='true';
+    document.head.appendChild(script);
+  }
+
   function chooseAuthorizedBusiness(startup){
     const businesses=Array.isArray(startup?.businesses)?startup.businesses:[];
     if(!businesses.length)return null;
@@ -61,6 +70,8 @@
     }
   };
 
+  loadStaffUsageTelemetryBoundary();
+
   window.H38_AUTHORIZED_BUSINESS_AUTO_OPEN={
     enabled:true,
     build:BUILD,
@@ -71,6 +82,7 @@
     staffUsesPermissionFilteredNavigation:true,
     employeeWorkspaceAutoLoad:false,
     staffWorkspaceBeforeFirstRender:false,
-    delayedStaffTakeover:false
+    delayedStaffTakeover:false,
+    staffUsageTelemetryBoundaryRuntime:true
   };
 })();
