@@ -57,6 +57,7 @@ saveStartupSnapshot=function(snapshot,businessId){
   snapshot.authorizationCheckedAt=snapshot.authorizationCheckedAt||snapshot.cachedAt;
   setFastBusinessId(id);
   state.snapshot=snapshot;
+  window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));
   h38SetAuthorizedChrome(true);
   withStartupTimeout(Promise.all([
     put('snapshots',snapshot),
@@ -268,6 +269,14 @@ renderWelcome=function(mode='connecting',detailOverride=''){
 loadBusiness=async function(businessId,quiet=false){
   if(!h38SupabaseAuthEnabled())return h38LegacyLoadBusiness(businessId,quiet);
   if(!businessId)return false;
+  const switching=!!state.snapshot && state.snapshot.business?.businessId!==businessId;
+  if(switching){
+    state.snapshot=null;
+    state.quote=null;
+    h38SetAuthorizedChrome(false);
+    window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));
+    renderWelcome('connecting');
+  }
   setFastBusinessId(businessId);
   persistBusinessSelection(businessId);
   try{

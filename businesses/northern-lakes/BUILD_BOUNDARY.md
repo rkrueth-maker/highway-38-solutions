@@ -31,9 +31,23 @@ Approved equipment imagery:
 - Chevrolet Duramax trucks
 - Boss snow plows
 
-## Current production base
-Highway 38 main baseline at build start:
-`502de199036e76dfb1fd4eb2c1ede44d78b73b99`
+## Current shared Office authority
+Northern Lakes is the `northern-lakes` tenant of `/commercial-app/`, using Supabase only.
+It inherits the current accepted `main` runtime, grouped desktop navigation (including
+late-auth repaint), mobile navigation, permission filtering, and account identity.
 
-## Build branch
-`agent/northern-lakes-production-build`
+Verified production baseline for this parity pass:
+`c0fe208c240ef7eb21023a4c0acc0384c78b9703` (PR #932).
+The current deployed production baseline is published in `/deployed-main-sha.txt`.
+The historical `502de199036e76dfb1fd4eb2c1ede44d78b73b99` build and
+`agent/northern-lakes-production-build` branch are not runtime authority.
+
+Owner entry: `owner-login.html` → `owner-access.html` → the shared Office with
+`businessKey=northern-lakes`. Only an active server membership can resolve that key.
+The legacy PWA index is a redirect, never an alternate Office.
+
+Publication: `.github/workflows/pages-branch-fallback.yml` adds only the approved
+`businesses/northern-lakes/` subtree to the H38 Pages target. It preserves the H38 root
+and excludes other tenant directories. No separate Office deployment is created.
+
+Verification and current evidence: `OFFICE_PARITY_ACCEPTANCE.md`.

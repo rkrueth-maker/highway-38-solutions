@@ -92,6 +92,7 @@ function installStableRenderNavAuthority(){
   const base=window.renderNav;
   if(typeof base!=='function')return;
   function fixedRenderNav(...args){
+    if(mobile()&&officeShell()&&!window.state?.snapshot?.user){document.getElementById('mainNav')?.replaceChildren();return;}
     if(mobile()&&officeShell()&&syncCanonicalNavState()){
       stats.navBaseSuppressions+=1;
       return;

@@ -14,8 +14,9 @@
     neutralColor:'#152536',
     themeColor:'#0b2438'
   };
-  const previousRequest=Bridge.prototype.request;
-  const previousConnect=Bridge.prototype.connect;
+  // Public presentation only. Membership and records always come from Supabase.
+  let entryBusiness=null;
+  let entryPortal='';
 
   function text(value){return String(value==null?'':value);}
   function safeColor(value,fallback){
@@ -51,7 +52,7 @@
     const logoNode=document.getElementById('approvedOfficeLogo');
     if(logoNode){logoNode.src=logo;logoNode.alt=`${businessName} logo`;}
     const brandName=document.querySelector('.brand strong');
-    if(brandName)brandName.textContent=businessName;
+    if(brandName){brandName.textContent=businessName;brandName.dataset.h38FullBrand=businessName;brandName.dataset.h38ShortBrand=text(brand.shortName||businessName);}
     const shellLabel=document.getElementById('shellLabel');
     if(shellLabel)shellLabel.textContent='Business Office';
     const theme=document.querySelector('meta[name="theme-color"]');
@@ -59,21 +60,31 @@
     document.title=`${businessName} Business Office`;
   }
 
-  Bridge.prototype.request=async function(action,args,timeout){
-    const result=await previousRequest.call(this,action,args,timeout);
-    if((action==='fullStartupRefresh' || action==='completionBootstrap') && result){
-      queueMicrotask(()=>apply(result));
-    }
-    return result;
-  };
-
-  Bridge.prototype.connect=async function(){
-    const result=await previousConnect.apply(this,arguments);
-    if(window.state?.snapshot)apply(window.state.snapshot);
-    return result;
-  };
-
-  addEventListener('h38:auth-cleared',()=>apply({business:{businessKey:'highway38',businessName:DEFAULTS.businessName,brandConfig:DEFAULTS}}));
+  function current(){
+    apply(window.state?.snapshot || {business:entryBusiness || {}});
+  }
+  function loginBrand(){
+    if(!entryBusiness || window.state?.snapshot?.user)return;
+    current();
+    const kicker=document.querySelector('.h38-access-kicker');
+    if(kicker)kicker.textContent=entryBusiness.businessName+' secure access';
+    const customer=document.querySelector('.h38-customer-access');
+    if(customer&&entryPortal)customer.href=entryPortal;
+  }
+  addEventListener('h38:business-snapshot-updated',current);
+  addEventListener('h38:auth-cleared',()=>{apply({business:entryBusiness || {}});});
+  addEventListener('h38:auth-panel-rendered',loginBrand);
+  const entryKey=new URLSearchParams(location.search).get('businessKey');
+  if(entryKey==='northern-lakes'){
+    fetch('../business-packs/northern-lakes/supabase-business-pack.json',{cache:'no-cache'})
+      .then(response=>{if(!response.ok)throw new Error('Brand configuration unavailable');return response.json();})
+      .then(pack=>{
+        if(pack.business?.businessKey!==entryKey || pack.package?.systemOfRecord!=='supabase')return;
+        entryBusiness={businessKey:entryKey,businessName:pack.business.displayName,brandConfig:pack.branding};
+        entryPortal=pack.urls?.customerPortal || '';
+        if(!window.state?.snapshot?.user)loginBrand();
+      }).catch(()=>{ /* Branding failure must never open another runtime or grant access. */ });
+  }
 
   window.H38_CLIENT_BRANDING={enabled:true,apply};
 })();

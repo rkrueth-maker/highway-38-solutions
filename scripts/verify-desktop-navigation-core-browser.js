@@ -27,7 +27,7 @@ function verifyArchitectureContract(){
   assert(!guard.includes("addEventListener('click'")&&!guard.includes('stopImmediatePropagation'),'retired Customer guard must not intercept clicks');
   const liveFirst=(worker.match(/const LIVE_FIRST=new Set\(\[([^]*?)\]\);/)||[])[1]||'';
   assert(liveFirst.includes("'app-01.js'")&&liveFirst.includes("'app-02.js'"),'canonical router must be live-first for warm clients');
-  assert(worker.includes("CACHE_NAME='h38-business-office-20260910-nav-core-3'"),'navigation deployment must rotate service-worker cache');
+  assert(worker.includes("CACHE_NAME='h38-business-office-20260910-nav-core-4'"),'navigation deployment must rotate service-worker cache');
 }
 function snapshot(role='owner'){
   const names=['customers','properties','jobs','quotes','quoteRevisions','siteCaptureSessions','siteMeasurements','meetings','followUps','invoices','payments','scheduleEvents','documents','requests','tasks','portalMessages','checklists','jobNotes','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','changeOrders','timeEntries','dailyLogs','materialRequests','assignments','inspections','recurringPlans','expenses','inventory','fleet','vehicles','assets','purchaseOrders','receipts','mileage','vendors','users','roles','payroll','taxRecords','socialPosts','notifications'];
@@ -44,12 +44,17 @@ function snapshot(role='owner'){
 }
 async function instrument(context){await context.addInitScript(()=>{const original=EventTarget.prototype.addEventListener;EventTarget.prototype.addEventListener=function(type,listener,options){if(type==='click'&&this instanceof Element)this.__h38DirectClickListener=true;return original.call(this,type,listener,options);};});}
 async function stubCdn(context){await context.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:`window.supabase=window.supabase||{createClient:function(){return{auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:function(){return new Proxy({}, {get:function(){return function(){return this;};}});},functions:{invoke:async()=>({data:null,error:null})},storage:{from:function(){return{upload:async()=>({data:null,error:null}),createSignedUrl:async()=>({data:{signedUrl:''},error:null})};}}};}};window.PDFLib=window.PDFLib||{};`}));}
-async function boot(page,base,seed=snapshot()){
+async function boot(page,base,seed=snapshot(),entry=''){
   const errors=[];page.on('pageerror',e=>errors.push(String(e.stack||e.message).replace(/\s+/g,' ')));
-  await page.goto(`${base}/commercial-app/index.html`,{waitUntil:'domcontentloaded',timeout:20000});
+  await page.goto(`${base}/commercial-app/index.html${entry}`,{waitUntil:'domcontentloaded',timeout:20000});
   await page.waitForFunction(()=>typeof window.openPage==='function'&&typeof window.renderNav==='function'&&window.PAGE_DEFS&&window.state&&window.H38_DESKTOP_NAVIGATION_AUTHORITY&&window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD,{timeout:10000});
   await page.waitForTimeout(900);
-  await page.evaluate(seedValue=>{window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=seedValue;window.state.bridgeReady=true;window.h38SetAuthorizedChrome(true);window.H38_DESKTOP_NAVIGATION_AUTHORITY?.installAsFinalAuthority?.();window.renderNav();window.openPage('today',false);},seed);
+  if(entry){
+    await page.waitForFunction(()=>document.title.includes('Northern Lakes'));
+    assert.equal(await page.locator('#h38CustomerReadyToday,#h38NewActionButton').count(),0,'signed-out tenant entry cannot paint work controls');
+    assert((await page.locator('.h38-customer-access').getAttribute('href')).includes('/businesses/northern-lakes/customer-portal.html'),'tenant login must link to its own customer portal');
+  }
+  await page.evaluate(seedValue=>{window.state.shell='office';window.state.page='today';window.state.businessId='B-NAV-TEST';window.state.snapshot=seedValue;window.dispatchEvent(new Event('h38:business-snapshot-updated'));window.state.bridgeReady=true;window.h38SetAuthorizedChrome(true);window.H38_DESKTOP_NAVIGATION_AUTHORITY?.installAsFinalAuthority?.();window.renderNav();window.openPage('today',false);},seed);
   await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized'),{timeout:5000});await page.waitForTimeout(300);assert.deepEqual(errors,[],'Office startup must have no page errors');return errors;
 }
 async function deadButtons(page,scope='#mainContent'){return page.locator(`${scope} button:visible:not([disabled])`).evaluateAll(nodes=>nodes.filter(node=>{const type=String(node.getAttribute('type')||'submit').toLowerCase();if(typeof node.onclick==='function'||node.__h38DirectClickListener===true)return false;if((type==='submit'||type==='reset')&&node.form)return false;if(window.H38_OPERATIONS_INTELLIGENCE&&node.matches('[data-h38-ops],[data-h38-asset-edit]'))return false;return true;}).map(node=>String(node.textContent||node.id||'').trim().replace(/\s+/g,' ').slice(0,100)));}
@@ -92,5 +97,26 @@ async function verifyMobile(phone){
   const desktop=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});await instrument(desktop);await stubCdn(desktop);const page=await desktop.newPage();await boot(page,base,snapshot('owner'));const ownerNav=await verifyDesktop(page);await desktop.close();
   const staffContext=await browser.newContext({viewport:{width:1440,height:900},serviceWorkers:'block'});await instrument(staffContext);await stubCdn(staffContext);const staffPage=await staffContext.newPage();await boot(staffPage,base,snapshot('staff'));const staffNav=await verifyStaff(staffPage);await staffContext.close();
   const mobile=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});await instrument(mobile);await stubCdn(mobile);const phone=await mobile.newPage();await boot(phone,base,snapshot('owner'));await verifyMobile(phone);await mobile.close();
+  const evidence=path.join(root,'artifacts','final-polish');fs.mkdirSync(evidence,{recursive:true});
+  const nlPack=JSON.parse(fs.readFileSync(path.join(root,'business-packs/northern-lakes/supabase-business-pack.json'),'utf8'));
+  for(const width of [1440,390,320]){
+    const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});
+    await instrument(context);await stubCdn(context);
+    await context.route('https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.svg**',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:fs.readFileSync(path.join(root,nlPack.branding.canonicalLogoPath))}));
+    const tenantPage=await context.newPage(),seed=snapshot('owner');
+    seed.business={...seed.business,businessKey:'northern-lakes',businessName:nlPack.business.displayName,brandConfig:nlPack.branding};
+    await boot(tenantPage,base,seed,'?businessKey=northern-lakes');
+    assert.equal(await tenantPage.title(),nlPack.business.displayName+' Business Office');
+    if(width<=760)assert.equal(await tenantPage.locator('.topbar .brand strong').innerText(),'Northern Lakes','mobile chrome must preserve tenant brand');
+    assert.equal(await tenantPage.locator('#approvedOfficeLogo').evaluate(node=>node.complete&&node.naturalWidth>0),true,'approved Northern Lakes diamond must render');
+    assert.equal(await tenantPage.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)<=innerWidth+1),true,`Northern Lakes ${width}px must not overflow`);
+    await tenantPage.screenshot({path:path.join(evidence,`northern-lakes-${width}-today.png`),fullPage:true});
+    if(width>760)await verifyDesktop(tenantPage);else await verifyMobile(tenantPage);
+    await tenantPage.screenshot({path:path.join(evidence,`northern-lakes-${width}-workspace.png`),fullPage:true});
+    await tenantPage.evaluate(()=>{window.state.snapshot=null;window.dispatchEvent(new Event('h38:auth-cleared'));});
+    await tenantPage.waitForTimeout(50);
+    assert.equal(await tenantPage.locator('#mainNav > button:visible').count(),0,'sign-out must clear visible tenant navigation');
+    await context.close();
+  }
   console.log(JSON.stringify({status:'PASS',singleNavigationAuthority:true,canonicalRouterLiveFirst:true,deferredDesktopWrappersCannotRetakeAuthority:true,samePermissionRefreshKeepsSidebar:true,freshStaffSessionKeepsPermittedRoutes:true,liveCustomerCaptureRetired:true,ownerStandalone:true,siteManagerRequired:false,customerSelectionStaysCustomer:true,explicitMeetingOnly:true,mobileCustomerHitTarget:true,mobileSixthMeetingButton:false,visibleEnabledButtonsOwned:true,delegatedWorkActionsVerified:true,...ownerNav,...staffNav},null,2));
 }finally{await browser.close();await new Promise(r=>local.close(r));}})().catch(e=>{console.error(e);process.exit(1);});

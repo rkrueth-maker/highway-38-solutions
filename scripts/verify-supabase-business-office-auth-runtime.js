@@ -200,6 +200,26 @@ const bridge=new window.H38Bridge(null,'',status=>statuses.push(status),startup=
   assert.equal(window.H38_SUPABASE_AUTH.getState().selectedBusinessId,BUSINESS_B2);
   assert.equal(storage.get(`h38-selected-business:${USER_A}`),BUSINESS_A,'User A preference remains separately namespaced');
 
+  // A Northern Lakes entry wins over a saved H38 membership before first paint.
+  currentAuthState=authState([
+    membership(BUSINESS_B1,'highway38','Highway 38 Solutions','owner'),
+    membership(BUSINESS_B2,'northern-lakes','Northern Lakes Property Maintenance LLC','administrator')
+  ]);
+  storage.set(`h38-selected-business:${USER_B}`,BUSINESS_B1);
+  sandbox.location.search='?businessKey=northern-lakes&businessId='+BUSINESS_B1;
+  await bridge.connect();
+  assert.equal(bootstraps.at(-1).selectedBusinessId,BUSINESS_B2);
+  assert.equal(bootstraps.at(-1).snapshot.business.businessKey,'northern-lakes');
+  assert.equal(bootstraps.at(-1).snapshot.user.roleName,'administrator');
+  const countBeforeDenied=bootstraps.length;
+  sandbox.location.search='?businessKey=unassigned';
+  await bridge.connect();
+  assert.equal(bridge.ready,false);
+  assert.equal(bootstraps.length,countBeforeDenied,'unknown tenant must not fall back to H38');
+  assert.equal(statuses.at(-1),'no-membership');
+  assert.equal(window.H38_SUPABASE_AUTH.getState().selectedBusinessId,'');
+  sandbox.location.search='';
+
   statuses.length=0;
   authCallback('SIGNED_OUT',null);
   assert.equal(statuses.at(-1),'sign-in-required');

@@ -6,6 +6,10 @@ on:
       - 'businesses/northern-lakes/**'
       - 'scripts/build-northern-lakes-commercial-office.js'
       - 'scripts/verify-northern-lakes-commercial-package.js'
+      - 'scripts/verify-northern-lakes-business-office.js'
+      - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-client-branding.js'
+      - '.github/workflows/pages-branch-fallback.yml'
       - 'supabase/functions/nlpm-office-gateway/**'
       - 'supabase/config.toml'
       - 'portal.html'
@@ -18,6 +22,10 @@ on:
       - 'businesses/northern-lakes/**'
       - 'scripts/build-northern-lakes-commercial-office.js'
       - 'scripts/verify-northern-lakes-commercial-package.js'
+      - 'scripts/verify-northern-lakes-business-office.js'
+      - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-client-branding.js'
+      - '.github/workflows/pages-branch-fallback.yml'
       - 'supabase/functions/nlpm-office-gateway/**'
       - 'supabase/config.toml'
       - 'portal.html'
@@ -36,27 +44,11 @@ jobs:
           node-version: '24'
       - name: Verify prepared package boundaries
         run: node scripts/verify-northern-lakes-commercial-package.js
-      - name: Build exact Apps Script package
-        run: node scripts/build-northern-lakes-commercial-office.js "$RUNNER_TEMP/nlpm-commercial-office"
-      - name: Check browser JavaScript syntax
+      - name: Verify current shared Office tenant boundary
+        run: node scripts/verify-northern-lakes-business-office.js
+      - name: Verify tenant installer and customer portal contracts
         run: |
-          node --check businesses/northern-lakes/app-launch.js
-          node --check businesses/northern-lakes/commercial-app/db.js
-          node --check businesses/northern-lakes/commercial-app/bridge.js
-          node --check businesses/northern-lakes/commercial-app/startup-fix.js
-          node --check businesses/northern-lakes/commercial-app/brand-patch.js
-      - name: Check built Apps Script syntax
-        run: |
-          node - "$RUNNER_TEMP/nlpm-commercial-office" <<'NODE'
-          const fs=require('fs'),path=require('path'),vm=require('vm'),root=process.argv[2];
-          for(const name of fs.readdirSync(root).filter(name=>/\.(?:gs|js)$/.test(name))){
-            const source=fs.readFileSync(path.join(root,name),'utf8');
-            new vm.Script(source,{filename:name});
-          }
-          console.log('PASS — built Northern Lakes Apps Script source is syntax clean.');
-          NODE
-      - uses: actions/upload-artifact@v4
-        with:
-          name: northern-lakes-commercial-office-package-${{ github.run_id }}
-          path: ${{ runner.temp }}/nlpm-commercial-office/
-          retention-days: 30
+          node scripts/verify-client-tenant-installer.js
+          node scripts/verify-northern-lakes-site-portal-build.js
+      - name: Verify active membership selection
+        run: node scripts/verify-supabase-business-office-auth-runtime.js

@@ -12,7 +12,7 @@ function installStyle(){
   if(document.getElementById(STYLE_ID))return;
   const style=document.createElement('style');style.id=STYLE_ID;style.textContent=`
 #${WRAP_ID}{display:flex;align-items:center;gap:8px;margin-left:auto;min-width:0}.h38-office-account-badge{display:inline-flex;align-items:center;min-width:0;max-width:min(48vw,620px);padding:5px 9px;border:1px solid var(--border,#d6dde3);border-radius:999px;background:var(--card,#fff);font-size:.76rem;line-height:1.2;color:var(--muted,#667085)}.h38-office-account-badge strong{color:var(--text,#10263a);margin-right:4px}.h38-office-account-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.h38-office-switch-account{min-height:32px;padding:5px 9px;white-space:nowrap}
-@media(max-width:760px){#${WRAP_ID}{width:100%;margin-left:0;justify-content:space-between}.h38-office-account-badge{max-width:calc(100vw - 150px)}.h38-office-switch-account{min-height:40px}}
+@media(max-width:760px){#${WRAP_ID}{width:100%;margin-left:0;justify-content:space-between;flex-wrap:wrap}.h38-office-account-badge{max-width:100%;flex:1 1 190px}.h38-office-account-value{white-space:normal;overflow-wrap:anywhere}.h38-office-switch-account{min-height:40px}}
 `;
   document.head.appendChild(style);
 }

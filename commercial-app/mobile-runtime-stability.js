@@ -119,6 +119,12 @@ function restoreChrome(){document.querySelectorAll('.topbar,.business-bar,.app-s
 function polishChrome(){
   const brand=document.querySelector('.topbar .brand strong');
   if(brand){
+    const tenantKey=window.state?.snapshot?.business?.businessKey||document.body.dataset.businessKey;
+    if(tenantKey&&tenantKey!=='highway38'){
+      brand.textContent=brand.dataset.h38ShortBrand||brand.dataset.h38FullBrand||text(brand.textContent);
+      brand.title=brand.dataset.h38FullBrand||text(brand.textContent);
+      return;
+    }
     if(!brand.dataset.h38FullBrand)brand.dataset.h38FullBrand=text(brand.textContent)||'Highway 38 Solutions';
     brand.textContent='H38 Office';
     brand.title=brand.dataset.h38FullBrand;
@@ -146,6 +152,7 @@ function ensurePrimaryNav(){
   if(!mobile()||navBusy)return;
   const s=window.state,nav=document.getElementById('mainNav');
   if(!nav||s?.shell!=='office')return;
+  if(!s.snapshot?.user){nav.replaceChildren();document.getElementById('h38PrimaryMoreDialog')?.remove();return;}
   const pages=new Set(allowed()),current=statePage(),moreActive=!PRIMARY.some(([key])=>key===current);
   const desired=[
     ...PRIMARY.filter(([key])=>pages.has(key)).map(([key,icon,label])=>`<button type="button" data-h38-primary="${key}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
@@ -389,7 +396,8 @@ window.addEventListener('resize',schedule,{passive:true});
 window.addEventListener('orientationchange',()=>setTimeout(schedule,120),{passive:true});
 window.addEventListener('pageshow',()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();});
 window.addEventListener('focus',stabilizeAfterRender);
-document.addEventListener('h38:business-snapshot-updated',schedule);
+window.addEventListener('h38:business-snapshot-updated',schedule);
+window.addEventListener('h38:auth-cleared',ensurePrimaryNav);
 const observer=new MutationObserver(()=>{wrapOpenPage();wrapRenderNav();schedule();if(activeVisit()?.walkthroughAi?.status==='NEEDS_INPUT')showTerminalPresentation(activeVisit().walkthroughAi.message);});
 observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
 setInterval(()=>void settleWalkthroughReview(),2500);

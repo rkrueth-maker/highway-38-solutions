@@ -18,7 +18,7 @@ for(const needle of [
   "OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live'"
 ])check(authority.includes(needle),`Desktop live authority contract missing: ${needle}`);
 for(const needle of [
-  "CACHE_NAME='h38-business-office-20260910-nav-core-3'",
+  "CACHE_NAME='h38-business-office-20260910-nav-core-4'",
   "'office-access-completion.js'",
   "'office-account-identity.js'",
   'function freshLiveRequest(request,file)',
