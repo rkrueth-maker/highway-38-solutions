@@ -1,6 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260911-web-first-site-visit-1';
+const BUILD='20260911-web-first-site-visit-2';
+const MOBILE_FIELD_BUILD='20260911-mobile-field-view-1';
 
 /*
  * Web-first Site Visit authority.
@@ -10,6 +11,10 @@ const BUILD='20260911-web-first-site-visit-1';
  * now the H38 Business Office web Site Visit recorder in field-visit-video.js.
  * A native Android shell may still provide enhanced capture/recovery, but it is
  * optional and must never be required to start or complete a normal Site Visit.
+ *
+ * Phone presentation is intentionally separate from Office setup. The normal
+ * Business Office remains authoritative; mobile-field-view.js only selects a
+ * simplified Field & Crew presentation on phones and always offers Full Office.
  */
 function nativeShell(){
   return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;
@@ -21,9 +26,17 @@ function openSiteVisit(options){
   if(!window.H38_FIELD_VISIT?.open)throw new Error('Site Visit is still loading.');
   return window.H38_FIELD_VISIT.open(options||{});
 }
+function loadMobileFieldView(){
+  if(window.H38_MOBILE_FIELD_VIEW||document.querySelector('script[data-h38-mobile-field-view]'))return false;
+  const script=document.createElement('script');
+  script.src=`./mobile-field-view.js?build=${MOBILE_FIELD_BUILD}`;
+  script.async=false;
+  script.dataset.h38MobileFieldView='1';
+  document.body.appendChild(script);
+  return true;
+}
 function decorateWebFirstCopy(){
-  if(nativeShell())return;
-  document.documentElement.classList.add('h38-web-site-visit-primary');
+  if(!nativeShell())document.documentElement.classList.add('h38-web-site-visit-primary');
 
   const button=document.getElementById('fieldWalkthrough');
   if(button&&!document.querySelector('[data-h38-web-site-visit-note]')){
@@ -41,7 +54,7 @@ function decorateWebFirstCopy(){
     const note=document.createElement('div');
     note.dataset.h38SiteManagerProfileNote='1';
     note.className='h38-erp-note';
-    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office web app as the owner and employees; there is no separate Site Manager app requirement.';
+    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office and records. Phones can use the simplified Field View; Full Office remains available.';
     const head=team.querySelector('.h38-team-head');
     if(head)head.insertAdjacentElement('afterend',note);else team.prepend(note);
   }
@@ -57,7 +70,8 @@ function scheduleDecorate(){
   scheduled=true;
   requestAnimationFrame(()=>{scheduled=false;decorateWebFirstCopy();});
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scheduleDecorate,{once:true});
+loadMobileFieldView();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{loadMobileFieldView();scheduleDecorate();},{once:true});
 else scheduleDecorate();
 new MutationObserver(scheduleDecorate).observe(document.documentElement,{childList:true,subtree:true});
 window.addEventListener('h38:business-snapshot-updated',scheduleDecorate);
@@ -66,10 +80,14 @@ window.H38_SITE_VISIT_CAPTURE_AUTHORITY=Object.freeze({
   build:BUILD,
   primary:'business-office-web',
   browserRecorder:'commercial-app/field-visit-video.js',
+  phonePresentation:'commercial-app/mobile-field-view.js',
+  officeSetupUntouched:true,
   siteManagerAppRequired:false,
   nativeAppRequired:false,
   nativeCompanionOptional:true,
   sameOfficeForOwnerEmployeesAndSiteManagers:true,
+  mobileFieldViewDefault:true,
+  fullOfficeChoiceAlwaysAvailable:true,
   cameraMicrophoneViaBrowser:true,
   offlineDraftPersistence:true,
   privateSupabaseSync:true,
@@ -88,8 +106,10 @@ window.H38_ANDROID_CAMERA_DIRECT_FIX=Object.freeze({
   microphoneAuthority:false,
   deleteAuthority:false,
   webSiteVisitPrimary:true,
+  officeSetupUntouched:true,
   siteManagerAppRequired:false,
   nativeCompanionOptional:true,
+  mobileFieldViewLoader:true,
   automaticApproval:false,
   automaticCustomerSending:false
 });
