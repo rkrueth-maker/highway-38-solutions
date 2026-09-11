@@ -9,6 +9,53 @@
 
   function text(value){return String(value==null?'':value).trim();}
 
+  function suppressStaffUsageTelemetryAtRlsBoundary(){
+    const Bridge=window.H38Bridge;
+    if(!Bridge||!Bridge.prototype||typeof Bridge.prototype.request!=='function')return;
+    const priorRequest=Bridge.prototype.request;
+    if(priorRequest.__h38StaffUsageTelemetryBoundary)return;
+
+    function activeRole(){
+      const user=window.state?.snapshot?.user||{};
+      return text(user.roleName||user.roleId||user.role).toLowerCase();
+    }
+    function shouldSuppress(operation){
+      return activeRole()==='staff'&&text(operation?.action).toUpperCase()==='RECORD_USAGE_EVENT';
+    }
+    function suppressedResult(operation){
+      return {
+        operationId:operation.operationId||operation.id,
+        status:'SYNCED',
+        recordType:operation.recordType||'Usage Event',
+        recordId:operation.recordId||operation.operationId||operation.id,
+        suppressed:true,
+        suppressionReason:'STAFF_USAGE_TELEMETRY_RLS_BOUNDARY'
+      };
+    }
+
+    const wrapped=async function(action,args,timeout){
+      if(action!=='completionSync')return priorRequest.call(this,action,args,timeout);
+      const operations=Array.isArray(args?.operations)?args.operations:[];
+      const suppressed=operations.filter(shouldSuppress);
+      if(!suppressed.length)return priorRequest.call(this,action,args,timeout);
+      const remaining=operations.filter(operation=>!shouldSuppress(operation));
+      const suppressedResults=suppressed.map(suppressedResult);
+      if(!remaining.length){
+        return {status:'PASS',transport:'staff-usage-telemetry-boundary',results:suppressedResults,externalActionOccurred:false,staffUsageTelemetrySuppressed:true};
+      }
+      const response=await priorRequest.call(this,action,Object.assign({},args,{operations:remaining}),timeout);
+      return Object.assign({},response||{}, {
+        status:response?.status||'PASS',
+        results:suppressedResults.concat(response?.results||[]),
+        externalActionOccurred:response?.externalActionOccurred===true,
+        staffUsageTelemetrySuppressed:true
+      });
+    };
+    wrapped.__h38StaffUsageTelemetryBoundary=true;
+    wrapped.__h38StaffUsageTelemetryBoundaryBase=priorRequest;
+    Bridge.prototype.request=wrapped;
+  }
+
   function chooseAuthorizedBusiness(startup){
     const businesses=Array.isArray(startup?.businesses)?startup.businesses:[];
     if(!businesses.length)return null;
@@ -61,6 +108,8 @@
     }
   };
 
+  suppressStaffUsageTelemetryAtRlsBoundary();
+
   window.H38_AUTHORIZED_BUSINESS_AUTO_OPEN={
     enabled:true,
     build:BUILD,
@@ -71,6 +120,7 @@
     staffUsesPermissionFilteredNavigation:true,
     employeeWorkspaceAutoLoad:false,
     staffWorkspaceBeforeFirstRender:false,
-    delayedStaffTakeover:false
+    delayedStaffTakeover:false,
+    staffUsageTelemetryBoundaryRuntime:true
   };
 })();
