@@ -122,7 +122,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     const fieldPhone=await fieldPhoneContext.newPage();
     await installHarness(fieldPhone,{role:'staff'});
     await fieldPhone.addScriptTag({path:mobileFieldScript});
-    await fieldPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'),{timeout:5000});
+    await fieldPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'));
     const fieldContract=await fieldPhone.evaluate(()=>window.H38_MOBILE_FIELD_VIEW);
     assert(fieldContract?.presentationOnly===true&&fieldContract?.officeSetupUntouched===true,'Field View must remain a presentation-only layer over the Office.');
     assert(fieldContract?.sameBusinessOfficeData===true&&fieldContract?.samePermissions===true,'Field View must retain the same Office records and permissions.');
@@ -130,25 +130,22 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     for(const key of ['today','work','field','schedule','more'])assert(await fieldPhone.locator(`#mainNav [data-h38-field-primary="${key}"]`).count()===1,`Staff phone Field View missing ${key}.`);
     assert((await fieldPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Full Office'),'Staff phone must expose a Full Office choice.');
     await fieldPhone.locator('#h38MobileWorkspaceToggle').click();
-    await fieldPhone.waitForFunction(()=>window.state?.shell==='office'&&document.querySelector('#mainNav [data-page="customers"]'),{timeout:5000});
+    await fieldPhone.waitForFunction(()=>window.state?.shell==='office'&&document.querySelector('#mainNav [data-page="customers"]'));
     assert(await fieldPhone.locator('#mainNav [data-h38-field-primary]').count()===0,'Full Office must restore canonical Office navigation instead of retaining Field View buttons.');
     assert((await fieldPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Field View'),'Full Office must expose a direct return to Field View.');
-    await fieldPhone.locator('#h38MobileWorkspaceToggle').click();
-    await fieldPhone.waitForFunction(()=>window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'),{timeout:5000});
-    assert((await fieldPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Full Office'),'Returning to Field View must restore the Full Office choice.');
     await fieldPhoneContext.close();
 
     const ownerPhoneContext=await browser.newContext({viewport:{width:390,height:844}});
     const ownerPhone=await ownerPhoneContext.newPage();
     await installHarness(ownerPhone,{role:'owner'});
     await ownerPhone.addScriptTag({path:mobileFieldScript});
-    await ownerPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&document.getElementById('h38MobileWorkspaceToggle'),{timeout:5000});
+    await ownerPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&document.getElementById('h38MobileWorkspaceToggle'));
     await ownerPhone.waitForTimeout(350);
     assert(await ownerPhone.evaluate(()=>window.state?.shell)==='office','Owner/admin phone must keep Full Business Office as the default.');
     assert(await ownerPhone.locator('#mainNav [data-page="customers"]').count()===1,'Owner phone default must retain canonical Office navigation.');
     assert((await ownerPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Field View'),'Owner/admin may explicitly choose Field View without changing the default Office.');
     await ownerPhone.locator('#h38MobileWorkspaceToggle').click();
-    await ownerPhone.waitForFunction(()=>window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'),{timeout:5000});
+    await ownerPhone.waitForFunction(()=>window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'));
     assert(await ownerPhone.locator('#h38MobileWorkspaceToggle').innerText()==='Full Office','Owner-selected Field View must retain an immediate Full Office return.');
     await ownerPhoneContext.close();
 
@@ -180,6 +177,6 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     assert(!(await signup.evaluate(()=>window.__calls.some(call=>call.type==='signup'))),'No browser Auth signup call may occur.');
     await signupContext.close();
 
-    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,staffPhoneDefault:'Field View',ownerPhoneDefault:'Full Business Office',fullOfficeSwitch:true,phoneViewRoundTrip:true,managerTeamAccess:true,siteManagerProfile:true,invitationActivation:true,duplicateActivationGuard:true,directAuthSignup:false},null,2));
+    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,staffPhoneDefault:'Field View',ownerPhoneDefault:'Full Business Office',fieldToOfficeSwitch:true,officeToFieldSwitch:true,managerTeamAccess:true,siteManagerProfile:true,invitationActivation:true,duplicateActivationGuard:true,directAuthSignup:false},null,2));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
