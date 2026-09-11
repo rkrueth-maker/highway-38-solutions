@@ -6,7 +6,6 @@ const vm=require('vm');
 
 const root=path.resolve(__dirname,'..');
 const coverage=fs.readFileSync(path.join(root,'commercial-app','supabase-operation-coverage.js'),'utf8');
-const boundary=fs.readFileSync(path.join(root,'commercial-app','staff-usage-telemetry-boundary-20260911.js'),'utf8');
 const finalStartup=fs.readFileSync(path.join(root,'commercial-app','supabase-final-startup.js'),'utf8');
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 
@@ -37,11 +36,12 @@ const assert=(condition,message)=>{if(!condition)throw new Error(message);};
   context.globalThis=context.window;
   vm.createContext(context);
   new vm.Script(coverage,{filename:'supabase-operation-coverage.js'}).runInContext(context);
-  new vm.Script(boundary,{filename:'staff-usage-telemetry-boundary-20260911.js'}).runInContext(context);
 
-  assert(context.window.H38_STAFF_USAGE_TELEMETRY_BOUNDARY?.staffUsageTelemetrySuppressed===true,'Live telemetry boundary runtime did not install.');
-  assert(finalStartup.includes('staff-usage-telemetry-boundary-20260911.js'),'Live-first Supabase startup must load the unique Staff telemetry boundary runtime.');
+  assert(finalStartup.includes('suppressStaffUsageTelemetryAtRlsBoundary'),'Live-first Supabase startup must synchronously install the Staff telemetry boundary.');
+  assert(finalStartup.includes("suppressionReason:'STAFF_USAGE_TELEMETRY_RLS_BOUNDARY'"),'Live-first startup must identify the exact RLS suppression reason.');
+  assert(finalStartup.includes('Bridge.prototype.request=wrapped'),'Live-first startup must wrap the active completionSync adapter synchronously.');
   assert(finalStartup.includes('staffUsageTelemetryBoundaryRuntime:true'),'Startup contract must declare the Staff telemetry boundary runtime.');
+  assert(!finalStartup.includes('staff-usage-telemetry-boundary-20260911.js'),'Warm-client protection must not depend on a second asynchronous script fetch.');
 
   const bridge=new context.window.H38Bridge();
   const usage={id:'USAGE-STAFF-1',operationId:'USAGE-STAFF-1',recordId:'USAGE-STAFF-1',businessId:'business-1',recordType:'Usage Event',action:'RECORD_USAGE_EVENT',payload:{pageKey:'today',actionKey:'open'}};
@@ -69,5 +69,5 @@ const assert=(condition,message)=>{if(!condition)throw new Error(message);};
   assert(mixed.results.some(result=>result.suppressed===true),'Mixed batch must complete the Staff usage event quietly.');
   assert(mixed.results.some(result=>result.forwarded===true),'Mixed batch must preserve the real Staff business operation.');
 
-  console.log(JSON.stringify({status:'PASS',acceptance:'STAFF_USAGE_TELEMETRY_BOUNDARY',liveBoundaryRuntime:true,liveFirstStartupLoader:true,staffUsageSuppressedBeforeBusinessRecords:true,ownerTelemetryPreserved:true,staffBusinessWritesPreserved:true,externalActionsOccurred:false},null,2));
+  console.log(JSON.stringify({status:'PASS',acceptance:'STAFF_USAGE_TELEMETRY_BOUNDARY',liveFirstSynchronousBoundary:true,staffUsageSuppressedBeforeBusinessRecords:true,ownerTelemetryPreserved:true,staffBusinessWritesPreserved:true,externalActionsOccurred:false},null,2));
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
