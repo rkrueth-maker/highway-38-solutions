@@ -12,9 +12,12 @@
     'reports','storage-providers'
   ];
   const NL_OWNER_LOGIN='https://highway38solutions.com/businesses/northern-lakes/owner-login.html';
+  const CLIENT_TENANT_REFRESH_TIMEOUT_MS=8000;
   let installerClient=null;
   let installerState=null;
   let loading=false;
+  let loadedOnce=false;
+  let refreshPromise=null;
 
   function client(){
     if(installerClient)return installerClient;
@@ -34,6 +37,7 @@
   function isPlatformOwner(){
     return window.state?.snapshot?.business?.businessKey==='highway38' && window.state?.snapshot?.user?.owner===true;
   }
+  function settingsVisible(){return window.state?.page==='settings' && !!document.querySelector('#mainContent .grid');}
   function tenantUrl(businessKey){
     const url=new URL('./',location.href);
     url.searchParams.set('businessKey',businessKey);
@@ -42,19 +46,30 @@
   function installerRows(){
     return Array.isArray(installerState?.businesses)?installerState.businesses:[];
   }
+  function withTimeout(promise,ms){
+    let timer=0;
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Client tenant status check timed out. Settings remains usable; retry when ready.')),ms);});
+    return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+  }
 
   async function refreshState(){
     if(!isPlatformOwner())return null;
+    if(refreshPromise)return refreshPromise;
     loading=true;
-    try{
-      const {data,error}=await client().rpc('client_tenant_installer_state');
-      if(error)throw error;
-      if(!data || data.status!=='PASS')throw new Error('Client tenant installer state failed closed.');
-      installerState=data;
-      return data;
-    }finally{
-      loading=false;
-    }
+    refreshPromise=(async()=>{
+      try{
+        const {data,error}=await withTimeout(client().rpc('client_tenant_installer_state'),CLIENT_TENANT_REFRESH_TIMEOUT_MS);
+        if(error)throw error;
+        if(!data || data.status!=='PASS')throw new Error('Client tenant installer state failed closed.');
+        installerState=data;
+        loadedOnce=true;
+        return data;
+      }finally{
+        loading=false;
+        refreshPromise=null;
+      }
+    })();
+    return refreshPromise;
   }
 
   async function provision(payload){
@@ -93,6 +108,13 @@
     </div>`;
   }
 
+  function listHtml(){
+    if(loading)return '<div class="empty">Loading client tenants… Settings remains available.</div>';
+    if(!loadedOnce)return '<div class="empty">Client tenant status is not loaded automatically. Use Load client tenants when you need installer controls.</div>';
+    const rows=installerRows();
+    return rows.length?rows.map(rowHtml).join(''):'<div class="empty">No client tenants have been provisioned.</div>';
+  }
+
   function renderCard(){
     if(!isPlatformOwner())return;
     const grid=document.querySelector('#mainContent .grid');
@@ -101,11 +123,11 @@
     const card=document.createElement('section');
     card.id='clientTenantInstallerCard';
     card.className='card';
-    const rows=installerRows();
     card.innerHTML=`<h2>Client tenant installer</h2>
       <p class="muted">Create an isolated Supabase business, prepare its owner invitation, select private storage, and activate it only after acceptance. This never imports Google records or changes an Apps Script deployment.</p>
       <div class="notice warn"><strong>Explicit controls:</strong> provisioning does not send an email or activate the business. The invited user requests the secure email from the branded owner-login page. Customer sending, payments, purchases, payroll, tax filing, publishing and advertising stay disabled.</div>
-      <div id="clientTenantList" class="list">${loading?'<div class="empty">Loading client tenants…</div>':rows.length?rows.map(rowHtml).join(''):'<div class="empty">No client tenants have been provisioned.</div>'}</div>
+      <div class="actions"><button id="refreshClientTenants" type="button" class="secondary" ${loading?'disabled':''}>${loading?'Loading…':loadedOnce?'Refresh client tenants':'Load client tenants'}</button></div>
+      <div id="clientTenantList" class="list">${listHtml()}</div>
       <details id="clientTenantCreatePanel" style="margin-top:14px">
         <summary><strong>Provision or refresh a client tenant</strong></summary>
         <form id="clientTenantForm">
@@ -116,10 +138,13 @@
           <div class="two"><div><label>Primary color</label><input name="primaryColor" value="#113b2e"></div><div><label>Accent color</label><input name="accentColor" value="#9a632f"></div></div>
           <label>Logo URL</label><input name="logoUrl" value="https://highway38solutions.com/businesses/northern-lakes/assets/diamond-logo.png?v=rendered-photo-pass-20260726">
           <label>Additional customer-visible H38 support email</label><input name="supportEmail" type="email" value="mandakw55@gmail.com">
-          <div class="actions"><button type="submit">Provision or refresh</button><button id="refreshClientTenants" type="button" class="secondary">Refresh status</button></div>
+          <div class="actions"><button type="submit">Provision or refresh</button></div>
         </form>
       </details>`;
     grid.appendChild(card);
+
+    const refresh=document.getElementById('refreshClientTenants');
+    if(refresh)refresh.onclick=()=>refreshAndRender();
 
     const form=document.getElementById('clientTenantForm');
     form.onsubmit=async event=>{
@@ -153,7 +178,6 @@
       finally{submit.disabled=false;}
     };
 
-    document.getElementById('refreshClientTenants').onclick=()=>refreshAndRender();
     bindActions(card);
   }
 
@@ -185,26 +209,31 @@
   }
 
   async function refreshAndRender(){
-    try{await refreshState();}
-    catch(error){window.toast?.(text(error && error.message || error),true);}
-    const existing=document.getElementById('clientTenantInstallerCard');
-    if(existing)existing.remove();
-    renderCard();
+    if(!isPlatformOwner())return null;
+    const promise=refreshState();
+    if(settingsVisible()){
+      document.getElementById('clientTenantInstallerCard')?.remove();
+      renderCard();
+    }
+    try{return await promise;}
+    catch(error){window.toast?.(text(error && error.message || error),true);return null;}
+    finally{
+      if(settingsVisible()){
+        document.getElementById('clientTenantInstallerCard')?.remove();
+        renderCard();
+      }
+    }
   }
 
   const baseRenderSettings=window.renderSettings || (typeof renderSettings==='function'?renderSettings:null);
   if(typeof baseRenderSettings==='function'){
     const wrapped=function(){
       const result=baseRenderSettings.apply(this,arguments);
-      if(isPlatformOwner()){
-        refreshState().catch(error=>console.warn('Client tenant installer state:',text(error && error.message || error))).finally(()=>{
-          const existing=document.getElementById('clientTenantInstallerCard');
-          if(existing)existing.remove();
-          renderCard();
-        });
-      }
+      queueMicrotask(renderCard);
       return result;
     };
+    wrapped.__h38ClientTenantInstaller=true;
+    wrapped.__h38ClientTenantInstallerBase=baseRenderSettings;
     window.renderSettings=wrapped;
     try{renderSettings=wrapped;}catch(ignore){}
   }
@@ -214,6 +243,9 @@
     systemOfRecord:'supabase',
     automaticActivation:false,
     automaticInvitationEmail:false,
+    automaticSettingsRefresh:false,
+    explicitRefreshOnly:true,
+    refreshTimeoutMs:CLIENT_TENANT_REFRESH_TIMEOUT_MS,
     googleDataImport:false,
     appsScriptMutation:false,
     refresh:refreshState
