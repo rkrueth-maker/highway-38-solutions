@@ -65,7 +65,7 @@ assert(app14.includes('customerId=attachmentCustomerId'),'attachment queue must 
     await page.waitForFunction(()=>window.__ops.length>0);
     const noteOp=await page.evaluate(()=>window.__ops[0]);
     assert.equal(noteOp[0],'SAVE_ENTITY');assert.equal(noteOp[3].record['Customer ID'],'C-2','customer note must be customer-linked');
-    await page.waitForSelector('#h38CustomerDocumentInput');
+    await page.waitForSelector('#h38CustomerDocumentInput',{state:'attached'});
     assert.equal(await page.locator('#h38CustomerDocumentInput').getAttribute('multiple'),'','customer document picker must allow multiple files');
     assert.equal(await page.locator('#h38CustomerDocumentInput').getAttribute('accept'),null,'customer document picker must accept all document types');
     await page.locator('#h38CustomerDocumentInput').setInputFiles([{name:'manual.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:Buffer.from('docx')},{name:'estimate.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('xlsx')}]);
