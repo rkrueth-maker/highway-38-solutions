@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-customer-workspace-documents-2';
+const BUILD='20260911-customer-workspace-documents-3';
 const BUCKET='business-office-files';
 const LARGE_FILE_THRESHOLD=3000000;
 const TUS_CHUNK=6*1024*1024;
@@ -71,7 +71,14 @@ function installUniversalAttachmentHandler(){
   if(String(current).includes('H38_CUSTOMER_WORKSPACE_DOCUMENTS?.uploadLargeFile')){current.__h38UniversalDocuments=true;return true;}
   const original=current;const wrapped=async function(fileList,relatedRecordType,relatedRecordId,visibility='Internal',metadata={}){const files=Array.from(fileList||[]),small=[],large=[];for(const file of files){if(!String(file.type||'').startsWith('image/')&&Number(file.size||0)>LARGE_FILE_THRESHOLD)large.push(file);else small.push(file);}if(small.length)await original(small,relatedRecordType,relatedRecordId,visibility,metadata);for(const file of large)await uploadLargeFile(file,relatedRecordType,relatedRecordId,visibility,{...metadata,customerId:text(metadata.customerId)||customerForRelated(relatedRecordType,relatedRecordId)});};wrapped.__h38UniversalDocuments=true;wrapped.__h38Original=original;window.handleAttachmentFiles=wrapped;return true;
 }
-function install(){installStyle();const run=()=>{installUniversalAttachmentHandler();augmentCustomerPage();augmentDocumentsPage();};window.addEventListener?.('h38:office-page-rendered',run);window.addEventListener?.('h38:business-snapshot-updated',run);let ticks=0;const timer=setInterval(()=>{run();if(++ticks>160)clearInterval(timer);},250);run();}
-window.H38_CUSTOMER_WORKSPACE_DOCUMENTS=Object.freeze({enabled:true,build:BUILD,largeFileThreshold:LARGE_FILE_THRESHOLD,augmentCustomerPage,augmentDocumentsPage,ensureCustomerEditForm,enrichCustomerDocumentLinks,customerForRelated,uploadLargeFile,installUniversalAttachmentHandler,cacheBackstop:true,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false});
+function reconcile(){const ready=installUniversalAttachmentHandler();augmentCustomerPage();augmentDocumentsPage();return ready;}
+function install(){
+  window.addEventListener?.('h38:office-page-rendered',reconcile);
+  window.addEventListener?.('h38:business-snapshot-updated',reconcile);
+  window.addEventListener?.('pageshow',reconcile);
+  reconcile();
+  for(const delay of [100,350,900,1800])setTimeout(()=>{if(!window.handleAttachmentFiles?.__h38UniversalDocuments)reconcile();},delay);
+}
+window.H38_CUSTOMER_WORKSPACE_DOCUMENTS=Object.freeze({enabled:true,build:BUILD,largeFileThreshold:LARGE_FILE_THRESHOLD,augmentCustomerPage,augmentDocumentsPage,ensureCustomerEditForm,enrichCustomerDocumentLinks,customerForRelated,uploadLargeFile,installUniversalAttachmentHandler,reconcile,cacheBackstop:true,eventDrivenReconciliation:true,continuousPolling:false,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
