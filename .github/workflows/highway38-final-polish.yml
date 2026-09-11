@@ -27,14 +27,16 @@ jobs:
         run: node scripts/verify-highway38-final-polish.js
       - name: Verify Northern Lakes shared Office parity
         run: node scripts/verify-northern-lakes-business-office.js
-      - name: Verify Office PDF and stationery coverage
+      - name: Verify Office PDF, stationery and reference coverage
         run: |
           node -c commercial-app/office-document-export.js
           node -c commercial-app/office-scale-workflow.js
           node -c commercial-app/office-scale-task-guard.js
           node -c commercial-app/office-document-packet.js
+          node -c commercial-app/office-reference-samples.js
           node -c commercial-app/live-customer-navigation-guard-20260910.js
           node -c scripts/verify-office-document-export.js
+          node -c scripts/verify-office-reference-samples-browser.js
           node scripts/verify-office-document-export.js
       - name: Verify owner mobile smoke contract
         run: node scripts/verify-owner-mobile-smoke.js
@@ -91,6 +93,11 @@ jobs:
           set -o pipefail
           mkdir -p artifacts/final-polish
           node scripts/verify-office-scale-workflow-browser.js 2>&1 | tee artifacts/final-polish/office-scale-workflow-browser.txt
+      - name: Verify fictional reference samples for H38 and Northern Lakes
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-office-reference-samples-browser.js 2>&1 | tee artifacts/final-polish/office-reference-samples-browser.txt
       - name: Verify consolidated desktop navigation core
         shell: bash
         run: |
@@ -116,6 +123,7 @@ jobs:
             artifacts/final-polish/browser-verification.txt
             artifacts/final-polish/desktop-navigation-core.txt
             artifacts/final-polish/office-scale-workflow-browser.txt
+            artifacts/final-polish/office-reference-samples-browser.txt
             artifacts/final-polish/northern-lakes-*.png
             artifacts/final-polish/profitability-browser.txt
             artifacts/final-polish/business-office-review-demo-desktop-today.png
