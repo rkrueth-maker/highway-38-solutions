@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-live-customer-navigation-guard-retired-3-document-export-loader';
+const BUILD='20260911-live-customer-navigation-guard-retired-4-scale-loader';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,
   enabled:false,
@@ -20,20 +20,16 @@ window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   automaticScheduling:false
 });
 
-function loadOfficeDocumentExport(){
-  if(!document.querySelector('link[data-h38-office-document-export]')){
-    const css=document.createElement('link');
-    css.rel='stylesheet';
-    css.href='./office-document-export.css?build=20260911-office-document-export-1';
-    css.dataset.h38OfficeDocumentExport='style';
-    document.head.appendChild(css);
-  }
-  if(window.H38_OFFICE_DOCUMENT_EXPORT||document.querySelector('script[data-h38-office-document-export]'))return;
-  const script=document.createElement('script');
-  script.src='./office-document-export.js?build=20260911-office-document-export-1';
-  script.async=true;
-  script.dataset.h38OfficeDocumentExport='runtime';
-  document.head.appendChild(script);
+function loadRuntime(src,datasetKey,ready){
+  if(ready?.()||document.querySelector(`script[data-${datasetKey}]`))return;
+  const script=document.createElement('script');script.src=src;script.async=true;script.setAttribute(`data-${datasetKey}`,'runtime');document.head.appendChild(script);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeDocumentExport,{once:true});else loadOfficeDocumentExport();
+function loadOfficeLaunchPolish(){
+  if(!document.querySelector('link[data-h38-office-document-export]')){
+    const css=document.createElement('link');css.rel='stylesheet';css.href='./office-document-export.css?build=20260911-office-document-export-1';css.dataset.h38OfficeDocumentExport='style';document.head.appendChild(css);
+  }
+  loadRuntime('./office-document-export.js?build=20260911-office-document-export-2','h38-office-document-export',()=>window.H38_OFFICE_DOCUMENT_EXPORT);
+  loadRuntime('./office-scale-workflow.js?build=20260911-office-scale-workflow-1','h38-office-scale-workflow',()=>window.H38_OFFICE_SCALE_WORKFLOW);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
