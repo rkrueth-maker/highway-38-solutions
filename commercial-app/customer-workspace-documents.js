@@ -1,0 +1,107 @@
+(function(){
+'use strict';
+const BUILD='20260911-customer-workspace-documents-1';
+const BUCKET='business-office-files';
+const LARGE_FILE_THRESHOLD=3000000;
+const TUS_CHUNK=6*1024*1024;
+const text=value=>String(value==null?'':value).trim();
+const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const appState=()=>window.state||(typeof state!=='undefined'?state:null);
+const snapshot=()=>appState()?.snapshot||{};
+const rows=name=>Array.isArray(snapshot()?.[name])?snapshot()[name]:[];
+const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
+const customerId=row=>text(value(row,'Customer ID','customerId','id'));
+const customerName=row=>text(value(row,'Customer Name','name'))||'Customer';
+const now=()=>new Date().toISOString();
+const uid=prefix=>`${prefix}-${crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2)}`;
+function truthy(v){return v===true||['true','1','yes'].includes(text(v).toLowerCase());}
+function visibleCustomers(){return rows('customers').filter(row=>customerId(row)&&!truthy(value(row,'Internal Only','internalOnly'))&&!truthy(value(row,'Test Data','testData')));}
+function selectedId(){return text(window.H38_CUSTOMER_360?.selectedCustomerId)||customerId(visibleCustomers()[0]||{});}
+function selectedCustomer(){const id=selectedId();return visibleCustomers().find(row=>customerId(row)===id)||null;}
+function installStyle(){if(document.querySelector('link[data-h38-customer-workspace]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-workspace-documents.css?build='+BUILD;link.dataset.h38CustomerWorkspace='1';document.head.appendChild(link);}
+function customerForRelated(type,id){
+  type=text(type).toLowerCase();id=text(id);if(!id)return'';if(type==='customer')return id;
+  const map={job:['jobs',['Job ID','jobId']],quote:['quotes',['Quote ID','quoteId']],request:['requests',['Request ID','requestId']],invoice:['invoices',['Invoice ID','invoiceId']],property:['properties',['Property ID','propertyId']],asset:['assets',['Asset ID','assetId']], 'site capture':['siteCaptureSessions',['Site Visit ID','visitId','Session ID','sessionId']]};
+  const spec=map[type];if(!spec)return'';const row=rows(spec[0]).find(item=>spec[1].some(key=>text(item?.[key])===id));return text(value(row,'Customer ID','customerId'));
+}
+function enrichCustomerDocumentLinks(){
+  for(const row of rows('documents')){
+    if(text(value(row,'Customer ID','customerId')))continue;
+    const sourceType=text(value(row,'Source Type','sourceType')),sourceId=text(value(row,'Source ID','sourceId'));
+    const cid=customerForRelated(sourceType,sourceId);if(cid){row['Customer ID']=cid;row['Customer Link Source']='DOCUMENT_SOURCE_RELATIONSHIP';}
+  }
+}
+function renderDirectory(){
+  const main=document.getElementById('mainContent'),c360=window.H38_CUSTOMER_360,top=main?.querySelector('.h38-c360');if(!main||!top||!c360)return;
+  main.querySelector('[data-h38-customer-directory]')?.remove();
+  const list=visibleCustomers(),selected=selectedId(),section=document.createElement('section');section.className='card h38-customer-directory';section.dataset.h38CustomerDirectory='1';
+  section.innerHTML=`<div class="h38-customer-directory-head"><div><span class="h38-c360-kicker">CUSTOMERS</span><h2>Customer cards</h2><p class="muted small">Open a customer to edit details, add locations or notes, and upload files to the customer record.</p></div><button type="button" class="secondary" data-h38-new-customer>+ Add customer</button></div><div class="h38-customer-card-grid">${list.length?list.map(row=>{const id=customerId(row),active=id===selected,properties=rows('properties').filter(p=>text(value(p,'Customer ID','customerId'))===id).length,documents=rows('documents').filter(d=>text(value(d,'Customer ID','customerId'))===id).length;return`<button type="button" class="h38-customer-card${active?' active':''}" data-h38-customer-card="${html(id)}"><span><strong>${html(customerName(row))}</strong><small>${html([value(row,'Email'),value(row,'Phone')].filter(Boolean).join(' · ')||'No contact details')}</small></span><span class="h38-customer-card-meta">${properties} location${properties===1?'':'s'} · ${documents} file${documents===1?'':'s'}</span></button>`;}).join(''):'<p class="muted">No customer records yet.</p>'}</div>`;
+  top.before(section);
+  section.querySelectorAll('[data-h38-customer-card]').forEach(button=>button.onclick=()=>{c360.selectedCustomerId=button.dataset.h38CustomerCard;window.renderCustomers?.();});
+  section.querySelector('[data-h38-new-customer]')?.addEventListener('click',()=>openCustomerForm(null));
+}
+function setupDetails(){return document.querySelector('.h38-c360-setup')||document.querySelector('#customerForm')?.closest('details');}
+function openCustomerForm(customer){
+  const details=setupDetails(),form=document.getElementById('customerForm');if(!form)return; if(details)details.open=true;
+  const id=form.elements.customerId;if(id)id.value=customer?customerId(customer):'';
+  if(form.elements.customerName)form.elements.customerName.value=customer?text(value(customer,'Customer Name','name')):'';
+  if(form.elements.email)form.elements.email.value=customer?text(value(customer,'Email','email')):'';
+  if(form.elements.phone)form.elements.phone.value=customer?text(value(customer,'Phone','phone')):'';
+  const button=form.querySelector('button[type="submit"],button:not([type])');if(button)button.textContent=customer?'Save customer changes':'Add customer';
+  form.scrollIntoView({behavior:'smooth',block:'center'});form.elements.customerName?.focus({preventScroll:true});
+}
+function openPropertyForm(){
+  const details=setupDetails(),form=document.getElementById('propertyForm'),cid=selectedId();if(!form||!cid)return;if(details)details.open=true;
+  if(form.elements.customerId)form.elements.customerId.value=cid;form.scrollIntoView({behavior:'smooth',block:'center'});(form.elements.propertyName||form.elements.address)?.focus({preventScroll:true});
+}
+async function saveCustomerNote(){
+  const cid=selectedId(),input=document.getElementById('h38CustomerNoteInput'),body=text(input?.value);if(!cid||!body)return;
+  const id=uid('CUSTOMER-NOTE'),record={'Job Note ID':id,'Business ID':appState()?.businessId||'','Customer ID':cid,'Title':'Customer note','Body':body,'Notes':body,'Status':'Active','Created Time':now(),'Updated Time':now(),'Record Version':1};
+  if(typeof window.queueOperation!=='function'&&typeof queueOperation!=='function')throw Error('Customer note save is unavailable.');
+  const q=window.queueOperation||queueOperation;await q('SAVE_ENTITY','Customer Note',id,{entity:'jobNotes',record},{collection:'jobNotes',record,idKeys:['Job Note ID']});
+  if(input)input.value='';window.toast?.('Customer note saved.');window.renderCustomers?.();
+}
+function addWorkspaceActions(){
+  const top=document.querySelector('.h38-c360'),actions=top?.querySelector('.h38-c360-actions'),customer=selectedCustomer();if(!top||!actions||!customer)return;
+  if(!actions.querySelector('[data-h38-edit-customer]'))actions.insertAdjacentHTML('afterbegin','<button type="button" class="secondary" data-h38-edit-customer>✎ Edit customer</button><button type="button" class="secondary" data-h38-add-location>+ Location</button><button type="button" class="secondary" data-h38-add-note>+ Note</button><button type="button" class="secondary" data-h38-upload-customer>⇧ Upload documents</button>');
+  actions.querySelector('[data-h38-edit-customer]')?.addEventListener('click',()=>openCustomerForm(customer));
+  actions.querySelector('[data-h38-add-location]')?.addEventListener('click',openPropertyForm);
+  actions.querySelector('[data-h38-add-note]')?.addEventListener('click',()=>document.getElementById('h38CustomerNoteInput')?.focus());
+  let input=document.getElementById('h38CustomerDocumentInput');if(!input){input=document.createElement('input');input.type='file';input.multiple=true;input.id='h38CustomerDocumentInput';input.hidden=true;top.appendChild(input);input.onchange=async()=>{const files=input.files,cid=selectedId();if(!files?.length||!cid)return;try{const upload=window.handleAttachmentFiles||(typeof handleAttachmentFiles==='function'?handleAttachmentFiles:null);if(!upload)throw Error('Document upload is unavailable.');await upload(files,'Customer',cid,'Internal',{customerId:cid});window.toast?.(`${files.length} customer file${files.length===1?'':'s'} queued or uploaded.`);input.value='';setTimeout(()=>window.renderCustomers?.(),50);}catch(error){window.toast?.(error.message||String(error),true);}};}
+  actions.querySelector('[data-h38-upload-customer]')?.addEventListener('click',()=>input.click());
+}
+function addNotesCard(){
+  const grid=document.querySelector('.h38-c360-grid'),cid=selectedId();if(!grid||!cid||grid.querySelector('[data-h38-customer-notes]'))return;
+  const notes=rows('jobNotes').filter(row=>text(value(row,'Customer ID','customerId'))===cid).sort((a,b)=>new Date(value(b,'Updated Time','Created Time')||0)-new Date(value(a,'Updated Time','Created Time')||0));
+  const card=document.createElement('section');card.className='card h38-customer-notes';card.dataset.h38CustomerNotes='1';card.innerHTML=`<h3>Notes</h3><label for="h38CustomerNoteInput">Add customer note</label><textarea id="h38CustomerNoteInput" rows="3" placeholder="Conversation, preference, gate code, follow-up detail…"></textarea><div class="actions"><button type="button" id="h38SaveCustomerNote">Save note</button></div><div class="h38-customer-note-list">${notes.length?notes.slice(0,12).map(row=>`<div class="h38-c360-row"><strong>${html(value(row,'Title')||'Customer note')}</strong><small>${html(value(row,'Body','Notes'))}</small></div>`).join(''):'<p class="muted small">No customer notes yet.</p>'}</div>`;grid.prepend(card);card.querySelector('#h38SaveCustomerNote').onclick=()=>saveCustomerNote().catch(error=>window.toast?.(error.message||String(error),true));
+}
+function augmentCustomerPage(){
+  const stateNow=appState();if(stateNow?.page!=='customers'||!window.H38_CUSTOMER_360)return;installStyle();enrichCustomerDocumentLinks();
+  const cid=selectedId();if(cid&&!text(window.H38_CUSTOMER_360.selectedCustomerId))window.H38_CUSTOMER_360.selectedCustomerId=cid;
+  renderDirectory();addWorkspaceActions();addNotesCard();
+}
+function safePath(valueValue,fallback){return text(valueValue).replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,140)||fallback;}
+function b64meta(v){const bytes=new TextEncoder().encode(text(v));let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
+async function sessionToken(client){let result=await client.auth.getSession();if(result.error)throw result.error;let session=result.data?.session;if(!session)throw Error('Sign in before uploading documents.');if(Number(session.expires_at||0)*1000<Date.now()+120000){result=await client.auth.refreshSession();if(result.error)throw result.error;session=result.data?.session;}if(!session?.access_token)throw Error('Secure upload session is unavailable.');return session.access_token;}
+function storageEndpoint(){const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};if(!cfg.url)throw Error('Business Office storage is not configured.');const ref=new URL(cfg.url).hostname.split('.')[0];return`https://${ref}.storage.supabase.co/storage/v1/upload/resumable`;}
+async function tusUpload(file,path,onProgress){
+  const client=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};if(!client)throw Error('Secure Business Office upload connection is unavailable.');const token=await sessionToken(client);
+  const headers={authorization:`Bearer ${token}`,apikey:cfg.publishableKey,'Tus-Resumable':'1.0.0','Upload-Length':String(file.size),'Upload-Metadata':`bucketName ${b64meta(BUCKET)},objectName ${b64meta(path)},contentType ${b64meta(file.type||'application/octet-stream')},cacheControl ${b64meta('3600')}`};
+  const create=await fetch(storageEndpoint(),{method:'POST',headers});if(!create.ok)throw Error(`Document upload could not start (${create.status}).`);const location=create.headers.get('Location');if(!location)throw Error('Resumable upload location was not returned.');let offset=0;
+  while(offset<file.size){const currentToken=await sessionToken(client),chunk=file.slice(offset,Math.min(offset+TUS_CHUNK,file.size)),patch=await fetch(location,{method:'PATCH',headers:{authorization:`Bearer ${currentToken}`,apikey:cfg.publishableKey,'Tus-Resumable':'1.0.0','Upload-Offset':String(offset),'Content-Type':'application/offset+octet-stream'},body:chunk});if(!patch.ok)throw Error(`Document upload stopped at ${Math.round(offset/file.size*100)}% (${patch.status}).`);offset=Number(patch.headers.get('Upload-Offset')||offset+chunk.size);onProgress?.(Math.min(1,offset/file.size));}
+}
+async function saveDocumentRecord(record){
+  const client=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.(),businessId=text(appState()?.businessId),authState=window.H38_SUPABASE_AUTH?.getState?.()||{},actor=text(authState.userId||authState.user?.id);if(!client||!businessId||!actor)throw Error('Sign in to save documents.');
+  const key=record['Document ID'];const existing=await client.from('business_records').select('id').eq('business_id',businessId).eq('collection','documents').eq('record_key',key).maybeSingle();if(existing.error)throw existing.error;
+  if(existing.data){const q=await client.from('business_records').update({payload:record,record_status:'active',updated_by:actor}).eq('id',existing.data.id);if(q.error)throw q.error;}else{const q=await client.from('business_records').insert({business_id:businessId,collection:'documents',record_key:key,payload:record,record_status:'active',created_by:actor,updated_by:actor});if(q.error)throw q.error;}
+  const list=rows('documents'),index=list.findIndex(row=>text(value(row,'Document ID','documentId'))===key);if(index>=0)list[index]=record;else list.unshift(record);
+}
+async function uploadLargeFile(file,relatedRecordType,relatedRecordId,visibility='Internal',metadata={}){
+  if(!navigator.onLine)throw Error(`${file.name} is over 3 MB and needs an internet connection for secure resumable upload.`);
+  const businessId=text(appState()?.businessId);if(!businessId)throw Error('Open a business before uploading documents.');const id=uid('DOCUMENT'),cid=text(metadata.customerId)||customerForRelated(relatedRecordType,relatedRecordId),path=[businessId,safePath(relatedRecordType,'record'),safePath(relatedRecordId,'unlinked'),`${safePath(id,'document')}-${safePath(file.name,'file')}`].join('/');
+  window.toast?.(`Uploading ${file.name}…`);await tusUpload(file,path,p=>{if(p===1)window.toast?.(`${file.name} uploaded. Saving customer link…`);});const record={'Document ID':id,'Business ID':businessId,'Customer ID':cid,'File Name':file.name,'Mime Type':file.type||'application/octet-stream','File Size':file.size,'Source Type':relatedRecordType,'Source ID':relatedRecordId,'Access Classification':visibility||'Internal','Storage Bucket':BUCKET,'Storage Path':path,'Status':'Available — Private','Customer Released':false,'Automatic Customer Release':false,'Automatic Customer Sending':false,'Created Time':now(),'Updated Time':now(),'Record Version':1};await saveDocumentRecord(record);window.toast?.(`${file.name} uploaded privately.`);if(appState()?.page==='customers')window.renderCustomers?.();else if(appState()?.page==='documents')window.renderDocuments?.();return record;
+}
+function install(){installStyle();const run=()=>augmentCustomerPage();window.addEventListener?.('h38:office-page-rendered',run);window.addEventListener?.('h38:business-snapshot-updated',run);let ticks=0;const timer=setInterval(()=>{run();if(++ticks>80)clearInterval(timer);},250);run();}
+window.H38_CUSTOMER_WORKSPACE_DOCUMENTS=Object.freeze({enabled:true,build:BUILD,largeFileThreshold:LARGE_FILE_THRESHOLD,augmentCustomerPage,enrichCustomerDocumentLinks,customerForRelated,uploadLargeFile,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
