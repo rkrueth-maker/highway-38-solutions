@@ -7,7 +7,6 @@ on:
       - '.restore-points/**'
       - 'apps-script/**'
       - 'artifacts/**'
-      - 'businesses/**'
       - 'docs/**'
       - 'native/**'
       - 'scripts/**'
@@ -56,9 +55,18 @@ jobs:
           cname_blob="$(jq -n --arg content "$cname_b64" '{content:$content,encoding:"base64"}' \
             | gh api --method POST "repos/${repo}/git/blobs" --input - --jq '.sha')"
 
+          # Publish only the approved additive Northern Lakes subpath. Other tenant
+          # directories remain excluded from the H38 production target.
+          businesses_source="$(gh api "repos/${repo}/git/trees/${base_tree}" --jq '.tree[] | select(.path=="businesses") | .sha')"
+          northern_lakes_source="$(gh api "repos/${repo}/git/trees/${businesses_source}" --jq '.tree[] | select(.path=="northern-lakes") | .sha')"
+          test -n "$northern_lakes_source"
+          businesses_public="$(jq -n --arg sha "$northern_lakes_source" '{tree:[{path:"northern-lakes",mode:"040000",type:"tree",sha:$sha}]}' \
+            | gh api --method POST "repos/${repo}/git/trees" --input - --jq '.sha')"
+
           tree_payload="$(jq -n \
             --arg base "$base_tree" \
             --arg marker "$marker_blob" \
+            --arg businesses "$businesses_public" \
             --arg cname "$cname_blob" \
             '{
               base_tree:$base,
@@ -67,7 +75,7 @@ jobs:
                 {path:".restore-points",mode:"040000",type:"tree",sha:null},
                 {path:"apps-script",mode:"040000",type:"tree",sha:null},
                 {path:"artifacts",mode:"040000",type:"tree",sha:null},
-                {path:"businesses",mode:"040000",type:"tree",sha:null},
+                {path:"businesses",mode:"040000",type:"tree",sha:$businesses},
                 {path:"docs",mode:"040000",type:"tree",sha:null},
                 {path:"native",mode:"040000",type:"tree",sha:null},
                 {path:"scripts",mode:"040000",type:"tree",sha:null},

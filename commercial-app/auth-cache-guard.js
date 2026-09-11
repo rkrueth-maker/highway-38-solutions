@@ -57,10 +57,12 @@ loadCached=async function(options={}){
   if(!authorization||authorization.userId!==userId||authorization.status!=='active'||authorization.businessId!==state.businessId||!fresh)return false;
   const snapshot=await get('snapshots',`business:${state.businessId}`);
   if(!snapshot||snapshot.authUserId!==userId||snapshot.authorizationStatus!=='active'||snapshot.business?.businessId!==state.businessId)return false;
+  const requestedKey=String(new URLSearchParams(location.search).get('businessKey')||'').trim().toLowerCase();
+  if(requestedKey&&String(snapshot.business?.businessKey||'').toLowerCase()!==requestedKey)return false;
   const currentCheckedAt=new Date(state.snapshot?.authorizationCheckedAt||0).getTime();
   const cachedCheckedAt=new Date(snapshot.authorizationCheckedAt||snapshot.cachedAt||0).getTime();
   const currentIsNewer=state.snapshot?.authUserId===userId&&state.snapshot?.business?.businessId===state.businessId&&Number.isFinite(currentCheckedAt)&&currentCheckedAt>=cachedCheckedAt;
-  if(!currentIsNewer)state.snapshot=snapshot;
+  if(!currentIsNewer){state.snapshot=snapshot;window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));}
   $('businessStatus').textContent=navigator.onLine
     ?`${state.snapshot.business.businessName} · Office open · refreshing securely…`
     :`${state.snapshot.business.businessName} · Offline · verified device cache ${new Date(state.snapshot.cachedAt||state.snapshot.authorizationCheckedAt).toLocaleString()}`;

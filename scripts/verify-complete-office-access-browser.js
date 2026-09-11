@@ -96,6 +96,37 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
     check(/Full Office access/.test(full),'Owner Today must identify full Office access.');
     for(const name of ['Invoices & Money','Employees','Reports','Office Settings'])check(fullButtons.includes(name),`Owner Today shortcut missing ${name}.`);
 
+    // Both businesses use these exact runtime bytes; only accepted membership and
+    // business configuration differ. No production credentials or records are used.
+    await page.evaluate(()=>{
+      document.body.insertAdjacentHTML('afterbegin','<div class="brand"><img id="approvedOfficeLogo"><strong></strong></div><span id="shellLabel"></span>');
+      window.H38_SUPABASE_AUTH={enabled:true};
+      window.H38Bridge=class {};
+      window.state.snapshot={business:{businessId:'H38',businessKey:'highway38',businessName:'Highway 38 Solutions'},user:{owner:true,roleId:'owner',permissions:{all:true}},customers:[{'Customer ID':'H38-ONLY'}]};
+    });
+    await page.addScriptTag({content:read('commercial-app/supabase-client-branding.js')});
+    await page.evaluate(()=>window.dispatchEvent(new Event('h38:business-snapshot-updated')));
+    await page.waitForTimeout(20);
+    check(await page.title()==='Highway 38 Solutions Business Office','H38 brand must follow accepted snapshot');
+    const nlPack=JSON.parse(read('business-packs/northern-lakes/supabase-business-pack.json'));
+    for(const role of ['owner','administrator','staff','viewer']){
+      await page.evaluate(({role,pack})=>{
+        const administrative=['owner','administrator'].includes(role);
+        window.state.snapshot={business:{businessId:'NL',businessKey:'northern-lakes',businessName:pack.business.displayName,brandConfig:pack.branding},user:{roleId:role,roleName:role,owner:role==='owner',permissions:administrative?{all:true}:role==='staff'?{viewCustomers:true,manageWork:true,manageField:true,viewAssignedWork:true}:{viewCustomers:true}},customers:[{'Customer ID':'NL-ONLY'}]};
+        window.dispatchEvent(new Event('h38:business-snapshot-updated'));
+      },{role,pack:nlPack});
+      await page.waitForTimeout(20);
+      check(await page.title()===nlPack.business.displayName+' Business Office',`Northern Lakes ${role} brand missing`);
+      check((await page.locator('#approvedOfficeLogo').getAttribute('src')).includes('diamond-logo.svg'),`Northern Lakes ${role} approved logo missing`);
+      const keys=await page.locator('#mainNav > button[data-page]').evaluateAll(nodes=>nodes.map(n=>n.dataset.page));
+      if(['owner','administrator'].includes(role))check(JSON.stringify(keys)===JSON.stringify(expectedOwner),`Northern Lakes ${role} must share complete H38 Office navigation`);
+      else for(const key of ['money','accounting','payroll','tax','people','controls','settings'])check(!keys.includes(key),`Northern Lakes ${role} leaked ${key}`);
+    }
+    await page.evaluate(()=>{window.state.snapshot=null;window.dispatchEvent(new Event('h38:auth-cleared'));});
+    await page.waitForTimeout(20);
+    check(await page.locator('#mainNav > button[data-page]').count()===0,'Northern Lakes sign-out must remove tenant navigation');
+    check(!(await page.title()).includes('Northern Lakes'),'No Northern Lakes signed-in identity may remain on unbranded sign-out');
+
     check(errors.length===0,`Browser errors: ${errors.join(' | ')}`);
   }catch(error){failures.push(error.stack||error.message||String(error));}
   await browser.close();

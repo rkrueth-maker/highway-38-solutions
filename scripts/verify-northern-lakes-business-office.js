@@ -1,132 +1,77 @@
 #!/usr/bin/env node
 'use strict';
-const fs=require('fs');
-const path=require('path');
-const vm=require('vm');
-const root=path.resolve(process.argv[2]||'dist/northern-lakes-business-office');
-const repoRoot=path.resolve(__dirname,'..');
-function fail(message){console.error('FAIL — '+message);process.exitCode=1;}
-function requireFile(name){const file=path.join(root,name);if(!fs.existsSync(file)){fail('missing '+name);return '';}return fs.readFileSync(file,'utf8');}
-function verifyScriptSyntax(name){const source=requireFile(name);if(!source)return;try{new vm.Script(source,{filename:name});}catch(error){fail('syntax error in '+name+': '+error.message);}}
-const pack=requireFile('BusinessOffice_00_Pack.gs');
-const setup=requireFile('BusinessOffice_NorthernLakesSetup.gs');
-const existingStatus=requireFile('BusinessOffice_NorthernLakesExistingOfficeStatus.gs');
-const fast=requireFile('BusinessOffice_NorthernLakesFastProvisioning.gs');
-const setupPage=requireFile('BusinessOffice_Installation.html');
-const unified=requireFile('Unified_AppShell.gs');
-const auth=requireFile('BusinessOffice_Auth.gs');
-const portalIndex=requireFile('Portal_Index.html');
-const quote=requireFile('BusinessOffice_QuoteBuilder.gs');
-const quoteIndex=requireFile('BusinessOffice_QuoteBuilder_Index.html');
-const aiClient=requireFile('BusinessOffice_QuoteBuilder_AI_Visual_Client.html');
-const aiServer=requireFile('BusinessOffice_QuoteBuilder_AI_Visual.gs');
-const previewPath=path.join(repoRoot,'businesses','northern-lakes','business-office-preview.html');
-const preview=fs.existsSync(previewPath)?fs.readFileSync(previewPath,'utf8'):'';
-const linkedPath=path.join(repoRoot,'business-packs','highway38','apps-script','BusinessOffice_LinkedOffices.gs');
-const linked=fs.existsSync(linkedPath)?fs.readFileSync(linkedPath,'utf8'):'';
-const templatePackPath=path.join(repoRoot,'business-packs','template-business','business-pack.json');
-const templatePack=fs.existsSync(templatePackPath)?fs.readFileSync(templatePackPath,'utf8'):'';
-const required=[
-  [pack,/packId:'northern-lakes'/,'Northern Lakes pack ID'],
-  [pack,/business:\s*Object\.freeze\(\{id:'NLPS'/,'NLPS business ID'],
-  [pack,/publicEmail:'northernlakesproperty@gmail\.com'/,'Northern Lakes system email'],
-  [pack,/systemOwnerEmail:'northernlakesproperty@gmail\.com'/,'Drive setup owner'],
-  [pack,/cleanInstallGeneration:'clean-core-v1'/,'clean installation generation'],
-  [pack,/support:Object\.freeze\(\{enabled:true/,'controlled H38 support contract'],
-  [pack,/rkrueth@gmail\.com/,'Rick support principal'],
-  [pack,/mandakw55@gmail\.com/,'Amanda support principal'],
-  [pack,/customerVisible:true/,'visible support access'],
-  [pack,/revocable:true/,'revocable support access'],
-  [pack,/NLPS_BUSINESS_OFFICE_SPREADSHEET_ID/,'dedicated spreadsheet key'],
-  [pack,/NLPS_BUSINESS_OFFICE_DEPLOYMENT_ID/,'dedicated deployment key'],
-  [pack,/namespace:'NLPS'/,'NLPS namespace'],
-  [setup,/SCHEMA_GZIP_B64:'(?!__BO_NEUTRAL_SCHEMA_GZIP_B64__)[A-Za-z0-9+/=]+'/,'embedded neutral schema'],
-  [setup,/sheets\.length===81/,'81-sheet clean workbook contract'],
-  [setup,/Northern Lakes Business Office/,'Northern Lakes Drive root'],
-  [setup,/00 — System/,'system folder'],
-  [setup,/05 — Payroll and Tax — Restricted/,'restricted payroll and tax folder'],
-  [setup,/08 — Examples and Training/,'examples folder'],
-  [setup,/99 — Archived Old Office/,'old office archive folder'],
-  [setup,/nlpsExampleDefinitions_/,'example sheet definitions'],
-  [setup,/SAMPLE — Customer and Request/,'customer example'],
-  [setup,/SAMPLE — Employee Task Assignment/,'task example'],
-  [setup,/USER-H38-IMPLEMENTATION-OWNER/,'Rick implementation owner'],
-  [setup,/boAfterBusinessRecordSave_/,'automatic record-folder hook'],
-  [setup,/Drive Folder ID/,'job folder ID writeback'],
-  [setup,/previousInstallationPreserved:true/,'old office preservation proof'],
-  [setup,/nlpsFastCreateCoreWorkbook_/,'fast core workbook connected'],
-  [setup,/nlpsFastCreateExamples_/,'fast examples connected'],
-  [existingStatus,/function boNorthernLakesExistingOfficeStatus\(/,'existing-office status endpoint'],
-  [existingStatus,/sheetCount >= result\.minimumSheetCount/,'upgraded workbook minimum-sheet acceptance'],
-  [existingStatus,/missingRequiredSheets\.length === 0/,'required-sheet validation'],
-  [existingStatus,/existing_files_connected/,'existing file connection status'],
-  [existingStatus,/function boNorthernLakesExistingOfficeAcceptance\(/,'live existing-office acceptance endpoint'],
-  [fast,/Sheets\.Spreadsheets\.create/,'Sheets API workbook creation'],
-  [fast,/Sheets\.Spreadsheets\.Values\.batchUpdate/,'batched sheet values'],
-  [fast,/schema\.sheets\.length===81/,'fast 81-sheet validation'],
-  [fast,/definitions\.length===13/,'13 example tabs validation'],
-  [fast,/Northern Lakes — Examples and Training/,'single examples workbook'],
-  [setupPage,/Create Clean Northern Lakes Office/,'owner setup action'],
-  [setupPage,/Parent Google Drive folder/,'Drive folder selection'],
-  [setupPage,/northernlakesproperty@gmail\.com/,'required signed-in setup account'],
-  [setupPage,/boNorthernLakesExistingOfficeStatus/,'setup page reads upgraded existing-office status'],
-  [setupPage,/show\('installCard',!status\.configured\)/,'configured office hides clean installer'],
-  [setupPage,/Existing office connected/,'existing office recovery action'],
-  [unified,/typeof boSetupEntryAllowed_==='function'/,'pack-controlled setup route'],
-  [unified,/boRenderInstallationPage_/,'setup page renderer'],
-  [unified,/function getSupportAccount\(email\)/,'unified support authentication'],
-  [unified,/supportAccess:user\['__Support Access'\]==='Yes'/,'support status in unified context'],
-  [auth,/function boSupportAccount_\(email\)/,'standalone support authentication'],
-  [auth,/supportProvider:user\['__Support Provider'\]/,'support status in Business Office context'],
-  [portalIndex,/Portal_LinkedOffices_Client/,'linked office client included'],
-  [preview,/H38 owner preview/i,'owner preview identity'],
-  [preview,/Sample data only/i,'sample-only preview boundary'],
-  [preview,/Open Live Office/,'live office control from preview'],
-  [linked,/business-office-preview\.html/,'H38 button opens owner preview'],
-  [linked,/liveUrl:/,'linked office keeps separate live URL'],
-  [templatePack,/"support"\s*:\s*\{"enabled"\s*:\s*true/,'future customer pack support default'],
-  [templatePack,/mandakw55@gmail\.com/,'future Amanda support principal'],
-  [quote,/boPrepareAiQuoteDraft_/,'shared AI draft staging'],
-  [quoteIndex,/BusinessOffice_QuoteBuilder_AI_Visual_Client/,'AI client included in direct Quote Builder'],
-  [aiClient,/Take Picture/,'camera-only control'],
-  [aiClient,/Upload Photos/,'upload-only control'],
-  [aiClient,/Build Quote with AI/,'AI quote action'],
-  [aiClient,/Create Completion Visual/,'AI visual action'],
-  [aiClient,/Owner review required\./i,'owner review notice'],
-  [aiServer,/boBuildAiQuoteDraft_/,'shared AI quote engine'],
-  [aiServer,/boCreateAiCompletionVisual_/,'shared AI completion visual engine'],
-  [aiServer,/Owner Review Required/,'owner review gate']
-];
-required.forEach(([source,pattern,label])=>{if(!pattern.test(source))fail('missing '+label);});
-const assembledFiles=fs.readdirSync(root);
-assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).forEach(verifyScriptSyntax);
-if(/H38_BUSINESS_OFFICE_SPREADSHEET_ID|H38_BUSINESS_OFFICE_DEPLOYMENT_ID/.test(pack))fail('Highway 38 storage or deployment key leaked into Northern Lakes pack');
-if(/1QBG_2j-CSOpo00nkK1-K9VQGGBNv5N7v|1bHxwdvoy8PwQ5_wDhnNOuohmLzaOt6z2HnefytM0bY4/.test(pack+setup+existingStatus))fail('Retired or live Northern Lakes storage was hard-coded into source');
-if((setup.match(/name:'SAMPLE —/g)||[]).length!==13)fail('expected exactly 13 training example sheet definitions');
-
-try{
-  const requiredSheets=['BO Businesses','BO Users','BO Customers','BO Quotes','BO Quote Lines','BO Jobs','BO Documents','BO Settings','BO Proof Log','BO Error Log','BO Products & Services','BO Setup Checklist'];
-  const upgradedNames=requiredSheets.concat(Array.from({length:76},(_,index)=>'Upgrade Sheet '+(index+1)));
-  const sandbox={
-    SpreadsheetApp:{openById:()=>({getSheets:()=>upgradedNames.map(name=>({getName:()=>name}))})},
-    DriveApp:{getFolderById:()=>({getName:()=>'Northern Lakes Business Office'})},
-    console
+// Current tenant/runtime contract. Historical Apps Script assembly is not Office acceptance.
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),vm=require('vm');
+const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const config=JSON.parse(read('businesses/northern-lakes/app-deployment.json'));
+const pack=JSON.parse(read('business-packs/northern-lakes/supabase-business-pack.json'));
+assert.equal(config.businessKey,'northern-lakes');
+assert.equal(config.systemOfRecord,'supabase');
+assert.equal(config.legacyOfficeEnabled,false);
+assert.equal(config.legacyOfficeFallback,false);
+assert.equal(config.externalActionsEnabled,false);
+assert.equal(config.liveChargingEnabled,false);
+const destination=new URL(config.businessOfficeUrl);
+assert.equal(destination.pathname,'/highway-38-solutions/commercial-app/');
+assert.equal(destination.searchParams.get('businessKey'),'northern-lakes');
+assert.equal(pack.business.businessKey,config.businessKey);
+assert.equal(pack.branding.canonicalLogoPath,'businesses/northern-lakes/assets/diamond-logo.svg');
+assert(fs.existsSync(path.join(root,pack.branding.canonicalLogoPath)));
+const entry=read('commercial-app/index.html');
+for(const file of ['desktop-navigation-authority.js','supabase-auth.js','supabase-startup.js','supabase-client-branding.js']){
+  assert(entry.includes(file),'shared entry missing '+file);
+  new vm.Script(read('commercial-app/'+file),{filename:file});
+}
+const nav=read('commercial-app/desktop-navigation-authority.js');
+for(const signal of ['lateAuthNavigationPaint:true','groupedOwnerOfficeNavigation:true','staffUsesPermissionFilteredNavigation:true','authClearNavigationReconcile:true'])assert(nav.includes(signal),signal);
+const retired=read('businesses/northern-lakes/commercial-app/index.html');
+assert(retired.includes('businessKey=northern-lakes'));
+assert(retired.includes('old Office build is retired'));
+assert(!/<script[^>]+src=/.test(retired),'legacy PWA cannot load another runtime');
+assert(read('businesses/northern-lakes/owner-login.html').includes('owner-access.html'));
+const publish=read('.github/workflows/pages-branch-fallback.yml');
+assert(publish.includes('path:"northern-lakes",mode:"040000",type:"tree"'),'publication must allow only Northern Lakes');
+assert(publish.includes('path:"businesses",mode:"040000",type:"tree",sha:$businesses'),'approved subpath cannot be dropped');
+assert(!publish.includes("      - 'businesses/**'"),'Northern Lakes updates must trigger publication');
+const branding=read('commercial-app/supabase-client-branding.js');
+assert(branding.includes("addEventListener('h38:business-snapshot-updated',current)"),'branding follows accepted state');
+assert(!branding.includes('Bridge.prototype.request='),'late network responses cannot paint branding directly');
+assert(read('commercial-app/supabase-auth.js').includes('if (requestedKey && !selected)'),'unassigned tenant fails closed');
+// Exercise the real accepted-snapshot and business-switch boundary, including late
+// responses and sign-out. In-memory data only; no production network or mutation.
+(async()=>{
+  const elements=new Map();
+  const el=id=>{if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',value:'',disabled:false});return elements.get(id);};
+  const events=[];
+  const ctx={console,URLSearchParams,Date,Promise,navigator:{onLine:true},location:{search:''},
+    document:{getElementById:el,body:{classList:{toggle(){}}}},
+    localStorage:{setItem(){},removeItem(){}},setTimeout,clearTimeout,
+    CustomEvent:class{constructor(type){this.type=type;}},
+    dispatchEvent(event){events.push(event.type);},addEventListener(){},
+    H38_SUPABASE_AUTH:{enabled:true},H38DB:{getUserScope:()=> 'USER'},
+    state:{businessId:'H38',page:'customers',snapshot:null},$:el,
+    now:()=>new Date().toISOString(),put:async()=>{},get:async()=>null,
+    withStartupTimeout:promise=>promise,updatePending:async()=>{},openPage(){},toast(){},
+    setBusinessSwitcherVisible(){},populateBusinessSelector(){}
   };
-  vm.createContext(sandbox);
-  vm.runInContext(existingStatus,sandbox,{filename:'BusinessOffice_NorthernLakesExistingOfficeStatus.gs'});
-  const health=sandbox.nlpsExistingOfficeHealth_('existing-sheet','existing-folder','clean-core-v1');
-  if(!health.configured)fail('88-sheet upgraded Northern Lakes workbook was not recognized as configured');
-  if(health.sheetCount!==88)fail('upgraded workbook sheet count was not retained');
-  if(health.missingRequiredSheets.length)fail('required upgraded workbook sheets were reported missing');
-  const missingSandbox={
-    SpreadsheetApp:{openById:()=>({getSheets:()=>Array.from({length:88},(_,index)=>({getName:()=>index===0?'BO Businesses':'Other '+index}))})},
-    DriveApp:{getFolderById:()=>({getName:()=>'Northern Lakes Business Office'})},
-    console
-  };
-  vm.createContext(missingSandbox);
-  vm.runInContext(existingStatus,missingSandbox,{filename:'BusinessOffice_NorthernLakesExistingOfficeStatus.gs'});
-  const missing=missingSandbox.nlpsExistingOfficeHealth_('existing-sheet','existing-folder','clean-core-v1');
-  if(missing.configured||!missing.missingRequiredSheets.length)fail('missing required sheets did not block existing-office status');
-}catch(error){fail('existing-office compatibility regression failed: '+error.message);}
-
-if(!process.exitCode)console.log(JSON.stringify({status:'PASS',installation:'Northern Lakes Unified Business Office',businessId:'NLPS',isolated:true,coreEngine:'unified',driveOwnerSetupAccount:'northernlakesproperty@gmail.com',cleanWorkbookSheets:81,upgradedWorkbookSheetsSupported:true,liveObservedWorkbookSheets:88,trainingWorkbookCount:1,trainingSheets:13,oldOfficePreserved:true,automaticRecordFolders:true,quoteBuilder:'shared engine',ownerApprovalRequired:true,ownerPreview:true,supportAccess:{provider:'Highway 38 Solutions',accounts:['rkrueth@gmail.com','mandakw55@gmail.com'],signedInRequired:true,customerVisible:true,revocable:true},syntaxCheckedScripts:assembledFiles.filter(name=>/\.(?:gs|js)$/.test(name)).length,assembledFiles:assembledFiles.length},null,2));
+  ctx.window=ctx;
+  for(const name of ['init','setFastBusinessId','persistBusinessSelection','saveStartupSnapshot','hydrateLocalStartup','handleBridgeStatus','handleStartupBootstrap','handleFullSnapshot','handleBridgeError','renderWelcome','loadBusiness','bindGlobal'])ctx[name]=()=>{};
+  vm.createContext(ctx);
+  vm.runInContext(read('commercial-app/supabase-startup.js'),ctx);
+  const snapshot=id=>({authUserId:'USER',authorizationStatus:'active',business:{businessId:id,businessKey:id==='NL'?'northern-lakes':'highway38',businessName:id},user:{userId:'USER',roleName:'Owner'},customers:[{'Customer ID':id+'-ONLY'}]});
+  ctx.saveStartupSnapshot(snapshot('H38'),'H38');
+  const pending=[];
+  ctx.state.bridge={request:()=>new Promise(resolve=>pending.push(resolve))};
+  const switching=ctx.loadBusiness('NL',true);
+  assert.equal(ctx.state.snapshot,null,'old tenant records must clear while new tenant loads');
+  await ctx.handleFullSnapshot(snapshot('H38'),'H38');
+  assert.equal(ctx.state.snapshot,null,'late H38 response must not enter NL workspace');
+  pending.shift()(snapshot('NL'));await switching;
+  assert.equal(ctx.state.snapshot.customers[0]['Customer ID'],'NL-ONLY');
+  assert(events.includes('h38:business-snapshot-updated'),'accepted snapshot must repaint navigation and branding');
+  const back=ctx.loadBusiness('H38',true);
+  ctx.state.businessId='';ctx.state.snapshot=null;
+  pending.shift()(snapshot('H38'));await back;
+  assert.equal(ctx.state.snapshot,null,'signed-out state must reject late response');
+  console.log(JSON.stringify({status:'PASS',acceptance:'NORTHERN_LAKES_SHARED_OFFICE',sharedRuntime:true,legacyFallback:false,additivePublication:true,approvedBrandPreserved:true,tenantSwitchClearsRecords:true,lateResponseRejected:true,externalActionsOccurred:false},null,2));
+})().catch(error=>{console.error(error);process.exit(1);});

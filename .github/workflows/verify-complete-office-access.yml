@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/supabase-client-branding.js'
+      - 'commercial-app/supabase-startup.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'commercial-app/office-access-completion.js'
       - 'commercial-app/office-account-identity.js'
       - 'commercial-app/service-worker.js'
@@ -17,6 +21,10 @@ on:
     branches: [main]
     paths:
       - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/supabase-client-branding.js'
+      - 'commercial-app/supabase-startup.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'scripts/verify-customer-readiness-polish-browser.js'
       - 'commercial-app/office-access-completion.js'
       - 'commercial-app/office-account-identity.js'
       - 'commercial-app/service-worker.js'
@@ -52,3 +60,5 @@ jobs:
         run: node scripts/verify-office-live-delivery-browser.js
       - name: Verify late-auth desktop navigation repaint
         run: node scripts/verify-office-late-auth-navigation-browser.js
+      - name: Verify signed-out and role-safe Office polish
+        run: node scripts/verify-customer-readiness-polish-browser.js

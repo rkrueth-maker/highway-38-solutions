@@ -14,7 +14,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     await page.setContent(`<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"><button id="globalAiButton">AI</button></div></header><nav id="mainNav"><button data-page="today">Today</button></nav><main id="mainContent"></main><dialog id="globalAiDialog"><form id="paCommandForm"><textarea name="command"></textarea></form></dialog><div id="h38MeetingVisitDock"></div></body></html>`);
     await page.evaluate(()=>{
       const now=new Date().toISOString();
-      window.state={page:'today',businessId:'B-OWNER',snapshot:{
+      window.state={page:'today',businessId:'B-OWNER',snapshot:{user:{owner:true,roleName:'Owner',permissions:{all:true}},
         customers:[{'Customer ID':'C-JOHN','Customer Name':'Johnson','Email':'johnson@example.com'}],
         properties:[{'Property ID':'P-JOHN','Customer ID':'C-JOHN','Address':'129 Hwy 38','Updated Time':now}],
         jobs:[{'Job ID':'J-JOHN','Customer ID':'C-JOHN','Project Title':'Gutter repair','Status':'Open','Updated Time':now}],
@@ -64,6 +64,15 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     await page.waitForSelector('#h38CustomerReadyVisitSummary',{timeout:2500});
     const visitText=await page.locator('#h38CustomerReadyVisitSummary').textContent();
     assert(visitText.includes('2 photos')&&visitText.includes('1 walkthroughs')&&visitText.includes('3 measurements'),'site visit summary should show capture counts');
+    await page.evaluate(()=>{state.snapshot.user={roleName:'Staff',permissions:{manageWork:true}};renderToday();});
+    await page.waitForTimeout(80);
+    assert.equal(await page.locator('[data-h38-ready-page="money"]').count(),0,'Staff Today must not offer restricted billing');
+    await page.evaluate(()=>{state.snapshot.user={roleName:'Viewer',permissions:{viewCustomers:true}};openPage('today');});
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#h38NewActionButton').count(),0,'read-only viewer must not receive New actions');
+    await page.evaluate(()=>{state.snapshot=null;window.dispatchEvent(new Event('h38:auth-cleared'));renderToday();});
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#h38CustomerReadyToday,#h38CustomerReadyHero,#h38CustomerReadyVisitSummary,#h38NewActionButton,#h38QuickCreateDialog').count(),0,'sign-out and delayed render must not recreate Office polish');
     const contract=await page.evaluate(()=>window.H38_CUSTOMER_READINESS_POLISH);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchase','automaticPayment','automaticScheduling'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.deepEqual(errors,[],'customer readiness browser should have no page errors');
