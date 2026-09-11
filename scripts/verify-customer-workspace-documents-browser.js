@@ -9,12 +9,17 @@ const runtime=path.join(root,'commercial-app/customer-workspace-documents.js');
 const app04=fs.readFileSync(path.join(root,'commercial-app/app-04.js'),'utf8');
 const app13=fs.readFileSync(path.join(root,'commercial-app/app-13.js'),'utf8');
 const app14=fs.readFileSync(path.join(root,'commercial-app/app-14.js'),'utf8');
+const bootstrap=fs.readFileSync(path.join(root,'commercial-app/runtime-rowid-fix.js'),'utf8');
+const serviceWorker=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
 assert(app04.includes('name="customerId" type="hidden"'),'customer form must retain the customer id while editing');
 assert(app04.includes("existing?'SAVE_ENTITY':'SAVE_CUSTOMER'"),'editing must update the existing customer instead of creating a new id');
 assert(app13.includes('id="documentInput" type="file" multiple'),'global document picker must support bulk selection');
 assert(!/id="documentInput"[^>]*accept=/.test(app13),'global document picker must not restrict file types');
 assert(app14.includes('H38_CUSTOMER_WORKSPACE_DOCUMENTS?.uploadLargeFile'),'files over the offline threshold must route to the resumable uploader');
 assert(app14.includes('customerId=attachmentCustomerId'),'attachment queue must retain the customer relationship');
+assert(bootstrap.includes('customer-workspace-documents.js?build=${CUSTOMER_WORKSPACE_BUILD}'),'the live-first bootstrap must load the customer workspace release');
+const liveFirst=serviceWorker.split('const LIVE_FIRST=new Set([',2)[1]?.split(']);',1)[0]||'';
+assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must remain live-first so installed Office clients receive the customer workspace release');
 (async()=>{
   const browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:1100,height:900}});
@@ -73,8 +78,8 @@ assert(app14.includes('customerId=attachmentCustomerId'),'attachment queue must 
     const upload=await page.evaluate(()=>window.__uploads[0]);
     assert.deepEqual(upload[0],['manual.docx','estimate.xlsx']);assert.equal(upload[1],'Customer');assert.equal(upload[2],'C-2');assert.equal(upload[3],'Internal');assert.equal(upload[4].customerId,'C-2');
     const contract=await page.evaluate(()=>window.H38_CUSTOMER_WORKSPACE_DOCUMENTS);
-    assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);
+    assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);assert.equal(contract.cacheBackstop,true);
     assert.deepEqual(errors,[],'customer workspace browser flow should not raise page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['clickable customer cards','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['clickable customer cards','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
