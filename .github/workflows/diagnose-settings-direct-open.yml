@@ -23,3 +23,10 @@ jobs:
       - run: npm install
       - run: npx playwright install --with-deps chromium
       - run: node scripts/diagnose-settings-direct-open.js
+      - name: Upload Settings diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-mutation-diagnostic
+          path: settings-diagnostic.json
+          if-no-files-found: warn
