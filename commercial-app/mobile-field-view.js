@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-mobile-field-view-1';
+const BUILD='20260911-mobile-field-view-2';
 const PREF_KEY='h38:mobile-workspace-view:v1';
 const STYLE_ID='h38MobileFieldViewStyle';
 const TOGGLE_ID='h38MobileWorkspaceToggle';
@@ -20,8 +20,10 @@ const text=value=>String(value==null?'':value).trim();
 function mobile(){return !!window.matchMedia?.('(max-width: 760px)').matches;}
 function officeState(){try{return window.state||null;}catch(_){return null;}}
 function user(){return officeState()?.snapshot?.user||null;}
+function role(){const u=user()||{};return text(u.roleId||u.roleName||u.role).toLowerCase();}
 function can(capability){const u=user();if(!u)return false;if(u.owner===true||u.permissions?.all===true)return true;return u.permissions?.[capability]===true;}
 function fieldEligible(){return !!user()&&(can('manageField')||can('captureEvidence')||can('viewAssignedWork')||can('manageAssignedWork')||can('manageWork'));}
+function fieldWorkerDefault(){return role()==='staff';}
 function savedMode(){try{return localStorage.getItem(PREF_KEY)==='office'?'office':localStorage.getItem(PREF_KEY)==='field'?'field':'';}catch(_){return'';}}
 function requestedMode(){
   try{
@@ -34,7 +36,11 @@ function requestedMode(){
 function currentMode(){return officeState()?.shell==='field'?'field':'office';}
 function desiredMode(){
   if(!mobile()||!fieldEligible())return'office';
-  return requestedMode()||savedMode()||'field';
+  const requested=requestedMode();
+  if(requested)return requested;
+  const saved=savedMode();
+  if(saved)return saved;
+  return fieldWorkerDefault()?'field':'office';
 }
 function persist(mode){try{localStorage.setItem(PREF_KEY,mode);}catch(_){} }
 function shellLabel(mode){const node=document.getElementById('shellLabel');if(node)node.textContent=mode==='field'?FIELD_LABEL:OFFICE_LABEL;}
@@ -88,7 +94,7 @@ function ensureStyle(){
   document.head.appendChild(style);
 }
 function ensureToggle(){
-  if(!mobile()||!user())return false;
+  if(!mobile()||!user()||!fieldEligible())return false;
   ensureStyle();
   let button=document.getElementById(TOGGLE_ID);
   if(!button){
@@ -101,7 +107,7 @@ function ensureToggle(){
   const mode=currentMode();
   button.textContent=mode==='field'?'Full Office':'Field View';
   button.setAttribute('aria-label',mode==='field'?'Show full Business Office':'Show mobile Field View');
-  button.title=mode==='field'?'Show the complete Business Office on this phone':'Return to the simplified field-work phone view';
+  button.title=mode==='field'?'Show the complete Business Office on this phone':'Open the simplified field-work phone view';
   return true;
 }
 function pageDefinition(key){
@@ -192,9 +198,11 @@ window.H38_MOBILE_FIELD_VIEW=Object.freeze({
   build:BUILD,
   presentationOnly:true,
   officeSetupUntouched:true,
-  mobileDefault:'field',
+  mobileDefaultForStaff:'field',
+  mobileDefaultForOwnerAdmin:'office',
   desktopDefault:'office',
   fullOfficeAlwaysAvailable:true,
+  fieldViewAvailableToOwnerAdmin:true,
   sameBusinessOfficeData:true,
   samePermissions:true,
   separateAppRequired:false,
