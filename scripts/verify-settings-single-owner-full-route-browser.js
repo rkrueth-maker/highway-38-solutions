@@ -68,24 +68,31 @@ async function installRuntimeDiagnostics(page){
     const NativeMutationObserver=window.MutationObserver;
     if(typeof NativeMutationObserver!=='function')return;
     let observerId=0,burst=0,resetScheduled=false;
-    window.__h38MutationDiagnostics={storm:null,recent:[]};
+    const origins=Object.create(null),counts=Object.create(null);
+    const diagnostics=window.__h38MutationDiagnostics={storm:null,recent:[],origins,counts};
+    function topObservers(){
+      return Object.keys(counts).map(id=>({id:Number(id),count:counts[id],origin:origins[id]})).sort((a,b)=>b.count-a.count).slice(0,12);
+    }
     function WrappedMutationObserver(callback){
       const id=++observerId;
-      const origin=String(new Error(`MutationObserver ${id}`).stack||'').replace(/\s+/g,' ').slice(0,1200);
+      const origin=String(new Error(`MutationObserver ${id}`).stack||'').replace(/\s+/g,' ').slice(0,1600);
+      origins[id]=origin;counts[id]=0;
       const native=new NativeMutationObserver((records,observer)=>{
         if(!resetScheduled){
           resetScheduled=true;
-          setTimeout(()=>{burst=0;resetScheduled=false;window.__h38MutationDiagnostics.recent=[];},0);
+          setTimeout(()=>{
+            burst=0;resetScheduled=false;diagnostics.recent=[];
+            for(const key of Object.keys(counts))counts[key]=0;
+          },0);
         }
-        burst+=1;
-        window.__h38MutationDiagnostics.recent.push({id,count:burst,origin});
-        if(window.__h38MutationDiagnostics.recent.length>24)window.__h38MutationDiagnostics.recent.shift();
-        if(burst>250){
-          const storm={id,count:burst,origin,recent:window.__h38MutationDiagnostics.recent.slice()};
-          window.__h38MutationDiagnostics.storm=storm;
+        burst+=1;counts[id]=(counts[id]||0)+1;
+        diagnostics.recent.push({id,count:burst,observerCount:counts[id]});
+        if(diagnostics.recent.length>80)diagnostics.recent.shift();
+        if(burst>250&&!diagnostics.storm){
+          diagnostics.storm={id,count:burst,origin,top:topObservers(),recent:diagnostics.recent.slice()};
           observer.disconnect();
-          console.error('H38_MUTATION_OBSERVER_STORM',JSON.stringify(storm));
-          throw new Error(`MutationObserver storm from observer ${id}`);
+          console.error('H38_MUTATION_OBSERVER_STORM '+JSON.stringify(diagnostics.storm));
+          return;
         }
         return callback(records,observer);
       });
@@ -100,6 +107,7 @@ async function installRuntimeDiagnostics(page){
 async function boot(page,base,key){
   const errors=[];
   page.on('pageerror',error=>errors.push(String(error.stack||error.message||error).replace(/\s+/g,' ')));
+  page.on('console',message=>{const text=message.text();if(text.startsWith('H38_'))console.error(text);});
   await installRuntimeDiagnostics(page);
   await page.goto(`${base}/commercial-app/index.html${key==='northern-lakes'?'?businessKey=northern-lakes':''}`,{waitUntil:'domcontentloaded',timeout:20000});
   await page.waitForFunction(()=>typeof window.openPage==='function'&&window.state&&window.H38_DESKTOP_NAVIGATION_AUTHORITY,{timeout:12000});
@@ -115,6 +123,9 @@ async function boot(page,base,key){
   },{snap,key});
   await page.waitForFunction(()=>document.body.classList.contains('h38-auth-authorized')&&!!document.querySelector('#mainNav [data-page="settings"]'),{timeout:5000});
   await page.waitForTimeout(100);
+  const mutation=await page.evaluate(()=>window.__h38MutationDiagnostics||null);
+  if(mutation?.storm)console.error('H38_STARTUP_MUTATION_DIAGNOSTIC '+JSON.stringify(mutation.storm));
+  assert(!mutation?.storm,`${key} startup MutationObserver storm: ${JSON.stringify(mutation?.storm||null)}`);
   assert.deepEqual(errors,[],`${key} startup page errors: ${errors.join(' | ')}`);
   return errors;
 }
