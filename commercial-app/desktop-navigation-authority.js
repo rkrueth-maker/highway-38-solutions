@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-7-deep-wide-live';
+const BUILD='20260911-desktop-navigation-final-authority-8-late-auth-paint';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
@@ -95,7 +95,7 @@ function renderDesktopNavigation(){
   installNavigationStyle();
   const pages=allowedPages();
   if(!s?.snapshot?.user||!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}
-  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-2-live`;
+  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-3-late-auth`;
   if(nav.dataset.h38AccessSignature===signature){updateActive();return;}
   const defs=definitions();
   nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
@@ -118,6 +118,11 @@ renderNav.__h38OnboardingGate=true;
 renderNav.h38PhysicalNavStable=true;
 renderNav.h38MobileFirstFrameStable=true;
 function reconcile(){if(!desktop())return false;renderDesktopNavigation();return true;}
+function scheduleFinalReconcile(){
+  if(!desktop())return false;
+  queueMicrotask(()=>{if(desktop())renderDesktopNavigation();});
+  return true;
+}
 function shieldDesktopRenderNav(){
   if(!desktop()||desktopRenderNavWriteShield)return false;
   const descriptor=Object.getOwnPropertyDescriptor(window,'renderNav');
@@ -184,6 +189,10 @@ function loadEmployeeWorkspace(){return false;}
 installAsFinalAuthority();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueFinalAuthority,{once:true});else queueFinalAuthority();
 window.addEventListener('load',queueFinalAuthority,{once:true});
+window.addEventListener('h38:office-page-rendered',scheduleFinalReconcile);
+window.addEventListener('h38:business-snapshot-updated',scheduleFinalReconcile);
+window.addEventListener('h38:auth-cleared',scheduleFinalReconcile);
+window.addEventListener('pageshow',scheduleFinalReconcile);
 window.matchMedia?.('(max-width: 760px)')?.addEventListener?.('change',event=>{if(!event.matches)installAsFinalAuthority();});
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
@@ -193,8 +202,9 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:true,
   retired:false,
   build:BUILD,
-  replacement:'final grouped desktop authority over complete canonical Office routes with live account identity',
+  replacement:'final grouped desktop authority over complete canonical Office routes with late-auth repaint and live account identity',
   reconcile,
+  scheduleFinalReconcile,
   renderDesktopNavigation,
   allowedPages,
   canonicalOfficePages,
@@ -214,6 +224,10 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   completeOwnerOfficeNavigation:true,
   groupedOwnerOfficeNavigation:true,
   explicitSignedInAccountIdentity:true,
+  lateAuthNavigationPaint:true,
+  pageRenderNavigationReconcile:true,
+  snapshotNavigationReconcile:true,
+  authClearNavigationReconcile:true,
   completeOfficeOrder:COMPLETE_OFFICE_ORDER.slice(),
   navigationIntegrityLoader:false,
   employeeWorkspaceLoader:false,
