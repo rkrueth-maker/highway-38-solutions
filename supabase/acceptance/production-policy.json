@@ -1,10 +1,23 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_ref": "jqukmwtsgcsaruucnqja",
-  "forbidden_active_functions": [
-    "amanda-direct-signin",
-    "amanda-auth-finalize"
-  ],
+  "retired_live_functions": {
+    "amanda-direct-signin": {
+      "verify_jwt": true,
+      "ezbr_sha256": "1afc0c36e3d2c2200d1e09814bf2f595383e2ff9f592de75a5d6dc84ce865e4b"
+    },
+    "amanda-auth-finalize": {
+      "verify_jwt": true,
+      "ezbr_sha256": "30d45b57d179fa816c461cbb89a137b12d289857fa2f882d570f2257b84dfde1"
+    },
+    "one-time-amanda-auth-repair": {
+      "verify_jwt": true,
+      "ezbr_sha256": "139df97db2dadbd9dd75d665d99178bc0583a3d434177a3536672ae185fe16d7"
+    }
+  },
+  "required_live_function_hashes": {
+    "business-office-passwordless-login": "40fe43a9e0c176c94766fc75aef2ab537ffab32258fdb7ed62b7c0546b4f7ce3"
+  },
   "allowed_verify_jwt_false": [
     "business-office-invite-activation",
     "business-office-passwordless-login",
@@ -29,13 +42,24 @@
     "authenticated_security_definer_function_executable",
     "rls_enabled_no_policy"
   ],
-  "blocking_security_advisor_lints": [
-    "auth_leaked_password_protection",
-    "function_search_path_mutable"
+  "reviewed_security_advisor_findings": [
+    {
+      "lint": "function_search_path_mutable",
+      "name": "sanitize_reseller_store_discovery_tiles"
+    },
+    {
+      "lint": "anon_security_definer_function_executable",
+      "name": "h38_penny_cache_feed"
+    }
   ],
+  "launch_warning_security_advisor_lints": [
+    "auth_leaked_password_protection"
+  ],
+  "blocking_security_advisor_lints": [],
   "required_source_functions": [
     "h38-office-gateway",
     "business-office-invite-activation",
+    "business-office-passwordless-login",
     "h38-quote-ai",
     "h38-quote-delivery",
     "h38-site-scanner",
@@ -53,6 +77,7 @@
   "required_live_functions": [
     "h38-office-gateway",
     "business-office-invite-activation",
+    "business-office-passwordless-login",
     "h38-quote-ai",
     "h38-quote-delivery",
     "h38-site-scanner",

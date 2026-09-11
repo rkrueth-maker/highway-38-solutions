@@ -43,8 +43,13 @@ for p in runtime_files():
 check('runtime contains no Firebase/Firestore dependency',not fbhits,', '.join(sorted(set(fbhits))[:12]))
 check('browser/mobile source contains no Supabase server secret',not shits,', '.join(sorted(set(shits))[:12]))
 froot=ROOT/'supabase'/'functions'; tracked={p.name for p in froot.iterdir() if p.is_dir()} if froot.is_dir() else set()
-for slug in policy.get('forbidden_active_functions',[]): check(f'forbidden recovery function is not source-controlled: {slug}',slug not in tracked)
+for slug in policy.get('retired_live_functions',{}):
+    check(f'retired recovery function is not source-controlled: {slug}',slug not in tracked)
 for slug in policy.get('required_source_functions',[]): check(f'required Edge Function source exists: {slug}',(froot/slug/'index.ts').is_file())
+passwordless=froot/'business-office-passwordless-login'/'index.ts'
+pt=passwordless.read_text('utf-8',errors='ignore') if passwordless.is_file() else ''
+check('Office passwordless login cannot create Auth users','shouldCreateUser:false' in pt and 'shouldCreateUser:true' not in pt)
+check('Office passwordless login uses only publishable browser credentials','sb_publishable_' in pt and 'SUPABASE_SERVICE_ROLE_KEY' not in pt and 'auth.admin' not in pt)
 for name in ('multitenant_foundation.test.sql','security_invariants.test.sql'): check(f'database acceptance exists: {name}',(ROOT/'supabase/tests/database'/name).is_file())
 check('browser config contains only publishable key','sb_publishable_' in ct)
 check('browser config has no secret/service-role key',not any(x.search(ct) for x in secrets))
