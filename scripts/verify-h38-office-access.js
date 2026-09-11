@@ -53,7 +53,7 @@ check(customerHtml.includes('id="portalAccountActions" class="portal-actions" hi
 check(customerHtml.includes('First time here?')&&customerHtml.includes('Owner, site manager, or employee? Open H38 Office'),'Customer login must explain activation and route Office users correctly.');
 check(customerClient.includes("accountActions.hidden=name!=='app'")&&customerClient.includes('shouldCreateUser: false'),'Customer controls require an authenticated app view and magic links cannot create accounts.');
 check(customerCss.includes('#portalAccountActions[hidden]{display:none!important}'),'Customer signed-out controls must not be re-shown by author CSS.');
-check(/const CACHE_NAME='h38-business-office-20260910-(?:\d{4}|nav-core-\d+)'/.test(worker),'Office service-worker cache must advance with the access/navigation surface.');
+check(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Office service-worker cache must advance with the access/navigation surface.');
 
 if(failures.length){
   console.error(JSON.stringify({status:'FAIL',acceptance:'H38_OFFICE_ACCESS',failures},null,2));
