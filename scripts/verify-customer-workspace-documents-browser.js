@@ -6,6 +6,7 @@ const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const authority=path.join(root,'commercial-app/customer-360-authority.js');
 const runtime=path.join(root,'commercial-app/customer-workspace-documents.js');
+const renderHook=path.join(root,'commercial-app/customer-workspace-render-hook.js');
 const app04=fs.readFileSync(path.join(root,'commercial-app/app-04.js'),'utf8');
 const app13=fs.readFileSync(path.join(root,'commercial-app/app-13.js'),'utf8');
 const app14=fs.readFileSync(path.join(root,'commercial-app/app-14.js'),'utf8');
@@ -18,6 +19,7 @@ assert(!/id="documentInput"[^>]*accept=/.test(app13),'global document picker mus
 assert(app14.includes('H38_CUSTOMER_WORKSPACE_DOCUMENTS?.uploadLargeFile'),'files over the offline threshold must route to the resumable uploader');
 assert(app14.includes('customerId=attachmentCustomerId'),'attachment queue must retain the customer relationship');
 assert(bootstrap.includes('customer-workspace-documents.js?build=${CUSTOMER_WORKSPACE_BUILD}'),'the live-first bootstrap must load the customer workspace release');
+assert(bootstrap.includes('customer-workspace-render-hook.js?build=${CUSTOMER_RENDER_HOOK_BUILD}'),'the live-first bootstrap must attach customer workspace after Customer 360 renders');
 const liveFirst=serviceWorker.split('const LIVE_FIRST=new Set([',2)[1]?.split(']);',1)[0]||'';
 assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must remain live-first so installed Office clients receive the customer workspace release');
 (async()=>{
@@ -55,6 +57,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.waitForFunction(()=>window.H38_CUSTOMER_360&&window.renderCustomers.__h38Customer360===true);
     await page.evaluate(()=>{H38_CUSTOMER_360.selectedCustomerId='C-1';renderCustomers();});
     await page.addScriptTag({path:runtime});
+    await page.addScriptTag({path:renderHook});
     await page.waitForSelector('[data-h38-customer-directory]');
     await page.waitForFunction(()=>document.querySelectorAll('[data-h38-customer-card]').length===2);
     assert.equal(await page.locator('[data-h38-customer-card="C-2"] .h38-customer-card-meta').textContent(),'0 locations · 1 file','customer-linked source document should be counted without a second database');
@@ -78,8 +81,10 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     const upload=await page.evaluate(()=>window.__uploads[0]);
     assert.deepEqual(upload[0],['manual.docx','estimate.xlsx']);assert.equal(upload[1],'Customer');assert.equal(upload[2],'C-2');assert.equal(upload[3],'Internal');assert.equal(upload[4].customerId,'C-2');
     const contract=await page.evaluate(()=>window.H38_CUSTOMER_WORKSPACE_DOCUMENTS);
+    const hookContract=await page.evaluate(()=>window.H38_CUSTOMER_WORKSPACE_RENDER_HOOK);
     assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);assert.equal(contract.cacheBackstop,true);
+    assert.equal(hookContract.eventDriven,true);assert.equal(hookContract.continuousPolling,false);
     assert.deepEqual(errors,[],'customer workspace browser flow should not raise page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['clickable customer cards','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['clickable customer cards','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
