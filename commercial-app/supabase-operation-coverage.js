@@ -43,6 +43,26 @@
     return output;
   }
 
+  function activeRole() {
+    const snapshotRole=window.state?.snapshot?.user?.roleName || window.state?.snapshot?.user?.roleId || window.state?.snapshot?.user?.role;
+    return text(snapshotRole).trim().toLowerCase();
+  }
+
+  function suppressStaffUsageOperation(operation) {
+    return activeRole()==='staff' && text(operation && operation.action).trim().toUpperCase()==='RECORD_USAGE_EVENT';
+  }
+
+  function suppressedUsageResult(operation) {
+    return {
+      operationId:operation.operationId || operation.id,
+      status:'SYNCED',
+      recordType:operation.recordType || 'Usage Event',
+      recordId:operation.recordId || operation.operationId || operation.id,
+      suppressed:true,
+      suppressionReason:'STAFF_USAGE_TELEMETRY_RLS_BOUNDARY'
+    };
+  }
+
   async function user() {
     const {data,error}=await client().auth.getSession();
     if (error) throw error;
@@ -210,9 +230,10 @@
     if (action !== 'completionSync') return previousRequest.call(this,action,args,timeout);
 
     const operations=Array.isArray(args && args.operations) ? args.operations : [];
-    const covered=operations.filter(operation=>COVERED_ACTIONS.has(operation.action));
-    const remaining=operations.filter(operation=>!COVERED_ACTIONS.has(operation.action));
-    const results=[];
+    const suppressedUsage=operations.filter(suppressStaffUsageOperation);
+    const covered=operations.filter(operation=>!suppressStaffUsageOperation(operation)&&COVERED_ACTIONS.has(operation.action));
+    const remaining=operations.filter(operation=>!suppressStaffUsageOperation(operation)&&!COVERED_ACTIONS.has(operation.action));
+    const results=suppressedUsage.map(suppressedUsageResult);
 
     for (const operation of covered) {
       try {
@@ -230,6 +251,6 @@
       results.push(...(response.results || []));
     }
 
-    return {status:'PASS',transport:'supabase-operational-app',results,externalActionOccurred:false};
+    return {status:'PASS',transport:'supabase-operational-app',results,externalActionOccurred:false,staffUsageTelemetrySuppressed:suppressedUsage.length>0};
   };
 })();
