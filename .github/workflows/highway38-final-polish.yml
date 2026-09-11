@@ -35,10 +35,14 @@ jobs:
           node -c commercial-app/office-document-packet.js
           node -c commercial-app/office-reference-samples.js
           node -c commercial-app/supabase-client-installer.js
+          node -c commercial-app/settings-runtime-authority.js
+          node -c commercial-app/play-compliance.js
           node -c commercial-app/live-customer-navigation-guard-20260910.js
+          node -c commercial-app/service-worker.js
           node -c scripts/verify-office-document-export.js
           node -c scripts/verify-office-reference-samples-browser.js
           node -c scripts/verify-settings-runtime-stability-browser.js
+          node -c scripts/verify-settings-full-runtime-browser.js
           node scripts/verify-office-document-export.js
       - name: Verify owner mobile smoke contract
         run: node scripts/verify-owner-mobile-smoke.js
@@ -100,11 +104,16 @@ jobs:
         run: |
           set -o pipefail
           node scripts/verify-office-reference-samples-browser.js 2>&1 | tee artifacts/final-polish/office-reference-samples-browser.txt
-      - name: Verify Settings runtime stays responsive
+      - name: Verify legacy Settings regression
         shell: bash
         run: |
           set -o pipefail
           node scripts/verify-settings-runtime-stability-browser.js 2>&1 | tee artifacts/final-polish/settings-runtime-stability-browser.txt
+      - name: Verify full shared Settings runtime for H38 and Northern Lakes
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-settings-full-runtime-browser.js 2>&1 | tee artifacts/final-polish/settings-full-runtime-browser.txt
       - name: Verify consolidated desktop navigation core
         shell: bash
         run: |
@@ -132,6 +141,7 @@ jobs:
             artifacts/final-polish/office-scale-workflow-browser.txt
             artifacts/final-polish/office-reference-samples-browser.txt
             artifacts/final-polish/settings-runtime-stability-browser.txt
+            artifacts/final-polish/settings-full-runtime-browser.txt
             artifacts/final-polish/northern-lakes-*.png
             artifacts/final-polish/profitability-browser.txt
             artifacts/final-polish/business-office-review-demo-desktop-today.png

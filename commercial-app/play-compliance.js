@@ -1,6 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260911-play-compliance-event-driven-1';
+const BUILD='20260911-play-compliance-event-driven-2-settings-authority-bootstrap';
+const SETTINGS_AUTHORITY_BUILD='20260911-shared-settings-runtime-authority-1';
 const PRIVACY_URL='https://highway38solutions.com/privacy.html';
 const DELETE_URL='https://highway38solutions.com/account-deletion.html';
 let scheduled=false;
@@ -23,6 +24,7 @@ function addCard(){
 
 function wrapSettings(){
   try{
+    if(window.H38_SETTINGS_RUNTIME_AUTHORITY)return;
     if(typeof renderSettings!=='function'||renderSettings.__h38PlayCompliance)return;
     const original=renderSettings;
     const wrapped=function(){const result=original.apply(this,arguments);queueMicrotask(addCard);return result;};
@@ -32,8 +34,17 @@ function wrapSettings(){
     window.renderSettings=wrapped;
   }catch(_){}
 }
+function loadSettingsAuthority(){
+  if(window.H38_SETTINGS_RUNTIME_AUTHORITY||document.querySelector('script[data-h38-settings-runtime-authority]'))return false;
+  const script=document.createElement('script');
+  script.src=`./settings-runtime-authority.js?build=${SETTINGS_AUTHORITY_BUILD}`;
+  script.async=false;
+  script.dataset.h38SettingsRuntimeAuthority='true';
+  (document.head||document.documentElement).appendChild(script);
+  return true;
+}
 
-function apply(){wrapSettings();addCard();}
+function apply(){wrapSettings();addCard();loadSettingsAuthority();}
 function schedule(){
   if(scheduled)return;
   scheduled=true;
@@ -46,5 +57,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 apply();
 setTimeout(apply,400);
 setTimeout(apply,1200);
-window.H38_PLAY_COMPLIANCE=Object.freeze({enabled:true,build:BUILD,privacyUrl:PRIVACY_URL,accountDeletionUrl:DELETE_URL,eventDriven:true,globalMutationObserver:false});
+window.H38_PLAY_COMPLIANCE=Object.freeze({enabled:true,build:BUILD,privacyUrl:PRIVACY_URL,accountDeletionUrl:DELETE_URL,eventDriven:true,globalMutationObserver:false,settingsAuthorityBootstrap:true,settingsAuthorityBuild:SETTINGS_AUTHORITY_BUILD});
 })();
