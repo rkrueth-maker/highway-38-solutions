@@ -9,6 +9,17 @@ const root=path.resolve(__dirname,'..');
 const officeRoot=path.join(root,'commercial-app');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'};
 
+function verifySingleOwnerSource(){
+  const canonical=fs.readFileSync(path.join(officeRoot,'app-17.js'),'utf8');
+  const globals=fs.readFileSync(path.join(officeRoot,'supabase-runtime-globals.js'),'utf8');
+  assert(/function renderSettings\s*\(/.test(canonical),'canonical Settings renderer is missing');
+  assert(globals.includes('window.renderSettings = renderSettings;'),'canonical Settings global export is missing');
+  for(const name of fs.readdirSync(officeRoot).filter(name=>name.endsWith('.js')&&!['app-17.js','supabase-runtime-globals.js'].includes(name))){
+    const source=fs.readFileSync(path.join(officeRoot,name),'utf8');
+    assert(!/wrapRenderer\(['"]renderSettings['"]|wrap\(['"]renderSettings['"]|window\.renderSettings\s*=|['"]renderSettings['"]\s*\]\s*\.forEach\(wrap\)/.test(source),`${name} attempts to own or wrap renderSettings`);
+  }
+}
+
 function server(){
   return http.createServer((req,res)=>{
     let pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
@@ -131,6 +142,7 @@ async function verifyTenant(browser,base,key){
 }
 
 (async()=>{
+  verifySingleOwnerSource();
   const local=server();await new Promise(resolve=>local.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${local.address().port}`;
   const browser=await chromium.launch({headless:true});
