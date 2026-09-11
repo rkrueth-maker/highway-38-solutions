@@ -141,12 +141,12 @@ const check=(condition,message)=>{if(condition)console.log('PASS:',message);else
   check(reassert,'shared Settings authority reasserts after a late wrapper assignment');
   check(errors.length===0,`browser runtime errors: ${errors.join(' | ')}`);
 
-  check(sources.worker.includes("CACHE_NAME='h38-business-office-20260911-settings-stability-1'"),'service worker cache generation is bumped for Settings repair');
+  check(sources.worker.includes("CACHE_NAME='h38-business-office-20260911-1232'"),'service worker cache generation is bumped for Settings repair');
   for(const file of ['app-17.js','supabase-data.js','supabase-storage-provider.js','supabase-client-installer.js','settings-runtime-authority.js','play-compliance.js','office-reference-samples.js','live-customer-navigation-guard-20260910.js'])check(sources.worker.includes(`'${file}'`),`service worker carries current Settings file ${file}`);
   check(!/new MutationObserver/.test(sources.authority),'shared Settings authority uses no MutationObserver');
   check(sources.play.includes('settings-runtime-authority.js'),'live-first compliance runtime bootstraps the shared Settings authority');
 
   await browser.close();
   if(failures.length){console.error(JSON.stringify({status:'FAIL',acceptance:'SHARED_SETTINGS_FULL_RUNTIME',failures},null,2));process.exit(1);}
-  console.log(JSON.stringify({status:'PASS',acceptance:'SHARED_SETTINGS_FULL_RUNTIME',tenants:['highway38','northern-lakes'],automaticSettingsNetwork:false,repeatedRenders:25,cacheGeneration:'20260911-settings-stability-1',externalActionsOccurred:false},null,2));
+  console.log(JSON.stringify({status:'PASS',acceptance:'SHARED_SETTINGS_FULL_RUNTIME',tenants:['highway38','northern-lakes'],automaticSettingsNetwork:false,repeatedRenders:25,cacheGeneration:'20260911-1232',externalActionsOccurred:false},null,2));
 })().catch(error=>{console.error(error);process.exit(1);});
