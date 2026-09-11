@@ -1,0 +1,23 @@
+name: Diagnose Office mutation loop
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/**'
+      - 'scripts/diagnose-office-mutation-loop.js'
+      - '.github/workflows/diagnose-office-mutation-loop.yml'
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/diagnose-office-mutation-loop.js
