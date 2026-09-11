@@ -1,8 +1,16 @@
 (function(){
 'use strict';
-const BUILD='20260910-desktop-navigation-final-authority-5';
+const BUILD='20260910-desktop-navigation-final-authority-6-complete-office';
 const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
+const OFFICE_ACCESS_BUILD='20260910-office-access-completion-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
+const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings']);
+const NAV_GROUPS=Object.freeze([
+  Object.freeze(['Daily work',Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field'])]),
+  Object.freeze(['Money & accounting',Object.freeze(['money','accounting','payroll','tax','reports'])]),
+  Object.freeze(['Team & assets',Object.freeze(['people','inventory','fleet','documents'])]),
+  Object.freeze(['Business',Object.freeze(['social','controls','ai','assistant','settings'])])
+]);
 const OFFICE_REQUIREMENTS=Object.freeze({
   customers:['viewCustomers','manageWork','manageQuotes'],
   meetings:['viewCustomers','manageCommunications','manageWork'],
@@ -34,11 +42,14 @@ function definitions(){try{return window.PAGE_DEFS||(typeof PAGE_DEFS!=='undefin
 function roleName(user={}){return String(user.roleId||user.roleName||user.role||'').trim().toLowerCase();}
 function can(user,capability){if(!user)return false;if(user.owner===true||user.permissions?.all===true)return true;return user.permissions?.[capability]===true;}
 function canonicalOfficePages(){
-  const pages=Array.isArray(window.H38_OFFICE_PAGES)?window.H38_OFFICE_PAGES.slice():[];
-  if(!pages.includes('meetings')){const at=Math.max(0,pages.indexOf('customers')+1);pages.splice(at,0,'meetings');}
-  const defs=definitions();
-  if(defs.assistant&&!pages.includes('assistant')){const at=pages.indexOf('settings');pages.splice(at>=0?at:pages.length,0,'assistant');}
-  return Array.from(new Set(pages));
+  const source=Array.isArray(window.H38_OFFICE_PAGES)?window.H38_OFFICE_PAGES.slice():[];
+  const defs=definitions(),available=new Set(source);
+  COMPLETE_OFFICE_ORDER.forEach(page=>{if(defs[page])available.add(page);});
+  if(defs.meetings)available.add('meetings');
+  if(defs.assistant)available.add('assistant');
+  const ordered=COMPLETE_OFFICE_ORDER.filter(page=>available.has(page));
+  source.forEach(page=>{if(page!=='measure'&&!ordered.includes(page))ordered.push(page);});
+  return Array.from(new Set(ordered));
 }
 function allowedPages(){
   const s=officeState(),user=s?.snapshot?.user;
@@ -53,6 +64,13 @@ function allowedPages(){
     return !requirements||requirements.some(capability=>can(user,capability));
   });
 }
+function installNavigationStyle(){
+  if(document.getElementById('h38CompleteDesktopNavStyle'))return false;
+  const style=document.createElement('style');style.id='h38CompleteDesktopNavStyle';style.textContent=`
+@media(min-width:761px){#mainNav.main-nav{overflow-y:auto;overscroll-behavior:contain;padding-bottom:28px}.h38-nav-section-label{padding:14px 12px 5px;font-size:.68rem;font-weight:900;letter-spacing:.075em;text-transform:uppercase;color:var(--muted,#667085);user-select:none}.h38-nav-section-label:first-child{padding-top:5px}#mainNav.main-nav>button[data-page]{flex:0 0 auto}}
+`;
+  document.head.appendChild(style);return true;
+}
 function updateActive(page=officeState()?.page){
   const nav=document.getElementById('mainNav');if(!nav)return;
   nav.querySelectorAll(':scope > button[data-page]').forEach(button=>{
@@ -61,23 +79,31 @@ function updateActive(page=officeState()?.page){
     if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
   });
 }
+function groupedNavigationHtml(pages,defs,current){
+  const pageSet=new Set(pages),rendered=new Set(),chunks=[];
+  NAV_GROUPS.forEach(([group,keys])=>{
+    const visible=keys.filter(key=>pageSet.has(key));if(!visible.length)return;
+    chunks.push(`<div class="h38-nav-section-label" data-h38-nav-group="${group}">${group}</div>`);
+    visible.forEach(key=>{const def=defs[key]||['•',key];rendered.add(key);chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`);});
+  });
+  pages.filter(key=>!rendered.has(key)).forEach(key=>{const def=defs[key]||['•',key];chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`);});
+  return chunks.join('');
+}
 function renderDesktopNavigation(){
   const s=officeState(),nav=document.getElementById('mainNav');if(!nav)return;
+  installNavigationStyle();
   const pages=allowedPages();
   if(!s?.snapshot?.user||!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}
-  const signature=`${s.shell||'office'}|${pages.join('|')}`;
+  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-1`;
   if(nav.dataset.h38AccessSignature===signature){updateActive();return;}
   const defs=definitions();
   nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
   delete nav.dataset.h38PrimaryNav;
-  nav.innerHTML=pages.map(key=>{
-    const def=defs[key]||['•',key];
-    return `<button type="button" data-page="${String(key)}" class="${key===s.page?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`;
-  }).join('');
+  nav.innerHTML=groupedNavigationHtml(pages,defs,s.page);
   nav.dataset.h38AccessSignature=signature;
   nav.querySelectorAll(':scope > button[data-page]').forEach(button=>button.onclick=()=>window.openPage?.(button.dataset.page));
   updateActive();
-  window.dispatchEvent(new CustomEvent('h38:office-navigation-access-updated',{detail:{shell:s.shell,pages:pages.slice()}}));
+  window.dispatchEvent(new CustomEvent('h38:office-navigation-access-updated',{detail:{shell:s.shell,pages:pages.slice(),grouped:true}}));
 }
 function renderNav(){
   if(!desktop())return inheritedRenderNav?.apply(this,arguments);
@@ -144,6 +170,10 @@ function loadProfitabilityLayer(){
   document.body.appendChild(script);
   return true;
 }
+function loadOfficeAccessCompletion(){
+  if(window.H38_OFFICE_ACCESS_COMPLETION||document.querySelector('script[data-h38-office-access-completion]'))return false;
+  const script=document.createElement('script');script.src=`./office-access-completion.js?build=${OFFICE_ACCESS_BUILD}`;script.async=false;script.dataset.h38OfficeAccessCompletion='true';document.body.appendChild(script);return true;
+}
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
 installAsFinalAuthority();
@@ -152,23 +182,30 @@ window.addEventListener('load',queueFinalAuthority,{once:true});
 window.matchMedia?.('(max-width: 760px)')?.addEventListener?.('change',event=>{if(!event.matches)installAsFinalAuthority();});
 installProfitabilityInputSafety();
 loadProfitabilityLayer();
+loadOfficeAccessCompletion();
 window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   enabled:true,
   retired:false,
   build:BUILD,
-  replacement:'final desktop authority over canonical Office routes',
+  replacement:'final grouped desktop authority over complete canonical Office routes',
   reconcile,
   renderDesktopNavigation,
   allowedPages,
   canonicalOfficePages,
+  groupedNavigationHtml,
   installAsFinalAuthority,
   shieldDesktopRenderNav,
   loadProfitabilityLayer,
+  loadOfficeAccessCompletion,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
+  officeAccessBuild:OFFICE_ACCESS_BUILD,
+  completeOwnerOfficeNavigation:true,
+  groupedOwnerOfficeNavigation:true,
+  completeOfficeOrder:COMPLETE_OFFICE_ORDER.slice(),
   navigationIntegrityLoader:false,
   employeeWorkspaceLoader:false,
   employeeWorkspaceStartupAuthority:'none',
@@ -178,6 +215,7 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   staffAssistantHidden:true,
   staffNavLoadMask:false,
   canonicalOfficePermissionResolver:true,
+  permissionEscalation:false,
   wrapperChainPermissionDependency:false,
   finalAuthorityReassertedAfterDeferredWrappers:true,
   desktopRenderNavWriteShield:true,
@@ -193,6 +231,8 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   automaticCustomerSending:false,
   automaticPurchase:false,
   automaticPayment:false,
-  automaticScheduling:false
+  automaticScheduling:false,
+  automaticPayrollFunding:false,
+  automaticTaxFiling:false
 });
 })();

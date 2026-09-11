@@ -1,0 +1,42 @@
+name: Verify complete Office access
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/office-access-completion.js'
+      - 'commercial-app/app-13.js'
+      - 'commercial-app/app-19.js'
+      - 'scripts/verify-complete-office-access-browser.js'
+      - '.github/workflows/verify-complete-office-access.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/desktop-navigation-authority.js'
+      - 'commercial-app/office-access-completion.js'
+      - 'commercial-app/app-13.js'
+      - 'commercial-app/app-19.js'
+      - 'scripts/verify-complete-office-access-browser.js'
+      - '.github/workflows/verify-complete-office-access.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify complete Owner and Staff Office access
+        run: node scripts/verify-complete-office-access-browser.js
