@@ -6,6 +6,7 @@ on:
     paths:
       - 'commercial-app/index.html'
       - 'commercial-app/app-17.js'
+      - 'commercial-app/assistant-command-runtime.js'
       - 'commercial-app/supabase-runtime-globals.js'
       - 'commercial-app/supabase-client-installer.js'
       - 'commercial-app/supabase-storage-provider.js'
@@ -20,6 +21,7 @@ on:
     paths:
       - 'commercial-app/index.html'
       - 'commercial-app/app-17.js'
+      - 'commercial-app/assistant-command-runtime.js'
       - 'commercial-app/supabase-runtime-globals.js'
       - 'commercial-app/supabase-client-installer.js'
       - 'commercial-app/supabase-storage-provider.js'
