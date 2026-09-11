@@ -46,3 +46,43 @@ body.h38-employee-mode #h38TimeClockCard{display:none!important}
  body.h38-employee-mode>.app-shell>#mainNav{width:auto!important;max-width:none!important;min-width:0!important;align-self:start!important}
  body.h38-employee-mode>.app-shell>#mainContent{width:auto!important;max-width:none!important;min-width:0!important;margin:0!important}
 }
+
+/* Final presentation polish: keep the accepted Office architecture while making the shared shell calmer and easier to operate. */
+@media(max-width:760px){
+ html body .topbar{gap:8px!important;padding-left:10px!important;padding-right:10px!important}
+ .topbar .brand{gap:8px;min-width:0}
+ .topbar .brand-logo{width:36px;height:36px;flex:0 0 36px}
+ .topbar .brand strong{font-size:.9rem;line-height:1.08}
+ .topbar .top-actions{gap:4px}
+ .topbar .top-actions .icon-button{width:40px;min-width:40px}
+ .business-bar{row-gap:3px}
+ .business-bar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .main-nav{gap:2px!important;overflow-x:hidden!important;overscroll-behavior-x:none;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))!important;background:rgba(255,255,255,.97)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);scrollbar-width:none}
+ .main-nav::-webkit-scrollbar{display:none}
+ .main-nav button{flex:1 1 20%!important;min-width:0!important;max-width:none!important;min-height:58px!important;padding:5px 3px!important;border-radius:11px!important}
+ .main-nav button .nav-icon{width:auto!important;font-size:1.05rem;line-height:1}
+ .main-nav button span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.66rem;line-height:1.1}
+ .main-nav button.active{background:#e7f0f6!important;border-color:#cfdee8!important;box-shadow:inset 0 -2px 0 var(--blue,#174a70)!important}
+ #mainContent{padding-bottom:calc(102px + env(safe-area-inset-bottom,0px))!important}
+ .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
+ .page-head{padding-left:1px;padding-right:1px}
+ .page-head h1{line-height:1.05}
+ .page-tools{gap:6px}
+ .card{box-shadow:0 4px 14px rgba(11,36,56,.055)!important}
+ .row{overflow-wrap:anywhere}
+ .row-actions{gap:6px}
+ .row-actions button{min-height:40px}
+}
+@media(max-width:360px){
+ .topbar .brand strong{font-size:.84rem}
+ .main-nav button span:last-child{font-size:.6rem}
+}
+@media(min-width:761px){
+ .main-nav{scrollbar-width:thin;scrollbar-color:#c8d5de transparent}
+ .main-nav button{position:relative}
+ .main-nav button.active::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:999px;background:var(--orange,#d86d2b)}
+ .page-head{padding-top:2px}
+ .card{transition:border-color .16s ease,box-shadow .16s ease}
+ .card:hover{border-color:#ccd9e1}
+}
+@media(hover:none){.card:hover{border-color:var(--line,#d9e2e8)}}
