@@ -36,6 +36,7 @@ on:
 permissions:
   contents: read
 
+# The browser gate settles prior-route work, then attributes network activity only to Settings.
 jobs:
   verify:
     runs-on: ubuntu-latest
