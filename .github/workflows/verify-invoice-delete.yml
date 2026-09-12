@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - 'commercial-app/app-13.js'
+      - 'commercial-app/invoice-delete-lifecycle-runtime.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'scripts/verify-invoice-delete.js'
       - '.github/workflows/verify-invoice-delete.yml'
   push:
     branches: [main]
     paths:
       - 'commercial-app/app-13.js'
+      - 'commercial-app/invoice-delete-lifecycle-runtime.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'scripts/verify-invoice-delete.js'
 
 permissions:
@@ -26,6 +30,8 @@ jobs:
       - name: JavaScript syntax
         run: |
           node -c commercial-app/app-13.js
+          node -c commercial-app/invoice-delete-lifecycle-runtime.js
+          node -c commercial-app/live-customer-navigation-guard-20260910.js
           node -c scripts/verify-invoice-delete.js
       - name: Invoice delete contract
         run: node scripts/verify-invoice-delete.js
