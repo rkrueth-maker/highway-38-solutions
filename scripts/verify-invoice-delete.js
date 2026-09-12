@@ -1,6 +1,7 @@
 const fs=require('fs');
 const money=fs.readFileSync('commercial-app/app-13.js','utf8');
 const lifecycle=fs.readFileSync('commercial-app/invoice-delete-lifecycle-runtime.js','utf8');
+const printDelete=fs.readFileSync('commercial-app/invoice-print-delete-runtime.js','utf8');
 const loader=fs.readFileSync('commercial-app/live-customer-navigation-guard-20260910.js','utf8');
 const failures=[];
 const check=(condition,message)=>{if(!condition)failures.push(message);};
@@ -19,6 +20,12 @@ check(lifecycle.includes("name==='invoices'"), 'job lifecycle compatibility must
 check(lifecycle.includes('list.filter(row=>!removed(row))'), 'deleted invoices must be excluded from job lifecycle analysis');
 check(lifecycle.includes('api.analyzeJob=job=>withActiveInvoices'), 'analyzeJob must ignore deleted invoices');
 check(lifecycle.includes('api.all=()=>withActiveInvoices'), 'all lifecycle contexts must ignore deleted invoices');
+check(printDelete.includes('[data-h38-record-pdf="invoice"]'), 'print-adjacent delete must locate the invoice print control');
+check(printDelete.includes('[data-delete-invoice]'), 'print-adjacent delete must reuse the protected invoice delete control');
+check(printDelete.includes("button.textContent='Delete'"), 'print-adjacent invoice Delete button is missing');
+check(printDelete.includes("printButton.insertAdjacentElement('afterend',button)"), 'invoice Delete must be placed directly beside the print control');
+check(printDelete.includes('currentDelete.click()'), 'print-adjacent Delete must call the existing protected delete path');
 check(loader.includes('invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1'), 'shared H38/Northern loader must load invoice lifecycle compatibility');
+check(loader.includes('invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1'), 'shared H38/Northern loader must load print-adjacent invoice delete');
 if(failures.length){console.error(failures.map(x=>'FAIL: '+x).join('\n'));process.exit(1);}
 console.log('Invoice delete contract verified.');
