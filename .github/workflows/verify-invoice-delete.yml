@@ -1,0 +1,31 @@
+name: Verify invoice delete
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/app-13.js'
+      - 'scripts/verify-invoice-delete.js'
+      - '.github/workflows/verify-invoice-delete.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/app-13.js'
+      - 'scripts/verify-invoice-delete.js'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: JavaScript syntax
+        run: |
+          node -c commercial-app/app-13.js
+          node -c scripts/verify-invoice-delete.js
+      - name: Invoice delete contract
+        run: node scripts/verify-invoice-delete.js
