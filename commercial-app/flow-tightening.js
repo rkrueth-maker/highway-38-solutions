@@ -1,6 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260912-office-quick-flow-1';
+const BUILD='20260826-flow-first-frame-stability-2';
+const QUICK_FLOW_BUILD='20260912-office-quick-flow-1';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
@@ -209,7 +210,7 @@ function install(){
   }
   const observer=new MutationObserver(()=>{decorateFieldVisit();});observer.observe(document.documentElement,{childList:true,subtree:true});
   scheduleWorkEnhance();if(officeState()?.page==='work')enhanceCreationFlow('work');if(officeState()?.page==='money')enhanceCreationFlow('money');if(officeState()?.page==='customers')enhanceCustomers();decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,workEnhanceSynchronous:true,customerEnhanceSynchronous:true,postPaintJobsCustomerMutation:false,preStartupMobileNavRespected:true,plusLauncher:false,moreLauncher:false,quickCreationChooser:true,workDefaultAction:'request',moneyDefaultAction:'invoice',jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,workEnhanceSynchronous:true,customerEnhanceSynchronous:true,postPaintJobsCustomerMutation:false,preStartupMobileNavRespected:true,plusLauncher:false,moreLauncher:false,quickCreationChooser:true,quickCreationBuild:QUICK_FLOW_BUILD,workDefaultAction:'request',moneyDefaultAction:'invoice',jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
