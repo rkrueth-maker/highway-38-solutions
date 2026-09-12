@@ -35,7 +35,7 @@ def test_lazy_loader_and_workspace_builds_stay_aligned():
     runtime = RUNTIME.read_text(encoding="utf-8")
     source = WORKSPACE.read_text(encoding="utf-8")
     hook = RENDER_HOOK.read_text(encoding="utf-8")
-    build = "20260911-customer-workspace-documents-3"
+    build = "20260912-customer-card-info-1"
     hook_build = "20260911-customer-workspace-render-hook-1"
     assert f"CUSTOMER_WORKSPACE_BUILD='{build}'" in runtime
     assert f"const BUILD='{build}'" in source

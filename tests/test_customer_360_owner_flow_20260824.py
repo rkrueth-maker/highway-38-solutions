@@ -5,6 +5,7 @@ C360=(ROOT/'commercial-app/customer-360-authority.js').read_text()
 CSS=(ROOT/'commercial-app/customer-360-authority.css').read_text()
 BROWSER=(ROOT/'commercial-app/customer-360-browser-integration-v3.js').read_text()
 INDEX=(ROOT/'commercial-app/index.html').read_text()
+MODULE_CONTRACT=(ROOT/'apps-script/business-office/BusinessOffice_ModuleContract.gs').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
@@ -49,6 +50,8 @@ def test_customer_file_shows_imported_contact_address_and_rate_fields():
         assert marker in C360
     for marker in ['.h38-c360-customer-details','.h38-c360-detail-columns','.h38-c360-detail-line']:
         assert marker in CSS
+    for marker in ['Alternate Email','Service Address','Billing Address','Hourly Rate','Mowing Rate','Plowing Rate','Travel / Service Call Charge']:
+        assert marker in MODULE_CONTRACT
 
 
 def test_activity_first_progressive_disclosure_reduces_customer_page_clutter():

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-customer-workspace-documents-3';
+const BUILD='20260912-customer-card-info-1';
 const BUCKET='business-office-files';
 const LARGE_FILE_THRESHOLD=3000000;
 const TUS_CHUNK=6*1024*1024;
@@ -12,6 +12,8 @@ const rows=name=>Array.isArray(snap()[name])?snap()[name]:[];
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const customerId=row=>text(value(row,'Customer ID','customerId','id'));
 const customerName=row=>text(value(row,'Customer Name','name'))||'Customer';
+const customerAddress=row=>{const street=[value(row,'Service Address','Address'),value(row,'Service Address 2','Address 2')].map(text).filter(Boolean).join(', '),locality=[value(row,'Service City','City'),value(row,'Service State','State'),value(row,'Service ZIP','ZIP')].map(text).filter(Boolean).join(' ');return[street,locality].filter(Boolean).join(', ');};
+const customerRate=row=>{for(const field of ['Recurring Service Rate','Mowing Rate','Plowing Rate','Property Maintenance Rate','Hourly Rate','Flat Rate','Minimum Charge','Equipment Rate','Travel / Service Call Charge','Contract Pricing']){const amount=text(value(row,field));if(amount)return`${field}: ${amount}`;}return'';};
 const now=()=>new Date().toISOString();
 const uid=prefix=>`${prefix}-${crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2)}`;
 function truthy(v){return v===true||['true','1','yes'].includes(text(v).toLowerCase());}
@@ -25,7 +27,7 @@ function renderDirectory(){
   const main=document.getElementById('mainContent'),c360=window.H38_CUSTOMER_360,top=main?.querySelector('.h38-c360');if(!main||!top||!c360)return;
   const list=visibleCustomers(),selected=selectedId(),signature=[selected,...list.map(row=>`${customerId(row)}:${value(row,'Updated Time','updatedAt')}`),rows('documents').length,rows('properties').length].join('|'),existing=main.querySelector('[data-h38-customer-directory]');if(existing?.dataset.signature===signature)return;existing?.remove();
   const section=document.createElement('section');section.className='card h38-customer-directory';section.dataset.h38CustomerDirectory='1';section.dataset.signature=signature;
-  section.innerHTML=`<div class="h38-customer-directory-head"><div><span class="h38-c360-kicker">CUSTOMERS</span><h2>Customer cards</h2><p class="muted small">Open a customer to edit details, add locations or notes, and upload files to the customer record.</p></div><button type="button" class="secondary" data-h38-new-customer>+ Add customer</button></div><div class="h38-customer-card-grid">${list.length?list.map(row=>{const id=customerId(row),properties=rows('properties').filter(p=>text(value(p,'Customer ID','customerId'))===id).length,documents=rows('documents').filter(d=>text(value(d,'Customer ID','customerId'))===id).length;return`<button type="button" class="h38-customer-card${id===selected?' active':''}" data-h38-customer-card="${html(id)}"><span><strong>${html(customerName(row))}</strong><small>${html([value(row,'Email'),value(row,'Phone')].filter(Boolean).join(' · ')||'No contact details')}</small></span><span class="h38-customer-card-meta">${properties} location${properties===1?'':'s'} · ${documents} file${documents===1?'':'s'}</span></button>`;}).join(''):'<p class="muted">No customer records yet.</p>'}</div>`;
+  section.innerHTML=`<div class="h38-customer-directory-head"><div><span class="h38-c360-kicker">CUSTOMERS</span><h2>Customer cards</h2><p class="muted small">Open a customer to edit details, add locations or notes, and upload files to the customer record.</p></div><button type="button" class="secondary" data-h38-new-customer>+ Add customer</button></div><div class="h38-customer-card-grid">${list.length?list.map(row=>{const id=customerId(row),address=customerAddress(row),rate=customerRate(row),propertyRows=rows('properties').filter(p=>text(value(p,'Customer ID','customerId'))===id),properties=propertyRows.length||(address?1:0),documents=rows('documents').filter(d=>text(value(d,'Customer ID','customerId'))===id).length,details=[value(row,'Email'),value(row,'Phone'),address,rate].filter(Boolean).join(' · ');return`<button type="button" class="h38-customer-card${id===selected?' active':''}" data-h38-customer-card="${html(id)}"><span><strong>${html(customerName(row))}</strong><small>${html(details||'No customer details')}</small></span><span class="h38-customer-card-meta">${properties} location${properties===1?'':'s'} · ${documents} file${documents===1?'':'s'}</span></button>`;}).join(''):'<p class="muted">No customer records yet.</p>'}</div>`;
   top.before(section);section.querySelectorAll('[data-h38-customer-card]').forEach(button=>button.onclick=()=>{c360.selectedCustomerId=button.dataset.h38CustomerCard;window.renderCustomers?.();});section.querySelector('[data-h38-new-customer]')?.addEventListener('click',()=>openCustomerForm(null));
 }
 function setupDetails(){return document.querySelector('.h38-c360-setup')||document.querySelector('#customerForm')?.closest('details');}
