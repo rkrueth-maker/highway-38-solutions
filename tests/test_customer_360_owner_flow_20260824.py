@@ -8,7 +8,7 @@ INDEX=(ROOT/'commercial-app/index.html').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
-    assert "const BUILD='20260824-customer-360-authority-2'" in C360
+    assert "const BUILD='20260912-customer-details-1'" in C360
     assert 'root.H38_CUSTOMER_360=api' in C360
     for marker in ['customers','properties','jobs','quotes','meetings','siteCaptureSessions','siteMeasurements','documents','followUps','invoices']:
         assert marker in C360
@@ -42,6 +42,13 @@ def test_customer_360_base_actions_and_sections_exist():
     for marker in ['Start quote','Site visit','Meeting','Message','Work']:
         assert marker in C360
     assert '@media(max-width:760px)' in CSS
+
+
+def test_customer_file_shows_imported_contact_address_and_rate_fields():
+    for marker in ['Contact, addresses & rates','Alternate Email','Service Address','Billing Address','Hourly Rate','Mowing Rate','Plowing Rate','Travel / Service Call Charge']:
+        assert marker in C360
+    for marker in ['.h38-c360-customer-details','.h38-c360-detail-columns','.h38-c360-detail-line']:
+        assert marker in CSS
 
 
 def test_activity_first_progressive_disclosure_reduces_customer_page_clutter():
@@ -84,7 +91,7 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 
 
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
-    assert 'customer-360-browser-integration-v3.js?build=20260824-customer-360-browser-integration-v4' in INDEX
+    assert 'customer-360-browser-integration-v3.js?build=20260912-customer-details-1' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20260824-customer-360-authority-1' in BROWSER
-    assert 'customer-360-authority.css?build=20260824-customer-360-authority-2' in BROWSER
+    assert 'customer-360-authority.js?build=20260912-customer-details-1' in BROWSER
+    assert 'customer-360-authority.css?build=20260912-customer-details-1' in BROWSER
