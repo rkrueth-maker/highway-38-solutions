@@ -32,7 +32,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
       window.state={page:'customers',businessId:'B-1',snapshot:{
         customers:[
           {'Customer ID':'C-1','Customer Name':'North Pine','Email':'north@example.com','Phone':'218-555-0101','Status':'Active'},
-          {'Customer ID':'C-2','Customer Name':'Lake Shop','Email':'lake@example.com','Phone':'218-555-0102','Status':'Active'}
+          {'Customer ID':'C-2','Customer Name':'Lake Shop','Email':'','Phone':'','Service Address':'19853 County Rd 10','Service City':'Warba','Service State':'MN','Plowing Rate':'$50/time','Status':'Active'}
         ],
         properties:[{'Property ID':'P-1','Customer ID':'C-1','Property Name':'Cabin','Address':'1 Pine Rd'}],
         jobs:[],requests:[],quotes:[],quoteRevisions:[],siteCaptureSessions:[],siteMeasurements:[],meetings:[],followUps:[],tasks:[],invoices:[],payments:[],portalMessages:[],checklists:[],jobNotes:[],scheduleEvents:[],conversations:[],messages:[],emailThreads:[],emailMessages:[],smsThreads:[],smsMessages:[],portalThreads:[],changeOrders:[],timeEntries:[],dailyLogs:[],materialRequests:[],assignments:[],inspections:[],recurringPlans:[],
@@ -60,7 +60,10 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.addScriptTag({path:renderHook});
     await page.waitForSelector('[data-h38-customer-directory]');
     await page.waitForFunction(()=>document.querySelectorAll('[data-h38-customer-card]').length===2);
-    assert.equal(await page.locator('[data-h38-customer-card="C-2"] .h38-customer-card-meta').textContent(),'0 locations · 1 file','customer-linked source document should be counted without a second database');
+    assert.equal(await page.locator('[data-h38-customer-card="C-2"] .h38-customer-card-meta').textContent(),'1 location · 1 file','an imported service address must count as a visible customer location without a second database');
+    const cardText=await page.locator('[data-h38-customer-card="C-2"]').textContent();
+    assert(cardText.includes('19853 County Rd 10, Warba MN'),'customer card must show imported service address when email and phone are blank');
+    assert(cardText.includes('Plowing Rate: $50/time'),'customer card must show the imported customer rate');
     await page.locator('[data-h38-customer-card="C-2"]').click();
     await page.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2'&&document.querySelector('.h38-c360 h2')?.textContent.includes('Lake Shop'));
     await page.locator('[data-h38-edit-customer]').click();
@@ -85,6 +88,6 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);assert.equal(contract.cacheBackstop,true);
     assert.equal(hookContract.eventDriven,true);assert.equal(hookContract.continuousPolling,false);
     assert.deepEqual(errors,[],'customer workspace browser flow should not raise page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['clickable customer cards','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['compact customer cards','imported address summary','imported rate summary','service address location count','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
