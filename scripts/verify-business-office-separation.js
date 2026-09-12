@@ -21,9 +21,13 @@ check('neutral Social Control keeps provider publishing locked',/External social
 check('neutral cellphone UI uses large actions and rear camera',/min-height:94px/.test(neutral)&&/capture="environment"/.test(neutral)&&/Scan receipt/i.test(neutral)&&/Assign \/ check out/.test(neutral));
 const h38=JSON.parse(read('business-packs/highway38/business-office.config.json'));
 const template=JSON.parse(read('business-packs/template-business/business-office.config.json'));
+const templatePack=JSON.parse(read('business-packs/template-business/business-pack.json'));
+const templateEmbedded=read('business-packs/template-business/apps-script/BusinessOffice_Pack.gs');
 check('Highway 38 pack carries Highway 38 identity',h38.business.id==='H38'&&/Highway 38/.test(h38.branding.businessName));
 check('Highway 38 pack uses property references rather than embedded resource IDs',Object.values(h38.resources.propertyKeys).every(v=>/^[A-Z0-9_]+$/.test(v)));
 check('template pack is neutral',!/Highway\s*38|rkrueth|highway-38-solutions|H38_/i.test(JSON.stringify(template)));
+check('template business pack support is neutral and opt-in',templatePack.support.enabled===false&&templatePack.support.customerVisible===false&&templatePack.support.provider===''&&Array.isArray(templatePack.support.accounts)&&templatePack.support.accounts.length===0&&!/Highway\s*38|rkrueth|highway-38-solutions|H38_/i.test(JSON.stringify(templatePack)));
+check('template embedded pack contains no support identity',!/Highway\s*38|rkrueth|highway-38-solutions|H38_/i.test(withoutCanonicalContractIdentifiers(templateEmbedded)));
 check('template pack has empty catalog',template.catalog.mode==='empty'&&template.validation.expectedProductCount===0&&template.validation.expectedBundleCount===0);
 check('template pack retains safety boundaries',template.tax.directFiling===false&&template.social.externalActionsEnabled===false&&template.social.automaticPublishingEnabled===false&&template.social.bulkPublishingEnabled===false);
 check('template pack declares nine credential roles',['Owner','Administrator','Foreman','Estimator','Field Staff','Staff','Bookkeeper','Payroll','Viewer'].every(role=>template.defaults.roles.includes(role)));
