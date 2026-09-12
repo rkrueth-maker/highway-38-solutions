@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-live-customer-navigation-guard-invoice-print-delete-1';
+const BUILD='20260912-live-customer-navigation-guard-northern-fleet-1';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -20,6 +20,7 @@ function loadOfficeLaunchPolish(){
   loadStyle('./office-document-export.css?build=20260911-office-document-export-1','h38-office-document-export');
   loadStyle('./office-reference-samples.css?build=20260911-office-reference-samples-1','h38-office-reference-samples');
   loadStyle('./service-operations-final.css?build=20260912-service-ops-final-1','h38-service-operations-final');
+  loadStyle('./northern-bouncie-fleet.css?build=20260912-northern-bouncie-fleet-1','h38-northern-bouncie-fleet');
   loadRuntime('./office-document-export.js?build=20260911-office-document-export-1','h38-office-document-export',()=>window.H38_OFFICE_DOCUMENT_EXPORT);
   loadRuntime('./office-scale-workflow.js?build=20260911-office-scale-workflow-1','h38-office-scale-workflow',()=>window.H38_OFFICE_SCALE_WORKFLOW);
   loadRuntime('./office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','h38-office-scale-task-guard',()=>window.H38_OFFICE_SCALE_TASK_GUARD);
@@ -31,6 +32,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./plow-trigger-runtime.js?build=20260912-plow-trigger-runtime-1','h38-plow-trigger-runtime',()=>window.H38_PLOW_TRIGGER_RUNTIME);
   loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
   loadRuntime('./invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1','h38-invoice-print-delete',()=>window.H38_INVOICE_PRINT_DELETE);
+  loadRuntime('./northern-bouncie-fleet.js?build=20260912-northern-bouncie-fleet-1','h38-northern-bouncie-fleet',()=>window.H38_NORTHERN_BOUNCIE_FLEET);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
