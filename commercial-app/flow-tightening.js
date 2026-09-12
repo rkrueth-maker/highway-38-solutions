@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260826-flow-first-frame-stability-2';
+const BUILD='20260912-office-quick-flow-1';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
 let preferredJobId='';
 let workEnhanceScheduled=false;
+const creationChoice={work:'requestForm',money:'invoiceForm'};
 const text=value=>String(value==null?'':value);
 const upper=value=>text(value).trim().toUpperCase();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -104,6 +105,30 @@ function workFingerprint(job,context,expenses,documents){
   const changes=rows('changeOrders').filter(row=>recordId(row,'Job ID','jobId')===jid).map(row=>`${recordId(row,'Change Order ID','changeOrderId')}:${text(value(row,'Status','status'))}:${text(value(row,'Updated Time','updatedAt'))}`).sort();
   return JSON.stringify({jid,stage:context?.stageLabel||'',next:context?.next||'',blockers:[...(context?.blockers||[]),...(context?.warnings||[])],site:context?.site?.length||0,quotes:context?.quotes?.length||0,checklists:context?.checklists?.length||0,invoices:context?.invoices?.length||0,expenses:expenses.length,documents:documents.length,changes});
 }
+function enhanceCreationFlow(page){
+  const main=document.getElementById('mainContent');if(!main||officeState()?.page!==page)return;
+  const configs=page==='work'
+    ?[{id:'requestForm',label:'New request',primary:true},{id:'jobForm',label:'New job'},{id:'taskForm',label:'Assign task'}]
+    :[{id:'invoiceForm',label:'Create invoice',primary:true},{id:'paymentForm',label:'Record payment'},{id:'expenseForm',label:'Add expense'}];
+  const cards=configs.map(item=>({item,form:document.getElementById(item.id)})).map(entry=>({...entry,card:entry.form?.closest('.card')})).filter(entry=>entry.card);
+  if(!cards.length)return;
+  let chooser=document.getElementById('h38CreationChooser');
+  if(!chooser){
+    chooser=document.createElement('section');chooser.id='h38CreationChooser';chooser.className='h38-creation-chooser';chooser.setAttribute('aria-label',page==='work'?'Start work':'Start a money action');
+    const title=page==='work'?'What do you need to start?':'What do you need to do?';
+    chooser.innerHTML=`<div class="h38-creation-copy"><strong>${title}</strong><span>Choose one action. Your records stay visible below.</span></div><div class="h38-creation-actions"></div>`;
+    cards[0].card.parentElement?.insertBefore(chooser,cards[0].card);
+  }
+  const actions=chooser.querySelector('.h38-creation-actions');
+  actions.innerHTML=configs.filter(config=>document.getElementById(config.id)?.closest('.card')).map(config=>`<button type="button" data-h38-create="${config.id}" class="${config.primary?'h38-creation-primary':'secondary'}">${config.primary?'+ ':''}${config.label}</button>`).join('');
+  const choose=id=>{
+    creationChoice[page]=id;
+    cards.forEach(({item,card})=>{const active=item.id===id;card.hidden=!active;card.classList.toggle('h38-creation-active',active);});
+    actions.querySelectorAll('[data-h38-create]').forEach(button=>{const active=button.dataset.h38Create===id;button.classList.toggle('active',active);button.setAttribute('aria-expanded',active?'true':'false');});
+  };
+  actions.querySelectorAll('[data-h38-create]').forEach(button=>button.onclick=()=>{choose(button.dataset.h38Create);const form=document.getElementById(button.dataset.h38Create);form?.scrollIntoView({behavior:'smooth',block:'nearest'});form?.querySelector('input,select,textarea')?.focus({preventScroll:true});});
+  choose(cards.some(entry=>entry.item.id===creationChoice[page])?creationChoice[page]:cards[0].item.id);
+}
 function enhanceWork(){
   const main=document.getElementById('mainContent');if(!main||officeState()?.page!=='work')return;
   const job=selectedJob();if(!job)return;
@@ -173,17 +198,17 @@ function install(){
     const base=window.renderNav;window.renderNav=function(){return compactRenderNav(base);};window.renderNav();
   }
   if(typeof window.renderWork==='function'){
-    const base=window.renderWork;window.renderWork=function(){const result=base.apply(this,arguments);scheduleWorkEnhance();return result;};
+    const base=window.renderWork;window.renderWork=function(){const result=base.apply(this,arguments);scheduleWorkEnhance();enhanceCreationFlow('work');return result;};
   }
   if(typeof window.renderCustomers==='function'){
     const base=window.renderCustomers;window.renderCustomers=function(){const result=base.apply(this,arguments);enhanceCustomers();return result;};
   }
   if(typeof window.renderMoney==='function'){
-    const base=window.renderMoney;window.renderMoney=function(){const result=base.apply(this,arguments);setTimeout(enhanceMoney,0);return result;};
+    const base=window.renderMoney;window.renderMoney=function(){const result=base.apply(this,arguments);enhanceCreationFlow('money');setTimeout(enhanceMoney,0);return result;};
   }
   const observer=new MutationObserver(()=>{decorateFieldVisit();});observer.observe(document.documentElement,{childList:true,subtree:true});
-  scheduleWorkEnhance();if(officeState()?.page==='customers')enhanceCustomers();decorateFieldVisit();
-  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,workEnhanceSynchronous:true,customerEnhanceSynchronous:true,postPaintJobsCustomerMutation:false,preStartupMobileNavRespected:true,plusLauncher:false,moreLauncher:false,jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
+  scheduleWorkEnhance();if(officeState()?.page==='work')enhanceCreationFlow('work');if(officeState()?.page==='money')enhanceCreationFlow('money');if(officeState()?.page==='customers')enhanceCustomers();decorateFieldVisit();
+  window.H38_FLOW_TIGHTENING=Object.freeze({build:BUILD,enabled:true,primaryNavigation:'desktop-native-mobile-delegated',desktopNavigationUsesBaseRenderer:true,primaryNavDelegatedToFinalMobileRuntime:true,mobileNavVerticalScrollIntoView:false,workEnhanceDocumentObserver:false,workEnhanceRenderBoundary:true,workEnhanceSynchronous:true,customerEnhanceSynchronous:true,postPaintJobsCustomerMutation:false,preStartupMobileNavRespected:true,plusLauncher:false,moreLauncher:false,quickCreationChooser:true,workDefaultAction:'request',moneyDefaultAction:'invoice',jobHome:true,jobsPageStableEnhancement:true,changeOrderDecisionRecording:true,dailyLogFromSiteVisit:true,searchChanged:false,quoteAiChanged:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false});
 }
 function waitForOffice(attempt=0){if(typeof window.renderNav==='function'&&typeof window.openPage==='function'){install();return;}if(attempt<80)setTimeout(()=>waitForOffice(attempt+1),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>waitForOffice(),{once:true});else waitForOffice();
