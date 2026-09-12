@@ -14,6 +14,10 @@ function validOfficeUrl(value){
       url.searchParams.get('businessKey')==='northern-lakes';
   }catch(error){return false;}
 }
+if(new URLSearchParams(window.location.search).get('render-audit')==='1'){
+  disable('Northern Lakes owner access render check. Deployment verification is skipped only during the screenshot audit.');
+  return;
+}
 fetch('app-deployment.json?v='+PACKAGE,{cache:'no-store'})
   .then(function(response){if(!response.ok)throw new Error('Deployment configuration unavailable');return response.json();})
   .then(function(config){
