@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-live-customer-navigation-guard-service-ops-2';
+const BUILD='20260912-live-customer-navigation-guard-service-ops-3';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -28,6 +28,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
   loadRuntime('./recurring-service-runtime.js?build=20260912-recurring-service-runtime-1','h38-recurring-service-runtime',()=>window.H38_RECURRING_SERVICE_RUNTIME);
   loadRuntime('./multi-rate-labor-runtime.js?build=20260912-multi-rate-labor-runtime-1','h38-multi-rate-labor-runtime',()=>window.H38_MULTI_RATE_LABOR_RUNTIME);
+  loadRuntime('./plow-trigger-runtime.js?build=20260912-plow-trigger-runtime-1','h38-plow-trigger-runtime',()=>window.H38_PLOW_TRIGGER_RUNTIME);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
