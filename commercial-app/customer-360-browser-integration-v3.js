@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260824-customer-360-browser-integration-v4';
+const BUILD='20260912-customer-details-1';
 let loading=null,bridgePatched=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -12,14 +12,14 @@ function truthy(v){return v===true||['true','1','yes'].includes(text(v).toLowerC
 function isInternalCustomer(row){return truthy(value(row,'Internal Only','internalOnly'))||truthy(value(row,'Test Data','testData'));}
 function visibleCustomers(){return rows('customers').filter(row=>customerId(row)&&!isInternalCustomer(row));}
 function esc(v){return typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260824-customer-360-authority-2';link.dataset.h38Customer360='1';document.head.appendChild(link);}
+function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260912-customer-details-1';link.dataset.h38Customer360='1';document.head.appendChild(link);}
 function ensureAuthority(){
   ensureStyle();
   if(window.H38_CUSTOMER_360)return Promise.resolve(window.H38_CUSTOMER_360);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
     let script=document.querySelector('script[data-h38-customer-360]');
-    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260824-customer-360-authority-1';script.dataset.h38Customer360='1';document.body.appendChild(script);}
+    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260912-customer-details-1';script.dataset.h38Customer360='1';document.body.appendChild(script);}
     const finish=()=>window.H38_CUSTOMER_360?resolve(window.H38_CUSTOMER_360):reject(new Error('Customer 360 did not become ready.'));
     script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(new Error('Customer 360 could not load.')),{once:true});
     if(window.H38_CUSTOMER_360)finish();

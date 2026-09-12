@@ -16,7 +16,7 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
         customers:[
           {'Customer ID':'C-SMITH-1','Customer Name':'Smith','Email':'smith1@example.com'},
           {'Customer ID':'C-SMITH-2','Customer Name':'Smith','Email':'smith2@example.com'},
-          {'Customer ID':'C-JOHN','Customer Name':'Johnson','Email':'johnson@example.com'},
+          {'Customer ID':'C-JOHN','Customer Name':'Johnson','Email':'johnson@example.com','Alternate Email':'billing@example.com','Phone':'218-555-0138','Service Address':'129 Hwy 38','Service City':'Grand Rapids','Service State':'MN','Service ZIP':'55744','Billing Address':'PO Box 38','Billing City':'Grand Rapids','Billing State':'MN','Billing ZIP':'55744','Hourly Rate':'85.00','Mowing Rate':'55.00','Plowing Rate':'75.00'},
           {'Customer ID':'C-TEST','Customer Name':'Recovered Customer Portal Test','Internal Only':true,'Test Data':true}
         ],
         properties:[
@@ -57,6 +57,10 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
     await page.evaluate(()=>{H38_CUSTOMER_360.selectedCustomerId='C-JOHN';renderCustomers();});
     await page.waitForSelector('.h38-c360-activity');
     assert.equal((await page.locator('.h38-c360 h2').first().textContent()).trim(),'Johnson');
+    const customerDetails=page.locator('[data-h38-customer-details]');
+    await customerDetails.waitFor({state:'visible'});
+    const customerDetailsText=await customerDetails.textContent();
+    for(const expected of ['johnson@example.com','billing@example.com','218-555-0138','129 Hwy 38, Grand Rapids MN 55744','PO Box 38, Grand Rapids MN 55744','Hourly Rate','85.00','Mowing Rate','55.00','Plowing Rate','75.00'])assert(customerDetailsText.includes(expected),`customer details must show ${expected}`);
     assert.equal((await page.locator('.h38-c360-activity h3').textContent()).trim(),'Recent activity');
     assert.equal(await page.locator('details.h38-c360-detail-group').count(),3);
     const summaries=await page.locator('details.h38-c360-detail-group > summary strong').allTextContents();
@@ -83,6 +87,6 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
     assert.equal(synced[0].payload.record['Customer ID'],undefined,'finance write must remain customer-free');
     assert.equal(synced[1].payload.record['Customer ID'],'C-JOHN','operational child should inherit unique customer');
     assert.deepEqual(errors,[],'browser should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['render Johnson Customer 360','recent activity','progressive disclosure','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['render Johnson Customer 360','customer emails shown','customer addresses shown','customer rates shown','recent activity','progressive disclosure','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
