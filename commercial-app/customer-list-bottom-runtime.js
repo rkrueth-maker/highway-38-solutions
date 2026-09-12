@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260912-customer-list-bottom-1';
-let scheduled=false;
+const BUILD='20260912-customer-list-bottom-2';
+let scheduled=false,observer=null,observedMain=null;
 const text=value=>String(value==null?'':value).trim();
 function isCustomerPage(){try{return text(window.state?.page)==='customers';}catch(_){return false;}}
 function heading(card){return text(card?.querySelector(':scope > h2,:scope > h3')?.textContent).toLowerCase();}
@@ -31,16 +31,24 @@ function schedule(){
   const run=()=>{scheduled=false;reconcile();setTimeout(reconcile,60);setTimeout(reconcile,220);};
   if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
 }
+function observeMain(){
+  const main=document.getElementById('mainContent');
+  if(!main)return;
+  if(observer&&observedMain===main)return;
+  observer?.disconnect();observedMain=main;
+  observer=new MutationObserver(()=>{if(isCustomerPage())schedule();});
+  observer.observe(main,{childList:true,subtree:true});
+}
 function installRenderHook(){
   const current=window.renderCustomers;if(typeof current!=='function'||current.__h38CustomerListBottom)return;
   const previous=current;
-  const wrapped=function(){const result=previous.apply(this,arguments);schedule();return result;};
+  const wrapped=function(){const result=previous.apply(this,arguments);observeMain();schedule();return result;};
   wrapped.__h38CustomerListBottom=true;wrapped.__h38CustomerListBottomBase=previous;window.renderCustomers=wrapped;
 }
-function reconcileRuntime(){installRenderHook();schedule();}
+function reconcileRuntime(){installRenderHook();observeMain();schedule();}
 window.addEventListener?.('h38:office-page-rendered',reconcileRuntime);
 window.addEventListener?.('h38:business-snapshot-updated',reconcileRuntime);
 window.addEventListener?.('pageshow',reconcileRuntime);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',reconcileRuntime,{once:true});else reconcileRuntime();
-window.H38_CUSTOMER_LIST_BOTTOM=Object.freeze({build:BUILD,reconcile,schedule,sharedEngine:true,tenantNeutral:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
+window.H38_CUSTOMER_LIST_BOTTOM=Object.freeze({build:BUILD,reconcile,schedule,sharedEngine:true,tenantNeutral:true,lateMutationRepair:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
 })();
