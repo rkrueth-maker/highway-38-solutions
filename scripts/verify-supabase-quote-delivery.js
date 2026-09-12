@@ -16,6 +16,8 @@ const deliveryNetworkFirst=/LIVE_FIRST=new Set\(\[[^\]]*'supabase-quote-delivery
 const portalDeliveryBuild=(portal.match(/const BUILD='([^']+)'/)||[])[1]||'';
 const checks=[
  ['Approve & Send button is explicit',client.includes("textContent='✉️ Approve & Send Quote'")],
+ ['quote delivery action is page-scoped',client.includes("function quotePage()")&&client.includes("if(!quotePage()){clearPageArtifacts();return;}")&&client.includes('quotePageOnly:true')],
+ ['non-quote pages clear delivery controls',client.includes("document.getElementById('h38ApproveSendQuoteButton')?.remove()")&&client.includes("document.getElementById('h38QuoteDeliveryStatus')?.remove()")],
  ['owner checkbox gates confirmation',client.includes('confirmOwnerReview:true')&&client.includes('h38QuoteDeliveryConfirm')],
  ['generic customer is blocked',client.includes('GENERIC-QUOTE-CUSTOMER')&&edge.includes('GENERIC-QUOTE-CUSTOMER')],
  ['real customer email is required',client.includes('Add a valid email address')&&edge.includes('Add a valid email address')],

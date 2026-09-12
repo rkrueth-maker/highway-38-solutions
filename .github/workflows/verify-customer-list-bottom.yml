@@ -5,8 +5,13 @@ on:
     paths:
       - 'commercial-app/customer-list-bottom-runtime.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/supabase-quote-delivery.js'
       - 'commercial-app/index.html'
+      - 'business-office-review-demo.css'
+      - 'business-office-review-demo.html'
       - 'scripts/verify-customer-list-bottom-browser.js'
+      - 'scripts/verify-quote-delivery-page-scope-browser.js'
+      - 'scripts/verify-public-demo-mobile-nav-browser.js'
       - '.github/workflows/verify-customer-list-bottom.yml'
   push:
     branches:
@@ -14,8 +19,13 @@ on:
     paths:
       - 'commercial-app/customer-list-bottom-runtime.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/supabase-quote-delivery.js'
       - 'commercial-app/index.html'
+      - 'business-office-review-demo.css'
+      - 'business-office-review-demo.html'
       - 'scripts/verify-customer-list-bottom-browser.js'
+      - 'scripts/verify-quote-delivery-page-scope-browser.js'
+      - 'scripts/verify-public-demo-mobile-nav-browser.js'
       - '.github/workflows/verify-customer-list-bottom.yml'
   workflow_dispatch:
 
@@ -38,6 +48,13 @@ jobs:
         run: |
           node -c commercial-app/customer-list-bottom-runtime.js
           node -c commercial-app/live-customer-navigation-guard-20260910.js
+          node -c commercial-app/supabase-quote-delivery.js
           node -c scripts/verify-customer-list-bottom-browser.js
+          node -c scripts/verify-quote-delivery-page-scope-browser.js
+          node -c scripts/verify-public-demo-mobile-nav-browser.js
       - name: Verify customer list remains at bottom
         run: node scripts/verify-customer-list-bottom-browser.js
+      - name: Verify quote action stays on Quotes
+        run: node scripts/verify-quote-delivery-page-scope-browser.js
+      - name: Verify public demo mobile navigation
+        run: node scripts/verify-public-demo-mobile-nav-browser.js

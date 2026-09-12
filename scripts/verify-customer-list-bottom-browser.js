@@ -39,10 +39,23 @@ const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-run
     });
     await page.waitForTimeout(300);
     assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').nextElementSibling?.id),'h38CustomerReadyCards','late page render must restore customer list to the bottom');
+    await page.evaluate(()=>{
+      const list=document.getElementById('nativeCustomerList');
+      const grid=document.querySelector('.grid');
+      const late=document.createElement('section');late.id='veryLateCustomerWorkspace';late.textContent='Late async customer workspace';
+      document.getElementById('mainContent').insertBefore(late,document.getElementById('h38CustomerReadyCards'));
+      list.classList.add('h38-mobile-record-card');
+      grid.prepend(list);
+    });
+    await page.waitForTimeout(450);
+    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').parentElement?.id),'mainContent','raw late DOM mutation must move the customer list out of the upper grid');
+    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').nextElementSibling?.id),'h38CustomerReadyCards','raw late DOM mutation must restore the customer list to the bottom without a custom event');
+    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').classList.contains('h38-mobile-record-card')),false,'late mutation repair must clear stale mobile top-order class');
     const contract=await page.evaluate(()=>window.H38_CUSTOMER_LIST_BOTTOM);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchase','automaticPayment','automaticScheduling'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.tenantNeutral,true,'layout repair must be shared and tenant-neutral');
+    assert.equal(contract.lateMutationRepair,true,'layout repair must advertise late DOM mutation coverage');
     assert.deepEqual(errors,[],'customer list bottom browser verification should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['Customer 360 stays first','native customer list stays at bottom','mobile top-order class cleared','snapshot rerender repaired','owner-control safety']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['Customer 360 stays first','native customer list stays at bottom','mobile top-order class cleared','snapshot rerender repaired','page-render repaired','raw late DOM mutation repaired','owner-control safety']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
