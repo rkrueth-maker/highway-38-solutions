@@ -25,13 +25,13 @@ const raw='apps-script/core-engine/owner-portal-next/Portal_RawIncludes.js';
 
 const css=read(dailyStyles),client=read(dailyClient),performance=read(perfClient),bridge=read(aiBridge),server=read(backend),assistant=read(aiAssistant),authSource=read(auth),portal=read(index),rawSource=read(raw);
 check('daily-first assets load through allowlist and portal',portal.includes('Portal_DailyFirst_Styles')&&portal.includes('Portal_DailyFirst_Client')&&portal.includes('Portal_Performance_Reliability_Client')&&portal.includes('Portal_Onboarding_AiBridge')&&rawSource.includes('Portal_DailyFirst_Styles')&&rawSource.includes('Portal_DailyFirst_Client'));
-check('Today first layer is limited to four operating sections',['Next action',"Today's work",'Needs attention','Quick actions'].every(marker=>client.includes(marker)));
-check('Today work and attention lists are deliberately capped',client.includes('.slice(0,5)')&&client.includes('.slice(0,4)'));
+check('Today first layer keeps the core operating sections',['h38-daily-next','h38DailyWorkSection','h38DailyAttentionSection','h38DailyQuickActions','h38DailyUpNextHtml'].every(marker=>client.includes(marker)));
+check('Today work and attention lists are deliberately capped',client.includes('.slice(0,3)')&&client.includes('.slice(0,2)'));
 check('Today uses specific action labels',['Review quote','Open customer','Check invoice','Open task','Open job','Review decision'].every(marker=>client.includes(marker)));
-check('quick actions expose daily work not system administration',['Add customer','New request','Build quote','Assign employee','Onboard'].every(marker=>client.includes(marker)));
-check('phone Chromebook and desktop layouts remain deliberate',css.includes('body.h38-phone-shell')&&css.includes('body.h38-chromebook-shell')&&css.includes('.h38-daily-grid'));
+check('quick actions expose daily work while setup stays collapsed',['Add customer','New request','Build quote','Assign work','More setup actions'].every(marker=>client.includes(marker)));
+check('phone Chromebook and desktop layouts remain deliberate',css.includes('body.h38-phone-shell')&&css.includes('body.h38-chromebook-shell')&&css.includes('.h38-daily-first'));
 check('phone controls remain readable and touch friendly',css.includes('min-height:58px')&&css.includes('font-size:18px')&&css.includes('grid-template-columns:1fr'));
-check('Chromebook layout reduces waste while preserving readability',css.includes('body.h38-chromebook-shell .h38-daily-head')&&css.includes('font-size:25px')&&css.includes('min-height:76px'));
+check('Chromebook layout reduces waste while preserving readability',css.includes('body.h38-chromebook-shell .h38-daily-head')&&css.includes('font-size:25px')&&css.includes('min-height:96px'));
 check('onboarding agent covers employee customer and vendor',['employee','customer','vendor'].every(kind=>client.includes(`data-onboard-kind="${kind}"`))&&server.includes("['employee','customer','vendor']"));
 check('onboarding is owner controlled and creates internal follow-up tasks',server.includes('boRequireOwner_()')&&server.includes('h38OnboardingTask_')&&server.includes('externalActionsOccurred:false')&&server.includes('No invitation or customer message was sent'));
 check('onboarding prevents duplicate records',server.includes('h38OnboardingDuplicate_')&&server.includes('duplicatePrevented:true'));

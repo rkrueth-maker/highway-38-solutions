@@ -35,7 +35,7 @@ parses('BusinessOffice_Web.gs',api);
 parses('Portal_TaskMessaging_Client.html',client);
 
 check('existing Communications schema supports Email',hasAll(taskCore,["MESSAGES: \"BO Messages\"",'"Channel"','"Provider Message ID"','"Conversation Key"','"Document ID"']));
-check('Gmail send returns provider identifiers',hasAll(assistant,["const result=JSON.parse(response.getContentText()||'{}')","boAssert_(result.id","threadId:String(result.threadId","rawMime:mime"]));
+check('Gmail send returns provider identifiers',hasAll(assistant,["Gmail.Users.Messages.send(request,'me')","boAssert_(result&&result.id","id:String(result.id)","threadId:String(result.threadId","rawMime:mime"]));
 check('email action retains record context',hasAll(actions,['linkContext: boEmailActionLinkContext_(context)','quoteId: String(args.quoteId','invoiceId: String(args.invoiceId','paymentId: String(args.paymentId']));
 check('send-time capture is mandatory but cannot duplicate a successful send',hasAll(actions,['boEmailCaptureSentActionSafe_(payload, gmail)','gmailMessageId: gmail.id','officeMessageId: capture.message','captureStatus: capture.status']));
 check('Communications row uses Email and Gmail',hasAll(sync,["Channel: 'Email'","Provider: 'Gmail'","'Provider Message ID': spec.providerMessageId","'Conversation Key': spec.threadId"]));
