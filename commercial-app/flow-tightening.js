@@ -112,6 +112,7 @@ function enhanceCreationFlow(page){
     :[{id:'invoiceForm',label:'Create invoice',primary:true},{id:'paymentForm',label:'Record payment'},{id:'expenseForm',label:'Add expense'}];
   const cards=configs.map(item=>({item,form:document.getElementById(item.id)})).map(entry=>({...entry,card:entry.form?.closest('.card')})).filter(entry=>entry.card);
   if(!cards.length)return;
+  cards.forEach(({card})=>card.classList.remove('h38-tight-secondary'));
   let chooser=document.getElementById('h38CreationChooser');
   if(!chooser){
     chooser=document.createElement('section');chooser.id='h38CreationChooser';chooser.className='h38-creation-chooser';chooser.setAttribute('aria-label',page==='work'?'Start work':'Start a money action');
