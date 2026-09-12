@@ -1,0 +1,24 @@
+name: Verify Northern Fleet Documents AI
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/northern-bouncie-fleet.*'
+      - 'commercial-app/northern-document-polish.*'
+      - 'commercial-app/ai-document-factory.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'supabase/functions/nl-bouncie-fleet/**'
+      - 'supabase/functions/h38-document-factory/**'
+      - 'supabase/migrations/20260912090000_fleet_provider_foundation.sql'
+      - 'supabase/config.toml'
+      - 'scripts/verify-northern-fleet-docs-ai.js'
+      - '.github/workflows/verify-northern-fleet-docs-ai.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/verify-northern-fleet-docs-ai.js
