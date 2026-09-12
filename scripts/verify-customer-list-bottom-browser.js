@@ -2,7 +2,7 @@
 const path=require('path');
 const {chromium}=require('playwright');
 const assert=require('assert');
-const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-runtime.js');
+const runtime=path.resolve(__dirname,'../commercial-app/customer-list-true-bottom-runtime.js');
 (async()=>{
   const browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:390,height:844}});
