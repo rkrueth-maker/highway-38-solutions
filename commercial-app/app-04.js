@@ -22,5 +22,5 @@ function renderCustomers(){
 (function loadCustomerWorkspaceDocuments(){
   if(window.H38_CUSTOMER_WORKSPACE_DOCUMENTS||window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING)return;
   window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING=true;
-  const script=document.createElement('script');script.src='./customer-workspace-documents.js?build=20260911-customer-workspace-documents-1';script.dataset.h38CustomerWorkspace='1';script.onload=()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING=false;};script.onerror=()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING=false;console.warn('[H38 Customer Workspace] runtime could not load.');};document.head.appendChild(script);
+  const script=document.createElement('script');script.src='./customer-workspace-documents.js?build=20260912-customer-card-info-1';script.dataset.h38CustomerWorkspace='1';script.onload=()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING=false;};script.onerror=()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS_LOADING=false;console.warn('[H38 Customer Workspace] runtime could not load.');};document.head.appendChild(script);
 })();
