@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260826-auth-cache-only-3-photo-scope';
+const H38_AUTH_CACHE_BUILD='20260912-auth-cache-true-customer-bottom-1';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const h38LegacyLoadCached=loadCached;
@@ -41,8 +41,18 @@ function h38InstallCurrentOfficeWorker(){
     .catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
 }
 
+function h38InstallTrueBottomCustomerRuntime(){
+  if(document.querySelector('script[data-h38-customer-true-bottom-runtime]'))return;
+  const script=document.createElement('script');
+  script.src='./customer-list-true-bottom-runtime.js?build=20260912-customer-list-true-bottom-1';
+  script.async=false;
+  script.dataset.h38CustomerTrueBottomRuntime='1';
+  document.head.appendChild(script);
+}
+
 h38RetireLegacyNavigationArtifacts();
 h38InstallCurrentOfficeWorker();
+h38InstallTrueBottomCustomerRuntime();
 
 loadCached=async function(options={}){
   if(!window.H38_SUPABASE_AUTH?.enabled)return h38LegacyLoadCached();
@@ -88,5 +98,6 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   offlineOpen:true,
   navigationAuthority:false,
   legacyNavigationArtifactsRetired:true,
-  staleDesktopRuntimeReset:true
+  staleDesktopRuntimeReset:true,
+  trueBottomCustomerRuntime:true
 });
