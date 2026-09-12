@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'commercial-app/customer-list-bottom-runtime.js'
+      - 'commercial-app/customer-list-true-bottom-runtime.js'
+      - 'commercial-app/auth-cache-guard.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'commercial-app/supabase-quote-delivery.js'
       - 'commercial-app/index.html'
@@ -18,6 +20,8 @@ on:
       - main
     paths:
       - 'commercial-app/customer-list-bottom-runtime.js'
+      - 'commercial-app/customer-list-true-bottom-runtime.js'
+      - 'commercial-app/auth-cache-guard.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'commercial-app/supabase-quote-delivery.js'
       - 'commercial-app/index.html'
@@ -47,11 +51,15 @@ jobs:
       - name: JavaScript syntax
         run: |
           node -c commercial-app/customer-list-bottom-runtime.js
+          node -c commercial-app/customer-list-true-bottom-runtime.js
+          node -c commercial-app/auth-cache-guard.js
           node -c commercial-app/live-customer-navigation-guard-20260910.js
           node -c commercial-app/supabase-quote-delivery.js
           node -c scripts/verify-customer-list-bottom-browser.js
           node -c scripts/verify-quote-delivery-page-scope-browser.js
           node -c scripts/verify-public-demo-mobile-nav-browser.js
+      - name: Verify true-bottom runtime bootstrap
+        run: node -e "const fs=require('fs');const s=fs.readFileSync('commercial-app/auth-cache-guard.js','utf8');if(!s.includes('./customer-list-true-bottom-runtime.js?build=20260912-customer-list-true-bottom-1'))throw new Error('network-first bootstrap missing true-bottom runtime');"
       - name: Verify customer list remains at bottom
         run: node scripts/verify-customer-list-bottom-browser.js
       - name: Verify quote action stays on Quotes

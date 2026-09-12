@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-customer-list-bottom-3';
+const BUILD='20260912-customer-list-true-bottom-1';
 let scheduled=false,observer=null,observedMain=null;
 const text=value=>String(value==null?'':value).trim();
 function isCustomerPage(){try{return text(window.state?.page)==='customers';}catch(_){return false;}}

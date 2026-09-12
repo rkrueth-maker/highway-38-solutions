@@ -2,7 +2,7 @@
 const path=require('path');
 const {chromium}=require('playwright');
 const assert=require('assert');
-const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-runtime.js');
+const runtime=path.resolve(__dirname,'../commercial-app/customer-list-true-bottom-runtime.js');
 (async()=>{
   const browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:390,height:844}});
@@ -12,7 +12,7 @@ const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-run
     await page.evaluate(()=>{
       window.state={page:'customers',businessId:'TEST-BUSINESS',snapshot:{user:{owner:true}}};
       window.renderCustomers=function(){
-        document.getElementById('mainContent').innerHTML=`<header class="page-head"><h1>Customers</h1></header><section class="h38-c360 full"><div class="h38-c360-grid"></div></section><div class="grid"><section class="card"><h2>Start work</h2></section><section id="nativeCustomerList" class="card h38-mobile-record-card"><h2>Customers</h2><div class="list"><div class="row">Customer A</div></div></section><section class="card"><h2>Properties</h2></section></div><section id="lateCustomerWorkspace">Customer workspace</section><section id="h38CustomerReadyCards">Customer summary</section>`;
+        document.getElementById('mainContent').innerHTML=`<header class="page-head"><h1>Customers</h1></header><section class="h38-c360 full"><div class="h38-c360-grid"></div></section><div class="grid"><section class="card"><h2>Start work</h2></section><section id="nativeCustomerList" class="card h38-mobile-record-card"><div class="card-head"><div><small>CUSTOMERS</small><h2>Customer cards</h2></div><button>+ Add customer</button></div><p>Open a customer to edit details.</p><div class="list"><div class="row">Customer A</div></div></section><section class="card"><h2>Properties</h2></section></div><section id="h38CustomerReadyHero" class="card"><span class="h38-eyebrow">CUSTOMER 360</span><h2>Johnson</h2></section><section id="lateCustomerWorkspace">Customer workspace</section><section id="h38CustomerReadyCards">Customer summary</section>`;
       };
       renderCustomers();
     });
@@ -20,9 +20,10 @@ const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-run
     await page.evaluate(()=>renderCustomers());
     await page.waitForTimeout(300);
     assert.equal(await page.evaluate(()=>document.querySelector('.page-head').nextElementSibling?.classList.contains('h38-c360')),true,'Customer 360 must stay at the top');
-    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').parentElement?.id),'mainContent','native customer list should leave the upper legacy grid');
-    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').nextElementSibling?.id),'h38CustomerReadyCards','native customer list should sit at the bottom immediately before the summary strip');
+    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').parentElement?.id),'mainContent','real nested-heading customer list should leave the upper legacy grid');
+    assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').nextElementSibling?.id),'h38CustomerReadyCards','real Customer cards panel should sit at the bottom immediately before the summary strip');
     assert.equal(await page.evaluate(()=>document.getElementById('nativeCustomerList').classList.contains('h38-mobile-record-card')),false,'mobile first-frame ordering must not keep the customer list pinned to the top');
+    assert.equal(await page.evaluate(()=>document.getElementById('h38CustomerReadyHero').parentElement?.id),'mainContent','Customer 360 readiness hero must not be mistaken for the Customer cards panel');
     await page.evaluate(()=>{
       const list=document.getElementById('nativeCustomerList');
       list.classList.add('h38-mobile-record-card');
@@ -55,7 +56,8 @@ const runtime=path.resolve(__dirname,'../commercial-app/customer-list-bottom-run
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchase','automaticPayment','automaticScheduling'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.equal(contract.tenantNeutral,true,'layout repair must be shared and tenant-neutral');
     assert.equal(contract.lateMutationRepair,true,'layout repair must advertise late DOM mutation coverage');
+    assert.equal(contract.nestedHeadingSupport,true,'layout repair must cover the real nested Customer cards markup');
     assert.deepEqual(errors,[],'customer list bottom browser verification should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['Customer 360 stays first','native customer list stays at bottom','mobile top-order class cleared','snapshot rerender repaired','page-render repaired','raw late DOM mutation repaired','owner-control safety']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['Customer 360 stays first','real nested Customer cards panel stays at bottom','Customer 360 hero is not misidentified','mobile top-order class cleared','snapshot rerender repaired','page-render repaired','raw late DOM mutation repaired','owner-control safety']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
