@@ -1,0 +1,25 @@
+(function(){
+'use strict';
+const BUILD='20260912-plow-trigger-runtime-1';
+const text=v=>String(v==null?'':v).trim();
+const state=()=>window.state||{};
+const rows=n=>Array.isArray(state()?.snapshot?.[n])?state().snapshot[n]:[];
+const val=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
+const yes=v=>v===true||['true','1','yes','on','automatic'].includes(text(v).toLowerCase());
+const customerId=row=>text(val(row,'Customer ID','customerId'));
+const today=()=>new Date().toISOString().slice(0,10);
+const now=()=>new Date().toISOString();
+const uid=p=>`${p}-${globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(16).slice(2)}`;
+function automatic(row){return yes(val(row,'Automatic Plowing','Automatic Snow Plowing','automaticPlowing'));}
+function selectedCustomer(){const id=text(window.H38_CUSTOMER_360?.selectedCustomerId);return rows('customers').find(row=>customerId(row)===id)||null;}
+async function save(collection,type,id,record,idKeys){return window.queueOperation('SAVE_ENTITY',type,id,{entity:collection,record},{collection,record,idKeys},true);}
+async function savePreference(customer,enabled){const id=customerId(customer),record={...customer,'Automatic Plowing':enabled,'Automatic Snow Plowing':enabled,'Updated Time':now(),'Record Version':Math.max(1,Number(val(customer,'Record Version')||0)+1)};delete record.__localPending;await save('customers','Customer',id,record,['Customer ID']);}
+function alreadyToday(customer){return rows('jobs').some(job=>customerId(job)===customerId(customer)&&text(val(job,'Service Date','Created Time')).slice(0,10)===today()&&/snow plowing/i.test(text(val(job,'Service Type','Project Title')))&&!/cancel|archive/i.test(text(val(job,'Status'))));}
+async function createJob(customer){if(alreadyToday(customer))return false;const id=uid('JOB'),rate=text(val(customer,'Plowing Rate')),record={'Job ID':id,'Business ID':state()?.businessId||val(customer,'Business ID'),'Customer ID':customerId(customer),'Project Title':`Snow plowing visit — ${text(val(customer,'Customer Name'))||'Customer'}`,'Service Type':'Snow plowing','Service Date':today(),'Subscribed Service':true,'Recurring Service Visit':true,'Lifecycle Mode':'Recurring service','Site Visit Required':false,'Quote Required':false,'Billing Method':'Per visit','Service Rate':rate,'Status':'Scheduled','Created Time':now(),'Updated Time':now(),'Record Version':1};await save('jobs','Job',id,record,['Job ID']);return true;}
+async function triggerAll(){const customers=rows('customers').filter(row=>customerId(row)&&text(val(row,'Plowing Rate'))&&automatic(row));let created=0,skipped=0;for(const customer of customers)(await createJob(customer))?created++:skipped++;window.toast?.(`${created} snow plow job${created===1?'':'s'} created${skipped?`; ${skipped} already existed today`:''}.`);window.renderToday?.();}
+function patchCustomer(){if(state()?.page!=='customers')return;const customer=selectedCustomer(),card=document.querySelector('[data-h38-service-operations]');if(!customer||!card||!text(val(customer,'Plowing Rate'))||card.querySelector('[data-h38-auto-plowing-setting]'))return;const label=document.createElement('label');label.className='h38-auto-plowing-setting';label.dataset.h38AutoPlowingSetting='1';label.innerHTML=`<span><strong>Automatic snow plowing</strong><small>Include this customer when all automatic plow jobs are triggered.</small></span><input type="checkbox" ${automatic(customer)?'checked':''}>`;card.querySelector('.h38-customer-service-list')?.appendChild(label);const input=label.querySelector('input');input.onchange=async()=>{try{await savePreference(customer,input.checked);window.toast?.('Automatic plowing setting saved.');window.renderCustomers?.();}catch(error){input.checked=!input.checked;window.toast?.(error.message||String(error),true);}};}
+function patchToday(){if(state()?.page!=='today')return;const panel=document.querySelector('.h38-life-today');if(!panel||panel.querySelector('[data-h38-auto-plow-bulk]'))return;const count=rows('customers').filter(row=>customerId(row)&&text(val(row,'Plowing Rate'))&&automatic(row)).length,box=document.createElement('div');box.className='h38-auto-plow-bulk';box.dataset.h38AutoPlowBulk='1';box.innerHTML=`<div><strong>Automatic snow plowing</strong><small>${count} customer${count===1?'':'s'} set to automatic.</small></div><button type="button" ${count?'':'disabled'}>Trigger all automatic snow plow jobs</button>`;panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);box.querySelector('button').onclick=()=>triggerAll().catch(error=>window.toast?.(error.message||String(error),true));}
+let pending=false;function patch(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;patchCustomer();patchToday();});}
+function start(){new MutationObserver(patch).observe(document.documentElement,{childList:true,subtree:true});patch();window.H38_PLOW_TRIGGER_RUNTIME=Object.freeze({build:BUILD,triggerAll});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
