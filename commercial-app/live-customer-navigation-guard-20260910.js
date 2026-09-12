@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-live-customer-navigation-guard-retired-8-import-loader';
+const BUILD='20260912-live-customer-navigation-guard-service-ops-2';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -19,12 +19,15 @@ function loadStyle(href,key){
 function loadOfficeLaunchPolish(){
   loadStyle('./office-document-export.css?build=20260911-office-document-export-1','h38-office-document-export');
   loadStyle('./office-reference-samples.css?build=20260911-office-reference-samples-1','h38-office-reference-samples');
+  loadStyle('./service-operations-final.css?build=20260912-service-ops-final-1','h38-service-operations-final');
   loadRuntime('./office-document-export.js?build=20260911-office-document-export-1','h38-office-document-export',()=>window.H38_OFFICE_DOCUMENT_EXPORT);
   loadRuntime('./office-scale-workflow.js?build=20260911-office-scale-workflow-1','h38-office-scale-workflow',()=>window.H38_OFFICE_SCALE_WORKFLOW);
   loadRuntime('./office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','h38-office-scale-task-guard',()=>window.H38_OFFICE_SCALE_TASK_GUARD);
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
   loadRuntime('./office-reference-samples.js?build=20260911-office-reference-samples-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
+  loadRuntime('./recurring-service-runtime.js?build=20260912-recurring-service-runtime-1','h38-recurring-service-runtime',()=>window.H38_RECURRING_SERVICE_RUNTIME);
+  loadRuntime('./multi-rate-labor-runtime.js?build=20260912-multi-rate-labor-runtime-1','h38-multi-rate-labor-runtime',()=>window.H38_MULTI_RATE_LABOR_RUNTIME);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
