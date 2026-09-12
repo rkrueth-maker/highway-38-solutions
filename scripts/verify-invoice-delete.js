@@ -9,6 +9,7 @@ check(money.includes('function invoiceRemoved(row)'), 'invoice soft-delete filte
 check(money.includes('async function deleteInvoice(invoiceId)'), 'invoice delete action is missing');
 check(money.includes("'Status':'Deleted'"), 'invoice delete must mark the record Deleted');
 check(money.includes("'Deleted':true"), 'invoice delete must retain a deleted marker');
+check(money.includes("'Balance':0")&&money.includes("'Balance Due':0")&&money.includes("'Amount Due':0")&&money.includes("'Open Balance':0"), 'invoice delete must zero every due-balance field');
 check(money.includes("'Deletion Mode':'Soft delete — audit retained'"), 'invoice delete must preserve audit history');
 check(money.includes("records('payments').filter"), 'invoice delete must inspect payment history');
 check(money.includes('cannot be deleted. Keep the audit record and use an adjustment instead.'), 'paid invoices must be protected');
