@@ -1,0 +1,43 @@
+name: Verify customer list bottom
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/customer-list-bottom-runtime.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/index.html'
+      - 'scripts/verify-customer-list-bottom-browser.js'
+      - '.github/workflows/verify-customer-list-bottom.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/customer-list-bottom-runtime.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/index.html'
+      - 'scripts/verify-customer-list-bottom-browser.js'
+      - '.github/workflows/verify-customer-list-bottom.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  customer-list-bottom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: JavaScript syntax
+        run: |
+          node -c commercial-app/customer-list-bottom-runtime.js
+          node -c commercial-app/live-customer-navigation-guard-20260910.js
+          node -c scripts/verify-customer-list-bottom-browser.js
+      - name: Verify customer list remains at bottom
+        run: node scripts/verify-customer-list-bottom-browser.js
