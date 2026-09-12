@@ -36,7 +36,12 @@ function addButton(){
 }
 const baseRender=window.renderQuotes;if(typeof baseRender==='function')window.renderQuotes=function(){baseRender();addButton();};
 const basePreview=window.renderQuotePreview;if(typeof basePreview==='function')window.renderQuotePreview=function(){basePreview();addButton();};
-new MutationObserver(()=>{if(document.querySelector('.page-tools')||document.getElementById('h38ApproveSendQuoteButton'))addButton();}).observe(document.documentElement,{childList:true,subtree:true});
-window.H38_QUOTE_DELIVERY={enabled:true,build:'20260912-quote-page-scope-1',open:openDialog,automaticSending:false,ownerConfirmationRequired:true,channel:'supabase-auth-secure-portal',quotePageOnly:true};
+new MutationObserver(()=>{
+  const button=document.getElementById('h38ApproveSendQuoteButton'),statusNode=document.getElementById('h38QuoteDeliveryStatus');
+  if(quotePage()){
+    if(document.querySelector('.page-tools')&&!button)addButton();
+  }else if(button||statusNode)clearPageArtifacts();
+}).observe(document.documentElement,{childList:true,subtree:true});
+window.H38_QUOTE_DELIVERY={enabled:true,build:'20260912-quote-page-scope-2',open:openDialog,automaticSending:false,ownerConfirmationRequired:true,channel:'supabase-auth-secure-portal',quotePageOnly:true};
 addButton();
 })();
