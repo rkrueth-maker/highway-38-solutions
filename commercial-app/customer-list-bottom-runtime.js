@@ -1,16 +1,18 @@
 (function(){
 'use strict';
-const BUILD='20260912-customer-list-bottom-2';
+const BUILD='20260912-customer-list-bottom-3';
 let scheduled=false,observer=null,observedMain=null;
 const text=value=>String(value==null?'':value).trim();
 function isCustomerPage(){try{return text(window.state?.page)==='customers';}catch(_){return false;}}
-function heading(card){return text(card?.querySelector(':scope > h2,:scope > h3')?.textContent).toLowerCase();}
-function findCustomerList(main){
-  return Array.from(main.querySelectorAll('.card')).find(card=>{
-    if(card.id==='h38CustomerReadyCards'||card.closest('.h38-c360'))return false;
-    return ['customers','customer cards'].includes(heading(card));
-  })||null;
+function headings(card){return Array.from(card?.querySelectorAll?.('h2,h3')||[]).map(node=>text(node.textContent).toLowerCase()).filter(Boolean);}
+function looksLikeNativeCustomerList(card){
+  if(!card||card.id==='h38CustomerReadyHero'||card.id==='h38CustomerReadyCards'||card.closest('.h38-c360'))return false;
+  const hs=headings(card);
+  if(hs.some(value=>value==='customer cards'||value==='customers'))return true;
+  const eyebrow=text(card.querySelector('.h38-eyebrow,small')?.textContent).toLowerCase();
+  return eyebrow==='customers'&&hs.some(value=>value.includes('customer'));
 }
+function findCustomerList(main){return Array.from(main.querySelectorAll('.card')).find(looksLikeNativeCustomerList)||null;}
 function reconcile(){
   if(!isCustomerPage())return false;
   const main=document.getElementById('mainContent');if(!main)return false;
@@ -50,5 +52,5 @@ window.addEventListener?.('h38:office-page-rendered',reconcileRuntime);
 window.addEventListener?.('h38:business-snapshot-updated',reconcileRuntime);
 window.addEventListener?.('pageshow',reconcileRuntime);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',reconcileRuntime,{once:true});else reconcileRuntime();
-window.H38_CUSTOMER_LIST_BOTTOM=Object.freeze({build:BUILD,reconcile,schedule,sharedEngine:true,tenantNeutral:true,lateMutationRepair:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
+window.H38_CUSTOMER_LIST_BOTTOM=Object.freeze({build:BUILD,reconcile,schedule,sharedEngine:true,tenantNeutral:true,lateMutationRepair:true,nestedHeadingSupport:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
 })();
