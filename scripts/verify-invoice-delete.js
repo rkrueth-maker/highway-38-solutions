@@ -1,5 +1,7 @@
 const fs=require('fs');
 const money=fs.readFileSync('commercial-app/app-13.js','utf8');
+const lifecycle=fs.readFileSync('commercial-app/invoice-delete-lifecycle-runtime.js','utf8');
+const loader=fs.readFileSync('commercial-app/live-customer-navigation-guard-20260910.js','utf8');
 const failures=[];
 const check=(condition,message)=>{if(!condition)failures.push(message);};
 check(money.includes('function invoiceRemoved(row)'), 'invoice soft-delete filter is missing');
@@ -13,5 +15,10 @@ check(money.includes("allInvoices.filter(row=>!invoiceRemoved(row))"), 'deleted 
 check(money.includes('data-delete-invoice'), 'invoice rows must expose a Delete control');
 check(money.includes("queueOperation('SAVE_ENTITY','Invoice'"), 'invoice delete must use the shared secure save queue');
 check(!money.includes("queueOperation('DELETE"), 'invoice delete must not hard-delete the server record');
+check(lifecycle.includes("name==='invoices'"), 'job lifecycle compatibility must filter invoice reads');
+check(lifecycle.includes('list.filter(row=>!removed(row))'), 'deleted invoices must be excluded from job lifecycle analysis');
+check(lifecycle.includes('api.analyzeJob=job=>withActiveInvoices'), 'analyzeJob must ignore deleted invoices');
+check(lifecycle.includes('api.all=()=>withActiveInvoices'), 'all lifecycle contexts must ignore deleted invoices');
+check(loader.includes('invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1'), 'shared H38/Northern loader must load invoice lifecycle compatibility');
 if(failures.length){console.error(failures.map(x=>'FAIL: '+x).join('\n'));process.exit(1);}
 console.log('Invoice delete contract verified.');
