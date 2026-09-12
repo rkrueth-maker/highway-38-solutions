@@ -1,0 +1,7 @@
+.nl-doc-contact{margin-left:auto;display:grid;gap:2px;text-align:right;font-size:.78rem;color:#475467;line-height:1.3}
+@media(max-width:760px){.nl-doc-contact{width:100%;margin-left:0;text-align:left;margin-top:8px}}
+@media print{
+  .h38-office-stationery-head .nl-doc-contact{margin-left:auto;display:grid!important;gap:2px;text-align:right;font-size:9px;color:#475467;line-height:1.35}
+  .h38-office-stationery-head{flex-wrap:wrap}
+  .h38-office-stationery footer span:last-child{font-size:8px}
+}
