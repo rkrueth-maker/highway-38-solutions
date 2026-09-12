@@ -14,6 +14,7 @@ const sid=row=>text(val(row,'Schedule Event ID','scheduleEventId','id'));
 const now=()=>new Date().toISOString();
 const version=row=>Math.max(1,Number(val(row,'Record Version','recordVersion')||0)+1);
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const setText=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value;};
 function recurring(job){return !!job&&(truthy(val(job,'Subscribed Service','subscribedService'))||truthy(val(job,'Recurring Service Visit','recurringServiceVisit'))||upper(val(job,'Lifecycle Mode','lifecycleMode'))==='RECURRING SERVICE');}
 function active(job){return recurring(job)&&!/COMPLETE|CLOSED|CANCEL|VOID|ARCHIV|DELET/.test(upper(val(job,'Status','status')));}
 function jobById(id){return rows('jobs').find(row=>jid(row)===text(id));}
@@ -29,6 +30,8 @@ function rateLines(job){
   for(const item of [val(job,'Service Rate','serviceRate'),val(job,'Plowing Rate'),val(job,'Rate'),val(customer,'Plowing Rate'),val(customer,'Rate'),val(customer,'Service Rate')])add(item);
   return out.slice(0,4);
 }
+function actionSignature(job){return [jid(job),upper(val(job,'Status','status')),financialAllowed()?'finance':'no-finance'].join('|');}
+function workSignature(job){return [actionSignature(job),text(val(job,'Service Type')),customerName(job),rateLines(job).join('~')].join('|');}
 async function save(collection,type,id,record,idKeys){if(typeof window.queueOperation!=='function')throw new Error('Secure save queue is unavailable.');return window.queueOperation('SAVE_ENTITY',type,id,{entity:collection,record},{collection,record,idKeys},true);}
 async function setVisitState(job,mode){
   if(!recurring(job))throw new Error('This is not a recurring service visit.');
@@ -65,7 +68,7 @@ function openCustomer(job,billing=false){
   },80);
 }
 function buttons(job){
-  const wrap=document.createElement('div');wrap.className='h38-recurring-row-actions';wrap.dataset.h38RecurringActions=jid(job);
+  const wrap=document.createElement('div');wrap.className='h38-recurring-row-actions';wrap.dataset.h38RecurringActions=jid(job);wrap.dataset.signature=actionSignature(job);
   const inProgress=/IN[ _-]?PROGRESS|STARTED|ACTIVE/.test(upper(val(job,'Status','status')));
   wrap.innerHTML=`${inProgress?'<button type="button" class="primary" data-h38-recurring-finish>Finish visit</button>':'<button type="button" class="primary" data-h38-recurring-start>Start visit</button>'}<button type="button" class="secondary" data-h38-recurring-work>Open work</button>${financialAllowed()?'<button type="button" class="secondary" data-h38-recurring-billing>Billing</button>':''}<button type="button" class="secondary" data-h38-recurring-delete>Remove visit</button>`;
   const run=(mode,e)=>{e.stopPropagation();setVisitState(job,mode).catch(err=>window.toast?.(err.message||String(err),true));};
@@ -80,20 +83,24 @@ function patchToday(){
   document.querySelectorAll('.h38-life-today [data-life-job]').forEach(node=>{
     const job=jobById(node.dataset.lifeJob);if(!recurring(job))return;
     const stage=node.querySelector('.h38-life-stage'),detail=node.querySelector('small');
-    if(stage)stage.textContent=/IN[ _-]?PROGRESS|STARTED|ACTIVE/.test(upper(val(job,'Status','status')))?'Recurring service · in progress':'Recurring service';
-    if(detail)detail.textContent='No site visit or quote required. Start the visit, finish it when work is done, then review customer billing.';
-    const next=node.nextElementSibling;if(next?.dataset?.h38RecurringActions===jid(job)){const fresh=buttons(job);next.replaceWith(fresh);return;}node.insertAdjacentElement('afterend',buttons(job));
+    setText(stage,/IN[ _-]?PROGRESS|STARTED|ACTIVE/.test(upper(val(job,'Status','status')))?'Recurring service · in progress':'Recurring service');
+    setText(detail,'No site visit or quote required. Start the visit, finish it when work is done, then review customer billing.');
+    const next=node.nextElementSibling,sig=actionSignature(job);
+    if(next?.dataset?.h38RecurringActions===jid(job)){if(next.dataset.signature===sig)return;next.replaceWith(buttons(job));return;}
+    node.insertAdjacentElement('afterend',buttons(job));
   });
 }
 function patchWork(){
   const panel=document.querySelector('.h38-life-work'),select=document.getElementById('h38LifecycleJob');if(!panel||!select)return;
-  const job=jobById(select.value);panel.querySelector('[data-h38-recurring-simple]')?.remove();panel.classList.toggle('h38-recurring-simple',recurring(job));if(!recurring(job))return;
-  const desc=panel.querySelector('.h38-life-head p');if(desc)desc.textContent='Recurring service visit · no site visit or quote required.';
-  const rates=rateLines(job),box=document.createElement('div');box.className='h38-recurring-service-simple';box.dataset.h38RecurringSimple='1';
+  const job=jobById(select.value),prior=panel.querySelector('[data-h38-recurring-simple]');panel.classList.toggle('h38-recurring-simple',recurring(job));
+  if(!recurring(job)){prior?.remove();return;}
+  const desc=panel.querySelector('.h38-life-head p');setText(desc,'Recurring service visit · no site visit or quote required.');
+  const sig=workSignature(job);if(prior?.dataset?.signature===sig)return;prior?.remove();
+  const rates=rateLines(job),box=document.createElement('div');box.className='h38-recurring-service-simple';box.dataset.h38RecurringSimple='1';box.dataset.signature=sig;
   box.innerHTML=`<div><span class="h38-service-status">${esc(text(val(job,'Status'))||'Scheduled')}</span><strong>${esc(text(val(job,'Service Type'))||'Recurring service')}</strong><small>${esc(customerName(job))}</small>${rates.length?`<div class="h38-service-rate-lines">${rates.map(rate=>`<span>${esc(rate)}</span>`).join('')}</div>`:'<small>Saved customer rate</small>'}<p>Use Start visit when work begins. Finish visit closes this service visit. Billing opens Customer 360 without creating or sending an invoice automatically.</p></div>`;
   box.appendChild(buttons(job));panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);
 }
-function queueSignature(jobs){return jobs.map(job=>[jid(job),val(job,'Status'),val(job,'Updated Time'),rateLines(job).join('~')].join('|')).join('::');}
+function queueSignature(jobs){return `${financialAllowed()?'finance':'no-finance'}::${jobs.map(job=>[jid(job),val(job,'Status'),val(job,'Updated Time'),rateLines(job).join('~')].join('|')).join('::')}`;}
 function renderQueue(){
   const existing=document.getElementById('h38RecurringServiceQueue');
   if(state()?.page!=='today'){existing?.remove();return;}
@@ -120,6 +127,6 @@ function patchApi(){
   if(typeof api.all==='function'){const fn=api.all;api.all=()=>fn().map(simplify);}api.__h38RecurringSimple=true;
 }
 let pending=false;function apply(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;try{patchApi();patchToday();patchWork();renderQueue();}catch(error){console.warn('[H38 recurring service]',error);}});}
-function start(){new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('h38:office-page-rendered',apply);window.addEventListener('h38:business-snapshot-updated',apply);window.addEventListener('h38:recurring-service-state-changed',apply);apply();window.H38_RECURRING_SERVICE_RUNTIME=Object.freeze({build:BUILD,bypassesSiteVisit:true,bypassesQuote:true,startFinishRemove:true,finishRemove:true,billingHandoff:true,todayServiceQueue:true,separateSavedRates:true,auditPreservingRemoval:true,legacyDeleteAction:'Delete',automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});}
+function start(){new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('h38:office-page-rendered',apply);window.addEventListener('h38:business-snapshot-updated',apply);window.addEventListener('h38:recurring-service-state-changed',apply);apply();window.H38_RECURRING_SERVICE_RUNTIME=Object.freeze({build:BUILD,bypassesSiteVisit:true,bypassesQuote:true,startFinishRemove:true,finishRemove:true,billingHandoff:true,todayServiceQueue:true,separateSavedRates:true,auditPreservingRemoval:true,stableSignatures:true,legacyDeleteAction:'Delete',automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
