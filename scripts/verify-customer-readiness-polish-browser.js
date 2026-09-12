@@ -58,7 +58,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     await page.evaluate(()=>{const late=document.createElement('section');late.id='lateCustomerHook';document.getElementById('mainContent').appendChild(late);});
     await page.waitForTimeout(80);
     assert.equal(await page.evaluate(()=>document.getElementById('mainContent').lastElementChild?.id),'h38CustomerReadyCards','late customer render hooks must not move summary cards above the bottom');
-    assert.equal(await page.evaluate(()=>document.querySelector('.page-head').nextElementSibling?.classList.contains('h38-c360'))),true,'Customer 360 must remain directly below the customer page heading');
+    assert.equal(await page.evaluate(()=>document.querySelector('.page-head').nextElementSibling?.classList.contains('h38-c360')),true,'Customer 360 must remain directly below the customer page heading');
     await page.locator('#h38CustomerReadyHero [data-h38-customer-action="site"]').click();
     assert.equal(await page.evaluate(()=>window.__siteOpen.customerId),'C-JOHN','site visit should inherit customer context');
     await page.evaluate(()=>{state.page='customers';H38_CUSTOMER_360.selectedCustomerId='C-JOHN';renderCustomers();});
