@@ -59,6 +59,8 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.addScriptTag({path:runtime});
     await page.addScriptTag({path:renderHook});
     await page.waitForSelector('[data-h38-customer-directory]');
+    await page.evaluate(()=>window.H38_CUSTOMER_WORKSPACE_DOCUMENTS.ensureImportedCustomerLocations());
+    await page.waitForFunction(()=>window.__ops.some(op=>op[0]==='SAVE_PROPERTY'&&op[4]?.record?.['Customer ID']==='C-2'));
     await page.waitForFunction(()=>document.querySelectorAll('[data-h38-customer-card]').length===2);
     assert.equal(await page.locator('[data-h38-customer-card="C-2"] .h38-customer-card-meta').textContent(),'1 location · 1 file','an imported service address must count as a visible customer location without a second database');
     const cardText=await page.locator('[data-h38-customer-card="C-2"]').textContent();
@@ -66,6 +68,19 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert(cardText.includes('Plowing Rate: $50/time'),'customer card must show the imported customer rate');
     await page.locator('[data-h38-customer-card="C-2"]').click();
     await page.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2'&&document.querySelector('.h38-c360 h2')?.textContent.includes('Lake Shop'));
+    await page.waitForSelector('[data-h38-service-operations]');
+    assert((await page.locator('[data-h38-service-operations]').textContent()).includes('Snow plowing'),'plowing rate must appear as a subscribed service');
+    await page.locator('[data-h38-trigger-service="0"]').click();
+    await page.waitForFunction(()=>window.__ops.some(op=>op[0]==='SAVE_JOB')&&window.__ops.some(op=>op[0]==='SAVE_SCHEDULE'));
+    const serviceOps=await page.evaluate(()=>window.__ops.filter(op=>op[0]==='SAVE_JOB'||op[0]==='SAVE_SCHEDULE'));
+    assert.equal(serviceOps[0][4].record['Customer ID'],'C-2');assert.equal(serviceOps[0][4].record['Service Type'],'Snow plowing');
+    await page.locator('[data-h38-customer-invoice] [name="quantity"]').fill('2.5');
+    await page.locator('[data-h38-customer-invoice] [name="billingMode"]').selectOption('hours');
+    await page.locator('[data-h38-customer-invoice]').evaluate(form=>form.requestSubmit());
+    await page.waitForFunction(()=>window.__ops.some(op=>op[0]==='SAVE_INVOICE'));
+    const invoiceOp=await page.evaluate(()=>window.__ops.find(op=>op[0]==='SAVE_INVOICE'));
+    assert.equal(invoiceOp[4].record['Billing Method'],'Hours × rate');assert.equal(invoiceOp[4].record.Total,125);assert.equal(invoiceOp[4].record['Send Allowed'],'No');
+    await page.evaluate(()=>{state.page='customers';renderCustomers();});
     await page.locator('[data-h38-edit-customer]').click();
     assert.equal(await page.locator('#customerForm [name="customerId"]').inputValue(),'C-2','edit must preserve selected customer id');
     assert.equal(await page.locator('#customerForm [name="customerName"]').inputValue(),'Lake Shop','edit must load selected customer');
@@ -74,7 +89,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.locator('#h38CustomerNoteInput').fill('Prefers text before arrival.');
     await page.locator('#h38SaveCustomerNote').click();
     await page.waitForFunction(()=>window.__ops.length>0);
-    const noteOp=await page.evaluate(()=>window.__ops[0]);
+    const noteOp=await page.evaluate(()=>window.__ops.find(op=>op[0]==='SAVE_ENTITY'&&op[1]==='Customer Note'));
     assert.equal(noteOp[0],'SAVE_ENTITY');assert.equal(noteOp[3].record['Customer ID'],'C-2','customer note must be customer-linked');
     await page.waitForSelector('#h38CustomerDocumentInput',{state:'attached'});
     assert.equal(await page.locator('#h38CustomerDocumentInput').getAttribute('multiple'),'','customer document picker must allow multiple files');
@@ -88,6 +103,6 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);assert.equal(contract.cacheBackstop,true);
     assert.equal(hookContract.eventDriven,true);assert.equal(hookContract.continuousPolling,false);
     assert.deepEqual(errors,[],'customer workspace browser flow should not raise page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['compact customer cards','imported address summary','imported rate summary','service address location count','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['compact customer cards','imported address summary','imported location backfill','subscribed service trigger','hours times rate invoice','owner-gated invoice send','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

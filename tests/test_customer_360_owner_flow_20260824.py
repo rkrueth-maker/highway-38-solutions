@@ -6,6 +6,9 @@ CSS=(ROOT/'commercial-app/customer-360-authority.css').read_text()
 BROWSER=(ROOT/'commercial-app/customer-360-browser-integration-v3.js').read_text()
 INDEX=(ROOT/'commercial-app/index.html').read_text()
 MODULE_CONTRACT=(ROOT/'apps-script/business-office/BusinessOffice_ModuleContract.gs').read_text()
+CUSTOMER_IMPORT=(ROOT/'commercial-app/customer-import-intelligence.js').read_text()
+CUSTOMER_WORKSPACE=(ROOT/'commercial-app/customer-workspace-documents.js').read_text()
+JOB_LIFECYCLE=(ROOT/'commercial-app/job-lifecycle.js').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
@@ -52,6 +55,15 @@ def test_customer_file_shows_imported_contact_address_and_rate_fields():
         assert marker in CSS
     for marker in ['Alternate Email','Service Address','Billing Address','Hourly Rate','Mowing Rate','Plowing Rate','Travel / Service Call Charge']:
         assert marker in MODULE_CONTRACT
+
+
+def test_imported_addresses_become_locations_and_subscribed_services_are_actionable():
+    for marker in ["targetCollection:'properties'",'IMPORT-PROPERTY-',"p_entity_type:'customers-and-locations'"]:
+        assert marker in CUSTOMER_IMPORT
+    for marker in ['Subscribed services & invoicing','Trigger today','Hours × rate','Review / send invoices',"'Send Allowed':'No'"]:
+        assert marker in CUSTOMER_WORKSPACE
+    for marker in ['Snap a receipt','capture="environment" multiple','Captured — Office Review Required','Payment Action Performed']:
+        assert marker in JOB_LIFECYCLE
 
 
 def test_activity_first_progressive_disclosure_reduces_customer_page_clutter():
