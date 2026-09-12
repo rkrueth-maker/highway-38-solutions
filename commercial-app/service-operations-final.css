@@ -1,0 +1,13 @@
+.h38-auto-plowing-setting{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line,#d9d9d9)}
+.h38-auto-plowing-setting span{display:grid;gap:2px}.h38-auto-plowing-setting small{display:block}.h38-auto-plowing-setting input{width:22px;height:22px;flex:0 0 auto}
+.h38-auto-plow-bulk{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;margin:0 0 16px;border:1px solid var(--line,#d9d9d9);border-radius:14px;background:var(--surface-2,#f7f7f7)}
+.h38-auto-plow-bulk>div{display:grid;gap:4px}.h38-auto-plow-bulk small{display:block;max-width:760px}
+.h38-recurring-row-actions{display:flex;gap:8px;justify-content:flex-end;padding:6px 0 12px}
+.h38-life-work.h38-recurring-simple>.h38-life-progress,.h38-life-work.h38-recurring-simple>.h38-life-columns{display:none!important}
+.h38-recurring-service-simple{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:16px;margin-top:14px;border:1px solid var(--line,#d9d9d9);border-radius:14px;background:var(--surface-2,#f7f7f7)}
+.h38-recurring-service-simple>div:first-child{display:grid;gap:5px}.h38-recurring-service-simple p{margin:4px 0 0}.h38-recurring-service-simple .h38-recurring-row-actions{padding:0;white-space:nowrap}
+.h38-multi-rate-labor{margin-top:14px;padding-top:14px;border-top:1px solid var(--line,#d9d9d9)}
+.h38-multi-rate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.h38-multi-rate-head>div{display:grid;gap:3px}
+.h38-labor-rate-row{display:grid;grid-template-columns:minmax(150px,1.5fr) minmax(80px,.55fr) minmax(100px,.7fr) minmax(110px,.8fr) auto;gap:10px;align-items:end;margin:10px 0;padding:12px;border:1px solid var(--line,#d9d9d9);border-radius:12px}
+.h38-labor-rate-row label{margin:0}.h38-labor-rate-row button{min-height:42px}
+@media(max-width:760px){.h38-auto-plow-bulk,.h38-recurring-service-simple,.h38-multi-rate-head{align-items:stretch;flex-direction:column}.h38-auto-plow-bulk button,.h38-recurring-service-simple .h38-recurring-row-actions button,.h38-multi-rate-head button{width:100%}.h38-labor-rate-row{grid-template-columns:1fr 1fr}.h38-labor-rate-row label:first-child{grid-column:1/-1}.h38-labor-rate-row button{grid-column:1/-1;width:100%}}

@@ -1,0 +1,44 @@
+name: Verify service operations final
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/recurring-service-runtime.js'
+      - 'commercial-app/multi-rate-labor-runtime.js'
+      - 'commercial-app/plow-trigger-runtime.js'
+      - 'commercial-app/service-operations-final.css'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'business-packs/northern-lakes/supabase-business-pack.json'
+      - 'scripts/verify-service-operations-final.js'
+      - '.github/workflows/verify-service-operations-final.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/recurring-service-runtime.js'
+      - 'commercial-app/multi-rate-labor-runtime.js'
+      - 'commercial-app/plow-trigger-runtime.js'
+      - 'commercial-app/service-operations-final.css'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'business-packs/northern-lakes/supabase-business-pack.json'
+      - 'scripts/verify-service-operations-final.js'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: JavaScript syntax
+        run: |
+          node -c commercial-app/recurring-service-runtime.js
+          node -c commercial-app/multi-rate-labor-runtime.js
+          node -c commercial-app/plow-trigger-runtime.js
+          node -c commercial-app/live-customer-navigation-guard-20260910.js
+          node -c scripts/verify-service-operations-final.js
+      - name: Service operations contracts
+        run: node scripts/verify-service-operations-final.js

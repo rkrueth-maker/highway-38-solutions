@@ -97,6 +97,14 @@
     "googleDriveConnected": false,
     "oauthSecretsInBrowser": false
   },
+  "ai": {
+    "enabled": true,
+    "provider": "openai",
+    "credentialSource": "shared-server-openai-api-key",
+    "billingOwner": "Highway 38 Solutions",
+    "tenantMaySupplySeparateKey": false,
+    "browserKeyExposure": false
+  },
   "authorization": {
     "provider": "supabase-auth",
     "invitationClaim": "exact-email",
