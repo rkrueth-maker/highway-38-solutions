@@ -8,8 +8,10 @@ on:
       - 'commercial-app/plow-trigger-runtime.js'
       - 'commercial-app/service-operations-final.css'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/index.html'
       - 'business-packs/northern-lakes/supabase-business-pack.json'
       - 'scripts/verify-service-operations-final.js'
+      - 'scripts/verify-recurring-service-workflow-browser.js'
       - '.github/workflows/verify-service-operations-final.yml'
   push:
     branches: [main]
@@ -19,8 +21,10 @@ on:
       - 'commercial-app/plow-trigger-runtime.js'
       - 'commercial-app/service-operations-final.css'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/index.html'
       - 'business-packs/northern-lakes/supabase-business-pack.json'
       - 'scripts/verify-service-operations-final.js'
+      - 'scripts/verify-recurring-service-workflow-browser.js'
 
 permissions:
   contents: read
@@ -40,5 +44,21 @@ jobs:
           node -c commercial-app/plow-trigger-runtime.js
           node -c commercial-app/live-customer-navigation-guard-20260910.js
           node -c scripts/verify-service-operations-final.js
+          node -c scripts/verify-recurring-service-workflow-browser.js
       - name: Service operations contracts
         run: node scripts/verify-service-operations-final.js
+
+  recurring-service-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify recurring service workflow in Chromium
+        run: node scripts/verify-recurring-service-workflow-browser.js
