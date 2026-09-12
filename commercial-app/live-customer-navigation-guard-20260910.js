@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-live-customer-navigation-guard-competitive-workflow-1';
+const BUILD='20260912-live-customer-navigation-guard-full-polish-2';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -24,7 +24,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./northern-document-polish.js?build=20260912-northern-document-polish-1','h38-northern-document-polish',()=>window.H38_NORTHERN_DOCUMENT_POLISH);
   loadRuntime('./ai-document-factory.js?build=20260912-ai-document-factory-1','h38-ai-document-factory',()=>window.H38_AI_DOCUMENT_FACTORY);
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
-  loadRuntime('./customer-list-bottom-runtime.js?build=20260912-customer-list-bottom-1','h38-customer-list-bottom',()=>window.H38_CUSTOMER_LIST_BOTTOM);
+  loadRuntime('./customer-list-bottom-runtime.js?build=20260912-customer-list-bottom-2','h38-customer-list-bottom',()=>window.H38_CUSTOMER_LIST_BOTTOM);
   loadRuntime('./recurring-service-runtime.js?build=20260912-recurring-service-runtime-3','h38-recurring-service-runtime',()=>window.H38_RECURRING_SERVICE_RUNTIME);
   loadRuntime('./multi-rate-labor-runtime.js?build=20260912-multi-rate-labor-runtime-1','h38-multi-rate-labor-runtime',()=>window.H38_MULTI_RATE_LABOR_RUNTIME);
   loadRuntime('./plow-trigger-runtime.js?build=20260912-plow-trigger-runtime-1','h38-plow-trigger-runtime',()=>window.H38_PLOW_TRIGGER_RUNTIME);
