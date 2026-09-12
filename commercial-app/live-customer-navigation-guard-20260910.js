@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-live-customer-navigation-guard-service-ops-3';
+const BUILD='20260912-live-customer-navigation-guard-invoice-delete-1';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -29,6 +29,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./recurring-service-runtime.js?build=20260912-recurring-service-runtime-1','h38-recurring-service-runtime',()=>window.H38_RECURRING_SERVICE_RUNTIME);
   loadRuntime('./multi-rate-labor-runtime.js?build=20260912-multi-rate-labor-runtime-1','h38-multi-rate-labor-runtime',()=>window.H38_MULTI_RATE_LABOR_RUNTIME);
   loadRuntime('./plow-trigger-runtime.js?build=20260912-plow-trigger-runtime-1','h38-plow-trigger-runtime',()=>window.H38_PLOW_TRIGGER_RUNTIME);
+  loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
