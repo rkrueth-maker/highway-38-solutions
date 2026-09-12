@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.h38-assistant-ai]
 verify_jwt = true
+
+[functions.nl-bouncie-fleet]
+verify_jwt = false
