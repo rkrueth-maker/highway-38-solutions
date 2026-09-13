@@ -17,6 +17,8 @@ const html = String.raw`<!doctype html>
 <section id="locked" class="card hidden"><h2>Not enabled</h2><p>This account does not include Couponing.</p></section>
 <div id="app" class="hidden">
 <section class="card"><div class="section-title"><h2>Savings Copilot</h2><span id="sync" class="small">Loading…</span></div><p class="small">Build your list, record real nearby prices and coupon stacks, then choose the cheapest practical trip.</p><div id="status" class="status"></div></section>
+<section class="card"><div class="section-title"><h2>Shopping location</h2><span class="small">Shared across H38 Deals</span></div><div class="row"><input id="zip" inputmode="numeric" maxlength="5" placeholder="ZIP code"><select id="radius"><option>25</option><option selected>50</option><option>75</option><option>100</option></select></div><button id="useLocation" class="secondary" style="width:100%;margin-top:8px">Use phone location</button></section>
+<section id="handoff" class="card hidden"><div class="section-title"><h2>Deal brought from H38</h2></div><div id="handoffDetail" class="small"></div><div class="toolbar" style="margin-top:9px"><button id="handoffList" class="secondary">Add to shopping list</button><button id="handoffStack">Prepare coupon stack</button></div><p class="small">Nothing is saved until you choose an action and confirm it.</p></section>
 <div class="nav"><button data-view="shop" class="active">SHOP</button><button data-view="save">SAVE</button><button data-view="scan">SCAN</button><button data-view="deals">DEALS</button><button data-view="receipts">RECEIPTS</button></div>
 <section id="view" class="card"></section>
 </div>
@@ -29,11 +31,19 @@ const SUPABASE_URL='https://jqukmwtsgcsaruucnqja.supabase.co';
 const KEY='sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1';
 const sb=supabase.createClient(SUPABASE_URL,KEY);
 const $=id=>document.getElementById(id);
-const state={view:'shop',list:null,items:[],prices:[],receipts:[],watch:[],plan:null,barcode:'',receiptText:'',loading:false};
+const state={view:'shop',list:null,items:[],prices:[],receipts:[],watch:[],plan:null,barcode:'',receiptText:'',loading:false,handoff:null};
+const SHARED_LOCATION_KEY='h38-shopping-location-v1';
 const money=v=>'$'+Number(v||0).toFixed(2);
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function effective(p){return Math.max(0,Number(p.shelf_price||0)*Math.max(1,Number(p.required_qty||1))-Number(p.sale_discount||0)-Number(p.store_coupon||0)-Number(p.manufacturer_coupon||0)-Number(p.rebate||0)-Number(p.loyalty_value||0));}
 function status(t){$('status').textContent=t||'';}
+function saveSharedLocation(){const old=readSharedLocation();const row={zip:$('zip').value.trim(),radius:$('radius').value,radiusMiles:Number($('radius').value||50),lat:old.lat,lon:old.lon};if(row.zip){delete row.lat;delete row.lon;}localStorage.setItem(SHARED_LOCATION_KEY,JSON.stringify(row));}
+function readSharedLocation(){try{return JSON.parse(localStorage.getItem(SHARED_LOCATION_KEY)||localStorage.getItem('h38-penny-shopping-location-v1')||localStorage.getItem('h38-resale-location-v1')||'{}')||{};}catch(e){return {};}}
+function restoreSharedLocation(){const x=readSharedLocation();$('zip').value=x.zip||'';$('radius').value=String(x.radius||x.radiusMiles||50);if(Object.keys(x).length)localStorage.setItem(SHARED_LOCATION_KEY,JSON.stringify(x));}
+function acceptSharedLocation(a,b){const lat=Number(a),lon=Number(b);if(!Number.isFinite(lat)||!Number.isFinite(lon)){status('Location was unavailable. Enter a ZIP instead.');return;}localStorage.setItem(SHARED_LOCATION_KEY,JSON.stringify({zip:'',radius:$('radius').value,radiusMiles:Number($('radius').value||50),lat:lat,lon:lon}));$('zip').value='';status('Phone location saved for Deals, Resale and Couponing.');}
+function useSharedLocation(){status('Getting phone location…');if(window.AndroidH38Deals&&AndroidH38Deals.requestLocation){AndroidH38Deals.requestLocation();return;}if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){acceptSharedLocation(p.coords.latitude,p.coords.longitude);},function(){status('Location permission was unavailable. Enter a ZIP instead.');},{timeout:12000});else status('Location is unavailable. Enter a ZIP instead.');}
+function readHandoff(){const p=new URLSearchParams(location.search),h={item:String(p.get('item')||'').trim(),store:String(p.get('store')||'').trim(),upc:String(p.get('upc')||'').trim(),sku:String(p.get('sku')||'').trim(),buy:String(p.get('buy')||'').trim()};return h.item||h.upc||h.sku?h:null;}
+function showHandoff(){state.handoff=readHandoff();if(!state.handoff)return;const h=state.handoff;$('handoff').classList.remove('hidden');$('handoffDetail').textContent=[h.item,h.store,h.upc?'UPC '+h.upc:'',h.sku?'SKU '+h.sku:'',h.buy?'Shelf price $'+h.buy:''].filter(Boolean).join(' · ');$('handoffList').onclick=function(){addItem(h.item||h.upc||h.sku).then(function(){status('Added to shopping list.');}).catch(function(e){status(e.message);});};$('handoffStack').onclick=function(){state.view='deals';render();$('dealItem').value=h.item;$('dealStore').value=h.store;$('dealBarcode').value=h.upc||h.sku;$('dealShelf').value=h.buy;status('Deal copied into the stack builder. Add verified coupons or rebates, then save.');};}
 async function gate(){
   const session=(await sb.auth.getSession()).data.session;
   if(!session){location.href='/functions/v1/h38-deals-shell';return false;}
@@ -141,7 +151,8 @@ window.H38NativeSpeechResult=function(v){addMany(String(v||'')).catch(function(e
 window.H38NativePhotoResult=function(role,dataUrl){try{fetch(dataUrl).then(function(r){return r.blob();}).then(async function(blob){if(role==='receipt'){state.view='receipts';render();const text=await ocrFile(blob,$('receiptOcr'));fillReceipt(text);status('Receipt read. Confirm store and total.');}else{const text=await ocrFile(blob,$('status'));await addMany(text);status('Scanned list added.');}}).catch(function(e){status('Photo read failed: '+e.message);});}catch(e){status('Photo read failed: '+e.message);}};
 window.H38NativePhotoError=function(v){status(String(v||'Photo canceled'));};
 document.querySelectorAll('.nav button').forEach(function(b){b.onclick=function(){state.view=b.dataset.view;render();};});
-(async function(){if(await gate())await load();})();
+$('zip').onchange=saveSharedLocation;$('radius').onchange=saveSharedLocation;$('useLocation').onclick=useSharedLocation;window.H38NativeLocationResult=acceptSharedLocation;window.H38NativeLocationError=function(v){status(String(v||'Location permission was unavailable. Enter a ZIP instead.'));};restoreSharedLocation();
+(async function(){if(await gate()){await load();showHandoff();}})();
 </script>
 </body>
 </html>`;
