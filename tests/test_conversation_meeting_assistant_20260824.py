@@ -13,7 +13,7 @@ QUOTE = (ROOT / 'commercial-app/quote-agent-contract.js').read_text()
 
 def test_meeting_runtime_is_loaded_and_offline_cached():
     assert 'conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1' in INDEX
-    assert 'conversation-meeting-assistant.js?build=20260824-conversation-meeting-assistant-1' in INDEX
+    assert 'conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1' in INDEX
     assert "'conversation-meeting-assistant.js'" in SW
     assert "'conversation-meeting-assistant.css'" in SW
     assert 'h38-business-office-20260824-0410' in SW
@@ -53,6 +53,18 @@ def test_shared_business_record_model_and_offline_queue_are_used():
     assert "syncStatus:final?'PENDING_AUDIO':'LOCAL_RECORDING'" in RUNTIME
     assert 'window.addEventListener(\'online\'' in RUNTIME
     assert 'legacySiteVisitsProjectedNotMigrated:true' in RUNTIME
+
+
+def test_finish_creates_clickable_private_meeting_report_and_clears_local_blob():
+    for marker in [
+        'meetingReportDocument:true','privateOnlineEvidence:true','localBlobClearedAfterSync:true',
+        'MEETING_REPORT_SAVED','data-h38-meeting-document','What was discussed',
+        'Requested or added work','Decisions','Action items','Still unresolved',
+        'Approval / acknowledgement','business-office-files','blobData:null'
+    ]:
+        assert marker in RUNTIME
+    assert "attachmentId=meetingReportDocumentId(row)" in RUNTIME
+    assert "upsert({business_id:businessId,collection:'documents'" in RUNTIME
 
 
 def test_meetings_area_customer_history_and_followup_context_are_connected():
