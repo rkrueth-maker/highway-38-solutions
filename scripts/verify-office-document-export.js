@@ -16,7 +16,7 @@ function has(text,needle,message){assert(text.includes(needle),message||`Missing
 for(const source of [exporter,scale,taskGuard,packet,loader])new Function(source);
 const pages=['customers','work','meetings','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents'];
 for(const page of pages)has(exporter,`'${page}'`,`Office PDF export must cover ${page}`);
-for(const [kind,label] of [['invoice','Invoice PDF'],['purchase','PO PDF'],['accounting','Review PDF'],['payroll','Payroll PDF'],['tax','Tax PDF']]){has(exporter,`kind==='${kind}'`,`Missing ${kind} record document builder`);has(exporter,label,`Missing ${label} control`);}
+for(const [kind,label] of [['document','Document details'],['invoice','Invoice PDF'],['purchase','PO PDF'],['accounting','Review PDF'],['payroll','Payroll PDF'],['tax','Tax PDF']]){has(exporter,`kind==='${kind}'`,`Missing ${kind} record document builder`);has(exporter,label,`Missing ${label} control`);}
 has(exporter,'Print / Save PDF','Missing page Print / Save PDF control');
 has(exporter,'approvedLogoOnly:true','Office document export must be approved-logo only');
 has(exporter,"highway38:'assets/highway38-logo.png'",'H38 approved stationery logo path is not pinned');
@@ -26,7 +26,7 @@ assert.equal(nlPack.branding.canonicalLogoPath,'businesses/northern-lakes/assets
 assert.equal(nlPack.branding.singleApprovedLogo,true,'Northern Lakes must remain single-approved-logo');
 has(css,'@page{size:letter portrait;margin:.5in}','Stationery must have a deterministic letter print contract');
 has(css,'.h38-office-stationery-head img','Stationery logo styling missing');
-for(const runtime of ['office-document-export.js?build=20260911-office-document-export-1','office-scale-workflow.js?build=20260911-office-scale-workflow-1','office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','office-document-packet.js?build=20260911-office-document-packet-1'])has(loader,runtime,`Launch loader missing ${runtime}`);
+for(const runtime of ['office-document-export.js?build=20260913-document-row-actions-1','office-scale-workflow.js?build=20260913-document-row-actions-1','office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','office-document-packet.js?build=20260911-office-document-packet-1'])has(loader,runtime,`Launch loader missing ${runtime}`);
 has(quotePrint,'H38_SAFE_QUOTE_PRINT','Specialized quote PDF path must remain intact');
 has(scale,'const PAGE_SIZE=16','Long record lists must use bounded 16-row pages');
 for(const key of ['customers.directory','customers.properties','work.requests','work.jobs','work.tasks','quotes.saved','documents.files'])has(scale,`'${key}'`,`Full-data browser missing ${key}`);
@@ -35,6 +35,7 @@ has(scale,"'Quote Checklist Key'",'Accepted quote tasks must have idempotency ke
 has(scale,"'Task Type':'Quote Work'",'Accepted quote line tasks must be identified as quote work');
 has(scale,'data-h38-task-complete','Task checkoff control missing');
 has(scale,'data-h38-task-assign','Task assignment control missing');
+for(const marker of ['data-h38-document-open','data-h38-document-print','data-h38-document-delete','documentSoftDelete:true','documentAuditPreserved:true'])has(scale,marker,`Document-row action missing ${marker}`);
 has(taskGuard,'optimisticTaskDedupe:true','Optimistic quote-task duplicate guard missing');
 has(packet,'Print all documents','Document packet control missing');
 has(packet,'Sample Customer — preview only','No-customer sample packet missing');
