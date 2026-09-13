@@ -26,7 +26,7 @@ assert.equal(nlPack.branding.canonicalLogoPath,'businesses/northern-lakes/assets
 assert.equal(nlPack.branding.singleApprovedLogo,true,'Northern Lakes must remain single-approved-logo');
 has(css,'@page{size:letter portrait;margin:.5in}','Stationery must have a deterministic letter print contract');
 has(css,'.h38-office-stationery-head img','Stationery logo styling missing');
-for(const runtime of ['office-document-export.js?build=20260913-document-row-actions-1','office-scale-workflow.js?build=20260913-document-row-actions-1','office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','office-document-packet.js?build=20260911-office-document-packet-1'])has(loader,runtime,`Launch loader missing ${runtime}`);
+for(const runtime of ['office-document-export.js?build=20260913-document-row-actions-1','office-scale-workflow.js?build=20260913-mobile-document-links-1','office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','office-document-packet.js?build=20260911-office-document-packet-1'])has(loader,runtime,`Launch loader missing ${runtime}`);
 has(quotePrint,'H38_SAFE_QUOTE_PRINT','Specialized quote PDF path must remain intact');
 has(scale,'const PAGE_SIZE=16','Long record lists must use bounded 16-row pages');
 for(const key of ['customers.directory','customers.properties','work.requests','work.jobs','work.tasks','quotes.saved','documents.files'])has(scale,`'${key}'`,`Full-data browser missing ${key}`);

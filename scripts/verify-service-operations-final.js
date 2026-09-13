@@ -18,7 +18,7 @@ for(const marker of ['Automatic snow plowing','Trigger all automatic snow plow j
 for(const marker of ['rateComponents','Billing Components','Equipment used','Equipment lines × saved rates','data-h38-component-quantity']) assert(customerWorkspace.includes(marker),`Multi-equipment customer invoice contract missing: ${marker}`);
 for(const marker of ['.h38-life-work.h38-recurring-simple','.h38-service-queue','.h38-service-rate-lines','.h38-service-status']) assert(css.includes(marker),`Recurring service workflow style missing: ${marker}`);
 for(const file of ['recurring-service-runtime.js','multi-rate-labor-runtime.js','plow-trigger-runtime.js']) assert(loader.includes(file),`Shared loader missing ${file}`);
-assert(loader.includes('recurring-service-runtime-3'),'Shared loader must cache-bust the competitive recurring workflow runtime.');
+assert(loader.includes('recurring-service-runtime.js?build=20260913-finish-to-billing-1'),'Shared loader must cache-bust the recurring finish-to-billing runtime.');
 assert.equal(pack.ai?.provider,'openai');
 assert.equal(pack.ai?.credentialSource,'shared-server-openai-api-key');
 assert.equal(pack.ai?.billingOwner,'Highway 38 Solutions');
