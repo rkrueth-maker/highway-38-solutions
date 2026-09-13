@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-customer-details-1';
+const BUILD='20260913-document-links-1';
 let loading=null,bridgePatched=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -12,14 +12,14 @@ function truthy(v){return v===true||['true','1','yes'].includes(text(v).toLowerC
 function isInternalCustomer(row){return truthy(value(row,'Internal Only','internalOnly'))||truthy(value(row,'Test Data','testData'));}
 function visibleCustomers(){return rows('customers').filter(row=>customerId(row)&&!isInternalCustomer(row));}
 function esc(v){return typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260912-customer-details-1';link.dataset.h38Customer360='1';document.head.appendChild(link);}
+function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260913-document-links-1';link.dataset.h38Customer360='1';document.head.appendChild(link);}
 function ensureAuthority(){
   ensureStyle();
   if(window.H38_CUSTOMER_360)return Promise.resolve(window.H38_CUSTOMER_360);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
     let script=document.querySelector('script[data-h38-customer-360]');
-    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260912-customer-details-1';script.dataset.h38Customer360='1';document.body.appendChild(script);}
+    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260913-document-links-1';script.dataset.h38Customer360='1';document.body.appendChild(script);}
     const finish=()=>window.H38_CUSTOMER_360?resolve(window.H38_CUSTOMER_360):reject(new Error('Customer 360 did not become ready.'));
     script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(new Error('Customer 360 could not load.')),{once:true});
     if(window.H38_CUSTOMER_360)finish();
@@ -67,7 +67,7 @@ function makeGroup(title,cards,open){if(!cards.length)return null;const details=
 function polishCustomerPage(c360){
   if(window.state?.page!=='customers')return;ensureVisibleSelection(c360);const grid=document.querySelector('.h38-c360-grid');if(!grid||grid.dataset.h38ActivityPolished==='1')return;const selected=text(c360.selectedCustomerId);if(!selected)return;const bundle=c360.customerBundle?.(snapshot(),selected);if(!bundle?.customer||isInternalCustomer(bundle.customer))return;grid.dataset.h38ActivityPolished='1';
   const cards=Array.from(grid.children).filter(node=>node.classList?.contains('card')),byTitle=new Map(cards.map(card=>[text(card.querySelector('h3')?.textContent),card]));
-  const activity=document.createElement('section');activity.className='card h38-c360-activity';const recent=recentActivity(bundle);activity.innerHTML=`<h3>Recent activity</h3><p class="muted small">Newest customer-linked work first. Internal cost and accounting stay outside this feed.</p><div class="h38-c360-timeline">${recent.length?recent.map(item=>{const label=ACTIVITY_LABELS[item.collection]||item.collection,title=eventTitle(item.collection,item.row),status=text(value(item.row,'Status','status')),date=new Date(item.time).toLocaleDateString();return`<div class="h38-c360-event"><span>${esc(label)}</span><div><strong>${esc(title)}</strong><small>${esc([status,date].filter(Boolean).join(' · '))}</small></div></div>`;}).join(''):'<p class="muted small">No activity yet.</p>'}</div>`;
+  const activity=document.createElement('section');activity.className='card h38-c360-activity';const recent=recentActivity(bundle);activity.innerHTML=`<h3>Recent activity</h3><p class="muted small">Newest customer-linked work first. Internal cost and accounting stay outside this feed.</p><div class="h38-c360-timeline">${recent.length?recent.map(item=>{const label=ACTIVITY_LABELS[item.collection]||item.collection,title=eventTitle(item.collection,item.row),status=text(value(item.row,'Status','status')),date=new Date(item.time).toLocaleDateString(),documentAction=item.collection==='documents'?`<button type="button" class="secondary" data-h38-open-document-id="${esc(rowId(item.collection,item.row))}" ${text(value(item.row,'Storage Path','storagePath'))?'':`disabled title="The original file is not attached to this record."`}>Open file</button>`:'';return`<div class="h38-c360-event"><span>${esc(label)}</span><div><strong>${esc(title)}</strong><small>${esc([status,date].filter(Boolean).join(' · '))}</small>${documentAction}</div></div>`;}).join(''):'<p class="muted small">No activity yet.</p>'}</div>`;
   const location=byTitle.get('Locations');if(location)location.after(activity);else grid.prepend(activity);
   const activeNames=['Jobs','Requests','Quotes','Site visits','Measurements','Follow-ups','Tasks'],historyNames=['Meetings & conversations','Files & photos'],billingNames=['Customer billing'];
   const take=names=>names.map(name=>byTitle.get(name)).filter(Boolean);const active=makeGroup('Active work',take(activeNames),true),history=makeGroup('History, conversations & files',take(historyNames),false),billing=makeGroup('Billing history',take(billingNames),false);[active,history,billing].filter(Boolean).forEach(group=>grid.appendChild(group));
