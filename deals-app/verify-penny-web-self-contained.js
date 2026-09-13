@@ -20,7 +20,8 @@ const required = [
   "Ray's List", 'VERIFY LOCAL', 'Exact image unavailable',
   'Where are you shopping?', 'Use my location', 'Find stores',
   "action:'stores'", 'h38-penny-shopping-location-v1',
-  'Show all ', 'Clear filters',
+  'Show all ', 'Clear filters', 'AndroidH38Deals.requestLocation',
+  'H38NativeLocationResult', 'filtered of ',
 ];
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error('missing required marker: ' + marker);
@@ -44,6 +45,9 @@ if (!startup.includes('load(true);') || /(?:refresh\(|refresh_(?:fast|dg))/.test
 if (!/refresh_fast'[\s\S]{0,300}payload:p/.test(scriptMatch[1]) ||
     !/refresh_dg'[\s\S]{0,300}payload:p/.test(scriptMatch[1])) {
   throw new Error('chosen location is not passed to explicit refresh');
+}
+if (!scriptMatch[1].includes("$('price').value=''")) {
+  throw new Error('browser-restored price filter is not cleared on startup');
 }
 
 console.log('PASS: H38 Penny web is self-contained, store-first, authenticated, and cache-first.');
