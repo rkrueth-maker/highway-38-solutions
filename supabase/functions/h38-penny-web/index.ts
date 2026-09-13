@@ -28,6 +28,22 @@ card=function(x){if(x&&/menards/i.test(String(x.retailer||''))){x=Object.assign(
 var h38RefreshWithNearbyStores=refresh;
 refresh=async function(){var zip=$('zip').value.trim(),hasLocation=/^\d{5}$/.test(zip)||(Number.isFinite(S.location.lat)&&Number.isFinite(S.location.lon));if(!S.nearby.length&&hasLocation)await findStores();return h38RefreshWithNearbyStores()};
 $('refresh').onclick=refresh;
+</script><style>
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.action{display:inline-block;border:1px solid #b8c7cf;border-radius:9px;padding:7px 9px;color:#17384d;background:#f6f9fa;font-size:12px;font-weight:800;text-decoration:none}.coverage{background:#fff;border:1px solid #d3dde2;border-radius:16px;padding:11px 12px;margin-bottom:10px}.coverage h2{font-size:15px;margin:0 0 7px}.coveragegrid{display:flex;gap:6px;overflow:auto}.coverageitem{white-space:nowrap;border-radius:999px;background:#eaf0f3;padding:6px 9px;font-size:12px;font-weight:750}.coverageitem.zero{background:#fff0dc;color:#7b470d}.coveragenote{font-size:12px;color:#5d6e77;margin-top:7px}
+</style><script>
+// Connected-app UX v39. One shopping location is shared across Deals,
+// Resale and Couponing; handoffs only prefill the next app and never save.
+var H38_SHARED_LOCATION='h38-shopping-location-v1',H38_OLD_LOCATION=LOC;
+LOC=H38_SHARED_LOCATION;
+var h38LoadLocation=loadLocation;
+loadLocation=function(){try{S.location=JSON.parse(localStorage.getItem(H38_SHARED_LOCATION)||localStorage.getItem(H38_OLD_LOCATION)||'{}')||{};if(Object.keys(S.location).length)localStorage.setItem(H38_SHARED_LOCATION,JSON.stringify(S.location))}catch(e){S.location={}}$('zip').value=S.location.zip||'';$('radius').value=String(S.location.radiusMiles||S.location.radius||50)};
+loadLocation();
+function h38Handoff(path,x){var q=new URLSearchParams(),title=x.title||x.canonical_title||'';if(title)q.set('item',title);if(x.retailer)q.set('store',x.retailer);if(x.upc)q.set('upc',x.upc);if(x.sku)q.set('sku',x.sku);if(num(x.buy_price)!==null)q.set('buy',String(x.buy_price));return path+'?'+q.toString()}
+var h38ConnectedCard=card;
+card=function(x){var html=h38ConnectedCard(x),actions='<div class="actions"><a class="action" href="'+esc(h38Handoff('/functions/v1/h38-resale-web',x))+'">Check resale</a><a class="action" href="'+esc(h38Handoff('/functions/v1/h38-coupon-web',x))+'">Build coupon stack</a></div>';return html.replace('</div></article>',actions+'</div></article>')};
+function h38ShowCoverage(){var host=$('coverage'),order=['Dollar General','Home Depot','Menards','Walmart','Walgreens','Fleet Farm','Harbor Freight','Target','Dollar Tree'],counts={};S.all.forEach(function(x){var n=retailer(x.retailer);counts[n]=(counts[n]||0)+1});if(!host){host=document.createElement('section');host.id='coverage';host.className='coverage';host.setAttribute('aria-label','Retailer coverage');document.querySelector('.toolbar').before(host)}host.innerHTML='<h2>Saved coverage by store</h2><div class="coveragegrid">'+order.map(function(n){var c=counts[n]||0;return'<span class="coverageitem '+(c?'':'zero')+'">'+esc(n)+' '+c+'</span>'}).join('')+'</div><div class="coveragenote">Zero means no saved results—not proof that a store has no clearance. Check deals to retry available sources.</div>';host.classList.toggle('hidden',!S.all.length)}
+var h38ConnectedRender=render;
+render=function(){h38ConnectedRender();h38ShowCoverage()};
 </script></body></html>`;
 
 Deno.serve(() => new Response(HTML, {headers: {
