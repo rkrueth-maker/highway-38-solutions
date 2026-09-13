@@ -14,10 +14,13 @@ if (!scriptMatch) throw new Error('page script is missing');
 new vm.Script(scriptMatch[1], { filename: path + ':browser-script' });
 
 const required = [
-  'self-contained-store-first-v34', 'H38 Deals', 'Dollar General',
+  'self-contained-store-first-v35', 'H38 Deals', 'Dollar General',
   'Home Depot', 'Menards', 'Check deals', 'UPC / SKU',
   'h38_penny_cache_feed', 'refresh_fast', 'refresh_dg',
   "Ray's List", 'VERIFY LOCAL', 'Exact image unavailable',
+  'Where are you shopping?', 'Use my location', 'Find stores',
+  "action:'stores'", 'h38-penny-shopping-location-v1',
+  'Show all ', 'Clear filters',
 ];
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error('missing required marker: ' + marker);
@@ -34,8 +37,13 @@ for (const pattern of forbidden) {
 const warmCache = html.indexOf("api('/rest/v1/rpc/h38_penny_cache_feed'");
 const explicitRefresh = html.indexOf("$('refresh').onclick=refresh");
 if (warmCache < 0 || explicitRefresh < 0) throw new Error('cache/refresh contract missing');
-if (/load\([^)]*\)[\s\S]{0,200}refresh_(?:fast|dg)/.test(scriptMatch[1])) {
-  throw new Error('page load must not crawl deal sources');
+const startup = scriptMatch[1].slice(scriptMatch[1].lastIndexOf("chips('interests'"));
+if (!startup.includes('load(true);') || /(?:refresh\(|refresh_(?:fast|dg))/.test(startup)) {
+  throw new Error('page startup must only load the warm cache');
+}
+if (!/refresh_fast'[\s\S]{0,300}payload:p/.test(scriptMatch[1]) ||
+    !/refresh_dg'[\s\S]{0,300}payload:p/.test(scriptMatch[1])) {
+  throw new Error('chosen location is not passed to explicit refresh');
 }
 
 console.log('PASS: H38 Penny web is self-contained, store-first, authenticated, and cache-first.');
