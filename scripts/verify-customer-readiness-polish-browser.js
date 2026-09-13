@@ -24,7 +24,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
         followUps:[{'Follow-up ID':'F-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Title':'Call Johnson','Status':'Open','Due Time':now,'Updated Time':now}],
         invoices:[{'Invoice ID':'I-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Invoice Number':'INV-101','Status':'Open','Balance Due':125,'Updated Time':now}],
         scheduleEvents:[{'Schedule ID':'S-JOHN','Customer ID':'C-JOHN','Start Time':new Date(Date.now()+86400000).toISOString(),'Status':'Scheduled'}],
-        documents:[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','File Name':'gutter-before.jpg','Updated Time':now}],
+        documents:[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','File Name':'gutter-before.jpg','Storage Path':'C-JOHN/gutter-before.jpg','Updated Time':new Date(Date.now()+1000).toISOString()}],
         requests:[],quoteRevisions:[],siteMeasurements:[],tasks:[],payments:[],portalMessages:[],checklists:[],jobNotes:[],conversations:[],messages:[],emailThreads:[],emailMessages:[],smsThreads:[],smsMessages:[],portalThreads:[],changeOrders:[],timeEntries:[],dailyLogs:[],materialRequests:[],assignments:[],inspections:[],recurringPlans:[],expenses:[]
       }};
       window.esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
@@ -47,6 +47,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     assert.equal((await page.locator('#h38CustomerReadyToday h1').textContent()).trim(),'What needs attention today?');
     assert.equal(await page.locator('.h38-ready-metrics button').count(),5,'Today command center should have five business metrics');
     assert.equal(await page.locator('.h38-ready-prompts button').count(),4,'assistant should show useful owner-language prompts');
+    assert.equal(await page.locator('.h38-ready-activity [data-h38-open-document-id="D-JOHN"]:not([disabled])').count(),1,'Today document activity must provide an enabled Open file action');
     await page.locator('#h38NewActionButton').click();
     assert.equal(await page.locator('#h38QuickCreateDialog [data-h38-quick]').count(),8,'universal New menu should cover common creation paths');
     await page.locator('#h38QuickCreateDialog button[value="cancel"]').click();
@@ -81,6 +82,6 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     const contract=await page.evaluate(()=>window.H38_CUSTOMER_READINESS_POLISH);
     for(const key of ['automaticApproval','automaticCustomerSending','automaticPurchase','automaticPayment','automaticScheduling'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.deepEqual(errors,[],'customer readiness browser should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['universal New','Today command center','assistant prompts','Customer 360 summary','customer-context site visit','customer-context meeting','site visit capture summary','owner-control safety']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['universal New','Today command center','Today document links','assistant prompts','Customer 360 summary','customer-context site visit','customer-context meeting','site visit capture summary','owner-control safety']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
