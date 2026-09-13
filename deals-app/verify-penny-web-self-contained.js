@@ -25,6 +25,8 @@ const required = [
   'H38NativeLocationResult', 'filtered of ',
   'refresh_menards', 'quantity_available', 'store_city',
   'h38RefreshWithNearbyStores', 'await findStores()',
+  'h38-shopping-location-v1', 'Saved coverage by store',
+  'Zero means no saved results', 'Check resale', 'Build coupon stack',
 ];
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error('missing required marker: ' + marker);
