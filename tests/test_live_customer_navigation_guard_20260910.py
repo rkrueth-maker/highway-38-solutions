@@ -8,7 +8,7 @@ AUTHORITY = (ROOT / 'commercial-app' / 'desktop-navigation-authority.js').read_t
 
 def test_live_customer_guard_is_retired_after_final_navigation_authority():
     authority = './desktop-navigation-authority.js?build=20260910-desktop-navigation-authority-nav-integrity-loader-1'
-    guard = './live-customer-navigation-guard-20260910.js?build=20260913-mobile-document-links-1'
+    guard = './live-customer-navigation-guard-20260910.js?build=20260913-brand-attribution-1'
     assert authority in INDEX
     assert guard in INDEX
     assert INDEX.index(authority) < INDEX.index(guard)

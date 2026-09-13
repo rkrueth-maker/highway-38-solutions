@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - 'commercial-app/index.html'
       - 'commercial-app/tenant-attribution.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'commercial-app/conversation-meeting-assistant.js'
@@ -14,11 +15,13 @@ on:
       - 'businesses/northern-lakes/customer-portal-config.js'
       - 'businesses/northern-lakes/app-launch.js'
       - 'scripts/verify-highway38-brand-attribution.js'
+      - 'tests/test_live_customer_navigation_guard_20260910.py'
       - '.github/workflows/verify-highway38-brand-attribution.yml'
   pull_request:
     branches:
       - main
     paths:
+      - 'commercial-app/index.html'
       - 'commercial-app/tenant-attribution.js'
       - 'commercial-app/live-customer-navigation-guard-20260910.js'
       - 'commercial-app/conversation-meeting-assistant.js'
@@ -28,6 +31,7 @@ on:
       - 'businesses/northern-lakes/customer-portal-config.js'
       - 'businesses/northern-lakes/app-launch.js'
       - 'scripts/verify-highway38-brand-attribution.js'
+      - 'tests/test_live_customer-navigation-guard_20260910.py'
       - '.github/workflows/verify-highway38-brand-attribution.yml'
   workflow_dispatch:
 

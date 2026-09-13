@@ -4,6 +4,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('ass
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const commercial=read('commercial-app/tenant-attribution.js');
 const loader=read('commercial-app/live-customer-navigation-guard-20260910.js');
+const index=read('commercial-app/index.html');
 const shell=read('businesses/northern-lakes/site-shell.js');
 const publicCredit=read('businesses/northern-lakes/highway38-attribution.js');
 const portalConfig=read('businesses/northern-lakes/customer-portal-config.js');
@@ -11,6 +12,7 @@ const ownerLaunch=read('businesses/northern-lakes/app-launch.js');
 const meeting=read('commercial-app/conversation-meeting-assistant.js');
 const readiness=read('commercial-app/customer-readiness-polish.js');
 for(const [name,source] of [['tenant attribution',commercial],['Office loader',loader],['Northern site shell',shell],['Northern public attribution',publicCredit],['Northern portal config',portalConfig],['Northern owner launcher',ownerLaunch]])new vm.Script(source,{filename:name});
+assert(index.includes('live-customer-navigation-guard-20260910.js?build=20260913-brand-attribution-1'),'Office entry must cache-bust the attribution-aware shared loader');
 assert(loader.includes("tenant-attribution.js?build=20260913-tenant-attribution-1"),'shared Office loader must load tenant attribution runtime');
 assert(commercial.includes("NORTH_KEY='northern-lakes'"),'tenant attribution must be scoped to Northern Lakes');
 assert(commercial.includes("raw.includes('Highway 38 Solutions · Business Office')"),'meeting report rewrite must require the existing H38 report marker');
@@ -29,4 +31,4 @@ assert(publicCredit.includes('Business systems powered by Highway 38 Solutions')
 assert(publicCredit.includes('https://highway38solutions.com/'),'Northern attribution must link back to Highway 38 Solutions');
 assert(shell.includes('<strong>NORTHERN LAKES</strong>'),'Northern remains the primary public business brand');
 assert(portalConfig.includes("businessName:'Northern Lakes Property Maintenance LLC'"),'Northern remains the primary customer portal brand');
-console.log(JSON.stringify({status:'PASS',acceptance:'HIGHWAY38_BRAND_ATTRIBUTION',northernPrimaryBrandPreserved:true,highway38Attribution:true,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteCredit:true,publicSiteCredit:true,customerPortalCredit:true,ownerAccessCredit:true,askH38Preserved:true},null,2));
+console.log(JSON.stringify({status:'PASS',acceptance:'HIGHWAY38_BRAND_ATTRIBUTION',northernPrimaryBrandPreserved:true,highway38Attribution:true,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteCredit:true,publicSiteCredit:true,customerPortalCredit:true,ownerAccessCredit:true,askH38Preserved:true,cacheBustedSharedLoader:true},null,2));
