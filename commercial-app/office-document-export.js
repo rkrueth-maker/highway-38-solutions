@@ -38,6 +38,13 @@ function customerName(id){const row=rows('customers').find(item=>text(value(item
 function vendorName(id){const row=rows('vendors').find(item=>text(value(item,'Vendor ID','vendorId'))===text(id));return value(row,'Vendor Name','name')||id;}
 function jobName(id){const row=rows('jobs').find(item=>text(value(item,'Job ID','jobId'))===text(id));return value(row,'Project Title','Job Name','title')||id;}
 function recordDocument(kind,row){
+  if(kind==='document')return{
+    title:text(value(row,'File Name'))||'Document record',
+    subtitle:'Private Business Office file record',
+    body:table('Document details',[
+      ['File name',value(row,'File Name')],['File type',value(row,'Mime Type')],['Access',value(row,'Access Classification')],['Status',value(row,'Status')],['Related record type',value(row,'Source Type')],['Related record',value(row,'Source ID')],['Customer',customerName(value(row,'Customer ID'))],['Job',jobName(value(row,'Job ID'))],['Created',date(value(row,'Created Time'))],['Updated',date(value(row,'Updated Time'))]
+    ])
+  };
   if(kind==='invoice')return{
     title:`Invoice ${text(value(row,'Invoice Number'))||''}`.trim(),
     subtitle:'Customer invoice draft / record',
