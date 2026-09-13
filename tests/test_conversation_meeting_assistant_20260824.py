@@ -63,7 +63,7 @@ def test_finish_creates_clickable_private_meeting_report_and_clears_local_blob()
         'Approval / acknowledgement','business-office-files','blobData:null'
     ]:
         assert marker in RUNTIME
-    assert "const attachmentId=meetingReportDocumentId(row)" in RUNTIME
+    assert "attachmentId=meetingReportDocumentId(row)" in RUNTIME
     assert "upsert({business_id:businessId,collection:'documents'" in RUNTIME
 
 
