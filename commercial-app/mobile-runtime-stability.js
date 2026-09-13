@@ -58,7 +58,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
  .topbar .brand strong{display:block;max-width:118px;font-size:.82rem;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .topbar .brand small{display:none}
  .topbar .top-actions{flex:0 0 auto;gap:4px!important}
- .topbar .icon-button,.topbar .ai-launcher{width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;border-radius:10px!important}
+ .topbar .icon-button,.topbar .ai-launcher{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;border-radius:11px!important}
  .business-bar:empty{display:none}.business-bar{position:relative!important;top:auto!important;z-index:1500;padding:5px 10px!important}
  .business-bar span{font-size:.72rem!important;line-height:1.2}
  body:not(.h38-field-scroll-lock) .app-shell{position:fixed!important;left:0!important;right:0!important;top:var(--h38-office-shell-top,58px)!important;bottom:0!important;display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;contain:layout paint!important;touch-action:auto!important}
