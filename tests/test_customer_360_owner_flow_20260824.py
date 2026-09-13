@@ -12,7 +12,8 @@ JOB_LIFECYCLE=(ROOT/'commercial-app/job-lifecycle.js').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
-    assert "const BUILD='20260912-customer-details-1'" in C360
+    assert "const BUILD='20260913-document-links-1'" in C360
+    assert 'data-h38-open-document-id' in C360
     assert 'root.H38_CUSTOMER_360=api' in C360
     for marker in ['customers','properties','jobs','quotes','meetings','siteCaptureSessions','siteMeasurements','documents','followUps','invoices']:
         assert marker in C360
@@ -106,7 +107,7 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 
 
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
-    assert 'customer-360-browser-integration-v3.js?build=20260912-customer-details-1' in INDEX
+    assert 'customer-360-browser-integration-v3.js?build=20260913-document-links-1' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20260912-customer-details-1' in BROWSER
-    assert 'customer-360-authority.css?build=20260912-customer-details-1' in BROWSER
+    assert 'customer-360-authority.js?build=20260913-document-links-1' in BROWSER
+    assert 'customer-360-authority.css?build=20260913-document-links-1' in BROWSER
