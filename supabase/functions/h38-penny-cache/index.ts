@@ -449,7 +449,10 @@ async function readCache(admin: any) {
         upc: r.upc || p.upc || "",
         sku: r.sku || p.sku || "",
         deal_type: r.deal_type || p.deal_type || "candidate",
-        buy_price: r.buy_price ?? p.buy_price,
+        buy_price: retailerKey(r.retailer || p.retailer) === "home depot" &&
+            Number(r.buy_price ?? p.buy_price) === 0
+          ? null
+          : r.buy_price ?? p.buy_price,
         retail_price: r.retail_price ?? p.retail_price,
         image_url: r.image_url || p.image_url || "",
         image_source_scope: cached ? "exact_product" : p.image_source_scope,
