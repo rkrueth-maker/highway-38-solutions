@@ -26,7 +26,9 @@ assert(meeting.includes('Highway 38 Solutions · Business Office'),'meeting veri
 assert(meeting.includes('Highway 38 owner approval and date'),'meeting verifier must cover the exact current approval marker');
 assert(readiness.includes('Ask H38'),'Ask H38 product branding must remain intact');
 assert(readiness.includes('Find customer on Highway 38'),'runtime repair must continue to cover the current shared prompt until the base screen is later neutralized directly');
-for(const source of [shell,portalConfig,ownerLaunch])assert(source.includes('highway38-attribution.js?build=20260913-highway38-attribution-1'),'every Northern entry surface must load the shared Highway 38 attribution component');
+assert(shell.includes("ATTRIBUTION_BUILD='20260913-highway38-attribution-1'"),'Northern public site must pin the approved Highway 38 attribution build');
+assert(shell.includes('highway38-attribution.js?build=${ATTRIBUTION_BUILD}'),'Northern public site must load the shared Highway 38 attribution component using its pinned build');
+for(const [name,source] of [['customer portal',portalConfig],['owner access',ownerLaunch]])assert(source.includes('highway38-attribution.js?build=20260913-highway38-attribution-1'),`Northern ${name} must load the shared Highway 38 attribution component`);
 assert(publicCredit.includes('Business systems powered by Highway 38 Solutions'),'Northern public attribution wording must remain consistent');
 assert(publicCredit.includes('https://highway38solutions.com/'),'Northern attribution must link back to Highway 38 Solutions');
 assert(shell.includes('<strong>NORTHERN LAKES</strong>'),'Northern remains the primary public business brand');
