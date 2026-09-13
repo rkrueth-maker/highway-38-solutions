@@ -1,0 +1,52 @@
+name: Verify Highway 38 Brand Attribution
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/tenant-attribution.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/conversation-meeting-assistant.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'businesses/northern-lakes/highway38-attribution.js'
+      - 'businesses/northern-lakes/site-shell.js'
+      - 'businesses/northern-lakes/customer-portal-config.js'
+      - 'businesses/northern-lakes/app-launch.js'
+      - 'scripts/verify-highway38-brand-attribution.js'
+      - 'tests/test_live_customer_navigation_guard_20260910.py'
+      - '.github/workflows/verify-highway38-brand-attribution.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/index.html'
+      - 'commercial-app/tenant-attribution.js'
+      - 'commercial-app/live-customer-navigation-guard-20260910.js'
+      - 'commercial-app/conversation-meeting-assistant.js'
+      - 'commercial-app/customer-readiness-polish.js'
+      - 'businesses/northern-lakes/highway38-attribution.js'
+      - 'businesses/northern-lakes/site-shell.js'
+      - 'businesses/northern-lakes/customer-portal-config.js'
+      - 'businesses/northern-lakes/app-launch.js'
+      - 'scripts/verify-highway38-brand-attribution.js'
+      - 'tests/test_live_customer-navigation-guard_20260910.py'
+      - '.github/workflows/verify-highway38-brand-attribution.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-brand-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify tenant-safe Highway 38 attribution
+        run: node scripts/verify-highway38-brand-attribution.js

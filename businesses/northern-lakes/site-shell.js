@@ -1,6 +1,7 @@
 (()=>{
 'use strict';
 const V='nl-photo-owner-refresh-20260805-v2';
+const ATTRIBUTION_BUILD='20260913-highway38-attribution-1';
 const asset=name=>`assets/${name}?v=${V}`;
 const LOGO=asset('diamond-logo.svg');
 const A={hero:asset('hero.svg'),snow:asset('snow.svg'),lawn:asset('lawn.svg'),landscape:asset('landscaping.svg'),excavation:asset('excavation.svg'),equipment:asset('equipment.svg'),materials:asset('materials.svg'),lake:asset('lake.svg'),about:asset('about.svg')};
@@ -9,6 +10,7 @@ const F=`<footer class="site-footer"><div class="wrap footer-grid"><div><img cla
 const servicePages=['services.html','snow.html','lawn.html','landscaping.html','excavation.html','cabin-care.html','driveway-drainage.html','commercial-property-care.html','rental-resort-support.html','cleanouts-hauling.html'];
 function pageKey(){const p=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(p==='index.html'||!p)return'home';if(servicePages.includes(p))return'services';if(p==='equipment-rental.html')return'equipment';if(p==='materials.html')return'materials';if(['about.html','gallery.html','reviews.html','service-areas.html','faq.html'].includes(p))return'about';if(['contact.html','quote-request.html'].includes(p))return'contact';return'';}
 function normalizeLogoReferences(){document.querySelectorAll('img').forEach(img=>{const src=String(img.getAttribute('src')||'');if(/diamond-logo|approved.logo.northern|northern.*logo/i.test(src)){img.src=LOGO;img.alt='Northern Lakes Property Maintenance LLC approved logo';}});}
+function loadHighway38Attribution(){if(window.NL_HIGHWAY38_ATTRIBUTION||document.querySelector('script[data-nl-h38-attribution]'))return;const script=document.createElement('script');script.src=`highway38-attribution.js?build=${ATTRIBUTION_BUILD}`;script.async=false;script.dataset.nlH38Attribution='1';document.head.appendChild(script);}
 document.addEventListener('DOMContentLoaded',()=>{
  document.querySelectorAll('link[href*="approved-hotfix.css"]').forEach(node=>node.remove());
  if(!document.querySelector('link[href*="nl-v3.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`nl-v3.css?v=${V}`;document.head.appendChild(link);}
@@ -19,5 +21,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  const toggle=document.querySelector('.nav-toggle');if(toggle)toggle.addEventListener('click',()=>{document.body.classList.toggle('nav-open');toggle.setAttribute('aria-expanded',String(document.body.classList.contains('nav-open')));});
  document.querySelectorAll('.site-nav a').forEach(link=>link.addEventListener('click',()=>document.body.classList.remove('nav-open')));
  const style=document.createElement('style');style.textContent=`.site-nav .customer-link{font-weight:900;color:var(--forest);border:1px solid var(--forest);padding:8px 10px}.site-nav .owner-link{font-size:.72rem;opacity:.72}.hero{background-image:url('${A.hero}')!important;background-size:cover!important;background-position:center!important}.hero:before{background-image:url('${A.hero}')!important}.page-hero img{object-position:center center!important}@media(max-width:1050px){.site-nav .customer-link,.site-nav .owner-link{display:block!important}}`;document.head.appendChild(style);
+ loadHighway38Attribution();
 });
 })();
