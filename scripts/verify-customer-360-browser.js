@@ -5,6 +5,7 @@ const assert=require('assert');
 const root=path.resolve(__dirname,'..');
 const authority=path.join(root,'commercial-app/customer-360-authority.js');
 const integration=path.join(root,'commercial-app/customer-360-browser-integration-v3.js');
+const scale=path.join(root,'commercial-app/office-scale-workflow.js');
 (async()=>{
   const browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:390,height:844}});
@@ -35,7 +36,7 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
         siteCaptureSessions:[{'Site Visit ID':'SV-JOHN','Customer ID':'C-JOHN','Quote ID':'Q-JOHN','Project Title':'Gutter site visit','Updated Time':'2026-08-23T13:00:00Z'}],
         siteMeasurements:[{'Measurement ID':'M-JOHN','Customer ID':'C-JOHN','Site Visit ID':'SV-JOHN','Label':'Gutter length','Updated Time':'2026-08-23T13:05:00Z'}],
         meetings:[{'Meeting ID':'MT-JOHN','Customer ID':'C-JOHN','Title':'Johnson follow-up','Updated Time':'2026-08-23T14:00:00Z'}],
-        documents:[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','Quote ID':'Q-JOHN','File Name':'gutter-before.jpg','Updated Time':'2026-08-23T13:10:00Z'}],
+        documents:[{'Document ID':'D-JOHN','Customer ID':'C-JOHN','Quote ID':'Q-JOHN','File Name':'gutter-before.jpg','Storage Bucket':'business-office-files','Storage Path':'C-JOHN/gutter-before.jpg','Updated Time':'2026-08-23T13:10:00Z'}],
         followUps:[{'Follow-up ID':'F-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Title':'Call Johnson','Status':'Open','Updated Time':'2026-08-23T15:00:00Z'}],
         tasks:[{'Task ID':'T-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Task Title':'Order gutter','Status':'Open','Updated Time':'2026-08-23T15:10:00Z'}],
         invoices:[{'Invoice ID':'I-JOHN','Customer ID':'C-JOHN','Job ID':'J-JOHN','Invoice Number':'INV-101','Status':'Draft','Updated Time':'2026-08-23T16:00:00Z'}],
@@ -51,9 +52,13 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
       };
       window.openPage=function(pageName){state.page=pageName;if(pageName==='customers')window.renderCustomers();};
       window.H38Bridge=class{async request(action,args){window.__lastBridgeRequest={action,args};return{ok:true};}};
+      window.state.businessId='B-1';
+      window.H38_SUPABASE_SHARED_CLIENT={ensure:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'U-1'}}}})},storage:{from:()=>({createSignedUrl:async()=>({data:{signedUrl:'https://files.example/gutter-before.jpg'}})})}})};
+      window.open=url=>{window.__openedDocumentUrl=url;return{};};
     });
     await page.addScriptTag({path:authority});
     await page.addScriptTag({path:integration});
+    await page.addScriptTag({path:scale});
     await page.evaluate(()=>{H38_CUSTOMER_360.selectedCustomerId='C-JOHN';renderCustomers();});
     await page.waitForSelector('.h38-c360-activity');
     assert.equal((await page.locator('.h38-c360 h2').first().textContent()).trim(),'Johnson');
@@ -67,6 +72,11 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
     assert.deepEqual(summaries,['Active work','History, conversations & files','Billing history']);
     assert.equal(await page.locator('details.h38-c360-detail-group').nth(0).getAttribute('open'),'');
     assert.equal(await page.locator('details.h38-c360-detail-group').nth(1).getAttribute('open'),null);
+    const documentLinks=page.locator('[data-h38-open-document-id="D-JOHN"]');
+    assert((await documentLinks.count())>=2,'document must be openable from its customer list and recent activity');
+    await page.evaluate(()=>H38_OFFICE_SCALE_WORKFLOW.enhance());
+    await documentLinks.first().click();
+    await page.waitForFunction(()=>window.__openedDocumentUrl==='https://files.example/gutter-before.jpg');
     assert.equal(await page.locator('body').textContent().then(t=>t.includes('internal material cost')),false,'internal expense must not render');
     const firstActivity=await page.locator('.h38-c360-event strong').first().textContent();assert(firstActivity&&firstActivity.trim().length,'activity feed should render a title');
     const search=page.locator('#h38Customer360Search');await search.fill('Recovered Customer Portal Test');await search.dispatchEvent('input');
@@ -87,6 +97,6 @@ const integration=path.join(root,'commercial-app/customer-360-browser-integratio
     assert.equal(synced[0].payload.record['Customer ID'],undefined,'finance write must remain customer-free');
     assert.equal(synced[1].payload.record['Customer ID'],'C-JOHN','operational child should inherit unique customer');
     assert.deepEqual(errors,[],'browser should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['render Johnson Customer 360','customer emails shown','customer addresses shown','customer rates shown','recent activity','progressive disclosure','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['render Johnson Customer 360','customer emails shown','customer addresses shown','customer rates shown','recent activity','document list links','progressive disclosure','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
