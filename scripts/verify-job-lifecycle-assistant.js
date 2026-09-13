@@ -59,7 +59,7 @@ must(life.includes('SAVE_ENTITY'),'Tenant-scoped generic entity save path is mis
 must(loader.includes('job-lifecycle.js?build=20260807-2225'),'Supported Office does not load lifecycle JS.');
 must(loader.includes('job-lifecycle.css?build=20260807-2225'),'Supported Office does not load lifecycle CSS.');
 must(loader.includes('office-polish.js?build=20260807-2306'),'Supported Office does not load polish JS.');
-must(loader.includes('office-polish.css?build=20260807-2306'),'Supported Office does not load polish CSS.');
+must(loader.includes('office-polish.css?build=20260913-mobile-touch-targets-1'),'Supported Office does not load polish CSS.');
 must(sw.includes("'./job-lifecycle.js'"),'Offline shell does not cache lifecycle JS.');
 must(sw.includes("'./job-lifecycle.css'"),'Offline shell does not cache lifecycle CSS.');
 must(sw.includes("'./office-polish.js'"),'Offline shell does not cache polish JS.');

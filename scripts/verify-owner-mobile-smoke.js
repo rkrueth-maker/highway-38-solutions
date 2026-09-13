@@ -61,9 +61,9 @@ requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed'
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
 requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
-requireText(index,'mobile-runtime-stability.js?build=20260826-mobile-runtime-stability-native-scroll-1','mobile stability layer loads after native scroll authority');
+requireText(index,'mobile-runtime-stability.js?build=20260913-mobile-touch-targets-1','mobile stability layer loads after native scroll authority');
 const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
-const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20260826-mobile-runtime-stability-native-scroll-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20260913-mobile-touch-targets-1');
 if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
 requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
 requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');
@@ -75,6 +75,8 @@ requireText(stability,'fixedNavIsolation:true','fixed primary nav is isolated fr
 requireText(stability,'fieldVisitSingleBottomNav:true','Site Visit suppresses duplicate Business Office bottom nav');
 requireText(stability,'keyboardZoomGuard:true','mobile form controls prevent keyboard zoom reflow');
 requireText(stability,'screenInstabilityGuard:true','screen instability guard is declared');
+requireText(stability,'width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important','mobile top-bar controls keep practical 44px touch targets');
+requireText(runtimeGlobals,'width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important','first-frame top-bar controls keep practical 44px touch targets');
 requireText(stability,"body.h38-field-scroll-lock #mainNav.h38-five-primary-nav{display:none!important}",'field visit authoritative lock hides office bottom navigation');
 requireText(stability,'staleFieldDomDoesNotLockOfficeScroll:true','legacy field class cannot own normal Office scrolling');
 requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit owns one stable viewport layer');

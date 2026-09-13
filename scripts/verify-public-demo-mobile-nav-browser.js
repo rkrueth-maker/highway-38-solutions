@@ -29,6 +29,10 @@ async function checkViewport(page,width){
   await page.waitForTimeout(50);
   const lastVisible=await page.evaluate(()=>{const nav=document.getElementById('mainNav'),last=nav.lastElementChild,n=nav.getBoundingClientRect(),b=last.getBoundingClientRect();return b.right<=n.right+1&&b.left<n.right;});
   assert.equal(lastVisible,true,`last mobile nav destination must be reachable at ${width}px`);
+
+  await page.setContent(`<!doctype html><html><head><style>${baseCss}\n${demoCss}</style></head><body><header class="topbar"><div class="brand"><strong>Highway 38 Solutions</strong></div><div class="top-actions"><button class="ai-launcher">AI</button><button class="icon-button">V</button><button class="icon-button">R</button></div></header></body></html>`);
+  const topTargets=await page.locator('.top-actions button').evaluateAll(buttons=>buttons.map(button=>{const rect=button.getBoundingClientRect();return{width:rect.width,height:rect.height};}));
+  topTargets.forEach((rect,index)=>{assert.ok(rect.width>=44,`top action ${index+1} is too narrow at ${width}px: ${rect.width}`);assert.ok(rect.height>=44,`top action ${index+1} is too short at ${width}px: ${rect.height}`);});
 }
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -38,6 +42,6 @@ async function checkViewport(page,width){
     await checkViewport(page,390);
     await checkViewport(page,320);
     assert.deepEqual(errors,[],'public demo mobile nav verification should have no browser errors');
-    console.log(JSON.stringify({status:'PASS',checks:['390px nav labels do not overlap','320px nav labels do not overlap','touch targets stay usable','all nav destinations remain reachable']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['390px nav labels do not overlap','320px nav labels do not overlap','top actions keep 44px touch targets','bottom navigation touch targets stay usable','all nav destinations remain reachable']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
