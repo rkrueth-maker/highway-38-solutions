@@ -9,9 +9,10 @@ const source = fs.readFileSync(path, 'utf8');
 const htmlMatch = source.match(/const HTML = String\.raw`([\s\S]*?)`;\n\nDeno\.serve/);
 if (!htmlMatch) throw new Error('self-contained HTML payload is missing');
 const html = htmlMatch[1];
-const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
-if (!scriptMatch) throw new Error('page script is missing');
-new vm.Script(scriptMatch[1], { filename: path + ':browser-script' });
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x => x[1]);
+if (!scripts.length) throw new Error('page script is missing');
+scripts.forEach((script, i) => new vm.Script(script, { filename: path + ':browser-script-' + i }));
+const browserScript = scripts.join('\n');
 
 const required = [
   'self-contained-store-first-v35', 'H38 Deals', 'Dollar General',
@@ -22,6 +23,8 @@ const required = [
   "action:'stores'", 'h38-penny-shopping-location-v1',
   'Show all ', 'Clear filters', 'AndroidH38Deals.requestLocation',
   'H38NativeLocationResult', 'filtered of ',
+  'refresh_menards', 'quantity_available', 'store_city',
+  'h38RefreshWithNearbyStores', 'await findStores()',
 ];
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error('missing required marker: ' + marker);
@@ -38,15 +41,15 @@ for (const pattern of forbidden) {
 const warmCache = html.indexOf("api('/rest/v1/rpc/h38_penny_cache_feed'");
 const explicitRefresh = html.indexOf("$('refresh').onclick=refresh");
 if (warmCache < 0 || explicitRefresh < 0) throw new Error('cache/refresh contract missing');
-const startup = scriptMatch[1].slice(scriptMatch[1].lastIndexOf("chips('interests'"));
+const startup = scripts[0].slice(scripts[0].lastIndexOf("chips('interests'"));
 if (!startup.includes('load(true);') || /(?:refresh\(|refresh_(?:fast|dg))/.test(startup)) {
   throw new Error('page startup must only load the warm cache');
 }
-if (!/refresh_fast'[\s\S]{0,300}payload:p/.test(scriptMatch[1]) ||
-    !/refresh_dg'[\s\S]{0,300}payload:p/.test(scriptMatch[1])) {
+if (!/refresh_fast'[\s\S]{0,300}payload:p/.test(browserScript) ||
+    !/refresh_dg'[\s\S]{0,300}payload:p/.test(browserScript)) {
   throw new Error('chosen location is not passed to explicit refresh');
 }
-if (!scriptMatch[1].includes("$('price').value=''")) {
+if (!browserScript.includes("$('price').value=''")) {
   throw new Error('browser-restored price filter is not cleared on startup');
 }
 

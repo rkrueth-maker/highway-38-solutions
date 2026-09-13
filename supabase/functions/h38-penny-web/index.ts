@@ -20,6 +20,14 @@ function clearFilters(){$('search').value='';$('discount').value='0';$('price').
 local=function(x){return x.local===true||x.is_local===true||x.local_store_verified===true||(/menards/i.test(x.retailer||'')&&!!(x.menards_store_id||x.store_id||x.store_address||x.store_city||x.city||x.quantity_available!=null||x.quantity!=null))};
 refresh=async function(){var b=$('refresh'),p=locationPayload();p.stores=S.nearby;b.disabled=true;status('Checking sources while saved deals stay usable…',false,true);try{var d=await api('/functions/v1/h38-penny-cache',{action:'refresh_fast',payload:p}),rays=null;if(S.nearby.some(function(s){return retailer(s.retailer||s.store_name)==='Menards'})){rays=await api('/functions/v1/h38-penny-cache',{action:'refresh_menards',payload:p})}if(rays&&rays.data&&Array.isArray(rays.data.leads)){S.all=rays.data.leads;render()}else if(d.data&&Array.isArray(d.data.leads)){S.all=d.data.leads;render()}await api('/functions/v1/h38-penny-cache',{action:'refresh_dg',payload:p});status((rays&&rays.data?rays.data.count+' local Ray\'s List deal'+(rays.data.count===1?'':'s')+' saved. ':'')+'Fast check complete. Deep check continues in the background.',false,false);setTimeout(function(){load(false)},5000)}catch(e){status('Saved deals remain available. Check failed: '+e.message,true,false)}finally{b.disabled=false}};
 $('refresh').onclick=refresh;
+</script><script>
+// Present exact-store Ray's fields and make Check deals location-aware even
+// when the shopper did not press Find stores separately.
+var h38CardWithCacheFields=card;
+card=function(x){if(x&&/menards/i.test(String(x.retailer||''))){x=Object.assign({},x,{city:x.store_city||x.city,quantity:x.quantity_available!=null?x.quantity_available:x.quantity})}return h38CardWithCacheFields(x)};
+var h38RefreshWithNearbyStores=refresh;
+refresh=async function(){var zip=$('zip').value.trim(),hasLocation=/^\d{5}$/.test(zip)||(Number.isFinite(S.location.lat)&&Number.isFinite(S.location.lon));if(!S.nearby.length&&hasLocation)await findStores();return h38RefreshWithNearbyStores()};
+$('refresh').onclick=refresh;
 </script></body></html>`;
 
 Deno.serve(() => new Response(HTML, {headers: {
