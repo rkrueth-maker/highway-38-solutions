@@ -12,9 +12,9 @@ const {chromium}=require('playwright');
   await page.evaluate(()=>{
     window.state={page:'today',businessId:'northern-lakes',snapshot:{
       user:{owner:true,permissions:{}},
-      customers:[{'Customer ID':'C-NELSON','Customer Name':'Nelson Wood Shims','Rate':'$100/hr trucks','active_rates':['trucks $100/hr','Skidsteer $120/hr']}],
-      jobs:[{'Job ID':'J-NELSON','Customer ID':'C-NELSON','Service Type':'Snow plowing','Status':'Scheduled','Subscribed Service':true,'Lifecycle Mode':'Recurring Service','Record Version':1}],
-      scheduleEvents:[{'Schedule Event ID':'S-NELSON','Job ID':'J-NELSON','Status':'Scheduled','Record Version':1}]
+      customers:[{'Customer ID':'C-NELSON','Customer Name':'Nelson Wood Shims','Rate':'$100/hr trucks','active_rates':['trucks $100/hr','Skidsteer $120/hr']},{'Customer ID':'C-LAWN','Customer Name':'Pine Lawn Test','Mowing Rate':'$55/visit'}],
+      jobs:[{'Job ID':'J-NELSON','Customer ID':'C-NELSON','Service Type':'Snow plowing','Status':'Scheduled','Subscribed Service':true,'Lifecycle Mode':'Recurring Service','Record Version':1},{'Job ID':'J-LAWN','Customer ID':'C-LAWN','Service Type':'Lawn mowing','Status':'Scheduled','Subscribed Service':true,'Lifecycle Mode':'Recurring Service','Record Version':1}],
+      scheduleEvents:[{'Schedule Event ID':'S-NELSON','Job ID':'J-NELSON','Status':'Scheduled','Record Version':1},{'Schedule Event ID':'S-LAWN','Job ID':'J-LAWN','Status':'Scheduled','Record Version':1}]
     }};
     window.__ops=[];window.__pages=[];window.__toasts=[];
     window.queueOperation=async function(action,type,id,payload,meta){
@@ -26,7 +26,7 @@ const {chromium}=require('playwright');
     window.toast=(message)=>window.__toasts.push(String(message));
     window.openPage=function(name){
       window.__pages.push(name);window.state.page=name;
-      if(name==='customers')document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Customers</h1></div><form data-h38-customer-invoice><input name="service"><button>Create draft</button></form>';
+      if(name==='customers')document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Customers</h1></div><form data-h38-customer-invoice><input name="service"><button>Create invoice draft</button></form>';
       if(name==='work')document.getElementById('mainContent').innerHTML='<div class="h38-life-work"><div class="h38-life-head"><p></p></div></div><select id="h38LifecycleJob"><option value="J-NELSON">Nelson</option></select>';
     };
     window.renderToday=()=>{};window.renderWork=()=>{};window.renderCustomers=()=>{};
@@ -37,23 +37,37 @@ const {chromium}=require('playwright');
   const queueText=await page.locator('#h38RecurringServiceQueue').innerText();
   assert(queueText.includes('Nelson Wood Shims'),'service queue must show customer');
   assert(queueText.includes('Snow plowing'),'service queue must show service');
+  assert(queueText.includes('Lawn mowing'),'service queue must show lawn service');
+  assert(queueText.includes('$55/visit'),'saved lawn rate must remain visible in the service queue');
   assert(queueText.includes('trucks $100/hr'),'truck rate must remain separate');
   assert(queueText.includes('Skidsteer $120/hr'),'skid steer rate must remain separate');
   assert(!queueText.includes('$220'),'compound equipment rates must never be summed into one hourly rate');
   const labels=(await page.locator('#h38RecurringServiceQueue button').allTextContents()).map(x=>x.trim());
   for(const label of ['Start visit','Open work','Billing','Remove visit'])assert(labels.includes(label),`missing service action: ${label}`);
-  await page.locator('#h38RecurringServiceQueue [data-h38-recurring-start]').click();
-  await page.waitForFunction(()=>window.__ops.some(op=>op.meta?.collection==='jobs'&&op.meta?.record?.Status==='In Progress'));
-  const started=await page.evaluate(()=>window.__ops.find(op=>op.meta?.collection==='jobs'&&op.meta?.record?.Status==='In Progress'));
+  const snowCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:'Nelson Wood Shims'});
+  await snowCard.locator('[data-h38-recurring-start]').click();
+  await page.waitForFunction(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-NELSON'&&op.meta?.record?.Status==='In Progress'));
+  const started=await page.evaluate(()=>window.__ops.find(op=>op.meta?.record?.['Job ID']==='J-NELSON'&&op.meta?.record?.Status==='In Progress'));
   assert.equal(started.meta.record['Site Visit Required'],false,'recurring visit must not force site visit');
   assert.equal(started.meta.record['Quote Required'],false,'recurring visit must not force quote');
   assert.equal(started.meta.record['Customer ID'],'C-NELSON');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'starting service must not create invoice');
-  await page.waitForFunction(()=>document.querySelector('#h38RecurringServiceQueue [data-h38-recurring-finish]'));
-  await page.locator('#h38RecurringServiceQueue [data-h38-recurring-billing]').click();
+  await page.waitForFunction(()=>document.querySelector('#h38RecurringServiceQueue article [data-h38-recurring-finish]'));
+  await page.locator('#h38RecurringServiceQueue article').filter({hasText:'Nelson Wood Shims'}).locator('[data-h38-recurring-finish]').click();
   await page.waitForFunction(()=>window.state.page==='customers'&&document.querySelector('[data-h38-customer-invoice]'));
   assert.equal(await page.evaluate(()=>window.H38_CUSTOMER_360.selectedCustomerId),'C-NELSON','billing handoff must retain customer context');
+  assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-NELSON'&&op.meta?.record?.Status==='Complete')),true,'snow service must finish before billing review');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'billing handoff must not create invoice');
+  await page.evaluate(()=>{window.state.page='today';document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Today</h1></div><section id="h38CustomerReadyToday"></section>';window.dispatchEvent(new Event('h38:office-page-rendered'));});
+  await page.waitForFunction(()=>document.querySelector('#h38RecurringServiceQueue article'));
+  const lawnCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:'Pine Lawn Test'});
+  await lawnCard.locator('[data-h38-recurring-start]').click();
+  await page.waitForFunction(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-LAWN'&&op.meta?.record?.Status==='In Progress'));
+  await page.locator('#h38RecurringServiceQueue article').filter({hasText:'Pine Lawn Test'}).locator('[data-h38-recurring-finish]').click();
+  await page.waitForFunction(()=>window.state.page==='customers'&&window.H38_CUSTOMER_360.selectedCustomerId==='C-LAWN');
+  assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-LAWN'&&op.meta?.record?.Status==='Complete')),true,'lawn service must finish before billing review');
+  assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'lawn billing handoff must remain draft-only until owner submission');
+  assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.finishOpensBilling),true);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticCustomerSending),false);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticPayment),false);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticScheduling),false);
