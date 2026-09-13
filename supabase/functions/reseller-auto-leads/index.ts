@@ -1,62 +1,875 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-const ALLOWED=new Set(["ccf25333-47cd-42ca-a20b-cdbc63a8a695","6dd51b31-5974-4691-b8b8-83e5877528c0"]);
-const U=Deno.env.get("SUPABASE_URL")||"",K=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",TTL=12*60*1000,MIN=50;
-const ORIGINS=new Set(["https://appassets.androidplatform.net","https://highway38solutions.com","https://www.highway38solutions.com"]);
-const HDP={retailer:"Home Depot",name:"PennyCentral community penny board",url:"https://www.pennycentral.com/penny-list",kind:"penny",adapter:"pennycentral",priority:130};
-const PENNY_SOURCES=[
- {retailer:"Dollar General",name:"RetailShout Penny List",url:"https://retailshout.com/latest-dollar-general-penny-items-near-you/",kind:"penny",adapter:"retailshout",priority:100},
- {retailer:"Dollar Tree",name:"RetailShout Penny List",url:"https://retailshout.com/latest-dollar-tree-penny-items-near-you/",kind:"penny",adapter:"retailshout",priority:100}
-];
-const RETAIL_SOURCES=[
- {retailer:"Home Depot",name:"Home Depot Deep Tool Savings 1",url:"https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=0&catStyle=ShowProducts",kind:"deep_discount",priority:105,broad:true},
- {retailer:"Home Depot",name:"Home Depot Deep Tool Savings 2",url:"https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=16&catStyle=ShowProducts",kind:"deep_discount",priority:104,broad:true},
- {retailer:"Home Depot",name:"Home Depot Daily Deals",url:"https://www.homedepot.com/daily-deals/",kind:"deal",priority:99},
- {retailer:"Walmart",name:"Walmart Clearance",url:"https://www.walmart.com/shop/deals/clearance",kind:"clearance",priority:103,broad:true},
- {retailer:"Walmart",name:"Walmart Tool Clearance",url:"https://www.walmart.com/browse/home-improvement/clearance-tools/1072864_1031899_6846544",kind:"clearance",priority:102,broad:true},
- {retailer:"Lowe's",name:"Lowe's Savings & Clearance",url:"https://www.lowes.com/l/savings",kind:"clearance",priority:102,broad:true},
- {retailer:"Lowe's",name:"Lowe's Daily Deals",url:"https://www.lowes.com/l/savings/daily-deals",kind:"deal",priority:97},
- {retailer:"Ace Hardware",name:"Ace Clearance",url:"https://www.acehardware.com/clearance?pageSize=180",kind:"clearance",priority:102,broad:true},
- {retailer:"Ace Hardware",name:"Ace Tool Deals",url:"https://www.acehardware.com/top-power-tool-deals",kind:"deal",priority:96},
- {retailer:"Menards",name:"Menards Ray's List",url:"https://www.menards.com/main/b-1957366.htm",kind:"deal",priority:100,broad:true},
- {retailer:"Menards",name:"Menards Tools & Hardware Sale Items",url:"https://www.menards.com/main/sale-items/tools-hardware-sale-items/c-1642874323047994.htm",kind:"deal",priority:96,broad:true}
-];
-const TITLES:any={"Home Depot":"Home Depot deep tool savings & daily deals","Walmart":"Walmart clearance & rollbacks","Lowe's":"Lowe's clearance & savings","Ace Hardware":"Ace clearance & tool deals","Menards":"Menards Ray's List & sale items"};
-const CFG:any={
- "Home Depot":{t:["productLabel","productName","name","title"],u:["canonicalUrl","productUrl","productPageUrl","url"],c:["pricing.value","pricing.currentPrice","priceInfo.currentPrice.price","currentPrice","offers.price","price"],r:["pricing.wasPrice","pricing.regularPrice","priceInfo.wasPrice.price","wasPrice","regularPrice","listPrice"],s:["modelNumber","sku","itemId","productId"],g:["upc","gtin13","gtin12","gtin"]},
- "Walmart":{t:["name","productName","title"],u:["canonicalUrl","productUrl","url"],c:["priceInfo.currentPrice.price","currentPrice","salePrice","price"],r:["priceInfo.wasPrice.price","wasPrice","originalPrice","listPrice"],s:["usItemId","itemId","sku"],g:["upc","gtin13","gtin"]},
- "Lowe's":{t:["productInfo.description","productInfo.title","productName","title"],u:["productInfo.productUrl","canonicalUrl","productUrl","url"],c:["pricing.salePrice","pricing.currentPrice","currentPrice","salePrice","price"],r:["pricing.wasPrice","pricing.regularPrice","wasPrice","regularPrice","listPrice"],s:["productInfo.modelNumber","modelNumber","itemNumber","sku"],g:["productInfo.upc","upc","gtin13","gtin"]},
- "Ace Hardware":{t:["productName","name","title"],u:["canonicalUrl","productUrl","url"],c:["salePrice","pricing.salePrice","currentPrice","price"],r:["standardPrice","pricing.regularPrice","wasPrice","regularPrice"],s:["productId","sku","itemId"],g:["upc","gtin13","gtin"]},
- "Menards":{t:["productName","name","title"],u:["canonicalUrl","productUrl","url"],c:["salePrice","pricing.salePrice","currentPrice","price"],r:["regularPrice","pricing.regularPrice","wasPrice","listPrice"],s:["sku","productId","modelNumber"],g:["upc","gtin13","gtin"]}
+const ALLOWED = new Set([
+  "ccf25333-47cd-42ca-a20b-cdbc63a8a695",
+  "6dd51b31-5974-4691-b8b8-83e5877528c0",
+]);
+const U = Deno.env.get("SUPABASE_URL") || "",
+  K = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+  TTL = 12 * 60 * 1000,
+  MIN = 50;
+const ORIGINS = new Set([
+  "https://appassets.androidplatform.net",
+  "https://highway38solutions.com",
+  "https://www.highway38solutions.com",
+]);
+const HDP = {
+  retailer: "Home Depot",
+  name: "PennyCentral community penny board",
+  url: "https://www.pennycentral.com/penny-list",
+  kind: "penny",
+  adapter: "pennycentral",
+  priority: 130,
 };
-let cache:any=null,inflight:Promise<any>|null=null;
-function cors(r:Request){const o=r.headers.get("origin")||"";return{"access-control-allow-origin":ORIGINS.has(o)?o:"https://appassets.androidplatform.net","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"GET, POST, OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"private, max-age=120","vary":"Origin"}}
-function json(r:Request,s:number,b:any){return new Response(JSON.stringify(b),{status:s,headers:cors(r)})}
-async function uid(r:Request){const t=String(r.headers.get("authorization")||"").replace(/^Bearer\s+/i,"").trim();if(!t)throw Error("Sign in required.");const x=await fetch(`${U}/auth/v1/user`,{headers:{authorization:`Bearer ${t}`,apikey:K}}),p=await x.json().catch(()=>({}));if(!x.ok||!p?.id)throw Error("Session expired.");return String(p.id)}
-function dec(v:any){return String(v||"").replace(/&nbsp;|&#160;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#0*39;|&apos;/gi,"'").replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—").replace(/&#x2F;/gi,"/").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))}
-function clean(v:any){return dec(v).replace(/^\*\s*/,"").replace(/^Image:\s*/i,"").replace(/\s+/g," ").trim()}
-function slug(v:any){return clean(v).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,100)}
-function useful(v:any){const s=clean(v);return s.length>=9&&s.length<=220&&!/^(add|compare|shop now|view|sort|filter|price|brand|availability|clearance|sale|savings|special buys?|daily deals?|shop all|featured|sponsored)$/i.test(s)&&!/^\$?\d+(?:\.\d{1,2})?$/.test(s)}
-function friendly(v:any){return /tool|battery|charger|drill|driver|impact|saw|nailer|grinder|sander|router|vacuum|compressor|generator|mower|blower|trimmer|chainsaw|storage|toolbox|workbench|ladder|grill|smoker|cooler|appliance|electronics|camera|speaker|headphone|tablet|laptop|\btv\b|gaming|console|lego|heater|lighting|faucet|pump|welder|socket|wrench|ratchet|hammer|laser|level|patio|fire pit/i.test(String(v||""))}
-function score(t:string,d=0,k="deal"){let s=66,x=t.toLowerCase();if(/milwaukee|dewalt|ryobi|ridgid|makita|bosch|kobalt|craftsman|metabo|greenworks|ego|weber|traeger|blackstone|hart|masterforce/.test(x))s+=11;if(/battery|charger|combo kit|generator|mower|blower|trimmer|chainsaw|vacuum|compressor|storage|toolbox|grill|smoker|electronics|gaming|lego/.test(x))s+=9;if(k==="penny")s+=12;if(d>MIN)s+=12;return Math.max(45,Math.min(99,Math.round(s+Math.min(14,Math.max(0,d)/4))))}
-function money(v:any):number{if(typeof v==="number"&&Number.isFinite(v))return v>0?v:0;if(typeof v==="string"){const m=v.replace(/,/g,"").match(/(?:\$\s*)?(\d{1,7}(?:\.\d{1,2})?)/);return m?Number(m[1]):0}if(v&&typeof v==="object")for(const k of ["price","value","amount","currentPrice"]){const n=money(v[k]);if(n)return n}return 0}
-function at(o:any,p:string){let v=o;for(const k of p.split(".")){if(v==null||typeof v!=="object")return;v=v[k]}return v}
-function str(o:any,ps:string[]){for(const p of ps){const v=at(o,p);if(typeof v==="string"&&v.trim())return clean(v);if(typeof v==="number"&&Number.isFinite(v))return String(v)}return""}
-function val(o:any,ps:string[]){for(const p of ps){const n=money(at(o,p));if(n)return n}return 0}
-function productUrl(r:string,b:string,c:string){if(!c)return"";try{const u=new URL(dec(c).replace(/\\\//g,"/"),b),h=u.hostname.toLowerCase().replace(/^www\./,""),p=u.pathname;let ok=false;if(r==="Home Depot")ok=h==="homedepot.com"&&/\/p\//i.test(p)&&/\/\d{6,}\/?$/i.test(p);else if(r==="Walmart")ok=h==="walmart.com"&&/\/ip\//i.test(p)&&/\/\d{6,}\/?$/i.test(p);else if(r==="Lowe's")ok=h==="lowes.com"&&/\/pd\//i.test(p)&&/\/\d{6,}\/?$/i.test(p);else if(r==="Ace Hardware")ok=h==="acehardware.com"&&/\/departments\//i.test(p)&&/\d{5,}\/?$/i.test(p);else if(r==="Menards")ok=h==="menards.com"&&/\/main\//i.test(p)&&/\/p-\d+/i.test(p);if(!ok)return"";u.search="";u.hash="";return u.toString()}catch{return""}}
-function normalize(s:any,f:any){const title=clean(f.title),url=productUrl(s.retailer,s.url,f.url),cur=Number(f.cur||0),was=Number(f.was||0);if(!useful(title)||!url||!(cur>0)||(!s.broad&&!friendly(title)))return null;const pct=was>cur?Math.round((1-cur/was)*100):0,deep=was>cur&&pct>MIN,strict=s.kind==="clearance"||s.kind==="deep_discount";if(strict&&!deep)return null;return{id:`${slug(s.retailer)}:${clean(f.sku||"")||clean(f.upc||"")||slug(title)}`,retailer:s.retailer,title,sku:clean(f.sku||""),upc:clean(f.upc||"").replace(/\D/g,""),buy_price:cur,original_price:was,discount_pct:pct,deep_discount:deep,deal_type:s.kind==="deep_discount"?"clearance":s.kind,penny_date:"",source_name:s.name,source_url:url,availability_label:strict?"Deep discount over 50% from retailer current/was price · local stock not checked by H38":"Priced retailer product page · local stock not checked by H38",resale_potential:score(title,pct,s.kind),source_priority:s.priority,stock_status:"not_checked",stock_count:null,stock_checked:false}}
-function adapt(o:any,s:any){const c=CFG[s.retailer];return normalize(s,{title:str(o,c.t),url:str(o,c.u),cur:val(o,c.c),was:val(o,c.r),sku:str(o,c.s),upc:str(o,c.g)})}
-function homeDepotAdapter(o:any,s:any){return adapt(o,s)}function walmartAdapter(o:any,s:any){return adapt(o,s)}function lowesAdapter(o:any,s:any){return adapt(o,s)}function aceAdapter(o:any,s:any){return adapt(o,s)}function menardsAdapter(o:any,s:any){return adapt(o,s)}
-const AD:any={"Home Depot":homeDepotAdapter,"Walmart":walmartAdapter,"Lowe's":lowesAdapter,"Ace Hardware":aceAdapter,"Menards":menardsAdapter};
-function walk(o:any,s:any,out:any[],seen:WeakSet<object>,n:{v:number}){if(!o||n.v>70000||out.length>140)return;if(Array.isArray(o)){for(const x of o)walk(x,s,out,seen,n);return}if(typeof o!=="object"||seen.has(o))return;seen.add(o);n.v++;const l=AD[s.retailer]?.(o,s);if(l)out.push(l);for(const x of Object.values(o))if(x&&typeof x==="object")walk(x,s,out,seen,n)}
-function jsonLeads(h:string,s:any){const out:any[]=[];for(const m of h.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){const a=m[1]||"",b=dec((m[2]||"").trim());if(!b||b.length>8_000_000||(!/application\/(?:ld\+json|json)/i.test(a)&&!/__NEXT_DATA__|__APOLLO_STATE__|initial/i.test(a)&&!/^[\[{]/.test(b)))continue;try{walk(JSON.parse(b),s,out,new WeakSet(),{v:0})}catch{}if(out.length>120)break}return out}
-function text(h:string){return clean(dec(h).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," "))}
-function attr(a:string,n:string){const m=a.match(new RegExp(`(?:^|\\s)${n}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,"i"));return dec(m?.[1]||m?.[2]||m?.[3]||"")}
-function htmlLeads(h:string,s:any){const a:any[]=[];for(const m of h.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){if(m.index==null)continue;const u=productUrl(s.retailer,s.url,attr(m[1]||"","href"));if(u)a.push({u,i:m.index,label:clean(attr(m[1]||"","aria-label")||attr(m[1]||"","title")||text(m[2]||""))})}const out:any[]=[],seen=new Set<string>();for(let i=0;i<a.length&&out.length<90;i++){const x=a[i];if(seen.has(x.u))continue;seen.add(x.u);const block=text(h.slice(x.i,Math.min(h.length,x.i+10000))),title=clean(x.label.replace(/\s+\$[\s\S]*$/,"") );if(!useful(title))continue;const nums=[...block.matchAll(/\$\s*([0-9,.]+)/g)].map(m=>Number(m[1].replace(/,/g,""))).filter(n=>n>0),cur=nums[0]||0,was=(block.match(/(?:was|regular price|original price|list price)\s*\$\s*([0-9,.]+)/i)?Number(RegExp.$1.replace(/,/g,"")):0),sku=s.retailer==="Menards"?(x.u.match(/\/p-(\d+)/i)?.[1]||""):(block.match(/Model#\s*([A-Za-z0-9._\-/]+)/i)?.[1]||x.u.match(/\/(\d{5,})\/?$/)?.[1]||"");const l=normalize(s,{title,url:x.u,cur,was,sku});if(l)out.push(l)}return out}
-function lines(h:string){return dec(h.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,"\n").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,"\n").replace(/<br\s*\/?>/gi,"\n").replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>|<\/tr>|<\/article>|<\/section>|<\/button>|<\/a>/gi,"\n").replace(/<[^>]+>/g," ")).split(/\r?\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean)}
-function retailShout(h:string,s:any){const x=lines(h),out:any[]=[];for(let i=0;i<x.length;i++){const d=x[i].match(/^(?:Penny Date|Date Pennied):\s*(.+)$/i);if(!d)continue;let title="",sku="",upc="";for(let j=i-1;j>=Math.max(0,i-7);j--)if(useful(x[j])){title=x[j];break}for(let j=i+1;j<=Math.min(x.length-1,i+10);j++){const m=x[j].match(/SKU:\s*([A-Za-z0-9-]+).*?UPC:\s*([0-9]{7,14})/i);if(m){sku=m[1];upc=m[2];break}}if(title&&upc)out.push({id:`${slug(s.retailer)}:${upc}`,retailer:s.retailer,title,sku,upc,buy_price:.01,original_price:0,discount_pct:99,deep_discount:true,deal_type:"penny",penny_date:d[1].trim(),source_name:s.name,source_url:s.url,availability_label:"Chain penny lead · source does not show dependable local stock",resale_potential:score(title,99,"penny"),source_priority:s.priority,stock_status:"not_shown",stock_count:null,stock_checked:false})}return out}
-function pennyCentral(h:string,s:any){const x=lines(h),out:any[]=[],seen=new Set<string>();function add(sku0:string,block0:string,title0=""){const sku=clean(sku0).replace(/\s+/g,""),id=sku.replace(/\D/g,"");if(id.length<5||seen.has(id))return;const block=clean(block0);if(!/\$\s*0\.01\b/i.test(block))return;let title=clean(title0).replace(/\$\s*[0-9,.]+/g," ").replace(/\b(?:SKU|Last seen|Report Find|Home Depot|Check Amazon|Fresh signal)\b[\s\S]*$/i,"").replace(/^(?:Hot Right Now|Image:)\s*/i,"");if(title.length>220)title=title.slice(-220).replace(/^\S+\s+/,"");if(!useful(title))title=`Home Depot penny candidate SKU ${sku}`;const prices=[...block.matchAll(/\$\s*([0-9,.]+)/g)].map(z=>Number(z[1].replace(/,/g,""))).filter(n=>Number.isFinite(n)&&n>.01&&n<100000),was=prices.length?Math.max(...prices):0;const lm=block.match(/Last seen\s*:?\s*([^·|]{1,48})/i),rm=block.match(/(\d{1,5})\s+reports?\b/i),sm=block.match(/(\d{1,3})\s+states?\b/i);const last=clean(lm?.[1]||"Recent"),reports=Number(rm?.[1]||0),states=Number(sm?.[1]||0);const ss=block.match(/((?:[A-Z]{2}\s+\d+\s*){1,12}(?:\+\d+ more)?)/),summary=clean(ss?.[1]||"");seen.add(id);out.push({id:`home-depot:${id}`,retailer:"Home Depot",title,sku,upc:"",buy_price:0,reported_penny_price:0.01,original_price:was,discount_pct:was>.01?Math.round((1-.01/was)*100):99,deep_discount:true,deal_type:"penny",penny_date:last,community_penny:true,community_reports:reports,community_states:states,state_summary:summary,source_name:s.name,source_url:s.url,home_depot_search_url:`https://www.homedepot.com/s/${encodeURIComponent(id)}`,availability_label:`Community penny candidate · ${reports||1} report${reports===1?"":"s"}${states?` · ${states} states`:""} · last seen ${last}. Not a confirmed local $0.01 price until the opened store check verifies it.`,resale_potential:score(title,99,"penny"),source_priority:s.priority,stock_status:"not_checked",stock_count:null,stock_checked:false})}for(let i=0;i<x.length;i++){for(const m of x[i].matchAll(/\bSKU\s*[:#]?\s*([0-9][0-9-]{4,20})\b/gi)){const before=x.slice(Math.max(0,i-5),i+1).join(" "),after=x.slice(i,Math.min(x.length,i+9)).join(" "),prefix=clean(x[i].slice(0,m.index??0));add(m[1],before+" "+after,prefix)}}if(out.length<3){const flat=text(h);for(const m of flat.matchAll(/\bSKU\s*[:#]?\s*([0-9][0-9-]{4,20})\b/gi)){const at=m.index??0,pre=flat.slice(Math.max(0,at-420),at),post=flat.slice(at,Math.min(flat.length,at+520));add(m[1],pre+" "+post,"")}}console.log("pennycentral-parser-v2",JSON.stringify({html_bytes:h.length,line_count:x.length,parsed:out.length}));return out}
-function dedupe(a:any[]){const m=new Map<string,any>();for(const l of a){if(l.deal_type==="penny"){if(!(l.upc||l.sku))continue}else if(!(Number(l.buy_price)>0)||!productUrl(l.retailer,l.source_url,l.source_url))continue;const k=`${slug(l.retailer)}|${l.upc||l.sku||slug(l.title)}`,e=m.get(k);if(!e||Number(l.deep_discount)>Number(e.deep_discount)||l.source_priority>e.source_priority)m.set(k,l)}const g=new Map<string,any[]>(),out:any[]=[];for(const l of m.values()){const x=g.get(l.retailer)||[];x.push(l);g.set(l.retailer,x)}for(const x of g.values()){x.sort((a,b)=>Number(b.deep_discount)-Number(a.deep_discount)||b.discount_pct-a.discount_pct||b.resale_potential-a.resale_potential);out.push(...x.slice(0,70))}return out}
-function roll(r:string){const s=RETAIL_SOURCES.filter(x=>x.retailer===r).sort((a,b)=>b.priority-a.priority)[0];return{id:`${slug(r)}:sale-list`,retailer:r,title:TITLES[r]||`${r} sale list`,sku:"",upc:"",buy_price:0,original_price:0,discount_pct:0,deep_discount:false,deal_type:"sale_list",penny_date:"",source_name:s.name,source_url:s.url,availability_label:"Broad retailer sale list · H38 did not validate individual product rows from this source",resale_potential:0,source_priority:s.priority,source_only:true,stock_status:"not_checked",stock_count:null,stock_checked:false}}
-async function source(s:any){const r=await fetch(s.url,{headers:{"user-agent":"Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.15","accept":"text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8","accept-language":"en-US,en;q=0.9"},redirect:"follow",signal:AbortSignal.timeout(18000)});if(!r.ok)throw Error(`${s.name} returned ${r.status}`);const h=await r.text(),a=s.adapter==="pennycentral"?pennyCentral(h,s):s.kind==="penny"?retailShout(h,s):dedupe([...jsonLeads(h,s),...htmlLeads(h,s)]);if(!a.length)throw Error(`${s.name} returned no product rows matching truthful hunt rules`);return a}
-async function build(){const ss=[HDP,...PENNY_SOURCES,...RETAIL_SOURCES],rs=await Promise.allSettled(ss.map(source)),p:any[]=[],r:any[]=[],warnings:string[]=[],status:any[]=[];rs.forEach((x,i)=>{const s=ss[i];if(x.status==="fulfilled"){(s.kind==="penny"?p:r).push(...x.value);status.push({retailer:s.retailer,source:s.name,kind:s.kind,status:"PASS",products:x.value.length,adapter:s.adapter||s.retailer})}else{const w=x.reason instanceof Error?x.reason.message:String(x.reason);warnings.push(w);status.push({retailer:s.retailer,source:s.name,kind:s.kind,status:"NO_MATCHING_PRODUCTS",products:0,warning:w})}});const pennies=dedupe(p),priced=dedupe(r),retailers=[...new Set(RETAIL_SOURCES.map(x=>x.retailer))],rollups=retailers.filter(x=>!priced.some(l=>l.retailer===x)).map(roll),leads=[...pennies,...priced,...rollups].sort((a,b)=>Number(a.source_only)-Number(b.source_only)||Number(b.deep_discount)-Number(a.deep_discount)||b.discount_pct-a.discount_pct||b.source_priority-a.source_priority);if(!leads.length)throw Error(warnings.join("; ")||"Automatic deal sources unavailable.");const by:any={},deep:any={};for(const l of leads){by[l.retailer]=(by[l.retailer]||0)+1;if(l.deep_discount)deep[l.retailer]=(deep[l.retailer]||0)+1}console.log("reseller-auto-leads multi-retailer-plus-hd-penny-v1",JSON.stringify({by_retailer:by,deep_by_retailer:deep,source_status:status,retailer_specific_adapters:true}));return{status:"PASS",generated_at:new Date().toISOString(),count:leads.length,retailers:[...new Set(leads.map(x=>x.retailer))],by_retailer:by,deep_by_retailer:deep,leads,source_status:status,warnings,adapter_version:"multi-retailer-plus-home-depot-penny-v2",clearance_rule:`Clearance/deep-discount items require a current price, higher reference price, legitimate product URL, and more than ${MIN}% off.`,stock_rule:"Penny candidates remain visible when stock is unknown. Home Depot community penny candidates are not locally confirmed until an opened-store check returns store-bound evidence.",note:"Old multi-retailer adapters and Dollar General/Dollar Tree penny feeds are preserved; Home Depot PennyCentral candidates are additive."}}
-Deno.serve(async(r:Request)=>{if(r.method==="OPTIONS")return new Response(null,{status:204,headers:cors(r)});if(r.method!=="GET"&&r.method!=="POST")return json(r,405,{error:"GET or POST required."});try{const id=await uid(r);if(!ALLOWED.has(id))return json(r,403,{error:"Not authorized."});if(cache&&Date.now()-cache.at<TTL)return json(r,200,{...cache.payload,cached:true});if(!inflight)inflight=build().then(payload=>(cache={at:Date.now(),payload},payload)).finally(()=>inflight=null);return json(r,200,await inflight)}catch(e){if(cache)return json(r,200,{...cache.payload,cached:true,stale:true,warning:e instanceof Error?e.message:String(e)});return json(r,503,{error:e instanceof Error?e.message:String(e)})}});
+const PENNY_SOURCES = [
+  {
+    retailer: "Dollar General",
+    name: "RetailShout Penny List",
+    url: "https://retailshout.com/latest-dollar-general-penny-items-near-you/",
+    kind: "penny",
+    adapter: "retailshout",
+    priority: 100,
+  },
+  {
+    retailer: "Dollar Tree",
+    name: "RetailShout Penny List",
+    url: "https://retailshout.com/latest-dollar-tree-penny-items-near-you/",
+    kind: "penny",
+    adapter: "retailshout",
+    priority: 100,
+  },
+];
+const RETAIL_SOURCES = [
+  {
+    retailer: "Home Depot",
+    name: "Home Depot Deep Tool Savings 1",
+    url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=0&catStyle=ShowProducts",
+    kind: "deep_discount",
+    priority: 105,
+    broad: true,
+  },
+  {
+    retailer: "Home Depot",
+    name: "Home Depot Deep Tool Savings 2",
+    url: "https://www.homedepot.com/b/Tool-Savings/N-5yc1vZ1z1zuqf?Nao=16&catStyle=ShowProducts",
+    kind: "deep_discount",
+    priority: 104,
+    broad: true,
+  },
+  {
+    retailer: "Home Depot",
+    name: "Home Depot Daily Deals",
+    url: "https://www.homedepot.com/daily-deals/",
+    kind: "deal",
+    priority: 99,
+  },
+  {
+    retailer: "Walmart",
+    name: "Walmart Clearance",
+    url: "https://www.walmart.com/shop/deals/clearance",
+    kind: "clearance",
+    priority: 103,
+    broad: true,
+  },
+  {
+    retailer: "Walmart",
+    name: "Walmart Tool Clearance",
+    url: "https://www.walmart.com/browse/home-improvement/clearance-tools/1072864_1031899_6846544",
+    kind: "clearance",
+    priority: 102,
+    broad: true,
+  },
+  {
+    retailer: "Lowe's",
+    name: "Lowe's Savings & Clearance",
+    url: "https://www.lowes.com/l/savings",
+    kind: "clearance",
+    priority: 102,
+    broad: true,
+  },
+  {
+    retailer: "Lowe's",
+    name: "Lowe's Daily Deals",
+    url: "https://www.lowes.com/l/savings/daily-deals",
+    kind: "deal",
+    priority: 97,
+  },
+  {
+    retailer: "Ace Hardware",
+    name: "Ace Clearance",
+    url: "https://www.acehardware.com/clearance?pageSize=180",
+    kind: "clearance",
+    priority: 102,
+    broad: true,
+  },
+  {
+    retailer: "Ace Hardware",
+    name: "Ace Tool Deals",
+    url: "https://www.acehardware.com/top-power-tool-deals",
+    kind: "deal",
+    priority: 96,
+  },
+  {
+    retailer: "Menards",
+    name: "Menards Ray's List",
+    url: "https://www.menards.com/main/b-1957366.htm",
+    kind: "deal",
+    priority: 100,
+    broad: true,
+  },
+  {
+    retailer: "Menards",
+    name: "Menards Tools & Hardware Sale Items",
+    url: "https://www.menards.com/main/sale-items/tools-hardware-sale-items/c-1642874323047994.htm",
+    kind: "deal",
+    priority: 96,
+    broad: true,
+  },
+];
+const TITLES: any = {
+  "Home Depot": "Home Depot deep tool savings & daily deals",
+  Walmart: "Walmart clearance & rollbacks",
+  "Lowe's": "Lowe's clearance & savings",
+  "Ace Hardware": "Ace clearance & tool deals",
+  Menards: "Menards Ray's List & sale items",
+};
+const CFG: any = {
+  "Home Depot": {
+    t: ["productLabel", "productName", "name", "title"],
+    u: ["canonicalUrl", "productUrl", "productPageUrl", "url"],
+    c: [
+      "pricing.value",
+      "pricing.currentPrice",
+      "priceInfo.currentPrice.price",
+      "currentPrice",
+      "offers.price",
+      "price",
+    ],
+    r: [
+      "pricing.wasPrice",
+      "pricing.regularPrice",
+      "priceInfo.wasPrice.price",
+      "wasPrice",
+      "regularPrice",
+      "listPrice",
+    ],
+    s: ["modelNumber", "sku", "itemId", "productId"],
+    g: ["upc", "gtin13", "gtin12", "gtin"],
+  },
+  Walmart: {
+    t: ["name", "productName", "title"],
+    u: ["canonicalUrl", "productUrl", "url"],
+    c: ["priceInfo.currentPrice.price", "currentPrice", "salePrice", "price"],
+    r: ["priceInfo.wasPrice.price", "wasPrice", "originalPrice", "listPrice"],
+    s: ["usItemId", "itemId", "sku"],
+    g: ["upc", "gtin13", "gtin"],
+  },
+  "Lowe's": {
+    t: ["productInfo.description", "productInfo.title", "productName", "title"],
+    u: ["productInfo.productUrl", "canonicalUrl", "productUrl", "url"],
+    c: [
+      "pricing.salePrice",
+      "pricing.currentPrice",
+      "currentPrice",
+      "salePrice",
+      "price",
+    ],
+    r: [
+      "pricing.wasPrice",
+      "pricing.regularPrice",
+      "wasPrice",
+      "regularPrice",
+      "listPrice",
+    ],
+    s: ["productInfo.modelNumber", "modelNumber", "itemNumber", "sku"],
+    g: ["productInfo.upc", "upc", "gtin13", "gtin"],
+  },
+  "Ace Hardware": {
+    t: ["productName", "name", "title"],
+    u: ["canonicalUrl", "productUrl", "url"],
+    c: ["salePrice", "pricing.salePrice", "currentPrice", "price"],
+    r: ["standardPrice", "pricing.regularPrice", "wasPrice", "regularPrice"],
+    s: ["productId", "sku", "itemId"],
+    g: ["upc", "gtin13", "gtin"],
+  },
+  Menards: {
+    t: ["productName", "name", "title"],
+    u: ["canonicalUrl", "productUrl", "url"],
+    c: ["salePrice", "pricing.salePrice", "currentPrice", "price"],
+    r: ["regularPrice", "pricing.regularPrice", "wasPrice", "listPrice"],
+    s: ["sku", "productId", "modelNumber"],
+    g: ["upc", "gtin13", "gtin"],
+  },
+};
+let cache: any = null,
+  inflight: Promise<any> | null = null;
+function cors(r: Request) {
+  const o = r.headers.get("origin") || "";
+  return {
+    "access-control-allow-origin": ORIGINS.has(o)
+      ? o
+      : "https://appassets.androidplatform.net",
+    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "private, max-age=120",
+    vary: "Origin",
+  };
+}
+function json(r: Request, s: number, b: any) {
+  return new Response(JSON.stringify(b), { status: s, headers: cors(r) });
+}
+async function uid(r: Request) {
+  const t = String(r.headers.get("authorization") || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+  if (!t) throw Error("Sign in required.");
+  if (K && t === K) return "service-role";
+  const x = await fetch(`${U}/auth/v1/user`, {
+      headers: { authorization: `Bearer ${t}`, apikey: K },
+    }),
+    p = await x.json().catch(() => ({}));
+  if (!x.ok || !p?.id) throw Error("Session expired.");
+  return String(p.id);
+}
+function dec(v: any) {
+  return String(v || "")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;|&apos;/gi, "'")
+    .replace(/&ndash;/gi, "–")
+    .replace(/&mdash;/gi, "—")
+    .replace(/&#x2F;/gi, "/")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
+}
+function clean(v: any) {
+  return dec(v)
+    .replace(/^\*\s*/, "")
+    .replace(/^Image:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function slug(v: any) {
+  return clean(v)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 100);
+}
+function useful(v: any) {
+  const s = clean(v);
+  return (
+    s.length >= 9 &&
+    s.length <= 220 &&
+    !/^(add|compare|shop now|view|sort|filter|price|brand|availability|clearance|sale|savings|special buys?|daily deals?|shop all|featured|sponsored)$/i.test(
+      s,
+    ) &&
+    !/^\$?\d+(?:\.\d{1,2})?$/.test(s)
+  );
+}
+function friendly(v: any) {
+  return /tool|battery|charger|drill|driver|impact|saw|nailer|grinder|sander|router|vacuum|compressor|generator|mower|blower|trimmer|chainsaw|storage|toolbox|workbench|ladder|grill|smoker|cooler|appliance|electronics|camera|speaker|headphone|tablet|laptop|\btv\b|gaming|console|lego|heater|lighting|faucet|pump|welder|socket|wrench|ratchet|hammer|laser|level|patio|fire pit/i.test(
+    String(v || ""),
+  );
+}
+function score(t: string, d = 0, k = "deal") {
+  let s = 66,
+    x = t.toLowerCase();
+  if (
+    /milwaukee|dewalt|ryobi|ridgid|makita|bosch|kobalt|craftsman|metabo|greenworks|ego|weber|traeger|blackstone|hart|masterforce/.test(
+      x,
+    )
+  )
+    s += 11;
+  if (
+    /battery|charger|combo kit|generator|mower|blower|trimmer|chainsaw|vacuum|compressor|storage|toolbox|grill|smoker|electronics|gaming|lego/.test(
+      x,
+    )
+  )
+    s += 9;
+  if (k === "penny") s += 12;
+  if (d > MIN) s += 12;
+  return Math.max(
+    45,
+    Math.min(99, Math.round(s + Math.min(14, Math.max(0, d) / 4))),
+  );
+}
+function money(v: any): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v > 0 ? v : 0;
+  if (typeof v === "string") {
+    const m = v.replace(/,/g, "").match(/(?:\$\s*)?(\d{1,7}(?:\.\d{1,2})?)/);
+    return m ? Number(m[1]) : 0;
+  }
+  if (v && typeof v === "object")
+    for (const k of ["price", "value", "amount", "currentPrice"]) {
+      const n = money(v[k]);
+      if (n) return n;
+    }
+  return 0;
+}
+function at(o: any, p: string) {
+  let v = o;
+  for (const k of p.split(".")) {
+    if (v == null || typeof v !== "object") return;
+    v = v[k];
+  }
+  return v;
+}
+function str(o: any, ps: string[]) {
+  for (const p of ps) {
+    const v = at(o, p);
+    if (typeof v === "string" && v.trim()) return clean(v);
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  }
+  return "";
+}
+function val(o: any, ps: string[]) {
+  for (const p of ps) {
+    const n = money(at(o, p));
+    if (n) return n;
+  }
+  return 0;
+}
+function productUrl(r: string, b: string, c: string) {
+  if (!c) return "";
+  try {
+    const u = new URL(dec(c).replace(/\\\//g, "/"), b),
+      h = u.hostname.toLowerCase().replace(/^www\./, ""),
+      p = u.pathname;
+    let ok = false;
+    if (r === "Home Depot")
+      ok = h === "homedepot.com" && /\/p\//i.test(p) && /\/\d{6,}\/?$/i.test(p);
+    else if (r === "Walmart")
+      ok = h === "walmart.com" && /\/ip\//i.test(p) && /\/\d{6,}\/?$/i.test(p);
+    else if (r === "Lowe's")
+      ok = h === "lowes.com" && /\/pd\//i.test(p) && /\/\d{6,}\/?$/i.test(p);
+    else if (r === "Ace Hardware")
+      ok =
+        h === "acehardware.com" &&
+        /\/departments\//i.test(p) &&
+        /\d{5,}\/?$/i.test(p);
+    else if (r === "Menards")
+      ok = h === "menards.com" && /\/main\//i.test(p) && /\/p-\d+/i.test(p);
+    if (!ok) return "";
+    u.search = "";
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+function normalize(s: any, f: any) {
+  const title = clean(f.title),
+    url = productUrl(s.retailer, s.url, f.url),
+    cur = Number(f.cur || 0),
+    was = Number(f.was || 0);
+  if (!useful(title) || !url || !(cur > 0) || (!s.broad && !friendly(title)))
+    return null;
+  const pct = was > cur ? Math.round((1 - cur / was) * 100) : 0,
+    deep = was > cur && pct > MIN,
+    strict = s.kind === "clearance" || s.kind === "deep_discount";
+  if (strict && !deep) return null;
+  return {
+    id: `${slug(s.retailer)}:${clean(f.sku || "") || clean(f.upc || "") || slug(title)}`,
+    retailer: s.retailer,
+    title,
+    sku: clean(f.sku || ""),
+    upc: clean(f.upc || "").replace(/\D/g, ""),
+    buy_price: cur,
+    original_price: was,
+    discount_pct: pct,
+    deep_discount: deep,
+    deal_type: s.kind === "deep_discount" ? "clearance" : s.kind,
+    penny_date: "",
+    source_name: s.name,
+    source_url: url,
+    availability_label: strict
+      ? "Deep discount over 50% from retailer current/was price · local stock not checked by H38"
+      : "Priced retailer product page · local stock not checked by H38",
+    resale_potential: score(title, pct, s.kind),
+    source_priority: s.priority,
+    stock_status: "not_checked",
+    stock_count: null,
+    stock_checked: false,
+  };
+}
+function adapt(o: any, s: any) {
+  const c = CFG[s.retailer];
+  return normalize(s, {
+    title: str(o, c.t),
+    url: str(o, c.u),
+    cur: val(o, c.c),
+    was: val(o, c.r),
+    sku: str(o, c.s),
+    upc: str(o, c.g),
+  });
+}
+function homeDepotAdapter(o: any, s: any) {
+  return adapt(o, s);
+}
+function walmartAdapter(o: any, s: any) {
+  return adapt(o, s);
+}
+function lowesAdapter(o: any, s: any) {
+  return adapt(o, s);
+}
+function aceAdapter(o: any, s: any) {
+  return adapt(o, s);
+}
+function menardsAdapter(o: any, s: any) {
+  return adapt(o, s);
+}
+const AD: any = {
+  "Home Depot": homeDepotAdapter,
+  Walmart: walmartAdapter,
+  "Lowe's": lowesAdapter,
+  "Ace Hardware": aceAdapter,
+  Menards: menardsAdapter,
+};
+function walk(
+  o: any,
+  s: any,
+  out: any[],
+  seen: WeakSet<object>,
+  n: { v: number },
+) {
+  if (!o || n.v > 70000 || out.length > 140) return;
+  if (Array.isArray(o)) {
+    for (const x of o) walk(x, s, out, seen, n);
+    return;
+  }
+  if (typeof o !== "object" || seen.has(o)) return;
+  seen.add(o);
+  n.v++;
+  const l = AD[s.retailer]?.(o, s);
+  if (l) out.push(l);
+  for (const x of Object.values(o))
+    if (x && typeof x === "object") walk(x, s, out, seen, n);
+}
+function jsonLeads(h: string, s: any) {
+  const out: any[] = [];
+  for (const m of h.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const a = m[1] || "",
+      b = dec((m[2] || "").trim());
+    if (
+      !b ||
+      b.length > 8_000_000 ||
+      (!/application\/(?:ld\+json|json)/i.test(a) &&
+        !/__NEXT_DATA__|__APOLLO_STATE__|initial/i.test(a) &&
+        !/^[\[{]/.test(b))
+    )
+      continue;
+    try {
+      walk(JSON.parse(b), s, out, new WeakSet(), { v: 0 });
+    } catch {}
+    if (out.length > 120) break;
+  }
+  return out;
+}
+function text(h: string) {
+  return clean(
+    dec(h)
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  );
+}
+function attr(a: string, n: string) {
+  const m = a.match(
+    new RegExp(`(?:^|\\s)${n}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"),
+  );
+  return dec(m?.[1] || m?.[2] || m?.[3] || "");
+}
+function htmlLeads(h: string, s: any) {
+  const a: any[] = [];
+  for (const m of h.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
+    if (m.index == null) continue;
+    const u = productUrl(s.retailer, s.url, attr(m[1] || "", "href"));
+    if (u)
+      a.push({
+        u,
+        i: m.index,
+        label: clean(
+          attr(m[1] || "", "aria-label") ||
+            attr(m[1] || "", "title") ||
+            text(m[2] || ""),
+        ),
+      });
+  }
+  const out: any[] = [],
+    seen = new Set<string>();
+  for (let i = 0; i < a.length && out.length < 90; i++) {
+    const x = a[i];
+    if (seen.has(x.u)) continue;
+    seen.add(x.u);
+    const block = text(h.slice(x.i, Math.min(h.length, x.i + 10000))),
+      title = clean(x.label.replace(/\s+\$[\s\S]*$/, ""));
+    if (!useful(title)) continue;
+    const nums = [...block.matchAll(/\$\s*([0-9,.]+)/g)]
+        .map((m) => Number(m[1].replace(/,/g, "")))
+        .filter((n) => n > 0),
+      cur = nums[0] || 0,
+      was = block.match(
+        /(?:was|regular price|original price|list price)\s*\$\s*([0-9,.]+)/i,
+      )
+        ? Number(RegExp.$1.replace(/,/g, ""))
+        : 0,
+      sku =
+        s.retailer === "Menards"
+          ? x.u.match(/\/p-(\d+)/i)?.[1] || ""
+          : block.match(/Model#\s*([A-Za-z0-9._\-/]+)/i)?.[1] ||
+            x.u.match(/\/(\d{5,})\/?$/)?.[1] ||
+            "";
+    const l = normalize(s, { title, url: x.u, cur, was, sku });
+    if (l) out.push(l);
+  }
+  return out;
+}
+function lines(h: string) {
+  return dec(
+    h
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "\n")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(
+        /<\/p>|<\/div>|<\/li>|<\/h[1-6]>|<\/tr>|<\/article>|<\/section>|<\/button>|<\/a>/gi,
+        "\n",
+      )
+      .replace(/<[^>]+>/g, " "),
+  )
+    .split(/\r?\n/)
+    .map((x) => x.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+function retailShout(h: string, s: any) {
+  const x = lines(h),
+    out: any[] = [];
+  for (let i = 0; i < x.length; i++) {
+    const d = x[i].match(/^(?:Penny Date|Date Pennied):\s*(.+)$/i);
+    if (!d) continue;
+    let title = "",
+      sku = "",
+      upc = "";
+    for (let j = i - 1; j >= Math.max(0, i - 7); j--)
+      if (useful(x[j])) {
+        title = x[j];
+        break;
+      }
+    for (let j = i + 1; j <= Math.min(x.length - 1, i + 10); j++) {
+      const m = x[j].match(/SKU:\s*([A-Za-z0-9-]+).*?UPC:\s*([0-9]{7,14})/i);
+      if (m) {
+        sku = m[1];
+        upc = m[2];
+        break;
+      }
+    }
+    if (title && upc)
+      out.push({
+        id: `${slug(s.retailer)}:${upc}`,
+        retailer: s.retailer,
+        title,
+        sku,
+        upc,
+        buy_price: 0.01,
+        original_price: 0,
+        discount_pct: 99,
+        deep_discount: true,
+        deal_type: "penny",
+        penny_date: d[1].trim(),
+        source_name: s.name,
+        source_url: s.url,
+        availability_label:
+          "Chain penny lead · source does not show dependable local stock",
+        resale_potential: score(title, 99, "penny"),
+        source_priority: s.priority,
+        stock_status: "not_shown",
+        stock_count: null,
+        stock_checked: false,
+      });
+  }
+  return out;
+}
+function pennyCentral(h: string, s: any) {
+  const x = lines(h),
+    out: any[] = [],
+    seen = new Set<string>();
+  function add(sku0: string, block0: string, title0 = "") {
+    const sku = clean(sku0).replace(/\s+/g, ""),
+      id = sku.replace(/\D/g, "");
+    if (id.length < 5 || seen.has(id)) return;
+    const block = clean(block0);
+    if (!/\$\s*0\.01\b/i.test(block)) return;
+    let title = clean(title0)
+      .replace(/\$\s*[0-9,.]+/g, " ")
+      .replace(
+        /\b(?:SKU|Last seen|Report Find|Home Depot|Check Amazon|Fresh signal)\b[\s\S]*$/i,
+        "",
+      )
+      .replace(/^(?:Hot Right Now|Image:)\s*/i, "");
+    if (title.length > 220) title = title.slice(-220).replace(/^\S+\s+/, "");
+    if (!useful(title)) title = `Home Depot penny candidate SKU ${sku}`;
+    const prices = [...block.matchAll(/\$\s*([0-9,.]+)/g)]
+        .map((z) => Number(z[1].replace(/,/g, "")))
+        .filter((n) => Number.isFinite(n) && n > 0.01 && n < 100000),
+      was = prices.length ? Math.max(...prices) : 0;
+    const lm = block.match(/Last seen\s*:?\s*([^·|]{1,48})/i),
+      rm = block.match(/(\d{1,5})\s+reports?\b/i),
+      sm = block.match(/(\d{1,3})\s+states?\b/i);
+    const last = clean(lm?.[1] || "Recent"),
+      reports = Number(rm?.[1] || 0),
+      states = Number(sm?.[1] || 0);
+    const ss = block.match(/((?:[A-Z]{2}\s+\d+\s*){1,12}(?:\+\d+ more)?)/),
+      summary = clean(ss?.[1] || "");
+    seen.add(id);
+    out.push({
+      id: `home-depot:${id}`,
+      retailer: "Home Depot",
+      title,
+      sku,
+      upc: "",
+      buy_price: 0,
+      reported_penny_price: 0.01,
+      original_price: was,
+      discount_pct: was > 0.01 ? Math.round((1 - 0.01 / was) * 100) : 99,
+      deep_discount: true,
+      deal_type: "penny",
+      penny_date: last,
+      community_penny: true,
+      community_reports: reports,
+      community_states: states,
+      state_summary: summary,
+      source_name: s.name,
+      source_url: s.url,
+      home_depot_search_url: `https://www.homedepot.com/s/${encodeURIComponent(id)}`,
+      availability_label: `Community penny candidate · ${reports || 1} report${reports === 1 ? "" : "s"}${states ? ` · ${states} states` : ""} · last seen ${last}. Not a confirmed local $0.01 price until the opened store check verifies it.`,
+      resale_potential: score(title, 99, "penny"),
+      source_priority: s.priority,
+      stock_status: "not_checked",
+      stock_count: null,
+      stock_checked: false,
+    });
+  }
+  for (let i = 0; i < x.length; i++) {
+    for (const m of x[i].matchAll(/\bSKU\s*[:#]?\s*([0-9][0-9-]{4,20})\b/gi)) {
+      const before = x.slice(Math.max(0, i - 5), i + 1).join(" "),
+        after = x.slice(i, Math.min(x.length, i + 9)).join(" "),
+        prefix = clean(x[i].slice(0, m.index ?? 0));
+      add(m[1], before + " " + after, prefix);
+    }
+  }
+  if (out.length < 3) {
+    const flat = text(h);
+    for (const m of flat.matchAll(/\bSKU\s*[:#]?\s*([0-9][0-9-]{4,20})\b/gi)) {
+      const at = m.index ?? 0,
+        pre = flat.slice(Math.max(0, at - 420), at),
+        post = flat.slice(at, Math.min(flat.length, at + 520));
+      add(m[1], pre + " " + post, "");
+    }
+  }
+  console.log(
+    "pennycentral-parser-v2",
+    JSON.stringify({
+      html_bytes: h.length,
+      line_count: x.length,
+      parsed: out.length,
+    }),
+  );
+  return out;
+}
+function dedupe(a: any[]) {
+  const m = new Map<string, any>();
+  for (const l of a) {
+    if (l.deal_type === "penny") {
+      if (!(l.upc || l.sku)) continue;
+    } else if (
+      !(Number(l.buy_price) > 0) ||
+      !productUrl(l.retailer, l.source_url, l.source_url)
+    )
+      continue;
+    const k = `${slug(l.retailer)}|${l.upc || l.sku || slug(l.title)}`,
+      e = m.get(k);
+    if (
+      !e ||
+      Number(l.deep_discount) > Number(e.deep_discount) ||
+      l.source_priority > e.source_priority
+    )
+      m.set(k, l);
+  }
+  const g = new Map<string, any[]>(),
+    out: any[] = [];
+  for (const l of m.values()) {
+    const x = g.get(l.retailer) || [];
+    x.push(l);
+    g.set(l.retailer, x);
+  }
+  for (const x of g.values()) {
+    x.sort(
+      (a, b) =>
+        Number(b.deep_discount) - Number(a.deep_discount) ||
+        b.discount_pct - a.discount_pct ||
+        b.resale_potential - a.resale_potential,
+    );
+    out.push(...x.slice(0, 70));
+  }
+  return out;
+}
+function roll(r: string) {
+  const s = RETAIL_SOURCES.filter((x) => x.retailer === r).sort(
+    (a, b) => b.priority - a.priority,
+  )[0];
+  return {
+    id: `${slug(r)}:sale-list`,
+    retailer: r,
+    title: TITLES[r] || `${r} sale list`,
+    sku: "",
+    upc: "",
+    buy_price: 0,
+    original_price: 0,
+    discount_pct: 0,
+    deep_discount: false,
+    deal_type: "sale_list",
+    penny_date: "",
+    source_name: s.name,
+    source_url: s.url,
+    availability_label:
+      "Broad retailer sale list · H38 did not validate individual product rows from this source",
+    resale_potential: 0,
+    source_priority: s.priority,
+    source_only: true,
+    stock_status: "not_checked",
+    stock_count: null,
+    stock_checked: false,
+  };
+}
+async function source(s: any) {
+  const r = await fetch(s.url, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 H38ResellerScout/0.1.15",
+      accept:
+        "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+    },
+    redirect: "follow",
+    signal: AbortSignal.timeout(18000),
+  });
+  if (!r.ok) throw Error(`${s.name} returned ${r.status}`);
+  const h = await r.text(),
+    a =
+      s.adapter === "pennycentral"
+        ? pennyCentral(h, s)
+        : s.kind === "penny"
+          ? retailShout(h, s)
+          : dedupe([...jsonLeads(h, s), ...htmlLeads(h, s)]);
+  if (!a.length)
+    throw Error(
+      `${s.name} returned no product rows matching truthful hunt rules`,
+    );
+  return a;
+}
+async function build() {
+  const ss = [HDP, ...PENNY_SOURCES, ...RETAIL_SOURCES],
+    rs = await Promise.allSettled(ss.map(source)),
+    p: any[] = [],
+    r: any[] = [],
+    warnings: string[] = [],
+    status: any[] = [];
+  rs.forEach((x, i) => {
+    const s = ss[i];
+    if (x.status === "fulfilled") {
+      (s.kind === "penny" ? p : r).push(...x.value);
+      status.push({
+        retailer: s.retailer,
+        source: s.name,
+        kind: s.kind,
+        status: "PASS",
+        products: x.value.length,
+        adapter: s.adapter || s.retailer,
+      });
+    } else {
+      const w = x.reason instanceof Error ? x.reason.message : String(x.reason);
+      warnings.push(w);
+      status.push({
+        retailer: s.retailer,
+        source: s.name,
+        kind: s.kind,
+        status: "NO_MATCHING_PRODUCTS",
+        products: 0,
+        warning: w,
+      });
+    }
+  });
+  const pennies = dedupe(p),
+    priced = dedupe(r),
+    retailers = [...new Set(RETAIL_SOURCES.map((x) => x.retailer))],
+    rollups = retailers
+      .filter((x) => !priced.some((l) => l.retailer === x))
+      .map(roll),
+    leads = [...pennies, ...priced, ...rollups].sort(
+      (a, b) =>
+        Number(a.source_only) - Number(b.source_only) ||
+        Number(b.deep_discount) - Number(a.deep_discount) ||
+        b.discount_pct - a.discount_pct ||
+        b.source_priority - a.source_priority,
+    );
+  if (!leads.length)
+    throw Error(warnings.join("; ") || "Automatic deal sources unavailable.");
+  const by: any = {},
+    deep: any = {};
+  for (const l of leads) {
+    by[l.retailer] = (by[l.retailer] || 0) + 1;
+    if (l.deep_discount) deep[l.retailer] = (deep[l.retailer] || 0) + 1;
+  }
+  console.log(
+    "reseller-auto-leads multi-retailer-plus-hd-penny-v1",
+    JSON.stringify({
+      by_retailer: by,
+      deep_by_retailer: deep,
+      source_status: status,
+      retailer_specific_adapters: true,
+    }),
+  );
+  return {
+    status: "PASS",
+    generated_at: new Date().toISOString(),
+    count: leads.length,
+    retailers: [...new Set(leads.map((x) => x.retailer))],
+    by_retailer: by,
+    deep_by_retailer: deep,
+    leads,
+    source_status: status,
+    warnings,
+    adapter_version: "multi-retailer-plus-home-depot-penny-v2",
+    clearance_rule: `Clearance/deep-discount items require a current price, higher reference price, legitimate product URL, and more than ${MIN}% off.`,
+    stock_rule:
+      "Penny candidates remain visible when stock is unknown. Home Depot community penny candidates are not locally confirmed until an opened-store check returns store-bound evidence.",
+    note: "Old multi-retailer adapters and Dollar General/Dollar Tree penny feeds are preserved; Home Depot PennyCentral candidates are additive.",
+  };
+}
+Deno.serve(async (r: Request) => {
+  if (r.method === "OPTIONS")
+    return new Response(null, { status: 204, headers: cors(r) });
+  if (r.method !== "GET" && r.method !== "POST")
+    return json(r, 405, { error: "GET or POST required." });
+  try {
+    const id = await uid(r);
+    if (id !== "service-role" && !ALLOWED.has(id))
+      return json(r, 403, { error: "Not authorized." });
+    if (cache && Date.now() - cache.at < TTL)
+      return json(r, 200, { ...cache.payload, cached: true });
+    if (!inflight)
+      inflight = build()
+        .then((payload) => ((cache = { at: Date.now(), payload }), payload))
+        .finally(() => (inflight = null));
+    return json(r, 200, await inflight);
+  } catch (e) {
+    if (cache)
+      return json(r, 200, {
+        ...cache.payload,
+        cached: true,
+        stale: true,
+        warning: e instanceof Error ? e.message : String(e),
+      });
+    return json(r, 503, { error: e instanceof Error ? e.message : String(e) });
+  }
+});
