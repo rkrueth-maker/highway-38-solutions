@@ -3,6 +3,8 @@
 var PACKAGE='nlps-supabase-closed-beta-v1';
 var statusNode=document.querySelector('[data-deployment-status]');
 var buttons=Array.prototype.slice.call(document.querySelectorAll('[data-nl-app]'));
+function loadHighway38Attribution(){if(window.NL_HIGHWAY38_ATTRIBUTION||document.querySelector('script[data-nl-h38-attribution]'))return;var script=document.createElement('script');script.src='highway38-attribution.js?build=20260913-highway38-attribution-1';script.async=false;script.dataset.nlH38Attribution='1';document.head.appendChild(script);}
+loadHighway38Attribution();
 function setStatus(message,kind){if(!statusNode)return;statusNode.textContent=message;statusNode.className='notice'+(kind?' '+kind:'');}
 function disable(message){buttons.forEach(function(link){link.setAttribute('aria-disabled','true');link.removeAttribute('href');link.onclick=function(event){event.preventDefault();};});setStatus(message,'');}
 function validOfficeUrl(value){

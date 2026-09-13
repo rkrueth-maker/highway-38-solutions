@@ -23,3 +23,7 @@ window.NL_CUSTOMER_PORTAL_CONFIG=Object.freeze({
   notice:'Online payment setup is prepared but live charging is not active. A Pay Invoice button appears only when Northern Lakes has attached a verified hosted payment link to that invoice.'
  })
 });
+(function loadHighway38Attribution(){
+ if(window.NL_HIGHWAY38_ATTRIBUTION||document.querySelector('script[data-nl-h38-attribution]'))return;
+ const script=document.createElement('script');script.src='highway38-attribution.js?build=20260913-highway38-attribution-1';script.async=false;script.dataset.nlH38Attribution='1';document.head.appendChild(script);
+})();
