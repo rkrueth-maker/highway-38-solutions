@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-recurring-service-runtime-3';
+const BUILD='20260913-finish-to-billing-1';
 const text=v=>String(v==null?'':v).trim();
 const upper=v=>text(v).toUpperCase();
 const state=()=>window.state||{};
@@ -27,7 +27,8 @@ function rateLines(job){
   const add=v=>{const s=text(v);if(s&&!out.includes(s))out.push(s);};
   const arrays=[val(job,'active_rates','Active Rates'),val(customer,'active_rates','Active Rates')];
   for(const item of arrays){if(Array.isArray(item))item.forEach(add);else if(item&&typeof item==='string'&&item.includes('|'))item.split('|').forEach(add);}
-  for(const item of [val(job,'Service Rate','serviceRate'),val(job,'Plowing Rate'),val(job,'Rate'),val(customer,'Plowing Rate'),val(customer,'Rate'),val(customer,'Service Rate')])add(item);
+  const service=upper(val(job,'Service Type','serviceType','Project Title'));
+  for(const item of [val(job,'Service Rate','serviceRate'),val(job,'Plowing Rate'),val(job,'Mowing Rate'),val(job,'Rate'),/MOW|LAWN/.test(service)?val(customer,'Mowing Rate'):'',/PLOW|SNOW/.test(service)?val(customer,'Plowing Rate'):'',val(customer,'Rate'),val(customer,'Service Rate')])add(item);
   return out.slice(0,4);
 }
 function actionSignature(job){return [jid(job),upper(val(job,'Status','status')),financialAllowed()?'finance':'no-finance'].join('|');}
@@ -48,8 +49,9 @@ async function setVisitState(job,mode){
     const updated={...schedule,'Status':start?'In Progress':finish?'Complete':'Cancelled','Updated Time':now(),'Record Version':version(schedule)};delete updated.__localPending;
     await save('scheduleEvents','Schedule Event',id2,updated,['Schedule Event ID']);
   }
-  window.toast?.(start?'Recurring service started.':finish?'Recurring service finished.':'Recurring service visit removed from the active work list.');
+  window.toast?.(start?'Recurring service started.':finish?'Recurring service finished. Opening billing review…':'Recurring service visit removed from the active work list.');
   window.renderToday?.();window.renderWork?.();
+  if(finish&&financialAllowed())openCustomer(record,true);
   window.dispatchEvent(new CustomEvent('h38:recurring-service-state-changed',{detail:{jobId:id,mode}}));
 }
 function selectWork(job){
@@ -127,6 +129,6 @@ function patchApi(){
   if(typeof api.all==='function'){const fn=api.all;api.all=()=>fn().map(simplify);}api.__h38RecurringSimple=true;
 }
 let pending=false;function apply(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;try{patchApi();patchToday();patchWork();renderQueue();}catch(error){console.warn('[H38 recurring service]',error);}});}
-function start(){new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('h38:office-page-rendered',apply);window.addEventListener('h38:business-snapshot-updated',apply);window.addEventListener('h38:recurring-service-state-changed',apply);apply();window.H38_RECURRING_SERVICE_RUNTIME=Object.freeze({build:BUILD,bypassesSiteVisit:true,bypassesQuote:true,startFinishRemove:true,finishRemove:true,billingHandoff:true,todayServiceQueue:true,separateSavedRates:true,auditPreservingRemoval:true,stableSignatures:true,legacyDeleteAction:'Delete',automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});}
+function start(){new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('h38:office-page-rendered',apply);window.addEventListener('h38:business-snapshot-updated',apply);window.addEventListener('h38:recurring-service-state-changed',apply);apply();window.H38_RECURRING_SERVICE_RUNTIME=Object.freeze({build:BUILD,bypassesSiteVisit:true,bypassesQuote:true,startFinishRemove:true,finishRemove:true,billingHandoff:true,finishOpensBilling:true,todayServiceQueue:true,separateSavedRates:true,auditPreservingRemoval:true,stableSignatures:true,legacyDeleteAction:'Delete',automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
