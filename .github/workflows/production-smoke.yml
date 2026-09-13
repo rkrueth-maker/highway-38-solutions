@@ -109,11 +109,12 @@ jobs:
           }
 
           fetch_until_ready '' 'Bring us the problem.' /tmp/home.html
-          grep -Fq 'complete project plan.' /tmp/home.html
+          grep -Fq 'clear working path.' /tmp/home.html
           grep -Fq 'See it. Scope it. Run it.' /tmp/home.html
           grep -Fq 'href="solutions.html"' /tmp/home.html
           grep -Fq 'href="pricing.html"' /tmp/home.html
-          ! grep -Eq 'href="(quote-builder|business-systems|sample-library-now|universal-quote-builder)\.html' /tmp/home.html
+          grep -Fq 'href="quote-builder.html#examples"' /tmp/home.html
+          ! grep -Eq 'href="(business-systems|sample-library-now|universal-quote-builder)\.html' /tmp/home.html
 
           fetch_until_ready 'pricing.html' 'Three software products' /tmp/pricing.html
           grep -Fq '$59' /tmp/pricing.html
@@ -164,4 +165,4 @@ jobs:
             exit 1
           fi
 
-          echo 'Production GitHub Pages smoke check passed with neutral homepage product paths and Universal Quote Builder examples preserved on their dedicated page.'
+          echo 'Production GitHub Pages smoke check passed with the approved homepage Quote Builder path and Universal Quote Builder examples preserved on their dedicated page.'
