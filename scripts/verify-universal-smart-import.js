@@ -63,7 +63,9 @@ forbid(index,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-i
 requireText(erp,'id="h38DataUptake"','existing data-uptake host');
 requireText(erp,'data-h38-stage-import','manual import fallback preserved');
 requireText(importer,"host.querySelector('[data-h38-universal-import-panel]')",'non-destructive universal panel injection');
-forbid(importer,'host.innerHTML=','destructive replacement of generic import controls');
+requireText(importer,'if(note)note.after(panelNode)','universal panel inserted after existing intake note');
+requireText(importer,'else host.prepend(panelNode)','universal panel prepended without replacing intake controls');
+forbid(importer,"host.dataset.h38SmartImport='1';host.innerHTML=smartHtml();",'legacy destructive replacement of generic import controls');
 
 for(const collection of ['customers','contacts','properties','jobs','workOrders','tasks','quotes','timeEntries','expenses','invoices','payments','documents','historicalRecords'])
   requireText(stage,`'${collection}'`,`backend import collection ${collection}`);
