@@ -59,8 +59,13 @@ def test_customer_file_shows_imported_contact_address_and_rate_fields():
 
 
 def test_imported_addresses_become_locations_and_subscribed_services_are_actionable():
-    for marker in ["targetCollection:'properties'",'IMPORT-PROPERTY-',"p_entity_type:'customers-and-locations'"]:
+    for marker in ["targetCollection:'customers'","targetCollection:'properties'",'IMPORT-PROPERTY-',"p_entity_type:'customers'",'stableAddressKey(address)']:
         assert marker in CUSTOMER_IMPORT
+    assert "p_entity_type:'customers-and-locations'" not in CUSTOMER_IMPORT
+    for marker in ['.csv,.xlsx,.xls','Smart customer spreadsheet import','business_office_stage_import','business_office_apply_import','preservesGenericDataUptake:true','ownerApprovalRequired:true']:
+        assert marker in CUSTOMER_IMPORT
+    assert 'host.innerHTML=smartHtml()' not in CUSTOMER_IMPORT
+    assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' in INDEX
     for marker in ['Subscribed services & invoicing','Trigger today','Hours × rate','Review / send invoices',"'Send Allowed':'No'"]:
         assert marker in CUSTOMER_WORKSPACE
     for marker in ['Snap a receipt','capture="environment" multiple','Captured — Office Review Required','Payment Action Performed']:
