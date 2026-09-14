@@ -1,0 +1,33 @@
+name: Verify Universal Smart Import
+
+on:
+  push:
+    paths:
+      - 'commercial-app/customer-import-intelligence.js'
+      - 'commercial-app/index.html'
+      - 'commercial-app/erp-foundation.js'
+      - 'supabase/migrations/**'
+      - 'scripts/verify-universal-smart-import.js'
+      - '.github/workflows/verify-universal-smart-import.yml'
+  pull_request:
+    paths:
+      - 'commercial-app/customer-import-intelligence.js'
+      - 'commercial-app/index.html'
+      - 'commercial-app/erp-foundation.js'
+      - 'supabase/migrations/**'
+      - 'scripts/verify-universal-smart-import.js'
+      - '.github/workflows/verify-universal-smart-import.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify Universal Smart Import contract
+        run: node scripts/verify-universal-smart-import.js
