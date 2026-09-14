@@ -42,6 +42,17 @@ function savedCandidate(row: any) {
   };
 }
 
+function usableSavedRow(row: any) {
+  const title = String(row?.title || "").trim();
+  const lower = title.toLowerCase();
+  if (title.length < 3) return false;
+  if (lower === "permalink") return false;
+  if (lower.includes("first seen at a penny")) return false;
+  if (lower.includes("inventory checker")) return false;
+  if (lower.includes("add the first photo")) return false;
+  return true;
+}
+
 async function loadSaved(admin: any, limit = 80) {
   const q = await admin
     .from("reseller_hunt_cache")
@@ -49,8 +60,9 @@ async function loadSaved(admin: any, limit = 80) {
     .eq("active", true)
     .gt("buy_price", 0)
     .order("penny_sort_at", { ascending: false })
-    .limit(limit);
-  return { rows: (q.data || []).map(savedCandidate), error: q.error };
+    .limit(Math.max(200, limit * 4));
+  const clean = (q.data || []).filter(usableSavedRow).slice(0, limit);
+  return { rows: clean.map(savedCandidate), error: q.error };
 }
 
 function normalizeRadius(payload: Record<string, any>) {
