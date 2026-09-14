@@ -6,6 +6,7 @@ const resale=page('supabase/functions/h38-resale-web/index.ts');
 const coupon=page('supabase/functions/h38-coupon-web/index.ts');
 for(const marker of ['search-driven-v12','Use phone location','Loading saved H38 buy leads','Show ','h38-resale-location-v1','CANDIDATE · NEEDS SOLD COMPS','LOCATION NEEDS PROOF','Nearby Stores','NEARBY STORE','completed with no current verified or candidate results'])if(!resale.html.includes(marker))throw Error('Resale missing '+marker);
 for(const marker of ['h38-shopping-location-v1','Deal ready to evaluate','Build coupon stack','not proof that no resale opportunities exist'])if(!resale.html.includes(marker))throw Error('Connected Resale UX missing '+marker);
+for(const marker of ['Sources — ','When:','Where:','distance unknown','Date needs proof'])if(!resale.html.includes(marker))throw Error('Garage/Estate truth UX missing '+marker);
 const resaleApi=fs.readFileSync('supabase/functions/h38-resale-api/index.ts','utf8');
 for(const marker of ['h38_shared_deal_cache','SAVED DEAL · NEEDS SOLD COMPS','profit_verified','reseller_hunt_cache'])if(!resaleApi.includes(marker))throw Error('Resale API missing truthful saved-deal fallback: '+marker);
 for(const marker of ['watch-tracker-v9','Optimize my list','max_stores:max','Delete price','Remove watch','Delete receipt','Scanned list added'])if(!coupon.html.includes(marker))throw Error('Couponing missing '+marker);
