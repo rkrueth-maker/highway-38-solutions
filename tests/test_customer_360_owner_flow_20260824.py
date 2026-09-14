@@ -58,14 +58,22 @@ def test_customer_file_shows_imported_contact_address_and_rate_fields():
         assert marker in MODULE_CONTRACT
 
 
-def test_imported_addresses_become_locations_and_subscribed_services_are_actionable():
-    for marker in ["targetCollection:'customers'","targetCollection:'properties'",'IMPORT-PROPERTY-',"p_entity_type:'customers'",'stableAddressKey(address)']:
-        assert marker in CUSTOMER_IMPORT
-    assert "p_entity_type:'customers-and-locations'" not in CUSTOMER_IMPORT
-    for marker in ['.csv,.xlsx,.xls','Smart customer spreadsheet import','business_office_stage_import','business_office_apply_import','preservesGenericDataUptake:true','ownerApprovalRequired:true']:
+def test_universal_smart_import_detects_and_stages_business_history_safely():
+    for marker in [
+        'Universal Smart Import','Analyze workbook','Stage selected groups','Apply reviewed groups',
+        "customers:{label:'Customers'","properties:{label:'Properties / locations'","jobs:{label:'Jobs'",
+        "quotes:{label:'Quotes / estimates'","invoices:{label:'Invoices'","timeEntries:{label:'Historical time'",
+        "expenses:{label:'Expenses'","payments:{label:'Payments'",'historicalRecords',
+        "targetCollection:'properties'",'IMPORT-PROPERTY-','business_office_stage_import','business_office_apply_import',
+        'separateStagingRuns:true','customerReferenceResolution:true','ownerApprovalRequired:true',
+        'preservesExistingNonblankValues:true','preservesGenericDataUptake:true',
+        'automaticCustomerSending:false','automaticPayments:false','automaticScheduling:false','automaticApproval:false',
+        '.csv,.json,.xlsx,.xls','selectedDefault','confidence!==\'low\''
+    ]:
         assert marker in CUSTOMER_IMPORT
     assert 'host.innerHTML=smartHtml()' not in CUSTOMER_IMPORT
-    assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' in INDEX
+    assert 'customer-import-intelligence.js?build=20260914-universal-smart-import-1' in INDEX
+    assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' not in INDEX
     for marker in ['Subscribed services & invoicing','Trigger today','Hours × rate','Review / send invoices',"'Send Allowed':'No'"]:
         assert marker in CUSTOMER_WORKSPACE
     for marker in ['Snap a receipt','capture="environment" multiple','Captured — Office Review Required','Payment Action Performed']:
