@@ -153,6 +153,216 @@ async function normalizeLocation(
   return payload;
 }
 
+const SALE_EVENT_RE = /\b(?:garage|yard|rummage|moving|estate|neighborhood|multi[- ]?family)\s+sales?\b|\b(?:garage|yard|rummage|moving|estate|neighborhood|multi[- ]?family)\s+sale\b/i;
+const stripHtml = (v: unknown) => String(v || "")
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+  .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+  .replace(/<[^>]+>/g, " ")
+  .replace(/&amp;/gi, "&")
+  .replace(/&quot;/gi, '"')
+  .replace(/&#0*39;|&apos;/gi, "'")
+  .replace(/&nbsp;|&#160;/gi, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+function saleType(v: unknown) {
+  const s = String(v || "").toLowerCase();
+  if (/estate/.test(s)) return "ESTATE SALE";
+  if (/moving/.test(s)) return "MOVING SALE";
+  if (/rummage/.test(s)) return "RUMMAGE SALE";
+  if (/yard/.test(s)) return "YARD SALE";
+  return "GARAGE SALE";
+}
+
+function saleIntent(v: unknown) {
+  return SALE_EVENT_RE.test(stripHtml(v));
+}
+
+function dedupeSaleRows(rows: any[]) {
+  const out: any[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    const url = String(r?.url || r?.source_url || "").replace(/[?#].*$/, "").toLowerCase();
+    const sig = [r?.source, r?.title, r?.location_label, r?.event_time || r?.date_label]
+      .map((x) => String(x || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim())
+      .join("|");
+    const key = url || sig;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+function parseRssItems(xml: string) {
+  const out: any[] = [];
+  for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
+    const item = m[1] || "";
+    const val = (tag: string) => stripHtml((item.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i")) || [])[1] || "");
+    out.push({ title: val("title"), link: val("link"), description: val("description"), pubDate: val("pubDate") });
+  }
+  return out;
+}
+
+async function fetchText(url: string, timeout = 9000) {
+  const r = await fetch(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0 H38Resale/1.1 (+https://highway38solutions.com)",
+      accept: "text/html,application/xhtml+xml,application/rss+xml,application/xml,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9",
+    },
+    redirect: "follow",
+    signal: AbortSignal.timeout(timeout),
+  });
+  const text = await r.text().catch(() => "");
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return { text, url: r.url || url };
+}
+
+async function facebookGarageRows(
+  url: string,
+  anon: string,
+  auth: string,
+  payload: Record<string, any>,
+) {
+  const p = {
+    ...payload,
+    terms: ["garage sale", "estate sale", "yard sale", "moving sale"],
+    max_results: 80,
+  };
+  const fb = await invoke(url, anon, auth, "reseller-facebook-public-v240", p);
+  if (!fb.ok || !fb.data || typeof fb.data !== "object") {
+    return { rows: [], health: { status: "unavailable", count: 0 } };
+  }
+  const d = fb.data as Record<string, any>;
+  const verified = Array.isArray(d.results) ? d.results : [];
+  const candidates = Array.isArray(d.candidates) ? d.candidates : [];
+  const rows = [...verified, ...candidates]
+    .filter((r) => saleIntent(r?.title || r?.name || ""))
+    .map((r) => ({
+      ...r,
+      source: "Facebook",
+      source_type: "public_facebook_sale_listing",
+      title: String(r?.title || r?.name || "Facebook sale listing").trim(),
+      url: r?.url || r?.source_url || "",
+      event_type: saleType(r?.title || r?.name || ""),
+      sale_event_verified: true,
+      detail_verified: r?.location_verified === true,
+      freshness_unproven: true,
+      verification_status: r?.location_verified === true ? "PUBLIC FACEBOOK · LOCATION VERIFIED" : "PUBLIC FACEBOOK · LOCATION NEEDS PROOF",
+      source_search_bound: true,
+    }));
+  return {
+    rows,
+    health: {
+      status: rows.length ? "live" : (d.provider_status || d.status || "empty"),
+      count: rows.length,
+      provider_status: d.provider_status || d.status || "UNKNOWN",
+      raw_public_candidates: Number(d.raw_public_candidates || 0),
+    },
+  };
+}
+
+async function facebookPublicIndexRows(payload: Record<string, any>) {
+  const city = String(payload.city || "").trim();
+  const state = String(payload.state_code || payload.state || "").trim();
+  if (!city) return { rows: [], health: { status: "not_applicable", count: 0 } };
+  const q = `site:facebook.com ("garage sale" OR "estate sale" OR "yard sale" OR "moving sale") "${city}" ${state}`;
+  try {
+    const p = await fetchText(`https://www.bing.com/search?q=${encodeURIComponent(q)}&format=rss&count=30`, 10000);
+    const rows = parseRssItems(p.text)
+      .filter((x) => /facebook\.com/i.test(x.link) && saleIntent(`${x.title} ${x.description}`))
+      .map((x) => ({
+        source: "Facebook public index",
+        source_type: "public_search_index_sale_post",
+        title: x.title || "Facebook sale post",
+        url: x.link,
+        event_type: saleType(`${x.title} ${x.description}`),
+        location_label: [city, state].filter(Boolean).join(", "),
+        event_time: x.pubDate || "",
+        date_label: x.pubDate || "",
+        location_verified: false,
+        freshness_unproven: true,
+        sale_event_verified: true,
+        source_search_bound: true,
+        verification_status: "PUBLIC INDEX · LOCATION/DATE NEEDS PROOF",
+      }));
+    return { rows, health: { status: rows.length ? "live" : "empty", count: rows.length, route: p.url } };
+  } catch (e) {
+    return { rows: [], health: { status: "unavailable", count: 0, warning: String(e) } };
+  }
+}
+
+function parseApgSaleRows(html: string, base: string, fallbackLocation: string) {
+  const out: any[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    if (out.length >= 30) break;
+    const rawHref = m[1] || "";
+    let url = "";
+    try { url = new URL(rawHref, base).toString(); } catch { continue; }
+    if (!/marketplace\.apg-mn\.com/i.test(url) || !/\/places\/view\//i.test(url) || seen.has(url)) continue;
+    const start = Math.max(0, m.index - 1400);
+    const end = Math.min(html.length, m.index + (m[0]?.length || 0) + 1800);
+    const chunk = html.slice(start, end);
+    const plain = stripHtml(chunk);
+    if (!saleIntent(plain)) continue;
+    const anchorTitle = stripHtml(m[2] || "");
+    const heading = stripHtml((chunk.match(/<(?:h2|h3)\b[^>]*>([\s\S]*?)<\/(?:h2|h3)>/i) || [])[1] || "");
+    const title = (heading.length >= 5 ? heading : anchorTitle.length >= 5 ? anchorTitle : `${saleType(plain)} listing`).slice(0, 220);
+    const publication = (plain.match(/Publication Date:\s*(\d{1,2}-\d{1,2}-20\d{2})/i) || [])[1] || "";
+    if (publication) {
+      const [mm, dd, yy] = publication.split("-").map(Number);
+      const t = Date.UTC(yy, mm - 1, dd, 23, 59, 59);
+      if (Number.isFinite(t) && t < Date.now() - 120 * 86400000) continue;
+    }
+    const location = (plain.match(/\b([A-Z][A-Za-z .'-]{1,60},\s*MN(?:\s+\d{5})?)\b/) || [])[1] || fallbackLocation;
+    seen.add(url);
+    out.push({
+      source: "Grand Rapids Herald-Review / APG",
+      source_type: "local_newspaper_classified",
+      title,
+      url,
+      event_type: saleType(plain),
+      location_label: location,
+      event_time: publication,
+      date_label: publication,
+      location_verified: false,
+      freshness_unproven: !publication,
+      sale_event_verified: true,
+      source_search_bound: true,
+      verification_status: publication ? "LOCAL PAPER CLASSIFIED" : "LOCAL PAPER · DATE NEEDS PROOF",
+    });
+  }
+  return out;
+}
+
+async function localPaperGarageRows(payload: Record<string, any>) {
+  const state = String(payload.state_code || payload.state || "").trim().toUpperCase();
+  const fallbackLocation = [payload.city, state].filter(Boolean).join(", ") || String(payload.location_label || payload.locationLabel || "");
+  if (state && state !== "MN") return { rows: [], health: { status: "not_applicable", count: 0 } };
+  const urls = [
+    "https://marketplace.apg-mn.com/grandrapidsmn/categories%3A207",
+    "https://marketplace.apg-mn.com/grandrapidsmn/categories%3A172",
+  ];
+  const rows: any[] = [];
+  let successes = 0;
+  const warnings: string[] = [];
+  for (const u of urls) {
+    try {
+      const p = await fetchText(u, 10000);
+      successes++;
+      rows.push(...parseApgSaleRows(p.text, p.url, fallbackLocation));
+    } catch (e) {
+      warnings.push(String(e));
+    }
+  }
+  return {
+    rows: dedupeSaleRows(rows),
+    health: { status: rows.length ? "live" : successes ? "empty" : "unavailable", count: rows.length, warnings: warnings.slice(0, 2) },
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -245,10 +455,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    const result = await invoke(url, anon, auth, slug, payload);
+    let scanPayload = payload;
+    if (action === "garage" && Number(payload.radiusMiles) === 75) {
+      scanPayload = { ...payload, radiusMiles: 100, radius_miles: 100, radius: 100 };
+    }
+
+    const result = await invoke(url, anon, auth, slug, scanPayload);
     if (result.ok) {
       const data = (result.data && typeof result.data === "object" ? result.data : {}) as Record<string, any>;
       if (facebookMeta) data.facebook_source = facebookMeta;
+
+      if (action === "garage") {
+        const [fbSales, fbIndex, papers] = await Promise.all([
+          facebookGarageRows(url, anon, auth, payload),
+          facebookPublicIndexRows(payload),
+          localPaperGarageRows(payload),
+        ]);
+        const baseRows = Array.isArray(data.results) ? data.results : [];
+        const requestedRadius = Number(payload.radiusMiles || 50);
+        data.results = dedupeSaleRows([...baseRows, ...fbSales.rows, ...fbIndex.rows, ...papers.rows])
+          .filter((r) => {
+            const d = Number(r?.distance_miles);
+            return !Number.isFinite(d) || d <= requestedRadius + 0.15;
+          })
+          .slice(0, 72);
+        data.source_health = {
+          ...(data.source_health || {}),
+          "Facebook sale search": fbSales.health,
+          "Facebook public index": fbIndex.health,
+          "Local newspaper classifieds": papers.health,
+        };
+        data.status = data.results.length ? "PASS" : (data.status || "PARTIAL");
+        data.engine = "garage_sales_multi_source_v317";
+        data.truth = "Garage/Estate combines Craigslist, public Facebook sale evidence, local newspaper classifieds, EstateSales.NET, YardSaleSearch and local event calendars. Facebook remains public-only; unproven location/date is labeled instead of treated as confirmed local inventory.";
+      }
+
       data.location_used = {
         zip: payload.zip || payload.postal || null,
         location_label: payload.location_label || payload.locationLabel || null,
