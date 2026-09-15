@@ -2,6 +2,7 @@
 'use strict';
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
+const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-1';
 const PHONE_FIRST_BUILD='20260915-phone-first-office-3';
 const OWNER_PHONE_MODE_BUILD='20260915-owner-phone-office-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
@@ -45,8 +46,18 @@ function loadOwnerPhoneModeAuthority(){
   (document.head||document.documentElement).appendChild(script);
   return true;
 }
+function loadQuickMeetingNotes(){
+  if(window.H38_QUICK_MEETING_NOTES||document.querySelector('script[data-h38-quick-meeting-bootstrap]'))return false;
+  const script=document.createElement('script');
+  script.src=`./quick-meeting-notes.js?build=${QUICK_MEETING_BUILD}`;
+  script.async=false;
+  script.dataset.h38QuickMeetingBootstrap='1';
+  (document.head||document.documentElement).appendChild(script);
+  return true;
+}
 function loadPhoneFirstOffice(){
   loadOwnerPhoneModeAuthority();
+  loadQuickMeetingNotes();
   if(window.H38_PHONE_FIRST_OFFICE||document.querySelector('script[data-h38-phone-first-office-bootstrap]'))return false;
   const script=document.createElement('script');
   script.src=`./phone-first-office.js?build=${PHONE_FIRST_BUILD}`;
@@ -80,6 +91,7 @@ function loadCustomerWorkspaceDocuments(force=false){
 function reconcileCustomerWorkspace(){
   loadInstallOffice();
   loadOwnerPhoneModeAuthority();
+  loadQuickMeetingNotes();
   loadPhoneFirstOffice();
   if(!shouldLoadCustomerWorkspace())return;
   loadCustomerWorkspaceDocuments(true);
@@ -91,17 +103,19 @@ window.addEventListener?.('pageshow',reconcileCustomerWorkspace);
 queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
-  build:'20260915-owner-phone-logo-bootstrap-3',
-  purpose:'Expose the record-id helper, load owner phone recovery, install and phone-first shell support, and lazy-load customer/document runtime only when those Office pages need it.',
-  productionVerification:'20260915-owner-phone-logo-bootstrap-3',
+  build:'20260915-quick-meeting-bootstrap-1',
+  purpose:'Expose the record-id helper, load owner phone recovery, notes-only Quick Meeting, install and phone-first shell support, and lazy-load customer/document runtime only when those Office pages need it.',
+  productionVerification:'20260915-quick-meeting-bootstrap-1',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
+  quickMeetingBuild:QUICK_MEETING_BUILD,
   phoneFirstBuild:PHONE_FIRST_BUILD,
   ownerPhoneModeBuild:OWNER_PHONE_MODE_BUILD,
   installOfficeBuild:INSTALL_OFFICE_BUILD,
   installManifestBuild:INSTALL_MANIFEST_BUILD,
   installOfficeLiveBootstrap:true,
   ownerPhoneModeLiveBootstrap:true,
+  quickMeetingLiveBootstrap:true,
   phoneFirstLiveBootstrap:true,
   customerWorkspaceLiveBootstrap:true,
   customerWorkspaceLazy:true,
@@ -110,6 +124,7 @@ window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   ensureInstallMetadata,
   loadInstallOffice,
   loadOwnerPhoneModeAuthority,
+  loadQuickMeetingNotes,
   loadPhoneFirstOffice,
   loadCustomerWorkspaceDocuments,
   loadCustomerRenderHook
