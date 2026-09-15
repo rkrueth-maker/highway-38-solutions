@@ -6,7 +6,7 @@ JOB_CENTERED = (ROOT / "commercial-app" / "job-centered-flow.js").read_text(enco
 
 
 def test_production_mobile_polish_keeps_records_before_admin_tools():
-    assert "20260819-production-mobile-polish-3" in MOBILE
+    assert "20260915-phone-first-nav-1" in MOBILE
     assert "moveCardsFirst(grid,[requests,jobs,tasks])" in MOBILE
     assert "moveCardsFirst(grid,[start,customers,properties])" in MOBILE
     assert "wrapToolCard(byName('New request'),'New request')" in MOBILE
@@ -14,6 +14,9 @@ def test_production_mobile_polish_keeps_records_before_admin_tools():
     assert "wrapToolCard(byName('Assign task'),'Assign task')" in MOBILE
     assert "mobileJobsCreationToolsCollapsed:true" in MOBILE
     assert "mobileRecordCardsFirst:true" in MOBILE
+    assert "phoneFirstPrimaryNavigation:true" in MOBILE
+    assert "jobsMovedToMore:true" in MOBILE
+    assert "groupedMore:true" in MOBILE
 
 
 def test_customer_mobile_collapse_is_full_width_not_one_grid_column():
@@ -30,7 +33,9 @@ def test_production_header_and_messages_use_customer_facing_copy():
     assert "h1.textContent='Messages'" in MOBILE
     assert "Team conversations" in MOBILE
     assert "Start a conversation" in MOBILE
-    assert "Tools, money, records and settings" in MOBILE
+    assert "Tools grouped by what you are trying to do." in MOBILE
+    for group in ["Work & Sales", "Money", "Records & Equipment", "Office"]:
+        assert group in MOBILE
 
 
 def test_old_job_centered_runtime_does_not_periodically_rewrite_primary_nav():
