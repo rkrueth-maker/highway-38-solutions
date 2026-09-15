@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-install-office-1';
+const BUILD='20260915-install-office-2';
 const MOBILE='(max-width: 760px)';
 const SHORTCUTS=new Set(['today','customers','schedule','messages','work','quotes','field']);
 let deferredPrompt=null;
@@ -33,7 +33,7 @@ function renderDialog(){
 async function installNow(){
   if(standalone()||installed){renderDialog();return {outcome:'installed'};}
   if(!deferredPrompt){open();return {outcome:'instructions'};}
-  const prompt=deferredPrompt;deferredPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;installed=choice?.outcome==='accepted';syncButton();renderDialog();return choice||{outcome:installed?'accepted':'dismissed'};}catch(error){syncButton();renderDialog();return {outcome:'error',error};}
+  const prompt=deferredPrompt;deferredPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;installed=choice?.outcome==='accepted';syncButton();syncMoreAction();renderDialog();return choice||{outcome:installed?'accepted':'dismissed'};}catch(error){syncButton();syncMoreAction();renderDialog();return {outcome:'error',error};}
 }
 function open(){ensureStyle();const dialog=renderDialog();if(typeof dialog.showModal==='function'){if(!dialog.open)dialog.showModal();}else dialog.setAttribute('open','');}
 function syncButton(){
@@ -41,15 +41,25 @@ function syncButton(){
   if(!actions||mobile()||standalone()||installed){button?.remove();return;}
   if(!button){button=document.createElement('button');button.type='button';button.id='h38InstallOfficeButton';button.className='secondary';button.textContent='Install H38';button.setAttribute('aria-label','Install H38 Office app');button.onclick=open;actions.insertBefore(button,actions.firstChild);}
 }
+function syncMoreAction(){
+  if(!mobile())return;
+  const groups=document.querySelector('#h38PrimaryMoreDialog .h38-more-groups');if(!groups||groups.querySelector('[data-h38-install-group]'))return;
+  const section=document.createElement('section');section.className='h38-more-group';section.dataset.h38InstallGroup='1';const isInstalled=standalone()||installed;
+  section.innerHTML=`<h3>App</h3><div class="h38-more-grid"><button type="button" data-h38-install-more><span>${isInstalled?'✓':'⬇'}</span><strong>${isInstalled?'H38 Office installed':'Install H38 Office'}</strong></button></div>`;
+  section.querySelector('[data-h38-install-more]').onclick=open;groups.appendChild(section);
+}
 function routeShortcut(){
   if(shortcutHandled)return;const params=new URLSearchParams(location.search),shortcut=String(params.get('shortcut')||'').trim();if(!SHORTCUTS.has(shortcut)){shortcutHandled=true;return;}
   const ready=()=>typeof window.openPage==='function'&&window.state?.snapshot?.user;
   let tries=0;const go=()=>{if(ready()){shortcutHandled=true;window.openPage(shortcut);return;}if(++tries<80)setTimeout(go,150);};go();
 }
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredPrompt=event;installed=false;syncButton();});
-window.addEventListener('appinstalled',()=>{installed=true;deferredPrompt=null;syncButton();if(document.getElementById('h38InstallOfficeDialog')?.open)renderDialog();});
-window.matchMedia?.('(display-mode: standalone)')?.addEventListener?.('change',()=>syncButton());
-window.H38_INSTALL_OFFICE={BUILD,open,install:installNow,state:installState,sync:syncButton};
-function init(){ensureStyle();syncButton();routeShortcut();}
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredPrompt=event;installed=false;syncButton();syncMoreAction();});
+window.addEventListener('appinstalled',()=>{installed=true;deferredPrompt=null;syncButton();syncMoreAction();if(document.getElementById('h38InstallOfficeDialog')?.open)renderDialog();});
+window.matchMedia?.('(display-mode: standalone)')?.addEventListener?.('change',()=>{syncButton();syncMoreAction();});
+document.addEventListener('click',event=>{if(event.target.closest?.('[data-h38-primary="more"]'))setTimeout(syncMoreAction,0);});
+const observer=new MutationObserver(()=>{if(document.querySelector('#h38PrimaryMoreDialog[open],#h38PrimaryMoreDialog[open=""]'))syncMoreAction();});
+if(document.body)observer.observe(document.body,{childList:true,subtree:true});
+window.H38_INSTALL_OFFICE={BUILD,open,install:installNow,state:installState,sync:syncButton,syncMoreAction};
+function init(){ensureStyle();syncButton();syncMoreAction();routeShortcut();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
