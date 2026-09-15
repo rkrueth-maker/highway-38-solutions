@@ -1,0 +1,25 @@
+name: Verify Owner Mobile Quick Actions
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/owner-mobile-quick-actions.js'
+      - 'commercial-app/runtime-rowid-fix.js'
+      - 'scripts/verify-owner-mobile-quick-actions-browser.js'
+      - '.github/workflows/verify-owner-mobile-quick-actions.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --check commercial-app/owner-mobile-quick-actions.js
+      - run: node --check commercial-app/runtime-rowid-fix.js
+      - run: node scripts/verify-owner-mobile-quick-actions-browser.js
