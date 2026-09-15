@@ -58,14 +58,14 @@ check('homepage uses approved local imagery without mockup shell',index.includes
 check('homepage contains no prohibited CNC quantity claim or personal attribution',!/25,000\+\s*(?:CNC\s+)?programs?|Rick\s+Krueth/i.test(index));
 check('canonical public shell owns navigation footer mobile menu and Owner route',publicShell.includes('class="pi-menu"')&&publicShell.includes("['Owner Access','portal.html']")&&publicShell.includes('pi-footer-grid')&&!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&publicShell.includes("{href:'software.html',label:'Software'}")&&publicShell.includes("{href:'project-services.html',label:'Project Services'}"));
 check('canonical public shell locks image replacement',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(publicShell));
-check('software page explains all three approved levels',software.includes('Quote Builder')&&software.includes('Business Office')&&software.includes('Custom Business System'));
+check('software page explains all three approved levels',software.includes('Quote Builder')&&software.includes('Business Office')&&software.includes('Configured Business System'));
 check('project services page retains licensed and field verification boundary',projectServices.includes('Planning support does not replace licensed or field verification.'));
 check('interactive quote demo is browser-only and non-submitting',interactiveDemo.includes('Nothing leaves this page')&&!/script\.google\.com|data-intake-endpoint/.test(interactiveDemo));
 check('implementation and security pages make launch controls visible',implementation.includes('Acceptance evidence')&&security.includes('Controlled external actions')&&security.includes('Fail-closed boundaries'));
 
 check('What We Do has five accepted capability cards',(solutions.match(/data-capability=/g)||[]).length===5&&['Automation & Robotics','CNC Machining & Process Planning','CNC Fixturing & Workholding','AI-Assisted Quote Builder','Highway 38 Business Office'].every(marker=>solutions.includes(marker)));
 check('What We Do removes retired fixed-price paths',!solutions.includes('Choose Your Path')&&!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot'));
-check('pricing uses final approved product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
+check('pricing uses final approved product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $7,500')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular')&&!pricing.includes('Starting at $499'));
 check('pricing explains implementation value',pricing.includes('Implementation value')&&pricing.includes('implementation.html')&&pricing.includes('security-reliability.html'));
 
 const existingExampleCount=(samples.match(/class="project-card"/g)||[]).length;

@@ -30,7 +30,7 @@ const projectServices=read('project-services.html');
 const interactiveDemo=read('quote-builder-demo.html');
 const implementation=read('implementation.html');
 const security=read('security-reliability.html');
-check('software page preserves three approved commercial levels',software.includes('Quote Builder')&&software.includes('Business Office')&&software.includes('Custom Business System'));
+check('software page preserves three approved commercial levels',software.includes('Quote Builder')&&software.includes('Business Office')&&software.includes('Configured Business System'));
 check('project services preserves professional verification boundary',projectServices.includes('Planning support does not replace licensed or field verification.'));
 check('interactive quote demonstration is browser-only and non-submitting',interactiveDemo.includes('Nothing leaves this page')&&!/script\.google\.com|data-intake-endpoint/.test(interactiveDemo));
 check('implementation and security pages explain commercial delivery controls',implementation.includes('Acceptance evidence')&&implementation.includes('Business Office implementation — $2,500')&&security.includes('Controlled external actions')&&security.includes('Fail-closed boundaries'));
@@ -40,7 +40,7 @@ check('What We Do exposes five accepted capabilities',capabilities.every(value=>
 check('What We Do uses specialist links',['robotics-automation.html','manufacturing-cnc.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 check('What We Do does not restore fixed-price product cards',!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot')&&!solutions.includes('Workflow Opportunity Snapshot'));
 const pricing=read('pricing.html');
-check('pricing page has final three-product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499'));
+check('pricing page has final three-product structure',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $7,500')&&!pricing.includes('Starting at $499'));
 check('pricing preserves Snapshot and approval boundaries',pricing.includes('$299 one-time')&&pricing.includes('Nothing is activated or charged from the request form.'));
 check('pricing marks Business Office Most Popular',pricing.includes('Most Popular')&&pricing.includes('Implementation: $2,500'));
 check('pricing explains implementation value without changing prices',pricing.includes('Implementation value')&&pricing.includes('implementation.html')&&pricing.includes('security-reliability.html'));
