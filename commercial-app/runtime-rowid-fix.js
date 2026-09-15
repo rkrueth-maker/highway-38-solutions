@@ -3,8 +3,8 @@
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const PHONE_FIRST_BUILD='20260915-phone-first-office-3';
-const INSTALL_OFFICE_BUILD='20260915-install-office-1';
-const INSTALL_MANIFEST_BUILD='20260915-pwa-1';
+const INSTALL_OFFICE_BUILD='20260915-install-office-2';
+const INSTALL_MANIFEST_BUILD='20260915-pwa-2';
 const CUSTOMER_WORKSPACE_PAGES=new Set(['customers','documents']);
 function value(row,keys){
   for(const key of keys){
@@ -79,9 +79,9 @@ window.addEventListener?.('pageshow',reconcileCustomerWorkspace);
 queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
-  build:'20260915-install-office-bootstrap-1',
+  build:'20260915-install-office-bootstrap-2',
   purpose:'Expose the record-id helper, load install and phone-first shell support, and lazy-load customer/document runtime only when those Office pages need it.',
-  productionVerification:'20260915-install-office-bootstrap-1',
+  productionVerification:'20260915-install-office-bootstrap-2',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
   phoneFirstBuild:PHONE_FIRST_BUILD,
