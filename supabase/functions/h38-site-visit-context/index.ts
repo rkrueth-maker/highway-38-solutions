@@ -5,7 +5,7 @@ const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const OPENAI_API_KEY=Deno.env.get("OPENAI_API_KEY")||"";
 const MODEL=Deno.env.get("OPENAI_SITE_SCANNER_MODEL")||Deno.env.get("OPENAI_QUOTE_MODEL")||"gpt-5-mini-2025-08-07";
-const BUILD="20260915-meeting-site-seed-1";
+const BUILD="20260915-meeting-site-seed-2";
 const ALLOWED_ORIGINS=new Set(["https://highway38solutions.com","https://www.highway38solutions.com","https://rkrueth-maker.github.io","http://localhost:8000","http://127.0.0.1:8000"]);
 type Json=Record<string,unknown>;
 const clean=(v:unknown,n=12000)=>String(v??"").replace(/Bearer\s+[A-Za-z0-9._-]+/gi,"Bearer [REDACTED]").trim().slice(0,n);
@@ -59,11 +59,11 @@ Deno.serve(async(request:Request)=>{
     const seed=await extract(session,meeting,meetingId);
     const currentTitle=clean(session["Project Title"]||session.projectTitle,300),currentScope=clean(session["Scope"]||session.scope,4000),projectTitle=seed.projectTitle,scopeDraft=seed.scopeDraft;
     const applyTitle=!!projectTitle&&genericTitle(currentTitle),applyScope=!!scopeDraft&&!currentScope,stamp=new Date().toISOString();
-    const updated={...session,"Walkthrough Suggested Project Title":projectTitle,"Walkthrough Suggested Scope":scopeDraft,"Walkthrough Context Status":"COMPLETE","Walkthrough Context Updated Time":stamp,"Meeting Seed ID":meetingId,"Meeting Seed Status":meetingId?"READY":"NOT_LINKED","Meeting Seed":seed,"Meeting Seed Updated Time":stamp,"Project Title":applyTitle?projectTitle:currentTitle,"Scope":applyScope?scopeDraft:currentScope,"Updated Time":stamp,"Record Version":Number(session["Record Version"]||session.recordVersion||1)+1};
+    const updated={...session,"Walkthrough Suggested Project Title":projectTitle,"Walkthrough Suggested Scope":scopeDraft,"Walkthrough Context Status":"COMPLETE","Walkthrough Context Updated Time":stamp,"Meeting Seed ID":meetingId,"Meeting Seed Status":meetingId?"READY":"NOT_LINKED","Meeting Seed":seed,"Meeting Summary":seed.summary,"Meeting Customer Candidate":seed.customer,"Meeting Property Candidate":seed.property,"Meeting Quote Inputs":seed.quoteInputs,"Meeting Capture Items":seed.captureItems,"Meeting Measurements":seed.measurements,"Meeting Seed Updated Time":stamp,"Project Title":applyTitle?projectTitle:currentTitle,"Scope":applyScope?scopeDraft:currentScope,"Updated Time":stamp,"Record Version":Number(session["Record Version"]||session.recordVersion||1)+1};
     const changed=await api.from("business_records").update({payload:updated,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","siteCaptureSessions").eq("record_key",captureSessionId).eq("record_status","active");if(changed.error)throw changed.error;
     if(meeting&&meetingId){const nextMeeting={...meeting,siteVisitSeed:seed,"Site Visit Seed":seed,siteVisitSeedCaptureSessionId:captureSessionId,siteVisitSeedUpdatedAt:stamp,"Updated Time":stamp,updatedAt:stamp};const m=await api.from("business_records").update({payload:nextMeeting,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","meetings").eq("record_key",meetingId).eq("record_status","active");if(m.error)throw m.error;}
     const quoteId=clean(session["Quote ID"]||session.quoteId,180);
-    if(quoteId&&(applyTitle||applyScope)){
+    if(quoteId){
       const q=await readRecord(api,businessId,"quotes",quoteId);
       if(q){
         const status=clean(q.Status||q.status,80).toUpperCase();
@@ -71,10 +71,10 @@ Deno.serve(async(request:Request)=>{
         const total=Number(q.Total||q.total||0);
         const qTitle=clean(q["Project Title"]||q.projectTitle,300);
         const qScope=clean(q.Scope||q.scope,4000);
-        if((!status||status==="DRAFT")&&lines.length===0&&total===0){const qu={...q,"Project Title":applyTitle&&genericTitle(qTitle)?projectTitle:qTitle,"Scope":applyScope&&!qScope?scopeDraft:qScope,"Meeting Seed ID":meetingId,"Updated Time":stamp,"Record Version":Number(q["Record Version"]||q.recordVersion||1)+1};await api.from("business_records").update({payload:qu,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","quotes").eq("record_key",quoteId).eq("record_status","active");}
+        if((!status||status==="DRAFT")&&lines.length===0&&total===0){const qu={...q,"Project Title":applyTitle&&genericTitle(qTitle)?projectTitle:qTitle,"Scope":applyScope&&!qScope?scopeDraft:qScope,"Meeting Seed ID":meetingId,"Meeting Seed":seed,"Meeting Summary":seed.summary,"Meeting Customer Candidate":seed.customer,"Meeting Property Candidate":seed.property,"Meeting Quote Inputs":seed.quoteInputs,"Meeting Capture Items":seed.captureItems,"Meeting Measurements":seed.measurements,"Updated Time":stamp,"Record Version":Number(q["Record Version"]||q.recordVersion||1)+1};await api.from("business_records").update({payload:qu,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","quotes").eq("record_key",quoteId).eq("record_status","active");}
       }
     }
-    try{await api.from("business_proof_log").insert({business_id:businessId,actor_user_id:userId,action_type:meetingId?"SITE_VISIT_MEETING_CONTEXT_PREPARED":"SITE_VISIT_SPOKEN_CONTEXT_EXTRACTED",entity_type:"Site Visit",entity_id:null,result:"PASS",details:{captureSessionId,meetingId:meetingId||null,quoteId:quoteId||null,projectTitleApplied:applyTitle,scopeApplied:applyScope,customerSuggested:!!seed.customer.name,propertySuggested:!!seed.property.address,captureItems:seed.captureItems.length,automaticApproval:false,automaticCustomerSending:false,automaticFinancialAction:false,externalActionOccurred:false,build:BUILD},external_action_occurred:false});}catch(_){ }
+    try{await api.from("business_proof_log").insert({business_id:businessId,actor_user_id:userId,action_type:meetingId?"SITE_VISIT_MEETING_CONTEXT_PREPARED":"SITE_VISIT_SPOKEN_CONTEXT_EXTRACTED",entity_type:"Site Visit",entity_id:null,result:"PASS",details:{captureSessionId,meetingId:meetingId||null,quoteId:quoteId||null,projectTitleApplied:applyTitle,scopeApplied:applyScope,customerSuggested:!!seed.customer.name,propertySuggested:!!seed.property.address,captureItems:seed.captureItems.length,quoteInputs:seed.quoteInputs.length,measurements:seed.measurements.length,automaticApproval:false,automaticCustomerSending:false,automaticFinancialAction:false,externalActionOccurred:false,build:BUILD},external_action_occurred:false});}catch(_){ }
     return reply(request,200,{status:"PASS",build:BUILD,projectTitle:applyTitle?projectTitle:currentTitle,scope:applyScope?scopeDraft:currentScope,suggestedProjectTitle:projectTitle,suggestedScope:scopeDraft,projectTitleApplied:applyTitle,scopeApplied:applyScope,siteVisitSeed:seed});
   }catch(error){return reply(request,400,{status:"FAIL",message:clean(error instanceof Error?error.message:error,4000),build:BUILD});}
 });
