@@ -4,15 +4,19 @@ on:
   pull_request:
     paths:
       - 'commercial-app/customer-360-photo-stream.js'
+      - 'commercial-app/customer-360-site-visit-delete-bridge.js'
       - 'commercial-app/customer-workspace-render-hook.js'
       - 'scripts/verify-customer-360-photo-stream.js'
+      - 'scripts/verify-customer-360-site-visit-delete-bridge.js'
       - '.github/workflows/verify-customer-360-photo-stream.yml'
   push:
     branches: [main]
     paths:
       - 'commercial-app/customer-360-photo-stream.js'
+      - 'commercial-app/customer-360-site-visit-delete-bridge.js'
       - 'commercial-app/customer-workspace-render-hook.js'
       - 'scripts/verify-customer-360-photo-stream.js'
+      - 'scripts/verify-customer-360-site-visit-delete-bridge.js'
       - '.github/workflows/verify-customer-360-photo-stream.yml'
 
 permissions:
@@ -30,10 +34,14 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Check Photo Stream syntax
+      - name: Check Customer 360 media syntax
         run: |
           node --check commercial-app/customer-360-photo-stream.js
+          node --check commercial-app/customer-360-site-visit-delete-bridge.js
           node --check commercial-app/customer-workspace-render-hook.js
           node --check scripts/verify-customer-360-photo-stream.js
+          node --check scripts/verify-customer-360-site-visit-delete-bridge.js
       - name: Verify Customer 360 Photo Stream
         run: node scripts/verify-customer-360-photo-stream.js
+      - name: Verify Customer 360 Site Visit delete bridge
+        run: node scripts/verify-customer-360-site-visit-delete-bridge.js
