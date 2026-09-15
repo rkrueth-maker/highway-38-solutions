@@ -169,14 +169,6 @@
     }
   }
 
-  function loadOperationsIntelligence() {
-    if (window.H38_OPERATIONS_INTELLIGENCE || document.querySelector('script[data-h38-operations-intelligence]')) return;
-    const script = document.createElement('script');
-    script.src = './operations-intelligence.js?build=20260908-operations-intelligence-1';
-    script.dataset.h38OperationsIntelligence = '1';
-    document.body.appendChild(script);
-  }
-
   function loadPersonalAssistant() {
     if (!document.querySelector('link[data-h38-personal-assistant]')) {
       const link = document.createElement('link');
@@ -239,11 +231,11 @@
     publicRouteRemoved: true,
     automaticFallback: false,
     manualFallback: false,
-    supportedRuntime: 'supabase'
+    supportedRuntime: 'supabase',
+    operationsIntelligenceAutoLoad: false
   });
 
   loadLifecycleAssistant();
-  loadOperationsIntelligence();
   loadPersonalAssistant();
   loadOfficePolish();
   loadPlayCompliance();
