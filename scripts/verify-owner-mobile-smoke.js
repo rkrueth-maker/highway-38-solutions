@@ -17,12 +17,13 @@ const jobFlow=read('commercial-app/job-centered-flow.js');
 const polish=read('commercial-app/mobile-flow-polish-v2.js');
 const nativeScroll=read('commercial-app/mobile-scroll-native-authority.js');
 const stability=read('commercial-app/mobile-runtime-stability.js');
+const phoneFirst=read('commercial-app/phone-first-office.js');
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
 const startupVisit=read('commercial-app/startup-site-visit-stability.js');
 const phoneVisual=read('commercial-app/owner-phone-visual-fix.js');
 const serviceWorker=read('commercial-app/service-worker.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -52,8 +53,17 @@ requireText(topAction,'addCustomerNoNewWorkflow:true','Add Customer does not cre
 requireText(topAction,'h38AddCustomerTop','top Customers action bar contains Add Customer');
 requireText(topAction,"document.getElementById('customerForm')",'Add Customer targets the canonical customer form');
 
-for(const token of ["['today','⌂','Today']","['work','🧰','Jobs']","['customers','👤','Customers']","['messages','💬','Messages']",'<span>More</span>'])requireText(jobFlow,token,`primary mobile navigation: ${token}`);
-requireText(polish,'groupedMore:true','More remains grouped');
+for(const token of ["['today','⌂','Today']","['customers','👤','Customers']","['schedule','🗓','Schedule']","['messages','💬','Messages']"])requireText(stability,token,`customer-first primary mobile navigation: ${token}`);
+requireText(stability,"['Work & Sales',['work','quotes','field','meetings']]",'Jobs, Quotes, Site Visits and Meetings live under Work & Sales');
+requireText(stability,"primaryNavigation:['Today','Customers','Schedule','Messages','More']",'mobile navigation contract is customer-first');
+requireText(stability,'groupedMore:true','canonical More is grouped');
+requireText(nativeScroll,"const PRIMARY_KEYS=['today','customers','schedule','messages']",'physical mobile authority uses customer-first order');
+requireText(nativeScroll,'jobsMovedToMore:true','physical authority recognizes Jobs moved to More');
+requireText(phoneFirst,'navigationDelegatedToMobileAuthority:true','phone polish does not create a second navigation authority');
+requireText(phoneFirst,'floatingCreate:true','phone polish exposes separate create action');
+requireText(phoneFirst,'simplifiedToday:true','phone polish simplifies Today');
+requireText(phoneFirst,'customerFinder:true','phone polish adds customer-first search');
+requireText(phoneFirst,'siteVisitStepper:true','phone polish adds Site Manager progress');
 requireText(polish,'workHistoryCollapse:false','legacy Jobs history mover stays retired');
 requireText(polish,'siteVisitGroupingDelegated:true','Jobs Site Visit grouping is delegated to one authority');
 requireText(polish,'jobsDomMutation:false','mobile polish does not re-parent Jobs rows');
@@ -104,11 +114,11 @@ requireText(serviceWorker,"'owner-phone-visual-fix.js'",'owner phone visual file
 requireText(serviceWorker,"'./owner-phone-visual-fix.js'",'owner phone visual file is available in the offline shell');
 
 for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true','automaticPurchasing:true','automaticPayment:true','automaticScheduling:true']){
-  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['polish',polish],['native scroll',nativeScroll],['stability',stability],['startup/site visit',startupVisit],['phone visual',phoneVisual],['service worker',serviceWorker]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
+  for(const [name,source] of [['delete',deleteFix],['launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['polish',polish],['native scroll',nativeScroll],['stability',stability],['phone first',phoneFirst],['startup/site visit',startupVisit],['phone visual',phoneVisual],['service worker',serviceWorker]])if(source.includes(forbidden))fail(`${name} safety`,forbidden);
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + canonical Customers top actions + phone cache freshness + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint stall guard + Today phone formatting + single-authority Jobs grouping + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + customer-first navigation + canonical Customers actions + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint guard + simplified Today + grouped More + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));

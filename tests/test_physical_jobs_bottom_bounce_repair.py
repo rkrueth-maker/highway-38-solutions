@@ -6,7 +6,7 @@ NATIVE = (ROOT / "commercial-app" / "mobile-scroll-native-authority.js").read_te
 
 
 def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
-    assert "20260819-production-mobile-polish-3" in MOBILE
+    assert "20260915-phone-first-nav-1" in MOBILE
     assert "officeExplicitMainScroller:true" in MOBILE
     assert "officeFixedViewportScroller:true" in MOBILE
     assert "documentScrollDisabledByDesign:true" in MOBILE
@@ -45,21 +45,32 @@ def test_active_mobile_primary_tab_reselect_is_a_true_noop():
     assert "samePageNavigationRebuildPrevented:true" in NATIVE
     assert "primaryNavOnlyReselectGuard:true" in NATIVE
     assert "navTargetCapturedBeforeDomReplacement:true" in NATIVE
-    assert "button[data-h38-primary],button[data-page]" in NATIVE
-    assert "button.closest?.('#mainNav')" in NATIVE
+    assert "button[data-h38-primary],button[data-page],button[data-more-page]" in NATIVE
+    assert "inMainNav" in NATIVE and "inMore" in NATIVE
     assert "target!==currentOfficePage()" in NATIVE
     assert "event.preventDefault()" in NATIVE
     assert "event.stopImmediatePropagation()" in NATIVE
     assert "document.addEventListener('click',capturePrimaryIntent,true)" in NATIVE
 
 
-def test_jobs_and_customers_have_immutable_physical_slots():
+def test_customer_first_primary_slots_are_physically_locked():
     assert "physicalPrimaryNavOrderLocked:true" in NATIVE
-    assert "jobsBeforeCustomersFixedOrder:true" in NATIVE
-    assert '[data-h38-primary="work"],[data-page="work"]){order:2!important}' in NATIVE
-    assert '[data-h38-primary="customers"],[data-page="customers"]){order:3!important}' in NATIVE
+    assert "customerFirstPhysicalOrder:true" in NATIVE
+    assert "schedulePrimary:true" in NATIVE
+    assert "jobsMovedToMore:true" in NATIVE
+    assert '[data-h38-primary="customers"],[data-page="customers"]){order:2!important}' in NATIVE
+    assert '[data-h38-primary="schedule"],[data-page="schedule"]){order:3!important}' in NATIVE
+    assert "const PRIMARY_KEYS=['today','customers','schedule','messages']" in NATIVE
     assert "mobileRenderNavBaseSuppressedWhenCanonical:true" in NATIVE
     assert "syncCanonicalNavState()" in NATIVE
+
+
+def test_jobs_still_receive_first_frame_finalization_from_grouped_more():
+    assert "moreJobsNavigationFinalize:true" in NATIVE
+    assert "button[data-more-page]" in NATIVE
+    assert "button.closest?.('#h38PrimaryMoreDialog')" in NATIVE
+    assert "target!=='work'||currentOfficePage()!=='work'" in NATIVE
+    assert "jobsFirstFrameFinalizations" in NATIVE
 
 
 def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
@@ -72,10 +83,13 @@ def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
     assert "node.style.removeProperty('height')" in MOBILE
 
 
-def test_mobile_primary_navigation_has_one_last_loaded_authority():
+def test_mobile_primary_navigation_has_one_last_loaded_customer_first_authority():
     assert "mobilePrimaryNavigationSingleAuthority:true" in MOBILE
-    assert "accessiblePrimaryNav:true" in MOBILE
-    assert "PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']]" in MOBILE
+    assert "phoneFirstPrimaryNavigation:true" in MOBILE
+    assert "primaryNavigation:['Today','Customers','Schedule','Messages','More']" in MOBILE
+    assert "jobsMovedToMore:true" in MOBILE
+    assert "groupedMore:true" in MOBILE
+    assert "PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
     assert "nav.classList.remove('h38-operator-scroll-nav')" in MOBILE
     assert 'aria-current="page"' in MOBILE
     assert 'aria-haspopup="dialog"' in MOBILE

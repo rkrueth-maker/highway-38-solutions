@@ -2,6 +2,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = (ROOT / "commercial-app" / "job-centered-flow.js").read_text(encoding="utf-8")
+MOBILE = (ROOT / "commercial-app" / "mobile-runtime-stability.js").read_text(encoding="utf-8")
+PHONE_FIRST = (ROOT / "commercial-app" / "phone-first-office.js").read_text(encoding="utf-8")
 PHOTO_RESTORE = (ROOT / "commercial-app" / "quote-photo-restore.js").read_text(encoding="utf-8")
 PHOTO_REVIEW = (ROOT / "commercial-app" / "field-visit-photo-review.js").read_text(encoding="utf-8")
 TOP_ACTION = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
@@ -10,13 +12,15 @@ INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
 
-def test_phone_navigation_is_five_primary_places():
-    assert "primaryNavigation:['Today','Jobs','Customers','Messages','More']" in FLOW
-    assert "['today','⌂','Today']" in FLOW
-    assert "['work','🧰','Jobs']" in FLOW
-    assert "['customers','👤','Customers']" in FLOW
-    assert "['messages','💬','Messages']" in FLOW
-    assert "data-h38-primary=\"more\"" in FLOW
+def test_phone_navigation_is_five_customer_first_primary_places():
+    assert "primaryNavigation:['Today','Customers','Schedule','Messages','More']" in MOBILE
+    assert "['today','⌂','Today']" in MOBILE
+    assert "['customers','👤','Customers']" in MOBILE
+    assert "['schedule','🗓','Schedule']" in MOBILE
+    assert "['messages','💬','Messages']" in MOBILE
+    assert "['Work & Sales',['work','quotes','field','meetings']]" in MOBILE
+    assert "data-h38-primary=\"more\"" in MOBILE
+    assert "navigationDelegatedToMobileAuthority:true" in PHONE_FIRST
 
 
 def test_job_home_remains_real_existing_job_center():
@@ -131,7 +135,7 @@ def test_new_flow_is_loaded_live_first_and_cache_busted():
 
 
 def test_no_new_automatic_external_actions():
-    for source in (FLOW, PHOTO_REVIEW, DELETE_RESET):
+    for source in (FLOW, PHOTO_REVIEW, DELETE_RESET, MOBILE, PHONE_FIRST):
         assert "automaticApproval:false" in source
         assert "automaticSending:false" in source or "automaticCustomerSending:false" in source
     assert "automaticPurchasing:false" in FLOW

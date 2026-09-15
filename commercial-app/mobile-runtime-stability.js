@@ -1,10 +1,16 @@
 (function(){
 'use strict';
-const BUILD='20260819-production-mobile-polish-3';
+const BUILD='20260915-phone-first-nav-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
-const PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
-const MORE_ORDER=['quotes','field','schedule','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
+const PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
+const MORE_GROUPS=[
+  ['Work & Sales',['work','quotes','field','meetings']],
+  ['Money',['money','accounting','payroll','tax']],
+  ['Records & Equipment',['documents','inventory','fleet','people']],
+  ['Office',['reports','social','controls','ai','assistant','settings']]
+];
+const MORE_ORDER=MORE_GROUPS.flatMap(([,items])=>items);
 let resizeTimer=0;
 let interactionUntil=0;
 let lastPage='';
@@ -83,6 +89,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
  #mainNav.h38-five-primary-nav button span:last-child{font-size:.7rem!important;font-weight:850}
  #toast{position:fixed;left:10px;right:10px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:3000;max-width:none;transform:translateZ(0)}
  dialog{max-height:calc(var(--h38-mobile-vh,100dvh) - 24px)}
+ .h38-more-groups{display:grid;gap:14px}.h38-more-group{display:grid;gap:7px}.h38-more-group h3{margin:0;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted,#607285)}
  .h38-mobile-tool-details,.h38-mobile-entry-details{grid-column:1/-1!important;width:100%!important;min-width:0!important;margin:0 0 9px;border:1px solid var(--line,#d6e0e8);border-radius:14px;background:var(--card,#fff);overflow:hidden}
  .h38-mobile-tool-details>summary,.h38-mobile-entry-details>summary{min-height:46px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;color:var(--navy,#0b2438);cursor:pointer;list-style:none}
  .h38-mobile-tool-details>summary::-webkit-details-marker,.h38-mobile-entry-details>summary::-webkit-details-marker{display:none}
@@ -141,8 +148,8 @@ function moreDialog(){
   return dialog;
 }
 function openMore(){
-  const pages=new Set(allowed()),items=MORE_ORDER.filter(key=>pages.has(key)),dialog=moreDialog();
-  const markup=`<div class="h38-more-sheet"><div class="h38-more-head"><div><strong>More</strong><small>Tools, money, records and settings</small></div><button type="button" data-close-more aria-label="Close">×</button></div><div class="h38-more-grid">${items.map(key=>`<button type="button" data-more-page="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></div>`;
+  const pages=new Set(allowed()),groups=MORE_GROUPS.map(([title,items])=>[title,items.filter(key=>pages.has(key))]).filter(([,items])=>items.length),dialog=moreDialog();
+  const markup=`<div class="h38-more-sheet"><div class="h38-more-head"><div><strong>More</strong><small>Tools grouped by what you are trying to do.</small></div><button type="button" data-close-more aria-label="Close">×</button></div><div class="h38-more-groups">${groups.map(([title,items])=>`<section class="h38-more-group"><h3>${html(title)}</h3><div class="h38-more-grid">${items.map(key=>`<button type="button" data-more-page="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></section>`).join('')}</div></div>`;
   if(dialog.innerHTML!==markup)dialog.innerHTML=markup;
   dialog.querySelector('[data-close-more]')?.addEventListener('click',()=>dialog.close(),{once:true});
   dialog.querySelectorAll('[data-more-page]').forEach(button=>button.onclick=()=>{dialog.close();window.openPage?.(button.dataset.morePage);});
@@ -158,11 +165,11 @@ function ensurePrimaryNav(){
     ...PRIMARY.filter(([key])=>pages.has(key)).map(([key,icon,label])=>`<button type="button" data-h38-primary="${key}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
     `<button type="button" data-h38-primary="more" class="${moreActive?'active':''}" aria-haspopup="dialog" aria-controls="h38PrimaryMoreDialog"><span class="nav-icon">•••</span><span>More</span></button>`
   ].join('');
-  if(nav.classList.contains('h38-five-primary-nav')&&nav.dataset.h38PrimaryNav==='3'&&nav.innerHTML===desired)return;
+  if(nav.classList.contains('h38-five-primary-nav')&&nav.dataset.h38PrimaryNav==='4'&&nav.innerHTML===desired)return;
   navBusy=true;
   nav.classList.add('h38-five-primary-nav');
   nav.classList.remove('h38-operator-scroll-nav');
-  nav.dataset.h38PrimaryNav='3';
+  nav.dataset.h38PrimaryNav='4';
   nav.innerHTML=desired;
   nav.querySelectorAll('[data-h38-primary]').forEach(button=>button.onclick=()=>button.dataset.h38Primary==='more'?openMore():window.openPage?.(button.dataset.h38Primary));
   navBusy=false;
@@ -427,6 +434,10 @@ window.H38_MOBILE_RUNTIME_STABILITY=Object.freeze({
   jobsMutationScrollChurnDisabled:true,
   visualViewportScrollStabilizerDisabled:true,
   mobilePrimaryNavigationSingleAuthority:true,
+  phoneFirstPrimaryNavigation:true,
+  primaryNavigation:['Today','Customers','Schedule','Messages','More'],
+  jobsMovedToMore:true,
+  groupedMore:true,
   accessiblePrimaryNav:true,
   strayQuoteActionHiddenOutsideQuotes:true,
   bottomNavContentReachable:true,

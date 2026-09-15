@@ -7,7 +7,7 @@ SW = (ROOT / 'commercial-app' / 'service-worker.js').read_text(encoding='utf-8')
 
 
 def test_mobile_guard_does_not_coalesce_unrelated_customer_or_runtime_timers():
-    assert '20260827-mobile-physical-stability-5-fixed-nav-order' in AUTH
+    assert '20260915-mobile-customer-first-stability-1' in AUTH
     assert 'broadPostPaintCoalescerRemoved:true' in AUTH
     assert 'customerTimersUnmodified:true' in AUTH
     assert 'intervalMonkeypatch:false' in AUTH
@@ -33,6 +33,7 @@ def test_jobs_reconciliation_is_one_visible_render_transaction():
     assert 'jobsFinalLayoutBeforeFirstPaint:true' in AUTH
     assert 'jobsFirstFrameFallbackIdentity:true' in AUTH
     assert 'jobsRenderTransactionAuthority:true' in AUTH
+    assert 'moreJobsNavigationFinalize:true' in AUTH
     assert 'maxVisibleJobsReconcileDelayMs:0' in AUTH
     jobs_source = AUTH.split('const JOBS_SOURCE=', 1)[1].split(';', 1)[0]
     for source in [
@@ -50,17 +51,22 @@ def test_jobs_reconciliation_is_one_visible_render_transaction():
     assert "document.addEventListener('click',finalizeJobsFirstFrame,true);" not in AUTH
 
 
-def test_primary_nav_intent_survives_dom_replacement_and_slots_are_fixed():
+def test_primary_nav_intent_survives_dom_replacement_and_customer_first_slots_are_fixed():
     assert "let pendingPrimaryTarget=''" in AUTH
     assert 'navTargetCapturedBeforeDomReplacement:true' in AUTH
     assert 'physicalPrimaryNavOrderLocked:true' in AUTH
-    assert 'jobsBeforeCustomersFixedOrder:true' in AUTH
+    assert 'customerFirstPhysicalOrder:true' in AUTH
+    assert 'schedulePrimary:true' in AUTH
+    assert 'jobsMovedToMore:true' in AUTH
     assert 'mobileRenderNavBaseSuppressedWhenCanonical:true' in AUTH
     assert 'pendingPrimaryTarget=target;' in AUTH
     assert 'const target=pendingPrimaryTarget;' in AUTH
     assert "pendingPrimaryTarget='';" in AUTH
-    assert '[data-h38-primary="work"],[data-page="work"]){order:2!important}' in AUTH
-    assert '[data-h38-primary="customers"],[data-page="customers"]){order:3!important}' in AUTH
+    assert '[data-h38-primary="customers"],[data-page="customers"]){order:2!important}' in AUTH
+    assert '[data-h38-primary="schedule"],[data-page="schedule"]){order:3!important}' in AUTH
+    assert "const PRIMARY_KEYS=['today','customers','schedule','messages']" in AUTH
+    assert "button[data-h38-primary],button[data-page],button[data-more-page]" in AUTH
+    assert "button.closest?.('#h38PrimaryMoreDialog')" in AUTH
     assert "if(mobile()&&officeShell()&&syncCanonicalNavState())" in AUTH
     assert 'stats.navBaseSuppressions+=1' in AUTH
     assert 'fixedRenderNav.h38PhysicalFixedOrder=true' in AUTH
