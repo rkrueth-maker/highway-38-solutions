@@ -1,0 +1,26 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const file=fs.readFileSync(path.join(root,'commercial-app/field-visit-video.js'),'utf8');
+function need(value,label){if(!value){console.error(`FAIL: ${label}`);process.exitCode=1;}else console.log(`PASS: ${label}`);}
+need(file.includes("const BUILD='20260915-web-site-manager-1'"),'new web Site Manager recorder build is active');
+need(file.includes('const MAX_DURATION_SECONDS=300'),'web walkthrough matches Android five-minute ceiling');
+need(file.includes('const MAX_INTENTIONAL_PHOTOS=12'),'intentional walkthrough stills retain Android 12-photo cap');
+need(file.includes('Save & Start Walkthrough'),'Site Visit launch wording matches Android flow');
+need(file.includes('Stop & Use Video'),'recorder ends with Android-style Stop & Use Video action');
+need(file.includes("id=\"fieldWalkthroughPhoto\""),'Take Photo control exists inside live recorder');
+need(file.includes('Take Photo  ·  ${state.capturedPhotoCount} saved'),'photo counter stays visible during recording');
+need(file.includes("C.toast('Site photo saved. Video is still recording.')"),'photo capture explicitly confirms uninterrupted video');
+need(file.includes('drawImage(preview,0,0,canvas.width,canvas.height)'),'intentional still comes from active live camera preview without opening a second camera');
+need(file.includes('await C.photos([file])'),'intentional still uses normal Site Visit photo persistence');
+need(file.includes('walkthroughIntentionalPhotoIds'),'intentional stills are tracked separately from extracted review frames');
+need(!/quotePhotoIds\s*=|quotePhotoIds\.push/.test(file),'walkthrough stills are not automatically selected for customer quote');
+need(file.includes('recorder.start(1000)'),'recording auto-starts with one-second recovery chunks');
+need(file.includes('walkthroughRecoveryChunk:true'),'in-progress recording chunks are persisted locally');
+need(file.includes('recoverInterruptedRecording'),'interrupted recording recovery is implemented');
+need(file.includes("addEventListener('pagehide',()=>{void preserveInterruptedRecorder();})"),'page exit preserves recoverable recording state');
+need(file.includes("navigator.wakeLock?.request?.('screen')"),'screen wake lock is used when supported');
+need(file.includes('capabilities.torch'),'browser torch capability is detected when available');
+need(file.includes('automaticApproval:false')&&file.includes('automaticCustomerSending:false'),'approval and customer sending remain disabled');
+if(process.exitCode)process.exit(process.exitCode);
+console.log('Web Site Manager recorder contract verified.');
