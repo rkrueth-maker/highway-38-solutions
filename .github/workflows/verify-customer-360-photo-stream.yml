@@ -1,0 +1,39 @@
+name: Verify Customer 360 Photo Stream
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/customer-360-photo-stream.js'
+      - 'commercial-app/customer-workspace-render-hook.js'
+      - 'scripts/verify-customer-360-photo-stream.js'
+      - '.github/workflows/verify-customer-360-photo-stream.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/customer-360-photo-stream.js'
+      - 'commercial-app/customer-workspace-render-hook.js'
+      - 'scripts/verify-customer-360-photo-stream.js'
+      - '.github/workflows/verify-customer-360-photo-stream.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-photo-stream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check Photo Stream syntax
+        run: |
+          node --check commercial-app/customer-360-photo-stream.js
+          node --check commercial-app/customer-workspace-render-hook.js
+          node --check scripts/verify-customer-360-photo-stream.js
+      - name: Verify Customer 360 Photo Stream
+        run: node scripts/verify-customer-360-photo-stream.js
