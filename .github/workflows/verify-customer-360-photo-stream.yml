@@ -3,6 +3,7 @@ name: Verify Customer 360 Experience
 on:
   pull_request:
     paths:
+      - 'commercial-app/app-15.js'
       - 'commercial-app/customer-360-photo-stream.js'
       - 'commercial-app/customer-360-site-visit-delete-bridge.js'
       - 'commercial-app/customer-360-timeline.js'
@@ -14,6 +15,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'commercial-app/app-15.js'
       - 'commercial-app/customer-360-photo-stream.js'
       - 'commercial-app/customer-360-site-visit-delete-bridge.js'
       - 'commercial-app/customer-360-timeline.js'
@@ -40,6 +42,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Check Customer 360 syntax
         run: |
+          node --check commercial-app/app-15.js
           node --check commercial-app/customer-360-photo-stream.js
           node --check commercial-app/customer-360-site-visit-delete-bridge.js
           node --check commercial-app/customer-360-timeline.js
