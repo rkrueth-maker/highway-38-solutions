@@ -6,3 +6,24 @@ function renderSocial(){const posts=records('socialPosts'),campaigns=records('ca
 function socialPostRow(row){const id=rowId(row,'Social Post ID'),linkUrl=normalizeSocialLinkUrl(v(row,'Link URL'));return`<div class="row"><div class="row-top"><strong>${esc(v(row,'Platform'))}: ${esc(v(row,'Title')||String(v(row,'Body')).slice(0,60))}</strong>${pill(v(row,'Status'),String(v(row,'Status')).includes('Published')?'good':String(v(row,'Status')).includes('Approval')?'pending':'')}</div><div class="social-preview">${esc(v(row,'Body'))}</div>${linkUrl?`<small>Link: ${esc(linkUrl)}</small>`:''}<small>${v(row,'Scheduled Time')?'Scheduled '+dateTime(v(row,'Scheduled Time')):'Not scheduled'} · ${v(row,'Approved By')?'approved by '+esc(userName(v(row,'Approved By'))):'approval required'}</small><div class="row-actions"><button data-social-review="${esc(id)}">Request review</button><button data-social-approve="${esc(id)}">Owner approve</button><button data-social-posted="${esc(id)}">Record manual post</button></div></div>`;}
 async function socialAction(action,id,payload){await queueOperation(action,'Social Post',id,payload);toast('Social action queued. No automatic publication occurred.');}
 async function manualPosted(id){const proof=prompt('Enter the public post URL or provider post ID.');if(!proof)return;await queueOperation('MARK_SOCIAL_POSTED','Social Post',id,{socialPostId:id,publicUrl:proof,publishedTime:now()});toast('Manual publication proof queued.');}
+
+// Live-first PWA compatibility bootstrap: existing installed Offices can load the new Customer 360 timeline even if an older customer workspace hook is still cached.
+(function(){
+  const BUILD='20260915-customer-360-timeline-1';
+  let loading=false;
+  function ensureCustomer360Timeline(){
+    if(String(window.state?.page||'')!=='customers')return;
+    if(window.H38_CUSTOMER_360_TIMELINE){window.H38_CUSTOMER_360_TIMELINE.reconcile?.();return;}
+    if(loading)return;
+    let script=document.querySelector('script[data-h38-customer-360-timeline]');
+    if(script)return;
+    loading=true;script=document.createElement('script');script.src=`./customer-360-timeline.js?build=${BUILD}`;script.async=false;script.dataset.h38Customer360Timeline='1';
+    script.addEventListener('load',()=>{loading=false;window.H38_CUSTOMER_360_TIMELINE?.reconcile?.();},{once:true});
+    script.addEventListener('error',()=>{loading=false;console.warn('[H38 Customer 360 timeline bootstrap] Timeline could not load.');},{once:true});
+    document.body.appendChild(script);
+  }
+  window.addEventListener?.('h38:office-page-rendered',ensureCustomer360Timeline);
+  window.addEventListener?.('h38:business-snapshot-updated',ensureCustomer360Timeline);
+  window.addEventListener?.('pageshow',ensureCustomer360Timeline);
+  queueMicrotask(ensureCustomer360Timeline);
+})();
