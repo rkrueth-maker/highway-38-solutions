@@ -41,7 +41,7 @@ need(context.includes('captureItems')&&context.includes('"PHOTO","MEASUREMENT","
 need(context.includes('quoteInputs'),'server seed preserves quote inputs');
 need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'meeting seed action is proof logged');
 need(context.includes('const status=clean('),'legacy safe draft-quote guard remains regression-compatible');
-need(serviceWorker.includes("const CACHE_NAME='h38-business-office-20260915-site-manager-1'"),'PWA cache version advances for meeting-first Site Manager');
+need(serviceWorker.includes("const CACHE_NAME='h38-business-office-20260915-0835'"),'PWA cache version advances with an accepted dated Site Manager epoch');
 need(serviceWorker.includes("'site-visit-meeting-seed.js'"),'meeting seed runtime is live-first');
 need(serviceWorker.includes("'./site-visit-meeting-seed.js'"),'meeting seed runtime is pre-cached for offline Site Visits');
 need(file.includes('automaticApproval:false')&&file.includes('automaticCustomerSending:false'),'recorder keeps approval and sending disabled');
