@@ -1,0 +1,39 @@
+name: Verify Live Owner Phone Install
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/manifest.webmanifest'
+      - 'commercial-app/runtime-rowid-fix.js'
+      - 'commercial-app/owner-phone-mode-authority.js'
+      - 'commercial-app/mobile-field-view.js'
+      - 'commercial-app/mobile-runtime-stability.js'
+      - 'scripts/verify-live-owner-phone-install-browser.js'
+      - 'scripts/verify-install-office-browser.js'
+      - '.github/workflows/verify-live-owner-phone-install.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/manifest.webmanifest'
+      - 'commercial-app/runtime-rowid-fix.js'
+      - 'commercial-app/owner-phone-mode-authority.js'
+      - 'commercial-app/mobile-field-view.js'
+      - 'commercial-app/mobile-runtime-stability.js'
+      - 'scripts/verify-live-owner-phone-install-browser.js'
+      - 'scripts/verify-install-office-browser.js'
+      - '.github/workflows/verify-live-owner-phone-install.yml'
+
+jobs:
+  phone-install-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --check commercial-app/owner-phone-mode-authority.js && node --check commercial-app/runtime-rowid-fix.js && node --check scripts/verify-live-owner-phone-install-browser.js && node --check scripts/verify-install-office-browser.js
+      - run: node scripts/verify-live-owner-phone-install-browser.js
+      - run: node scripts/verify-install-office-browser.js
