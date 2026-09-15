@@ -11,8 +11,8 @@ REPORT="$ROOT/artifacts/v310"
 mkdir -p "$REPORT/web-js"
 
 # 1. Source/architecture isolation.
-grep -Fq "versionCode 340" "$ROOT/native/h38-site-scanner/android-app/reseller/build.gradle"
-grep -Fq "versionName '3.1.0'" "$ROOT/native/h38-site-scanner/android-app/reseller/build.gradle"
+grep -Fq "versionCode 341" "$ROOT/native/h38-site-scanner/android-app/reseller/build.gradle"
+grep -Fq "versionName '3.1.1'" "$ROOT/native/h38-site-scanner/android-app/reseller/build.gradle"
 grep -Fq 'android:label="H38 Deals"' "$ROOT/native/h38-site-scanner/android-app/reseller/src/main/AndroidManifest.xml"
 grep -Fq 'H38_DEALS_THIN_SHELL_V310' "$ROOT/native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java"
 grep -Fq 'h38-deals-shell' "$ROOT/native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/MainActivity.java"
@@ -23,7 +23,9 @@ grep -Fq 'speakList' "$ROOT/native/h38-site-scanner/android-app/reseller/src/mai
 grep -Fq 'Product 1 — Penny Deals' "$ROOT/deals-app/ARCHITECTURE.md"
 grep -Fq 'Product 2 — Resale' "$ROOT/deals-app/ARCHITECTURE.md"
 grep -Fq 'Product 3 — Couponing' "$ROOT/deals-app/ARCHITECTURE.md"
-echo SHELL_ISOLATION_PASS | tee "$REPORT/source-status.txt"
+node "$ROOT/deals-app/verify-penny-web-self-contained.js"
+node "$ROOT/deals-app/verify-resale-coupon-ux.js"
+echo SHELL_AND_STATIC_UX_VERIFICATION_PASS | tee "$REPORT/source-status.txt"
 
 # 2. Live mobile web pages and JavaScript syntax.
 for app in deals-shell penny-web resale-web coupon-web; do
