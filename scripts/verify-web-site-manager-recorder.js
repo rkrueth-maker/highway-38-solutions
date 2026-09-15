@@ -18,6 +18,7 @@ need(file.includes('walkthroughIntentionalPhotoIds'),'intentional stills are tra
 need(!/quotePhotoIds\s*=|quotePhotoIds\.push/.test(file),'walkthrough stills are not automatically selected for customer quote');
 need(file.includes('recorder.start(5000)'),'long recording uses five-second recovery chunks');
 need(file.includes('recoveryBlob(state)'),'final long video is rebuilt from persisted recovery chunks');
+need(!file.includes('chunks.push(event.data)'),'long recording does not retain a duplicate full video in memory');
 need(file.includes('walkthroughRecoveryChunk:true'),'in-progress recording chunks are persisted locally');
 need(file.includes('recoverInterruptedRecording'),'interrupted recording recovery is implemented');
 need(file.includes("addEventListener('pagehide',()=>{void preserveInterruptedRecorder();})"),'page exit preserves recoverable recording state');
