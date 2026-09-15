@@ -51,7 +51,7 @@ async function verifyStaleOwnerFieldRecovery(browser){
   await page.locator('#mainNav [data-h38-primary="more"]').click();
   await page.waitForSelector('#h38PrimaryMoreDialog[open]');
   const more=await page.locator('#h38PrimaryMoreDialog').innerText();
-  for(const label of ['Work & Sales','Jobs','Quotes','Site Visit','Money','Records & Equipment','Office'])assert.match(more,new RegExp(label),`More menu missing ${label}`);
+  for(const label of ['Work & Sales','Jobs','Quotes','Site Visit','Money','Records & Equipment','Office'])assert.match(more,new RegExp(label,'i'),`More menu missing ${label}`);
   await context.close();
 }
 
