@@ -24,10 +24,14 @@ const runtime=path.resolve(__dirname,'../commercial-app/owner-mobile-quick-actio
     assert.equal(await page.locator('[data-h38-owner-quick="operations"]').count(),1);
     assert.equal((await page.locator('#globalAiButton .h38-floating-assistant-label').textContent()).trim(),'Assistant');
     assert.equal(await page.locator('#h38TimeClockCard').evaluate(node=>getComputedStyle(node).display),'none');
+    const openQuick=()=>page.evaluate(()=>{const d=document.getElementById('h38QuickCreateDialog');if(!d.open)d.showModal();});
+    await openQuick();
     await page.locator('[data-h38-quick="assistant"]').click();
     assert.equal(await page.evaluate(()=>window.state.page),'assistant');
+    await openQuick();
     await page.locator('[data-h38-owner-quick="time"]').click();
     assert.equal(await page.evaluate(()=>window.__erpTarget),'time');
+    await openQuick();
     await page.locator('[data-h38-owner-quick="operations"]').click();
     assert((await page.evaluate(()=>window.__opened)).includes('today'));
     const style=await page.locator('#h38OwnerMobileQuickActionsStyle').textContent();
