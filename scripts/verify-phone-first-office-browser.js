@@ -48,8 +48,8 @@ assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule'
     const labels=await phone.locator('#mainNav [data-h38-primary] span:last-child').allTextContents();
     assert.deepEqual(labels,['Today','Customers','Schedule','Messages','More'],'canonical phone navigation must be customer-first');
     assert.equal(await phone.locator('#mainNav [data-h38-primary="work"]').count(),0,'Jobs must not occupy the bottom phone bar');
+    await phone.waitForSelector('#h38PhoneCreateButton',{state:'attached'});
     assert.equal(await phone.locator('#h38PhoneCreateButton').count(),1,'phone must expose a separate create button');
-    const navNodes=await phone.locator('#mainNav [data-h38-primary]').evaluateAll(nodes=>nodes);
 
     await phone.locator('#mainNav [data-h38-primary="customers"]').click();
     await phone.waitForFunction(()=>window.state.page==='customers');
