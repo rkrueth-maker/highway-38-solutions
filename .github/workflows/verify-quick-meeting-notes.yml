@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pytest
       - run: node --check commercial-app/quick-meeting-notes.js
       - run: node scripts/verify-quick-meeting-notes.js
       - run: python -m pytest -q tests/test_quick_meeting_notes_20260915.py
