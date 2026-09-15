@@ -2,7 +2,7 @@
 'use strict';
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
-const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-1';
+const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
 const PHONE_FIRST_BUILD='20260915-phone-first-office-3';
 const OWNER_PHONE_MODE_BUILD='20260915-owner-phone-office-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
@@ -49,7 +49,7 @@ function loadOwnerPhoneModeAuthority(){
 function loadQuickMeetingNotes(){
   if(window.H38_QUICK_MEETING_NOTES||document.querySelector('script[data-h38-quick-meeting-bootstrap]'))return false;
   const script=document.createElement('script');
-  script.src=`./quick-meeting-notes.js?build=${QUICK_MEETING_BUILD}`;
+  script.src=`./quick-meeting-notes-v2.js?build=${QUICK_MEETING_BUILD}`;
   script.async=false;
   script.dataset.h38QuickMeetingBootstrap='1';
   (document.head||document.documentElement).appendChild(script);
@@ -103,9 +103,9 @@ window.addEventListener?.('pageshow',reconcileCustomerWorkspace);
 queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
-  build:'20260915-quick-meeting-bootstrap-1',
+  build:'20260915-quick-meeting-bootstrap-2',
   purpose:'Expose the record-id helper, load owner phone recovery, notes-only Quick Meeting, install and phone-first shell support, and lazy-load customer/document runtime only when those Office pages need it.',
-  productionVerification:'20260915-quick-meeting-bootstrap-1',
+  productionVerification:'20260915-quick-meeting-bootstrap-2',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
   quickMeetingBuild:QUICK_MEETING_BUILD,
