@@ -17,6 +17,7 @@ has(runtime,"discardTemporaryAudio",'temporary recording must be discarded');
 has(runtime,"h38QuickMeetingTodayCard",'Today must expose a meeting button');
 has(runtime,"h38-qm-customer-clean",'phone customer width cleanup must be included');
 has(runtime,"Start Follow-up Meeting".toLowerCase(), 'routing must account for follow-up meeting control');
+has(runtime,"function routeMeetingClick(event){if(!mobile())return;",'Quick Meeting must not take over desktop Meeting controls');
 assert(!/collection:\s*['"]documents['"]/.test(runtime),'quick meeting runtime must not create document records');
 assert(!/audioAttachmentId/.test(runtime),'quick meeting runtime must not persist an audio attachment id');
 has(fn,'audioSaved:false','edge function must report no retained audio');
@@ -26,4 +27,4 @@ has(fn,'Return only useful meeting notes, not a transcript.','edge function prom
 assert(!/from\(["']business_records["']\)/.test(fn),'edge function must not persist meeting content itself');
 assert(!/storage\.from/.test(fn),'edge function must not store temporary audio');
 has(bootstrap,"quick-meeting-notes.js?build=",'runtime bootstrap must load quick meeting notes');
-console.log(JSON.stringify({status:'PASS',checks:['notes-only persistence','temporary audio','no transcript retention','optional customer','Today meeting button','customer mobile width cleanup','runtime bootstrap']},null,2));
+console.log(JSON.stringify({status:'PASS',checks:['notes-only persistence','temporary audio','no transcript retention','optional customer','Today meeting button','customer mobile width cleanup','desktop Meeting preserved','runtime bootstrap']},null,2));
