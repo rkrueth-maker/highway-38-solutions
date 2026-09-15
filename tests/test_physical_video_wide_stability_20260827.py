@@ -31,21 +31,27 @@ def test_jobs_initial_render_is_final_grouping_not_job_home_then_swap():
     assert "new MutationObserver" not in GROUP
 
 
-def test_bottom_nav_jobs_customers_slots_cannot_swap_after_customer_render():
-    assert "20260827-mobile-physical-stability-5-fixed-nav-order" in NAV
+def test_bottom_nav_customer_first_slots_cannot_swap_after_customer_render():
+    assert "20260915-mobile-customer-first-stability-1" in NAV
     assert "physicalPrimaryNavOrderLocked:true" in NAV
-    assert "jobsBeforeCustomersFixedOrder:true" in NAV
+    assert "customerFirstPhysicalOrder:true" in NAV
+    assert "schedulePrimary:true" in NAV
+    assert "jobsMovedToMore:true" in NAV
     assert "mobileRenderNavBaseSuppressedWhenCanonical:true" in NAV
-    assert '[data-h38-primary="work"],[data-page="work"]){order:2!important}' in NAV
-    assert '[data-h38-primary="customers"],[data-page="customers"]){order:3!important}' in NAV
+    assert '[data-h38-primary="customers"],[data-page="customers"]){order:2!important}' in NAV
+    assert '[data-h38-primary="schedule"],[data-page="schedule"]){order:3!important}' in NAV
+    assert "const PRIMARY_KEYS=['today','customers','schedule','messages']" in NAV
     assert "fixedRenderNav.h38PhysicalFixedOrder=true" in NAV
     assert "stats.navBaseSuppressions+=1" in NAV
 
 
-def test_clicked_jobs_target_survives_nav_dom_replacement():
+def test_clicked_jobs_target_survives_grouped_more_navigation_and_dom_replacement():
     assert "navTargetCapturedBeforeDomReplacement:true" in NAV
+    assert "moreJobsNavigationFinalize:true" in NAV
     assert "let pendingPrimaryTarget=''" in NAV
     assert "pendingPrimaryTarget=target;" in NAV
+    assert "button[data-h38-primary],button[data-page],button[data-more-page]" in NAV
+    assert "button.closest?.('#h38PrimaryMoreDialog')" in NAV
     assert "document.addEventListener('click',capturePrimaryIntent,true);" in NAV
     assert "const target=pendingPrimaryTarget;" in NAV
     assert "document.addEventListener('click',finalizeJobsFirstFrame);" in NAV
