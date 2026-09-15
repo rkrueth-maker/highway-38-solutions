@@ -6,7 +6,7 @@ const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const runtime=path.join(root,'commercial-app','phone-first-office.js');
 const bootstrap=fs.readFileSync(path.join(root,'commercial-app','runtime-rowid-fix.js'),'utf8');
-assert(bootstrap.includes("const PHONE_FIRST_BUILD='20260915-phone-first-office-1'"),'phone-first build must be versioned in the live-first bootstrap');
+assert(bootstrap.includes("const PHONE_FIRST_BUILD='20260915-phone-first-office-2'"),'phone-first build must be versioned in the live-first bootstrap');
 assert(bootstrap.includes('phone-first-office.js?build=${PHONE_FIRST_BUILD}'),'runtime-rowid live-first bootstrap must load phone-first Office');
 assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract must advertise phone-first live delivery');
 (async()=>{
@@ -45,7 +45,7 @@ assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract mu
       renderBase();
     });
     await phone.addScriptTag({path:runtime});
-    await phone.waitForFunction(()=>window.H38_PHONE_FIRST_OFFICE?.build==='20260915-phone-first-office-1');
+    await phone.waitForFunction(()=>window.H38_PHONE_FIRST_OFFICE?.build==='20260915-phone-first-office-2');
     await phone.waitForFunction(()=>document.querySelectorAll('#mainNav [data-h38-phone-primary]').length===5);
     const labels=await phone.locator('#mainNav [data-h38-phone-primary] span:last-child').allTextContents();
     assert.deepEqual(labels,['Today','Customers','Schedule','Messages','More'],'phone primary navigation must be customer-first and schedule-first');
@@ -56,12 +56,12 @@ assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract mu
     await phone.waitForSelector('#h38PhoneCustomerFinder');
     assert.equal(await phone.locator('#h38PhoneCustomerTools').count(),1,'selected customer must expose phone quick actions');
     const search=phone.locator('#h38PhoneCustomerFinder input');await search.fill('Deck stair');
-    await phone.waitForTimeout(80);
+    await phone.waitForTimeout(120);
     assert.equal(await phone.locator('#h38PhoneCustomerFinder [data-phone-customer]').count(),1,'customer search must find related job text');
     assert.match(await phone.locator('#h38PhoneCustomerFinder [data-phone-customer]').innerText(),/Beta Cabin/);
     await phone.locator('#h38PhoneCustomerFinder [data-phone-customer]').click();
     await phone.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2');
-    await phone.waitForSelector('#h38PhoneCustomerTools');
+    await phone.waitForSelector('#h38PhoneCustomerTools[data-customer-id="C-2"]');
     assert.match(await phone.locator('#h38PhoneCustomerTools').innerText(),/Beta Cabin/);
     await phone.getByRole('button',{name:'New Quote'}).click();
     await phone.waitForFunction(()=>window.state.page==='quotes'&&window.state.quote?.customerId==='C-2');
@@ -101,6 +101,6 @@ assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract mu
     assert.equal(await desktop.locator('#h38PhoneCreateButton').count(),0,'desktop must not receive phone create UI');
     assert.equal(await desktop.locator('#mainNav [data-h38-phone-primary]').count(),0,'desktop navigation must remain untouched');
     await desktop.close();
-    console.log(JSON.stringify({status:'PASS',build:'20260915-phone-first-office-1',primary:labels,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,desktopUnchanged:true}));
+    console.log(JSON.stringify({status:'PASS',build:'20260915-phone-first-office-2',primary:labels,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,desktopUnchanged:true}));
   }finally{await phone.close();await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
