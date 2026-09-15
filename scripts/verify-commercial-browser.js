@@ -14,13 +14,26 @@ const failures=[];
 const pass=name=>process.stdout.write(`PASS: ${name}\n`);
 const fail=(name,detail='')=>{failures.push({name,detail});process.stderr.write(`FAIL: ${name}${detail?` — ${detail}`:''}\n`);};
 function server(){return http.createServer((req,res)=>{let pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);if(pathname==='/')pathname='/index.html';const file=path.resolve(root,`.${pathname}`);if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404,{'content-type':'text/plain'});res.end('Not found');return;}res.writeHead(200,{'content-type':mime[path.extname(file).toLowerCase()]||'application/octet-stream'});fs.createReadStream(file).pipe(res);});}
+async function openOfficeEvidencePage(page,viewport,target){
+  const direct=page.locator(`[data-page="${target}"]`);
+  if(!await direct.count()){fail(`${viewport.name} Business Office ${target} screenshot route`,'navigation button missing');return false;}
+  if(await direct.isVisible()){await direct.click();return true;}
+  if(viewport.name==='mobile'){
+    const more=page.locator('#h38DemoMoreButton');
+    if(await more.count()&&await more.isVisible()){
+      await more.click();
+      const routed=page.locator(`#h38DemoMoreDialog [data-demo-more-page="${target}"]`);
+      if(await routed.count()&&await routed.isVisible()){await routed.click();return true;}
+    }
+  }
+  fail(`${viewport.name} Business Office ${target} screenshot route`,'no visible route to requested page');
+  return false;
+}
 async function captureOfficeEvidence(page,viewport){
   const prefix=`business-office-review-demo-${viewport.name}`;
   await page.screenshot({path:path.join(evidenceDir,`${prefix}-today.png`),fullPage:true});
   for(const target of ['customers','quotes']){
-    const button=page.locator(`[data-page="${target}"]`);
-    if(!await button.count()){fail(`${viewport.name} Business Office ${target} screenshot route`,'navigation button missing');continue;}
-    await button.click();
+    if(!await openOfficeEvidencePage(page,viewport,target))continue;
     await page.waitForTimeout(80);
     const heading=(await page.locator('#mainContent h1').first().textContent())||'';
     if(!heading.trim())fail(`${viewport.name} Business Office ${target} screenshot route`,'workspace heading missing after navigation');
