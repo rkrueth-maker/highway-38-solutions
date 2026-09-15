@@ -15,7 +15,7 @@ const penny=page('supabase/functions/h38-penny-web/index.ts');
 for(const retailer of ["Lowe\\'s",'Ace Hardware'])if(!penny.html.includes(retailer))throw Error('Deals coverage missing '+retailer.replace('\\',''));
 if(/if\(ok\)load\(/.test(resale.html))throw Error('Resale must not scan on open');
 const resaleScript=[...resale.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join('\n');
-const rowsFn=resaleScript.match(/function rows\([\s\S]*?return \[\];\}/);
+const rowsFn=resaleScript.match(/function rows\([\s\S]*?return\s*\[\s*\]\s*;\s*\}/);
 if(!rowsFn)throw Error('Resale result normalizer missing');
 const rowSandbox={result:null};vm.createContext(rowSandbox);
 vm.runInContext(rowsFn[0]+";result={deals:rows({opportunities:[],candidates:[{title:'candidate'}]},'deals'),facebook:rows({results:[],candidates:[{title:'listing'}]},'facebook'),stores:rows({stores:[{store_name:'nearby'}]},'stores')};",rowSandbox);
