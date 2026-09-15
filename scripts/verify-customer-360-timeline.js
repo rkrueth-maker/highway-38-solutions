@@ -25,7 +25,7 @@ const timeline=path.join(root,'commercial-app/customer-360-timeline.js');
         invoices:[{'Invoice ID':'I-1','Customer ID':'C-1','Invoice Number':'INV-1','Status':'Draft','Total':'$1,250','Updated Time':'2026-09-11T10:00:00Z'}],payments:[],materialRequests:[],assignments:[],inspections:[],recurringPlans:[],
         followUps:[{'Follow-up ID':'F-1','Customer ID':'C-1','Title':'Confirm garage door color','Status':'Open','Due Time':'2026-09-16T09:00:00Z','Updated Time':'2026-09-13T16:00:00Z'}]
       }};
-      window.esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+      window.esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       window.pageHead=(title,sub)=>`<header class="page-head"><h1>${window.esc(title)}</h1><p>${window.esc(sub)}</p></header>`;
       window.renderCustomers=function(){state.page='customers';document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>Customers</h1></header><div class="grid"><section class="card"><h2>Customers</h2></section></div>';};
       window.openPage=page=>{state.page=page;if(page==='customers')renderCustomers();};
