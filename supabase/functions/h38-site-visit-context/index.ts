@@ -63,7 +63,17 @@ Deno.serve(async(request:Request)=>{
     const changed=await api.from("business_records").update({payload:updated,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","siteCaptureSessions").eq("record_key",captureSessionId).eq("record_status","active");if(changed.error)throw changed.error;
     if(meeting&&meetingId){const nextMeeting={...meeting,siteVisitSeed:seed,"Site Visit Seed":seed,siteVisitSeedCaptureSessionId:captureSessionId,siteVisitSeedUpdatedAt:stamp,"Updated Time":stamp,updatedAt:stamp};const m=await api.from("business_records").update({payload:nextMeeting,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","meetings").eq("record_key",meetingId).eq("record_status","active");if(m.error)throw m.error;}
     const quoteId=clean(session["Quote ID"]||session.quoteId,180);
-    if(quoteId&&(applyTitle||applyScope)){const q=await readRecord(api,businessId,"quotes",quoteId);if(q){const lines=Array.isArray(q.lines)?q.lines:[],total=Number(q.Total||q.total||0),status=clean(q.Status||q.status,80).toUpperCase(),qTitle=clean(q["Project Title"]||q.projectTitle,300),qScope=clean(q.Scope||q.scope,4000);if((!status||status==="DRAFT")&&lines.length===0&&total===0){const qu={...q,"Project Title":applyTitle&&genericTitle(qTitle)?projectTitle:qTitle,"Scope":applyScope&&!qScope?scopeDraft:qScope,"Meeting Seed ID":meetingId,"Updated Time":stamp,"Record Version":Number(q["Record Version"]||q.recordVersion||1)+1};await api.from("business_records").update({payload:qu,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","quotes").eq("record_key",quoteId).eq("record_status","active");}}}
+    if(quoteId&&(applyTitle||applyScope)){
+      const q=await readRecord(api,businessId,"quotes",quoteId);
+      if(q){
+        const status=clean(q.Status||q.status,80).toUpperCase();
+        const lines=Array.isArray(q.lines)?q.lines:[];
+        const total=Number(q.Total||q.total||0);
+        const qTitle=clean(q["Project Title"]||q.projectTitle,300);
+        const qScope=clean(q.Scope||q.scope,4000);
+        if((!status||status==="DRAFT")&&lines.length===0&&total===0){const qu={...q,"Project Title":applyTitle&&genericTitle(qTitle)?projectTitle:qTitle,"Scope":applyScope&&!qScope?scopeDraft:qScope,"Meeting Seed ID":meetingId,"Updated Time":stamp,"Record Version":Number(q["Record Version"]||q.recordVersion||1)+1};await api.from("business_records").update({payload:qu,updated_by:userId,updated_at:stamp}).eq("business_id",businessId).eq("collection","quotes").eq("record_key",quoteId).eq("record_status","active");}
+      }
+    }
     try{await api.from("business_proof_log").insert({business_id:businessId,actor_user_id:userId,action_type:meetingId?"SITE_VISIT_MEETING_CONTEXT_PREPARED":"SITE_VISIT_SPOKEN_CONTEXT_EXTRACTED",entity_type:"Site Visit",entity_id:null,result:"PASS",details:{captureSessionId,meetingId:meetingId||null,quoteId:quoteId||null,projectTitleApplied:applyTitle,scopeApplied:applyScope,customerSuggested:!!seed.customer.name,propertySuggested:!!seed.property.address,captureItems:seed.captureItems.length,automaticApproval:false,automaticCustomerSending:false,automaticFinancialAction:false,externalActionOccurred:false,build:BUILD},external_action_occurred:false});}catch(_){ }
     return reply(request,200,{status:"PASS",build:BUILD,projectTitle:applyTitle?projectTitle:currentTitle,scope:applyScope?scopeDraft:currentScope,suggestedProjectTitle:projectTitle,suggestedScope:scopeDraft,projectTitleApplied:applyTitle,scopeApplied:applyScope,siteVisitSeed:seed});
   }catch(error){return reply(request,400,{status:"FAIL",message:clean(error instanceof Error?error.message:error,4000),build:BUILD});}
