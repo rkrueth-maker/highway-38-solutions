@@ -1,0 +1,42 @@
+name: Verify Public Office Demo Polish
+
+on:
+  pull_request:
+    paths:
+      - 'business-office-review-demo.html'
+      - 'business-office-review-demo.css'
+      - 'business-office-review-demo.js'
+      - 'business-office-review-demo-polish.css'
+      - 'business-office-review-demo-polish.js'
+      - 'scripts/verify-public-office-demo-polish-browser.js'
+      - 'scripts/verify-commercial-browser.js'
+      - '.github/workflows/verify-public-office-demo-polish.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'business-office-review-demo.html'
+      - 'business-office-review-demo.css'
+      - 'business-office-review-demo.js'
+      - 'business-office-review-demo-polish.css'
+      - 'business-office-review-demo-polish.js'
+      - 'scripts/verify-public-office-demo-polish-browser.js'
+      - 'scripts/verify-commercial-browser.js'
+      - '.github/workflows/verify-public-office-demo-polish.yml'
+
+jobs:
+  demo-polish-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Syntax
+        run: node --check business-office-review-demo-polish.js && node --check scripts/verify-public-office-demo-polish-browser.js
+      - name: Public Office demo phone polish acceptance
+        run: node scripts/verify-public-office-demo-polish-browser.js
+      - name: Existing wide commercial browser acceptance
+        run: node scripts/verify-commercial-browser.js
