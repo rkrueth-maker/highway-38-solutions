@@ -4,8 +4,11 @@ const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const ops=read('commercial-app/operations-intelligence.js');
 const loader=read('commercial-app/supabase-no-legacy-office.js');
+const mobile=read('commercial-app/owner-mobile-quick-actions.js');
 function must(condition,message){if(!condition){console.error('FAIL:',message);process.exit(1);}console.log('PASS:',message);}
 new Function(ops);
+new Function(loader);
+new Function(mobile);
 must(ops.includes("H38_OPERATIONS_INTELLIGENCE"),'operations intelligence exports a runtime contract');
 must(ops.includes('assetPassport:true'),'asset passports are enabled');
 must(ops.includes('preVisitBrief:true'),'pre-visit brief is enabled');
@@ -22,6 +25,10 @@ must(ops.includes('automaticPurchasing:false'),'runtime contract forbids automat
 must(ops.includes('automaticPayment:false'),'runtime contract forbids automatic payment');
 must(!/fetch\s*\(/.test(ops),'operations intelligence performs no direct external network actions');
 must(!/\.functions\.invoke\s*\(/.test(ops),'operations intelligence performs no direct edge-function external action');
-must(loader.includes("operations-intelligence.js?build=20260908-operations-intelligence-1"),'supported Supabase Office loads operations intelligence');
-must(loader.includes('loadOperationsIntelligence();'),'supported Office startup invokes operations intelligence loader');
+must(!loader.includes('loadOperationsIntelligence();'),'supported Office startup does not auto-load operations intelligence onto Today');
+must(loader.includes('operationsIntelligenceAutoLoad: false'),'startup contract records Operations Intelligence as opt-in');
+must(loader.includes("'#h38OperationsActionCenter,.h38-meeting-visit-dock'"),'supported Office removes stale Today Operations and duplicate Site Visit dock surfaces');
+must(mobile.includes("openPage?.('work')"),'explicit mobile Operations action routes to Work instead of Today');
+must(mobile.includes('openPreVisitBrief'),'explicit mobile Operations action opens the pre-visit brief');
+must(mobile.includes('operationsIntelligenceAutoLoadsOnToday:false'),'mobile contract forbids Operations auto-load on Today');
 console.log('Operations intelligence verification PASS');
