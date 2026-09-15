@@ -15,7 +15,8 @@ function staticChecks(){
   assert.equal(manifest.id,'highway-38-business-office-v2');
   assert.equal(manifest.display,'standalone');
   assert.match(manifest.start_url,/shell=office/);
-  assert.ok(Array.isArray(manifest.icons)&&manifest.icons.some(icon=>/highway38-logo\.png/.test(icon.src)&&/maskable/.test(icon.purpose||'')));
+  assert.ok(Array.isArray(manifest.icons)&&manifest.icons.some(icon=>/icon\.svg/.test(icon.src)&&icon.type==='image/svg+xml'&&icon.sizes==='any'&&/maskable/.test(icon.purpose||'')),'manifest must expose the square scalable H38 app mark as a maskable icon');
+  assert.ok(manifest.icons.some(icon=>/highway38-logo\.png/.test(icon.src)),'manifest should retain the approved PNG logo as a fallback');
   const shortcuts=Object.fromEntries((manifest.shortcuts||[]).map(item=>[item.short_name,item.url]));
   assert.match(shortcuts.Customers||'',/shortcut=customers/);
   assert.match(shortcuts.Schedule||'',/shortcut=schedule/);
