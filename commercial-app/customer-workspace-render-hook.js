@@ -3,7 +3,8 @@
 const BUILD='20260911-customer-workspace-render-hook-1';
 const PHOTO_STREAM_BUILD='20260915-customer-360-photo-stream-2';
 const SITE_VISIT_DELETE_BUILD='20260915-customer-360-site-visit-delete-bridge-1';
-let photoStreamLoading=null,deleteBridgeLoading=null;
+const TIMELINE_BUILD='20260915-customer-360-timeline-1';
+let photoStreamLoading=null,deleteBridgeLoading=null,timelineLoading=null;
 function isCustomerPage(){try{return String(window.state?.page||'')==='customers';}catch(_){return false;}}
 function loadRuntime(selector,src,ready,errorLabel){
   if(ready())return Promise.resolve(ready());
@@ -29,7 +30,14 @@ function ensureSiteVisitDeleteBridge(){
   const script=document.querySelector('script[data-h38-customer-workspace-runtime]:last-of-type');if(script&&script.src.includes('customer-360-site-visit-delete-bridge.js'))script.dataset.h38Customer360SiteDelete='1';
   return deleteBridgeLoading;
 }
-function augmentSoon(){if(!isCustomerPage())return;queueMicrotask(()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS?.augmentCustomerPage?.();void Promise.all([ensurePhotoStream(),ensureSiteVisitDeleteBridge()]).then(([stream])=>stream?.reconcile?.());});}
+function ensureTimeline(){
+  if(window.H38_CUSTOMER_360_TIMELINE)return Promise.resolve(window.H38_CUSTOMER_360_TIMELINE);
+  if(timelineLoading)return timelineLoading;
+  timelineLoading=loadRuntime('script[data-h38-customer-360-timeline]',`./customer-360-timeline.js?build=${TIMELINE_BUILD}`,()=>window.H38_CUSTOMER_360_TIMELINE,'Customer 360 timeline').catch(error=>{console.warn('[H38 Customer 360 timeline loader]',error?.message||error);return null;}).finally(()=>{timelineLoading=null;});
+  const script=document.querySelector('script[data-h38-customer-workspace-runtime]:last-of-type');if(script&&script.src.includes('customer-360-timeline.js'))script.dataset.h38Customer360Timeline='1';
+  return timelineLoading;
+}
+function augmentSoon(){if(!isCustomerPage())return;queueMicrotask(()=>{window.H38_CUSTOMER_WORKSPACE_DOCUMENTS?.augmentCustomerPage?.();void Promise.all([ensurePhotoStream(),ensureSiteVisitDeleteBridge(),ensureTimeline()]).then(([stream,,timeline])=>{stream?.reconcile?.();timeline?.reconcile?.();});});}
 function installRenderHook(){
   const current=window.renderCustomers;
   if(typeof current!=='function')return false;
@@ -49,5 +57,5 @@ window.addEventListener?.('h38:office-page-rendered',reconcile);
 window.addEventListener?.('h38:business-snapshot-updated',reconcile);
 window.addEventListener?.('pageshow',reconcile);
 reconcile();
-window.H38_CUSTOMER_WORKSPACE_RENDER_HOOK=Object.freeze({enabled:true,build:BUILD,photoStreamBuild:PHOTO_STREAM_BUILD,siteVisitDeleteBuild:SITE_VISIT_DELETE_BUILD,eventDriven:true,continuousPolling:false,photoStreamLoader:true,siteVisitDeleteLoader:true,installRenderHook,ensurePhotoStream,ensureSiteVisitDeleteBridge,reconcile});
+window.H38_CUSTOMER_WORKSPACE_RENDER_HOOK=Object.freeze({enabled:true,build:BUILD,photoStreamBuild:PHOTO_STREAM_BUILD,siteVisitDeleteBuild:SITE_VISIT_DELETE_BUILD,timelineBuild:TIMELINE_BUILD,eventDriven:true,continuousPolling:false,photoStreamLoader:true,siteVisitDeleteLoader:true,timelineLoader:true,installRenderHook,ensurePhotoStream,ensureSiteVisitDeleteBridge,ensureTimeline,reconcile});
 })();
