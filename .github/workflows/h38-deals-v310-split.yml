@@ -94,7 +94,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" >/dev/null
           unzip -t "$apk" >/dev/null
           for dex in $(unzip -Z1 "$apk" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$apk" "$dex"; done | strings > "$report/dex.txt"
-          grep -Fq 'H38_DEALS_THIN_SHELL_V310' "$report/dex.txt"
+          grep -Fq 'H38_DEALS_THIN_SHELL_V311' "$report/dex.txt"
           grep -Fq 'h38-deals-shell' "$report/dex.txt"
           if grep -Fq 'H38_SCOUT_V263_PHYSICAL_BUNDLE_AUTHORITY' "$report/dex.txt"; then exit 1; fi
           echo APK_THIN_SHELL_PASS | tee "$report/apk-status.txt"
