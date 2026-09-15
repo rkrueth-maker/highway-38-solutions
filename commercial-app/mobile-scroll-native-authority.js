@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260827-mobile-physical-stability-5-fixed-nav-order';
-const PATCH='20260910-mobile-only-nav-authority-1';
+const BUILD='20260915-mobile-customer-first-stability-1';
+const PATCH='20260915-customer-first-nav-authority-1';
 const main=document.getElementById('mainContent');
 const MOBILE='(max-width: 760px)';
 const JOBS_SOURCE=/(site-visit-wide-acceptance-final|site-visit-work-dedupe-final|site-visit-work-list-grouping-repair)\.js/i;
+const PRIMARY_KEYS=['today','customers','schedule','messages'];
 const originalSetTimeout=window.setTimeout.bind(window);
 const originalClearTimeout=window.clearTimeout.bind(window);
 let syntheticId=-1;
@@ -60,8 +61,8 @@ function installPhysicalNavOrderStyle(){
   style.id='h38PhysicalPrimaryOrderLock';
   style.textContent=`@media(max-width:760px){
 #mainNav.h38-five-primary-nav :is([data-h38-primary="today"],[data-page="today"]){order:1!important}
-#mainNav.h38-five-primary-nav :is([data-h38-primary="work"],[data-page="work"]){order:2!important}
-#mainNav.h38-five-primary-nav :is([data-h38-primary="customers"],[data-page="customers"]){order:3!important}
+#mainNav.h38-five-primary-nav :is([data-h38-primary="customers"],[data-page="customers"]){order:2!important}
+#mainNav.h38-five-primary-nav :is([data-h38-primary="schedule"],[data-page="schedule"]){order:3!important}
 #mainNav.h38-five-primary-nav :is([data-h38-primary="messages"],[data-page="messages"]){order:4!important}
 #mainNav.h38-five-primary-nav [data-h38-primary="more"]{order:5!important}
 }`;
@@ -75,12 +76,12 @@ function syncCanonicalNavState(){
   if(!buttons.length)return false;
   const keys=buttons.map(button=>String(button.dataset.h38Primary||''));
   const canonical=keys.filter(key=>key!=='more');
-  const expected=['today','work','customers','messages'].filter(key=>keys.includes(key));
+  const expected=PRIMARY_KEYS.filter(key=>keys.includes(key));
   if(canonical.join('|')!==expected.join('|')||!keys.includes('more'))return false;
   const current=currentOfficePage();
   buttons.forEach(button=>{
     const key=String(button.dataset.h38Primary||'');
-    const active=key==='more'?!['today','work','customers','messages'].includes(current):key===current;
+    const active=key==='more'?!PRIMARY_KEYS.includes(current):key===current;
     button.classList.toggle('active',active);
     if(active&&key!=='more')button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
   });
@@ -109,9 +110,11 @@ function installStableRenderNavAuthority(){
 }
 function capturePrimaryIntent(event){
   if(!mobile())return;
-  const button=event.target?.closest?.('button[data-h38-primary],button[data-page]');
-  if(!button||!button.closest?.('#mainNav'))return;
-  const target=String(button.dataset.h38Primary||button.dataset.page||'').trim();
+  const button=event.target?.closest?.('button[data-h38-primary],button[data-page],button[data-more-page]');
+  if(!button)return;
+  const inMainNav=!!button.closest?.('#mainNav'),inMore=!!button.closest?.('#h38PrimaryMoreDialog');
+  if(!inMainNav&&!inMore)return;
+  const target=String(button.dataset.h38Primary||button.dataset.page||button.dataset.morePage||'').trim();
   pendingPrimaryTarget=target;
   if(!target||target==='more'||target!==currentOfficePage())return;
   pendingPrimaryTarget='';
@@ -157,7 +160,10 @@ window.H38_MOBILE_SCROLL_NATIVE_AUTHORITY=Object.freeze({
   primaryNavOnlyReselectGuard:true,
   navTargetCapturedBeforeDomReplacement:true,
   physicalPrimaryNavOrderLocked:true,
-  jobsBeforeCustomersFixedOrder:true,
+  customerFirstPhysicalOrder:true,
+  schedulePrimary:true,
+  jobsMovedToMore:true,
+  moreJobsNavigationFinalize:true,
   mobileRenderNavBaseSuppressedWhenCanonical:true,
   mobileOnlyRenderNavWrapper:true,
   desktopNavigationAuthorityUntouched:true,
