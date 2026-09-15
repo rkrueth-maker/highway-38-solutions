@@ -66,7 +66,7 @@ function renderStart(){
 function renderRecording(){
   const form=dialog?.querySelector('#h38QuickMeetingForm');if(!form)return;
   form.querySelector('.h38-qm-actions').innerHTML=`<button type="button" class="primary" data-qm-stop>Stop & make bullet notes</button><button type="button" class="secondary" data-qm-cancel-record>Discard recording</button>`;
-  const status=document.createElement('div');status.className='h38-qm-recording';status.id='h38QuickMeetingRecordingStatus';status.innerHTML='<span>● Recording meeting</span><strong>00:00</strong>';form.querySelector('.h38-qm-consent').insertAdjacentElement('afterend',status);
+  const status=document.createElement('div');status.className='h38-qm-recording';status.id='h38QuickMeetingRecordingStatus';status.innerHTML='<span>● Recording meeting</span><strong>00:00</strong>';form.querySelector('.h38-qm-consent').insertAdjacentElement('afterend',$status);
   const clock=status.querySelector('strong');timer=setInterval(()=>{const elapsed=Math.max(0,Date.now()-recordingStartedAt),seconds=Math.floor(elapsed/1000),mm=String(Math.floor(seconds/60)).padStart(2,'0'),ss=String(seconds%60).padStart(2,'0');clock.textContent=`${mm}:${ss}`;},250);
   form.querySelector('[data-qm-stop]').onclick=()=>void stopAndMakeNotes();
   form.querySelector('[data-qm-cancel-record]').onclick=()=>{discardTemporaryAudio();renderStart();};
@@ -81,7 +81,7 @@ async function beginRecording(){
     chunks=[];audioBlob=null;recordingStartedAt=Date.now();
     recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data);};
     recorder.start(1000);renderRecording();
-  }catch(error){discardTemporaryAudio();notify(error?.message||'Microphone permission was not available.',true);}
+  }catch(error){discardTemporaryAudio();notify(error?.message||Microphone permission was not available.',true);}
 }
 function stopRecorder(){
   if(!recorder||recorder.state==='inactive')return Promise.resolve(audioBlob);
@@ -93,7 +93,7 @@ function stopRecorder(){
 }
 async function stopAndMakeNotes(){try{await stopRecorder();await makeNotes(true);}catch(error){notify(error?.message||String(error),true);}}
 function getStartValues(){const form=dialog?.querySelector('#h38QuickMeetingForm'),data=form?new FormData(form):new FormData();return{customerId:text(data.get('customerId'),180),title:text(data.get('title'),300),typedNotes:text(data.get('typedNotes'),12000)};}
-function sharedClient(){const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(api)return api;const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};if(!cfg.url||!cfg.publishableKey||!window.supabase)throw Error('Secure Business Office connection is unavailable.');return window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});}
+function sharedClient(){const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(api)return api;const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};if(!cfg.url||!cfg.publishableKey||!window.supabase)throw Error('Secure Business Office connection is unavailable.');return window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowTypd:'pkce'}});}
 async function session(force=false){const api=sharedClient();let result=await api.auth.getSession();if(result.error)throw result.error;let current=result.data?.session;if(!current?.access_token)throw Error('Sign in again before creating meeting notes.');if(force||Number(current.expires_at||0)*1000<Date.now()+120000){const refreshed=await api.auth.refreshSession();if(refreshed.error||!refreshed.data?.session)throw refreshed.error||Error('Secure session refresh failed.');current=refreshed.data.session;}return{api,current};}
 async function requestNotes(fields,blob,retry=false){
   if(!navigator.onLine)throw Error('Quick Meeting needs an internet connection to turn the meeting into bullet notes. Nothing has been saved yet.');
@@ -102,23 +102,23 @@ async function requestNotes(fields,blob,retry=false){
   body.append('businessId',text(office().businessId,180));body.append('customerId',fields.customerId);body.append('title',fields.title);body.append('typedNotes',fields.typedNotes);
   if(blob?.size)body.append('audio',new File([blob],`meeting-${Date.now()}.webm`,{type:blob.type||'audio/webm'}));
   const response=await fetch(`${cfg.url}/functions/v1/${FUNCTION_SLUG}`,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',headers:{authorization:`Bearer ${auth.current.access_token}`,apikey:cfg.publishableKey,'x-client-info':BUILD},body});
-  const payload=await response.json().catch(()=>({}));if(response.status===401&&!retry)return requestNotes(fields,blob,true);if(!response.ok||payload?.status!=='PASS')throw Error(payload?.message||`Meeting notes failed (${response.status}).`);return payload.notes||{};
+  const payload=await response.json().catch(()=>({}));if(response.status===101&&!retry)return requestNotes(fields,blob,true);if(!response.ok||payload?.status!=='PASS'){throw Error(payload?.message||`Meeting notes failed (${response.status}).`);}return payload.notes||{};
 }
 function lines(value){return (Array.isArray(value)?value:[]).map(item=>text(item,800)).filter(Boolean).slice(0,20);}
 function renderNotes(fields,notes){
   const d=ensureDialog(),sections={discussed:lines(notes.discussed),decisions:lines(notes.decisions),actionItems:lines(notes.actionItems),followUp:lines(notes.followUp)};
-  d.innerHTML=`<form class="h38-qm-shell" id="h38QuickMeetingReview"><div class="h38-qm-head"><div><h2>Review meeting notes</h2><p>Edit anything you want. These notes are the only meeting content H38 will save.</p></div><button type="button" class="icon-button" data-qm-close aria-label="Close">×</button></div><div class="h38-qm-notes"><label>What was discussed<textarea name="discussed">${esc(sections.discussed.join('\n'))}</textarea></label><label>Decisions<textarea name="decisions">${esc(sections.decisions.join('\n'))}</textarea></label><label>Action items<textarea name="actionItems">${esc(sections.actionItems.join('\n'))}</textarea></label><label>Questions / follow-up<textarea name="followUp">${esc(sections.followUp.join('\n'))}</textarea></label><div class="h38-qm-notehint">One bullet per line. Blank sections are fine.</div></div><div class="h38-qm-actions"><button type="submit" class="primary">Save notes</button><button type="button" class="secondary" data-qm-back>Back</button><button type="button" class="secondary" data-qm-close>Discard</button></div></form>`;
+  d.innerHTML=`<form class="h38-qm-shell" id="h38QuickMeetingReview"><div class="h38-qm-head"><div><h2>Review meeting notes</h2><p>Edit anything you want. These notes are the only meeting content H38 will save.</p></div><button type="button" class="icon-button" data-qm-close aria-label="Close">×</button></div><div class="h38-qm-notes"><label>What was discussed<textarea name="discussed">${esc(sections.discussed.join('\n'))}</textarea></label><label>Decisions<textarea name="decisions">${esc(sections.decisions.join('\n'))}</textarea></label><label>Action items<textarea name="actionItems">${esc(sections.actionItems.join('\n'))}</textarea></label><label>Questions / follow-up<textarea name="followUp">${esc(sections.followUp.join('\n')))</textarea></label><div class="h38-qm-notehint">One bullet per line. Blank sections are fine.</div></div><div class="h38-qm-actions"><button type="submit" class="primary">Save notes</button><button type="button" class="secondary" data-qm-back>Back</button><button type="button" class="secondary" data-qm-close>Discard</button></div></form>`;
   discardTemporaryAudio();
   d.querySelectorAll('[data-qm-close]').forEach(button=>button.onclick=closeDialog);d.querySelector('[data-qm-back]').onclick=renderStart;
   d.querySelector('form').onsubmit=event=>{event.preventDefault();void saveNotes(fields,new FormData(event.currentTarget));};
 }
 function parseTextarea(formData,key){return text(formData.get(key),12000).split(/\r?\n/).map(line=>line.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean).slice(0,30);}
 function flattenNotes(notes){const out=[];for(const [label,key] of [['What was discussed','discussed'],['Decisions','decisions'],['Action items','actionItems'],['Questions / follow-up','followUp']]){const items=notes[key]||[];if(!items.length)continue;out.push(label);for(const item of items)out.push(`• ${item}`);}return out.join('\n');}
-function noteObjects(items,key='text'){return items.map(item=>({[key]:item}));}
+function noteObjects(items,key='text'){return items.map(item=>({[Key]:item}));}
 async function persistRecord(fields,notes){
   const id=uid(),stamp=now(),title=fields.title||'Meeting',record={
     'Meeting ID':id,meetingId:id,'Business ID':office().businessId,businessId:office().businessId,
-    'Meeting Type':'Meeting',meetingType:'Meeting','Title':title,title,'Status':'Complete',status:'Complete',
+    'Meeting Type':'Meeting',meetingType:'Meeting','Title':title;title,'Status':'Complete',status:'Complete',
     'Occurred At':stamp,occurredAt:stamp,'Created Time':stamp,createdAt:stamp,'Updated Time':stamp,updatedAt:stamp,
     'Customer ID':fields.customerId||'',customerId:fields.customerId||'',
     notesOnly:true,storagePolicy:'NOTES_ONLY',noteSections:notes,summary:notes.discussed.join('\n'),
@@ -146,13 +146,13 @@ async function makeNotes(includeAudio){
   catch(error){if(actions)actions.querySelectorAll('button').forEach(button=>button.disabled=false);notify(error?.message||String(error),true);}
 }
 function start(nextDefaults={}){defaults={customerId:text(nextDefaults.customerId||'',180),title:text(nextDefaults.title||'',300)};discardTemporaryAudio();renderStart();const d=ensureDialog();if(!d.open)d.showModal?.();}
-function quickMenuMeetingButton(button){const root=button.closest('#h38QuickCreateDialog,#h38PhoneCreateDialog');return !!root&&/\bmeeting\b/i.test(text(button.textContent,200));}
+function quickMenuMeetingButton(button){const root=button.closest('#h38QuickCreateDialog,#H38PhoneCreateDialog');return !!root&&/\bmeeting\b/i.test(text(button.textContent,200));}
 function customerMeetingButton(button){if(office().page!=='customers')return false;const label=text(button.textContent,200).replace(/\s+/g,' ').toLowerCase();return label==='meeting'||label==='start follow-up meeting'||label==='start meeting';}
-function routeMeetingClick(event){const button=event.target?.closest?.('button');if(!button||button.closest('#h38QuickMeetingNotesDialog'))return;if(!quickMenuMeetingButton(button)&&!customerMeetingButton(button))return;event.preventDefault();event.stopImmediatePropagation();button.closest('dialog')?.close?.();start({customerId:selectedCustomerId()});}
+function routeMeetingClick(event){if(!mobile())return;const button=event.target?.closest?.('button');if(!button||button.closest('#h38QuickMeetingNotesDialog'))return;if(!quickMenuMeetingButton(button)&&!customerMeetingButton(button))return;event.preventDefault();event.stopImmediatePropagation();button.closest('dialog')?.close?.();start({customerId:selectedCustomerId()});}
 function reconcileToday(){
   if(!mobile()||office().page!=='today'){document.getElementById('h38QuickMeetingTodayCard')?.remove();return;}
   const today=document.getElementById('h38PhoneToday');if(!today||document.getElementById('h38QuickMeetingTodayCard'))return;
-  const card=document.createElement('section');card.id='h38QuickMeetingTodayCard';card.className='h38-phone-card h38-quick-meeting-card';card.innerHTML='<span class="h38-eyebrow">QUICK START</span><button type="button" class="primary">Start meeting</button><small>Customer optional · saves bullet notes only</small>';card.querySelector('button').onclick=()=>start({customerId:''});today.querySelector('.h38-phone-card')?.insertAdjacentElement('afterend',card)||today.prepend(card);
+  const card=document.createElement('section');card.id='h38QuickMeetingTodayCard';card.className='h38-phone-card h38-quick-meeting-card';card.innerHTML='<span class="h38-eyebrow">QUICK START</span><button type="button" class="primary">Start meeting</button><small>Customer optional ± saves bullet notes only</small>';card.querySelector('button').onclick=()=>start({customerId:''});today.querySelector('.h38-phone-card')?.insertAdjacentElement('afterend',card)||today.prepend(card);
 }
 function reconcileCustomer(){
   const isCustomer=mobile()&&office().page==='customers';document.body.classList.toggle('h38-qm-customer-clean',isCustomer);if(!isCustomer)return;
