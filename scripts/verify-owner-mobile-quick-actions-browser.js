@@ -12,7 +12,9 @@ const runtime=path.resolve(__dirname,'../commercial-app/owner-mobile-quick-actio
     await page.evaluate(()=>{
       window.state={page:'today',snapshot:{user:{owner:true,roleName:'Owner',permissions:{all:true}}}};
       window.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){}});
-      window.__opened=[];window.openPage=page=>{window.state.page=page;window.__opened.push(page);if(page==='today'&&!document.getElementById('h38OperationsActionCenter')){const panel=document.createElement('section');panel.id='h38OperationsActionCenter';panel.textContent='Owner Action Center';document.getElementById('mainContent').appendChild(panel);}};
+      window.__opened=[];window.openPage=page=>{window.state.page=page;window.__opened.push(page);};
+      window.__opsBrief=0;
+      window.H38_OPERATIONS_INTELLIGENCE={openPreVisitBrief:()=>{window.__opsBrief+=1;}};
       window.toast=()=>{};
       window.H38_ERP_FOUNDATION={build:'test'};
       document.addEventListener('click',event=>{const node=event.target.closest?.('[data-h38-erp-open]');if(node)window.__erpTarget=node.dataset.h38ErpOpen;});
@@ -33,10 +35,13 @@ const runtime=path.resolve(__dirname,'../commercial-app/owner-mobile-quick-actio
     assert.equal(await page.evaluate(()=>window.__erpTarget),'time');
     await openQuick();
     await page.locator('[data-h38-owner-quick="operations"]').click();
-    assert((await page.evaluate(()=>window.__opened)).includes('today'));
+    assert.equal(await page.evaluate(()=>window.state.page),'work');
+    assert.equal(await page.evaluate(()=>window.__opsBrief),1);
+    assert(!(await page.evaluate(()=>window.__opened)).includes('today'),'Operations must not route back to Today');
+    assert.equal(await page.locator('#h38OperationsActionCenter').count(),0,'Operations panel must not be created on Today');
     const style=await page.locator('#h38OwnerMobileQuickActionsStyle').textContent();
     assert(style.includes('transform:none!important')&&style.includes('contain:layout paint!important'),'bottom navigation geometry must be locked');
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log(JSON.stringify({status:'PASS',personalAssistant:true,clockInOutUnderPlus:true,operationsIntelligenceUnderPlus:true,plusLocationPreserved:true,bottomNavGeometryLocked:true}));
+    console.log(JSON.stringify({status:'PASS',personalAssistant:true,clockInOutUnderPlus:true,operationsIntelligenceUnderPlus:true,operationsOpensWorkContext:true,operationsStaysOffToday:true,plusLocationPreserved:true,bottomNavGeometryLocked:true}));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
