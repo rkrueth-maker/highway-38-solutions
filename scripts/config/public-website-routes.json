@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "2026-08-06-competitive-readiness-custom-domain-social",
+  "version": "2026-09-15-custom-digital-services",
   "primary": [
     {"path":"index.html","label":"Home","canonical":"https://highway38solutions.com/","shell":"canonical","visibility":"public"},
     {"path":"sample-library-now.html","label":"Project Examples","canonical":"https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html","shell":"canonical","visibility":"public"},
@@ -24,7 +24,7 @@
     {"path":"contractor-quote-complete.html","label":"Contractor Quote Demonstration","shell":"document","visibility":"noindex"},
     {"path":"cabin-project-complete.html","label":"Cabin Project Demonstration","shell":"document","visibility":"noindex"}
   ],
-  "specialist": ["for-contractors.html","manufacturing-cnc.html","robotics-automation.html","quote-builder.html","job-guide.html","business-systems.html","resources.html"],
+  "specialist": ["for-contractors.html","manufacturing-cnc.html","robotics-automation.html","quote-builder.html","job-guide.html","business-systems.html","custom-digital-services.html","resources.html"],
   "retired": {"catalog.html":"pricing.html","products.html":"pricing.html","product.html":"pricing.html","packages.html":"pricing.html","tools.html":"sample-library-now.html","free-tools.html":"sample-library-now.html","tool-center.html":"sample-library-now.html","proof.html":"sample-library-now.html","forgeiq.html":"solutions.html","services.html":"solutions.html","specials.html":"pricing.html"},
   "private": ["customer-portal.html","sign-in.html"]
 }
