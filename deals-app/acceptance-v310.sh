@@ -115,7 +115,7 @@ call_lane(){
   jq -e '.ok==true' "$out"
 }
 call_lane penny stores 90
-call_lane penny hunt 150
+call_lane penny hunt_fast 60
 call_lane penny remodel 120
 call_lane resale deals 120
 call_lane resale facebook 120
