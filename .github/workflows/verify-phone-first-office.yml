@@ -4,14 +4,20 @@ on:
     paths:
       - 'commercial-app/phone-first-office.js'
       - 'commercial-app/runtime-rowid-fix.js'
+      - 'commercial-app/install-office.js'
+      - 'commercial-app/manifest.webmanifest'
       - 'scripts/verify-phone-first-office-browser.js'
+      - 'scripts/verify-install-office-browser.js'
       - '.github/workflows/verify-phone-first-office.yml'
   push:
     branches: [main]
     paths:
       - 'commercial-app/phone-first-office.js'
       - 'commercial-app/runtime-rowid-fix.js'
+      - 'commercial-app/install-office.js'
+      - 'commercial-app/manifest.webmanifest'
       - 'scripts/verify-phone-first-office-browser.js'
+      - 'scripts/verify-install-office-browser.js'
       - '.github/workflows/verify-phone-first-office.yml'
 permissions:
   contents: read
@@ -27,8 +33,10 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Syntax
-        run: node --check commercial-app/phone-first-office.js && node --check commercial-app/runtime-rowid-fix.js && node --check scripts/verify-phone-first-office-browser.js
+        run: node --check commercial-app/phone-first-office.js && node --check commercial-app/runtime-rowid-fix.js && node --check commercial-app/install-office.js && node --check scripts/verify-phone-first-office-browser.js && node --check scripts/verify-install-office-browser.js
       - name: Phone-first Business Office acceptance
         run: node scripts/verify-phone-first-office-browser.js
+      - name: Installable H38 Office acceptance
+        run: node scripts/verify-install-office-browser.js
       - name: Existing owner mobile smoke
         run: node scripts/verify-owner-mobile-smoke.js
