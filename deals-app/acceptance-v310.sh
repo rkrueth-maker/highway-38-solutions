@@ -32,7 +32,8 @@ for app in deals-shell penny-web resale-web coupon-web; do
   curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-$app" -o "$REPORT/$app.html"
 done
 grep -Fq 'Choose your shopping tool.' "$REPORT/deals-shell.html"
-grep -Fq 'Penny Deals' "$REPORT/penny-web.html"
+grep -Fq 'data-h38-penny-web="self-contained-store-first-v35"' "$REPORT/penny-web.html"
+grep -Fq 'Check deals' "$REPORT/penny-web.html"
 grep -Fq '>Resale<' "$REPORT/resale-web.html"
 grep -Fq 'Savings Copilot' "$REPORT/coupon-web.html"
 for word in SHOP SAVE SCAN DEALS RECEIPTS; do grep -Fq "$word" "$REPORT/coupon-web.html"; done
