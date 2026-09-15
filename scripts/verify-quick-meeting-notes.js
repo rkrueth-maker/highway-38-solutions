@@ -1,5 +1,6 @@
 'use strict';
 const fs=require('fs');const assert=require('assert');
+assert(!fs.existsSync('commercial-app/quick-meeting-notes.js'),'retired broken Quick Meeting v1 runtime must stay removed');
 const runtime=fs.readFileSync('commercial-app/quick-meeting-notes-v2.js','utf8');
 const bootstrap=fs.readFileSync('commercial-app/runtime-rowid-fix.js','utf8');
 const fn=fs.readFileSync('supabase/functions/h38-quick-meeting-notes/index.ts','utf8');
@@ -26,4 +27,4 @@ has(fn,'Return only useful meeting notes, not a transcript.','edge function prom
 assert(!/from\(["']business_records["']\)/.test(fn),'edge function must not persist meeting content itself');
 assert(!/storage\.from/.test(fn),'edge function must not store temporary audio');
 has(bootstrap,"quick-meeting-notes-v2.js?build=",'runtime bootstrap must load clean versioned Quick Meeting runtime');
-console.log(JSON.stringify({status:'PASS',checks:['notes-only persistence','temporary audio','no transcript retention','optional customer','Today meeting button','customer mobile width cleanup','desktop Meeting preserved','Site Visit untouched','versioned runtime bootstrap']},null,2));
+console.log(JSON.stringify({status:'PASS',checks:['retired v1 absent','notes-only persistence','temporary audio','no transcript retention','optional customer','Today meeting button','customer mobile width cleanup','desktop Meeting preserved','Site Visit untouched','versioned runtime bootstrap']},null,2));
