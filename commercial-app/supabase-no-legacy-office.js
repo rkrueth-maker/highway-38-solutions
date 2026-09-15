@@ -5,6 +5,7 @@
   const WALKTHROUGH_RETRY_KEY = 'h38:native-walkthrough-launch-retry';
   const WALKTHROUGH_USER_LAUNCH_KEY = 'h38:user-initiated-walkthrough-launch';
   const WALKTHROUGH_LAUNCH_TTL_MS = 10 * 60 * 1000;
+  const OPERATIONS_CONTEXT_PAGES = new Set(['work', 'fleet', 'inventory']);
 
   function androidShell() {
     return /H38SiteScannerAndroid\//.test(String(navigator.userAgent || '')) || !!window.AndroidH38Native;
@@ -183,6 +184,18 @@
     }
   }
 
+  function loadOperationsIntelligenceForContext() {
+    const page = String(window.state?.page || '');
+    if (!OPERATIONS_CONTEXT_PAGES.has(page)) return false;
+    if (window.H38_OPERATIONS_INTELLIGENCE || document.querySelector('script[data-h38-operations-intelligence]')) return false;
+    const script = document.createElement('script');
+    script.src = './operations-intelligence.js?build=20260908-operations-intelligence-1';
+    script.async = false;
+    script.dataset.h38OperationsIntelligence = 'contextual-office-loader';
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadPersonalAssistant() {
     if (!document.querySelector('link[data-h38-personal-assistant]')) {
       const link = document.createElement('link');
@@ -233,6 +246,10 @@
     document.body.appendChild(script);
   }
 
+  window.addEventListener('h38:office-page-rendered', loadOperationsIntelligenceForContext);
+  window.addEventListener('h38:business-snapshot-updated', loadOperationsIntelligenceForContext);
+  window.addEventListener('pageshow', () => setTimeout(loadOperationsIntelligenceForContext, 0));
+
   window.H38_ANDROID_WALKTHROUGH_RECOVERY_GATE = Object.freeze({
     userGestureRequired: true,
     staleNativeRecoveryCleared: true,
@@ -247,11 +264,14 @@
     manualFallback: false,
     supportedRuntime: 'supabase',
     operationsIntelligenceAutoLoad: false,
+    operationsIntelligenceContextualLoad: true,
+    operationsIntelligenceContextPages: Array.from(OPERATIONS_CONTEXT_PAGES),
     operationsIntelligenceTodaySuppressed: true,
     duplicateSiteVisitAssistantDockSuppressed: true
   });
 
   loadLifecycleAssistant();
+  loadOperationsIntelligenceForContext();
   loadPersonalAssistant();
   loadOfficePolish();
   loadPlayCompliance();
