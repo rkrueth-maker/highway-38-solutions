@@ -3,7 +3,7 @@
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
-const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260915-owner-mobile-quick-actions-2';
+const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260915-owner-mobile-quick-actions-3';
 const PHONE_FIRST_BUILD='20260915-phone-first-office-3';
 const OWNER_PHONE_MODE_BUILD='20260915-owner-phone-office-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
@@ -115,9 +115,9 @@ window.addEventListener?.('pageshow',reconcileCustomerWorkspace);
 queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
-  build:'20260915-owner-mobile-quick-actions-bootstrap-2',
+  build:'20260915-owner-mobile-quick-actions-bootstrap-3',
   purpose:'Expose the record-id helper, load owner phone recovery, notes-only Quick Meeting, owner mobile quick actions, install and phone-first shell support, and lazy-load customer/document runtime only when those Office pages need it.',
-  productionVerification:'20260915-owner-mobile-quick-actions-bootstrap-2',
+  productionVerification:'20260915-owner-mobile-quick-actions-bootstrap-3',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
   quickMeetingBuild:QUICK_MEETING_BUILD,
