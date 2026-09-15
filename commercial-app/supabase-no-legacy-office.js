@@ -121,6 +121,16 @@
     });
   }
 
+  function removeDeprecatedOfficeSurfaces(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const selector = '#h38OperationsActionCenter,.h38-meeting-visit-dock';
+    if (scope.matches?.(selector)) {
+      scope.remove();
+      return;
+    }
+    scope.querySelectorAll(selector).forEach(node => node.remove());
+  }
+
   document.addEventListener('click', event => {
     const link = event.target && event.target.closest ? event.target.closest('a') : null;
     if (!link) return;
@@ -132,11 +142,15 @@
 
   const observer = new MutationObserver(records => {
     records.forEach(record => record.addedNodes.forEach(node => {
-      if (node.nodeType === 1) removeLegacyControls(node);
+      if (node.nodeType === 1) {
+        removeLegacyControls(node);
+        removeDeprecatedOfficeSurfaces(node);
+      }
     }));
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
   removeLegacyControls(document);
+  removeDeprecatedOfficeSurfaces(document);
 
   if (window.H38Bridge && window.H38Bridge.prototype) {
     const previousRequest = window.H38Bridge.prototype.request;
@@ -232,7 +246,9 @@
     automaticFallback: false,
     manualFallback: false,
     supportedRuntime: 'supabase',
-    operationsIntelligenceAutoLoad: false
+    operationsIntelligenceAutoLoad: false,
+    operationsIntelligenceTodaySuppressed: true,
+    duplicateSiteVisitAssistantDockSuppressed: true
   });
 
   loadLifecycleAssistant();
