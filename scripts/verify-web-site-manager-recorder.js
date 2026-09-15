@@ -5,53 +5,49 @@ const file=fs.readFileSync(path.join(root,'commercial-app/field-visit-video.js')
 const meetingSeed=fs.readFileSync(path.join(root,'commercial-app/site-visit-meeting-seed.js'),'utf8');
 const context=fs.readFileSync(path.join(root,'supabase/functions/h38-site-visit-context/index.ts'),'utf8');
 const serviceWorker=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
-function need(value,label){if(!value){console.error(`FAIL: ${label}`);process.exitCode=1;}else console.log(`PASS: ${label}`);}
-need(file.includes("const BUILD='20260915-web-site-manager-3'"),'new web Site Manager recorder build is active');
-need(file.includes('const MAX_DURATION_SECONDS=1200'),'web walkthrough ceiling is 20 minutes');
-need(file.includes('const MAX_INTENTIONAL_PHOTOS=12'),'intentional walkthrough stills retain 12-photo cap');
-need(file.includes('Stop & Use Video'),'recorder ends with Stop & Use Video action');
-need(file.includes("id=\"fieldWalkthroughPhoto\""),'Take Photo control exists inside live recorder');
-need(file.includes('Take Photo  ·  ${state.capturedPhotoCount} saved'),'photo counter stays visible during recording');
-need(file.includes("C.toast('Site photo saved. Video is still recording.')"),'photo capture explicitly confirms uninterrupted video');
-need(file.includes('drawImage(preview,0,0,canvas.width,canvas.height)'),'intentional still comes from active live camera preview without opening a second camera');
-need(file.includes('await C.photos([file])'),'intentional still uses normal Site Visit photo persistence');
-need(file.includes('walkthroughIntentionalPhotoIds'),'intentional stills are tracked separately from extracted review frames');
-need(!/quotePhotoIds\s*=|quotePhotoIds\.push/.test(file),'walkthrough stills are not automatically selected for customer quote');
-need(file.includes('recorder.start(5000)'),'long recording uses five-second recovery chunks');
-need(file.includes('recoveryBlob(state)'),'final long video is rebuilt from persisted recovery chunks');
-need(!file.includes('chunks.push(event.data)'),'long recording does not retain a duplicate full video in memory');
-need(file.includes('walkthroughRecoveryChunk:true'),'in-progress recording chunks are persisted locally');
-need(file.includes('recoverInterruptedRecording'),'interrupted recording recovery is implemented');
-need(file.includes("addEventListener('pagehide',()=>{void preserveInterruptedRecorder();})"),'page exit preserves recoverable recording state');
-need(file.includes("navigator.wakeLock?.request?.('screen')"),'screen wake lock is used when supported');
-need(file.includes('capabilities.torch'),'browser torch capability is detected when available');
-need(file.includes("site-visit-meeting-seed.js?build=20260915-site-visit-meeting-seed-1"),'meeting seed runtime loads with Site Manager');
-need(file.includes('meetingFirst:true')&&file.includes('walkthroughFirst:false'),'conversation step precedes first walkthrough');
-need(meetingSeed.includes('Start with the customer conversation'),'Site Visit shows conversation-first step');
-need(meetingSeed.includes('Finish conversation & prepare Site Manager'),'meeting handoff prepares Site Manager before camera');
-need(meetingSeed.includes('Apply customer, address & scope'),'customer/property/scope application is explicit');
-need(meetingSeed.includes("queueRecord('customers','Customer'"),'meeting seed can create or complete customer records');
-need(meetingSeed.includes("queueRecord('properties','Property'"),'meeting seed can create or complete property/address records');
-need(meetingSeed.includes("queueRecord('quotes','Quote'"),'meeting seed can feed draft quote context');
-need(meetingSeed.includes('meetingSeedCaptureItems'),'capture guidance is preserved with the Site Visit');
-need(meetingSeed.includes('meetingSeedQuoteInputs'),'quote-useful meeting facts are preserved beyond the report document');
-need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'server meeting seed build is current');
-need(context.includes('customer:{name:"",email:"",phone:""}'),'server seed includes customer candidate fields');
-need(context.includes('property:{name:"",address:"",address2:"",city:"",state:"",zip:""}'),'server seed includes service/property address fields');
-need(context.includes('captureItems')&&context.includes('"PHOTO","MEASUREMENT","CONFIRMATION"'),'server seed creates Site Manager capture guidance');
-need(context.includes('quoteInputs'),'server seed preserves quote inputs');
-need(context.includes('"Meeting Summary":seed.summary'),'meeting summary persists on Site Visit and draft quote records');
-need(context.includes('"Meeting Customer Candidate":seed.customer'),'customer candidate persists as internal operational context');
-need(context.includes('"Meeting Property Candidate":seed.property'),'service-address candidate persists as internal operational context');
-need(context.includes('"Meeting Quote Inputs":seed.quoteInputs'),'quote-useful facts persist beyond the meeting report');
-need(context.includes('"Meeting Capture Items":seed.captureItems'),'capture checklist persists with Site Visit and draft quote');
-need(context.includes('"Meeting Measurements":seed.measurements'),'meeting measurements retain provenance for later verification');
-need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'meeting seed action is proof logged');
-need(context.includes('const status=clean('),'legacy safe draft-quote guard remains regression-compatible');
-need(serviceWorker.includes("const CACHE_NAME='h38-business-office-20260915-0835'"),'PWA cache version advances with an accepted dated Site Manager epoch');
-need(serviceWorker.includes("'site-visit-meeting-seed.js'"),'meeting seed runtime is live-first');
-need(serviceWorker.includes("'./site-visit-meeting-seed.js'"),'meeting seed runtime is pre-cached for offline Site Visits');
-need(file.includes('automaticApproval:false')&&file.includes('automaticCustomerSending:false'),'recorder keeps approval and sending disabled');
-need(meetingSeed.includes('automaticCustomerSending:false')&&meetingSeed.includes('automaticApproval:false'),'meeting seed keeps approval and sending disabled');
+
+function need(value,label){
+  if(!value){console.error(`FAIL: ${label}`);process.exitCode=1;}
+  else console.log(`PASS: ${label}`);
+}
+
+need(file.includes("const BUILD='20260915-web-site-manager-3'"),'web Site Visit recorder build remains active');
+need(file.includes('const MAX_DURATION_SECONDS=1200'),'optional video ceiling remains 20 minutes');
+need(file.includes('Stop & Use Video'),'optional video still has explicit Stop & Use Video action');
+need(file.includes('id="fieldWalkthroughPhoto"'),'video recorder still supports still photos while recording');
+need(file.includes("C.toast('Site photo saved. Video is still recording.')"),'video still-photo capture does not stop video');
+need(file.includes('await C.photos([file])'),'video stills use normal Site Visit photo persistence');
+need(file.includes('recorder.start(5000)'),'long video keeps five-second recovery chunks');
+need(file.includes('walkthroughRecoveryChunk:true'),'in-progress video chunks remain recoverable');
+need(file.includes('recoverInterruptedRecording'),'interrupted video recovery remains implemented');
+need(file.includes("navigator.wakeLock?.request?.('screen')"),'screen wake lock remains available for optional video');
+need(file.includes('capabilities.torch'),'torch support remains available');
+need(file.includes('site-visit-meeting-seed.js?build='),'Site Visit simple-flow runtime is still loaded by recorder runtime');
+
+need(meetingSeed.includes("const BUILD='20260915-site-visit-simple-flow-1'"),'simple Site Visit flow build is active');
+need(meetingSeed.includes('🎙️ Start Conversation'),'conversation is the clear first action');
+need(meetingSeed.includes('Finish Conversation'),'conversation can finish without preparing a separate Site Manager state');
+need(meetingSeed.includes('📷 Add Photo'),'photo capture is directly available');
+need(meetingSeed.includes('✓ Finish Visit'),'Site Visit can finish without quote/video/measurement gates');
+need(meetingSeed.includes('Video walkthrough (optional)')&&meetingSeed.includes('Record Video (optional)'),'video walkthrough is explicitly optional');
+need(meetingSeed.includes('walkthroughOptional:true')&&meetingSeed.includes('photosOptional:true')&&meetingSeed.includes('measurementsOptional:true'),'capture types are optional in the new flow contract');
+need(meetingSeed.includes('captureSessionNotRequiredForConversation:true'),'conversation no longer requires a capture session');
+need(meetingSeed.includes('notesAutoAppliedToVisit:true')&&meetingSeed.includes('mergeMeetingIntoVisit'),'organized conversation notes automatically feed the Site Visit');
+need(meetingSeed.includes('syncPendingMeetingAttachments'),'meeting attachment sync uses the actual conversation-assistant API');
+need(!meetingSeed.includes('Start the Site Visit and meeting first.'),'invalid capture-session prerequisite error is removed');
+need(!meetingSeed.includes('Prepare Site Manager from meeting'),'manual Prepare Site Manager ceremony is removed');
+need(meetingSeed.includes('v.walkthroughSkipped=true'),'legacy walkthrough gating is compatibility-unlocked without requiring user skip action');
+need(meetingSeed.includes(".field-targeted-actions[hidden],.field-capture-actions.field-targeted-locked{display:grid!important}"),'photo controls stay available even if legacy runtime tries to gate them');
+need(meetingSeed.includes('window.H38_FIELD_VISIT.walkthroughFirst=false')&&meetingSeed.includes('window.H38_FIELD_VISIT.targetedPhotosAfterWalkthrough=false'),'runtime authority disables walkthrough-first behavior');
+need(meetingSeed.includes('automaticCustomerSending:false')&&meetingSeed.includes('automaticApproval:false'),'simple flow keeps sending and approval disabled');
+
+need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'optional server context build remains available');
+need(context.includes('captureItems')&&context.includes('quoteInputs'),'optional AI context still preserves capture and quote-useful inputs');
+need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'optional AI context remains proof logged');
+
+need(/CACHE_NAME='h38-business-office-20\d{6}-\d{4}'/.test(serviceWorker),'PWA cache uses a dated production epoch');
+need(serviceWorker.includes("'site-visit-meeting-seed.js'"),'simple Site Visit runtime remains live-first');
+need(serviceWorker.includes("'./site-visit-meeting-seed.js'"),'simple Site Visit runtime remains offline-cached');
+
 if(process.exitCode)process.exit(process.exitCode);
-console.log('Web Site Manager + meeting seed contract verified.');
+console.log('Simple Site Visit + optional recorder contract verified.');

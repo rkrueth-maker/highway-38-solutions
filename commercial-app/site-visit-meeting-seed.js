@@ -1,49 +1,395 @@
 (function(){
 'use strict';
-const BUILD='20260915-site-visit-meeting-seed-1';
+const BUILD='20260915-site-visit-simple-flow-1';
 const C=window.H38_FIELD_VISIT_CORE;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 if(!C)return;
-const text=v=>String(v==null?'':v).trim();
-const value=(row,...keys)=>{for(const key of keys)if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];return'';};
-const uid=p=>typeof window.newId==='function'?window.newId(p):`${p}-${crypto.randomUUID().toUpperCase()}`;
+
+const text=(v,n=12000)=>String(v==null?'':v).trim().slice(0,n);
+const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const now=()=>new Date().toISOString();
-let busy=false,lastError='';
+const enteredVisits=new Set();
+let busy=false;
+let lastError='';
+let lastVisitId='';
+
 function visit(){return C.state?.open===true?C.state.visit:null;}
 function rows(name){return Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];}
-function mid(row){return text(value(row,'Meeting ID','meetingId','id'));}
-function linkedMeeting(v){if(!v)return null;return rows('meetings').filter(row=>mid(row)).find(row=>(text(value(row,'Site Visit ID','siteVisitId'))&&text(value(row,'Site Visit ID','siteVisitId'))===text(v.visitId))||(text(value(row,'Site Capture Session ID','siteCaptureSessionId'))&&text(value(row,'Site Capture Session ID','siteCaptureSessionId'))===text(v.sessionId)))||null;}
-function seedOf(v,row){const seed=v?.meetingSeed||row?.siteVisitSeed||value(row,'Site Visit Seed','siteVisitSeed');return seed&&typeof seed==='object'?seed:null;}
-function genericTitle(v){return !text(v)||/^(?:site|field)\s*visit$/i.test(text(v));}
+function meetingId(row){return text(value(row,'Meeting ID','meetingId','id'),180);}
+function visitId(v=visit()){return text(v?.visitId||v?.id,180);}
+function linkedMeeting(v=visit()){
+  if(!v)return null;
+  const vid=visitId(v),sid=text(v.sessionId,180);
+  return rows('meetings').filter(row=>meetingId(row)).find(row=>{
+    const rowVid=text(value(row,'Site Visit ID','siteVisitId'),180);
+    const rowSid=text(value(row,'Site Capture Session ID','siteCaptureSessionId'),180);
+    return (vid&&rowVid===vid)||(sid&&rowSid===sid);
+  })||null;
+}
 function recordingActive(){return !!document.getElementById('h38MeetingRecordingDock');}
-function normalize(s){return text(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-function optimistic(collection,key,record,keys){if(!window.state?.snapshot)return;if(!Array.isArray(window.state.snapshot[collection]))window.state.snapshot[collection]=[];const list=window.state.snapshot[collection],index=list.findIndex(row=>keys.some(k=>text(row?.[k])===text(key)));if(index>=0)list[index]=record;else list.unshift(record);}
-async function queueRecord(collection,type,key,record,keys){if(typeof window.queueOperation!=='function')throw Error('Offline save queue is unavailable.');await window.queueOperation('SAVE_ENTITY',type,key,{entity:collection,record},{collection,record,idKeys:keys},false);optimistic(collection,key,record,keys);if(navigator.onLine)C.syncSoon?.();return record;}
-async function auth(){const api=shared?.ensure?.();if(!api)throw Error('Secure Business Office connection is not ready.');let result=await api.auth.getSession();if(result.error)throw result.error;let session=result.data?.session;if(!session)throw Error('Sign in again before preparing Site Manager.');if(Number(session.expires_at||0)*1000<Date.now()+120000){const refreshed=await api.auth.refreshSession();if(refreshed.error||!refreshed.data?.session)throw refreshed.error||Error('Secure session refresh failed.');session=refreshed.data.session;}return{api,session};}
-function applySeedLocally(v,seed){if(!v||!seed)return;v.meetingSeed=seed;v.meetingSeedStatus='READY';v.meetingSeedCaptureItems=Array.isArray(seed.captureItems)?seed.captureItems:[];v.meetingSeedQuoteInputs=Array.isArray(seed.quoteInputs)?seed.quoteInputs:[];v.meetingSeedMeasurements=Array.isArray(seed.measurements)?seed.measurements:[];if(genericTitle(v.projectTitle)&&text(seed.projectTitle))v.projectTitle=text(seed.projectTitle);if(!text(v.scope)&&text(seed.scopeDraft))v.scope=text(seed.scopeDraft);}
-async function requestSeed(row){const v=visit();if(!v?.sessionId||!row)throw Error('Start the Site Visit and meeting first.');if(!navigator.onLine)throw Error('The meeting is saved. Reconnect to turn it into Site Manager guidance.');const a=await auth();const response=await fetch(`${cfg.url}/functions/v1/h38-site-visit-context`,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',headers:{authorization:`Bearer ${a.session.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':BUILD},body:JSON.stringify({businessId:v.businessId||window.state?.businessId,captureSessionId:v.sessionId,meetingId:mid(row)})});const payload=await response.json().catch(()=>({}));if(!response.ok||payload?.status!=='PASS')throw Error(payload?.message||`Meeting-to-site context failed (${response.status}).`);const seed=payload.siteVisitSeed||payload.seed;if(!seed||typeof seed!=='object')throw Error('H38 did not return usable Site Manager guidance.');applySeedLocally(v,seed);await C.saveDraft?.();C.state.render?.();lastError='';return seed;}
-async function startMeeting(){const assistant=window.H38_CONVERSATION_MEETING_ASSISTANT;if(!assistant?.startVisitAssistant)throw Error('Meeting Assistant is still loading.');await assistant.startVisitAssistant();setTimeout(decorate,100);}
-async function finishAndPrepare(){if(busy)return;const v=visit(),row=linkedMeeting(v);if(!row)throw Error('Start the meeting recording first.');busy=true;lastError='';decorate();try{const controller=window.H38_CONVERSATION_AUDIO_CONTROLLER;if(recordingActive()&&controller?.finish)await controller.finish('meeting-finish');const assistant=window.H38_CONVERSATION_MEETING_ASSISTANT;if(assistant?.syncPending)await assistant.syncPending();if(assistant?.organizeMeeting)await assistant.organizeMeeting(mid(row));await requestSeed(row);C.toast('Meeting notes prepared the Site Manager capture plan.');}catch(error){lastError=error?.message||String(error);C.toast(lastError,true);}finally{busy=false;decorate();}}
-async function prepareExisting(){if(busy)return;const row=linkedMeeting(visit());if(!row)throw Error('No linked Site Visit meeting was found.');busy=true;lastError='';decorate();try{const assistant=window.H38_CONVERSATION_MEETING_ASSISTANT;if(assistant?.syncPending)await assistant.syncPending();if(text(row.structuredStatus).toUpperCase()!=='COMPLETE'&&assistant?.organizeMeeting)await assistant.organizeMeeting(mid(row));await requestSeed(row);C.toast('Meeting notes prepared the Site Manager capture plan.');}catch(error){lastError=error?.message||String(error);C.toast(lastError,true);}finally{busy=false;decorate();}}
-function candidateCustomer(seed){const c=seed?.customer;return c&&typeof c==='object'?c:{};}
-function candidateProperty(seed){const p=seed?.property;return p&&typeof p==='object'?p:{};}
-function matchCustomer(candidate,v){if(v?.customerId){const exact=rows('customers').find(row=>text(value(row,'Customer ID','customerId'))===text(v.customerId));if(exact)return exact;}const email=normalize(candidate.email),phone=normalize(candidate.phone),name=normalize(candidate.name);return rows('customers').find(row=>(email&&normalize(value(row,'Email','email'))===email)||(phone&&normalize(value(row,'Phone','phone'))===phone)||(name&&normalize(value(row,'Customer Name','Name','customerName','name'))===name))||null;}
-async function ensureCustomer(seed,v){const c=candidateCustomer(seed),p=candidateProperty(seed);if(!text(c.name)&&!text(c.email)&&!text(c.phone)&&!text(p.address))return text(v.customerId);let existing=matchCustomer(c,v),id=text(value(existing,'Customer ID','customerId'))||uid('CUSTOMER'),record=existing?{...existing}:{'Customer ID':id,'Business ID':C.business(),'Status':'Active','Created Time':now(),'Record Version':1};if(text(c.name)&&!text(value(record,'Customer Name','Name')))record['Customer Name']=text(c.name);if(text(c.name)&&!text(record.Name))record.Name=text(c.name);if(text(c.email)&&!text(record.Email))record.Email=text(c.email);if(text(c.phone)&&!text(record.Phone))record.Phone=text(c.phone);if(text(p.address)&&!text(value(record,'Service Address','Address')))record['Service Address']=text(p.address);if(text(p.address)&&!text(record.Address))record.Address=text(p.address);if(text(p.city)&&!text(value(record,'Service City','City')))record['Service City']=text(p.city);if(text(p.city)&&!text(record.City))record.City=text(p.city);record['Business ID']=C.business();record['Updated Time']=now();record['Record Version']=Number(value(record,'Record Version','recordVersion')||1)+(existing?1:0);await queueRecord('customers','Customer',id,record,['Customer ID','customerId']);return id;}
-function propertyMatch(p,customerId){const address=normalize(p.address);return rows('properties').find(row=>text(value(row,'Customer ID','customerId'))===text(customerId)&&address&&[value(row,'Service Address','Address'),value(row,'Address')].some(x=>normalize(x)===address))||null;}
-async function ensureProperty(seed,customerId){const p=candidateProperty(seed);if(!text(p.address)||!customerId)return'';let existing=propertyMatch(p,customerId),id=text(value(existing,'Property ID','propertyId'))||uid('PROPERTY'),record=existing?{...existing}:{'Property ID':id,'Business ID':C.business(),'Customer ID':customerId,'Status':'Active','Created Time':now(),'Record Version':1};if(!text(value(record,'Property Name','propertyName')))record['Property Name']=text(p.name)||text(p.address);if(!text(value(record,'Service Address','Address')))record['Service Address']=text(p.address);if(!text(record.Address))record.Address=text(p.address);if(text(p.address2)&&!text(record['Service Address 2']))record['Service Address 2']=text(p.address2);if(text(p.city)&&!text(record.City))record.City=text(p.city);if(text(p.state)&&!text(record.State))record.State=text(p.state);if(text(p.zip)&&!text(record.ZIP))record.ZIP=text(p.zip);record['Business ID']=C.business();record['Customer ID']=customerId;record['Updated Time']=now();record['Record Version']=Number(value(record,'Record Version','recordVersion')||1)+(existing?1:0);await queueRecord('properties','Property',id,record,['Property ID','propertyId']);return id;}
-async function updateLinkedRecords(v,seed,customerId,propertyId){const session=rows('siteCaptureSessions').find(row=>text(value(row,'Capture Session ID','captureSessionId'))===text(v.sessionId));if(session){const record={...session,'Customer ID':customerId||text(value(session,'Customer ID','customerId')),'Property ID':propertyId||text(value(session,'Property ID','propertyId')),'Project Title':text(v.projectTitle),'Scope':text(v.scope),'Meeting Seed ID':text(seed.meetingId),'Meeting Seed Status':'APPLIED','Meeting Seed':seed,'Updated Time':now(),'Record Version':Number(value(session,'Record Version','recordVersion')||1)+1};await queueRecord('siteCaptureSessions','Site Capture Session',v.sessionId,record,['Capture Session ID','captureSessionId']);}const q=C.quote?.(v.quoteId);if(q&&v.quoteId&&!C.locked?.(q)){const record={...q,'Quote ID':v.quoteId,'Business ID':C.business(),'Customer ID':customerId||text(value(q,'Customer ID','customerId')),'Property ID':propertyId||text(value(q,'Property ID','propertyId')),'Project Title':text(value(q,'Project Title','projectTitle'))||text(v.projectTitle),'Scope':text(value(q,'Scope','scope'))||text(v.scope),'Updated Time':now(),'Record Version':Number(value(q,'Record Version','recordVersion')||1)+1};await queueRecord('quotes','Quote',v.quoteId,record,['Quote ID','quoteId']);}}
-async function applySeed(){if(busy)return;const v=visit(),row=linkedMeeting(v),seed=seedOf(v,row);if(!v||!seed)throw Error('Prepare the meeting notes first.');busy=true;lastError='';decorate();try{applySeedLocally(v,seed);const customerId=await ensureCustomer(seed,v),propertyId=await ensureProperty(seed,customerId);if(customerId)v.customerId=customerId;if(propertyId)v.propertyId=propertyId;const p=candidateProperty(seed);if(text(p.address))v.serviceAddress=text(p.address);v.meetingSeedAppliedAt=now();v.meetingSeedStatus='APPLIED';await C.saveDraft?.();await updateLinkedRecords(v,seed,customerId,propertyId);C.state.render?.();C.toast('Meeting details applied to the Site Visit, customer/property records, and draft quote context.');}catch(error){lastError=error?.message||String(error);C.toast(lastError,true);}finally{busy=false;decorate();}}
-async function skipMeeting(){const v=visit();if(!v)return;v.meetingSeedSkipped=true;v.meetingSeedStatus='SKIPPED';await C.saveDraft?.();C.state.render?.();C.toast('Conversation step skipped. Walkthrough is available.');}
-async function continueWithoutSeed(){const v=visit();if(!v)return;v.meetingSeedBypass=true;v.meetingSeedStatus='MEETING_SAVED_NO_SEED';await C.saveDraft?.();C.state.render?.();C.toast('Saved meeting kept. Continuing without AI seed.');}
-function line(label,value){return text(value)?`<div><strong>${label}</strong><span>${C.esc?C.esc(text(value)):text(value)}</span></div>`:'';}
-function renderItems(seed){const items=Array.isArray(seed?.captureItems)?seed.captureItems:[];if(!items.length)return'<p class="field-meeting-seed-empty">No extra preflight capture items were identified.</p>';return`<div class="field-meeting-seed-list">${items.slice(0,12).map(item=>`<div><strong>${C.esc?C.esc(text(item.type)||'CHECK'):text(item.type)||'CHECK'}</strong><span>${C.esc?C.esc(text(item.label)):text(item.label)}</span>${text(item.reason)?`<small>${C.esc?C.esc(text(item.reason)):text(item.reason)}</small>`:''}</div>`).join('')}</div>`;}
-function ready(v,row,seed){return !!(v?.meetingSeedSkipped||v?.meetingSeedBypass||seed||(row&&text(row.structuredStatus).toUpperCase()==='COMPLETE'&&!navigator.onLine));}
-function decorate(){const v=visit(),app=document.getElementById('h38FieldVisitApp');if(!v||!app)return;const stage=app.querySelector('[data-field-walkthrough-stage]');if(!stage)return;let card=app.querySelector('[data-field-meeting-seed]');if(!card){card=document.createElement('section');card.dataset.fieldMeetingSeed='1';stage.insertAdjacentElement('beforebegin',card);}const row=linkedMeeting(v),seed=seedOf(v,row),isRecording=recordingActive(),isReady=ready(v,row,seed),customer=candidateCustomer(seed||{}),property=candidateProperty(seed||{});card.className=`field-card field-meeting-seed ${isReady?'complete':'required'}`;if(v.meetingSeedSkipped){card.innerHTML='<div class="field-meeting-seed-head"><span>1</span><div><strong>Conversation skipped</strong><small>Walkthrough can start. You can record a meeting later if needed.</small></div></div><button type="button" class="field-secondary" data-meeting-start>Record conversation instead</button>';}else if(!row){card.innerHTML='<div class="field-meeting-seed-head"><span>1</span><div><strong>Start with the customer conversation</strong><small>Record the discussion first. H38 can turn it into customer/property suggestions, editable scope, quote inputs, and a Site Manager capture checklist.</small></div></div><button type="button" class="field-primary" data-meeting-start>🎙️ Start meeting recording</button><button type="button" class="field-link" data-meeting-skip>Skip conversation</button>';}else if(isRecording){card.innerHTML='<div class="field-meeting-seed-head"><span>●</span><div><strong>Meeting recording active</strong><small>Capture requests, address, scope, known measurements and decisions. Finish here before the camera walkthrough.</small></div></div><button type="button" class="field-primary" data-meeting-finish>Finish conversation & prepare Site Manager</button>';}else if(!seed){card.innerHTML=`<div class="field-meeting-seed-head"><span>✓</span><div><strong>Conversation saved</strong><small>${navigator.onLine?'Organize it into usable Site Visit and quote context before the walkthrough.':'The recording is safe locally. Reconnect for transcription/organization, or continue now.'}</small></div></div><button type="button" class="field-primary" data-meeting-prepare ${busy?'disabled':''}>${busy?'Preparing…':'Prepare Site Manager from meeting'}</button>${!navigator.onLine?'<button type="button" class="field-secondary" data-meeting-bypass>Continue with saved meeting</button>':''}${lastError?`<p class="field-meeting-seed-error">${C.esc?C.esc(lastError):lastError}</p>`:''}`;}else{const summary=text(seed.summary)||text(row.summary);card.innerHTML=`<div class="field-meeting-seed-head"><span>✓</span><div><strong>Meeting seeded the Site Manager</strong><small>Review these internal suggestions before applying customer/property details.</small></div></div><div class="field-meeting-seed-details">${line('Customer',customer.name)}${line('Phone',customer.phone)}${line('Email',customer.email)}${line('Property / service address',[property.address,property.city,property.state,property.zip].filter(Boolean).join(', '))}${line('Project',seed.projectTitle)}${line('Scope',seed.scopeDraft)}${line('Meeting summary',summary)}</div><h4>Capture before quoting</h4>${renderItems(seed)}<div class="field-meeting-seed-actions"><button type="button" class="field-primary" data-meeting-apply ${busy?'disabled':''}>${v.meetingSeedAppliedAt?'Re-apply missing details':'Apply customer, address & scope'}</button><button type="button" class="field-secondary" data-meeting-start>Continue conversation</button></div>${v.meetingSeedAppliedAt?'<small class="field-meeting-seed-applied">Applied to this Site Visit and draft records. Owner review is still required.</small>':''}`;}
-card.querySelector('[data-meeting-start]')?.addEventListener('click',()=>void startMeeting().catch(error=>C.toast(error?.message||String(error),true)));card.querySelector('[data-meeting-finish]')?.addEventListener('click',()=>void finishAndPrepare());card.querySelector('[data-meeting-prepare]')?.addEventListener('click',()=>void prepareExisting());card.querySelector('[data-meeting-apply]')?.addEventListener('click',()=>void applySeed());card.querySelector('[data-meeting-skip]')?.addEventListener('click',()=>void skipMeeting());card.querySelector('[data-meeting-bypass]')?.addEventListener('click',()=>void continueWithoutSeed());
-const initial=!window.H38_FIELD_VISIT_VIDEO?.counts?.().videos;stage.querySelectorAll('#fieldWalkthrough,#fieldWalkthroughAgain').forEach(button=>{if(initial&&!isReady){button.disabled=true;button.title='Finish or skip the conversation step first.';button.setAttribute('aria-disabled','true');}else{button.disabled=false;button.removeAttribute('aria-disabled');button.title='';}});const stepHead=stage.closest('.field-panel')?.querySelector('.field-step-head');if(stepHead&&initial){const number=stepHead.querySelector('span');if(number)number.textContent='2';}}
-function install(){const ui=window.H38_FIELD_VISIT_UI;if(!ui||ui.__meetingSeedWrapped||typeof ui.render!=='function')return false;const base=ui.render;ui.render=function(){base();setTimeout(decorate,0);};ui.__meetingSeedWrapped=true;C.setRender(ui.render);decorate();return true;}
-const style=document.createElement('style');style.textContent=`.field-meeting-seed{display:grid;gap:.75rem;margin-bottom:.8rem}.field-meeting-seed.required{border:2px solid #8f6b18;background:#fff9e8}.field-meeting-seed.complete{border:2px solid #37704a;background:#f5faf6}.field-meeting-seed-head{display:flex;gap:.75rem;align-items:flex-start}.field-meeting-seed-head>span{display:grid;place-items:center;min-width:34px;height:34px;border-radius:999px;background:#173f5f;color:#fff;font-weight:900}.field-meeting-seed-head>div{display:grid;gap:.18rem}.field-meeting-seed-head small,.field-meeting-seed-details span,.field-meeting-seed-list small,.field-meeting-seed-applied{color:var(--muted)}.field-meeting-seed-details{display:grid;gap:.45rem}.field-meeting-seed-details>div{display:grid;gap:.08rem}.field-meeting-seed-list{display:grid;gap:.45rem}.field-meeting-seed-list>div{display:grid;gap:.08rem;padding:.55rem .65rem;border:1px solid rgba(23,63,95,.16);border-radius:10px;background:#fff}.field-meeting-seed-list>div>strong{font-size:.72rem;letter-spacing:.04em}.field-meeting-seed-actions{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}.field-meeting-seed-error{color:#9b2226;font-weight:700}.field-meeting-seed h4{margin:.2rem 0 0}@media(max-width:560px){.field-meeting-seed-actions{grid-template-columns:1fr}}`;document.head.appendChild(style);
-[0,250,800,1800,3500].forEach(delay=>setTimeout(install,delay));setInterval(()=>{if(visit())decorate();},900);window.addEventListener('h38:business-snapshot-updated',()=>setTimeout(decorate,0));window.addEventListener('online',()=>setTimeout(decorate,0));
-window.H38_SITE_VISIT_MEETING_SEED={build:BUILD,decorate,requestSeed,applySeed,startMeeting,finishAndPrepare,meetingFirst:true,customerCandidateReview:true,propertyCandidateReview:true,scopeSeedsBeforeWalkthrough:true,capturePlanSeedsBeforeWalkthrough:true,quoteInputsPreserved:true,automaticCustomerSending:false,automaticApproval:false};
+function assistant(){return window.H38_CONVERSATION_MEETING_ASSISTANT;}
+function controller(){return window.H38_CONVERSATION_AUDIO_CONTROLLER;}
+function esc(v){return C.esc?C.esc(text(v)):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function itemText(item){
+  if(item==null)return'';
+  if(typeof item==='string'||typeof item==='number')return text(item,1200);
+  const label=text(value(item,'label','Label','category','Category'),220);
+  const statement=text(value(item,'text','statement','description','request','decision','commitment','condition','question','action','summary','valueText'),1200);
+  const numeric=text(value(item,'valueText','value','Value'),220);
+  if(label&&statement&&statement!==label)return`${label}: ${statement}`;
+  if(label&&numeric&&numeric!==label)return`${label}: ${numeric}`;
+  return statement||label||numeric;
+}
+function addSection(lines,label,items){
+  const list=(Array.isArray(items)?items:[items]).map(itemText).filter(Boolean);
+  if(!list.length)return;
+  lines.push(`${label}:`);
+  list.slice(0,20).forEach(item=>lines.push(`• ${item}`));
+}
+function meetingBulletNotes(row){
+  if(!row)return'';
+  const lines=[];
+  const summary=text(value(row,'Summary','summary'),5000);
+  if(summary){lines.push('Summary:');lines.push(summary);}
+  addSection(lines,'Customer requests',value(row,'Customer Requests','customerRequests'));
+  addSection(lines,'Decisions',value(row,'Decisions','decisions'));
+  addSection(lines,'Commitments',value(row,'Commitments','commitments'));
+  addSection(lines,'Site conditions',value(row,'Site Conditions','siteConditions'));
+  addSection(lines,'Measurements mentioned',value(row,'Measurements','measurements'));
+  addSection(lines,'Open questions',value(row,'Unknowns','unknowns','Questions To Ask','questionsToAsk'));
+  addSection(lines,'Action items',value(row,'Action Items','actionItems'));
+  addSection(lines,'Follow-up',value(row,'Follow Ups','followUps'));
+  return lines.join('\n').trim().slice(0,12000);
+}
+async function mergeMeetingIntoVisit(row){
+  const v=visit();
+  if(!v||!row)return false;
+  const id=meetingId(row);
+  const bullets=meetingBulletNotes(row);
+  v.meetingId=id;
+  v.meetingSummary=text(value(row,'Summary','summary'),5000);
+  v.meetingBulletNotes=bullets;
+  const applied=Array.isArray(v.meetingNotesAppliedIds)?v.meetingNotesAppliedIds:[];
+  if(bullets&&id&&!applied.includes(id)){
+    const marker=`Conversation notes · ${id}`;
+    const existing=text(v.notes,18000);
+    v.notes=[existing,`${marker}\n${bullets}`].filter(Boolean).join('\n\n').slice(0,24000);
+    applied.push(id);
+    v.meetingNotesAppliedIds=applied;
+  }
+  await C.saveDraft?.();
+  const notes=document.getElementById('fieldNotes');
+  if(notes&&bullets)notes.value=text(v.notes,24000);
+  return !!bullets;
+}
+async function auth(){
+  const api=shared?.ensure?.();
+  if(!api)throw Error('Secure Business Office connection is not ready.');
+  let result=await api.auth.getSession();
+  if(result.error)throw result.error;
+  let session=result.data?.session;
+  if(!session)throw Error('Sign in again before refreshing optional Site Visit guidance.');
+  if(Number(session.expires_at||0)*1000<Date.now()+120000){
+    const refreshed=await api.auth.refreshSession();
+    if(refreshed.error||!refreshed.data?.session)throw refreshed.error||Error('Secure session refresh failed.');
+    session=refreshed.data.session;
+  }
+  return{api,session};
+}
+function applySeedLocally(v,seed){
+  if(!v||!seed||typeof seed!=='object')return;
+  v.meetingSeed=seed;
+  v.meetingSeedStatus='READY_OPTIONAL';
+  v.meetingSeedCaptureItems=Array.isArray(seed.captureItems)?seed.captureItems:[];
+  v.meetingSeedQuoteInputs=Array.isArray(seed.quoteInputs)?seed.quoteInputs:[];
+  v.meetingSeedMeasurements=Array.isArray(seed.measurements)?seed.measurements:[];
+  if(!text(v.scope)&&text(seed.scopeDraft))v.scope=text(seed.scopeDraft);
+  if((!text(v.projectTitle)||/^(?:site|field)\s*visit$/i.test(text(v.projectTitle)))&&text(seed.projectTitle))v.projectTitle=text(seed.projectTitle);
+}
+async function requestSeed(row=linkedMeeting()){
+  const v=visit();
+  if(!v||!row||!v.sessionId||!navigator.onLine||!cfg.url||!cfg.publishableKey)return null;
+  const a=await auth();
+  const response=await fetch(`${cfg.url}/functions/v1/h38-site-visit-context`,{
+    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
+    headers:{authorization:`Bearer ${a.session.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':BUILD},
+    body:JSON.stringify({businessId:v.businessId||window.state?.businessId,captureSessionId:v.sessionId,meetingId:meetingId(row)})
+  });
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok||payload?.status!=='PASS')throw Error(payload?.message||`Optional Site Visit guidance failed (${response.status}).`);
+  const seed=payload.siteVisitSeed||payload.seed;
+  if(seed&&typeof seed==='object'){
+    applySeedLocally(v,seed);
+    await C.saveDraft?.();
+  }
+  return seed||null;
+}
+async function applySeed(){
+  const v=visit();
+  if(!v)return false;
+  const seed=v.meetingSeed;
+  if(!seed||typeof seed!=='object')return false;
+  applySeedLocally(v,seed);
+  await C.saveDraft?.();
+  C.state.render?.();
+  C.toast('Optional meeting guidance applied to this Site Visit.');
+  return true;
+}
+async function startMeeting(){
+  const a=assistant();
+  if(!a?.startVisitAssistant)throw Error('Conversation recording is still loading.');
+  await a.startVisitAssistant();
+  setTimeout(decorate,100);
+}
+async function finishConversation(){
+  if(busy)return;
+  busy=true;
+  lastError='';
+  decorate();
+  try{
+    const ctl=controller();
+    if(recordingActive()&&ctl?.finish)await ctl.finish('meeting-finish');
+    const a=assistant();
+    if(navigator.onLine&&a?.syncPendingMeetingAttachments)await a.syncPendingMeetingAttachments();
+    let row=linkedMeeting();
+    if(row&&navigator.onLine&&a?.organizeMeeting&&text(value(row,'Structured Status','structuredStatus')).toUpperCase()!=='COMPLETE'){
+      try{await a.organizeMeeting(meetingId(row));}catch(error){lastError=`Conversation saved. AI notes will retry when available: ${error?.message||error}`;}
+      row=linkedMeeting()||row;
+    }
+    await mergeMeetingIntoVisit(row);
+    if(row&&visit()?.sessionId&&navigator.onLine)void requestSeed(row).catch(()=>{});
+    C.toast(lastError||'Conversation saved. Add photos if they help, or finish the visit.',!!lastError);
+  }catch(error){
+    lastError=error?.message||String(error);
+    C.toast(lastError,true);
+  }finally{
+    busy=false;
+    decorate();
+  }
+}
+async function finishVisit(){
+  const v=visit();
+  if(!v||busy)return;
+  busy=true;
+  lastError='';
+  decorate();
+  try{
+    if(recordingActive()){
+      const ctl=controller();
+      if(ctl?.finish)await ctl.finish('meeting-finish');
+      if(navigator.onLine&&assistant()?.syncPendingMeetingAttachments)await assistant().syncPendingMeetingAttachments();
+    }
+    let row=linkedMeeting();
+    if(row&&navigator.onLine&&assistant()?.organizeMeeting&&text(value(row,'Structured Status','structuredStatus')).toUpperCase()!=='COMPLETE'){
+      try{await assistant().organizeMeeting(meetingId(row));}catch(error){lastError=`Visit saved. AI notes will retry when available: ${error?.message||error}`;}
+      row=linkedMeeting()||row;
+    }
+    if(row)await mergeMeetingIntoVisit(row);
+    v.status='COMPLETE';
+    v.completedAt=now();
+    v.updatedAt=now();
+    await C.saveDraft?.();
+    if(navigator.onLine)C.syncSoon?.();
+    C.toast('Site Visit saved.');
+    const close=document.getElementById('fieldClose');
+    if(close)close.click(); else window.H38_FIELD_VISIT?.close?.();
+  }catch(error){
+    lastError=error?.message||String(error);
+    C.toast(lastError,true);
+  }finally{
+    busy=false;
+  }
+}
+function counts(){
+  const v=visit();
+  return{
+    photos:Array.isArray(v?.attachmentIds)?v.attachmentIds.length:0,
+    videos:Array.isArray(v?.videoAttachmentIds)?v.videoAttachmentIds.length:0,
+    measurements:Array.isArray(v?.measurementIds)?v.measurementIds.length:0
+  };
+}
+function unlockOptionalCapture(v){
+  if(!v)return false;
+  let changed=false;
+  if(v.walkthroughOptional!==true){v.walkthroughOptional=true;changed=true;}
+  const c=counts();
+  if(!c.videos&&v.walkthroughSkipped!==true){v.walkthroughSkipped=true;changed=true;}
+  return changed;
+}
+function normalizeCaptureUi(app,card,stage){
+  const v=visit(),c=counts();
+  const panel=stage.closest('.field-panel');
+  if(!panel)return;
+  const head=panel.querySelector('.field-step-head');
+  if(head){
+    const number=head.querySelector('span'),title=head.querySelector('h1'),copy=head.querySelector('p');
+    if(number)number.textContent='1';
+    if(title)title.textContent='Site Visit';
+    if(copy)copy.textContent='Talk first if useful. Add photos only when they help. Video and measurements are optional.';
+  }
+
+  const photoButton=panel.querySelector('#fieldPhotos');
+  const measureButton=panel.querySelector('#fieldCamera');
+  const actions=photoButton?.closest('.field-targeted-actions')||panel.querySelector('.field-targeted-actions')||panel.querySelector('.field-capture-actions');
+  if(actions){
+    actions.hidden=false;
+    actions.classList.remove('field-targeted-locked');
+    if(card.nextElementSibling!==actions)card.insertAdjacentElement('afterend',actions);
+    Array.from(actions.children).forEach(button=>{if(button instanceof HTMLButtonElement){button.hidden=false;button.disabled=false;}});
+  }
+  if(photoButton){photoButton.hidden=false;photoButton.disabled=false;photoButton.textContent='📷 Add Photo';}
+  if(measureButton){measureButton.hidden=false;measureButton.textContent='📐 Measure (optional)';}
+
+  const preservedEvidence=stage.querySelector('[data-field-walkthrough-evidence]');
+  stage.className='field-card field-walkthrough-stage optional';
+  stage.innerHTML=c.videos
+    ? `<div class="field-walkthrough-status"><span>✓</span><div><strong>Optional video saved</strong><small>${c.videos} video${c.videos===1?'':'s'} kept privately with this visit.</small></div></div><button type="button" class="field-secondary" data-simple-video>🎥 Record Another Video</button>`
+    : '<div class="field-walkthrough-required"><span class="field-walkthrough-icon">🎥</span><div><strong>Video walkthrough (optional)</strong><small>Use this only when video adds useful context. Photos and Finish Visit do not depend on it.</small></div></div><button type="button" class="field-secondary" data-simple-video>🎥 Record Video (optional)</button>';
+  if(preservedEvidence)stage.appendChild(preservedEvidence);
+  stage.querySelector('[data-simple-video]')?.addEventListener('click',()=>void window.H38_FIELD_VISIT_VIDEO?.openRecorder?.());
+
+  if(actions?.nextElementSibling!==stage)actions?.insertAdjacentElement('afterend',stage);
+  panel.querySelector('.field-device-card')?.setAttribute('hidden','');
+  panel.querySelector('.field-capture-counts')?.setAttribute('hidden','');
+  panel.querySelector('[data-field-after-walkthrough]')?.setAttribute('hidden','');
+
+  let finish=panel.querySelector('[data-simple-finish]');
+  if(!finish){
+    finish=document.createElement('section');
+    finish.dataset.simpleFinish='1';
+    finish.className='field-card field-simple-finish';
+    finish.innerHTML='<button type="button" class="field-primary" data-simple-finish-button>✓ Finish Visit</button><small>Conversation, photos, video and measurements are all optional. H38 keeps whatever you captured.</small>';
+    stage.insertAdjacentElement('afterend',finish);
+  }
+  finish.querySelector('[data-simple-finish-button]')?.addEventListener('click',()=>void finishVisit(),{once:true});
+
+  panel.querySelectorAll(':scope > details').forEach(node=>{node.hidden=false;});
+  const next=panel.querySelector('.field-next');
+  if(next)next.hidden=false;
+
+  const bottom=app.querySelector('.field-bottom-nav');
+  if(bottom){
+    bottom.querySelectorAll('button').forEach(button=>{
+      const label=text(button.textContent,120).toLowerCase();
+      if(label.includes('job'))button.querySelector('small')&&(button.querySelector('small').textContent='Details');
+      if(label.includes('capture'))button.querySelector('small')&&(button.querySelector('small').textContent='Visit');
+      if(label.includes('review'))button.querySelector('small')&&(button.querySelector('small').textContent='Finish');
+    });
+  }
+}
+function renderConversationCard(card,row,isRecording){
+  if(!row){
+    card.innerHTML='<div class="field-meeting-seed-head"><span>1</span><div><strong>Conversation</strong><small>Start here when talking with the customer. H38 will turn the conversation into editable notes. You can also just take photos and finish.</small></div></div><button type="button" class="field-primary" data-meeting-start>🎙️ Start Conversation</button>';
+  }else if(isRecording){
+    card.innerHTML='<div class="field-meeting-seed-head"><span>●</span><div><strong>Conversation recording</strong><small>Keep talking while you walk the job. Use Add Photo in the recording controls whenever a picture helps.</small></div></div><div class="field-meeting-seed-actions"><button type="button" class="field-secondary" data-meeting-photo>📷 Add Photo</button><button type="button" class="field-primary" data-meeting-finish>Finish Conversation</button></div>';
+  }else{
+    const organized=text(value(row,'Structured Status','structuredStatus')).toUpperCase()==='COMPLETE';
+    card.innerHTML=`<div class="field-meeting-seed-head"><span>✓</span><div><strong>Conversation saved</strong><small>${organized?'Editable notes are attached to this Site Visit.':'The conversation is safe. H38 can finish organizing the notes when online.'}</small></div></div><div class="field-meeting-seed-actions"><button type="button" class="field-secondary" data-meeting-start>Resume Conversation</button><button type="button" class="field-secondary" data-meeting-open>View Notes</button></div>${lastError?`<p class="field-meeting-seed-error">${esc(lastError)}</p>`:''}`;
+  }
+  card.querySelector('[data-meeting-start]')?.addEventListener('click',()=>void startMeeting().catch(error=>C.toast(error?.message||String(error),true)));
+  card.querySelector('[data-meeting-finish]')?.addEventListener('click',()=>void finishConversation());
+  card.querySelector('[data-meeting-photo]')?.addEventListener('click',()=>{
+    const meetingPhoto=document.getElementById('h38MeetingPhoto');
+    if(meetingPhoto)meetingPhoto.click(); else document.getElementById('fieldPhotos')?.click();
+  });
+  card.querySelector('[data-meeting-open]')?.addEventListener('click',()=>assistant()?.openMeeting?.(meetingId(row)));
+}
+function decorate(){
+  const v=visit(),app=document.getElementById('h38FieldVisitApp');
+  if(!v||!app)return;
+  const vid=visitId(v);
+  if(vid!==lastVisitId){lastVisitId=vid;lastError='';}
+  if(!enteredVisits.has(vid)){
+    enteredVisits.add(vid);
+    const changed=unlockOptionalCapture(v);
+    if(changed)void C.saveDraft?.();
+    if(C.state.tab==='job'){
+      C.state.tab='capture';
+      C.state.render?.();
+      return;
+    }
+  }else if(unlockOptionalCapture(v)){
+    void C.saveDraft?.();
+  }
+
+  const stage=app.querySelector('[data-field-walkthrough-stage]');
+  if(!stage)return;
+  let card=app.querySelector('[data-field-meeting-seed]');
+  if(!card){
+    card=document.createElement('section');
+    card.dataset.fieldMeetingSeed='1';
+    stage.insertAdjacentElement('beforebegin',card);
+  }
+  const row=linkedMeeting(v),isRecording=recordingActive();
+  card.className='field-card field-meeting-seed complete';
+  renderConversationCard(card,row,isRecording);
+  normalizeCaptureUi(app,card,stage);
+
+  if(row&&!isRecording&&text(value(row,'Structured Status','structuredStatus')).toUpperCase()==='COMPLETE'&&v.meetingNotesAppliedIds?.includes?.(meetingId(row))!==true){
+    void mergeMeetingIntoVisit(row).then(()=>C.state.render?.()).catch(()=>{});
+  }
+
+  if(window.H38_FIELD_VISIT){
+    window.H38_FIELD_VISIT.walkthroughFirst=false;
+    window.H38_FIELD_VISIT.targetedPhotosAfterWalkthrough=false;
+    window.H38_FIELD_VISIT.conversationFirst=true;
+    window.H38_FIELD_VISIT.walkthroughOptional=true;
+  }
+}
+function install(){
+  const ui=window.H38_FIELD_VISIT_UI;
+  if(!ui||typeof ui.render!=='function')return false;
+  if(!ui.__simpleSiteVisitWrapped){
+    const base=ui.render;
+    ui.render=function(){base();setTimeout(decorate,0);};
+    ui.__simpleSiteVisitWrapped=true;
+    C.setRender(ui.render);
+  }
+  decorate();
+  return true;
+}
+
+const style=document.createElement('style');
+style.textContent=`
+.field-meeting-seed{display:grid;gap:.75rem;margin-bottom:.8rem;border:2px solid #37704a;background:#f5faf6}
+.field-meeting-seed-head{display:flex;gap:.75rem;align-items:flex-start}
+.field-meeting-seed-head>span{display:grid;place-items:center;min-width:34px;height:34px;border-radius:999px;background:#173f5f;color:#fff;font-weight:900}
+.field-meeting-seed-head>div{display:grid;gap:.18rem}
+.field-meeting-seed-head small,.field-simple-finish small{color:var(--muted);line-height:1.4}
+.field-meeting-seed-actions{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.field-meeting-seed-error{color:#9b2226;font-weight:700}
+.field-walkthrough-stage.optional{border:1px solid rgba(23,63,95,.18);background:#f7f9fb}
+.field-simple-finish{display:grid;gap:.5rem;margin-top:.8rem}
+.field-targeted-actions[hidden],.field-capture-actions.field-targeted-locked{display:grid!important}
+@media(max-width:560px){.field-meeting-seed-actions{grid-template-columns:1fr}.field-device-card,.field-capture-counts{display:none!important}}
+`;
+document.head.appendChild(style);
+
+[0,120,350,800,1600,3200].forEach(delay=>setTimeout(install,delay));
+setInterval(()=>{if(visit())decorate();},700);
+window.addEventListener('h38:business-snapshot-updated',()=>setTimeout(decorate,0));
+window.addEventListener('online',()=>setTimeout(decorate,0));
+
+window.H38_SITE_VISIT_MEETING_SEED={
+  build:BUILD,
+  decorate,
+  requestSeed,
+  applySeed,
+  startMeeting,
+  finishAndPrepare:finishConversation,
+  finishConversation,
+  finishVisit,
+  mergeMeetingIntoVisit,
+  meetingFirst:true,
+  conversationFirst:true,
+  walkthroughFirst:false,
+  walkthroughOptional:true,
+  photosOptional:true,
+  measurementsOptional:true,
+  captureSessionNotRequiredForConversation:true,
+  notesAutoAppliedToVisit:true,
+  automaticCustomerSending:false,
+  automaticApproval:false
+};
 })();
