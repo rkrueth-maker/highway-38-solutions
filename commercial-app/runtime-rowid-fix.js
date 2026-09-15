@@ -2,7 +2,7 @@
 'use strict';
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
-const PHONE_FIRST_BUILD='20260915-phone-first-office-1';
+const PHONE_FIRST_BUILD='20260915-phone-first-office-2';
 const CUSTOMER_WORKSPACE_PAGES=new Set(['customers','documents']);
 function value(row,keys){
   for(const key of keys){
