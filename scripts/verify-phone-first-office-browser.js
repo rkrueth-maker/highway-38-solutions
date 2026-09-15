@@ -76,10 +76,11 @@ assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract mu
 
     await phone.locator('#h38PhoneCreateButton').click();
     await phone.waitForSelector('#h38PhoneCreateDialog[open]');
-    for(const label of ['Customer','Meeting','Site Visit','Quote','Job','Receipt / expense'])assert.equal(await phone.getByRole('button',{name:new RegExp(label)}).count(),1,`create sheet missing ${label}`);
-    await phone.locator('#h38PhoneCreateDialog [data-h38-close]').click();
+    const create=phone.locator('#h38PhoneCreateDialog');
+    for(const key of ['customer','meeting','site','quote','job','expense'])assert.equal(await create.locator(`[data-h38-create="${key}"]`).count(),1,`create sheet missing ${key}`);
+    await create.locator('[data-h38-close]').click();
 
-    await phone.getByRole('button',{name:/More/}).click();
+    await phone.locator('#mainNav [data-h38-phone-primary="more"]').click();
     await phone.waitForSelector('#h38PhoneFirstMoreDialog[open]');
     const moreText=await phone.locator('#h38PhoneFirstMoreDialog').innerText();
     for(const label of ['Work & Sales','Money','Records & Equipment','Office','Jobs','Quotes','Site Visits','Documents','Settings'])assert(moreText.includes(label),`grouped More missing ${label}`);
