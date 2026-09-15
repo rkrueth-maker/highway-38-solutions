@@ -4,6 +4,7 @@ const root=path.resolve(__dirname,'..');
 const file=fs.readFileSync(path.join(root,'commercial-app/field-visit-video.js'),'utf8');
 const meetingSeed=fs.readFileSync(path.join(root,'commercial-app/site-visit-meeting-seed.js'),'utf8');
 const context=fs.readFileSync(path.join(root,'supabase/functions/h38-site-visit-context/index.ts'),'utf8');
+const serviceWorker=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
 function need(value,label){if(!value){console.error(`FAIL: ${label}`);process.exitCode=1;}else console.log(`PASS: ${label}`);}
 need(file.includes("const BUILD='20260915-web-site-manager-3'"),'new web Site Manager recorder build is active');
 need(file.includes('const MAX_DURATION_SECONDS=1200'),'web walkthrough ceiling is 20 minutes');
@@ -39,6 +40,10 @@ need(context.includes('property:{name:"",address:"",address2:"",city:"",state:""
 need(context.includes('captureItems')&&context.includes('"PHOTO","MEASUREMENT","CONFIRMATION"'),'server seed creates Site Manager capture guidance');
 need(context.includes('quoteInputs'),'server seed preserves quote inputs');
 need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'meeting seed action is proof logged');
+need(context.includes('const status=clean('),'legacy safe draft-quote guard remains regression-compatible');
+need(serviceWorker.includes("const CACHE_NAME='h38-business-office-20260915-site-manager-1'"),'PWA cache version advances for meeting-first Site Manager');
+need(serviceWorker.includes("'site-visit-meeting-seed.js'"),'meeting seed runtime is live-first');
+need(serviceWorker.includes("'./site-visit-meeting-seed.js'"),'meeting seed runtime is pre-cached for offline Site Visits');
 need(file.includes('automaticApproval:false')&&file.includes('automaticCustomerSending:false'),'recorder keeps approval and sending disabled');
 need(meetingSeed.includes('automaticCustomerSending:false')&&meetingSeed.includes('automaticApproval:false'),'meeting seed keeps approval and sending disabled');
 if(process.exitCode)process.exit(process.exitCode);
