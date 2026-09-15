@@ -35,10 +35,17 @@ need(meetingSeed.includes("queueRecord('properties','Property'"),'meeting seed c
 need(meetingSeed.includes("queueRecord('quotes','Quote'"),'meeting seed can feed draft quote context');
 need(meetingSeed.includes('meetingSeedCaptureItems'),'capture guidance is preserved with the Site Visit');
 need(meetingSeed.includes('meetingSeedQuoteInputs'),'quote-useful meeting facts are preserved beyond the report document');
+need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'server meeting seed build is current');
 need(context.includes('customer:{name:"",email:"",phone:""}'),'server seed includes customer candidate fields');
 need(context.includes('property:{name:"",address:"",address2:"",city:"",state:"",zip:""}'),'server seed includes service/property address fields');
 need(context.includes('captureItems')&&context.includes('"PHOTO","MEASUREMENT","CONFIRMATION"'),'server seed creates Site Manager capture guidance');
 need(context.includes('quoteInputs'),'server seed preserves quote inputs');
+need(context.includes('"Meeting Summary":seed.summary'),'meeting summary persists on Site Visit and draft quote records');
+need(context.includes('"Meeting Customer Candidate":seed.customer'),'customer candidate persists as internal operational context');
+need(context.includes('"Meeting Property Candidate":seed.property'),'service-address candidate persists as internal operational context');
+need(context.includes('"Meeting Quote Inputs":seed.quoteInputs'),'quote-useful facts persist beyond the meeting report');
+need(context.includes('"Meeting Capture Items":seed.captureItems'),'capture checklist persists with Site Visit and draft quote');
+need(context.includes('"Meeting Measurements":seed.measurements'),'meeting measurements retain provenance for later verification');
 need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'meeting seed action is proof logged');
 need(context.includes('const status=clean('),'legacy safe draft-quote guard remains regression-compatible');
 need(serviceWorker.includes("const CACHE_NAME='h38-business-office-20260915-0835'"),'PWA cache version advances with an accepted dated Site Manager epoch');
