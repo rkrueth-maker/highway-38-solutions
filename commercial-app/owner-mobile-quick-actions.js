@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-owner-mobile-quick-actions-2';
+const BUILD='20260915-owner-mobile-quick-actions-3';
 const MOBILE='(max-width: 760px)';
 const text=value=>String(value==null?'':value).trim();
 function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
@@ -38,18 +38,33 @@ function openPersonalAssistant(){
 }
 function openClock(){closeQuick();ensureErp('time');}
 function focusOperations(){
-  const panel=document.getElementById('h38OperationsActionCenter');
+  const panel=document.getElementById('h38OperationsJobPanel');
   if(panel){try{panel.scrollIntoView({block:'start',behavior:'smooth'});}catch(_){panel.scrollIntoView();}return true;}
   return false;
 }
+function openOperationsBrief(){
+  try{
+    const api=window.H38_OPERATIONS_INTELLIGENCE;
+    if(!api)return false;
+    focusOperations();
+    api.openPreVisitBrief?.();
+    return true;
+  }catch(_){return false;}
+}
 function openOperations(){
   closeQuick();
-  try{window.openPage?.('today');}catch(_){}
-  if(focusOperations())return;
-  if(!window.H38_OPERATIONS_INTELLIGENCE&&!document.querySelector('script[data-h38-operations-intelligence]')){
-    const script=document.createElement('script');script.src='./operations-intelligence.js?build=20260908-operations-intelligence-1';script.async=false;script.dataset.h38OperationsIntelligence='owner-mobile-quick-actions';document.body.appendChild(script);
+  try{window.openPage?.('work');}catch(_){}
+  if(openOperationsBrief())return;
+  if(!document.querySelector('script[data-h38-operations-intelligence]')){
+    const script=document.createElement('script');
+    script.src='./operations-intelligence.js?build=20260908-operations-intelligence-1';
+    script.async=false;
+    script.dataset.h38OperationsIntelligence='owner-mobile-quick-actions';
+    script.addEventListener('load',()=>{if(!openOperationsBrief())window.toast?.('Operations Intelligence is not available for this account.',true);},{once:true});
+    document.body.appendChild(script);
+    return;
   }
-  let tries=0;const timer=setInterval(()=>{if(focusOperations()||++tries>=40){clearInterval(timer);if(tries>=40&&!document.getElementById('h38OperationsActionCenter'))window.toast?.('Operations Intelligence is not available for this account.',true);}},100);
+  let tries=0;const timer=setInterval(()=>{if(openOperationsBrief()){clearInterval(timer);return;}if(++tries>=40){clearInterval(timer);window.toast?.('Operations Intelligence is not available for this account.',true);}},100);
 }
 function makeAction(key,icon,label,detail,handler){
   const button=document.createElement('button');button.type='button';button.dataset.h38OwnerQuick=key;button.innerHTML=`<span>${icon}</span><strong>${label}</strong><small>${detail}</small>`;button.onclick=handler;return button;
@@ -70,11 +85,11 @@ function patchQuickDialog(){
     if(meeting?.nextSibling)grid.insertBefore(clock,meeting.nextSibling);else grid.appendChild(clock);
   }
   if(manager()&&!grid.querySelector('[data-h38-owner-quick="operations"]')){
-    const ops=makeAction('operations','📊','Operations Intelligence','Owner action center and operating signals',openOperations);
+    const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and operating signals',openOperations);
     const assistantNow=grid.querySelector('[data-h38-quick="assistant"]');
     if(assistantNow)grid.insertBefore(ops,assistantNow);else grid.appendChild(ops);
   }
-  if(dialog.dataset.h38OwnerMobileQuickActions!=='2')dialog.dataset.h38OwnerMobileQuickActions='2';
+  if(dialog.dataset.h38OwnerMobileQuickActions!=='3')dialog.dataset.h38OwnerMobileQuickActions='3';
 }
 function clarifyAssistantLauncher(){
   if(!mobile()||!manager())return;
@@ -93,5 +108,5 @@ function scheduleApply(){if(applyQueued)return;applyQueued=true;queueMicrotask(a
 const observer=new MutationObserver(scheduleApply);observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
 window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
 scheduleApply();
-window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,plusLocationPreserved:true,clockInOutUnderPlus:true,personalAssistantUnderPlus:true,operationsIntelligenceUnderPlus:true,ownerTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,openClock,openPersonalAssistant,openOperations,patchQuickDialog});
+window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,plusLocationPreserved:true,clockInOutUnderPlus:true,personalAssistantUnderPlus:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,openClock,openPersonalAssistant,openOperations,patchQuickDialog});
 })();
