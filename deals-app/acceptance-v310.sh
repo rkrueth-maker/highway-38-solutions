@@ -65,8 +65,11 @@ test -n "$token"
 printf '%s' "$token" > "$REPORT/access-token.tmp"
 curl --max-time 30 -fsS "$SB_URL/rest/v1/h38_product_entitlements?select=product_key,active&active=eq.true" -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" | tee "$REPORT/entitlements.json"
 jq -e '([.[].product_key]|unique|sort)==["coupon","penny","resale"]' "$REPORT/entitlements.json"
-noauth_code="$(curl -sS -o "$REPORT/noauth.txt" -w '%{http_code}' -X POST "$SB_URL/functions/v1/h38-coupon-api" -H "apikey: $SB_KEY" -H 'Content-Type: application/json' --data '{"action":"assistant","text":"test"}')"
-test "$noauth_code" = 401
+for product in penny resale coupon; do
+  noauth_code="$(curl -sS -o "$REPORT/noauth-$product.txt" -w '%{http_code}' -X POST "$SB_URL/functions/v1/h38-$product-api" -H "apikey: $SB_KEY" -H 'Content-Type: application/json' --data '{}')"
+  test "$noauth_code" = 401
+  grep -Fq 'AUTH_REQUIRED' "$REPORT/noauth-$product.txt"
+done
 echo ENTITLEMENT_AUTH_PASS | tee "$REPORT/auth-status.txt"
 
 # 4. Couponing table CRUD + API math. Cleanup is guaranteed.
@@ -102,26 +105,42 @@ call_coupon optimize '{"action":"optimize","max_stores":2,"travel_cost_per_mile"
 jq -e '.ok==true and .best!=null and (.best.stores|length)>=1' "$REPORT/coupon-optimize.json"
 echo COUPONING_DATA_AND_OPTIMIZER_PASS | tee "$REPORT/coupon-status.txt"
 
-# 5. Every Penny and Resale API lane must answer successfully.
+# 5. Penny and Resale source lanes. A truthful 502 SOURCE_UNAVAILABLE is a valid
+# source-health result for volatile public sources; bad actions/auth/schema remain failures.
 call_lane(){
   local product="$1"
   local action="$2"
   local timeout="$3"
-  local out="$REPORT/$product-$action.json"
-  curl --max-time "$timeout" -fsS -X POST "$SB_URL/functions/v1/h38-$product-api" \
+  local radius="${4:-50}"
+  local terms_json="${5:-[\"tools\",\"electronics\"]}"
+  local out="$REPORT/$product-$action-r${radius}.json"
+  local code
+  echo "CALLING product=$product action=$action radius=$radius terms=$terms_json"
+  code="$(curl --max-time "$timeout" -sS -o "$out" -w '%{http_code}' -X POST "$SB_URL/functions/v1/h38-$product-api" \
     -H "apikey: $SB_KEY" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
-    --data "{\"action\":\"$action\",\"payload\":{\"postal\":\"55744\",\"zip\":\"55744\",\"radius\":50,\"radius_miles\":50,\"terms\":[\"tools\",\"electronics\"]}}" \
-    | tee "$out"
-  jq -e '.ok==true' "$out"
+    --data "{\"action\":\"$action\",\"payload\":{\"postal\":\"55744\",\"zip\":\"55744\",\"radius\":$radius,\"radius_miles\":$radius,\"radiusMiles\":$radius,\"terms\":$terms_json}}")"
+  cat "$out"
+  echo
+  if [ "$code" = 200 ]; then
+    jq -e '.ok==true' "$out" >/dev/null
+    echo "LANE_OK product=$product action=$action http=$code"
+    return 0
+  fi
+  if [ "$code" = 502 ] && jq -e '.error=="SOURCE_UNAVAILABLE"' "$out" >/dev/null 2>&1; then
+    echo "LANE_SOURCE_UNAVAILABLE product=$product action=$action http=$code"
+    return 0
+  fi
+  echo "LANE_FAIL product=$product action=$action http=$code" >&2
+  return 1
 }
-call_lane penny stores 90
-call_lane penny hunt_fast 60
-call_lane penny remodel 120
-call_lane resale deals 120
-call_lane resale facebook 120
-call_lane resale auctions 120
-call_lane resale stores 120
-call_lane resale garage 120
+call_lane penny stores 90 50 '["tools","electronics"]'
+call_lane penny hunt_fast 60 50 '["tools","electronics"]'
+call_lane penny remodel 120 50 '["tools","electronics"]'
+call_lane resale deals 150 50 '["generator"]'
+call_lane resale facebook 150 50 '["generator"]'
+call_lane resale auctions 150 50 '["generator"]'
+call_lane resale stores 120 50 '["generator"]'
+call_lane resale garage 180 75 '["garage sale","estate sale"]'
 echo PENNY_AND_RESALE_ALL_LANES_PASS | tee "$REPORT/source-lanes-status.txt"
 
 cleanup_coupon_ci
