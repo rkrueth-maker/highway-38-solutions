@@ -99,32 +99,31 @@ jobs:
             local pattern="$2"
             local out="$3"
             for attempt in $(seq 1 36); do
-              if curl --fail --location --silent --show-error --max-time 30 "$base/$path?deployment=${GITHUB_SHA}" -o "$out" && grep -Fq "$pattern" "$out"; then
-                return 0
-              fi
+              if curl --fail --location --silent --show-error --max-time 30 "$base/$path?deployment=${GITHUB_SHA}" -o "$out" && grep -Fq "$pattern" "$out"; then return 0; fi
               sleep 10
             done
             echo "Production check failed for $path; expected: $pattern" >&2
             return 1
           }
-
-          fetch_until_ready '' 'Bring us the problem.' /tmp/home.html
-          grep -Fq 'clear working path.' /tmp/home.html
-          grep -Fq 'See it. Scope it. Run it.' /tmp/home.html
+          fetch_until_ready '' 'See the solution.' /tmp/home.html
+          grep -Fq 'Run the whole job.' /tmp/home.html
+          grep -Fq 'Three software products. One connected direction.' /tmp/home.html
           grep -Fq 'href="solutions.html"' /tmp/home.html
           grep -Fq 'href="pricing.html"' /tmp/home.html
           grep -Fq 'href="quote-builder.html#examples"' /tmp/home.html
           ! grep -Eq 'href="(business-systems|sample-library-now|universal-quote-builder)\.html' /tmp/home.html
-
           fetch_until_ready 'pricing.html' 'Three software products' /tmp/pricing.html
           grep -Fq '$59' /tmp/pricing.html
           grep -Fq '$249' /tmp/pricing.html
-          grep -Fq 'Starting at $499' /tmp/pricing.html
+          grep -Fq 'Starting at $7,500' /tmp/pricing.html
           grep -Fq '$299 one-time' /tmp/pricing.html
-
+          ! grep -Fq 'Starting at $499' /tmp/pricing.html
+          ! grep -Fq 'Smart Contact Website' /tmp/pricing.html
+          fetch_until_ready 'business-systems.html' 'Universal Smart Import' /tmp/office.html
+          grep -Fq 'Stage, review, then apply' /tmp/office.html
+          grep -Fq 'Starting at $7,500' /tmp/office.html
           fetch_until_ready 'quote-builder.html' 'Simple when the quote is simple.' /tmp/quote-builder.html
           grep -Fq 'universal-quote-builder.html' /tmp/quote-builder.html
-
           fetch_until_ready 'sample-library-now.html' 'Complete project demonstrations' /tmp/samples.html
           grep -Fq 'Open-ended example library' /tmp/samples.html
           grep -Fq 'data-owner-link="true"' /tmp/samples.html
@@ -145,24 +144,14 @@ jobs:
           ! grep -Fq '<iframe' /tmp/samples.html
           ! grep -Fq 'Whole-House Renovation and Property Improvement' /tmp/samples.html
           ! grep -Fq '$342,815' /tmp/samples.html
-
           fetch_until_ready 'universal-quote-builder.html' 'sample-library-now.html#universal-quote-builder-examples' /tmp/universal.html
           fetch_until_ready 'universal-quote-builder-example.html' 'Print / Save PDF' /tmp/universal-viewer.html
           fetch_until_ready 'assets/js/uqb-public-examples.js' "version: '2026-07-26-static-public-v1'" /tmp/universal-data.js
-
           fetch_until_ready 'solutions.html' 'Five connected capabilities' /tmp/solutions.html
           fetch_until_ready 'start-request.html' 'What result do you need?' /tmp/request.html
           grep -Fq 'data-request-step="1"' /tmp/request.html
           grep -Fq 'data-request-step="3"' /tmp/request.html
           fetch_until_ready 'portal.html' 'Opening Highway 38 Business Office' /tmp/portal.html
-
-          if grep -Eqi 'Eight complete|Explore the Eight|current eight-project' /tmp/samples.html; then
-            echo 'Fixed eight-example language found on deployed examples page.' >&2
-            exit 1
-          fi
-          if grep -Fq '25,000+ CNC programs' /tmp/home.html /tmp/samples.html /tmp/solutions.html; then
-            echo 'Prohibited 25,000+ CNC programs claim found on deployed public pages.' >&2
-            exit 1
-          fi
-
-          echo 'Production GitHub Pages smoke check passed with the approved homepage Quote Builder path and Universal Quote Builder examples preserved on their dedicated page.'
+          if grep -Eqi 'Eight complete|Explore the Eight|current eight-project' /tmp/samples.html; then echo 'Fixed eight-example language found on deployed examples page.' >&2; exit 1; fi
+          if grep -Fq '25,000+ CNC programs' /tmp/home.html /tmp/samples.html /tmp/solutions.html; then echo 'Prohibited 25,000+ CNC programs claim found on deployed public pages.' >&2; exit 1; fi
+          echo 'Production GitHub Pages smoke check passed with the current H38 product direction, approved examples, and controlled buyer paths.'
