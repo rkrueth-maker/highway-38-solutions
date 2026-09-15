@@ -2,6 +2,7 @@
 'use strict';
 const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
+const PHONE_FIRST_BUILD='20260915-phone-first-office-1';
 const CUSTOMER_WORKSPACE_PAGES=new Set(['customers','documents']);
 function value(row,keys){
   for(const key of keys){
@@ -12,6 +13,15 @@ function value(row,keys){
 if(typeof window.rowId!=='function')window.rowId=function(row,...keys){return String(value(row,keys));};
 function currentPage(){try{return String(window.state?.page||'');}catch(_){return'';}}
 function shouldLoadCustomerWorkspace(){return CUSTOMER_WORKSPACE_PAGES.has(currentPage());}
+function loadPhoneFirstOffice(){
+  if(window.H38_PHONE_FIRST_OFFICE||document.querySelector('script[data-h38-phone-first-office-bootstrap]'))return false;
+  const script=document.createElement('script');
+  script.src=`./phone-first-office.js?build=${PHONE_FIRST_BUILD}`;
+  script.async=false;
+  script.dataset.h38PhoneFirstOfficeBootstrap='1';
+  (document.head||document.documentElement).appendChild(script);
+  return true;
+}
 function loadCustomerRenderHook(){
   if(window.H38_CUSTOMER_WORKSPACE_RENDER_HOOK||document.querySelector('script[data-h38-customer-render-hook-bootstrap]'))return false;
   if(!window.H38_CUSTOMER_WORKSPACE_DOCUMENTS)return false;
@@ -35,6 +45,7 @@ function loadCustomerWorkspaceDocuments(force=false){
   return true;
 }
 function reconcileCustomerWorkspace(){
+  loadPhoneFirstOffice();
   if(!shouldLoadCustomerWorkspace())return;
   loadCustomerWorkspaceDocuments(true);
   loadCustomerRenderHook();
@@ -46,14 +57,17 @@ queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
   build:'20260911-office-performance-2',
-  purpose:'Expose the record-id helper and lazy-load customer/document runtime only when those Office pages need it.',
+  purpose:'Expose the record-id helper, load the phone-first shell, and lazy-load customer/document runtime only when those Office pages need it.',
   productionVerification:'20260911-office-performance-2',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
+  phoneFirstBuild:PHONE_FIRST_BUILD,
+  phoneFirstLiveBootstrap:true,
   customerWorkspaceLiveBootstrap:true,
   customerWorkspaceLazy:true,
   customerWorkspacePages:Array.from(CUSTOMER_WORKSPACE_PAGES),
   shouldLoadCustomerWorkspace,
+  loadPhoneFirstOffice,
   loadCustomerWorkspaceDocuments,
   loadCustomerRenderHook
 });
