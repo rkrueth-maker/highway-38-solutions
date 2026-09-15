@@ -1,0 +1,36 @@
+name: Verify web Site Manager recorder
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/field-visit-video.js'
+      - 'commercial-app/site-visit-meeting-seed.js'
+      - 'supabase/functions/h38-site-visit-context/**'
+      - 'scripts/verify-web-site-manager-recorder.js'
+      - '.github/workflows/verify-web-site-manager-recorder.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/field-visit-video.js'
+      - 'commercial-app/site-visit-meeting-seed.js'
+      - 'supabase/functions/h38-site-visit-context/**'
+      - 'scripts/verify-web-site-manager-recorder.js'
+      - '.github/workflows/verify-web-site-manager-recorder.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check recorder and meeting-seed syntax
+        run: |
+          node --check commercial-app/field-visit-video.js
+          node --check commercial-app/site-visit-meeting-seed.js
+      - name: Verify meeting-first web Site Manager contract
+        run: node scripts/verify-web-site-manager-recorder.js
