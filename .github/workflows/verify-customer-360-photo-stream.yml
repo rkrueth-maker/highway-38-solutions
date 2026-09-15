@@ -1,29 +1,35 @@
-name: Verify Customer 360 Photo Stream
+name: Verify Customer 360 Experience
 
 on:
   pull_request:
     paths:
+      - 'commercial-app/app-15.js'
       - 'commercial-app/customer-360-photo-stream.js'
       - 'commercial-app/customer-360-site-visit-delete-bridge.js'
+      - 'commercial-app/customer-360-timeline.js'
       - 'commercial-app/customer-workspace-render-hook.js'
       - 'scripts/verify-customer-360-photo-stream.js'
       - 'scripts/verify-customer-360-site-visit-delete-bridge.js'
+      - 'scripts/verify-customer-360-timeline.js'
       - '.github/workflows/verify-customer-360-photo-stream.yml'
   push:
     branches: [main]
     paths:
+      - 'commercial-app/app-15.js'
       - 'commercial-app/customer-360-photo-stream.js'
       - 'commercial-app/customer-360-site-visit-delete-bridge.js'
+      - 'commercial-app/customer-360-timeline.js'
       - 'commercial-app/customer-workspace-render-hook.js'
       - 'scripts/verify-customer-360-photo-stream.js'
       - 'scripts/verify-customer-360-site-visit-delete-bridge.js'
+      - 'scripts/verify-customer-360-timeline.js'
       - '.github/workflows/verify-customer-360-photo-stream.yml'
 
 permissions:
   contents: read
 
 jobs:
-  browser-photo-stream:
+  browser-customer-360:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,14 +40,19 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Check Customer 360 media syntax
+      - name: Check Customer 360 syntax
         run: |
+          node --check commercial-app/app-15.js
           node --check commercial-app/customer-360-photo-stream.js
           node --check commercial-app/customer-360-site-visit-delete-bridge.js
+          node --check commercial-app/customer-360-timeline.js
           node --check commercial-app/customer-workspace-render-hook.js
           node --check scripts/verify-customer-360-photo-stream.js
           node --check scripts/verify-customer-360-site-visit-delete-bridge.js
+          node --check scripts/verify-customer-360-timeline.js
       - name: Verify Customer 360 Photo Stream
         run: node scripts/verify-customer-360-photo-stream.js
       - name: Verify Customer 360 Site Visit delete bridge
         run: node scripts/verify-customer-360-site-visit-delete-bridge.js
+      - name: Verify Customer 360 relationship timeline
+        run: node scripts/verify-customer-360-timeline.js
