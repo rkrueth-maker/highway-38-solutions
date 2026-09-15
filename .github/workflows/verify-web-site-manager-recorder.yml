@@ -1,0 +1,30 @@
+name: Verify web Site Manager recorder
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/field-visit-video.js'
+      - 'scripts/verify-web-site-manager-recorder.js'
+      - '.github/workflows/verify-web-site-manager-recorder.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/field-visit-video.js'
+      - 'scripts/verify-web-site-manager-recorder.js'
+      - '.github/workflows/verify-web-site-manager-recorder.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check recorder syntax
+        run: node --check commercial-app/field-visit-video.js
+      - name: Verify Android-style web recorder contract
+        run: node scripts/verify-web-site-manager-recorder.js
