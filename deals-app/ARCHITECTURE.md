@@ -1,6 +1,6 @@
 # H38 Deals — Three Product Architecture
 
-Android shell: **3.1.0 / code 340**.
+Android shell: **3.1.1 / code 341**.
 
 The installed Android package is a thin mobile WebView shell. Product behavior is hosted so Penny, Resale, and Couponing can be changed independently without replacing the APK.
 
