@@ -82,9 +82,11 @@ assert(bootstrap.includes('phoneFirstLiveBootstrap:true'),'bootstrap contract mu
 
     await phone.locator('#mainNav [data-h38-phone-primary="more"]').click();
     await phone.waitForSelector('#h38PhoneFirstMoreDialog[open]');
-    const moreText=await phone.locator('#h38PhoneFirstMoreDialog').innerText();
-    for(const label of ['Work & Sales','Money','Records & Equipment','Office','Jobs','Quotes','Site Visits','Documents','Settings'])assert(moreText.includes(label),`grouped More missing ${label}`);
-    await phone.locator('#h38PhoneFirstMoreDialog [data-h38-close]').click();
+    const more=phone.locator('#h38PhoneFirstMoreDialog');
+    const groupTitles=(await more.locator('.h38-phone-more-group > h3').allTextContents()).map(x=>x.trim());
+    assert.deepEqual(groupTitles,['Work & Sales','Money','Records & Equipment','Office'],'More must group phone tools into four understandable sections');
+    for(const pageKey of ['work','quotes','field','meetings','money','documents','inventory','fleet','settings'])assert.equal(await more.locator(`[data-h38-more-page="${pageKey}"]`).count(),1,`grouped More missing route ${pageKey}`);
+    await more.locator('[data-h38-close]').click();
 
     await phone.evaluate(()=>{document.getElementById('mainNav').innerHTML='<button><span>🧰</span><span>Jobs</span></button>';});
     await phone.waitForFunction(()=>Array.from(document.querySelectorAll('#mainNav [data-h38-phone-primary] span:last-child')).map(n=>n.textContent).join('|')==='Today|Customers|Schedule|Messages|More');
