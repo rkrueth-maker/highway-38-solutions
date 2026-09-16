@@ -15,18 +15,20 @@ scripts.forEach((script, i) => new vm.Script(script, { filename: path + ':browse
 const browserScript = scripts.join('\n');
 
 const required = [
-  'self-contained-store-first-v35', 'H38 Deals', 'Dollar General',
+  'store-actionable-v36', 'H38 Deals', 'Dollar General',
   'Home Depot', 'Menards', 'Check deals', 'UPC / SKU',
   'h38_penny_cache_feed', 'refresh_fast', 'refresh_dg',
-  "Ray's List", 'VERIFY LOCAL', 'Exact image unavailable',
-  'Where are you shopping?', 'Use my location', 'Find stores',
+  "Ray's List", 'VERIFY LOCAL', 'Photo recovery queued',
+  'Where are you shopping?', 'Use my location', 'Find deal stores',
   "action:'stores'", 'h38-penny-shopping-location-v1',
-  'Show all ', 'Clear filters', 'AndroidH38Deals.requestLocation',
+  'Clear filters', 'AndroidH38Deals.requestLocation',
   'H38NativeLocationResult', 'filtered of ',
   'refresh_menards', 'quantity_available', 'store_city',
   'h38RefreshWithNearbyStores', 'await findStores()',
-  'h38-shopping-location-v1', 'Saved coverage by store',
-  'Zero means no saved results', 'Check resale', 'Build coupon stack',
+  'h38-shopping-location-v1', 'Deal stores at a glance',
+  'Check this store', 'data-store-check', 'data-coverage-store',
+  'No saved leads yet', 'not a supported H38 deal source yet',
+  'Zero means no saved lead', 'Check resale', 'Build coupon stack',
 ];
 for (const marker of required) {
   if (!html.includes(marker)) throw new Error('missing required marker: ' + marker);
@@ -51,8 +53,14 @@ if (!/refresh_fast'[\s\S]{0,300}payload:p/.test(browserScript) ||
     !/refresh_dg'[\s\S]{0,300}payload:p/.test(browserScript)) {
   throw new Error('chosen location is not passed to explicit refresh');
 }
+if (!/p\.stores=\[s\][\s\S]{0,500}refresh_fast/.test(browserScript)) {
+  throw new Error('per-store check must bind the selected store to refresh_fast');
+}
+if (!/S\.nearby\.filter\([\s\S]{0,180}supportedStore/.test(browserScript)) {
+  throw new Error('global refresh must prioritize supported nearby deal stores');
+}
 if (!browserScript.includes("$('price').value=''")) {
   throw new Error('browser-restored price filter is not cleared on startup');
 }
 
-console.log('PASS: H38 Penny web is self-contained, store-first, authenticated, and cache-first.');
+console.log('PASS: H38 Penny web is self-contained, actionable by store, authenticated, and cache-first.');
