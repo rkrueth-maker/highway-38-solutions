@@ -1,0 +1,54 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+
+type Any=Record<string,any>;
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Content-Type":"application/json"};
+const json=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:cors});
+const norm=(v:unknown)=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+const clean=(v:unknown)=>String(v??'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#0*39;|&apos;|&#x27;/gi,"'").replace(/&nbsp;|&#160;/gi,' ').replace(/\s+/g,' ').trim();
+const strip=(v:unknown)=>clean(String(v??'').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/[*_#`]/g,' '));
+const slug=(v:unknown)=>norm(v).replace(/\s+/g,'-').slice(0,90);
+const money=(v:unknown)=>{const m=String(v??'').match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/);return m?Number(m[1]):null};
+const iso=()=>new Date().toISOString();
+const expires=(hours=30)=>new Date(Date.now()+hours*3600000).toISOString();
+
+async function fetchText(url:string){
+  const headers={'user-agent':'Mozilla/5.0 H38Coupon/2.0 public-retailer-check','accept':'text/html,text/plain,application/xhtml+xml;q=0.9,*/*;q=0.7','accept-language':'en-US,en;q=0.9'};
+  let last='';
+  for(const u of [`https://r.jina.ai/${url}`,url]){
+    try{const r=await fetch(u,{headers,redirect:'follow',signal:AbortSignal.timeout(18000)});last=`HTTP ${r.status}`;if(r.ok){const t=await r.text();if(t.length>200)return t.slice(0,2200000)}}catch(e){last=e instanceof Error?e.message:String(e)}
+  }
+  throw new Error(last||'source unavailable');
+}
+function lines(text:string){return String(text||'').split(/\r?\n/).map(strip).filter(Boolean)}
+function priceBefore(a:string[],i:number,back=7){for(let j=i-1;j>=Math.max(0,i-back);j--){const p=money(a[j]);if(Number.isFinite(p)&&p!>0)return p}return null}
+function dealAfter(a:string[],i:number,forward=8){for(let j=i+1;j<Math.min(a.length,i+forward);j++){const s=a[j];if(/^(?:offer|offers|multiple deals|\d+ deals)$/i.test(s))continue;if(/(?:must buy|save \$|\$\d+(?:\.\d+)? off|buy \d+|\d+\s*for\s*\$|on (?:one|two|any)|spend \$)/i.test(s))return s.slice(0,420)}return''}
+function base(retailer:string,title:string,item:string,price:number,sourceUrl:string,extra:Any={}):Any{
+  const observed=iso();
+  return{canonical_key:`coupon-v2:${slug(retailer)}:${slug(title)}`,retailer,title,item_name:item,buy_price:Number(price.toFixed(2)),retail_price:extra.retail_price??Number(price.toFixed(2)),deal_terms:extra.deal_terms||'',source_url:sourceUrl,evidence_scope:extra.evidence_scope||'retailer_current',observed_at:observed,expires_at:extra.expires_at||expires(extra.ttl_hours||30),active:true,payload:{scheme:'h38_coupon_public_offer_v2',source_type:extra.source_type||'public_retailer_current',query:item,source_confidence:extra.source_confidence||'retailer_current',locality:extra.locality||'not_verified',local_price_verified:false,live_checkout_verified:false,price_source:'Official retailer public page',checked_at:observed,package_size:extra.package_size||'',deal_quantity:extra.deal_quantity||null,effective_each:extra.effective_each??null,notes:extra.notes||'Retailer-current public evidence. Local store price, stock and coupon eligibility must still be verified.'}}
+}
+async function milk(){
+  const out:Any[]=[],diagnostics:Any[]=[];
+  const target='https://www.target.com/s/good%2Band%2Bgather%2Bmilk%2Bgallon';
+  try{const a=lines(await fetchText(target));for(let i=0;i<a.length&&out.length<5;i++){const t=a[i];if(!/\bmilk\b/i.test(t)||!/(?:1gal|1 gal|gallon)/i.test(t)||!/good\s*&?\s*gather/i.test(t))continue;const p=priceBefore(a,i,7);if(!Number.isFinite(p)||p!<=0)continue;out.push(base('Target',t,'Milk',p!,target,{package_size:'1 gallon'}))}diagnostics.push({source:'Target milk',status:out.some(x=>x.retailer==='Target')?'AVAILABLE':'DEGRADED'})}catch(e){diagnostics.push({source:'Target milk',status:'UNAVAILABLE',warning:e instanceof Error?e.message:String(e)})}
+  const walmart='https://www.walmart.com/ip/10450115';
+  try{const text=await fetchText(walmart),m=text.match(/Current price is(?:\s+USD)?\s*\$\s*([0-9]+(?:\.[0-9]{1,2})?)/i)||text.match(/One-time purchase\s*\$\s*([0-9]+(?:\.[0-9]{1,2})?)/i);const p=m?Number(m[1]):null;if(Number.isFinite(p)&&p!>0)out.push(base('Walmart','Great Value, 2% Reduced Fat Milk, Gallon','Milk',p!,walmart,{package_size:'1 gallon'}));diagnostics.push({source:'Walmart milk',status:Number.isFinite(p)?'AVAILABLE':'DEGRADED'})}catch(e){diagnostics.push({source:'Walmart milk',status:'UNAVAILABLE',warning:e instanceof Error?e.message:String(e)})}
+  return{rows:out,diagnostics};
+}
+async function dogFood(){
+  const url='https://www.dollargeneral.com/c/pet/dog-food',out:Any[]=[],diagnostics:Any[]=[];
+  try{const a=lines(await fetchText(url));for(let i=0;i<a.length&&out.length<8;i++){const t=a[i];if(!/\bdog food\b/i.test(t)||/(?:cat food|treat|toy)/i.test(t))continue;const p=priceBefore(a,i,6);if(!Number.isFinite(p)||p!<=0)continue;const d=dealAfter(a,i,10);out.push(base('Dollar General',t,'Dog food',p!,url,{deal_terms:d}))}diagnostics.push({source:'Dollar General dog food',status:out.length?'AVAILABLE':'DEGRADED',products:out.length})}catch(e){diagnostics.push({source:'Dollar General dog food',status:'UNAVAILABLE',warning:e instanceof Error?e.message:String(e)})}
+  return{rows:out,diagnostics};
+}
+async function laundry(){
+  const url='https://www.dollargeneral.com/c/cleaning/laundry-cleaning?inStock=true&soldAtStore=true',out:Any[]=[],diagnostics:Any[]=[];
+  try{const a=lines(await fetchText(url));for(let i=0;i<a.length&&out.length<10;i++){const t=a[i];if(!/\blaundry detergent\b/i.test(t)||/(?:dishwasher|stain remover|fabric softener|dryer sheet)/i.test(t))continue;const p=priceBefore(a,i,6);if(!Number.isFinite(p)||p!<=0)continue;const d=dealAfter(a,i,10);out.push(base('Dollar General',t,'Laundry detergent',p!,url,{deal_terms:d}))}diagnostics.push({source:'Dollar General laundry',status:out.length?'AVAILABLE':'DEGRADED',products:out.length})}catch(e){diagnostics.push({source:'Dollar General laundry',status:'UNAVAILABLE',warning:e instanceof Error?e.message:String(e)})}
+  return{rows:out,diagnostics};
+}
+async function brisk(){
+  const url='https://www.dollargeneral.com/p/brisk-iced-tea-lemon-16-9-fl-oz-6-ct/012000811203',out:Any[]=[],diagnostics:Any[]=[];
+  try{const a=lines(await fetchText(url)),now=Date.now(),offers:Any[]=[];for(let i=0;i<a.length;i++){const m=a[i].match(/(\d+)\s*FOR\s*\$\s*([0-9]+(?:\.[0-9]{1,2})?)/i);if(!m)continue;let end:any=null;for(let j=i+1;j<Math.min(a.length,i+10);j++){const x=a[j].match(/Exp:\s*(.+)$/i);if(x){const ts=Date.parse(x[1]);if(Number.isFinite(ts))end=ts;break}}if(end&&end<=now)continue;offers.push({qty:Number(m[1]),total:Number(m[2]),end})}offers.sort((x,y)=>(y.end||0)-(x.end||0));const best=offers[0];if(best){out.push(base('Dollar General',`Brisk Iced Tea Lemon 16.9 fl oz - 6 ct — ${best.qty} for $${best.total.toFixed(2)}`,'Brisk Ice tea',best.total,url,{deal_terms:`${best.qty} for $${best.total.toFixed(2)}`,deal_quantity:best.qty,effective_each:Number((best.total/best.qty).toFixed(2)),expires_at:best.end?new Date(best.end).toISOString():expires(30),package_size:'6 x 16.9 fl oz'}))}diagnostics.push({source:'Dollar General Brisk',status:out.length?'AVAILABLE':'DEGRADED',offers:offers.length})}catch(e){diagnostics.push({source:'Dollar General Brisk',status:'UNAVAILABLE',warning:e instanceof Error?e.message:String(e)})}
+  return{rows:out,diagnostics};
+}
+
+Deno.serve(async(req:Request)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return json({error:'POST_REQUIRED'},405);try{if(!req.headers.get('Authorization'))return json({error:'AUTH_REQUIRED'},401);const body=await req.json().catch(()=>({})),names=(Array.isArray(body.items)?body.items:[]).map((x:any)=>norm(x?.item_name||x?.name||x)).filter((x:string)=>x.length>=2).slice(0,12);const wanted=new Set<string>();for(const n of names){if(n==='milk'||/\bmilk\b/.test(n))wanted.add('milk');if(/\bdog\s+food\b/.test(n))wanted.add('dog');if(/\blaundry\b|\bdetergent\b/.test(n))wanted.add('laundry');if(/\bbrisk\b/.test(n))wanted.add('brisk')}const jobs:Promise<any>[]=[];if(wanted.has('milk'))jobs.push(milk());if(wanted.has('dog'))jobs.push(dogFood());if(wanted.has('laundry'))jobs.push(laundry());if(wanted.has('brisk'))jobs.push(brisk());const settled=await Promise.all(jobs),rows=settled.flatMap(x=>x.rows||[]),diagnostics=settled.flatMap(x=>x.diagnostics||[]);if(rows.length){const url=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});const q=await admin.from('coupon_public_offer_cache').upsert(rows,{onConflict:'canonical_key'});if(q.error)throw q.error}return json({ok:true,engine:'H38_COUPON_PUBLIC_REFRESH_V2',requested:names,wanted:[...wanted],refreshed:rows.length,rows:rows.map(r=>({canonical_key:r.canonical_key,retailer:r.retailer,title:r.title,item_name:r.item_name,buy_price:r.buy_price,deal_terms:r.deal_terms,evidence_scope:r.evidence_scope,observed_at:r.observed_at,expires_at:r.expires_at})),diagnostics,truth:'Official public retailer evidence is refreshed on demand. Local Grand Rapids price, stock and coupon eligibility remain unverified unless a source explicitly proves them.'})}catch(e){return json({error:'COUPON_REFRESH_ERROR',detail:e instanceof Error?e.message:String(e)},500)}});
