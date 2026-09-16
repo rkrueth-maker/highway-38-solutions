@@ -1,6 +1,6 @@
 const txt=v=>String(v??'').trim();
 
-const STATE_TO_CODE={alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',delaware:'DE',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'OR',pennsylvania:'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY','district of columbia':'DC'};
+const STATE_TO_CODE={alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',delaware:'DE',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'PA',pennsylvania:'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY','district of columbia':'DC'};
 const CODE_TO_STATE=Object.fromEntries(Object.entries(STATE_TO_CODE).map(([k,v])=>[v,k.replace(/\b\w/g,c=>c.toUpperCase())]));
 
 export function decodeEntities(value=''){
@@ -47,7 +47,7 @@ export function marketplaceTarget(value=''){
 }
 function titleNear(html,start,end){
   const segment=html.slice(Math.max(0,start-1200),Math.min(html.length,end+1800));
-  const h=(segment.match(/<h3\b[^>]*>([\s\S]*?)<\/h3>/i)||[])[1];
+  const h=(segment.match(/<(?:h2|h3)\b[^>]*>([\s\S]*?)<\/(?:h2|h3)>/i)||[])[1];
   if(h)return stripTags(h).slice(0,240);
   const t=(segment.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)||[])[1];
   return t?stripTags(t).slice(0,240):'';
