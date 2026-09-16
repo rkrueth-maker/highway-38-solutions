@@ -27,9 +27,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android 16 platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Prepare preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;35.0.0' 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
@@ -85,9 +91,6 @@ jobs:
           test -s "$AAB"
           unzip -t "$AAB" >/dev/null
           if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
-            # Android upload/app-signing certificates are normally self-signed.
-            # `-strict` treats that expected certificate chain as an error even when
-            # the AAB signature is valid, so verify the JAR signature itself here.
             jarsigner -verify -verbose -certs "$AAB" | tee "$RUNNER_TEMP/aab-signature-verification.txt"
             grep -q 'jar verified.' "$RUNNER_TEMP/aab-signature-verification.txt"
           fi
@@ -115,7 +118,4 @@ jobs:
           AAB="H38-Business-Office-v${VERSION}.aab"
           SHA="H38-Business-Office-v${VERSION}.aab.sha256"
           gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" "$AAB" "$SHA" \
-            --target "$GITHUB_SHA" \
-            --title "H38 Google Play v${VERSION}" \
-            --notes "Verified signed Google Play upload bundle for Highway 38 Business Office v${VERSION} (versionCode ${VERSION_CODE}), targeting Android 16 / API 36. The workflow verified the AAB JAR signature before publishing this release."
+          gh release create "$TAG" "$AAB" "$SHA" --target "$GITHUB_SHA" --title "H38 Google Play v${VERSION}" --notes "Verified signed Google Play upload bundle for Highway 38 Business Office v${VERSION} (versionCode ${VERSION_CODE}), targeting Android 16 / API 36. The workflow verified the AAB JAR signature before publishing this release."
