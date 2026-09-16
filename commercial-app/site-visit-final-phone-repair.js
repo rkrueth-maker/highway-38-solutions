@@ -27,10 +27,8 @@ function normalizeQuickSheet(){
   const operations=grid.querySelector('[data-h38-owner-quick="operations"]');
   const clock=grid.querySelector('[data-h38-owner-quick="time"]');
   const meeting=grid.querySelector('[data-h38-quick="meeting"]');
-  if(assistant)grid.insertBefore(assistant,grid.firstChild);
-  if(operations)grid.insertBefore(operations,assistant?.nextSibling||grid.firstChild);
-  if(clock)grid.insertBefore(clock,operations?.nextSibling||assistant?.nextSibling||grid.firstChild);
-  if(meeting)grid.insertBefore(meeting,clock?.nextSibling||operations?.nextSibling||assistant?.nextSibling||grid.firstChild);
+  const preferred=[assistant,operations,clock,meeting].filter(Boolean);
+  preferred.forEach((node,index)=>{const current=Array.from(grid.children)[index];if(current!==node)grid.insertBefore(node,current||null);});
 }
 function moveDeleteToMore(app){
   const button=Array.from(app.querySelectorAll('button')).find(node=>/^delete\s+site\s+visit$/i.test(text(node.textContent)));
@@ -43,7 +41,6 @@ function moveDeleteToMore(app){
 }
 function normalizeSiteVisit(){
   const app=document.getElementById('h38FieldVisitApp');if(!app||!visit())return;
-  try{window.H38_SITE_VISIT_MEETING_SEED?.decorate?.();}catch(_){}
   document.getElementById('h38MeetingVisitDock')?.remove();
   app.querySelectorAll('.h38-meeting-visit-dock,.field-device-card,.field-capture-counts,[data-field-after-walkthrough],.field-compact-help,.field-bottom-nav,.field-next').forEach(node=>node.remove());
   const head=app.querySelector('.field-panel.active .field-step-head')||app.querySelector('.field-step-head');
