@@ -3,6 +3,7 @@ const path=require('path');
 const root=path.resolve(__dirname,'..');
 const file=fs.readFileSync(path.join(root,'commercial-app/field-visit-video.js'),'utf8');
 const meetingSeed=fs.readFileSync(path.join(root,'commercial-app/site-visit-meeting-seed.js'),'utf8');
+const runtimeBootstrap=fs.readFileSync(path.join(root,'commercial-app/runtime-rowid-fix.js'),'utf8');
 const context=fs.readFileSync(path.join(root,'supabase/functions/h38-site-visit-context/index.ts'),'utf8');
 const serviceWorker=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
 
@@ -29,25 +30,44 @@ need(meetingSeed.includes('🎙️ Start Conversation'),'conversation is the cle
 need(meetingSeed.includes('Finish Conversation'),'conversation can finish without preparing a separate Site Manager state');
 need(meetingSeed.includes('📷 Add Photo'),'photo capture is directly available');
 need(meetingSeed.includes('✓ Finish Visit'),'Site Visit can finish without quote/video/measurement gates');
-need(meetingSeed.includes('Video walkthrough (optional)')&&meetingSeed.includes('Record Video (optional)'),'video walkthrough is explicitly optional');
+need(meetingSeed.includes('Video walkthrough (optional)')&&meetingSeed.includes('Record Video (optional)'),'underlying video recorder remains optional before presentation cleanup');
 need(meetingSeed.includes('walkthroughOptional:true')&&meetingSeed.includes('photosOptional:true')&&meetingSeed.includes('measurementsOptional:true'),'capture types are optional in the new flow contract');
 need(meetingSeed.includes('captureSessionNotRequiredForConversation:true'),'conversation no longer requires a capture session');
 need(meetingSeed.includes('notesAutoAppliedToVisit:true')&&meetingSeed.includes('mergeMeetingIntoVisit'),'organized conversation notes automatically feed the Site Visit');
 need(meetingSeed.includes('syncPendingMeetingAttachments'),'meeting attachment sync uses the actual conversation-assistant API');
 need(!meetingSeed.includes('Start the Site Visit and meeting first.'),'invalid capture-session prerequisite error is removed');
-need(!meetingSeed.includes('Prepare Site Manager from meeting'),'manual Prepare Site Manager ceremony is removed');
+need(!meetingSeed.includes('Prepare Site Manager from meeting'),'manual Prepare Site Manager ceremony is removed from simple-flow runtime');
 need(meetingSeed.includes('v.walkthroughSkipped=true'),'legacy walkthrough gating is compatibility-unlocked without requiring user skip action');
 need(meetingSeed.includes(".field-targeted-actions[hidden],.field-capture-actions.field-targeted-locked{display:grid!important}"),'photo controls stay available even if legacy runtime tries to gate them');
 need(meetingSeed.includes('window.H38_FIELD_VISIT.walkthroughFirst=false')&&meetingSeed.includes('window.H38_FIELD_VISIT.targetedPhotosAfterWalkthrough=false'),'runtime authority disables walkthrough-first behavior');
 need(meetingSeed.includes('automaticCustomerSending:false')&&meetingSeed.includes('automaticApproval:false'),'simple flow keeps sending and approval disabled');
+
+need(runtimeBootstrap.includes("const SITE_VISIT_CLEAN_BUILD='20260915-site-visit-clean-flow-1'"),'clean Site Visit presentation authority is versioned');
+need(runtimeBootstrap.includes("build:'20260915-site-visit-clean-flow-bootstrap-1'"),'live bootstrap advertises clean Site Visit authority');
+need(runtimeBootstrap.includes("document.getElementById('h38MeetingVisitDock')?.remove()")&&runtimeBootstrap.includes("document.querySelectorAll('.h38-meeting-visit-dock')"),'legacy Start Visit Assistant / Meeting dock is actively removed');
+need(runtimeBootstrap.includes("app.querySelectorAll('.field-bottom-nav,.field-next')"),'legacy staged Site Visit bottom navigation is suppressed');
+need(runtimeBootstrap.includes("copy.includes('conversation')&&copy.includes('walkthrough')&&copy.includes('details')&&copy.includes('quote')"),'legacy four-stage Conversation/Walkthrough/Details/Quote strip is detected and hidden');
+need(runtimeBootstrap.includes('Talk with the customer if useful. Add only the photos, video, or measurements that help. Finish the visit when you have what you need.'),'Site Visit header explains the actual simple flow');
+need(runtimeBootstrap.includes("strong.textContent='Video (optional)'"),'user-facing walkthrough heading is simplified to optional video');
+need(runtimeBootstrap.includes("'🎥 Record Video (optional)'"),'user-facing video action is optional and no longer walkthrough-first');
+need(runtimeBootstrap.includes('Add measurements only when they help define the work'),'critical-measurement mandate copy is removed from the active Site Visit');
+need(runtimeBootstrap.includes('add only the details that help document the visit'),'walkthrough-dependent clarification copy is neutralized');
+need(runtimeBootstrap.includes('Start conversation recording now? Make sure recording is appropriate and you have any consent required for this conversation.'),'Site Visit recording confirmation uses conversation language');
+need(runtimeBootstrap.includes('Conversation recording is active. Audio is being kept safely on this device.'),'Site Visit active-recording message uses conversation language');
+need(runtimeBootstrap.includes('This device cannot record conversation audio in Business Office.'),'Site Visit microphone failure uses conversation language');
+need(runtimeBootstrap.includes('onePageFlow:true')&&runtimeBootstrap.includes('conversationFirst:true')&&runtimeBootstrap.includes('optionalCapture:true')&&runtimeBootstrap.includes('finishVisitPrimary:true'),'clean Site Visit contract is one-page conversation / optional capture / finish');
+need(runtimeBootstrap.includes('legacyStepChromeSuppressed:true')&&runtimeBootstrap.includes('legacyMeetingDockSuppressed:true')&&runtimeBootstrap.includes('conversationPromptCopy:true'),'legacy Site Visit UI collision protections are explicit');
+need(runtimeBootstrap.includes('operationsTodayUntouched:true'),'Site Visit cleanup does not restore Operations Intelligence to Today');
+need(runtimeBootstrap.includes('../assets/highway38-logo.png?v=20260720-exact-0cbc4514'),'approved H38 owner-install logo remains unchanged');
 
 need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'optional server context build remains available');
 need(context.includes('captureItems')&&context.includes('quoteInputs'),'optional AI context still preserves capture and quote-useful inputs');
 need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'optional AI context remains proof logged');
 
 need(/CACHE_NAME='h38-business-office-20\d{6}-\d{4}'/.test(serviceWorker),'PWA cache uses a dated production epoch');
+need(serviceWorker.includes("'runtime-rowid-fix.js'"),'clean Site Visit bootstrap remains live-first');
 need(serviceWorker.includes("'site-visit-meeting-seed.js'"),'simple Site Visit runtime remains live-first');
 need(serviceWorker.includes("'./site-visit-meeting-seed.js'"),'simple Site Visit runtime remains offline-cached');
 
 if(process.exitCode)process.exit(process.exitCode);
-console.log('Simple Site Visit + optional recorder contract verified.');
+console.log('Clean Site Visit + optional recorder contract verified.');
