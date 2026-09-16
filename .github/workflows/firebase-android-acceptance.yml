@@ -30,9 +30,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android SDK
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'platform-tools'
+      - name: Prepare preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;35.0.0' 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
@@ -54,7 +60,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Require Firebase credentials
-        id: firebase
         working-directory: ${{ github.workspace }}
         shell: bash
         env:
@@ -71,8 +76,7 @@ jobs:
           chmod 600 "$RUNNER_TEMP/h38-firebase-service-account.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/h38-firebase-service-account.json" >> "$GITHUB_ENV"
           echo "CLOUDSDK_CORE_PROJECT=$FIREBASE_PROJECT_ID" >> "$GITHUB_ENV"
-      - name: Install Google Cloud CLI
-        uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v2
       - name: Authenticate Google Cloud
         working-directory: ${{ github.workspace }}
         shell: bash
@@ -90,7 +94,6 @@ jobs:
             --device model=MediumPhone.arm,version=35,locale=en,orientation=portrait \
             --device model=Pixel2.arm,version=30,locale=en,orientation=portrait \
             --timeout 15m \
-            --results-bucket="" \
             --format=json | tee firebase-test-lab/result.json
       - name: Capture Firebase diagnostics
         if: always()
