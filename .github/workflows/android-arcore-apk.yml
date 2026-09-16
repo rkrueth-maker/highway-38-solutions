@@ -34,9 +34,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android 16 platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Prepare preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;35.0.0' 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
@@ -78,29 +84,20 @@ jobs:
             echo 'signed=false' >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event_name }}" != "pull_request" ]]; then
               echo 'Stable Android signing secrets are not configured; refusing to publish an owner APK with an ephemeral debug certificate.' >&2
-              echo 'Required: H38_ANDROID_UPLOAD_KEYSTORE_B64, H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD, H38_ANDROID_UPLOAD_KEY_ALIAS, H38_ANDROID_UPLOAD_KEY_PASSWORD.' >&2
               exit 1
             fi
-            echo 'Pull-request validation will build a debug APK only; it is not an owner release artifact.'
+            echo 'Pull-request validation will build a debug APK only.'
           fi
       - name: Compile APK
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
-            gradle --no-daemon --stacktrace :app:assembleOwner
-          else
-            gradle --no-daemon --stacktrace :app:assembleDebug
-          fi
+          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then gradle --no-daemon --stacktrace :app:assembleOwner; else gradle --no-daemon --stacktrace :app:assembleDebug; fi
       - name: Verify APK and create credential association
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then
-            APK='app/build/outputs/apk/owner/app-owner.apk'
-          else
-            APK='app/build/outputs/apk/debug/app-debug.apk'
-          fi
+          if [[ "${{ steps.signing.outputs.signed }}" == 'true' ]]; then APK='app/build/outputs/apk/owner/app-owner.apk'; else APK='app/build/outputs/apk/debug/app-debug.apk'; fi
           CERTS="$GITHUB_WORKSPACE/H38-Site-Scanner-ARCore-Test.certs.txt"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee "$CERTS"
@@ -109,16 +106,7 @@ jobs:
           fingerprint="$(printf '%s' "$digest" | sed 's/../&:/g;s/:$//' | tr '[:lower:]' '[:upper:]')"
           mkdir -p "$GITHUB_WORKSPACE/.well-known"
           cat > "$GITHUB_WORKSPACE/.well-known/assetlinks.json" <<JSON
-          [
-            {
-              "relation": ["delegate_permission/common.handle_all_urls","delegate_permission/common.get_login_creds"],
-              "target": {
-                "namespace": "android_app",
-                "package_name": "com.highway38.sitescanner.test",
-                "sha256_cert_fingerprints": ["$fingerprint"]
-              }
-            }
-          ]
+          [{"relation":["delegate_permission/common.handle_all_urls","delegate_permission/common.get_login_creds"],"target":{"namespace":"android_app","package_name":"com.highway38.sitescanner.test","sha256_cert_fingerprints":["$fingerprint"]}}]
           JSON
           cp "$APK" "$GITHUB_WORKSPACE/$H38_ANDROID_APK_NAME"
           sha256sum "$GITHUB_WORKSPACE/$H38_ANDROID_APK_NAME" | tee "$GITHUB_WORKSPACE/$H38_ANDROID_SHA_NAME"
@@ -140,17 +128,11 @@ jobs:
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
-          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
-            printf 'Refusing stale Android release: main moved from %s to %s.\n' "$GITHUB_SHA" "$remote_sha" >&2
-            exit 1
-          fi
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then printf 'Refusing stale Android release: main moved from %s to %s.\n' "$GITHUB_SHA" "$remote_sha" >&2; exit 1; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .well-known/assetlinks.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Publish Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"
-            git push origin HEAD:main
-          fi
+          if ! git diff --cached --quiet; then git commit -m "Publish Android credential association for v${H38_ANDROID_VERSION_NAME} [skip android]"; git push origin HEAD:main; fi
           gh release view "$H38_ANDROID_RELEASE_TAG" >/dev/null 2>&1 && gh release delete "$H38_ANDROID_RELEASE_TAG" --yes --cleanup-tag || true
-          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner-test build with Android-keystore-protected saved H38 login after first manual sign-in. The app still requires the owner to tap Sign in and preserves all existing approval and financial controls."
+          gh release create "$H38_ANDROID_RELEASE_TAG" "$H38_ANDROID_APK_NAME" "$H38_ANDROID_SHA_NAME" H38-Site-Scanner-ARCore-Test.certs.txt .well-known/assetlinks.json --title "H38 Field Office and Site Scanner v${H38_ANDROID_VERSION_NAME}" --notes "Owner-test build with Android-keystore-protected saved H38 login after first manual sign-in."
           gh workflow run pages-branch-fallback.yml --ref main
