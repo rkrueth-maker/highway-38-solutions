@@ -48,7 +48,7 @@ need(runtimeBootstrap.includes("document.getElementById('h38MeetingVisitDock')?.
 need(runtimeBootstrap.includes("app.querySelectorAll('.field-bottom-nav,.field-next')"),'legacy staged Site Visit bottom navigation is suppressed');
 need(runtimeBootstrap.includes("copy.includes('conversation')&&copy.includes('walkthrough')&&copy.includes('details')&&copy.includes('quote')"),'legacy four-stage Conversation/Walkthrough/Details/Quote strip is detected and hidden');
 need(runtimeBootstrap.includes('Talk with the customer if useful. Add only the photos, video, or measurements that help. Finish the visit when you have what you need.'),'Site Visit header explains the actual simple flow');
-need(runtimeBootstrap.includes("strong.textContent='Video (optional)'"),'user-facing walkthrough heading is simplified to optional video');
+need(runtimeBootstrap.includes("setText(strong,'Video (optional)')"),'user-facing walkthrough heading is simplified to optional video');
 need(runtimeBootstrap.includes("'🎥 Record Video (optional)'"),'user-facing video action is optional and no longer walkthrough-first');
 need(runtimeBootstrap.includes('Add measurements only when they help define the work'),'critical-measurement mandate copy is removed from the active Site Visit');
 need(runtimeBootstrap.includes('add only the details that help document the visit'),'walkthrough-dependent clarification copy is neutralized');
