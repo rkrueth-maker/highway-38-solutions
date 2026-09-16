@@ -12,7 +12,9 @@ for(const marker of ['h38_shared_deal_cache','SAVED DEAL · NEEDS SOLD COMPS','p
 for(const marker of ['watch-tracker-v9','Optimize my list','max_stores:max','Delete price','Remove watch','Delete receipt','Scanned list added'])if(!coupon.html.includes(marker))throw Error('Couponing missing '+marker);
 for(const marker of ['h38-shopping-location-v1','Shopping location','Deal brought from H38','Add to shopping list','Prepare coupon stack','Nothing is saved until'])if(!coupon.html.includes(marker))throw Error('Connected Couponing UX missing '+marker);
 const penny=page('supabase/functions/h38-penny-web/index.ts');
-for(const retailer of ["Lowe\\'s",'Ace Hardware'])if(!penny.html.includes(retailer))throw Error('Deals coverage missing '+retailer.replace('\\',''));
+const pennyCoverage=penny.html.replace(/\\'/g,"'");
+for(const retailer of ["Lowe's",'Ace Hardware'])if(!pennyCoverage.includes(retailer))throw Error('Deals coverage missing '+retailer);
+if(!/DEAL_STORES=\[[\s\S]*Lowe[\\']*'s[\s\S]*Ace Hardware[\s\S]*\]/.test(penny.s))throw Error('Deals supported-store contract missing Lowe\'s or Ace Hardware');
 if(/if\(ok\)load\(/.test(resale.html))throw Error('Resale must not scan on open');
 const resaleScript=[...resale.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join('\n');
 const rowsFn=resaleScript.match(/function rows\([\s\S]*?return\s*\[\s*\]\s*;\s*\}/);
