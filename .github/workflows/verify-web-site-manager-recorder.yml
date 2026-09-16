@@ -5,6 +5,7 @@ on:
     paths:
       - 'commercial-app/field-visit-video.js'
       - 'commercial-app/site-visit-meeting-seed.js'
+      - 'commercial-app/runtime-rowid-fix.js'
       - 'supabase/functions/h38-site-visit-context/**'
       - 'scripts/verify-web-site-manager-recorder.js'
       - '.github/workflows/verify-web-site-manager-recorder.yml'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'commercial-app/field-visit-video.js'
       - 'commercial-app/site-visit-meeting-seed.js'
+      - 'commercial-app/runtime-rowid-fix.js'
       - 'supabase/functions/h38-site-visit-context/**'
       - 'scripts/verify-web-site-manager-recorder.js'
       - '.github/workflows/verify-web-site-manager-recorder.yml'
@@ -28,9 +30,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check recorder and meeting-seed syntax
+      - name: Check recorder and clean Site Visit syntax
         run: |
           node --check commercial-app/field-visit-video.js
           node --check commercial-app/site-visit-meeting-seed.js
-      - name: Verify meeting-first web Site Manager contract
+          node --check commercial-app/runtime-rowid-fix.js
+      - name: Verify clean web Site Visit contract
         run: node scripts/verify-web-site-manager-recorder.js
