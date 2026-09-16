@@ -24,6 +24,7 @@ function currentPage(){try{return String(window.state?.page||'');}catch(_){retur
 function shouldLoadCustomerWorkspace(){return CUSTOMER_WORKSPACE_PAGES.has(currentPage());}
 function siteVisitOpen(){return !!document.getElementById('h38FieldVisitApp')&&window.H38_FIELD_VISIT_CORE?.state?.open===true;}
 function cleanText(value){return String(value==null?'':value);}
+function setText(node,value){const next=cleanText(value);if(node&&node.textContent!==next)node.textContent=next;}
 function rewriteVisibleText(root){
   if(!root||!siteVisitOpen())return;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
@@ -75,24 +76,24 @@ function normalizeSiteVisitPresentation(){
   const head=app.querySelector('.field-step-head');
   if(head){
     const number=head.querySelector('span'),title=head.querySelector('h1'),copy=head.querySelector('p');
-    if(number)number.textContent='Visit';
-    if(title)title.textContent='Site Visit';
-    if(copy)copy.textContent='Talk with the customer if useful. Add only the photos, video, or measurements that help. Finish the visit when you have what you need.';
+    setText(number,'Visit');
+    setText(title,'Site Visit');
+    setText(copy,'Talk with the customer if useful. Add only the photos, video, or measurements that help. Finish the visit when you have what you need.');
   }
   const conversation=app.querySelector('[data-field-meeting-seed]');
   const badge=conversation?.querySelector('.field-meeting-seed-head>span');
-  if(badge&&badge.textContent.trim()==='1')badge.textContent='Talk';
+  if(badge&&badge.textContent.trim()==='1')setText(badge,'Talk');
   const stage=app.querySelector('[data-field-walkthrough-stage]');
   if(stage){
     const strong=stage.querySelector('strong');
-    if(strong&&/video walkthrough/i.test(strong.textContent||''))strong.textContent='Video (optional)';
+    if(strong&&/video walkthrough/i.test(strong.textContent||''))setText(strong,'Video (optional)');
     stage.querySelectorAll('button').forEach(button=>{
       const label=cleanText(button.textContent);
-      if(/walkthrough/i.test(label))button.textContent=/another/i.test(label)?'🎥 Record Another Video':'🎥 Record Video (optional)';
+      if(/walkthrough/i.test(label))setText(button,/another/i.test(label)?'🎥 Record Another Video':'🎥 Record Video (optional)');
     });
   }
   const finish=app.querySelector('[data-simple-finish] small');
-  if(finish)finish.textContent='Use conversation, photos, video, or measurements only when they add value. Finish when the visit is complete.';
+  setText(finish,'Use conversation, photos, video, or measurements only when they add value. Finish when the visit is complete.');
   rewriteVisibleText(app);
   return true;
 }
