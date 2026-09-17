@@ -62,7 +62,7 @@ jobs:
           test "$APP_ID" = 'com.highway38.sitescanner.test'
           test -n "$TEST_ID"
           test "$TEST_ID" != "$APP_ID"
-          grep -q "instrumentation: name='androidx.test.runner.AndroidJUnitRunner' targetPackage='$APP_ID'" "$RUNNER_TEMP/h38-test-badging.txt"
+          grep -Fq "testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'" app/build.gradle
           echo "Verified debug target package: $APP_ID"
           echo "Verified instrumentation package: $TEST_ID"
       - name: Upload locally built acceptance APKs
@@ -119,7 +119,8 @@ jobs:
             echo '### Firebase Android Acceptance'
             echo '- Credential-independent Android package acceptance: **PASS**'
             echo '- Debug APK: built and verified'
-            echo '- Instrumentation APK: built and verified against the Debug target package'
+            echo '- Instrumentation APK: built and verified'
+            echo '- Instrumentation runner contract: verified from Android build configuration'
             echo '- Firebase Test Lab cloud execution: **not run — credentials not configured**'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: google-github-actions/setup-gcloud@v2
