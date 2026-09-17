@@ -69,7 +69,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.H38_ANDROID_UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -n "${KEYSTORE_B64:-}" ]]; then
+          present=0
+          [[ -n "${KEYSTORE_B64:-}" ]] && ((present+=1))
+          [[ -n "${KEYSTORE_PASSWORD:-}" ]] && ((present+=1))
+          [[ -n "${KEY_ALIAS:-}" ]] && ((present+=1))
+          [[ -n "${KEY_PASSWORD:-}" ]] && ((present+=1))
+
+          if [[ "$present" -eq 4 ]]; then
             KEYSTORE_PATH="$RUNNER_TEMP/h38-owner-keystore.jks"
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
             chmod 600 "$KEYSTORE_PATH"
@@ -80,6 +86,9 @@ jobs:
               echo "H38_ANDROID_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
             } >> "$GITHUB_ENV"
             echo 'signed=true' >> "$GITHUB_OUTPUT"
+          elif [[ "$present" -ne 0 ]]; then
+            echo 'Android owner signing is only partially configured. Configure all four H38_ANDROID_UPLOAD_* secrets together.' >&2
+            exit 1
           else
             echo 'signed=false' >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event_name }}" != "pull_request" ]]; then
