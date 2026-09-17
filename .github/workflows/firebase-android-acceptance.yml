@@ -50,14 +50,21 @@ jobs:
           set -euo pipefail
           APP_APK='app/build/outputs/apk/debug/app-debug.apk'
           TEST_APK='app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           test -s "$APP_APK"
           test -s "$TEST_APK"
           unzip -tq "$APP_APK" >/dev/null
           unzip -tq "$TEST_APK" >/dev/null
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" > "$RUNNER_TEMP/h38-app-badging.txt"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$TEST_APK" > "$RUNNER_TEMP/h38-test-badging.txt"
-          grep -q "package: name='com.highway38.sitescanner'" "$RUNNER_TEMP/h38-app-badging.txt"
-          grep -q "package: name='com.highway38.sitescanner.test'" "$RUNNER_TEMP/h38-test-badging.txt"
+          "$AAPT" dump badging "$APP_APK" > "$RUNNER_TEMP/h38-app-badging.txt"
+          "$AAPT" dump badging "$TEST_APK" > "$RUNNER_TEMP/h38-test-badging.txt"
+          APP_ID="$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/h38-app-badging.txt" | head -1)"
+          TEST_ID="$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/h38-test-badging.txt" | head -1)"
+          test "$APP_ID" = 'com.highway38.sitescanner.test'
+          test -n "$TEST_ID"
+          test "$TEST_ID" != "$APP_ID"
+          grep -q "instrumentation: name='androidx.test.runner.AndroidJUnitRunner' targetPackage='$APP_ID'" "$RUNNER_TEMP/h38-test-badging.txt"
+          echo "Verified debug target package: $APP_ID"
+          echo "Verified instrumentation package: $TEST_ID"
       - name: Upload locally built acceptance APKs
         uses: actions/upload-artifact@v4
         with:
@@ -112,7 +119,7 @@ jobs:
             echo '### Firebase Android Acceptance'
             echo '- Credential-independent Android package acceptance: **PASS**'
             echo '- Debug APK: built and verified'
-            echo '- Instrumentation APK: built and verified'
+            echo '- Instrumentation APK: built and verified against the Debug target package'
             echo '- Firebase Test Lab cloud execution: **not run — credentials not configured**'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: google-github-actions/setup-gcloud@v2
