@@ -5,6 +5,7 @@ JAVA_ROOT = ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src"
 MAIN = (JAVA_ROOT / "MainActivity.java").read_text(encoding="utf-8")
 BRIDGE = (JAVA_ROOT / "NativeScannerBridge.java").read_text(encoding="utf-8")
 CAPTURE = (JAVA_ROOT / "WalkthroughCaptureActivity.java").read_text(encoding="utf-8")
+NATIVE_GUARD = (ROOT / "commercial-app" / "native-office-launch-guard.js").read_text(encoding="utf-8")
 
 
 def test_main_activity_handles_webview_renderer_loss_instead_of_crashing():
@@ -47,6 +48,17 @@ def test_launch_cover_waits_for_explicit_office_readiness():
     assert "LAUNCH_COVER_FALLBACK_MS" in MAIN
     assert "public void officeReady(String kind)" in BRIDGE
     assert "activity.onOfficeReady(kind)" in BRIDGE
+
+
+def test_native_reveal_waits_for_final_mobile_layout_authorities():
+    assert "function finalMobileAuthoritiesReady()" in NATIVE_GUARD
+    assert "H38_MOBILE_RUNTIME_STABILITY" in NATIVE_GUARD
+    assert "h38ProductionPolish" in NATIVE_GUARD
+    assert "H38_OFFICE_ACCOUNT_IDENTITY" in NATIVE_GUARD
+    assert "h38OfficeAccountIdentity" in NATIVE_GUARD
+    assert "h38OfficeAccountIdentityStyle" in NATIVE_GUARD
+    assert "if(!finalMobileAuthoritiesReady())return false;" in NATIVE_GUARD
+    assert "nativeCoverWaitsForFinalMobileAuthorities:true" in NATIVE_GUARD
 
 
 def test_capture_activity_persists_result_before_returning_to_webview():
