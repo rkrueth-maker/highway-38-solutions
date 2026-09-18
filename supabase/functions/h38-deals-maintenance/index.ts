@@ -20,6 +20,26 @@ const pct = (a: number, b: number) => b > 0 ? Math.round((a / b) * 1000) / 10 : 
 const ageHours = (v: unknown) => { const n = Date.parse(txt(v)); return Number.isFinite(n) ? Math.round(((Date.now() - n) / 3600000) * 10) / 10 : null; };
 const worst = (...s: string[]) => s.includes("FAIL") ? "FAIL" : s.includes("PARTIAL") ? "PARTIAL" : "PASS";
 
+async function boundedCheck(label: string, promise: Promise<Any>, timeoutMs: number) {
+  const started = Date.now();
+  try {
+    const value = await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)),
+    ]);
+    return { ...value, elapsed_ms: Date.now() - started };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return {
+      status: "FAIL",
+      error: message,
+      elapsed_ms: Date.now() - started,
+      warnings: [message],
+      timed_out: /timed out/i.test(message),
+    };
+  }
+}
+
 async function ownerAuth(req: Request) {
   const auth = req.headers.get("Authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "");
@@ -165,7 +185,9 @@ Deno.serve(async (req: Request) => {
     const repair = action === "maintain";
     const started = Date.now();
     const [coupon, penny, resale] = await Promise.all([
-      couponCheck(repair), pennyCheck(), resaleCheck(who.auth, deep),
+      boundedCheck("Couponing health check", couponCheck(repair), repair ? 70000 : 20000),
+      boundedCheck("Penny health check", pennyCheck(), 20000),
+      boundedCheck("Resale health check", resaleCheck(who.auth, deep), deep ? 60000 : 20000),
     ]);
     const status = worst(coupon.status, penny.status, resale.status);
     const warnings = [...(coupon.warnings || []).map((x: string) => `Couponing: ${x}`), ...(penny.warnings || []).map((x: string) => `Penny: ${x}`), ...(resale.warnings || []).map((x: string) => `Resale: ${x}`)];
