@@ -96,6 +96,19 @@ jobs:
             echo 'mode=credential-independent' >> "$GITHUB_OUTPUT"
             echo '::warning::Firebase Test Lab credentials are not configured. APK and instrumentation-package acceptance passed; cloud device execution is unavailable for this run.'
           fi
+      - name: Enable KVM acceleration for emulator fallback
+        if: steps.firebase.outputs.configured != 'true'
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -e /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
+          ls -l /dev/kvm
       - name: Run Android instrumentation fallback
         if: steps.firebase.outputs.configured != 'true'
         uses: ReactiveCircus/android-emulator-runner@v2
@@ -108,6 +121,9 @@ jobs:
           # The prior fallback reached sys.boot_completed=1, then failed on that
           # optional animation-setting call before instrumentation could start.
           disable-animations: false
+          # KVM is enabled explicitly above; never silently fall back to the
+          # unstable software-emulated Linux device that dropped framework services.
+          disable-linux-hw-accel: false
           # The API-30 emulator can report sys.boot_completed before Android
           # framework services are actually responsive. Wait for package/settings
           # services and a readable SDK level so ddmlib does not classify the
