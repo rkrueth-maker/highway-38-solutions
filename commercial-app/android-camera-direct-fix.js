@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260911-web-first-site-visit-3';
-const MOBILE_FIELD_BUILD='20260911-mobile-field-view-2';
+const BUILD='20260918-web-first-site-visit-one-shell-1';
+const MOBILE_FIELD_BUILD='20260918-one-shell-field-experience-1';
 
 /*
  * Web-first Site Visit authority.
@@ -12,11 +12,10 @@ const MOBILE_FIELD_BUILD='20260911-mobile-field-view-2';
  * A native Android shell may still provide enhanced capture/recovery, but it is
  * optional and must never be required to start or complete a normal Site Visit.
  *
- * Phone presentation is intentionally separate from Office setup. The normal
- * Business Office remains authoritative; mobile-field-view.js only selects a
- * simplified Field & Crew presentation on phones and always offers Full Office.
- * Staff/site-manager phones default to Field View. Owner/admin phones keep the
- * accepted full Office default unless that user explicitly chooses Field View.
+ * There is one Business Office shell. mobile-field-view.js remains as a
+ * compatibility and field-experience enhancer: it clears retired Field View
+ * preferences, keeps state.shell on Office, and presents role-aware My Day/job
+ * workflows without creating a second navigation or data authority.
  */
 function nativeShell(){
   return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;
@@ -56,7 +55,7 @@ function decorateWebFirstCopy(){
     const note=document.createElement('div');
     note.dataset.h38SiteManagerProfileNote='1';
     note.className='h38-erp-note';
-    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office and records. Staff/site-manager phones default to the simplified Field View; Full Office remains available.';
+    note.innerHTML='<strong>Site manager is an Office access profile.</strong> It uses the same H38 Business Office, records, permissions and routes. Field roles open into a simplified My Day and job-centered experience without switching modes.';
     const head=team.querySelector('.h38-team-head');
     if(head)head.insertAdjacentElement('afterend',note);else team.prepend(note);
   }
@@ -82,15 +81,17 @@ window.H38_SITE_VISIT_CAPTURE_AUTHORITY=Object.freeze({
   build:BUILD,
   primary:'business-office-web',
   browserRecorder:'commercial-app/field-visit-video.js',
-  phonePresentation:'commercial-app/mobile-field-view.js',
+  phonePresentation:'commercial-app/mobile-field-view.js — compatibility plus role-aware one-shell field experience',
   officeSetupUntouched:true,
   siteManagerAppRequired:false,
   nativeAppRequired:false,
   nativeCompanionOptional:true,
   sameOfficeForOwnerEmployeesAndSiteManagers:true,
-  mobileFieldViewDefaultForStaff:true,
-  mobileFullOfficeDefaultForOwnerAdmin:true,
-  fullOfficeChoiceAlwaysAvailable:true,
+  oneBusinessOfficeShell:true,
+  fieldStaffMyDayInSameOffice:true,
+  ownerAdminOfficeNavigationPreserved:true,
+  fieldViewModeRetired:true,
+  fullOfficeChoiceAlwaysAvailable:false,
   cameraMicrophoneViaBrowser:true,
   offlineDraftPersistence:true,
   privateSupabaseSync:true,
@@ -113,6 +114,8 @@ window.H38_ANDROID_CAMERA_DIRECT_FIX=Object.freeze({
   siteManagerAppRequired:false,
   nativeCompanionOptional:true,
   mobileFieldViewLoader:true,
+  mobileFieldViewCompatibilityOnly:true,
+  oneBusinessOfficeShell:true,
   automaticApproval:false,
   automaticCustomerSending:false
 });
