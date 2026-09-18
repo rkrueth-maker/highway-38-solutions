@@ -64,6 +64,7 @@ requireText(nativeScroll,"const PRIMARY_KEYS=['today','customers','schedule','me
 requireText(nativeScroll,'jobsMovedToMore:true','physical authority recognizes Jobs moved to More');
 requireText(phoneFirst,'navigationDelegatedToMobileAuthority:true','phone polish does not create a second navigation authority');
 requireText(phoneFirst,'floatingCreate:true','phone polish exposes separate create action');
+requireText(phoneFirst,'toastClearsFloatingCreate:true','phone toast stays clear of floating create action');
 requireText(phoneFirst,'simplifiedToday:true','phone polish simplifies Today');
 requireText(phoneFirst,'customerFinder:true','phone polish adds customer-first search');
 requireText(phoneFirst,'siteVisitStepper:true','phone polish adds Site Manager progress');
