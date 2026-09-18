@@ -1,4 +1,5 @@
 name: H38 Scout Web Button Acceptance
+# H38 live web acceptance authority v1
 
 on:
   push:
