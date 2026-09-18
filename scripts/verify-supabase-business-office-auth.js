@@ -60,7 +60,7 @@ check(portal.includes('url=open-business-office.html')&&portal.includes('locatio
 
 check(has(index,[
   'id="mainContent"','id="businessSelect"','supabase-config.js','supabase-auth.js',
-  'auth-session-guard.js','auth-cache-guard.js?build=20260825-auth-cache-guard-desktop-nav-clicks-4','supabase-startup.js?build=20260917-authoritative-startup-ready-2','authSignOutButton'
+  'auth-session-guard.js','auth-cache-guard.js?build=20260825-auth-cache-guard-desktop-nav-clicks-4','supabase-startup.js?build=20260918-post-login-operational-authority-1','authSignOutButton'
 ]),'Business Office shell or Auth scripts are incomplete.');
 check((index.match(/id="mainContent"/g)||[]).length===1,'Only one Business Office shell is allowed.');
 check(index.indexOf('supabase-auth.js')<index.indexOf('auth-session-guard.js'),'Session guard must load after Auth.');
@@ -71,7 +71,8 @@ check(has(auth,[
   "runtime.activeMemberships = runtime.memberships.filter(row => row.membershipStatus === 'active' && row.businessStatus === 'active')",
   "throw new Error('The selected business is not an active membership.')",
   "flowType: 'pkce'",'resetPasswordForEmail',"event === 'PASSWORD_RECOVERY'",
-  "event === 'SIGNED_OUT'","transport = 'supabase-auth'",'externalActionsEnabled: false'
+  "event === 'SIGNED_OUT'","transport = 'supabase-auth'",'externalActionsEnabled: false',
+  "startupMode: 'SUPABASE_AUTH_FOUNDATION'",'fullRefreshPending: true','foundationSnapshotRequiresHydration: true','authFoundationNeverAuthoritative: true'
 ]),'Supabase Auth membership controls are incomplete.');
 check(!/service_role|SUPABASE_SERVICE_ROLE_KEY|user_metadata\.role|raw_user_meta_data\.role/.test(auth),'Auth client contains a forbidden authorization source or privileged credential.');
 
@@ -94,7 +95,9 @@ check(has(startup,[
   "['membership-suspended','membership-revoked','membership-invited','no-membership']",
   "state.bridge.request('fullStartupRefresh'",'h38SetAuthorizedChrome(false)','h38SetAuthorizedChrome(true)',
   'h38RegisterOfficeServiceWorker','hydrateLocalStartup({allowOnline:true})','onlineWarmOpen:true',
-  'deniedMembershipClosesCache:true'
+  'deniedMembershipClosesCache:true','h38SnapshotAuthoritative','authFoundationNeverPaints:true','operationalSnapshotRequired:true',
+  "if(startup.snapshot&&h38SnapshotAuthoritative(startup.snapshot))",
+  "Operational business hydration did not complete; refusing to paint an Auth-only snapshot."
 ]),'Supabase startup authorization integration is incomplete.');
 check(!startup.includes('retireLegacyOfflineShell();'),'Supabase startup must not unregister the Business Office service worker/cache.');
 check(/CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(serviceWorker)&&has(serviceWorker,[
