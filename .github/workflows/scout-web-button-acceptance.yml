@@ -54,6 +54,7 @@ jobs:
           const KEY=process.env.SUPABASE_KEY;
           const EMAIL=process.env.SCOUT_EMAIL;
           const PASSWORD=process.env.SCOUT_PASSWORD;
+          let browser;
           (async()=>{
             const auth=await fetch(BASE+'/auth/v1/token?grant_type=password',{
               method:'POST',
@@ -64,7 +65,7 @@ jobs:
             if(!auth.ok) throw new Error('auth '+auth.status+' '+body.slice(0,300));
             const session=JSON.parse(body);
             session.expires_at=Math.floor(Date.now()/1000)+Number(session.expires_in||3600);
-            const browser=await chromium.launch({headless:true});
+            browser=await chromium.launch({headless:true});
             const context=await browser.newContext();
             await context.addInitScript(({k,v})=>localStorage.setItem(k,JSON.stringify(v)),{
               k:'sb-jqukmwtsgcsaruucnqja-auth-token',v:session
@@ -93,8 +94,7 @@ jobs:
             console.log('MAINT_FINAL_REQUEST_FAILURES',JSON.stringify(failed));
             if(!/^Finished\./.test(finalMsg)) throw new Error(finalMsg);
             if(await page.locator('#report .card').count()===0) throw new Error('Maintenance finished without report cards');
-            await browser.close();
             console.log('H38_MAINTENANCE_DIAGNOSTIC_PASS');
-          })().catch(e=>{console.error(e);process.exitCode=1});
+          })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close().catch(()=>{});});
           NODE
           node "$RUNNER_TEMP/h38-maintenance-diagnostic.cjs"
