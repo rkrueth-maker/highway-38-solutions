@@ -87,7 +87,7 @@ Deno.serve(async req=>{
   try{
     const auth=req.headers.get('Authorization')||'',token=auth.replace(/^Bearer\s+/i,'');if(!token)return json({error:'AUTH_REQUIRED'},401);
     const url=Deno.env.get('SUPABASE_URL'),anon=Deno.env.get('SUPABASE_ANON_KEY');
-    const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}});const {data:{user},error:uerr}=await sb.auth.getUser(token);if(uerr||!user)return json({error:'AUTH_REQUIRED'},401);
+    const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}});const {data:{user},error:uerr}=await sb.auth.getUser(token);if(uerr||!user)return json({error:'AUTH_REQUIRED'},401);const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';const admin=service?createClient(url,service):sb;
     const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',user.id).eq('product_key','penny').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'penny'},403);
     const body=await req.json().catch(()=>({})),action=String(body.action||'hunt_fast'),input={...(body.payload||{})};
 
@@ -97,7 +97,7 @@ Deno.serve(async req=>{
       const radius=Number(input.radiusMiles??input.radius_miles??input.radius??50),safeRadius=Number.isFinite(radius)&&radius>0?radius:50,storesPayload={...input,zip:zip||input.zip,lat,lon,radiusMiles:safeRadius,quickRadiusMiles:Math.min(safeRadius,50)};
       const quick=await invoke(url,anon,auth,'reseller-nearby-stores-v262',storesPayload,18000),quickStores=storesFrom(quick.data);if(quick.ok&&quickStores.length>=12)return json({ok:true,product:'penny',source:'reseller-nearby-stores-v262',resolved_location:{lat,lon,zip},data:{...quick.data,stores:quickStores,store_count:quickStores.length}});
       const latSpan=Math.max(.22,safeRadius/69),lonSpan=Math.max(.25,safeRadius/(69*Math.max(.25,Math.cos(lat*Math.PI/180))));
-      const cache=await sb.from('reseller_store_discovery_tiles').select('stores,updated_at,lat,lon,radius_miles').gte('lat',lat-latSpan).lte('lat',lat+latSpan).gte('lon',lon-lonSpan).lte('lon',lon+lonSpan).order('updated_at',{ascending:false}).limit(80);
+      const cache=await admin.from('reseller_store_discovery_tiles').select('stores,updated_at,lat,lon,radius_miles').gte('lat',lat-latSpan).lte('lat',lat+latSpan).gte('lon',lon-lonSpan).lte('lon',lon+lonSpan).order('updated_at',{ascending:false}).limit(80);
       const cachedStores=cache.error?[]:mergeStores(...(cache.data||[]).map(t=>storesFrom(t.stores)));
       if(cachedStores.length>=12){const stores=mergeStores(quickStores,cachedStores);return json({ok:true,product:'penny',source:'reseller-store-discovery-cache',resolved_location:{lat,lon,zip},data:{stores,store_count:stores.length,quick_store_count:quickStores.length,cached_store_count:cachedStores.length,cache_fallback:true}})}
       let durable=null,durableStores=[];for(let pass=0;pass<2;pass++){durable=await invoke(url,anon,auth,'reseller-nearby-stores',{lat,lon,radiusMiles:safeRadius,zip:zip||input.zip},22000);if(durable.ok){durableStores=storesFrom(durable.data);if(durableStores.length>=12||durable.data?.scan_complete)break}else break}
