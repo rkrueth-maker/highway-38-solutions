@@ -80,8 +80,46 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
     document.documentElement.dataset.h38OwnerStartupAuthorities='ready';
     window.dispatchEvent(new CustomEvent('h38:owner-startup-authorities-ready',{detail:{build:'test'}}));
   });
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Owner workflow authorities alone must not release before authoritative data, lifecycle, and phone-first composition.');
+
+  await page.evaluate(()=>{
+    document.documentElement.dataset.h38AuthoritativeStartup='ready';
+    window.dispatchEvent(new CustomEvent('h38:authoritative-startup-ready',{detail:{build:'test'}}));
+  });
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Authoritative snapshot alone must not release before lifecycle and phone-first composition.');
+
+  await page.evaluate(()=>{
+    window.H38_JOB_LIFECYCLE={build:'test'};
+    document.documentElement.dataset.h38JobLifecycleReady='ready';
+    window.dispatchEvent(new CustomEvent('h38:job-lifecycle-ready',{detail:{build:'test'}}));
+  });
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Lifecycle readiness alone must not release before Phone First and floating create are present.');
+
+  await page.evaluate(()=>{
+    const main=document.getElementById('mainContent');
+    const sample=document.createElement('details');sample.open=true;sample.dataset.h38ReferenceSample='today';sample.textContent='Fictional reference example';main.appendChild(sample);
+    const life=document.createElement('section');life.className='h38-life-today';life.textContent='Job lifecycle & next actions';main.appendChild(life);
+    window.H38_PHONE_FIRST_OFFICE={build:'test'};
+    document.documentElement.dataset.h38PhoneFirstReady='ready';
+    const plus=document.createElement('button');plus.id='h38PhoneCreateButton';plus.textContent='+';document.body.appendChild(plus);
+    const today=document.createElement('section');today.id='h38PhoneToday';today.textContent='Final phone Today';main.prepend(today);
+    window.dispatchEvent(new CustomEvent('h38:phone-first-ready',{detail:{build:'test'}}));
+  });
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Open fictional sample and visible lifecycle panel must block native reveal.');
+
+  await page.evaluate(()=>{
+    document.querySelector('[data-h38-reference-sample]')?.remove();
+    const life=document.querySelector('.h38-life-today');if(life)life.dataset.h38PhoneSecondary='1';
+    const main=document.getElementById('mainContent');main.classList.add('h38-phone-simplified');
+    const style=document.createElement('style');style.textContent="@media(max-width:760px){.h38-phone-simplified:not([data-h38-phone-details='1'])>[data-h38-phone-secondary='1']{display:none!important}}";document.head.appendChild(style);
+    window.dispatchEvent(new CustomEvent('h38:phone-first-ready',{detail:{build:'test'}}));
+  });
   await page.waitForFunction(()=>document.documentElement.dataset.h38NativeOfficeReady==='office');
-  assert.deepEqual(signals,['office'],'Native readiness must fire once, after final mobile and owner startup authorities are present.');
+  assert.deepEqual(signals,['office'],'Native readiness must fire once, only after authoritative data, lifecycle, Phone First, final Today, and floating create are all stable.');
 
   const atReveal=await page.evaluate(()=>window.__readyGeometry);
   await page.waitForTimeout(180);
@@ -97,7 +135,7 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
   const browser=await chromium.launch({headless:true});
   try{
     await verifyLateAuthoritiesDoNotBounce(browser);
-    console.log(JSON.stringify({status:'PASS',nativeReveal:'after-final-mobile-authorities',geometryStableAfterReveal:true,primary:['Today','Customers','Schedule','Messages','More']}));
+    console.log(JSON.stringify({status:'PASS',nativeReveal:'after-authoritative-snapshot-lifecycle-phone-first',temporaryReferenceBlocked:true,temporaryLifecycleBlocked:true,geometryStableAfterReveal:true,primary:['Today','Customers','Schedule','Messages','More']}));
   }finally{
     await browser.close();
   }

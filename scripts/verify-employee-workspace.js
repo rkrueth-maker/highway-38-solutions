@@ -85,7 +85,7 @@ expect(!loader.includes('script.src=`./employee-workspace.js'),'Final desktop au
 
 includes(worker,"'employee-workspace.js'",'Employee companion may remain LIVE_FIRST if explicitly requested.');
 includes(worker,"'./employee-workspace.js'",'Employee companion must remain available offline.');
-expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated or navigation-generation format.');
+expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated, navigation-generation, or physical-startup format.');
 
 console.log(JSON.stringify({
   status:'PASS',staffShell:'canonical Business Office',staffNavigation:'permission-filtered final authority',

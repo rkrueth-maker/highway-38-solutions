@@ -1,10 +1,12 @@
 (function(){
 'use strict';
-const BUILD='20260911-office-reference-samples-1';
+const BUILD='20260917-reference-startup-guard-1';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 const esc=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function stateNow(){try{return window.state||null;}catch(_){return null;}}
+function nativePhoneShell(){return /H38SiteScanner(?:Android|IOS)/.test(navigator.userAgent||'')&&!!window.matchMedia?.('(max-width:760px)').matches;}
+function authoritativeStartupReady(){return document.documentElement.dataset.h38AuthoritativeStartup==='ready';}
 function businessKey(){
   try{const urlKey=new URLSearchParams(location.search).get('businessKey');if(urlKey)return text(urlKey).toLowerCase();}catch(_){}
   const state=stateNow(),direct=text(state?.businessKey||state?.business?.businessKey||state?.business?.key).toLowerCase();
@@ -55,10 +57,10 @@ function itemsFor(page,p){
   };
   return map[page]||common.concat([['Sample project',p.project],['Reference documents',docs]]);
 }
-function cardHtml(page,p){const items=itemsFor(page,p);return`<details class="card h38-reference-sample" data-h38-reference-sample="${esc(page)}" ${pageHasRealData(page)?'':'open'}><summary><span><strong>Fictional reference example</strong><small>${esc(p.company)} · read-only sample</small></span><span class="pill">SAMPLE</span></summary><div class="h38-reference-grid">${items.map(([label,value])=>`<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div><p class="muted small h38-reference-note">Shows how this workspace looks before you have enough real records. Fictional names and files only. Nothing in this card is saved, sent, approved, scheduled, posted, paid, funded or filed.</p></details>`;}
-function enhance(){const main=document.getElementById('mainContent'),page=text(stateNow()?.page||'today').toLowerCase();if(!main)return false;const existing=main.querySelector(':scope > [data-h38-reference-sample]');if(existing&&existing.dataset.h38ReferenceSample===page&&existing.dataset.h38ReferenceCompany===profile().company)return true;existing?.remove();const shell=document.createElement('div');shell.innerHTML=cardHtml(page,profile());const card=shell.firstElementChild;if(!card)return false;card.dataset.h38ReferenceCompany=profile().company;main.appendChild(card);return true;}
+function cardHtml(page,p){const items=itemsFor(page,p),autoOpen=!nativePhoneShell()&&!pageHasRealData(page);return`<details class="card h38-reference-sample" data-h38-reference-sample="${esc(page)}" ${autoOpen?'open':''}><summary><span><strong>Fictional reference example</strong><small>${esc(p.company)} · read-only sample</small></span><span class="pill">SAMPLE</span></summary><div class="h38-reference-grid">${items.map(([label,value])=>`<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div><p class="muted small h38-reference-note">Shows how this workspace looks before you have enough real records. Fictional names and files only. Nothing in this card is saved, sent, approved, scheduled, posted, paid, funded or filed.</p></details>`;}
+function enhance(){const main=document.getElementById('mainContent'),page=text(stateNow()?.page||'today').toLowerCase();if(!main)return false;if(nativePhoneShell()&&!authoritativeStartupReady()){main.querySelector(':scope > [data-h38-reference-sample]')?.remove();return false;}const existing=main.querySelector(':scope > [data-h38-reference-sample]');if(existing&&existing.dataset.h38ReferenceSample===page&&existing.dataset.h38ReferenceCompany===profile().company)return true;existing?.remove();const shell=document.createElement('div');shell.innerHTML=cardHtml(page,profile());const card=shell.firstElementChild;if(!card)return false;card.dataset.h38ReferenceCompany=profile().company;main.appendChild(card);return true;}
 function schedule(){if(scheduled)return;scheduled=true;const run=()=>{scheduled=false;enhance();};if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);}
-window.addEventListener('h38:office-page-rendered',schedule);window.addEventListener('h38:business-snapshot-updated',schedule);window.addEventListener('pageshow',schedule);window.addEventListener('popstate',schedule);
+window.addEventListener('h38:office-page-rendered',schedule);window.addEventListener('h38:business-snapshot-updated',schedule);window.addEventListener('h38:authoritative-startup-ready',schedule);window.addEventListener('pageshow',schedule);window.addEventListener('popstate',schedule);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-window.H38_OFFICE_REFERENCE_SAMPLES=Object.freeze({enabled:true,build:BUILD,fictional:true,readOnly:true,persisted:false,externalActions:false,automaticSending:false,automaticApproval:false,automaticScheduling:false,automaticPosting:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,profiles:Object.freeze(PROFILES),profileFor:key=>key==='northern-lakes'?PROFILES['northern-lakes']:PROFILES.highway38,enhance});
+window.H38_OFFICE_REFERENCE_SAMPLES=Object.freeze({enabled:true,build:BUILD,fictional:true,readOnly:true,persisted:false,externalActions:false,nativeStartupGuard:true,nativeSamplesCollapsed:true,automaticSending:false,automaticApproval:false,automaticScheduling:false,automaticPosting:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,profiles:Object.freeze(PROFILES),profileFor:key=>key==='northern-lakes'?PROFILES['northern-lakes']:PROFILES.highway38,enhance});
 })();

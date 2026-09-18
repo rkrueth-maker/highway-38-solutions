@@ -178,7 +178,7 @@
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20260912-employee-receipt-capture-1';
+      script.src = './job-lifecycle.js?build=20260917-lifecycle-startup-stable-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }

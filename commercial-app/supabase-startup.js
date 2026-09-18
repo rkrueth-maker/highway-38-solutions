@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20260827-authoritative-online-first-paint-1';
+const H38_SUPABASE_STARTUP_BUILD='20260917-authoritative-startup-ready-2';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -16,6 +16,22 @@ const h38LegacyBindGlobal=bindGlobal;
 
 function h38SupabaseAuthEnabled(){return window.H38_SUPABASE_AUTH?.enabled===true;}
 function h38AuthUserId(){return window.H38DB?.getUserScope?.()||'';}
+function h38MarkAuthoritativeStartupReady(source){
+  if(!state?.snapshot?.user||!state?.snapshot?.business)return false;
+  const root=document?.documentElement;
+  if(root){
+    root.dataset.h38AuthoritativeStartup='ready';
+    root.dataset.h38AuthoritativeStartupSource=String(source||'snapshot');
+  }
+  window.dispatchEvent?.(new CustomEvent('h38:authoritative-startup-ready',{detail:{source:String(source||'snapshot'),build:H38_SUPABASE_STARTUP_BUILD}}));
+  return true;
+}
+function h38ClearAuthoritativeStartupReady(){
+  const root=document?.documentElement;
+  if(!root)return;
+  delete root.dataset.h38AuthoritativeStartup;
+  delete root.dataset.h38AuthoritativeStartupSource;
+}
 function h38ScopedBusinessStorageKey(){const userId=h38AuthUserId();return userId?`h38-selected-business:${userId}`:'';}
 function h38RegisterOfficeServiceWorker(){
   if(!('serviceWorker' in navigator))return;
@@ -85,6 +101,7 @@ hydrateLocalStartup=async function(options={}){
       $('businessStatus').textContent=`${state.snapshot.business.businessName} · Offline · verified device cache`;
       openPage(state.page,false);
       await updatePending().catch(()=>{});
+      h38MarkAuthoritativeStartupReady('offline-cache');
       return true;
     }
   }catch(error){console.warn(error.message);}
@@ -125,6 +142,7 @@ init=async function(){
   state.requestedBusinessId=String(query.get('businessId')||'').trim();
   state.businessId='';
   state.snapshot=null;
+  h38ClearAuthoritativeStartupReady();
   state.bridge=new H38Bridge($('bridgeFrame'),' ',handleBridgeStatus,handleStartupBootstrap,handleFullSnapshot,handleBridgeError);
   window.H38_ACTIVE_BRIDGE=state.bridge;
   bindGlobal();
@@ -198,6 +216,7 @@ handleStartupBootstrap=async function(startup){
       $('businessStatus').textContent=`${startup.snapshot.business.businessName} · ${startup.snapshot.user.roleName} · Office online`;
       openPage(state.page,false);
       await updatePending().catch(()=>{});
+      h38MarkAuthoritativeStartupReady('bootstrap-snapshot');
       return;
     }
     h38SetAuthorizedChrome(false);
@@ -227,6 +246,7 @@ handleFullSnapshot=async function(snapshot,businessId){
     $('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · Office online`;
     openPage(state.page,false);
     await updatePending().catch(()=>{});
+    h38MarkAuthoritativeStartupReady('full-snapshot');
     if(!firstAuthoritativeOpen)toast('Office refreshed.');
   }catch(error){handleBridgeError('refresh',error.message||String(error));}
 };
@@ -243,6 +263,7 @@ handleBridgeError=function(stage,message){
   }
   state.snapshot=null;
   state.businessId='';
+  h38ClearAuthoritativeStartupReady();
   h38SetAuthorizedChrome(false);
   setBusinessSwitcherVisible(false);
   $('businessStatus').textContent='Supabase Auth verification failed.';
@@ -273,6 +294,7 @@ loadBusiness=async function(businessId,quiet=false){
   if(switching){
     state.snapshot=null;
     state.quote=null;
+    h38ClearAuthoritativeStartupReady();
     h38SetAuthorizedChrome(false);
     window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));
     renderWelcome('connecting');
@@ -300,5 +322,7 @@ window.H38_OFFICE_STARTUP=Object.freeze({
   offlineVerifiedCache:true,
   serviceWorkerEnabled:true,
   membershipRevalidation:true,
-  deniedMembershipClosesCache:true
+  deniedMembershipClosesCache:true,
+  authoritativeStartupReadyEvent:true,
+  nativeRevealWaitsForAuthoritativeSnapshot:true
 });
