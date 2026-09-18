@@ -3,7 +3,7 @@
   const nativeAndroid = /H38SiteScannerAndroid\//.test(String(navigator.userAgent || ''));
   const nativeReturnReloadParam = 'h38NativeReturnCold';
   const mobileOffice = () => !!window.matchMedia?.('(max-width: 760px)').matches;
-  const EARLY_PRIMARY = [['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
+  const EARLY_PRIMARY = [['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
 
   function installMobileFirstFrameStyle() {
     if (!mobileOffice() || document.getElementById('h38MobileFirstFrameStyle')) return;
@@ -292,6 +292,8 @@
     primaryNavigationBeforeStartup: true,
     preRenderScrollReset: true,
     jobsCustomersShapeBeforeFirstPaint: true,
+    schedulePrimaryBeforeStartup: true,
+    jobsMovedToMoreBeforeStartup: true,
     postPaintPageRebuildRequired: false,
     automaticApproval: false,
     automaticCustomerSending: false,

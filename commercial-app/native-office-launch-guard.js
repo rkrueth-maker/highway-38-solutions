@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260917-native-office-ready-contract-3';
+const BUILD='20260917-native-office-ready-contract-4';
 const params=new URLSearchParams(location.search),native=/H38SiteScannerAndroid/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
 let readySent=false,readyFrame=0,lastGeometry='';
 if(native&&forcedField){params.delete('fieldMode');params.delete('nativeScanner');const query=params.toString();history.replaceState(history.state,'',location.pathname+(query?'?'+query:'')+location.hash);}
@@ -26,12 +26,21 @@ function signedOutReady(){
   const main=document.getElementById('mainContent'),text=String(main?.textContent||'');
   return visible(main)&&!/Opening Business Office|Checking Supabase Auth|Opening securely/i.test(text)&&(/sign in|membership|session expired|unavailable|retry/i.test(text));
 }
+function finalOwnerStartupAuthoritiesReady(){
+  const s=window.state;
+  if(!window.matchMedia?.('(max-width:760px)').matches)return true;
+  if(!(s?.snapshot?.user?.owner===true||s?.snapshot?.user?.permissions?.all===true))return true;
+  return !!window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH
+    && !!window.H38_OWNER_JOB_HANDOFF
+    && document.documentElement.dataset.h38OwnerStartupAuthorities==='ready';
+}
 function finalMobileAuthoritiesReady(){
   if(!window.matchMedia?.('(max-width:760px)').matches)return true;
   const runtime=window.H38_MOBILE_RUNTIME_STABILITY,identity=window.H38_OFFICE_ACCOUNT_IDENTITY;
   if(!runtime?.phoneFirstPrimaryNavigation||runtime?.screenInstabilityGuard!==true)return false;
   if(document.body?.dataset?.h38ProductionPolish!=='3')return false;
   if(identity?.mobileStableBusinessBarHeight!==true||identity?.mobileSingleLineIdentity!==true)return false;
+  if(!finalOwnerStartupAuthoritiesReady())return false;
   if(!document.getElementById('h38OfficeAccountIdentity')||!document.getElementById('h38OfficeAccountIdentityStyle'))return false;
   if(!finalMobileChromeAligned())return false;
   return true;
@@ -69,10 +78,10 @@ function reconcileReady(){
 function scheduleReady(){if(!native||readySent)return;requestAnimationFrame(()=>requestAnimationFrame(reconcileReady));}
 loadSiteVisitMeetingSeed();loadSiteVisitFinishPersistence();loadFinalPhoneRepair();loadMobileWorkspaceV3();
 if(native){
-  ['h38:business-snapshot-updated','h38:office-page-rendered','h38:office-navigation-access-updated','h38:auth-cleared','pageshow','load'].forEach(name=>window.addEventListener(name,scheduleReady));
+  ['h38:business-snapshot-updated','h38:office-page-rendered','h38:office-navigation-access-updated','h38:owner-startup-authorities-ready','h38:auth-cleared','pageshow','load'].forEach(name=>window.addEventListener(name,scheduleReady));
   new MutationObserver(scheduleReady).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden','data-h38-production-polish']});
   new MutationObserver(scheduleReady).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
   scheduleReady();
 }
-window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,scheduleReady});
+window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForOwnerStartupAuthorities:true,scheduleReady});
 })();
