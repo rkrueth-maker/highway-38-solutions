@@ -270,6 +270,7 @@ function polishSchedule(main){
     const actions=document.createElement('div');actions.className='h38-context-actions';actions.dataset.h38AgendaActions='1';
     if(phone){const call=document.createElement('a');call.className='secondary';call.href=`tel:${phone.replace(/[^\d+]/g,'')}`;call.textContent='Call';actions.appendChild(call);}
     if(location){const nav=document.createElement('button');nav.type='button';nav.className='secondary';nav.textContent='Navigate';nav.onclick=()=>window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`,'_blank','noopener');actions.appendChild(nav);}
+    if(customerId||jobId){const message=document.createElement('button');message.type='button';message.className='secondary';message.textContent='Message';message.onclick=()=>{window.H38_PENDING_MESSAGE_CONTEXT={customerId,jobId};window.openPage?.('messages');};actions.appendChild(message);}
     if(jobId){const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Open job';open.onclick=()=>{window.openPage?.('work');setTimeout(()=>{const select=document.getElementById('h38LifecycleJob');if(select&&Array.from(select.options||[]).some(option=>option.value===jobId)){select.value=jobId;select.dispatchEvent(new Event('change',{bubbles:true}));}},0);};actions.appendChild(open);}
     if(actions.children.length)row.appendChild(actions);
   });
@@ -287,8 +288,8 @@ function polishMessages(main){
   if(create&&text(create.textContent)==='Create')create.textContent='Start';
   if(window.state?.messageTab!=='internal')return;
   const snap=window.state?.snapshot||{},rowsOf=name=>Array.isArray(snap[name])?snap[name]:[];
-  const selectedId=text(window.state?.selectedConversation),conversation=rowsOf('conversations').find(row=>text(row?.['Conversation ID']||row?.conversationId||row?.id)===selectedId)||null;
-  const customerId=text(conversation?.['Customer ID']||conversation?.customerId),jobId=text(conversation?.['Job ID']||conversation?.jobId||conversation?.['Related Record ID']||conversation?.relatedRecordId);
+  const selectedId=text(window.state?.selectedConversation),conversation=rowsOf('conversations').find(row=>text(row?.['Conversation ID']||row?.conversationId||row?.id)===selectedId)||null,pending=window.H38_PENDING_MESSAGE_CONTEXT||{};
+  const customerId=text(conversation?.['Customer ID']||conversation?.customerId||pending.customerId),jobId=text(conversation?.['Job ID']||conversation?.jobId||conversation?.['Related Record ID']||conversation?.relatedRecordId||pending.jobId);
   const customer=customerId?rowsOf('customers').find(row=>text(row?.['Customer ID']||row?.customerId||row?.id)===customerId):null;
   const job=jobId?rowsOf('jobs').find(row=>text(row?.['Job ID']||row?.jobId||row?.id)===jobId):null;
   const customerLabel=text(customer?.['Customer Name']||customer?.name),jobLabel=text(job?.['Project Title']||job?.['Job Number']||job?.projectTitle||job?.jobNumber);
@@ -296,6 +297,7 @@ function polishMessages(main){
   let context=threadCard.querySelector('.h38-message-context');
   if(!context){context=document.createElement('div');context.className='h38-message-context';threadCard.querySelector('h2')?.insertAdjacentElement('afterend',context);}
   context.innerHTML=`<strong>${html(customerLabel||'Business conversation')}</strong><span>${html(jobLabel||'No customer job linked')}</span>`;
+  if(conversation&&window.H38_PENDING_MESSAGE_CONTEXT)window.H38_PENDING_MESSAGE_CONTEXT={customerId,jobId};
 }
 function polishVisiblePage(){
   const main=document.getElementById('mainContent'),current=statePage();
