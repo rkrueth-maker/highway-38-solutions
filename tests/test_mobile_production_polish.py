@@ -6,7 +6,7 @@ JOB_CENTERED = (ROOT / "commercial-app" / "job-centered-flow.js").read_text(enco
 
 
 def test_production_mobile_polish_keeps_records_before_admin_tools():
-    assert "20260915-phone-first-nav-1" in MOBILE
+    assert "20260918-one-shell-role-nav-1" in MOBILE
     assert "moveCardsFirst(grid,[requests,jobs,tasks])" in MOBILE
     assert "moveCardsFirst(grid,[start,customers,properties])" in MOBILE
     assert "wrapToolCard(byName('New request'),'New request')" in MOBILE
@@ -15,7 +15,9 @@ def test_production_mobile_polish_keeps_records_before_admin_tools():
     assert "mobileJobsCreationToolsCollapsed:true" in MOBILE
     assert "mobileRecordCardsFirst:true" in MOBILE
     assert "phoneFirstPrimaryNavigation:true" in MOBILE
-    assert "jobsMovedToMore:true" in MOBILE
+    assert "jobsMovedToMoreForOwner:true" in MOBILE
+    assert "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']" in MOBILE
+    assert "roleAwareOneShellNavigation:true" in MOBILE
     assert "groupedMore:true" in MOBILE
 
 
