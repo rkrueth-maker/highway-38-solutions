@@ -109,7 +109,7 @@ requireText(ownerFlow,"h38:owner-startup-authorities-ready",'owner workflow disp
 requireText(nativeOfficeLaunch,'nativeCoverWaitsForOwnerStartupAuthorities:true','native cover waits for owner startup authorities');
 requireText(nativeOfficeLaunch,"'h38:owner-startup-authorities-ready'",'native launch guard listens for owner startup event');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38OwnerStartupAuthorities==='ready'",'native launch guard requires explicit owner startup marker');
-requireText(supabaseStartup,"document.documentElement.dataset.h38AuthoritativeStartup='ready'",'authoritative Supabase startup publishes final snapshot marker');
+requireText(supabaseStartup,"root.dataset.h38AuthoritativeStartup='ready'",'authoritative Supabase startup publishes final snapshot marker');
 requireText(supabaseStartup,"'h38:authoritative-startup-ready'",'authoritative Supabase startup publishes final snapshot event');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38AuthoritativeStartup!=='ready'",'native reveal waits for authoritative snapshot');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38JobLifecycleReady!=='ready'",'native reveal waits for lifecycle authority');
