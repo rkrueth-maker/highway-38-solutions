@@ -40,7 +40,7 @@ async function addSession(context, session) {
 }
 function webPath(slug) {
   const map={
-    'h38-deals-shell':'/',
+    'h38-deals-shell':'/index.html',
     'h38-penny-web':'/penny.html',
     'h38-resale-web':'/resale.html',
     'h38-coupon-web':'/coupon.html',
