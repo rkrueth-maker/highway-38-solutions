@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260826-flow-first-frame-stability-2';
+const BUILD='20260918-business-office-workflow-polish-1';
 const QUICK_FLOW_BUILD='20260912-office-quick-flow-1';
 const NAV_ORDER=['today','work','customers','quotes','schedule','messages','field','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 let installed=false;
