@@ -108,7 +108,32 @@ jobs:
           # The prior fallback reached sys.boot_completed=1, then failed on that
           # optional animation-setting call before instrumentation could start.
           disable-animations: false
-          script: cd native/h38-site-scanner/android-app && gradle --no-daemon --stacktrace connectedDebugAndroidTest
+          # The API-30 emulator can report sys.boot_completed before Android
+          # framework services are actually responsive. Wait for package/settings
+          # services and a readable SDK level so ddmlib does not classify the
+          # connected emulator as "Unknown API Level".
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            for attempt in $(seq 1 90); do
+              SDK="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\\r' || true)"
+              if [[ "$SDK" =~ ^[0-9]+$ ]] \\
+                && adb shell service check package 2>/dev/null | grep -q 'found' \\
+                && adb shell service check settings 2>/dev/null | grep -q 'found'; then
+                echo "Android framework ready on API $SDK after $attempt readiness checks."
+                break
+              fi
+              if [[ "$attempt" -eq 90 ]]; then
+                echo '::error::Emulator booted but Android framework services never became ready.'
+                adb shell getprop || true
+                adb shell service list || true
+                exit 1
+              fi
+              sleep 2
+            done
+            adb shell input keyevent 82 || true
+            cd native/h38-site-scanner/android-app
+            gradle --no-daemon --stacktrace connectedDebugAndroidTest
       - name: Capture fallback diagnostics
         if: always() && steps.firebase.outputs.configured != 'true'
         working-directory: ${{ github.workspace }}
