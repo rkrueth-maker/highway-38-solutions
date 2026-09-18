@@ -25,8 +25,12 @@ const ownerCustomer=read('commercial-app/owner-customer-workflow-polish.js');
 const startupVisit=read('commercial-app/startup-site-visit-stability.js');
 const phoneVisual=read('commercial-app/owner-phone-visual-fix.js');
 const serviceWorker=read('commercial-app/service-worker.js');
+const supabaseStartup=read('commercial-app/supabase-startup.js');
+const lifecycle=read('commercial-app/job-lifecycle.js');
+const referenceSamples=read('commercial-app/office-reference-samples.js');
+const runtimeRowId=read('commercial-app/runtime-rowid-fix.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['native office launch',nativeOfficeLaunch],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['native office launch',nativeOfficeLaunch],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker],['supabase startup',supabaseStartup],['job lifecycle',lifecycle],['reference samples',referenceSamples],['runtime row id',runtimeRowId]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -105,6 +109,24 @@ requireText(ownerFlow,"h38:owner-startup-authorities-ready",'owner workflow disp
 requireText(nativeOfficeLaunch,'nativeCoverWaitsForOwnerStartupAuthorities:true','native cover waits for owner startup authorities');
 requireText(nativeOfficeLaunch,"'h38:owner-startup-authorities-ready'",'native launch guard listens for owner startup event');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38OwnerStartupAuthorities==='ready'",'native launch guard requires explicit owner startup marker');
+requireText(supabaseStartup,"document.documentElement.dataset.h38AuthoritativeStartup='ready'",'authoritative Supabase startup publishes final snapshot marker');
+requireText(supabaseStartup,"'h38:authoritative-startup-ready'",'authoritative Supabase startup publishes final snapshot event');
+requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38AuthoritativeStartup!=='ready'",'native reveal waits for authoritative snapshot');
+requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38JobLifecycleReady!=='ready'",'native reveal waits for lifecycle authority');
+requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38PhoneFirstReady!=='ready'",'native reveal waits for phone-first authority');
+requireText(nativeOfficeLaunch,"document.getElementById('h38PhoneCreateButton')",'native reveal requires floating create action');
+requireText(nativeOfficeLaunch,"document.getElementById('h38PhoneToday')",'native reveal requires final Today phone shell');
+requireText(phoneFirst,'eventDrivenStartup:true','phone first startup is event driven');
+requireText(phoneFirst,'noStartupTimer:true','phone first startup has no fixed delay');
+requireText(phoneFirst,"'h38:phone-first-ready'",'phone first publishes final readiness event');
+requireText(lifecycle,'noLateRenderPage:true','lifecycle does not rerender entire Today after late load');
+requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final readiness event');
+requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
+requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
+requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20260917-phone-first-office-4'",'runtime loader pins final phone-first build');
+requireText(serviceWorker,"h38-business-office-20260917-physical-startup-1",'service worker flushes physical-startup authority assets');
+requireText(serviceWorker,"'phone-first-office.js'",'phone-first runtime is live-first');
+requireText(serviceWorker,"'office-reference-samples.js'",'reference-sample runtime is live-first');
 if(ownerFlow.includes("Date.now()-start<3500"))fail('owner workflow has no 3.5-second startup delay');else pass('owner workflow has no 3.5-second startup delay');
 requireText(stability,"body.h38-field-scroll-lock #mainNav.h38-five-primary-nav{display:none!important}",'field visit authoritative lock hides office bottom navigation');
 requireText(stability,'staleFieldDomDoesNotLockOfficeScroll:true','legacy field class cannot own normal Office scrolling');
