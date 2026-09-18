@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260913-document-links-1';
-let installed=false,layoutObserver=null,layoutOrderQueued=false;
+const BUILD='20260918-business-office-workflow-polish-1';
+let installed=false,layoutObserver=null,layoutOrderQueued=false,customerTab='overview';
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const office=()=>window.state||{};
@@ -39,6 +39,7 @@ function route(action,customerId=''){
   if(action==='quote'){startQuote(customerId);return;}
   if(action==='site'){startSite(customerId);return;}
   if(action==='meeting'){startMeeting(customerId);return;}
+  if(action==='message'){openPage('messages');return;}
   if(action==='job'){openPage('work');return;}
   if(action==='expense'||action==='invoice'){openPage('money');return;}
   if(action==='assistant'){document.getElementById('globalAiButton')?.click();return;}
@@ -84,17 +85,41 @@ function assistantPrompt(command){
 function enhanceToday(){
   if(!signedIn()){clearSignedOutPolish();return;}
   if(office().page!=='today')return;const main=document.getElementById('mainContent');if(!main)return;
-  const old=document.getElementById('h38CustomerReadyToday');old?.remove();const m=attentionMetrics(),recent=latestActivity();
-  const section=document.createElement('section');section.id='h38CustomerReadyToday';section.className='h38-ready-today';
-  section.innerHTML=`<div class="h38-ready-hero"><div><span class="h38-eyebrow">BUSINESS OFFICE</span><h1>What needs attention today?</h1><p>Customer work first. Open the next action without hunting through the whole office.</p></div><div class="h38-ready-hero-actions"><button type="button" class="primary" data-h38-ready-action="customer">Find customer</button><button type="button" class="secondary" data-h38-ready-action="assistant">Ask H38</button></div></div><div class="h38-ready-metrics"><button type="button" data-h38-ready-page="work"><strong>${m.jobs.length}</strong><span>Active jobs</span></button><button type="button" data-h38-ready-page="quotes"><strong>${m.quotes.length}</strong><span>Quotes to review</span></button><button type="button" data-h38-ready-page="today"><strong>${m.followUps.length}</strong><span>Follow-ups</span></button><button type="button" data-h38-ready-page="schedule"><strong>${m.schedule.length}</strong><span>Next 7 days</span></button><button type="button" data-h38-ready-page="money"><strong>${m.invoices.length}</strong><span>Open billing</span></button></div><div class="h38-ready-columns"><section class="card"><div class="h38-ready-section-head"><div><span class="h38-eyebrow">RECENT</span><h2>Customer activity</h2></div><button type="button" class="link" data-h38-ready-page="customers">Customers</button></div><div class="h38-ready-activity">${recent.length?recent.map(item=>{const documentAction=item.collection==='documents'?`<button type="button" class="secondary" data-h38-open-document-id="${esc(value(item.row,'Document ID','documentId'))}" ${text(value(item.row,'Storage Path','storagePath'))?'':`disabled title="The original file is not attached to this record."`}>Open file</button>`:'';return`<div><span>${esc(activityLabel(item))}</span><small>${new Date(item.time).toLocaleString()}</small>${documentAction}</div>`;}).join(''):'<div class="h38-ready-empty"><strong>Nothing new yet.</strong><span>New customer work will appear here.</span></div>'}</div></section><section class="card"><span class="h38-eyebrow">ASK BUSINESS OFFICE</span><h2>Use normal language</h2><p class="muted">H38 can find context and prepare work without taking customer or financial action on its own.</p><div class="h38-ready-prompts"><button type="button" data-h38-prompt="What am I waiting on today?">What am I waiting on today?</button><button type="button" data-h38-prompt="Show quotes that need follow-up">Show quotes that need follow-up</button><button type="button" data-h38-prompt="Find customer on Highway 38">Find customer on Highway 38</button><button type="button" data-h38-prompt="What measurements are missing from the current quote?">What measurements are missing?</button></div></section></div><div class="h38-owner-control-strip"><strong>Owner control</strong><span>AI can organize and prepare. Approval, sending, scheduling, purchasing, payments, and commitments remain intentional owner actions.</span></div>`;
-  const pageHead=main.querySelector('.page-head');pageHead?.insertAdjacentElement('afterend',section)||main.prepend(section);
-  if(!financial())section.querySelector('[data-h38-ready-page="money"]')?.remove();
-  section.querySelectorAll('[data-h38-ready-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.h38ReadyPage));
-  section.querySelectorAll('[data-h38-ready-action]').forEach(button=>button.onclick=()=>route(button.dataset.h38ReadyAction));
-  section.querySelectorAll('[data-h38-prompt]').forEach(button=>button.onclick=()=>assistantPrompt(button.dataset.h38Prompt));
+  document.getElementById('h38CustomerReadyToday')?.remove();
+  const m=attentionMetrics(),nowMs=Date.now(),todayEnd=new Date();todayEnd.setHours(23,59,59,999);
+  const schedule=m.schedule.slice().sort((a,b)=>new Date(value(a,'Start Time','startTime','Scheduled Time','scheduledAt')||0)-new Date(value(b,'Start Time','startTime','Scheduled Time','scheduledAt')||0));
+  const nextEvent=schedule.find(row=>new Date(value(row,'Start Time','startTime','Scheduled Time','scheduledAt')||0).getTime()>=nowMs)||schedule[0]||null;
+  const todayJobs=m.jobs.filter(row=>{const raw=value(row,'Start Date','startDate','Scheduled Date','scheduledDate','Due Date','dueDate');if(!raw)return true;const d=new Date(raw);return Number.isFinite(d.getTime())&&d.getTime()<=todayEnd.getTime();}).slice(0,6);
+  const firstFollow=m.followUps[0]||null,firstQuote=m.quotes[0]||null,firstInvoice=financial()?(m.invoices[0]||null):null,firstJob=todayJobs[0]||m.jobs[0]||null;
+  let primary={title:'Review today\'s work',why:'Open the work list and keep the next customer commitment moving.',page:'work',button:'Open work',customerId:''};
+  if(firstFollow)primary={title:text(value(firstFollow,'Title','Subject','Description'))||'Customer follow-up',why:'This follow-up needs attention now.',page:'customers',button:'Open customer',customerId:text(value(firstFollow,'Customer ID','customerId'))};
+  else if(firstQuote)primary={title:text(value(firstQuote,'Project Title','Quote Number'))||'Review quote',why:`Quote status: ${text(value(firstQuote,'Status','status'))||'Needs review'}.`,page:'quotes',button:'Review quote',customerId:text(value(firstQuote,'Customer ID','customerId'))};
+  else if(firstInvoice)primary={title:text(value(firstInvoice,'Invoice Number','Title'))||'Check invoice',why:'Open billing has an item that still needs review.',page:'money',button:'Check invoice',customerId:text(value(firstInvoice,'Customer ID','customerId'))};
+  else if(firstJob)primary={title:text(value(firstJob,'Project Title','Job Number'))||'Open active job',why:`${customerName(value(firstJob,'Customer ID','customerId'))} - ${text(value(firstJob,'Status','status'))||'Active work'}`,page:'work',button:'Open job',customerId:text(value(firstJob,'Customer ID','customerId'))};
+  const eventJobId=text(value(nextEvent,'Related Record ID','relatedRecordId','Job ID','jobId'));
+  const eventJob=eventJobId?rows('jobs').find(row=>idFor(row,'Job ID','jobId','id')===eventJobId):null;
+  const eventCustomerId=text(value(nextEvent,'Customer ID','customerId')||value(eventJob,'Customer ID','customerId'));
+  const eventCustomer=eventCustomerId?rows('customers').find(row=>idFor(row,'Customer ID','customerId','id')===eventCustomerId):null;
+  const eventLocation=text(value(nextEvent,'Location','location','Address','address'));
+  const eventPhone=text(value(eventCustomer,'Phone','phone','Mobile Phone','mobilePhone'));
+  const eventTitle=text(value(nextEvent,'Title','title'))||'Scheduled work';
+  const eventTime=value(nextEvent,'Start Time','startTime','Scheduled Time','scheduledAt');
+  const attention=[
+    ...m.followUps.slice(0,2).map(row=>({label:text(value(row,'Title','Subject','Description'))||'Follow-up',detail:'Follow-up needs attention',page:'customers',customerId:text(value(row,'Customer ID','customerId'))})),
+    ...m.quotes.slice(0,2).map(row=>({label:text(value(row,'Project Title','Quote Number'))||'Quote',detail:text(value(row,'Status','status'))||'Needs review',page:'quotes',customerId:text(value(row,'Customer ID','customerId'))})),
+    ...(financial()?m.invoices.slice(0,2).map(row=>({label:text(value(row,'Invoice Number','Title'))||'Invoice',detail:'Open billing item',page:'money',customerId:text(value(row,'Customer ID','customerId'))})):[])
+  ].slice(0,5);
+  const section=document.createElement('section');section.id='h38CustomerReadyToday';section.className='h38-ready-today h38-today-workspace';
+  section.innerHTML=`<section class="h38-today-primary card"><div><span class="h38-eyebrow">NEXT ACTION</span><h2>${esc(primary.title)}</h2><p>${esc(primary.why)}</p></div><button type="button" class="primary" data-h38-ready-page="${esc(primary.page)}" data-h38-ready-customer="${esc(primary.customerId)}">${esc(primary.button)}</button></section>
+  <section class="h38-today-section card"><div class="h38-ready-section-head"><div><span class="h38-eyebrow">UP NEXT</span><h2>${nextEvent?esc(eventTitle):'Nothing scheduled next'}</h2></div><button type="button" class="link" data-h38-ready-page="schedule">Schedule</button></div>${nextEvent?`<div class="h38-up-next"><strong>${esc(eventTime?new Date(eventTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Time not set')}</strong><span>${esc(eventCustomerId?customerName(eventCustomerId):'Customer not linked')}</span><span>${esc(eventLocation||'Location not set')}</span><span class="pill neutral">${esc(value(nextEvent,'Status','status')||'Scheduled')}</span></div><div class="h38-context-actions">${eventPhone?`<a class="secondary" href="tel:${esc(eventPhone.replace(/[^\d+]/g,''))}">Call</a>`:''}${eventLocation?`<button type="button" class="secondary" data-h38-navigate="${esc(eventLocation)}">Navigate</button>`:''}<button type="button" class="primary" data-h38-ready-page="schedule">Open</button></div>`:'<div class="h38-ready-empty"><strong>No jobs scheduled next.</strong><span>New scheduled work will appear here.</span></div>'}</section>
+  <section class="h38-today-section card"><div class="h38-ready-section-head"><div><span class="h38-eybrow">TODAY'S WORK</span><h2>Customer work</h2></div><button type="button" class="link" data-h38-ready-page="work">All work</button></div><div class="h38-today-list">${todayJobs.length?todayJobs.map(job=>`<button type="button" data-h38-ready-page="work"><strong>${esc(value(job,'Project Title','Job Number')||'Job')}</strong><span>${esc(customerName(value(job,'Customer ID','customerId'))})</span><small>${esc(value(job,'Status','status')||'Open')}</small></button>`).join(''):'<div class="h38-ready-empty"><strong>No active jobs for today.</strong><span>Scheduled or active work will appear here.</span></div>'}</div></section>
+  <section class="h38-today-section card"><div class="h38-ready-section-head"><div><span class="h38-eyebrow">NEEDS ATTENTION</span><h2>Only items requiring intervention</h2></div></div><div class="h38-attention-list">${attention.length?attention.map(item=>`<button type="button" data-h38-ready-page="${esc(item.page)}" data-h38-ready-customer="${esc(item.customerId||'')}"><strong>${esc(item.label)}</strong><small>${esc(item.detail)}</small></button>`).join(''):'<div class="h38-ready-empty"><strong>Nothing urgent.</strong><span>No approval, overdue, blocked, billing, or follow-up items need intervention.</span></div>'}</div></section>`;
+  const pageHead=main.querySelector('.page-head');
+  if(pageHead){const title=pageHead.querySelector('h1');if(title)title.textContent='Today';let p=pageHead.querySelector('p');if(!p){p=document.createElement('p');pageHead.appendChild(p);}p.textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});pageHead.insertAdjacentElement('afterend',section);}else main.prepend(section);
+  section.querySelectorAll('[data-h38-ready-page]').forEach(button=>button.onclick=()=>{const customerId=text(button.dataset.h38ReadyCustomer);if(customerId&&window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;openPage(button.dataset.h38ReadyPage);});
+  section.querySelectorAll('[data-h38-navigate]').forEach(button=>button.onclick=()=>{const destination=button.dataset.h38Navigate;if(destination)window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`,'_blank','noopener');});
   window.H38_OFFICE_SCALE_WORKFLOW?.enhance?.();
-}
-function invoiceBalance(list){return(list||[]).reduce((sum,row)=>{const direct=Number(value(row,'Balance Due','balanceDue','Amount Due','amountDue'));if(Number.isFinite(direct)&&direct)return sum+direct;const status=upper(value(row,'Status','status'));if(/PAID|VOID/.test(status))return sum;const total=Number(value(row,'Total','total','Amount','amount'))||0,paid=Number(value(row,'Amount Paid','amountPaid','Paid','paid'))||0;return sum+Math.max(0,total-paid);},0);}
+}function invoiceBalance(list){return(list||[]).reduce((sum,row)=>{const direct=Number(value(row,'Balance Due','balanceDue','Amount Due','amountDue'));if(Number.isFinite(direct)&&direct)return sum+direct;const status=upper(value(row,'Status','status'));if(/PAID|VOID/.test(status))return sum;const total=Number(value(row,'Total','total','Amount','amount'))||0,paid=Number(value(row,'Amount Paid','amountPaid','Paid','paid'))||0;return sum+Math.max(0,total-paid);},0);}
 function nextCustomerAction(bundle){
   const groups=bundle?.groups||{},follow=activeRowsFor(groups.followUps).find(row=>!/DONE|COMPLETE|CLOSED/.test(upper(value(row,'Status','status'))));if(follow)return{text:'Follow up',detail:text(value(follow,'Title','Subject','Description'))||'Customer follow-up is open',action:'meeting'};
   const quote=latest(groups.quotes||[]);if(quote&&!/ACCEPT|DECLIN|VOID|EXPIRE/.test(upper(value(quote,'Status','status'))))return{text:'Review quote',detail:`${text(value(quote,'Project Title','Quote Number'))||'Quote'} · ${text(value(quote,'Status','status'))||'Draft'}`,action:'quote'};
@@ -102,15 +127,46 @@ function nextCustomerAction(bundle){
   return{text:'Start next work',detail:'No urgent customer action is open.',action:'quote'};
 }
 function activeRowsFor(list){return(list||[]).filter(row=>!/CANCEL|VOID|ARCHIV|DELET/.test(upper(value(row,'Status','status'))));}
+function customerSectionKey(section){
+  const title=text(section?.querySelector('h3')?.textContent).toLowerCase();
+  if(/customer billing|invoice|payment|balance/.test(title))return'money';
+  if(/files|photos|meetings|conversation|document|evidence/.test(title))return'files';
+  if(/jobs|requests|quotes|site visits|measurements|tasks|follow-ups/.test(title))return'work';
+  return'overview';
+}
+function installCustomerTabs(grid){
+  if(!grid)return;
+  const allowed=['overview','work',...(financial()?['money']:[]),'files'];
+  if(!allowed.includes(customerTab))customerTab='overview';
+  let tabs=grid.querySelector(':scope > .h38-customer-tabs');
+  if(!tabs){
+    tabs=document.createElement('div');tabs.className='h38-customer-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Customer 360 sections');
+    const hero=grid.querySelector(':scope > #h38CustomerReadyHero');if(hero)hero.insertAdjacentElement('afterend',tabs);else grid.prepend(tabs);
+  }
+  tabs.innerHTML=allowed.map(key=>`<button type="button" role="tab" data-h38-customer-tab="${key}" class="${customerTab===key?'active':''}">${key[0].toUpperCase()+key.slice(1)}</button>`).join('');
+  const apply=key=>{
+    customerTab=allowed.includes(key)?key:'overview';grid.dataset.h38CustomerTab=customerTab;
+    grid.querySelectorAll(':scope > section.card:not(#h38CustomerReadyHero)').forEach(section=>{const pane=customerSectionKey(section);section.dataset.h38CustomerPane=pane;section.hidden=pane!==customerTab;});
+    tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>{const active=button.dataset.h38CustomerTab===customerTab;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active));});
+  };
+  tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>button.onclick=()=>apply(button.dataset.h38CustomerTab));
+  apply(customerTab);
+}
 function enhanceCustomer360(){
   if(!signedIn()){clearSignedOutPolish();return;}
   if(office().page!=='customers')return;const c360=window.H38_CUSTOMER_360,grid=document.querySelector('.h38-c360-grid');if(!c360?.customerBundle||!grid)return;
-  const existing=document.getElementById('h38CustomerReadyHero');existing?.remove();document.getElementById('h38CustomerReadyCards')?.remove();const cid=selectedCustomerId();if(!cid)return;const bundle=c360.customerBundle(snapshot(),cid);if(!bundle?.customer)return;const groups=bundle.groups||{};
+  document.getElementById('h38CustomerReadyHero')?.remove();document.getElementById('h38CustomerReadyCards')?.remove();
+  const cid=selectedCustomerId();if(!cid)return;const bundle=c360.customerBundle(snapshot(),cid);if(!bundle?.customer)return;const groups=bundle.groups||{};
   const action=nextCustomerAction(bundle),job=latest(groups.jobs||[]),visit=latest(groups.siteCaptureSessions||[]),meeting=latest(groups.meetings||[]),balance=invoiceBalance(groups.invoices||[]);
+  const property=(groups.properties||[])[0]||{},address=text(value(property,'Address','address')||value(bundle.customer,'Service Address','serviceAddress')),phone=text(value(bundle.customer,'Phone','phone','Mobile Phone','mobilePhone'));
   const hero=document.createElement('section');hero.id='h38CustomerReadyHero';hero.className='h38-customer-ready-hero card';
-  hero.innerHTML=`<div class="h38-customer-ready-head"><div><span class="h38-eyebrow">CUSTOMER 360</span><h2>${esc(value(bundle.customer,'Customer Name','name')||'Customer')}</h2><p>${esc(value((groups.properties||[])[0],'Address','address')||'Customer history, property, work, conversations and billing in one place.')}</p></div><div class="h38-customer-ready-actions"><button type="button" class="primary" data-h38-customer-action="${esc(action.action)}">${esc(action.text)}</button><button type="button" class="secondary" data-h38-customer-action="site">Site visit</button><button type="button" class="secondary" data-h38-customer-action="meeting">Meeting</button></div></div>`;const cards=document.createElement('section');cards.id='h38CustomerReadyCards';cards.className='h38-customer-ready-cards card';cards.setAttribute('aria-label','Customer summary');cards.innerHTML=`<article><small>Next action</small><strong>${esc(action.text)}</strong><span>${esc(action.detail)}</span></article><article><small>Active work</small><strong>${esc(job?value(job,'Project Title','Job Number'):'No active job')}</strong><span>${esc(job?value(job,'Status','status'):'Ready for new work')}</span></article><article><small>Last site visit</small><strong>${esc(visit?value(visit,'Project Title','Site Visit ID','Capture Session ID'):'No visit yet')}</strong><span>${visit?new Date(dateValue(visit)).toLocaleDateString():'Start one when field evidence is needed'}</span></article><article><small>Last conversation</small><strong>${esc(meeting?value(meeting,'Title','Meeting Type'):'No conversation saved')}</strong><span>${meeting?new Date(dateValue(meeting)).toLocaleDateString():'Typed notes and recollections are supported'}</span></article><article data-h38-financial-summary><small>Customer balance</small><strong>${money(balance)}</strong><span>${balance>0?'Open customer billing':'Nothing currently due'}</span></article>`;
+  hero.innerHTML=`<div class="h38-customer-ready-head"><div><span class="h38-eyebrow">CUSTOMER 360</span><h2>${esc(value(bundle.customer,'Customer Name','name')||'Customer')}</h2><p>${esc(address||'Customer history, property, work, conversations and billing in one place.')}</p></div><div class="h38-customer-context-actions">${phone?`<a class="secondary" href="tel:${esc(phone.replace(/[^\d+]/g,''))}">Call</a>`:''}<button type="button" class="secondary" data-h38-customer-action="message">Message</button>${address?`<button type="button" class="secondary" data-h38-customer-navigate="${esc(address)}">Navigate</button>`:''}</div></div><div class="h38-customer-ready-actions"><button type="button" class="primary" data-h38-customer-action="${esc(action.action)}">${esc(action.text)}</button><button type="button" class="secondary" data-h38-customer-action="site">Site visit</button></div>`;
+  const cards=document.createElement('section');cards.id='h38CustomerReadyCards';cards.className='h38-customer-ready-cards card';cards.setAttribute('aria-label','Customer summary');
+  cards.innerHTML=`<article><small>Next action</small><strong>${esc(action.text)}</strong><span>${esc(action.detail)}</span></article><article><small>Active work</small><strong>${esc(job?value(job,'Project Title','Job Number'):'No active job')}</strong><span>${esc(job?value(job,'Status','status'):'Ready for new work')}</span></article><article><small>Last site visit</small><strong>${esc(visit?value(visit,'Project Title','Site Visit ID','Capture Session ID'):'No visit yet')}</strong><span>${visit?new Date(dateValue(visit)).toLocaleDateString():'Start one when field evidence is needed'}</span></article><article><small>Recent activity</small><strong>${esc(meeting?value(meeting,'Title','Meeting Type'):'No conversation saved')}</strong><span>${meeting?new Date(dateValue(meeting)).toLocaleDateString():'Customer activity will appear here'}</span></article><article data-h38-financial-summary><small>Customer balance</small><strong>${money(balance)}</strong><span>${balance>0?'Open customer billing':'Nothing currently due'}</span></article>`;
   if(!financial())cards.querySelector('[data-h38-financial-summary]')?.remove();
-  grid.prepend(hero);document.getElementById('mainContent')?.appendChild(cards);hero.querySelectorAll('[data-h38-customer-action]').forEach(button=>button.onclick=()=>route(button.dataset.h38CustomerAction,cid));
+  grid.prepend(hero);installCustomerTabs(grid);document.getElementById('mainContent')?.appendChild(cards);
+  hero.querySelectorAll('[data-h38-customer-action]').forEach(button=>button.onclick=()=>route(button.dataset.h38CustomerAction,cid));
+  hero.querySelectorAll('[data-h38-customer-navigate]')).forEach(button=>button.onclick=()=>{const destination=button.dataset.h38CustomerNavigate;if(destination)window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`,'_blank','noopener');});
 }
 function visitCounts(v){
   const arrays=keys=>keys.reduce((n,k)=>n+(Array.isArray(v?.[k])?v[k].length:0),0);
