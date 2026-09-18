@@ -2,13 +2,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STARTUP = (ROOT / "commercial-app" / "supabase-startup.js").read_text(encoding="utf-8")
+AUTH = (ROOT / "commercial-app" / "supabase-auth.js").read_text(encoding="utf-8")
 GROUP = (ROOT / "commercial-app" / "site-visit-work-list-grouping-repair.js").read_text(encoding="utf-8")
 NAV = (ROOT / "commercial-app" / "mobile-scroll-native-authority.js").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
 
 def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapshot():
-    assert "20260917-authoritative-startup-ready-2" in STARTUP
+    assert "20260918-post-login-operational-authority-1" in STARTUP
     assert "if(navigator.onLine&&allowOnline)return false;" in STARTUP
     online_gate = STARTUP.index("if(navigator.onLine&&allowOnline)return false;")
     cache_load = STARTUP.index("loadCached({allowOnline})")
@@ -22,6 +23,15 @@ def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapsh
     assert "const firstAuthoritativeOpen=!state.snapshot;" in STARTUP
     assert "if(!firstAuthoritativeOpen)toast('Office refreshed.');" in STARTUP
     assert "Offline · verified device cache" in STARTUP
+    assert "startupMode: 'SUPABASE_AUTH_FOUNDATION'" in AUTH
+    assert "fullRefreshPending: true" in AUTH
+    assert "foundationSnapshotRequiresHydration: true" in AUTH
+    assert "authFoundationNeverAuthoritative: true" in AUTH
+    assert "if(startup.snapshot&&h38SnapshotAuthoritative(startup.snapshot))" in STARTUP
+    assert "authFoundationNeverPaints:true" in STARTUP
+    assert "operationalSnapshotRequired:true" in STARTUP
+    assert "postLoginHydrationSinglePaint:true" in STARTUP
+    assert "Operational business hydration did not complete; refusing to paint an Auth-only snapshot." in STARTUP
 
 
 def test_jobs_initial_render_is_final_grouping_not_job_home_then_swap():

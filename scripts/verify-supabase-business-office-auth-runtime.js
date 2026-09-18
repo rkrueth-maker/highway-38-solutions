@@ -148,6 +148,8 @@ const bridge=new window.H38Bridge(null,'',status=>statuses.push(status),startup=
   assert.equal(bootstraps[0].snapshot.business.businessId,BUSINESS_A);
   assert.equal(bootstraps[0].snapshot.user.roleName,'owner');
   assert.equal(bootstraps[0].snapshot.safeguards.externalActionsEnabled,false);
+  assert.equal(bootstraps[0].snapshot.startupMode,'SUPABASE_AUTH_FOUNDATION');
+  assert.equal(bootstraps[0].snapshot.fullRefreshPending,true,'Auth bootstrap must remain explicitly non-authoritative until operational hydration completes.');
   assert.equal(storage.get(`h38-selected-business:${USER_A}`),BUSINESS_A);
   assert.ok(writes.some(row=>row.value.userId===USER_A&&row.value.businessId===BUSINESS_A&&row.value.status==='active'));
 
@@ -196,6 +198,7 @@ const bridge=new window.H38Bridge(null,'',status=>statuses.push(status),startup=
   assert.equal(selected.authUserId,USER_B);
   assert.equal(selected.business.businessId,BUSINESS_B2);
   assert.equal(selected.user.roleName,'viewer');
+  assert.equal(selected.fullRefreshPending,true,'Raw Auth bridge refresh remains a foundation snapshot until the operational data wrapper hydrates it.');
   assert.equal(storage.get(`h38-selected-business:${USER_B}`),BUSINESS_B2);
   assert.equal(window.H38_SUPABASE_AUTH.getState().selectedBusinessId,BUSINESS_B2);
   assert.equal(storage.get(`h38-selected-business:${USER_A}`),BUSINESS_A,'User A preference remains separately namespaced');
@@ -231,6 +234,8 @@ const bridge=new window.H38Bridge(null,'',status=>statuses.push(status),startup=
     acceptance:'SUPABASE_BUSINESS_OFFICE_AUTH_RUNTIME',
     noSessionDenied:true,
     oneBusinessAutomaticSelection:true,
+    authFoundationPending:true,
+    authFoundationNeverAuthoritative:true,
     forgedBusinessRejected:true,
     suspendedMembershipDenied:true,
     userSwitchClearsVisibleTenant:true,

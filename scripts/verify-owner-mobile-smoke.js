@@ -111,6 +111,8 @@ requireText(nativeOfficeLaunch,"'h38:owner-startup-authorities-ready'",'native l
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38OwnerStartupAuthorities==='ready'",'native launch guard requires explicit owner startup marker');
 requireText(supabaseStartup,"root.dataset.h38AuthoritativeStartup='ready'",'authoritative Supabase startup publishes final snapshot marker');
 requireText(supabaseStartup,"'h38:authoritative-startup-ready'",'authoritative Supabase startup publishes final snapshot event');
+requireText(supabaseStartup,'authFoundationNeverPaints:true','Auth-only foundation snapshot cannot paint Today after sign-in');
+requireText(supabaseStartup,'operationalSnapshotRequired:true','post-login Today requires operational hydration');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38AuthoritativeStartup!=='ready'",'native reveal waits for authoritative snapshot');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38JobLifecycleReady!=='ready'",'native reveal waits for lifecycle authority');
 requireText(nativeOfficeLaunch,"document.documentElement.dataset.h38PhoneFirstReady!=='ready'",'native reveal waits for phone-first authority');
@@ -124,7 +126,7 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20260917-phone-first-office-4'",'runtime loader pins final phone-first build');
-requireText(serviceWorker,"h38-business-office-20260917-2359",'service worker flushes physical-startup authority assets with a dated cache epoch');
+requireText(serviceWorker,"h38-business-office-20260918-0145",'service worker flushes physical-startup authority assets with a dated cache epoch');
 requireText(serviceWorker,"'phone-first-office.js'",'phone-first runtime is live-first');
 requireText(serviceWorker,"'office-reference-samples.js'",'reference-sample runtime is live-first');
 if(ownerFlow.includes("Date.now()-start<3500"))fail('owner workflow has no 3.5-second startup delay');else pass('owner workflow has no 3.5-second startup delay');

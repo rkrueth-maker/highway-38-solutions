@@ -116,7 +116,7 @@
     const snapshot = {
       status: 'PASS',
       startupMode: 'SUPABASE_AUTH_FOUNDATION',
-      fullRefreshPending: false,
+      fullRefreshPending: true,
       serverTime: serverTime || new Date().toISOString(),
       version: 'supabase-auth-stage-1',
       schemaVersion: 'business-office-auth-v1',
@@ -481,6 +481,8 @@
     enabled: configured(),
     render: authPanel,
     signOut,
+    foundationSnapshotRequiresHydration: true,
+    authFoundationNeverAuthoritative: true,
     getState: () => ({
       userId: runtime.user?.id || '',
       email: runtime.user?.email || '',
