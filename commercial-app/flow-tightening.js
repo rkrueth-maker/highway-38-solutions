@@ -131,6 +131,19 @@ function enhanceCreationFlow(page){
   actions.querySelectorAll('[data-h38-create]').forEach(button=>button.onclick=()=>{choose(button.dataset.h38Create);const form=document.getElementById(button.dataset.h38Create);form?.scrollIntoView({behavior:'smooth',block:'nearest'});form?.querySelector('input,select,textarea')?.focus({preventScroll:true});});
   choose(cards.some(entry=>entry.item.id===creationChoice[page])?creationChoice[page]:cards[0].item.id);
 }
+function nextActionLabel(command,context){
+  const stage=upper(context?.stage);
+  if(command==='site')return stage==='SITE_VISIT'?'Continue Site Visit':'Start Site Visit';
+  if(command==='quote')return stage==='APPROVAL'?'Review Quote':'Build Quote';
+  if(command==='schedule')return'Schedule Work';
+  if(command==='field'){
+    if(stage==='QUALITY')return'Finish Required Proof';
+    if(stage==='PREJOB')return'Start Work';
+    return'Continue Work';
+  }
+  if(command==='money')return'Create Invoice';
+  return'Open Work';
+}
 function enhanceWork(){
   const main=document.getElementById('mainContent');if(!main||officeState()?.page!=='work')return;
   const job=selectedJob();if(!job)return;
@@ -140,11 +153,20 @@ function enhanceWork(){
   const fingerprint=workFingerprint(job,context,expenses,documents);
   let section=document.getElementById('h38JobCommandHome');
   if(section?.dataset.h38WorkFingerprint===fingerprint)return;
-  const next=nextActionFor(context),stage=context?.stageLabel||value(job,'Status','status')||'Job';
+  const next=nextActionFor(context),stage=context?.stageLabel||value(job,'Status','status')||'Job',nextLabel=nextActionLabel(next,context);
+  const secondary=[
+    ['site','Site Visit',`${context?.site?.length||0} visits`],
+    ['quote','Quote',`${context?.quotes?.length||0} revisions`],
+    ['work','Work',`${context?.checklists?.length||0} checklists`],
+    ['money','Money',`${context?.invoices?.length||0} invoices - ${expenses.length} costs`],
+    ['files','Files',`${documents.length} linked`],
+    ['messages','Messages','Customer context']
+  ].filter(([command])=>command!==next&&!(next==='field'&&command==='site'));
+  const secondaryMarkup=secondary.map(([command,label,detail])=>`<button type="button" data-job-command="${command}"><strong>${html(label)}</strong><small>${html(detail)}</small></button>`).join('');
   const isNew=!section;
   if(!section){section=document.createElement('section');section.id='h38JobCommandHome';section.className='h38-job-command-home';}
   section.dataset.h38WorkFingerprint=fingerprint;
-  section.innerHTML=`<div class="h38-job-command-head"><div><span>JOB HOME</span><h2>${html(value(job,'Project Title','projectTitle')||value(job,'Job Number','jobNumber')||'Job')}</h2><p>${html(stage)} · ${html(context?.next||'Keep this job moving from one place.')}</p></div><button type="button" data-job-command="${next}" class="h38-job-next">Do next step</button></div>${blockers.length?`<div class="h38-job-alert"><strong>Needs attention</strong><span>${html(blockers.join(' · '))}</span></div>`:''}<div class="h38-job-command-grid"><button type="button" data-job-command="site"><span>📍</span><strong>Site</strong><small>${context?.site?.length||0} visits</small></button><button type="button" data-job-command="quote"><span>🧾</span><strong>Quote</strong><small>${context?.quotes?.length||0} revisions</small></button><button type="button" data-job-command="work"><span>🧰</span><strong>Work</strong><small>${context?.checklists?.length||0} checklists</small></button><button type="button" data-job-command="money"><span>💵</span><strong>Money</strong><small>${context?.invoices?.length||0} invoices · ${expenses.length} costs</small></button><button type="button" data-job-command="files"><span>📁</span><strong>Files</strong><small>${documents.length} linked</small></button><button type="button" data-job-command="messages"><span>💬</span><strong>Messages</strong><small>Customer context</small></button></div>`;
+  section.innerHTML=`<div class="h38-job-command-head"><div><span>JOB</span><h2>${html(value(job,'Project Title','projectTitle')||value(job,'Job Number','jobNumber')||'Job')}</h2><p>${html(stage)} - ${html(context?.next||'Keep this job moving from one place.')}</p></div><button type="button" data-job-command="${next}" class="h38-job-next primary">${html(nextLabel)}</button></div>${blockers.length?`<div class="h38-job-alert"><strong>Needs attention</strong><span>${html(blockers.join(' - '))}</span></div>`:''}${secondaryMarkup?`<details class="h38-job-secondary"><summary>More job actions</summary><div class="h38-job-secondary-grid">${secondaryMarkup}</div></details>`:''}`;
   if(isNew){const head=main.querySelector('.page-head');head?.insertAdjacentElement('afterend',section);}
   section.querySelectorAll('[data-job-command]').forEach(button=>button.onclick=()=>runJobCommand(button.dataset.jobCommand,job,context));
   main.querySelectorAll('.grid > .card').forEach(card=>{const heading=card.querySelector('h2')?.textContent?.trim();if(['New request','New job','Assign task'].includes(heading))card.classList.add('h38-tight-secondary');});
