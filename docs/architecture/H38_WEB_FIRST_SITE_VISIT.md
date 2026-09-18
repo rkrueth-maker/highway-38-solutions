@@ -1,6 +1,6 @@
 # H38 Web-First Site Visit Authority
 
-Date: 2026-09-11
+Date: 2026-09-18
 
 ## Decision
 
@@ -8,45 +8,66 @@ H38 Business Office is the primary Site Visit application for owners, employees,
 
 A separate Site Manager Android application is **not required** for normal Site Visit capture.
 
-The browser Site Visit recorder in `commercial-app/field-visit-video.js` is the supported default capture path. It already supports camera + microphone capture, Stop & Save, local/offline persistence, walkthrough frame extraction, private evidence storage, and private Supabase synchronization.
+The browser Site Visit recorder in `commercial-app/field-visit-video.js` is the supported default capture path. It supports camera + microphone capture, Stop & Save, local/offline persistence, walkthrough frame extraction, private evidence storage, and private Supabase synchronization.
 
-## Office setup stays authoritative
+## One responsive Business Office
 
-This change does **not** replace or restructure the canonical Business Office. Desktop Office navigation, owner/admin setup, permissions, records, and normal Office pages remain authoritative.
+Highway 38 Business Office uses one responsive, role-aware application shell. Owners and office users receive the Office-oriented experience. Field roles receive a simplified My Day and job-centered experience using the same records, permissions, routes, authentication, synchronization, and Business Office.
 
-`commercial-app/mobile-field-view.js` is only a phone presentation layer over the existing Business Office and existing `Field & Crew` shell. It does not create a second data system or a second application.
+There is no ordinary user-facing Field View / Full Business Office mode switch.
 
-Default phone behavior is intentionally role-sensitive:
+- Owner/admin phone navigation remains `Today | Customers | Schedule | Messages | More`.
+- Field-role phone navigation is `Today | Jobs | Schedule | Messages | More`.
+- Field-role Today presents My Day: Current Work, Next Assignment, Required Before Leaving, and Remaining Today.
+- Site Visit is a contextual work action launched from a job, customer, schedule item, assignment, or approved create flow; it is not a permanent field primary-navigation destination.
+- Authorized secondary Office capabilities appear naturally under More and remain permission-filtered.
+- Desktop remains the canonical responsive Business Office, with the same authorization model.
 
-- Staff employees, site managers, and foremen default to **Field View** on a phone.
-- Owners and administrators keep the accepted **Full Business Office** phone view by default.
-- Any authorized field-capable user may explicitly switch between **Field View** and **Full Office**.
-- An explicit user choice is remembered on that device.
-- Desktop remains the normal full Business Office.
+`commercial-app/mobile-field-view.js` is retained only as a compatibility and field-experience enhancer. It does not own a second shell. It clears or ignores the retired `h38:mobile-workspace-view:v1` preference, normalizes legacy field-mode entry into the Office shell, and applies field-role My Day/job presentation without changing data or permissions.
+
+Legacy query parameters or installed-device state that request a field shell must recover into the one Business Office experience rather than recreate the retired mode.
 
 ## Role model
 
-`site-manager` remains a useful access/profile label inside H38 Business Office. It does not identify a separate application or a separate data system.
+`site-manager` remains a useful access/profile label inside H38 Business Office. It does not identify a separate application or data system.
 
-Owner, administrator, employee, site manager, and foreman users share the same Business Office and Supabase records. Authorization remains permission/role based.
+Owner, administrator, employee, site manager, and foreman users share the same Business Office and Supabase records. Authorization remains permission/role based and server enforcement remains authoritative.
 
-## Field View
+Field-role presentation never expands permissions. It only emphasizes already-authorized work.
 
-Field View is optimized for phone use and keeps the common field actions immediately available:
+## Field workflow
 
-- Today
-- Jobs
-- Site Visit
-- Schedule
-- More
+The intended worker flow is:
 
-The **More** control exposes other permitted field tools plus an explicit **Open Full Business Office** action. The top bar also provides a Field View / Full Office switch for field-capable users.
+`My Day → Current / Next Assignment → Open Job → Required Work → Proof → Complete → Next Job`
 
-Field View never expands a user's permissions. It only changes which already-authorized Office routes are emphasized on the phone.
+A field job is the work hub. It presents:
 
-## Native Android status
+- customer/job context,
+- status and one next action,
+- Overview,
+- Work,
+- Proof,
+- Files,
+- Activity,
+- job-linked time controls supported by the existing employee workspace RPCs, and
+- contextual Start / Continue Site Visit.
 
-The native Android Site Scanner / CameraX code may remain available as an optional companion for capabilities that justify native code, such as enhanced recovery, future hardware/sensor integrations, or workflows that browsers cannot reliably support.
+Required proof is read from the existing task/job work requirements and existing Business Office evidence records. No separate field proof database is introduced.
+
+Job/task labor time and whole-shift attendance remain separate concepts even when the phone experience presents related controls together.
+
+## Site Visit
+
+Site Visit remains a focused temporary workspace launched from work context.
+
+The supported flow is:
+
+`Open Job → Start / Continue Site Visit → capture evidence → Finish & Organize → durable Visit Report → return to job/customer context`
+
+The existing Site Visit architecture remains authoritative for photos, voice/audio, notes, measurements, video where applicable, offline persistence, evidence organization, and reporting.
+
+The native Android Site Scanner / CameraX code may remain an optional companion for capabilities that justify native code, such as enhanced recovery, hardware/sensor integrations, or workflows that browsers cannot reliably support.
 
 Native capture must not be a prerequisite for:
 
@@ -58,44 +79,49 @@ Native capture must not be a prerequisite for:
 - owner review, or
 - quote handoff.
 
-The retired `android-camera-direct-fix.js` interceptor must remain non-authoritative. It now exposes the web-first runtime contract and loads the isolated mobile presentation without stealing camera, microphone, delete, Office navigation, or approval authority.
+The retired `android-camera-direct-fix.js` interceptor remains non-authoritative. It exposes the web-first runtime contract and loads the compatibility/role-aware phone enhancer without taking camera, microphone, delete, Office navigation, authentication, approval, or data authority.
 
 ## Runtime contract
 
-`window.H38_SITE_VISIT_CAPTURE_AUTHORITY` declares:
+`window.H38_SITE_VISIT_CAPTURE_AUTHORITY` declares the web-first, one-shell contract, including:
 
 - `primary: 'business-office-web'`
+- `oneBusinessOfficeShell: true`
+- `fieldStaffMyDayInSameOffice: true`
+- `ownerAdminOfficeNavigationPreserved: true`
+- `fieldViewModeRetired: true`
 - `officeSetupUntouched: true`
 - `siteManagerAppRequired: false`
 - `nativeAppRequired: false`
 - `nativeCompanionOptional: true`
 - `sameOfficeForOwnerEmployeesAndSiteManagers: true`
-- `mobileFieldViewDefaultForStaff: true`
-- `mobileFullOfficeDefaultForOwnerAdmin: true`
-- `fullOfficeChoiceAlwaysAvailable: true`
 - `cameraMicrophoneViaBrowser: true`
 - `offlineDraftPersistence: true`
 - `privateSupabaseSync: true`
 
-The normal browser UI should explicitly tell field users that recording happens in H38 Business Office and no separate Site Manager app is required.
+`window.H38_MOBILE_FIELD_VIEW` remains a compatibility API name only. Its implementation must keep `state.shell` on Office, remove retired mode toggles/preferences, and preserve one Business Office.
 
 ## Acceptance
 
-A browser-only staff/site-manager phone pass is successful when an authorized user can:
+A browser-only field-role phone pass is successful when an authorized user can:
 
-1. Open H38 Business Office and land in the simplified Field View.
-2. Open the assigned job or Site Visit route.
-3. Start Site Visit.
-4. Start the walkthrough camera from the browser.
-5. Record video and microphone audio when browser permissions allow it.
-6. Stop and save the walkthrough.
-7. See the walkthrough evidence retained with the Site Visit.
-8. Continue to detail photos, measurements, review, and quote handoff.
-9. Choose Full Office and return to the normal permission-filtered Business Office when needed.
+1. Open H38 Business Office and land in My Day without choosing a mode.
+2. See `Today | Jobs | Schedule | Messages | More`.
+3. Open the current/next assignment and job.
+4. Clock into assigned work using the existing staff time RPC.
+5. Review instructions and required proof.
+6. Start or continue Site Visit contextually when required.
+7. Capture supported camera, audio, notes, measurements, and video evidence.
+8. Finish & Organize the Site Visit and return to the originating work context.
+9. Complete required proof/checklist work.
+10. Clock out / complete using existing bounded staff operations.
+11. Move to the next assignment without switching shells.
 
-Owner/admin phone acceptance additionally requires that the existing normal mobile Office remains the default unless that user explicitly selected Field View.
+Owner/admin phone acceptance additionally requires that the accepted `Today | Customers | Schedule | Messages | More` navigation remains unchanged and no retired Field View toggle appears.
 
-If live `MediaRecorder` is unavailable, H38 may fall back to the browser/device video picker. That fallback still does not require the separate Site Manager app.
+Old installed devices with a saved `h38:mobile-workspace-view:v1=field` preference must recover into the one Office shell. The compatibility file and owner phone authority are live-first/offline-cached so an installed PWA can migrate safely.
+
+If live `MediaRecorder` is unavailable, H38 may fall back to the browser/device video picker. That fallback still does not require a separate Site Manager app.
 
 ## Safety boundaries
 

@@ -1,16 +1,21 @@
 (function(){
 'use strict';
-const BUILD='20260915-phone-first-nav-1';
+const BUILD='20260918-one-shell-role-nav-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
-const PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
-const MORE_GROUPS=[
+const OWNER_PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
+const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
+const OWNER_MORE_GROUPS=[
   ['Work & Sales',['work','quotes','field','meetings']],
   ['Money',['money','accounting','payroll','tax']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
   ['Office',['reports','social','controls','ai','assistant','settings']]
 ];
-const MORE_ORDER=MORE_GROUPS.flatMap(([,items])=>items);
+const FIELD_MORE_GROUPS=[
+  ['Work',['field','meetings','documents','inventory','fleet']],
+  ['Team',['people']],
+  ['Office',['customers','quotes','money','accounting','payroll','tax','reports','social','controls','ai','assistant','settings']]
+];
 let resizeTimer=0;
 let interactionUntil=0;
 let lastPage='';
@@ -25,6 +30,11 @@ function interacting(){return Date.now()<interactionUntil;}
 function markInteraction(){interactionUntil=Date.now()+700;}
 function statePage(){try{return text(window.state?.page);}catch(_){return'';}}
 function allowed(){try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}}
+function currentUser(){try{return window.state?.snapshot?.user||null;}catch(_){return null;}}
+function roleName(){const u=currentUser()||{};return text(u.roleId||u.roleName||u.role).toLowerCase();}
+function fieldRole(){const u=currentUser();if(!u||u.owner===true||u.permissions?.all===true)return false;const role=roleName();return role==='staff'||role==='field staff'||role==='field'||role==='foreman'||role==='site-manager'||role==='site manager'||/foreman|crew lead|field/.test(text(u.jobTitle||u.title).toLowerCase());}
+function primaryNavigation(){return fieldRole()?FIELD_PRIMARY:OWNER_PRIMARY;}
+function moreGroups(){return fieldRole()?FIELD_MORE_GROUPS:OWNER_MORE_GROUPS;}
 function pageLabel(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}}
 function pageIcon(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}}
 function fieldActuallyOpen(){
@@ -148,7 +158,7 @@ function moreDialog(){
   return dialog;
 }
 function openMore(){
-  const pages=new Set(allowed()),groups=MORE_GROUPS.map(([title,items])=>[title,items.filter(key=>pages.has(key))]).filter(([,items])=>items.length),dialog=moreDialog();
+  const pages=new Set(allowed()),groups=moreGroups().map(([title,items])=>[title,items.filter(key=>pages.has(key))]).filter(([,items])=>items.length),dialog=moreDialog();
   const markup=`<div class="h38-more-sheet"><div class="h38-more-head"><div><strong>More</strong><small>Tools grouped by what you are trying to do.</small></div><button type="button" data-close-more aria-label="Close">x</button></div><button type="button" class="h38-more-search" data-h38-more-search><span aria-hidden="true"></span><strong>Search Office</strong><small>Customers, jobs, quotes, invoices and files</small></button><div class="h38-more-groups">${groups.map(([title,items])=>`<section class="h38-more-group"><h3>${html(title)}</h3><div class="h38-more-grid">${items.map(key=>`<button type="button" data-more-page="${html(key)}" data-h38-more-icon="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></section>`).join('')}</div></div>`;
   if(dialog.innerHTML!==markup)dialog.innerHTML=markup;
   dialog.querySelector('[data-close-more]')?.addEventListener('click',()=>dialog.close(),{once:true});
@@ -161,16 +171,16 @@ function ensurePrimaryNav(){
   const s=window.state,nav=document.getElementById('mainNav');
   if(!nav||s?.shell!=='office')return;
   if(!s.snapshot?.user){nav.replaceChildren();document.getElementById('h38PrimaryMoreDialog')?.remove();return;}
-  const pages=new Set(allowed()),current=statePage(),moreActive=!PRIMARY.some(([key])=>key===current);
+  const pages=new Set(allowed()),current=statePage(),primary=primaryNavigation(),signature=fieldRole()?'field-role':'owner-office',moreActive=!primary.some(([key])=>key===current);
   const desired=[
-    ...PRIMARY.filter(([key])=>pages.has(key)).map(([key,icon,label])=>`<button type="button" data-h38-primary="${key}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
+    ...primary.filter(([key])=>pages.has(key)).map(([key,icon,label])=>`<button type="button" data-h38-primary="${key}" data-h38-role-primary="${signature}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
     `<button type="button" data-h38-primary="more" class="${moreActive?'active':''}" aria-haspopup="dialog" aria-controls="h38PrimaryMoreDialog"><span class="nav-icon">•••</span><span>More</span></button>`
   ].join('');
-  if(nav.classList.contains('h38-five-primary-nav')&&nav.dataset.h38PrimaryNav==='4'&&nav.innerHTML===desired)return;
+  if(nav.classList.contains('h38-five-primary-nav')&&nav.dataset.h38PrimaryNav===signature&&nav.innerHTML===desired)return;
   navBusy=true;
   nav.classList.add('h38-five-primary-nav');
   nav.classList.remove('h38-operator-scroll-nav');
-  nav.dataset.h38PrimaryNav='4';
+  nav.dataset.h38PrimaryNav=signature;
   nav.innerHTML=desired;
   nav.querySelectorAll('[data-h38-primary]').forEach(button=>button.onclick=()=>button.dataset.h38Primary==='more'?openMore():window.openPage?.(button.dataset.h38Primary));
   navBusy=false;
@@ -258,8 +268,9 @@ function polishSchedule(main){
     const customerName=valueOf(customer,'Customer Name','name'),phone=valueOf(customer,'Phone','phone','Mobile Phone','mobilePhone'),location=valueOf(event,'Location','location','Address','address')||valueOf(customer,'Service Address','serviceAddress');
     const meta=document.createElement('div');meta.className='h38-agenda-context';meta.innerHTML=`<span>${html(customerName||'Customer not linked')}</span><span>${html(location||'Location not set')}</span>`;row.appendChild(meta);
     const actions=document.createElement('div');actions.className='h38-context-actions';actions.dataset.h38AgendaActions='1';
-    if(phone){const call=document.createElement('a');call.className='secondary';call.href=`tel:${phone.replace(/[^\\d+]/g,'')}`;call.textContent='Call';actions.appendChild(call);}
+    if(phone){const call=document.createElement('a');call.className='secondary';call.href=`tel:${phone.replace(/[^\d+]/g,'')}`;call.textContent='Call';actions.appendChild(call);}
     if(location){const nav=document.createElement('button');nav.type='button';nav.className='secondary';nav.textContent='Navigate';nav.onclick=()=>window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`,'_blank','noopener');actions.appendChild(nav);}
+    if(customerId||jobId){const message=document.createElement('button');message.type='button';message.className='secondary';message.textContent='Message';message.onclick=()=>{window.H38_PENDING_MESSAGE_CONTEXT={customerId,jobId};window.openPage?.('messages');};actions.appendChild(message);}
     if(jobId){const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Open job';open.onclick=()=>{window.openPage?.('work');setTimeout(()=>{const select=document.getElementById('h38LifecycleJob');if(select&&Array.from(select.options||[]).some(option=>option.value===jobId)){select.value=jobId;select.dispatchEvent(new Event('change',{bubbles:true}));}},0);};actions.appendChild(open);}
     if(actions.children.length)row.appendChild(actions);
   });
@@ -277,8 +288,8 @@ function polishMessages(main){
   if(create&&text(create.textContent)==='Create')create.textContent='Start';
   if(window.state?.messageTab!=='internal')return;
   const snap=window.state?.snapshot||{},rowsOf=name=>Array.isArray(snap[name])?snap[name]:[];
-  const selectedId=text(window.state?.selectedConversation),conversation=rowsOf('conversations').find(row=>text(row?.['Conversation ID']||row?.conversationId||row?.id)===selectedId)||null;
-  const customerId=text(conversation?.['Customer ID']||conversation?.customerId),jobId=text(conversation?.['Job ID']||conversation?.jobId||conversation?.['Related Record ID']||conversation?.relatedRecordId);
+  const selectedId=text(window.state?.selectedConversation),conversation=rowsOf('conversations').find(row=>text(row?.['Conversation ID']||row?.conversationId||row?.id)===selectedId)||null,pending=window.H38_PENDING_MESSAGE_CONTEXT||{};
+  const customerId=text(conversation?.['Customer ID']||conversation?.customerId||pending.customerId),jobId=text(conversation?.['Job ID']||conversation?.jobId||conversation?.['Related Record ID']||conversation?.relatedRecordId||pending.jobId);
   const customer=customerId?rowsOf('customers').find(row=>text(row?.['Customer ID']||row?.customerId||row?.id)===customerId):null;
   const job=jobId?rowsOf('jobs').find(row=>text(row?.['Job ID']||row?.jobId||row?.id)===jobId):null;
   const customerLabel=text(customer?.['Customer Name']||customer?.name),jobLabel=text(job?.['Project Title']||job?.['Job Number']||job?.projectTitle||job?.jobNumber);
@@ -286,6 +297,7 @@ function polishMessages(main){
   let context=threadCard.querySelector('.h38-message-context');
   if(!context){context=document.createElement('div');context.className='h38-message-context';threadCard.querySelector('h2')?.insertAdjacentElement('afterend',context);}
   context.innerHTML=`<strong>${html(customerLabel||'Business conversation')}</strong><span>${html(jobLabel||'No customer job linked')}</span>`;
+  if(conversation&&window.H38_PENDING_MESSAGE_CONTEXT)window.H38_PENDING_MESSAGE_CONTEXT={customerId,jobId};
 }
 function polishVisiblePage(){
   const main=document.getElementById('mainContent'),current=statePage();
@@ -478,7 +490,11 @@ window.H38_MOBILE_RUNTIME_STABILITY=Object.freeze({
   mobilePrimaryNavigationSingleAuthority:true,
   phoneFirstPrimaryNavigation:true,
   primaryNavigation:['Today','Customers','Schedule','Messages','More'],
-  jobsMovedToMore:true,
+  fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More'],
+  roleAwareOneShellNavigation:true,
+  fieldRoleUsesOfficeShell:true,
+  siteVisitContextualNotPrimary:true,
+  jobsMovedToMoreForOwner:true,
   groupedMore:true,
   accessiblePrimaryNav:true,
   strayQuoteActionHiddenOutsideQuotes:true,

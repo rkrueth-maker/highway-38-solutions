@@ -15,6 +15,8 @@ const auth=read('commercial-app/supabase-auth.js');
 const office=read('commercial-app/app-01.js');
 const parity=read('commercial-app/app-19.js');
 const worker=read('commercial-app/service-worker.js');
+const mobileField=read('commercial-app/mobile-field-view.js');
+const mobileStability=read('commercial-app/mobile-runtime-stability.js');
 
 for(const needle of [
   'business_employee_profiles','business_office_invite_employee','business_office_team_directory',
@@ -85,6 +87,22 @@ expect(!loader.includes('script.src=`./employee-workspace.js'),'Final desktop au
 
 includes(worker,"'employee-workspace.js'",'Employee companion may remain LIVE_FIRST if explicitly requested.');
 includes(worker,"'./employee-workspace.js'",'Employee companion must remain available offline.');
+
+for(const needle of [
+  'retiredUserFacingMode:true','compatibilityOnly:true','oneBusinessOfficeShell:true','roleAwarePresentation:true',
+  'legacyPreferenceIgnored:true',"fieldRoleLanding:'today-my-day'","fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",
+  'siteVisitContextualAction:true','sameBusinessOfficeData:true','samePermissions:true'
+])includes(mobileField,needle,`One-shell field contract missing ${needle}`);
+expect(!mobileField.includes("FIELD_LABEL='Field View'"),'Retired mobile layer must not define a Field View label.');
+expect(!mobileField.includes("OFFICE_LABEL='Full Business Office'"),'Retired mobile layer must not define a Full Business Office switch label.');
+expect(!mobileField.includes('Open Full Business Office'),'Field More must not require switching shells.');
+expect(!mobileField.includes("state.shell='field'"),'Compatibility layer must not create a field shell.');
+for(const needle of [
+  "const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']]",
+  'roleAwareOneShellNavigation:true','fieldRoleUsesOfficeShell:true','siteVisitContextualNotPrimary:true',
+  "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']"
+])includes(mobileStability,needle,`Final mobile navigation missing ${needle}`);
+
 expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated, navigation-generation, or physical-startup format.');
 
 console.log(JSON.stringify({
@@ -92,5 +110,6 @@ console.log(JSON.stringify({
   employeeWorkspace:'non-owning companion',employeeAutoLoad:false,employeeDesktopTakeover:false,
   taskManagerAssignmentAuthority:true,employeeSelfPunch:true,ownerAdminTeamAccess:true,
   siteManagerProfile:true,directAuthSignup:false,invitationBoundActivation:true,duplicateActivationGuard:true,
+  oneBusinessOfficeShell:true,fieldStaffMyDay:true,fieldModeToggleRetired:true,
   directAdminDataHiddenFromStaff:true,automaticInvitationEmail:false,automaticExternalActions:false
 },null,2));

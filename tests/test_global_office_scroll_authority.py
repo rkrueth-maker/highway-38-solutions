@@ -15,14 +15,16 @@ def test_cosmetic_mobile_polish_delegates_scroll_authority():
 
 
 def test_final_runtime_is_the_only_global_mobile_scroll_authority():
-    assert "20260915-phone-first-nav-1" in RUNTIME
+    assert "20260918-one-shell-role-nav-1" in RUNTIME
     assert "publishedOfficeAuthority:true" in RUNTIME
     assert "officeFixedViewportScroller:true" in RUNTIME
     assert "manualTouchScrollFallback:true" in RUNTIME
     assert "staleFieldDomDoesNotLockOfficeScroll:true" in RUNTIME
     assert "phoneFirstPrimaryNavigation:true" in RUNTIME
     assert "primaryNavigation:['Today','Customers','Schedule','Messages','More']" in RUNTIME
-    assert "jobsMovedToMore:true" in RUNTIME
+    assert "jobsMovedToMoreForOwner:true" in RUNTIME
+    assert "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']" in RUNTIME
+    assert "roleAwareOneShellNavigation:true" in RUNTIME
     assert "window.H38_FIELD_VISIT_CORE?.state?.open!==true" in RUNTIME
     assert "document.body.classList.toggle('h38-field-scroll-lock',fieldOpen)" in RUNTIME
 

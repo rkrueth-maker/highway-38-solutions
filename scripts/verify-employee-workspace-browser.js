@@ -5,6 +5,7 @@ const root=path.resolve(__dirname,'..');
 const employeeScript=path.join(root,'commercial-app','employee-workspace.js');
 const authorityScript=path.join(root,'commercial-app','desktop-navigation-authority.js');
 const mobileFieldScript=path.join(root,'commercial-app','mobile-field-view.js');
+const mobileStabilityScript=path.join(root,'commercial-app','mobile-runtime-stability.js');
 
 function assert(condition,message){if(!condition)throw new Error(message);}
 const STAFF_PERMISSIONS={
@@ -13,6 +14,8 @@ const STAFF_PERMISSIONS={
   captureEvidence:true,useInventory:true,useAssets:true
 };
 async function installHarness(page,{role='',authForm=false,deferredRole=false}={}){
+  await page.route('https://h38-office.test/',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html><body></body></html>'}));
+  await page.goto('https://h38-office.test/');
   await page.setContent(`<!doctype html><html><body>
     <header class="topbar"><div class="top-actions"><button id="globalAiButton">AI</button><button id="voiceButton">Voice</button></div></header>
     <section class="business-bar"><select><option>Business</option></select><button>Open</button><span id="businessStatus"></span></section>
@@ -25,16 +28,17 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     const requirements={customers:['viewCustomers','manageWork','manageQuotes'],meetings:['viewCustomers','manageCommunications','manageWork'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],settings:['manageSettings','manageUsers']};
     window.PAGE_DEFS=pageDefs;
     window.H38_OFFICE_PAGES=officePages;
-    const snapshot=authForm||deferredRole?null:{user:{roleId:role,roleName:role,permissions:role==='staff'?permissions:{all:true}},business:{businessId:'B-1',businessName:'Test Business'}};
+    const snapshot=authForm||deferredRole?null:{user:{userId:role==='staff'?'U-1':`U-${role||'user'}`,roleId:role,roleName:role,permissions:role==='staff'?permissions:role==='viewer'?{viewCustomers:true}:{all:true}},business:{businessId:'B-1',businessName:'Test Business'}};
     window.state={shell:'office',page:'today',businessId:'B-1',snapshot};
     window.__calls=[];
     window.__workspace={
       profile:{membershipId:'M-1',authUserId:'U-1',email:'employee@example.com',displayName:'Alex Employee',jobTitle:'Installer',role:'staff'},
       time:{role:'staff',canEdit:false,currentPunch:null,recent:[]},
-      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Due Time':'2026-09-08T15:00:00.000Z'}],
-      jobs:[{'Job ID':'JOB-1','Customer ID':'CUS-1','Project Title':'Kitchen project','Status':'Active'}],
-      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer'}]
+      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Instructions':'Use rear entrance and verify cabinet level.','Required Proof':'Before Photo,Completion Photo,Checklist,Notes'}],
+      jobs:[{'Job ID':'JOB-1','Customer ID':'CUS-1','Project Title':'Kitchen project','Status':'Active','Service Address':'123 Main St'}],
+      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer','Phone':'218-555-0101','Service Address':'123 Main St'}]
     };
+    if(snapshot){Object.assign(window.state.snapshot,{tasks:structuredClone(window.__workspace.tasks),jobs:structuredClone(window.__workspace.jobs),customers:structuredClone(window.__workspace.customers),timeEntries:[],documents:[],checklists:[],jobNotes:[],dailyLogs:[],siteMeasurements:[],siteCaptureSessions:[],quotes:[],scheduleEvents:[{'Schedule Event ID':'SCH-1','Related Record ID':'JOB-1','Customer ID':'CUS-1','Title':'Kitchen project','Start Time':new Date(Date.now()+3600000).toISOString(),'Location':'123 Main St','Instructions':'Use rear entrance and verify cabinet level.'}]});}
     window.allowedPages=function(){
       const user=window.state.snapshot?.user;
       const can=cap=>!user||user.permissions?.all===true||user.permissions?.[cap]===true;
@@ -121,32 +125,82 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     const fieldPhoneContext=await browser.newContext({viewport:{width:390,height:844}});
     const fieldPhone=await fieldPhoneContext.newPage();
     await installHarness(fieldPhone,{role:'staff'});
+    await fieldPhone.evaluate(()=>localStorage.setItem('h38:mobile-workspace-view:v1','field'));
     await fieldPhone.addScriptTag({path:mobileFieldScript});
-    await fieldPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'));
+    await fieldPhone.addScriptTag({path:mobileStabilityScript});
+    await fieldPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&window.H38_MOBILE_RUNTIME_STABILITY&&window.state?.shell==='office'&&document.getElementById('h38FieldMyDay')&&document.querySelector('#mainNav [data-h38-primary="work"]'));
     const fieldContract=await fieldPhone.evaluate(()=>window.H38_MOBILE_FIELD_VIEW);
-    assert(fieldContract?.presentationOnly===true&&fieldContract?.officeSetupUntouched===true,'Field View must remain a presentation-only layer over the Office.');
-    assert(fieldContract?.sameBusinessOfficeData===true&&fieldContract?.samePermissions===true,'Field View must retain the same Office records and permissions.');
-    assert(fieldContract?.mobileDefaultForStaff==='field'&&fieldContract?.mobileDefaultForOwnerAdmin==='office','Phone defaults must remain role-sensitive.');
-    for(const key of ['today','work','field','schedule','more'])assert(await fieldPhone.locator(`#mainNav [data-h38-field-primary="${key}"]`).count()===1,`Staff phone Field View missing ${key}.`);
-    assert((await fieldPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Full Office'),'Staff phone must expose a Full Office choice.');
-    await fieldPhone.locator('#h38MobileWorkspaceToggle').click();
-    await fieldPhone.waitForFunction(()=>window.state?.shell==='office'&&document.querySelector('#mainNav [data-page="customers"]'));
-    assert(await fieldPhone.locator('#mainNav [data-h38-field-primary]').count()===0,'Full Office must restore canonical Office navigation instead of retaining Field View buttons.');
-    assert((await fieldPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Field View'),'Full Office must expose a direct return to Field View.');
+    assert(fieldContract?.retiredUserFacingMode===true&&fieldContract?.oneBusinessOfficeShell===true,'Retired Field View must normalize into one Business Office shell.');
+    assert(fieldContract?.sameBusinessOfficeData===true&&fieldContract?.samePermissions===true,'Field presentation must retain the same Office records and permissions.');
+    assert(fieldContract?.fieldRoleLanding==='today-my-day','Field Staff must land in My Day within the Office.');
+    assert(await fieldPhone.evaluate(()=>window.state?.shell)==='office','Field Staff phone must stay on the canonical Office shell.');
+    assert(await fieldPhone.evaluate(()=>localStorage.getItem('h38:mobile-workspace-view:v1'))===null,'Stale Field View preference must be cleared.');
+    assert(await fieldPhone.locator('#h38MobileWorkspaceToggle').count()===0,'No Field View / Full Office toggle may remain.');
+    for(const key of ['today','work','schedule','messages','more'])assert(await fieldPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Field Staff one-shell navigation missing ${key}.`);
+    assert(await fieldPhone.locator('#mainNav [data-h38-primary="field"]').count()===0,'Site Visit must not be a permanent primary field tab.');
+    const myDayText=await fieldPhone.locator('#h38FieldMyDay').innerText();
+    for(const label of ['CURRENT WORK','NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY','Kitchen project','Install cabinet','Instructions:','Use rear entrance','Before Photo','Completion Photo','Checklist','Notes'])assert(myDayText.includes(label),`My Day missing ${label}.`);
+    await fieldPhone.locator('#mainNav [data-h38-primary="work"]').click();
+    await fieldPhone.waitForFunction(()=>window.state?.page==='work');
+    await fieldPhone.waitForTimeout(80);
+    assert(await fieldPhone.locator('#h38FieldJobHub').count()===1,'Jobs must become the Field Staff hub without changing shells.');
+    const jobText=await fieldPhone.locator('#h38FieldJobHub').innerText();
+    for(const label of ['CURRENT JOB','NEXT STEP','Overview','Work','Proof','Files','Activity'])assert(jobText.includes(label),`Field job hub missing ${label}.`);
+    assert(await fieldPhone.locator('[data-h38-job-primary="start"]').count()===1,'Assigned field job must expose one Start Job primary action when not clocked in.');
+    await fieldPhone.locator('[data-h38-job-primary="start"]').click();
+    await fieldPhone.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_clock_in'&&call.args?.p_job_id==='JOB-1'&&call.args?.p_task_id==='TASK-1'));
+    await fieldPhone.locator('[data-h38-job-tab="proof"]').click();
+    const proofText=await fieldPhone.locator('[data-h38-job-pane="proof"]').innerText();
+    for(const label of ['Before Photo','Completion Photo','Checklist','Notes','Start / Continue Site Visit'])assert(proofText.includes(label),`Field job Proof missing ${label}.`);
     await fieldPhoneContext.close();
+
+    const foremanContext=await browser.newContext({viewport:{width:390,height:844}});
+    const foreman=await foremanContext.newPage();
+    await installHarness(foreman,{role:'staff'});
+    await foreman.evaluate(()=>{window.state.snapshot.user.jobTitle='Site Manager · Crew lead';});
+    await foreman.addScriptTag({path:mobileFieldScript});
+    await foreman.addScriptTag({path:mobileStabilityScript});
+    await foreman.waitForFunction(()=>document.getElementById('h38FieldMyDay')&&document.querySelector('#mainNav [data-h38-primary="work"]'));
+    assert(await foreman.evaluate(()=>window.state.shell)==='office','Foreman profile must use the same Business Office shell.');
+    assert(await foreman.locator('#h38MobileWorkspaceToggle').count()===0,'Foreman must not receive a Field View mode toggle.');
+    await foremanContext.close();
+
+    const adminContext=await browser.newContext({viewport:{width:390,height:844}});
+    const admin=await adminContext.newPage();
+    await installHarness(admin,{role:'administrator'});
+    await admin.addScriptTag({path:mobileFieldScript});
+    await admin.addScriptTag({path:mobileStabilityScript});
+    await admin.waitForFunction(()=>document.querySelector('#mainNav [data-h38-primary="customers"]'));
+    assert(await admin.locator('#h38FieldMyDay').count()===0,'Administrator must retain the Office-oriented Today experience.');
+    assert(await admin.locator('#h38MobileWorkspaceToggle').count()===0,'Administrator must not receive a retired mode toggle.');
+    await adminContext.close();
+
+    const viewerContext=await browser.newContext({viewport:{width:390,height:844}});
+    const viewer=await viewerContext.newPage();
+    await installHarness(viewer,{role:'viewer'});
+    await viewer.addScriptTag({path:mobileFieldScript});
+    await viewer.addScriptTag({path:mobileStabilityScript});
+    await viewer.waitForFunction(()=>window.H38_MOBILE_RUNTIME_STABILITY&&window.state?.shell==='office');
+    assert(await viewer.locator('#h38FieldMyDay').count()===0,'Restricted Viewer must not receive field-work controls.');
+    assert(await viewer.locator('#mainNav [data-h38-primary="work"]').count()===0,'Restricted Viewer must not receive Jobs without permission.');
+    assert(await viewer.locator('#mainNav [data-h38-primary="schedule"]').count()===0,'Restricted Viewer must not receive Schedule without permission.');
+    assert(await viewer.locator('#mainNav [data-h38-primary="messages"]').count()===0,'Restricted Viewer must not receive Messages without permission.');
+    await viewerContext.close();
 
     const ownerPhoneContext=await browser.newContext({viewport:{width:390,height:844}});
     const ownerPhone=await ownerPhoneContext.newPage();
     await installHarness(ownerPhone,{role:'owner'});
+    await ownerPhone.evaluate(()=>localStorage.setItem('h38:mobile-workspace-view:v1','field'));
     await ownerPhone.addScriptTag({path:mobileFieldScript});
-    await ownerPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&document.getElementById('h38MobileWorkspaceToggle'));
-    await ownerPhone.waitForTimeout(350);
-    assert(await ownerPhone.evaluate(()=>window.state?.shell)==='office','Owner/admin phone must keep Full Business Office as the default.');
-    assert(await ownerPhone.locator('#mainNav [data-page="customers"]').count()===1,'Owner phone default must retain canonical Office navigation.');
-    assert((await ownerPhone.locator('#h38MobileWorkspaceToggle').innerText()).includes('Field View'),'Owner/admin may explicitly choose Field View without changing the default Office.');
-    await ownerPhone.locator('#h38MobileWorkspaceToggle').click();
-    await ownerPhone.waitForFunction(()=>window.state?.shell==='field'&&document.querySelector('#mainNav [data-h38-field-primary="field"]'));
-    assert(await ownerPhone.locator('#h38MobileWorkspaceToggle').innerText()==='Full Office','Owner-selected Field View must retain an immediate Full Office return.');
+    await ownerPhone.addScriptTag({path:mobileStabilityScript});
+    await ownerPhone.waitForFunction(()=>window.H38_MOBILE_FIELD_VIEW&&window.H38_MOBILE_RUNTIME_STABILITY&&window.state?.shell==='office'&&document.querySelector('#mainNav [data-h38-primary="customers"]'));
+    await ownerPhone.waitForTimeout(120);
+    assert(await ownerPhone.evaluate(()=>window.state?.shell)==='office','Owner/admin phone must stay on the canonical Office shell.');
+    assert(await ownerPhone.evaluate(()=>localStorage.getItem('h38:mobile-workspace-view:v1'))===null,'Owner stale Field View preference must be removed.');
+    assert(await ownerPhone.locator('#h38MobileWorkspaceToggle').count()===0,'Owner phone must not expose a retired Field View toggle.');
+    for(const key of ['today','customers','schedule','messages','more'])assert(await ownerPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Owner phone navigation missing ${key}.`);
+    assert(await ownerPhone.locator('#mainNav [data-h38-primary="work"]').count()===0,'Owner phone must preserve the accepted customer-first primary navigation.');
+    assert(await ownerPhone.locator('#h38FieldMyDay').count()===0,'Owner Today must not be replaced by Field Staff My Day.');
     await ownerPhoneContext.close();
 
     const ownerContext=await browser.newContext({viewport:{width:1440,height:1000}});
@@ -177,6 +231,6 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     assert(!(await signup.evaluate(()=>window.__calls.some(call=>call.type==='signup'))),'No browser Auth signup call may occur.');
     await signupContext.close();
 
-    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,staffPhoneDefault:'Field View',ownerPhoneDefault:'Full Business Office',fieldToOfficeSwitch:true,officeToFieldSwitch:true,managerTeamAccess:true,siteManagerProfile:true,invitationActivation:true,duplicateActivationGuard:true,directAuthSignup:false},null,2));
+    console.log(JSON.stringify({status:'PASS',desktopViewport:'1366x768',staffShell:'canonical Business Office',permissionFilteredNavigation:true,employeeCompanionAutoRender:false,delayedTakeoverBlocked:true,taskPunchLinked:true,taskStatusUpdate:true,staffPhoneDefault:'My Day in Business Office',ownerPhoneDefault:'Business Office',oneShellRoleAware:true,fieldModeToggleRetired:true,fieldStartUsesExistingTimeRpc:true,requiredProofVisible:true,foremanMyDay:true,administratorOffice:true,viewerRestricted:true,managerTeamAccess:true,siteManagerProfile:true,invitationActivation:true,duplicateActivationGuard:true,directAuthSignup:false},null,2));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
