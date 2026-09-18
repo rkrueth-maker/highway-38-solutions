@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20260917-authoritative-startup-ready-2';
+const H38_SUPABASE_STARTUP_BUILD='20260918-post-login-operational-authority-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -16,8 +16,11 @@ const h38LegacyBindGlobal=bindGlobal;
 
 function h38SupabaseAuthEnabled(){return window.H38_SUPABASE_AUTH?.enabled===true;}
 function h38AuthUserId(){return window.H38DB?.getUserScope?.()||'';}
+function h38SnapshotAuthoritative(snapshot){
+  return !!snapshot?.user&&!!snapshot?.business&&snapshot.fullRefreshPending!==true&&snapshot.startupMode!=='SUPABASE_AUTH_FOUNDATION';
+}
 function h38MarkAuthoritativeStartupReady(source){
-  if(!state?.snapshot?.user||!state?.snapshot?.business)return false;
+  if(!h38SnapshotAuthoritative(state?.snapshot))return false;
   const root=document?.documentElement;
   if(root){
     root.dataset.h38AuthoritativeStartup='ready';
@@ -65,6 +68,7 @@ saveStartupSnapshot=function(snapshot,businessId){
   if(!h38SupabaseAuthEnabled())return h38LegacySaveStartupSnapshot(snapshot,businessId);
   const userId=h38AuthUserId();
   if(!userId||!snapshot?.business||!snapshot?.user)throw new Error('Secure startup returned an incomplete Auth-scoped business pack.');
+  if(!h38SnapshotAuthoritative(snapshot))throw new Error('Secure startup is still an Auth foundation snapshot and cannot paint business records.');
   if(snapshot.user.userId!==userId||snapshot.authUserId!==userId)throw new Error('Startup snapshot belongs to a different authenticated user.');
   const id=String(businessId||snapshot.business.businessId||'');
   if(!id||snapshot.business.businessId!==id||snapshot.authorizationStatus!=='active')throw new Error('Startup snapshot does not contain an active selected business.');
@@ -211,7 +215,7 @@ handleStartupBootstrap=async function(startup){
     setBusinessSwitcherVisible(state.canSwitchBusinesses);
     populateBusinessSelector(businesses);
     if(startup.selectedBusinessId)setFastBusinessId(startup.selectedBusinessId);
-    if(startup.snapshot){
+    if(startup.snapshot&&h38SnapshotAuthoritative(startup.snapshot)){
       saveStartupSnapshot(startup.snapshot,state.businessId);
       $('businessStatus').textContent=`${startup.snapshot.business.businessName} · ${startup.snapshot.user.roleName} · Office online`;
       openPage(state.page,false);
@@ -219,7 +223,9 @@ handleStartupBootstrap=async function(startup){
       h38MarkAuthoritativeStartupReady('bootstrap-snapshot');
       return;
     }
+    h38ClearAuthoritativeStartupReady();
     h38SetAuthorizedChrome(false);
+    if(startup.snapshot)$('businessStatus').textContent='Secure membership verified · loading complete business data…';
     const authorizedIds=new Set(businesses.map(b=>String(b.businessId||'')));
     let preferredId=String(startup.selectedBusinessId||state.requestedBusinessId||state.businessId||'').trim();
     if(!authorizedIds.has(preferredId))preferredId='';
@@ -239,6 +245,7 @@ handleStartupBootstrap=async function(startup){
 handleFullSnapshot=async function(snapshot,businessId){
   if(!h38SupabaseAuthEnabled())return h38LegacyHandleFullSnapshot(snapshot,businessId);
   try{
+    if(!h38SnapshotAuthoritative(snapshot))throw new Error('Operational business hydration did not complete; refusing to paint an Auth-only snapshot.');
     const id=String(businessId||snapshot?.business?.businessId||'');
     if(!id||id!==state.businessId)return;
     const firstAuthoritativeOpen=!state.snapshot;
@@ -324,5 +331,8 @@ window.H38_OFFICE_STARTUP=Object.freeze({
   membershipRevalidation:true,
   deniedMembershipClosesCache:true,
   authoritativeStartupReadyEvent:true,
-  nativeRevealWaitsForAuthoritativeSnapshot:true
+  nativeRevealWaitsForAuthoritativeSnapshot:true,
+  authFoundationNeverPaints:true,
+  operationalSnapshotRequired:true,
+  postLoginHydrationSinglePaint:true
 });
