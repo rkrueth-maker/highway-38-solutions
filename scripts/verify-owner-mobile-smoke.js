@@ -19,11 +19,13 @@ const nativeScroll=read('commercial-app/mobile-scroll-native-authority.js');
 const stability=read('commercial-app/mobile-runtime-stability.js');
 const phoneFirst=read('commercial-app/phone-first-office.js');
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
+const ownerFlow=read('commercial-app/owner-flow-polish.js');
+const ownerCustomer=read('commercial-app/owner-customer-workflow-polish.js');
 const startupVisit=read('commercial-app/startup-site-visit-stability.js');
 const phoneVisual=read('commercial-app/owner-phone-visual-fix.js');
 const serviceWorker=read('commercial-app/service-worker.js');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -87,6 +89,16 @@ requireText(stability,'keyboardZoomGuard:true','mobile form controls prevent key
 requireText(stability,'screenInstabilityGuard:true','screen instability guard is declared');
 requireText(stability,'width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important','mobile top-bar controls keep practical 44px touch targets');
 requireText(runtimeGlobals,'width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important','first-frame top-bar controls keep practical 44px touch targets');
+requireText(runtimeGlobals,"const EARLY_PRIMARY = [['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];",'first visible mobile navigation matches final customer-first authority');
+if(runtimeGlobals.includes("['work','🧰','Jobs']"))fail('first visible mobile navigation excludes stale Jobs primary');else pass('first visible mobile navigation excludes stale Jobs primary');
+requireText(runtimeGlobals,'schedulePrimaryBeforeStartup: true','Schedule is primary before startup reveal');
+requireText(runtimeGlobals,'jobsMovedToMoreBeforeStartup: true','Jobs is moved to More before startup reveal');
+requireText(ownerCustomer,'mobilePrimaryNavigationDelegated:true','owner customer workflow delegates phone navigation');
+requireText(ownerCustomer,'noStartupPollingLoop:true','owner customer workflow has no 15-second startup polling loop');
+if(ownerCustomer.includes("if(customers&&work&&customers.nextElementSibling!==work)customers.after(work);")&&!ownerCustomer.includes('if(!mobile)'))fail('owner customer workflow must not reorder Work into mobile primary nav');else pass('owner customer workflow cannot reorder Work into mobile primary nav');
+requireText(ownerFlow,'customerWorkflowImmediateStartup:true','owner workflow loads before phone reveal');
+requireText(ownerFlow,'noDeferred3500msWorkflowLoad:true','owner workflow removes deferred 3.5-second load');
+if(ownerFlow.includes("Date.now()-start<3500"))fail('owner workflow has no 3.5-second startup delay');else pass('owner workflow has no 3.5-second startup delay');
 requireText(stability,"body.h38-field-scroll-lock #mainNav.h38-five-primary-nav{display:none!important}",'field visit authoritative lock hides office bottom navigation');
 requireText(stability,'staleFieldDomDoesNotLockOfficeScroll:true','legacy field class cannot own normal Office scrolling');
 requireText(stability,"#h38FieldVisitApp{position:fixed;inset:0",'field visit owns one stable viewport layer');
