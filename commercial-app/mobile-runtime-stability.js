@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-phone-first-nav-1';
+const BUILD='20260918-business-office-workflow-polish-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
@@ -149,9 +149,10 @@ function moreDialog(){
 }
 function openMore(){
   const pages=new Set(allowed()),groups=MORE_GROUPS.map(([title,items])=>[title,items.filter(key=>pages.has(key))]).filter(([,items])=>items.length),dialog=moreDialog();
-  const markup=`<div class="h38-more-sheet"><div class="h38-more-head"><div><strong>More</strong><small>Tools grouped by what you are trying to do.</small></div><button type="button" data-close-more aria-label="Close">×</button></div><div class="h38-more-groups">${groups.map(([title,items])=>`<section class="h38-more-group"><h3>${html(title)}</h3><div class="h38-more-grid">${items.map(key=>`<button type="button" data-more-page="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></section>`).join('')}</div></div>`;
+  const markup=`<div class="h38-more-sheet"><div class="h38-more-head"><div><strong>More</strong><small>Everything else in the Office.</small></div><button type="button" data-close-more aria-label="Close">x</button></div><button type="button" class="h38-more-search" data-h38-more-search><span aria-hidden="true"></span><strong>Search Office</strong><small>Customers, jobs, quotes, invoices and files</small></button><div class="h38-more-groups">${groups.map(([title,items])=>`<section class="h38-more-group"><h3>${html(title)}</h3><div class="h38-more-grid">${items.map(key=>`<button type="button" data-more-page="${html(key)}" data-h38-more-icon="${html(key)}"><span>${pageIcon(key)}</span><strong>${html(pageLabel(key))}</strong></button>`).join('')}</div></section>`).join('')}</div></div>`;
   if(dialog.innerHTML!==markup)dialog.innerHTML=markup;
   dialog.querySelector('[data-close-more]')?.addEventListener('click',()=>dialog.close(),{once:true});
+  dialog.querySelector('[data-h38-more-search]')?.addEventListener('click',()=>{dialog.close();document.getElementById('h38OfficeSearchButton')?.click();},{once:true});
   dialog.querySelectorAll('[data-more-page]').forEach(button=>button.onclick=()=>{dialog.close();window.openPage?.(button.dataset.morePage);});
   if(typeof dialog.showModal==='function'){if(!dialog.open)dialog.showModal();}else dialog.setAttribute('open','');
 }
@@ -234,17 +235,42 @@ function polishCustomers(main){
   wrapToolCard(byName('Add or update customer'),'Add or edit customer',true);
   wrapToolCard(byName('Add property'),'Add property',true);
 }
+function polishSchedule(main){
+  const head=main.querySelector('.page-head'),p=head?.querySelector('p');
+  if(p)p.textContent='Agenda-first scheduling for the work you need to reach next.';
+  const read=document.getElementById('readScheduleButton');if(read)read.textContent='Read agenda';
+  const grid=main.querySelector(':scope > .grid');if(!grid)return;
+  const cards=Array.from(grid.children).filter(node=>node.classList?.contains('card'));
+  const add=cards.find(card=>cardHeading(card).toLowerCase()==='add schedule event');
+  const upcoming=cards.find(card=>['upcoming','agenda'].includes(cardHeading(card).toLowerCase()));
+  const heading=upcoming?.querySelector('h2');if(heading)heading.textContent='Agenda';
+  upcoming?.classList.add('h38-schedule-agenda');
+  if(add)wrapToolCard(add,'Add schedule event',true);
+  if(upcoming&&grid.firstElementChild!==upcoming)grid.insertBefore(upcoming,grid.firstChild);
+  upcoming?.querySelectorAll('.calendar-list .row').forEach(row=>row.classList.add('h38-agenda-row'));
+}
 function polishMessages(main){
   const head=main.querySelector('.page-head');
   const h1=head?.querySelector('h1');
   const p=head?.querySelector('p');
   if(h1&&text(h1.textContent)==='Communications')h1.textContent='Messages';
-  if(p&&/internal chat, email management/i.test(text(p.textContent)))p.textContent='Team messages, email, customer texts and portal conversations in one place.';
+  if(p&&/internal chat, email management/i.test(text(p.textContent)))p.textContent='Customer and team conversations with the related work kept visible.';
   Array.from(main.querySelectorAll('.card h2')).forEach(node=>{if(text(node.textContent)==='Business conversations')node.textContent='Team conversations';});
   Array.from(main.querySelectorAll('label')).forEach(label=>{if(text(label.textContent)==='New channel or group')label.textContent='Start a conversation';});
   const form=document.getElementById('conversationForm');
   const create=form?.querySelector('.actions button');
   if(create&&text(create.textContent)==='Create')create.textContent='Start';
+  if(window.state?.messageTab!=='internal')return;
+  const snap=window.state?.snapshot||{},rowsOf=name=>Array.isArray(snap[name])?snap[name]:[];
+  const selectedId=text(window.state?.selectedConversation),conversation=rowsOf('conversations').find(row=>text(row?.['Conversation ID']||row?.conversationId||row?.id)===selectedId)||null;
+  const customerId=text(conversation?.['Customer ID']||conversation?.customerId),jobId=text(conversation?.['Job ID']||conversation?.jobId||conversation?.['Related Record ID']||conversation?.relatedRecordId);
+  const customer=customerId?rowsOf('customers').find(row=>text(row?.['Customer ID']||row?.customerId||row?.id)===customerId):null;
+  const job=jobId?rowsOf('jobs').find(row=>text(row?.['Job ID']||row?.jobId||row?.id)===jobId):null;
+  const customerLabel=text(customer?.['Customer Name']||customer?.name),jobLabel=text(job?.['Project Title']||job?.['Job Number']||job?.projectTitle||job?.jobNumber);
+  const threadCard=Array.from(main.querySelectorAll('.thread-layout > .card')).find(card=>card!==main.querySelector('.thread-list'))||null;if(!threadCard)return;
+  let context=threadCard.querySelector('.h38-message-context');
+  if(!context){context=document.createElement('div');context.className='h38-message-context';threadCard.querySelector('h2')?.insertAdjacentElement('afterend',context);}
+  context.innerHTML=`<strong>${html(customerLabel||'Business conversation')}</strong><span>${html(jobLabel||'No customer job linked')}</span>`;
 }
 function polishVisiblePage(){
   const main=document.getElementById('mainContent'),current=statePage();
@@ -252,6 +278,7 @@ function polishVisiblePage(){
   polishChrome();
   if(current==='work')polishWork(main);
   else if(current==='customers')polishCustomers(main);
+  else if(current==='schedule')polishSchedule(main);
   else if(current==='messages')polishMessages(main);
 }
 function cancelInertia(){if(inertiaFrame){cancelAnimationFrame(inertiaFrame);inertiaFrame=0;}}
