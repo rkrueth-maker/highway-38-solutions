@@ -325,7 +325,7 @@ async function couponAcceptance(browser, session) {
   check('Couponing Save receipt',await page.locator('.item').filter({hasText:'QA Store'}).count()>0);
 
   // Handoff buttons.
-  await page.goto(BASE+'/functions/v1/h38-coupon-web?item='+encodeURIComponent(qa)+'&store=QA%20Store&buy=5.00',{waitUntil:'domcontentloaded',timeout:90000});
+  await page.goto(WEB_BASE+'/coupon.html?item='+encodeURIComponent(qa)+'&store=QA%20Store&buy=5.00',{waitUntil:'domcontentloaded',timeout:90000});
   await page.waitForSelector('#handoff:not(.hidden)',{timeout:30000});
   await page.click('#handoffStack');
   check('Couponing Prepare coupon stack',await page.inputValue('#dealItem')===qa);
