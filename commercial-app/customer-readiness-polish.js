@@ -135,16 +135,24 @@ function customerSectionKey(section){
   return'overview';
 }
 function customerTabSections(grid){
-  return Array.from(grid?.children||[]).filter(section=>section?.tagName==='SECTION'&&section.classList?.contains('card')&&section.id!=='h38CustomerReadyHero');
+  return Array.from(grid?.querySelectorAll?.('section.card')||[]).filter(section=>section.id!=='h38CustomerReadyHero');
 }
 function applyCustomerTab(grid,tabs,allowed,key){
   customerTab=allowed.includes(key)?key:'overview';grid.dataset.h38CustomerTab=customerTab;
-  customerTabSections(grid).forEach(section=>{
+  const sections=customerTabSections(grid);
+  sections.forEach(section=>{
     const pane=customerSectionKey(section),visible=pane===customerTab;
     section.dataset.h38CustomerPane=pane;
     section.hidden=!visible;
     section.toggleAttribute('hidden',!visible);
     section.setAttribute('aria-hidden',String(!visible));
+  });
+  Array.from(grid.children).filter(node=>node.tagName==='DETAILS'&&node.classList?.contains('h38-c360-detail-group')).forEach(group=>{
+    const nested=Array.from(group.querySelectorAll('section.card')),visible=nested.some(section=>!section.hidden);
+    group.hidden=!visible;
+    group.toggleAttribute('hidden',!visible);
+    group.setAttribute('aria-hidden',String(!visible));
+    if(visible)group.open=true;
   });
   tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>{
     const active=button.dataset.h38CustomerTab===customerTab;
@@ -163,7 +171,7 @@ function installCustomerTabs(grid){
     const hero=Array.from(grid.children).find(node=>node.id==='h38CustomerReadyHero');if(hero)hero.insertAdjacentElement('afterend',tabs);else grid.prepend(tabs);
   }
   tabs.innerHTML=allowed.map(key=>`<button type="button" role="tab" data-h38-customer-tab="${key}" class="${customerTab===key?'active':''}">${key[0].toUpperCase()+key.slice(1)}</button>`).join('');
-  tabs.onclick=event=>{const button=event.target.closest?.('[data-h38-customer-tab]');if(button&&tabs.contains(button))applyCustomerTab(grid,tabs,allowed,button.dataset.h38CustomerTab);};
+  tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>button.onclick=()=>applyCustomerTab(grid,tabs,allowed,button.dataset.h38CustomerTab));
   applyCustomerTab(grid,tabs,allowed,customerTab);
 }
 function enhanceCustomer360(){
