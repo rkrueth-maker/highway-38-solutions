@@ -64,7 +64,7 @@ body.h38-employee-mode #h38TimeClockCard{display:none!important}
  .main-nav button span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.66rem;line-height:1.1}
  .main-nav button.active{background:#e7f0f6!important;border-color:#cfdee8!important;box-shadow:inset 0 -2px 0 var(--blue,#174a70)!important}
  #mainContent{padding-bottom:calc(102px + env(safe-area-inset-bottom,0px))!important}
- .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
+ .toast{bottom:calc(148px + env(safe-area-inset-bottom,0px))!important}
  .page-head{padding-left:1px;padding-right:1px}
  .page-head h1{line-height:1.05}
  .page-tools{gap:6px}
