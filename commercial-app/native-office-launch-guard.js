@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260917-native-office-ready-contract-3';
-const params=new URLSearchParams(location.search),native=/H38SiteScannerAndroid/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
+const BUILD='20260917-native-office-ready-contract-4';
+const params=new URLSearchParams(location.search),native=/H38SiteScanner(?:Android|IOS)/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
 let readySent=false,readyFrame=0,lastGeometry='';
 if(native&&forcedField){params.delete('fieldMode');params.delete('nativeScanner');const query=params.toString();history.replaceState(history.state,'',location.pathname+(query?'?'+query:'')+location.hash);}
 function loadScript(selector,src,dataAttribute){if(document.querySelector(selector))return false;const script=document.createElement('script');script.src=src;script.setAttribute(dataAttribute,'1');document.head.appendChild(script);return true;}
@@ -53,9 +53,16 @@ function geometrySignature(){
   const top=document.querySelector('.topbar')?.getBoundingClientRect(),bar=document.querySelector('.business-bar')?.getBoundingClientRect(),shell=document.querySelector('.app-shell')?.getBoundingClientRect();
   return [top?.bottom||0,bar?.bottom||0,shell?.top||0,shell?.height||0].map(v=>Math.round(v)).join(':');
 }
+function nativeOfficeReady(kind){
+  try{
+    if(window.H38NativeHost&&typeof window.H38NativeHost.officeReady==='function'){window.H38NativeHost.officeReady(kind);return true;}
+    if(window.AndroidH38Native&&typeof window.AndroidH38Native.officeReady==='function'){window.AndroidH38Native.officeReady(kind);return true;}
+  }catch(_){}
+  return false;
+}
 function signalReady(kind){
   if(readySent||!native)return false;
-  try{if(!window.AndroidH38Native||typeof AndroidH38Native.officeReady!=='function')return false;AndroidH38Native.officeReady(kind);readySent=true;document.documentElement.dataset.h38NativeOfficeReady=kind;window.dispatchEvent(new CustomEvent('h38:native-office-ready',{detail:{kind,build:BUILD}}));return true;}catch(_){return false;}
+  try{if(!nativeOfficeReady(kind))return false;readySent=true;document.documentElement.dataset.h38NativeOfficeReady=kind;window.dispatchEvent(new CustomEvent('h38:native-office-ready',{detail:{kind,build:BUILD}}));return true;}catch(_){return false;}
 }
 function reconcileReady(){
   if(!native||readySent)return;
@@ -74,5 +81,5 @@ if(native){
   new MutationObserver(scheduleReady).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
   scheduleReady();
 }
-window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,scheduleReady});
+window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,iosNativeHostSupported:true,scheduleReady});
 })();
