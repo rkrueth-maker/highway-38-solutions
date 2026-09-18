@@ -64,7 +64,7 @@ must(life.includes("node.dataset.h38PhoneSecondary='1'"),'Mobile Today lifecycle
 must(loader.includes('job-lifecycle.js?build=20260917-lifecycle-startup-stable-1'),'Supported Office does not load startup-stable lifecycle JS.');
 must(loader.includes('job-lifecycle.css?build=20260807-2225'),'Supported Office does not load lifecycle CSS.');
 must(loader.includes('office-polish.js?build=20260807-2306'),'Supported Office does not load polish JS.');
-must(loader.includes('office-polish.css?build=20260913-mobile-touch-targets-1'),'Supported Office does not load polish CSS.');
+must(loader.includes('office-polish.css?build=20260918-business-office-workflow-polish-1'),'Supported Office does not load polish CSS.');
 must(sw.includes("'./job-lifecycle.js'"),'Offline shell does not cache lifecycle JS.');
 must(sw.includes("'./job-lifecycle.css'"),'Offline shell does not cache lifecycle CSS.');
 must(sw.includes("'./office-polish.js'"),'Offline shell does not cache polish JS.');
