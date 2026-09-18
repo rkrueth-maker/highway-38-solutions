@@ -32,10 +32,11 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     window.__workspace={
       profile:{membershipId:'M-1',authUserId:'U-1',email:'employee@example.com',displayName:'Alex Employee',jobTitle:'Installer',role:'staff'},
       time:{role:'staff',canEdit:false,currentPunch:null,recent:[]},
-      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Due Time':'2026-09-08T15:00:00.000Z'}],
-      jobs:[{'Job ID':'JOB-1','Customer ID':'CUS-1','Project Title':'Kitchen project','Status':'Active'}],
-      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer'}]
+      tasks:[{'Task ID':'TASK-1','Job ID':'JOB-1','Task Title':'Install cabinet','Assigned User ID':'U-1','Status':'Open','Instructions':'Use rear entrance and verify cabinet level.','Required Proof':'Before Photo,Completion Photo,Checklist,Notes'}],
+      jobs:[{'Job ID':'JOB-1','Customer ID':'CUS-1','Project Title':'Kitchen project','Status':'Active','Service Address':'123 Main St'}],
+      customers:[{'Customer ID':'CUS-1','Customer Name':'Sample Customer','Phone':'218-555-0101','Service Address':'123 Main St'}]
     };
+    if(snapshot){Object.assign(window.state.snapshot,{tasks:structuredClone(window.__workspace.tasks),jobs:structuredClone(window.__workspace.jobs),customers:structuredClone(window.__workspace.customers),timeEntries:[],documents:[],checklists:[],jobNotes:[],dailyLogs:[],siteMeasurements:[],siteCaptureSessions:[],quotes:[],scheduleEvents:[{'Schedule Event ID':'SCH-1','Related Record ID':'JOB-1','Customer ID':'CUS-1','Title':'Kitchen project','Start Time':new Date(Date.now()+3600000).toISOString(),'Location':'123 Main St','Instructions':'Use rear entrance and verify cabinet level.'}]});}
     window.allowedPages=function(){
       const user=window.state.snapshot?.user;
       const can=cap=>!user||user.permissions?.all===true||user.permissions?.[cap]===true;
@@ -136,7 +137,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     for(const key of ['today','work','schedule','messages','more'])assert(await fieldPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Field Staff one-shell navigation missing ${key}.`);
     assert(await fieldPhone.locator('#mainNav [data-h38-primary="field"]').count()===0,'Site Visit must not be a permanent primary field tab.');
     const myDayText=await fieldPhone.locator('#h38FieldMyDay').innerText();
-    for(const label of ['CURRENT WORK','NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY'])assert(myDayText.includes(label),`My Day missing ${label}.`);
+    for(const label of ['CURRENT WORK','NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY','Kitchen project','Install cabinet','Instructions:','Use rear entrance','Before Photo','Completion Photo','Checklist','Notes'])assert(myDayText.includes(label),`My Day missing ${label}.`);
     await fieldPhone.locator('#mainNav [data-h38-primary="work"]').click();
     await fieldPhone.waitForFunction(()=>window.state?.page==='work');
     await fieldPhone.waitForTimeout(80);
