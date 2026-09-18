@@ -49,6 +49,11 @@ public final class NativeScannerBridge {
     }
 
     @JavascriptInterface
+    public void officeReady(String kind) {
+        activity.runOnUiThread(() -> activity.onOfficeReady(kind));
+    }
+
+    @JavascriptInterface
     public String getCapabilities() {
         JSONObject result = new JSONObject();
         try {

@@ -1,11 +1,12 @@
 (function(){
 'use strict';
-const BUILD='20260911-office-access-settings-event-only-2';
+const BUILD='20260916-mobile-owner-access-more-1';
 const FINANCE_PAGES=['money','accounting','payroll','tax','reports'];
 const ADMIN_PAGES=['people','controls','settings'];
 const text=value=>String(value==null?'':value).trim();
 function state(){try{return window.state||(typeof globalThis.state!=='undefined'?globalThis.state:null);}catch(_){return window.state||null;}}
 function allowed(){try{return new Set(typeof window.allowedPages==='function'?window.allowedPages():[]);}catch(_){return new Set();}}
+function mobile(){return !!window.matchMedia?.('(max-width:760px)').matches;}
 function role(){const user=state()?.snapshot?.user||{};return text(user.roleName||user.roleId||user.role||'').toLowerCase();}
 function can(capability){const user=state()?.snapshot?.user;if(!user)return false;if(user.owner===true||user.permissions?.all===true)return true;return user.permissions?.[capability]===true;}
 function label(page){try{return window.PAGE_DEFS?.[page]?.[1]||page;}catch(_){return page;}}
@@ -36,7 +37,9 @@ function peopleStrip(){return makeStrip('h38PeopleAccessStrip','Team & employees
 function adminStrip(current){return makeStrip('h38AdminAccessStrip','Office administration',[{page:'people',label:'Employees & Users'},{page:'money',label:'Invoices & Money'},{page:'accounting',label:'Accounting'},{page:'reports',label:'Reports'},{page:'controls',label:'Controls'},{page:'settings',label:'Settings'}],current);}
 function enhanceToday(){
   removeExisting('h38AccessRoleContext');const s=state();if(s?.page!=='today'||!s.snapshot?.user)return;
-  const node=document.createElement('section');node.id='h38AccessRoleContext';node.className='h38-access-context';const full=can('manageUsers')||can('manageFinancial')||s.snapshot.user.owner===true||s.snapshot.user.permissions?.all===true;
+  const full=can('manageUsers')||can('manageFinancial')||s.snapshot.user.owner===true||s.snapshot.user.permissions?.all===true;
+  if(full&&mobile())return;
+  const node=document.createElement('section');node.id='h38AccessRoleContext';node.className='h38-access-context';
   if(full){node.innerHTML='<p><strong>Full Office access</strong><span class="muted small">Owner/Admin areas are available below the daily work pages.</span></p>';const actions=document.createElement('div');actions.className='actions';[['money','Invoices & Money'],['people','Employees'],['reports','Reports'],['settings','Office Settings']].filter(([key])=>allowed().has(key)).forEach(([key,name])=>{const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=name;button.onclick=()=>open(key);actions.appendChild(button);});node.appendChild(actions);}else{node.innerHTML=`<p><strong>${role().includes('staff')?'Staff':'Restricted'} view</strong><span class="muted small">Employee administration, accounting, payroll, tax and owner controls are hidden by your signed-in permissions.</span></p>`;const signOut=document.getElementById('authSignOutButton');if(signOut){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Switch account';button.onclick=()=>signOut.click();node.appendChild(button);}}
   const anchor=head();if(anchor)anchor.insertAdjacentElement('afterend',node);else document.getElementById('mainContent')?.prepend(node);
 }
@@ -54,6 +57,7 @@ function wrap(name){const base=window[name];if(typeof base!=='function'||base.__
 window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')queueMicrotask(enhance);});
 window.addEventListener('h38:office-navigation-access-updated',()=>queueMicrotask(enhance));
 window.addEventListener('pageshow',()=>queueMicrotask(enhance));
+window.matchMedia?.('(max-width:760px)')?.addEventListener?.('change',()=>queueMicrotask(enhance));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>queueMicrotask(enhance),{once:true});else queueMicrotask(enhance);
-window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,settingsRendererOwnership:false,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance});
+window.H38_OFFICE_ACCESS_COMPLETION=Object.freeze({build:BUILD,financePages:FINANCE_PAGES.slice(),adminPages:ADMIN_PAGES.slice(),roleAware:true,settingsRendererOwnership:false,mobileOwnerAccessLivesInMore:true,mobileOwnerTodayShortcutCard:false,permissionEscalation:false,automaticApproval:false,automaticSending:false,automaticPurchase:false,automaticPayment:false,automaticPayrollFunding:false,automaticTaxFiling:false,enhance});
 })();

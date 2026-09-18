@@ -44,6 +44,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_WEB_PERMISSIONS = 3802;
     private static final int REQUEST_FILE_CHOOSER = 3803;
     private static final int REQUEST_WALKTHROUGH_CAMERA_PERMISSION = 3804;
+    private static final long LAUNCH_COVER_FALLBACK_MS = 15000L;
     private static final int OFFICE_BACKGROUND = Color.rgb(238, 243, 247);
     private static final String CAPTURE_PREFS = "h38-walkthrough-capture";
     private static final String CAPTURE_URI_KEY = "pending_uri";
@@ -63,6 +64,7 @@ public final class MainActivity extends Activity {
     private Uri pendingCaptureUri;
     private Uri recoveredCaptureUri;
     private View launchCover;
+    private Runnable launchCoverFallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,12 +159,12 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onPageCommitVisible(WebView view, String url) {
-                finishWebRecovery(url);
+                handleWebPageProgress(url);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                finishWebRecovery(url);
+                handleWebPageProgress(url);
             }
 
             @Override
@@ -251,9 +253,10 @@ public final class MainActivity extends Activity {
         String restoredUrl = webView.getUrl();
         if (!restored || restoredUrl == null) {
             webView.loadUrl(lastOfficeUrl());
-        } else if (webView.getProgress() >= 100) {
-            webView.postDelayed(this::hideLaunchCover, 180);
+        } else {
+            injectNativeScanner();
         }
+        armLaunchCoverFallback();
     }
 
     private boolean launchWalkthroughVideoCapture() {
@@ -333,14 +336,40 @@ public final class MainActivity extends Activity {
                 .apply();
     }
 
-    private void finishWebRecovery(String url) {
+    private void handleWebPageProgress(String url) {
         rememberOfficeUrl(url);
         getSharedPreferences(CAPTURE_PREFS, MODE_PRIVATE)
                 .edit()
                 .remove(RENDERER_RECOVERY_KEY)
                 .apply();
         injectNativeScanner();
+        if (launchCoverFallback == null) armLaunchCoverFallback();
+    }
+
+    void onOfficeReady(String kind) {
+        String readyKind = kind == null ? "" : kind.trim();
+        if (!"office".equals(readyKind) && !"auth".equals(readyKind)) return;
+        String url = webView == null ? null : webView.getUrl();
+        if (url == null || !url.startsWith(BUSINESS_OFFICE_URL)) return;
+        cancelLaunchCoverFallback();
         hideLaunchCover();
+    }
+
+    private void armLaunchCoverFallback() {
+        if (webView == null || launchCover == null || launchCoverFallback != null) return;
+        launchCoverFallback = () -> {
+            launchCoverFallback = null;
+            hideLaunchCover();
+        };
+        webView.postDelayed(launchCoverFallback, LAUNCH_COVER_FALLBACK_MS);
+    }
+
+    private void cancelLaunchCoverFallback() {
+        Runnable fallback = launchCoverFallback;
+        launchCoverFallback = null;
+        if (fallback != null && webView != null) {
+            webView.removeCallbacks(fallback);
+        }
     }
 
     private void handleWebRendererGone(WebView view, RenderProcessGoneDetail detail) {
@@ -351,6 +380,7 @@ public final class MainActivity extends Activity {
                 .putBoolean(RENDERER_RECOVERY_KEY, true)
                 .apply();
         runOnUiThread(() -> {
+            cancelLaunchCoverFallback();
             try {
                 ViewGroup parent = (ViewGroup) view.getParent();
                 if (parent != null) parent.removeView(view);
@@ -729,6 +759,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        cancelLaunchCoverFallback();
         if (pendingFileCallback != null) {
             pendingFileCallback.onReceiveValue(null);
             pendingFileCallback = null;

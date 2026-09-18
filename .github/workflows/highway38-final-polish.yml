@@ -116,6 +116,11 @@ jobs:
         run: |
           set -o pipefail
           node scripts/verify-profitability-operating-layer-browser.js 2>&1 | tee artifacts/final-polish/profitability-browser.txt
+      - name: Verify native Android mobile reveal stability
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-native-mobile-readiness-browser.js 2>&1 | tee artifacts/final-polish/native-mobile-readiness-browser.txt
       - name: Run all-page desktop and mobile verification
         shell: bash
         run: |
@@ -132,6 +137,7 @@ jobs:
             artifacts/final-polish/office-scale-workflow-browser.txt
             artifacts/final-polish/office-reference-samples-browser.txt
             artifacts/final-polish/settings-runtime-stability-browser.txt
+            artifacts/final-polish/native-mobile-readiness-browser.txt
             artifacts/final-polish/northern-lakes-*.png
             artifacts/final-polish/profitability-browser.txt
             artifacts/final-polish/business-office-review-demo-desktop-today.png
