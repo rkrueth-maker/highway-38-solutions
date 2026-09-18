@@ -91,6 +91,25 @@ function mergeStoreRows(...sets: any[][]) {
   return out;
 }
 
+function storeDistanceMiles(aLat: number, aLon: number, bLat: number, bLon: number) {
+  const rad = (v: number) => v * Math.PI / 180;
+  const dLat = rad(bLat - aLat), dLon = rad(bLon - aLon);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(dLon / 2) ** 2;
+  return 3958.7613 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function normalizeStoreDistances(rows: any[], lat: number, lon: number, radius: number) {
+  return mergeStoreRows(rows).map((row) => {
+    const sLat = Number(row?.lat ?? row?.latitude);
+    const sLon = Number(row?.lon ?? row?.longitude);
+    if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) return null;
+    const distance = Math.round(storeDistanceMiles(lat, lon, sLat, sLon) * 10) / 10;
+    if (distance > radius + 0.15) return null;
+    return { ...row, lat: sLat, lon: sLon, distance_miles: distance };
+  }).filter(Boolean) as any[];
+}
+
 function normalizeRadius(payload: Record<string, any>) {
   const raw = Number(payload.radiusMiles ?? payload.radius_miles ?? payload.radius ?? 50);
   const radius = Number.isFinite(raw) && raw > 0 ? Math.max(1, Math.min(150, raw)) : 50;
@@ -445,15 +464,45 @@ Deno.serve(async (req) => {
           data: { status: "PARTIAL", stores: [], warning: "Enter a valid ZIP or use phone location before finding nearby stores." },
         });
       }
+      const lat = Number(payload.lat), lon = Number(payload.lon);
+      const radius = Number(payload.radiusMiles ?? payload.radius_miles ?? payload.radius ?? 50);
       const quick = await invoke(url, anon, auth, "reseller-nearby-stores-v262", payload);
-      const quickRows = storeRows(quick.data);
-      if (quick.ok && quickRows.length) {
-        return json({ ok: true, product: "resale", source: "reseller-nearby-stores-v262", data: { ...(quick.data as any), stores: quickRows } });
+      const quickRows = normalizeStoreDistances(storeRows(quick.data), lat, lon, radius);
+      if (quick.ok && quickRows.length >= 12) {
+        return json({ ok: true, product: "resale", source: "reseller-nearby-stores-v262", data: { ...(quick.data as any), stores: quickRows, store_count: quickRows.length } });
+      }
+
+      const latSpan = Math.max(.22, radius / 69);
+      const lonSpan = Math.max(.25, radius / (69 * Math.max(.25, Math.cos(lat * Math.PI / 180))));
+      const cached = await admin.from("reseller_store_discovery_tiles")
+        .select("stores,updated_at,lat,lon,radius_miles")
+        .gte("lat", lat - latSpan).lte("lat", lat + latSpan)
+        .gte("lon", lon - lonSpan).lte("lon", lon + lonSpan)
+        .order("updated_at", { ascending: false }).limit(80);
+      const cachedRows = cached.error ? [] : normalizeStoreDistances(
+        mergeStoreRows(...(cached.data || []).map((tile: any) => storeRows(tile?.stores))),
+        lat, lon, radius,
+      );
+      const quickAndCached = normalizeStoreDistances(mergeStoreRows(quickRows, cachedRows), lat, lon, radius);
+      if (quickAndCached.length >= 12) {
+        return json({
+          ok: true,
+          product: "resale",
+          source: "reseller-nearby-stores-v262+reseller-store-discovery-cache",
+          data: {
+            ...(quick.ok && quick.data && typeof quick.data === "object" ? quick.data as Record<string, any> : {}),
+            stores: quickAndCached,
+            store_count: quickAndCached.length,
+            quick_store_count: quickRows.length,
+            cached_store_count: cachedRows.length,
+            cache_fallback: true,
+          },
+        });
       }
 
       const durable = await invoke(url, anon, auth, "reseller-nearby-stores", payload);
-      const durableRows = storeRows(durable.data);
-      const stores = mergeStoreRows(quickRows, durableRows);
+      const durableRows = normalizeStoreDistances(storeRows(durable.data), lat, lon, radius);
+      const stores = normalizeStoreDistances(mergeStoreRows(quickRows, cachedRows, durableRows), lat, lon, radius);
       if (stores.length) {
         return json({
           ok: true,
@@ -464,8 +513,10 @@ Deno.serve(async (req) => {
             stores,
             store_count: stores.length,
             quick_store_count: quickRows.length,
+            cached_store_count: cachedRows.length,
             durable_store_count: durableRows.length,
-            fallback_used: durableRows.length > 0,
+            cache_fallback: cachedRows.length > 0,
+            fallback_used: cachedRows.length > 0 || durableRows.length > 0,
           },
         });
       }
@@ -483,6 +534,7 @@ Deno.serve(async (req) => {
             status: "PARTIAL",
             stores: [],
             quick_store_count: quickRows.length,
+            cached_store_count: cachedRows.length,
             durable_store_count: durableRows.length,
             warning: warnings || "Nearby store sources completed but returned no recognized retailers for this location.",
           },
