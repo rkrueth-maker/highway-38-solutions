@@ -42,16 +42,26 @@ async function open(context, slug, query='') {
   const pageErrors=[];
   page.on('pageerror', e => pageErrors.push(String(e)));
   page.on('dialog', async d => { await d.accept(); });
-  await page.goto(BASE + '/functions/v1/' + slug + query, {waitUntil:'domcontentloaded', timeout:90000});
-  return {page,pageErrors};
+  const response=await page.goto(BASE + '/functions/v1/' + slug + query, {waitUntil:'domcontentloaded', timeout:90000});
+  const responseMeta={
+    requested:BASE + '/functions/v1/' + slug + query,
+    final_url:page.url(),
+    status:response ? response.status() : null,
+    content_type:response ? (await response.allHeaders())['content-type']||'' : '',
+    title:await page.title().catch(()=>'')
+  };
+  return {page,pageErrors,responseMeta};
 }
 async function assertNoPageErrors(name, errors) {
   check(name+' uncaught JS', errors.length===0, errors.join(' | '));
 }
 async function shellAcceptance(browser) {
   const context=await browser.newContext();
-  const {page,pageErrors}=await open(context,'h38-deals-shell');
-  await page.waitForSelector('#signin',{state:'visible',timeout:30000});
+  const {page,pageErrors,responseMeta}=await open(context,'h38-deals-shell');
+  await page.waitForSelector('#signin',{state:'visible',timeout:30000}).catch(async e=>{
+    const html=(await page.content().catch(()=>'' )).replace(/\s+/g,' ').slice(0,1600);
+    throw new Error('Shell HTML missing #signin — '+JSON.stringify(responseMeta)+' — body='+html);
+  });
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#signin');
