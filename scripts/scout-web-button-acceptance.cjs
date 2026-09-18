@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 
 const BASE = process.env.SUPABASE_URL;
+const WEB_BASE = (process.env.H38_WEB_BASE || BASE).replace(/\\\/$/,'');
 const KEY = process.env.SUPABASE_KEY;
 const EMAIL = process.env.SCOUT_EMAIL;
 const PASSWORD = process.env.SCOUT_PASSWORD;
