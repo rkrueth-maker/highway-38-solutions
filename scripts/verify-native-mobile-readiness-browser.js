@@ -71,8 +71,17 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
   await page.addScriptTag({path:accessPath});
   await page.addScriptTag({path:identityPath});
   await page.waitForFunction(()=>window.H38_OFFICE_ACCOUNT_IDENTITY?.mobileStableBusinessBarHeight===true&&document.getElementById('h38OfficeAccountIdentity')&&document.getElementById('h38OfficeAccountIdentityStyle'));
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Owner phone must remain covered until owner customer/job startup authorities finish loading.');
+
+  await page.evaluate(()=>{
+    window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:'test'};
+    window.H38_OWNER_JOB_HANDOFF={build:'test'};
+    document.documentElement.dataset.h38OwnerStartupAuthorities='ready';
+    window.dispatchEvent(new CustomEvent('h38:owner-startup-authorities-ready',{detail:{build:'test'}}));
+  });
   await page.waitForFunction(()=>document.documentElement.dataset.h38NativeOfficeReady==='office');
-  assert.deepEqual(signals,['office'],'Native readiness must fire once, after all final mobile layout authorities are present.');
+  assert.deepEqual(signals,['office'],'Native readiness must fire once, after final mobile and owner startup authorities are present.');
 
   const atReveal=await page.evaluate(()=>window.__readyGeometry);
   await page.waitForTimeout(180);
