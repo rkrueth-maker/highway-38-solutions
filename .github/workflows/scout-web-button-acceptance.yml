@@ -49,7 +49,7 @@ jobs:
             sleep 1
           done
           cat > "$RUNNER_TEMP/h38-maintenance-diagnostic.cjs" <<'NODE'
-          const { chromium } = require('playwright');
+          const { chromium } = require(process.cwd() + '/node_modules/playwright');
           const BASE=process.env.SUPABASE_URL;
           const KEY=process.env.SUPABASE_KEY;
           const EMAIL=process.env.SCOUT_EMAIL;
