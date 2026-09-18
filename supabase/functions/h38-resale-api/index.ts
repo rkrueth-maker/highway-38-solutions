@@ -10,6 +10,23 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: cors });
 
+async function authenticatedUserId(sb: any, token: string) {
+  try {
+    const claims = await sb.auth.getClaims(token);
+    const sub = String(claims?.data?.claims?.sub || "").trim();
+    if (!claims?.error && sub) return sub;
+  } catch {}
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data: { user }, error } = await sb.auth.getUser(token);
+      if (!error && user?.id) return String(user.id);
+    } catch {}
+    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return "";
+}
+
 async function invoke(
   url: string,
   anon: string,
@@ -419,13 +436,13 @@ Deno.serve(async (req) => {
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (error || !user) return json({ error: "AUTH_REQUIRED" }, 401);
+    const userId = await authenticatedUserId(sb, token);
+    if (!userId) return json({ error: "AUTH_REQUIRED" }, 401);
 
     const { data: ent } = await sb
       .from("h38_product_entitlements")
       .select("active,expires_at")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("product_key", "resale")
       .maybeSingle();
     if (!ent?.active || (ent.expires_at && Date.parse(ent.expires_at) <= Date.now()))
