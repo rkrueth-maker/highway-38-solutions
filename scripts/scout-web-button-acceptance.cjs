@@ -156,9 +156,19 @@ async function pennyAcceptance(browser, session) {
   const coverage=page.locator('[data-coverage-store]').first();
   if(await coverage.count()){ await coverage.click(); check('Penny retailer coverage filter', true); }
   const head=page.locator('[data-store]').first();
-  if(await head.count()){ await head.click(); check('Penny store collapse/expand', true); }
-  const more=page.locator('[data-more]').first();
-  if(await more.count()){ await more.click(); check('Penny show more/fewer', true); }
+  if(await head.count()){
+    await head.click();
+    check('Penny store collapse', (await head.getAttribute('aria-expanded'))==='false');
+    await head.click();
+    check('Penny store expand', (await head.getAttribute('aria-expanded'))==='true');
+  }
+  const more=page.locator('[data-more]:visible').first();
+  if(await more.count()){
+    const before=(await more.innerText()).trim();
+    await more.click();
+    const after=(await page.locator('[data-more]:visible').first().innerText()).trim();
+    check('Penny show more/fewer', before!==after, before+' -> '+after);
+  }
 
   await assertNoPageErrors('Penny',pageErrors);
   await context.close();
