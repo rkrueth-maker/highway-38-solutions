@@ -113,7 +113,9 @@ jobs:
           # services and a readable SDK level so ddmlib does not classify the
           # connected emulator as "Unknown API Level".
           script: |
-            set -euo pipefail
+            # android-emulator-runner executes this block with /bin/sh, so keep
+            # the readiness gate POSIX-compatible.
+            set -eu
             adb wait-for-device
             for attempt in $(seq 1 90); do
               SDK="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\\r' || true)"
@@ -123,7 +125,7 @@ jobs:
                 echo "Android framework ready on API $SDK after $attempt readiness checks."
                 break
               fi
-              if [[ "$attempt" -eq 90 ]]; then
+              if [ "$attempt" -eq 90 ]; then
                 echo '::error::Emulator booted but Android framework services never became ready.'
                 adb shell getprop || true
                 adb shell service list || true
