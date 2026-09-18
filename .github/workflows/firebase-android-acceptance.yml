@@ -20,7 +20,7 @@ permissions:
 jobs:
   android-acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: native/h38-site-scanner/android-app
@@ -96,33 +96,27 @@ jobs:
             echo 'mode=credential-independent' >> "$GITHUB_OUTPUT"
             echo '::warning::Firebase Test Lab credentials are not configured. APK and instrumentation-package acceptance passed; cloud device execution is unavailable for this run.'
           fi
-      - name: Record credential-independent Android acceptance
+      - name: Run Android instrumentation fallback
         if: steps.firebase.outputs.configured != 'true'
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          # Keep the runner from issuing fragile post-boot animation ADB writes.
+          # The prior fallback reached sys.boot_completed=1, then failed on that
+          # optional animation-setting call before instrumentation could start.
+          disable-animations: false
+          script: cd native/h38-site-scanner/android-app && gradle --no-daemon --stacktrace connectedDebugAndroidTest
+      - name: Capture fallback diagnostics
+        if: always() && steps.firebase.outputs.configured != 'true'
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          set -euo pipefail
           mkdir -p firebase-test-lab
-          cat > firebase-test-lab/result.json <<'JSON'
-          {
-            "status": "PASS",
-            "mode": "credential-independent",
-            "debugApkBuilt": true,
-            "debugApkVerified": true,
-            "instrumentationApkBuilt": true,
-            "instrumentationApkVerified": true,
-            "firebaseTestLabRan": false,
-            "firebaseTestLabUnavailableReason": "H38_FIREBASE_TESTLAB_SERVICE_ACCOUNT_JSON and/or H38_FIREBASE_TESTLAB_PROJECT_ID is not configured"
-          }
-          JSON
-          {
-            echo '### Firebase Android Acceptance'
-            echo '- Credential-independent Android package acceptance: **PASS**'
-            echo '- Debug APK: built and verified'
-            echo '- Instrumentation APK: built and verified'
-            echo '- Instrumentation runner contract: verified from Android build configuration'
-            echo '- Firebase Test Lab cloud execution: **not run — credentials not configured**'
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Firebase Test Lab cloud credentials were unavailable for this run.' > firebase-test-lab/fallback.txt
+          printf '%s\n' 'The workflow used a GitHub-hosted Android emulator to execute connectedDebugAndroidTest.' >> firebase-test-lab/fallback.txt
       - uses: google-github-actions/setup-gcloud@v2
         if: steps.firebase.outputs.configured == 'true'
       - name: Authenticate Google Cloud
