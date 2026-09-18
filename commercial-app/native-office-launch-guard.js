@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260917-native-office-ready-contract-4';
+const BUILD='20260917-native-office-ready-contract-5';
 const params=new URLSearchParams(location.search),native=/H38SiteScannerAndroid/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
 let readySent=false,readyFrame=0,lastGeometry='';
 if(native&&forcedField){params.delete('fieldMode');params.delete('nativeScanner');const query=params.toString();history.replaceState(history.state,'',location.pathname+(query?'?'+query:'')+location.hash);}
@@ -34,6 +34,19 @@ function finalOwnerStartupAuthoritiesReady(){
     && !!window.H38_OWNER_JOB_HANDOFF
     && document.documentElement.dataset.h38OwnerStartupAuthorities==='ready';
 }
+function finalPhoneWorkspaceReady(){
+  const s=window.state,main=document.getElementById('mainContent');
+  if(document.documentElement.dataset.h38AuthoritativeStartup!=='ready')return false;
+  if(!window.H38_JOB_LIFECYCLE||document.documentElement.dataset.h38JobLifecycleReady!=='ready')return false;
+  if(!window.H38_PHONE_FIRST_OFFICE||document.documentElement.dataset.h38PhoneFirstReady!=='ready')return false;
+  if(!document.getElementById('h38PhoneCreateButton'))return false;
+  if(String(s?.page||'')==='today'&&!document.getElementById('h38PhoneToday'))return false;
+  const sample=main?.querySelector(':scope > [data-h38-reference-sample][open]');
+  if(sample&&visible(sample))return false;
+  const lifecycle=main?.querySelector(':scope > .h38-life-today');
+  if(lifecycle&&visible(lifecycle)&&main?.dataset?.h38PhoneDetails!=='1')return false;
+  return true;
+}
 function finalMobileAuthoritiesReady(){
   if(!window.matchMedia?.('(max-width:760px)').matches)return true;
   const runtime=window.H38_MOBILE_RUNTIME_STABILITY,identity=window.H38_OFFICE_ACCOUNT_IDENTITY;
@@ -41,6 +54,7 @@ function finalMobileAuthoritiesReady(){
   if(document.body?.dataset?.h38ProductionPolish!=='3')return false;
   if(identity?.mobileStableBusinessBarHeight!==true||identity?.mobileSingleLineIdentity!==true)return false;
   if(!finalOwnerStartupAuthoritiesReady())return false;
+  if(!finalPhoneWorkspaceReady())return false;
   if(!document.getElementById('h38OfficeAccountIdentity')||!document.getElementById('h38OfficeAccountIdentityStyle'))return false;
   if(!finalMobileChromeAligned())return false;
   return true;
@@ -78,10 +92,10 @@ function reconcileReady(){
 function scheduleReady(){if(!native||readySent)return;requestAnimationFrame(()=>requestAnimationFrame(reconcileReady));}
 loadSiteVisitMeetingSeed();loadSiteVisitFinishPersistence();loadFinalPhoneRepair();loadMobileWorkspaceV3();
 if(native){
-  ['h38:business-snapshot-updated','h38:office-page-rendered','h38:office-navigation-access-updated','h38:owner-startup-authorities-ready','h38:auth-cleared','pageshow','load'].forEach(name=>window.addEventListener(name,scheduleReady));
+  ['h38:business-snapshot-updated','h38:authoritative-startup-ready','h38:office-page-rendered','h38:office-navigation-access-updated','h38:owner-startup-authorities-ready','h38:job-lifecycle-ready','h38:phone-first-ready','h38:auth-cleared','pageshow','load'].forEach(name=>window.addEventListener(name,scheduleReady));
   new MutationObserver(scheduleReady).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden','data-h38-production-polish']});
   new MutationObserver(scheduleReady).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
   scheduleReady();
 }
-window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForOwnerStartupAuthorities:true,scheduleReady});
+window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForOwnerStartupAuthorities:true,nativeCoverWaitsForAuthoritativeSnapshot:true,nativeCoverWaitsForLifecycle:true,nativeCoverWaitsForPhoneFirst:true,nativeCoverWaitsForFloatingCreate:true,nativeCoverRejectsTemporarySamples:true,scheduleReady});
 })();
