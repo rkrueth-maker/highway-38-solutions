@@ -38,14 +38,24 @@ async function addSession(context, session) {
     try { localStorage.setItem(k,JSON.stringify(v)); } catch {}
   }, {k:'sb-jqukmwtsgcsaruucnqja-auth-token',v:session});
 }
+function webPath(slug) {
+  const map={
+    'h38-deals-shell':'/',
+    'h38-penny-web':'/penny.html',
+    'h38-resale-web':'/resale.html',
+    'h38-coupon-web':'/coupon.html',
+    'h38-deals-maintenance-web':'/maintenance.html'
+  };
+  return map[slug] || ('/functions/v1/'+slug);
+}
 async function open(context, slug, query='') {
   const page = await context.newPage();
   const pageErrors=[];
   page.on('pageerror', e => pageErrors.push(String(e)));
   page.on('dialog', async d => { await d.accept(); });
-  const response=await page.goto(BASE + '/functions/v1/' + slug + query, {waitUntil:'domcontentloaded', timeout:90000});
+  const response=await page.goto(WEB_BASE + webPath(slug) + query, {waitUntil:'domcontentloaded', timeout:90000});
   const responseMeta={
-    requested:BASE + '/functions/v1/' + slug + query,
+    requested:WEB_BASE + webPath(slug) + query,
     final_url:page.url(),
     status:response ? response.status() : null,
     content_type:response ? (await response.allHeaders())['content-type']||'' : '',
