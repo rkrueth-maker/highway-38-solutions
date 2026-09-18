@@ -8,7 +8,7 @@ SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
 
 def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapshot():
-    assert "20260827-authoritative-online-first-paint-1" in STARTUP
+    assert "20260917-authoritative-startup-ready-2" in STARTUP
     assert "if(navigator.onLine&&allowOnline)return false;" in STARTUP
     online_gate = STARTUP.index("if(navigator.onLine&&allowOnline)return false;")
     cache_load = STARTUP.index("loadCached({allowOnline})")
@@ -16,6 +16,9 @@ def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapsh
     assert "onlineCachePaint:false" in STARTUP
     assert "authoritativeOnlineFirstPaint:true" in STARTUP
     assert "initialRefreshToastSuppressed:true" in STARTUP
+    assert "authoritativeStartupReadyEvent:true" in STARTUP
+    assert "nativeRevealWaitsForAuthoritativeSnapshot:true" in STARTUP
+    assert "h38:authoritative-startup-ready" in STARTUP
     assert "const firstAuthoritativeOpen=!state.snapshot;" in STARTUP
     assert "if(!firstAuthoritativeOpen)toast('Office refreshed.');" in STARTUP
     assert "Offline · verified device cache" in STARTUP
