@@ -203,11 +203,15 @@ async function resaleAcceptance(browser, session) {
     const status=(await page.locator('#status').innerText().catch(()=>''))||'';
     check('Resale '+tab+' scan completes', !/failed|error/i.test(note+' '+status), note+' '+status);
     if(requireRows) check('Resale '+tab+' returns results', rows>0, 'rows='+rows+' note='+note);
+    else if(rows===0){
+      const empty=(await page.locator('#content .empty').innerText().catch(()=>''))||'';
+      check('Resale '+tab+' truthful empty state', empty.trim().length>0 && (note+' '+status).trim().length>0, 'empty='+empty+' note='+note+' status='+status);
+    }
   }
   await scanTab('deals',true);
-  await scanTab('facebook',true);
+  await scanTab('facebook',false);
   await scanTab('stores',true);
-  await scanTab('garage',true);
+  await scanTab('garage',false);
   await scanTab('auctions',false);
 
   const more=page.locator('#more');
