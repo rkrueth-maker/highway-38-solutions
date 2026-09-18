@@ -29,6 +29,9 @@ const supabaseStartup=read('commercial-app/supabase-startup.js');
 const lifecycle=read('commercial-app/job-lifecycle.js');
 const referenceSamples=read('commercial-app/office-reference-samples.js');
 const runtimeRowId=read('commercial-app/runtime-rowid-fix.js');
+const flowTightening=read('commercial-app/flow-tightening.js');
+const customerReady=read('commercial-app/customer-readiness-polish.js');
+const officePolishCss=read('commercial-app/office-polish.css');
 
 for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['native office launch',nativeOfficeLaunch],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker],['supabase startup',supabaseStartup],['job lifecycle',lifecycle],['reference samples',referenceSamples],['runtime row id',runtimeRowId]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
@@ -64,6 +67,14 @@ for(const token of ["['today','⌂','Today']","['customers','👤','Customers']"
 requireText(stability,"['Work & Sales',['work','quotes','field','meetings']]",'Jobs, Quotes, Site Visits and Meetings live under Work & Sales');
 requireText(stability,"primaryNavigation:['Today','Customers','Schedule','Messages','More']",'mobile navigation contract is customer-first');
 requireText(stability,'groupedMore:true','canonical More is grouped');
+requireText(stability,'data-h38-more-search','More promotes the existing Office Search');
+requireText(stability,"else if(current==='schedule')polishSchedule(main)",'phone Schedule is agenda-first');
+requireText(stability,'data-h38-agenda-actions','phone Schedule exposes contextual field actions from existing records');
+requireText(stability,'h38-message-context','Messages retain customer/job context when linked');
+requireText(flowTightening,'h38-job-secondary','job secondary commands use progressive disclosure');
+requireText(customerReady,'h38-today-primary','Today has one dominant Next Action');
+requireText(customerReady,'h38-customer-tabs','Customer 360 exposes task-oriented tabs');
+requireText(officePolishCss,'button[data-h38-primary="today"]','visible phone navigation uses the application-owned SVG icon family');
 requireText(nativeScroll,"const PRIMARY_KEYS=['today','customers','schedule','messages']",'physical mobile authority uses customer-first order');
 requireText(nativeScroll,'jobsMovedToMore:true','physical authority recognizes Jobs moved to More');
 requireText(phoneFirst,'navigationDelegatedToMobileAuthority:true','phone polish does not create a second navigation authority');
@@ -79,9 +90,9 @@ requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed'
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
 requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
-requireText(index,'mobile-runtime-stability.js?build=20260913-mobile-touch-targets-1','mobile stability layer loads after native scroll authority');
+requireText(index,'mobile-runtime-stability.js?build=20260918-business-office-workflow-polish-1','mobile stability layer loads after native scroll authority');
 const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
-const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20260913-mobile-touch-targets-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20260918-business-office-workflow-polish-1');
 if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
 requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
 requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');

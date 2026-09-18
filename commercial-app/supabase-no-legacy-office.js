@@ -216,7 +216,7 @@
     if (!document.querySelector('link[data-h38-office-polish]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './office-polish.css?build=20260913-mobile-touch-targets-1';
+      link.href = './office-polish.css?build=20260918-business-office-workflow-polish-1';
       link.dataset.h38OfficePolish = '1';
       document.head.appendChild(link);
     }

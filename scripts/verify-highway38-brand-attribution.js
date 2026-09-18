@@ -25,7 +25,7 @@ assert(commercial.includes('Business systems powered by <a'),'Highway 38 attribu
 assert(meeting.includes('Highway 38 Solutions · Business Office'),'meeting verifier must cover the exact current source marker');
 assert(meeting.includes('Highway 38 owner approval and date'),'meeting verifier must cover the exact current approval marker');
 assert(readiness.includes('Ask H38'),'Ask H38 product branding must remain intact');
-assert(readiness.includes('Find customer on Highway 38'),'runtime repair must continue to cover the current shared prompt until the base screen is later neutralized directly');
+assert(!readiness.includes('Find customer on Highway 38')||commercial.includes('Find customer on Highway 38'),'shared Today must be tenant-neutral directly or covered by the tenant attribution repair');
 assert(shell.includes("ATTRIBUTION_BUILD='20260913-highway38-attribution-1'"),'Northern public site must pin the approved Highway 38 attribution build');
 assert(shell.includes('highway38-attribution.js?build=${ATTRIBUTION_BUILD}'),'Northern public site must load the shared Highway 38 attribution component using its pinned build');
 for(const [name,source] of [['customer portal',portalConfig],['owner access',ownerLaunch]])assert(source.includes('highway38-attribution.js?build=20260913-highway38-attribution-1'),`Northern ${name} must load the shared Highway 38 attribution component`);
