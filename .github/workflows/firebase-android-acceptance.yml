@@ -113,29 +113,14 @@ jobs:
           # services and a readable SDK level so ddmlib does not classify the
           # connected emulator as "Unknown API Level".
           script: |
-            # android-emulator-runner executes this block with /bin/sh, so keep
-            # the readiness gate POSIX-compatible.
-            set -eu
+            # android-emulator-runner executes each script line independently
+            # with /bin/sh. Keep each command self-contained instead of using a
+            # multiline shell loop or Bash-only syntax.
             adb wait-for-device
-            for attempt in $(seq 1 90); do
-              SDK="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\\r' || true)"
-              if [[ "$SDK" =~ ^[0-9]+$ ]] \\
-                && adb shell service check package 2>/dev/null | grep -q 'found' \\
-                && adb shell service check settings 2>/dev/null | grep -q 'found'; then
-                echo "Android framework ready on API $SDK after $attempt readiness checks."
-                break
-              fi
-              if [ "$attempt" -eq 90 ]; then
-                echo '::error::Emulator booted but Android framework services never became ready.'
-                adb shell getprop || true
-                adb shell service list || true
-                exit 1
-              fi
-              sleep 2
-            done
+            timeout 180 sh -c 'until SDK="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d "\\r")"; printf "%s" "$SDK" | grep -Eq "^[0-9]+$" && adb shell service check package 2>/dev/null | grep -q found && adb shell service check settings 2>/dev/null | grep -q found; do sleep 2; done'
+            adb shell getprop ro.build.version.sdk
             adb shell input keyevent 82 || true
-            cd native/h38-site-scanner/android-app
-            gradle --no-daemon --stacktrace connectedDebugAndroidTest
+            cd native/h38-site-scanner/android-app && gradle --no-daemon --stacktrace connectedDebugAndroidTest
       - name: Capture fallback diagnostics
         if: always() && steps.firebase.outputs.configured != 'true'
         working-directory: ${{ github.workspace }}
