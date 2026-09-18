@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-owner-phone-office-authority-1';
+const BUILD='20260918-owner-one-shell-authority-1';
 const PREF_KEY='h38:mobile-workspace-view:v1';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim().toLowerCase();
@@ -12,15 +12,9 @@ function ownerOrAdmin(){
   const role=text(u.roleId||u.roleName||u.role);
   return role==='owner'||role==='admin'||role==='administrator';
 }
-function explicitFieldRequest(){
-  try{
-    const q=new URLSearchParams(location.search);
-    return q.get('view')==='field';
-  }catch(_){return false;}
-}
 function reconcile(){
-  if(!mobile()||!ownerOrAdmin()||explicitFieldRequest())return false;
-  try{localStorage.setItem(PREF_KEY,'office');}catch(_){}
+  if(!mobile()||!ownerOrAdmin())return false;
+  try{localStorage.removeItem(PREF_KEY);}catch(_){}
   const state=window.state;
   if(state?.shell==='field'&&window.H38_MOBILE_FIELD_VIEW?.setFullOffice){
     window.H38_MOBILE_FIELD_VIEW.setFullOffice();
@@ -51,7 +45,9 @@ window.H38_OWNER_PHONE_MODE_AUTHORITY=Object.freeze({
   ownerPhoneDefaultsToFullOffice:true,
   staleFieldPreferenceRecovered:true,
   customerFirstNavigationAuthorityPreserved:true,
-  explicitFieldUrlStillAvailable:true,
+  legacyFieldUrlNormalizedToOffice:true,
+  oneBusinessOfficeShell:true,
+  fieldModeToggleRetired:true,
   preferenceKey:PREF_KEY,
   reconcile
 });
