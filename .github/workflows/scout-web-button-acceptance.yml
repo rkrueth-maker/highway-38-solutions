@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: h38-scout-maintenance-diagnostic
+  group: h38-scout-maintenance-diagnostic-v2
   cancel-in-progress: true
 
 jobs:
