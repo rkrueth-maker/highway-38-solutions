@@ -268,7 +268,7 @@ async function couponAcceptance(browser, session) {
   check('Couponing Import recipe/list opens',await page.locator('#recipeBox:not(.hidden)').count()===1);
   await page.fill('#recipeText',qaRecipe);
   await page.click('#recipeAdd');
-  await page.waitForTimeout(1200);
+  await waitEnabled(page,'#recipeAdd',30000);
   check('Couponing Add recipe/list items',await page.locator('label').filter({hasText:qaRecipe}).count()===1);
 
   await page.click('#voice');
@@ -292,26 +292,27 @@ async function couponAcceptance(browser, session) {
   await page.waitForFunction(()=>/Effective \$3\.50/.test(document.querySelector('#stackPreview')?.textContent||''),null,{timeout:30000});
   check('Couponing Calculate stack',true);
   await page.click('#saveDeal');
-  await page.waitForTimeout(1200);
-  check('Couponing Save price + stack',await page.locator('.item').filter({hasText:qa}).count()>0);
+  await waitEnabled(page,'#saveDeal',30000);
+  check('Couponing Save price + stack',await page.locator('.item').filter({hasText:qa}).count()>0,(await page.locator('#status').innerText().catch(()=>'')));
 
   const watchName=qa+' Watch';
   await page.fill('#watchItem',watchName);
   await page.fill('#watchTarget','2.50');
   await page.click('#addWatch');
-  await page.waitForTimeout(1200);
-  check('Couponing Watch',await page.locator('.item').filter({hasText:watchName}).count()>0);
+  await waitEnabled(page,'#addWatch',60000);
+  check('Couponing Watch',await page.locator('.item').filter({hasText:watchName}).count()>0,(await page.locator('#status').innerText().catch(()=>'')));
   await page.click('#checkWatches');
-  await page.waitForTimeout(1000);
+  await waitEnabled(page,'#checkWatches',60000);
   check('Couponing Check watches now',await page.locator('.watch-state').count()>0);
 
   await page.click('[data-view="save"]');
   check('Couponing SAVE tab',await page.locator('[data-view="save"].active').count()===1);
   await page.fill('#assistant','Best single store under $100');
   await page.click('#applyAssistant');
-  await page.waitForTimeout(800);
+  await waitEnabled(page,'#applyAssistant',60000);
   check('Couponing Apply request',!/error|failed/i.test(await page.locator('#status').innerText()));
   await page.click('#runOptimize');
+  await waitEnabled(page,'#runOptimize',90000);
   await page.waitForFunction(()=>document.querySelector('.kpi')||/No verified local prices|Add shopping items/i.test(document.querySelector('#status')?.textContent||''),null,{timeout:60000});
   check('Couponing Optimize my list',true);
   if(await page.locator('#storeMode').count()){
@@ -337,8 +338,8 @@ async function couponAcceptance(browser, session) {
   await page.fill('#receiptStore','QA Store');
   await page.fill('#receiptTotal','12.34');
   await page.click('#saveReceipt');
-  await page.waitForTimeout(1000);
-  check('Couponing Save receipt',await page.locator('.item').filter({hasText:'QA Store'}).count()>0);
+  await waitEnabled(page,'#saveReceipt',30000);
+  check('Couponing Save receipt',await page.locator('.item').filter({hasText:'QA Store'}).count()>0,(await page.locator('#status').innerText().catch(()=>'')));
 
   // Handoff buttons.
   await page.goto(WEB_BASE+'/coupon.html?item='+encodeURIComponent(qa)+'&store=QA%20Store&buy=5.00',{waitUntil:'domcontentloaded',timeout:90000});
