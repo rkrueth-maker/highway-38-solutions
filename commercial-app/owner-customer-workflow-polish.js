@@ -37,7 +37,11 @@ function polishNav(){
   const rename=(selector,label)=>{const b=nav.querySelector(selector),span=b?.querySelector('span:last-child');if(span)span.textContent=label;};
   rename('[data-page="work"],[data-h38-primary="work"]','Jobs');rename('[data-page="field"],[data-more-page="field"]','Site Visit');rename('[data-page="documents"],[data-more-page="documents"]','Files');
   const today=nav.querySelector('[data-page="today"],[data-h38-primary="today"]'),customers=nav.querySelector('[data-page="customers"],[data-h38-primary="customers"]'),work=nav.querySelector('[data-page="work"],[data-h38-primary="work"]');
-  if(today&&customers&&today.nextElementSibling!==customers)today.after(customers);if(customers&&work&&customers.nextElementSibling!==work)customers.after(work);
+  const mobile=!!window.matchMedia?.('(max-width:760px)').matches;
+  if(!mobile){
+    if(today&&customers&&today.nextElementSibling!==customers)today.after(customers);
+    if(customers&&work&&customers.nextElementSibling!==work)customers.after(work);
+  }
 }
 function customerDisplay(customer){return text(val(customer,'Customer Name','name'))||'Customer';}
 function contextMarkup(){
@@ -79,7 +83,7 @@ function customerScopedWork(){const ctx=deriveContext();if(currentPage()!=='work
 }
 function run(){scheduled=false;patchOpenPage();pageNames();polishNav();polishHeaders();injectContext();if(currentPage()==='quotes'){addQuoteJobHandoff();addPhotoQuotePath();}customerScopedWork();lastPage=currentPage();}
 function schedule(){if(scheduled)return;scheduled=true;setTimeout(run,40);}
-function install(){document.addEventListener('click',captureContextClicks,true);window.addEventListener?.('h38:business-snapshot-updated',schedule);window.addEventListener?.('h38:owner-context-changed',schedule);window.addEventListener?.('pageshow',schedule);const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true});let ticks=0;const timer=setInterval(()=>{schedule();if(++ticks>60)clearInterval(timer);},250);schedule();}
-window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:BUILD,setContext,clearContext,deriveContext,quickHistory,directionForMissing,applyDraftLines,acceptedQuote,linkedJobForQuote,createJobFromAcceptedQuote,photoQuoteWithoutSiteVisit:true,photoQuoteRequiresEvidence:true,reuseCustomerHistoryWithProvenance:true,acceptedQuoteToJobOwnerTap:true,customerContextPersistsAcrossOperationalPages:true,internalFinanceExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticScheduling:false,automaticPurchasing:false,automaticPayment:false};
+function install(){document.addEventListener('click',captureContextClicks,true);window.addEventListener?.('h38:business-snapshot-updated',schedule);window.addEventListener?.('h38:owner-context-changed',schedule);window.addEventListener?.('pageshow',schedule);const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true});schedule();}
+window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:BUILD,setContext,clearContext,deriveContext,quickHistory,directionForMissing,applyDraftLines,acceptedQuote,linkedJobForQuote,createJobFromAcceptedQuote,photoQuoteWithoutSiteVisit:true,photoQuoteRequiresEvidence:true,reuseCustomerHistoryWithProvenance:true,acceptedQuoteToJobOwnerTap:true,customerContextPersistsAcrossOperationalPages:true,mobilePrimaryNavigationDelegated:true,noStartupPollingLoop:true,internalFinanceExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticScheduling:false,automaticPurchasing:false,automaticPayment:false};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

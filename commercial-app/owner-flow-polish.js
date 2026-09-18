@@ -221,16 +221,23 @@ function apply(){
   markOptionalWork(document);
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
+function signalOwnerStartupReady(){
+  if(window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH&&window.H38_OWNER_JOB_HANDOFF){
+    document.documentElement.dataset.h38OwnerStartupAuthorities='ready';
+    window.dispatchEvent(new CustomEvent('h38:owner-startup-authorities-ready',{detail:{build:BUILD}}));
+    return true;
+  }
+  return false;
+}
 function loadOwnerCustomerWorkflow(){
   if(customerWorkflowStarted)return;customerWorkflowStarted=true;
   if(!document.querySelector('link[data-h38-owner-customer-workflow]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./owner-customer-workflow-polish.css?build=20260824-owner-customer-workflow-polish-1';link.dataset.h38OwnerCustomerWorkflow='1';document.head.appendChild(link);}
   const start=Date.now();
   const ready=()=>{
     if(document.querySelector('script[data-h38-owner-customer-workflow]'))return true;
-    if(!window.H38_CUSTOMER_360_BROWSER&&Date.now()-start<3500)return false;
-    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260824-owner-customer-workflow-polish-1';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]'))return;const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';document.body.appendChild(next);};document.body.appendChild(script);return true;
+    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260826-owner-customer-workflow-polish-2-photo-scope';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]')){signalOwnerStartupReady();return;}const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';next.onload=signalOwnerStartupReady;document.body.appendChild(next);};document.body.appendChild(script);return true;
   };
-  if(ready())return;const timer=setInterval(()=>{if(ready())clearInterval(timer);},100);
+  ready();
 }
 
 window.addEventListener('h38:saved-login-web-autofill-requested',startFallbackWatch);
@@ -251,7 +258,7 @@ window.H38_OWNER_FLOW_POLISH=Object.freeze({
   enabled:true,
   build:BUILD,
   customerWorkflowBuild:CUSTOMER_WORKFLOW_BUILD,
-  customerWorkflowLoader:true,
+  customerWorkflowLoader:true,customerWorkflowImmediateStartup:true,noDeferred3500msWorkflowLoad:true,ownerStartupAuthoritiesEvent:true,
   nativePrintPriority:true,
   noAndroidAboutBlank:true,
   savedLoginFallbackAutoSubmit:true,
