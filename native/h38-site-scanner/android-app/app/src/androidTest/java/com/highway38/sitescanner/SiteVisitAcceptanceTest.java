@@ -42,19 +42,50 @@ public final class SiteVisitAcceptanceTest {
         throw new AssertionError("Business Office did not load");
     }
 
-    private void waitForFinalSiteVisitAuthorities(WebView webView) throws Exception {
+    private String finalSiteVisitContract(WebView webView) throws Exception {
+        return js(webView,
+                "JSON.stringify({meeting:typeof window.H38_SITE_VISIT_MEETING_SEED?.finishVisit==='function',report:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport===true,offline:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.offlineQueue===true,noAutoApproval:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.automaticApproval===false,phone:window.H38_SITE_VISIT_FINAL_PHONE_REPAIR?.legacySiteVisitChromeRemoved===true,workspace:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.workspaceRebuild===true,capture:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.singleCaptureRow===true,analysis:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton===true,legacy:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail===true,duplicates:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons===true,href:location.href,timeOrigin:Math.round(performance.timeOrigin||0)})");
+    }
+
+    private boolean finalSiteVisitContractReady(String snapshot) {
+        return snapshot.contains("\\\"meeting\\\":true")
+                && snapshot.contains("\\\"report\\\":true")
+                && snapshot.contains("\\\"offline\\\":true")
+                && snapshot.contains("\\\"noAutoApproval\\\":true")
+                && snapshot.contains("\\\"phone\\\":true")
+                && snapshot.contains("\\\"workspace\\\":true")
+                && snapshot.contains("\\\"capture\\\":true")
+                && snapshot.contains("\\\"analysis\\\":true")
+                && snapshot.contains("\\\"legacy\\\":true")
+                && snapshot.contains("\\\"duplicates\\\":true");
+    }
+
+    private String waitForFinalSiteVisitAuthorities(WebView webView) throws Exception {
         long deadline = System.currentTimeMillis() + 45_000;
         String snapshot = "";
+        String stableDocument = "";
+        int stablePolls = 0;
         while (System.currentTimeMillis() < deadline) {
-            snapshot = js(webView,
-                    "JSON.stringify({meeting:!!window.H38_SITE_VISIT_MEETING_SEED,finish:!!window.H38_SITE_VISIT_FINISH_PERSISTENCE,phone:!!window.H38_SITE_VISIT_FINAL_PHONE_REPAIR,workspace:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3})");
-            if (snapshot.contains("\\\"meeting\\\":true")
-                    && snapshot.contains("\\\"finish\\\":true")
-                    && snapshot.contains("\\\"phone\\\":true")
-                    && snapshot.contains("\\\"workspace\\\":true")) return;
+            snapshot = finalSiteVisitContract(webView);
+            if (finalSiteVisitContractReady(snapshot)) {
+                String documentKey = snapshot.replaceAll(
+                        ".*\\\\\\\"href\\\\\\\":\\\\\\\"([^\\\\\\\"]+)\\\\\\\",\\\\\\\"timeOrigin\\\\\\\":([0-9]+).*",
+                        "$1|$2"
+                );
+                if (documentKey.equals(stableDocument)) {
+                    stablePolls += 1;
+                } else {
+                    stableDocument = documentKey;
+                    stablePolls = 1;
+                }
+                if (stablePolls >= 3) return snapshot;
+            } else {
+                stableDocument = "";
+                stablePolls = 0;
+            }
             Thread.sleep(500);
         }
-        throw new AssertionError("Final Site Visit authorities did not load: " + snapshot);
+        throw new AssertionError("Final Site Visit contract did not stabilize: " + snapshot);
     }
 
     @Test
@@ -91,9 +122,7 @@ public final class SiteVisitAcceptanceTest {
                 assertFalse(nav.toLowerCase().contains("field view"));
             }
 
-            waitForFinalSiteVisitAuthorities(webView);
-            String contract = js(webView,
-                    "JSON.stringify({meeting:typeof window.H38_SITE_VISIT_MEETING_SEED?.finishVisit==='function',report:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport===true,offline:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.offlineQueue===true,noAutoApproval:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.automaticApproval===false,phone:window.H38_SITE_VISIT_FINAL_PHONE_REPAIR?.legacySiteVisitChromeRemoved===true,workspace:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.workspaceRebuild===true,capture:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.singleCaptureRow===true,analysis:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton===true,legacy:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail===true,duplicates:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons===true})");
+            String contract = waitForFinalSiteVisitAuthorities(webView);
             assertTrue("Site Visit meeting/finish authority missing: " + contract, contract.contains("\\\"meeting\\\":true"));
             assertTrue("Durable Visit Report authority missing: " + contract, contract.contains("\\\"report\\\":true"));
             assertTrue("Offline Site Visit queue contract missing: " + contract, contract.contains("\\\"offline\\\":true"));
