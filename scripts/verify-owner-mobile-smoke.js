@@ -73,6 +73,8 @@ requireText(stability,'groupedMore:true','canonical More is grouped');
 requireText(stability,'data-h38-more-search','More promotes the existing Office Search');
 requireText(stability,"else if(current==='schedule')polishSchedule(main)",'phone Schedule is agenda-first');
 requireText(stability,'data-h38-agenda-actions','phone Schedule exposes contextual field actions from existing records');
+requireText(stability,"message.textContent='Message'",'phone Schedule exposes contextual Message action');
+requireText(stability,'H38_PENDING_MESSAGE_CONTEXT','Schedule and job entry preserve customer/job context into Messages');
 requireText(stability,'h38-message-context','Messages retain customer/job context when linked');
 requireText(flowTightening,'h38-job-secondary','job secondary commands use progressive disclosure');
 requireText(customerReady,'h38-today-primary','Today has one dominant Next Action');
