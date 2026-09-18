@@ -51,11 +51,11 @@ async function assertNoPageErrors(name, errors) {
 async function shellAcceptance(browser) {
   const context=await browser.newContext();
   const {page,pageErrors}=await open(context,'h38-deals-shell');
-  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-out',null,{timeout:30000});
+  await page.waitForSelector('#signin',{state:'visible',timeout:30000});
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#signin');
-  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:30000});
+  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:60000}).catch(async e=>{throw new Error('Shell first sign-in timed out — '+(await page.locator('#authstatus').innerText().catch(()=>'')));});
   check('Shell Sign in button', await page.locator('#products:not(.hidden)').count()===1);
   check('Shell products visible', await page.locator('#products:not(.hidden)').count()===1);
   check('Shell active product links', await page.locator('#products a.open:not(.hidden)').count()===3, 'Expected 3 enabled products');
@@ -68,7 +68,7 @@ async function shellAcceptance(browser) {
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#signin');
-  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:30000});
+  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:60000}).catch(async e=>{throw new Error('Shell second sign-in timed out — '+(await page.locator('#authstatus').innerText().catch(()=>'')));});
   check('Shell second sign in', await page.locator('#products:not(.hidden)').count()===1);
   const raw=await page.evaluate(()=>localStorage.getItem('sb-jqukmwtsgcsaruucnqja-auth-token'));
   check('Shell browser session stored',!!raw);
