@@ -80,3 +80,50 @@ jobs:
           path: artifacts/h38-private-reseller-scout-owner-test.zip
           if-no-files-found: error
           retention-days: 14
+
+  live-web-buttons:
+    name: Live web button acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: https://jqukmwtsgcsaruucnqja.supabase.co
+      SUPABASE_KEY: sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+      H38_ACCEPTANCE_OUT: artifacts/scout-web-button-acceptance/report.json
+    steps:
+      - name: Checkout private branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm isolated Scout branch authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "agent/private-reseller-scout"
+          test "$(git branch --show-current)" = "agent/private-reseller-scout"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pinned Playwright browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Exercise all live web controls
+        run: |
+          mkdir -p artifacts/scout-web-button-acceptance
+          node scripts/scout-web-button-acceptance.cjs
+
+      - name: Upload live web acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-web-button-acceptance
+          path: artifacts/scout-web-button-acceptance/**
+          if-no-files-found: error
+          retention-days: 30
