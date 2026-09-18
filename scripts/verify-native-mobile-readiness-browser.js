@@ -71,8 +71,22 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
   await page.addScriptTag({path:accessPath});
   await page.addScriptTag({path:identityPath});
   await page.waitForFunction(()=>window.H38_OFFICE_ACCOUNT_IDENTITY?.mobileStableBusinessBarHeight===true&&document.getElementById('h38OfficeAccountIdentity')&&document.getElementById('h38OfficeAccountIdentityStyle'));
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Header/account identity must not release the native cover before final Today owner authorities are applied.');
+
+  await page.evaluate(()=>{
+    window.H38_OWNER_FLOW_POLISH={enabled:true};
+    window.H38_OWNER_MOBILE_QUICK_ACTIONS={enabled:true};
+    window.H38_JOB_LIFECYCLE={build:'test'};
+    const main=document.getElementById('mainContent');
+    const life=document.createElement('section');
+    life.className='card h38-life-today';
+    life.innerHTML='<h2>Job lifecycle & next actions</h2><p>Final Today surface</p>';
+    main.insertBefore(life,main.querySelector('.grid'));
+    window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page:'today'}}));
+  });
   await page.waitForFunction(()=>document.documentElement.dataset.h38NativeOfficeReady==='office');
-  assert.deepEqual(signals,['office'],'Native readiness must fire once, after all final mobile layout authorities are present.');
+  assert.deepEqual(signals,['office'],'Native readiness must fire once, after final mobile and Today layout authorities are present.');
 
   const atReveal=await page.evaluate(()=>window.__readyGeometry);
   await page.waitForTimeout(180);
