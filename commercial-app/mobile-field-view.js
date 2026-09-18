@@ -200,7 +200,7 @@ function renderJobHub(){
    <div class="h38-field-job-pane" data-h38-job-pane="files" hidden>${files.length?files.slice(0,8).map(row=>`<div><strong>${esc(value(row,'File Name','fileName','Title','title')||'File')}</strong></div>`).join(''):'<p>No job files yet.</p>'}</div>
    <div class="h38-field-job-pane" data-h38-job-pane="activity" hidden>${activity.length?activity.map(row=>`<div><strong>${esc(value(row,'Title','Summary','Note Type','Status')||'Activity')}</strong><small>${esc(value(row,'Updated Time','Created Time')||'')}</small></div>`).join(''):'<p>No job activity yet.</p>'}</div>
   </section>`;
-  const existing=document.getElementById('h38JobCommandHome'),head=main.querySelector('.page-head');(existing||head)?.insertAdjacentElement(existing?'beforebegin':'afterend',host);
+  const existing=document.getElementById('h38JobCommandHome'),head=main.querySelector('.page-head');if(existing)existing.insertAdjacentElement('beforebegin',host);else if(head)head.insertAdjacentElement('afterend',host);else main.prepend(host);
   const show=key=>{host.querySelectorAll('[data-h38-job-pane]').forEach(p=>p.hidden=p.dataset.h38JobPane!==key);host.querySelectorAll('[data-h38-job-tab]').forEach(b=>b.classList.toggle('active',b.dataset.h38JobTab===key));};
   host.querySelectorAll('[data-h38-job-tab]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.h38JobTab)));
   host.querySelector('[data-h38-job-message]')?.addEventListener('click',()=>openMessages(id(customer,'Customer ID','customerId'),jid));
