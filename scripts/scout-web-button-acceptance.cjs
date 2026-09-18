@@ -109,8 +109,10 @@ async function pennyAcceptance(browser, session) {
   await page.fill('#zip','55744');
   await page.selectOption('#radius','50');
   await page.click('#findStores');
-  await page.waitForFunction(()=>document.querySelectorAll('#nearbyList .nearbyCard').length>0,null,{timeout:90000});
-  check('Penny Find deal stores', await page.locator('#nearbyList .nearbyCard').count()>0);
+  await waitEnabled(page,'#findStores',120000);
+  const nearbyCount=await page.locator('#nearbyList .nearbyCard').count();
+  const nearbyDetail=await page.locator('#nearby').innerText().catch(()=> '');
+  check('Penny Find deal stores', nearbyCount>0, nearbyDetail);
 
   const savedLead=page.locator('[data-store-filter]').first();
   if(await savedLead.count()){ await savedLead.click(); check('Penny Show saved leads',true); }
