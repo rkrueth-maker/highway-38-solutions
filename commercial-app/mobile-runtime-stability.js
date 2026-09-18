@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260918-business-office-workflow-polish-1';
+const BUILD='20260915-phone-first-nav-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
