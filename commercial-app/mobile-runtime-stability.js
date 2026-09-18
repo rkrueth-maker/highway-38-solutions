@@ -247,7 +247,22 @@ function polishSchedule(main){
   upcoming?.classList.add('h38-schedule-agenda');
   if(add)wrapToolCard(add,'Add schedule event',true);
   if(upcoming&&grid.firstElementChild!==upcoming)grid.insertBefore(upcoming,grid.firstChild);
-  upcoming?.querySelectorAll('.calendar-list .row').forEach(row=>row.classList.add('h38-agenda-row'));
+  const snapshot=window.state?.snapshot||{},events=Array.isArray(snapshot.scheduleEvents)?snapshot.scheduleEvents.slice().sort((a,b)=>new Date(a?.['Start Time']||a?.startTime||0)-new Date(b?.['Start Time']||b?.startTime||0)):[],jobs=Array.isArray(snapshot.jobs)?snapshot.jobs:[],customers=Array.isArray(snapshot.customers)?snapshot.customers:[];
+  const valueOf=(row,...keys)=>{for(const key of keys){const value=row?.[key];if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();}return'';};
+  upcoming?.querySelectorAll('.calendar-list .row').forEach((row,index)=>{
+    row.classList.add('h38-agenda-row');
+    if(row.querySelector('[data-h38-agenda-actions]'))return;
+    const event=events[index];if(!event)return;
+    const jobId=valueOf(event,'Related Record ID','relatedRecordId','Job ID','jobId'),job=jobs.find(item=>valueOf(item,'Job ID','jobId','id')===jobId)||null;
+    const customerId=valueOf(event,'Customer ID','customerId')||valueOf(job,'Customer ID','customerId'),customer=customers.find(item=>valueOf(item,'Customer ID','customerId','id')===customerId)||null;
+    const customerName=valueOf(customer,'Customer Name','name'),phone=valueOf(customer,'Phone','phone','Mobile Phone','mobilePhone'),location=valueOf(event,'Location','location','Address','address')||valueOf(customer,'Service Address','serviceAddress');
+    const meta=document.createElement('div');meta.className='h38-agenda-context';meta.innerHTML=`<span>${html(customerName||'Customer not linked')}</span><span>${html(location||'Location not set')}</span>`;row.appendChild(meta);
+    const actions=document.createElement('div');actions.className='h38-context-actions';actions.dataset.h38AgendaActions='1';
+    if(phone){const call=document.createElement('a');call.className='secondary';call.href=`tel:${phone.replace(/[^\\d+]/g,'')}`;call.textContent='Call';actions.appendChild(call);}
+    if(location){const nav=document.createElement('button');nav.type='button';nav.className='secondary';nav.textContent='Navigate';nav.onclick=()=>window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`,'_blank','noopener');actions.appendChild(nav);}
+    if(jobId){const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Open job';open.onclick=()=>{window.openPage?.('work');setTimeout(()=>{const select=document.getElementById('h38LifecycleJob');if(select&&Array.from(select.options||[]).some(option=>option.value===jobId)){select.value=jobId;select.dispatchEvent(new Event('change',{bubbles:true}));}},0);};actions.appendChild(open);}
+    if(actions.children.length)row.appendChild(actions);
+  });
 }
 function polishMessages(main){
   const head=main.querySelector('.page-head');
