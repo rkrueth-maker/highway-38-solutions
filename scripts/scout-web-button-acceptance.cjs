@@ -313,7 +313,7 @@ async function couponAcceptance(browser, session) {
   check('Couponing Apply request',!/error|failed/i.test(await page.locator('#status').innerText()));
   await page.click('#runOptimize');
   await waitEnabled(page,'#runOptimize',90000);
-  await page.waitForFunction(()=>document.querySelector('.kpi')||/No verified local prices|Add shopping items/i.test(document.querySelector('#status')?.textContent||''),null,{timeout:60000});
+  await page.waitForFunction(()=>document.querySelector('.kpi')||/No verified local prices|Add shopping items|Optimize complete/i.test(document.querySelector('#status')?.textContent||''),null,{timeout:60000});
   check('Couponing Optimize my list',true);
   if(await page.locator('#storeMode').count()){
     await page.click('#storeMode');
