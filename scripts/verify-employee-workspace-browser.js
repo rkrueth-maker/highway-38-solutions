@@ -14,7 +14,7 @@ const STAFF_PERMISSIONS={
   captureEvidence:true,useInventory:true,useAssets:true
 };
 async function installHarness(page,{role='',authForm=false,deferredRole=false}={}){
-  await page.route('https://h38-office.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html><body></body></html>'}));
+  await page.route('https://h38-office.test/',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html><body></body></html>'}));
   await page.goto('https://h38-office.test/');
   await page.setContent(`<!doctype html><html><body>
     <header class="topbar"><div class="top-actions"><button id="globalAiButton">AI</button><button id="voiceButton">Voice</button></div></header>
