@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260917-native-office-ready-contract-3';
+const BUILD='20260918-native-office-ready-contract-4';
 const params=new URLSearchParams(location.search),native=/H38SiteScannerAndroid/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
 let readySent=false,readyFrame=0,lastGeometry='';
 if(native&&forcedField){params.delete('fieldMode');params.delete('nativeScanner');const query=params.toString();history.replaceState(history.state,'',location.pathname+(query?'?'+query:'')+location.hash);}
@@ -26,6 +26,15 @@ function signedOutReady(){
   const main=document.getElementById('mainContent'),text=String(main?.textContent||'');
   return visible(main)&&!/Opening Business Office|Checking Supabase Auth|Opening securely/i.test(text)&&(/sign in|membership|session expired|unavailable|retry/i.test(text));
 }
+function finalTodaySurfaceReady(){
+  const s=window.state,user=s?.snapshot?.user;
+  if(!window.matchMedia?.('(max-width:760px)').matches)return true;
+  if(String(s?.page||'')!=='today')return true;
+  if(!(user?.owner===true||user?.permissions?.all===true))return true;
+  if(!window.H38_OWNER_FLOW_POLISH||!window.H38_OWNER_MOBILE_QUICK_ACTIONS||!window.H38_JOB_LIFECYCLE)return false;
+  if(!document.querySelector('#mainContent .h38-life-today'))return false;
+  return true;
+}
 function finalMobileAuthoritiesReady(){
   if(!window.matchMedia?.('(max-width:760px)').matches)return true;
   const runtime=window.H38_MOBILE_RUNTIME_STABILITY,identity=window.H38_OFFICE_ACCOUNT_IDENTITY;
@@ -33,6 +42,7 @@ function finalMobileAuthoritiesReady(){
   if(document.body?.dataset?.h38ProductionPolish!=='3')return false;
   if(identity?.mobileStableBusinessBarHeight!==true||identity?.mobileSingleLineIdentity!==true)return false;
   if(!document.getElementById('h38OfficeAccountIdentity')||!document.getElementById('h38OfficeAccountIdentityStyle'))return false;
+  if(!finalTodaySurfaceReady())return false;
   if(!finalMobileChromeAligned())return false;
   return true;
 }
@@ -50,8 +60,8 @@ function authorizedReady(){
   return !!page&&!/Opening Business Office|Checking Supabase Auth/i.test(String(main.textContent||''));
 }
 function geometrySignature(){
-  const top=document.querySelector('.topbar')?.getBoundingClientRect(),bar=document.querySelector('.business-bar')?.getBoundingClientRect(),shell=document.querySelector('.app-shell')?.getBoundingClientRect();
-  return [top?.bottom||0,bar?.bottom||0,shell?.top||0,shell?.height||0].map(v=>Math.round(v)).join(':');
+  const top=document.querySelector('.topbar')?.getBoundingClientRect(),bar=document.querySelector('.business-bar')?.getBoundingClientRect(),shell=document.querySelector('.app-shell')?.getBoundingClientRect(),main=document.getElementById('mainContent');
+  return [top?.bottom||0,bar?.bottom||0,shell?.top||0,shell?.height||0,main?.scrollHeight||0,main?.childElementCount||0].map(v=>Math.round(v)).join(':');
 }
 function signalReady(kind){
   if(readySent||!native)return false;
@@ -63,7 +73,7 @@ function reconcileReady(){
   if(!kind){readyFrame=0;lastGeometry='';return;}
   const geometry=geometrySignature();
   if(geometry!==lastGeometry){lastGeometry=geometry;readyFrame=0;requestAnimationFrame(reconcileReady);return;}
-  if(++readyFrame<2){requestAnimationFrame(reconcileReady);return;}
+  if(++readyFrame<3){requestAnimationFrame(reconcileReady);return;}
   signalReady(kind);
 }
 function scheduleReady(){if(!native||readySent)return;requestAnimationFrame(()=>requestAnimationFrame(reconcileReady));}
@@ -74,5 +84,5 @@ if(native){
   new MutationObserver(scheduleReady).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
   scheduleReady();
 }
-window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,scheduleReady});
+window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForFinalTodaySurface:true,mainContentGeometryIncludedInReadiness:true,scheduleReady});
 })();
