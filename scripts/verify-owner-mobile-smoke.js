@@ -124,7 +124,7 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20260917-phone-first-office-4'",'runtime loader pins final phone-first build');
-requireText(serviceWorker,"h38-business-office-20260917-physical-startup-1",'service worker flushes physical-startup authority assets');
+requireText(serviceWorker,"h38-business-office-20260917-2359",'service worker flushes physical-startup authority assets with a dated cache epoch');
 requireText(serviceWorker,"'phone-first-office.js'",'phone-first runtime is live-first');
 requireText(serviceWorker,"'office-reference-samples.js'",'reference-sample runtime is live-first');
 if(ownerFlow.includes("Date.now()-start<3500"))fail('owner workflow has no 3.5-second startup delay');else pass('owner workflow has no 3.5-second startup delay');
