@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 45
     env:
       SUPABASE_URL: https://jqukmwtsgcsaruucnqja.supabase.co
-      H38_WEB_BASE: https://h38-deals-web-h39.vercel.app
+      H38_WEB_BASE: http://127.0.0.1:4173
       SUPABASE_KEY: sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1
       SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
       SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
@@ -116,8 +116,19 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Exercise all live web controls
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts/scout-web-button-acceptance
+          node scripts/build-scout-static-web.cjs artifacts/scout-web-static
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory artifacts/scout-web-static > /tmp/h38-scout-web.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/ | grep -Fq 'id="signin"'
           node scripts/scout-web-button-acceptance.cjs
 
       - name: Upload live web acceptance evidence
