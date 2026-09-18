@@ -66,6 +66,31 @@ async function loadSaved(admin: any, limit = 80) {
   return { rows: clean.map(savedCandidate), error: q.error };
 }
 
+function storeRows(data: any) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.stores)) return data.stores;
+  if (Array.isArray(data?.readings)) return data.readings;
+  if (Array.isArray(data?.data?.stores)) return data.data.stores;
+  return [];
+}
+
+function mergeStoreRows(...sets: any[][]) {
+  const out: any[] = [];
+  const seen = new Set<string>();
+  for (const set of sets) for (const row of set || []) {
+    const key = String(row?.store_key || [
+      row?.retailer || row?.store_name || row?.name || "",
+      row?.store_address || row?.address || "",
+      row?.lat ?? row?.latitude ?? "",
+      row?.lon ?? row?.longitude ?? "",
+    ].join("|")).toLowerCase().replace(/\s+/g, " ").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
 function normalizeRadius(payload: Record<string, any>) {
   const raw = Number(payload.radiusMiles ?? payload.radius_miles ?? payload.radius ?? 50);
   const radius = Number.isFinite(raw) && raw > 0 ? Math.max(1, Math.min(150, raw)) : 50;
@@ -420,9 +445,54 @@ Deno.serve(async (req) => {
           data: { status: "PARTIAL", stores: [], warning: "Enter a valid ZIP or use phone location before finding nearby stores." },
         });
       }
-      const nearby = await invoke(url, anon, auth, "reseller-nearby-stores-v262", payload);
-      if (nearby.ok) return json({ ok: true, product: "resale", source: "reseller-nearby-stores-v262", data: nearby.data });
-      return json({ error: "SOURCE_UNAVAILABLE", detail: `reseller-nearby-stores-v262:${nearby.status}:${nearby.text.slice(0, 250)}` }, 502);
+      const quick = await invoke(url, anon, auth, "reseller-nearby-stores-v262", payload);
+      const quickRows = storeRows(quick.data);
+      if (quick.ok && quickRows.length) {
+        return json({ ok: true, product: "resale", source: "reseller-nearby-stores-v262", data: { ...(quick.data as any), stores: quickRows } });
+      }
+
+      const durable = await invoke(url, anon, auth, "reseller-nearby-stores", payload);
+      const durableRows = storeRows(durable.data);
+      const stores = mergeStoreRows(quickRows, durableRows);
+      if (stores.length) {
+        return json({
+          ok: true,
+          product: "resale",
+          source: durableRows.length ? "reseller-nearby-stores-v262+reseller-nearby-stores" : "reseller-nearby-stores-v262",
+          data: {
+            ...(durable.ok && durable.data && typeof durable.data === "object" ? durable.data as Record<string, any> : {}),
+            stores,
+            store_count: stores.length,
+            quick_store_count: quickRows.length,
+            durable_store_count: durableRows.length,
+            fallback_used: durableRows.length > 0,
+          },
+        });
+      }
+
+      if (quick.ok || durable.ok) {
+        const warnings = [
+          (quick.data as any)?.warning,
+          (durable.data as any)?.warning,
+        ].filter(Boolean).join(" ");
+        return json({
+          ok: true,
+          product: "resale",
+          source: "reseller-nearby-stores-v262+reseller-nearby-stores",
+          data: {
+            status: "PARTIAL",
+            stores: [],
+            quick_store_count: quickRows.length,
+            durable_store_count: durableRows.length,
+            warning: warnings || "Nearby store sources completed but returned no recognized retailers for this location.",
+          },
+        });
+      }
+
+      return json({
+        error: "SOURCE_UNAVAILABLE",
+        detail: `quick:${quick.status}:${quick.text.slice(0, 180)} durable:${durable.status}:${durable.text.slice(0, 180)}`,
+      }, 502);
     }
 
     const map: Record<string, string> = {
