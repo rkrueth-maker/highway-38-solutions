@@ -134,23 +134,37 @@ function customerSectionKey(section){
   if(/jobs|requests|quotes|site visits|measurements|tasks|follow-ups/.test(title))return'work';
   return'overview';
 }
+function customerTabSections(grid){
+  return Array.from(grid?.children||[]).filter(section=>section?.tagName==='SECTION'&&section.classList?.contains('card')&&section.id!=='h38CustomerReadyHero');
+}
+function applyCustomerTab(grid,tabs,allowed,key){
+  customerTab=allowed.includes(key)?key:'overview';grid.dataset.h38CustomerTab=customerTab;
+  customerTabSections(grid).forEach(section=>{
+    const pane=customerSectionKey(section),visible=pane===customerTab;
+    section.dataset.h38CustomerPane=pane;
+    section.hidden=!visible;
+    section.toggleAttribute('hidden',!visible);
+    section.setAttribute('aria-hidden',String(!visible));
+  });
+  tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>{
+    const active=button.dataset.h38CustomerTab===customerTab;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-selected',String(active));
+    button.tabIndex=active?0:-1;
+  });
+}
 function installCustomerTabs(grid){
   if(!grid)return;
   const allowed=['overview','work',...(financial()?['money']:[]),'files'];
   if(!allowed.includes(customerTab))customerTab='overview';
-  let tabs=grid.querySelector(':scope > .h38-customer-tabs');
+  let tabs=Array.from(grid.children).find(node=>node.classList?.contains('h38-customer-tabs'));
   if(!tabs){
     tabs=document.createElement('div');tabs.className='h38-customer-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Customer 360 sections');
-    const hero=grid.querySelector(':scope > #h38CustomerReadyHero');if(hero)hero.insertAdjacentElement('afterend',tabs);else grid.prepend(tabs);
+    const hero=Array.from(grid.children).find(node=>node.id==='h38CustomerReadyHero');if(hero)hero.insertAdjacentElement('afterend',tabs);else grid.prepend(tabs);
   }
   tabs.innerHTML=allowed.map(key=>`<button type="button" role="tab" data-h38-customer-tab="${key}" class="${customerTab===key?'active':''}">${key[0].toUpperCase()+key.slice(1)}</button>`).join('');
-  const apply=key=>{
-    customerTab=allowed.includes(key)?key:'overview';grid.dataset.h38CustomerTab=customerTab;
-    grid.querySelectorAll(':scope > section.card:not(#h38CustomerReadyHero)').forEach(section=>{const pane=customerSectionKey(section);section.dataset.h38CustomerPane=pane;section.hidden=pane!==customerTab;});
-    tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>{const active=button.dataset.h38CustomerTab===customerTab;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active));});
-  };
-  tabs.querySelectorAll('[data-h38-customer-tab]').forEach(button=>button.onclick=()=>apply(button.dataset.h38CustomerTab));
-  apply(customerTab);
+  tabs.onclick=event=>{const button=event.target.closest?.('[data-h38-customer-tab]');if(button&&tabs.contains(button))applyCustomerTab(grid,tabs,allowed,button.dataset.h38CustomerTab);};
+  applyCustomerTab(grid,tabs,allowed,customerTab);
 }
 function enhanceCustomer360(){
   if(!signedIn()){clearSignedOutPolish();return;}
