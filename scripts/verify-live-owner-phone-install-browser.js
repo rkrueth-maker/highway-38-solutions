@@ -26,7 +26,7 @@ async function verifyStaleOwnerFieldRecovery(browser){
     localStorage.setItem('h38:mobile-workspace-view:v1','field');
     window.PAGE_DEFS={today:['⌂','Today'],customers:['👤','Customers'],work:['🧰','Jobs'],quotes:['🧾','Quotes'],schedule:['🗓','Schedule'],messages:['💬','Messages'],field:['📷','Site Visit'],meetings:['🗣️','Meetings'],money:['💵','Billing'],accounting:['📚','Accounting'],payroll:['💳','Payroll'],tax:['🧾','Tax'],documents:['📁','Documents'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],people:['👥','People'],reports:['📊','Reports'],social:['📣','Social'],controls:['🛡️','Controls'],ai:['✨','AI'],assistant:['🤖','Assistant'],settings:['⚙️','Settings']};
     const pages=Object.keys(window.PAGE_DEFS);
-    window.state={shell:'office',page:'today',snapshot:{user:{owner:true,roleId:'owner',roleName:'Owner',permissions:{all:true}},customers:[],scheduleEvents:[],followUps:[],quotes:[],siteCaptureSessions:[],meetings:[],invoices:[]}};
+    window.state={shell:'field',page:'today',snapshot:{user:{owner:true,roleId:'owner',roleName:'Owner',permissions:{all:true}},customers:[],scheduleEvents:[],followUps:[],quotes:[],siteCaptureSessions:[],meetings:[],invoices:[]}};
     window.allowedPages=()=>pages.slice();
     window.renderNav=()=>{
       const nav=document.getElementById('mainNav');
@@ -35,15 +35,17 @@ async function verifyStaleOwnerFieldRecovery(browser){
     window.openPage=key=>{window.state.page=key;window.renderNav();window.dispatchEvent(new CustomEvent('h38:office-page-rendered'));};
     window.renderNav();
   });
-  // Actual production order: owner recovery is bootstrapped early; Field View arrives later.
+  // Actual production order: owner recovery is bootstrapped early; the legacy field compatibility layer arrives later.
   await page.addScriptTag({path:authorityPath});
   await page.addScriptTag({path:fieldPath});
   await page.addScriptTag({path:stabilityPath});
   await page.waitForFunction(()=>window.H38_OWNER_PHONE_MODE_AUTHORITY&&window.H38_MOBILE_FIELD_VIEW&&window.H38_MOBILE_RUNTIME_STABILITY&&window.state.shell==='office'&&document.querySelector('#mainNav [data-h38-primary="customers"]'));
   await page.waitForTimeout(120);
-  assert.equal(await page.evaluate(()=>localStorage.getItem('h38:mobile-workspace-view:v1')),'office','stale owner Field View preference must be repaired to Full Office.');
-  assert.equal(await page.evaluate(()=>window.state.shell),'office','owner phone must open the full Office shell.');
-  assert.match(await page.locator('#h38MobileWorkspaceToggle').innerText(),/Field View/,'owner phone must not claim Full Office while already in stale Field View.');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('h38:mobile-workspace-view:v1')),null,'stale owner Field View preference must be removed.');
+  assert.equal(await page.evaluate(()=>window.state.shell),'office','owner phone must recover into the one Business Office shell.');
+  assert.equal(await page.locator('#h38MobileWorkspaceToggle').count(),0,'retired Field View / Full Office toggle must not render.');
+  assert.equal(await page.evaluate(()=>window.H38_OWNER_PHONE_MODE_AUTHORITY?.oneBusinessOfficeShell),true,'owner phone authority must declare one Business Office shell.');
+  assert.equal(await page.evaluate(()=>window.H38_MOBILE_FIELD_VIEW?.retiredUserFacingMode),true,'legacy mobile field layer must remain compatibility-only.');
   const labels=await page.locator('#mainNav [data-h38-primary]').allTextContents();
   assert.deepEqual(labels.map(value=>value.trim()),['⌂Today','👤Customers','🗓Schedule','💬Messages','•••More'],'owner phone primary navigation must be customer-first.');
   assert.equal(await page.locator('#mainNav [data-h38-primary="work"]').count(),0,'Jobs must not be a primary owner-phone tab.');
@@ -60,6 +62,6 @@ async function verifyStaleOwnerFieldRecovery(browser){
   const browser=await chromium.launch({headless:true});
   try{
     await verifyStaleOwnerFieldRecovery(browser);
-    console.log(JSON.stringify({status:'PASS',recordingRegression:true,ownerShell:'office',primary:['Today','Customers','Schedule','Messages','More'],approvedLogoOnly:true}));
+    console.log(JSON.stringify({status:'PASS',recordingRegression:true,ownerShell:'office',oneBusinessOfficeShell:true,fieldModeToggleRetired:true,primary:['Today','Customers','Schedule','Messages','More'],approvedLogoOnly:true}));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
