@@ -42,6 +42,21 @@ public final class SiteVisitAcceptanceTest {
         throw new AssertionError("Business Office did not load");
     }
 
+    private void waitForFinalSiteVisitAuthorities(WebView webView) throws Exception {
+        long deadline = System.currentTimeMillis() + 45_000;
+        String snapshot = "";
+        while (System.currentTimeMillis() < deadline) {
+            snapshot = js(webView,
+                    "JSON.stringify({meeting:!!window.H38_SITE_VISIT_MEETING_SEED,finish:!!window.H38_SITE_VISIT_FINISH_PERSISTENCE,phone:!!window.H38_SITE_VISIT_FINAL_PHONE_REPAIR,workspace:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3})");
+            if (snapshot.contains("\\\"meeting\\\":true")
+                    && snapshot.contains("\\\"finish\\\":true")
+                    && snapshot.contains("\\\"phone\\\":true")
+                    && snapshot.contains("\\\"workspace\\\":true")) return;
+            Thread.sleep(500);
+        }
+        throw new AssertionError("Final Site Visit authorities did not load: " + snapshot);
+    }
+
     @Test
     public void ownerOfficeAndSiteVisitContractRemainStable() throws Exception {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
@@ -76,13 +91,19 @@ public final class SiteVisitAcceptanceTest {
                 assertFalse(nav.toLowerCase().contains("field view"));
             }
 
+            waitForFinalSiteVisitAuthorities(webView);
             String contract = js(webView,
-                    "JSON.stringify({workspace:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3,report:!!window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport,analysis:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton,legacy:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail,duplicates:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons})");
-            assertTrue(contract.contains("\\\"workspace\\\":true"));
-            assertTrue(contract.contains("\\\"report\\\":true"));
-            assertTrue(contract.contains("\\\"analysis\\\":true"));
-            assertTrue(contract.contains("\\\"legacy\\\":true"));
-            assertTrue(contract.contains("\\\"duplicates\\\":true"));
+                    "JSON.stringify({meeting:typeof window.H38_SITE_VISIT_MEETING_SEED?.finishVisit==='function',report:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport===true,offline:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.offlineQueue===true,noAutoApproval:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.automaticApproval===false,phone:window.H38_SITE_VISIT_FINAL_PHONE_REPAIR?.legacySiteVisitChromeRemoved===true,workspace:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.workspaceRebuild===true,capture:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.singleCaptureRow===true,analysis:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton===true,legacy:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail===true,duplicates:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons===true})");
+            assertTrue("Site Visit meeting/finish authority missing: " + contract, contract.contains("\\\"meeting\\\":true"));
+            assertTrue("Durable Visit Report authority missing: " + contract, contract.contains("\\\"report\\\":true"));
+            assertTrue("Offline Site Visit queue contract missing: " + contract, contract.contains("\\\"offline\\\":true"));
+            assertTrue("Site Visit must never auto-approve: " + contract, contract.contains("\\\"noAutoApproval\\\":true"));
+            assertTrue("Final phone repair authority missing: " + contract, contract.contains("\\\"phone\\\":true"));
+            assertTrue("Mobile Site Visit workspace missing: " + contract, contract.contains("\\\"workspace\\\":true"));
+            assertTrue("Single capture row contract missing: " + contract, contract.contains("\\\"capture\\\":true"));
+            assertTrue("Dimension analysis contract missing: " + contract, contract.contains("\\\"analysis\\\":true"));
+            assertTrue("Legacy Site Visit stage rail is not suppressed: " + contract, contract.contains("\\\"legacy\\\":true"));
+            assertTrue("Duplicate capture controls are not suppressed: " + contract, contract.contains("\\\"duplicates\\\":true"));
         }
     }
 
