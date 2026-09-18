@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 45
     env:
       SUPABASE_URL: https://jqukmwtsgcsaruucnqja.supabase.co
-      H38_WEB_BASE: https://h38-deals-6ufq93ryf-h39.vercel.app
+      H38_WEB_BASE: https://h38-deals-web-h39.vercel.app
       SUPABASE_KEY: sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1
       SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
       SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
