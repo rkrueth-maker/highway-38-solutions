@@ -48,24 +48,31 @@ async function open(context, slug, query='') {
 async function assertNoPageErrors(name, errors) {
   check(name+' uncaught JS', errors.length===0, errors.join(' | '));
 }
-async function shellAcceptance(browser, session) {
+async function shellAcceptance(browser) {
   const context=await browser.newContext();
-  await addSession(context,session);
   const {page,pageErrors}=await open(context,'h38-deals-shell');
-  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:30000});
-  check('Shell products visible', await page.locator('#products:not(.hidden)').count()===1);
-  check('Shell active product links', await page.locator('#products a.open:not(.hidden)').count()===3, 'Expected 3 enabled products');
-  check('Shell entitlement Unlock buttons hidden', await page.locator('#products .unlock:not(.hidden)').count()===0);
-  await page.click('#signout');
   await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-out',null,{timeout:30000});
-  check('Shell Sign out button', await page.locator('#loginForm:not(.hidden)').count()===1);
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#signin');
   await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:30000});
   check('Shell Sign in button', await page.locator('#products:not(.hidden)').count()===1);
+  check('Shell products visible', await page.locator('#products:not(.hidden)').count()===1);
+  check('Shell active product links', await page.locator('#products a.open:not(.hidden)').count()===3, 'Expected 3 enabled products');
+  check('Shell entitlement Unlock buttons hidden', await page.locator('#products .unlock:not(.hidden)').count()===0);
+
+  await page.click('#signout');
+  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-out',null,{timeout:30000});
+  check('Shell Sign out button', await page.locator('#loginForm:not(.hidden)').count()===1);
+
+  await page.fill('#email', EMAIL);
+  await page.fill('#password', PASSWORD);
+  await page.click('#signin');
+  await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:30000});
+  check('Shell second sign in', await page.locator('#products:not(.hidden)').count()===1);
   const raw=await page.evaluate(()=>localStorage.getItem('sb-jqukmwtsgcsaruucnqja-auth-token'));
-  const next=raw?JSON.parse(raw):session;
+  check('Shell browser session stored',!!raw);
+  const next=JSON.parse(raw);
   await assertNoPageErrors('Shell',pageErrors);
   await context.close();
   return next;
@@ -353,7 +360,7 @@ async function maintenanceAcceptance(browser, session) {
     check('Test credentials present',!!EMAIL&&!!PASSWORD,'H38_SCOUT_TEST_EMAIL / H38_SCOUT_TEST_PASSWORD');
     let session=await getSession();
     browser=await chromium.launch({headless:true});
-    session=await shellAcceptance(browser,session);
+    session=await shellAcceptance(browser);
     await pennyAcceptance(browser,session);
     await resaleAcceptance(browser,session);
     await couponAcceptance(browser,session);
