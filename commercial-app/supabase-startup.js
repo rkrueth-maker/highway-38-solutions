@@ -18,14 +18,19 @@ function h38SupabaseAuthEnabled(){return window.H38_SUPABASE_AUTH?.enabled===tru
 function h38AuthUserId(){return window.H38DB?.getUserScope?.()||'';}
 function h38MarkAuthoritativeStartupReady(source){
   if(!state?.snapshot?.user||!state?.snapshot?.business)return false;
-  document.documentElement.dataset.h38AuthoritativeStartup='ready';
-  document.documentElement.dataset.h38AuthoritativeStartupSource=String(source||'snapshot');
-  window.dispatchEvent(new CustomEvent('h38:authoritative-startup-ready',{detail:{source:String(source||'snapshot'),build:H38_SUPABASE_STARTUP_BUILD}}));
+  const root=document?.documentElement;
+  if(root){
+    root.dataset.h38AuthoritativeStartup='ready';
+    root.dataset.h38AuthoritativeStartupSource=String(source||'snapshot');
+  }
+  window.dispatchEvent?.(new CustomEvent('h38:authoritative-startup-ready',{detail:{source:String(source||'snapshot'),build:H38_SUPABASE_STARTUP_BUILD}}));
   return true;
 }
 function h38ClearAuthoritativeStartupReady(){
-  delete document.documentElement.dataset.h38AuthoritativeStartup;
-  delete document.documentElement.dataset.h38AuthoritativeStartupSource;
+  const root=document?.documentElement;
+  if(!root)return;
+  delete root.dataset.h38AuthoritativeStartup;
+  delete root.dataset.h38AuthoritativeStartupSource;
 }
 function h38ScopedBusinessStorageKey(){const userId=h38AuthUserId();return userId?`h38-selected-business:${userId}`:'';}
 function h38RegisterOfficeServiceWorker(){
