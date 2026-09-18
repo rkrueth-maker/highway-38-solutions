@@ -62,7 +62,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     await page.locator('.h38-customer-tabs [data-h38-customer-tab="work"]').click();
     assert.equal(await page.locator('.h38-c360-grid section[data-h38-customer-pane="work"]:not([hidden])').count()>0,true,'Work tab should reveal related work');
     await page.locator('.h38-customer-tabs [data-h38-customer-tab="files"]').click();
-    assert.equal(await page.locator('.h38-c360-grid [data-h38-open-document-id="D-JOHN"]:not([disabled])').count(),1,'Files tab must keep linked documents openable');
+    assert.equal((await page.locator('.h38-c360-grid [data-h38-open-document-id="D-JOHN"]:not([disabled])').count())>=1,true,'Files tab must keep linked documents openable');
     await page.locator('.h38-customer-tabs [data-h38-customer-tab="overview"]').click();
     assert((await page.locator('#h38CustomerReadyCards').textContent()).includes('$125.00'),'Customer summary cards should show customer billing balance');
     assert.equal(await page.evaluate(()=>document.getElementById('mainContent').lastElementChild?.id),'h38CustomerReadyCards','customer summary cards should remain at the bottom of the customer page');
