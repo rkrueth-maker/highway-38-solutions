@@ -1,8 +1,8 @@
 (function(){
 'use strict';
-const BUILD='20260915-phone-first-office-3';
+const BUILD='20260917-phone-first-office-4';
 const MOBILE='(max-width: 760px)';
-let timer=0,observer=null;
+let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state=()=>window.state||{};
@@ -96,8 +96,22 @@ function ensureSiteStepper(){
 function cleanupDesktop(){
   if(mobile())return;document.body.classList.remove('h38-phone-first-office');for(const id of ['h38PhoneCreateButton','h38PhoneToday','h38PhoneCustomerFinder','h38PhoneCustomerTools','h38SiteStepper','h38PhoneCreateDialog'])document.getElementById(id)?.remove();const main=document.getElementById('mainContent');main?.classList.remove('h38-phone-simplified');main?.removeAttribute('data-h38-phone-details');main?.querySelectorAll('[data-h38-phone-secondary]').forEach(n=>n.removeAttribute('data-h38-phone-secondary'));
 }
-function reconcile(){clearTimeout(timer);timer=setTimeout(()=>{if(!mobile()){cleanupDesktop();return;}if(!signedIn())return;ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();},35);}
-window.addEventListener?.('h38:office-page-rendered',reconcile);window.addEventListener?.('h38:business-snapshot-updated',reconcile);window.addEventListener?.('pageshow',reconcile);window.addEventListener?.('resize',reconcile);window.visualViewport?.addEventListener?.('resize',reconcile);
+function signalStartupReady(){
+  if(!mobile()||!signedIn()||fieldOpen())return false;
+  if(!document.getElementById('h38PhoneCreateButton'))return false;
+  if(state().page==='today'&&!document.getElementById('h38PhoneToday'))return false;
+  document.documentElement.dataset.h38PhoneFirstReady='ready';
+  window.dispatchEvent(new CustomEvent('h38:phone-first-ready',{detail:{build:BUILD,page:String(state().page||'')}}));
+  return true;
+}
+function runReconcile(){
+  scheduled=false;
+  if(!mobile()){cleanupDesktop();delete document.documentElement.dataset.h38PhoneFirstReady;return;}
+  if(!signedIn()){delete document.documentElement.dataset.h38PhoneFirstReady;return;}
+  ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();signalStartupReady();
+}
+function reconcile(){if(scheduled)return;scheduled=true;queueMicrotask(()=>requestAnimationFrame(runReconcile));}
+window.addEventListener?.('h38:office-page-rendered',reconcile);window.addEventListener?.('h38:business-snapshot-updated',reconcile);window.addEventListener?.('h38:authoritative-startup-ready',reconcile);window.addEventListener?.('pageshow',reconcile);window.addEventListener?.('resize',reconcile);window.visualViewport?.addEventListener?.('resize',reconcile);
 observer=new MutationObserver(ms=>{if(ms.some(m=>m.type==='childList'&&(m.target.id==='mainContent'||m.target.closest?.('#mainContent,#h38FieldVisitApp')||Array.from(m.addedNodes||[]).some(n=>n.nodeType===1&&(n.id==='h38FieldVisitApp'||n.querySelector?.('#h38FieldVisitApp'))))))reconcile();});observer.observe(document.documentElement,{subtree:true,childList:true});queueMicrotask(reconcile);
-window.H38_PHONE_FIRST_OFFICE=Object.freeze({enabled:true,build:BUILD,navigationDelegatedToMobileAuthority:true,customerFirst:true,schedulePrimary:true,jobsInMore:true,floatingCreate:true,toastClearsFloatingCreate:true,groupedMoreDelegated:true,simplifiedToday:true,customerFinder:true,customerQuickActions:true,siteVisitStepper:true,desktopUnchanged:true,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile});
+window.H38_PHONE_FIRST_OFFICE=Object.freeze({enabled:true,build:BUILD,navigationDelegatedToMobileAuthority:true,customerFirst:true,schedulePrimary:true,jobsInMore:true,floatingCreate:true,toastClearsFloatingCreate:true,groupedMoreDelegated:true,simplifiedToday:true,customerFinder:true,customerQuickActions:true,siteVisitStepper:true,desktopUnchanged:true,eventDrivenStartup:true,noStartupTimer:true,startupReadyMarker:true,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile});
 })();
