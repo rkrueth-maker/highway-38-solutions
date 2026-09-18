@@ -6,7 +6,7 @@ NATIVE = (ROOT / "commercial-app" / "mobile-scroll-native-authority.js").read_te
 
 
 def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
-    assert "20260915-phone-first-nav-1" in MOBILE
+    assert "20260918-one-shell-role-nav-1" in MOBILE
     assert "officeExplicitMainScroller:true" in MOBILE
     assert "officeFixedViewportScroller:true" in MOBILE
     assert "documentScrollDisabledByDesign:true" in MOBILE
@@ -83,13 +83,18 @@ def test_stale_field_visit_dom_does_not_keep_office_scroll_locked():
     assert "node.style.removeProperty('height')" in MOBILE
 
 
-def test_mobile_primary_navigation_has_one_last_loaded_customer_first_authority():
+def test_mobile_primary_navigation_has_one_last_loaded_role_aware_authority():
     assert "mobilePrimaryNavigationSingleAuthority:true" in MOBILE
     assert "phoneFirstPrimaryNavigation:true" in MOBILE
     assert "primaryNavigation:['Today','Customers','Schedule','Messages','More']" in MOBILE
-    assert "jobsMovedToMore:true" in MOBILE
+    assert "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']" in MOBILE
+    assert "jobsMovedToMoreForOwner:true" in MOBILE
+    assert "roleAwareOneShellNavigation:true" in MOBILE
+    assert "fieldRoleUsesOfficeShell:true" in MOBILE
+    assert "siteVisitContextualNotPrimary:true" in MOBILE
     assert "groupedMore:true" in MOBILE
-    assert "PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
+    assert "OWNER_PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
+    assert "FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
     assert "nav.classList.remove('h38-operator-scroll-nav')" in MOBILE
     assert 'aria-current="page"' in MOBILE
     assert 'aria-haspopup="dialog"' in MOBILE
