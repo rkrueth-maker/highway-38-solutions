@@ -21,7 +21,7 @@ for(const token of ['launchWalkthroughCapture','CredentialManager','GetPasswordO
 for(const token of ['nativePrintAvailable','AndroidH38Native.printCurrentPage','nativeAndroidPrint:true','popupFree:true','automaticSending:false'])must(quotePrint,token,'quote print runtime');
 for(const token of ['MediaExtractor','MediaMuxer','mime.startsWith("audio/")','MUXER_OUTPUT_MPEG_4'])must(audio,token,'native walkthrough audio derivative');
 for(const unsafe of ['AudioRecord','MediaRecorder'])absent(audio,unsafe,'native walkthrough audio derivative');
-for(const token of ['RoomCaptureSession.isSupported','room.walls.enumerated()','room.doors.enumerated()','room.windows.enumerated()','room.openings.enumerated()','Wall \\(index + 1) height','Door \\(index + 1) width','Window \\(index + 1) height','"verificationStatus": "DEVICE_CAPTURED"','case unsupportedDevice'])must(apple,token,'Apple LiDAR bridge');
+for(const token of ['RoomCaptureSession.isSupported','appendSurfaces(','room.walls','room.doors','room.windows','room.openings','horizontalEndpoints(','ROOMPLAN_XZ','"source": "LIDAR_ROOM"','"verificationStatus": "DEVICE_CAPTURED"','"fallback": "CAMERA_GUIDED"','case unsupportedDevice'])must(apple,token,'Apple LiDAR bridge');
 for(const token of ['nonPositiveQuantityBlocked:true','pricingMatchRequiresDescriptionAndUnit:true','function findPricedMatch','function sameUnitBasis','No $0 or mismatched-unit lines were loaded.'])must(quoteAi,token,'quote pricing guard');
 absent(quoteAi,'const indexed=researchLines[index]','quote pricing guard');
 for(const token of ['nativeSameVideoAudio:true','nativeAudioChunkRecovery:true','refreshAuthBeforeAudioSync:true'])must(voice,token,'walkthrough voice runtime');
