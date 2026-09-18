@@ -1,0 +1,62 @@
+name: H38 Scout CDN Probe
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - scout-static/**
+      - .github/workflows/scout-cdn-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Probe mutable and immutable CDN URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="rkrueth-maker/highway-38-solutions"
+          candidates=(
+            "https://cdn.jsdelivr.net/gh/$repo@agent/private-reseller-scout/scout-static"
+            "https://cdn.jsdelivr.net/gh/$repo@agent%2Fprivate-reseller-scout/scout-static"
+            "https://cdn.jsdelivr.net/gh/$repo@$GITHUB_SHA/scout-static"
+          )
+          mkdir -p artifacts/scout-cdn-probe
+          : > artifacts/scout-cdn-probe/results.txt
+          passed=""
+          for base in "${candidates[@]}"; do
+            echo "PROBE $base" | tee -a artifacts/scout-cdn-probe/results.txt
+            code="$(curl -L -sS -o /tmp/h38-index.html -D /tmp/h38-headers.txt -w '%{http_code}' "$base/index.html" || true)"
+            ctype="$(awk 'BEGIN{IGNORECASE=1}/^content-type:/{v=$0}END{sub(/^[^:]*:[[:space:]]*/,"",v);gsub(//,"",v);print v}' /tmp/h38-headers.txt)"
+            echo "HTTP $code" | tee -a artifacts/scout-cdn-probe/results.txt
+            echo "CONTENT_TYPE $ctype" | tee -a artifacts/scout-cdn-probe/results.txt
+            if [ "$code" = "200" ] && echo "$ctype" | grep -Eiq '^text/html' && grep -Eiq '<!doctype html|<html' /tmp/h38-index.html && grep -Fq 'id="signin"' /tmp/h38-index.html; then
+              passed="$base"
+              echo "PASS $base" | tee -a artifacts/scout-cdn-probe/results.txt
+              break
+            fi
+          done
+          test -n "$passed"
+          printf '%s\n' "$passed" | tee artifacts/scout-cdn-probe/BASE_URL.txt
+          for file in index.html penny.html resale.html coupon.html maintenance.html; do
+            code="$(curl -L -sS -o "/tmp/$file" -D /tmp/h38-page-headers.txt -w '%{http_code}' "$passed/$file")"
+            ctype="$(awk 'BEGIN{IGNORECASE=1}/^content-type:/{v=$0}END{sub(/^[^:]*:[[:space:]]*/,"",v);gsub(//,"",v);print v}' /tmp/h38-page-headers.txt)"
+            test "$code" = "200"
+            echo "$ctype" | grep -Eiq '^text/html'
+            grep -Eiq '<!doctype html|<html' "/tmp/$file"
+          done
+
+      - name: Upload CDN probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-cdn-probe
+          path: artifacts/scout-cdn-probe/**
+          if-no-files-found: error
+          retention-days: 30
