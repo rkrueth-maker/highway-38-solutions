@@ -39,7 +39,19 @@ async function savedMatches(admin:any,items:any[]){
   return out.filter((x:any)=>{const k=`${norm(x.item_name)}|${x.canonical_key}`;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,100);
 }
 
-Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const auth=req.headers.get('Authorization')||'',token=auth.replace(/^Bearer\s+/i,'');if(!token)return json({error:'AUTH_REQUIRED'},401);const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}});const {data:{user},error:uerr}=await sb.auth.getUser(token);if(uerr||!user)return json({error:'AUTH_REQUIRED'},401);const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',user.id).eq('product_key','coupon').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'coupon'},403);const body=await req.json().catch(()=>({}));const action=String(body.action||'optimize');
+async function authenticatedUserId(sb:any,token:string){
+  try{
+    const claims=await sb.auth.getClaims(token),sub=String(claims?.data?.claims?.sub||'').trim();
+    if(!claims?.error&&sub)return sub;
+  }catch{}
+  for(let attempt=0;attempt<2;attempt++){
+    try{const {data:{user},error}=await sb.auth.getUser(token);if(!error&&user?.id)return String(user.id)}catch{}
+    if(attempt===0)await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  return '';
+}
+
+Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const auth=req.headers.get('Authorization')||'',token=auth.replace(/^Bearer\s+/i,'');if(!token)return json({error:'AUTH_REQUIRED'},401);const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}}),userId=await authenticatedUserId(sb,token);if(!userId)return json({error:'AUTH_REQUIRED'},401);const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',userId).eq('product_key','coupon').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'coupon'},403);const body=await req.json().catch(()=>({}));const action=String(body.action||'optimize');
 if(action==='matches'){const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),items=Array.isArray(body.items)?body.items:[];const refresh=await refreshPublic(url,service,items);const matches=await savedMatches(admin,items);return json({ok:true,matches,count:matches.length,source:'h38_coupon_public_plus_saved_v2',refresh,warning:'Retailer-current public results are refreshed on demand for supported staple categories. Unless explicitly marked local-store verified, price, stock and coupon eligibility still require local verification.'});}
 if(action==='optimize'){const items=Array.isArray(body.items)?body.items:[],prices=Array.isArray(body.prices)?body.prices:[];const best=optimize(items,prices,Number(body.max_stores||2),Number(body.travel_cost_per_mile||0.25));return json({ok:true,best,mode:body.mode||'practical'})}
 if(action==='stack'){const p=body.price||{};return json({ok:true,stack:{shelf:Number(p.shelf_price||0),sale:Number(p.sale_discount||0),store_coupon:Number(p.store_coupon||0),manufacturer_coupon:Number(p.manufacturer_coupon||0),rebate:Number(p.rebate||0),loyalty:Number(p.loyalty_value||0),effective:Number(eff(p).toFixed(2)),confidence:p.confidence||'medium'}})}
