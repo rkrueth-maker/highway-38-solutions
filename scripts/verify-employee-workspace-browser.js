@@ -186,7 +186,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     await fieldPhone.evaluate(()=>{window.state.snapshot.documents=[
       {'Document ID':'DOC-1','Job ID':'JOB-1','Task ID':'TASK-1','File Name':'before.jpg','Mime Type':'image/jpeg','Storage Path':'B-1/jobs/JOB-1/before.jpg'},
       {'Document ID':'DOC-2','Job ID':'JOB-1','Task ID':'TASK-1','File Name':'completion.jpg','Mime Type':'image/jpeg','Storage Path':'B-1/jobs/JOB-1/completion.jpg'}
-    ];window.state.snapshot.checklists=[{'Checklist ID':'CHECK-1','Job ID':'JOB-1','Task ID':'TASK-1','Checklist Name':'Completion checklist','Status':'Complete'}];window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));});
+    ];window.state.snapshot.checklists=[{'Checklist ID':'CHECK-1','Job ID':'JOB-1','Task ID':'TASK-1','Checklist Name':'Completion checklist','Status':'Complete'}];window.state.snapshot.jobNotes.push({'Job Note ID':'NOTE-1','Job ID':'JOB-1','Task ID':'TASK-1','Customer ID':'CUS-1','Note Type':'Completion Note','Body':'Installation complete and cabinet verified level.','Status':'Recorded'});window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));});
     await fieldPhone.waitForTimeout(80);
     await fieldPhone.locator('[data-h38-job-tab="files"]').click();
     assert(await fieldPhone.locator('[data-h38-open-document-id="DOC-1"]').count()===1,'Job file list must expose the canonical private-file opener.');
