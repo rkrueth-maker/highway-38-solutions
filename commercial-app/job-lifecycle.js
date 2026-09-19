@@ -477,7 +477,7 @@ function renderSearch(query){
   node.querySelectorAll('[data-search-result]').forEach(button=>button.onclick=()=>{
     const item=results[Number(button.dataset.searchResult)];
     if(item?.collection==='jobs'){selectedJob=jobId(item.row);searchDialog.close();window.openPage?.('work');return;}
-    const pageMap={customers:'customers',requests:'work',tasks:'work',scheduleEvents:'schedule',quotes:'quotes',siteCaptureSessions:'field',siteMeasurements:'measure',checklists:'work',changeOrders:'work',dailyLogs:'field',timeEntries:'field',expenses:'money',mileageEntries:'money',invoices:'money',payments:'money',documents:'documents',portalMessages:'messages',materialRequests:'inventory',maintenance:'fleet',recurringPlans:'work',followUps:'today'};
+    const pageMap={customers:'customers',properties:'customers',requests:'work',jobs:'work',tasks:'work',scheduleEvents:'schedule',quotes:'quotes',siteCaptureSessions:'field',siteMeasurements:'measure',checklists:'work',changeOrders:'work',dailyLogs:'field',timeEntries:'field',expenses:'money',mileageEntries:'money',invoices:'money',payments:'money',documents:'documents',portalMessages:'messages',materialRequests:'inventory',assets:'fleet',maintenance:'fleet',employees:'people',users:'people',recurringPlans:'work',followUps:'today'};
     searchDialog.close();window.openPage?.(pageMap[item?.collection]||'today');
   });
 }
