@@ -60,9 +60,11 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
       rpc:async(name,args)=>{
         window.__calls.push({type:'rpc',name,args});
         if(name==='business_office_employee_workspace')return {data:structuredClone(window.__workspace),error:null};
-        if(name==='business_office_clock_in')return {data:{'Time Entry ID':'TIME-1','Task ID':args.p_task_id||'','Job ID':args.p_job_id||''},error:null};
-        if(name==='business_office_clock_out')return {data:{Status:'Recorded'},error:null};
+        if(name==='business_office_clock_in')return {data:{'Time Entry ID':'TIME-1','Task ID':args.p_task_id||'','Job ID':args.p_job_id||'','Start Time':new Date().toISOString(),'End Time':'','Break Minutes':0,'Status':'Clocked In'},error:null};
+        if(name==='business_office_clock_out'){const current=window.state.snapshot?.timeEntries?.find(row=>!row['End Time'])||{};return {data:{...current,'End Time':new Date().toISOString(),Status:'Recorded'},error:null};}
         if(name==='business_office_employee_update_task'){const task=window.__workspace.tasks[0];task.Status=args.p_status;return {data:structuredClone(task),error:null};}
+        if(name==='business_office_employee_time_transition'){const current=window.state.snapshot?.timeEntries?.find(row=>!row['End Time'])||{};const status=args.p_action==='RESUME'?'Clocked In':args.p_action==='BREAK'?'Break':'Paused';return {data:{...current,Status:status,'Paused Time':args.p_action==='RESUME'?'':new Date().toISOString()},error:null};}
+        if(name==='business_office_employee_report_issue')return {data:{'Job Note ID':'ISSUE-1','Job ID':args.p_job_id,'Task ID':args.p_task_id||'','Customer ID':'CUS-1','Note Type':'Field Issue','Issue Category':args.p_category,Body:args.p_note||'',Status:'Open — Needs Attention','Needs Attention':true},error:null};
         if(name==='business_office_team_directory')return {data:{employees:[{authUserId:'U-2',email:'alice@example.com',displayName:'Alice',jobTitle:'Installer',status:'active'}]},error:null};
         if(name==='business_office_invite_employee')return {data:{email:args.p_email,displayName:args.p_display_name||args.p_email},error:null};
         return {data:{},error:null};
@@ -139,19 +141,61 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     for(const key of ['today','work','schedule','messages','more'])assert(await fieldPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Field Staff one-shell navigation missing ${key}.`);
     assert(await fieldPhone.locator('#mainNav [data-h38-primary="field"]').count()===0,'Site Visit must not be a permanent primary field tab.');
     const myDayText=await fieldPhone.locator('#h38FieldMyDay').innerText();
-    for(const label of ['CURRENT WORK','NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY','Kitchen project','Install cabinet','Instructions:','Use rear entrance','Before Photo','Completion Photo','Checklist','Notes'])assert(myDayText.includes(label),`My Day missing ${label}.`);
+    for(const label of ['NEXT JOB','NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY','Kitchen project','Install cabinet','Before Photo','Completion Photo','Checklist','Notes'])assert(myDayText.includes(label),`My Day missing ${label}.`);
+    assert(!myDayText.includes('CURRENT JOB'),'An unstarted assignment must not be described as current work.');
+    assert((myDayText.match(/Kitchen project/g)||[]).length===1,'The same assignment must not appear again under Remaining Today.');
     await fieldPhone.locator('#mainNav [data-h38-primary="work"]').click();
     await fieldPhone.waitForFunction(()=>window.state?.page==='work');
     await fieldPhone.waitForTimeout(80);
     assert(await fieldPhone.locator('#h38FieldJobHub').count()===1,'Jobs must become the Field Staff hub without changing shells.');
     const jobText=await fieldPhone.locator('#h38FieldJobHub').innerText();
-    for(const label of ['CURRENT JOB','NEXT STEP','Overview','Work','Proof','Files','Activity'])assert(jobText.includes(label),`Field job hub missing ${label}.`);
-    assert(await fieldPhone.locator('[data-h38-job-primary="start"]').count()===1,'Assigned field job must expose one Start Job primary action when not clocked in.');
+    for(const label of ['JOB','NEXT','Overview','Work','Proof','Files','Activity','On My Way','+ Capture'])assert(jobText.includes(label),`Field job hub missing ${label}.`);
+
+    assert(await fieldPhone.locator('[data-h38-job-primary="on-my-way"]').count()===1,'Scheduled work must begin with On My Way.');
+    await fieldPhone.locator('[data-h38-job-primary="on-my-way"]').click();
+    await fieldPhone.waitForFunction(()=>window.state.snapshot.tasks[0].Status==='On My Way');
+    await fieldPhone.waitForSelector('[data-h38-job-primary="arrive"]');
+    await fieldPhone.locator('[data-h38-job-primary="arrive"]').click();
+    await fieldPhone.waitForFunction(()=>window.state.snapshot.tasks[0].Status==='Arrived');
+    await fieldPhone.waitForSelector('[data-h38-job-primary="start"]');
     await fieldPhone.locator('[data-h38-job-primary="start"]').click();
     await fieldPhone.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_clock_in'&&call.args?.p_job_id==='JOB-1'&&call.args?.p_task_id==='TASK-1'));
+    await fieldPhone.waitForFunction(()=>window.state.snapshot.tasks[0].Status==='Started'&&window.state.snapshot.timeEntries.some(row=>!row['End Time']));
+
+    await fieldPhone.locator('[data-h38-job-tab="work"]').click();
+    for(const selector of ['[data-h38-job-pause]','[data-h38-job-break]','[data-h38-job-report]','[data-h38-job-capture]'])assert(await fieldPhone.locator(selector).count()>=1,`Working job missing ${selector}.`);
+    await fieldPhone.locator('[data-h38-job-pause]').click();
+    await fieldPhone.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_employee_time_transition'&&call.args?.p_action==='PAUSE'));
+    await fieldPhone.waitForSelector('[data-h38-job-resume]');
+    await fieldPhone.locator('[data-h38-job-resume]').click();
+    await fieldPhone.waitForFunction(()=>window.__calls.some(call=>call.name==='business_office_employee_time_transition'&&call.args?.p_action==='RESUME'));
+
+    await fieldPhone.locator('[data-h38-job-tab="work"]').click();
+    await fieldPhone.locator('[data-h38-job-report]').click();
+    await fieldPhone.locator('#h38FieldIssueDialog select[name="category"]').selectOption({label:'Need material'});
+    await fieldPhone.locator('#h38FieldIssueDialog textarea[name="note"]').fill('Need one replacement bracket.');
+    await fieldPhone.locator('#h38FieldIssueDialog button[type="submit"]').click();
+    await fieldPhone.waitForFunction(()=>window.state.snapshot.jobNotes.some(row=>row['Note Type']==='Field Issue'&&row['Issue Category']==='Need material'));
+    const issueCall=await fieldPhone.evaluate(()=>window.__calls.find(call=>call.name==='business_office_employee_report_issue'));
+    assert(issueCall?.args?.p_category==='Need material','Report Issue must persist the bounded internal category.');
+
     await fieldPhone.locator('[data-h38-job-tab="proof"]').click();
     const proofText=await fieldPhone.locator('[data-h38-job-pane="proof"]').innerText();
-    for(const label of ['Before Photo','Completion Photo','Checklist','Notes','Start / Continue Site Visit'])assert(proofText.includes(label),`Field job Proof missing ${label}.`);
+    for(const label of ['Before Photo','Completion Photo','Checklist','Notes','Take Photo','Open Checklist','Add Note','Start / Continue Site Visit'])assert(proofText.includes(label),`Field job Proof missing ${label}.`);
+
+    await fieldPhone.evaluate(()=>{window.state.snapshot.documents=[
+      {'Document ID':'DOC-1','Job ID':'JOB-1','Task ID':'TASK-1','File Name':'before.jpg','Mime Type':'image/jpeg','Storage Path':'B-1/jobs/JOB-1/before.jpg'},
+      {'Document ID':'DOC-2','Job ID':'JOB-1','Task ID':'TASK-1','File Name':'completion.jpg','Mime Type':'image/jpeg','Storage Path':'B-1/jobs/JOB-1/completion.jpg'}
+    ];window.state.snapshot.checklists=[{'Checklist ID':'CHECK-1','Job ID':'JOB-1','Task ID':'TASK-1','Checklist Name':'Completion checklist','Status':'Complete'}];window.state.snapshot.jobNotes.push({'Job Note ID':'NOTE-1','Job ID':'JOB-1','Task ID':'TASK-1','Customer ID':'CUS-1','Note Type':'Completion Note','Body':'Installation complete and cabinet verified level.','Status':'Recorded'});window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated'));});
+    await fieldPhone.waitForTimeout(80);
+    await fieldPhone.locator('[data-h38-job-tab="files"]').click();
+    assert(await fieldPhone.locator('[data-h38-open-document-id="DOC-1"]').count()===1,'Job file list must expose the canonical private-file opener.');
+
+    await fieldPhone.locator('[data-h38-job-tab="overview"]').click();
+    await fieldPhone.locator('[data-h38-job-primary="finish"]').click();
+    await fieldPhone.waitForSelector('#h38FieldCloseoutDialog[open]');
+    const closeout=await fieldPhone.locator('#h38FieldCloseoutDialog').innerText();
+    assert(closeout.includes('Review closeout')&&closeout.includes('Complete Job'),'Proof-complete work must reach the closeout review before completion.');
     await fieldPhoneContext.close();
 
     const foremanContext=await browser.newContext({viewport:{width:390,height:844}});

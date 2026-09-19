@@ -20,7 +20,7 @@ const COLLECTION_LABELS={
   customers:'Customer',properties:'Property',requests:'Request',jobs:'Job',tasks:'Task',scheduleEvents:'Schedule',
   quotes:'Quote',siteCaptureSessions:'Site Visit',siteMeasurements:'Measurement',checklists:'Checklist',
   changeOrders:'Change Order',timeEntries:'Time',dailyLogs:'Daily Log',expenses:'Expense',
-  invoices:'Invoice',payments:'Payment',documents:'Document',portalMessages:'Portal Message',
+  invoices:'Invoice',payments:'Payment',documents:'Document',jobNotes:'Field Note',portalMessages:'Portal Message',
   materialRequests:'Material Request',assets:'Equipment',maintenance:'Maintenance',mileageEntries:'Mileage',
   employees:'Employee',users:'User',recurringPlans:'Recurring Plan',followUps:'Follow-up'
 };
@@ -252,13 +252,17 @@ function attention(){
   requests.forEach(row=>items.push({kind:'REQUEST',priority:3,title:val(row,'Subject')||'New request',detail:`Unworked request · ${Math.floor(ageDays(val(row,'Updated Time','Created Time')))} day(s) old`,customerId:val(row,'Customer ID'),record:row}));
   rec('quotes').filter(row=>quotePresented(row)&&!quoteAccepted(row)&&!quoteRejected(row)&&ageDays(val(row,'Updated Time','Presented Time','Created Time'))>=3).forEach(row=>items.push({kind:'QUOTE',priority:2,title:val(row,'Project Title')||val(row,'Quote Number')||'Presented quote',detail:`Presented quote needs follow-up · ${Math.floor(ageDays(val(row,'Updated Time','Presented Time','Created Time')))} day(s)`,quoteId:quoteId(row),customerId:val(row,'Customer ID'),record:row}));
   rec('invoices').filter(row=>num(val(row,'Balance','Balance Due'))>0&&val(row,'Due Date')&&new Date(val(row,'Due Date')).getTime()<Date.now()).forEach(row=>items.push({kind:'INVOICE',priority:1,title:val(row,'Invoice Number')||'Invoice',detail:`Overdue balance ${moneyValue(val(row,'Balance','Balance Due'))}`,invoiceId:invoiceId(row),customerId:val(row,'Customer ID'),record:row}));
+  rec('jobNotes').filter(row=>/FIELD ISSUE/.test(upper(val(row,'Note Type','noteType')))&&!/RESOLVED|CLOSED|COMPLETE/.test(upper(val(row,'Status','status')))).forEach(row=>{
+    const jid=val(row,'Job ID','jobId'),job=rec('jobs').find(item=>jobId(item)===jid),category=val(row,'Issue Category','issueCategory')||'Field issue';
+    items.push({kind:'FIELD_ISSUE',priority:/SAFETY/.test(upper(category))?0:1,title:val(job,'Project Title')||val(job,'Job Number')||'Field issue',detail:`${category} · reported from the field`,jobId:jid,customerId:val(row,'Customer ID')||customerId(job||{}),record:row});
+  });
   allLifecycle().filter(x=>x.blockers.length).forEach(x=>items.push({kind:'JOB',priority:1,title:val(x.job,'Project Title')||val(x.job,'Job Number'),detail:`${x.stageLabel}: ${x.blockers.join(' · ')}`,jobId:x.jid,customerId:customerId(x.job),record:x.job}));
   return items.sort((a,b)=>a.priority-b.priority).slice(0,50);
 }
 function searchSnapshot(query){
   const q=text(query).trim().toLowerCase();
   if(q.length<2)return [];
-  const collections=['customers','properties','requests','jobs','tasks','scheduleEvents','quotes','siteCaptureSessions','siteMeasurements','checklists','changeOrders','dailyLogs','timeEntries','expenses','mileageEntries','invoices','payments','documents','portalMessages','materialRequests','assets','maintenance','employees','users','recurringPlans','followUps'];
+  const collections=['customers','properties','requests','jobs','tasks','scheduleEvents','quotes','siteCaptureSessions','siteMeasurements','checklists','changeOrders','dailyLogs','timeEntries','expenses','mileageEntries','invoices','payments','documents','jobNotes','portalMessages','materialRequests','assets','maintenance','employees','users','recurringPlans','followUps'];
   const results=[];
   collections.forEach(collection=>{
     rec(collection).forEach(row=>{
