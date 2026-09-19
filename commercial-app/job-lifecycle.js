@@ -605,6 +605,7 @@ function start(){
   window.H38_JOB_LIFECYCLE={
     build:BUILD,stages:STAGES.map(([key,label])=>({key,label})),analyzeJob:lifecycle,all:allLifecycle,
     attention,search:searchSnapshot,openSearch,prepareFollowUp:createFollowUp,
+    selectedJobId:()=>selectedJob,selectJob:id=>{selectedJob=text(id);return selectedJob;},
     authority:{readAutomatic:true,prepareInternalDrafts:true,externalActionsRequireExplicitAuthorization:true},
     features:{nextAction:true,requiredChecklists:true,completionGates:true,changeOrders:true,jobCosting:true,followUpQueue:true,receiptCapture:true,mileage:true,portalStaging:true,recurringWork:true,globalSearch:true,assistantContext:true,startupStable:true,noLateRenderPage:true},
     automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false

@@ -1,0 +1,59 @@
+name: Verify H38 iOS LiDAR Prep
+
+on:
+  pull_request:
+    paths:
+      - 'native/h38-site-scanner/ios/**'
+      - 'native/h38-site-scanner/ios-app/**'
+      - 'commercial-app/native-office-launch-guard.js'
+      - 'commercial-app/site-scanner.js'
+      - 'scripts/verify-h38-ios-lidar-prep.js'
+      - '.github/workflows/ios-lidar-prep.yml'
+  push:
+    branches:
+      - main
+      - 'agent/ios-lidar-prep-*'
+    paths:
+      - 'native/h38-site-scanner/ios/**'
+      - 'native/h38-site-scanner/ios-app/**'
+      - 'commercial-app/native-office-launch-guard.js'
+      - 'commercial-app/site-scanner.js'
+      - 'scripts/verify-h38-ios-lidar-prep.js'
+      - '.github/workflows/ios-lidar-prep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify iOS LiDAR source contract
+        run: node scripts/verify-h38-ios-lidar-prep.js
+
+  simulator-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+      - name: Generate iOS project
+        working-directory: native/h38-site-scanner/ios-app
+        run: xcodegen generate
+      - name: Compile unsigned iOS app
+        working-directory: native/h38-site-scanner/ios-app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project H38SiteScannerIOS.xcodeproj \
+            -scheme H38SiteScannerIOS \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
