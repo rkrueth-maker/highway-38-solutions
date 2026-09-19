@@ -21,6 +21,7 @@ function ensureStyle(){
   const s=document.createElement('style');s.id='h38PhoneFirstOfficeStyle';s.textContent=`
 @media(max-width:760px){
  body.h38-phone-first-office #h38NewActionButton{display:none!important}
+ body.h38-phone-first-office #mainContent{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important}
  .h38-phone-create{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:2490;width:58px;height:58px;border-radius:50%;border:0;box-shadow:0 10px 28px rgba(11,36,56,.28);font-size:30px;font-weight:900;display:grid;place-items:center;background:var(--navy,#0b2438);color:#fff}.h38-phone-create[hidden]{display:none!important}
  body.h38-phone-first-office .toast{right:84px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 104px)!important}
  .h38-phone-create-dialog{width:min(520px,calc(100vw - 18px));max-height:82dvh;border:0;border-radius:18px;padding:0}.h38-phone-create-dialog::backdrop{background:rgba(0,0,0,.55)}
@@ -30,6 +31,7 @@ function ensureStyle(){
  .h38-phone-attention{display:grid;gap:7px}.h38-phone-attention button{width:100%;text-align:left;padding:10px 11px;min-height:54px;display:grid;gap:2px}.h38-phone-attention small{color:var(--muted,#607285)}.h38-phone-dashboard-toggle{width:100%;min-height:44px}.h38-phone-simplified:not([data-h38-phone-details='1'])>[data-h38-phone-secondary='1']{display:none!important}
  .h38-phone-customer-finder{display:grid;gap:9px;margin:0 0 10px}.h38-phone-customer-find-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.h38-phone-customer-finder input{width:100%;min-height:46px;border-radius:12px}.h38-phone-customer-results{display:grid;gap:6px}.h38-phone-customer-results button{display:grid;text-align:left;gap:2px;padding:10px 12px}.h38-phone-customer-results small{color:var(--muted,#607285)}.h38-phone-customer-tools{margin:0 0 10px}.h38-phone-customer-tabs button.active{outline:2px solid currentColor}
  .h38-site-stepper{position:sticky;top:0;z-index:8;background:var(--card,#fff);border-bottom:1px solid var(--line,#d6e0e8);padding:8px 10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.h38-site-stepper span{font-size:.68rem;font-weight:800;text-align:center;padding:7px 3px;border-radius:999px;background:#edf1f4;color:#607285}.h38-site-stepper span.done{background:#e2f2e7;color:#1d6631}.h38-site-stepper span.current{background:var(--navy,#0b2438);color:#fff}
+ @media(max-width:340px){.h38-phone-create{right:10px;width:54px;height:54px}.h38-phone-create-grid{grid-template-columns:1fr}.h38-phone-create-dialog{width:calc(100vw - 10px)}#mainNav.h38-five-primary-nav button span:last-child{font-size:.64rem!important;letter-spacing:-.01em}}
 }`;(document.head||document.documentElement).appendChild(s);
 }
 function routeCreate(action){
