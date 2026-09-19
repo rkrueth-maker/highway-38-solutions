@@ -130,6 +130,12 @@ jobs:
           mkdir -p "$report"
           npm install --no-save firebase-tools@13.35.1 playwright@1.55.0
 
+          node scripts/build-scout-static-web.cjs scout-static
+          for file in index.html penny.html resale.html coupon.html maintenance.html; do
+            test -s "scout-static/$file"
+            grep -Eiq '<!doctype html|<html' "scout-static/$file"
+          done
+
           suffix="$(printf '%s' "$FIREBASE_PROJECT_ID" | sha256sum | cut -c1-10)"
           site_id="h38-deals-$suffix"
           host_url="https://$site_id.web.app"
