@@ -83,6 +83,8 @@ requireText(customerReady,'h38-today-primary','Today has one dominant Next Actio
 requireText(customerReady,'h38-customer-tabs','Customer 360 exposes task-oriented tabs');
 requireText(officePolishCss,'button[data-h38-primary="today"]','visible phone navigation uses the application-owned SVG icon family');
 requireText(officePolishCss,'button[data-h38-primary="work"]','field Jobs navigation uses the same application-owned SVG icon family');
+requireText(officePolishCss,'data-h38-owner-quick="time"','Clock In / Out quick action uses the SVG icon family');
+requireText(officePolishCss,'data-h38-owner-quick="operations"','Operations quick action uses the SVG icon family');
 requireText(nativeScroll,"const PRIMARY_KEYS=['today','customers','schedule','messages']",'physical mobile authority uses customer-first order');
 requireText(nativeScroll,'jobsMovedToMore:true','physical authority recognizes Jobs moved to More');
 requireText(phoneFirst,'navigationDelegatedToMobileAuthority:true','phone polish does not create a second navigation authority');
