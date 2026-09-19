@@ -116,7 +116,7 @@ expect(!mobileField.includes("state.shell='field'"),'Compatibility layer must no
 for(const needle of [
   "const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']]",
   'roleAwareOneShellNavigation:true','fieldRoleUsesOfficeShell:true','siteVisitContextualNotPrimary:true',
-  "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']"
+  "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",'data-h38-field-status'
 ])includes(mobileStability,needle,`Final mobile navigation missing ${needle}`);
 
 expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated, navigation-generation, or physical-startup format.');
