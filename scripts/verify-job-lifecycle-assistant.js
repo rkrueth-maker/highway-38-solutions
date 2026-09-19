@@ -61,10 +61,15 @@ must(life.includes("document.documentElement.dataset.h38JobLifecycleReady='ready
 must(life.includes("'h38:job-lifecycle-ready'"),'Lifecycle startup readiness event missing.');
 must(!life.includes("if(app()?.snapshot&&typeof window.renderPage==='function')window.renderPage();"),'Lifecycle startup must not call renderPage after late load.');
 must(life.includes("node.dataset.h38PhoneSecondary='1'"),'Mobile Today lifecycle card must be secondary before paint.');
-must(loader.includes('job-lifecycle.js?build=20260917-lifecycle-startup-stable-1'),'Supported Office does not load startup-stable lifecycle JS.');
+for(const marker of ["properties:'Property'","assets:'Equipment'","employees:'Employee'","users:'User'","'properties','requests'","'assets','maintenance','employees','users'","properties:'customers'","assets:'fleet'","employees:'people'","users:'people'"]){
+  must(life.includes(marker),`Expanded Office Search contract missing: ${marker}`);
+}
+must(life.includes('Customers, properties, jobs, quotes, invoices, files, equipment and people.'),'Office Search scope copy is incomplete.');
+must(life.includes('Search name, address, job, quote, invoice, file, equipment…'),'Office Search placeholder does not advertise context search.');
+must(loader.includes('job-lifecycle.js?build=20260919-search-scope-polish-1'),'Supported Office does not load expanded-search lifecycle JS.');
 must(loader.includes('job-lifecycle.css?build=20260807-2225'),'Supported Office does not load lifecycle CSS.');
 must(loader.includes('office-polish.js?build=20260807-2306'),'Supported Office does not load polish JS.');
-must(loader.includes('office-polish.css?build=20260918-business-office-workflow-polish-1'),'Supported Office does not load polish CSS.');
+must(loader.includes('office-polish.css?build=20260919-business-office-visual-polish-2'),'Supported Office does not load current visual polish CSS.');
 must(sw.includes("'./job-lifecycle.js'"),'Offline shell does not cache lifecycle JS.');
 must(sw.includes("'./job-lifecycle.css'"),'Offline shell does not cache lifecycle CSS.');
 must(sw.includes("'./office-polish.js'"),'Offline shell does not cache polish JS.');
