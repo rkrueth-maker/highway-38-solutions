@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260918-business-office-workflow-polish-1';
-let installed=false,layoutObserver=null,layoutOrderQueued=false,customerTab='overview';
+let installed=false,layoutOrderQueued=false,customerTab='overview';
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const office=()=>window.state||{};
@@ -185,10 +185,10 @@ function enhanceCustomer360(){
   const property=(groups.properties||[])[0]||{},address=text(value(property,'Address','address')||value(bundle.customer,'Service Address','serviceAddress')),phone=text(value(bundle.customer,'Phone','phone','Mobile Phone','mobilePhone'));
   const hero=document.createElement('section');hero.id='h38CustomerReadyHero';hero.className='h38-customer-ready-hero card';
   hero.innerHTML=`<div class="h38-customer-ready-head"><div><span class="h38-eyebrow">CUSTOMER 360</span><h2>${esc(value(bundle.customer,'Customer Name','name')||'Customer')}</h2><p>${esc(address||'Customer history, property, work, conversations and billing in one place.')}</p></div><div class="h38-customer-context-actions">${phone?`<a class="secondary" href="tel:${esc(phone.replace(/[^\d+]/g,''))}">Call</a>`:''}<button type="button" class="secondary" data-h38-customer-action="message">Message</button>${address?`<button type="button" class="secondary" data-h38-customer-navigate="${esc(address)}">Navigate</button>`:''}</div></div><div class="h38-customer-ready-actions"><button type="button" class="primary" data-h38-customer-action="${esc(action.action)}">${esc(action.text)}</button><button type="button" class="secondary" data-h38-customer-action="site">Site visit</button></div>`;
-  const cards=document.createElement('section');cards.id='h38CustomerReadyCards';cards.className='h38-customer-ready-cards card';cards.setAttribute('aria-label','Customer summary');
-  cards.innerHTML=`<article><small>Next action</small><strong>${esc(action.text)}</strong><span>${esc(action.detail)}</span></article><article><small>Active work</small><strong>${esc(job?value(job,'Project Title','Job Number'):'No active job')}</strong><span>${esc(job?value(job,'Status','status'):'Ready for new work')}</span></article><article><small>Last site visit</small><strong>${esc(visit?value(visit,'Project Title','Site Visit ID','Capture Session ID'):'No visit yet')}</strong><span>${visit?new Date(dateValue(visit)).toLocaleDateString():'Start one when field evidence is needed'}</span></article><article><small>Recent activity</small><strong>${esc(meeting?value(meeting,'Title','Meeting Type'):'No conversation saved')}</strong><span>${meeting?new Date(dateValue(meeting)).toLocaleDateString():'Customer activity will appear here'}</span></article><article data-h38-financial-summary><small>Customer balance</small><strong>${money(balance)}</strong><span>${balance>0?'Open customer billing':'Nothing currently due'}</span></article>`;
-  if(!financial())cards.querySelector('[data-h38-financial-summary]')?.remove();
-  grid.prepend(hero);installCustomerTabs(grid);document.getElementById('mainContent')?.appendChild(cards);
+  const overview=document.createElement('div');overview.className='h38-customer-overview-strip';overview.setAttribute('aria-label','Customer overview');
+  overview.innerHTML=`<article><small>Needs attention</small><strong>${esc(action.text)}</strong><span>${esc(action.detail)}</span></article><article><small>Active work</small><strong>${esc(job?value(job,'Project Title','Job Number'):'No active job')}</strong><span>${esc(job?value(job,'Status','status'):'Ready for new work')}</span></article><article><small>Next appointment / visit</small><strong>${esc(visit?value(visit,'Project Title','Site Visit ID','Capture Session ID'):'No visit scheduled')}</strong><span>${visit?new Date(dateValue(visit)).toLocaleDateString():'Start one when field evidence is needed'}</span></article><article><small>Recent activity</small><strong>${esc(meeting?value(meeting,'Title','Meeting Type'):'No conversation saved')}</strong><span>${meeting?new Date(dateValue(meeting)).toLocaleDateString():'Customer activity will appear here'}</span></article><article data-h38-financial-summary><small>Balance</small><strong>${money(balance)}</strong><span>${balance>0?'Open customer billing':'Nothing currently due'}</span></article>`;
+  if(!financial())overview.querySelector('[data-h38-financial-summary]')?.remove();
+  hero.appendChild(overview);grid.prepend(hero);installCustomerTabs(grid);
   hero.querySelectorAll('[data-h38-customer-action]').forEach(button=>button.onclick=()=>route(button.dataset.h38CustomerAction,cid));
   hero.querySelectorAll('[data-h38-customer-navigate]').forEach(button=>button.onclick=()=>{const destination=button.dataset.h38CustomerNavigate;if(destination)window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`,'_blank','noopener');});
 }
@@ -207,29 +207,25 @@ function enhanceVisitDock(){
 }
 function enforceCustomerLayout(){
   if(office().page!=='customers')return;const main=document.getElementById('mainContent');if(!main)return;
-  const head=main.querySelector('.page-head'),customer360=main.querySelector('.h38-c360.full'),cards=document.getElementById('h38CustomerReadyCards');
+  const head=main.querySelector('.page-head'),customer360=main.querySelector('.h38-c360.full');
   if(customer360&&head&&head.nextElementSibling!==customer360)head.insertAdjacentElement('afterend',customer360);
-  if(cards&&main.lastElementChild!==cards)main.appendChild(cards);
+  document.getElementById('h38CustomerReadyCards')?.remove();
 }
 function queueCustomerLayout(){
   if(layoutOrderQueued)return;layoutOrderQueued=true;setTimeout(()=>{layoutOrderQueued=false;enforceCustomerLayout();},0);
-}
-function observeCustomerLayout(){
-  const main=document.getElementById('mainContent');if(!main||layoutObserver)return;
-  layoutObserver=new MutationObserver(queueCustomerLayout);layoutObserver.observe(main,{childList:true,subtree:true});
 }
 function polishEmptyStates(){
   const main=document.getElementById('mainContent');if(!main)return;main.querySelectorAll('.empty,.muted').forEach(node=>{const t=text(node.textContent);if(!t)return;if(/^No records\.?$/i.test(t))node.textContent='Nothing here yet. New work will appear when it is created.';if(/^No data\.?$/i.test(t))node.textContent='Nothing to show yet.';});
 }
 function wrapRenderer(name,enhancer){const current=window[name];if(typeof current!=='function'||current.__h38CustomerReadiness)return;const previous=current;const wrapped=function(){const result=previous.apply(this,arguments);setTimeout(()=>{enhancer();polishEmptyStates();enforceCustomerLayout();},0);return result;};wrapped.__h38CustomerReadiness=true;wrapped.__h38CustomerReadinessBase=previous;window[name]=wrapped;}
 function install(){
-  if(installed||!window.state||!document.getElementById('mainContent'))return false;installed=true;ensureQuickCreate();observeCustomerLayout();wrapRenderer('renderToday',enhanceToday);wrapRenderer('renderCustomers',enhanceCustomer360);
+  if(installed||!window.state||!document.getElementById('mainContent'))return false;installed=true;ensureQuickCreate();wrapRenderer('renderToday',enhanceToday);wrapRenderer('renderCustomers',enhanceCustomer360);
   const open=window.openPage;if(typeof open==='function'&&!open.__h38CustomerReadiness){const previous=open;const wrapped=function(page){const result=previous.apply(this,arguments);setTimeout(()=>{ensureQuickCreate();if(page==='today')enhanceToday();if(page==='customers')enhanceCustomer360();polishEmptyStates();enforceCustomerLayout();},40);return result;};wrapped.__h38CustomerReadiness=true;wrapped.__h38CustomerReadinessBase=previous;window.openPage=wrapped;}
   window.addEventListener('h38:auth-cleared',clearSignedOutPolish);
   window.addEventListener('h38:business-snapshot-updated',()=>{if(office().page==='today')enhanceToday();if(office().page==='customers'){enhanceCustomer360();queueCustomerLayout();}});
   setInterval(()=>{ensureQuickCreate();enhanceVisitDock();},900);
   if(office().page==='today')setTimeout(enhanceToday,0);if(office().page==='customers')setTimeout(enhanceCustomer360,0);
-  window.H38_CUSTOMER_READINESS_POLISH=Object.freeze({build:BUILD,customerFirst:true,universalNew:true,todayCommandCenter:true,customerSummary:true,customer360PinnedTop:true,customerCardsPinnedBottom:true,siteVisitSummary:true,assistantPromptExamples:true,ownerControlPreserved:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
+  window.H38_CUSTOMER_READINESS_POLISH=Object.freeze({build:BUILD,customerFirst:true,universalNew:true,todayCommandCenter:true,customerSummary:true,customer360PinnedTop:true,customer360Only:true,legacyCustomerCardsRemoved:true,siteVisitSummary:true,assistantPromptExamples:true,ownerControlPreserved:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
   window.dispatchEvent(new CustomEvent('h38:customer-readiness-polish-ready',{detail:{build:BUILD}}));return true;
 }
 let attempts=0;const timer=setInterval(()=>{if(install()||++attempts>80)clearInterval(timer);},100);install();
