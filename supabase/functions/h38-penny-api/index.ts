@@ -82,13 +82,25 @@ function storesFrom(data){if(Array.isArray(data))return data;if(data&&Array.isAr
 function storeIdentity(s){const direct=txt(s?.store_key);if(direct)return direct;const retailer=retailerKey(s?.retailer||s?.store_name),address=txt(s?.store_address||s?.address).toLowerCase().replace(/\s+/g,' '),lat=txt(s?.lat??s?.latitude),lon=txt(s?.lon??s?.longitude);return `${retailer}|${address}|${lat}|${lon}`}
 function mergeStores(...sets){const seen=new Set(),out=[];for(const set of sets)for(const s of set){const k=storeIdentity(s);if(k&&!seen.has(k)){seen.add(k);out.push(s)}}return out}
 
+async function authenticatedUserId(sb,token){
+  try{
+    const claims=await sb.auth.getClaims(token),sub=String(claims?.data?.claims?.sub||'').trim();
+    if(!claims?.error&&sub)return sub;
+  }catch{}
+  for(let attempt=0;attempt<2;attempt++){
+    try{const {data:{user},error}=await sb.auth.getUser(token);if(!error&&user?.id)return String(user.id)}catch{}
+    if(attempt===0)await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  return '';
+}
+
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   try{
     const auth=req.headers.get('Authorization')||'',token=auth.replace(/^Bearer\s+/i,'');if(!token)return json({error:'AUTH_REQUIRED'},401);
     const url=Deno.env.get('SUPABASE_URL'),anon=Deno.env.get('SUPABASE_ANON_KEY');
-    const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}});const {data:{user},error:uerr}=await sb.auth.getUser(token);if(uerr||!user)return json({error:'AUTH_REQUIRED'},401);const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';const admin=service?createClient(url,service):sb;
-    const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',user.id).eq('product_key','penny').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'penny'},403);
+    const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}}),userId=await authenticatedUserId(sb,token);if(!userId)return json({error:'AUTH_REQUIRED'},401);const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';const admin=service?createClient(url,service):sb;
+    const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',userId).eq('product_key','penny').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'penny'},403);
     const body=await req.json().catch(()=>({})),action=String(body.action||'hunt_fast'),input={...(body.payload||{})};
 
     if(action==='stores'){
