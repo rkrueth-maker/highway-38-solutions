@@ -34,7 +34,7 @@ for(const needle of [
   'business_office_employee_time_transition','business_office_employee_report_issue',
   "'On My Way'","'Arrived'","'Paused'","'Break Minutes'","'Open — Needs Attention'",
   "'employee_time_transition'","'employee_field_issue_reported'","'customerMessageSent',false",
-  "collection='timeEntries'","collection,'jobNotes'"
+  "collection='timeEntries'","p_business_id,'jobNotes',v_key"
 ])includes(fieldExecution,needle,`Field execution migration missing ${needle}`);
 includes(fieldExecution,"v_action not in ('PAUSE','BREAK','RESUME')",'Field time transitions must remain bounded.');
 includes(fieldExecution,"v_category not in (",'Field issue categories must remain bounded.');
