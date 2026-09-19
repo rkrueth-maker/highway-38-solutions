@@ -29,11 +29,12 @@ const supabaseStartup=read('commercial-app/supabase-startup.js');
 const lifecycle=read('commercial-app/job-lifecycle.js');
 const referenceSamples=read('commercial-app/office-reference-samples.js');
 const runtimeRowId=read('commercial-app/runtime-rowid-fix.js');
+const ownerQuickActions=read('commercial-app/owner-mobile-quick-actions.js');
 const flowTightening=read('commercial-app/flow-tightening.js');
 const customerReady=read('commercial-app/customer-readiness-polish.js');
 const officePolishCss=read('commercial-app/office-polish.css');
 
-for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['native office launch',nativeOfficeLaunch],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker],['supabase startup',supabaseStartup],['job lifecycle',lifecycle],['reference samples',referenceSamples],['runtime row id',runtimeRowId]]){
+for(const [name,source] of [['delete reset',deleteFix],['native launch',nativeLaunch],['top action',topAction],['job flow',jobFlow],['mobile polish',polish],['native scroll authority',nativeScroll],['mobile stability',stability],['phone first',phoneFirst],['runtime globals',runtimeGlobals],['native office launch',nativeOfficeLaunch],['owner flow',ownerFlow],['owner customer workflow',ownerCustomer],['startup/site visit stability',startupVisit],['owner phone visual',phoneVisual],['service worker',serviceWorker],['supabase startup',supabaseStartup],['job lifecycle',lifecycle],['reference samples',referenceSamples],['runtime row id',runtimeRowId],['owner quick actions',ownerQuickActions]]){
   try{new Function(source);pass(`${name} parses`);}catch(error){fail(`${name} parses`,error.message);}
 }
 
@@ -71,6 +72,7 @@ requireText(stability,'roleAwareOneShellNavigation:true','final mobile navigatio
 requireText(stability,'siteVisitContextualNotPrimary:true','Site Visit is contextual rather than a permanent field nav tab');
 requireText(stability,'groupedMore:true','canonical More is grouped');
 requireText(stability,'data-h38-more-search','More promotes the existing Office Search');
+requireText(stability,'Customers, properties, jobs, quotes, invoices, files, equipment and people','More describes the expanded contextual Office Search scope');
 requireText(stability,"else if(current==='schedule')polishSchedule(main)",'phone Schedule is agenda-first');
 requireText(stability,'data-h38-agenda-actions','phone Schedule exposes contextual field actions from existing records');
 requireText(stability,"message.textContent='Message'",'phone Schedule exposes contextual Message action');
@@ -80,6 +82,9 @@ requireText(flowTightening,'h38-job-secondary','job secondary commands use progr
 requireText(customerReady,'h38-today-primary','Today has one dominant Next Action');
 requireText(customerReady,'h38-customer-tabs','Customer 360 exposes task-oriented tabs');
 requireText(officePolishCss,'button[data-h38-primary="today"]','visible phone navigation uses the application-owned SVG icon family');
+requireText(officePolishCss,'button[data-h38-primary="work"]','field Jobs navigation uses the same application-owned SVG icon family');
+requireText(officePolishCss,'data-h38-owner-quick="time"','Clock In / Out quick action uses the SVG icon family');
+requireText(officePolishCss,'data-h38-owner-quick="operations"','Operations quick action uses the SVG icon family');
 requireText(nativeScroll,"const PRIMARY_KEYS=['today','customers','schedule','messages']",'physical mobile authority uses customer-first order');
 requireText(nativeScroll,'jobsMovedToMore:true','physical authority recognizes Jobs moved to More');
 requireText(phoneFirst,'navigationDelegatedToMobileAuthority:true','phone polish does not create a second navigation authority');
@@ -142,6 +147,10 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20260917-phone-first-office-4'",'runtime loader pins final phone-first build');
+requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260919-owner-mobile-quick-actions-4'",'runtime loader pins the create-only quick action release');
+requireText(ownerQuickActions,'personalAssistantUnderPlus:false','generic mobile + menu excludes Assistant');
+requireText(ownerQuickActions,'globalAssistantCanonical:true','global Assistant is the canonical mobile help launcher');
+if(ownerQuickActions.includes('function openPersonalAssistant'))fail('owner quick actions must not create a second Assistant launcher');else pass('owner quick actions do not create a second Assistant launcher');
 requireText(serviceWorker,"h38-business-office-20260918-0145",'service worker flushes physical-startup authority assets with a dated cache epoch');
 requireText(serviceWorker,"'phone-first-office.js'",'phone-first runtime is live-first');
 requireText(serviceWorker,"'office-reference-samples.js'",'reference-sample runtime is live-first');

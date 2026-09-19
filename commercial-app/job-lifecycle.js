@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260917-lifecycle-startup-stable-1';
+const BUILD='20260919-search-scope-polish-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -17,12 +17,12 @@ const STAGES=[
   ['WARRANTY','Warranty / Follow-up']
 ];
 const COLLECTION_LABELS={
-  customers:'Customer',requests:'Request',jobs:'Job',tasks:'Task',scheduleEvents:'Schedule',
+  customers:'Customer',properties:'Property',requests:'Request',jobs:'Job',tasks:'Task',scheduleEvents:'Schedule',
   quotes:'Quote',siteCaptureSessions:'Site Visit',siteMeasurements:'Measurement',checklists:'Checklist',
   changeOrders:'Change Order',timeEntries:'Time',dailyLogs:'Daily Log',expenses:'Expense',
   invoices:'Invoice',payments:'Payment',documents:'Document',portalMessages:'Portal Message',
-  materialRequests:'Material Request',maintenance:'Maintenance',mileageEntries:'Mileage',
-  recurringPlans:'Recurring Plan',followUps:'Follow-up'
+  materialRequests:'Material Request',assets:'Equipment',maintenance:'Maintenance',mileageEntries:'Mileage',
+  employees:'Employee',users:'User',recurringPlans:'Recurring Plan',followUps:'Follow-up'
 };
 const CHECKLIST_TEMPLATES={
   ESTIMATE:{
@@ -258,7 +258,7 @@ function attention(){
 function searchSnapshot(query){
   const q=text(query).trim().toLowerCase();
   if(q.length<2)return [];
-  const collections=['customers','requests','jobs','tasks','scheduleEvents','quotes','siteCaptureSessions','siteMeasurements','checklists','changeOrders','dailyLogs','timeEntries','expenses','mileageEntries','invoices','payments','documents','portalMessages','materialRequests','maintenance','recurringPlans','followUps'];
+  const collections=['customers','properties','requests','jobs','tasks','scheduleEvents','quotes','siteCaptureSessions','siteMeasurements','checklists','changeOrders','dailyLogs','timeEntries','expenses','mileageEntries','invoices','payments','documents','portalMessages','materialRequests','assets','maintenance','employees','users','recurringPlans','followUps'];
   const results=[];
   collections.forEach(collection=>{
     rec(collection).forEach(row=>{
@@ -266,8 +266,8 @@ function searchSnapshot(query){
       try{hay=JSON.stringify(row).toLowerCase();}catch(_){hay='';}
       if(!hay.includes(q))return;
       const label=COLLECTION_LABELS[collection]||collection;
-      const title=val(row,'Customer Name','Subject','Project Title','Task Title','Title','Checklist Name','Description','Invoice Number','File Name','Purpose','Plan Name','Body')||rid(row,'Job ID','Quote ID','Invoice ID','id')||label;
-      const subtitle=[val(row,'Status','status'),val(row,'Job Number'),val(row,'Quote Number'),val(row,'Due Date','Due Time')].filter(Boolean).join(' · ');
+      const title=val(row,'Customer Name','Property Name','Asset Name','Display Name','Employee Name','Subject','Project Title','Task Title','Title','Checklist Name','Description','Invoice Number','File Name','Purpose','Plan Name','Email','Body')||rid(row,'Property ID','Asset ID','Employee ID','User ID','Job ID','Quote ID','Invoice ID','id')||label;
+      const subtitle=[val(row,'Status','status'),val(row,'Service Address','Address','Current Location','Location'),val(row,'Asset Type','Role Name','Role','Job Number'),val(row,'Quote Number'),val(row,'Due Date','Due Time')].filter(Boolean).join(' · ');
       results.push({collection,label,title:text(title),subtitle:text(subtitle),row});
     });
   });
@@ -459,7 +459,7 @@ let searchDialog=null;
 function ensureSearch(){
   if(searchDialog)return searchDialog;
   searchDialog=document.createElement('dialog');searchDialog.id='h38OfficeSearchDialog';searchDialog.className='h38-office-search';
-  searchDialog.innerHTML=`<form method="dialog" class="h38-search-shell"><header><div><strong>Search Business Office</strong><small>Customers, jobs, quotes, field records, money, documents and follow-up.</small></div><button value="cancel" class="icon-button" aria-label="Close">×</button></header><input id="h38OfficeSearchInput" type="search" autocomplete="off" placeholder="Search customer, job, quote, invoice, note…"><div id="h38OfficeSearchResults" class="h38-search-results"></div></form>`;
+  searchDialog.innerHTML=`<form method="dialog" class="h38-search-shell"><header><div><strong>Search Business Office</strong><small>Customers, properties, jobs, quotes, invoices, files, equipment and people.</small></div><button value="cancel" class="icon-button" aria-label="Close">×</button></header><input id="h38OfficeSearchInput" type="search" autocomplete="off" placeholder="Search name, address, job, quote, invoice, file, equipment…"><div id="h38OfficeSearchResults" class="h38-search-results"></div></form>`;
   document.body.appendChild(searchDialog);
   const input=document.getElementById('h38OfficeSearchInput');
   input.addEventListener('input',()=>renderSearch(input.value));
@@ -477,7 +477,7 @@ function renderSearch(query){
   node.querySelectorAll('[data-search-result]').forEach(button=>button.onclick=()=>{
     const item=results[Number(button.dataset.searchResult)];
     if(item?.collection==='jobs'){selectedJob=jobId(item.row);searchDialog.close();window.openPage?.('work');return;}
-    const pageMap={customers:'customers',requests:'work',tasks:'work',scheduleEvents:'schedule',quotes:'quotes',siteCaptureSessions:'field',siteMeasurements:'measure',checklists:'work',changeOrders:'work',dailyLogs:'field',timeEntries:'field',expenses:'money',mileageEntries:'money',invoices:'money',payments:'money',documents:'documents',portalMessages:'messages',materialRequests:'inventory',maintenance:'fleet',recurringPlans:'work',followUps:'today'};
+    const pageMap={customers:'customers',properties:'customers',requests:'work',jobs:'work',tasks:'work',scheduleEvents:'schedule',quotes:'quotes',siteCaptureSessions:'field',siteMeasurements:'measure',checklists:'work',changeOrders:'work',dailyLogs:'field',timeEntries:'field',expenses:'money',mileageEntries:'money',invoices:'money',payments:'money',documents:'documents',portalMessages:'messages',materialRequests:'inventory',assets:'fleet',maintenance:'fleet',employees:'people',users:'people',recurringPlans:'work',followUps:'today'};
     searchDialog.close();window.openPage?.(pageMap[item?.collection]||'today');
   });
 }
