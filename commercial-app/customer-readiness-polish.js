@@ -67,7 +67,8 @@ function attentionMetrics(){
   const jobs=activeRows('jobs').filter(row=>!/COMPLETE|CLOSED|PAID/.test(upper(value(row,'Status','status'))));
   const invoices=activeRows('invoices').filter(row=>!/PAID|VOID|CLOSED/.test(upper(value(row,'Status','status')))||Number(value(row,'Balance Due','balanceDue','Amount Due','amountDue'))>0);
   const schedule=activeRows('scheduleEvents').filter(row=>{const t=new Date(value(row,'Start Time','startTime','Scheduled Time','scheduledAt')||0).getTime();return t>=now&&t<=now+7*86400000;});
-  return{followUps,quotes,jobs,invoices,schedule};
+  const fieldIssues=activeRows('jobNotes').filter(row=>/FIELD ISSUE/.test(upper(value(row,'Note Type','noteType')))&&!/RESOLVED|CLOSED|COMPLETE/.test(upper(value(row,'Status','status'))));
+  return{followUps,quotes,jobs,invoices,schedule,fieldIssues};
 }
 function latestActivity(limit=5){
   const collections=['followUps','quotes','jobs','siteCaptureSessions','meetings','invoices','documents'];const out=[];
@@ -105,6 +106,7 @@ function enhanceToday(){
   const eventTitle=text(value(nextEvent,'Title','title'))||'Scheduled work';
   const eventTime=value(nextEvent,'Start Time','startTime','Scheduled Time','scheduledAt');
   const attention=[
+    ...m.fieldIssues.slice(0,3).map(row=>{const jid=text(value(row,'Job ID','jobId')),job=rows('jobs').find(item=>idFor(item,'Job ID','jobId','id')===jid);return{label:text(value(job,'Project Title','Job Number'))||'Field issue',detail:text(value(row,'Issue Category','issueCategory'))||'Field issue needs review',page:'work',customerId:text(value(row,'Customer ID','customerId'))};}),
     ...m.followUps.slice(0,2).map(row=>({label:text(value(row,'Title','Subject','Description'))||'Follow-up',detail:'Follow-up needs attention',page:'customers',customerId:text(value(row,'Customer ID','customerId'))})),
     ...m.quotes.slice(0,2).map(row=>({label:text(value(row,'Project Title','Quote Number'))||'Quote',detail:text(value(row,'Status','status'))||'Needs review',page:'quotes',customerId:text(value(row,'Customer ID','customerId'))})),
     ...(financial()?m.invoices.slice(0,2).map(row=>({label:text(value(row,'Invoice Number','Title'))||'Invoice',detail:'Open billing item',page:'money',customerId:text(value(row,'Customer ID','customerId'))})):[])
