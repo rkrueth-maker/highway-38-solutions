@@ -146,11 +146,12 @@ jobs:
             grep -Fq "$site_id" "$report/sites.txt"
           fi
 
-          cat > "$RUNNER_TEMP/firebase.scout.json" <<EOF
+          config="$GITHUB_WORKSPACE/firebase.scout.json"
+          cat > "$config" <<EOF
           {
             "hosting": {
               "site": "$site_id",
-              "public": "$GITHUB_WORKSPACE/scout-static",
+              "public": "scout-static",
               "ignore": ["**/.*", "**/node_modules/**"],
               "cleanUrls": false,
               "trailingSlash": false,
@@ -168,7 +169,10 @@ jobs:
           }
           EOF
 
-          npx firebase deploy --only hosting --config "$RUNNER_TEMP/firebase.scout.json" --project "$FIREBASE_PROJECT_ID" --non-interactive | tee "$report/deploy.log"
+          pwd
+          ls -la "$GITHUB_WORKSPACE/scout-static"
+          npx firebase deploy --only hosting --config "$config" --project "$FIREBASE_PROJECT_ID" --non-interactive | tee "$report/deploy.log"
+          rm -f "$config"
           printf '%s\n' "$host_url" | tee "$report/URL.txt"
           echo "H38_REMOTE_WEB_BASE=$host_url" >> "$GITHUB_ENV"
 
