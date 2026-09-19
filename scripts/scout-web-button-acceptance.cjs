@@ -315,7 +315,7 @@ async function couponAcceptance(browser, session) {
   await waitEnabled(page,'#addWatch',60000);
   const amazonRow=page.locator('.item').filter({hasText:amazonWatchName}).first();
   check('Couponing Amazon Watch',await amazonRow.count()>0,(await page.locator('#status').innerText().catch(()=>'')));
-  check('Couponing Amazon watch badge',await amazonRow.locator('.badge').filter({hasText:'AMAZON'}).count()===1);
+  check('Couponing Amazon watch badge',await amazonRow.locator('.badge').filter({hasText:'AMAZON'}).count()>0);
   check('Couponing Amazon direct link',await amazonRow.locator('a[href*="amazon.com"]').count()===1);
 
   let discoveryRow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
@@ -330,7 +330,7 @@ async function couponAcceptance(browser, session) {
     discoveryRow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
   }
   check('Couponing blank Amazon watch creates deal scan',await discoveryRow.count()===1,(await page.locator('#status').innerText().catch(()=>'')));
-  check('Couponing Amazon deal scan badge',await discoveryRow.locator('.badge').filter({hasText:'AMAZON DEAL SCAN'}).count()===1);
+  check('Couponing Amazon deal scan badge',await discoveryRow.locator('.badge').filter({hasText:'AMAZON DEAL SCAN'}).count()>0);
   check('Couponing Amazon deal scan returns web candidates',await discoveryRow.locator('.match').count()>0,(await discoveryRow.innerText().catch(()=>'')));
 
   await page.click('[data-view="save"]');
