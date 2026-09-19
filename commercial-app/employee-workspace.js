@@ -19,14 +19,23 @@ function injectStyle(){if(document.getElementById('h38EmployeeCompanionStyle'))r
 `;document.head.appendChild(node);}
 async function loadWorkspace(force=false){if(!businessId()||!isStaff())return null;if(!force&&workspaceCache&&Date.now()-workspaceCacheAt<12000)return workspaceCache;workspaceCache=await rpc('business_office_employee_workspace',{p_business_id:businessId()});workspaceCacheAt=Date.now();return workspaceCache;}
 async function loadTeam(force=false){if(!businessId()||!isManager())return null;if(!force&&teamCache&&Date.now()-teamCacheAt<12000)return teamCache;teamCache=await rpc('business_office_team_directory',{p_business_id:businessId()});teamCacheAt=Date.now();return teamCache;}
-async function clockInToTask(task){if(!isStaff())throw new Error('Staff sign-in is required.');const taskId=text(task?.['Task ID']||task?.taskId),jobId=text(task?.['Job ID']||task?.jobId);const result=await rpc('business_office_clock_in',{p_business_id:businessId(),p_job_id:jobId||null,p_task_id:taskId||null,p_notes:null});workspaceCache=null;toast(taskId?'Clocked in to assigned task.':'Clocked in.');return result;}
-async function clockOut(){if(!isStaff())throw new Error('Staff sign-in is required.');const result=await rpc('business_office_clock_out',{p_business_id:businessId(),p_notes:null});workspaceCache=null;toast('Clocked out.');return result;}
+function mergeSnapshot(collection,row,keys){
+  if(!row||typeof row!=='object')return;
+  const snap=state().snapshot;if(!snap)return;if(!Array.isArray(snap[collection]))snap[collection]=[];
+  const wanted=keys.map(key=>text(row[key])).find(Boolean);
+  const index=wanted?snap[collection].findIndex(item=>keys.some(key=>text(item?.[key])===wanted)):-1;
+  if(index>=0)snap[collection][index]={...snap[collection][index],...row};else snap[collection].push(row);
+  window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'employee-workspace',collection}}));
+}
+async function clockInToTask(task){if(!isStaff())throw new Error('Staff sign-in is required.');const taskId=text(task?.['Task ID']||task?.taskId),jobId=text(task?.['Job ID']||task?.jobId);const result=await rpc('business_office_clock_in',{p_business_id:businessId(),p_job_id:jobId||null,p_task_id:taskId||null,p_notes:null});workspaceCache=null;mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);toast(taskId?'Clocked in to assigned task.':'Clocked in.');return result;}
+async function clockOut(){if(!isStaff())throw new Error('Staff sign-in is required.');const result=await rpc('business_office_clock_out',{p_business_id:businessId(),p_notes:null});workspaceCache=null;mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);toast('Clocked out.');return result;}
 async function timeTransition(action,note=''){
   if(!isStaff())throw new Error('Staff sign-in is required.');
   const bounded=text(action).toUpperCase();
   if(!['PAUSE','BREAK','RESUME'].includes(bounded))throw new Error('Choose Pause, Break, or Resume.');
   const result=await rpc('business_office_employee_time_transition',{p_business_id:businessId(),p_action:bounded,p_note:text(note)||null});
   workspaceCache=null;
+  mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);
   toast(bounded==='RESUME'?'Work timer resumed.':bounded==='BREAK'?'Break started.':'Job timer paused.');
   return result;
 }
@@ -36,10 +45,11 @@ async function reportIssue({jobId,taskId='',category='Other',note=''}={}){
     p_business_id:businessId(),p_job_id:text(jobId),p_task_id:text(taskId)||null,p_category:text(category)||'Other',p_note:text(note)||null
   });
   workspaceCache=null;
+  mergeSnapshot('jobNotes',result,['Job Note ID','jobNoteId']);
   toast('Issue saved internally. No customer message was sent.');
   return result;
 }
-async function updateAssignedTask(taskId,status,note=''){if(!isStaff())throw new Error('Staff sign-in is required.');const bounded=text(status);if(!TASK_STATES.includes(bounded))throw new Error('Choose an allowed task status.');const result=await rpc('business_office_employee_update_task',{p_business_id:businessId(),p_task_id:text(taskId),p_status:bounded,p_note:text(note)||null});workspaceCache=null;toast('Task updated.');return result;}
+async function updateAssignedTask(taskId,status,note=''){if(!isStaff())throw new Error('Staff sign-in is required.');const bounded=text(status);if(!TASK_STATES.includes(bounded))throw new Error('Choose an allowed task status.');const result=await rpc('business_office_employee_update_task',{p_business_id:businessId(),p_task_id:text(taskId),p_status:bounded,p_note:text(note)||null});workspaceCache=null;mergeSnapshot('tasks',result,['Task ID','taskId']);toast('Task updated.');return result;}
 function teamSectionShell(){return `<section class="h38-team-section" id="h38TeamAccess"><div class="h38-team-head"><div><h3>Secure team access</h3><div class="h38-erp-note">Prepare one exact-email H38 Office membership for an employee or site manager. The server keeps both on assigned-work Staff access; the selected profile only changes guidance and labeling.</div></div><span>Owner / admin only</span></div><form class="h38-team-form" id="h38EmployeeInviteForm"><label>Name<input id="h38EmployeeName" maxlength="160" placeholder="Team member name"></label><label>Email<input id="h38EmployeeEmail" type="email" required autocomplete="email" placeholder="name@company.com"></label><label>Access profile<select id="h38EmployeeAccessProfile"><option value="employee">Employee</option><option value="site-manager">Site manager / foreman</option></select></label><label>Job title<input id="h38EmployeeTitle" maxlength="160" placeholder="Installer, crew lead…"></label><button class="primary" type="submit">Add &amp; send activation</button></form><div class="h38-erp-note"><strong>What happens:</strong> H38 prepares an invited Staff membership, then requests a secure Supabase activation email after this button is pressed. It never accepts a password here and never grants owner or administrator access.</div><div id="h38TeamList" class="h38-team-list"><div class="h38-erp-note">Loading team…</div></div></section>`;}
 async function refreshTeamUi(force=true){const host=document.getElementById('h38TeamList');if(!host||!isManager())return;try{const directory=await loadTeam(force),employees=directory?.employees||[];host.innerHTML=employees.length?employees.map(employee=>{const title=text(employee.jobTitle)||'Employee',profile=/site manager|foreman|crew lead/i.test(title)?'Site manager':'Employee',activation=employee.status==='invited'?`<button class="h38-team-action" type="button" data-h38-send-activation="${esc(employee.email)}">Resend activation</button>`:'<span></span>';return `<div class="h38-team-row"><strong>${esc(employee.displayName||employee.email)}</strong><span>${esc(employee.email)}</span><span>${esc(profile)} · ${esc(title)}</span><span class="h38-team-state">${esc(employee.status)}${employee.authUserId?' · active account':''}</span>${activation}</div>`;}).join(''):'<div class="h38-erp-note">No employee or site-manager access has been prepared yet.</div>';}catch(error){host.innerHTML=`<div class="h38-erp-note">${esc(error.message||'Team directory unavailable.')}</div>`;}}
 function ensureTeamSection(){injectStyle();if(!isManager())return false;const mount=document.getElementById('h38TeamAccessMount'),body=document.getElementById('h38ErpBody'),host=mount||body;if(!host||host.querySelector('#h38TeamAccess'))return false;if(mount)mount.innerHTML=teamSectionShell();else body.insertAdjacentHTML('afterbegin',teamSectionShell());refreshTeamUi(true);return true;}
