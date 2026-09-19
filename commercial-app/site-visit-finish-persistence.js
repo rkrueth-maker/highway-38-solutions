@@ -77,6 +77,7 @@ async function finish(button){
     const prepared=await prepareReport(v);await persistVisit(v,{reportStatus:prepared.status});
     await authority.finishVisit();v.status='CLOSED';v.updatedAt=now();await C.saveDraft?.();if(navigator.onLine)C.syncSoon?.();
     C.toast?.(prepared.status==='NOTES_READY'?'Site Visit saved. Visit Report is ready.':prepared.status==='NOTES_PROCESSING'?'Site Visit saved. Visit Report is processing notes.':'Site Visit saved. Visit Report is available and notes can be retried.',prepared.status==='NOTES_RETRY_REQUIRED');
+    setTimeout(()=>window.H38_CONTEXT_CONTINUITY?.back?.(),0);
   }catch(error){
     try{const row=linkedMeeting(v);await persistReport(v,row,'NOTES_RETRY_REQUIRED',error?.message||String(error));await persistVisit(v,{reportStatus:'NOTES_RETRY_REQUIRED'});v.status='COMPLETE';v.updatedAt=now();await C.saveDraft?.();}catch(_){}
     C.toast?.(`Site Visit saved with a report retry state: ${error?.message||String(error)}`,true);if(button)button.disabled=false;

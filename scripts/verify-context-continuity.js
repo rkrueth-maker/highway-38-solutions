@@ -1,0 +1,18 @@
+const fs=require('fs');
+const read=file=>fs.readFileSync(file,'utf8');
+const checks=[];const check=(name,value)=>checks.push({name,pass:!!value});
+const index=read('commercial-app/index.html'),runtime=read('commercial-app/context-continuity.js'),css=read('commercial-app/context-continuity.css'),sync=read('commercial-app/app-02.js'),finish=read('commercial-app/site-visit-finish-persistence.js'),jobs=read('commercial-app/job-lifecycle.js');
+check('runtime loaded once',index.includes('context-continuity.js?build=20260919-context-continuity-iphone-1'));
+check('responsive polish loaded once',index.includes('context-continuity.css?build=20260919-context-continuity-iphone-1'));
+check('context is lightweight and session scoped',runtime.includes("sessionStorage.setItem(KEY")&&runtime.includes('noRecordPayloads:true'));
+check('customer, job, quote, tab, scroll and search retained',runtime.includes('customerId:')&&runtime.includes('jobId:')&&runtime.includes('quoteId:')&&runtime.includes('originTab:')&&runtime.includes('originScroll:')&&runtime.includes('searchQuery:'));
+check('contextual back is accessible',runtime.includes("setAttribute('aria-label',`Back to ${contextTitle()}`)"));
+check('site visit returns through canonical context',finish.includes('H38_CONTEXT_CONTINUITY?.back?.()'));
+check('job selection has canonical bridge',jobs.includes('selectedJobId:()=>selectedJob')&&jobs.includes('selectJob:id=>'));
+check('sync states tell local safety truth',sync.includes('Offline — saved locally')&&sync.includes('Sync failed — ${failed.length+conflicts.length} safe locally · Retry')&&sync.includes("badge.textContent='Saved'"));
+check('retry is keyboard actionable',sync.includes("badge.setAttribute('role','button')")&&sync.includes("event.key==='Enter'||event.key===' '"));
+check('sync exception preserves retry state',sync.includes("operation.retryCount=num(operation.retryCount)+1")&&sync.includes('Your work is safe on this device. Tap refresh to retry.'));
+check('visible focus supplied',css.includes(':focus-visible')&&css.includes('outline:3px'));
+check('intentional tablet and desktop breakpoints',css.includes('@media(min-width:768px)')&&css.includes('@media(min-width:1180px)'));
+check('iPhone safe areas and zoom-safe fields',css.includes('@supports(-webkit-touch-callout:none)')&&css.includes('font-size:max(16px,1em)')&&css.includes('safe-area-inset-left'));
+const failed=checks.filter(item=>!item.pass);for(const item of checks)console.log(`${item.pass?'PASS':'FAIL'} ${item.name}`);if(failed.length)process.exit(1);console.log(JSON.stringify({status:'PASS',checks:checks.length,scoreTarget:9.5,externalPhysicalGates:['Android device','iPhone device','Apple signing/TestFlight']},null,2));
