@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-owner-mobile-quick-actions-3';
+const BUILD='20260919-owner-mobile-quick-actions-4';
 const MOBILE='(max-width: 760px)';
 const text=value=>String(value==null?'':value).trim();
 function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
@@ -30,11 +30,6 @@ function ensureErp(target){
   let script=document.querySelector('script[data-h38-erp-foundation]');
   if(!script){script=document.createElement('script');script.src='./erp-foundation.js?build=20260903-erp-time-uptake-learning-2';script.async=false;script.dataset.h38ErpFoundation='owner-mobile-quick-actions';document.body.appendChild(script);}
   let tries=0;const timer=setInterval(()=>{if(window.H38_ERP_FOUNDATION){clearInterval(timer);triggerErp(target);}else if(++tries>=40){clearInterval(timer);window.toast?.('Time controls are still loading. Try again.',true);}},100);
-}
-function openPersonalAssistant(){
-  closeQuick();
-  try{window.openPage?.('assistant');if(window.state?.page==='assistant')return;}catch(_){}
-  document.getElementById('globalAiButton')?.click();
 }
 function openClock(){closeQuick();ensureErp('time');}
 function focusOperations(){
@@ -73,12 +68,7 @@ function patchQuickDialog(){
   if(!mobile())return;
   const dialog=document.getElementById('h38QuickCreateDialog'),grid=dialog?.querySelector('.h38-quick-grid');if(!dialog||!grid)return;
   const assistant=grid.querySelector('[data-h38-quick="assistant"]');
-  if(assistant){
-    const strong=assistant.querySelector('strong'),small=assistant.querySelector('small');
-    if(strong&&text(strong.textContent)!=='Personal Assistant')strong.textContent='Personal Assistant';
-    if(small&&text(small.textContent)!=='Private reminders and Office commands')small.textContent='Private reminders and Office commands';
-    if(assistant.onclick!==openPersonalAssistant)assistant.onclick=openPersonalAssistant;
-  }
+  if(assistant)assistant.remove();
   if(!grid.querySelector('[data-h38-owner-quick="time"]')){
     const clock=makeAction('time','⏱️','Clock In / Out','Open audited time controls',openClock);
     const meeting=grid.querySelector('[data-h38-quick="meeting"]');
@@ -86,10 +76,9 @@ function patchQuickDialog(){
   }
   if(manager()&&!grid.querySelector('[data-h38-owner-quick="operations"]')){
     const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and operating signals',openOperations);
-    const assistantNow=grid.querySelector('[data-h38-quick="assistant"]');
-    if(assistantNow)grid.insertBefore(ops,assistantNow);else grid.appendChild(ops);
+    grid.appendChild(ops);
   }
-  if(dialog.dataset.h38OwnerMobileQuickActions!=='3')dialog.dataset.h38OwnerMobileQuickActions='3';
+  if(dialog.dataset.h38OwnerMobileQuickActions!=='4')dialog.dataset.h38OwnerMobileQuickActions='4';
 }
 function clarifyAssistantLauncher(){
   if(!mobile()||!manager())return;
@@ -108,5 +97,5 @@ function scheduleApply(){if(applyQueued)return;applyQueued=true;queueMicrotask(a
 const observer=new MutationObserver(scheduleApply);observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
 window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
 scheduleApply();
-window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,plusLocationPreserved:true,clockInOutUnderPlus:true,personalAssistantUnderPlus:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,openClock,openPersonalAssistant,openOperations,patchQuickDialog});
+window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,plusLocationPreserved:true,clockInOutUnderPlus:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,openClock,openOperations,patchQuickDialog});
 })();
