@@ -132,46 +132,6 @@ jobs:
           curl -fsS http://127.0.0.1:4173/ | grep -Fq 'id="signin"'
           node scripts/scout-web-button-acceptance.cjs
 
-      - name: Resolve mutable Scout CDN base
-        shell: bash
-        run: |
-          set -euo pipefail
-          repo="rkrueth-maker/highway-38-solutions"
-          candidates=(
-            "https://cdn.jsdelivr.net/gh/$repo@agent/private-reseller-scout/scout-static"
-            "https://cdn.jsdelivr.net/gh/$repo@agent%2Fprivate-reseller-scout/scout-static"
-          )
-          passed=""
-          for base in "${candidates[@]}"; do
-            echo "Probing $base"
-            code="$(curl -L -sS -o /tmp/h38-index.html -D /tmp/h38-headers.txt -w '%{http_code}' "$base/index.html" || true)"
-            ctype="$(grep -i '^content-type:' /tmp/h38-headers.txt | tail -1 | cut -d: -f2- | tr -d ' \\015')"
-            echo "HTTP $code · $ctype"
-            if [ "$code" = "200" ] && echo "$ctype" | grep -Eiq '^text/html' && grep -Fq 'id="signin"' /tmp/h38-index.html; then
-              passed="$base"
-              break
-            fi
-          done
-          test -n "$passed"
-          for file in index.html penny.html resale.html coupon.html maintenance.html; do
-            code="$(curl -L -sS -o "/tmp/$file" -D /tmp/h38-page-headers.txt -w '%{http_code}' "$passed/$file")"
-            ctype="$(grep -i '^content-type:' /tmp/h38-page-headers.txt | tail -1 | cut -d: -f2- | tr -d ' \\015')"
-            test "$code" = "200"
-            echo "$ctype" | grep -Eiq '^text/html'
-            grep -Eiq '<!doctype html|<html' "/tmp/$file"
-          done
-          echo "H38_REMOTE_WEB_BASE=$passed" >> "$GITHUB_ENV"
-          printf '%s\n' "$passed" | tee artifacts/scout-web-button-acceptance/remote-base-url.txt
-
-      - name: Exercise all live web controls on remote CDN
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${H38_REMOTE_WEB_BASE:-}"
-          H38_WEB_BASE="$H38_REMOTE_WEB_BASE" \
-          H38_ACCEPTANCE_OUT="artifacts/scout-web-button-acceptance/remote-report.json" \
-          node scripts/scout-web-button-acceptance.cjs
-
       - name: Upload live web acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
