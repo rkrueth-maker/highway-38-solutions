@@ -39,6 +39,39 @@ async function savedMatches(admin:any,items:any[]){
   return out.filter((x:any)=>{const k=`${norm(x.item_name)}|${x.canonical_key}`;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,100);
 }
 
+
+function amazonAsin(v:unknown){const s=String(v||'').trim();const direct=s.match(/^[A-Z0-9]{10}$/i);if(direct)return direct[0].toUpperCase();const m=s.match(/(?:\/dp\/|\/gp\/product\/|asin=)([A-Z0-9]{10})/i);return m?m[1].toUpperCase():''}
+function amazonSearchUrl(name:string){return `https://www.amazon.com/s?k=${encodeURIComponent(name)}`}
+function amazonOfferPrice(item:any){const listings=Array.isArray(item?.offersV2?.listings)?item.offersV2.listings:[];for(const l of listings){const n=Number(l?.price?.money?.amount);if(Number.isFinite(n)&&n>0)return{price:n,listing:l}}return null}
+async function amazonAccessToken(clientId:string,clientSecret:string){const r=await fetch('https://api.amazon.com/auth/o2/token',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_id:clientId,client_secret:clientSecret,scope:'creatorsapi::default'}),signal:AbortSignal.timeout(12000)});const b=await r.json().catch(()=>({}));if(!r.ok||!b?.access_token)throw new Error(`Amazon token failed (${r.status})`);return String(b.access_token)}
+async function amazonWatchMatches(items:any[]){
+  const watches=items.filter(x=>String(x?.source||'all').toLowerCase()==='amazon').slice(0,20);
+  const clientId=String(Deno.env.get('AMAZON_CREATORS_CLIENT_ID')||''),clientSecret=String(Deno.env.get('AMAZON_CREATORS_CLIENT_SECRET')||''),partnerTag=String(Deno.env.get('AMAZON_ASSOCIATE_TAG')||''),marketplace=String(Deno.env.get('AMAZON_MARKETPLACE')||'www.amazon.com');
+  const configured=!!(clientId&&clientSecret&&partnerTag);
+  if(!watches.length)return{configured,matches:[],checked:0};
+  if(!configured)return{configured:false,matches:[],checked:0,error:'AMAZON_CREATORS_NOT_CONFIGURED'};
+  const token=await amazonAccessToken(clientId,clientSecret),out:any[]=[];
+  for(const w of watches){
+    const name=String(w?.item_name||w?.name||'').trim(),asin=amazonAsin(w?.source_ref||w?.source_url||'');
+    if(!name&&!asin)continue;
+    const op=asin?'getItems':'searchItems';
+    const payload:any={marketplace,partnerTag,resources:['itemInfo.title','images.primary.medium','offersV2.listings.price']};
+    if(asin){payload.itemIds=[asin];payload.itemIdType='ASIN'}else{payload.keywords=name;payload.searchIndex='All';payload.itemCount=3}
+    try{
+      const r=await fetch(`https://creatorsapi.amazon/catalog/v1/${op}`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'content-type':'application/json','x-marketplace':marketplace},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+      const b=await r.json().catch(()=>({}));
+      if(!r.ok)continue;
+      const rows=(b?.itemsResult?.items||b?.searchResult?.items||[]).slice(0,3);
+      for(const item of rows){
+        const offer=amazonOfferPrice(item);if(!offer)continue;
+        const title=String(item?.itemInfo?.title?.displayValue||item?.itemInfo?.title?.displayValue||name||'Amazon item'),itemAsin=String(item?.asin||asin||'').toUpperCase(),price=Number(offer.price),basis=Number(offer.listing?.price?.savingBasis?.money?.amount);
+        out.push({canonical_key:`amazon:${itemAsin||norm(title)}`,retailer:'Amazon',title,item_name:name||title,upc:'',sku:itemAsin,buy_price:Number(price.toFixed(2)),retail_price:Number.isFinite(basis)?Number(basis.toFixed(2)):price,image_url:String(item?.images?.primary?.medium?.url||''),source_url:String(item?.detailPageURL||(itemAsin?`https://www.amazon.com/dp/${itemAsin}`:amazonSearchUrl(name))),deal_type:'amazon_watch',penny_sort_at:new Date().toISOString(),source_kind:'amazon',source_confidence:'amazon_creators_api',verification_status:'AMAZON CURRENT',match_label:'AMAZON CURRENT',match_score:asin?100:90,offer_total_price:Number(price.toFixed(2)),effective_each:Number(price.toFixed(2)),comparison_price:Number(price.toFixed(2)),watch_id:String(w?.id||'')});
+      }
+    }catch{}
+  }
+  return{configured:true,matches:out,checked:watches.length};
+}
+
 async function authenticatedUserId(sb:any,token:string){
   try{
     const claims=await sb.auth.getClaims(token),sub=String(claims?.data?.claims?.sub||'').trim();
@@ -52,7 +85,7 @@ async function authenticatedUserId(sb:any,token:string){
 }
 
 Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const auth=req.headers.get('Authorization')||'',token=auth.replace(/^Bearer\s+/i,'');if(!token)return json({error:'AUTH_REQUIRED'},401);const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const sb=createClient(url,anon,{global:{headers:{Authorization:auth}}}),userId=await authenticatedUserId(sb,token);if(!userId)return json({error:'AUTH_REQUIRED'},401);const {data:ent}=await sb.from('h38_product_entitlements').select('active,expires_at').eq('user_id',userId).eq('product_key','coupon').maybeSingle();if(!ent?.active||(ent.expires_at&&Date.parse(ent.expires_at)<=Date.now()))return json({error:'PRODUCT_LOCKED',product:'coupon'},403);const body=await req.json().catch(()=>({}));const action=String(body.action||'optimize');
-if(action==='matches'){const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),items=Array.isArray(body.items)?body.items:[];const refresh=await refreshPublic(url,service,items);const matches=await savedMatches(admin,items);return json({ok:true,matches,count:matches.length,source:'h38_coupon_public_plus_saved_v2',refresh,warning:'Retailer-current public results are refreshed on demand for supported staple categories. Unless explicitly marked local-store verified, price, stock and coupon eligibility still require local verification.'});}
+if(action==='matches'){const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),items=Array.isArray(body.items)?body.items:[],regularItems=items.filter((x:any)=>String(x?.source||'all').toLowerCase()!=='amazon');const refresh=regularItems.length?await refreshPublic(url,service,regularItems):{ok:true,skipped:true};const [regular,amazon]=await Promise.all([savedMatches(admin,regularItems),amazonWatchMatches(items)]);const matches=[...regular,...amazon.matches];return json({ok:true,matches,count:matches.length,source:'h38_coupon_public_saved_amazon_v1',refresh,amazon:{configured:amazon.configured,checked:amazon.checked,error:(amazon as any).error||''},warning:'Retailer-current public results and Amazon Creators API prices can change. Confirm final price, availability, shipping, seller, and coupon eligibility before buying.'});}
 if(action==='optimize'){const items=Array.isArray(body.items)?body.items:[],prices=Array.isArray(body.prices)?body.prices:[];const best=optimize(items,prices,Number(body.max_stores||2),Number(body.travel_cost_per_mile||0.25));return json({ok:true,best,mode:body.mode||'practical'})}
 if(action==='stack'){const p=body.price||{};return json({ok:true,stack:{shelf:Number(p.shelf_price||0),sale:Number(p.sale_discount||0),store_coupon:Number(p.store_coupon||0),manufacturer_coupon:Number(p.manufacturer_coupon||0),rebate:Number(p.rebate||0),loyalty:Number(p.loyalty_value||0),effective:Number(eff(p).toFixed(2)),confidence:p.confidence||'medium'}})}
 if(action==='assistant'){const text=String(body.text||'');let max=2,mode='practical',budget=null;const m=text.match(/under\s*\$?([0-9]+(?:\.[0-9]+)?)/i);if(m)budget=Number(m[1]);if(/one store|single store/i.test(text)){max=1;mode='single_store'}else if(/two stores|2 stores/i.test(text)){max=2;mode='two_stores'}else if(/maximum|max savings/i.test(text)){max=4;mode='maximum_savings'}return json({ok:true,intent:{max_stores:max,mode,budget,brand_flexible:!/only|must be|brand matters/i.test(text)}})}
