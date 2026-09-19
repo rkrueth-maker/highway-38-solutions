@@ -318,6 +318,21 @@ async function couponAcceptance(browser, session) {
   check('Couponing Amazon watch badge',await amazonRow.locator('.badge').filter({hasText:'AMAZON'}).count()===1);
   check('Couponing Amazon direct link',await amazonRow.locator('a[href*="amazon.com"]').count()===1);
 
+  let discoveryRow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
+  const hadDiscovery=(await discoveryRow.count())>0;
+  if(!hadDiscovery){
+    await page.fill('#watchItem','');
+    await page.fill('#watchTarget','');
+    await page.selectOption('#watchSource','amazon');
+    await page.fill('#watchRef','');
+    await page.click('#addWatch');
+    await waitEnabled(page,'#addWatch',90000);
+    discoveryRow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
+  }
+  check('Couponing blank Amazon watch creates deal scan',await discoveryRow.count()===1,(await page.locator('#status').innerText().catch(()=>'')));
+  check('Couponing Amazon deal scan badge',await discoveryRow.locator('.badge').filter({hasText:'AMAZON DEAL SCAN'}).count()===1);
+  check('Couponing Amazon deal scan returns web candidates',await discoveryRow.locator('.match').count()>0,(await discoveryRow.innerText().catch(()=>'')));
+
   await page.click('[data-view="save"]');
   check('Couponing SAVE tab',await page.locator('[data-view="save"].active').count()===1);
   await page.fill('#assistant','Best single store under $100');
@@ -371,6 +386,10 @@ async function couponAcceptance(browser, session) {
   if(await wrow.count() && await wrow.locator('[data-remove-watch]').count()){ await wrow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove watch',true); }
   let arow=page.locator('.item').filter({hasText:amazonWatchName}).first();
   if(await arow.count() && await arow.locator('[data-remove-watch]').count()){ await arow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove Amazon watch',true); }
+  if(!hadDiscovery){
+    let drow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
+    if(await drow.count() && await drow.locator('[data-remove-watch]').count()){ await drow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove Amazon deal scan',true); }
+  }
 
   await page.click('[data-view="receipts"]');
   let rrow=page.locator('.item').filter({hasText:'QA Store'}).first();
