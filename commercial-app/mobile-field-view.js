@@ -42,7 +42,7 @@ function assignedTasks(){
 }
 function currentContext(){
   const time=activeTime(),tasks=assignedTasks(),timeTask=taskById(value(time,'Task ID','taskId'));
-  const task=timeTask||tasks.find(row=>/START|IN PROGRESS|ACCEPT/.test(upper(value(row,'Status','status'))))||tasks[0]||null;
+  const task=timeTask||tasks.find(row=>/START|IN PROGRESS|ACCEPT|ON MY WAY|ARRIVED|PAUSED/.test(upper(value(row,'Status','status'))))||tasks[0]||null;
   const jid=text(value(time,'Job ID','jobId')||value(task,'Job ID','jobId'));
   const job=jobById(jid)||rows('jobs').find(row=>linkedToUser(row)&&!/COMPLET|CANCEL|VOID|ARCHIV/.test(upper(value(row,'Status','status'))))||null;
   return {time,task,job};
