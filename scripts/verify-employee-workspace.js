@@ -7,6 +7,7 @@ const expect=(condition,message)=>{if(!condition)throw new Error(message);};
 const includes=(source,needle,message)=>expect(source.includes(needle),message||`Missing ${needle}`);
 
 const migration=read('supabase/migrations/20260903233000_employee_workspace_team_access.sql');
+const fieldExecution=read('supabase/migrations/20260919065500_business_office_field_execution_ux.sql');
 const hardening=read('supabase/migrations/20260903233100_employee_workspace_direct_access_hardening.sql');
 const ui=read('commercial-app/employee-workspace.js');
 const startup=read('commercial-app/supabase-final-startup.js');
@@ -29,6 +30,15 @@ includes(migration,"v_membership.role<>'staff'",'Employee workspace RPC must req
 includes(migration,"v_status not in ('Accepted','Started','Waiting','Blocked','Completed')",'Employee task updates must remain bounded.');
 includes(migration,"return p_write=false and private.employee_task_assigned",'Generic Staff task mutation must remain blocked.');
 includes(migration,"'automaticExternalActions',false",'Employee operations must preserve external-action safety.');
+for(const needle of [
+  'business_office_employee_time_transition','business_office_employee_report_issue',
+  "'On My Way'","'Arrived'","'Paused'","'Break Minutes'","'Open — Needs Attention'",
+  "'employee_time_transition'","'employee_field_issue_reported'","'customerMessageSent',false",
+  "collection='timeEntries'","collection,'jobNotes'"
+])includes(fieldExecution,needle,`Field execution migration missing ${needle}`);
+includes(fieldExecution,"v_action not in ('PAUSE','BREAK','RESUME')",'Field time transitions must remain bounded.');
+includes(fieldExecution,"v_category not in (",'Field issue categories must remain bounded.');
+includes(fieldExecution,"external_action_occurred",'Field execution must continue writing Proof Log external-action truth.');
 
 for(const needle of ['customer_messages','customer_files','customer_portal_events',"array['owner','administrator']::text[]","bucket_id='business-office'","bucket_id='business-office-files'"])
   includes(hardening,needle,`Employee direct-access hardening missing ${needle}`);
@@ -36,7 +46,7 @@ expect(!hardening.includes("array['owner','administrator','staff']"),'Direct adm
 
 for(const needle of [
   'H38_EMPLOYEE_WORKSPACE','H38_SUPABASE_SHARED_CLIENT','business_office_employee_workspace','business_office_clock_in',
-  'business_office_clock_out','business_office_employee_update_task','business_office_invite_employee','business_office_team_directory',
+  'business_office_clock_out','business_office_employee_time_transition','business_office_employee_report_issue','business_office_employee_update_task','business_office_invite_employee','business_office_team_directory',
   'Add &amp; send activation','business-office-invite-activation','Site manager','canonicalStartupAuthority:false','companionOnly:true',
   'desktopShellAuthority:false','autoRenderForStaff:false','preservesCanonicalOfficeNavigation:true','genericWorkRouteUsedByStaff:true',
   'delayedRolePolling:false','sameSupabaseAccountAndRecords:true','assignedWorkOnly:true','automaticInvitationEmail:false',
@@ -93,6 +103,12 @@ for(const needle of [
   'legacyPreferenceIgnored:true',"fieldRoleLanding:'today-my-day'","fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",
   'siteVisitContextualAction:true','sameBusinessOfficeData:true','samePermissions:true'
 ])includes(mobileField,needle,`One-shell field contract missing ${needle}`);
+for(const needle of [
+  "primaryLabel=active?'CURRENT JOB':'NEXT JOB'",'NEXT ASSIGNMENT','REQUIRED BEFORE LEAVING','REMAINING TODAY',
+  "'On My Way'","'Arrived'","'PAUSE'","'BREAK'","'RESUME'",'Report Issue','Save Internal Issue',
+  'data-h38-proof-action','data-h38-job-capture','data-h38-open-document-id','Review closeout',
+  'Closeout Requirements JSON','Offline — saved locally','Syncing','customer message'
+])includes(mobileField,needle,`Field execution UX missing ${needle}`);
 expect(!mobileField.includes("FIELD_LABEL='Field View'"),'Retired mobile layer must not define a Field View label.');
 expect(!mobileField.includes("OFFICE_LABEL='Full Business Office'"),'Retired mobile layer must not define a Full Business Office switch label.');
 expect(!mobileField.includes('Open Full Business Office'),'Field More must not require switching shells.');
