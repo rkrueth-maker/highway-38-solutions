@@ -13,6 +13,7 @@ on:
       - supabase/functions/h38-coupon-web/**
       - supabase/functions/h38-coupon-api/**
       - supabase/migrations/20260919070806_share_couponing_household.sql
+      - supabase/migrations/20260919071500_harden_shared_coupon_list_items.sql
   workflow_dispatch:
 
 permissions:
