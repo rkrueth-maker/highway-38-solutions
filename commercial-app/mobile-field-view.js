@@ -107,7 +107,11 @@ function proofDone(label,job,task){
     if(/completion|after/.test(key))return words.some(v=>/completion|complete|after|finished/.test(v))||docs.length>0&&/COMPLET/.test(upper(value(task,'Status','status')));
     return docs.length>0;
   }
-  if(/note|issue|constraint|customer requirement/.test(key))return notes.length>0;
+  if(/issue|constraint|customer requirement/.test(key))return notes.length>0;
+  if(/note/.test(key)){
+    const completionNotes=notes.filter(row=>!/FIELD ISSUE/.test(upper(value(row,'Note Type','noteType'))));
+    return completionNotes.length>0;
+  }
   if(/measure|dimension/.test(key))return measurements.length>0;
   if(/visit/.test(key))return visits.some(row=>/COMPLET|FINISH|ORGANIZ/.test(upper(value(row,'Status','status'))));
   if(/checklist|mow|trim|blow|truck|skid|work performed|parts|material/.test(key))return checks.some(row=>/COMPLET|PASS|DONE/.test(upper(value(row,'Status','status'))))||/COMPLET/.test(upper(value(task,'Status','status')));
