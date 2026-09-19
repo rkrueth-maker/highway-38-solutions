@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260918-web-first-site-visit-one-shell-1';
-const MOBILE_FIELD_BUILD='20260918-one-shell-field-experience-2';
+const MOBILE_FIELD_BUILD='20260919-field-execution-ux-1';
 
 /*
  * Web-first Site Visit authority.
