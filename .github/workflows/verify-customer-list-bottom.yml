@@ -58,9 +58,9 @@ jobs:
           node -c scripts/verify-customer-list-bottom-browser.js
           node -c scripts/verify-quote-delivery-page-scope-browser.js
           node -c scripts/verify-public-demo-mobile-nav-browser.js
-      - name: Verify true-bottom runtime bootstrap
-        run: node -e "const fs=require('fs');const s=fs.readFileSync('commercial-app/auth-cache-guard.js','utf8');if(!s.includes('./customer-list-true-bottom-runtime.js?build=20260912-customer-list-true-bottom-1'))throw new Error('network-first bootstrap missing true-bottom runtime');"
-      - name: Verify customer list remains at bottom
+      - name: Verify retired customer-card bootstrap stays disabled
+        run: node -e "const fs=require('fs');const s=fs.readFileSync('commercial-app/auth-cache-guard.js','utf8');if(s.includes(\"script.src='./customer-list-true-bottom-runtime.js\"))throw new Error('retired customer-card runtime is still loaded');"
+      - name: Verify Customer 360 is the only selected-customer experience
         run: node scripts/verify-customer-list-bottom-browser.js
       - name: Verify quote action stays on Quotes
         run: node scripts/verify-quote-delivery-page-scope-browser.js

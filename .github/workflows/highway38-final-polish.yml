@@ -25,6 +25,10 @@ jobs:
           node-version: '24'
       - name: Verify final polish contract
         run: node scripts/verify-highway38-final-polish.js
+      - name: Verify final 9.5 acceptance contract
+        run: |
+          node scripts/verify-final-95-contract.js
+          node scripts/verify-context-continuity.js
       - name: Verify Northern Lakes shared Office parity
         run: node scripts/verify-northern-lakes-business-office.js
       - name: Verify Office PDF, stationery and reference coverage
@@ -126,6 +130,12 @@ jobs:
         run: |
           set -o pipefail
           node scripts/verify-commercial-browser.js 2>&1 | tee artifacts/final-polish/browser-verification.txt
+      - name: Verify context return and final visual matrix
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-context-continuity-browser.js 2>&1 | tee artifacts/final-polish/context-continuity-browser.txt
+          node scripts/verify-final-95-acceptance-browser.js 2>&1 | tee artifacts/final-polish/final-95-browser.txt
       - name: Upload browser diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,6 +156,9 @@ jobs:
             artifacts/final-polish/business-office-review-demo-mobile-today.png
             artifacts/final-polish/business-office-review-demo-mobile-customers.png
             artifacts/final-polish/business-office-review-demo-mobile-quotes.png
+            artifacts/final-polish/context-continuity-browser.txt
+            artifacts/final-polish/final-95-browser.txt
+            artifacts/final-95/
           if-no-files-found: error
           retention-days: 90
 

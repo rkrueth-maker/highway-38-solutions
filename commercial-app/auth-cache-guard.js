@@ -42,12 +42,7 @@ function h38InstallCurrentOfficeWorker(){
 }
 
 function h38InstallTrueBottomCustomerRuntime(){
-  if(document.querySelector('script[data-h38-customer-true-bottom-runtime]'))return;
-  const script=document.createElement('script');
-  script.src='./customer-list-true-bottom-runtime.js?build=20260912-customer-list-true-bottom-1';
-  script.async=false;
-  script.dataset.h38CustomerTrueBottomRuntime='1';
-  document.head.appendChild(script);
+  document.querySelector('script[data-h38-customer-true-bottom-runtime]')?.remove();
 }
 
 h38RetireLegacyNavigationArtifacts();
