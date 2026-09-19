@@ -305,6 +305,19 @@ async function couponAcceptance(browser, session) {
   await waitEnabled(page,'#checkWatches',60000);
   check('Couponing Check watches now',await page.locator('.watch-state').count()>0);
 
+  const amazonWatchName=qa+' Amazon';
+  await page.fill('#watchItem',amazonWatchName);
+  await page.fill('#watchTarget','25.00');
+  await page.selectOption('#watchSource','amazon');
+  check('Couponing Amazon watch source enables reference',!(await page.locator('#watchRef').isDisabled()));
+  await page.fill('#watchRef','B012345678');
+  await page.click('#addWatch');
+  await waitEnabled(page,'#addWatch',60000);
+  const amazonRow=page.locator('.item').filter({hasText:amazonWatchName}).first();
+  check('Couponing Amazon Watch',await amazonRow.count()>0,(await page.locator('#status').innerText().catch(()=>'')));
+  check('Couponing Amazon watch badge',await amazonRow.locator('.badge').filter({hasText:'AMAZON'}).count()===1);
+  check('Couponing Amazon direct link',await amazonRow.locator('a[href*="amazon.com"]').count()===1);
+
   await page.click('[data-view="save"]');
   check('Couponing SAVE tab',await page.locator('[data-view="save"].active').count()===1);
   await page.fill('#assistant','Best single store under $100');
@@ -356,6 +369,8 @@ async function couponAcceptance(browser, session) {
   if(await qrow.count()){ await qrow.locator('[data-remove-price]').click(); await page.waitForTimeout(700); check('Couponing Delete price',true); }
   let wrow=page.locator('.item').filter({hasText:watchName}).first();
   if(await wrow.count() && await wrow.locator('[data-remove-watch]').count()){ await wrow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove watch',true); }
+  let arow=page.locator('.item').filter({hasText:amazonWatchName}).first();
+  if(await arow.count() && await arow.locator('[data-remove-watch]').count()){ await arow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove Amazon watch',true); }
 
   await page.click('[data-view="receipts"]');
   let rrow=page.locator('.item').filter({hasText:'QA Store'}).first();
