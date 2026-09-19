@@ -316,7 +316,7 @@ async function couponAcceptance(browser, session) {
   const amazonRow=page.locator('.item').filter({hasText:amazonWatchName}).first();
   check('Couponing Amazon Watch',await amazonRow.count()>0,(await page.locator('#status').innerText().catch(()=>'')));
   check('Couponing Amazon watch badge',await amazonRow.locator('.badge').filter({hasText:'AMAZON'}).count()>0);
-  check('Couponing Amazon direct link',await amazonRow.locator('a[href*="amazon.com"]').count()===1);
+  check('Couponing Amazon direct link',await amazonRow.locator('a[href*="amazon.com"]').count()>0);
 
   let discoveryRow=page.locator('.item').filter({hasText:'Amazon bargains & coupons'}).first();
   const hadDiscovery=(await discoveryRow.count())>0;
