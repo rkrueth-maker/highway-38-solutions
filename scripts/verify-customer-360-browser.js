@@ -13,7 +13,7 @@ const scale=path.join(root,'commercial-app/office-scale-workflow.js');
   try{
     await page.setContent(`<!doctype html><html><head></head><body><main id="mainContent"></main><aside><form id="paCommandForm"><textarea name="command"></textarea><button>Run</button></form><div id="testToast"></div></aside></body></html>`);
     await page.evaluate(()=>{
-      window.state={page:'customers',snapshot:{
+      window.state={page:'customers',snapshot:{user:{owner:true,roleName:'Owner'},
         customers:[
           {'Customer ID':'C-SMITH-1','Customer Name':'Smith','Email':'smith1@example.com'},
           {'Customer ID':'C-SMITH-2','Customer Name':'Smith','Email':'smith2@example.com'},
@@ -65,17 +65,20 @@ const scale=path.join(root,'commercial-app/office-scale-workflow.js');
     const customerDetails=page.locator('[data-h38-customer-details]');
     await customerDetails.waitFor({state:'visible'});
     const customerDetailsText=await customerDetails.textContent();
-    for(const expected of ['johnson@example.com','billing@example.com','218-555-0138','129 Hwy 38, Grand Rapids MN 55744','PO Box 38, Grand Rapids MN 55744','Hourly Rate','85.00','Mowing Rate','55.00','Plowing Rate','75.00'])assert(customerDetailsText.includes(expected),`customer details must show ${expected}`);
+    for(const expected of ['johnson@example.com','billing@example.com','218-555-0138','129 Hwy 38, Grand Rapids MN 55744','PO Box 38, Grand Rapids MN 55744'])assert(customerDetailsText.includes(expected),`Overview must show ${expected}`);
+    assert.equal(await page.locator('.h38-c360-workspace').count(),1,'exactly one Customer 360 workspace must render');
+    assert.deepEqual(await page.locator('.h38-c360-tabs [role="tab"]').allTextContents(),['Overview','Work','Money','Files']);
+    assert.equal(await page.locator('.h38-c360-panel:not([hidden])').count(),1,'only one Customer 360 panel may be visible');
     assert.equal((await page.locator('.h38-c360-activity h3').textContent()).trim(),'Recent activity');
-    assert.equal(await page.locator('details.h38-c360-detail-group').count(),3);
-    const summaries=await page.locator('details.h38-c360-detail-group > summary strong').allTextContents();
-    assert.deepEqual(summaries,['Active work','History, conversations & files','Billing history']);
-    assert.equal(await page.locator('details.h38-c360-detail-group').nth(0).getAttribute('open'),'');
-    assert.equal(await page.locator('details.h38-c360-detail-group').nth(1).getAttribute('open'),null);
+    await page.locator('[data-c360-tab="money"]').click();
+    const moneyText=await page.locator('[data-c360-panel="money"]').textContent();
+    for(const expected of ['Hourly Rate','85.00','Mowing Rate','55.00','Plowing Rate','75.00','INV-101'])assert(moneyText.includes(expected),`Money must show ${expected}`);
+    assert.equal(await page.locator('.h38-c360-panel:not([hidden])').count(),1,'tab switch must keep a single visible panel');
+    await page.locator('[data-c360-tab="files"]').click();
     const documentLinks=page.locator('[data-h38-open-document-id="D-JOHN"]');
     assert((await documentLinks.count())>=2,'document must be openable from its customer list and recent activity');
     await page.evaluate(()=>H38_OFFICE_SCALE_WORKFLOW.enhance());
-    await documentLinks.first().click();
+    await page.locator('[data-h38-open-document-id="D-JOHN"]:visible').first().click();
     await page.waitForFunction(()=>window.__openedDocumentUrl==='https://files.example/gutter-before.jpg');
     assert.equal(await page.locator('body').textContent().then(t=>t.includes('internal material cost')),false,'internal expense must not render');
     const firstActivity=await page.locator('.h38-c360-event strong').first().textContent();assert(firstActivity&&firstActivity.trim().length,'activity feed should render a title');
@@ -96,7 +99,12 @@ const scale=path.join(root,'commercial-app/office-scale-workflow.js');
     const synced=await page.evaluate(()=>window.__lastBridgeRequest.args.operations);
     assert.equal(synced[0].payload.record['Customer ID'],undefined,'finance write must remain customer-free');
     assert.equal(synced[1].payload.record['Customer ID'],'C-JOHN','operational child should inherit unique customer');
+    await page.evaluate(()=>{state.snapshot.user={roleName:'Field'};H38_CUSTOMER_360.selectedTab='overview';renderCustomers();});
+    assert.equal(await page.locator('[data-c360-tab="money"]').count(),0,'field role must not receive Money tab');
+    const fieldActivity=await page.locator('.h38-c360-activity').textContent();
+    assert(!fieldActivity.includes('INV-101'),'field role recent activity must not expose invoices');
+    assert(!fieldActivity.includes('Payment'),'field role recent activity must not expose payments');
     assert.deepEqual(errors,[],'browser should have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['render Johnson Customer 360','customer emails shown','customer addresses shown','customer rates shown','recent activity','document list links','progressive disclosure','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['single Customer 360 workspace','Overview Work Money Files tabs','single visible panel','customer emails shown','customer addresses shown','owner rates and invoice shown in Money','field Money hidden','field financial activity hidden','recent activity','document list links','internal finance hidden','internal test hidden','duplicate Smith ambiguity','one-character typo','finance sync isolation','operational source inheritance']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

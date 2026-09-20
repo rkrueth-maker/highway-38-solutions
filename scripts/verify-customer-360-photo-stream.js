@@ -49,7 +49,7 @@ const photoStream=path.join(root,'commercial-app/customer-360-photo-stream.js');
     assert.equal(await page.locator('[data-h38-media-key]').count(),2,'synced and pending media must share one photo stream');
     assert.equal(await page.locator('.h38-c360-photo-local').count(),1,'pending phone photo must remain visible before sync');
     await page.waitForFunction(()=>Array.from(document.querySelectorAll('[data-h38-media-key] img')).some(img=>img.src==='https://files.example/garage-before.jpg'));
-    const jobsSection=page.locator('.h38-c360-grid section.card').filter({has:page.locator('h3:text-is("Jobs")')});
+    const jobsSection=page.locator('.h38-c360-workspace section.card').filter({has:page.locator('h3:text-is("Jobs")')});
     assert.equal(await jobsSection.locator('.h38-c360-row').count(),11,'Customer 360 must expand beyond the old 8-row cap');
     assert.equal(await jobsSection.locator('.h38-c360-row-actions').count(),11,'every visible customer record must receive edit/delete controls');
     assert.equal(await page.getByRole('button',{name:'Edit customer'}).count(),1);
