@@ -36,7 +36,12 @@ grep -Fq 'data-h38-penny-web="store-actionable-v36"' "$REPORT/penny-web.html"
 grep -Fq 'Check deals' "$REPORT/penny-web.html"
 grep -Fq '>Resale<' "$REPORT/resale-web.html"
 grep -Fq 'Savings Copilot' "$REPORT/coupon-web.html"
-for word in SHOP SAVE SCAN DEALS RECEIPTS; do grep -Fq "$word" "$REPORT/coupon-web.html"; done
+for view in shop deals save scan receipts; do grep -Fq "data-view=\"$view\"" "$REPORT/coupon-web.html"; done
+grep -Fq '>1 LIST<' "$REPORT/coupon-web.html"
+grep -Fq '>2 SAVINGS<' "$REPORT/coupon-web.html"
+grep -Fq '>3 PLAN<' "$REPORT/coupon-web.html"
+grep -Fq '>4 SHOP<' "$REPORT/coupon-web.html"
+grep -Fq '>5 RECEIPT<' "$REPORT/coupon-web.html"
 grep -Fq 'h38-penny-api' "$REPORT/penny-web.html"
 ! grep -Fq 'h38-resale-api' "$REPORT/penny-web.html"
 ! grep -Fq 'h38-coupon-api' "$REPORT/penny-web.html"
