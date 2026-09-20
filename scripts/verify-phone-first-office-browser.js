@@ -11,7 +11,7 @@ const mobileScroll=path.join(app,'mobile-scroll-native-authority.js');
 const bootstrap=fs.readFileSync(path.join(app,'runtime-rowid-fix.js'),'utf8');
 const mobileSource=fs.readFileSync(mobileRuntime,'utf8');
 const scrollSource=fs.readFileSync(mobileScroll,'utf8');
-assert(bootstrap.includes("const PHONE_FIRST_BUILD='20260917-phone-first-office-4'"),'phone-first build must be versioned in the live-first bootstrap');
+assert(bootstrap.includes("const PHONE_FIRST_BUILD='20260919-real-customer-workspace-1'"),'phone-first build must be versioned in the live-first bootstrap');
 assert(bootstrap.includes('phone-first-office.js?build=${PHONE_FIRST_BUILD}'),'runtime-rowid live-first bootstrap must load phone-first Office');
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('eventDrivenStartup:true'),'phone-first startup must be event driven');
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('noStartupTimer:true'),'phone-first startup must not use a fixed startup delay');
