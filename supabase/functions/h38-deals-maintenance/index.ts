@@ -161,6 +161,29 @@ function probeSummary(name: string, r: Any) {
   return { name, status, http_status: r.status, result_count: results, declared_status: declared || null, engine: d.engine || null, warnings: d.warnings || [], error: r.error || null };
 }
 
+async function resolveZip(zip: string) {
+  try {
+    const r = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(zip)}`, {
+      headers: { accept: "application/json", "user-agent": "H38DealsMaintenance/1.0" },
+      signal: AbortSignal.timeout(9000),
+    });
+    const body = await r.json().catch(() => ({}));
+    const place = Array.isArray(body?.places) ? body.places[0] : null;
+    const lat = Number(place?.latitude), lon = Number(place?.longitude);
+    if (!r.ok || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return {
+      zip,
+      lat,
+      lon,
+      city: txt(place?.["place name"]),
+      state: txt(place?.state),
+      state_code: txt(place?.["state abbreviation"]),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function resaleCheck(auth: string, deep: boolean) {
   const a = admin(), warnings: string[] = [];
   const q = await a.from("reseller_hunt_cache").select("canonical_key,buy_price,last_seen_at,active").eq("active", true).gt("buy_price", 0).limit(1500);
@@ -171,17 +194,16 @@ async function resaleCheck(auth: string, deep: boolean) {
   if (!deep) { out.status = warnings.length ? "PARTIAL" : "PASS"; return out; }
 
   const base: Any = { city: "Grand Rapids", state: "MN", postal: "55744", zip: "55744", location_label: "Grand Rapids, MN", radiusMiles: 50, radius_miles: 50, max_results: 30 };
-  const geo = await invoke("reseller-location-geocode", auth, { zip: base.zip }, 15000);
-  const resolved = geo.ok ? (geo.data?.location || geo.data || {}) : {};
+  const resolved = await resolveZip(base.zip);
   const lat = Number(resolved?.lat), lon = Number(resolved?.lon);
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
     base.lat = lat;
     base.lon = lon;
     base.city = txt(resolved?.city) || base.city;
     base.state = txt(resolved?.state_code || resolved?.state) || base.state;
-    base.postal = txt(resolved?.zip || resolved?.postal) || base.postal;
+    base.postal = txt(resolved?.zip) || base.postal;
     base.zip = base.postal;
-    base.location_label = txt(resolved?.location_label) || [base.city, base.state, base.zip].filter(Boolean).join(", ");
+    base.location_label = [base.city, base.state, base.zip].filter(Boolean).join(", ");
   } else {
     warnings.push(`Location probe could not resolve ${base.zip}; coordinate-required source checks are reported as degraded instead of being called with invalid input.`);
   }
