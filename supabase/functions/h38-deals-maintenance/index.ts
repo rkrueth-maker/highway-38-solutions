@@ -45,13 +45,26 @@ async function ownerAuth(req: Request) {
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return null;
   const sb = createClient(BASE, ANON, { global: { headers: { Authorization: auth } } });
-  const { data: { user }, error } = await sb.auth.getUser(token);
-  if (error || !user) return null;
+  let userId = "";
+  try {
+    const claims = await sb.auth.getClaims(token);
+    userId = txt(claims?.data?.claims?.sub);
+  } catch {}
+  if (!userId) {
+    for (let attempt = 0; attempt < 2 && !userId; attempt++) {
+      try {
+        const { data: { user }, error } = await sb.auth.getUser(token);
+        if (!error && user?.id) userId = txt(user.id);
+      } catch {}
+      if (!userId && attempt === 0) await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+  if (!userId) return null;
   const a = admin();
   const q = await a.from("business_memberships").select("role,status")
-    .eq("auth_user_id", user.id).eq("status", "active").in("role", ["owner", "administrator"]).limit(1);
-  if (q.error || !q.data?.length) return { denied: true, user, auth };
-  return { denied: false, user, auth, role: q.data[0].role };
+    .eq("auth_user_id", userId).eq("status", "active").in("role", ["owner", "administrator"]).limit(1);
+  if (q.error || !q.data?.length) return { denied: true, user: { id: userId }, auth };
+  return { denied: false, user: { id: userId }, auth, role: q.data[0].role };
 }
 
 async function invoke(slug: string, auth: string, body: Any, timeout = 30000, apikey = ANON) {
