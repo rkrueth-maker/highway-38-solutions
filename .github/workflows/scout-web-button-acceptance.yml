@@ -1,4 +1,4 @@
-name: H38 Scout Maintenance Diagnostic
+name: H38 Scout Browser Acceptance
 
 on:
   push:
@@ -8,6 +8,11 @@ on:
       - 'supabase/functions/h38-deals-maintenance-web/**'
       - 'supabase/functions/h38-deals-maintenance/**'
       - 'scripts/build-scout-static-web.cjs'
+      - 'scripts/scout-mobile-ux-acceptance.cjs'
+      - 'deals-app/h38-deals-shell-v315.ts'
+      - 'supabase/functions/h38-penny-web/**'
+      - 'supabase/functions/h38-resale-web/**'
+      - 'supabase/functions/h38-coupon-web/**'
   workflow_dispatch:
 
 permissions:
@@ -107,3 +112,21 @@ jobs:
           })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close().catch(()=>{});});
           NODE
           node "$RUNNER_TEMP/h38-maintenance-diagnostic.cjs"
+
+      - name: Verify mobile-width UX and capture screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          export H38_WEB_BASE=http://127.0.0.1:4173
+          export H38_MOBILE_OUT=artifacts/scout-mobile-ux
+          node scripts/scout-mobile-ux-acceptance.cjs
+
+      - name: Upload browser UX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-scout-browser-ux
+          path: |
+            artifacts/scout-mobile-ux/**
+          if-no-files-found: warn
+          retention-days: 30
