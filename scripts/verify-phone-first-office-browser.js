@@ -45,7 +45,7 @@ assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule'
     await phone.addScriptTag({path:mobileScroll});
     await phone.addScriptTag({path:mobileRuntime});
     await phone.addScriptTag({path:phoneRuntime});
-    await phone.waitForFunction(()=>window.H38_MOBILE_RUNTIME_STABILITY?.phoneFirstPrimaryNavigation===true&&window.H38_PHONE_FIRST_OFFICE?.build==='20260917-phone-first-office-4');
+    await phone.waitForFunction(()=>window.H38_MOBILE_RUNTIME_STABILITY?.phoneFirstPrimaryNavigation===true&&window.H38_PHONE_FIRST_OFFICE?.build==='20260919-real-customer-workspace-1');
     await phone.waitForFunction(()=>document.querySelectorAll('#mainNav [data-h38-primary]').length===5);
     const labels=await phone.locator('#mainNav [data-h38-primary] span:last-child').allTextContents();
     assert.deepEqual(labels,['Today','Customers','Schedule','Messages','More'],'canonical phone navigation must be customer-first');
