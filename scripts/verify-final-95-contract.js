@@ -4,7 +4,7 @@ const files={index:read('commercial-app/index.html'),customer:read('commercial-a
 const checks={
  'Customer 360 only':files.customer.includes('customer360Only:true')&&!files.customer.includes('customerCardsPinnedBottom:true'),
  'no customer layout observer':!files.customer.includes('new MutationObserver'),
- 'phone safe zone':files.phone.includes('padding-bottom:calc(168px')&&files.phone.includes('@media(max-width:340px)')&&files.phone.includes('floatingCreateAvoidsCaptureControls:true'),
+ 'phone safe zone':files.phone.includes('--h38-bottom-ui-clearance:calc(172px')&&files.phone.includes('@media(max-width:340px)')&&files.phone.includes('font-size:11px!important')&&files.phone.includes('universalBottomSafeZone:true')&&files.phone.includes('floatingCreateAvoidsCaptureControls:true'),
  'Smart Upload loaded':files.index.includes('smart-upload.js?build=20260920-final-real-office-1')&&files.index.includes('smart-upload.css?build=20260920-final-real-office-1'),
  'Smart Upload confirms ambiguity':files.upload.includes('requiresConfirmation')&&files.upload.includes('Confirm & save privately')&&files.upload.includes('retainsOriginal:true')&&files.upload.includes('contentAwareClassification:true'),
  'Meeting Report standard':files.meeting.includes('meetingReportHtmlV2')&&['Meeting Summary','Customer Information','Property / Job Information','Work Requested','Measurements / Details','Decisions','Additional Work Discussed','Customer Commitments','H38 Commitments','Open Questions','Follow-Up','Quote / Change Requirements','Attached Evidence'].every(x=>files.meeting.includes(x)),

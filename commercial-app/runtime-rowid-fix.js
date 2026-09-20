@@ -1,10 +1,10 @@
 (function(){
 'use strict';
-const CUSTOMER_WORKSPACE_BUILD='20260912-customer-service-operations-1';
+const CUSTOMER_WORKSPACE_BUILD='20260920-customer-master-detail-2';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
 const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260919-owner-mobile-quick-actions-4';
-const PHONE_FIRST_BUILD='20260920-final-real-office-1';
+const PHONE_FIRST_BUILD='20260920-phone-safe-zone-2';
 const OWNER_PHONE_MODE_BUILD='20260918-owner-one-shell-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
 const INSTALL_MANIFEST_BUILD='20260915-owner-logo-pwa-3';

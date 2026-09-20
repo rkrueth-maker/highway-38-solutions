@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260915-customer-360-timeline-1';
+const BUILD='20260920-canonical-workspace-2';
 const INITIAL_LIMIT=36;
 const TYPE_ORDER=['all','meeting','site','media','quote','job','billing','followup','request'];
 const TYPES={
@@ -48,9 +48,15 @@ function render(){const b=customerBundle(),cid=selectedId(),host=locateHost();if
   section.querySelector('[data-h38-timeline-more]')?.addEventListener('click',()=>{showAll=!showAll;render();});
   const byKey=new Map(events.map(e=>[`${e.collection}:${e.id}`,e]));section.querySelectorAll('[data-h38-timeline-event]').forEach(node=>{node.querySelector('[data-h38-timeline-open]')?.addEventListener('click',()=>{const event=byKey.get(`${node.dataset.h38TimelineCollection}:${node.dataset.h38TimelineId}`);if(event)scrollToRecord(event);});});return true;
 }
-function reconcile(){if(String(window.state?.page||'')!=='customers'){document.querySelector('[data-h38-c360-timeline]')?.remove();return false;}return render();}
+function reconcile(){
+  const existing=document.querySelector('[data-h38-c360-timeline]');
+  if(String(window.state?.page||'')!=='customers'){existing?.remove();return false;}
+  /* The canonical workspace already owns Recent activity inside Overview. */
+  if(document.querySelector('.h38-c360-workspace [data-c360-panel="overview"]')){existing?.remove();return true;}
+  return render();
+}
 window.addEventListener?.('h38:business-snapshot-updated',reconcile);
 window.addEventListener?.('pageshow',reconcile);
-window.H38_CUSTOMER_360_TIMELINE=Object.freeze({enabled:true,build:BUILD,chronologicalCustomerStory:true,meetingSiteMediaQuoteJobBillingFollowup:true,filterable:true,deepLinksToCustomerRecords:true,initialLimit:INITIAL_LIMIT,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile,render});
+window.H38_CUSTOMER_360_TIMELINE=Object.freeze({enabled:true,build:BUILD,chronologicalCustomerStory:true,canonicalOverviewOwnsRecentActivity:true,noStandaloneCanonicalTimeline:true,meetingSiteMediaQuoteJobBillingFollowup:true,filterable:true,deepLinksToCustomerRecords:true,initialLimit:INITIAL_LIMIT,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile,render});
 reconcile();
 })();
