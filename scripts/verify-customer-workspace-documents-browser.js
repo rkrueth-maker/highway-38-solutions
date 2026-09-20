@@ -29,7 +29,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
   try{
     await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"></main><div id="toast"></div></body></html>');
     await page.evaluate(()=>{
-      window.state={page:'customers',businessId:'B-1',snapshot:{
+      window.state={page:'customers',businessId:'B-1',snapshot:{user:{owner:true,roleName:'Owner'},
         customers:[
           {'Customer ID':'C-1','Customer Name':'North Pine','Email':'north@example.com','Phone':'218-555-0101','Status':'Active'},
           {'Customer ID':'C-2','Customer Name':'Lake Shop','Email':'','Phone':'','Service Address':'19853 County Rd 10','Service City':'Warba','Service State':'MN','Plowing Rate':'$50/time','Status':'Active'}
@@ -68,6 +68,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert(cardText.includes('Plowing Rate: $50/time'),'customer card must show the imported customer rate');
     await page.locator('[data-h38-customer-card="C-2"]').click();
     await page.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2'&&document.querySelector('.h38-c360 h2')?.textContent.includes('Lake Shop'));
+    await page.locator('[data-c360-tab="money"]').click();
     await page.waitForSelector('[data-h38-service-operations]');
     assert((await page.locator('[data-h38-service-operations]').textContent()).includes('Snow plowing'),'plowing rate must appear as a subscribed service');
     await page.locator('[data-h38-trigger-service="0"]').click();
@@ -86,6 +87,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert.equal(await page.locator('#customerForm [name="customerName"]').inputValue(),'Lake Shop','edit must load selected customer');
     await page.locator('[data-h38-add-location]').click();
     assert.equal(await page.locator('#propertyForm [name="customerId"]').inputValue(),'C-2','new location must stay attached to selected customer');
+    await page.locator('[data-c360-tab="overview"]').click();
     await page.locator('#h38CustomerNoteInput').fill('Prefers text before arrival.');
     await page.locator('#h38SaveCustomerNote').click();
     await page.waitForFunction(()=>window.__ops.length>0);

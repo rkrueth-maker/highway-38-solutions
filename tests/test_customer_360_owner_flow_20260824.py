@@ -12,7 +12,7 @@ JOB_LIFECYCLE=(ROOT/'commercial-app/job-lifecycle.js').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
-    assert "const BUILD='20260913-document-links-1'" in C360
+    assert "const BUILD='20260919-real-customer-workspace-1'" in C360
     assert 'data-h38-open-document-id' in C360
     assert 'root.H38_CUSTOMER_360=api' in C360
     for marker in ['customers','properties','jobs','quotes','meetings','siteCaptureSessions','siteMeasurements','documents','followUps','invoices']:
@@ -42,7 +42,7 @@ def test_owner_language_search_handles_names_addresses_and_job_language():
 
 
 def test_customer_360_base_actions_and_sections_exist():
-    for marker in ['CUSTOMER 360','Locations','Jobs','Requests','Quotes','Site visits','Measurements','Meetings & conversations','Files & photos','Follow-ups','Tasks','Customer billing','Customer setup']:
+    for marker in ['CUSTOMER 360','Overview','Work','Money','Files','Locations','Active work','Jobs','Requests','Quotes','Site visits','Measurements','Meetings','Documents','Needs Attention','Tasks','Invoices','Payments','Customer setup']:
         assert marker in C360
     for marker in ['Start quote','Site visit','Meeting','Message','Work']:
         assert marker in C360
@@ -50,7 +50,7 @@ def test_customer_360_base_actions_and_sections_exist():
 
 
 def test_customer_file_shows_imported_contact_address_and_rate_fields():
-    for marker in ['Contact, addresses & rates','Alternate Email','Service Address','Billing Address','Hourly Rate','Mowing Rate','Plowing Rate','Travel / Service Call Charge']:
+    for marker in ['Customer details','Customer pricing','Alternate Email','Service Address','Billing Address','Hourly Rate','Mowing Rate','Plowing Rate','Travel / Service Call Charge']:
         assert marker in C360
     for marker in ['.h38-c360-customer-details','.h38-c360-detail-columns','.h38-c360-detail-line']:
         assert marker in CSS
@@ -120,7 +120,7 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 
 
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
-    assert 'customer-360-browser-integration-v3.js?build=20260913-document-links-1' in INDEX
+    assert 'customer-360-browser-integration-v3.js?build=20260919-real-customer-workspace-1' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20260913-document-links-1' in BROWSER
-    assert 'customer-360-authority.css?build=20260913-document-links-1' in BROWSER
+    assert 'customer-360-authority.js?build=20260919-real-customer-workspace-1' in BROWSER
+    assert 'customer-360-authority.css?build=20260919-real-customer-workspace-1' in BROWSER
