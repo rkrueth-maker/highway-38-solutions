@@ -198,7 +198,7 @@ async function resaleAcceptance(browser, session) {
   async function scanTab(tab, requireRows) {
     if(tab!=='deals'){
       const sources=page.locator('details.sources');
-      if(await sources.count() && !(await sources.getAttribute('open'))) await sources.locator('summary').click();
+      if(await sources.count() && !(await sources.evaluate(el=>el.open))) await sources.locator('summary').click();
     }
     await page.click('[data-tab="'+tab+'"]');
     check('Resale tab '+tab,await page.locator('[data-tab="'+tab+'"].active').count()===1);
