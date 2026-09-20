@@ -12,7 +12,7 @@ JOB_LIFECYCLE=(ROOT/'commercial-app/job-lifecycle.js').read_text()
 
 
 def test_customer_is_primary_operational_hub_and_internal_finance_is_excluded():
-    assert "const BUILD='20260920-final-real-office-1'" in C360
+    assert "const BUILD='20260920-final-customer-workspace-2'" in C360
     assert 'data-h38-open-document-id' in C360
     assert 'root.H38_CUSTOMER_360=api' in C360
     for marker in ['customers','properties','jobs','quotes','meetings','siteCaptureSessions','siteMeasurements','documents','followUps','invoices']:
@@ -35,7 +35,7 @@ def test_relationship_graph_resolves_indirect_children_and_historical_orphans():
 
 
 def test_owner_language_search_handles_names_addresses_and_job_language():
-    for marker in ['hwy','highway','John','Find customer, address or job','job on Hwy 38','resolveAssistantQuery','searchCustomers']:
+    for marker in ['hwy','highway','Find customer, address or job','Name, address or job','resolveAssistantQuery','searchCustomers']:
         assert marker.lower() in C360.lower()
     assert "t.endsWith('s')" in C360
     assert 'Add a little more of the name, address, or job' in C360
@@ -122,5 +122,5 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
     assert 'customer-360-browser-integration-v3.js?build=20260920-final-real-office-1' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20260920-final-real-office-1' in BROWSER
-    assert 'customer-360-authority.css?build=20260920-final-real-office-1' in BROWSER
+    assert 'customer-360-authority.js?build=20260920-final-customer-workspace-2' in BROWSER
+    assert 'customer-360-authority.css?build=20260920-final-customer-workspace-2' in BROWSER
