@@ -1,0 +1,159 @@
+{
+  "libraryVersion": "1.0.0",
+  "title": "H38 Workflow Video Library and Acceptance Evidence",
+  "policy": {
+    "runtimeOnly": true,
+    "noSyntheticRecordings": true,
+    "noVideoBinariesInGit": true,
+    "cleanTrainingReferencesAreDerivedFromReviewedRawEvidence": true
+  },
+  "baselineSourceCommit": "6dfaca2c797d44de620ab0b13d45482c1ee4e044",
+  "testData": {
+    "customer": "Pine Ridge Test Customer",
+    "job": "Pine Ridge Garage Improvement — TEST",
+    "lawnProperty": "Maple View Test Property — TEST",
+    "snowProperty": "North Ridge Test Shop — TEST",
+    "emails": [
+      "highway38solutions@gmail.com",
+      "rkrueth@gmail.com"
+    ],
+    "emailSubjectPrefix": "[H38 TEST]"
+  },
+  "entries": [
+    {
+      "id": "H38-01-01",
+      "title": "Owner Office — Navigation and Customer 360",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/01-getting-started/H38-01-01-Owner-Office.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-01-01.webm",
+      "trainingReference": "training-media/H38-01-01.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-03-02",
+      "title": "Meeting → Customer → Follow-up",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/03-meetings/H38-03-02-Meeting-to-Customer.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-03-02.webm",
+      "trainingReference": "training-media/H38-03-02.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-04-01",
+      "title": "Site Visit → Quote",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/04-quotes/H38-04-01-Site-Visit-to-Quote.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-04-01.webm",
+      "trainingReference": "training-media/H38-04-01.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-04-02",
+      "title": "Quote Before/After Evidence",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/04-quotes/H38-04-01-Site-Visit-to-Quote.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-04-02.webm",
+      "trainingReference": "training-media/H38-04-02.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-05-02",
+      "title": "Complete a Field Job",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/05-field/H38-05-02-Complete-Field-Job.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-05-02.webm",
+      "trainingReference": "training-media/H38-05-02.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-06-01",
+      "title": "Lawn Mowing Service Workflow",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/06-services/H38-06-01-Lawn-Mowing.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-06-01.webm",
+      "trainingReference": "training-media/H38-06-01.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-06-02",
+      "title": "Snow Plowing Service Workflow",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "Northern specific",
+      "guide": "docs/training/06-services/H38-06-02-Snow-Plowing.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-06-02.webm",
+      "trainingReference": "training-media/H38-06-02.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-07-01",
+      "title": "Smart Upload and Confirmed Filing",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/07-documents/H38-07-01-Smart-Upload.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-07-01.webm",
+      "trainingReference": "training-media/H38-07-01.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    },
+    {
+      "id": "H38-09-01",
+      "title": "Contextual Personal Assistant",
+      "roles": [
+        "Owner",
+        "Field"
+      ],
+      "tenant": "H38 + Northern shared",
+      "guide": "docs/training/09-assistant/H38-09-01-Contextual-Assistant.md",
+      "rawEvidence": "artifacts/workflow-video-evidence/raw/H38-09-01.webm",
+      "trainingReference": "training-media/H38-09-01.mp4",
+      "status": "planned",
+      "automation": "authorized-runtime",
+      "helpStatus": "ready"
+    }
+  ]
+}
