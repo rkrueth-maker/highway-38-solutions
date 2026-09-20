@@ -85,8 +85,10 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.locator('[data-h38-edit-customer]').click();
     assert.equal(await page.locator('#customerForm [name="customerId"]').inputValue(),'C-2','edit must preserve selected customer id');
     assert.equal(await page.locator('#customerForm [name="customerName"]').inputValue(),'Lake Shop','edit must load selected customer');
+    await page.locator('[data-h38-close-customer-setup]').click();
     await page.locator('[data-h38-add-location]').click();
     assert.equal(await page.locator('#propertyForm [name="customerId"]').inputValue(),'C-2','new location must stay attached to selected customer');
+    await page.locator('[data-h38-close-customer-setup]').click();
     await page.locator('[data-c360-tab="overview"]').click();
     await page.locator('#h38CustomerNoteInput').fill('Prefers text before arrival.');
     await page.locator('#h38SaveCustomerNote').click();
