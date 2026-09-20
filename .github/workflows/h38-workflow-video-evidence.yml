@@ -98,8 +98,12 @@ NODE
           const dir=process.env.EVIDENCE_DIR||'artifacts/workflow-video-evidence';
           const manifestPath=path.join(dir,'manifest.json');
           const resultsPath=path.join(dir,'results.json');
-          const summary=process.env.GITHUB_STEP_SUMMARY;
-          const append=lines=>fs.appendFileSync(summary,`${lines.join('\n')}\n`);
+          const summary=process.env.GITHUB_STEP_SUMMARY||'';
+          const append=lines=>{
+            const text=`${lines.join('\n')}\n`;
+            if(summary)fs.appendFileSync(summary,text);
+            else console.log(text);
+          };
           const readJson=file=>{
             if(!fs.existsSync(file))return null;
             try{return JSON.parse(fs.readFileSync(file,'utf8'));}
