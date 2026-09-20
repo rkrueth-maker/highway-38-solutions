@@ -94,6 +94,15 @@ jobs:
             console.log('MAINT_FINAL_REQUEST_FAILURES',JSON.stringify(failed));
             if(!/^Finished\./.test(finalMsg)) throw new Error(finalMsg);
             if(await page.locator('#report .card').count()===0) throw new Error('Maintenance finished without report cards');
+            page.once('dialog',d=>d.accept());
+            await page.locator('#maintain').click();
+            await page.waitForFunction(()=>/^(Finished\.|Maintenance failed:)/.test(document.querySelector('#msg')?.textContent||'') && !/Checking|Refreshing/.test(document.querySelector('#msg')?.textContent||''),null,{timeout:95000});
+            const deepMsg=await page.locator('#msg').innerText();
+            const deepRaw=await page.locator('#raw').innerText().catch(()=>'<missing>');
+            console.log('MAINT_DEEP_FINAL',JSON.stringify(deepMsg));
+            console.log('MAINT_DEEP_REPORT',deepRaw);
+            if(!/^Finished\./.test(deepMsg)) throw new Error(deepMsg);
+            if(/Finished\. FAIL/i.test(deepMsg)) throw new Error('Deep maintenance returned FAIL: '+deepMsg);
             console.log('H38_MAINTENANCE_DIAGNOSTIC_PASS');
           })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close().catch(()=>{});});
           NODE
