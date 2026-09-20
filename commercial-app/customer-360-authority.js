@@ -4,7 +4,7 @@
   if(root){root.H38_CUSTOMER_360=api;if(root.document)api.install(root);}
 })(typeof window!=='undefined'?window:null,function(){
 'use strict';
-const BUILD='20260919-real-customer-workspace-1';
+const BUILD='20260920-final-real-office-1';
 const INTERNAL_FINANCIAL=new Set(['expenses','purchases','purchaseOrders','vendorBills','payroll','payrollRuns','tax','taxRecords','contractorCostChecklists','contractorPricingPolicy','priceBookCostHistory','internalCosting']);
 const INTERNAL_BUSINESS=new Set(['usageLogs','trialBenchmarks','aiRecommendations','proofLog','errorLog','moduleSettings','providers','quickActions','aiKnowledge','roles','users','inventoryTransactions','assets','maintenance','socialMetrics']);
 const CUSTOMER_COLLECTIONS=['customers','properties','requests','jobs','workOrders','tasks','scheduleEvents','conversations','messages','emailThreads','emailMessages','smsThreads','smsMessages','portalThreads','portalMessages','quotes','quoteRevisions','meetings','siteCaptureSessions','siteMeasurements','checklists','changeOrders','timeEntries','jobNotes','dailyLogs','documents','invoices','payments','materialRequests','assignments','inspections','recurringPlans','followUps'];

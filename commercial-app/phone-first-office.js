@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260919-real-customer-workspace-1';
+const BUILD='20260920-final-real-office-1';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -22,7 +22,7 @@ function ensureStyle(){
 @media(max-width:760px){
  body.h38-phone-first-office #h38NewActionButton{display:none!important}
  body.h38-phone-first-office #mainContent{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important}
- .h38-phone-create{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:2490;width:58px;height:58px;border-radius:50%;border:0;box-shadow:0 10px 28px rgba(11,36,56,.28);font-size:30px;font-weight:900;display:grid;place-items:center;background:var(--navy,#0b2438);color:#fff}.h38-phone-create[hidden]{display:none!important}
+ .h38-phone-create{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:2490;width:58px;height:58px;border-radius:50%;border:0;box-shadow:0 10px 28px rgba(11,36,56,.28);font-size:30px;font-weight:900;display:grid;place-items:center;background:var(--navy,#0b2438);color:#fff}.h38-phone-create[hidden],body:has(dialog[open]) .h38-phone-create{display:none!important}
  body.h38-phone-first-office .toast{right:84px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 104px)!important}
  .h38-phone-create-dialog{width:min(520px,calc(100vw - 18px));max-height:82dvh;border:0;border-radius:18px;padding:0}.h38-phone-create-dialog::backdrop{background:rgba(0,0,0,.55)}
  .h38-phone-create-shell{padding:16px;display:grid;gap:14px}.h38-phone-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.h38-phone-sheet-head h2{margin:0}.h38-phone-sheet-head p{margin:4px 0 0;color:var(--muted,#607285);font-size:.86rem}
@@ -50,7 +50,10 @@ function createDialog(){
   d.querySelector('[data-h38-close]').onclick=()=>d.close();d.querySelectorAll('[data-h38-create]').forEach(b=>b.onclick=()=>{d.close();routeCreate(b.dataset.h38Create);});document.body.appendChild(d);return d;
 }
 function ensureCreate(){
-  let b=document.getElementById('h38PhoneCreateButton');if(!mobile()||!signedIn()||fieldOpen()){b?.remove();return;}if(b)return;
+  let b=document.getElementById('h38PhoneCreateButton');
+  const capturePage=['money','documents','field','quotes'].includes(text(state().page));
+  const visibleFileControl=Array.from(document.querySelectorAll('#mainContent input[type="file"]')).some(input=>{try{return input.getClientRects().length>0&&getComputedStyle(input).display!=='none';}catch(_){return false;}});
+  if(!mobile()||!signedIn()||fieldOpen()||capturePage||visibleFileControl){b?.remove();return;}if(b)return;
   b=document.createElement('button');b.type='button';b.id='h38PhoneCreateButton';b.className='h38-phone-create';b.setAttribute('aria-label','Create new work');b.textContent='＋';
   b.onclick=()=>{const canonical=document.getElementById('h38QuickCreateDialog');if(canonical?.showModal){if(!canonical.open)canonical.showModal();return;}const top=document.getElementById('h38NewActionButton');if(top){top.click();return;}const d=createDialog();if(!d.open)d.showModal?.();};document.body.appendChild(b);
 }
@@ -115,5 +118,5 @@ function runReconcile(){
 function reconcile(){if(scheduled)return;scheduled=true;queueMicrotask(()=>requestAnimationFrame(runReconcile));}
 window.addEventListener?.('h38:office-page-rendered',reconcile);window.addEventListener?.('h38:business-snapshot-updated',reconcile);window.addEventListener?.('h38:authoritative-startup-ready',reconcile);window.addEventListener?.('pageshow',reconcile);window.addEventListener?.('resize',reconcile);window.visualViewport?.addEventListener?.('resize',reconcile);
 observer=new MutationObserver(ms=>{if(ms.some(m=>m.type==='childList'&&(m.target.id==='mainContent'||m.target.closest?.('#mainContent,#h38FieldVisitApp')||Array.from(m.addedNodes||[]).some(n=>n.nodeType===1&&(n.id==='h38FieldVisitApp'||n.querySelector?.('#h38FieldVisitApp'))))))reconcile();});observer.observe(document.documentElement,{subtree:true,childList:true});queueMicrotask(reconcile);
-window.H38_PHONE_FIRST_OFFICE=Object.freeze({enabled:true,build:BUILD,navigationDelegatedToMobileAuthority:true,customerFirst:true,schedulePrimary:true,jobsInMore:true,floatingCreate:true,toastClearsFloatingCreate:true,groupedMoreDelegated:true,simplifiedToday:true,customerFinder:true,customerQuickActions:true,siteVisitStepper:true,desktopUnchanged:true,eventDrivenStartup:true,noStartupTimer:true,startupReadyMarker:true,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile});
+window.H38_PHONE_FIRST_OFFICE=Object.freeze({enabled:true,build:BUILD,navigationDelegatedToMobileAuthority:true,customerFirst:true,schedulePrimary:true,jobsInMore:true,floatingCreate:true,floatingCreateAvoidsCaptureControls:true,toastClearsFloatingCreate:true,groupedMoreDelegated:true,simplifiedToday:true,customerFinder:true,customerQuickActions:true,siteVisitStepper:true,desktopUnchanged:true,eventDrivenStartup:true,noStartupTimer:true,startupReadyMarker:true,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile});
 })();
