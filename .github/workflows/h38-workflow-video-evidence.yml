@@ -22,6 +22,48 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci && npx playwright install --with-deps chromium
+      - name: Preflight recording authorization and prerequisites
+        env:
+          RECORDING_AUTHORIZED: ${{ inputs.recording_authorized }}
+          STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
+          EVIDENCE_DIR: artifacts/workflow-video-evidence
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+
+          hold_code=''
+          hold_detail=''
+          if [ "$RECORDING_AUTHORIZED" != 'true' ]; then
+            hold_code='AUTHORIZATION_REQUIRED'
+            hold_detail='Recording intentionally held. Re-run workflow_dispatch and set recording_authorized=true only for controlled TEST records.'
+          elif [ -z "$STORAGE_STATE" ]; then
+            hold_code='AUTH_STORAGE_STATE_REQUIRED'
+            hold_detail='Missing repository secret H38_WORKFLOW_STORAGE_STATE. Add an authorized TEST storage state and rerun this workflow.'
+          fi
+
+          if [ -n "$hold_code" ]; then
+            node - "$EVIDENCE_DIR" "$hold_code" "$hold_detail" <<'NODE'
+            const fs=require('fs');
+            const path=require('path');
+            const out=process.argv[2],code=process.argv[3],detail=process.argv[4];
+            const now=new Date().toISOString();
+            const evidence={status:'HOLD',code,detail,capturedAt:now,sourceSha:process.env.GITHUB_SHA||'local'};
+            fs.mkdirSync(out,{recursive:true});
+            fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(evidence,null,2)+'\n');
+            fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({status:'HOLD',workflows:[],failure:evidence},null,2)+'\n');
+NODE
+            {
+              echo '### H38 Workflow Video Evidence — HOLD'
+              echo
+              echo "- Status: HOLD"
+              echo "- Code: $hold_code"
+              echo "- Detail: $hold_detail"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=$hold_code::$hold_detail"
+            exit 2
+          fi
+
+          echo "::notice::Authorization and storage-state prerequisite checks passed."
       - name: Write authorized storage state to runner temp only
         env:
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
@@ -45,3 +87,57 @@ jobs:
           path: artifacts/workflow-video-evidence/
           if-no-files-found: warn
           retention-days: 30
+      - name: Summarize recording evidence status
+        if: always()
+        env:
+          EVIDENCE_DIR: artifacts/workflow-video-evidence
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const dir=process.env.EVIDENCE_DIR||'artifacts/workflow-video-evidence';
+          const manifestPath=path.join(dir,'manifest.json');
+          const resultsPath=path.join(dir,'results.json');
+          const summary=process.env.GITHUB_STEP_SUMMARY;
+          const append=lines=>fs.appendFileSync(summary,`${lines.join('\n')}\n`);
+          const readJson=file=>{
+            if(!fs.existsSync(file))return null;
+            try{return JSON.parse(fs.readFileSync(file,'utf8'));}
+            catch(error){
+              append([
+                '### H38 Workflow Video Evidence — Summary unavailable',
+                '',
+                `- File: \`${file}\``,
+                `- Detail: Unable to parse JSON (${error.message})`
+              ]);
+              return null;
+            }
+          };
+
+          const results=readJson(resultsPath);
+          const manifest=readJson(manifestPath);
+          const source=results||manifest;
+          if(!source){
+            append([
+              '### H38 Workflow Video Evidence — No evidence files found',
+              '',
+              '- Status: UNKNOWN',
+              '- Detail: `manifest.json` and `results.json` were not generated.'
+            ]);
+            console.log('No manifest/results evidence files were found to summarize.');
+            process.exit(0);
+          }
+
+          const failure=(source&&typeof source.failure==='object'&&source.failure)||null;
+          const status=String(source.status||failure?.status||'UNKNOWN');
+          const code=failure?.code||source.code||'N/A';
+          const detail=failure?.detail||source.detail||'No additional detail provided.';
+          append([
+            '### H38 Workflow Video Evidence — Result',
+            '',
+            `- Status: ${status}`,
+            `- Code: ${code}`,
+            `- Detail: ${detail}`
+          ]);
+          console.log(JSON.stringify({status,code,detail}));
+NODE

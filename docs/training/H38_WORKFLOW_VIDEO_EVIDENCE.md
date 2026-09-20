@@ -16,7 +16,7 @@ Rollback: remove this library/workflow; it does not mutate runtime or records.
 
 Run **H38 Workflow Video Evidence** manually with repository secret `H38_WORKFLOW_STORAGE_STATE`, containing an authorized test-only Owner/Field storage-state JSON, and input `recording_authorized=true`. The secret exists only in runner temp storage and is never uploaded.
 
-The runner opens the deployed Office URL, rejects anonymous/gateway pages, and stores manifest, results, screenshots, and raw WEBM under `artifacts/workflow-video-evidence/`. Missing authorization produces machine-readable HOLD evidence; it never synthesizes an alternate video.
+The runner preflights `recording_authorized` and `H38_WORKFLOW_STORAGE_STATE` before recording, writes a clear Actions summary for held prerequisites, opens the deployed Office URL, rejects anonymous/gateway pages, and stores manifest, results, screenshots, and raw WEBM under `artifacts/workflow-video-evidence/`. Missing authorization produces machine-readable HOLD evidence; it never synthesizes an alternate video.
 
 ## Physical-device acceptance
 
