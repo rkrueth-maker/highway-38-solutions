@@ -103,7 +103,7 @@ jobs:
             await page.locator('#maintain').click();
             await page.waitForFunction(()=>/^(Finished\.|Maintenance failed:)/.test(document.querySelector('#msg')?.textContent||'') && !/Checking|Refreshing/.test(document.querySelector('#msg')?.textContent||''),null,{timeout:95000});
             const deepMsg=await page.locator('#msg').innerText();
-            const deepRaw=await page.locator('#raw').innerText().catch(()=>'<missing>');
+            const deepRaw=await page.locator('#raw').textContent().catch(()=>'<missing>');
             console.log('MAINT_DEEP_FINAL',JSON.stringify(deepMsg));
             console.log('MAINT_DEEP_REPORT',deepRaw);
             if(!/^Finished\./.test(deepMsg)) throw new Error(deepMsg);
@@ -117,6 +117,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/build-scout-static-web.cjs artifacts/scout-web-static
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory artifacts/scout-web-static >/tmp/h38-mobile-web.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/ >/dev/null
           export H38_WEB_BASE=http://127.0.0.1:4173
           export H38_MOBILE_OUT=artifacts/scout-mobile-ux
           node scripts/scout-mobile-ux-acceptance.cjs
