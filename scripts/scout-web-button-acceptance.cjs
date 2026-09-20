@@ -432,7 +432,7 @@ async function maintenanceAcceptance(browser, session) {
   await waitEnabled(page,'#maintain',180000);
   const maintainMsg=await page.locator('#msg').innerText();
   check('Maintenance Run maintenance',/^Finished\./.test(maintainMsg),maintainMsg);
-  check('Maintenance technical report',((await page.locator('#raw').innerText()).trim().length>100));
+  check('Maintenance technical report',((await page.locator('#raw').textContent()).trim().length>100));
   await assertNoPageErrors('Maintenance',pageErrors);
   await context.close();
 }
