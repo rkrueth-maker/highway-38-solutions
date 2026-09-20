@@ -76,6 +76,6 @@ assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule'
     assert.deepEqual(errors,[],`phone runtime errors: ${errors.join(' | ')}`);
 
     const desktop=await browser.newPage({viewport:{width:1280,height:900}});await desktop.setContent('<!doctype html><html><body><nav id="mainNav"><button id="desktopOriginal">Desktop</button></nav><main id="mainContent"><header class="page-head"><h1>Today</h1></header></main></body></html>');await desktop.evaluate(()=>{window.state={shell:'office',page:'today',snapshot:{user:{owner:true}}};window.allowedPages=()=>['today','customers','schedule','messages','work'];window.renderNav=()=>{};});await desktop.addScriptTag({path:phoneRuntime});await desktop.waitForTimeout(120);assert.equal(await desktop.locator('#h38PhoneCreateButton').count(),0);assert.equal(await desktop.locator('#mainNav [data-h38-primary]').count(),0,'phone polish must not take desktop navigation ownership');await desktop.close();
-    console.log(JSON.stringify({status:'PASS',build:'20260917-phone-first-office-4',primary:labels,singleNavAuthority:true,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,desktopUnchanged:true}));
+    console.log(JSON.stringify({status:'PASS',build:'20260919-real-customer-workspace-1',primary:labels,singleNavAuthority:true,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,desktopUnchanged:true}));
   }finally{await phone.close();await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
