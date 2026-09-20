@@ -1,0 +1,32 @@
+name: Workflow Recorder Static Acceptance
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/record-real-office-workflow-evidence.js'
+      - 'scripts/verify-workflow-video-library.js'
+      - 'docs/training/**'
+      - '.github/workflows/h38-workflow-video-evidence.yml'
+      - '.github/workflows/workflow-recorder-static-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify recorder JavaScript syntax
+        run: node --check scripts/record-real-office-workflow-evidence.js
+      - name: Verify library verifier syntax
+        run: node --check scripts/verify-workflow-video-library.js
+      - name: Verify real-runtime recording safety contract
+        run: node scripts/verify-workflow-video-library.js
