@@ -164,10 +164,13 @@ async function pennyAcceptance(browser, session) {
   }
   const more=page.locator('[data-more]:visible').first();
   if(await more.count()){
-    const before=(await more.innerText()).trim();
+    const beforeLabel=(await more.innerText()).trim();
+    const beforeDeals=await page.locator('.store .deal').count();
     await more.click();
-    const after=(await page.locator('[data-more]:visible').first().innerText()).trim();
-    check('Penny show more/fewer', before!==after, before+' -> '+after);
+    await page.waitForTimeout(150);
+    const afterDeals=await page.locator('.store .deal').count();
+    const afterLabel=(await page.locator('[data-more]:visible').first().innerText()).trim();
+    check('Penny progressive show more', afterDeals>beforeDeals && afterDeals-beforeDeals<=20, beforeLabel+' · '+beforeDeals+' -> '+afterLabel+' · '+afterDeals);
   }
 
   await assertNoPageErrors('Penny',pageErrors);
