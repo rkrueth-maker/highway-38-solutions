@@ -58,7 +58,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.evaluate(()=>{H38_CUSTOMER_360.selectedCustomerId='C-1';renderCustomers();});
     await page.addScriptTag({path:runtime});
     await page.addScriptTag({path:renderHook});
-    await page.waitForSelector('[data-h38-customer-directory]');
+    await page.waitForSelector('[data-h38-customer-directory-host] [data-h38-customer-directory-list]');
     await page.evaluate(()=>window.H38_CUSTOMER_WORKSPACE_DOCUMENTS.ensureImportedCustomerLocations());
     await page.waitForFunction(()=>window.__ops.some(op=>op[0]==='SAVE_PROPERTY'&&op[4]?.record?.['Customer ID']==='C-2'));
     await page.waitForFunction(()=>document.querySelectorAll('[data-h38-customer-card]').length===2);
@@ -85,8 +85,10 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     await page.locator('[data-h38-edit-customer]').click();
     assert.equal(await page.locator('#customerForm [name="customerId"]').inputValue(),'C-2','edit must preserve selected customer id');
     assert.equal(await page.locator('#customerForm [name="customerName"]').inputValue(),'Lake Shop','edit must load selected customer');
+    await page.locator('[data-h38-close-customer-setup]').click();
     await page.locator('[data-h38-add-location]').click();
     assert.equal(await page.locator('#propertyForm [name="customerId"]').inputValue(),'C-2','new location must stay attached to selected customer');
+    await page.locator('[data-h38-close-customer-setup]').click();
     await page.locator('[data-c360-tab="overview"]').click();
     await page.locator('#h38CustomerNoteInput').fill('Prefers text before arrival.');
     await page.locator('#h38SaveCustomerNote').click();
@@ -105,6 +107,8 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert.equal(contract.largeFileThreshold,3000000);assert.equal(contract.automaticCustomerRelease,false);assert.equal(contract.automaticCustomerSending,false);assert.equal(contract.cacheBackstop,true);
     assert.equal(hookContract.eventDriven,true);assert.equal(hookContract.continuousPolling,false);
     assert.deepEqual(errors,[],'customer workspace browser flow should not raise page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['compact customer cards','imported address summary','imported location backfill','subscribed service trigger','hours times rate invoice','owner-gated invoice send','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
+    assert.equal(await page.locator('#mainContent > .h38-customer-directory').count(),0,'customer directory must not render as another full-width section');
+    assert.equal(await page.locator('.h38-c360-setup-dialog').count(),1,'customer setup must be available on demand in a dialog');
+    console.log(JSON.stringify({status:'PASS',checks:['canonical master-detail directory','compact customer cards','modal customer setup','imported address summary','imported location backfill','subscribed service trigger','hours times rate invoice','owner-gated invoice send','same customer edit id','selected customer location','customer notes','bulk unrestricted document picker','customer-linked upload','private-by-default large-file contract','live-first installed-client bootstrap','event-driven customer render hook']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
