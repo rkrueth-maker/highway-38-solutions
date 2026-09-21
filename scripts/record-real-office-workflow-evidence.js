@@ -177,6 +177,30 @@ async function customer360Scenario(page,scenario,result,shots){
     await page.waitForTimeout(500);
   }
 }
+async function recurringActions(page,jobId,action,scenario){
+  const selector=`[data-h38-recurring-${action}]`;
+  await page.waitForFunction(({jobId,action,customerSource,serviceSource})=>{
+    const customer=new RegExp(customerSource,'i'),service=new RegExp(serviceSource,'i');
+    return Array.from(document.querySelectorAll('[data-h38-recurring-actions]')).some(node=>{
+      if(node.dataset.h38RecurringActions!==jobId||!node.querySelector(`[data-h38-recurring-${action}]`))return false;
+      const visible=node.offsetParent!==null;
+      const surrounding=[node,node.parentElement,node.previousElementSibling,node.parentElement?.previousElementSibling]
+        .filter(Boolean).map(item=>item.innerText||'').join(' ');
+      return visible&&customer.test(surrounding)&&service.test(surrounding)&&/TEST/i.test(surrounding);
+    });
+  },{jobId,action,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source},{timeout:15000});
+  const actions=page.locator('[data-h38-recurring-actions]');
+  const count=await actions.count();
+  for(let i=0;i<count;i++){
+    const candidate=actions.nth(i);
+    if(String(await candidate.getAttribute('data-h38-recurring-actions')||'')!==jobId)continue;
+    if(!await candidate.locator(selector).count())continue;
+    const visible=await candidate.isVisible();
+    const surrounding=safeText(await candidate.evaluate(node=>[node,node.parentElement,node.previousElementSibling,node.parentElement?.previousElementSibling].filter(Boolean).map(item=>item.innerText||'').join(' ')));
+    if(visible&&scenario.customerNeedle.test(surrounding)&&scenario.serviceNeedle.test(surrounding)&&/TEST/i.test(surrounding))return candidate;
+  }
+  throw new Error(`Visible TEST recurring-service ${action} control was not found for the selected customer.`);
+}
 async function recurringServiceScenario(page,scenario,result,shots){
   const selectedCustomer=await openCustomer(page,scenario.customerNeedle);
   await redactCustomerContact(page);
@@ -187,28 +211,26 @@ async function recurringServiceScenario(page,scenario,result,shots){
     return {id,invoiceCount};
   },selectedCustomer.customerId);
   if(!customerContext.id)throw new Error('Visible TEST customer card did not resolve to a customer ID.');
+  const recurringJob=await page.evaluate(({customerId,customerSource,serviceSource})=>{
+    const customer=new RegExp(customerSource,'i'),service=new RegExp(serviceSource,'i');
+    const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
+    const val=(row,...keys)=>keys.map(key=>row?.[key]).find(value=>value!==undefined&&value!==null&&value!=='')||'';
+    const truthy=value=>value===true||['true','1','yes','on','enabled'].includes(String(value).trim().toLowerCase());
+    const recurring=row=>truthy(val(row,'Subscribed Service','subscribedService'))||truthy(val(row,'Recurring Service Visit','recurringServiceVisit'))||String(val(row,'Lifecycle Mode','lifecycleMode')).trim().toUpperCase()==='RECURRING SERVICE';
+    return rows.find(row=>String(val(row,'Customer ID','customerId')).trim()===customerId&&recurring(row)&&customer.test(String(val(row,'Customer Name','customerName','Project Title','projectTitle')))&&service.test(String(val(row,'Service Type','serviceType','Project Title','projectTitle')))&&/TEST/i.test(JSON.stringify(row)))||null;
+  },{customerId:selectedCustomer.customerId,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source});
+  const recurringJobId=String(recurringJob?.['Job ID']||recurringJob?.jobId||'').trim();
+  if(!recurringJobId)throw new Error('No controlled TEST recurring-service job was available for the selected customer.');
   await clickPage(page,'Today');
-  await page.waitForSelector('#h38RecurringServiceQueue',{timeout:15000});
-  const cards=page.locator('#h38RecurringServiceQueue article');
-  const count=await cards.count();
-  let card=null;
-  for(let i=0;i<count;i++){
-    const candidate=cards.nth(i),txt=safeText(await candidate.innerText());
-    if(scenario.customerNeedle.test(txt)&&scenario.serviceNeedle.test(txt)&&/TEST/i.test(txt)){card=candidate;break;}
-  }
-  if(!card)throw new Error('No visible TEST lawn/snow recurring-service card for the selected H38 customer was found on Today.');
+  const readyActions=await recurringActions(page,recurringJobId,'start',scenario);
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-ready'));
-  const start=card.locator('[data-h38-recurring-start]');
-  if(!await start.count())throw new Error('Recurring TEST service is not in a safe Start visit state.');
+  const start=readyActions.locator('[data-h38-recurring-start]');
   await start.click();
-  await page.waitForFunction(([customerSource,serviceSource])=>{
-    const rxCustomer=new RegExp(customerSource,'i'),rxService=new RegExp(serviceSource,'i');
-    return Array.from(document.querySelectorAll('#h38RecurringServiceQueue article')).some(article=>rxCustomer.test(article.innerText)&&rxService.test(article.innerText)&&/TEST/i.test(article.innerText)&&!!article.querySelector('[data-h38-recurring-finish]'));
-  },[scenario.customerNeedle.source,scenario.serviceNeedle.source],{timeout:15000});
+  await recurringActions(page,recurringJobId,'finish',scenario);
   result.steps.push({name:'start-test-service',status:'PASS',at:now()});
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-in-progress'));
-  const liveCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:scenario.customerNeedle}).filter({hasText:scenario.serviceNeedle}).first();
-  await liveCard.locator('[data-h38-recurring-finish]').click();
+  const liveActions=await recurringActions(page,recurringJobId,'finish',scenario);
+  await liveActions.locator('[data-h38-recurring-finish]').click();
   await page.waitForSelector('.h38-c360-workspace',{timeout:15000});
   const billingCard=page.locator('[data-h38-customer-card][aria-current="true"]').filter({hasText:scenario.customerNeedle}).filter({hasText:/TEST/i}).first();
   await billingCard.waitFor({state:'visible',timeout:10000});
