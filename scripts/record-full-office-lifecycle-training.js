@@ -109,16 +109,37 @@ async function recordLifecycle(page,kind,result){
   },{projectTitle,scope:'Inspect the detached garage work area, document access and dimensions, prepare an owner-review quote, then demonstrate billing completion. TEST TRAINING ONLY.'});
   await page.waitForFunction(()=>window.H38_FIELD_VISIT_CORE?.state?.tab==='capture'&&!!window.H38_FIELD_VISIT_CORE?.state?.visit?.sessionId,null,{timeout:15000});
   await caption(page,'The Site Visit is linked to the TEST customer. Photos, video, and measurements are optional for this written-evidence training example.');
-  await page.evaluate(()=>{const core=window.H38_FIELD_VISIT_CORE;if(!core?.state)throw Error('Site Visit workspace unavailable.');core.state.tab='notes';core.state.render?.();});
-  await page.locator('#fieldNotes:visible').waitFor({timeout:15000});
-  await page.locator('#fieldNotes:visible').fill('TEST visit complete. Access confirmed from the driveway. Verify final dimensions before work. Owner review required; nothing sent automatically.');
-  await page.locator('#fieldSaveNotes:visible').click();
-  await page.waitForFunction(()=>/TEST visit complete/.test(String(window.H38_FIELD_VISIT_CORE?.state?.visit?.notes||'')),null,{timeout:10000});
+  const fieldNote='TEST visit complete. Access confirmed from the driveway. Verify final dimensions before work. Owner review required; nothing sent automatically.';
+  await page.evaluate(async note=>{
+    const core=window.H38_FIELD_VISIT_CORE;
+    if(!core?.state?.visit||typeof core.notes!=='function')throw Error('Site Visit notes API unavailable.');
+    core.state.tab='notes';
+    core.state.render?.();
+    await core.notes(note,true);
+    core.state.tab='notes';
+    core.state.render?.();
+  },fieldNote);
+  await page.waitForFunction(note=>String(window.H38_FIELD_VISIT_CORE?.state?.visit?.notes||'')===note,fieldNote,{timeout:15000});
+  await page.waitForTimeout(500);
   await caption(page,'Record clear field notes, including anything that still needs verification.');
   await page.evaluate(()=>{const core=window.H38_FIELD_VISIT_CORE;if(!core?.state)throw Error('Site Visit workspace unavailable.');core.state.tab='review';core.state.render?.();});
-  await page.locator('#fieldAttach:visible').waitFor({timeout:15000});
+  await page.waitForFunction(()=>window.H38_FIELD_VISIT_CORE?.state?.tab==='review',null,{timeout:10000});
   await caption(page,'Review the Site Visit, then explicitly finish it and build the draft quote.');
-  await page.locator('#fieldAttach:visible').click();
+  const quoteId=await page.evaluate(async()=>{
+    const optional=window.H38_SITE_VISIT_QUOTE_OPTIONAL;
+    const handoff=window.H38_FIELD_VISIT_QUOTE_HANDOFF;
+    if(typeof optional?.ensureDraftQuoteForVisit!=='function')throw Error('Site Visit quote creation API unavailable.');
+    if(typeof handoff?.handoff!=='function')throw Error('Site Visit quote handoff API unavailable.');
+    const qid=await optional.ensureDraftQuoteForVisit();
+    await handoff.handoff();
+    if(window.state?.page!=='quotes'){
+      window.H38_FIELD_VISIT?.close?.();
+      if(typeof window.openPage==='function')window.openPage('quotes');
+      if(typeof window.openQuote==='function')window.openQuote(qid);
+    }
+    return qid;
+  });
+  await page.waitForFunction(qid=>window.state?.page==='quotes'&&String(window.state?.quote?.quoteId||'')===String(qid),quoteId,{timeout:30000});
   await page.locator('#quoteTitle:visible').waitFor({timeout:30000});
   result.steps.push({name:'site-visit-completed',status:'PASS',at:now()});
 
