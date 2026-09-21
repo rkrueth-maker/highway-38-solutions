@@ -90,24 +90,20 @@ public final class HostedAuthInstrumentedTest {
             while (SystemClock.elapsedRealtime() < authDeadline) {
                 String probe = evaluate(scenario,
                         "(function(){" +
-                                "var s=document.getElementById('authstatus');" +
                                 "var products=document.getElementById('products');" +
                                 "var out=document.getElementById('signout');" +
                                 "var penny=document.getElementById('product-penny');" +
                                 "var resale=document.getElementById('product-resale');" +
                                 "var coupon=document.getElementById('product-coupon');" +
                                 "var engine=document.getElementById('engine-card');" +
-                                "return JSON.stringify({auth:document.body.dataset.h38Auth||''," +
-                                "status:s?s.textContent:'',products:!!products&&!products.classList.contains('hidden')," +
-                                "signout:!!out&&!out.classList.contains('hidden')," +
-                                "penny:!!penny,resale:!!resale,coupon:!!coupon,engine:!!engine&&!engine.classList.contains('hidden')});})()");
+                                "return document.body.dataset.h38Auth==='signed-in'" +
+                                "&&!!products&&!products.classList.contains('hidden')" +
+                                "&&!!out&&!out.classList.contains('hidden')" +
+                                "&&!!penny&&!!resale&&!!coupon" +
+                                "&&!!engine&&!engine.classList.contains('hidden');" +
+                                "})()");
                 last.set(probe);
-                if (probe.contains("\\\"auth\\\":\\\"signed-in\\\"")
-                        && probe.contains("\\\"products\\\":true")
-                        && probe.contains("\\\"signout\\\":true")
-                        && probe.contains("\\\"penny\\\":true")
-                        && probe.contains("\\\"resale\\\":true")
-                        && probe.contains("\\\"coupon\\\":true")) {
+                if ("true".equalsIgnoreCase(probe)) {
                     return;
                 }
                 SystemClock.sleep(1000L);
