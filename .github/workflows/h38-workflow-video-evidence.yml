@@ -48,12 +48,24 @@ jobs:
           H38_WORKFLOW_EVIDENCE_DIR: artifacts/workflow-video-evidence
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-real-office-workflow-evidence.js
+      - name: Record full desktop and phone operator training
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ inputs.recording_authorized }}
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
+          H38_FULL_TRAINING_DIR: artifacts/full-lifecycle-training
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/record-full-office-lifecycle-training.js
       - name: Upload raw evidence packet
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: h38-workflow-video-evidence-${{ github.run_id }}
-          path: artifacts/workflow-video-evidence/
+          path: |
+            artifacts/workflow-video-evidence/
+            artifacts/full-lifecycle-training/
           if-no-files-found: warn
           retention-days: 30
       - name: Summarize recording evidence status
