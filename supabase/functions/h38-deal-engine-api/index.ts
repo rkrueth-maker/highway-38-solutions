@@ -23,6 +23,12 @@ const iso = (v: unknown, fallback = new Date().toISOString()) => {
   const d = new Date(String(v || ""));
   return Number.isFinite(d.getTime()) ? d.toISOString() : fallback;
 };
+function dbError(label: string, e: any) {
+  const detail = text(e?.message || e?.details || e?.hint || e?.code || "");
+  let raw = "";
+  try { raw = JSON.stringify(e); } catch {}
+  return new Error(label + ": " + (detail || raw || String(e)));
+}
 const httpsUrl = (v: unknown) => /^https:\/\//i.test(text(v)) ? text(v) : "";
 const tokenWords = (v: unknown) => norm(v).split(/\s+/).filter(x => x.length > 1);
 
@@ -493,8 +499,12 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     admin.from("reseller_deals").select("*").in("created_by", memberIds).order("updated_at", { ascending: false }).limit(1000),
     admin.from("deal_engine_observations").select("*").eq("household_id", ctx.householdId).limit(4000),
   ]);
-  for (const q of [hunt, coupon, discoveries, prices, deals, existing]) {
-    if (q.error) throw q.error;
+  const reads = [
+    ["hunt", hunt], ["coupon", coupon], ["discoveries", discoveries],
+    ["prices", prices], ["deals", deals], ["existing", existing],
+  ] as const;
+  for (const [label, q] of reads) {
+    if (q.error) throw dbError("REFRESH_READ_" + label.toUpperCase(), q.error);
   }
 
   const savedIndex = savedDealIndex(deals.data || []);
@@ -523,12 +533,12 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     .update({ active: false })
     .eq("household_id", ctx.householdId)
     .eq("active", true);
-  if (off.error) throw off.error;
+  if (off.error) throw dbError("REFRESH_DEACTIVATE", off.error);
 
   for (let i = 0; i < normalized.length; i += 400) {
     const q = await admin.from("deal_engine_observations")
       .upsert(normalized.slice(i, i + 400), { onConflict: "household_id,canonical_key" });
-    if (q.error) throw q.error;
+    if (q.error) throw dbError("REFRESH_OBSERVATION_UPSERT", q.error);
   }
 
   const history = normalized.filter(row =>
@@ -553,7 +563,7 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
   }));
   for (let i = 0; i < history.length; i += 400) {
     const q = await admin.from("deal_engine_price_history").insert(history.slice(i, i + 400));
-    if (q.error) throw q.error;
+    if (q.error) throw dbError("REFRESH_HISTORY_INSERT", q.error);
   }
 
   const warnings = sourceWarnings(normalized);
@@ -567,7 +577,7 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     warnings,
     updated_at: nowIso,
   }, { onConflict: "household_id" });
-  if (state.error) throw state.error;
+  if (state.error) throw dbError("REFRESH_STATE_UPSERT", state.error);
 
   return {
     refreshed_at: nowIso,
@@ -1048,7 +1058,11 @@ Deno.serve(async (req: Request) => {
 
     return json({ error: "UNKNOWN_ACTION" }, 400);
   } catch (e: any) {
-    const message = e instanceof Error ? e.message : String(e);
+    let message = "";
+    if (e instanceof Error) message = e.message;
+    else {
+      try { message = JSON.stringify(e); } catch { message = String(e); }
+    }
     const status = Number(e?.status || 500);
     return json({ error: "DEAL_ENGINE_ERROR", detail: message }, status >= 400 && status < 600 ? status : 500);
   }
