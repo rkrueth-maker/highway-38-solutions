@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Owns the transport boundary for the four hosted H38 HTML documents.
+ * Owns the transport boundary for the hosted H38 HTML documents.
  *
  * Supabase hosted Edge Function URLs intentionally rewrite HTML responses to
  * text/plain and inject a sandbox CSP. The product UIs still live on the web,
@@ -56,6 +56,7 @@ final class HostedHtmlWebViewClient extends WebViewClient {
         HTML_PATHS.add("/functions/v1/h38-penny-web");
         HTML_PATHS.add("/functions/v1/h38-resale-web");
         HTML_PATHS.add("/functions/v1/h38-coupon-web");
+        HTML_PATHS.add("/functions/v1/h38-deal-engine-web");
     }
 
     private final Activity activity;
