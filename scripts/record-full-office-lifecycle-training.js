@@ -146,14 +146,14 @@ async function recordLifecycle(page,kind,result){
   await caption(page,'3. Build the quote from the saved Site Visit.');
   await page.locator('#lineDescription').fill('Detached garage workflow planning and field documentation');
   await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
-  await page.waitForFunction(()=>typeof document.querySelector('#addQuoteLine:not([hidden])')?.onclick==='function',null,{timeout:10000});
   const addQuoteLineButton=page.locator('#addQuoteLine:visible');
+  await addQuoteLineButton.waitFor({state:'visible',timeout:10000});
   await addQuoteLineButton.focus();
   await addQuoteLineButton.click();
   await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),['Detached garage workflow planning and field documentation',amount],{timeout:10000});
   await caption(page,`Add the reviewed work line. This TEST quote totals ${amount.toFixed(2)}.`);
-  await page.waitForFunction(()=>typeof document.querySelector('#saveQuoteButton:not([hidden])')?.onclick==='function',null,{timeout:10000});
   const saveQuoteButton=page.locator('#saveQuoteButton:visible');
+  await saveQuoteButton.waitFor({state:'visible',timeout:10000});
   await saveQuoteButton.focus();
   await saveQuoteButton.click();
   await page.waitForFunction(([qid,total])=>String(window.state?.quote?.quoteId||'')===String(qid)&&Math.abs(Number(window.state?.quote?.savedTotal||0)-Number(total))<0.01,[quoteId,amount],{timeout:20000});
