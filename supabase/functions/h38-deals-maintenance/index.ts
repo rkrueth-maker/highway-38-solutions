@@ -223,6 +223,56 @@ async function resaleCheck(auth: string, deep: boolean) {
   return out;
 }
 
+
+async function dealEngineCheck(auth: string, repair: boolean) {
+  const warnings: string[] = [], repairs: Any[] = [];
+  if (repair) {
+    const refresh = await invoke("h38-deal-engine-api", auth, {
+      action: "refresh",
+      refresh_sources: false,
+    }, 70000);
+    repairs.push({
+      action: "rebuild_shared_deal_engine",
+      ok: refresh.ok,
+      status: refresh.status,
+      observations: Number(refresh.data?.refresh?.observation_count || refresh.data?.counts?.active || 0),
+      history_added: Number(refresh.data?.refresh?.history_added || 0),
+    });
+    if (!refresh.ok) warnings.push(`Deal Engine refresh failed: ${refresh.error || refresh.status}`);
+  }
+
+  const health = await invoke("h38-deal-engine-api", auth, { action: "health" }, 25000);
+  if (!health.ok) {
+    return {
+      status: "FAIL",
+      active_observations: 0,
+      history_rows: 0,
+      enabled_watches: 0,
+      warnings: [...warnings, `Deal Engine health failed: ${health.error || health.status}`],
+      repairs,
+    };
+  }
+
+  const active = Number(health.data?.active_observations || 0);
+  const history = Number(health.data?.history_rows || 0);
+  const watches = Number(health.data?.enabled_watches || 0);
+  const state = health.data?.state || {};
+  const sourceWarnings = Array.isArray(state?.warnings) ? state.warnings.map((x: unknown) => txt(x)).filter(Boolean) : [];
+  if (!active) warnings.push("Shared Deal Engine has no active normalized observations yet; run maintenance to initialize it.");
+  warnings.push(...sourceWarnings);
+  const status = !active ? "PARTIAL" : sourceWarnings.length ? "PARTIAL" : "PASS";
+  return {
+    status,
+    active_observations: active,
+    history_rows: history,
+    enabled_watches: watches,
+    last_refresh_at: state?.last_refresh_at || null,
+    source_counts: state?.source_counts || {},
+    warnings,
+    repairs,
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "POST_REQUIRED" }, 405);
@@ -236,17 +286,23 @@ Deno.serve(async (req: Request) => {
     const deep = body.deep !== false;
     const repair = action === "maintain";
     const started = Date.now();
-    const [coupon, penny, resale] = await Promise.all([
+    const [coupon, penny, resale, deal_engine] = await Promise.all([
       boundedCheck("Couponing health check", couponCheck(repair), repair ? 70000 : 20000),
       boundedCheck("Penny health check", pennyCheck(), 20000),
       boundedCheck("Resale health check", resaleCheck(who.auth, deep), deep ? 60000 : 20000),
+      boundedCheck("Deal Engine health check", dealEngineCheck(who.auth, repair), repair ? 90000 : 30000),
     ]);
-    const status = worst(coupon.status, penny.status, resale.status);
-    const warnings = [...(coupon.warnings || []).map((x: string) => `Couponing: ${x}`), ...(penny.warnings || []).map((x: string) => `Penny: ${x}`), ...(resale.warnings || []).map((x: string) => `Resale: ${x}`)];
+    const status = worst(coupon.status, penny.status, resale.status, deal_engine.status);
+    const warnings = [
+      ...(coupon.warnings || []).map((x: string) => `Couponing: ${x}`),
+      ...(penny.warnings || []).map((x: string) => `Penny: ${x}`),
+      ...(resale.warnings || []).map((x: string) => `Resale: ${x}`),
+      ...(deal_engine.warnings || []).map((x: string) => `Deal Engine: ${x}`),
+    ];
     return json({
-      ok: status !== "FAIL", status, engine: "H38_DEALS_MAINTENANCE_V1", action, checked_at: nowIso(),
-      elapsed_ms: Date.now() - started, access_role: who.role, coupon, penny, resale, warnings,
-      truth: "Maintenance reports confirmed cache/database health plus authenticated live source probes when deep=true. PARTIAL means a source is empty, degraded, or unproven; it is not converted into a false PASS.",
+      ok: status !== "FAIL", status, engine: "H38_DEALS_MAINTENANCE_V2", action, checked_at: nowIso(),
+      elapsed_ms: Date.now() - started, access_role: who.role, coupon, penny, resale, deal_engine, warnings,
+      truth: "Maintenance reports confirmed cache/database health, shared Deal Engine health, and authenticated live source probes when deep=true. PARTIAL means a source is empty, degraded, stale, or unproven; it is not converted into a false PASS.",
     });
   } catch (e) {
     return json({ error: "H38_DEALS_MAINTENANCE_ERROR", detail: e instanceof Error ? e.message : String(e) }, 500);
