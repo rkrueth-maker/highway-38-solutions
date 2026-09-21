@@ -168,7 +168,7 @@ function renderQueue(){
 async function saveQueue(id){const s=document.querySelector('.queueStatus[data-id="'+CSS.escape(id)+'"]'),c=document.querySelector('.queueCost[data-id="'+CSS.escape(id)+'"]');try{setStatus('Updating sourcing queue…');await invoke({action:'queue_update',id,status:s.value,actual_cost:c.value===''?null:Number(c.value)});await load(false);setStatus('Queue updated.','success')}catch(e){setStatus(String(e.message||e),'error')}}
 async function dealAction(e){
  const article=e.currentTarget.closest('.deal'),key=article.dataset.key,action=e.currentTarget.dataset.action;
- try{setStatus(action==='buy'?'Adding to sourcing queue…':action==='pass'?'Passing opportunity…':'Creating shared watch…');await invoke({action:'action',canonical_key:key,action});await load(false);setStatus(action==='buy'?'Added to sourcing queue.':action==='pass'?'Passed.':'Watch created.','success')}catch(err){setStatus(String(err.message||err),'error')}
+ try{setStatus(action==='buy'?'Adding to sourcing queue…':action==='pass'?'Passing opportunity…':'Creating shared watch…');await invoke({action:'set_action',canonical_key:key,decision:action});await load(false);setStatus(action==='buy'?'Added to sourcing queue.':action==='pass'?'Passed.':'Watch created.','success')}catch(err){setStatus(String(err.message||err),'error')}
 }
 async function showHistory(e){
  const article=e.currentTarget.closest('.deal'),box=article.querySelector('.history');if(!box.classList.contains('hidden')){box.classList.add('hidden');return}
