@@ -141,11 +141,19 @@ async function openCustomer(page,needle){
       const customerId=String(await choice.getAttribute('data-h38-customer-card')||'').trim();
       if(!customerId)continue;
       await choice.click();
-      await page.waitForFunction(id=>String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===id,customerId,{timeout:10000});
       await page.waitForSelector('.h38-c360-workspace',{timeout:10000});
+      await page.waitForFunction(
+        ({source,flags})=>{
+          const detail=String(document.querySelector('.h38-c360-detail')?.innerText||'');
+          return new RegExp(source,flags).test(detail)&&/\\bTEST\\b/i.test(detail);
+        },
+        {source:needle.source,flags:needle.flags},
+        {timeout:10000}
+      );
       const detail=safeText(await page.locator('.h38-c360-detail').innerText());
-      if(!needle.test(detail)||!/TEST/i.test(detail))throw new Error('Selected customer is not visibly labeled TEST.');
-      return {customerId,displayText:txt};
+      const heading=safeText(await page.locator('.h38-c360 h2').first().innerText());
+      if(!needle.test(detail)||!/TEST/i.test(detail)||!needle.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
+      return {customerId,displayText:txt,heading};
     }
   }
   throw new Error(`No visible TEST customer card matching ${needle} was found in this tenant.`);
