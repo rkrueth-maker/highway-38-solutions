@@ -142,17 +142,13 @@ async function openCustomer(page,needle){
       if(!customerId)continue;
       await choice.click();
       await page.waitForSelector('.h38-c360-workspace',{timeout:10000});
-      await page.waitForFunction(
-        ({source,flags})=>{
-          const detail=String(document.querySelector('.h38-c360-detail')?.innerText||'');
-          return new RegExp(source,flags).test(detail)&&/\bTEST\b/i.test(detail);
-        },
-        {source:needle.source,flags:needle.flags},
-        {timeout:10000}
-      );
-      const detail=safeText(await page.locator('.h38-c360-detail').innerText());
-      const heading=safeText(await page.locator('.h38-c360 h2').first().innerText());
-      if(!needle.test(detail)||!/TEST/i.test(detail)||!needle.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
+      const visibleHeading=page.locator('.h38-c360-detail:visible .h38-c360-head h2:visible').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
+      await visibleHeading.waitFor({state:'visible',timeout:10000});
+      const visibleDetail=page.locator('.h38-c360-detail:visible').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
+      await visibleDetail.waitFor({state:'visible',timeout:10000});
+      const detail=safeText(await visibleDetail.innerText());
+      const heading=safeText(await visibleHeading.innerText());
+      if(!needle.test(detail)||!/TEST/i.test(detail)||!needle.test(heading)||!/TEST/i.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
       return {customerId,displayText:txt,heading};
     }
   }
@@ -213,14 +209,8 @@ async function recurringServiceScenario(page,scenario,result,shots){
   const liveCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:scenario.customerNeedle}).filter({hasText:scenario.serviceNeedle}).first();
   await liveCard.locator('[data-h38-recurring-finish]').click();
   await page.waitForSelector('.h38-c360-workspace',{timeout:15000});
-  await page.waitForFunction(
-    ({source,flags})=>{
-      const detail=String(document.querySelector('.h38-c360-detail')?.innerText||'');
-      return new RegExp(source,flags).test(detail)&&/\bTEST\b/i.test(detail);
-    },
-    {source:scenario.customerNeedle.source,flags:scenario.customerNeedle.flags},
-    {timeout:10000}
-  );
+  const billingHeading=page.locator('.h38-c360-detail:visible .h38-c360-head h2:visible').filter({hasText:scenario.customerNeedle}).filter({hasText:/TEST/i}).first();
+  await billingHeading.waitFor({state:'visible',timeout:10000});
   await redactCustomerContact(page);
   const after=await page.evaluate(id=>{
     const invoices=Array.isArray(window.state?.snapshot?.invoices)?window.state.snapshot.invoices:[];
