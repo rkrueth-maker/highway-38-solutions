@@ -132,23 +132,23 @@ async function clickPage(page,name){
 }
 async function openCustomer(page,needle){
   await clickPage(page,'Customers');
-  await page.waitForSelector('#h38Customer360Search',{timeout:15000});
-  const search=page.locator('#h38Customer360Search');
-  await search.fill(needle.source.replace(/\\b|\^|\$|\.\*/g,'').replace(/[^A-Za-z0-9 ]/g,' ').trim()||'TEST');
-  await page.waitForSelector('#h38Customer360Matches [data-c360-customer]',{timeout:10000});
-  const choices=page.locator('#h38Customer360Matches [data-c360-customer]');
+  await page.waitForSelector('[data-h38-customer-card]',{timeout:15000});
+  const choices=page.locator('[data-h38-customer-card]');
   const count=await choices.count();
   for(let i=0;i<count;i++){
     const choice=choices.nth(i),txt=safeText(await choice.innerText());
     if(needle.test(txt)&&/TEST/i.test(txt)){
+      const customerId=String(await choice.getAttribute('data-h38-customer-card')||'').trim();
+      if(!customerId)continue;
       await choice.click();
+      await page.waitForFunction(id=>String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===id,customerId,{timeout:10000});
       await page.waitForSelector('.h38-c360-workspace',{timeout:10000});
       const detail=safeText(await page.locator('.h38-c360-detail').innerText());
       if(!needle.test(detail)||!/TEST/i.test(detail))throw new Error('Selected customer is not visibly labeled TEST.');
-      return {displayText:txt};
+      return {customerId,displayText:txt};
     }
   }
-  throw new Error(`No visible TEST customer matching ${needle} was found in this tenant.`);
+  throw new Error(`No visible TEST customer card matching ${needle} was found in this tenant.`);
 }
 async function redactCustomerContact(page){
   await page.addStyleTag({content:`
