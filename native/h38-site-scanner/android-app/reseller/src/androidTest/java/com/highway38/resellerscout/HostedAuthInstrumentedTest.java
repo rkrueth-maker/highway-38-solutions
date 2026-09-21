@@ -64,7 +64,7 @@ public final class HostedAuthInstrumentedTest {
                                 "&&!!document.getElementById('email')" +
                                 "&&!!document.getElementById('password')" +
                                 "&&!!document.getElementById('signin')" +
-                                "&&document.body.dataset.h38LoginRepair==='v312';})()");
+                                "&&document.body.dataset.h38LoginRepair==='v316-deal-engine';})()");
                 last.set("ready=" + ready);
                 if ("true".equalsIgnoreCase(ready)) break;
                 SystemClock.sleep(1000L);
@@ -72,7 +72,7 @@ public final class HostedAuthInstrumentedTest {
             Assert.assertEquals("H38 login shell did not become ready. Last=" + last.get(), "true",
                     evaluate(scenario,
                             "(function(){return !!document.getElementById('loginForm')" +
-                                    "&&document.body.dataset.h38LoginRepair==='v312';})()"));
+                                    "&&document.body.dataset.h38LoginRepair==='v316-deal-engine';})()"));
 
             String submit = "(function(){" +
                     "var e=document.getElementById('email'),p=document.getElementById('password'),f=document.getElementById('loginForm');" +
@@ -96,10 +96,11 @@ public final class HostedAuthInstrumentedTest {
                                 "var penny=document.getElementById('product-penny');" +
                                 "var resale=document.getElementById('product-resale');" +
                                 "var coupon=document.getElementById('product-coupon');" +
+                                "var engine=document.getElementById('engine-card');" +
                                 "return JSON.stringify({auth:document.body.dataset.h38Auth||''," +
                                 "status:s?s.textContent:'',products:!!products&&!products.classList.contains('hidden')," +
                                 "signout:!!out&&!out.classList.contains('hidden')," +
-                                "penny:!!penny,resale:!!resale,coupon:!!coupon});})()";
+                                "penny:!!penny,resale:!!resale,coupon:!!coupon,engine:!!engine&&!engine.classList.contains('hidden')});})()";
                 last.set(probe);
                 if (probe.contains("\\\"auth\\\":\\\"signed-in\\\"")
                         && probe.contains("\\\"products\\\":true")
