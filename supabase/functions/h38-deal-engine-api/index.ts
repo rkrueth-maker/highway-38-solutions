@@ -878,7 +878,7 @@ async function deleteWatch(admin: any, ctx: any, id: string) {
 
 async function setAction(admin: any, ctx: any, userId: string, input: any) {
   const canonicalKey = text(input.canonical_key);
-  const action = lower(input.action);
+  const action = lower(input.decision || input.user_action);
   if (!canonicalKey || !["buy", "pass", "watch"].includes(action)) throw new Error("INVALID_ACTION");
   const item = await admin.from("deal_engine_observations").select("*")
     .eq("household_id", ctx.householdId).eq("canonical_key", canonicalKey).maybeSingle();
@@ -1025,7 +1025,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
 
-    if (action === "action") {
+    if (action === "set_action" || action === "action") {
       const result = await setAction(admin, ctx, userId, body);
       return json({ ok: true, ...result });
     }
