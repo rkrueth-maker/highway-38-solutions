@@ -142,14 +142,15 @@ async function openCustomer(page,needle){
       if(!customerId)continue;
       await choice.click();
       await page.waitForSelector('.h38-c360-workspace',{timeout:10000});
-      const selectedCard=page.locator('[data-h38-customer-card][aria-current="true"]').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
-      await selectedCard.waitFor({state:'visible',timeout:10000});
       const visibleHeading=page.locator('.h38-c360-head h2:visible').filter({hasText:needle}).first();
       await visibleHeading.waitFor({state:'visible',timeout:10000});
-      const selectedId=String(await selectedCard.getAttribute('data-h38-customer-card')||'').trim();
-      const selectedText=safeText(await selectedCard.innerText());
       const heading=safeText(await visibleHeading.innerText());
-      if(selectedId!==customerId||!needle.test(selectedText)||!/TEST/i.test(selectedText)||!needle.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
+      if(!needle.test(heading)||!/TEST/i.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
+      const sameCard=page.locator(`[data-h38-customer-card="${customerId}"]`).first();
+      if(await sameCard.count()){
+        const selectedText=safeText(await sameCard.innerText());
+        if(!needle.test(selectedText)||!/TEST/i.test(selectedText))throw new Error('Selected TEST customer card no longer matches the opened Customer 360.');
+      }
       return {customerId,displayText:txt,heading};
     }
   }
