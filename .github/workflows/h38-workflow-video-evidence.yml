@@ -26,9 +26,11 @@ jobs:
         env:
           RECORDING_AUTHORIZED: ${{ inputs.recording_authorized }}
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
+          LOGIN_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          LOGIN_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
           EVIDENCE_DIR: artifacts/workflow-video-evidence
         run: node scripts/h38-workflow-video-evidence-helper.js preflight
-      - name: Write authorized storage state to runner temp only
+      - name: Prepare optional authorized storage state
         env:
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
         run: |
@@ -40,6 +42,9 @@ jobs:
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
           H38_WORKFLOW_EVIDENCE_DIR: artifacts/workflow-video-evidence
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-real-office-workflow-evidence.js

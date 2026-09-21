@@ -33,9 +33,16 @@ function runPreflight(){
   if(process.env.RECORDING_AUTHORIZED!=='true'){
     holdCode='AUTHORIZATION_REQUIRED';
     holdDetail='Recording intentionally held. Re-run workflow_dispatch and set recording_authorized=true only for controlled TEST records.';
-  }else if(!process.env.STORAGE_STATE){
-    holdCode='AUTH_STORAGE_STATE_REQUIRED';
-    holdDetail='Missing repository secret H38_WORKFLOW_STORAGE_STATE. Add an authorized TEST storage state and rerun this workflow.';
+  }else{
+    const hasStorage=!!process.env.STORAGE_STATE;
+    const hasEmail=!!process.env.LOGIN_EMAIL;
+    const hasPassword=!!process.env.LOGIN_PASSWORD;
+    if(!hasStorage&&!(hasEmail&&hasPassword)){
+      holdCode=(hasEmail||hasPassword)?'AUTH_CREDENTIAL_PAIR_REQUIRED':'AUTH_MATERIAL_REQUIRED';
+      holdDetail=(hasEmail||hasPassword)
+        ? 'Recorder login requires both H38_WORKFLOW_TEST_EMAIL and H38_WORKFLOW_TEST_PASSWORD.'
+        : 'Configure either H38_WORKFLOW_STORAGE_STATE or both H38_WORKFLOW_TEST_EMAIL and H38_WORKFLOW_TEST_PASSWORD, then rerun.';
+    }
   }
 
   if(holdCode){
