@@ -18,6 +18,7 @@ const pages = [
   { name: 'penny', url: '/penny.html', selectors: ['.back', '#lookupOpen', '#refresh', '#search', '#stores'] },
   { name: 'resale', url: '/resale.html', selectors: ['.top a', '[data-tab="deals"]', '.sources summary', '#search', '#scan'] },
   { name: 'coupon', url: '/coupon.html', selectors: ['.top a', '.nav', '[data-view="shop"]', '[data-view="deals"]', '[data-view="receipts"]'] },
+  { name: 'best', url: '/best.html', selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#deals'] },
   { name: 'maintenance', url: '/maintenance.html', selectors: ['.top a', '#check', '#maintain', '#report'] },
 ];
 
@@ -74,6 +75,11 @@ async function assertInViewport(page, selector, label) {
         if (spec.name === 'coupon') {
           for (const view of ['shop','deals','save','scan','receipts']) {
             await assertInViewport(page, '[data-view="' + view + '"]', 'coupon ' + size.width + ' tab ' + view);
+          }
+        }
+        if (spec.name === 'best') {
+          for (const tab of ['best','resell','savings','watches','queue']) {
+            await assertInViewport(page, '[data-tab="' + tab + '"]', 'best ' + size.width + ' tab ' + tab);
           }
         }
         if (spec.name === 'penny') {
