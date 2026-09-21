@@ -61,7 +61,8 @@ async function caption(page,text,ms=1250){
 }
 async function openPage(page,key,label){
   const target=page.locator(`[data-page="${key}"]:visible`).first();
-  if(await target.count())await target.click();else await page.getByRole('button',{name:label,exact:true}).first().click();
+  if(await target.count())await target.click();else await page.evaluate(pageKey=>{if(typeof window.openPage!=='function')throw Error(`Navigation unavailable for ${pageKey}.`);window.openPage(pageKey)},key);
+  await page.waitForFunction(pageKey=>window.state?.page===pageKey,key,{timeout:10000});
   await page.waitForTimeout(650);
 }
 async function selectByLabel(select,label){await select.selectOption({label});}
@@ -94,9 +95,9 @@ async function recordLifecycle(page,kind,result){
   const card=page.locator('[data-h38-customer-card]').filter({hasText:customerName}).first();await card.click();
   await page.locator('.h38-c360-workspace').waitFor({timeout:10000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
-  await page.getByRole('button',{name:/Start Site Visit/i}).last().click();
-  await page.locator('#fieldContext').waitFor({timeout:15000});
-  const visit=page.locator('#fieldContext');
+  await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
+  await page.locator('#fieldContext:visible').waitFor({timeout:15000});
+  const visit=page.locator('#fieldContext:visible');
   await selectByLabel(visit.locator('[name="customerId"]'),customerName);
   await visit.locator('[name="projectTitle"]').fill(projectTitle);
   await visit.locator('[name="scope"]').fill('Inspect the detached garage work area, document access and dimensions, prepare an owner-review quote, then demonstrate billing completion. TEST TRAINING ONLY.');
