@@ -22,9 +22,18 @@ if(process.env.H38_WORKFLOW_RECORDING_AUTHORIZED!=='true'){
   hold('AUTHORIZATION_REQUIRED','Set H38_WORKFLOW_RECORDING_AUTHORIZED=true only for controlled TEST records.');
   return;
 }
-const storageState=process.env.H38_WORKFLOW_STORAGE_STATE;
-if(!storageState||!fs.existsSync(storageState)){
-  hold('AUTH_STORAGE_STATE_REQUIRED','An authorized test-only Playwright storage-state file is required; no recording was created.');
+const suppliedStorageState=process.env.H38_WORKFLOW_STORAGE_STATE;
+const hasSuppliedStorageState=!!suppliedStorageState&&fs.existsSync(suppliedStorageState);
+const loginEmail=String(process.env.H38_WORKFLOW_TEST_EMAIL||'').trim().toLowerCase();
+const loginPassword=String(process.env.H38_WORKFLOW_TEST_PASSWORD||'');
+const generatedStorageState=process.env.H38_WORKFLOW_AUTH_STATE_OUT||path.join(require('os').tmpdir(),'h38-workflow-generated-storage-state.json');
+if(!hasSuppliedStorageState&&!(loginEmail&&loginPassword)){
+  hold(
+    loginEmail||loginPassword?'AUTH_CREDENTIAL_PAIR_REQUIRED':'AUTH_MATERIAL_REQUIRED',
+    loginEmail||loginPassword
+      ? 'Both H38_WORKFLOW_TEST_EMAIL and H38_WORKFLOW_TEST_PASSWORD are required when storage state is not supplied.'
+      : 'Supply H38_WORKFLOW_STORAGE_STATE or both secure recorder login credentials; no recording was created.'
+  );
   return;
 }
 const officeUrl=process.env.H38_OFFICE_URL||'https://highway38solutions.com/commercial-app/';
@@ -57,6 +66,34 @@ const scenarios=[
 
 function safeText(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();}
 function tenantUrl(key){const url=new URL(officeUrl);url.searchParams.set('businessKey',key);return url.toString();}
+async function resolveStorageState(browser){
+  if(hasSuppliedStorageState)return suppliedStorageState;
+  const ctx=await browser.newContext({viewport:{width:1440,height:900}});
+  const page=await ctx.newPage();
+  try{
+    await page.goto(tenantUrl('highway38'),{waitUntil:'domcontentloaded',timeout:45000});
+    await page.waitForSelector('#h38AuthForm',{timeout:20000});
+    await page.locator('#h38AuthEmail').fill(loginEmail);
+    await page.locator('#h38AuthPassword').fill(loginPassword);
+    await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+    await page.waitForFunction(()=>{
+      const s=window.state||{},b=s.snapshot?.business||{};
+      const key=String(b.businessKey||b['Business Key']||s.businessKey||'').trim().toLowerCase();
+      return key==='highway38'&&!!s.snapshot?.user;
+    },null,{timeout:30000});
+    const auth=await page.evaluate(()=>({
+      email:String(window.state?.snapshot?.user?.email||''),
+      businessKey:String(window.state?.snapshot?.business?.businessKey||'').trim().toLowerCase()
+    }));
+    if(!auth.email||auth.businessKey!=='highway38')throw new Error('Secure recorder login did not open the authorized H38 tenant.');
+    await ctx.storageState({path:generatedStorageState});
+    fs.chmodSync(generatedStorageState,0o600);
+    return generatedStorageState;
+  }finally{
+    try{await page.locator('#h38AuthPassword').fill('');}catch(_){}
+    await ctx.close();
+  }
+}
 function ffmpegAvailable(){const probe=spawnSync('ffmpeg',['-version'],{stdio:'ignore'});return probe.status===0;}
 function toMp4(source,target){
   const result=spawnSync('ffmpeg',['-y','-i',source,'-c:v','libx264','-preset','medium','-crf','20','-pix_fmt','yuv420p','-an',target],{encoding:'utf8'});
@@ -191,8 +228,9 @@ async function recurringServiceScenario(page,scenario,result,shots){
   const browser=await chromium.launch({headless:true});
   const workflows=[];
   try{
+    const runtimeStorageState=await resolveStorageState(browser);
     for(const scenario of scenarios){
-      const ctx=await browser.newContext({storageState:storageState,viewport:{width:1440,height:900},recordVideo:{dir:raw,size:{width:1440,height:900}}});
+      const ctx=await browser.newContext({storageState:runtimeStorageState,viewport:{width:1440,height:900},recordVideo:{dir:raw,size:{width:1440,height:900}}});
       const page=await ctx.newPage(),video=page.video();
       const result={id:scenario.id,title:scenario.title,tenant:scenario.tenantName,businessKey:scenario.businessKey,requiredLabel:scenario.requiredLabel,viewport:'1440x900',testDataOnly:true,status:'HOLD',steps:[],screenshots:[]};
       try{
@@ -230,7 +268,7 @@ async function recurringServiceScenario(page,scenario,result,shots){
     sourceSha:process.env.GITHUB_SHA||'local',
     officeUrl,
     capturedAt:now(),
-    controls:{testLabelRequired:true,noSyntheticUi:true,noAutomaticInvoiceCreation:true,noAutomaticPayment:true,noAutomaticCustomerSending:true,storageStateRunnerOnly:true},
+    controls:{testLabelRequired:true,noSyntheticUi:true,noAutomaticInvoiceCreation:true,noAutomaticPayment:true,noAutomaticCustomerSending:true,authStateRunnerOnly:true,credentialLoginSupported:true},
     workflows
   };
   write('manifest.json',manifest);write('results.json',manifest);
