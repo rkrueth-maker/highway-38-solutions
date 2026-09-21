@@ -96,6 +96,8 @@ async function recordLifecycle(page,kind,result){
   await page.locator('.h38-c360-workspace').waitFor({timeout:10000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
   await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
+  await page.waitForFunction(()=>!!window.H38_FIELD_VISIT_CORE?.state?.open,null,{timeout:15000});
+  await page.evaluate(()=>{const core=window.H38_FIELD_VISIT_CORE;if(!core?.state)throw Error('Site Visit workspace unavailable.');core.state.tab='job';core.state.render?.();});
   await page.locator('#fieldContext:visible').waitFor({timeout:15000});
   const visit=page.locator('#fieldContext:visible');
   await selectByLabel(visit.locator('[name="customerId"]'),customerName);
