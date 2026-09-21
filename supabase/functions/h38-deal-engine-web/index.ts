@@ -83,7 +83,7 @@ input,select{width:100%;min-width:0;border:1px solid #cbd6dd;border-radius:12px;
 </section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/dist/umd/supabase.min.js"></script>
 <script>
 'use strict';
 const SUPABASE_URL='https://jqukmwtsgcsaruucnqja.supabase.co';
