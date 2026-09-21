@@ -14,6 +14,10 @@ on:
       - 'supabase/functions/h38-penny-web/**'
       - 'supabase/functions/h38-resale-web/**'
       - 'supabase/functions/h38-coupon-web/**'
+      - 'supabase/functions/h38-deal-engine-web/**'
+      - 'supabase/functions/h38-deal-engine-api/**'
+      - 'supabase/migrations/20260921073000_h38_deal_engine.sql'
+      - 'scripts/scout-deal-engine-acceptance.cjs'
   workflow_dispatch:
 
 permissions:
