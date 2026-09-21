@@ -95,7 +95,7 @@ const money=v=>v==null||v===''?'—':('$'+Number(v).toFixed(2));
 const pct=v=>v==null||v===''?'—':(Number(v).toFixed(0)+'%');
 const ago=v=>{const ms=Date.now()-Date.parse(v||'');if(!Number.isFinite(ms))return'unknown';const h=Math.max(0,Math.round(ms/3600000));return h<1?'just now':h<24?h+'h ago':Math.round(h/24)+'d ago'};
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const safeUrl=v=>/^https:\\/\\//i.test(String(v||''))?String(v):'';
+const safeUrl=v=>/^https:\/\//i.test(String(v||''))?String(v):'';
 function setStatus(msg,type){$('status').textContent=msg||'';$('status').className='status '+(type||'')}
 async function invoke(body){const r=await sb.functions.invoke('h38-deal-engine-api',{body});if(r.error)throw new Error(r.error.message||'Deal Engine request failed');if(r.data&&r.data.error)throw new Error(r.data.detail||r.data.error);return r.data}
 function setBusy(on,label){busy=on;$('refresh').disabled=on;$('refreshSources').disabled=on;if(label)setStatus(label)}
