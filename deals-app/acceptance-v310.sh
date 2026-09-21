@@ -28,14 +28,17 @@ node "$ROOT/deals-app/verify-resale-coupon-ux.js"
 echo SHELL_AND_STATIC_UX_VERIFICATION_PASS | tee "$REPORT/source-status.txt"
 
 # 2. Live mobile web pages and JavaScript syntax.
-for app in deals-shell penny-web resale-web coupon-web; do
+for app in deals-shell penny-web resale-web coupon-web deal-engine-web; do
   curl --retry 3 --max-time 30 -fsSL "$SB_URL/functions/v1/h38-$app" -o "$REPORT/$app.html"
 done
-grep -Fq 'Choose your shopping tool.' "$REPORT/deals-shell.html"
+grep -Fq 'Start with the best opportunities' "$REPORT/deals-shell.html"
+grep -Fq 'h38-deal-engine-web' "$REPORT/deals-shell.html"
 grep -Fq 'data-h38-penny-web="store-actionable-v36"' "$REPORT/penny-web.html"
 grep -Fq 'Check deals' "$REPORT/penny-web.html"
 grep -Fq '>Resale<' "$REPORT/resale-web.html"
 grep -Fq 'Savings Copilot' "$REPORT/coupon-web.html"
+grep -Fq "Today's Best" "$REPORT/deal-engine-web.html"
+grep -Fq 'h38-deal-engine-api' "$REPORT/deal-engine-web.html"
 for view in shop deals save scan receipts; do grep -Fq "data-view=\"$view\"" "$REPORT/coupon-web.html"; done
 grep -Fq '>1 LIST<' "$REPORT/coupon-web.html"
 grep -Fq '>2 SAVINGS<' "$REPORT/coupon-web.html"
@@ -54,7 +57,7 @@ grep -Fq 'h38-coupon-api' "$REPORT/coupon-web.html"
 python3 - "$REPORT" <<'PY'
 import pathlib,re,sys
 root=pathlib.Path(sys.argv[1]); out=root/'web-js'
-for name in ['deals-shell','penny-web','resale-web','coupon-web']:
+for name in ['deals-shell','penny-web','resale-web','coupon-web','deal-engine-web']:
     text=(root/f'{name}.html').read_text(encoding='utf-8')
     scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',text,re.I)
     for i,script in enumerate(scripts):
