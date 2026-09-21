@@ -18,6 +18,57 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Physical-device release gate for the exact regression seen on the owner phone. */
 @RunWith(AndroidJUnit4.class)
 public final class HostedRenderInstrumentedTest {
+    @Test public void dealEngineRendersStyledHtmlInsteadOfSource() throws Exception {
+        AtomicReference<String> last = new AtomicReference<>("not-run");
+        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+            scenario.onActivity(activity -> {
+                try {
+                    Field field = MainActivity.class.getDeclaredField("webView");
+                    field.setAccessible(true);
+                    WebView webView = (WebView) field.get(activity);
+                    webView.loadUrl("https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-deal-engine-web");
+                } catch (Throwable error) {
+                    last.set("navigation-exception:" + error.getClass().getSimpleName() + ":" + error.getMessage());
+                }
+            });
+
+            long deadline = SystemClock.elapsedRealtime() + 45000L;
+            while (SystemClock.elapsedRealtime() < deadline) {
+                CountDownLatch latch = new CountDownLatch(1);
+                scenario.onActivity(activity -> {
+                    try {
+                        Field field = MainActivity.class.getDeclaredField("webView");
+                        field.setAccessible(true);
+                        WebView webView = (WebView) field.get(activity);
+                        String probe = "(function(){" +
+                                "var body=(document.body&&document.body.innerText||'').trim().toLowerCase();" +
+                                "var wrap=document.querySelector('main.wrap');" +
+                                "var top=document.querySelector('.top h1');" +
+                                "var auth=document.getElementById('auth');" +
+                                "var app=document.getElementById('app');" +
+                                "return document.contentType==='text/html'" +
+                                "&&document.title.indexOf('Today\\'s Best')===0" +
+                                "&&!!wrap&&!!top&&top.textContent.trim()==='Today\\'s Best'" +
+                                "&&(!!auth||!!app)" +
+                                "&&!body.startsWith('<!doctype html')&&!body.startsWith('<html');" +
+                                "})()";
+                        webView.evaluateJavascript(probe, value -> {
+                            last.set(value == null ? "null" : value);
+                            latch.countDown();
+                        });
+                    } catch (Throwable error) {
+                        last.set("exception:" + error.getClass().getSimpleName() + ":" + error.getMessage());
+                        latch.countDown();
+                    }
+                });
+                latch.await(6, TimeUnit.SECONDS);
+                if ("true".equalsIgnoreCase(last.get())) return;
+                SystemClock.sleep(1000L);
+            }
+        }
+        Assert.fail("H38 Deal Engine did not render as HTML. Last probe=" + last.get());
+    }
+
     @Test public void shellRendersStyledHtmlAndJavascriptInsteadOfSource() throws Exception {
         AtomicReference<String> last = new AtomicReference<>("not-run");
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
