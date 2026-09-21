@@ -95,7 +95,7 @@ async function recordLifecycle(page,kind,result){
   const card=page.locator('[data-h38-customer-card]').filter({hasText:customerName}).first();await card.click();
   await page.locator('.h38-c360-workspace').waitFor({timeout:10000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
-  await page.getByRole('button',{name:/Start Site Visit/i}).filter({visible:true}).first().click();
+  await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
   await page.locator('#fieldContext:visible').waitFor({timeout:15000});
   const visit=page.locator('#fieldContext:visible');
   await selectByLabel(visit.locator('[name="customerId"]'),customerName);
