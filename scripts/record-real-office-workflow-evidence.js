@@ -142,13 +142,14 @@ async function openCustomer(page,needle){
       if(!customerId)continue;
       await choice.click();
       await page.waitForSelector('.h38-c360-workspace',{timeout:10000});
-      const visibleHeading=page.locator('.h38-c360-detail:visible .h38-c360-head h2:visible').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
+      const selectedCard=page.locator('[data-h38-customer-card][aria-current="true"]').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
+      await selectedCard.waitFor({state:'visible',timeout:10000});
+      const visibleHeading=page.locator('.h38-c360-head h2:visible').filter({hasText:needle}).first();
       await visibleHeading.waitFor({state:'visible',timeout:10000});
-      const visibleDetail=page.locator('.h38-c360-detail:visible').filter({hasText:needle}).filter({hasText:/TEST/i}).first();
-      await visibleDetail.waitFor({state:'visible',timeout:10000});
-      const detail=safeText(await visibleDetail.innerText());
+      const selectedId=String(await selectedCard.getAttribute('data-h38-customer-card')||'').trim();
+      const selectedText=safeText(await selectedCard.innerText());
       const heading=safeText(await visibleHeading.innerText());
-      if(!needle.test(detail)||!/TEST/i.test(detail)||!needle.test(heading)||!/TEST/i.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
+      if(selectedId!==customerId||!needle.test(selectedText)||!/TEST/i.test(selectedText)||!needle.test(heading))throw new Error('Visible Customer 360 did not open the intended TEST customer.');
       return {customerId,displayText:txt,heading};
     }
   }
@@ -209,8 +210,12 @@ async function recurringServiceScenario(page,scenario,result,shots){
   const liveCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:scenario.customerNeedle}).filter({hasText:scenario.serviceNeedle}).first();
   await liveCard.locator('[data-h38-recurring-finish]').click();
   await page.waitForSelector('.h38-c360-workspace',{timeout:15000});
-  const billingHeading=page.locator('.h38-c360-detail:visible .h38-c360-head h2:visible').filter({hasText:scenario.customerNeedle}).filter({hasText:/TEST/i}).first();
+  const billingCard=page.locator('[data-h38-customer-card][aria-current="true"]').filter({hasText:scenario.customerNeedle}).filter({hasText:/TEST/i}).first();
+  await billingCard.waitFor({state:'visible',timeout:10000});
+  const billingHeading=page.locator('.h38-c360-head h2:visible').filter({hasText:scenario.customerNeedle}).first();
   await billingHeading.waitFor({state:'visible',timeout:10000});
+  const billingCustomerId=String(await billingCard.getAttribute('data-h38-customer-card')||'').trim();
+  if(billingCustomerId!==customerContext.id)throw new Error('Finish visit opened billing review for the wrong TEST customer.');
   await redactCustomerContact(page);
   const after=await page.evaluate(id=>{
     const invoices=Array.isArray(window.state?.snapshot?.invoices)?window.state.snapshot.invoices:[];
