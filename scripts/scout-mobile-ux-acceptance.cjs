@@ -18,7 +18,7 @@ const pages = [
   { name: 'penny', url: '/penny.html', selectors: ['.back', '#lookupOpen', '#refresh', '#search', '#stores'] },
   { name: 'resale', url: '/resale.html', selectors: ['.top a', '[data-tab="deals"]', '.sources summary', '#search', '#scan'] },
   { name: 'coupon', url: '/coupon.html', selectors: ['.top a', '.nav', '[data-view="shop"]', '[data-view="deals"]', '[data-view="receipts"]'] },
-  { name: 'best', url: '/best.html', selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#deals'] },
+  { name: 'best', url: '/best.html', selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#dealControls'] },
   { name: 'maintenance', url: '/maintenance.html', selectors: ['.top a', '#check', '#maintain', '#report'] },
 ];
 
