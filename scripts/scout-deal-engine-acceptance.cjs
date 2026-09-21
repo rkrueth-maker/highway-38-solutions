@@ -104,13 +104,13 @@ async function cleanupQueue(s, id) {
     let afterWatch = await api(s, { action: 'overview' });
     check('Deal Engine saved watch visible', (afterWatch.watches || []).some(x => x.id === directWatchId));
 
-    const bought = await api(s, { action: 'action', canonical_key: directKey, action: 'buy', quantity: 1, notes: qa });
+    const bought = await api(s, { action: 'set_action', canonical_key: directKey, decision: 'buy', quantity: 1, notes: qa });
     directQueueId = bought.queue?.id || '';
     check('Deal Engine Buy creates sourcing queue', !!directQueueId, JSON.stringify(bought.queue || {}));
     let afterBuy = await api(s, { action: 'overview' });
     check('Deal Engine sourcing queue visible', (afterBuy.queue || []).some(x => x.id === directQueueId));
 
-    await api(s, { action: 'action', canonical_key: directKey, action: 'pass', notes: qa });
+    await api(s, { action: 'set_action', canonical_key: directKey, decision: 'pass', notes: qa });
     const afterPass = await api(s, { action: 'overview' });
     check('Deal Engine Pass hides default opportunity', !(afterPass.segments.best || []).some(x => x.canonical_key === directKey));
     await cleanupAction(s, directKey);
