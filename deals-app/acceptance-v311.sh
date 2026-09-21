@@ -62,7 +62,7 @@ grep -Fq '>Resale<' "$REPORT/resale-web.html"
 grep -Fq 'Savings Copilot' "$REPORT/coupon-web.html"
 grep -Fq "Today's Best" "$REPORT/deal-engine-web.html"
 grep -Fq 'h38-deal-engine-api' "$REPORT/deal-engine-web.html"
-for word in SHOP SAVE SCAN DEALS RECEIPTS; do grep -Fq "$word" "$REPORT/coupon-web.html"; done
+for word in LIST SAVINGS PLAN SHOP RECEIPT; do grep -Fq "$word" "$REPORT/coupon-web.html"; done
 grep -Fq 'h38-penny-api' "$REPORT/penny-web.html"
 ! grep -Fq 'h38-resale-api' "$REPORT/penny-web.html"
 ! grep -Fq 'h38-coupon-api' "$REPORT/penny-web.html"
