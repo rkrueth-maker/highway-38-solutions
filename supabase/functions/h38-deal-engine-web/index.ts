@@ -88,6 +88,7 @@ input,select{width:100%;min-width:0;border:1px solid #cbd6dd;border-radius:12px;
 'use strict';
 const SUPABASE_URL='https://jqukmwtsgcsaruucnqja.supabase.co';
 const KEY='sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1';
+const SESSION_KEY='sb-jqukmwtsgcsaruucnqja-auth-token';
 const sb=window.supabase.createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 const $=id=>document.getElementById(id);
 let data=null,currentTab='best',geo=null,busy=false;
@@ -202,7 +203,18 @@ $('useLocation').addEventListener('click',()=>{if(!navigator.geolocation){setSta
 $('watchForm').addEventListener('submit',async e=>{e.preventDefault();try{setStatus('Saving shared watch…');await invoke({action:'watch_save',watch:{query_text:$('watchQuery').value,retailer:$('watchRetailer').value,product_area:$('watchArea').value,watch_mode:$('watchMode').value,max_buy_price:$('watchMax').value||null,min_discount_percent:$('watchDiscount').value||null,min_expected_profit:$('watchProfit').value||null,min_roi_percent:$('watchRoi').value||null}});e.target.reset();await load(false);showTab('watches');setStatus('Shared watch saved.','success')}catch(err){setStatus(String(err.message||err),'error')}});
 $('login').addEventListener('submit',async e=>{e.preventDefault();$('authStatus').textContent='Signing in…';const r=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(r.error){$('authStatus').textContent=r.error.message;$('authStatus').className='status error'}else{boot()}});
 async function boot(){
- const s=await sb.auth.getSession();if(!s.data.session){$('auth').classList.remove('hidden');$('app').classList.add('hidden');return}
+ let session=null;
+ try{session=(await sb.auth.getSession()).data.session}catch{}
+ if(!session){
+  try{
+   const raw=localStorage.getItem(SESSION_KEY),saved=raw?JSON.parse(raw):null;
+   if(saved?.access_token&&saved?.refresh_token){
+    const restored=await sb.auth.setSession({access_token:saved.access_token,refresh_token:saved.refresh_token});
+    session=restored.data.session||null;
+   }
+  }catch{}
+ }
+ if(!session){$('auth').classList.remove('hidden');$('app').classList.add('hidden');return}
  $('auth').classList.add('hidden');$('app').classList.remove('hidden');await load(false,false);
 }
 boot();
