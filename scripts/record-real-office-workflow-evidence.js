@@ -145,7 +145,7 @@ async function openCustomer(page,needle){
       await page.waitForFunction(
         ({source,flags})=>{
           const detail=String(document.querySelector('.h38-c360-detail')?.innerText||'');
-          return new RegExp(source,flags).test(detail)&&/\\bTEST\\b/i.test(detail);
+          return new RegExp(source,flags).test(detail)&&/\bTEST\b/i.test(detail);
         },
         {source:needle.source,flags:needle.flags},
         {timeout:10000}
@@ -181,16 +181,15 @@ async function customer360Scenario(page,scenario,result,shots){
   }
 }
 async function recurringServiceScenario(page,scenario,result,shots){
-  await openCustomer(page,scenario.customerNeedle);
+  const selectedCustomer=await openCustomer(page,scenario.customerNeedle);
   await redactCustomerContact(page);
-  result.steps.push({name:'select-visible-test-customer',status:'PASS',at:now()});
-  const customerContext=await page.evaluate(()=>{
-    const id=String(window.H38_CUSTOMER_360?.selectedCustomerId||'');
+  result.steps.push({name:'select-visible-test-customer',status:'PASS',at:now(),customerId:selectedCustomer.customerId});
+  const customerContext=await page.evaluate(id=>{
     const invoices=Array.isArray(window.state?.snapshot?.invoices)?window.state.snapshot.invoices:[];
     const invoiceCount=invoices.filter(row=>String(row['Customer ID']||row.customerId||'')===id).length;
     return {id,invoiceCount};
-  });
-  if(!customerContext.id)throw new Error('Selected TEST customer did not resolve to a customer ID.');
+  },selectedCustomer.customerId);
+  if(!customerContext.id)throw new Error('Visible TEST customer card did not resolve to a customer ID.');
   await clickPage(page,'Today');
   await page.waitForSelector('#h38RecurringServiceQueue',{timeout:15000});
   const cards=page.locator('#h38RecurringServiceQueue article');
@@ -214,7 +213,14 @@ async function recurringServiceScenario(page,scenario,result,shots){
   const liveCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:scenario.customerNeedle}).filter({hasText:scenario.serviceNeedle}).first();
   await liveCard.locator('[data-h38-recurring-finish]').click();
   await page.waitForSelector('.h38-c360-workspace',{timeout:15000});
-  await page.waitForFunction(id=>String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===id,customerContext.id,{timeout:10000});
+  await page.waitForFunction(
+    ({source,flags})=>{
+      const detail=String(document.querySelector('.h38-c360-detail')?.innerText||'');
+      return new RegExp(source,flags).test(detail)&&/\bTEST\b/i.test(detail);
+    },
+    {source:scenario.customerNeedle.source,flags:scenario.customerNeedle.flags},
+    {timeout:10000}
+  );
   await redactCustomerContact(page);
   const after=await page.evaluate(id=>{
     const invoices=Array.isArray(window.state?.snapshot?.invoices)?window.state.snapshot.invoices:[];
