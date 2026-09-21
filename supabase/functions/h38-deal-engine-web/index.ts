@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const html = String.raw\`<!doctype html>
+const html = String.raw`<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -208,7 +208,7 @@ async function boot(){
 boot();
 </script>
 </body>
-</html>\`;
+</html>`;
 
 Deno.serve(() => new Response(html, {
   headers: {
