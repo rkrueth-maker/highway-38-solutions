@@ -15,6 +15,7 @@ const rewrites=[
   ['/functions/v1/h38-penny-web','/penny.html'],
   ['/functions/v1/h38-resale-web','/resale.html'],
   ['/functions/v1/h38-coupon-web','/coupon.html'],
+  ['/functions/v1/h38-deal-engine-web','/best.html'],
   ['/functions/v1/h38-deals-maintenance-web','/maintenance.html']
 ];
 function transform(h){
@@ -31,6 +32,7 @@ const files={
   'penny.html':transform(extract(read('supabase/functions/h38-penny-web/index.ts'))),
   'resale.html':transform(extract(read('supabase/functions/h38-resale-web/index.ts'))),
   'coupon.html':transform(extract(read('supabase/functions/h38-coupon-web/index.ts'))),
+  'best.html':transform(extract(read('supabase/functions/h38-deal-engine-web/index.ts'))),
   'maintenance.html':transform(extract(read('supabase/functions/h38-deals-maintenance-web/index.ts')))
 };
 for(const [name,data] of Object.entries(files)) fs.writeFileSync(path.join(out,name),data);
