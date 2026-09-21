@@ -609,6 +609,8 @@ async function importLegacyWatches(admin: any, ctx: any) {
       retailer: text(row.retailer),
       product_area: "resale",
       watch_mode: (Number(row.max_buy_price) > 0 || Number(row.min_expected_profit) > 0 || Number(row.min_roi_percent) > 0) ? "rule" : "keyword",
+      source_ref: "",
+      source_url: "",
       max_buy_price: Number(row.max_buy_price) > 0 ? Number(row.max_buy_price) : null,
       min_expected_profit: Number(row.min_expected_profit) > 0 ? Number(row.min_expected_profit) : null,
       min_roi_percent: Number(row.min_roi_percent) > 0 ? Number(row.min_roi_percent) : null,
@@ -637,7 +639,7 @@ async function importLegacyWatches(admin: any, ctx: any) {
   }
   if (add.length) {
     const q = await admin.from("deal_engine_watch_rules").insert(add);
-    if (q.error) throw q.error;
+    if (q.error) throw dbError("WATCH_IMPORT", q.error);
   }
   return { imported: add.length };
 }
