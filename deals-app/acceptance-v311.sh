@@ -25,7 +25,7 @@ grep -Fq 'H38DealsAndroid/3.1.1' "$MAIN"
 grep -Fq 'H38_HOSTED_HTML_TRANSPORT_V311' "$TRANSPORT"
 grep -Fq 'H38_RAW_SOURCE_GUARD_V311' "$TRANSPORT"
 grep -Fq 'H38_HOSTED_CSP_REPAIR_V311' "$TRANSPORT"
-for page in h38-deals-shell h38-penny-web h38-resale-web h38-coupon-web; do grep -Fq "/functions/v1/$page" "$TRANSPORT"; done
+for page in h38-deals-shell h38-penny-web h38-resale-web h38-coupon-web h38-deal-engine-web; do grep -Fq "/functions/v1/$page" "$TRANSPORT"; done
 grep -Fq 'request.isForMainFrame()' "$TRANSPORT"
 grep -Fq '"text/html"' "$TRANSPORT"
 grep -Fq 'startsWith("<!doctype html")' "$TRANSPORT"
@@ -45,8 +45,8 @@ echo HOSTED_HTML_TRANSPORT_CSP_AND_ISOLATION_PASS | tee "$REPORT/source-status.t
 
 # 2. Supabase hosted Edge Functions intentionally rewrite HTML GETs to text/plain
 # and add a sandbox CSP. The body must still be valid HTML/JS; Android strips
-# that platform document policy only for the four known H38 main-frame pages.
-for app in deals-shell penny-web resale-web coupon-web; do
+# that platform document policy only for the known H38 main-frame pages.
+for app in deals-shell penny-web resale-web coupon-web deal-engine-web; do
   curl --retry 3 --max-time 30 -fsSL -D "$REPORT/$app.headers" "$SB_URL/functions/v1/h38-$app" -o "$REPORT/$app.html"
   grep -Eiq '^content-type:[[:space:]]*text/plain' "$REPORT/$app.headers"
   grep -Eiq '^content-security-policy:.*sandbox' "$REPORT/$app.headers"
@@ -56,10 +56,12 @@ p=pathlib.Path(sys.argv[1]); t=p.read_text(encoding='utf-8').lstrip().lower()
 assert t.startswith('<!doctype html') or t.startswith('<html'), t[:80]
 PY
 done
-grep -Fq 'Choose your shopping tool.' "$REPORT/deals-shell.html"
+grep -Fq 'Start with the best opportunities' "$REPORT/deals-shell.html"
 grep -Fq 'Penny Deals' "$REPORT/penny-web.html"
 grep -Fq '>Resale<' "$REPORT/resale-web.html"
 grep -Fq 'Savings Copilot' "$REPORT/coupon-web.html"
+grep -Fq "Today's Best" "$REPORT/deal-engine-web.html"
+grep -Fq 'h38-deal-engine-api' "$REPORT/deal-engine-web.html"
 for word in SHOP SAVE SCAN DEALS RECEIPTS; do grep -Fq "$word" "$REPORT/coupon-web.html"; done
 grep -Fq 'h38-penny-api' "$REPORT/penny-web.html"
 ! grep -Fq 'h38-resale-api' "$REPORT/penny-web.html"
@@ -73,7 +75,7 @@ grep -Fq 'h38-coupon-api' "$REPORT/coupon-web.html"
 python3 - "$REPORT" <<'PY'
 import pathlib,re,sys
 root=pathlib.Path(sys.argv[1]); out=root/'web-js'
-for name in ['deals-shell','penny-web','resale-web','coupon-web']:
+for name in ['deals-shell','penny-web','resale-web','coupon-web','deal-engine-web']:
     text=(root/f'{name}.html').read_text(encoding='utf-8')
     scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',text,re.I)
     for i,script in enumerate(scripts):
