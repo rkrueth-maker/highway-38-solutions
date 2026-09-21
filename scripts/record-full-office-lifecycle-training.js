@@ -41,6 +41,12 @@ async function storageState(browser){
 }
 async function ready(page){
   await page.goto(tenantUrl('highway38'),{waitUntil:'domcontentloaded',timeout:45000});
+  await page.waitForTimeout(700);
+  if(await page.locator('#h38AuthForm:visible').count()){
+    if(!email||!password)throw Error('The refreshed training context requires the secure TEST login credential pair.');
+    await page.locator('#h38AuthEmail').fill(email);await page.locator('#h38AuthPassword').fill(password);
+    await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+  }
   await page.waitForFunction(()=>String(window.state?.snapshot?.business?.businessKey||'').toLowerCase()==='highway38'&&!!window.state?.snapshot?.user&&!!window.state?.bridgeReady,null,{timeout:40000});
   await page.waitForTimeout(1300);
   await page.addStyleTag({content:`
@@ -72,8 +78,10 @@ async function recordLifecycle(page,kind,result){
   await caption(page,'TRAINING: Complete TEST workflow — no customer message or real payment is sent.',1800);
   await openPage(page,'customers','Customers');
   await caption(page,'1. Open Customers and choose Add Customer.');
-  await page.locator('#h38AddCustomerTop').click();
-  const customerForm=page.locator('#customerForm');
+  const directoryAdd=page.locator('[data-h38-new-customer]:visible');
+  await directoryAdd.waitFor({state:'visible',timeout:10000});await directoryAdd.click();
+  const customerForm=page.locator('#customerForm:visible');
+  await customerForm.waitFor({state:'visible',timeout:10000});
   await customerForm.locator('[name="customerName"]').fill(customerName);
   await customerForm.locator('[name="email"]').fill(`training-${stamp}-${mobile?'m':'d'}@example.invalid`);
   await customerForm.locator('[name="phone"]').fill('218-555-0100');
