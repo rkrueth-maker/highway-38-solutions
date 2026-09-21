@@ -149,8 +149,21 @@ async function recordLifecycle(page,kind,result){
   await page.locator('#addQuoteLine').click();
   await caption(page,`Add the reviewed work line. This TEST quote totals $${amount.toFixed(2)}.`);
   await page.locator('#saveQuoteButton').click();
-  await page.waitForFunction(()=>!!window.state?.quote?.quoteId&&Number(window.state?.quote?.savedTotal||0)>0,null,{timeout:15000});
-  const ids=await page.evaluate(()=>({customerId:window.state.quote.customerId,quoteId:window.state.quote.quoteId}));
+  await page.waitForFunction(([qid,total])=>{
+    const rows=Array.isArray(window.state?.snapshot?.quotes)?window.state.snapshot.quotes:[];
+    const row=rows.find(r=>String(r['Quote ID']||r.quoteId||'')===String(qid));
+    if(!row)return false;
+    const saved=Number(row.Total??row.total??row.Subtotal??row.subtotal??0);
+    const lines=Array.isArray(row.lines)?row.lines:[];
+    const sum=lines.reduce((acc,line)=>acc+Number(line.Quantity??line.quantity??0)*Number(line['Unit Price']??line.unitPrice??0),0);
+    return Math.abs(saved-Number(total))<0.01||Math.abs(sum-Number(total))<0.01;
+  },[quoteId,amount],{timeout:20000});
+  const ids=await page.evaluate(qid=>{
+    const rows=Array.isArray(window.state?.snapshot?.quotes)?window.state.snapshot.quotes:[];
+    const row=rows.find(r=>String(r['Quote ID']||r.quoteId||'')===String(qid))||{};
+    return{customerId:String(window.state?.quote?.customerId||row['Customer ID']||row.customerId||''),quoteId:String(qid)};
+  },quoteId);
+  if(!ids.customerId)throw Error('Saved TEST quote lost its customer link.');
   result.ids={...ids};result.steps.push({name:'quote-saved',status:'PASS',at:now()});
   await sync(page);
 
