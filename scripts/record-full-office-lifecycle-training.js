@@ -146,23 +146,16 @@ async function recordLifecycle(page,kind,result){
   await caption(page,'3. Build the quote from the saved Site Visit.');
   await page.locator('#lineDescription').fill('Detached garage workflow planning and field documentation');
   await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
-  await page.locator('#addQuoteLine').click();
-  await caption(page,`Add the reviewed work line. This TEST quote totals $${amount.toFixed(2)}.`);
-  await page.locator('#saveQuoteButton').click();
-  await page.waitForFunction(([qid,total])=>{
-    const rows=Array.isArray(window.state?.snapshot?.quotes)?window.state.snapshot.quotes:[];
-    const row=rows.find(r=>String(r['Quote ID']||r.quoteId||'')===String(qid));
-    if(!row)return false;
-    const saved=Number(row.Total??row.total??row.Subtotal??row.subtotal??0);
-    const lines=Array.isArray(row.lines)?row.lines:[];
-    const sum=lines.reduce((acc,line)=>acc+Number(line.Quantity??line.quantity??0)*Number(line['Unit Price']??line.unitPrice??0),0);
-    return Math.abs(saved-Number(total))<0.01||Math.abs(sum-Number(total))<0.01;
-  },[quoteId,amount],{timeout:20000});
-  const ids=await page.evaluate(qid=>{
-    const rows=Array.isArray(window.state?.snapshot?.quotes)?window.state.snapshot.quotes:[];
-    const row=rows.find(r=>String(r['Quote ID']||r.quoteId||'')===String(qid))||{};
-    return{customerId:String(window.state?.quote?.customerId||row['Customer ID']||row.customerId||''),quoteId:String(qid)};
-  },quoteId);
+  await page.waitForFunction(()=>typeof document.getElementById('addQuoteLine')?.onclick==='function',null,{timeout:10000});
+  await page.locator('#addQuoteLine').focus();
+  await page.evaluate(async()=>{const button=document.getElementById('addQuoteLine');if(!button||typeof button.onclick!=='function')throw Error('Live Add quote line handler unavailable.');await button.onclick();});
+  await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),['Detached garage workflow planning and field documentation',amount],{timeout:10000});
+  await caption(page,`Add the reviewed work line. This TEST quote totals ${amount.toFixed(2)}.`);
+  await page.waitForFunction(()=>typeof document.getElementById('saveQuoteButton')?.onclick==='function',null,{timeout:10000});
+  await page.locator('#saveQuoteButton').focus();
+  await page.evaluate(async()=>{const button=document.getElementById('saveQuoteButton');if(!button||typeof button.onclick!=='function')throw Error('Live Save quote handler unavailable.');await button.onclick();});
+  await page.waitForFunction(([qid,total])=>String(window.state?.quote?.quoteId||'')===String(qid)&&Math.abs(Number(window.state?.quote?.savedTotal||0)-Number(total))<0.01,[quoteId,amount],{timeout:20000});
+  const ids=await page.evaluate(qid=>({customerId:String(window.state?.quote?.customerId||''),quoteId:String(qid)}),quoteId);
   if(!ids.customerId)throw Error('Saved TEST quote lost its customer link.');
   result.ids={...ids};result.steps.push({name:'quote-saved',status:'PASS',at:now()});
   await sync(page);
