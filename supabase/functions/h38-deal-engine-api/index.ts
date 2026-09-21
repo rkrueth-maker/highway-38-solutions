@@ -144,12 +144,8 @@ async function authenticatedUserId(sb: any, token: string) {
 }
 
 async function contextFor(sb: any, admin: any, userId: string) {
-  const [membership, entitlements] = await Promise.all([
-    sb.from("coupon_household_members").select("household_id").eq("user_id", userId).limit(1).maybeSingle(),
-    sb.from("h38_product_entitlements").select("product_key,active,expires_at").eq("user_id", userId).eq("active", true),
-  ]);
-  const householdId = text(membership.data?.household_id);
-  if (!householdId) throw new Error("DEAL_ENGINE_HOUSEHOLD_REQUIRED");
+  const entitlements = await sb.from("h38_product_entitlements")
+    .select("product_key,active,expires_at").eq("user_id", userId).eq("active", true);
   const now = Date.now();
   const allowed = new Set((entitlements.data || [])
     .filter((x: any) => !x.expires_at || Date.parse(x.expires_at) > now)
@@ -159,8 +155,33 @@ async function contextFor(sb: any, admin: any, userId: string) {
     error.status = 403;
     throw error;
   }
+
+  let membership = await admin.from("coupon_household_members")
+    .select("household_id").eq("user_id", userId).limit(1).maybeSingle();
+  if (membership.error) throw membership.error;
+  let householdId = text(membership.data?.household_id);
+
+  if (!householdId) {
+    const slug = "h38-deals-" + userId.toLowerCase();
+    const household = await admin.from("coupon_households").upsert({
+      slug,
+      name: "H38 Deals",
+      created_by: userId,
+    }, { onConflict: "slug" }).select("id").single();
+    if (household.error) throw household.error;
+    householdId = text(household.data?.id);
+    if (!householdId) throw new Error("DEAL_ENGINE_HOUSEHOLD_CREATE_FAILED");
+    const member = await admin.from("coupon_household_members").upsert({
+      household_id: householdId,
+      user_id: userId,
+      role: "owner",
+    }, { onConflict: "household_id,user_id" });
+    if (member.error) throw member.error;
+  }
+
   const members = await admin.from("coupon_household_members")
     .select("user_id").eq("household_id", householdId);
+  if (members.error) throw members.error;
   return {
     householdId,
     entitlements: allowed,
