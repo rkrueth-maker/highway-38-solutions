@@ -45,7 +45,7 @@ jobs:
           test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedRenderInstrumentedTest.java
           test -f native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
           grep -Fq 'realCredentialsCreateSessionAndShowProductChooser' native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
-          grep -Fq "document.body.dataset.h38LoginRepair==='v312'" native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
+          grep -Fq "document.body.dataset.h38LoginRepair==='v316-deal-engine'" native/h38-site-scanner/android-app/reseller/src/androidTest/java/com/highway38/resellerscout/HostedAuthInstrumentedTest.java
           test ! -e native/h38-site-scanner/android-app/reseller/src/main/java/com/highway38/resellerscout/NativeLoginOverlay.java
 
       - name: Validate v3.1.1 acceptance syntax
@@ -120,6 +120,7 @@ jobs:
           grep -Fq '/functions/v1/h38-penny-web' "$report/dex.txt"
           grep -Fq '/functions/v1/h38-resale-web' "$report/dex.txt"
           grep -Fq '/functions/v1/h38-coupon-web' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-deal-engine-web' "$report/dex.txt"
           if grep -Fq 'H38_SCOUT_V263_PHYSICAL_BUNDLE_AUTHORITY' "$report/dex.txt"; then exit 1; fi
           echo APK_HOSTED_RENDER_TRANSPORT_PASS | tee "$report/apk-status.txt"
 
