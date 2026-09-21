@@ -100,7 +100,7 @@ public final class HostedAuthInstrumentedTest {
                                 "return JSON.stringify({auth:document.body.dataset.h38Auth||''," +
                                 "status:s?s.textContent:'',products:!!products&&!products.classList.contains('hidden')," +
                                 "signout:!!out&&!out.classList.contains('hidden')," +
-                                "penny:!!penny,resale:!!resale,coupon:!!coupon,engine:!!engine&&!engine.classList.contains('hidden')});})()";
+                                "penny:!!penny,resale:!!resale,coupon:!!coupon,engine:!!engine&&!engine.classList.contains('hidden')});})()");
                 last.set(probe);
                 if (probe.contains("\\\"auth\\\":\\\"signed-in\\\"")
                         && probe.contains("\\\"products\\\":true")
