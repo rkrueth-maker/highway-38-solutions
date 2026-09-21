@@ -79,7 +79,8 @@ async function shellAcceptance(browser) {
   await page.waitForFunction(()=>document.body.dataset.h38Auth==='signed-in',null,{timeout:60000}).catch(async e=>{throw new Error('Shell first sign-in timed out — '+(await page.locator('#authstatus').innerText().catch(()=>'')));});
   check('Shell Sign in button', await page.locator('#products:not(.hidden)').count()===1);
   check('Shell products visible', await page.locator('#products:not(.hidden)').count()===1);
-  check('Shell active product links', await page.locator('#products a.open:not(.hidden)').count()===3, 'Expected 3 enabled products');
+  check('Shell active specialized product links', await page.locator('#products [data-product] a.open:not(.hidden)').count()===3, 'Expected 3 enabled specialized products');
+  check('Shell Best Opportunities visible', await page.locator('#engine-card:not(.hidden) a[href*="h38-deal-engine-web"]').count()===1);
   check('Shell entitlement Unlock buttons hidden', await page.locator('#products .unlock:not(.hidden)').count()===0);
 
   await page.click('#signout');
