@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-3';
+const BUILD='20260922-tenant-aware-office-actions-4';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -96,16 +96,33 @@ function installStyle(){
   @media(max-width:600px){.h38-ai-action-buttons button{flex:1 1 100%}}
   `;document.head.appendChild(style);
 }
+async function refreshAuthoritativeSnapshot(){
+  if(!navigator.onLine)return null;
+  if(typeof window.refreshSnapshot==='function'){
+    const refreshed=await window.refreshSnapshot();
+    if(refreshed)return refreshed;
+  }
+  const bridge=window.state?.bridge,bid=businessId();
+  if(bridge?.ready&&typeof bridge.request==='function'&&bid){
+    const snapshot=await bridge.request('completionBootstrap',{businessId:bid},45000);
+    if(snapshot&&typeof snapshot==='object'){
+      if(typeof bridge.onFullSnapshot==='function')await bridge.onFullSnapshot(snapshot,bid);
+      else if(window.state)window.state.snapshot=snapshot;
+      return snapshot;
+    }
+  }
+  return null;
+}
 async function settle(){
   if(navigator.onLine&&typeof window.sync==='function')await window.sync(false);
-  if(navigator.onLine&&typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
+  await refreshAuthoritativeSnapshot();
 }
 function proofVisible(actionId){return rows('proofLog').some(row=>text(row?.Details?.aiActionId||row?.details?.aiActionId)===text(actionId));}
 async function awaitProof(actionId){
   if(!actionId)return false;
   for(let attempt=0;attempt<6;attempt++){
     if(proofVisible(actionId))return true;
-    if(navigator.onLine&&typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
+    if(navigator.onLine)await refreshAuthoritativeSnapshot();
     if(proofVisible(actionId))return true;
     await new Promise(resolve=>setTimeout(resolve,250+attempt*100));
   }
