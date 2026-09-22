@@ -18,7 +18,7 @@ for(const token of [
 check('AI runtime does not use direct Supabase table writes',!actions.includes(".from('business_records')")&&!actions.includes('.rpc('));
 check('AI runtime does not expose unrestricted SQL',!actions.includes('executeSql')&&!actions.includes('unrestrictedSql'));
 check('existing proof log preserves AI metadata',data.includes("operation?.payload?.__h38AiProof")&&data.includes('...aiProof'));
-check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-3'));
+check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-4'));
 check('runtime loads before assistant command runtime',index.indexOf('assistant-tenant-actions.js')<index.indexOf('assistant-command-runtime.js'));
 console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',passed,failed:failures.length,failures},null,2));
 process.exit(failures.length?1:0);

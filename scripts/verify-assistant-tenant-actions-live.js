@@ -118,6 +118,37 @@ async function command(page,value){
       if(cancelled!==175)throw Error('Cancel wrote data.');
       evidence.steps.push({name:'cancel-no-write',status:'PASS'});
 
+      await command(page,'Change their phone number to 218-555-0177.');
+      await page.locator('[data-h38-ai-action-card]').waitFor({state:'visible',timeout:10000});
+      const phonePreview=await page.evaluate(id=>{
+        const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===id)||{};
+        return{phone:String(row.Phone||row.phone||''),pending:window.H38_ASSISTANT_TENANT_ACTIONS.pending()};
+      },test.id);
+      if(phonePreview.phone!=='218-555-0199'||phonePreview.pending?.type!=='customer-field'||phonePreview.pending?.after!=='218-555-0177')throw Error('Customer contact preview/no-write check failed.');
+      await command(page,'Never mind.');
+      const phoneAfterCancel=await page.evaluate(id=>String(((window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===id)||{}).Phone||''),test.id);
+      if(phoneAfterCancel!=='218-555-0199')throw Error('Customer contact cancel wrote data.');
+      evidence.steps.push({name:'customer-contact-preview-cancel-no-write',status:'PASS'});
+
+      await command(page,'Increase snow plowing 8%.');
+      await page.locator('[data-h38-ai-action-card]').waitFor({state:'visible',timeout:10000});
+      const bulkPreview=await page.evaluate(()=>{
+        const pending=window.H38_ASSISTANT_TENANT_ACTIONS.pending();
+        const current=(pending?.records||[]).map(item=>{
+          const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===String(item.customerId))||{};
+          return{customerId:item.customerId,field:item.field,value:Number(row[item.field]||0),before:Number(item.before||0)};
+        });
+        return{type:pending?.type||'',count:pending?.records?.length||0,excluded:pending?.excluded?.length||0,current};
+      });
+      if(bulkPreview.type!=='bulk-rate-change'||bulkPreview.count<1||bulkPreview.current.some(item=>Math.abs(item.value-item.before)>0.005))throw Error('Bulk pricing preview wrote data or found no eligible TEST-visible rate records.');
+      await command(page,'Never mind.');
+      const bulkAfterCancel=await page.evaluate(items=>items.map(item=>{
+        const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===String(item.customerId))||{};
+        return Math.abs(Number(row[item.field]||0)-Number(item.before||0))<0.005;
+      }),bulkPreview.current);
+      if(bulkAfterCancel.some(ok=>!ok))throw Error('Bulk pricing cancel wrote data.');
+      evidence.steps.push({name:'bulk-price-preview-cancel-no-write',status:'PASS',eligible:bulkPreview.count,excluded:bulkPreview.excluded});
+
       await command(page,'Move the invoice total above the line items.');await page.locator('[data-h38-ai-action-card]').waitFor({timeout:10000});
       const product=await page.evaluate(()=>window.H38_ASSISTANT_TENANT_ACTIONS.pending());
       if(product?.type!=='product-suggestion')throw Error('Product boundary failed.');
