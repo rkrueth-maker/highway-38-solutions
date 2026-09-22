@@ -222,6 +222,21 @@ async function recurringServiceScenario(page,scenario,result,shots){
   },{customerId:selectedCustomer.customerId,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source});
   const recurringJobId=String(recurringJob?.['Job ID']||recurringJob?.jobId||'').trim();
   if(!recurringJobId)throw new Error('No controlled TEST recurring-service job was available for the selected customer.');
+  await page.evaluate(async jobId=>{
+    const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
+    const row=rows.find(item=>String(item?.['Job ID']||item?.jobId||'').trim()===jobId);
+    if(!row)throw new Error('Controlled TEST recurring-service fixture disappeared before reset.');
+    const updated={...row,'Status':'Scheduled','Recurring Service Started':false,'Recurring Service Completed':false,'Removed From Work List':false,'Updated Time':new Date().toISOString(),'Record Version':Math.max(1,Number(row['Record Version']||row.recordVersion||0)+1)};
+    delete updated.__localPending;
+    if(typeof window.queueOperation!=='function'||typeof window.sync!=='function')throw new Error('Secure recurring-service TEST reset path is unavailable.');
+    await window.queueOperation('SAVE_ENTITY','Job',jobId,{entity:'jobs',record:updated},{collection:'jobs',record:updated,idKeys:['Job ID']},false);
+    await window.sync(false);
+  },recurringJobId);
+  await page.waitForFunction(jobId=>{
+    const row=(window.state?.snapshot?.jobs||[]).find(item=>String(item?.['Job ID']||item?.jobId||'').trim()===jobId);
+    return !!row&&String(row.Status||row.status||'').trim().toUpperCase()==='SCHEDULED'&&row['Removed From Work List']!==true;
+  },recurringJobId,{timeout:30000});
+  result.steps.push({name:'prepare-test-service',status:'PASS',at:now()});
   await clickPage(page,'Today');
   const readyActions=await recurringActions(page,recurringJobId,'start',scenario);
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-ready'));
