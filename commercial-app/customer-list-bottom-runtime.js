@@ -6,7 +6,7 @@ const text=value=>String(value==null?'':value).trim();
 function isCustomerPage(){try{return text(window.state?.page)==='customers';}catch(_){return false;}}
 function headings(card){return Array.from(card?.querySelectorAll?.('h2,h3')||[]).map(node=>text(node.textContent).toLowerCase()).filter(Boolean);}
 function looksLikeNativeCustomerList(card){
-  if(!card||card.id==='h38CustomerReadyHero'||card.id==='h38CustomerReadyCards'||card.closest('.h38-c360'))return false;
+  if(!card||card.id==='h38CustomerReadyHero'||card.id==='h38CustomerReadyCards'||card.matches('.h38-c360-directory-rail,[data-h38-customer-directory-host]')||card.closest('.h38-c360'))return false;
   const hs=headings(card);
   if(hs.some(value=>value==='customer cards'||value==='customers'))return true;
   const eyebrow=text(card.querySelector('.h38-eyebrow,small')?.textContent).toLowerCase();
