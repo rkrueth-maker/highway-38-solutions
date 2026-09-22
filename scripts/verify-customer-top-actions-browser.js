@@ -61,7 +61,15 @@ assert(serviceWorker.includes("h38-business-office-20260827-1350"),'service work
     assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('name')),'customerName','Add Customer must focus customer name');
 
     await page.locator('#h38StartSiteVisitTop').click();
-    assert.deepEqual(await page.evaluate(()=>window.__siteOpen),{customerId:'',quoteId:''},'Start Site Visit behavior must remain unchanged');
+    assert.deepEqual(await page.evaluate(()=>window.__siteOpen),{customerId:'',quoteId:''},'Top-level Start Site Visit must remain fresh when no Customer 360 selection is visible');
+
+    await page.evaluate(()=>{
+      window.H38_CUSTOMER_360={selectedCustomerId:'C-SELECTED'};
+      const workspace=document.createElement('section');workspace.className='h38-c360-workspace';workspace.textContent='Selected customer workspace';document.getElementById('mainContent').appendChild(workspace);
+      window.__siteOpen=null;
+    });
+    await page.locator('#h38StartSiteVisitTop').click();
+    assert.deepEqual(await page.evaluate(()=>window.__siteOpen),{customerId:'C-SELECTED',quoteId:''},'Start Site Visit from visible Customer 360 must preserve the selected customer');
 
     await page.evaluate(()=>window.renderCustomers());
     await page.waitForSelector('#h38TopSiteVisitAction');
@@ -69,9 +77,9 @@ assert(serviceWorker.includes("h38-business-office-20260827-1350"),'service work
     assert.equal(await page.locator('#h38AddCustomerTop').count(),1,'rerender must preserve one Add Customer action');
 
     const contract=await page.evaluate(()=>window.H38_SITE_VISIT_TOP_ACTION);
-    for(const key of ['addCustomerTopLevel','addCustomerBesideSiteVisit','addCustomerUsesCanonicalForm','addCustomerExpandsMobileEntry','addCustomerNoNewWorkflow'])assert.equal(contract[key],true,`${key} must remain true`);
+    for(const key of ['addCustomerTopLevel','addCustomerBesideSiteVisit','addCustomerUsesCanonicalForm','addCustomerExpandsMobileEntry','addCustomerNoNewWorkflow','selectedCustomerContextPreserved','freshTopLevelStartWithoutSelection'])assert.equal(contract[key],true,`${key} must remain true`);
     for(const key of ['automaticApproval','automaticCustomerSending'])assert.equal(contract[key],false,`${key} must remain false`);
     assert.deepEqual(pageErrors,[],'customer top-action browser test must have no page errors');
-    console.log(JSON.stringify({status:'PASS',checks:['always-visible Add Customer','beside Start Site Visit','canonical customer form','collapsed mobile form expansion','site visit preserved','rerender idempotency','stale-cache repair','owner-control safety']},null,2));
+    console.log(JSON.stringify({status:'PASS',checks:['always-visible Add Customer','beside Start Site Visit','canonical customer form','collapsed mobile form expansion','fresh site visit preserved','selected Customer 360 context preserved','rerender idempotency','stale-cache repair','owner-control safety']},null,2));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
