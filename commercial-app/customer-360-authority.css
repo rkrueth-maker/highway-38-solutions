@@ -20,9 +20,9 @@
 }
 
 /* Canonical Customer 360 master-detail layout */
-.h38-c360-master-detail{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);gap:14px;align-items:start}
-.h38-c360-directory-rail{position:sticky;top:12px;display:grid;gap:12px;max-height:calc(100dvh - 24px);overflow:auto;padding:14px}
-.h38-c360-detail{min-width:0}
+.h38-c360-master-detail{display:grid;grid-column:1/-1;width:100%;min-width:0;grid-template-columns:minmax(230px,290px) minmax(0,1fr);gap:14px;align-items:start}
+.h38-c360-directory-rail{position:sticky;top:12px;display:grid;gap:12px;min-width:0;max-height:calc(100dvh - 24px);overflow:auto;padding:14px}
+.h38-c360-detail{width:100%;min-width:0}
 .h38-c360-detail>.h38-c360{margin:0}
 .h38-c360-directory-rail .h38-c360-search #h38Customer360Matches{position:static;box-shadow:none;margin-top:4px}
 .h38-c360-setup-dialog{width:min(860px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:18px;border:0;border-radius:18px;background:var(--card,#fff);box-shadow:0 24px 70px rgba(3,18,29,.28)}
