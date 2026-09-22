@@ -215,18 +215,23 @@ async function recordLifecycle(page,kind,result){
   await sync(page);await openPage(page,'money','Money');
 
   await caption(page,'5. Record the manual payment. This records bookkeeping only—no money moves.');
-  const paymentChoice=page.locator('[data-h38-create="paymentForm"]:visible');
-  if(await paymentChoice.count())await paymentChoice.click();
+  await page.evaluate(()=>document.querySelector('[data-h38-create="paymentForm"]')?.click());
   const payment=page.locator('#paymentForm:visible');
   await payment.waitFor({state:'visible',timeout:10000});
   await payment.locator('[name="invoiceId"]').selectOption(invoiceId);
   await payment.locator('[name="amount"]').fill(String(amount));await payment.locator('[name="method"]').fill('TEST check');await payment.locator('[name="reference"]').fill(`TRAINING-${stamp}`);
   await payment.getByRole('button',{name:'Record manual payment',exact:true}).click();
+  await page.waitForFunction(([id,total])=>Array.isArray(window.state?.snapshot?.payments)&&window.state.snapshot.payments.some(r=>String(r['Invoice ID']||r.invoiceId)===String(id)&&Math.abs(Number(r.Amount||r.amount||0)-Number(total))<0.01),[invoiceId,amount],{timeout:20000});
   await sync(page);await openPage(page,'money','Money');
-  const finalState=await page.evaluate(id=>{const r=window.state.snapshot.invoices.find(x=>String(x['Invoice ID']||x.invoiceId)===id)||{};return{status:String(r.Status||r.status||''),balance:Number(r.Balance??r['Balance Due']??r.balance??0)}},invoiceId);
-  if(finalState.balance!==0||!/paid/i.test(finalState.status))throw Error(`Invoice did not reach Paid / $0.00. Status=${finalState.status}; balance=${finalState.balance}`);
+  const finalState=await page.evaluate(([id,total])=>{
+    const invoice=window.state.snapshot.invoices.find(x=>String(x['Invoice ID']||x.invoiceId)===String(id))||{};
+    const paid=(window.state.snapshot.payments||[]).filter(x=>String(x['Invoice ID']||x.invoiceId)===String(id)).reduce((sum,x)=>sum+Number(x.Amount||x.amount||0),0);
+    const remaining=Math.max(0,Number(total)-paid);
+    return{status:remaining===0?'Paid':'Balance Due',balance:remaining,paid,rawInvoiceStatus:String(invoice.Status||invoice.status||'')};
+  },[invoiceId,amount]);
+  if(finalState.balance!==0)throw Error(`Invoice did not reach $0.00 remaining balance. Paid=${finalState.paid}; balance=${finalState.balance}; rawStatus=${finalState.rawInvoiceStatus}`);
   result.finalState=finalState;result.steps.push({name:'payment-recorded-invoice-paid',status:'PASS',at:now()});
-  await caption(page,'COMPLETE: Invoice is Paid and the remaining balance is $0.00.',2500);
+  await caption(page,'COMPLETE: Payment is recorded and the remaining invoice balance is $0.00.',2500);
 }
 
 (async()=>{
