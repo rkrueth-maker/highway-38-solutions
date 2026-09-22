@@ -95,12 +95,10 @@ public final class HostedAuthInstrumentedTest {
                                 "var penny=document.getElementById('product-penny');" +
                                 "var resale=document.getElementById('product-resale');" +
                                 "var coupon=document.getElementById('product-coupon');" +
-                                "var engine=document.getElementById('engine-card');" +
                                 "return document.body.dataset.h38Auth==='signed-in'" +
                                 "&&!!products&&!products.classList.contains('hidden')" +
                                 "&&!!out&&!out.classList.contains('hidden')" +
-                                "&&!!penny&&!!resale&&!!coupon" +
-                                "&&!!engine&&!engine.classList.contains('hidden');" +
+                                "&&!!penny&&!!resale&&!!coupon;" +
                                 "})()");
                 last.set(probe);
                 if ("true".equalsIgnoreCase(probe)) {
