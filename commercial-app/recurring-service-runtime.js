@@ -52,16 +52,16 @@ async function setVisitState(job,mode){
   if(navigator.onLine&&state()?.bridgeReady&&typeof window.sync==='function')await window.sync(false);
   window.toast?.(start?'Recurring service started.':finish?'Recurring service finished. Opening billing review…':'Recurring service visit removed from the active work list.');
   window.renderToday?.();window.renderWork?.();
-  if(finish&&financialAllowed())openCustomer(record,true);
+  if(finish&&financialAllowed())await openCustomer(record,true);
   window.dispatchEvent(new CustomEvent('h38:recurring-service-state-changed',{detail:{jobId:id,mode}}));
 }
 function selectWork(job){
   window.openPage?.('work');
   setTimeout(()=>{const select=document.getElementById('h38LifecycleJob');if(select&&jid(job)){select.value=jid(job);select.dispatchEvent(new Event('change',{bubbles:true}));window.renderWork?.();select.scrollIntoView?.({block:'center'});}},80);
 }
-function openCustomer(job,billing=false){
+async function openCustomer(job,billing=false){
   const customerId=cid(job);if(!customerId){window.toast?.('This service visit has no linked customer.',true);return;}
-  const renderExact=()=>{
+  const selectExact=()=>{
     if(window.H38_CUSTOMER_360){
       window.H38_CUSTOMER_360.selectedCustomerId=customerId;
       window.H38_CUSTOMER_360.selectedTab='overview';
@@ -71,20 +71,22 @@ function openCustomer(job,billing=false){
   };
   if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
   window.openPage?.('customers');
-  setTimeout(()=>{
-    renderExact();
-    const card=document.querySelector(`[data-h38-customer-card="${CSS.escape(customerId)}"]`);
-    if(card&&!card.matches('[aria-current="true"],.active'))card.click();
-    setTimeout(()=>{
-      renderExact();
-      if(!billing)return;
-      const form=document.querySelector('[data-h38-customer-invoice]');
-      if(!form){window.toast?.('Customer billing is not available for this account.',true);return;}
-      form.scrollIntoView?.({block:'center'});
-      const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();
-      window.toast?.('Billing opened. Review rates and create a draft when ready.');
-    },140);
-  },80);
+  const deadline=Date.now()+4000;
+  do{
+    selectExact();
+    if(String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===String(customerId)&&document.querySelector('.h38-c360-workspace'))break;
+    await new Promise(resolve=>setTimeout(resolve,80));
+  }while(Date.now()<deadline);
+  if(String(window.H38_CUSTOMER_360?.selectedCustomerId||'')!==String(customerId)){
+    window.toast?.('Could not open the linked customer billing record.',true);
+    return;
+  }
+  if(!billing)return;
+  const form=document.querySelector('[data-h38-customer-invoice]');
+  if(!form){window.toast?.('Customer billing is not available for this account.',true);return;}
+  form.scrollIntoView?.({block:'center'});
+  const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();
+  window.toast?.('Billing opened. Review rates and create a draft when ready.');
 }
 function buttons(job){
   const wrap=document.createElement('div');wrap.className='h38-recurring-row-actions';wrap.dataset.h38RecurringActions=jid(job);wrap.dataset.signature=actionSignature(job);
