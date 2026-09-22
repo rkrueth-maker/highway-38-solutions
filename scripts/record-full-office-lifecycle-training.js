@@ -127,8 +127,10 @@ async function recordLifecycle(page,kind,result){
     return a.width>650&&b.width>320&&b.height>120&&styles.display!=='none'&&styles.visibility!=='hidden';
   },null,{timeout:15000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
-  await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
-  await page.waitForFunction(()=>!!window.H38_FIELD_VISIT_CORE?.state?.open,null,{timeout:15000});
+  const customerSiteVisit=page.locator('#h38CustomerReadyHero [data-h38-customer-action="site"]:visible');
+  await customerSiteVisit.waitFor({timeout:15000});
+  await customerSiteVisit.click();
+  await page.waitForFunction(cid=>!!window.H38_FIELD_VISIT_CORE?.state?.open&&String(window.H38_FIELD_VISIT_CORE?.state?.visit?.customerId||'')===String(cid),createdCustomerId,{timeout:15000});
   await page.evaluate(async({projectTitle,scope})=>{
     const core=window.H38_FIELD_VISIT_CORE,workflow=window.H38_FIELD_VISIT_WORKFLOW;
     if(!core?.state?.visit||!workflow?.ensureSession)throw Error('Site Visit workflow unavailable.');
