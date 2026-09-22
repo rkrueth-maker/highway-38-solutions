@@ -56,7 +56,7 @@ def test_final_authorities_are_loaded_directly_from_index():
         './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
         f'./site-visit-photo-quote-runtime-repair.js?build={declared_build(PHOTO)}',
         f'./site-visit-delete-server-authority.js?build={declared_build(CLEANUP)}',
-        './field-visit-quote-handoff.js?build=20260922-site-visit-quote-customer-authority-4',
+        './field-visit-quote-handoff.js?build=20260922-site-visit-quote-customer-authority-5',
         f'./field-visit-finish-build.js?build={declared_build(FINISH)}',
         './site-visit-top-action.js?build=20260821-site-visit-quote-runtime-authority-1',
     ]
