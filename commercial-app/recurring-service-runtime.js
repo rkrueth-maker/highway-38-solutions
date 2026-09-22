@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-finish-to-billing-customer-lock-2';
+const BUILD='20260922-atomic-recurring-sync-3';
 const text=v=>String(v==null?'':v).trim();
 const upper=v=>text(v).toUpperCase();
 const state=()=>window.state||{};
@@ -33,7 +33,7 @@ function rateLines(job){
 }
 function actionSignature(job){return [jid(job),upper(val(job,'Status','status')),financialAllowed()?'finance':'no-finance'].join('|');}
 function workSignature(job){return [actionSignature(job),text(val(job,'Service Type')),customerName(job),rateLines(job).join('~')].join('|');}
-async function save(collection,type,id,record,idKeys){if(typeof window.queueOperation!=='function')throw new Error('Secure save queue is unavailable.');return window.queueOperation('SAVE_ENTITY',type,id,{entity:collection,record},{collection,record,idKeys},true);}
+async function save(collection,type,id,record,idKeys){if(typeof window.queueOperation!=='function')throw new Error('Secure save queue is unavailable.');return window.queueOperation('SAVE_ENTITY',type,id,{entity:collection,record},{collection,record,idKeys},false);}
 async function setVisitState(job,mode){
   if(!recurring(job))throw new Error('This is not a recurring service visit.');
   const id=jid(job),start=mode==='start',finish=mode==='finish',remove=mode==='remove';
@@ -49,6 +49,7 @@ async function setVisitState(job,mode){
     const updated={...schedule,'Status':start?'In Progress':finish?'Complete':'Cancelled','Updated Time':now(),'Record Version':version(schedule)};delete updated.__localPending;
     await save('scheduleEvents','Schedule Event',id2,updated,['Schedule Event ID']);
   }
+  if(navigator.onLine&&state()?.bridgeReady&&typeof window.sync==='function')await window.sync(false);
   window.toast?.(start?'Recurring service started.':finish?'Recurring service finished. Opening billing review…':'Recurring service visit removed from the active work list.');
   window.renderToday?.();window.renderWork?.();
   if(finish&&financialAllowed())openCustomer(record,true);
