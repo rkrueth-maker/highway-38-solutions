@@ -118,11 +118,14 @@ async function recordLifecycle(page,kind,result){
   await card.click();
   await page.locator('.h38-c360-workspace').waitFor({timeout:10000});
   if(!mobile)await page.waitForFunction(()=>{
-    const master=document.querySelector('.h38-c360-master-detail'),detail=document.querySelector('.h38-c360-detail');
-    if(!master||!detail)return false;
+    const masters=Array.from(document.querySelectorAll('.h38-c360-master-detail'));
+    const master=masters.find(node=>node.offsetParent!==null);
+    const detail=master?.querySelector('.h38-c360-detail');
+    if(!master||!detail||detail.offsetParent===null)return false;
     const a=master.getBoundingClientRect(),b=detail.getBoundingClientRect();
-    return a.width>700&&b.width>400;
-  },null,{timeout:10000});
+    const styles=getComputedStyle(detail);
+    return a.width>650&&b.width>320&&b.height>120&&styles.display!=='none'&&styles.visibility!=='hidden';
+  },null,{timeout:15000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
   await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
   await page.waitForFunction(()=>!!window.H38_FIELD_VISIT_CORE?.state?.open,null,{timeout:15000});
