@@ -60,13 +60,13 @@ function selectWork(job){
 }
 function openCustomer(job,billing=false){
   const customerId=cid(job);if(!customerId){window.toast?.('This service visit has no linked customer.',true);return;}
-  const deadline=Date.now()+4000;let settled=false,timer=null;
-  const stop=()=>{if(settled)return;settled=true;window.removeEventListener?.('h38:business-snapshot-updated',apply);if(timer)clearTimeout(timer);};
-  const finishBilling=()=>{
+  const deadline=Date.now()+5000;let settled=false,timer=null,stableSince=0,billingFocused=false;
+  const stop=()=>{if(settled)return;settled=true;window.removeEventListener?.('h38:business-snapshot-updated',onSnapshot);if(timer)clearTimeout(timer);};
+  const focusBilling=()=>{
     const form=document.querySelector('[data-h38-customer-invoice]');
     if(!form)return false;
-    form.scrollIntoView?.({block:'center'});const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();
-    window.toast?.('Billing opened. Review rates and create a draft when ready.');return true;
+    if(!billingFocused){billingFocused=true;form.scrollIntoView?.({block:'center'});const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();window.toast?.('Billing opened. Review rates and create a draft when ready.');}
+    return true;
   };
   const apply=()=>{
     if(settled)return;
@@ -76,11 +76,12 @@ function openCustomer(job,billing=false){
     if(typeof api?.selectCustomer==='function')api.selectCustomer(customerId,billing?'money':'overview');
     else if(api){api.selectedCustomerId=customerId;api.selectedTab=billing?'money':'overview';window.renderCustomers?.();}
     const selected=text(window.H38_CUSTOMER_360?.selectedCustomerId);
-    const ready=selected===customerId&&!!document.querySelector('.h38-c360-workspace');
-    if(ready&&(!billing||finishBilling())){stop();return;}
+    const ready=selected===customerId&&!!document.querySelector('.h38-c360-workspace')&&(!billing||focusBilling());
+    if(ready){if(!stableSince)stableSince=Date.now();if(Date.now()-stableSince>=1200){stop();return;}}else stableSince=0;
     timer=setTimeout(apply,120);
   };
-  window.addEventListener?.('h38:business-snapshot-updated',apply);
+  const onSnapshot=()=>{stableSince=0;apply();};
+  window.addEventListener?.('h38:business-snapshot-updated',onSnapshot);
   apply();
 }
 function buttons(job){
