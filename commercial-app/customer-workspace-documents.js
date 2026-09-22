@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260920-customer-master-detail-2';
+const BUILD='20260922-customer-master-detail-4';
 const MULTI_EQUIPMENT_BUILD='20260912-multi-equipment-invoicing-1';
 const BUCKET='business-office-files';
 const LARGE_FILE_THRESHOLD=3000000;
@@ -35,7 +35,7 @@ function renderDirectory(){
   const main=document.getElementById('mainContent'),c360=window.H38_CUSTOMER_360,rail=main?.querySelector('[data-h38-customer-directory-host]'),host=rail?.querySelector('[data-h38-customer-directory-list]');if(!main||!rail||!host||!c360)return;
   const list=visibleCustomers(),selected=selectedId(),signature=[selected,...list.map(row=>`${customerId(row)}:${value(row,'Updated Time','updatedAt')}`),rows('documents').length,rows('properties').length].join('|');if(host.dataset.signature===signature)return;host.dataset.signature=signature;
   host.innerHTML=`<div class="h38-customer-card-grid">${list.length?list.map(row=>{const id=customerId(row),address=customerAddress(row),rate=customerRate(row),isTest=truthy(value(row,'Test Data','testData'))||/\bTEST\b/i.test(customerName(row)),propertyRows=rows('properties').filter(p=>text(value(p,'Customer ID','customerId'))===id),properties=propertyRows.length||(address?1:0),documents=rows('documents').filter(d=>text(value(d,'Customer ID','customerId'))===id).length,details=[address,rate].filter(Boolean).join(' · ');return`<button type="button" class="h38-customer-card${id===selected?' active':''}" data-h38-customer-card="${html(id)}" aria-current="${id===selected?'true':'false'}"><span><strong>${html(customerName(row))}${isTest?' <em>TEST</em>':''}</strong><small>${html(details||'No customer details')}</small></span><span class="h38-customer-card-meta">${properties} location${properties===1?'':'s'} · ${documents} file${documents===1?'':'s'}</span></button>`;}).join(''):'<p class="muted">No customer records yet.</p>'}</div>`;
-  host.querySelectorAll('[data-h38-customer-card]').forEach(button=>button.onclick=()=>{c360.selectedCustomerId=button.dataset.h38CustomerCard;c360.selectedTab='overview';window.renderCustomers?.();});rail.querySelector('[data-h38-new-customer]')?.addEventListener('click',()=>openCustomerForm(null),{once:true});
+  host.querySelectorAll('[data-h38-customer-card]').forEach(button=>button.onclick=()=>{c360.selectedCustomerId=button.dataset.h38CustomerCard;c360.selectedTab='overview';if(typeof c360.renderNow==='function'){c360.renderNow(window);window.H38_CUSTOMER_WORKSPACE_DOCUMENTS?.augmentCustomerPage?.();}else window.renderCustomers?.();});rail.querySelector('[data-h38-new-customer]')?.addEventListener('click',()=>openCustomerForm(null),{once:true});
 }
 function setupDialog(){return document.querySelector('.h38-c360-setup-dialog')||document.querySelector('#customerForm')?.closest('dialog');}
 function showSetup(dialog){if(!dialog)return;if(typeof dialog.showModal==='function'&&!dialog.open)dialog.showModal();else dialog.setAttribute('open','');}
