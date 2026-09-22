@@ -63,6 +63,9 @@ def test_final_authorities_are_loaded_directly_from_index():
     positions = [INDEX.index(item) for item in expected]
     assert positions == sorted(positions)
     assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
+    handoff = (APP / 'field-visit-quote-handoff.js').read_text(encoding='utf-8')
+    assert 'authoritativeQuoteCustomer:true' in handoff
+    assert 'function enforceQuoteCustomer' in handoff
 
 
 def test_shared_quote_machine_is_loaded_first_by_final_loader_and_is_generic():
