@@ -19,7 +19,42 @@ function serverSafeguard(){return`<div class="notice warn"><strong>Owner control
 async function queueOperation(action,recordType,recordId,payload,optimistic,autoSync=true){if(!state.businessId)throw new Error('Open a business first.');const id=newId('OP'),operation={id,operationId:id,businessId:state.businessId,deviceId:await deviceId(),recordType,recordId,action,baseVersion:num(payload?.baseVersion),localTimestamp:now(),payload,syncStatus:'PENDING',retryCount:0};await put('operations',operation);if(optimistic)applyOptimistic(optimistic.collection,optimistic.record,optimistic.idKeys);await updatePending();if(autoSync&&navigator.onLine&&state.bridgeReady)sync(false);return operation;}
 function applyOptimistic(collection,record,idKeys=[]){if(!state.snapshot[collection])state.snapshot[collection]=[];const keys=idKeys.length?idKeys:['id'];const id=keys.map(key=>v(record,key)).find(Boolean);const index=state.snapshot[collection].findIndex(row=>keys.some(key=>v(row,key)===id));record.__localPending=true;if(index>=0)state.snapshot[collection][index]=record;else state.snapshot[collection].unshift(record);put('snapshots',{...state.snapshot,id:`business:${state.businessId}`,cachedAt:state.snapshot.cachedAt||now()}).catch(()=>{});}
 async function updatePending(){const queued=(await all('operations')).filter(op=>op.businessId===state.businessId),pending=queued.filter(op=>op.syncStatus==='PENDING'),failed=pending.filter(op=>num(op.retryCount)>0),conflicts=queued.filter(op=>op.syncStatus==='CONFLICT'),badge=$('syncBadge'),retry=()=>sync(true);badge.onclick=null;badge.onkeydown=null;badge.removeAttribute('role');badge.removeAttribute('tabindex');if(failed.length||conflicts.length){badge.textContent=`Sync failed — ${failed.length+conflicts.length} safe locally · Retry`;badge.className='badge bad';badge.title='Your work is safe on this device. Activate to retry.';badge.setAttribute('role','button');badge.tabIndex=0;badge.onclick=retry;badge.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();retry();}};}else if(pending.length||!navigator.onLine){badge.textContent=navigator.onLine?`${pending.length} syncing`:`Offline — saved locally${pending.length?` · ${pending.length} waiting`:''}`;badge.className='badge warn';badge.title='Your work is safe on this device.';}else{badge.textContent='Saved';badge.className='badge neutral';badge.title='Cloud/server state confirmed.';}}
-async function sync(show=true){const operations=(await all('operations')).filter(op=>op.businessId===state.businessId&&op.syncStatus==='PENDING');await updatePending();if(!operations.length){if(show)toast('Nothing is waiting to sync.');return;}if(!navigator.onLine||!state.bridgeReady){if(show)toast('Offline — your work is saved locally. Reconnect and tap refresh to sync.',true);return;}try{const response=await state.bridge.request('completionSync',{businessId:state.businessId,operations},120000);let done=0,failed=0,conflicts=0;for(const result of response.results||[]){const operation=operations.find(op=>op.operationId===result.operationId);if(!operation)continue;if(['SYNCED','ALREADY_SYNCED'].includes(result.status)){await remove('operations',operation.id);done++;}else if(result.status==='CONFLICT'){operation.syncStatus='CONFLICT';operation.lastError='A newer server version needs review.';await put('operations',operation);conflicts++;}else{operation.retryCount=num(operation.retryCount)+1;operation.lastError='Cloud sync could not complete. Work remains safe on this device.';await put('operations',operation);failed++;}}await updatePending();toast(`${done} synchronized${conflicts?`, ${conflicts} need review`:''}${failed?`, ${failed} safe locally — retry`:''}.`,failed>0||conflicts>0);if(done)await loadBusiness(state.businessId,true);else renderPage();}catch(error){for(const operation of operations){operation.retryCount=num(operation.retryCount)+1;operation.lastError='Cloud sync could not complete. Work remains safe on this device.';await put('operations',operation);}await updatePending();toast('Sync failed. Your work is safe on this device. Tap refresh to retry.',true);}}
+let h38SyncPromise=null;
+async function sync(show=true){
+  if(h38SyncPromise){
+    const active=h38SyncPromise;
+    await active;
+    if(h38SyncPromise===active)h38SyncPromise=null;
+    const pending=(await all('operations')).some(op=>op.businessId===state.businessId&&op.syncStatus==='PENDING');
+    if(pending&&navigator.onLine&&state.bridgeReady)return sync(show);
+    return;
+  }
+  const active=(async()=>{
+    const operations=(await all('operations')).filter(op=>op.businessId===state.businessId&&op.syncStatus==='PENDING');
+    await updatePending();
+    if(!operations.length){if(show)toast('Nothing is waiting to sync.');return;}
+    if(!navigator.onLine||!state.bridgeReady){if(show)toast('Offline — your work is saved locally. Reconnect and tap refresh to sync.',true);return;}
+    try{
+      const response=await state.bridge.request('completionSync',{businessId:state.businessId,operations},120000);
+      let done=0,failed=0,conflicts=0;
+      for(const result of response.results||[]){
+        const operation=operations.find(op=>op.operationId===result.operationId);if(!operation)continue;
+        if(['SYNCED','ALREADY_SYNCED'].includes(result.status)){await remove('operations',operation.id);done++;}
+        else if(result.status==='CONFLICT'){operation.syncStatus='CONFLICT';operation.lastError='A newer server version needs review.';await put('operations',operation);conflicts++;}
+        else{operation.retryCount=num(operation.retryCount)+1;operation.lastError='Cloud sync could not complete. Work remains safe on this device.';await put('operations',operation);failed++;}
+      }
+      await updatePending();
+      toast(`${done} synchronized${conflicts?`, ${conflicts} need review`:''}${failed?`, ${failed} safe locally — retry`:''}.`,failed>0||conflicts>0);
+      if(done)await loadBusiness(state.businessId,true);else renderPage();
+    }catch(error){
+      for(const operation of operations){operation.retryCount=num(operation.retryCount)+1;operation.lastError='Cloud sync could not complete. Work remains safe on this device.';await put('operations',operation);}
+      await updatePending();
+      toast('Sync failed. Your work is safe on this device. Tap refresh to retry.',true);
+    }
+  })();
+  h38SyncPromise=active;
+  try{return await active;}finally{if(h38SyncPromise===active)h38SyncPromise=null;}
+}
 async function deviceId(){let record=await get('meta','device');if(!record){record={id:'device',deviceId:newId('DEVICE'),createdTime:now(),name:navigator.userAgent.slice(0,90)};await put('meta',record);}return record.deviceId;}
 async function recordUsage(pageKey,actionKey,metadata={}){if(!state.businessId)return;await queueOperation('RECORD_USAGE_EVENT','Usage Event',newId('USAGE'),{pageKey,actionKey,deviceId:await deviceId(),metadata},null,false);}
 function formObject(form){const data=new FormData(form),out={};for(const [key,value] of data.entries())out[key]=value;return out;}
