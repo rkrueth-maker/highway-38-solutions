@@ -21,6 +21,12 @@ The Supabase Business Office has one shared advisory AI route, one owner-facing 
 
 ### Business Office command bus
 - `commercial-app/assistant-command-bus.js` is the deterministic command router for supported internal Business Office commands.
+- `commercial-app/assistant-tenant-actions.js` extends that same existing Assistant/command-bus experience with permission-gated tenant-data operations. It does not create a second Office, quote engine, invoice engine, or mutation backend.
+- The tenant-action runtime inherits the signed-in human's current Office permissions and active business. It can never grant itself a stronger role, switch businesses from prompt text, bypass RLS, or accept an unvalidated foreign record ID.
+- Consequential tenant-data actions use **resolve → validate → preview → approval → execute → verify → proof**. Preview state is versioned; revising a proposed value invalidates the prior approval target.
+- Owner/admin users with the existing financial capability may approve supported service-rate changes and internal draft quotes. Supported customer/contact edits use existing customer-edit permissions. Bulk pricing uses a stronger aggregate preview and excludes/flags custom-contract records.
+- Users without the needed capability may prepare the same preview and request owner review, but the restricted write is not executed.
+- Product/UI/source/security requests are kept outside tenant-data authority and can be captured as structured H38 product suggestions for the internal build process.
 - It may navigate to permitted pages, resolve a permitted customer, open Customer 360, prepare a working quote context, open Site Visit, open a meeting, open jobs, and prepare other internal workflows supported by existing specialist modules.
 - The cross-platform Assistant polish extends that same command-bus authority for the newer management intents: **ERP Center, Time & Attendance, Team Access, Existing-data uptake, Business-specific quote learning / quote-history analysis, and Task Manager / deployment**.
 - Those management commands open the existing specialist controls rather than creating a second ERP, time, employee-access, import, learning, or task authority.
@@ -41,7 +47,7 @@ The Supabase Business Office has one shared advisory AI route, one owner-facing 
 - ERP Center: deeper management, data uptake, historical learning and add-on hooks.
 - Existing communications/delivery controls: customer email, SMS and quote delivery.
 
-The general assistant does not replace these specialists and must not call their mutation paths as a shortcut.
+The Assistant does not replace these specialists. Tenant-aware actions must use the same trusted Office operation queue/functions and specialist validation rules the UI uses; they must not create an alternate mutation backend or bypass normal business rules.
 
 ## Cross-platform shell rule
 
@@ -65,7 +71,15 @@ The shared Business Office is the product UI for web, Android and future iOS. `c
 - no sending, approval, purchasing, payment, accounting posting, payroll export, tax filing, permission change, deployment, quote mutation, job mutation or Site Visit mutation;
 - every response reports `externalActionOccurred: false`.
 
-Actual business actions remain behind the existing deterministic Business Office controls and owner-review gates.
+Actual business actions remain behind the existing deterministic Business Office controls. The cloud `h38-assistant-ai` route stays advisory; approved tenant-data mutations are performed only by the deterministic `assistant-tenant-actions.js` layer through existing Office operations, under the logged-in user's permissions.
+
+### Customer business data vs H38 product boundary
+
+- **Customer business data may be changed** when the current role is permitted and the action passes the required preview/approval rules.
+- **H38 engine/product authority may not be changed** by customer Assistant commands. Source code, schema/migrations, RLS/security rules, global platform configuration, and permission escalation remain outside this runtime.
+- Cross-tenant prompt switching is blocked. The active business remains the authority and every resolved record must belong to that tenant.
+- AI-originated writes carry proof metadata including action ID, tenant, requester/effective role, preview version, before/after values, affected records, approval state, execution result, and verification evidence where supported.
+- External customer sends, real payment movement, purchasing, publishing, and other commitments remain controlled by their existing explicit Office workflows.
 
 ## Owner privacy boundary
 
