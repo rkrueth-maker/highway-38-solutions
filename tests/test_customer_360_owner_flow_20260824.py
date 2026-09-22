@@ -123,4 +123,4 @@ def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
     assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-1' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
     assert 'customer-360-authority.js?build=20260920-final-customer-workspace-2' in BROWSER
-    assert 'customer-360-authority.css?build=20260920-final-customer-workspace-2' in BROWSER
+    assert 'customer-360-authority.css?build=20260922-layout-stability-1' in BROWSER

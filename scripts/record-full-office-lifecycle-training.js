@@ -51,7 +51,7 @@ async function ready(page){
   await page.waitForTimeout(1300);
   await page.addStyleTag({content:`
     #h38TrainingCaption{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483647;max-width:min(760px,calc(100vw - 24px));padding:12px 18px;border-radius:12px;background:rgba(5,35,52,.96);color:#fff;font:700 18px/1.3 system-ui;box-shadow:0 8px 28px rgba(0,0,0,.35);text-align:center;pointer-events:none}
-    @media(max-width:600px){#h38TrainingCaption{font-size:15px;bottom:10px;padding:10px 12px}}
+    @media(max-width:600px){#h38TrainingCaption{font-size:14px;bottom:84px;padding:9px 11px;max-width:calc(100vw - 20px)}}
     input:focus,textarea:focus,select:focus,button:focus{outline:4px solid #ffbf47!important;outline-offset:3px!important}
   `});
 }
@@ -67,8 +67,28 @@ async function openPage(page,key,label){
 }
 async function selectByLabel(select,label){await select.selectOption({label});}
 async function sync(page){
-  await page.evaluate(async()=>{if(typeof window.sync==='function')await window.sync(false);if(typeof window.refreshSnapshot==='function')await window.refreshSnapshot();});
-  await page.waitForTimeout(800);
+  let last={pending:-1,failed:[]};
+  for(let attempt=1;attempt<=4;attempt++){
+    last=await page.evaluate(async()=>{
+      if(typeof window.sync==='function')await window.sync(false);
+      if(typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
+      const all=await window.H38DB?.all?.('operations')||[],businessId=String(window.state?.businessId||'');
+      const waiting=all.filter(operation=>{
+        const same=!operation?.businessId||String(operation.businessId)===businessId;
+        const status=String(operation?.syncStatus||operation?.status||'').toUpperCase();
+        return same&&!['SYNCED','COMPLETE','COMPLETED'].includes(status);
+      });
+      return{
+        pending:waiting.length,
+        failed:waiting.filter(operation=>['FAILED','ERROR'].includes(String(operation?.syncStatus||operation?.status||'').toUpperCase())).map(operation=>String(operation?.action||operation?.recordType||operation?.operationId||'operation')).slice(0,5),
+        badge:String(document.getElementById('syncBadge')?.textContent||''),
+        badgeBad:document.getElementById('syncBadge')?.classList.contains('bad')===true
+      };
+    });
+    if(last.pending===0&&!last.badgeBad){await page.waitForTimeout(900);return;}
+    await page.waitForTimeout(1000+attempt*350);
+  }
+  throw Error(`Office sync did not settle cleanly before training continued. Pending=${last.pending}; failed=${last.failed.join(', ')||'none'}; badge=${last.badge}`);
 }
 async function recordLifecycle(page,kind,result){
   const mobile=kind==='mobile',customerName=`Pine Ridge Workshop — TEST ${stamp}-${mobile?'M':'D'}`;
@@ -92,8 +112,17 @@ async function recordLifecycle(page,kind,result){
   result.steps.push({name:'customer-created',status:'PASS',at:now()});
   await caption(page,'Customer saved. Customer 360 keeps the entire job history together.');
 
-  const card=page.locator('[data-h38-customer-card]').filter({hasText:customerName}).first();await card.click();
+  const card=page.locator('[data-h38-customer-card]').filter({hasText:customerName}).first();
+  const createdCustomerId=String(await card.getAttribute('data-h38-customer-card')||'');
+  if(!createdCustomerId)throw Error('Created TEST customer card did not expose its canonical customer ID.');
+  await card.click();
   await page.locator('.h38-c360-workspace').waitFor({timeout:10000});
+  if(!mobile)await page.waitForFunction(()=>{
+    const master=document.querySelector('.h38-c360-master-detail'),detail=document.querySelector('.h38-c360-detail');
+    if(!master||!detail)return false;
+    const a=master.getBoundingClientRect(),b=detail.getBoundingClientRect();
+    return a.width>700&&b.width>400;
+  },null,{timeout:10000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
   await page.locator('button:visible').filter({hasText:/Start Site Visit/i}).first().click();
   await page.waitForFunction(()=>!!window.H38_FIELD_VISIT_CORE?.state?.open,null,{timeout:15000});
@@ -141,7 +170,11 @@ async function recordLifecycle(page,kind,result){
   });
   await page.waitForFunction(qid=>window.state?.page==='quotes'&&String(window.state?.quote?.quoteId||'')===String(qid),quoteId,{timeout:30000});
   await page.locator('#quoteTitle:visible').waitFor({timeout:30000});
-  result.steps.push({name:'site-visit-completed',status:'PASS',at:now()});
+  await page.waitForFunction(([qid,cid])=>{
+    const select=document.querySelector('#quoteCustomer');
+    return String(window.state?.quote?.quoteId||'')===String(qid)&&String(select?.value||'')===String(cid);
+  },[quoteId,createdCustomerId],{timeout:15000});
+  result.steps.push({name:'site-visit-completed',status:'PASS',at:now(),customerId:createdCustomerId});
 
   // Site Visit/customer saves can still be synchronizing in the background. Settle that work,
   // then reopen the exact quote before operator edits so a late snapshot refresh cannot replace them.
@@ -153,7 +186,8 @@ async function recordLifecycle(page,kind,result){
   await page.locator('#quoteTitle:visible').waitFor({timeout:30000});
   const quoteCustomer=page.locator('#quoteCustomer:visible');
   await quoteCustomer.waitFor({state:'visible',timeout:10000});
-  await selectByLabel(quoteCustomer,customerName);
+  await page.waitForFunction(cid=>String(document.querySelector('#quoteCustomer')?.value||'')===String(cid),createdCustomerId,{timeout:10000});
+  if(await quoteCustomer.inputValue()!==createdCustomerId)throw Error('Saved Site Visit quote visibly opened on the wrong customer.');
 
   await caption(page,'3. Build the quote from the saved Site Visit.');
   const lineDescription='Detached garage workflow planning and field documentation';
@@ -164,7 +198,7 @@ async function recordLifecycle(page,kind,result){
       const reopenedAgain=await page.evaluate(qid=>typeof window.openQuote==='function'&&window.openQuote(qid),quoteId);
       if(reopenedAgain===false)throw Error('Saved Site Visit quote could not be reopened while adding a line.');
       await page.waitForFunction(qid=>String(window.state?.quote?.quoteId||'')===String(qid),quoteId,{timeout:15000});
-      await selectByLabel(page.locator('#quoteCustomer:visible'),customerName);
+      await page.waitForFunction(cid=>String(document.querySelector('#quoteCustomer')?.value||'')===String(cid),createdCustomerId,{timeout:10000});
     }
     await page.locator('#lineDescription').fill(lineDescription);
     await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
@@ -240,7 +274,7 @@ async function recordLifecycle(page,kind,result){
     for(const spec of [{id:'H38-FULL-LIFECYCLE-DESKTOP',viewport:{width:1440,height:900},kind:'desktop'},{id:'H38-FULL-LIFECYCLE-PHONE',viewport:{width:390,height:844},kind:'mobile'}]){
       const ctx=await browser.newContext({storageState:auth,viewport:spec.viewport,recordVideo:{dir:raw,size:spec.viewport}}),page=await ctx.newPage(),video=page.video();
       const result={id:spec.id,title:`Customer to paid invoice — ${spec.kind}`,viewport:`${spec.viewport.width}x${spec.viewport.height}`,testDataOnly:true,status:'HOLD',steps:[]};
-      try{await ready(page);await recordLifecycle(page,spec.kind,result);result.status='PASS';await page.screenshot({path:path.join(shots,`${spec.id}-paid.png`),fullPage:true})}catch(error){result.detail=error.stack||error.message;try{await page.screenshot({path:path.join(shots,`${spec.id}-hold.png`),fullPage:true})}catch(_){}}
+      try{await ready(page);await recordLifecycle(page,spec.kind,result);result.status='PASS';await page.waitForTimeout(1400);await page.screenshot({path:path.join(shots,`${spec.id}-paid.png`),fullPage:false})}catch(error){result.detail=error.stack||error.message;try{await page.screenshot({path:path.join(shots,`${spec.id}-hold.png`),fullPage:false})}catch(_){}}
       await page.close();await ctx.close();
       const source=await video.path(),webm=path.join(raw,`${spec.id}-${result.status.toLowerCase()}.webm`);if(fs.existsSync(source))fs.renameSync(source,webm);result.rawEvidence=path.relative(out,webm);
       if(ffmpegAvailable()){const target=path.join(mp4,`${spec.id}-${result.status.toLowerCase()}.mp4`);convert(webm,target);result.mp4Evidence=path.relative(out,target)}

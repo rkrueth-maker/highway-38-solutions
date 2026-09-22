@@ -101,7 +101,7 @@ function toMp4(source,target){
 }
 async function screenshot(page,shots,id,name){
   const file=path.join(shots,`${id}-${name}.png`);
-  await page.screenshot({path:file,fullPage:true});
+  await page.screenshot({path:file,fullPage:false});
   return path.relative(out,file);
 }
 async function openAuthenticatedRuntime(page,scenario){
@@ -264,6 +264,7 @@ async function recurringServiceScenario(page,scenario,result,shots){
   const tenantBrand=safeText(await page.locator('body').innerText());
   if(!/Northern Lakes/i.test(tenantBrand))throw new Error('Northern tenant branding was not visible after service completion.');
   result.steps.push({name:'northern-branding-visible',status:'PASS',at:now()});
+  await page.waitForTimeout(1800);
   result.screenshots.push(await screenshot(page,shots,scenario.id,'billing-review'));
 }
 

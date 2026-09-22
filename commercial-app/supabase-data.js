@@ -225,13 +225,14 @@
 
   async function recordProof(businessId, operation, collection, recordKey) {
     const user = await sessionUser();
+    const aiProof=operation?.payload?.__h38AiProof&&typeof operation.payload.__h38AiProof==='object'?clean(operation.payload.__h38AiProof):{};
     const { error } = await client().from('business_proof_log').insert({
       business_id:businessId,
       actor_user_id:user.id,
       action_type:text(operation.action || 'SAVE_BUSINESS_RECORD'),
       entity_type:text(operation.recordType || collection || 'Business Record'),
       result:'PASS',
-      details:{operationId:operation.operationId || operation.id || '',collection:collection || '',recordKey:recordKey || '',transport:'supabase-operational-app'},
+      details:{operationId:operation.operationId || operation.id || '',collection:collection || '',recordKey:recordKey || '',transport:'supabase-operational-app',...aiProof},
       external_action_occurred:false
     });
     if (error) console.warn('Proof Log write failed:', error.message || error);
