@@ -143,21 +143,43 @@ async function recordLifecycle(page,kind,result){
   await page.locator('#quoteTitle:visible').waitFor({timeout:30000});
   result.steps.push({name:'site-visit-completed',status:'PASS',at:now()});
 
+  // Site Visit/customer saves can still be synchronizing in the background. Settle that work,
+  // then reopen the exact quote before operator edits so a late snapshot refresh cannot replace them.
+  await sync(page);
+  await openPage(page,'quotes','Quotes');
+  const reopened=await page.evaluate(qid=>typeof window.openQuote==='function'&&window.openQuote(qid),quoteId);
+  if(reopened===false)throw Error('Saved Site Visit quote could not be reopened after sync.');
+  await page.waitForFunction(qid=>window.state?.page==='quotes'&&String(window.state?.quote?.quoteId||'')===String(qid),quoteId,{timeout:30000});
+  await page.locator('#quoteTitle:visible').waitFor({timeout:30000});
+  const quoteCustomer=page.locator('#quoteCustomer:visible');
+  await quoteCustomer.waitFor({state:'visible',timeout:10000});
+  await selectByLabel(quoteCustomer,customerName);
+
   await caption(page,'3. Build the quote from the saved Site Visit.');
-  await page.locator('#lineDescription').fill('Detached garage workflow planning and field documentation');
+  const lineDescription='Detached garage workflow planning and field documentation';
+  await page.locator('#lineDescription').fill(lineDescription);
   await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
   const addQuoteLineButton=page.locator('#addQuoteLine:visible');
   await addQuoteLineButton.waitFor({state:'visible',timeout:10000});
   await addQuoteLineButton.focus();
   await addQuoteLineButton.click();
-  await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),['Detached garage workflow planning and field documentation',amount],{timeout:10000});
+  await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),[lineDescription,amount],{timeout:20000});
   await caption(page,`Add the reviewed work line. This TEST quote totals ${amount.toFixed(2)}.`);
   const saveQuoteButton=page.locator('#saveQuoteButton:visible');
   await saveQuoteButton.waitFor({state:'visible',timeout:10000});
   await saveQuoteButton.focus();
   await saveQuoteButton.click();
-  await page.waitForFunction(([qid,total])=>String(window.state?.quote?.quoteId||'')===String(qid)&&Math.abs(Number(window.state?.quote?.savedTotal||0)-Number(total))<0.01,[quoteId,amount],{timeout:20000});
-  const ids=await page.evaluate(qid=>({customerId:String(window.state?.quote?.customerId||''),quoteId:String(qid)}),quoteId);
+  await page.waitForFunction(([qid,total])=>{
+    const active=window.state?.quote;
+    if(String(active?.quoteId||'')===String(qid)&&Math.abs(Number(active?.savedTotal||0)-Number(total))<0.01)return true;
+    const row=(window.state?.snapshot?.quotes||[]).find(item=>String(item?.['Quote ID']||item?.quoteId||'')===String(qid));
+    return !!row&&Math.abs(Number(row?.Total??row?.total??0)-Number(total))<0.01;
+  },[quoteId,amount],{timeout:30000});
+  const ids=await page.evaluate(qid=>{
+    const active=window.state?.quote;
+    const row=(window.state?.snapshot?.quotes||[]).find(item=>String(item?.['Quote ID']||item?.quoteId||'')===String(qid))||{};
+    return{customerId:String(active?.customerId||row?.['Customer ID']||row?.customerId||''),quoteId:String(qid)};
+  },quoteId);
   if(!ids.customerId)throw Error('Saved TEST quote lost its customer link.');
   result.ids={...ids};result.steps.push({name:'quote-saved',status:'PASS',at:now()});
   await sync(page);
