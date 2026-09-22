@@ -56,7 +56,7 @@ def test_final_authorities_are_loaded_directly_from_index():
         './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
         f'./site-visit-photo-quote-runtime-repair.js?build={declared_build(PHOTO)}',
         f'./site-visit-delete-server-authority.js?build={declared_build(CLEANUP)}',
-        './field-visit-quote-handoff.js?build=20260922-site-visit-quote-customer-authority-5',
+        './field-visit-quote-handoff.js?build=20260922-site-visit-quote-customer-authority-6',
         f'./field-visit-finish-build.js?build={declared_build(FINISH)}',
         './site-visit-top-action.js?build=20260821-site-visit-quote-runtime-authority-1',
     ]
@@ -65,7 +65,7 @@ def test_final_authorities_are_loaded_directly_from_index():
     assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
     handoff = (APP / 'field-visit-quote-handoff.js').read_text(encoding='utf-8')
     assert 'authoritativeQuoteCustomer:true' in handoff
-    assert 'function enforceQuoteCustomer' in handoff
+    assert 'function enforceQuoteCustomer' in handoff\n    assert "dataset.h38ExplicitQuoteCustomer='1'" in handoff\n    assert "select.appendChild(option)" in handoff
 
 
 def test_shared_quote_machine_is_loaded_first_by_final_loader_and_is_generic():
