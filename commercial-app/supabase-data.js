@@ -342,7 +342,54 @@
     return {collection:'users',recordKey:email,record:{'User ID':email,'Display Name':p.displayName || email,'Email':email,'Role ID':normalizeRole(p.roleId),'Status':'Invited'}};
   }
 
+  async function processPayment(operation) {
+    const p = operation.payload || {};
+    const invoiceKey = text(p.invoiceId).trim();
+    const paymentKey = text(operation.recordId || operation.operationId || operation.id).trim();
+    const amount = number(p.amount);
+    if (!invoiceKey) throw new Error('Payment invoice is required.');
+    if (!(amount > 0)) throw new Error('Payment amount must be greater than zero.');
+
+    const db = client();
+    const { data: invoiceRow, error: invoiceError } = await db.from('business_records')
+      .select('payload').eq('business_id',operation.businessId).eq('collection','invoices').eq('record_key',invoiceKey).eq('record_status','active').maybeSingle();
+    if (invoiceError) throw invoiceError;
+    if (!invoiceRow || !invoiceRow.payload) throw new Error('Invoice could not be found for payment.');
+
+    const invoice = clean(invoiceRow.payload);
+    const total = number(invoice.Total != null ? invoice.Total : invoice.total);
+    const paymentRecord = {'Payment ID':paymentKey,'Business ID':operation.businessId,'Invoice ID':invoiceKey,'Amount':amount,'Method':p.method,'Reference':p.reference,'Status':'Manually Recorded — No Money Moved','Created Time':operation.localTimestamp || isoNow(),'Record Version':1};
+    await saveRecord(operation.businessId,'payments',paymentKey,paymentRecord);
+
+    const { data: paymentRows, error: paymentError } = await db.from('business_records')
+      .select('record_key,payload').eq('business_id',operation.businessId).eq('collection','payments').eq('record_status','active').range(0,MAX_RECORDS-1);
+    if (paymentError) throw paymentError;
+    const paid = (paymentRows || []).reduce((sum,row) => {
+      const payload = row && row.payload || {};
+      return text(payload['Invoice ID'] != null ? payload['Invoice ID'] : payload.invoiceId) === invoiceKey
+        ? sum + number(payload.Amount != null ? payload.Amount : payload.amount)
+        : sum;
+    },0);
+    if (total > 0 && paid > total + 0.005) throw new Error('Recorded payments exceed the invoice total.');
+
+    const balance = Math.max(0,total-paid);
+    const nextStatus = balance <= 0.005 ? 'Paid' : paid > 0 ? 'Partially Paid' : text(invoice.Status || invoice.status || 'Draft');
+    const updatedInvoice = Object.assign({},invoice,{
+      'Balance':balance,
+      'Balance Due':balance,
+      'Amount Due':balance,
+      'Open Balance':balance,
+      'Status':nextStatus,
+      'Paid Time':balance <= 0.005 ? (invoice['Paid Time'] || isoNow()) : (invoice['Paid Time'] || ''),
+      'Updated Time':isoNow(),
+      'Record Version':Math.max(1,number(invoice['Record Version'] || invoice.recordVersion)+1)
+    });
+    await saveRecord(operation.businessId,'invoices',invoiceKey,updatedInvoice);
+    return {collection:'payments',recordKey:paymentKey,record:paymentRecord};
+  }
+
   async function processOperation(operation) {
+    if (operation.action === 'RECORD_PAYMENT') return processPayment(operation);
     if (operation.action === 'SAVE_ATTACHMENT') return uploadAttachment(operation);
     if (operation.action === 'SAVE_USER') return saveMembership(operation);
     if (operation.action === 'ASSIGN_ASSET') return updateExistingRecord(operation,'assets',operation.payload.assetId,{'Assigned Job ID':operation.payload.jobId,'Availability':'Assigned','Condition Out':operation.payload.conditionOut});
