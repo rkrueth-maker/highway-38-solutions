@@ -21,6 +21,7 @@ const customers=[
  {'Customer ID':'C-SMITH-1','Customer Name':'Smith','Internal Only':false},
  {'Customer ID':'C-SMITH-2','Customer Name':'Smith','Internal Only':false},
  {'Customer ID':'C-JOHN','Customer Name':'Johnson','Internal Only':false},
+ {'Customer ID':'C-TRAINING','Customer Name':'Highway 38 Solutions — TEST','Internal Only':false,'Test Data':true},
  {'Customer ID':'C-TEST','Customer Name':'Recovered Customer Portal Test','Internal Only':true,'Test Data':true}
 ];
 const properties=[
@@ -55,6 +56,8 @@ r=P.resolveVisibleQuery(c360,'Johnson');assert.equal(r.confident,true);assert.eq
 r=P.resolveVisibleQuery(c360,'Johnsn');assert.equal(r.confident,true,'one-character typo should resolve');assert.equal(r.customerId,'C-JOHN');
 r=P.resolveVisibleQuery(c360,'job on hiway 38');assert.equal(r.confident,true);assert.equal(r.customerId,'C-JOHN');
 r=P.resolveVisibleQuery(c360,'Recovered Customer Portal Test');assert.equal(r.matched,false,'internal test customer should stay hidden');
+c360.selectedCustomerId='C-TRAINING';P.ensureVisibleSelection(c360);assert.equal(c360.selectedCustomerId,'C-TRAINING','an explicitly opened TEST customer must survive snapshot-policy refresh');
+c360.selectedCustomerId='C-TEST';P.ensureVisibleSelection(c360);assert.equal(c360.selectedCustomerId,'C-SMITH-1','an Internal Only customer must still be replaced by a visible customer');
 const expense={action:'SAVE_ENTITY',payload:{entity:'expenses',record:{'Expense ID':'E-1','Quote ID':'Q-1'}}};
 const untouched=P.supplementOperation(expense);assert.equal(untouched.payload.record['Customer ID'],undefined,'finance record must not receive customer supplement');
 sandbox.window.state.snapshot.quotes=[{'Quote ID':'Q-1','Customer ID':'C-JOHN'}];
@@ -64,4 +67,4 @@ const activity=P.recentActivity(bundle('C-JOHN'));
 assert(activity.length>=2,'activity feed should include linked location and job');
 assert.equal(activity[0].collection,'jobs','newest linked record should appear first');
 assert.equal(P.activityFirstCustomerView,true);assert.equal(P.progressiveDisclosure,true);
-console.log(JSON.stringify({status:'PASS',build:P.build,checks:['duplicate surname ambiguity','internal test hidden','one-character typo','hiway normalization','finance isolation','operational source inheritance','activity ordering','progressive disclosure']},null,2));
+console.log(JSON.stringify({status:'PASS',build:P.build,checks:['duplicate surname ambiguity','internal test hidden','explicit TEST selection survives refresh','Internal Only selection is replaced','one-character typo','hiway normalization','finance isolation','operational source inheritance','activity ordering','progressive disclosure']},null,2));

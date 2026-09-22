@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260920-final-real-office-1';
+const BUILD='20260922-preserve-explicit-test-selection-1';
 let loading=null,bridgePatched=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -10,6 +10,7 @@ const customerId=row=>text(value(row,'Customer ID','customerId','id'));
 const ACTIVITY_LABELS={properties:'Location',requests:'Request',jobs:'Job',tasks:'Task',scheduleEvents:'Schedule',conversations:'Conversation',portalMessages:'Portal',quotes:'Quote',quoteRevisions:'Quote revision',meetings:'Meeting',siteCaptureSessions:'Site visit',siteMeasurements:'Measurement',checklists:'Checklist',changeOrders:'Change order',jobNotes:'Note',dailyLogs:'Daily log',documents:'File',invoices:'Invoice',payments:'Payment',followUps:'Follow-up'};
 function truthy(v){return v===true||['true','1','yes'].includes(text(v).toLowerCase());}
 function isInternalCustomer(row){return truthy(value(row,'Internal Only','internalOnly'))||truthy(value(row,'Test Data','testData'));}
+function isRestrictedSelection(row){return truthy(value(row,'Internal Only','internalOnly'));}
 function visibleCustomers(){return rows('customers').filter(row=>customerId(row)&&!isInternalCustomer(row));}
 function esc(v){return typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260920-final-customer-workspace-2';link.dataset.h38Customer360='1';document.head.appendChild(link);}
@@ -47,7 +48,7 @@ function resolveVisibleQuery(c360,query){
   const labels=ranked.slice(0,3).map(r=>{const c=r.bundle?.customer||{},name=text(value(c,'Customer Name','name'))||'Customer',property=r.bundle?.groups?.properties?.[0]||{},address=text(value(property,'Address','address'));return address?`${name} — ${address}`:name;});
   return{matched:true,confident:false,results:ranked.slice(0,5),answer:`I found more than one possible customer: ${labels.join(', ')}. Add part of the address or job so I open the right one.`};
 }
-function ensureVisibleSelection(c360){const visible=visibleCustomers();if(!visible.length)return;const selected=rows('customers').find(row=>customerId(row)===text(c360.selectedCustomerId));if(!selected||isInternalCustomer(selected))c360.selectedCustomerId=customerId(visible[0]);}
+function ensureVisibleSelection(c360){const visible=visibleCustomers();const selected=rows('customers').find(row=>customerId(row)===text(c360.selectedCustomerId));if(selected&&!isRestrictedSelection(selected))return;if(!visible.length)return;c360.selectedCustomerId=customerId(visible[0]);}
 function customerIntent(command){const q=text(command).toLowerCase();if(!q)return false;if(/^remind\s+me\b|^remember\b|^note\b|^add(?:\s+a)?\s+task\b/.test(q))return false;if(/\b(receipt|expense|mileage|payroll|tax|margin|profit|cost|purchase|vendor)\b/.test(q))return false;return /^(find|search|pull|open|show)\b/.test(q)||/\bcustomer\b|\bjob\s+on\b/.test(q)||q.split(/\s+/).length<=5;}
 function announce(result){const answer=text(result?.answer);if(answer)window.toast?.(answer,false);try{if(answer&&'speechSynthesis'in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(answer.slice(0,900));window.speechSynthesis.speak(u);}}catch(_){} }
 function handleAssistantSubmit(event){
@@ -89,6 +90,6 @@ function polishCustomerPage(c360){
 function patchCustomerRenderer(c360){const current=window.renderCustomers;if(typeof current!=='function')return false;if(current.__h38CustomerActivityPolish)return true;const previous=current;const wrapped=function(){const result=previous.apply(this,arguments);setTimeout(()=>polishCustomerPage(c360),0);return result;};wrapped.__h38CustomerActivityPolish=true;wrapped.__h38CustomerActivityPolishBase=previous;window.renderCustomers=wrapped;return true;}
 function refreshPolicy(){const c360=window.H38_CUSTOMER_360;if(!c360)return;ensureVisibleSelection(c360);patchBridge();patchCustomerRenderer(c360);setTimeout(()=>polishCustomerPage(c360),0);}
 function install(){ensureAuthority().then(()=>{refreshPolicy();if(window.state?.page==='customers')setTimeout(()=>window.renderCustomers?.(),0);}).catch(error=>console.warn('[H38 Customer 360 loader]',error?.message||error));document.addEventListener('submit',handleAssistantSubmit,true);document.addEventListener('input',handleCustomerSearchInput,false);window.addEventListener?.('h38:business-snapshot-updated',refreshPolicy);let ticks=0;const timer=setInterval(()=>{refreshPolicy();if(++ticks>40)clearInterval(timer);},250);}
-window.H38_CUSTOMER_360_BROWSER=Object.freeze({enabled:true,build:BUILD,ensureAuthority,customerIntent,isInternalCustomer,visibleCustomers,resolveVisibleQuery,recentActivity,supplementRecord,supplementOperation,assistantCustomerFirst:true,internalCustomersHiddenFromNormalSearch:true,duplicateNamesRequireDisambiguation:true,fuzzyOwnerSearch:true,activityFirstCustomerView:true,progressiveDisclosure:true,singleTabbedCustomerWorkspace:true,uniqueSourceCustomerHint:true,conflictingSourceEvidenceDoesNotGuess:true,internalFinancialSearchExcluded:true,internalFinancialWriteSupplementExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticPurchase:false,automaticPayment:false});
+window.H38_CUSTOMER_360_BROWSER=Object.freeze({enabled:true,build:BUILD,ensureAuthority,customerIntent,isInternalCustomer,isRestrictedSelection,visibleCustomers,ensureVisibleSelection,resolveVisibleQuery,recentActivity,supplementRecord,supplementOperation,assistantCustomerFirst:true,internalCustomersHiddenFromNormalSearch:true,duplicateNamesRequireDisambiguation:true,fuzzyOwnerSearch:true,activityFirstCustomerView:true,progressiveDisclosure:true,singleTabbedCustomerWorkspace:true,uniqueSourceCustomerHint:true,conflictingSourceEvidenceDoesNotGuess:true,internalFinancialSearchExcluded:true,internalFinancialWriteSupplementExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticPurchase:false,automaticPayment:false});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
