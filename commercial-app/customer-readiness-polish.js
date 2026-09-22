@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260918-business-office-workflow-polish-1';
+const BUILD='20260922-canonical-master-detail-layout-1';
 let installed=false,layoutOrderQueued=false,customerTab='overview';
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -207,8 +207,11 @@ function enhanceVisitDock(){
 }
 function enforceCustomerLayout(){
   if(office().page!=='customers')return;const main=document.getElementById('mainContent');if(!main)return;
-  const head=main.querySelector('.page-head'),customer360=main.querySelector('.h38-c360.full');
-  if(customer360&&head&&head.nextElementSibling!==customer360)head.insertAdjacentElement('afterend',customer360);
+  const head=main.querySelector('.page-head');
+  const canonical=main.querySelector(':scope > .h38-c360-master-detail');
+  const legacy=canonical?null:main.querySelector(':scope > .h38-c360.full');
+  const customerWorkspace=canonical||legacy;
+  if(customerWorkspace&&head&&head.nextElementSibling!==customerWorkspace)head.insertAdjacentElement('afterend',customerWorkspace);
   document.getElementById('h38CustomerReadyCards')?.remove();
 }
 function queueCustomerLayout(){
