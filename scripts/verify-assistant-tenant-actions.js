@@ -13,12 +13,12 @@ for(const token of [
   "permitted('manageFinancial')","permitted('manageCustomers')","permitted('editCustomers')",
   "window.queueOperation('SAVE_ENTITY'","window.queueOperation('SAVE_QUOTE'","window.queueOperation('SAVE_FEATURE_REQUEST'",
   '__h38AiProof','Approve &amp; Save','Request owner review','lastCompletion',
-  'crossTenantRequest','engineAttack','productRequest','cancelPending','requestOwnerReview','h38AiActionId','h38AiActionVersion'
+  'crossTenantRequest','engineAttack','productRequest','cancelPending','requestOwnerReview','h38AiActionId','h38AiActionVersion','awaitProof','proofVisible'
 ])check('runtime contains '+token,actions.includes(token));
 check('AI runtime does not use direct Supabase table writes',!actions.includes(".from('business_records')")&&!actions.includes('.rpc('));
 check('AI runtime does not expose unrestricted SQL',!actions.includes('executeSql')&&!actions.includes('unrestrictedSql'));
 check('existing proof log preserves AI metadata',data.includes("operation?.payload?.__h38AiProof")&&data.includes('...aiProof'));
-check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-2'));
+check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-3'));
 check('runtime loads before assistant command runtime',index.indexOf('assistant-tenant-actions.js')<index.indexOf('assistant-command-runtime.js'));
 console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',passed,failed:failures.length,failures},null,2));
 process.exit(failures.length?1:0);
