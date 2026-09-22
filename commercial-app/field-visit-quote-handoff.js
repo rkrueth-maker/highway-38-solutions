@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-site-visit-quote-customer-authority-4';
+const BUILD='20260922-site-visit-quote-customer-authority-5';
 const C=window.H38_FIELD_VISIT_CORE;
 if(!C)return;
 let busy=false,buildBusy=false,reopenBusy=false;
@@ -63,7 +63,7 @@ async function saveQuoteContext(){
   visit.status='ATTACHED_TO_DRAFT_QUOTE';await C.saveDraft?.();await C.pending?.();if(navigator.onLine)C.syncSoon?.();return updated
 }
 function enforceQuoteCustomer(quoteId){
-  const quote=currentQuote(quoteId),cid=text(value(quote,'Customer ID','customerId')||C.state?.visit?.customerId);
+  const quote=currentQuote(quoteId),visit=C.state?.visit,visitCid=text(visit&&text(visit.quoteId)===text(quoteId)?visit.customerId:''),cid=visitCid||text(value(quote,'Customer ID','customerId'));
   if(!cid)return false;
   window.state.quote=Object.assign({},window.state.quote||{},{quoteId:text(quoteId),customerId:cid});
   const select=document.getElementById('quoteCustomer');
