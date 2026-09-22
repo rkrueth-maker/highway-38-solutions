@@ -68,6 +68,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert(cardText.includes('Plowing Rate: $50/time'),'customer card must show the imported customer rate');
     await page.locator('[data-h38-customer-card="C-2"]').click();
     await page.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2'&&document.querySelector('.h38-c360 h2')?.textContent.includes('Lake Shop'));
+    assert.equal(await page.evaluate(()=>{const master=document.querySelector('.h38-c360-master-detail'),directory=document.querySelector('.h38-c360-directory-rail'),detail=document.querySelector('.h38-c360-detail');return typeof window.H38_CUSTOMER_360?.renderNow==='function'&&directory?.parentElement===master&&detail?.parentElement===master&&detail.querySelector('.h38-c360-workspace')!=null;}),true,'directory selection must use canonical Customer 360 render and retain master/detail siblings');
     await page.locator('[data-c360-tab="money"]').click();
     await page.waitForSelector('[data-h38-service-operations]');
     assert((await page.locator('[data-h38-service-operations]').textContent()).includes('Snow plowing'),'plowing rate must appear as a subscribed service');
