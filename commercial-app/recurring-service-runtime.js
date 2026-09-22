@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260913-finish-to-billing-1';
+const BUILD='20260922-finish-to-billing-customer-authority-2';
 const text=v=>String(v==null?'':v).trim();
 const upper=v=>text(v).toUpperCase();
 const state=()=>window.state||{};
@@ -60,14 +60,29 @@ function selectWork(job){
 }
 function openCustomer(job,billing=false){
   const customerId=cid(job);if(!customerId){window.toast?.('This service visit has no linked customer.',true);return;}
-  if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
-  window.openPage?.('customers');
-  setTimeout(()=>{
-    if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
-    window.renderCustomers?.();
-    if(!billing)return;
-    setTimeout(()=>{const form=document.querySelector('[data-h38-customer-invoice]');if(!form){window.toast?.('Customer billing is not available for this account.',true);return;}form.scrollIntoView?.({block:'center'});const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();window.toast?.('Billing opened. Review rates and create a draft when ready.');},80);
-  },80);
+  const deadline=Date.now()+5000;let settled=false,timer=null,stableSince=0,billingFocused=false;
+  const stop=()=>{if(settled)return;settled=true;window.removeEventListener?.('h38:business-snapshot-updated',onSnapshot);if(timer)clearTimeout(timer);};
+  const focusBilling=()=>{
+    const form=document.querySelector('[data-h38-customer-invoice]');
+    if(!form)return false;
+    if(!billingFocused){billingFocused=true;form.scrollIntoView?.({block:'center'});const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();window.toast?.('Billing opened. Review rates and create a draft when ready.');}
+    return true;
+  };
+  const apply=()=>{
+    if(settled)return;
+    if(Date.now()>deadline){stop();window.toast?.('Customer billing context could not be confirmed. Reopen Billing from the service visit.',true);return;}
+    if(state()?.page!=='customers')window.openPage?.('customers');
+    const api=window.H38_CUSTOMER_360;
+    if(typeof api?.selectCustomer==='function')api.selectCustomer(customerId,billing?'money':'overview');
+    else if(api){api.selectedCustomerId=customerId;api.selectedTab=billing?'money':'overview';window.renderCustomers?.();}
+    const selected=text(window.H38_CUSTOMER_360?.selectedCustomerId);
+    const ready=selected===customerId&&!!document.querySelector('.h38-c360-workspace')&&(!billing||focusBilling());
+    if(ready){if(!stableSince)stableSince=Date.now();if(Date.now()-stableSince>=1200){stop();return;}}else stableSince=0;
+    timer=setTimeout(apply,120);
+  };
+  const onSnapshot=()=>{stableSince=0;apply();};
+  window.addEventListener?.('h38:business-snapshot-updated',onSnapshot);
+  apply();
 }
 function buttons(job){
   const wrap=document.createElement('div');wrap.className='h38-recurring-row-actions';wrap.dataset.h38RecurringActions=jid(job);wrap.dataset.signature=actionSignature(job);
