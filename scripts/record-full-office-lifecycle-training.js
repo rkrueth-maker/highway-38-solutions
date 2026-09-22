@@ -223,13 +223,12 @@ async function recordLifecycle(page,kind,result){
   await payment.getByRole('button',{name:'Record manual payment',exact:true}).click();
   await page.waitForFunction(([id,total])=>Array.isArray(window.state?.snapshot?.payments)&&window.state.snapshot.payments.some(r=>String(r['Invoice ID']||r.invoiceId)===String(id)&&Math.abs(Number(r.Amount||r.amount||0)-Number(total))<0.01),[invoiceId,amount],{timeout:20000});
   await sync(page);await openPage(page,'money','Money');
-  const finalState=await page.evaluate(([id,total])=>{
+  const finalState=await page.evaluate(id=>{
     const invoice=window.state.snapshot.invoices.find(x=>String(x['Invoice ID']||x.invoiceId)===String(id))||{};
     const paid=(window.state.snapshot.payments||[]).filter(x=>String(x['Invoice ID']||x.invoiceId)===String(id)).reduce((sum,x)=>sum+Number(x.Amount||x.amount||0),0);
-    const remaining=Math.max(0,Number(total)-paid);
-    return{status:remaining===0?'Paid':'Balance Due',balance:remaining,paid,rawInvoiceStatus:String(invoice.Status||invoice.status||'')};
-  },[invoiceId,amount]);
-  if(finalState.balance!==0)throw Error(`Invoice did not reach $0.00 remaining balance. Paid=${finalState.paid}; balance=${finalState.balance}; rawStatus=${finalState.rawInvoiceStatus}`);
+    return{status:String(invoice.Status||invoice.status||''),balance:Number(invoice.Balance??invoice['Balance Due']??invoice.balance??0),paid};
+  },invoiceId);
+  if(finalState.balance!==0||!/paid/i.test(finalState.status))throw Error(`Invoice row did not reach Paid / $0.00. Status=${finalState.status}; paid=${finalState.paid}; balance=${finalState.balance}`);
   result.finalState=finalState;result.steps.push({name:'payment-recorded-invoice-paid',status:'PASS',at:now()});
   await caption(page,'COMPLETE: Payment is recorded and the remaining invoice balance is $0.00.',2500);
 }
