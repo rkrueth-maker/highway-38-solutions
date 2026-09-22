@@ -88,6 +88,11 @@ async function command(page,value){
       await openAssistant(page);
       await command(page,'Raise their plowing rate to $175 and show me a quote.');
       await page.locator('[data-h38-ai-action-card]').waitFor({state:'visible',timeout:10000});
+      await page.evaluate(()=>{window.__h38AiApprovalCardProbe=document.querySelector('[data-h38-ai-action-card]');});
+      await page.waitForTimeout(650);
+      const stableCard=await page.evaluate(()=>window.__h38AiApprovalCardProbe===document.querySelector('[data-h38-ai-action-card]'));
+      if(!stableCard)throw Error('Assistant approval card was replaced while awaiting owner action.');
+      evidence.steps.push({name:'approval-card-stable',status:'PASS'});
       const preview=await page.evaluate(id=>{
         const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===id)||{};
         return{rate:Number(row['Plowing Rate']||0),pending:window.H38_ASSISTANT_TENANT_ACTIONS.pending()};
