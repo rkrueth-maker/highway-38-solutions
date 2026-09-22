@@ -13,7 +13,7 @@ for(const token of [
   "permitted('manageFinancial')","permitted('manageCustomers')","permitted('editCustomers')",
   "window.queueOperation('SAVE_ENTITY'","window.queueOperation('SAVE_QUOTE'","window.queueOperation('SAVE_FEATURE_REQUEST'",
   '__h38AiProof','Approve &amp; Save','Request owner review','lastCompletion',
-  'crossTenantRequest','engineAttack','productRequest','cancelPending','requestOwnerReview','data-h38-ai-action-id','data-h38-ai-action-version'
+  'crossTenantRequest','engineAttack','productRequest','cancelPending','requestOwnerReview','h38AiActionId','h38AiActionVersion'
 ])check('runtime contains '+token,actions.includes(token));
 check('AI runtime does not use direct Supabase table writes',!actions.includes(".from('business_records')")&&!actions.includes('.rpc('));
 check('AI runtime does not expose unrestricted SQL',!actions.includes('executeSql')&&!actions.includes('unrestrictedSql'));
