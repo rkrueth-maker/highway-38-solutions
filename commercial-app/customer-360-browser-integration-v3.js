@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-preserve-explicit-test-selection-1';
+const BUILD='20260922-preserve-explicit-test-selection-2';
 let loading=null,bridgePatched=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
