@@ -53,6 +53,8 @@ def test_real_quote_is_created_only_from_explicit_finish_path():
     assert "explicitFinishCreatesQuote:true" in PHONE
     assert "quoteOptionalUntilExplicitFinish:true" in PHONE
     assert "existingQuotePreserved:true" in PHONE
+    assert "let cid=text(form?.customerId?.value)||text(S.visit?.customerId)" in PHONE
+    assert "existingVisitCustomerWinsBlankForm:true" in PHONE
 
 
 def test_site_visit_phone_authority_is_live_first():
