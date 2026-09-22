@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260827-site-visit-customer-top-actions-2';
+const BUILD='20260922-customer-context-start-1';
 const RESUME_KEY='h38:field-visit-resume-step';
 const RETURN_KEY='h38:native-walkthrough-return-context-v2';
 let blankSince=0,blankRepairBusy=false,nativeRetryTimer=0;
@@ -17,7 +17,8 @@ function readContext(key){try{const raw=localStorage.getItem(key);if(!raw)return
 function mirrorReturnContext(){try{const resume=readContext(RESUME_KEY);if(!resume)return null;const previous=readContext(RETURN_KEY);const candidate={...resume,mirroredAt:Number(resume.mirroredAt||resume.time||Date.now())};if(!previous||text(previous.visitId)!==text(candidate.visitId)||text(previous.sessionId)!==text(candidate.sessionId)||Number(previous.time||0)<Number(candidate.time||0))localStorage.setItem(RETURN_KEY,JSON.stringify(candidate));return candidate;}catch(_){return null;}}
 function scheduleNativeRepair(delay=250){clearTimeout(nativeRetryTimer);nativeRetryTimer=setTimeout(()=>void repairNativeReturn('retry'),delay);}
 async function repairNativeReturn(reason){if(!nativeAndroid()||!nativeEvidencePending())return false;const authority=window.H38_ANDROID_WALKTHROUGH_RETURN_STABILIZER;if(authority?.singleReturnAuthority&&typeof authority.recoverNow==='function')return !!(await authority.recoverNow(reason||'delegate'));scheduleNativeRepair(350);return false;}
-function start(){try{document.activeElement?.blur?.();}catch(_){}if(window.H38_FIELD_VISIT?.open){window.H38_FIELD_VISIT.open({customerId:'',quoteId:''});return;}if(typeof window.openPage==='function')window.openPage('field');}
+function selectedCustomerForStart(){const s=officeState(),workspace=document.querySelector('.h38-c360-workspace');if(text(s?.page)!=='customers'||!workspace||workspace.offsetParent===null)return'';return text(window.H38_CUSTOMER_360?.selectedCustomerId).trim();}
+function start(){try{document.activeElement?.blur?.();}catch(_){}const customerId=selectedCustomerForStart();if(window.H38_FIELD_VISIT?.open){window.H38_FIELD_VISIT.open({customerId,quoteId:''});return;}if(typeof window.openPage==='function')window.openPage('field');}
 function revealCustomerForm(){
   const form=document.getElementById('customerForm');
   if(!form)return false;
@@ -68,5 +69,5 @@ window.addEventListener('h38:native-scanner-ready',()=>void repairNativeReturn('
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void repairNativeReturn('visible');});
 setInterval(()=>{decorate();if(nativeEvidencePending())void repairNativeReturn('poll');},900);
 setTimeout(decorate,0);setTimeout(decorate,900);loadAndroidReturnStabilizer();loadAndroidWalkthroughPhotoRecovery();loadPhoneFinalFix();loadQuoteMeasurementActionPhotoGuard();loadPhotoQuoteRuntimeRepair();loadQuoteHandoff();loadJobCenteredFlow();loadDeleteResetFix();setTimeout(loadFinishBuild,1200);
-window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,addCustomerTopLevel:true,addCustomerBesideSiteVisit:true,addCustomerUsesCanonicalForm:true,addCustomerExpandsMobileEntry:true,addCustomerNoNewWorkflow:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,androidWalkthroughPhotoRecoveryLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,photoQuoteRuntimeRepairLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,deleteResetFixLoaded:true,blankScreenRecovery:true,physicalAndroidReturnRepair:true,persistentReturnContext:true,nonSlidingReturnContext:true,delegatesNativeReturn:true,nativeEvidenceRequired:true,nativeEvidencePoll:true,duplicateWalkthroughCtaRemoved:true,singleNativeLaunchAuthority:true,nativeSaveStartDelegated:true,realWalkthroughButtonAuthority:true,automaticApproval:false,automaticCustomerSending:false};
+window.H38_SITE_VISIT_TOP_ACTION={build:BUILD,topLevel:true,rowActionRemoved:true,addCustomerTopLevel:true,addCustomerBesideSiteVisit:true,addCustomerUsesCanonicalForm:true,addCustomerExpandsMobileEntry:true,addCustomerNoNewWorkflow:true,selectedCustomerContextPreserved:true,freshTopLevelStartWithoutSelection:true,keyboardSafe:true,phoneFinalFixLoaded:true,androidReturnStabilizerLoaded:true,androidWalkthroughPhotoRecoveryLoaded:true,quoteMeasurementActionPhotoGuardLoaded:true,photoQuoteRuntimeRepairLoaded:true,quoteHandoffLoaded:true,finishBuildLoaded:true,jobCenteredFlowLoaded:true,deleteResetFixLoaded:true,blankScreenRecovery:true,physicalAndroidReturnRepair:true,persistentReturnContext:true,nonSlidingReturnContext:true,delegatesNativeReturn:true,nativeEvidenceRequired:true,nativeEvidencePoll:true,duplicateWalkthroughCtaRemoved:true,singleNativeLaunchAuthority:true,nativeSaveStartDelegated:true,realWalkthroughButtonAuthority:true,automaticApproval:false,automaticCustomerSending:false};
 })();
