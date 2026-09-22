@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-2';
+const BUILD='20260922-tenant-aware-office-actions-3';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -100,6 +100,17 @@ async function settle(){
   if(navigator.onLine&&typeof window.sync==='function')await window.sync(false);
   if(navigator.onLine&&typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
 }
+function proofVisible(actionId){return rows('proofLog').some(row=>text(row?.Details?.aiActionId||row?.details?.aiActionId)===text(actionId));}
+async function awaitProof(actionId){
+  if(!actionId)return false;
+  for(let attempt=0;attempt<6;attempt++){
+    if(proofVisible(actionId))return true;
+    if(navigator.onLine&&typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
+    if(proofVisible(actionId))return true;
+    await new Promise(resolve=>setTimeout(resolve,250+attempt*100));
+  }
+  return proofVisible(actionId);
+}
 function proof(action,before,after,records,approval='APPROVED'){
   return{aiActionId:action.actionId,request:action.request,tenantBusinessId:action.businessId,businessKey:action.businessKey,userId:text(activeUser().userId||activeUser().id),effectiveRole:role(),approvalState:approval,approverUserId:text(activeUser().userId||activeUser().id),before,after,recordsAffected:records,previewVersion:action.version,verifiedAt:now()};
 }
@@ -132,6 +143,7 @@ async function executeRate(action){
     await window.queueOperation('SAVE_QUOTE','Quote',quoteId,{quoteId,customerId:action.customerId,projectTitle:quote['Project Title'],scope:quote.Scope,measurementNotes:quote['Measurement Notes'],lines,tax:0,__h38AiProof:proof(action,{quote:null},{quoteId,total:qp.total},[{collection:'quotes',recordId:quoteId}])},{collection:'quotes',record:quote,idKeys:['Quote ID']},false);
   }
   await settle();
+  if(!await awaitProof(action.actionId))throw Error('The approved change saved, but its AI proof-log entry did not verify. Refresh before taking another consequential action.');
   const verified=customerById(action.customerId),saved=Number(value(verified,action.field)||0);
   if(Math.abs(saved-Number(action.after))>0.005)throw Error('The approved rate did not verify after save.');
   if(quoteId){
@@ -149,6 +161,7 @@ async function executeCustomerField(action){
   delete updated.__localPending;
   await saveEntity('customers','Customer',action.customerId,updated,action,{[action.field]:action.before},{[action.field]:action.after});
   await settle();
+  if(!await awaitProof(action.actionId))throw Error('The approved customer change saved, but its AI proof-log entry did not verify.');
   const verified=customerById(action.customerId);
   if(text(value(verified,action.field))!==text(action.after))throw Error('The approved customer change did not verify after save.');
   return{verified:true};
@@ -165,6 +178,7 @@ async function executeBulk(action){
     await saveEntity('customers','Customer',item.customerId,updated,action,{[item.field]:item.before},{[item.field]:item.after});
   }
   await settle();
+  if(!await awaitProof(action.actionId))throw Error('The approved bulk change saved, but its AI proof-log entry did not verify.');
   for(const item of action.records){const verified=customerById(item.customerId);if(Math.abs(Number(value(verified,item.field)||0)-Number(item.after))>0.005)throw Error('One or more approved bulk rate changes did not verify.');}
   return{changed:action.records.length};
 }
@@ -172,7 +186,7 @@ async function executeSuggestion(action){
   const id='FEATURE-AI-'+(crypto.randomUUID?crypto.randomUUID().toUpperCase():Date.now());
   const payload={featureRequestId:id,pageKey:text(window.state?.page||''),title:action.title,problem:action.request,currentWorkaround:'Submitted from H38 Assistant product boundary.',frequency:'Unspecified',proposedAction:'Review in H38 Build Captain / product development workflow.',__h38AiProof:proof(action,null,{featureRequestId:id},[{collection:'featureRequests',recordId:id}])};
   await window.queueOperation('SAVE_FEATURE_REQUEST','Feature Request',id,payload,{collection:'featureRequests',record:{'Feature Request ID':id,'Business ID':businessId(),'Requested By':text(activeUser().userId||activeUser().id),'Page Key':payload.pageKey,'User Role':role(),'Title':payload.title,'Problem':payload.problem,'Current Workaround':payload.currentWorkaround,'Frequency':payload.frequency,'Proposed Action':payload.proposedAction,'Status':'Open','Created Time':now(),'Updated Time':now(),'Record Version':1},idKeys:['Feature Request ID']},false);
-  await settle();return{id};
+  await settle();if(!await awaitProof(action.actionId))throw Error('The H38 product suggestion saved, but its proof-log entry did not verify.');return{id};
 }
 async function executePending(){
   const action=pending;if(!action)throw Error('There is no AI change waiting for approval.');
@@ -192,7 +206,7 @@ async function requestOwnerReview(){
   const id='AI-REVIEW-'+(crypto.randomUUID?crypto.randomUUID().toUpperCase():Date.now());
   const record={'Recommendation ID':id,'Business ID':action.businessId,'Recommendation Type':'AI Tenant Action Review','Status':'Owner Review Requested','Title':actionSummary(action).split('\n')[0],'Summary':actionSummary(action),'AI Action ID':action.actionId,'Requested By':text(activeUser().userId||activeUser().id),'Requested Role':role(),'Created Time':now(),'Updated Time':now(),'Record Version':1,'Automatic Execution':false};
   await saveEntity('aiRecommendations','AI Recommendation',id,record,action,null,{reviewRequested:true});
-  await settle();lastCompletion={...action,status:'OWNER_REVIEW_REQUESTED',result:{id},finishedAt:now()};pending=null;scheduleRender();return'Owner review requested. No restricted business data was changed.';
+  await settle();if(!await awaitProof(action.actionId))throw Error('The owner-review request saved, but its AI proof-log entry did not verify.');lastCompletion={...action,status:'OWNER_REVIEW_REQUESTED',result:{id},finishedAt:now()};pending=null;scheduleRender();return'Owner review requested. No restricted business data was changed.';
 }
 function cancelPending(){const a=pending;if(!a)return'Nothing is waiting for approval.';lastCompletion={...a,status:'CANCELLED',finishedAt:now()};pending=null;scheduleRender();return'Cancelled. Nothing was written.';}
 function previewRate(command){
