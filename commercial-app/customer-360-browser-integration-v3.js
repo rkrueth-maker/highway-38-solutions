@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-preserve-explicit-test-selection-1';
+const BUILD='20260922-preserve-explicit-test-selection-2';
 let loading=null,bridgePatched=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
@@ -13,7 +13,7 @@ function isInternalCustomer(row){return truthy(value(row,'Internal Only','intern
 function isRestrictedSelection(row){return truthy(value(row,'Internal Only','internalOnly'));}
 function visibleCustomers(){return rows('customers').filter(row=>customerId(row)&&!isInternalCustomer(row));}
 function esc(v){return typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260922-layout-stability-1';link.dataset.h38Customer360='1';document.head.appendChild(link);}
+function ensureStyle(){if(document.querySelector('link[data-h38-customer-360]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='./customer-360-authority.css?build=20260922-layout-stability-2';link.dataset.h38Customer360='1';document.head.appendChild(link);}
 function ensureAuthority(){
   ensureStyle();
   if(window.H38_CUSTOMER_360)return Promise.resolve(window.H38_CUSTOMER_360);

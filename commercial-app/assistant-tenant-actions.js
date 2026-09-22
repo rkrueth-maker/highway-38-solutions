@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-5';
+const BUILD='20260922-tenant-aware-office-actions-6';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -113,8 +113,14 @@ async function refreshAuthoritativeSnapshot(){
   }
   return null;
 }
+async function refreshProofHistory(){
+  const guard=window.H38_SUPABASE_TRAFFIC_GUARD,bid=businessId();
+  if(!navigator.onLine||!bid||typeof guard?.loadAuditHistory!=='function')return null;
+  return guard.loadAuditHistory(bid,{proofLimit:500,errorLimit:50});
+}
 async function settle(){
   if(navigator.onLine&&typeof window.sync==='function')await window.sync(false);
+  if(navigator.onLine)await refreshProofHistory();
 }
 function proofVisible(actionId){return rows('proofLog').some(row=>text(row?.Details?.aiActionId||row?.details?.aiActionId)===text(actionId));}
 async function awaitProof(actionId){
