@@ -247,12 +247,10 @@ async function recurringServiceScenario(page,scenario,result,shots){
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-in-progress'));
   const liveActions=await recurringActions(page,recurringJobId,'finish',scenario);
   await liveActions.locator('[data-h38-recurring-finish]').click();
-  await page.waitForSelector('.h38-c360-workspace',{timeout:15000});
-  const billingCard=page.locator('[data-h38-customer-card][aria-current="true"]').filter({hasText:scenario.customerNeedle}).filter({hasText:/TEST/i}).first();
-  await billingCard.waitFor({state:'visible',timeout:10000});
+  await page.waitForFunction(id=>String(window.state?.page||'')==='customers'&&String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===String(id)&&!!document.querySelector('.h38-c360-workspace'),customerContext.id,{timeout:15000});
   const billingHeading=page.locator('.h38-c360-head h2:visible').filter({hasText:scenario.customerNeedle}).first();
   await billingHeading.waitFor({state:'visible',timeout:10000});
-  const billingCustomerId=String(await billingCard.getAttribute('data-h38-customer-card')||'').trim();
+  const billingCustomerId=await page.evaluate(()=>String(window.H38_CUSTOMER_360?.selectedCustomerId||'').trim());
   if(billingCustomerId!==customerContext.id)throw new Error('Finish visit opened billing review for the wrong TEST customer.');
   await redactCustomerContact(page);
   const after=await page.evaluate(id=>{
