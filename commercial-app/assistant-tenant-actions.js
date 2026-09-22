@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-4';
+const BUILD='20260922-tenant-aware-office-actions-5';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -115,16 +115,13 @@ async function refreshAuthoritativeSnapshot(){
 }
 async function settle(){
   if(navigator.onLine&&typeof window.sync==='function')await window.sync(false);
-  await refreshAuthoritativeSnapshot();
 }
 function proofVisible(actionId){return rows('proofLog').some(row=>text(row?.Details?.aiActionId||row?.details?.aiActionId)===text(actionId));}
 async function awaitProof(actionId){
   if(!actionId)return false;
-  for(let attempt=0;attempt<6;attempt++){
+  for(let attempt=0;attempt<8;attempt++){
     if(proofVisible(actionId))return true;
-    if(navigator.onLine)await refreshAuthoritativeSnapshot();
-    if(proofVisible(actionId))return true;
-    await new Promise(resolve=>setTimeout(resolve,250+attempt*100));
+    await new Promise(resolve=>setTimeout(resolve,200+attempt*100));
   }
   return proofVisible(actionId);
 }

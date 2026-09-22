@@ -6,6 +6,7 @@ CORE = (ROOT / "commercial-app" / "field-visit-core.js").read_text(encoding="utf
 UI = (ROOT / "commercial-app" / "field-visit-ui.js").read_text(encoding="utf-8")
 TRANSCRIBE = (ROOT / "supabase" / "functions" / "h38-walkthrough-transcription" / "index.ts").read_text(encoding="utf-8")
 SERVICE_WORKER = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
+FIELD_VISIT = (ROOT / "commercial-app" / "field-visit.js").read_text(encoding="utf-8")
 
 
 def test_latest_walkthrough_prefers_matching_saved_audio():
@@ -58,6 +59,14 @@ def test_site_visit_phone_authority_is_live_first():
     assert "'site-visit-phone-final-fix.js'" in SERVICE_WORKER
     live_first = SERVICE_WORKER.split("const SHELL=", 1)[0]
     assert "'site-visit-phone-final-fix.js'" in live_first
+
+
+def test_explicit_customer_start_does_not_restore_unrelated_visit_or_quote():
+    assert "20260922-explicit-customer-fresh-visit-1" in FIELD_VISIT
+    assert "explicitCustomerOnly=!!requestedCustomer&&!requested" in FIELD_VISIT
+    assert "S.visit.quoteId=''" in FIELD_VISIT
+    assert "customerId:requestedCustomer" in FIELD_VISIT
+    assert "hydrationComplete:true" in FIELD_VISIT
 
 
 def test_safety_contract_is_unchanged():
