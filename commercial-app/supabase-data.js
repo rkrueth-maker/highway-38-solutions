@@ -136,8 +136,18 @@
     ]);
 
     recordRows.forEach(row => {
-      if (!snapshot[row.collection]) snapshot[row.collection] = [];
-      snapshot[row.collection].push(clean(row.payload));
+      const collection = row.collection;
+      const incoming = clean(row.payload);
+      if (!snapshot[collection]) snapshot[collection] = [];
+      const keys = idKeysFor(collection);
+      const incomingId = legacyId(incoming, keys);
+      if (!incomingId) {
+        snapshot[collection].push(incoming);
+        return;
+      }
+      const existingIndex = snapshot[collection].findIndex(item => legacyId(item, keys) === incomingId);
+      if (existingIndex >= 0) snapshot[collection][existingIndex] = incoming;
+      else snapshot[collection].push(incoming);
     });
 
     snapshot.users = memberships.map(row => ({
