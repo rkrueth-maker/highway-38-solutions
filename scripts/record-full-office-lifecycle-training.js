@@ -157,13 +157,29 @@ async function recordLifecycle(page,kind,result){
 
   await caption(page,'3. Build the quote from the saved Site Visit.');
   const lineDescription='Detached garage workflow planning and field documentation';
-  await page.locator('#lineDescription').fill(lineDescription);
-  await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
-  const addQuoteLineButton=page.locator('#addQuoteLine:visible');
-  await addQuoteLineButton.waitFor({state:'visible',timeout:10000});
-  await addQuoteLineButton.focus();
-  await addQuoteLineButton.click();
-  await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),[lineDescription,amount],{timeout:20000});
+  let lineAdded=false;
+  for(let attempt=1;attempt<=3&&!lineAdded;attempt++){
+    if(String(await page.evaluate(()=>window.state?.quote?.quoteId||''))!==String(quoteId)){
+      await openPage(page,'quotes','Quotes');
+      const reopenedAgain=await page.evaluate(qid=>typeof window.openQuote==='function'&&window.openQuote(qid),quoteId);
+      if(reopenedAgain===false)throw Error('Saved Site Visit quote could not be reopened while adding a line.');
+      await page.waitForFunction(qid=>String(window.state?.quote?.quoteId||'')===String(qid),quoteId,{timeout:15000});
+      await selectByLabel(page.locator('#quoteCustomer:visible'),customerName);
+    }
+    await page.locator('#lineDescription').fill(lineDescription);
+    await page.locator('#lineQuantity').fill('1');await page.locator('#lineUnit').fill('project');await page.locator('#linePrice').fill(String(amount));
+    const addQuoteLineButton=page.locator('#addQuoteLine:visible');
+    await addQuoteLineButton.waitFor({state:'visible',timeout:10000});
+    await addQuoteLineButton.focus();
+    await addQuoteLineButton.click();
+    try{
+      await page.waitForFunction(([description,total])=>Array.isArray(window.state?.quote?.lines)&&window.state.quote.lines.some(line=>String(line?.description||line?.Description||'')===description&&Math.abs(Number(line?.quantity??line?.Quantity??0)*Number(line?.unitPrice??line?.['Unit Price']??0)-Number(total))<0.01),[lineDescription,amount],{timeout:6000});
+      lineAdded=true;
+    }catch(error){
+      if(attempt===3)throw error;
+      await page.waitForTimeout(1200);
+    }
+  }
   await caption(page,`Add the reviewed work line. This TEST quote totals ${amount.toFixed(2)}.`);
   const saveQuoteButton=page.locator('#saveQuoteButton:visible');
   await saveQuoteButton.waitFor({state:'visible',timeout:10000});
@@ -199,7 +215,11 @@ async function recordLifecycle(page,kind,result){
   await sync(page);await openPage(page,'money','Money');
 
   await caption(page,'5. Record the manual payment. This records bookkeeping only—no money moves.');
-  const payment=page.locator('#paymentForm');await payment.locator('[name="invoiceId"]').selectOption(invoiceId);
+  const paymentChoice=page.locator('[data-h38-create="paymentForm"]:visible');
+  if(await paymentChoice.count())await paymentChoice.click();
+  const payment=page.locator('#paymentForm:visible');
+  await payment.waitFor({state:'visible',timeout:10000});
+  await payment.locator('[name="invoiceId"]').selectOption(invoiceId);
   await payment.locator('[name="amount"]').fill(String(amount));await payment.locator('[name="method"]').fill('TEST check');await payment.locator('[name="reference"]').fill(`TRAINING-${stamp}`);
   await payment.getByRole('button',{name:'Record manual payment',exact:true}).click();
   await sync(page);await openPage(page,'money','Money');
