@@ -213,6 +213,52 @@
     return payload;
   }
 
+  async function loadStoredRecord(businessId, collection, recordKey) {
+    const key = text(recordKey).trim();
+    const { data, error } = await client().from('business_records')
+      .select('payload').eq('business_id',businessId).eq('collection',collection).eq('record_key',key).maybeSingle();
+    if (error) throw error;
+    return clean(data?.payload || activeSnapshotRecord(collection,key) || {});
+  }
+
+  async function recordPaymentOperation(operation) {
+    const p = operation.payload || {};
+    const invoiceId = text(p.invoiceId).trim();
+    const paymentId = text(operation.recordId || operation.operationId || operation.id).trim();
+    const amount = number(p.amount);
+    if (!invoiceId) throw new Error('Select an invoice.');
+    if (!(amount > 0)) throw new Error('Enter a payment amount greater than zero.');
+
+    const invoice = await loadStoredRecord(operation.businessId,'invoices',invoiceId);
+    if (!legacyId(invoice,idKeysFor('invoices'))) throw new Error('Invoice could not be found.');
+    const applied = Array.isArray(invoice['Applied Payment IDs']) ? invoice['Applied Payment IDs'].map(text) : [];
+    const alreadyApplied = applied.includes(paymentId);
+    const balance = number(invoice['Balance'] ?? invoice['Balance Due'] ?? invoice['Amount Due'] ?? invoice['Open Balance']);
+    if (!alreadyApplied && amount > balance + 0.005) throw new Error('Payment amount cannot exceed the open invoice balance.');
+
+    const payment = makeRecord(operation,'payments',{
+      'Payment ID':paymentId,'Business ID':operation.businessId,'Invoice ID':invoiceId,'Amount':amount,
+      'Method':p.method,'Reference':p.reference,'Status':'Manually Recorded — No Money Moved',
+      'Created Time':operation.localTimestamp || isoNow(),'Record Version':1
+    });
+    await saveRecord(operation.businessId,payment.collection,payment.recordKey,payment.record);
+
+    if (!alreadyApplied) {
+      const nextBalance = Math.max(0,balance-amount);
+      const updated = Object.assign({},invoice,{
+        'Balance':nextBalance,'Balance Due':nextBalance,'Amount Due':nextBalance,'Open Balance':nextBalance,
+        'Status':nextBalance <= 0.005 ? 'Paid' : 'Partially Paid',
+        'Paid Time':nextBalance <= 0.005 ? isoNow() : invoice['Paid Time'],
+        'Applied Payment IDs':[...applied,paymentId],
+        'Last Payment ID':paymentId,
+        'Updated Time':isoNow(),
+        'Record Version':Math.max(1,number(invoice['Record Version'])+1)
+      });
+      await saveRecord(operation.businessId,'invoices',invoiceId,updated);
+    }
+    return payment;
+  }
+
   async function recordProof(businessId, operation, collection, recordKey) {
     const user = await sessionUser();
     const { error } = await client().from('business_proof_log').insert({
@@ -343,6 +389,7 @@
   }
 
   async function processOperation(operation) {
+    if (operation.action === 'RECORD_PAYMENT') return recordPaymentOperation(operation);
     if (operation.action === 'SAVE_ATTACHMENT') return uploadAttachment(operation);
     if (operation.action === 'SAVE_USER') return saveMembership(operation);
     if (operation.action === 'ASSIGN_ASSET') return updateExistingRecord(operation,'assets',operation.payload.assetId,{'Assigned Job ID':operation.payload.jobId,'Availability':'Assigned','Condition Out':operation.payload.conditionOut});
