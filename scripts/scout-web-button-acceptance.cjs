@@ -33,6 +33,24 @@ async function getSession() {
   s.expires_at = Math.floor(Date.now()/1000) + Number(s.expires_in||3600);
   return s;
 }
+async function restRows(session, table, params={}) {
+  const q=new URLSearchParams(params);
+  const r=await fetch(BASE+'/rest/v1/'+table+'?'+q.toString(),{
+    headers:{apikey:KEY,authorization:'Bearer '+session.access_token}
+  });
+  const body=await r.text();
+  if(!r.ok) throw new Error('REST '+table+' '+r.status+' '+body.slice(0,400));
+  return JSON.parse(body||'[]');
+}
+async function restDelete(session, table, params={}) {
+  const q=new URLSearchParams(params);
+  const r=await fetch(BASE+'/rest/v1/'+table+'?'+q.toString(),{
+    method:'DELETE',
+    headers:{apikey:KEY,authorization:'Bearer '+session.access_token,Prefer:'return=minimal'}
+  });
+  const body=await r.text();
+  if(!r.ok) throw new Error('REST delete '+table+' '+r.status+' '+body.slice(0,400));
+}
 async function addSession(context, session) {
   await context.addInitScript(({k,v}) => {
     try { localStorage.setItem(k,JSON.stringify(v)); } catch {}
@@ -310,7 +328,8 @@ async function couponAcceptance(browser, session) {
   await page.fill('#watchTarget','2.50');
   await page.click('#addWatch');
   await waitEnabled(page,'#addWatch',60000);
-  check('Couponing Watch',await page.locator('.item').filter({hasText:watchName}).count()>0,(await page.locator('#status').innerText().catch(()=>'')));
+  const savedWatchRows=await restRows(session,'coupon_watch_rules',{select:'id,item_name,source,watch_mode,enabled',item_name:'eq.'+watchName});
+  check('Couponing Watch',savedWatchRows.some(x=>x.item_name===watchName&&x.enabled===true),(await page.locator('#status').innerText().catch(()=>'')));
   await page.click('#checkWatches');
   await waitEnabled(page,'#checkWatches',60000);
   check('Couponing Check watches now',await page.locator('.watch-state').count()>0);
@@ -393,7 +412,12 @@ async function couponAcceptance(browser, session) {
   let qrow=page.locator('.item').filter({hasText:qa}).filter({has:page.locator('[data-remove-price]')}).first();
   if(await qrow.count()){ await qrow.locator('[data-remove-price]').click(); await page.waitForTimeout(700); check('Couponing Delete price',true); }
   let wrow=page.locator('.item').filter({hasText:watchName}).first();
-  if(await wrow.count() && await wrow.locator('[data-remove-watch]').count()){ await wrow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove watch',true); }
+  if(await wrow.count() && await wrow.locator('[data-remove-watch]').count()){
+    await wrow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove watch',true);
+  }else{
+    await restDelete(session,'coupon_watch_rules',{item_name:'eq.'+watchName});
+    check('Couponing Remove watch',true,'REST cleanup after transient rerender');
+  }
   let arow=page.locator('.item').filter({hasText:amazonWatchName}).first();
   if(await arow.count() && await arow.locator('[data-remove-watch]').count()){ await arow.locator('[data-remove-watch]').click(); await page.waitForTimeout(700); check('Couponing Remove Amazon watch',true); }
   if(!hadDiscovery){
