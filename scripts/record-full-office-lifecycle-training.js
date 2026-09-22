@@ -127,7 +127,7 @@ async function recordLifecycle(page,kind,result){
     return a.width>650&&b.width>320&&b.height>120&&styles.display!=='none'&&styles.visibility!=='hidden';
   },null,{timeout:15000});
   await caption(page,'2. Open the TEST customer and start a Site Visit.');
-  const customerSiteVisit=page.locator('#h38CustomerReadyHero [data-h38-customer-action="site"]:visible');
+  const customerSiteVisit=page.locator('.h38-c360-detail [data-c360-action="site"]:visible').first();
   await customerSiteVisit.waitFor({timeout:15000});
   await customerSiteVisit.click();
   await page.waitForFunction(cid=>!!window.H38_FIELD_VISIT_CORE?.state?.open&&String(window.H38_FIELD_VISIT_CORE?.state?.visit?.customerId||'')===String(cid),createdCustomerId,{timeout:15000});
