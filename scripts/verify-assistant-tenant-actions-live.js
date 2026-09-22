@@ -102,6 +102,11 @@ async function command(page,value){
 
       await page.locator('[data-h38-ai-approve]').click();
       await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
+      await page.evaluate(async()=>{
+        if(typeof window.refreshSnapshot==='function')await window.refreshSnapshot();
+        const guard=window.H38_SUPABASE_TRAFFIC_GUARD,bid=String(window.state?.businessId||'');
+        if(bid&&typeof guard?.loadAuditHistory==='function')await guard.loadAuditHistory(bid,{proofLimit:500,errorLimit:50});
+      });
       const approved=await page.evaluate(id=>{
         const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===id)||{};
         const completion=window.H38_ASSISTANT_TENANT_ACTIONS.lastCompletion();

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-site-visit-quote-customer-authority-6';
+const BUILD='20260922-site-visit-quote-customer-authority-7';
 const C=window.H38_FIELD_VISIT_CORE;
 if(!C)return;
 let busy=false,buildBusy=false,reopenBusy=false;
@@ -62,8 +62,8 @@ async function saveQuoteContext(){
   await queueEntity('quotes','Quote',visit.quoteId,updated,['Quote ID','quoteId']);
   visit.status='ATTACHED_TO_DRAFT_QUOTE';await C.saveDraft?.();await C.pending?.();if(navigator.onLine)C.syncSoon?.();return updated
 }
-function enforceQuoteCustomer(quoteId){
-  const quote=currentQuote(quoteId),visit=C.state?.visit,visitCid=text(visit&&text(visit.quoteId)===text(quoteId)?visit.customerId:''),cid=visitCid||text(value(quote,'Customer ID','customerId'));
+function enforceQuoteCustomer(quoteId,explicitCustomerId=''){
+  const quote=currentQuote(quoteId),visit=C.state?.visit,visitCid=text(visit&&text(visit.quoteId)===text(quoteId)?visit.customerId:''),cid=text(explicitCustomerId)||visitCid||text(value(quote,'Customer ID','customerId'));
   if(!cid)return false;
   window.state.quote=Object.assign({},window.state.quote||{},{quoteId:text(quoteId),customerId:cid});
   const select=document.getElementById('quoteCustomer');
@@ -83,16 +83,17 @@ function enforceQuoteCustomer(quoteId){
   }
   return true;
 }
-function openDraftQuote(quoteId){
+function openDraftQuote(quoteId,explicitCustomerId=''){
+  const qid=text(quoteId),cid=text(explicitCustomerId);
   window.H38_FIELD_VISIT?.close?.();
-  const qid=text(quoteId);enforceQuoteCustomer(qid);
+  enforceQuoteCustomer(qid,cid);
   if(typeof window.openPage==='function')window.openPage('quotes');
   if(typeof window.openQuote==='function')window.openQuote(qid);else C.toast('Site Visit saved to the draft quote. Open that draft from the Quotes list.',true);
-  enforceQuoteCustomer(qid);
+  enforceQuoteCustomer(qid,cid);
   if(typeof window.renderQuotes==='function')window.renderQuotes();
-  [0,80,300,900].forEach(delay=>setTimeout(()=>{enforceQuoteCustomer(qid);decorateQuote();},delay));
+  [0,80,300,900].forEach(delay=>setTimeout(()=>{enforceQuoteCustomer(qid,cid);decorateQuote();},delay));
 }
-async function handoff(){if(busy)return;busy=true;const quoteId=text(C.state.visit?.quoteId);try{await saveQuoteContext();C.toast(navigator.onLine?'Site Visit saved to the draft quote. Opening Quote Builder…':'Site Visit saved locally to the draft quote. Opening Quote Builder…');openDraftQuote(quoteId)}catch(error){C.toast(error?.message||String(error),true)}finally{busy=false}}
+async function handoff(){if(busy)return;busy=true;const quoteId=text(C.state.visit?.quoteId),explicitCustomerId=text(C.state.visit?.customerId);try{await saveQuoteContext();C.toast(navigator.onLine?'Site Visit saved to the draft quote. Opening Quote Builder…':'Site Visit saved locally to the draft quote. Opening Quote Builder…');openDraftQuote(quoteId,explicitCustomerId)}catch(error){C.toast(error?.message||String(error),true)}finally{busy=false}}
 function quoteContextRecord(){const quoteId=text(window.state?.quote?.quoteId);return quoteId?currentQuote(quoteId):null}
 function quoteContext(){const quote=quoteContextRecord();if(!quote)return null;const stored=value(quote,'Site Visit Draft Context','siteVisitDraftContext');return stored&&typeof stored==='object'?stored:contextFromRecords(quote)}
 function statusClass(status){const s=text(status).toUpperCase();if(!s||s.includes('UNVERIFIED'))return'';if(s==='DEVICE_CAPTURED')return'pending';return ['FIELD_MEASURED','FIELD_MEASURED_AND_CHECKED','OPERATOR_VERIFIED','FIELD_VERIFIED','VERIFIED_BY_OPERATOR','VERIFIED'].includes(s)?'good':''}

@@ -120,8 +120,12 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 
 
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
-    assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-1' in INDEX
+    assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
     assert 'customer-360-authority.js?build=20260922-customer-workspace-layout-authority-5' in INDEX
-    assert 'customer-360-authority.css?build=20260922-layout-stability-1' in BROWSER
+    assert 'customer-360-authority.css?build=20260922-layout-stability-2' in BROWSER
+    assert 'customer-360-authority.css?build=20260922-layout-stability-2' in INDEX
     assert 'renderNow:root=>renderCustomersNow(root||window)' in C360
+    assert '.h38-c360-master-detail>.h38-c360-directory-rail{grid-column:1!important}' in CSS
+    assert '.h38-c360-master-detail>.h38-c360-detail{grid-column:2!important}' in CSS
+    assert '.h38-c360-master-detail>.h38-c360-directory-rail,.h38-c360-master-detail>.h38-c360-detail{grid-column:1/-1!important}' in CSS

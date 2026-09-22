@@ -18,8 +18,9 @@ for(const token of [
 check('AI runtime does not use direct Supabase table writes',!actions.includes(".from('business_records')")&&!actions.includes('.rpc('));
 check('AI runtime does not expose unrestricted SQL',!actions.includes('executeSql')&&!actions.includes('unrestrictedSql'));
 check('existing proof log preserves AI metadata',data.includes("operation?.payload?.__h38AiProof")&&data.includes('...aiProof'));
-check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-5'));
+check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260922-tenant-aware-office-actions-6'));
 check('runtime loads before assistant command runtime',index.indexOf('assistant-tenant-actions.js')<index.indexOf('assistant-command-runtime.js'));
 check('Assistant settle does not perform duplicate bootstrap after Office sync',!actions.includes("await window.sync(false);\n  await refreshAuthoritativeSnapshot();"));
+check('Assistant approval refreshes targeted secured proof history after sync',actions.includes('H38_SUPABASE_TRAFFIC_GUARD')&&actions.includes('loadAuditHistory')&&actions.includes('refreshProofHistory'));
 console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',passed,failed:failures.length,failures},null,2));
 process.exit(failures.length?1:0);
