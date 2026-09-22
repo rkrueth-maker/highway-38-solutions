@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-site-visit-quote-customer-authority-5';
+const BUILD='20260922-site-visit-quote-customer-authority-6';
 const C=window.H38_FIELD_VISIT_CORE;
 if(!C)return;
 let busy=false,buildBusy=false,reopenBusy=false;
@@ -67,7 +67,20 @@ function enforceQuoteCustomer(quoteId){
   if(!cid)return false;
   window.state.quote=Object.assign({},window.state.quote||{},{quoteId:text(quoteId),customerId:cid});
   const select=document.getElementById('quoteCustomer');
-  if(select&&Array.from(select.options||[]).some(option=>text(option.value)===cid))select.value=cid;
+  if(select){
+    let option=Array.from(select.options||[]).find(item=>text(item.value)===cid);
+    if(!option){
+      const customer=C.rows('customers').find(row=>id(row,'Customer ID','customerId')===cid);
+      if(customer){
+        option=document.createElement('option');
+        option.value=cid;
+        option.textContent=text(value(customer,'Customer Name','customerName','name'))||'Current customer';
+        option.dataset.h38ExplicitQuoteCustomer='1';
+        select.appendChild(option);
+      }
+    }
+    if(option)select.value=cid;
+  }
   return true;
 }
 function openDraftQuote(quoteId){

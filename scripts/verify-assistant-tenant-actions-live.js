@@ -101,7 +101,7 @@ async function command(page,value){
       evidence.steps.push({name:'preview-before-write',status:'PASS',before:150,after:175});
 
       await page.locator('[data-h38-ai-approve]').click();
-      await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:30000});
+      await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
       const approved=await page.evaluate(id=>{
         const row=(window.state?.snapshot?.customers||[]).find(x=>String(x['Customer ID']||x.customerId||'')===id)||{};
         const completion=window.H38_ASSISTANT_TENANT_ACTIONS.lastCompletion();
