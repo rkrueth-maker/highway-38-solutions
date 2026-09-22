@@ -5,6 +5,8 @@ const assert=require('assert');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 const authority=path.join(root,'commercial-app/customer-360-authority.js');
+const baseStyle=path.join(root,'commercial-app/styles.css');
+const customerStyle=path.join(root,'commercial-app/customer-360-authority.css');
 const runtime=path.join(root,'commercial-app/customer-workspace-documents.js');
 const renderHook=path.join(root,'commercial-app/customer-workspace-render-hook.js');
 const app04=fs.readFileSync(path.join(root,'commercial-app/app-04.js'),'utf8');
@@ -28,6 +30,8 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   try{
     await page.setContent('<!doctype html><html><head></head><body><main id="mainContent"></main><div id="toast"></div></body></html>');
+    await page.addStyleTag({path:baseStyle});
+    await page.addStyleTag({path:customerStyle});
     await page.evaluate(()=>{
       window.state={page:'customers',businessId:'B-1',snapshot:{user:{owner:true,roleName:'Owner'},
         customers:[
@@ -68,7 +72,7 @@ assert(liveFirst.includes("'runtime-rowid-fix.js'"),'runtime-rowid-fix must rema
     assert(cardText.includes('Plowing Rate: $50/time'),'customer card must show the imported customer rate');
     await page.locator('[data-h38-customer-card="C-2"]').click();
     await page.waitForFunction(()=>window.H38_CUSTOMER_360.selectedCustomerId==='C-2'&&document.querySelector('.h38-c360 h2')?.textContent.includes('Lake Shop'));
-    assert.equal(await page.evaluate(()=>{const master=document.querySelector('.h38-c360-master-detail'),directory=document.querySelector('.h38-c360-directory-rail'),detail=document.querySelector('.h38-c360-detail');return typeof window.H38_CUSTOMER_360?.renderNow==='function'&&directory?.parentElement===master&&detail?.parentElement===master&&detail.querySelector('.h38-c360-workspace')!=null;}),true,'directory selection must use canonical Customer 360 render and retain master/detail siblings');
+    assert.equal(await page.evaluate(()=>{const master=document.querySelector('.h38-c360-master-detail'),directory=document.querySelector('.h38-c360-directory-rail'),detail=document.querySelector('.h38-c360-detail');if(typeof window.H38_CUSTOMER_360?.renderNow!=='function'||directory?.parentElement!==master||detail?.parentElement!==master||detail.querySelector('.h38-c360-workspace')==null)return false;const mr=master.getBoundingClientRect(),dr=directory.getBoundingClientRect(),rr=detail.getBoundingClientRect();return mr.width>650&&dr.width>=220&&rr.width>320&&rr.left>=dr.right-2&&Math.abs(rr.top-dr.top)<8;}),true,'directory selection must retain visible side-by-side canonical Customer 360 master/detail geometry');
     await page.locator('[data-c360-tab="money"]').click();
     await page.waitForSelector('[data-h38-service-operations]');
     assert((await page.locator('[data-h38-service-operations]').textContent()).includes('Snow plowing'),'plowing rate must appear as a subscribed service');
