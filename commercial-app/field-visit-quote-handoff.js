@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260811-site-visit-quote-handoff-3';
+const BUILD='20260922-site-visit-quote-customer-authority-4';
 const C=window.H38_FIELD_VISIT_CORE;
 if(!C)return;
 let busy=false,buildBusy=false,reopenBusy=false;
@@ -62,11 +62,22 @@ async function saveQuoteContext(){
   await queueEntity('quotes','Quote',visit.quoteId,updated,['Quote ID','quoteId']);
   visit.status='ATTACHED_TO_DRAFT_QUOTE';await C.saveDraft?.();await C.pending?.();if(navigator.onLine)C.syncSoon?.();return updated
 }
+function enforceQuoteCustomer(quoteId){
+  const quote=currentQuote(quoteId),cid=text(value(quote,'Customer ID','customerId')||C.state?.visit?.customerId);
+  if(!cid)return false;
+  window.state.quote=Object.assign({},window.state.quote||{},{quoteId:text(quoteId),customerId:cid});
+  const select=document.getElementById('quoteCustomer');
+  if(select&&Array.from(select.options||[]).some(option=>text(option.value)===cid))select.value=cid;
+  return true;
+}
 function openDraftQuote(quoteId){
   window.H38_FIELD_VISIT?.close?.();
+  const qid=text(quoteId);enforceQuoteCustomer(qid);
   if(typeof window.openPage==='function')window.openPage('quotes');
-  if(typeof window.openQuote==='function')window.openQuote(text(quoteId));else C.toast('Site Visit saved to the draft quote. Open that draft from the Quotes list.',true);
-  [0,80,300,900].forEach(delay=>setTimeout(decorateQuote,delay));
+  if(typeof window.openQuote==='function')window.openQuote(qid);else C.toast('Site Visit saved to the draft quote. Open that draft from the Quotes list.',true);
+  enforceQuoteCustomer(qid);
+  if(typeof window.renderQuotes==='function')window.renderQuotes();
+  [0,80,300,900].forEach(delay=>setTimeout(()=>{enforceQuoteCustomer(qid);decorateQuote();},delay));
 }
 async function handoff(){if(busy)return;busy=true;const quoteId=text(C.state.visit?.quoteId);try{await saveQuoteContext();C.toast(navigator.onLine?'Site Visit saved to the draft quote. Opening Quote Builder…':'Site Visit saved locally to the draft quote. Opening Quote Builder…');openDraftQuote(quoteId)}catch(error){C.toast(error?.message||String(error),true)}finally{busy=false}}
 function quoteContextRecord(){const quoteId=text(window.state?.quote?.quoteId);return quoteId?currentQuote(quoteId):null}
@@ -141,5 +152,5 @@ document.addEventListener('click',event=>{
 if(typeof window.renderQuotes==='function'){const base=window.renderQuotes;window.renderQuotes=function(){const result=base.apply(this,arguments);decorateQuote();return result}}
 const style=document.createElement('style');style.textContent='.h38-site-visit-quote-context{display:grid;gap:.75rem;border:2px solid #0d6f8d;background:#f7fbfd;margin-bottom:.85rem}.h38-site-visit-kicker{font-size:.7rem;font-weight:950;letter-spacing:.08em;color:#0d6f8d}.h38-site-visit-quote-context h2{margin:.15rem 0}.h38-site-visit-scope{display:grid;gap:.3rem;padding:.7rem;border-radius:12px;background:#fff;border:1px solid #d4e4ed}.h38-site-visit-scope p{margin:0;line-height:1.45}.h38-site-visit-counts{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}.h38-site-visit-counts>div{display:grid;gap:.1rem;padding:.55rem;border-radius:10px;background:#eef7fb;text-align:center}.h38-site-visit-counts strong{font-size:1.15rem}.h38-site-visit-counts span{font-size:.72rem;color:#52616d}.h38-site-visit-quote-context details{border-top:1px solid #d4e4ed;padding-top:.55rem}.h38-site-visit-quote-context summary{font-weight:900;cursor:pointer}.h38-site-visit-quote-context ul{margin:.45rem 0 0 1.15rem;padding:0;display:grid;gap:.4rem}.h38-site-visit-quote-context li span{color:#52616d}@media(max-width:560px){.h38-site-visit-counts{grid-template-columns:1fr 1fr}}';document.head.appendChild(style);
 [0,250,900].forEach(delay=>setTimeout(decorateQuote,delay));
-window.H38_FIELD_VISIT_QUOTE_HANDOFF={build:BUILD,handoff,decorateQuote,buildDraftFromContext,reopenLinkedVisit,contextFromRecords,structuredOwnerContext:true,derivesContextFromSavedSession:true,preservesCustomerScope:true,preservesQuoteLines:true,opensSavedDraft:true,reopensLinkedSiteVisit:true,completesCaptureSession:true,automaticApproval:false,automaticCustomerSending:false};
+window.H38_FIELD_VISIT_QUOTE_HANDOFF={build:BUILD,handoff,decorateQuote,buildDraftFromContext,reopenLinkedVisit,contextFromRecords,structuredOwnerContext:true,derivesContextFromSavedSession:true,preservesCustomerScope:true,authoritativeQuoteCustomer:true,preservesQuoteLines:true,opensSavedDraft:true,reopensLinkedSiteVisit:true,completesCaptureSession:true,automaticApproval:false,automaticCustomerSending:false};
 })();

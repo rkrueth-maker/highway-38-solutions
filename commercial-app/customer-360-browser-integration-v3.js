@@ -20,7 +20,7 @@ function ensureAuthority(){
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
     let script=document.querySelector('script[data-h38-customer-360]');
-    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260920-final-customer-workspace-2';script.dataset.h38Customer360='1';document.body.appendChild(script);}
+    if(!script){script=document.createElement('script');script.src='./customer-360-authority.js?build=20260922-customer-workspace-layout-authority-3';script.dataset.h38Customer360='1';document.body.appendChild(script);}
     const finish=()=>window.H38_CUSTOMER_360?resolve(window.H38_CUSTOMER_360):reject(new Error('Customer 360 did not become ready.'));
     script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(new Error('Customer 360 could not load.')),{once:true});
     if(window.H38_CUSTOMER_360)finish();
