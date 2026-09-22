@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-1';
+const BUILD='20260922-tenant-aware-office-actions-2';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -68,10 +68,12 @@ function actionSummary(action){
 }
 function renderCard(){
   const chat=document.getElementById('paChat')||document.querySelector('#globalAiBody .ai-chat');
+  const existing=document.querySelector('[data-h38-ai-action-card]');
+  if(!chat||!pending){document.querySelectorAll('[data-h38-ai-action-card]').forEach(node=>node.remove());return;}
+  if(existing&&existing.dataset.h38AiActionId===String(pending.actionId||'')&&existing.dataset.h38AiActionVersion===String(pending.version||1))return;
   document.querySelectorAll('[data-h38-ai-action-card]').forEach(node=>node.remove());
-  if(!chat||!pending)return;
   const card=document.createElement('section');card.dataset.h38AiActionCard='1';card.className='h38-ai-action-card';
-  const a=pending,canSave=a.canExecute!==false;
+  const a=pending,canSave=a.canExecute!==false;card.dataset.h38AiActionId=String(a.actionId||'');card.dataset.h38AiActionVersion=String(a.version||1);
   card.innerHTML=`<div class="h38-ai-action-kicker">Proposed change</div><strong>${esc(a.type==='rate-change'?a.customerName+' — '+a.service:a.type==='bulk-rate-change'?a.service+' bulk update':a.type==='customer-field'?a.customerName:a.title||'H38 Office suggestion')}</strong><pre>${esc(actionSummary(a))}</pre><div class="h38-ai-action-buttons">${canSave?'<button type="button" data-h38-ai-approve>Approve &amp; Save</button>':'<button type="button" data-h38-ai-owner-review>Request owner review</button>'}<button type="button" class="secondary" data-h38-ai-edit>Edit</button><button type="button" class="secondary" data-h38-ai-cancel>Cancel</button></div><small>${canSave?'Approval applies only to this exact preview version.':'Your current role cannot execute this change.'}</small>`;
   chat.appendChild(card);chat.scrollTop=chat.scrollHeight;
   card.querySelector('[data-h38-ai-approve]')?.addEventListener('click',()=>void executePending().then(message=>window.toast?.(message)).catch(error=>window.toast?.(error?.message||String(error),true)));
