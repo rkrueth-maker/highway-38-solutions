@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260913-finish-to-billing-1';
+const BUILD='20260922-finish-to-billing-customer-lock-2';
 const text=v=>String(v==null?'':v).trim();
 const upper=v=>text(v).toUpperCase();
 const state=()=>window.state||{};
@@ -60,13 +60,29 @@ function selectWork(job){
 }
 function openCustomer(job,billing=false){
   const customerId=cid(job);if(!customerId){window.toast?.('This service visit has no linked customer.',true);return;}
+  const renderExact=()=>{
+    if(window.H38_CUSTOMER_360){
+      window.H38_CUSTOMER_360.selectedCustomerId=customerId;
+      window.H38_CUSTOMER_360.selectedTab='overview';
+    }
+    window.renderCustomers?.();
+    if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
+  };
   if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
   window.openPage?.('customers');
   setTimeout(()=>{
-    if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=customerId;
-    window.renderCustomers?.();
-    if(!billing)return;
-    setTimeout(()=>{const form=document.querySelector('[data-h38-customer-invoice]');if(!form){window.toast?.('Customer billing is not available for this account.',true);return;}form.scrollIntoView?.({block:'center'});const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();window.toast?.('Billing opened. Review rates and create a draft when ready.');},80);
+    renderExact();
+    const card=document.querySelector(`[data-h38-customer-card="${CSS.escape(customerId)}"]`);
+    if(card&&!card.matches('[aria-current="true"],.active'))card.click();
+    setTimeout(()=>{
+      renderExact();
+      if(!billing)return;
+      const form=document.querySelector('[data-h38-customer-invoice]');
+      if(!form){window.toast?.('Customer billing is not available for this account.',true);return;}
+      form.scrollIntoView?.({block:'center'});
+      const input=form.querySelector('[name="service"],input,select,textarea');input?.focus?.();
+      window.toast?.('Billing opened. Review rates and create a draft when ready.');
+    },140);
   },80);
 }
 function buttons(job){
