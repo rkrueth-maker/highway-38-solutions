@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-live-customer-navigation-guard-recurring-money-1';
+const BUILD='20260923-live-customer-navigation-guard-profit-singleton-1';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -32,6 +32,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
   loadRuntime('./invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1','h38-invoice-print-delete',()=>window.H38_INVOICE_PRINT_DELETE);
   loadRuntime('./northern-bouncie-fleet.js?build=20260912-northern-bouncie-fleet-2','h38-northern-bouncie-fleet',()=>window.H38_NORTHERN_BOUNCIE_FLEET);
+  loadRuntime('./profitability-singleton-authority.js?build=20260923-profitability-singleton-authority-1','h38-profitability-singleton-authority',()=>window.H38_PROFITABILITY_SINGLETON_AUTHORITY);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
