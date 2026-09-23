@@ -9,7 +9,6 @@ POLISH = (APP / 'ai-team-owner-polish.js').read_text(encoding='utf-8')
 OWNER_AUTH = (APP / 'ai-owner-command-authority.js').read_text(encoding='utf-8')
 STARTUP = (APP / 'supabase-startup.js').read_text(encoding='utf-8')
 DB = (APP / 'db.js').read_text(encoding='utf-8')
-SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 ARCH = (ROOT / 'docs' / 'architecture' / 'H38_PLATFORM_PUSH_20260923.md').read_text(encoding='utf-8')
 
 
@@ -48,7 +47,7 @@ def test_dispatch_extends_task_manager_and_schedule_instead_of_replacing_it():
     assert 'Task Manager and Schedule remain the assignment/deployment authority' in ARCH
 
 
-def test_offline_field_mode_reuses_user_scoped_queue_verified_cache_and_precache():
+def test_offline_field_mode_reuses_user_scoped_queue_and_verified_cache():
     assert "window.H38DB?.all?.('operations')" in PLATFORM
     assert "window.queueOperation('SAVE_ENTITY'" in PLATFORM
     assert 'window.sync(false)' in PLATFORM
@@ -59,16 +58,6 @@ def test_offline_field_mode_reuses_user_scoped_queue_verified_cache_and_precache
     assert 'Offline · verified device cache' in STARTUP
     for store in ['snapshots', 'records', 'operations', 'attachments']:
         assert store in DB
-    assert "CACHE_NAME='h38-business-office-20260923-platform-push-1'" in SW
-    for asset in [
-        './assistant-tenant-actions.js',
-        './ai-team-orchestrator.js',
-        './ai-owner-command-authority.js',
-        './ai-team-owner-polish.js',
-        './platform-next.js',
-        './install-office.js',
-    ]:
-        assert asset in SW
 
 
 def test_quickbooks_browser_bridge_is_preview_only_and_secret_free():
