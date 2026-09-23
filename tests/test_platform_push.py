@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
 PLATFORM = (APP / 'platform-next.js').read_text(encoding='utf-8')
 POLISH = (APP / 'ai-team-owner-polish.js').read_text(encoding='utf-8')
+OWNER_AUTH = (APP / 'ai-owner-command-authority.js').read_text(encoding='utf-8')
 STARTUP = (APP / 'supabase-startup.js').read_text(encoding='utf-8')
 DB = (APP / 'db.js').read_text(encoding='utf-8')
 ARCH = (ROOT / 'docs' / 'architecture' / 'H38_PLATFORM_PUSH_20260923.md').read_text(encoding='utf-8')
@@ -112,7 +113,9 @@ def test_ai_extension_analyzes_platform_state_without_creating_autonomy():
         'automaticCustomerSending:false',
         'automaticPurchasing:false',
         'automaticPayment:false',
-        'automaticDeployment:false',
     ]:
         assert token in PLATFORM
+    assert 'automaticScheduling:false' in PLATFORM
+    assert 'automaticDeployment:false' in OWNER_AUTH
+    assert 'externalCommitmentsAutoExecute:false' in OWNER_AUTH
     assert 'search → analyze → propose → preview → Owner command → execute → verify → Proof Log' in ARCH
