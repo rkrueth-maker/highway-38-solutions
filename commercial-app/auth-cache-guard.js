@@ -1,8 +1,11 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260912-auth-cache-true-customer-bottom-1';
+const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-1';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
+const H38_TABLET_INSTALL_RUNTIME_BUILD='20260923-install-office-tablet-3';
+const H38_AI_TEAM_BUILD='20260923-ai-team-orchestrator-2-stable';
+const H38_TABLET_INSTALL_RESET_KEY=`h38:tablet-install-runtime-reset:${H38_TABLET_INSTALL_RUNTIME_BUILD}`;
 const h38LegacyLoadCached=loadCached;
 
 function h38RetireLegacyNavigationArtifacts(){
@@ -41,12 +44,50 @@ function h38InstallCurrentOfficeWorker(){
     .catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
 }
 
+function h38TabletLike(){
+  const ua=String(navigator.userAgent||'');
+  const width=Math.max(0,Number(window.innerWidth||document.documentElement?.clientWidth||screen?.width||0));
+  const ipadDesktop=String(navigator.platform||'')==='MacIntel'&&Number(navigator.maxTouchPoints||0)>1;
+  const androidTablet=/android/i.test(ua)&&!/\bmobile\b/i.test(ua);
+  return ipadDesktop||androidTablet||(Number(navigator.maxTouchPoints||0)>0&&width>=600&&width<=1400);
+}
+
+function h38BootstrapAiTeam(){
+  if(window.H38_AI_TEAM||document.querySelector('script[data-h38-ai-team-bootstrap]'))return false;
+  const script=document.createElement('script');
+  script.src=`./ai-team-orchestrator.js?build=${H38_AI_TEAM_BUILD}`;
+  script.async=false;
+  script.dataset.h38AiTeamBootstrap='1';
+  (document.head||document.documentElement).appendChild(script);
+  return true;
+}
+
+async function h38RefreshTabletInstallRuntimeOnce(){
+  if(!h38TabletLike()||!navigator.onLine||!('caches' in window))return false;
+  try{if(sessionStorage.getItem(H38_TABLET_INSTALL_RESET_KEY)==='1')return false;}catch(_){}
+  try{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(async key=>{
+      const cache=await caches.open(key);
+      await cache.delete('./install-office.js',{ignoreSearch:true});
+    }));
+    try{sessionStorage.setItem(H38_TABLET_INSTALL_RESET_KEY,'1');}catch(_){}
+    location.reload();
+    return true;
+  }catch(error){
+    console.warn('H38 tablet install runtime refresh:',error?.message||String(error));
+    return false;
+  }
+}
+
 function h38InstallTrueBottomCustomerRuntime(){
   document.querySelector('script[data-h38-customer-true-bottom-runtime]')?.remove();
 }
 
 h38RetireLegacyNavigationArtifacts();
 h38InstallCurrentOfficeWorker();
+h38BootstrapAiTeam();
+void h38RefreshTabletInstallRuntimeOnce();
 h38InstallTrueBottomCustomerRuntime();
 
 loadCached=async function(options={}){
@@ -87,6 +128,8 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   enabled:true,
   build:H38_AUTH_CACHE_BUILD,
   serviceWorkerBuild:H38_AUTH_CACHE_SERVICE_WORKER_BUILD,
+  installRuntimeBuild:H38_TABLET_INSTALL_RUNTIME_BUILD,
+  aiTeamBuild:H38_AI_TEAM_BUILD,
   userScoped:true,
   verifiedAuthorizationOnly:true,
   onlineWarmOpen:true,
@@ -94,5 +137,8 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   navigationAuthority:false,
   legacyNavigationArtifactsRetired:true,
   staleDesktopRuntimeReset:true,
+  tabletInstallRuntimeRefresh:true,
+  tabletInstallCacheEvictionOnlineOnly:true,
+  aiTeamLiveBootstrap:true,
   trueBottomCustomerRuntime:true
 });
