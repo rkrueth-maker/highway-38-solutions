@@ -78,7 +78,8 @@ async function phoneMore(browser){
   const page=await context.newPage();
   await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header><button data-h38-primary="more">More</button><dialog id="h38PrimaryMoreDialog" open><div class="h38-more-groups"><section class="h38-more-group"><h3>Office</h3></section></div></dialog></body></html>');
   await page.addScriptTag({path:installPath});
-  assert.equal(await page.locator('#h38InstallOfficeButton').count(),0,'phone keeps install out of cramped top bar');
+  const topInstall=page.locator('#h38InstallOfficeButton');
+  if(await topInstall.count())assert.equal(await topInstall.isVisible(),false,'phone keeps install out of cramped top bar');
   await page.click('[data-h38-primary="more"]');
   await page.waitForSelector('[data-h38-install-group] [data-h38-install-more]');
   assert.match(await page.locator('[data-h38-install-group]').innerText(),/Install H38 Office/);
@@ -91,7 +92,7 @@ async function androidTablet(browser){
   const page=await context.newPage();
   await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header></body></html>');
   await page.addScriptTag({path:installPath});
-  await page.waitForSelector('#h38InstallOfficeButton');
+  await page.waitForSelector('#h38InstallOfficeButton',{state:'visible'});
   const state=await page.evaluate(()=>window.H38_INSTALL_OFFICE.diagnostics());
   assert.equal(state.tablet,true);
   assert.equal(state.phone,false);
@@ -115,7 +116,7 @@ async function ipadDesktopIdentity(browser){
     try{Object.defineProperty(navigator,'maxTouchPoints',{configurable:true,value:5});}catch(_){}
   });
   await page.addScriptTag({path:installPath});
-  await page.waitForSelector('#h38InstallOfficeButton');
+  await page.waitForSelector('#h38InstallOfficeButton',{state:'visible'});
   const state=await page.evaluate(()=>window.H38_INSTALL_OFFICE.diagnostics());
   assert.equal(state.tablet,true);
   assert.equal(state.ios,true);
