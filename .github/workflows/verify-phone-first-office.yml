@@ -6,8 +6,11 @@ on:
       - 'commercial-app/runtime-rowid-fix.js'
       - 'commercial-app/install-office.js'
       - 'commercial-app/manifest.webmanifest'
+      - 'commercial-app/auth-cache-guard.js'
+      - 'commercial-app/ai-team-orchestrator.js'
       - 'scripts/verify-phone-first-office-browser.js'
       - 'scripts/verify-install-office-browser.js'
+      - 'scripts/verify-current-ai-team-browser.js'
       - '.github/workflows/verify-phone-first-office.yml'
   push:
     branches: [main]
@@ -16,8 +19,11 @@ on:
       - 'commercial-app/runtime-rowid-fix.js'
       - 'commercial-app/install-office.js'
       - 'commercial-app/manifest.webmanifest'
+      - 'commercial-app/auth-cache-guard.js'
+      - 'commercial-app/ai-team-orchestrator.js'
       - 'scripts/verify-phone-first-office-browser.js'
       - 'scripts/verify-install-office-browser.js'
+      - 'scripts/verify-current-ai-team-browser.js'
       - '.github/workflows/verify-phone-first-office.yml'
 permissions:
   contents: read
@@ -33,10 +39,12 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Syntax
-        run: node --check commercial-app/phone-first-office.js && node --check commercial-app/runtime-rowid-fix.js && node --check commercial-app/install-office.js && node --check scripts/verify-phone-first-office-browser.js && node --check scripts/verify-install-office-browser.js
+        run: node --check commercial-app/phone-first-office.js && node --check commercial-app/runtime-rowid-fix.js && node --check commercial-app/install-office.js && node --check commercial-app/auth-cache-guard.js && node --check commercial-app/ai-team-orchestrator.js && node --check scripts/verify-phone-first-office-browser.js && node --check scripts/verify-install-office-browser.js && node --check scripts/verify-current-ai-team-browser.js
       - name: Phone-first Business Office acceptance
         run: node scripts/verify-phone-first-office-browser.js
-      - name: Installable H38 Office acceptance
+      - name: Installable H38 Office desktop, phone, and tablet acceptance
         run: node scripts/verify-install-office-browser.js
+      - name: Current Supabase AI Team acceptance
+        run: node scripts/verify-current-ai-team-browser.js
       - name: Existing owner mobile smoke
         run: node scripts/verify-owner-mobile-smoke.js
