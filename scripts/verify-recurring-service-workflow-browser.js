@@ -14,7 +14,8 @@ const {chromium}=require('playwright');
       user:{owner:true,permissions:{}},
       customers:[{'Customer ID':'C-NELSON','Customer Name':'Nelson Wood Shims','Rate':'$100/hr trucks','active_rates':['trucks $100/hr','Skidsteer $120/hr']},{'Customer ID':'C-LAWN','Customer Name':'Pine Lawn Test','Mowing Rate':'$55/visit'}],
       jobs:[{'Job ID':'J-NELSON','Customer ID':'C-NELSON','Service Type':'Snow plowing','Status':'Scheduled','Subscribed Service':true,'Lifecycle Mode':'Recurring Service','Record Version':1},{'Job ID':'J-LAWN','Customer ID':'C-LAWN','Service Type':'Lawn mowing','Status':'Scheduled','Subscribed Service':true,'Lifecycle Mode':'Recurring Service','Record Version':1}],
-      scheduleEvents:[{'Schedule Event ID':'S-NELSON','Job ID':'J-NELSON','Status':'Scheduled','Record Version':1},{'Schedule Event ID':'S-LAWN','Job ID':'J-LAWN','Status':'Scheduled','Record Version':1}]
+      scheduleEvents:[{'Schedule Event ID':'S-NELSON','Job ID':'J-NELSON','Status':'Scheduled','Record Version':1},{'Schedule Event ID':'S-LAWN','Job ID':'J-LAWN','Status':'Scheduled','Record Version':1}],
+      invoices:[]
     }};
     window.__ops=[];window.__pages=[];window.__toasts=[];
     window.queueOperation=async function(action,type,id,payload,meta){
@@ -23,10 +24,12 @@ const {chromium}=require('playwright');
       if(collection&&record){const key=collection==='jobs'?'Job ID':collection==='scheduleEvents'?'Schedule Event ID':'';const list=window.state.snapshot[collection]||[];const index=list.findIndex(row=>row[key]===record[key]);if(index>=0)list[index]=record;else list.push(record);}
       return {ok:true};
     };
-    window.toast=(message)=>window.__toasts.push(String(message));
+    window.sync=async()=>true;
+    window.toast=(message,bad)=>window.__toasts.push({message:String(message),bad:!!bad});
     window.openPage=function(name){
       window.__pages.push(name);window.state.page=name;
-      if(name==='customers')document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Customers</h1></div><form data-h38-customer-invoice><input name="service"><button>Create invoice draft</button></form>';
+      if(name==='customers')document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Customers</h1></div>';
+      if(name==='money')document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Money</h1></div><form id="invoiceForm"><select name="customerId"><option value="">Choose customer</option><option value="C-NELSON">Nelson Wood Shims</option><option value="C-LAWN">Pine Lawn Test</option></select><input name="description"><input name="quantity"><input name="unitPrice"><input name="dueDate"><button>Save invoice draft</button></form>';
       if(name==='work')document.getElementById('mainContent').innerHTML='<div class="h38-life-work"><div class="h38-life-head"><p></p></div></div><select id="h38LifecycleJob"><option value="J-NELSON">Nelson</option></select>';
     };
     window.renderToday=()=>{};window.renderWork=()=>{};window.renderCustomers=()=>{};
@@ -54,20 +57,23 @@ const {chromium}=require('playwright');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'starting service must not create invoice');
   await page.waitForFunction(()=>document.querySelector('#h38RecurringServiceQueue article [data-h38-recurring-finish]'));
   await page.locator('#h38RecurringServiceQueue article').filter({hasText:'Nelson Wood Shims'}).locator('[data-h38-recurring-finish]').click();
-  await page.waitForFunction(()=>window.state.page==='customers'&&document.querySelector('[data-h38-customer-invoice]'));
-  assert.equal(await page.evaluate(()=>window.H38_CUSTOMER_360.selectedCustomerId),'C-NELSON','billing handoff must retain customer context');
+  await page.waitForFunction(()=>window.state.page==='money'&&document.querySelector('#invoiceForm'));
+  assert.equal(await page.locator('#invoiceForm [name="customerId"]').inputValue(),'C-NELSON','billing handoff must retain customer context');
+  assert.equal(await page.locator('#invoiceForm [name="description"]').inputValue(),'Snow plowing','billing handoff should carry the service description into draft review');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-NELSON'&&op.meta?.record?.Status==='Complete')),true,'snow service must finish before billing review');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'billing handoff must not create invoice');
+  assert.equal(await page.evaluate(()=>window.__toasts.some(item=>item.bad&&/billing is not available/i.test(item.message))),false,'billing handoff must not show retired Customer 360 billing errors');
   await page.evaluate(()=>{window.state.page='today';document.getElementById('mainContent').innerHTML='<div class="page-head"><h1>Today</h1></div><section id="h38CustomerReadyToday"></section>';window.dispatchEvent(new Event('h38:office-page-rendered'));});
   await page.waitForFunction(()=>document.querySelector('#h38RecurringServiceQueue article'));
   const lawnCard=page.locator('#h38RecurringServiceQueue article').filter({hasText:'Pine Lawn Test'});
   await lawnCard.locator('[data-h38-recurring-start]').click();
   await page.waitForFunction(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-LAWN'&&op.meta?.record?.Status==='In Progress'));
   await page.locator('#h38RecurringServiceQueue article').filter({hasText:'Pine Lawn Test'}).locator('[data-h38-recurring-finish]').click();
-  await page.waitForFunction(()=>window.state.page==='customers'&&window.H38_CUSTOMER_360.selectedCustomerId==='C-LAWN');
+  await page.waitForFunction(()=>window.state.page==='money'&&document.querySelector('#invoiceForm [name="customerId"]').value==='C-LAWN');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.meta?.record?.['Job ID']==='J-LAWN'&&op.meta?.record?.Status==='Complete')),true,'lawn service must finish before billing review');
   assert.equal(await page.evaluate(()=>window.__ops.some(op=>op.action==='SAVE_INVOICE')),false,'lawn billing handoff must remain draft-only until owner submission');
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.finishOpensBilling),true);
+  assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.canonicalMoneyInvoiceDraft),true);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticCustomerSending),false);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticPayment),false);
   assert.equal(await page.evaluate(()=>window.H38_RECURRING_SERVICE_RUNTIME.automaticScheduling),false);
