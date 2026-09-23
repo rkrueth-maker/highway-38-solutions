@@ -43,6 +43,7 @@ def test_ai_team_avoids_global_dom_observer_render_loop():
 
 
 def test_tablet_installer_distinguishes_phone_tablet_and_ipados_desktop_identity():
+    assert "20260923-install-office-tablet-5-idempotent" in INSTALL
     assert "const PHONE='(max-width: 540px)'" in INSTALL
     assert "navigator.platform||'')==='MacIntel'" in INSTALL
     assert 'navigator.maxTouchPoints' in INSTALL
@@ -50,6 +51,13 @@ def test_tablet_installer_distinguishes_phone_tablet_and_ipados_desktop_identity
     assert 'Install and create shortcut' in INSTALL
     assert 'diagnostics' in INSTALL
     assert 'Check again' in INSTALL
+
+
+def test_tablet_install_more_group_is_idempotent_not_a_mutation_feedback_loop():
+    assert 'h38InstallState' in INSTALL
+    assert "if(section.dataset.h38InstallState===installMode)return" in INSTALL
+    assert "section.dataset.h38InstallState=installMode" in INSTALL
+    assert "20260923-install-office-tablet-5-idempotent" in AUTH
 
 
 def test_existing_tablet_cache_is_refreshed_once_per_build_and_only_online():
