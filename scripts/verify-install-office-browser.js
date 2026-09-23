@@ -35,7 +35,7 @@ function staticChecks(){
   assert.match(runtime,/apple-mobile-web-app-title/);
   assert.match(runtime,/apple-touch-icon/);
   assert.match(runtime,/highway38-logo\.png\?v=20260720-exact-0cbc4514/);
-  assert.match(install,/20260923-install-office-tablet-3/);
+  assert.match(install,/20260923-install-office-tablet-4-lazy-ai/);
   assert.match(install,/beforeinstallprompt/);
   assert.match(install,/appinstalled/);
   assert.match(install,/MacIntel/,'iPadOS desktop identity must be recognized');
@@ -47,6 +47,7 @@ function staticChecks(){
   assert.match(authGuard,/cache\.delete\('\.\/install-office\.js'/);
   assert.match(authGuard,/localStorage\.getItem\(H38_TABLET_INSTALL_RESET_KEY\)/);
   assert.match(authGuard,/ai-team-orchestrator\.js\?build=/);
+  assert.match(authGuard,/aiTeamAssistantPageOnly:true/);
   assert.match(aiTeam,/20260923-ai-team-orchestrator-2-stable/);
   assert.match(aiTeam,/engineChangesAllowed:false/);
   assert.match(aiTeam,/automaticPayment:false/);
