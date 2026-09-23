@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-1';
+const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-2';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const H38_TABLET_INSTALL_RUNTIME_BUILD='20260923-install-office-tablet-3';
@@ -64,14 +64,14 @@ function h38BootstrapAiTeam(){
 
 async function h38RefreshTabletInstallRuntimeOnce(){
   if(!h38TabletLike()||!navigator.onLine||!('caches' in window))return false;
-  try{if(sessionStorage.getItem(H38_TABLET_INSTALL_RESET_KEY)==='1')return false;}catch(_){}
+  try{if(localStorage.getItem(H38_TABLET_INSTALL_RESET_KEY)==='1')return false;}catch(_){}
   try{
     const keys=await caches.keys();
     await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(async key=>{
       const cache=await caches.open(key);
       await cache.delete('./install-office.js',{ignoreSearch:true});
     }));
-    try{sessionStorage.setItem(H38_TABLET_INSTALL_RESET_KEY,'1');}catch(_){}
+    try{localStorage.setItem(H38_TABLET_INSTALL_RESET_KEY,'1');}catch(_){}
     location.reload();
     return true;
   }catch(error){
@@ -138,6 +138,7 @@ window.H38_AUTH_CACHE_GUARD=Object.freeze({
   legacyNavigationArtifactsRetired:true,
   staleDesktopRuntimeReset:true,
   tabletInstallRuntimeRefresh:true,
+  tabletInstallRuntimeRefreshOncePerBuild:true,
   tabletInstallCacheEvictionOnlineOnly:true,
   aiTeamLiveBootstrap:true,
   trueBottomCustomerRuntime:true
