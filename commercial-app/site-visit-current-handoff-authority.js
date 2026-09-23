@@ -57,5 +57,7 @@ async function authoritativeHandoff(){
   }
   return result;
 }
-window.H38_FIELD_VISIT_QUOTE_HANDOFF=Object.freeze({...base,handoff:authoritativeHandoff,build:BUILD,__h38CurrentVisitAuthority:true,currentOpenVisitWinsHandoff:true,legacyQueuedQuoteSuperseded:true,legacyQueuedSessionSuperseded:true,quoteIdentityMustRemainStable:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false});
+const authority=Object.freeze({...base,handoff:authoritativeHandoff,build:BUILD,__h38CurrentVisitAuthority:true,currentOpenVisitWinsHandoff:true,legacyQueuedQuoteSuperseded:true,legacyQueuedSessionSuperseded:true,quoteIdentityMustRemainStable:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false});
+window.H38_FIELD_VISIT_QUOTE_HANDOFF=authority;
+window.H38_SITE_VISIT_CURRENT_HANDOFF_AUTHORITY=Object.freeze({build:BUILD,enabled:true,currentOpenVisitWinsHandoff:true,legacyQueuedQuoteSuperseded:true,legacyQueuedSessionSuperseded:true,quoteIdentityMustRemainStable:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false});
 })();
