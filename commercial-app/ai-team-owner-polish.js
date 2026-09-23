@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260923-ai-team-owner-polish-1';
+const PLATFORM_BUILD='20260923-platform-push-1';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 function owner(){const user=window.state?.snapshot?.user||{};return user.owner===true||/\bowner\b/i.test(text(user.roleName||user.role));}
@@ -26,6 +27,15 @@ function apply(){
   panel.dataset.h38AiOwnerPolish=BUILD;
   return true;
 }
+function loadPlatformNext(){
+  if(window.H38_PLATFORM_NEXT||document.querySelector('script[data-h38-platform-next]'))return false;
+  const script=document.createElement('script');
+  script.src=`./platform-next.js?build=${PLATFORM_BUILD}`;
+  script.async=false;
+  script.dataset.h38PlatformNext='1';
+  document.body.appendChild(script);
+  return true;
+}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply();});}
 window.addEventListener('h38:ai-team-ready',schedule);
 window.addEventListener('h38:ai-owner-command-ready',schedule);
@@ -33,6 +43,7 @@ window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
 document.addEventListener('click',event=>{if(event.target?.closest?.('[data-ai-team-scan],[data-ai-team-deep]'))setTimeout(schedule,0);},true);
+loadPlatformNext();
 setTimeout(schedule,0);
-window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true});
+window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformLoader:true});
 })();
