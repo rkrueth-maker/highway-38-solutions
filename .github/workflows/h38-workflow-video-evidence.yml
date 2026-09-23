@@ -63,7 +63,9 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
           H38_FULL_TRAINING_DIR: artifacts/full-lifecycle-training
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
-        run: node scripts/run-lifecycle-quote-refresh-diagnostic.js
+        run: |
+          # TEST-only diagnostic wrapper delegates to scripts/record-full-office-lifecycle-training.js after injecting quote refresh evidence.
+          node scripts/run-lifecycle-quote-refresh-diagnostic.js
       - name: Verify deployed Assistant tenant actions
         if: always()
         env:
