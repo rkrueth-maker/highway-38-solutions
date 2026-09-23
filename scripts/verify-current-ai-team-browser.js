@@ -44,6 +44,8 @@ const polishPath=path.join(ROOT,'commercial-app','ai-team-owner-polish.js');
       }};
       window.toast=()=>{};
       window.can=()=>true;
+      window.__idCounter=0;
+      window.newId=prefix=>`${prefix}-TEST-${++window.__idCounter}`;
       window.openPage=pageKey=>{window.__openedPage=pageKey;window.state.page=pageKey;};
       window.__ownerPending=null;
       window.__ownerExecutions=0;
