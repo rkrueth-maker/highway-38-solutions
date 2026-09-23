@@ -36,13 +36,14 @@ def test_fresh_draft_authority_loads_after_current_handoff_and_before_measuremen
 
 
 def test_profit_guard_is_enforced_as_a_singleton_after_async_render_races():
-    assert '20260923-profitability-singleton-authority-1' in PROFIT
+    assert '20260923-profitability-singleton-authority-2-fail-soft' in PROFIT
     assert 'MutationObserver' in PROFIT
     assert "nodes.length<=1" in PROFIT
     assert 'const keep=nodes[nodes.length-1]' in PROFIT
-    assert 'if(node!==keep)node.remove()' in PROFIT
+    assert 'if(node!==keep&&node?.isConnected)node.remove()' in PROFIT
     assert 'singleProfitGuard:true' in PROFIT
-    assert './profitability-singleton-authority.js?build=20260923-profitability-singleton-authority-1' in LAUNCH
+    assert 'failSoftObserver:true' in PROFIT
+    assert './profitability-singleton-authority.js?build=20260923-profitability-singleton-authority-2-fail-soft' in LAUNCH
 
 
 def test_new_authorities_preserve_external_action_safety_boundaries():
