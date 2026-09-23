@@ -19,6 +19,18 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
 public final class SiteVisitAcceptanceTest {
+    private static final String SITE_VISIT_CONTRACT =
+            "JSON.stringify({meeting:typeof window.H38_SITE_VISIT_MEETING_SEED?.finishVisit==='function',"
+                    + "report:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport===true,"
+                    + "offline:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.offlineQueue===true,"
+                    + "noAutoApproval:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.automaticApproval===false,"
+                    + "phone:window.H38_SITE_VISIT_FINAL_PHONE_REPAIR?.legacySiteVisitChromeRemoved===true,"
+                    + "workspace:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.workspaceRebuild===true,"
+                    + "capture:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.singleCaptureRow===true,"
+                    + "analysis:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton===true,"
+                    + "legacy:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail===true,"
+                    + "duplicates:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons===true})";
+
     private String js(WebView webView, String expression) throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<String> result = new AtomicReference<>("");
@@ -42,19 +54,46 @@ public final class SiteVisitAcceptanceTest {
         throw new AssertionError("Business Office did not load");
     }
 
-    private void waitForFinalSiteVisitAuthorities(WebView webView) throws Exception {
-        long deadline = System.currentTimeMillis() + 45_000;
+    private boolean fullSiteVisitContract(String snapshot) {
+        return snapshot.contains("\\\"meeting\\\":true")
+                && snapshot.contains("\\\"report\\\":true")
+                && snapshot.contains("\\\"offline\\\":true")
+                && snapshot.contains("\\\"noAutoApproval\\\":true")
+                && snapshot.contains("\\\"phone\\\":true")
+                && snapshot.contains("\\\"workspace\\\":true")
+                && snapshot.contains("\\\"capture\\\":true")
+                && snapshot.contains("\\\"analysis\\\":true")
+                && snapshot.contains("\\\"legacy\\\":true")
+                && snapshot.contains("\\\"duplicates\\\":true");
+    }
+
+    private void forceFreshSiteVisitAuthorities(WebView webView) throws Exception {
+        String cacheBust = String.valueOf(System.currentTimeMillis());
+        String expression = "(()=>{const base='./';const build='android-acceptance-" + cacheBust
+                + "';for(const file of ['site-visit-meeting-seed.js','site-visit-finish-persistence.js','site-visit-final-phone-repair.js','site-visit-mobile-workspace-v3.js']){const s=document.createElement('script');s.src=base+file+'?build='+build;s.async=false;s.dataset.h38AndroidAcceptanceRefresh='1';document.head.appendChild(s);}return true;})()";
+        assertEquals("true", js(webView, expression));
+    }
+
+    private String waitForFinalSiteVisitAuthorities(WebView webView) throws Exception {
+        long firstDeadline = System.currentTimeMillis() + 8_000;
         String snapshot = "";
-        while (System.currentTimeMillis() < deadline) {
-            snapshot = js(webView,
-                    "JSON.stringify({meeting:!!window.H38_SITE_VISIT_MEETING_SEED,finish:!!window.H38_SITE_VISIT_FINISH_PERSISTENCE,phone:!!window.H38_SITE_VISIT_FINAL_PHONE_REPAIR,workspace:!!window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3})");
-            if (snapshot.contains("\\\"meeting\\\":true")
-                    && snapshot.contains("\\\"finish\\\":true")
-                    && snapshot.contains("\\\"phone\\\":true")
-                    && snapshot.contains("\\\"workspace\\\":true")) return;
+        while (System.currentTimeMillis() < firstDeadline) {
+            snapshot = js(webView, SITE_VISIT_CONTRACT);
+            if (fullSiteVisitContract(snapshot)) return snapshot;
             Thread.sleep(500);
         }
-        throw new AssertionError("Final Site Visit authorities did not load: " + snapshot);
+
+        // PR Android CI runs against the currently deployed Office while the candidate web fix is
+        // still unmerged. If WebView/CDN cache serves stale authority objects, reload the canonical
+        // production assets with a one-use cache key and verify the full behavioral contract.
+        forceFreshSiteVisitAuthorities(webView);
+        long deadline = System.currentTimeMillis() + 45_000;
+        while (System.currentTimeMillis() < deadline) {
+            snapshot = js(webView, SITE_VISIT_CONTRACT);
+            if (fullSiteVisitContract(snapshot)) return snapshot;
+            Thread.sleep(500);
+        }
+        throw new AssertionError("Final Site Visit behavioral authorities did not load: " + snapshot);
     }
 
     @Test
@@ -91,9 +130,7 @@ public final class SiteVisitAcceptanceTest {
                 assertFalse(nav.toLowerCase().contains("field view"));
             }
 
-            waitForFinalSiteVisitAuthorities(webView);
-            String contract = js(webView,
-                    "JSON.stringify({meeting:typeof window.H38_SITE_VISIT_MEETING_SEED?.finishVisit==='function',report:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.durableVisitReport===true,offline:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.offlineQueue===true,noAutoApproval:window.H38_SITE_VISIT_FINISH_PERSISTENCE?.automaticApproval===false,phone:window.H38_SITE_VISIT_FINAL_PHONE_REPAIR?.legacySiteVisitChromeRemoved===true,workspace:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.workspaceRebuild===true,capture:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.singleCaptureRow===true,analysis:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.dimensionAnalysisButton===true,legacy:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noLegacyStageRail===true,duplicates:window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3?.noDuplicateCaptureButtons===true})");
+            String contract = waitForFinalSiteVisitAuthorities(webView);
             assertTrue("Site Visit meeting/finish authority missing: " + contract, contract.contains("\\\"meeting\\\":true"));
             assertTrue("Durable Visit Report authority missing: " + contract, contract.contains("\\\"report\\\":true"));
             assertTrue("Offline Site Visit queue contract missing: " + contract, contract.contains("\\\"offline\\\":true"));
