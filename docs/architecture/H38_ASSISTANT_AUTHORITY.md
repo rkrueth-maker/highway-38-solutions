@@ -22,18 +22,21 @@ The Supabase Business Office has one shared advisory AI route, one owner-facing 
 ### Business Office command bus
 - `commercial-app/assistant-command-bus.js` is the deterministic command router for supported internal Business Office commands.
 - `commercial-app/assistant-tenant-actions.js` extends that same existing Assistant/command-bus experience with permission-gated tenant-data operations. It does not create a second Office, quote engine, invoice engine, or mutation backend.
+- `commercial-app/ai-owner-command-authority.js` adds an explicit owner-only approval form: `Owner command: <action>`. For a signed-in owner, that explicit command may authorize an exact supported tenant-data action and immediately hand the resulting existing preview to `assistant-tenant-actions.js` `executePending()`.
+- The owner-command authority does not add a second write path or broaden the tenant-action catalog. It strips the explicit prefix, uses the existing command resolver, requires the existing action to be executable under current permissions, and relies on the existing deterministic execution, verification, and proof path.
+- Ordinary commands without the explicit owner-command prefix remain preview-first. A signed-in owner may also use `Owner command: approve` to execute an exact existing preview or `Owner command: cancel` to cancel it.
 - The tenant-action runtime inherits the signed-in human's current Office permissions and active business. It can never grant itself a stronger role, switch businesses from prompt text, bypass RLS, or accept an unvalidated foreign record ID.
-- Consequential tenant-data actions use **resolve → validate → preview → approval → execute → verify → proof**. Preview state is versioned; revising a proposed value invalidates the prior approval target.
+- Consequential tenant-data actions use **resolve → validate → preview/explicit-owner-command approval → execute → verify → proof**. Preview state is versioned; revising a proposed value invalidates the prior approval target.
 - Owner/admin users with the existing financial capability may approve supported service-rate changes and internal draft quotes. Supported customer/contact edits use existing customer-edit permissions. Bulk pricing uses a stronger aggregate preview and excludes/flags custom-contract records.
-- Users without the needed capability may prepare the same preview and request owner review, but the restricted write is not executed.
+- Users without the needed capability may prepare the same preview and request owner review, but the restricted write is not executed. Non-owner users cannot invoke the explicit owner-command direct-execution authority.
 - Product/UI/source/security requests are kept outside tenant-data authority and can be captured as structured H38 product suggestions for the internal build process.
 - It may navigate to permitted pages, resolve a permitted customer, open Customer 360, prepare a working quote context, open Site Visit, open a meeting, open jobs, and prepare other internal workflows supported by existing specialist modules.
 - The cross-platform Assistant polish extends that same command-bus authority for the newer management intents: **ERP Center, Time & Attendance, Team Access, Existing-data uptake, Business-specific quote learning / quote-history analysis, and Task Manager / deployment**.
 - Those management commands open the existing specialist controls rather than creating a second ERP, time, employee-access, import, learning, or task authority.
-- An explicit request to analyze quote history may start the existing tenant-only advisory quote-learning analysis. It still cannot change prices, mutate a quote, approve, or send anything.
+- An explicit request to analyze quote history may start the existing tenant-only advisory quote-learning analysis. It still cannot change prices, mutate a quote, approve, or send anything unless a separate supported deterministic tenant action is explicitly authorized.
 - Time commands never clock a user in/out or edit a punch automatically. Team Access commands never invite, remove, or change employee access automatically. Data-uptake commands never stage or apply an import automatically. Task Manager commands never deploy or reassign work automatically.
 - It does not bypass specialist validation or review controls.
-- Sending, approval, purchasing, payment, deletion, permission changes, publishing, deployment, payroll export, tax filing, or other external commitments remain blocked and must use the existing explicit Business Office control.
+- Sending, purchasing, payment/refund, deletion, permission changes, publishing, deployment, payroll export, tax filing, or other external commitments remain blocked from owner-command auto-execution and must use the existing explicit Business Office control.
 
 ### Specialist ownership
 - Quote Builder / Quote AI: estimating, pricing, proposal drafting and quote-specific AI.
@@ -71,15 +74,17 @@ The shared Business Office is the product UI for web, Android and future iOS. `c
 - no sending, approval, purchasing, payment, accounting posting, payroll export, tax filing, permission change, deployment, quote mutation, job mutation or Site Visit mutation;
 - every response reports `externalActionOccurred: false`.
 
-Actual business actions remain behind the existing deterministic Business Office controls. The cloud `h38-assistant-ai` route stays advisory; approved tenant-data mutations are performed only by the deterministic `assistant-tenant-actions.js` layer through existing Office operations, under the logged-in user's permissions.
+Actual business actions remain behind deterministic Business Office controls. The cloud `h38-assistant-ai` route stays advisory and never executes tenant writes itself. Approved tenant-data mutations are performed only by the deterministic `assistant-tenant-actions.js` layer through existing Office operations, under the logged-in user's permissions.
+
+For supported tenant-data operations, a signed-in owner's explicit `Owner command: <action>` is treated as the human approval signal for the exact action resolved by that deterministic layer. This does not make approval automatic: the owner supplied the approval, the current role/capabilities are checked, the active tenant remains fixed, the action must match a supported adapter, and the result must still verify with proof. Unsupported actions remain non-mutating.
 
 ### Customer business data vs H38 product boundary
 
-- **Customer business data may be changed** when the current role is permitted and the action passes the required preview/approval rules.
+- **Customer business data may be changed** when the current role is permitted and the action passes the required preview/approval rules, including an explicit owner-command approval for a supported deterministic action.
 - **H38 engine/product authority may not be changed** by customer Assistant commands. Source code, schema/migrations, RLS/security rules, global platform configuration, and permission escalation remain outside this runtime.
 - Cross-tenant prompt switching is blocked. The active business remains the authority and every resolved record must belong to that tenant.
 - AI-originated writes carry proof metadata including action ID, tenant, requester/effective role, preview version, before/after values, affected records, approval state, execution result, and verification evidence where supported.
-- External customer sends, real payment movement, purchasing, publishing, and other commitments remain controlled by their existing explicit Office workflows.
+- External customer sends, real payment movement/refunds, purchasing, deletion, access/permission changes, publishing, deployment, payroll/tax submission, and other external commitments remain controlled by their existing explicit Office workflows even when phrased as an owner command.
 
 ## Owner privacy boundary
 
