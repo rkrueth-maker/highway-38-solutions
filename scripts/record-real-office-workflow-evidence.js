@@ -240,26 +240,34 @@ async function recurringServiceScenario(page,scenario,result,shots){
   await clickPage(page,'Today');
   const readyActions=await recurringActions(page,recurringJobId,'start',scenario);
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-ready'));
-  const start=readyActions.locator('[data-h38-recurring-start]');
-  await start.click();
+  await readyActions.locator('[data-h38-recurring-start]').click();
   await recurringActions(page,recurringJobId,'finish',scenario);
   result.steps.push({name:'start-test-service',status:'PASS',at:now()});
   result.screenshots.push(await screenshot(page,shots,scenario.id,'service-in-progress'));
   const liveActions=await recurringActions(page,recurringJobId,'finish',scenario);
   await liveActions.locator('[data-h38-recurring-finish]').click();
-  await page.waitForFunction(id=>String(window.state?.page||'')==='customers'&&String(window.H38_CUSTOMER_360?.selectedCustomerId||'')===String(id)&&!!document.querySelector('.h38-c360-workspace'),customerContext.id,{timeout:15000});
-  const billingHeading=page.locator('.h38-c360-head h2:visible').filter({hasText:scenario.customerNeedle}).first();
-  await billingHeading.waitFor({state:'visible',timeout:10000});
-  const billingCustomerId=await page.evaluate(()=>String(window.H38_CUSTOMER_360?.selectedCustomerId||'').trim());
-  if(billingCustomerId!==customerContext.id)throw new Error('Finish visit opened billing review for the wrong TEST customer.');
-  await redactCustomerContact(page);
+  await page.waitForFunction(id=>{
+    if(String(window.state?.page||'')!=='money')return false;
+    const form=document.getElementById('invoiceForm'),select=form?.querySelector('[name="customerId"]');
+    return !!form&&!!select&&String(select.value||'')===String(id);
+  },customerContext.id,{timeout:15000});
+  const billingCustomerId=await page.locator('#invoiceForm [name="customerId"]').inputValue();
+  if(billingCustomerId!==customerContext.id)throw new Error('Finish visit opened invoice review for the wrong TEST customer.');
   const after=await page.evaluate(id=>{
     const invoices=Array.isArray(window.state?.snapshot?.invoices)?window.state.snapshot.invoices:[];
-    return {invoiceCount:invoices.filter(row=>String(row['Customer ID']||row.customerId||'')===id).length,page:String(window.state?.page||'')};
+    const toast=document.getElementById('toast');
+    return {
+      invoiceCount:invoices.filter(row=>String(row['Customer ID']||row.customerId||'')===id).length,
+      page:String(window.state?.page||''),
+      toastText:String(toast?.textContent||'').trim(),
+      toastBad:!!toast&&!toast.classList.contains('hidden')&&(toast.classList.contains('bad')||toast.classList.contains('error'))
+    };
   },customerContext.id);
   if(after.invoiceCount!==customerContext.invoiceCount)throw new Error('Invoice count changed automatically during recurring-service completion; recording stopped.');
-  if(after.page!=='customers')throw new Error('Finish visit did not open Customer 360 billing review.');
+  if(after.page!=='money')throw new Error('Finish visit did not open canonical Money invoice draft review.');
+  if(/billing is not available/i.test(after.toastText)||after.toastBad)throw new Error(`Billing review displayed an operator-visible error: ${after.toastText||'unknown toast error'}`);
   result.steps.push({name:'finish-test-service',status:'PASS',at:now()});
+  result.steps.push({name:'money-invoice-review-customer-context',status:'PASS',at:now(),customerId:billingCustomerId});
   result.steps.push({name:'billing-review-no-auto-invoice',status:'PASS',at:now(),invoiceCountUnchanged:true});
   const tenantBrand=safeText(await page.locator('body').innerText());
   if(!/Northern Lakes/i.test(tenantBrand))throw new Error('Northern tenant branding was not visible after service completion.');
