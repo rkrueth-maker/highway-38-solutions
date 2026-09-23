@@ -1,14 +1,21 @@
 (function(){
 'use strict';
-const BUILD='20260917-native-office-ready-contract-5';
+const BUILD='20260923-native-office-ready-contract-6-authority-refresh';
+const AUTHORITY_BUILD='20260923-native-site-visit-authority-refresh-1';
 const params=new URLSearchParams(location.search),native=/H38SiteScanner(?:Android|IOS)/.test(navigator.userAgent),forcedField=params.get('fieldMode')==='1'||params.get('nativeScanner')==='1';
 let readySent=false,readyFrame=0,lastGeometry='';
 if(native&&forcedField){params.delete('fieldMode');params.delete('nativeScanner');const query=params.toString();history.replaceState(history.state,'',location.pathname+(query?'?'+query:'')+location.hash);}
-function loadScript(selector,src,dataAttribute){if(document.querySelector(selector))return false;const script=document.createElement('script');script.src=src;script.setAttribute(dataAttribute,'1');document.head.appendChild(script);return true;}
-function loadSiteVisitMeetingSeed(){if(window.H38_SITE_VISIT_MEETING_SEED)return false;return loadScript('script[data-h38-site-visit-meeting-seed]','./site-visit-meeting-seed.js?build=20260915-site-visit-simple-flow-1','data-h38-site-visit-meeting-seed');}
-function loadSiteVisitFinishPersistence(){if(window.H38_SITE_VISIT_FINISH_PERSISTENCE)return false;return loadScript('script[data-h38-site-visit-finish-persistence]','./site-visit-finish-persistence.js?build=20260916-site-visit-finish-persistence-2','data-h38-site-visit-finish-persistence');}
-function loadFinalPhoneRepair(){if(window.H38_SITE_VISIT_FINAL_PHONE_REPAIR)return false;return loadScript('script[data-h38-site-visit-final-phone-repair]','./site-visit-final-phone-repair.js?build=20260916-site-visit-final-phone-repair-1','data-h38-site-visit-final-phone-repair');}
-function loadMobileWorkspaceV3(){if(window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3)return false;return loadScript('script[data-h38-site-visit-mobile-workspace-v3]','./site-visit-mobile-workspace-v3.js?build=20260916-site-visit-workspace-v3-4','data-h38-site-visit-mobile-workspace-v3');}
+function meetingAuthorityReady(){const a=window.H38_SITE_VISIT_MEETING_SEED;return typeof a?.finishVisit==='function'&&a?.automaticApproval===false;}
+function finishAuthorityReady(){const a=window.H38_SITE_VISIT_FINISH_PERSISTENCE;return a?.durableVisitReport===true&&a?.offlineQueue===true&&a?.automaticApproval===false;}
+function phoneAuthorityReady(){const a=window.H38_SITE_VISIT_FINAL_PHONE_REPAIR;return a?.legacySiteVisitChromeRemoved===true&&a?.automaticApproval===false;}
+function workspaceAuthorityReady(){const a=window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3;return a?.workspaceRebuild===true&&a?.singleCaptureRow===true&&a?.dimensionAnalysisButton===true&&a?.noLegacyStageRail===true&&a?.noDuplicateCaptureButtons===true;}
+function siteVisitAuthoritiesReady(){return meetingAuthorityReady()&&finishAuthorityReady()&&phoneAuthorityReady()&&workspaceAuthorityReady();}
+function loadScript(selector,src,dataAttribute){if(document.querySelector(selector))return false;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(dataAttribute,'1');document.head.appendChild(script);return true;}
+function loadSiteVisitMeetingSeed(){if(meetingAuthorityReady())return false;return loadScript('script[data-h38-site-visit-meeting-seed-current]','./site-visit-meeting-seed.js?build='+AUTHORITY_BUILD,'data-h38-site-visit-meeting-seed-current');}
+function loadSiteVisitFinishPersistence(){if(finishAuthorityReady())return false;return loadScript('script[data-h38-site-visit-finish-persistence-current]','./site-visit-finish-persistence.js?build='+AUTHORITY_BUILD,'data-h38-site-visit-finish-persistence-current');}
+function loadFinalPhoneRepair(){if(phoneAuthorityReady())return false;return loadScript('script[data-h38-site-visit-final-phone-repair-current]','./site-visit-final-phone-repair.js?build='+AUTHORITY_BUILD,'data-h38-site-visit-final-phone-repair-current');}
+function loadMobileWorkspaceV3(){if(workspaceAuthorityReady())return false;return loadScript('script[data-h38-site-visit-mobile-workspace-v3-current]','./site-visit-mobile-workspace-v3.js?build='+AUTHORITY_BUILD,'data-h38-site-visit-mobile-workspace-v3-current');}
+function refreshSiteVisitAuthorities(){loadSiteVisitMeetingSeed();loadSiteVisitFinishPersistence();loadFinalPhoneRepair();loadMobileWorkspaceV3();return siteVisitAuthoritiesReady();}
 function visible(node){if(!node)return false;try{const s=getComputedStyle(node);return s.display!=='none'&&s.visibility!=='hidden'&&node.getClientRects().length>0;}catch(_){return false;}}
 function finalMobileChromeAligned(){
   const shell=document.querySelector('.app-shell');if(!visible(shell))return false;
@@ -53,6 +60,7 @@ function finalMobileAuthoritiesReady(){
   if(!runtime?.phoneFirstPrimaryNavigation||runtime?.screenInstabilityGuard!==true)return false;
   if(document.body?.dataset?.h38ProductionPolish!=='3')return false;
   if(identity?.mobileStableBusinessBarHeight!==true||identity?.mobileSingleLineIdentity!==true)return false;
+  if(!siteVisitAuthoritiesReady()){refreshSiteVisitAuthorities();return false;}
   if(!finalOwnerStartupAuthoritiesReady())return false;
   if(!finalPhoneWorkspaceReady())return false;
   if(!document.getElementById('h38OfficeAccountIdentity')||!document.getElementById('h38OfficeAccountIdentityStyle'))return false;
@@ -89,6 +97,7 @@ function signalReady(kind){
 }
 function reconcileReady(){
   if(!native||readySent)return;
+  if(!siteVisitAuthoritiesReady())refreshSiteVisitAuthorities();
   const kind=authorizedReady()?'office':signedOutReady()?'auth':'';
   if(!kind){readyFrame=0;lastGeometry='';return;}
   const geometry=geometrySignature();
@@ -97,12 +106,12 @@ function reconcileReady(){
   signalReady(kind);
 }
 function scheduleReady(){if(!native||readySent)return;requestAnimationFrame(()=>requestAnimationFrame(reconcileReady));}
-loadSiteVisitMeetingSeed();loadSiteVisitFinishPersistence();loadFinalPhoneRepair();loadMobileWorkspaceV3();
+refreshSiteVisitAuthorities();
 if(native){
   ['h38:business-snapshot-updated','h38:authoritative-startup-ready','h38:office-page-rendered','h38:office-navigation-access-updated','h38:owner-startup-authorities-ready','h38:job-lifecycle-ready','h38:phone-first-ready','h38:auth-cleared','pageshow','load'].forEach(name=>window.addEventListener(name,scheduleReady));
   new MutationObserver(scheduleReady).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden','data-h38-production-polish']});
   new MutationObserver(scheduleReady).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
   scheduleReady();
 }
-window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForOwnerStartupAuthorities:true,nativeCoverWaitsForAuthoritativeSnapshot:true,nativeCoverWaitsForLifecycle:true,nativeCoverWaitsForPhoneFirst:true,nativeCoverWaitsForFloatingCreate:true,nativeCoverRejectsTemporarySamples:true,iosNativeHostSupported:true,scheduleReady});
+window.H38_NATIVE_OFFICE_LAUNCH=Object.freeze({enabled:true,build:BUILD,authorityBuild:AUTHORITY_BUILD,officeDefault:true,siteVisitRequiresExplicitAction:true,nativeScannerAvailable:true,siteVisitMeetingSeedLoaded:true,siteVisitFinishPersistenceLoaded:true,siteVisitFinalPhoneRepairLoaded:true,siteVisitMobileWorkspaceV3Loaded:true,cacheSafeSiteVisitAuthority:true,staleSiteVisitAuthorityRefresh:true,siteVisitAuthorityContractValidated:true,nativeCoverWaitsForSiteVisitAuthorities:true,explicitOfficeReadinessContract:true,nativeCoverWaitsForStableWebFrame:true,nativeCoverWaitsForFinalMobileAuthorities:true,nativeCoverWaitsForFinalChromeAlignment:true,nativeCoverWaitsForOwnerStartupAuthorities:true,nativeCoverWaitsForAuthoritativeSnapshot:true,nativeCoverWaitsForLifecycle:true,nativeCoverWaitsForPhoneFirst:true,nativeCoverWaitsForFloatingCreate:true,nativeCoverRejectsTemporarySamples:true,iosNativeHostSupported:true,siteVisitAuthoritiesReady,refreshSiteVisitAuthorities,scheduleReady});
 })();
