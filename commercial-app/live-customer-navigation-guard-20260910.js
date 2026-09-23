@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260923-live-customer-navigation-guard-profit-singleton-3-quote-only';
+const BUILD='20260922-live-customer-navigation-guard-recurring-money-1';
 window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   build:BUILD,enabled:false,retired:true,
   replacement:'app-01.js canonical renderNav + app-02.js canonical openPage',
@@ -10,11 +10,6 @@ window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
 });
 function loadRuntime(src,datasetKey,ready){if(ready?.()||document.querySelector(`script[data-${datasetKey}]`))return;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(`data-${datasetKey}`,'runtime');document.head.appendChild(script);}
 function loadStyle(href,key){if(document.querySelector(`link[data-${key}]`))return;const css=document.createElement('link');css.rel='stylesheet';css.href=href;css.setAttribute(`data-${key}`,'style');document.head.appendChild(css);}
-function loadProfitabilitySingletonIfNeeded(){
-  const page=String(window.state?.page||'').trim().toLowerCase();
-  if(page!=='quotes'&&!document.getElementById('quoteCustomer'))return;
-  loadRuntime('./profitability-singleton-authority.js?build=20260923-profitability-singleton-authority-2-fail-soft','h38-profitability-singleton-authority',()=>window.H38_PROFITABILITY_SINGLETON_AUTHORITY);
-}
 function loadOfficeLaunchPolish(){
   loadStyle('./office-document-export.css?build=20260911-office-document-export-1','h38-office-document-export');
   loadStyle('./office-reference-samples.css?build=20260911-office-reference-samples-1','h38-office-reference-samples');
@@ -37,8 +32,6 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
   loadRuntime('./invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1','h38-invoice-print-delete',()=>window.H38_INVOICE_PRINT_DELETE);
   loadRuntime('./northern-bouncie-fleet.js?build=20260912-northern-bouncie-fleet-2','h38-northern-bouncie-fleet',()=>window.H38_NORTHERN_BOUNCIE_FLEET);
-  loadProfitabilitySingletonIfNeeded();
 }
-window.addEventListener('h38:office-page-rendered',loadProfitabilitySingletonIfNeeded);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadOfficeLaunchPolish,{once:true});else loadOfficeLaunchPolish();
 })();
