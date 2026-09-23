@@ -7,20 +7,22 @@ LOADER = (APP / 'site-visit-quote-wide-pass-loader.js').read_text(encoding='utf-
 
 
 def test_current_open_site_visit_supersedes_stale_legacy_handoff_payloads():
-    assert "20260922-site-visit-current-handoff-authority-2-write-fence" in AUTH
+    assert "20260923-site-visit-current-handoff-authority-3-fresh-identity" in AUTH
     assert "currentOpenVisitWinsHandoff:true" in AUTH
     assert "legacyQueuedQuoteSuperseded:true" in AUTH
     assert "legacyQueuedSessionSuperseded:true" in AUTH
     assert "quoteIdentityMustRemainStable:true" in AUTH
     assert "applyCurrentVisitSnapshot(v)" in AUTH
     assert "const result=await Promise.resolve(base.handoff?.())" in AUTH
-    assert "await queueEntity('quotes','Quote',qid,quote" in AUTH
+    assert "await queueEntity('quotes','Quote',currentQid,quote" in AUTH
     assert "await queueEntity('siteCaptureSessions','Site Capture Session'" in AUTH
-    assert "if(currentQid!==qid)throw Error('Site Visit quote identity changed during handoff.')" in AUTH
+    assert "freshCustomerVisitCannotReuseForeignQuote:true" in AUTH
+    assert "workedUnassignedQuoteCannotBeInherited:true" in AUTH
 
 
 def test_late_session_writer_is_fenced_to_the_current_visit_identity_only():
     assert "lateSessionWriteFence:true" in AUTH
+    assert "preHandoffSessionIdentityFence:true" in AUTH
     assert "writeFenceWindowMs:15000" in AUTH
     assert "expiresAt:Date.now()+15000" in AUTH
     assert "action==='SAVE_ENTITY'" in AUTH
@@ -32,6 +34,7 @@ def test_late_session_writer_is_fenced_to_the_current_visit_identity_only():
     assert "'Project Title':fence.title" in AUTH
     assert "'Scope':fence.scope" in AUTH
     assert "GENERIC_TITLE.test(title)" in AUTH
+    assert "liveFenceForRecord(record)" in AUTH
     assert "return original.call(this,action,type,id,payload,optimisticMeta,...rest)" in AUTH
 
 
@@ -57,7 +60,8 @@ def test_loader_places_current_visit_authority_immediately_after_canonical_hando
     current = LOADER.index('./site-visit-current-handoff-authority.js')
     measurement = LOADER.index('./measurement-verification-final.js')
     assert canonical < current < measurement
-    assert "20260922-site-visit-current-handoff-authority-2-write-fence" in LOADER
+    assert "20260923-site-visit-current-handoff-authority-3-fresh-identity" in LOADER
     assert "H38_SITE_VISIT_CURRENT_HANDOFF_AUTHORITY" in LOADER
     assert "currentVisitHandoffAuthority:true" in LOADER
     assert "lateSessionWriteFence:true" in LOADER
+    assert "preHandoffSessionIdentityFence:true" in LOADER
