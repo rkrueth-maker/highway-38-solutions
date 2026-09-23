@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
 TEAM = (APP / 'ai-team-orchestrator.js').read_text(encoding='utf-8')
+OWNER = (APP / 'ai-owner-command-authority.js').read_text(encoding='utf-8')
 INSTALL = (APP / 'install-office.js').read_text(encoding='utf-8')
 AUTH = (APP / 'auth-cache-guard.js').read_text(encoding='utf-8')
 WORKFLOW = (ROOT / '.github/workflows/verify-phone-first-office.yml').read_text(encoding='utf-8')
@@ -21,7 +22,7 @@ def test_current_ai_team_has_eight_roles_and_wraps_existing_command_bus():
     assert 'usesExistingApprovalProof:true' in TEAM
 
 
-def test_ai_team_is_active_tenant_read_only_and_has_no_second_write_path():
+def test_ai_team_has_no_second_write_path_and_preserves_external_boundaries():
     assert 'activeTenantOnly:true' in TEAM
     assert 'window.state?.snapshot' in TEAM
     assert 'queueOperation(' not in TEAM
@@ -33,6 +34,35 @@ def test_ai_team_is_active_tenant_read_only_and_has_no_second_write_path():
     assert 'automaticPayment:false' in TEAM
     assert 'automaticScheduling:false' in TEAM
     assert 'automaticDeployment:false' in TEAM
+
+
+def test_owner_command_authority_reuses_existing_tenant_actions_and_requires_owner_prefix():
+    assert "20260923-ai-owner-command-authority-1" in OWNER
+    assert "owner\\s+command" in OWNER
+    assert "prefix:'Owner command:'" in OWNER
+    assert 'window.H38_ASSISTANT_TENANT_ACTIONS' in OWNER
+    assert 'actions.executePending()' in OWNER
+    assert 'usesExistingTenantActions:true' in OWNER
+    assert 'usesExistingPermissionChecks:true' in OWNER
+    assert 'usesExistingVerifyProof:true' in OWNER
+    assert 'ownerCommandActionsEnabled:true' in OWNER
+    assert 'explicitOwnerCommandApproval:true' in OWNER
+    assert 'queueOperation(' not in OWNER
+
+
+def test_owner_command_does_not_auto_execute_external_commitments_or_engine_changes():
+    assert 'externalCommitmentsAutoExecute:false' in OWNER
+    assert 'engineChangesAllowed:false' in OWNER
+    assert 'crossTenantSwitching:false' in OWNER
+    assert 'externalActionsEnabled:false' in OWNER
+    assert 'automaticApproval:false' in OWNER
+    assert 'automaticCustomerSending:false' in OWNER
+    assert 'automaticPurchasing:false' in OWNER
+    assert 'automaticPayment:false' in OWNER
+    assert 'automaticScheduling:false' in OWNER
+    assert 'automaticDeployment:false' in OWNER
+    for word in ('send', 'pay', 'purchase', 'delete', 'invite', 'deploy'):
+        assert word in OWNER
 
 
 def test_ai_team_avoids_global_dom_observer_render_loop():
@@ -69,8 +99,18 @@ def test_existing_tablet_cache_is_refreshed_once_per_build_and_only_online():
     assert 'tabletInstallRuntimeRefreshOncePerBuild:true' in AUTH
 
 
-def test_ai_team_and_tablet_browser_acceptance_are_required_ci_gates():
+def test_owner_command_authority_bootstraps_after_ai_team_and_tenant_actions():
+    assert 'H38_AI_OWNER_COMMAND_BUILD' in AUTH
+    assert 'h38BootstrapOwnerCommandAuthority' in AUTH
+    assert 'window.H38_AI_TEAM?.enabled' in AUTH
+    assert 'window.H38_ASSISTANT_TENANT_ACTIONS?.enabled' in AUTH
+    assert 'aiOwnerCommandLazyBootstrap:true' in AUTH
+    assert 'aiOwnerCommandOwnerOnly:true' in AUTH
+
+
+def test_ai_team_tablet_and_owner_command_browser_acceptance_are_required_ci_gates():
     assert "commercial-app/ai-team-orchestrator.js" in WORKFLOW
+    assert "commercial-app/ai-owner-command-authority.js" in WORKFLOW
     assert "commercial-app/auth-cache-guard.js" in WORKFLOW
     assert "scripts/verify-current-ai-team-browser.js" in WORKFLOW
     assert 'Installable H38 Office desktop, phone, and tablet acceptance' in WORKFLOW
