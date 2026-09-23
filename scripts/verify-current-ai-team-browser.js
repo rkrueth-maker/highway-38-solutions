@@ -75,7 +75,17 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     assert.equal(await page.evaluate(()=>window.__ownerExecutions),1,'non-owner must not execute owner command authority');
     await page.evaluate(()=>{window.state.snapshot.user={owner:true,roleName:'Owner'};});
 
-    const flags=await page.evaluate(()=>({team:window.H38_AI_TEAM,bus:window.H38_ASSISTANT_COMMAND_BUS,owner:window.H38_AI_OWNER_COMMAND_AUTHORITY}));
+    const flags=await page.evaluate(()=>({
+      team:window.H38_AI_TEAM,
+      bus:window.H38_ASSISTANT_COMMAND_BUS,
+      owner:{
+        authorized:window.H38_AI_OWNER_COMMAND_AUTHORITY.ownerAuthorized(),
+        usesExistingTenantActions:window.H38_AI_OWNER_COMMAND_AUTHORITY.usesExistingTenantActions,
+        usesExistingPermissionChecks:window.H38_AI_OWNER_COMMAND_AUTHORITY.usesExistingPermissionChecks,
+        usesExistingVerifyProof:window.H38_AI_OWNER_COMMAND_AUTHORITY.usesExistingVerifyProof,
+        externalCommitmentsAutoExecute:window.H38_AI_OWNER_COMMAND_AUTHORITY.externalCommitmentsAutoExecute
+      }
+    }));
     assert.equal(flags.team.activeTenantOnly,true);
     assert.equal(flags.team.usesExistingApprovalProof,true);
     assert.equal(flags.team.engineChangesAllowed,false);
@@ -91,7 +101,7 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     assert.equal(flags.bus.ownerCommandActionsEnabled,true);
     assert.equal(flags.bus.explicitOwnerCommandApproval,true);
     assert.equal(flags.bus.externalActionsEnabled,false);
-    assert.equal(flags.owner.ownerAuthorized,true);
+    assert.equal(flags.owner.authorized,true);
     assert.equal(flags.owner.usesExistingTenantActions,true);
     assert.equal(flags.owner.usesExistingPermissionChecks,true);
     assert.equal(flags.owner.usesExistingVerifyProof,true);
