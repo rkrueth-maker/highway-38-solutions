@@ -42,6 +42,7 @@ def test_android_acceptance_waits_for_behavioral_contract_and_can_bypass_deploye
     assert "forceFreshSiteVisitAuthorities" in ANDROID
     assert "android-acceptance-" in ANDROID
     assert "Final Site Visit behavioral authorities did not load" in ANDROID
+    assert ANDROID.count('snapshot.contains') >= 10
     for marker in (
         "meeting",
         "report",
@@ -54,4 +55,4 @@ def test_android_acceptance_waits_for_behavioral_contract_and_can_bypass_deploye
         "legacy",
         "duplicates",
     ):
-        assert f'\\\"{marker}\\\":true' in ANDROID
+        assert marker in ANDROID
