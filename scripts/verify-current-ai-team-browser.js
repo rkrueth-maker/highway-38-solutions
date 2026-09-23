@@ -5,6 +5,7 @@ const {chromium}=require('playwright');
 const ROOT=path.resolve(__dirname,'..');
 const teamPath=path.join(ROOT,'commercial-app','ai-team-orchestrator.js');
 const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js');
+const polishPath=path.join(ROOT,'commercial-app','ai-team-owner-polish.js');
 
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -40,12 +41,23 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     });
     await page.addScriptTag({path:teamPath});
     await page.addScriptTag({path:ownerPath});
+    await page.addScriptTag({path:polishPath});
     await page.waitForSelector('[data-h38-ai-team]');
     await page.waitForFunction(()=>!!window.H38_AI_OWNER_COMMAND_AUTHORITY?.enabled);
+    await page.waitForSelector('[data-h38-ai-owner-authority-note]');
     assert.equal(await page.locator('.h38-ai-agent').count(),8,'all eight current AI Team roles should render');
     const panel=await page.locator('[data-h38-ai-team]').innerText();
     assert.match(panel,/Overdue invoice/);
     assert.match(panel,/Quote still needs pricing/);
+    assert.match(panel,/Standard requests preview first/);
+    assert.match(panel,/Owner command executes supported Office changes/);
+    assert.doesNotMatch(panel,/advisory until an existing Office action is approved/i);
+    assert.match(await page.locator('[data-h38-ai-owner-authority-note]').innerText(),/Owner commands can act/i);
+    assert.match(await page.locator('[data-h38-ai-owner-authority-note]').innerText(),/Payments, sends, purchases, deletions, access\/security, publishing, deployment, and engine changes keep their dedicated controls/i);
+    assert.equal((await page.locator('[data-ai-team-scan]').innerText()).trim(),'Scan now');
+    assert.equal((await page.locator('[data-ai-team-deep]').innerText()).trim(),'Owner brief');
+    assert.equal((await page.locator('[data-ai-team-page]').first().innerText()).trim(),'Open');
+    assert.equal(await page.locator('[data-h38-ai-owner-mode]').count(),1,'owner action mode badge should render only for owner');
     const result=await page.evaluate(()=>window.H38_ASSISTANT_COMMAND_BUS.handle('AI team status'));
     assert.match(result,/AI Team found/);
     assert.match(result,/Overdue invoice/);
@@ -73,11 +85,18 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     const denied=await page.evaluate(async()=>{window.state.snapshot.user={owner:false,roleName:'Employee'};return window.H38_ASSISTANT_COMMAND_BUS.handle('Owner command: raise their plowing rate to $175');});
     assert.match(denied,/limited to the signed-in owner/i);
     assert.equal(await page.evaluate(()=>window.__ownerExecutions),1,'non-owner must not execute owner command authority');
-    await page.evaluate(()=>{window.state.snapshot.user={owner:true,roleName:'Owner'};});
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('h38:office-page-rendered')));
+    await page.waitForTimeout(80);
+    assert.equal(await page.locator('[data-h38-ai-owner-mode]').count(),0,'non-owner should not see owner action mode badge');
+    assert.match(await page.locator('[data-h38-ai-owner-authority-note]').innerText(),/owner-command execution is limited to the signed-in owner/i);
+    await page.evaluate(()=>{window.state.snapshot.user={owner:true,roleName:'Owner'};window.dispatchEvent(new CustomEvent('h38:office-page-rendered'));});
+    await page.waitForTimeout(80);
+    assert.equal(await page.locator('[data-h38-ai-owner-mode]').count(),1,'owner action mode badge should restore for owner');
 
     const flags=await page.evaluate(()=>({
       team:window.H38_AI_TEAM,
       bus:window.H38_ASSISTANT_COMMAND_BUS,
+      polish:window.H38_AI_TEAM_OWNER_POLISH,
       owner:{
         authorized:window.H38_AI_OWNER_COMMAND_AUTHORITY.ownerAuthorized(),
         usesExistingTenantActions:window.H38_AI_OWNER_COMMAND_AUTHORITY.usesExistingTenantActions,
@@ -101,6 +120,10 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     assert.equal(flags.bus.ownerCommandActionsEnabled,true);
     assert.equal(flags.bus.explicitOwnerCommandApproval,true);
     assert.equal(flags.bus.externalActionsEnabled,false);
+    assert.equal(flags.polish.ownerCommandPresentationOnly,true);
+    assert.equal(flags.polish.noWritePath,true);
+    assert.equal(flags.polish.noPermissionChanges,true);
+    assert.equal(flags.polish.noEngineChanges,true);
     assert.equal(flags.owner.authorized,true);
     assert.equal(flags.owner.usesExistingTenantActions,true);
     assert.equal(flags.owner.usesExistingPermissionChecks,true);
@@ -112,6 +135,6 @@ const ownerPath=path.join(ROOT,'commercial-app','ai-owner-command-authority.js')
     const after=await page.locator('[data-h38-ai-team]').count();
     assert.equal(before,1);
     assert.equal(after,1,'AI Team lifecycle refresh must not duplicate its panel');
-    console.log('PASS — current Supabase AI Team renders, scans active-tenant data, supports explicit owner-commanded tenant actions through existing controls, and preserves external commitment boundaries.');
+    console.log('PASS — current Supabase AI Team renders, scans active-tenant data, clearly presents owner-command authority, supports explicit owner-commanded tenant actions through existing controls, and preserves external commitment boundaries.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

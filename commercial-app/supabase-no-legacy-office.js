@@ -228,6 +228,16 @@
     }
   }
 
+  function loadAiTeamOwnerPolish() {
+    if (window.H38_AI_TEAM_OWNER_POLISH || document.querySelector('script[data-h38-ai-team-owner-polish]')) return false;
+    const script = document.createElement('script');
+    script.src = './ai-team-owner-polish.js?build=20260923-ai-team-owner-polish-1';
+    script.async = false;
+    script.dataset.h38AiTeamOwnerPolish = '1';
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadPlayCompliance() {
     if (!window.H38_PLAY_COMPLIANCE && !document.querySelector('script[data-h38-play-compliance]')) {
       const script = document.createElement('script');
@@ -267,13 +277,15 @@
     operationsIntelligenceContextualLoad: true,
     operationsIntelligenceContextPages: Array.from(OPERATIONS_CONTEXT_PAGES),
     operationsIntelligenceTodaySuppressed: true,
-    duplicateSiteVisitAssistantDockSuppressed: true
+    duplicateSiteVisitAssistantDockSuppressed: true,
+    aiTeamOwnerPolish: true
   });
 
   loadLifecycleAssistant();
   loadOperationsIntelligenceForContext();
   loadPersonalAssistant();
   loadOfficePolish();
+  loadAiTeamOwnerPolish();
   loadPlayCompliance();
   loadSiteVisitController();
 })();

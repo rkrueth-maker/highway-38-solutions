@@ -36,7 +36,31 @@ jobs:
           python scripts/prepare-supabase-test-migrations.py --directory "${RUNNER_TEMP}/h38-supabase-test/supabase/migrations"
       - name: Start isolated Supabase stack
         working-directory: ${{ runner.temp }}/h38-supabase-test
-        run: supabase start
+        run: |
+          set -euo pipefail
+          log="${RUNNER_TEMP}/h38-supabase-start.log"
+          for attempt in 1 2 3; do
+            : > "$log"
+            set +e
+            supabase start 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -eq 0 ]; then
+              echo "Supabase isolated stack started on attempt ${attempt}."
+              exit 0
+            fi
+            if ! grep -qiE 'toomanyrequests|too many requests|429|rate.?limit' "$log"; then
+              echo "::error::Supabase start failed for a non-registry-throttle reason; not retrying."
+              exit "$status"
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Supabase image registry remained rate-limited after 3 attempts."
+              exit "$status"
+            fi
+            echo "::warning::Supabase image registry rate-limited attempt ${attempt}; cleaning partial stack and retrying."
+            supabase stop --no-backup || true
+            sleep $((attempt * 8))
+          done
       - name: Attack RLS and tenant boundaries
         working-directory: ${{ runner.temp }}/h38-supabase-test
         run: |
