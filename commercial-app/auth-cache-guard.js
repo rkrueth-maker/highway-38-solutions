@@ -1,10 +1,11 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-4-idempotent';
+const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-owner-command-5';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const H38_TABLET_INSTALL_RUNTIME_BUILD='20260923-install-office-tablet-5-idempotent';
 const H38_AI_TEAM_BUILD='20260923-ai-team-orchestrator-2-stable';
+const H38_AI_OWNER_COMMAND_BUILD='20260923-ai-owner-command-authority-1';
 const H38_TABLET_INSTALL_RESET_KEY=`h38:tablet-install-runtime-reset:${H38_TABLET_INSTALL_RUNTIME_BUILD}`;
 const h38LegacyLoadCached=loadCached;
 
@@ -26,11 +27,17 @@ function h38InstallCurrentOfficeWorker(){
 
 function h38TabletLike(){const ua=String(navigator.userAgent||'');const width=Math.max(0,Number(window.innerWidth||document.documentElement?.clientWidth||screen?.width||0));const ipadDesktop=String(navigator.platform||'')==='MacIntel'&&Number(navigator.maxTouchPoints||0)>1;const androidTablet=/android/i.test(ua)&&!/\bmobile\b/i.test(ua);return ipadDesktop||androidTablet||(Number(navigator.maxTouchPoints||0)>0&&width>=600&&width<=1400);}
 
-function h38BootstrapAiTeam(){
-  if(window.H38_AI_TEAM||document.querySelector('script[data-h38-ai-team-bootstrap]'))return false;
-  const script=document.createElement('script');script.src=`./ai-team-orchestrator.js?build=${H38_AI_TEAM_BUILD}`;script.async=false;script.dataset.h38AiTeamBootstrap='1';(document.head||document.documentElement).appendChild(script);return true;
+function h38BootstrapOwnerCommandAuthority(){
+  if(window.H38_AI_OWNER_COMMAND_AUTHORITY||document.querySelector('script[data-h38-ai-owner-command-bootstrap]'))return false;
+  if(!window.H38_AI_TEAM?.enabled||!window.H38_ASSISTANT_TENANT_ACTIONS?.enabled)return false;
+  const script=document.createElement('script');script.src=`./ai-owner-command-authority.js?build=${H38_AI_OWNER_COMMAND_BUILD}`;script.async=false;script.dataset.h38AiOwnerCommandBootstrap='1';(document.head||document.documentElement).appendChild(script);return true;
 }
-function h38BootstrapAiTeamWhenNeeded(){if(String(window.state?.page||'').trim().toLowerCase()!=='assistant')return false;return h38BootstrapAiTeam();}
+function h38BootstrapAiTeam(){
+  if(window.H38_AI_TEAM){h38BootstrapOwnerCommandAuthority();return false;}
+  if(document.querySelector('script[data-h38-ai-team-bootstrap]'))return false;
+  const script=document.createElement('script');script.src=`./ai-team-orchestrator.js?build=${H38_AI_TEAM_BUILD}`;script.async=false;script.dataset.h38AiTeamBootstrap='1';script.addEventListener('load',h38BootstrapOwnerCommandAuthority,{once:true});(document.head||document.documentElement).appendChild(script);return true;
+}
+function h38BootstrapAiTeamWhenNeeded(){if(String(window.state?.page||'').trim().toLowerCase()!=='assistant')return false;const loaded=h38BootstrapAiTeam();h38BootstrapOwnerCommandAuthority();return loaded;}
 
 async function h38RefreshTabletInstallRuntimeOnce(){
   if(!h38TabletLike()||!navigator.onLine||!('caches' in window))return false;
@@ -43,6 +50,7 @@ h38RetireLegacyNavigationArtifacts();
 h38InstallCurrentOfficeWorker();
 window.addEventListener('h38:office-page-rendered',h38BootstrapAiTeamWhenNeeded);
 window.addEventListener('pageshow',h38BootstrapAiTeamWhenNeeded);
+window.addEventListener('h38:assistant-command-bus-ready',h38BootstrapOwnerCommandAuthority);
 h38BootstrapAiTeamWhenNeeded();
 void h38RefreshTabletInstallRuntimeOnce();
 h38InstallTrueBottomCustomerRuntime();
@@ -62,4 +70,4 @@ loadCached=async function(options={}){
 
 addEventListener('h38:auth-cleared',()=>{state.businessId='';state.snapshot=null;state.bridgeReady=false;state.canSwitchBusinesses=false;try{$('businessSelect').innerHTML='<option value="">Select business</option>';}catch(error){}});
 
-window.H38_AUTH_CACHE_GUARD=Object.freeze({enabled:true,build:H38_AUTH_CACHE_BUILD,serviceWorkerBuild:H38_AUTH_CACHE_SERVICE_WORKER_BUILD,installRuntimeBuild:H38_TABLET_INSTALL_RUNTIME_BUILD,aiTeamBuild:H38_AI_TEAM_BUILD,userScoped:true,verifiedAuthorizationOnly:true,onlineWarmOpen:true,offlineOpen:true,navigationAuthority:false,legacyNavigationArtifactsRetired:true,staleDesktopRuntimeReset:true,tabletInstallRuntimeRefresh:true,tabletInstallRuntimeRefreshOncePerBuild:true,tabletInstallCacheEvictionOnlineOnly:true,aiTeamLazyBootstrap:true,aiTeamAssistantPageOnly:true,trueBottomCustomerRuntime:true});
+window.H38_AUTH_CACHE_GUARD=Object.freeze({enabled:true,build:H38_AUTH_CACHE_BUILD,serviceWorkerBuild:H38_AUTH_CACHE_SERVICE_WORKER_BUILD,installRuntimeBuild:H38_TABLET_INSTALL_RUNTIME_BUILD,aiTeamBuild:H38_AI_TEAM_BUILD,aiOwnerCommandBuild:H38_AI_OWNER_COMMAND_BUILD,userScoped:true,verifiedAuthorizationOnly:true,onlineWarmOpen:true,offlineOpen:true,navigationAuthority:false,legacyNavigationArtifactsRetired:true,staleDesktopRuntimeReset:true,tabletInstallRuntimeRefresh:true,tabletInstallRuntimeRefreshOncePerBuild:true,tabletInstallCacheEvictionOnlineOnly:true,aiTeamLazyBootstrap:true,aiTeamAssistantPageOnly:true,aiOwnerCommandLazyBootstrap:true,aiOwnerCommandOwnerOnly:true,trueBottomCustomerRuntime:true});
