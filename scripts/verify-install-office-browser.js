@@ -9,6 +9,8 @@ const runtimePath=path.join(ROOT,'commercial-app','runtime-rowid-fix.js');
 const manifestPath=path.join(ROOT,'commercial-app','manifest.webmanifest');
 const authGuardPath=path.join(ROOT,'commercial-app','auth-cache-guard.js');
 const aiTeamPath=path.join(ROOT,'commercial-app','ai-team-orchestrator.js');
+const VIEWPORT_META='<meta name="viewport" content="width=device-width,initial-scale=1">';
+const html=body=>`<!doctype html><html><head>${VIEWPORT_META}</head><body>${body}</body></html>`;
 
 function staticChecks(){
   const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
@@ -54,7 +56,7 @@ function staticChecks(){
 async function desktopPrompt(browser){
   const context=await browser.newContext({viewport:{width:1280,height:800}});
   const page=await context.newPage();
-  await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header></body></html>');
+  await page.setContent(html('<header class="topbar"><div class="top-actions"></div></header>'));
   await page.addScriptTag({path:installPath});
   await page.waitForSelector('#h38InstallOfficeButton');
   await page.evaluate(()=>{
@@ -76,8 +78,9 @@ async function desktopPrompt(browser){
 async function phoneMore(browser){
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
   const page=await context.newPage();
-  await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header><button data-h38-primary="more">More</button><dialog id="h38PrimaryMoreDialog" open><div class="h38-more-groups"><section class="h38-more-group"><h3>Office</h3></section></div></dialog></body></html>');
+  await page.setContent(html('<header class="topbar"><div class="top-actions"></div></header><button data-h38-primary="more">More</button><dialog id="h38PrimaryMoreDialog" open><div class="h38-more-groups"><section class="h38-more-group"><h3>Office</h3></section></div></dialog>'));
   await page.addScriptTag({path:installPath});
+  assert.equal(await page.evaluate(()=>window.innerWidth),390,'synthetic phone fixture must match the real Office viewport contract');
   const topInstall=page.locator('#h38InstallOfficeButton');
   if(await topInstall.count())assert.equal(await topInstall.isVisible(),false,'phone keeps install out of cramped top bar');
   await page.click('[data-h38-primary="more"]');
@@ -90,7 +93,7 @@ async function androidTablet(browser){
   const ua='Mozilla/5.0 (Linux; Android 14; SM-X710 Build/UP1A.231005.007) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
   const context=await browser.newContext({viewport:{width:800,height:1280},userAgent:ua,hasTouch:true,isMobile:true});
   const page=await context.newPage();
-  await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header></body></html>');
+  await page.setContent(html('<header class="topbar"><div class="top-actions"></div></header>'));
   await page.addScriptTag({path:installPath});
   await page.waitForSelector('#h38InstallOfficeButton',{state:'visible'});
   const state=await page.evaluate(()=>window.H38_INSTALL_OFFICE.diagnostics());
@@ -110,7 +113,7 @@ async function ipadDesktopIdentity(browser){
   const ua='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
   const context=await browser.newContext({viewport:{width:1024,height:1366},userAgent:ua,hasTouch:true});
   const page=await context.newPage();
-  await page.setContent('<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header></body></html>');
+  await page.setContent(html('<header class="topbar"><div class="top-actions"></div></header>'));
   await page.evaluate(()=>{
     try{Object.defineProperty(navigator,'platform',{configurable:true,value:'MacIntel'});}catch(_){}
     try{Object.defineProperty(navigator,'maxTouchPoints',{configurable:true,value:5});}catch(_){}
@@ -131,7 +134,7 @@ async function ipadDesktopIdentity(browser){
 async function shortcutRoute(browser){
   const context=await browser.newContext({viewport:{width:390,height:844}});
   const page=await context.newPage();
-  await page.route('http://h38.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"></div></header></body></html>'}));
+  await page.route('http://h38.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:html('<header class="topbar"><div class="top-actions"></div></header>')}));
   await page.goto('http://h38.test/?shell=office&shortcut=customers');
   await page.evaluate(()=>{window.state={snapshot:{user:{id:'owner'}}};window.openPage=page=>{window.__h38ShortcutPage=page;};});
   await page.addScriptTag({path:installPath});
