@@ -35,7 +35,7 @@ function staticChecks(){
   assert.match(runtime,/apple-mobile-web-app-title/);
   assert.match(runtime,/apple-touch-icon/);
   assert.match(runtime,/highway38-logo\.png\?v=20260720-exact-0cbc4514/);
-  assert.match(install,/20260923-install-office-tablet-4-lazy-ai/);
+  assert.match(install,/20260923-install-office-tablet-5-idempotent/);
   assert.match(install,/beforeinstallprompt/);
   assert.match(install,/appinstalled/);
   assert.match(install,/MacIntel/,'iPadOS desktop identity must be recognized');
@@ -43,6 +43,8 @@ function staticChecks(){
   assert.match(install,/Install and create shortcut/);
   assert.match(install,/diagnostics/);
   assert.match(install,/max-width:540px/,'tablet install button must not use the old 760px phone cutoff');
+  assert.match(install,/h38InstallState/,'More-menu install section must render idempotently');
+  assert.match(authGuard,/20260923-install-office-tablet-5-idempotent/);
   assert.match(authGuard,/h38RefreshTabletInstallRuntimeOnce/);
   assert.match(authGuard,/cache\.delete\('\.\/install-office\.js'/);
   assert.match(authGuard,/localStorage\.getItem\(H38_TABLET_INSTALL_RESET_KEY\)/);
@@ -84,9 +86,14 @@ async function phoneMore(browser){
   assert.equal(await page.evaluate(()=>window.innerWidth),390,'synthetic phone fixture must match the real Office viewport contract');
   const topInstall=page.locator('#h38InstallOfficeButton');
   if(await topInstall.count())assert.equal(await topInstall.isVisible(),false,'phone keeps install out of cramped top bar');
+  const moreHandle=await page.locator('[data-h38-primary="more"]').elementHandle();
   await page.click('[data-h38-primary="more"]');
   await page.waitForSelector('[data-h38-install-group] [data-h38-install-more]');
   assert.match(await page.locator('[data-h38-install-group]').innerText(),/Install H38 Office/);
+  await page.evaluate(()=>{for(let i=0;i<12;i++){const node=document.createElement('i');node.dataset.installMutation=String(i);document.body.appendChild(node);node.remove();}});
+  await page.waitForTimeout(150);
+  assert.equal(await page.locator('[data-h38-install-group]').count(),1,'installer must keep one stable App group');
+  assert.equal(await moreHandle.evaluate(node=>node.isConnected),true,'installer mutations must not detach the primary More control');
   await context.close();
 }
 
