@@ -72,7 +72,20 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
   await page.addScriptTag({path:identityPath});
   await page.waitForFunction(()=>window.H38_OFFICE_ACCOUNT_IDENTITY?.mobileStableBusinessBarHeight===true&&document.getElementById('h38OfficeAccountIdentity')&&document.getElementById('h38OfficeAccountIdentityStyle'));
   await page.waitForTimeout(120);
-  assert.deepEqual(signals,[],'Owner phone must remain covered until owner customer/job startup authorities finish loading.');
+  assert.deepEqual(signals,[],'Owner phone must remain covered until Site Visit and owner customer/job startup authorities finish loading.');
+
+  // The hardened native cover now validates the behavioral Site Visit contract too. Simulate
+  // those late production authorities becoming current without weakening the early-reveal checks.
+  await page.evaluate(()=>{
+    window.H38_SITE_VISIT_MEETING_SEED={build:'test',finishVisit(){},automaticApproval:false};
+    window.H38_SITE_VISIT_FINISH_PERSISTENCE={build:'test',durableVisitReport:true,offlineQueue:true,automaticApproval:false};
+    window.H38_SITE_VISIT_FINAL_PHONE_REPAIR={build:'test',legacySiteVisitChromeRemoved:true,automaticApproval:false};
+    window.H38_SITE_VISIT_MOBILE_WORKSPACE_V3={build:'test',workspaceRebuild:true,singleCaptureRow:true,dimensionAnalysisButton:true,noLegacyStageRail:true,noDuplicateCaptureButtons:true};
+    window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page:'today'}}));
+  });
+  await page.waitForFunction(()=>window.H38_NATIVE_OFFICE_LAUNCH?.siteVisitAuthoritiesReady?.()===true);
+  await page.waitForTimeout(120);
+  assert.deepEqual(signals,[],'Current Site Visit authorities must not release the cover before owner startup authorities are ready.');
 
   await page.evaluate(()=>{
     window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:'test'};
@@ -119,7 +132,7 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
     window.dispatchEvent(new CustomEvent('h38:phone-first-ready',{detail:{build:'test'}}));
   });
   await page.waitForFunction(()=>document.documentElement.dataset.h38NativeOfficeReady==='office');
-  assert.deepEqual(signals,['office'],'Native readiness must fire once, only after authoritative data, lifecycle, Phone First, final Today, and floating create are all stable.');
+  assert.deepEqual(signals,['office'],'Native readiness must fire once, only after Site Visit authorities, authoritative data, lifecycle, Phone First, final Today, and floating create are all stable.');
 
   const atReveal=await page.evaluate(()=>window.__readyGeometry);
   await page.waitForTimeout(180);
@@ -135,7 +148,7 @@ async function verifyLateAuthoritiesDoNotBounce(browser){
   const browser=await chromium.launch({headless:true});
   try{
     await verifyLateAuthoritiesDoNotBounce(browser);
-    console.log(JSON.stringify({status:'PASS',nativeReveal:'after-authoritative-snapshot-lifecycle-phone-first',temporaryReferenceBlocked:true,temporaryLifecycleBlocked:true,geometryStableAfterReveal:true,primary:['Today','Customers','Schedule','Messages','More']}));
+    console.log(JSON.stringify({status:'PASS',nativeReveal:'after-site-visit-authorities-authoritative-snapshot-lifecycle-phone-first',siteVisitAuthorityContract:true,temporaryReferenceBlocked:true,temporaryLifecycleBlocked:true,geometryStableAfterReveal:true,primary:['Today','Customers','Schedule','Messages','More']}));
   }finally{
     await browser.close();
   }
