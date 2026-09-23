@@ -1,9 +1,9 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-3-lazy';
+const H38_AUTH_CACHE_BUILD='20260923-auth-cache-tablet-install-ai-team-4-idempotent';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
-const H38_TABLET_INSTALL_RUNTIME_BUILD='20260923-install-office-tablet-4-lazy-ai';
+const H38_TABLET_INSTALL_RUNTIME_BUILD='20260923-install-office-tablet-5-idempotent';
 const H38_AI_TEAM_BUILD='20260923-ai-team-orchestrator-2-stable';
 const H38_TABLET_INSTALL_RESET_KEY=`h38:tablet-install-runtime-reset:${H38_TABLET_INSTALL_RUNTIME_BUILD}`;
 const h38LegacyLoadCached=loadCached;
