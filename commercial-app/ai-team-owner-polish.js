@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260924-ai-team-owner-polish-2';
+const PREVIOUS_ACCEPTED_BUILD='20260923-ai-team-owner-polish-1';
 const PLATFORM_BUILD='20260923-platform-push-1';
 const PLATFORM_DEEPEN_BUILD='20260924-platform-deepen-1';
 const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
@@ -38,7 +39,15 @@ function loadScript(globalName,datasetKey,src){
   document.body.appendChild(script);
   return true;
 }
-function loadPlatformNext(){return loadScript('H38_PLATFORM_NEXT','h38-platform-next',`./platform-next.js?build=${PLATFORM_BUILD}`);}
+function loadPlatformNext(){
+  if(window.H38_PLATFORM_NEXT||document.querySelector('script[data-h38-platform-next]'))return false;
+  const script=document.createElement('script');
+  script.src=`./platform-next.js?build=${PLATFORM_BUILD}`;
+  script.async=false;
+  script.dataset.h38PlatformNext='1';
+  document.body.appendChild(script);
+  return true;
+}
 function loadPlatformDeepen(){return loadScript('H38_PLATFORM_DEEPEN','h38-platform-deepen',`./platform-deepen.js?build=${PLATFORM_DEEPEN_BUILD}`);}
 function loadQuickBooksServerBridge(){return loadScript('H38_QUICKBOOKS_SERVER_BRIDGE','h38-quickbooks-server-bridge',`./quickbooks-server-bridge.js?build=${QBO_SERVER_BUILD}`);}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply();});}
@@ -52,5 +61,5 @@ loadPlatformNext();
 loadPlatformDeepen();
 loadQuickBooksServerBridge();
 setTimeout(schedule,0);
-window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,platformLoader:true});
+window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,previousAcceptedBuild:PREVIOUS_ACCEPTED_BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,platformLoader:true});
 })();
