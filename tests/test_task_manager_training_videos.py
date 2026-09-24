@@ -27,6 +27,28 @@ def test_task_manager_training_creation_cards_are_race_safe():
     assert "Task Manager list did not visibly confirm the assigned employee." in src
 
 
+def test_authoritative_refresh_preserves_dirty_work_forms():
+    startup = (ROOT / 'commercial-app' / 'supabase-final-startup.js').read_text()
+    worker = (ROOT / 'commercial-app' / 'service-worker.js').read_text()
+    for needle in [
+        "const BUILD='20260907-staff-canonical-office-1'",
+        "const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-1'",
+        "const priorHandleFullSnapshot=handleFullSnapshot",
+        "WORK_DRAFT_SPECS",
+        "Object.freeze({id:'taskForm',meaningful:['taskTitle']})",
+        "function captureWorkDrafts()",
+        "function restoreWorkDrafts(bundle)",
+        "const workDrafts=captureWorkDrafts()",
+        "restoreWorkDrafts(workDrafts)",
+        "h38:work-draft-restored",
+        "workDraftRefreshPreservation:true",
+        "workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD",
+    ]:
+        assert needle in startup, f'Missing Work draft refresh protection: {needle}'
+    assert "'supabase-final-startup.js'" in worker
+    assert "const CACHE_NAME='h38-business-office-20260920-0002'" in worker
+
+
 def test_video_workflow_records_and_uploads_task_manager_training():
     workflow = (ROOT / '.github' / 'workflows' / 'h38-workflow-video-evidence.yml').read_text()
     assert 'Record Task Manager employee assignment training' in workflow
