@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD='20260924-ai-team-owner-polish-3-tax-center';
-const PREVIOUS_ACCEPTED_BUILD='20260924-ai-team-owner-polish-2';
+const BUILD='20260924-ai-team-owner-polish-2';
+const PREVIOUS_ACCEPTED_BUILD='20260923-ai-team-owner-polish-1';
 const PLATFORM_BUILD='20260923-platform-push-1';
 const PLATFORM_DEEPEN_BUILD='20260924-platform-deepen-1';
 const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
