@@ -12,3 +12,9 @@ verify_jwt = true
 
 [functions.nl-bouncie-fleet]
 verify_jwt = false
+
+# Intuit redirects into this function without a Supabase JWT. POST actions perform
+# explicit Supabase session validation and the OAuth callback validates encrypted,
+# short-lived tenant/user state before touching connection records.
+[functions.h38-quickbooks-bridge]
+verify_jwt = false
