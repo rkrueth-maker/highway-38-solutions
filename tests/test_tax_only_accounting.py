@@ -4,14 +4,16 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
 TAX = (APP / 'tax-center.js').read_text(encoding='utf-8')
+QBO_BROWSER = (APP / 'quickbooks-server-bridge.js').read_text(encoding='utf-8')
 FINAL_STARTUP = (APP / 'supabase-final-startup.js').read_text(encoding='utf-8')
 OWNER_POLISH = (APP / 'ai-team-owner-polish.js').read_text(encoding='utf-8')
 WORKFLOW = (ROOT / '.github' / 'workflows' / 'h38-workflow-video-evidence.yml').read_text(encoding='utf-8')
 
 
 def test_tax_center_javascript_is_valid():
-    result = subprocess.run(['node', '--check', str(APP / 'tax-center.js')], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
+    for path in [APP / 'tax-center.js', APP / 'quickbooks-server-bridge.js']:
+        result = subprocess.run(['node', '--check', str(path)], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
 
 
 def test_h38_is_operational_authority_and_quickbooks_is_tax_only():
@@ -55,6 +57,13 @@ def test_tax_center_loads_after_secure_quickbooks_bridge():
     assert "const TAX_CENTER_BUILD='20260924-tax-center-1'" in OWNER_POLISH
     assert 'loadTaxCenter();' in OWNER_POLISH
     assert 'taxCenterLoader:true' in OWNER_POLISH
+
+
+def test_tax_center_owns_accounting_ui_even_if_legacy_qbo_status_returns_late():
+    assert "const taxCenterOwnsUi=()=>window.H38_TAX_CENTER?.enabled===true" in QBO_BROWSER
+    assert "if(taxCenterOwnsUi()){document.querySelector('[data-h38-qbo-server]')?.remove();return;}" in QBO_BROWSER
+    assert "if(taxCenterOwnsUi()){panel.remove();return;}" in QBO_BROWSER
+    assert QBO_BROWSER.count('taxCenterOwnsUi()') >= 2
 
 
 def test_training_workflow_records_native_accounting_and_tax_handoff():
