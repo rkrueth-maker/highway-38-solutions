@@ -21,9 +21,11 @@ def test_task_manager_training_uses_real_staff_assignment_and_two_viewports():
 
 def test_task_manager_training_creation_cards_are_race_safe():
     src = (ROOT / 'scripts' / 'record-task-manager-training.js').read_text()
-    assert "await page.waitForTimeout(250)" in src
-    assert "if(await form.count())return form" in src
-    assert "await chooser.evaluate(node=>node.click())" in src
+    assert "const form=page.locator(`#${formId}`).first()" in src
+    assert "typeof window.renderWork==='function'" in src
+    assert "document.querySelector(`[data-h38-create=\"${formId}\"]`)" in src
+    assert "if(chooser){chooser.click();return true;}" in src
+    assert "Canonical ${label} creation card did not open." in src
     assert "Task Manager list did not visibly confirm the assigned employee." in src
 
 

@@ -66,20 +66,30 @@ async function openPage(page,key){
   await page.waitForTimeout(700);
 }
 async function openCreation(page,formId,label){
-  const form=page.locator(`#${formId}:visible`).first();
-  if(await form.count())return form;
-  // Flow tightening can auto-open the requested creation card immediately after route paint.
-  // Recheck before activating the chooser so the recorder never clicks a control that has just
-  // become covered by the real form it is trying to open.
-  await page.waitForTimeout(250);
-  if(await form.count())return form;
-  const chooser=page.locator(`[data-h38-create="${formId}"]:visible`).first();
-  if(await chooser.count())await chooser.evaluate(node=>node.click());
-  else{
-    const button=page.getByRole('button',{name:label,exact:true}).first();
-    if(await button.count())await button.evaluate(node=>node.click());
+  const form=page.locator(`#${formId}`).first();
+  for(let attempt=0;attempt<4;attempt++){
+    if(await form.count()&&await form.isVisible().catch(()=>false))return form;
+    // Use the real canonical page renderer to reapply flow-tightening after an authoritative
+    // snapshot paint. Do not synthesize a form or mutate Office data from the recorder.
+    await page.evaluate(()=>{
+      if(window.state?.page==='work'&&typeof window.renderWork==='function')window.renderWork();
+      else if(window.state?.page==='money'&&typeof window.renderMoney==='function')window.renderMoney();
+    });
+    await page.waitForTimeout(250);
+    if(await form.count()&&await form.isVisible().catch(()=>false))return form;
+    const clicked=await page.evaluate(({formId,label})=>{
+      const chooser=document.querySelector(`[data-h38-create="${formId}"]`);
+      if(chooser){chooser.click();return true;}
+      const button=Array.from(document.querySelectorAll('button')).find(node=>String(node.textContent||'').trim()===label);
+      if(button){button.click();return true;}
+      return false;
+    },{formId,label});
+    if(clicked){
+      try{await form.waitFor({state:'visible',timeout:3000});return form;}catch(_){}
+    }
+    await page.waitForTimeout(250*(attempt+1));
   }
-  await form.waitFor({state:'visible',timeout:10000});return form;
+  throw Error(`Canonical ${label} creation card did not open.`);
 }
 async function sync(page){
   let last={pending:-1,badge:''};
