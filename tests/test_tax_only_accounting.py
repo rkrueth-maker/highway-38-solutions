@@ -64,6 +64,9 @@ def test_tax_center_owns_accounting_ui_even_if_legacy_qbo_status_returns_late():
     assert "if(taxCenterOwnsUi()){document.querySelector('[data-h38-qbo-server]')?.remove();return;}" in QBO_BROWSER
     assert "if(taxCenterOwnsUi()){panel.remove();return;}" in QBO_BROWSER
     assert QBO_BROWSER.count('taxCenterOwnsUi()') >= 2
+    assert 'new MutationObserver(purge)' in TAX
+    assert "card.querySelectorAll('[data-h38-qbo-server]').forEach(node=>node.remove())" in TAX
+    assert 'suppressLegacyQbo(card);' in TAX
 
 
 def test_training_workflow_records_native_accounting_and_tax_handoff():
