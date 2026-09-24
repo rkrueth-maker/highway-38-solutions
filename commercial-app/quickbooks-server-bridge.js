@@ -6,6 +6,7 @@ const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 let db=null,scheduled=false,statusCache=new Map();
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const taxCenterOwnsUi=()=>window.H38_TAX_CENTER?.enabled===true;
 function canFinancial(){
   const user=window.state?.snapshot?.user||{};
   if(user.owner===true||/\b(owner|administrator)\b/i.test(text(user.roleName||user.role)))return true;
@@ -99,12 +100,14 @@ async function loadStatus(force=false){
 }
 async function render(){
   if(text(window.state?.page)!=='accounting'||!canFinancial())return;
+  if(taxCenterOwnsUi()){document.querySelector('[data-h38-qbo-server]')?.remove();return;}
   const card=document.querySelector('#h38QuickBooksBridge');
   if(!card)return;
   let panel=card.querySelector('[data-h38-qbo-server]');
   if(!panel){panel=document.createElement('section');panel.dataset.h38QboServer='1';panel.style.marginTop='14px';card.appendChild(panel);}
   let connection={status:'loading',configured:true,externalWritesEnabled:false};
   try{connection=await loadStatus(false)||connection;}catch(error){connection={status:'error',configured:true,lastError:text(error.message),externalWritesEnabled:false};}
+  if(taxCenterOwnsUi()){panel.remove();return;}
   const connected=connection.status==='connected';
   panel.innerHTML=`<div class="h38-platform-head"><div><span class="h38-platform-kicker">SERVER CONNECTION</span><h3>Secure Intuit connection</h3><p class="h38-platform-note">${esc(statusLine(connection))}</p></div><span class="h38-platform-badge">${esc(connection.status||'unknown')}</span></div><div class="h38-platform-actions">${connected?'<button type="button" class="secondary" data-qbo-refresh>Refresh connection</button><button type="button" class="secondary" data-qbo-preview-run>Reconciliation preview</button><button type="button" class="secondary" data-qbo-disconnect>Disconnect</button>':'<button type="button" data-qbo-connect>Connect QuickBooks</button>'}</div>${connection.lastError?`<p class="h38-platform-note">Last connector error: ${esc(connection.lastError)}</p>`:''}<div data-qbo-server-preview></div><p class="h38-platform-note">OAuth tokens stay encrypted on the server. Browser code receives only non-secret status. QuickBooks accounting writes remain disabled in this phase.</p>`;
   renderPreview(panel,null);bind(panel,connection);
