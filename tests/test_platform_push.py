@@ -28,6 +28,15 @@ def test_platform_push_is_loaded_from_supported_office_bootstrap():
     assert 'platformLoader:true' in POLISH
 
 
+def test_platform_cards_span_shared_grids_and_shrink_safely_for_launch():
+    assert "const BUILD='20260924-platform-push-2-launch-layout'" in PLATFORM
+    assert '.h38-platform-card{grid-column:1/-1' in PLATFORM
+    assert 'min-width:0;width:100%;max-width:100%;box-sizing:border-box' in PLATFORM
+    assert '.h38-platform-column{min-width:0' in PLATFORM
+    assert '.h38-platform-form input,.h38-platform-form select,.h38-platform-form textarea{width:100%;min-width:0;box-sizing:border-box}' in PLATFORM
+    assert '@media(max-width:560px)' in PLATFORM
+
+
 def test_dispatch_extends_task_manager_and_schedule_instead_of_replacing_it():
     for token in [
         'TASK MANAGER + SCHEDULE',
