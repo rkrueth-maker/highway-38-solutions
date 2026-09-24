@@ -36,30 +36,38 @@ def test_task_manager_training_creation_cards_are_race_safe():
     assert "Task Manager list did not visibly confirm the assigned employee." in src
 
 
-def test_authoritative_refresh_and_work_rerender_preserve_dirty_work_forms():
+def test_authoritative_refresh_and_mobile_dom_rerender_preserve_dirty_work_forms():
     startup = (ROOT / 'commercial-app' / 'supabase-final-startup.js').read_text()
     worker = (ROOT / 'commercial-app' / 'service-worker.js').read_text()
     for needle in [
         "const BUILD='20260907-staff-canonical-office-1'",
         "const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2'",
-        "const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-input-memory-2'",
+        "const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-dom-rerender-3'",
         "const priorHandleFullSnapshot=handleFullSnapshot",
         "WORK_DRAFT_SPECS",
         "Object.freeze({id:'taskForm',meaningful:['taskTitle']})",
         "const workDraftMemory=new Map()",
         "let workDraftRestoreToken=0",
+        "let workDraftDomObserver=null",
+        "let workDraftDomRestoreScheduled=false",
         "function visibleWorkForm(formId)",
         "form.getClientRects?.().length",
         "function readWorkDraft(form,spec",
         "function rememberWorkDraft(form)",
         "function rememberedWorkDraftBundle()",
         "function workDraftMatches(form,draft)",
+        "function installWorkDraftDomObserver()",
+        "new MutationObserver(mutations=>",
+        "workDraftDomObserver.observe(main,{childList:true,subtree:true})",
+        "mutation.type==='childList'",
+        "queueMicrotask(()=>",
         "function installWorkDraftMemory()",
         "document.addEventListener('input',remember,true)",
         "document.addEventListener('change',remember,true)",
         "document.addEventListener('submit',clear,true)",
         "document.addEventListener('reset',clear,true)",
         "window.addEventListener('h38:office-page-rendered'",
+        "installWorkDraftDomObserver()",
         "scheduleRememberedWorkDraftRestore()",
         "const remembered=workDraftMemory.get(spec.id)",
         "function captureWorkDrafts()",
@@ -72,7 +80,7 @@ def test_authoritative_refresh_and_work_rerender_preserve_dirty_work_forms():
         "function restoreRememberedWorkDrafts()",
         "restoreWorkDrafts(bundle,'work-page-render')",
         "function scheduleRememberedWorkDraftRestore()",
-        "const delays=[0,40,120,260,520]",
+        "const delays=[0,40,120,260,520,900,1400]",
         "const workDrafts=captureWorkDrafts()",
         "restoreWorkDrafts(workDrafts,'authoritative-refresh')",
         "h38:work-draft-restored",
@@ -84,8 +92,9 @@ def test_authoritative_refresh_and_work_rerender_preserve_dirty_work_forms():
         "workDraftInputMemory:true",
         "workDraftInputMemoryBuild:WORK_DRAFT_MEMORY_BUILD",
         "workDraftPostRenderRestore:true",
-        "workDraftRestoreRetries:5",
+        "workDraftRestoreRetries:7",
         "workDraftPartialSelectProtection:true",
+        "workDraftDomReplacementObserver:true",
     ]:
         assert needle in startup, f'Missing Work draft rerender protection: {needle}'
     assert "'supabase-final-startup.js'" in worker
