@@ -31,7 +31,8 @@ def test_authoritative_refresh_preserves_dirty_work_forms():
     startup = (ROOT / 'commercial-app' / 'supabase-final-startup.js').read_text()
     worker = (ROOT / 'commercial-app' / 'service-worker.js').read_text()
     for needle in [
-        "const BUILD='20260924-work-draft-refresh-preservation-1'",
+        "const BUILD='20260907-staff-canonical-office-1'",
+        "const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-1'",
         "const priorHandleFullSnapshot=handleFullSnapshot",
         "WORK_DRAFT_SPECS",
         "Object.freeze({id:'taskForm',meaningful:['taskTitle']})",
@@ -41,6 +42,7 @@ def test_authoritative_refresh_preserves_dirty_work_forms():
         "restoreWorkDrafts(workDrafts)",
         "h38:work-draft-restored",
         "workDraftRefreshPreservation:true",
+        "workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD",
     ]:
         assert needle in startup, f'Missing Work draft refresh protection: {needle}'
     assert "'supabase-final-startup.js'" in worker
