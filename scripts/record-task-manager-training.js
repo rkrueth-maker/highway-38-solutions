@@ -66,9 +66,10 @@ async function openPage(page,key){
   await page.waitForTimeout(700);
 }
 async function openCreation(page,formId,label){
-  const form=page.locator(`#${formId}`).first();
+  const visibleForm=()=>page.locator(`#${formId}:visible`).last();
   for(let attempt=0;attempt<4;attempt++){
-    if(await form.count()&&await form.isVisible().catch(()=>false))return form;
+    let form=visibleForm();
+    if(await form.count())return form;
     // Use the real canonical page renderer to reapply flow-tightening after an authoritative
     // snapshot paint. Do not synthesize a form or mutate Office data from the recorder.
     await page.evaluate(()=>{
@@ -76,7 +77,8 @@ async function openCreation(page,formId,label){
       else if(window.state?.page==='money'&&typeof window.renderMoney==='function')window.renderMoney();
     });
     await page.waitForTimeout(250);
-    if(await form.count()&&await form.isVisible().catch(()=>false))return form;
+    form=visibleForm();
+    if(await form.count())return form;
     const clicked=await page.evaluate(({formId,label})=>{
       const chooser=document.querySelector(`[data-h38-create="${formId}"]`);
       if(chooser){chooser.click();return true;}
@@ -85,6 +87,7 @@ async function openCreation(page,formId,label){
       return false;
     },{formId,label});
     if(clicked){
+      form=visibleForm();
       try{await form.waitFor({state:'visible',timeout:3000});return form;}catch(_){}
     }
     await page.waitForTimeout(250*(attempt+1));
@@ -156,7 +159,24 @@ async function recordTaskAssignment(page,kind,result){
   const dueLocal=new Date(due.getTime()-due.getTimezoneOffset()*60000).toISOString().slice(0,16);
   await taskForm.locator('[name="dueTime"]').fill(dueLocal);
   await caption(page,`3. Choose ${employee.name}, enter the work, set the due time, then save the task.`,1700);
-  await taskForm.getByRole('button',{name:'Save task',exact:true}).click();
+
+  // Authoritative snapshot refreshes can legitimately replace/reopen the Work form while the
+  // training caption is on screen. Reacquire the currently visible canonical form instead of
+  // keeping the earlier locator, and prove the preserved draft still contains the intended TEST data.
+  const saveTaskForm=await openCreation(page,'taskForm','Assign task');
+  const draft=await saveTaskForm.evaluate((form,expected)=>({
+    jobId:String(form.querySelector('[name="jobId"]')?.value||''),
+    taskTitle:String(form.querySelector('[name="taskTitle"]')?.value||''),
+    assignedUserId:String(form.querySelector('[name="assignedUserId"]')?.value||''),
+    dueTime:String(form.querySelector('[name="dueTime"]')?.value||''),
+    saveVisible:Array.from(form.querySelectorAll('button')).some(button=>String(button.textContent||'').trim()==='Save task'&&button.getClientRects().length>0)
+  }),{jobId,taskTitle,assignedUserId:employee.userId});
+  if(draft.jobId!==jobId||draft.taskTitle!==taskTitle||draft.assignedUserId!==employee.userId||!draft.dueTime||!draft.saveVisible){
+    throw Error(`Task Manager draft was not ready to save after refresh/reopen. job=${draft.jobId===jobId}; title=${draft.taskTitle===taskTitle}; employee=${draft.assignedUserId===employee.userId}; due=${!!draft.dueTime}; save=${draft.saveVisible}`);
+  }
+  const saveTaskButton=saveTaskForm.getByRole('button',{name:'Save task',exact:true});
+  await saveTaskButton.waitFor({state:'visible',timeout:10000});
+  await saveTaskButton.click();
   await page.waitForFunction(([title,userId])=>(window.state?.snapshot?.tasks||[]).some(row=>String(row?.['Task Title']||'')===title&&String(row?.['Assigned User ID']||'')===userId),[taskTitle,employee.userId],{timeout:15000});
   const task=await page.evaluate(title=>{
     const row=(window.state.snapshot.tasks||[]).find(item=>String(item?.['Task Title']||'')===title)||{};
