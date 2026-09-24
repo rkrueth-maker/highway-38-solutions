@@ -78,6 +78,16 @@ def test_deepening_preserves_schedule_and_offline_authorities():
     assert 'queueOperation(' not in DEEPEN
 
 
+def test_deep_platform_cards_span_shared_grids_and_remain_phone_safe():
+    assert "const BUILD='20260924-platform-deepen-2-launch-layout'" in DEEPEN
+    assert '.h38-deepen-card{grid-column:1/-1' in DEEPEN
+    assert 'min-width:0;width:100%;max-width:100%;box-sizing:border-box' in DEEPEN
+    assert '.h38-deepen-board{display:grid' in DEEPEN
+    assert 'max-width:100%;overflow:auto' in DEEPEN
+    assert 'overscroll-behavior-x:contain' in DEEPEN
+    assert '@media(max-width:520px)' in DEEPEN
+
+
 def test_owner_intelligence_is_operational_not_invented_accounting_truth():
     assert 'AR total' in DEEPEN
     assert 'Completed not invoiced' in DEEPEN
