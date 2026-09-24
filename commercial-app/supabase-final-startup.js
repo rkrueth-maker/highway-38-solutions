@@ -6,7 +6,7 @@
 
   const BUILD='20260907-staff-canonical-office-1';
   const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2';
-  const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-input-memory-2';
+  const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-dom-rerender-3';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
   const priorHandleFullSnapshot=handleFullSnapshot;
@@ -20,6 +20,8 @@
   ]);
   const workDraftMemory=new Map();
   let workDraftRestoreToken=0;
+  let workDraftDomObserver=null;
+  let workDraftDomRestoreScheduled=false;
 
   function workDraftSpec(formOrId){
     const id=typeof formOrId==='string'?formOrId:text(formOrId?.id);
@@ -80,6 +82,24 @@
     });
   }
 
+  function installWorkDraftDomObserver(){
+    if(workDraftDomObserver)return true;
+    const main=document.getElementById('mainContent');
+    if(!main)return false;
+    workDraftDomObserver=new MutationObserver(mutations=>{
+      if(window.state?.page!=='work'||workDraftMemory.size===0)return;
+      const replaced=mutations.some(mutation=>mutation.type==='childList'&&(mutation.addedNodes.length||mutation.removedNodes.length));
+      if(!replaced||workDraftDomRestoreScheduled)return;
+      workDraftDomRestoreScheduled=true;
+      queueMicrotask(()=>{
+        workDraftDomRestoreScheduled=false;
+        if(window.state?.page==='work'&&workDraftMemory.size) scheduleRememberedWorkDraftRestore();
+      });
+    });
+    workDraftDomObserver.observe(main,{childList:true,subtree:true});
+    return true;
+  }
+
   function installWorkDraftMemory(){
     if(document.documentElement?.dataset.h38WorkDraftMemory==='1')return;
     if(document.documentElement)document.documentElement.dataset.h38WorkDraftMemory='1';
@@ -90,6 +110,7 @@
     document.addEventListener('submit',clear,true);
     document.addEventListener('reset',clear,true);
     window.addEventListener('h38:office-page-rendered',()=>{
+      installWorkDraftDomObserver();
       if(window.state?.page!=='work'){
         workDraftRestoreToken+=1;
         workDraftMemory.clear();
@@ -97,6 +118,7 @@
       }
       scheduleRememberedWorkDraftRestore();
     });
+    if(!installWorkDraftDomObserver())setTimeout(installWorkDraftDomObserver,0);
   }
 
   function captureWorkDrafts(){
@@ -164,7 +186,7 @@
 
   function scheduleRememberedWorkDraftRestore(){
     const token=++workDraftRestoreToken;
-    const delays=[0,40,120,260,520];
+    const delays=[0,40,120,260,520,900,1400];
     const attempt=index=>{
       if(token!==workDraftRestoreToken||window.state?.page!=='work')return;
       if(restoreRememberedWorkDrafts())return;
@@ -320,7 +342,8 @@
     workDraftInputMemory:true,
     workDraftInputMemoryBuild:WORK_DRAFT_MEMORY_BUILD,
     workDraftPostRenderRestore:true,
-    workDraftRestoreRetries:5,
-    workDraftPartialSelectProtection:true
+    workDraftRestoreRetries:7,
+    workDraftPartialSelectProtection:true,
+    workDraftDomReplacementObserver:true
   };
 })();
