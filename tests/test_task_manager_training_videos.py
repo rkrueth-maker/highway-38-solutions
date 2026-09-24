@@ -29,20 +29,25 @@ def test_task_manager_training_creation_cards_are_race_safe():
     assert "Task Manager list did not visibly confirm the assigned employee." in src
 
 
-def test_authoritative_refresh_preserves_dirty_work_forms():
+def test_authoritative_refresh_preserves_and_reopens_dirty_work_forms():
     startup = (ROOT / 'commercial-app' / 'supabase-final-startup.js').read_text()
     worker = (ROOT / 'commercial-app' / 'service-worker.js').read_text()
     for needle in [
         "const BUILD='20260907-staff-canonical-office-1'",
-        "const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-1'",
+        "const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2'",
         "const priorHandleFullSnapshot=handleFullSnapshot",
         "WORK_DRAFT_SPECS",
         "Object.freeze({id:'taskForm',meaningful:['taskTitle']})",
         "function captureWorkDrafts()",
+        "function reopenWorkDraftForm(formId)",
+        "document.querySelector(`[data-h38-create=\"${formId}\"]`)",
+        "chooser.click()",
+        "const form=reopenWorkDraftForm(draft.id)",
         "function restoreWorkDrafts(bundle)",
         "const workDrafts=captureWorkDrafts()",
         "restoreWorkDrafts(workDrafts)",
         "h38:work-draft-restored",
+        "reopened:true",
         "workDraftRefreshPreservation:true",
         "workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD",
     ]:

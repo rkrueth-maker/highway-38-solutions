@@ -5,7 +5,7 @@
   if(!auth || auth.enabled!==true)return;
 
   const BUILD='20260907-staff-canonical-office-1';
-  const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-1';
+  const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
   const priorHandleFullSnapshot=handleFullSnapshot;
@@ -40,11 +40,21 @@
     return drafts.length?{businessId,drafts}:null;
   }
 
+  function reopenWorkDraftForm(formId){
+    const form=document.getElementById(formId);
+    if(!form)return null;
+    if(form.offsetParent!==null)return form;
+    const chooser=document.querySelector(`[data-h38-create="${formId}"]`);
+    if(!chooser)return null;
+    chooser.click();
+    return form.offsetParent!==null?form:null;
+  }
+
   function restoreWorkDrafts(bundle){
     if(!bundle || window.state?.page!=='work' || text(window.state?.businessId)!==bundle.businessId)return false;
     let restored=false;
     for(const draft of bundle.drafts||[]){
-      const form=document.getElementById(draft.id);
+      const form=reopenWorkDraftForm(draft.id);
       if(!form)continue;
       for(const [name,value] of Object.entries(draft.values||{})){
         const control=form.elements?.namedItem?.(name);
@@ -58,7 +68,7 @@
         try{active?.focus?.({preventScroll:true});}catch(_){try{active?.focus?.();}catch(__){}}
       }
     }
-    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD}}));
+    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD,reopened:true}}));
     return restored;
   }
 
