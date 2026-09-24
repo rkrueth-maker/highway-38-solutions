@@ -85,7 +85,16 @@ for(const needle of [
 ])includes(startup,needle,`Authenticated startup missing ${needle}`);
 expect(!startup.includes('ensureEmployeeWorkspace'),'Startup must not load a second Staff shell.');
 expect(!startup.includes('employee-workspace.js'),'Startup must not inject employee workspace code.');
-expect(!startup.includes('handleFullSnapshot=async function'),'Full snapshot must not be wrapped to install Staff UI ownership.');
+const fullSnapshotStart=startup.indexOf('handleFullSnapshot=async function');
+if(fullSnapshotStart>=0){
+  const fullSnapshotEnd=startup.indexOf('\n  };',fullSnapshotStart);
+  const fullSnapshotBlock=startup.slice(fullSnapshotStart,fullSnapshotEnd>=0?fullSnapshotEnd:startup.length);
+  includes(fullSnapshotBlock,'captureWorkDrafts','A full-snapshot wrapper may only preserve generic Work drafts.');
+  includes(fullSnapshotBlock,'restoreWorkDrafts','A full-snapshot wrapper must restore the same generic Work drafts.');
+  for(const forbidden of ['employeeWorkspace','employee-workspace','h38-employee-mode','renderEmployeePage','STAFF_PAGES','ensureEmployeeWorkspace'])
+    expect(!fullSnapshotBlock.includes(forbidden),`Full snapshot wrapper must not install Staff UI ownership (${forbidden}).`);
+  includes(startup,'workDraftRefreshPreservation:true','Legitimate full-snapshot wrapper must declare Work-draft preservation only.');
+}
 
 for(const needle of [
   'enabled:true','retired:false','renderDesktopNavigation','employeeWorkspaceLoader:false',"employeeWorkspaceStartupAuthority:'none'",'employeeWorkspaceCompanionOnly:true',
