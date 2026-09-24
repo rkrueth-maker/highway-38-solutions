@@ -4,11 +4,62 @@
   const auth=window.H38_SUPABASE_AUTH;
   if(!auth || auth.enabled!==true)return;
 
-  const BUILD='20260907-staff-canonical-office-1';
+  const BUILD='20260924-work-draft-refresh-preservation-1';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
+  const priorHandleFullSnapshot=handleFullSnapshot;
 
   function text(value){return String(value==null?'':value).trim();}
+
+  const WORK_DRAFT_SPECS=Object.freeze([
+    Object.freeze({id:'requestForm',meaningful:['subject','details']}),
+    Object.freeze({id:'jobForm',meaningful:['projectTitle']}),
+    Object.freeze({id:'taskForm',meaningful:['taskTitle']})
+  ]);
+
+  function captureWorkDrafts(){
+    if(window.state?.page!=='work')return null;
+    const businessId=text(window.state?.businessId);
+    const drafts=[];
+    for(const spec of WORK_DRAFT_SPECS){
+      const form=document.getElementById(spec.id);
+      if(!form || form.offsetParent===null)continue;
+      const values={};
+      Array.from(form.elements||[]).forEach(control=>{
+        const name=text(control?.name);
+        if(!name || control.disabled || ['button','submit','reset','file'].includes(text(control.type).toLowerCase()))return;
+        if((control.type==='checkbox'||control.type==='radio')&&!control.checked)return;
+        values[name]=String(control.value==null?'':control.value);
+      });
+      const meaningful=spec.meaningful.some(name=>text(values[name]));
+      if(!meaningful)continue;
+      const active=document.activeElement;
+      drafts.push({id:spec.id,values,activeName:active&&active.form===form?text(active.name):''});
+    }
+    return drafts.length?{businessId,drafts}:null;
+  }
+
+  function restoreWorkDrafts(bundle){
+    if(!bundle || window.state?.page!=='work' || text(window.state?.businessId)!==bundle.businessId)return false;
+    let restored=false;
+    for(const draft of bundle.drafts||[]){
+      const form=document.getElementById(draft.id);
+      if(!form)continue;
+      for(const [name,value] of Object.entries(draft.values||{})){
+        const control=form.elements?.namedItem?.(name);
+        if(!control || typeof control.value==='undefined')continue;
+        if(control.tagName==='SELECT' && value && !Array.from(control.options||[]).some(option=>String(option.value)===String(value)))continue;
+        control.value=value;
+        restored=true;
+      }
+      if(draft.activeName){
+        const active=form.elements?.namedItem?.(draft.activeName);
+        try{active?.focus?.({preventScroll:true});}catch(_){try{active?.focus?.();}catch(__){}}
+      }
+    }
+    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:BUILD}}));
+    return restored;
+  }
 
   function loadPlatformExtensions(){
     const scripts=[
@@ -125,6 +176,13 @@
     }
   };
 
+  handleFullSnapshot=async function(snapshot,businessId){
+    const workDrafts=captureWorkDrafts();
+    const result=await priorHandleFullSnapshot(snapshot,businessId);
+    restoreWorkDrafts(workDrafts);
+    return result;
+  };
+
   suppressStaffUsageTelemetryAtRlsBoundary();
   loadPlatformExtensions();
 
@@ -142,6 +200,7 @@
     delayedStaffTakeover:false,
     staffUsageTelemetryBoundaryRuntime:true,
     platformExtensionLoader:true,
-    taxCenterLoader:true
+    taxCenterLoader:true,
+    workDraftRefreshPreservation:true
   };
 })();
