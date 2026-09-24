@@ -57,7 +57,7 @@
       const remaining=operations.filter(operation=>!shouldSuppress(operation));
       const suppressedResults=suppressed.map(suppressedResult);
       if(!remaining.length){
-        return {status:'SYNCED',transport:'staff-usage-telemetry-boundary',results:suppressedResults,externalActionOccurred:false,staffUsageTelemetrySuppressed:true};
+        return {status:'PASS',transport:'staff-usage-telemetry-boundary',results:suppressedResults,externalActionOccurred:false,staffUsageTelemetrySuppressed:true};
       }
       const response=await priorRequest.call(this,action,Object.assign({},args,{operations:remaining}),timeout);
       return Object.assign({},response||{}, {
