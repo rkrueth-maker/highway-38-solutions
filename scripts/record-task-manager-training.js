@@ -66,14 +66,20 @@ async function openPage(page,key){
   await page.waitForTimeout(700);
 }
 async function openCreation(page,formId,label){
-  if(await page.locator(`#${formId}:visible`).count())return page.locator(`#${formId}:visible`);
+  const form=page.locator(`#${formId}:visible`).first();
+  if(await form.count())return form;
+  // Flow tightening can auto-open the requested creation card immediately after route paint.
+  // Recheck before activating the chooser so the recorder never clicks a control that has just
+  // become covered by the real form it is trying to open.
+  await page.waitForTimeout(250);
+  if(await form.count())return form;
   const chooser=page.locator(`[data-h38-create="${formId}"]:visible`).first();
-  if(await chooser.count())await chooser.click();
+  if(await chooser.count())await chooser.evaluate(node=>node.click());
   else{
     const button=page.getByRole('button',{name:label,exact:true}).first();
-    if(await button.count())await button.click();
+    if(await button.count())await button.evaluate(node=>node.click());
   }
-  const form=page.locator(`#${formId}:visible`);await form.waitFor({state:'visible',timeout:10000});return form;
+  await form.waitFor({state:'visible',timeout:10000});return form;
 }
 async function sync(page){
   let last={pending:-1,badge:''};
@@ -154,7 +160,7 @@ async function recordTaskAssignment(page,kind,result){
   const row=page.locator('.row').filter({hasText:taskTitle}).first();
   await row.waitFor({state:'visible',timeout:15000});
   const rowText=clean(await row.innerText());
-  if(!rowText.includes(employee.name)&&!rowText.includes(taskTitle))throw Error('Task Manager list did not visibly confirm the assignment.');
+  if(!rowText.includes(employee.name))throw Error('Task Manager list did not visibly confirm the assigned employee.');
   await row.scrollIntoViewIfNeeded();
   await caption(page,`4. Confirm the task appears in Task Manager assigned to ${employee.name}.`,1700);
   await caption(page,'The employee signs into the same H38 Office and can update only assigned work through the bounded Staff workflow: Accepted, Started, Waiting/Blocked, or Completed.',2200);

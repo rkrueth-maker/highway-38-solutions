@@ -19,6 +19,14 @@ def test_task_manager_training_uses_real_staff_assignment_and_two_viewports():
         assert needle in src, f'Missing Task Manager training guard: {needle}'
 
 
+def test_task_manager_training_creation_cards_are_race_safe():
+    src = (ROOT / 'scripts' / 'record-task-manager-training.js').read_text()
+    assert "await page.waitForTimeout(250)" in src
+    assert "if(await form.count())return form" in src
+    assert "await chooser.evaluate(node=>node.click())" in src
+    assert "Task Manager list did not visibly confirm the assigned employee." in src
+
+
 def test_video_workflow_records_and_uploads_task_manager_training():
     workflow = (ROOT / '.github' / 'workflows' / 'h38-workflow-video-evidence.yml').read_text()
     assert 'Record Task Manager employee assignment training' in workflow
