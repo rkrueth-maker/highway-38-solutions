@@ -44,7 +44,7 @@ async function ready(page){
     await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
   }
   await page.waitForFunction(()=>String(window.state?.snapshot?.business?.businessKey||'').toLowerCase()==='highway38'&&!!window.state?.snapshot?.user&&!!window.state?.bridgeReady,null,{timeout:40000});
-  await page.waitForFunction(()=>!!window.H38_TAX_CENTER,null,{timeout:20000});
+  await page.waitForFunction(()=>window.H38_TAX_CENTER?.revision==='20260924-ar-session-cleanup-1',null,{timeout:20000});
   await page.addStyleTag({content:'#h38TrainingCaption{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483647;max-width:min(780px,calc(100vw - 24px));padding:12px 18px;border-radius:12px;background:rgba(5,35,52,.96);color:#fff;font:700 18px/1.3 system-ui;box-shadow:0 8px 28px rgba(0,0,0,.35);text-align:center;pointer-events:none}@media(max-width:600px){#h38TrainingCaption{font-size:14px;bottom:84px;padding:9px 11px;max-width:calc(100vw - 20px)}}input:focus,button:focus{outline:4px solid #ffbf47!important;outline-offset:3px!important}'});
 }
 async function caption(page,text,ms=1500){await page.evaluate(v=>{let n=document.getElementById('h38TrainingCaption');if(!n){n=document.createElement('div');n.id='h38TrainingCaption';document.body.appendChild(n);}n.textContent=v;},text);await page.waitForTimeout(ms);}
@@ -59,12 +59,15 @@ async function record(page,kind,result){
   await openPage(page,'accounting');
   const taxCard=page.locator('#h38QuickBooksBridge[data-h38-tax-center-ready]');
   await taxCard.waitFor({state:'visible',timeout:15000});
+  await page.waitForFunction(()=>document.querySelector('#h38QuickBooksBridge')?.dataset?.h38TaxCenterRevision==='20260924-ar-session-cleanup-1',null,{timeout:10000});
   await page.getByRole('heading',{name:'Office runs the business. QuickBooks is tax-only.',exact:true}).waitFor({timeout:10000});
   await caption(page,'The Accounting page is now the H38 Tax Center. QuickBooks is not part of the daily operating workflow.',2300);
   const form=taxCard.locator('[data-h38-tax-form]');
   await form.getByRole('button',{name:'Build tax package',exact:true}).click();
   await page.waitForFunction(()=>{const text=String(document.querySelector('[data-h38-tax-counts]')?.textContent||'');return /invoices.*payments.*expenses/i.test(text)&&!/No tax package built yet/i.test(text);},null,{timeout:10000});
+  await page.waitForFunction(()=>!/Checking optional QuickBooks/i.test(String(document.querySelector('[data-h38-tax-qbo]')?.textContent||'')),null,{timeout:10000});
   const summary=await page.evaluate(()=>({counts:String(document.querySelector('[data-h38-tax-counts]')?.textContent||''),metrics:Array.from(document.querySelectorAll('[data-h38-tax-summary] strong')).map(n=>String(n.textContent||'')),quickBooks:String(document.querySelector('[data-h38-tax-qbo]')?.textContent||'')}));
+  if(/connector error|invalid or expired|session is invalid|jwt/i.test(summary.quickBooks))throw Error(`Instructional QuickBooks state contains a technical connector error: ${clean(summary.quickBooks)}`);
   result.taxSummary=summary;
   await caption(page,'Build the tax package from H38 records. Invoiced revenue, recorded payments, expenses and open AR stay separate for the accountant.',2600);
   const downloadButton=taxCard.locator('[data-h38-tax-download]');
@@ -94,6 +97,6 @@ async function record(page,kind,result){
       runs.push(result);
     }
   }finally{await browser.close();}
-  const status=runs.every(r=>r.status==='PASS')?'PASS':'HOLD';write('manifest.json',{status,build:'20260924-tax-training-1',source:'real-deployed-office',quickBooksRole:'tax-only',capturedAt:now(),runs});
+  const status=runs.every(r=>r.status==='PASS')?'PASS':'HOLD';write('manifest.json',{status,build:'20260924-tax-training-2-clean',source:'real-deployed-office',quickBooksRole:'tax-only',capturedAt:now(),runs});
   if(status!=='PASS')process.exitCode=1;
 })().catch(error=>fail('RECORDER_FAILED',error.stack||error.message));
