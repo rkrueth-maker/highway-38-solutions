@@ -1,0 +1,80 @@
+{
+  "version": "20260924-complete-training-1",
+  "title": "H38 Complete Training Library Coverage",
+  "runtimeOnly": true,
+  "noSyntheticRecordings": true,
+  "testDataOnly": true,
+  "externalActionsAllowed": false,
+  "existingEvidence": {
+    "fullLifecycle": true,
+    "taskManagerAssignment": true,
+    "nativeAccountingTax": true,
+    "assistantActionEvidence": true,
+    "crossTenantRuntime": true
+  },
+  "existingArtifacts": [
+    "artifacts/full-lifecycle-training/",
+    "artifacts/task-manager-training/",
+    "artifacts/tax-only-accounting-training/",
+    "artifacts/assistant-action-evidence/",
+    "artifacts/workflow-video-evidence/"
+  ],
+  "newRecorder": "scripts/record-complete-training-library.js",
+  "newArtifactRoot": "artifacts/complete-training-library/",
+  "newRecorderCoverage": [
+    {
+      "workflowKey": "full-office-map",
+      "videoIds": ["H38-TRAIN-FULL-OFFICE-MAP-DESKTOP"]
+    },
+    {
+      "workflowKey": "owner-daily",
+      "videoIds": ["H38-TRAIN-OWNER-DAILY-DESKTOP", "H38-TRAIN-OWNER-DAILY-PHONE"]
+    },
+    {
+      "workflowKey": "schedule-dispatch",
+      "videoIds": ["H38-TRAIN-SCHEDULE-DISPATCH-DESKTOP", "H38-TRAIN-SCHEDULE-DISPATCH-PHONE"]
+    },
+    {
+      "workflowKey": "meetings",
+      "videoIds": ["H38-TRAIN-MEETINGS-DESKTOP", "H38-TRAIN-MEETINGS-PHONE"]
+    },
+    {
+      "workflowKey": "receipts-expenses",
+      "videoIds": ["H38-TRAIN-RECEIPTS-EXPENSES-PHONE"]
+    },
+    {
+      "workflowKey": "documents-smart-upload",
+      "videoIds": ["H38-TRAIN-DOCUMENTS-SMART-UPLOAD-DESKTOP", "H38-TRAIN-DOCUMENTS-SMART-UPLOAD-PHONE"]
+    },
+    {
+      "workflowKey": "quote-revision",
+      "videoIds": ["H38-TRAIN-QUOTE-REVISION-DESKTOP"]
+    },
+    {
+      "workflowKey": "assistant-approval",
+      "videoIds": ["H38-TRAIN-AI-APPROVAL-DESKTOP", "H38-TRAIN-AI-APPROVAL-PHONE"]
+    },
+    {
+      "workflowKey": "settings-admin",
+      "videoIds": ["H38-TRAIN-SETTINGS-ADMIN-DESKTOP"]
+    },
+    {
+      "workflowKey": "lawn-service",
+      "videoIds": ["H38-TRAIN-LAWN-SERVICE-PHONE"]
+    },
+    {
+      "workflowKey": "snow-service",
+      "videoIds": ["H38-TRAIN-SNOW-SERVICE-PHONE"]
+    },
+    {
+      "workflowKey": "employee-handoff",
+      "videoIds": ["H38-TRAIN-EMPLOYEE-HANDOFF-PHONE"],
+      "authenticatedCompletionVideo": "H38-TRAIN-STAFF-COMPLETION-PHONE",
+      "credentialGate": ["H38_WORKFLOW_STAFF_EMAIL", "H38_WORKFLOW_STAFF_PASSWORD"]
+    },
+    {
+      "workflowKey": "role-login",
+      "videoIds": ["H38-TRAIN-ROLE-LOGIN-PHONE"]
+    }
+  ]
+}
