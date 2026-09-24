@@ -111,6 +111,8 @@ def test_extensions_load_through_existing_live_first_startup_without_cache_bump(
     assert "./quickbooks-server-bridge.js?build=20260924-qbo-server-bridge-1" in FINAL_STARTUP
     assert 'platformExtensionLoader:true' in FINAL_STARTUP
     assert "'supabase-final-startup.js'" in SERVICE_WORKER
+    assert "'platform-next.js'" in SERVICE_WORKER
+    assert "'platform-deepen.js'" in SERVICE_WORKER
     assert "const CACHE_NAME='h38-business-office-20260920-0002'" in SERVICE_WORKER
 
 
