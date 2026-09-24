@@ -89,7 +89,8 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
           H38_COMPLETE_TRAINING_DIR: artifacts/complete-training-library
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
-        run: node scripts/record-complete-training-library.js
+        # Guarded wrapper delegates first to: node scripts/record-complete-training-library.js
+        run: node scripts/run-complete-training-library-final.js
       - name: Record native accounting and tax handoff training
         if: always()
         env:
