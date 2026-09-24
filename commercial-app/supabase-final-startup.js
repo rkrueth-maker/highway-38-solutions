@@ -6,6 +6,7 @@
 
   const BUILD='20260907-staff-canonical-office-1';
   const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2';
+  const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-input-memory-1';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
   const priorHandleFullSnapshot=handleFullSnapshot;
@@ -17,37 +18,88 @@
     Object.freeze({id:'jobForm',meaningful:['projectTitle']}),
     Object.freeze({id:'taskForm',meaningful:['taskTitle']})
   ]);
+  const workDraftMemory=new Map();
+
+  function workDraftSpec(formOrId){
+    const id=typeof formOrId==='string'?formOrId:text(formOrId?.id);
+    return WORK_DRAFT_SPECS.find(spec=>spec.id===id)||null;
+  }
+
+  function visibleWorkForm(formId){
+    const forms=Array.from(document.querySelectorAll(`[id="${formId}"]`)).filter(node=>node?.tagName==='FORM');
+    for(let index=forms.length-1;index>=0;index--){
+      const form=forms[index];
+      if(form.getClientRects?.().length)return form;
+    }
+    return forms[0]||null;
+  }
+
+  function readWorkDraft(form,spec,businessId=text(window.state?.businessId)){
+    if(!form||!spec)return null;
+    const values={};
+    Array.from(form.elements||[]).forEach(control=>{
+      const name=text(control?.name);
+      if(!name||control.disabled||['button','submit','reset','file'].includes(text(control.type).toLowerCase()))return;
+      if((control.type==='checkbox'||control.type==='radio')&&!control.checked)return;
+      values[name]=String(control.value==null?'':control.value);
+    });
+    if(!spec.meaningful.some(name=>text(values[name])))return null;
+    const active=document.activeElement;
+    return{businessId,id:spec.id,values,activeName:active&&active.form===form?text(active.name):''};
+  }
+
+  function rememberWorkDraft(form){
+    if(window.state?.page!=='work')return false;
+    const spec=workDraftSpec(form);
+    if(!spec)return false;
+    const draft=readWorkDraft(form,spec);
+    if(!draft){workDraftMemory.delete(spec.id);return false;}
+    workDraftMemory.set(spec.id,draft);
+    return true;
+  }
+
+  function installWorkDraftMemory(){
+    if(document.documentElement?.dataset.h38WorkDraftMemory==='1')return;
+    if(document.documentElement)document.documentElement.dataset.h38WorkDraftMemory='1';
+    const remember=event=>{const form=event.target?.form;if(form)rememberWorkDraft(form);};
+    const clear=event=>{const spec=workDraftSpec(event.target);if(spec)workDraftMemory.delete(spec.id);};
+    document.addEventListener('input',remember,true);
+    document.addEventListener('change',remember,true);
+    document.addEventListener('submit',clear,true);
+    document.addEventListener('reset',clear,true);
+    window.addEventListener('h38:office-page-rendered',()=>{
+      if(window.state?.page!=='work')workDraftMemory.clear();
+    });
+  }
 
   function captureWorkDrafts(){
     if(window.state?.page!=='work')return null;
     const businessId=text(window.state?.businessId);
     const drafts=[];
     for(const spec of WORK_DRAFT_SPECS){
-      const form=document.getElementById(spec.id);
-      if(!form || form.offsetParent===null)continue;
-      const values={};
-      Array.from(form.elements||[]).forEach(control=>{
-        const name=text(control?.name);
-        if(!name || control.disabled || ['button','submit','reset','file'].includes(text(control.type).toLowerCase()))return;
-        if((control.type==='checkbox'||control.type==='radio')&&!control.checked)return;
-        values[name]=String(control.value==null?'':control.value);
-      });
-      const meaningful=spec.meaningful.some(name=>text(values[name]));
-      if(!meaningful)continue;
-      const active=document.activeElement;
-      drafts.push({id:spec.id,values,activeName:active&&active.form===form?text(active.name):''});
+      const form=visibleWorkForm(spec.id);
+      const current=form&&form.getClientRects?.().length?readWorkDraft(form,spec,businessId):null;
+      if(current){
+        workDraftMemory.set(spec.id,current);
+        drafts.push({id:current.id,values:current.values,activeName:current.activeName});
+        continue;
+      }
+      const remembered=workDraftMemory.get(spec.id);
+      if(remembered&&remembered.businessId===businessId){
+        drafts.push({id:remembered.id,values:{...remembered.values},activeName:remembered.activeName||''});
+      }
     }
     return drafts.length?{businessId,drafts}:null;
   }
 
   function reopenWorkDraftForm(formId){
-    const form=document.getElementById(formId);
-    if(!form)return null;
-    if(form.offsetParent!==null)return form;
+    let form=visibleWorkForm(formId);
+    if(form?.getClientRects?.().length)return form;
     const chooser=document.querySelector(`[data-h38-create="${formId}"]`);
-    if(!chooser)return null;
+    if(!chooser)return form;
     chooser.click();
-    return form.offsetParent!==null?form:null;
+    form=visibleWorkForm(formId);
+    return form?.getClientRects?.().length?form:null;
   }
 
   function restoreWorkDrafts(bundle){
@@ -63,12 +115,15 @@
         control.value=value;
         restored=true;
       }
+      const spec=workDraftSpec(draft.id);
+      const remembered=readWorkDraft(form,spec,bundle.businessId);
+      if(remembered)workDraftMemory.set(draft.id,remembered);
       if(draft.activeName){
         const active=form.elements?.namedItem?.(draft.activeName);
         try{active?.focus?.({preventScroll:true});}catch(_){try{active?.focus?.();}catch(__){}}
       }
     }
-    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD,reopened:true}}));
+    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD,memoryBuild:WORK_DRAFT_MEMORY_BUILD,reopened:true}}));
     return restored;
   }
 
@@ -194,6 +249,7 @@
     return result;
   };
 
+  installWorkDraftMemory();
   suppressStaffUsageTelemetryAtRlsBoundary();
   loadPlatformExtensions();
 
@@ -213,6 +269,8 @@
     platformExtensionLoader:true,
     taxCenterLoader:true,
     workDraftRefreshPreservation:true,
-    workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD
+    workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD,
+    workDraftInputMemory:true,
+    workDraftInputMemoryBuild:WORK_DRAFT_MEMORY_BUILD
   };
 })();
