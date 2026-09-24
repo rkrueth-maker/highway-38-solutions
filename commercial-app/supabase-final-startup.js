@@ -6,7 +6,7 @@
 
   const BUILD='20260907-staff-canonical-office-1';
   const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-2';
-  const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-input-memory-1';
+  const WORK_DRAFT_MEMORY_BUILD='20260924-work-draft-input-memory-2';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
   const priorHandleFullSnapshot=handleFullSnapshot;
@@ -19,6 +19,7 @@
     Object.freeze({id:'taskForm',meaningful:['taskTitle']})
   ]);
   const workDraftMemory=new Map();
+  let workDraftRestoreToken=0;
 
   function workDraftSpec(formOrId){
     const id=typeof formOrId==='string'?formOrId:text(formOrId?.id);
@@ -58,6 +59,27 @@
     return true;
   }
 
+  function rememberedWorkDraftBundle(){
+    if(window.state?.page!=='work')return null;
+    const businessId=text(window.state?.businessId);
+    const drafts=[];
+    for(const spec of WORK_DRAFT_SPECS){
+      const draft=workDraftMemory.get(spec.id);
+      if(draft&&draft.businessId===businessId)drafts.push({id:draft.id,values:{...draft.values},activeName:draft.activeName||''});
+    }
+    return drafts.length?{businessId,drafts}:null;
+  }
+
+  function workDraftMatches(form,draft){
+    if(!form||!draft)return false;
+    return Object.entries(draft.values||{}).every(([name,value])=>{
+      const control=form.elements?.namedItem?.(name);
+      if(!control)return !text(value);
+      if(control.tagName==='SELECT'&&value&&!Array.from(control.options||[]).some(option=>String(option.value)===String(value)))return false;
+      return String(control.value==null?'':control.value)===String(value==null?'':value);
+    });
+  }
+
   function installWorkDraftMemory(){
     if(document.documentElement?.dataset.h38WorkDraftMemory==='1')return;
     if(document.documentElement)document.documentElement.dataset.h38WorkDraftMemory='1';
@@ -68,7 +90,12 @@
     document.addEventListener('submit',clear,true);
     document.addEventListener('reset',clear,true);
     window.addEventListener('h38:office-page-rendered',()=>{
-      if(window.state?.page!=='work')workDraftMemory.clear();
+      if(window.state?.page!=='work'){
+        workDraftRestoreToken+=1;
+        workDraftMemory.clear();
+        return;
+      }
+      scheduleRememberedWorkDraftRestore();
     });
   }
 
@@ -102,29 +129,48 @@
     return form?.getClientRects?.().length?form:null;
   }
 
-  function restoreWorkDrafts(bundle){
-    if(!bundle || window.state?.page!=='work' || text(window.state?.businessId)!==bundle.businessId)return false;
+  function restoreWorkDrafts(bundle,source='authoritative-refresh'){
+    if(!bundle||window.state?.page!=='work'||text(window.state?.businessId)!==bundle.businessId)return false;
     let restored=false;
     for(const draft of bundle.drafts||[]){
       const form=reopenWorkDraftForm(draft.id);
       if(!form)continue;
       for(const [name,value] of Object.entries(draft.values||{})){
         const control=form.elements?.namedItem?.(name);
-        if(!control || typeof control.value==='undefined')continue;
-        if(control.tagName==='SELECT' && value && !Array.from(control.options||[]).some(option=>String(option.value)===String(value)))continue;
-        control.value=value;
+        if(!control||typeof control.value==='undefined')continue;
+        if(control.tagName==='SELECT'&&value&&!Array.from(control.options||[]).some(option=>String(option.value)===String(value)))continue;
+        if(String(control.value==null?'':control.value)!==String(value==null?'':value))control.value=value;
         restored=true;
       }
-      const spec=workDraftSpec(draft.id);
-      const remembered=readWorkDraft(form,spec,bundle.businessId);
-      if(remembered)workDraftMemory.set(draft.id,remembered);
+      // Keep the original remembered draft authoritative until every option/control exists.
+      // An early rerender can expose the form before job/user select options are populated; never
+      // overwrite remembered non-empty IDs with those temporary blank values.
+      workDraftMemory.set(draft.id,{businessId:bundle.businessId,id:draft.id,values:{...draft.values},activeName:draft.activeName||''});
       if(draft.activeName){
         const active=form.elements?.namedItem?.(draft.activeName);
         try{active?.focus?.({preventScroll:true});}catch(_){try{active?.focus?.();}catch(__){}}
       }
     }
-    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD,memoryBuild:WORK_DRAFT_MEMORY_BUILD,reopened:true}}));
+    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source,build:WORK_DRAFT_REFRESH_BUILD,memoryBuild:WORK_DRAFT_MEMORY_BUILD,reopened:true}}));
     return restored;
+  }
+
+  function restoreRememberedWorkDrafts(){
+    const bundle=rememberedWorkDraftBundle();
+    if(!bundle)return true;
+    restoreWorkDrafts(bundle,'work-page-render');
+    return bundle.drafts.every(draft=>workDraftMatches(visibleWorkForm(draft.id),draft));
+  }
+
+  function scheduleRememberedWorkDraftRestore(){
+    const token=++workDraftRestoreToken;
+    const delays=[0,40,120,260,520];
+    const attempt=index=>{
+      if(token!==workDraftRestoreToken||window.state?.page!=='work')return;
+      if(restoreRememberedWorkDrafts())return;
+      if(index+1<delays.length)setTimeout(()=>attempt(index+1),delays[index+1]-delays[index]);
+    };
+    setTimeout(()=>attempt(0),delays[0]);
   }
 
   function loadPlatformExtensions(){
@@ -216,7 +262,7 @@
     if(businesses.length===0)return priorHandleStartupBootstrap(startup);
 
     const userId=window.H38DB?.getUserScope?.()||'';
-    if(!userId || startup?.user?.id!==userId){
+    if(!userId||startup?.user?.id!==userId){
       return priorHandleStartupBootstrap(startup);
     }
 
@@ -226,7 +272,7 @@
     }
 
     state.authUserId=userId;
-    state.canSwitchBusinesses=businesses.length>1 || startup?.canSwitchBusinesses===true;
+    state.canSwitchBusinesses=businesses.length>1||startup?.canSwitchBusinesses===true;
     setBusinessSwitcherVisible(state.canSwitchBusinesses);
     populateBusinessSelector(businesses);
     setFastBusinessId(text(chosen.businessId));
@@ -245,7 +291,8 @@
   handleFullSnapshot=async function(snapshot,businessId){
     const workDrafts=captureWorkDrafts();
     const result=await priorHandleFullSnapshot(snapshot,businessId);
-    restoreWorkDrafts(workDrafts);
+    restoreWorkDrafts(workDrafts,'authoritative-refresh');
+    scheduleRememberedWorkDraftRestore();
     return result;
   };
 
@@ -271,6 +318,9 @@
     workDraftRefreshPreservation:true,
     workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD,
     workDraftInputMemory:true,
-    workDraftInputMemoryBuild:WORK_DRAFT_MEMORY_BUILD
+    workDraftInputMemoryBuild:WORK_DRAFT_MEMORY_BUILD,
+    workDraftPostRenderRestore:true,
+    workDraftRestoreRetries:5,
+    workDraftPartialSelectProtection:true
   };
 })();
