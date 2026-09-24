@@ -1,7 +1,9 @@
 (function(){
 'use strict';
-const BUILD='20260923-ai-team-owner-polish-1';
+const BUILD='20260924-ai-team-owner-polish-2';
 const PLATFORM_BUILD='20260923-platform-push-1';
+const PLATFORM_DEEPEN_BUILD='20260924-platform-deepen-1';
+const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 function owner(){const user=window.state?.snapshot?.user||{};return user.owner===true||/\bowner\b/i.test(text(user.roleName||user.role));}
@@ -27,15 +29,18 @@ function apply(){
   panel.dataset.h38AiOwnerPolish=BUILD;
   return true;
 }
-function loadPlatformNext(){
-  if(window.H38_PLATFORM_NEXT||document.querySelector('script[data-h38-platform-next]'))return false;
+function loadScript(globalName,datasetKey,src){
+  if(window[globalName]||document.querySelector(`script[data-${datasetKey}]`))return false;
   const script=document.createElement('script');
-  script.src=`./platform-next.js?build=${PLATFORM_BUILD}`;
+  script.src=src;
   script.async=false;
-  script.dataset.h38PlatformNext='1';
+  script.setAttribute(`data-${datasetKey}`,'1');
   document.body.appendChild(script);
   return true;
 }
+function loadPlatformNext(){return loadScript('H38_PLATFORM_NEXT','h38-platform-next',`./platform-next.js?build=${PLATFORM_BUILD}`);}
+function loadPlatformDeepen(){return loadScript('H38_PLATFORM_DEEPEN','h38-platform-deepen',`./platform-deepen.js?build=${PLATFORM_DEEPEN_BUILD}`);}
+function loadQuickBooksServerBridge(){return loadScript('H38_QUICKBOOKS_SERVER_BRIDGE','h38-quickbooks-server-bridge',`./quickbooks-server-bridge.js?build=${QBO_SERVER_BUILD}`);}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply();});}
 window.addEventListener('h38:ai-team-ready',schedule);
 window.addEventListener('h38:ai-owner-command-ready',schedule);
@@ -44,6 +49,8 @@ window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
 document.addEventListener('click',event=>{if(event.target?.closest?.('[data-ai-team-scan],[data-ai-team-deep]'))setTimeout(schedule,0);},true);
 loadPlatformNext();
+loadPlatformDeepen();
+loadQuickBooksServerBridge();
 setTimeout(schedule,0);
-window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformLoader:true});
+window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,platformLoader:true});
 })();
