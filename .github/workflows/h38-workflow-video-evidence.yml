@@ -20,7 +20,7 @@ permissions:
 jobs:
   record-real-runtime-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -77,6 +77,19 @@ jobs:
           H38_TASK_TRAINING_DIR: artifacts/task-manager-training
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-task-manager-training.js
+      - name: Record complete operator training library
+        if: always()
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_STAFF_EMAIL: ${{ secrets.H38_WORKFLOW_STAFF_EMAIL }}
+          H38_WORKFLOW_STAFF_PASSWORD: ${{ secrets.H38_WORKFLOW_STAFF_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
+          H38_COMPLETE_TRAINING_DIR: artifacts/complete-training-library
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/record-complete-training-library.js
       - name: Record native accounting and tax handoff training
         if: always()
         env:
@@ -108,6 +121,7 @@ jobs:
             artifacts/workflow-video-evidence/
             artifacts/full-lifecycle-training/
             artifacts/task-manager-training/
+            artifacts/complete-training-library/
             artifacts/tax-only-accounting-training/
             artifacts/assistant-action-evidence/
           if-no-files-found: warn
