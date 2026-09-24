@@ -66,6 +66,17 @@ jobs:
         run: |
           # TEST-only diagnostic wrapper delegates to scripts/record-full-office-lifecycle-training.js after injecting quote refresh evidence.
           node scripts/run-lifecycle-quote-refresh-diagnostic.js
+      - name: Record Task Manager employee assignment training
+        if: always()
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
+          H38_TASK_TRAINING_DIR: artifacts/task-manager-training
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/record-task-manager-training.js
       - name: Record native accounting and tax handoff training
         if: always()
         env:
@@ -96,6 +107,7 @@ jobs:
           path: |
             artifacts/workflow-video-evidence/
             artifacts/full-lifecycle-training/
+            artifacts/task-manager-training/
             artifacts/tax-only-accounting-training/
             artifacts/assistant-action-evidence/
           if-no-files-found: warn
