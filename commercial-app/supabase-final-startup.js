@@ -5,9 +5,25 @@
   if(!auth || auth.enabled!==true)return;
 
   const BUILD='20260907-staff-canonical-office-1';
+  const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-1';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
 
   function text(value){return String(value==null?'':value).trim();}
+
+  function loadPlatformExtensions(){
+    const scripts=[
+      ['H38_PLATFORM_DEEPEN','h38-platform-deepen','./platform-deepen.js?build=20260924-platform-deepen-1'],
+      ['H38_QUICKBOOKS_SERVER_BRIDGE','h38-quickbooks-server-bridge','./quickbooks-server-bridge.js?build=20260924-qbo-server-bridge-1']
+    ];
+    scripts.forEach(([globalName,datasetKey,src])=>{
+      if(window[globalName]||document.querySelector(`script[data-${datasetKey}]`))return;
+      const script=document.createElement('script');
+      script.src=src;
+      script.async=false;
+      script.setAttribute(`data-${datasetKey}`,'1');
+      document.body.appendChild(script);
+    });
+  }
 
   function suppressStaffUsageTelemetryAtRlsBoundary(){
     const Bridge=window.H38Bridge;
@@ -109,10 +125,12 @@
   };
 
   suppressStaffUsageTelemetryAtRlsBoundary();
+  loadPlatformExtensions();
 
   window.H38_AUTHORIZED_BUSINESS_AUTO_OPEN={
     enabled:true,
     build:BUILD,
+    platformExtensionBuild:PLATFORM_EXTENSION_BUILD,
     source:'handleStartupBootstrap',
     preferredBusiness:'Highway 38 Solutions',
     security:'authenticated startup businesses only',
@@ -121,6 +139,7 @@
     employeeWorkspaceAutoLoad:false,
     staffWorkspaceBeforeFirstRender:false,
     delayedStaffTakeover:false,
-    staffUsageTelemetryBoundaryRuntime:true
+    staffUsageTelemetryBoundaryRuntime:true,
+    platformExtensionLoader:true
   };
 })();
