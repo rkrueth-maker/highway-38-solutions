@@ -21,11 +21,18 @@ def test_task_manager_training_uses_real_staff_assignment_and_two_viewports():
 
 def test_task_manager_training_creation_cards_are_race_safe():
     src = (ROOT / 'scripts' / 'record-task-manager-training.js').read_text()
-    assert "const form=page.locator(`#${formId}`).first()" in src
+    assert "const visibleForm=()=>page.locator(`#${formId}:visible`).last()" in src
     assert "typeof window.renderWork==='function'" in src
     assert "document.querySelector(`[data-h38-create=\"${formId}\"]`)" in src
     assert "if(chooser){chooser.click();return true;}" in src
     assert "Canonical ${label} creation card did not open." in src
+    assert "const saveTaskForm=await openCreation(page,'taskForm','Assign task')" in src
+    assert "const draft=await saveTaskForm.evaluate" in src
+    assert "draft.jobId!==jobId" in src
+    assert "draft.taskTitle!==taskTitle" in src
+    assert "draft.assignedUserId!==employee.userId" in src
+    assert "const saveTaskButton=saveTaskForm.getByRole('button',{name:'Save task',exact:true})" in src
+    assert "await saveTaskButton.waitFor({state:'visible',timeout:10000})" in src
     assert "Task Manager list did not visibly confirm the assigned employee." in src
 
 
