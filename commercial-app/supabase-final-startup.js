@@ -4,7 +4,8 @@
   const auth=window.H38_SUPABASE_AUTH;
   if(!auth || auth.enabled!==true)return;
 
-  const BUILD='20260924-work-draft-refresh-preservation-1';
+  const BUILD='20260907-staff-canonical-office-1';
+  const WORK_DRAFT_REFRESH_BUILD='20260924-work-draft-refresh-preservation-1';
   const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-2-tax-center';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
   const priorHandleFullSnapshot=handleFullSnapshot;
@@ -57,7 +58,7 @@
         try{active?.focus?.({preventScroll:true});}catch(_){try{active?.focus?.();}catch(__){}}
       }
     }
-    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:BUILD}}));
+    if(restored)window.dispatchEvent(new CustomEvent('h38:work-draft-restored',{detail:{source:'authoritative-refresh',build:WORK_DRAFT_REFRESH_BUILD}}));
     return restored;
   }
 
@@ -201,6 +202,7 @@
     staffUsageTelemetryBoundaryRuntime:true,
     platformExtensionLoader:true,
     taxCenterLoader:true,
-    workDraftRefreshPreservation:true
+    workDraftRefreshPreservation:true,
+    workDraftRefreshBuild:WORK_DRAFT_REFRESH_BUILD
   };
 })();
