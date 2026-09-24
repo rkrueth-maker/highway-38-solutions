@@ -4,7 +4,8 @@
   const auth=window.H38_SUPABASE_AUTH;
   if(!auth || auth.enabled!==true)return;
 
-  const BUILD='20260924-platform-extension-loader-1';
+  const BUILD='20260907-staff-canonical-office-1';
+  const PLATFORM_EXTENSION_BUILD='20260924-platform-extension-loader-1';
   const priorHandleStartupBootstrap=handleStartupBootstrap;
 
   function text(value){return String(value==null?'':value).trim();}
@@ -56,7 +57,7 @@
       const remaining=operations.filter(operation=>!shouldSuppress(operation));
       const suppressedResults=suppressed.map(suppressedResult);
       if(!remaining.length){
-        return {status:'PASS',transport:'staff-usage-telemetry-boundary',results:suppressedResults,externalActionOccurred:false,staffUsageTelemetrySuppressed:true};
+        return {status:'SYNCED',transport:'staff-usage-telemetry-boundary',results:suppressedResults,externalActionOccurred:false,staffUsageTelemetrySuppressed:true};
       }
       const response=await priorRequest.call(this,action,Object.assign({},args,{operations:remaining}),timeout);
       return Object.assign({},response||{}, {
@@ -129,6 +130,7 @@
   window.H38_AUTHORIZED_BUSINESS_AUTO_OPEN={
     enabled:true,
     build:BUILD,
+    platformExtensionBuild:PLATFORM_EXTENSION_BUILD,
     source:'handleStartupBootstrap',
     preferredBusiness:'Highway 38 Solutions',
     security:'authenticated startup businesses only',
