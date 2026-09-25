@@ -1,0 +1,201 @@
+[
+  {
+    "id": "NL-TRAIN-OWNER-DAILY-PHONE",
+    "kind": "mobile",
+    "title": "Northern Lakes daily owner workflow.",
+    "steps": [
+      {"page":"today","text":"Start in Today. Review urgent work, weather-sensitive service, assigned tasks, schedule changes, and anything waiting for owner attention."},
+      {"page":"work","text":"Open Jobs and Work next. Confirm the customer, property, service, assigned person, equipment needs, and the next action before anyone heads to the site."},
+      {"page":"schedule","text":"Use Schedule to review dispatch and timing. Assignment and calendar scheduling are related but separate, so verify both before the workday starts."},
+      {"page":"messages","text":"Check Messages for customer or team communication that needs a response. Nothing is sent automatically during this training."},
+      {"page":"money","text":"Finish the daily review in Billing. Check completed work that is ready to invoice, unpaid balances, receipts, and expenses that still need attention."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CUSTOMER-PROPERTY-DESKTOP",
+    "kind": "desktop",
+    "title": "Create and maintain a Northern Lakes customer and property.",
+    "steps": [
+      {"page":"customers","text":"Use Customers for the customer record. Enter only verified contact information, then keep each service address as a property or location tied to that customer."},
+      {"page":"customers","text":"Customer 360 is the operating history. Quotes, jobs, service visits, invoices, files, messages, and notes should all return to the same customer and property instead of becoming disconnected records."},
+      {"page":"field","text":"Use Site Visit when the property needs measurements, photos, conditions, access notes, or scope evidence before quoting or service."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-QUOTE-TO-JOB-DESKTOP",
+    "kind": "desktop",
+    "title": "Turn a customer request into a quote and a job.",
+    "steps": [
+      {"page":"customers","text":"Begin from the correct customer and property so the quote inherits the right location and history."},
+      {"page":"field","text":"Capture site conditions, measurements, photos, and special equipment or access requirements before pricing when a site visit is needed."},
+      {"page":"quotes","text":"Build the quote from the verified scope. Review service lines, quantities, rates, notes, and customer-facing wording before generating the quote document."},
+      {"page":"quotes","text":"A draft or prepared quote is not automatically sent. Review it first, then use the approved send or print path when the owner is ready."},
+      {"page":"work","text":"After customer approval, create or confirm the job from the accepted scope so operations, proof, and billing stay connected to the quote."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-SCHEDULE-DISPATCH-PHONE",
+    "kind": "mobile",
+    "title": "Schedule and dispatch Northern Lakes work.",
+    "steps": [
+      {"page":"work","pattern":"TEST","text":"Start with the job or assigned task. Confirm service type, property, assigned operator, and any truck, skid-steer, mower, trailer, or material requirement."},
+      {"page":"schedule","text":"Schedule the work for the correct day and time window. Review conflicts before dispatching and move weather-dependent work when conditions change."},
+      {"page":"today","text":"Today is the operator-facing check. Make sure the scheduled job and the assigned work agree before the crew leaves."},
+      {"page":"messages","text":"If the schedule change needs customer communication, prepare it here and review it before sending. Internal schedule changes do not automatically notify customers."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-LAWN-FULL-SERVICE-PHONE",
+    "kind": "mobile",
+    "fixture": "lawn",
+    "title": "Complete a recurring lawn service from assignment through billing.",
+    "steps": [
+      {"page":"today","pattern":"lawn|mow|TEST","text":"For lawn service, begin with the assigned occurrence in Today. Confirm the property, route, access notes, equipment, and expected service."},
+      {"page":"work","pattern":"lawn|mow|TEST","text":"Open the same lawn job. Move through travel, arrival, start, mow, trim, blow-off, proof, and closeout so the service history reflects what actually happened."},
+      {"page":"field","text":"Attach completion photos or issue evidence when required. Keep proof on the same customer, property, and job."},
+      {"page":"money","text":"After completion, prepare the occurrence for invoicing using the customer's approved billing method. Do not charge or send automatically."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-SNOW-FULL-SERVICE-PHONE",
+    "kind": "mobile",
+    "fixture": "snow",
+    "title": "Complete a snow-plowing service from trigger through billing.",
+    "steps": [
+      {"page":"today","pattern":"snow|plow|TEST","text":"For snow, start from the triggered or scheduled occurrence. Confirm the property, priority, access notes, equipment, and storm instructions before travel."},
+      {"page":"work","pattern":"snow|plow|TEST","text":"Record travel, arrival, start, plowing work, material used if any, proof, and closeout. For properties requiring both a plow truck and skid steer, keep both equipment steps on the same service record."},
+      {"page":"inventory","text":"When salt, sand, or other material is used, record it consistently so job cost and inventory history stay useful."},
+      {"page":"field","text":"Use site proof for before-and-after conditions, obstacles, damage concerns, or anything that could affect the customer record."},
+      {"page":"money","text":"Prepare per-occurrence or hourly snow billing from the completed service and approved customer terms. Never mark paid until payment is actually received."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-JOB-CLOSEOUT-BILLING-DESKTOP",
+    "kind": "desktop",
+    "title": "Close a job, invoice it, and record payment correctly.",
+    "steps": [
+      {"page":"work","pattern":"TEST","text":"Before closing a job, verify the work is actually complete, required proof is attached, operator notes are finished, and unresolved issues are documented."},
+      {"page":"field","text":"Use Site Visit or field proof to confirm completion evidence and final conditions when the service requires it."},
+      {"page":"money","text":"Create the invoice from the completed work and the customer's approved billing method. Check dates, service description, hours or occurrence quantity, rate, tax treatment, and balance before sending."},
+      {"page":"money","text":"Recording a payment is a separate step. Mark an invoice paid only after the real payment is received and the amount and method are verified."},
+      {"page":"reports","text":"Use Reports to confirm revenue, receivables, service performance, and profitability after billing activity is posted."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-RECEIPTS-EXPENSES-PHONE",
+    "kind": "mobile",
+    "title": "Capture receipts and expenses in Northern Lakes.",
+    "steps": [
+      {"page":"money","text":"Add the expense from Billing. Enter vendor, date, amount, category, job or customer context, and attach the receipt photo before saving."},
+      {"page":"accounting","text":"Accounting is where the expense becomes part of the business record. Review categorization and job cost instead of keeping receipts only on a phone or in a truck."},
+      {"page":"tax","text":"Tax Prep uses the native records for handoff and review. QuickBooks can remain optional rather than becoming the operating system."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-DOCUMENTS-SMART-UPLOAD-DESKTOP",
+    "kind": "desktop",
+    "title": "File photos and documents with Smart Upload.",
+    "steps": [
+      {"page":"documents","text":"Start in Documents. Choose a photo or PDF, then review the proposed document type and record placement before filing."},
+      {"page":"documents","text":"A file should be linked to the correct customer, property, job, quote, expense, meeting, or general business record. The operator confirms the placement."},
+      {"page":"customers","text":"After filing, reopen Customer 360 when the document belongs to a customer. The goal is one connected history instead of scattered files."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-PEOPLE-TASK-HANDOFF-PHONE",
+    "kind": "mobile",
+    "title": "Add employees and hand work off safely.",
+    "steps": [
+      {"page":"people","text":"Use People to add employees, site managers, or foremen by the exact approved email and role. Do not share owner credentials."},
+      {"page":"work","pattern":"TEST|Assigned","text":"Assign work from Jobs or the task workflow. The employee should receive only the operational context and permissions needed for that assignment."},
+      {"page":"today","text":"The owner verifies assigned work from Today. Staff status updates, proof, issues, and completion stay attached to the canonical job or task."},
+      {"page":"controls","text":"Use Controls to review approval boundaries. Customer messaging, purchasing, payments, and engine changes should remain protected actions."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-FLEET-INVENTORY-DESKTOP",
+    "kind": "desktop",
+    "title": "Manage trucks, equipment, and materials.",
+    "steps": [
+      {"page":"fleet","text":"Fleet is the home for trucks, skid steers, mowers, trailers, and other service equipment. Keep equipment identity and operating notes current."},
+      {"page":"inventory","text":"Inventory tracks materials and supplies such as salt, sand, mix, parts, or job consumables when those records are used."},
+      {"page":"work","text":"When equipment or material matters to a job, keep that requirement with the work record so dispatch and job costing are not guessing."},
+      {"page":"reports","text":"Review operating and profitability reports to see whether service pricing is covering labor, equipment, material, and overhead."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-REPORTS-ACCOUNTING-DESKTOP",
+    "kind": "desktop",
+    "title": "Review Northern Lakes money, accounting, payroll prep, tax prep, and reports.",
+    "steps": [
+      {"page":"money","text":"Billing is the operational money view: invoices, balances, receipts, expenses, and payment status."},
+      {"page":"accounting","text":"Accounting organizes the native business record and supports review without requiring a second operating system."},
+      {"page":"payroll","text":"Payroll Prep brings together the employee and work records needed for payroll preparation. Review source records before handoff."},
+      {"page":"tax","text":"Tax Prep packages the records needed for tax review and export. Treat it as a preparation and evidence layer, not automatic tax filing."},
+      {"page":"reports","text":"Reports should answer what work is profitable, what is unpaid, where costs are rising, and what the owner needs to act on next."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-AI-APPROVALS-DESKTOP",
+    "kind": "desktop",
+    "title": "Use the Northern Lakes assistant with owner approval.",
+    "steps": [
+      {"page":"assistant","fallback":"ai","text":"Use the Assistant from the customer, job, quote, document, lawn, or snow context when you want help reviewing or preparing work."},
+      {"page":"assistant","fallback":"ai","text":"For tenant-data changes, the assistant should preview the proposed change first. The owner can revise, cancel, or approve it."},
+      {"page":"controls","text":"Controls define the safeguard. Customer data can be corrected with authorization, while shared engine changes remain suggestions rather than automatic edits."},
+      {"page":"controls","text":"Approved actions should leave Proof Log evidence. Cross-tenant access and unapproved external actions remain blocked."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-SERVICE-SUBSCRIPTIONS-DESKTOP",
+    "kind": "desktop",
+    "title": "Set up recurring lawn and snow service rules.",
+    "steps": [
+      {"page":"settings","text":"Use Settings to review Northern Lakes service configuration and recurring-service rules. Keep rates and service definitions tenant-specific."},
+      {"page":"schedule","text":"For recurring lawn service, create or review the approved cadence and generate each occurrence into the schedule and work flow without duplicating the customer."},
+      {"page":"schedule","text":"For snow, use the approved trigger or scheduled occurrence and keep storm-specific timing, priority, and equipment needs on the service record."},
+      {"page":"money","text":"Billing can be per occurrence or hours times the approved rate, depending on that customer's agreement. The invoice still requires owner review before sending."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-MESSAGES-ISSUES-PHONE",
+    "kind": "mobile",
+    "title": "Handle customer messages and field issues without losing context.",
+    "steps": [
+      {"page":"messages","text":"Use Messages for communication that needs review. Keep the conversation connected to the correct customer and job whenever possible."},
+      {"page":"work","text":"If a field issue changes the scope, schedule, equipment, or completion status, update the job or task instead of leaving the change only inside a message."},
+      {"page":"field","text":"Attach photos or site evidence when the issue is physical. This creates a defensible record for the owner, employee, and customer history."},
+      {"page":"today","text":"Return to Today to confirm the issue created the right next action and did not disappear into a message thread."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-WEB-QUOTE-REQUEST-PHONE",
+    "kind": "mobile",
+    "publicOnly": true,
+    "title": "How a Northern Lakes website estimate request enters the workflow.",
+    "steps": [
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/quote-request.html","text":"The public Request an Estimate page is the customer starting point. The customer provides service and property information for owner review."},
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/quote-request.html","text":"A website request is not an approved quote. Northern Lakes reviews the request, verifies the property and scope, then builds the real quote inside the Business Office."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CUSTOMER-PORTAL-PHONE",
+    "kind": "mobile",
+    "publicOnly": true,
+    "title": "Northern Lakes customer portal instructions.",
+    "steps": [
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/customer-portal.html","text":"The customer portal uses a separate secure customer sign-in. Customers should use the exact invited email or the approved secure access path."},
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/customer-portal.html","text":"After sign-in, the customer should see only their own projects, quotes, invoices, files, and permitted messages or approvals. Employee and owner Office access stays separate."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-OWNER-ACCESS-INSTALL-PHONE",
+    "kind": "mobile",
+    "publicOnly": true,
+    "title": "Northern Lakes owner sign-in and phone installation.",
+    "steps": [
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/owner-access.html","text":"Use the Northern Lakes owner access page to enter the shared Business Office under the Northern Lakes tenant. Do not use a customer or employee login for owner work."},
+      {"url":"https://highway38solutions.com/businesses/northern-lakes/owner-access.html","text":"On iPhone, open the Office in Safari and use Add to Home Screen. On Android or Chrome, use Install App when offered. The installed shortcut should reopen the same Northern Lakes Office tenant."}
+    ]
+  }
+]
