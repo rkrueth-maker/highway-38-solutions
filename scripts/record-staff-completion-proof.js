@@ -3,6 +3,7 @@
   Strict authenticated Staff completion proof for the H38 training library.
   Uses the canonical signed-in Office runtime and bounded employee RPCs directly.
   Controlled TEST task data only; no customer message, purchase, payment, or schedule action occurs.
+  Authentication is performed in a non-recording context so credential entry is never captured.
 */
 const fs=require('fs');
 const path=require('path');
@@ -45,21 +46,53 @@ async function caption(page,text,ms=900){
   },text);
   await page.waitForTimeout(ms);
 }
+async function statusProof(page,taskTitle,status,step){
+  await page.evaluate(({taskTitle,status,step})=>{
+    let card=document.getElementById('h38StrictStaffStatusProof');
+    if(!card){
+      card=document.createElement('div');
+      card.id='h38StrictStaffStatusProof';
+      document.body.appendChild(card);
+      Object.assign(card.style,{position:'fixed',left:'12px',right:'12px',top:'76px',zIndex:'2147483646',padding:'14px 16px',borderRadius:'14px',background:'rgba(255,255,255,.98)',color:'#082536',boxShadow:'0 10px 32px rgba(0,0,0,.24)',border:'2px solid #0d6b83',pointerEvents:'none'});
+    }
+    card.replaceChildren();
+    const eyebrow=document.createElement('div');eyebrow.textContent=`VERIFIED STAFF TASK UPDATE ${step}/3`;Object.assign(eyebrow.style,{font:'800 11px/1.2 system-ui',letterSpacing:'.08em',color:'#0d6b83'});
+    const title=document.createElement('div');title.textContent=taskTitle;Object.assign(title.style,{marginTop:'6px',font:'800 15px/1.25 system-ui'});
+    const value=document.createElement('div');value.textContent=`Assigned task status: ${status}`;Object.assign(value.style,{marginTop:'7px',font:'900 22px/1.15 system-ui'});
+    const note=document.createElement('div');note.textContent='Verified after the bounded Staff RPC persisted the TEST task update.';Object.assign(note.style,{marginTop:'6px',font:'600 12px/1.25 system-ui',color:'#415866'});
+    card.append(eyebrow,title,value,note);
+  },{taskTitle,status,step});
+  await page.waitForTimeout(950);
+}
 
 (async()=>{
   const browser=await chromium.launch({headless:true});
-  const context=await browser.newContext({viewport:{width:430,height:860},recordVideo:{dir,size:{width:430,height:860}}});
-  const page=await context.newPage();
-  let raw='';
-  const result={status:'HOLD',kind:'authenticated-staff-completion',startedAt:now(),externalActionsOccurred:false,runStamp};
+  const viewport={width:430,height:860};
+  let authContext=null,authPage=null,context=null,page=null,raw='';
+  const result={status:'HOLD',kind:'authenticated-staff-completion',startedAt:now(),externalActionsOccurred:false,runStamp,recordingStartedAfterAuth:false,credentialScreenRecorded:false,visualTransitions:[]};
   try{
+    // Authenticate outside the recorded context. This keeps email/password entry out of the training artifact.
+    authContext=await browser.newContext({viewport});
+    authPage=await authContext.newPage();
+    await authPage.goto(tenantUrl(),{waitUntil:'domcontentloaded',timeout:45000});
+    await authPage.locator('#h38AuthForm').waitFor({state:'visible',timeout:20000});
+    const employee=authPage.locator('[data-h38-access-intent="employee"]');if(await employee.count())await employee.click();
+    await authPage.locator('#h38AuthEmail').fill(staffEmail);
+    await authPage.locator('#h38AuthPassword').fill(staffPassword);
+    await authPage.getByRole('button',{name:'Sign in securely',exact:true}).click();
+    await authPage.waitForFunction(()=>String(window.state?.snapshot?.user?.roleId||window.state?.snapshot?.user?.roleName||'').toLowerCase()==='staff'&&!!window.state?.bridgeReady,null,{timeout:40000});
+    const authState=await authContext.storageState();
+    try{await authPage.locator('#h38AuthPassword').fill('');}catch(_){}
+    await authPage.close().catch(()=>{});authPage=null;
+    await authContext.close().catch(()=>{});authContext=null;
+
+    // Start video only after the real Staff session has already been established.
+    context=await browser.newContext({viewport,storageState:authState,recordVideo:{dir,size:viewport}});
+    page=await context.newPage();
     await page.goto(tenantUrl(),{waitUntil:'domcontentloaded',timeout:45000});
-    await page.locator('#h38AuthForm').waitFor({state:'visible',timeout:20000});
-    const employee=page.locator('[data-h38-access-intent="employee"]');if(await employee.count())await employee.click();
-    await page.locator('#h38AuthEmail').fill(staffEmail);
-    await page.locator('#h38AuthPassword').fill(staffPassword);
-    await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
     await page.waitForFunction(()=>String(window.state?.snapshot?.user?.roleId||window.state?.snapshot?.user?.roleName||'').toLowerCase()==='staff'&&!!window.state?.bridgeReady,null,{timeout:40000});
+    if(await page.locator('#h38AuthForm:visible').count())throw new Error('Recorded Staff context unexpectedly returned to the credential screen.');
+    result.recordingStartedAfterAuth=true;
     await caption(page,'STAFF COMPLETION: signed in with the real permission-limited Staff membership.',1200);
 
     const staff=await page.evaluate(async(runStamp)=>{
@@ -91,6 +124,7 @@ async function caption(page,text,ms=900){
     if(await workButton.count())await workButton.click();
     else await page.evaluate(()=>{if(typeof window.openPage==='function')window.openPage('work');});
     await page.waitForFunction(()=>window.state?.page==='work',null,{timeout:10000}).catch(()=>{});
+    await page.evaluate(()=>window.scrollTo(0,0)).catch(()=>{});
     await caption(page,`Assigned TEST work loaded for Staff: ${taskTitle}`,1100);
 
     result.transitions=[];
@@ -110,6 +144,8 @@ async function caption(page,text,ms=900){
       const persisted=String(updated?.Status||updated?.status||'');
       if(persisted!==status)throw new Error(`Staff task transition did not persist ${status}.`);
       result.transitions.push(status);
+      result.visualTransitions.push(status);
+      await statusProof(page,taskTitle,status,result.visualTransitions.length);
       await caption(page,`${status}: bounded Staff RPC persisted the TEST task update.`,1050);
     }
 
@@ -128,8 +164,13 @@ async function caption(page,text,ms=900){
   }catch(error){
     result.status='HOLD';result.completedAt=now();result.error=clean(error?.message||error);writeResult(result);console.error(error);process.exitCode=1;
   }finally{
-    try{await page.locator('#h38AuthPassword').fill('');}catch(_){}
-    const video=page.video();await page.close().catch(()=>{});await context.close().catch(()=>{});if(video)raw=await video.path().catch(()=> '');
+    try{if(authPage)await authPage.locator('#h38AuthPassword').fill('');}catch(_){}
+    if(authPage)await authPage.close().catch(()=>{});
+    if(authContext)await authContext.close().catch(()=>{});
+    const video=page?.video?.();
+    if(page)await page.close().catch(()=>{});
+    if(context)await context.close().catch(()=>{});
+    if(video)raw=await video.path().catch(()=> '');
     if(raw&&fs.existsSync(raw)){
       const target=path.join(dir,'H38-TRAIN-STAFF-COMPLETION-PHONE.webm');
       if(fs.existsSync(target))fs.rmSync(target,{force:true});
@@ -141,4 +182,4 @@ async function caption(page,text,ms=900){
     }
     await browser.close().catch(()=>{});
   }
-})().catch(error=>{writeResult({status:'HOLD',kind:'authenticated-staff-completion',error:clean(error?.message||error),completedAt:now(),externalActionsOccurred:false,runStamp});console.error(error);process.exitCode=1;});
+})().catch(error=>{writeResult({status:'HOLD',kind:'authenticated-staff-completion',error:clean(error?.message||error),completedAt:now(),externalActionsOccurred:false,runStamp,recordingStartedAfterAuth:false,credentialScreenRecorded:false,visualTransitions:[]});console.error(error);process.exitCode=1;});
