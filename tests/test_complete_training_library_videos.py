@@ -71,7 +71,9 @@ def test_strict_runner_promotes_staff_and_service_fixture_gates_to_required_acce
     assert "strict-results.json" in strict
     assert "process.exit(2)" in strict
     assert "highway38solutions+playreview@gmail.com" in strict
-    assert "env.H38_WORKFLOW_TEST_PASSWORD" in strict
+    assert "env.H38_WORKFLOW_STAFF_PASSWORD=String(env.H38_WORKFLOW_STAFF_PASSWORD||'')" in strict
+    assert "env.H38_WORKFLOW_STAFF_PASSWORD||env.H38_WORKFLOW_TEST_PASSWORD" not in strict
+    assert 'Never reuse or assume the owner TEST password' in strict
 
 
 def test_video_workflow_runs_and_uploads_strict_complete_training_library():
