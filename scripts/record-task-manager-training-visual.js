@@ -38,7 +38,11 @@ const maskHelpers=`async function clearAssigneeMask(page){
 async function maskAssignedSelect(page){
   await clearAssigneeMask(page);
   return await page.evaluate(()=>{
-    const selects=Array.from(document.querySelectorAll('select[name="assignedUserId"]')).filter(select=>select.getClientRects().length);
+    const emailRe=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i;
+    const selects=Array.from(document.querySelectorAll('select')).filter(select=>{
+      const chosen=String(select.selectedOptions?.[0]?.textContent||select.value||'');
+      return select.getClientRects().length&&emailRe.test(chosen);
+    });
     let count=0;
     for(const select of selects){
       const rect=select.getBoundingClientRect(),style=getComputedStyle(select);
