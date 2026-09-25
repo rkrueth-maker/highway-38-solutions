@@ -70,7 +70,16 @@
     "controls",
     "reports",
     "storage-providers",
-    "customer-portal"
+    "customer-portal",
+    "approvals",
+    "assistant-photo-sort",
+    "customer-portal-release",
+    "document-intake",
+    "error-log",
+    "price-book",
+    "proof-log",
+    "service-subscriptions",
+    "usage-metering"
   ],
   "customerPortal": {
     "enabled": true,
