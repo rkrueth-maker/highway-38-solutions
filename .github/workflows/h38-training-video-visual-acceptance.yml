@@ -14,6 +14,7 @@ on:
     paths:
       - 'scripts/run-complete-training-visual-strict.js'
       - 'scripts/run-complete-training-visual-strict-v2.js'
+      - 'scripts/record-task-manager-training-visual.js'
       - '.github/workflows/h38-training-video-visual-acceptance.yml'
       - 'scripts/record-complete-training-library.js'
       - 'scripts/record-staff-completion-proof.js'
@@ -50,7 +51,7 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
           H38_TASK_TRAINING_DIR: artifacts/task-manager-training
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
-        run: node scripts/record-task-manager-training.js
+        run: node scripts/record-task-manager-training-visual.js
       - name: Run repaired strict visual training proof
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
