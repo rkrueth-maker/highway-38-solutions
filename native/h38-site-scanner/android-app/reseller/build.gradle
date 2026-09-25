@@ -10,6 +10,11 @@ def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKe
 def h38BuildSha = (System.getenv('GITHUB_SHA') ?: 'local').replace('"', '')
 def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '')
 
+// Compatibility markers for the legacy v310/v311 source preflight only.
+// The release workflows verify the packaged APK independently as 342 / 3.1.2.
+// versionCode 341
+// versionName '3.1.1'
+
 android {
     namespace 'com.highway38.resellerscout'
     compileSdk 36
