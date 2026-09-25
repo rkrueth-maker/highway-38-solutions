@@ -46,6 +46,27 @@ const readyAt=src.indexOf(readyAnchor);
 if(readyAt<0)throw new Error('Visual v2 source drift: ready insertion anchor');
 src=src.slice(0,readyAt)+"recorder=replaceFunction(recorder,'ready',"+tick+readyFunction+tick+");\n\n"+src.slice(readyAt);
 
+const captionFunction=[
+"async function caption(page,text,ms=1050){",
+"  await page.evaluate(value=>{",
+"    const email=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i;",
+"    for(const el of document.querySelectorAll('#mainContent *, select')){",
+"      const t=String(el.innerText||el.value||'').trim();",
+"      if(!t||!email.test(t))continue;",
+"      const childHas=[...el.children].some(child=>email.test(String(child.innerText||child.value||'')));",
+"      if(el.tagName==='SELECT'||!childHas)el.style.filter='blur(7px)';",
+"    }",
+"    let node=document.getElementById('h38CompleteTrainingCaption');",
+"    if(!node){node=document.createElement('div');node.id='h38CompleteTrainingCaption';document.body.appendChild(node);}node.textContent=value;",
+"  },text);",
+"  await page.waitForTimeout(ms);",
+"}"
+].join('\n');
+const captionAnchor="recorder=replaceOnce(recorder,\n`async function openPage(page,key,required=true){";
+const captionAt=src.indexOf(captionAnchor);
+if(captionAt<0)throw new Error('Visual v2 source drift: caption insertion anchor');
+src=src.slice(0,captionAt)+"recorder=replaceFunction(recorder,'caption',"+tick+captionFunction+tick+");\n\n"+src.slice(captionAt);
+
 const scheduleFunction=[
 "async function scheduleDispatch(page,result){",
 "  const task=await latestTestTask(page);",
@@ -124,6 +145,11 @@ src=src.replace(
 "need(by('H38-TRAIN-SCHEDULE-DISPATCH-PHONE').steps?.some(s=>s.name==='dispatch-board-reviewed'&&s.scheduledByTraining===false),'Phone schedule video did not truthfully distinguish assignment from calendar scheduling.');"
 );
 src=src.replace("'require TEST task on dispatch board'","'teach assignment versus calendar scheduling truthfully'");
+src=src.replace(
+"need(by('H38-TRAIN-EMPLOYEE-HANDOFF-PHONE').steps?.some(s=>s.name==='owner-handoff-visible'),'Employee handoff clip did not mark owner-side boundary.');",
+"need(by('H38-TRAIN-EMPLOYEE-HANDOFF-PHONE').steps?.some(s=>s.name==='owner-handoff-visible'&&s.status==='PASS'&&typeof s.taskStatus==='string'),'Employee handoff clip did not preserve PASS proof status and separate task status.');"
+);
+src=src.replace("result.steps.push({name:'owner-handoff-visible',status:'PASS',taskId:task.taskId,status:task.status});","result.steps.push({name:'owner-handoff-visible',status:'PASS',taskId:task.taskId,taskStatus:task.status});");
 
 fs.writeFileSync(tempPath,src);
 let status=2;
