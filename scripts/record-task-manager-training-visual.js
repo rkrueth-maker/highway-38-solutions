@@ -1,5 +1,5 @@
 'use strict';
-/* Training-only privacy wrapper for the real Task Manager recorder. */
+/* Training-only privacy and framing wrapper for the real Task Manager recorder. */
 const fs=require('fs');
 const path=require('path');
 const {spawnSync}=require('child_process');
@@ -22,8 +22,8 @@ replaceOnce(
 
 replaceOnce(
   '    input:focus,textarea:focus,select:focus,button:focus{outline:4px solid #ffbf47!important;outline-offset:3px!important}',
-  '    select[name="assignedUserId"]{filter:blur(7px)!important;user-select:none!important}\\n    input:focus,textarea:focus,select:focus,button:focus{outline:4px solid #ffbf47!important;outline-offset:3px!important}',
-  'assignment selector privacy'
+  '    select[name="assignedUserId"]{filter:blur(7px)!important;user-select:none!important}\\n    @media(min-width:900px){#mainContent{max-width:1180px!important;margin-left:auto!important;margin-right:auto!important}.row,.card,.panel{font-size:1.02em}}\\n    input:focus,textarea:focus,select:focus,button:focus{outline:4px solid #ffbf47!important;outline-offset:3px!important}',
+  'assignment selector privacy and desktop framing'
 );
 
 replaceOnce(
@@ -98,6 +98,12 @@ replaceOnce(
   "  result.steps.push({name:'task-assigned',status:'PASS',taskId:task.taskId,assignedUserId:employee.userId,status:task.status});",
   "  result.steps.push({name:'task-assigned',status:'PASS',taskId:task.taskId,assignedUserId:employee.userId,taskStatus:task.status});",
   'preserve proof PASS separately from task status'
+);
+
+replaceOnce(
+  "viewport:mobile?{width:430,height:860}:{width:1420,height:900},recordVideo:{dir:out,size:mobile?{width:430,height:860}:{width:1420,height:900}}",
+  "viewport:mobile?{width:430,height:860}:{width:1280,height:820},recordVideo:{dir:out,size:mobile?{width:430,height:860}:{width:1280,height:820}}",
+  'compact desktop training viewport'
 );
 
 fs.writeFileSync(tempPath,src);
