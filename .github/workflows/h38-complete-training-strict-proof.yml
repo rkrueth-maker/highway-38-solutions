@@ -14,6 +14,7 @@ on:
     paths:
       - 'scripts/run-complete-training-library-strict.js'
       - 'scripts/record-complete-training-library.js'
+      - 'scripts/record-task-manager-training.js'
       - '.github/workflows/h38-workflow-video-evidence.yml'
       - '.github/workflows/h38-complete-training-strict-proof.yml'
   push:
@@ -28,7 +29,7 @@ permissions:
 jobs:
   strict-complete-training-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,6 +44,16 @@ jobs:
             printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"
             chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"
           fi
+      - name: Create fresh controlled TEST Staff assignment
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'push' && 'true' || inputs.recording_authorized }}
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
+          H38_TASK_TRAINING_DIR: artifacts/task-manager-training
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/record-task-manager-training.js
       - name: Run strict complete training proof
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'push' && 'true' || inputs.recording_authorized }}
@@ -60,6 +71,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: h38-complete-training-strict-${{ github.run_id }}
-          path: artifacts/complete-training-library/
+          path: |
+            artifacts/task-manager-training/
+            artifacts/complete-training-library/
           if-no-files-found: warn
           retention-days: 30
