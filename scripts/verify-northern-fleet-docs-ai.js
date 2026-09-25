@@ -11,7 +11,7 @@ for(const file of ['commercial-app/northern-document-polish.js','commercial-app/
 const loader=text('commercial-app/live-customer-navigation-guard-20260910.js');
 has(loader,'northern-document-polish.js','ai-document-factory.js','northern-bouncie-fleet.js','northern-bouncie-fleet-2');
 const docs=text('commercial-app/northern-document-polish.js');
-has(docs,'Northern Lakes Property Maintenance LLC','northernlakesproperty@gmail.com','218-326-2506','3131 Horseshoe Lake Rd','Business systems powered by Highway 38 Solutions','approvedLogoOnly:true','automaticSending:false','drive.google.com/file/d/10saUTGrAj8wu6NFazQPhM2aR1eoerqN6');
+has(docs,'Northern Lakes Property Maintenance LLC','northernlakesproperty@gmail.com','218-259-2506','3131 Horseshoe Lake Rd','Business systems powered by Highway 38 Solutions','approvedLogoOnly:true','automaticSending:false','drive.google.com/file/d/10saUTGrAj8wu6NFazQPhM2aR1eoerqN6');
 must(!docs.includes('assets/highway38-logo'),'Northern document polish must not add H38 logo');
 const factory=text('commercial-app/ai-document-factory.js');
 has(factory,"['owner','administrator']",'SAVE_ATTACHMENT','SAVE_EMAIL_DRAFT',"formats:Object.freeze(['pdf','docx','xlsx','csv','txt','eml'])",'automaticSending:false','automaticPayment:false','automaticPublishing:false','window.addEventListener(\'submit\'');
