@@ -28,7 +28,7 @@ replaceOnce(
 
 replaceOnce(
   "async function caption(page,text,ms=1300){\n  await page.evaluate(value=>{",
-  "async function caption(page,text,ms=1300){\n  await page.evaluate(()=>{const re=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i;for(const el of document.querySelectorAll('#mainContent *')){const text=String(el.innerText||'').trim();if(!text||text.length>160||!re.test(text)||!el.getClientRects().length)continue;const childHasEmail=Array.from(el.children||[]).some(child=>re.test(String(child.innerText||'')));if(!childHasEmail)el.style.filter='blur(7px)';}}).catch(()=>{});\n  await page.evaluate(value=>{",
+  "async function caption(page,text,ms=1300){\n  await maskAssignedSelect(page).catch(()=>0);\n  await page.evaluate(()=>{const re=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i;for(const el of document.querySelectorAll('#mainContent *')){const text=String(el.innerText||'').trim();if(!text||text.length>160||!re.test(text)||!el.getClientRects().length)continue;const childHasEmail=Array.from(el.children||[]).some(child=>re.test(String(child.innerText||'')));if(!childHasEmail)el.style.filter='blur(7px)';}}).catch(()=>{});\n  await page.evaluate(value=>{",
   'visible email redaction before captions'
 );
 
@@ -38,21 +38,25 @@ const maskHelpers=`async function clearAssigneeMask(page){
 async function maskAssignedSelect(page){
   await clearAssigneeMask(page);
   return await page.evaluate(()=>{
-    const select=document.querySelector('select[name="assignedUserId"]');
-    if(!select||!select.getClientRects().length)return false;
-    const rect=select.getBoundingClientRect(),style=getComputedStyle(select);
-    const mask=document.createElement('div');
-    mask.setAttribute('data-h38-training-assignee-mask','true');
-    mask.textContent='Staff employee';
-    Object.assign(mask.style,{
-      position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',
-      zIndex:'2147483646',boxSizing:'border-box',display:'flex',alignItems:'center',padding:'0 30px 0 10px',
-      overflow:'hidden',whiteSpace:'nowrap',background:style.backgroundColor||'#fff',color:style.color||'#111',
-      border:style.border||'1px solid #bbb',borderRadius:style.borderRadius||'6px',font:style.font||'14px system-ui',
-      pointerEvents:'none'
-    });
-    document.body.appendChild(mask);
-    return true;
+    const selects=Array.from(document.querySelectorAll('select[name="assignedUserId"]')).filter(select=>select.getClientRects().length);
+    let count=0;
+    for(const select of selects){
+      const rect=select.getBoundingClientRect(),style=getComputedStyle(select);
+      if(rect.width<2||rect.height<2)continue;
+      const mask=document.createElement('div');
+      mask.setAttribute('data-h38-training-assignee-mask','true');
+      mask.textContent='Staff employee';
+      Object.assign(mask.style,{
+        position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',
+        zIndex:'2147483646',boxSizing:'border-box',display:'flex',alignItems:'center',padding:'0 30px 0 10px',
+        overflow:'hidden',whiteSpace:'nowrap',background:style.backgroundColor||'#fff',color:style.color||'#111',
+        border:style.border||'1px solid #bbb',borderRadius:style.borderRadius||'6px',font:style.font||'14px system-ui',
+        pointerEvents:'none'
+      });
+      document.body.appendChild(mask);
+      count++;
+    }
+    return count;
   });
 }
 `;
