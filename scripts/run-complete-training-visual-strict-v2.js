@@ -15,6 +15,37 @@ function replaceBlock(start,end,replacement,label){
   src=src.slice(0,a)+replacement+src.slice(b);
 }
 
+const readyFunction=[
+"async function ready(page,businessKey){",
+"  let lastError=null;",
+"  for(let attempt=1;attempt<=2;attempt++){",
+"    try{",
+"      await page.goto(tenantUrl(businessKey),{waitUntil:'domcontentloaded',timeout:45000});",
+"      await page.waitForTimeout(700);",
+"      if(await page.locator('#h38AuthForm:visible').count()){",
+"        if(!email||!password)throw new Error('Training context requires the secure TEST login pair after session refresh.');",
+"        await page.locator('#h38AuthEmail').fill(email);await page.locator('#h38AuthPassword').fill(password);",
+"        await page.getByRole('button',{name:'Sign in securely',exact:true}).click();",
+"      }",
+"      await page.waitForFunction(key=>String(window.state?.snapshot?.business?.businessKey||'').trim().toLowerCase()===key&&!!window.state?.snapshot?.user&&!!window.state?.bridgeReady,businessKey,{timeout:40000});",
+"      await page.waitForTimeout(1300);",
+"      await addTrainingStyle(page);",
+"      return;",
+"    }catch(error){",
+"      lastError=error;",
+"      if(attempt===2)throw error;",
+"      await page.goto('about:blank',{waitUntil:'domcontentloaded',timeout:10000}).catch(()=>{});",
+"      await page.waitForTimeout(900);",
+"    }",
+"  }",
+"  throw lastError;",
+"}"
+].join('\n');
+const readyAnchor="recorder=replaceOnce(recorder,\n`async function openPage(page,key,required=true){";
+const readyAt=src.indexOf(readyAnchor);
+if(readyAt<0)throw new Error('Visual v2 source drift: ready insertion anchor');
+src=src.slice(0,readyAt)+"recorder=replaceFunction(recorder,'ready',"+tick+readyFunction+tick+");\n\n"+src.slice(readyAt);
+
 const scheduleFunction=[
 "async function scheduleDispatch(page,result){",
 "  const task=await latestTestTask(page);",
