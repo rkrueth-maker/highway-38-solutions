@@ -11,11 +11,10 @@ const strictPath=path.join(out,'strict-results.json');
 const clean=value=>String(value==null?'':value).replace(/\s+/g,' ').trim();
 
 const env={...process.env};
-// The Play-review account is an H38-owned TEST Staff identity. Prefer dedicated CI secrets,
-// but when only the established TEST owner password is configured, safely try that password
-// against the TEST Staff alias. Authentication still has to prove the runtime role is Staff.
+// The Play-review account is an H38-owned TEST Staff identity. A real Staff proof must use
+// its own dedicated CI credential pair. Never reuse or assume the owner TEST password.
 env.H38_WORKFLOW_STAFF_EMAIL=clean(env.H38_WORKFLOW_STAFF_EMAIL)||'highway38solutions+playreview@gmail.com';
-env.H38_WORKFLOW_STAFF_PASSWORD=String(env.H38_WORKFLOW_STAFF_PASSWORD||env.H38_WORKFLOW_TEST_PASSWORD||'');
+env.H38_WORKFLOW_STAFF_PASSWORD=String(env.H38_WORKFLOW_STAFF_PASSWORD||'');
 
 const run=spawnSync(process.execPath,[path.join(root,'scripts','record-complete-training-library.js')],{stdio:'inherit',env});
 if(run.status!==0){
