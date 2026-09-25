@@ -16,7 +16,7 @@ function replaceOnce(from,to,label){
 
 replaceOnce(
   "name:String(staff['Display Name']||staff.displayName||staff.Email||staff.email||'Staff employee'),",
-  "name:String(staff['Display Name']||staff.displayName||'Staff employee'),",
+  "name:(()=>{const value=String(staff['Display Name']||staff.displayName||'Staff employee');return /@/.test(value)?'Staff employee':value;})(),",
   'safe Staff display name'
 );
 
@@ -36,6 +36,12 @@ replaceOnce(
   "  if(!rowText.includes(employee.name))throw Error('Task Manager list did not visibly confirm the assigned employee.');",
   "  if(!rowText.includes(taskTitle))throw Error('Task Manager list did not visibly confirm the saved TEST assignment.');",
   'privacy-safe owner confirmation'
+);
+
+replaceOnce(
+  "  result.steps.push({name:'task-assigned',status:'PASS',taskId:task.taskId,assignedUserId:employee.userId,status:task.status});",
+  "  result.steps.push({name:'task-assigned',status:'PASS',taskId:task.taskId,assignedUserId:employee.userId,taskStatus:task.status});",
+  'preserve proof PASS separately from task status'
 );
 
 fs.writeFileSync(tempPath,src);
