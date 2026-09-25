@@ -6,10 +6,14 @@ const {spawnSync}=require('child_process');
 const scripts=__dirname;
 const sourcePath=path.join(scripts,'record-northern-narrated-training.js');
 const scenarioPath=path.join(scripts,'northern-training-scenarios.json');
+const extraScenarioPath=path.join(scripts,'northern-training-scenarios-extra.json');
 const runtimePath=path.join(scripts,'.northern-narrated-training-v2-runtime.js');
 const runtimeScenarioPath=path.join(scripts,'.northern-training-scenarios-v2-runtime.json');
 
-const scenarios=JSON.parse(fs.readFileSync(scenarioPath,'utf8'));
+const scenarios=[
+  ...JSON.parse(fs.readFileSync(scenarioPath,'utf8')),
+  ...JSON.parse(fs.readFileSync(extraScenarioPath,'utf8'))
+];
 for(const scenario of scenarios){
   if(scenario.id==='NL-TRAIN-LAWN-FULL-SERVICE-PHONE'){
     for(const step of scenario.steps){if(step.pattern)step.pattern=step.pattern.replace(/\|TEST/g,'');}
