@@ -25,7 +25,7 @@
     "accentColor": "#9a632f",
     "neutralColor": "#20221f",
     "publicEmail": "northernlakesproperty@gmail.com",
-    "publicPhone": "+1-218-326-2506"
+    "publicPhone": "+1-218-259-2506"
   },
   "support": {
     "enabled": true,
@@ -70,7 +70,16 @@
     "controls",
     "reports",
     "storage-providers",
-    "customer-portal"
+    "customer-portal",
+    "approvals",
+    "assistant-photo-sort",
+    "customer-portal-release",
+    "document-intake",
+    "error-log",
+    "price-book",
+    "proof-log",
+    "service-subscriptions",
+    "usage-metering"
   ],
   "customerPortal": {
     "enabled": true,
