@@ -68,7 +68,7 @@ const homepage=read('businesses/northern-lakes/index.html');
 const siteShell=read('businesses/northern-lakes/site-shell.js');
 const siteCss=read('businesses/northern-lakes/nl-v3.css');
 const canonicalPhone=JSON.parse(read('business-packs/northern-lakes/business-pack.json')).contacts.publicPhone;
-requireTrue(canonicalPhone==='+1-218-326-2506'&&siteShell.includes('(218) 326-2506')&&homepage.includes('+1-218-326-2506')&&!/218[-) ]+259-2506/.test(siteShell+homepage),'Public Northern Lakes phone matches the canonical tenant business pack');
+requireTrue(canonicalPhone==='+1-218-259-2506'&&siteShell.includes('(218) 259-2506')&&homepage.includes('+1-218-259-2506')&&!/218[-) ]+326-2506/.test(siteShell+homepage),'Public Northern Lakes phone matches the canonical tenant business pack');
 requireTrue(/@media\(max-width:1400px\)[^{]*\{[^}]*\.utility\{display:none\}[^}]*\.header-row\{height:78px\}[^}]*\.nav-toggle\{display:block\}/.test(siteCss),'Northern Lakes navigation collapses before the full desktop link set can overflow');
 requireTrue(/Duramax/i.test(homepage)&&/BOSS V-plow/i.test(homepage),'Homepage opening keeps the approved Duramax and BOSS plow contract');
 requireTrue(/data-featured-services/.test(homepage)&&/Customer Sign In/.test(homepage),'Homepage features catalog services and customer sign-in');
