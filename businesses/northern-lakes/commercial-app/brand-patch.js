@@ -1,7 +1,7 @@
 'use strict';
 const NLPM_APPROVED_LOGO='/businesses/northern-lakes/assets/diamond-logo.svg?v=rendered-photo-pass-20260726';
 const NLPM_PUBLIC_EMAIL='northernlakesproperty@gmail.com';
-const NLPM_PUBLIC_PHONE='218-326-2506';
+const NLPM_PUBLIC_PHONE='218-259-2506';
 
 renderQuotePreview=function(){
   const row=h38CurrentQuoteRecord();

@@ -4,7 +4,7 @@ const BUILD='20260912-northern-document-polish-1';
 const BUSINESS={
   name:'Northern Lakes Property Maintenance LLC',
   email:'northernlakesproperty@gmail.com',
-  phone:'218-326-2506',
+  phone:'218-259-2506',
   address:'3131 Horseshoe Lake Rd, Grand Rapids, MN 55744',
   website:'highway38solutions.com/businesses/northern-lakes/'
 };
