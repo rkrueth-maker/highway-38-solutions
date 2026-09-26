@@ -147,9 +147,15 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20260920-phone-safe-zone-2'",'runtime loader pins final phone-first build');
-requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260919-owner-mobile-quick-actions-4'",'runtime loader pins the create-only quick action release');
+requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260926-shared-tool-labels-6'",'runtime loader pins the shared tenant-neutral quick-action release');
 requireText(ownerQuickActions,'personalAssistantUnderPlus:false','generic mobile + menu excludes Assistant');
 requireText(ownerQuickActions,'globalAssistantCanonical:true','global Assistant is the canonical mobile help launcher');
+requireText(ownerQuickActions,'clockInOutUnderPlusAllViewports:true','Clock In / Out is canonical under + on phone and desktop');
+requireText(ownerQuickActions,'timeDialogSeparatedFromErp:true','Clock In / Out is visually separated from ERP');
+requireText(ownerQuickActions,'sharedToolLabelsNeutral:true','shared Office tool labels are tenant-neutral');
+requireText(ownerQuickActions,'assistantLabelTenantNeutral:true','Assistant label is tenant-neutral');
+requireText(ownerQuickActions,'installLabelTenantNeutral:true','Install Office label is tenant-neutral');
+requireText(ownerQuickActions,'aiNavigationLabelTenantNeutral:true','AI navigation label is tenant-neutral');
 if(ownerQuickActions.includes('function openPersonalAssistant'))fail('owner quick actions must not create a second Assistant launcher');else pass('owner quick actions do not create a second Assistant launcher');
 requireText(serviceWorker,"h38-business-office-20260918-0145",'service worker flushes physical-startup authority assets with a dated cache epoch');
 requireText(serviceWorker,"'phone-first-office.js'",'phone-first runtime is live-first');
@@ -186,7 +192,7 @@ for(const forbidden of ['automaticApproval:true','automaticCustomerSending:true'
 }
 pass('owner-flow no-auto-action scan completed');
 
-const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + customer-first navigation + canonical Customers actions + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint guard + simplified Today + grouped More + safety',failures};
+const report={status:failures.length?'FAIL':'PASS',checks:'owner mobile runtime + customer-first navigation + canonical Customers actions + native Office scroll authority + delete/restart + native launch/return + early startup cover + Site Visit first-paint guard + simplified Today + grouped More + shared Clock/ERP hierarchy + tenant-neutral shared tool labels + safety',failures};
 fs.mkdirSync(path.join(root,'artifacts','owner-mobile-smoke'),{recursive:true});
 fs.writeFileSync(path.join(root,'artifacts','owner-mobile-smoke','verification.json'),JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));

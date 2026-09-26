@@ -2,12 +2,12 @@ name: Northern Lakes Narrated Training Videos
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'scripts/record-northern-narrated-training.js'
       - 'scripts/run-northern-narrated-training-v2.js'
       - 'scripts/run-northern-narrated-training-v3.js'
+      - 'scripts/build-northern-master-training.js'
       - 'scripts/northern-training-scenarios.json'
       - 'scripts/northern-training-scenarios-extra.json'
       - '.github/workflows/northern-narrated-training.yml'
@@ -18,10 +18,8 @@ on:
         required: true
         type: boolean
         default: false
-
 permissions:
   contents: read
-
 jobs:
   narrated-training:
     runs-on: ubuntu-latest
@@ -29,16 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
+        with: {node-version: '24'}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - name: Validate recorder sources
         run: |
           node --check scripts/record-northern-narrated-training.js
           node --check scripts/run-northern-narrated-training-v2.js
           node --check scripts/run-northern-narrated-training-v3.js
+          node --check scripts/build-northern-master-training.js
           python -m json.tool scripts/northern-training-scenarios.json >/dev/null
           python -m json.tool scripts/northern-training-scenarios-extra.json >/dev/null
       - name: Install browser, media tools, and local narrator
@@ -55,13 +52,9 @@ jobs:
           test -n "$MODEL"
           echo "NORTHERN_NARRATOR_MODEL=$MODEL" >> "$GITHUB_ENV"
       - name: Prepare optional authorized storage state
-        env:
-          STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
+        env: {STORAGE_STATE: '${{ secrets.H38_WORKFLOW_STORAGE_STATE }}'}
         run: |
-          if [ -n "$STORAGE_STATE" ]; then
-            printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"
-            chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"
-          fi
+          if [ -n "$STORAGE_STATE" ]; then printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"; chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"; fi
       - name: Record Northern narrated instruction library
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
@@ -72,25 +65,27 @@ jobs:
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
           NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
         run: node scripts/run-northern-narrated-training-v3.js
+      - name: Build ordered master training video
+        run: node scripts/build-northern-master-training.js
       - name: Enforce complete narrated proof
         if: always()
         run: |
           test -f artifacts/northern-narrated-training/results.json
+          test -f artifacts/northern-narrated-training/videos/00-NORTHERN-LAKES-MASTER-TRAINING-NARRATED.mp4
+          test -f artifacts/northern-narrated-training/MASTER_TRAINING_ORDER.json
           node - <<'NODE'
-          const fs=require('fs');
-          const path=require('path');
+          const fs=require('fs'),path=require('path');
           const result=JSON.parse(fs.readFileSync('artifacts/northern-narrated-training/results.json','utf8'));
           if(result.status!=='PASS')throw new Error('Northern narrated training result is not PASS.');
           if(result.externalActionsOccurred!==false)throw new Error('Training performed an external action.');
           if(!Array.isArray(result.passed)||result.passed.length<23)throw new Error(`Expected at least 23 narrated videos, got ${result.passed?.length||0}.`);
+          const order=JSON.parse(fs.readFileSync('artifacts/northern-narrated-training/MASTER_TRAINING_ORDER.json','utf8'));
+          if(order.order.length!==23)throw new Error('Master training must contain all 23 ordered parts.');
           const dir='artifacts/northern-narrated-training/videos';
-          const mp4=fs.readdirSync(dir).filter(name=>name.endsWith('-NARRATED.mp4'));
-          if(mp4.length<23)throw new Error(`Expected at least 23 narrated MP4 files, got ${mp4.length}.`);
-          for(const id of ['NL-TRAIN-LAWN-FULL-SERVICE-PHONE','NL-TRAIN-SNOW-FULL-SERVICE-PHONE','NL-TRAIN-CUSTOMER-PORTAL-PHONE','NL-TRAIN-FULL-OFFICE-MAP-DESKTOP','NL-TRAIN-MEETING-FOLLOWUP-DESKTOP','NL-TRAIN-SITE-VISIT-TO-QUOTE-PHONE','NL-TRAIN-QUOTE-REVISION-APPROVAL-DESKTOP','NL-TRAIN-USERS-SETTINGS-CONTROLS-DESKTOP']){
-            const proof=JSON.parse(fs.readFileSync(path.join('artifacts/northern-narrated-training',id+'.json'),'utf8'));
-            if(proof.status!=='PASS')throw new Error(id+' proof is not PASS.');
-          }
-          console.log(JSON.stringify({status:'PASS',narratedVideos:mp4.length,externalActionsOccurred:false,strictServiceFocus:true,portalLoginSurfaceVerified:true,completeNorthernWorkflowInventory:true},null,2));
+          const lessons=fs.readdirSync(dir).filter(name=>name.endsWith('-NARRATED.mp4')&&!name.startsWith('00-NORTHERN-LAKES-MASTER'));
+          if(lessons.length<23)throw new Error(`Expected 23 lesson videos, got ${lessons.length}.`);
+          for(const id of ['NL-TRAIN-LAWN-FULL-SERVICE-PHONE','NL-TRAIN-SNOW-FULL-SERVICE-PHONE','NL-TRAIN-CUSTOMER-PORTAL-PHONE','NL-TRAIN-FULL-OFFICE-MAP-DESKTOP','NL-TRAIN-MEETING-FOLLOWUP-DESKTOP','NL-TRAIN-SITE-VISIT-TO-QUOTE-PHONE','NL-TRAIN-QUOTE-REVISION-APPROVAL-DESKTOP','NL-TRAIN-USERS-SETTINGS-CONTROLS-DESKTOP']){const proof=JSON.parse(fs.readFileSync(path.join('artifacts/northern-narrated-training',id+'.json'),'utf8'));if(proof.status!=='PASS')throw new Error(id+' proof is not PASS.');}
+          console.log(JSON.stringify({status:'PASS',lessonVideos:lessons.length,masterVideo:true,orderedParts:23,externalActionsOccurred:false},null,2));
           NODE
       - name: Upload Northern narrated video library
         if: always()
