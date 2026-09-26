@@ -1,0 +1,73 @@
+[
+  {
+    "id": "NL-TRAIN-FULL-OFFICE-MAP-DESKTOP",
+    "kind": "desktop",
+    "title": "Northern Lakes Business Office orientation.",
+    "steps": [
+      {"page":"today","text":"Today is the operating dashboard for what needs attention now."},
+      {"page":"customers","text":"Customers keeps customer records, properties, history, and Customer 360 together."},
+      {"page":"work","text":"Jobs and Work holds active service, assignments, task status, and closeout."},
+      {"page":"meetings","text":"Meetings captures decisions, notes, and follow-up in business context."},
+      {"page":"quotes","text":"Quotes is where approved scope becomes customer-ready pricing and revision history."},
+      {"page":"schedule","text":"Schedule is for dispatch, timing, recurring occurrences, and calendar review."},
+      {"page":"messages","text":"Messages keeps customer and team communication connected to the work."},
+      {"page":"field","text":"Site Visit captures property conditions, measurements, photos, and proof."},
+      {"page":"money","text":"Billing handles invoices, balances, receipts, expenses, and payment status."},
+      {"page":"accounting","text":"Accounting organizes the native financial record for review and handoff."},
+      {"page":"payroll","text":"Payroll Prep gathers employee and work records needed for payroll preparation."},
+      {"page":"tax","text":"Tax Prep packages records for review and export; it does not automatically file taxes."},
+      {"page":"reports","text":"Reports shows receivables, profitability, service performance, and operating trends."},
+      {"page":"people","text":"People manages employees, site managers, role access, and assignments."},
+      {"page":"inventory","text":"Inventory tracks service materials, parts, and consumables when those records are used."},
+      {"page":"fleet","text":"Fleet keeps trucks, skid steers, mowers, trailers, and other equipment organized."},
+      {"page":"documents","text":"Documents stores photos, PDFs, receipts, reports, and other connected files."},
+      {"page":"controls","text":"Controls holds approval boundaries, proof, and safeguards."},
+      {"page":"assistant","fallback":"ai","text":"The Assistant helps review and prepare work while keeping changes behind owner approval."},
+      {"page":"settings","text":"Settings holds Northern Lakes business configuration and tenant-specific options."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-MEETING-FOLLOWUP-DESKTOP",
+    "kind": "desktop",
+    "title": "Capture a meeting and turn it into organized follow-up.",
+    "steps": [
+      {"page":"meetings","text":"Start in Meetings. Link the meeting to the correct customer or job when that context exists, then capture decisions, notes, and action items."},
+      {"page":"customers","text":"Return to Customer 360 when the meeting belongs to a customer so the conversation stays in the same operating history."},
+      {"page":"work","text":"Create or confirm the follow-up task or job action in Work instead of leaving an important commitment only in meeting notes."},
+      {"page":"documents","text":"Store the meeting report, approved recording, photos, or supporting documents with the related business record. Review before printing or sharing."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-SITE-VISIT-TO-QUOTE-PHONE",
+    "kind": "mobile",
+    "title": "Use a Northern Lakes Site Visit to build a defensible quote.",
+    "steps": [
+      {"page":"customers","text":"Open the correct customer and property before the site visit so evidence cannot land on the wrong record."},
+      {"page":"field","text":"Capture measurements, photos, access conditions, obstacles, scope notes, and equipment needs while you are at the property."},
+      {"page":"quotes","text":"Build the quote from the verified site evidence. Check quantities, rates, service wording, and special requirements before preparing the customer document."},
+      {"page":"documents","text":"Keep the supporting photos and files connected to the same customer, property, Site Visit, and quote for later review."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-QUOTE-REVISION-APPROVAL-DESKTOP",
+    "kind": "desktop",
+    "title": "Revise a Northern Lakes quote without losing the original scope.",
+    "steps": [
+      {"page":"quotes","pattern":"TEST","text":"Open the existing quote instead of creating a disconnected replacement. Review the current scope, measurements, service lines, quantities, and rates."},
+      {"page":"quotes","text":"Make the approved revision, regenerate the customer-ready version, and review the changed wording and total before delivery."},
+      {"page":"assistant","fallback":"ai","text":"The Assistant may help review or prepare a revision, but data-changing actions stay behind owner approval."},
+      {"page":"work","text":"After the customer accepts the revised scope, make sure the job reflects the accepted version so operations and billing do not use an outdated quote."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-USERS-SETTINGS-CONTROLS-DESKTOP",
+    "kind": "desktop",
+    "title": "Manage Northern Lakes users, settings, and approval controls.",
+    "steps": [
+      {"page":"people","text":"Use People to add or review employees, site managers, and other approved users by exact email and role. Never share owner credentials."},
+      {"page":"settings","text":"Use Settings for Northern Lakes business identity, service configuration, recurring-service rules, and tenant-specific options."},
+      {"page":"controls","text":"Controls defines the actions that need approval and provides proof and recovery boundaries for sensitive work."},
+      {"page":"assistant","fallback":"ai","text":"When an assistant proposes a tenant-data change, review the preview and approve only the intended change. Shared engine changes remain suggestions."}
+    ]
+  }
+]
