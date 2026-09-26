@@ -7,6 +7,7 @@ on:
     paths:
       - 'scripts/record-northern-narrated-training.js'
       - 'scripts/run-northern-narrated-training-v2.js'
+      - 'scripts/run-northern-narrated-training-v3.js'
       - 'scripts/northern-training-scenarios.json'
       - 'scripts/northern-training-scenarios-extra.json'
       - '.github/workflows/northern-narrated-training.yml'
@@ -37,6 +38,7 @@ jobs:
         run: |
           node --check scripts/record-northern-narrated-training.js
           node --check scripts/run-northern-narrated-training-v2.js
+          node --check scripts/run-northern-narrated-training-v3.js
           python -m json.tool scripts/northern-training-scenarios.json >/dev/null
           python -m json.tool scripts/northern-training-scenarios-extra.json >/dev/null
       - name: Install browser, media tools, and local narrator
@@ -69,7 +71,7 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/northern-training-auth.json
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
           NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
-        run: node scripts/run-northern-narrated-training-v2.js
+        run: node scripts/run-northern-narrated-training-v3.js
       - name: Enforce complete narrated proof
         if: always()
         run: |
