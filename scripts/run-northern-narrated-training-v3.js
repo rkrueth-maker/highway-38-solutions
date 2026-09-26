@@ -26,7 +26,7 @@ if(!source.includes(writeNeedle))throw new Error('Northern v2 runtime write sour
 source=source.replace(writeNeedle,fixturePatch+'\n'+writeNeedle);
 
 const broad="if(!/(name|address|street|email|phone|company|property|customer)/i.test(key))continue;";
-const precise="const normalized=String(key||'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(/\\b(id|type|status|key|code|kind|count|number)\\b/.test(normalized))continue;if(val!==null&&typeof val==='object')continue;if(!(/\\b(email|phone|address|street|location)\\b/.test(normalized)||/\\b(first|last|contact|customer|property|company|client|account)\\\\s+name\\b/.test(normalized)||/\\b(customer|property|company|client|account|contact)\\b/.test(normalized)||normalized==='working for'||normalized==='workingfor'||normalized==='name'))continue;";
+const precise="const normalized=String(key||'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(/\\\\b(id|type|status|key|code|kind|count|number)\\\\b/.test(normalized))continue;if(val!==null&&typeof val==='object')continue;if(!(/\\\\b(email|phone|address|street|location)\\\\b/.test(normalized)||/\\\\b(first|last|contact|customer|property|company|client|account)\\\\s+name\\\\b/.test(normalized)||/\\\\b(customer|property|company|client|account|contact)\\\\b/.test(normalized)||normalized==='working for'||normalized==='workingfor'||normalized==='name'))continue;";
 const matches=source.split(broad).length-1;
 if(matches!==2)throw new Error(`Expected two privacy key matchers, found ${matches}.`);
 source=source.split(broad).join(precise);
@@ -48,12 +48,12 @@ if(source.split(brandLower).length-1!==1)throw new Error('Expected one training 
 source=source.replace(brandLower,brandLowerNew);
 
 const uniqueNeedle="const unique=Array.from(new Set(tokens)).sort((a,b)=>b.length-a.length);";
-const uniqueNew="const workingLines=String(root.innerText||'').split(/\\\\n+/).map(v=>v.trim()).filter(Boolean),workingIndex=workingLines.findIndex(v=>/^WORKING FOR\\b/i.test(v));if(workingIndex>=0){for(const value of workingLines.slice(workingIndex+1,workingIndex+3)){if(value&&value.length>=4&&value.length<160&&!/\\b(TEST|Private customer|Private property|Private contact)\\b/i.test(value))tokens.push(value);}}const unique=Array.from(new Set(tokens)).sort((a,b)=>b.length-a.length);";
+const uniqueNew="const workingLines=String(root.innerText||'').split(/\\\\n+/).map(v=>v.trim()).filter(Boolean),workingIndex=workingLines.findIndex(v=>/^WORKING FOR\\\\b/i.test(v));if(workingIndex>=0){for(const value of workingLines.slice(workingIndex+1,workingIndex+3)){if(value&&value.length>=4&&value.length<160&&!/\\\\b(TEST|Private customer|Private property|Private contact)\\\\b/i.test(value))tokens.push(value);}}const unique=Array.from(new Set(tokens)).sort((a,b)=>b.length-a.length);";
 if(source.split(uniqueNeedle).length-1!==1)throw new Error('Expected one visible-shell privacy injection point.');
 source=source.replace(uniqueNeedle,uniqueNew);
 
 const leakNeedle="const visible=String(root.innerText||'').toLowerCase();let leaks=Array.from(new Set(tokens)).filter(token=>visible.includes(token)).length;";
-const leakNew="const shellText=String(root.innerText||''),visible=shellText.toLowerCase();let leaks=Array.from(new Set(tokens)).filter(token=>visible.includes(token)).length;const workingLines=shellText.split(/\\\\n+/).map(v=>v.trim()).filter(Boolean),workingIndex=workingLines.findIndex(v=>/^WORKING FOR\\b/i.test(v));if(workingIndex>=0){for(const value of workingLines.slice(workingIndex+1,workingIndex+3)){if(value&&value.length>=4&&!/\\b(TEST|Private customer|Private property|Private contact|Quote|Meeting)\\b/i.test(value))leaks+=1;}}";
+const leakNew="const shellText=String(root.innerText||''),visible=shellText.toLowerCase();let leaks=Array.from(new Set(tokens)).filter(token=>visible.includes(token)).length;const workingLines=shellText.split(/\\\\n+/).map(v=>v.trim()).filter(Boolean),workingIndex=workingLines.findIndex(v=>/^WORKING FOR\\\\b/i.test(v));if(workingIndex>=0){for(const value of workingLines.slice(workingIndex+1,workingIndex+3)){if(value&&value.length>=4&&!/\\\\b(TEST|Private customer|Private property|Private contact|Quote|Meeting)\\\\b/i.test(value))leaks+=1;}}";
 if(source.split(leakNeedle).length-1!==1)throw new Error('Expected one visible-shell privacy leak gate.');
 source=source.replace(leakNeedle,leakNew);
 
@@ -62,7 +62,7 @@ if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three gu
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
 if(!source.includes('workingLines'))throw new Error('Visible Working For privacy guard is missing.');
-source=source.replace("version:'20260925-v6'","version:'20260926-v14'");
+source=source.replace("version:'20260925-v6'","version:'20260926-v15'");
 
 fs.writeFileSync(runtimePath,source);
 try{
