@@ -19,11 +19,11 @@ const matches=source.split(broad).length-1;
 if(matches!==2)throw new Error(`Expected two privacy key matchers, found ${matches}.`);
 source=source.split(broad).join(precise);
 
-const leakOld="if(scenario.fixture&&step.pattern&&!focused)throw new Error('Controlled TEST '+scenario.fixture+' service fixture is not visible on '+step.page+'.');const leaks=await privateLeakCount(page);";
-const leakNew="if(scenario.fixture&&step.pattern&&!focused)throw new Error('Controlled TEST '+scenario.fixture+' service fixture is not visible on '+step.page+'.');await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);";
-if(!source.includes(leakOld))throw new Error('Privacy re-scrub patch source drifted.');
-source=source.replace(leakOld,leakNew);
-source=source.replace("version:'20260925-v6'","version:'20260925-v7'");
+const fullShellPrivacy="const root=document.body";
+if((source.split(fullShellPrivacy).length-1)<3)throw new Error('Full-shell training privacy protection is missing or incomplete.');
+if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
+if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
+source=source.replace("version:'20260925-v6'","version:'20260926-v8'");
 
 fs.writeFileSync(runtimePath,source);
 try{
