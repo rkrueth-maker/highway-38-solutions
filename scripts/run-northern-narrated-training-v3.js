@@ -26,7 +26,7 @@ if(!source.includes(writeNeedle))throw new Error('Northern v2 runtime write sour
 source=source.replace(writeNeedle,fixturePatch+'\n'+writeNeedle);
 
 const broad="if(!/(name|address|street|email|phone|company|property|customer)/i.test(key))continue;";
-const precise="const normalized=String(key||'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(/\\b(id|type|status|key|code|kind|count|number)\\b/.test(normalized))continue;if(!(/\\b(email|phone|address|street)\\b/.test(normalized)||/\\b(first|last|contact|customer|property|company|client|business)\\s+name\\b/.test(normalized)||/^(name|customer|property|company|contact|client|business)$/.test(normalized)||/\\b(customer|property|company|contact|client)\\s+(label|display|title)\\b/.test(normalized)))continue;";
+const precise="const normalized=String(key||'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();const parts=normalized.split(' ').filter(Boolean);if(parts.some(part=>['id','type','status','key','code','kind','count','number'].includes(part)))continue;const exactSensitive=['name','customer','property','company','contact','client','business'].includes(normalized);const directSensitive=parts.some(part=>['email','phone','address','street'].includes(part));const namedSensitive=parts.includes('name')&&parts.some(part=>['first','last','contact','customer','property','company','client','business'].includes(part));const displaySensitive=parts.some(part=>['customer','property','company','contact','client'].includes(part))&&parts.some(part=>['label','display','title'].includes(part));if(!(exactSensitive||directSensitive||namedSensitive||displaySensitive))continue;";
 const matches=source.split(broad).length-1;
 if(matches!==2)throw new Error(`Expected two privacy key matchers, found ${matches}.`);
 source=source.split(broad).join(precise);
@@ -38,16 +38,16 @@ if(rowMatches!==2)throw new Error(`Expected two privacy source-row collectors, f
 source=source.split(rowsOld).join(rowsNew);
 if(source.includes('walk(snap),tokens=[]'))throw new Error('Generated privacy runtime left an implicit token assignment.');
 
-const rowSkip="if(/\\b(TEST|NARRATED|DEMO|SCENARIO)\\b/i.test(JSON.stringify(row)))continue;";
-const rowSkipMatches=source.split(rowSkip).length-1;
+const rowSkipTail="test(JSON.stringify(row)))continue;";
+const rowSkipMatches=source.split(rowSkipTail).length-1;
 if(rowSkipMatches!==2)throw new Error(`Expected two row-level training privacy skips, found ${rowSkipMatches}.`);
-source=source.split(rowSkip).join('');
+source=source.split(rowSkipTail).join("test(JSON.stringify(row))&&false)continue;");
 const tokenOld="const text=String(val||'').trim();if(text.length>=4&&text.length<160)tokens.push(text);";
-const tokenNew="const text=String(val||'').trim();if(/\\b(TEST|NARRATED|DEMO|SCENARIO)\\b/i.test(text))continue;if(text.length>=4&&text.length<160)tokens.push(text);";
+const tokenNew="const text=String(val||'').trim();const privacyWords=text.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);if(privacyWords.some(word=>['TEST','NARRATED','DEMO','SCENARIO'].includes(word)))continue;if(text.length>=4&&text.length<160)tokens.push(text);";
 if(source.split(tokenOld).length-1!==1)throw new Error('Expected one plain privacy token collector.');
 source=source.replace(tokenOld,tokenNew);
 const lowerTokenOld="const text=String(val||'').trim();if(text.length>=4&&text.length<160)tokens.push(text.toLowerCase());";
-const lowerTokenNew="const text=String(val||'').trim();if(/\\b(TEST|NARRATED|DEMO|SCENARIO)\\b/i.test(text))continue;if(text.length>=4&&text.length<160)tokens.push(text.toLowerCase());";
+const lowerTokenNew="const text=String(val||'').trim();const privacyWords=text.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);if(privacyWords.some(word=>['TEST','NARRATED','DEMO','SCENARIO'].includes(word)))continue;if(text.length>=4&&text.length<160)tokens.push(text.toLowerCase());";
 if(source.split(lowerTokenOld).length-1!==1)throw new Error('Expected one lower-case privacy token collector.');
 source=source.replace(lowerTokenOld,lowerTokenNew);
 
@@ -60,7 +60,7 @@ const bodyRoots=source.split('root=document.body').length-1;
 if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three guards, found ${bodyRoots}.`);
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
-source=source.replace("version:'20260925-v6'","version:'20260926-v13'");
+source=source.replace("version:'20260925-v6'","version:'20260926-v14'");
 
 fs.writeFileSync(runtimePath,source);
 try{
