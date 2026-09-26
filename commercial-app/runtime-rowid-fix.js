@@ -3,7 +3,7 @@
 const CUSTOMER_WORKSPACE_BUILD='20260922-customer-master-detail-4';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
-const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260919-owner-mobile-quick-actions-4';
+const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260926-shared-plus-time-action-5';
 const PHONE_FIRST_BUILD='20260920-phone-safe-zone-2';
 const OWNER_PHONE_MODE_BUILD='20260918-owner-one-shell-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
@@ -255,9 +255,9 @@ window.addEventListener?.('pageshow',reconcileCustomerWorkspace);
 queueMicrotask(reconcileCustomerWorkspace);
 window.H38_RUNTIME_ROWID_FIX=Object.freeze({
   enabled:true,
-  build:'20260915-site-visit-clean-flow-bootstrap-1',
-  purpose:'Expose the record-id helper, load owner phone recovery, notes-only Quick Meeting, owner mobile quick actions, install and phone-first shell support, keep Site Visit on one clean conversation/capture/finish flow, and lazy-load customer/document runtime only when those Office pages need it.',
-  productionVerification:'20260915-site-visit-clean-flow-bootstrap-1',
+  build:'20260926-shared-time-quick-action-bootstrap-1',
+  purpose:'Expose the record-id helper, load shared Clock In / Out under + for both H38 and Northern, owner phone recovery, notes-only Quick Meeting, install and phone-first shell support, keep Site Visit on one clean conversation/capture/finish flow, and lazy-load customer/document runtime only when those Office pages need it.',
+  productionVerification:'20260926-shared-time-quick-action-bootstrap-1',
   customerWorkspaceBuild:CUSTOMER_WORKSPACE_BUILD,
   customerRenderHookBuild:CUSTOMER_RENDER_HOOK_BUILD,
   quickMeetingBuild:QUICK_MEETING_BUILD,
