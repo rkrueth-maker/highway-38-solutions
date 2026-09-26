@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260926-shared-plus-time-action-5';
+const BUILD='20260926-shared-tool-labels-6';
 const MOBILE='(max-width: 760px)';
 const text=value=>String(value==null?'':value).trim();
 let timeDialogMode=false;
@@ -92,23 +92,50 @@ function patchQuickDialog(){
     const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and operating signals',openOperations);
     grid.appendChild(ops);
   }else if(!mobile()&&existingOps)existingOps.remove();
-  if(dialog.dataset.h38OwnerMobileQuickActions!=='5')dialog.dataset.h38OwnerMobileQuickActions='5';
+  if(dialog.dataset.h38OwnerMobileQuickActions!=='6')dialog.dataset.h38OwnerMobileQuickActions='6';
 }
-function clarifyAssistantLauncher(){
-  if(!mobile()||!manager())return;
-  const launcher=document.getElementById('globalAiButton');if(!launcher)return;
-  if(launcher.getAttribute('aria-label')!=='Open Personal Assistant')launcher.setAttribute('aria-label','Open Personal Assistant');
-  if(launcher.getAttribute('title')!=='Personal Assistant')launcher.setAttribute('title','Personal Assistant');
-  const label=launcher.querySelector('.h38-floating-assistant-label');if(label&&text(label.textContent)!=='Assistant')label.textContent='Assistant';
+function normalizeInstallText(root){
+  if(!root)return false;
+  let changed=false;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];
+  while(walker.nextNode())nodes.push(walker.currentNode);
+  for(const node of nodes){
+    const parent=node.parentElement;if(!parent||/^(SCRIPT|STYLE)$/i.test(parent.tagName))continue;
+    const value=String(node.nodeValue||'');
+    const next=value.replace(/\bInstall H38 Office\b/g,'Install Business Office').replace(/\bInstall H38\b/g,'Install Office').replace(/\bH38 Office\b/g,'Business Office');
+    if(next!==value){node.nodeValue=next;changed=true;}
+  }
+  return changed;
+}
+function normalizeSharedToolLabels(){
+  const launcher=document.getElementById('globalAiButton');
+  if(launcher){
+    if(launcher.getAttribute('aria-label')!=='Open Assistant')launcher.setAttribute('aria-label','Open Assistant');
+    if(launcher.getAttribute('title')!=='Assistant')launcher.setAttribute('title','Assistant');
+    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='Assistant')label.textContent='Assistant';});
+  }
+  const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
+  const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');
+  if(Array.isArray(window.PAGE_DEFS?.ai)&&window.PAGE_DEFS.ai[1]!=='AI')window.PAGE_DEFS.ai[1]='AI';
+  document.querySelectorAll('#mainNav [data-page="ai"] span:last-child').forEach(label=>{if(text(label.textContent)!=='AI')label.textContent='AI';});
+  const install=document.getElementById('h38InstallOfficeButton');
+  if(install){
+    if(text(install.textContent)!=='Install Office')install.textContent='Install Office';
+    if(install.getAttribute('aria-label')!=='Install Business Office app')install.setAttribute('aria-label','Install Business Office app');
+    if(install.getAttribute('title')!=='Install Business Office')install.setAttribute('title','Install Business Office');
+  }
+  normalizeInstallText(document.querySelector('[data-h38-install-group]'));
+  normalizeInstallText(document.getElementById('h38InstallOfficeDialog'));
+  return true;
 }
 let applyQueued=false;
 function apply(){
   applyQueued=false;
-  installStyle();patchQuickDialog();polishTimeDialog();clarifyAssistantLauncher();
+  installStyle();patchQuickDialog();polishTimeDialog();normalizeSharedToolLabels();
 }
 function scheduleApply(){if(applyQueued)return;applyQueued=true;queueMicrotask(apply);}
 const observer=new MutationObserver(scheduleApply);observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
-window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
+window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('h38:office-page-rendered',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
 scheduleApply();
-window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,sharedOfficeEngine:true,plusLocationPreserved:true,clockInOutUnderPlus:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,staffTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,openClock,openOperations,patchQuickDialog,polishTimeDialog});
+window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,sharedOfficeEngine:true,plusLocationPreserved:true,clockInOutUnderPlus:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,staffTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,aiNavigationLabelTenantNeutral:true,openClock,openOperations,patchQuickDialog,polishTimeDialog,normalizeSharedToolLabels});
 })();
