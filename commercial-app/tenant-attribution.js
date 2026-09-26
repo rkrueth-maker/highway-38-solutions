@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260913-tenant-attribution-1';
+const BUILD='20260926-tenant-attribution-mobile-framing-2';
 const NORTH_KEY='northern-lakes';
 const H38_NAME='Highway 38 Solutions';
 const H38_URL='https://highway38solutions.com/';
@@ -13,6 +13,19 @@ function northern(){return businessKey()===NORTH_KEY;}
 function businessName(){const b=business();return text(b.businessName||b.displayName||b['Business Name'])||(northern()?'Northern Lakes Property Maintenance LLC':H38_NAME);}
 function shortName(){const b=business(),brand=b.brandConfig&&typeof b.brandConfig==='object'?b.brandConfig:{};return text(brand.shortName)||(northern()?'Northern Lakes':businessName());}
 function poweredHtml(){return`Business systems powered by <a href="${H38_URL}" target="_blank" rel="noopener">${H38_NAME}</a>`;}
+function installSharedMobileChrome(){
+  let style=document.getElementById('h38SharedTenantMobileChrome');
+  if(!style){style=document.createElement('style');style.id='h38SharedTenantMobileChrome';document.head.appendChild(style);}
+  const css=`@media(max-width:760px){
+.topbar{align-items:center!important}
+.topbar .brand{min-width:0!important;overflow:visible!important}
+.topbar .brand>div{min-width:0!important;max-width:min(230px,56vw)!important}
+.topbar .brand strong{display:block!important;max-width:min(210px,50vw)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:left!important}
+.business-bar{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;overflow:hidden!important;padding-left:10px!important;padding-right:10px!important}
+.business-bar span{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:center!important}
+}`;
+  if(style.textContent!==css)style.textContent=css;
+}
 function installMeetingReportBranding(){
   const NativeBlob=window.Blob;
   if(typeof NativeBlob!=='function'||NativeBlob.__h38TenantAttributionProxy===true)return;
@@ -58,7 +71,7 @@ function enhanceQuotePreview(){
   credit.style.cssText='display:block;width:100%;margin-top:4px;font-size:10px;opacity:.72';credit.querySelector('a')?.setAttribute('style','color:inherit;text-decoration:none');footer.appendChild(credit);
 }
 let queued=false;
-function enhance(){queued=false;enhanceOfficeBrand();neutralizeTenantPrompt();enhanceQuotePreview();}
+function enhance(){queued=false;installSharedMobileChrome();enhanceOfficeBrand();neutralizeTenantPrompt();enhanceQuotePreview();}
 function schedule(){if(queued)return;queued=true;if(typeof requestAnimationFrame==='function')requestAnimationFrame(enhance);else setTimeout(enhance,0);}
 installMeetingReportBranding();
 if(document.body){new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});schedule();}
@@ -66,5 +79,5 @@ else document.addEventListener('DOMContentLoaded',()=>{new MutationObserver(sche
 window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
-window.H38_TENANT_ATTRIBUTION=Object.freeze({enabled:true,build:BUILD,provider:H38_NAME,providerUrl:H38_URL,northernOnly:true,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteAttribution:true,officeAttribution:true,enhance});
+window.H38_TENANT_ATTRIBUTION=Object.freeze({enabled:true,build:BUILD,provider:H38_NAME,providerUrl:H38_URL,northernOnly:true,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteAttribution:true,officeAttribution:true,sharedMobileChrome:true,enhance});
 })();

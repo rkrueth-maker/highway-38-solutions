@@ -31,14 +31,23 @@ const matches=source.split(broad).length-1;
 if(matches!==2)throw new Error(`Expected two privacy key matchers, found ${matches}.`);
 source=source.split(broad).join(precise);
 
+const rowsOld="const sourceRows=['customers','properties','jobs','tasks','scheduleEvents','users','employees','people','staff'].flatMap(key=>Array.isArray(snap[key])?snap[key]:[]),tokens=[];";
+const rowsNew="const sourceRows=[],tokens=[],seen=new WeakSet(),walk=value=>{if(!value||typeof value!=='object'||seen.has(value))return;seen.add(value);if(!Array.isArray(value))sourceRows.push(value);for(const child of Object.values(value))walk(child);};walk(snap);";
+const rowMatches=source.split(rowsOld).length-1;
+if(rowMatches!==2)throw new Error(`Expected two privacy source-row collectors, found ${rowMatches}.`);
+source=source.split(rowsOld).join(rowsNew);
+if(source.includes('walk(snap),tokens=[]'))throw new Error('Generated privacy runtime left an implicit token assignment.');
+
 const bodyRoots=source.split('root=document.body').length-1;
 if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three guards, found ${bodyRoots}.`);
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
-source=source.replace("version:'20260925-v6'","version:'20260926-v9'");
+source=source.replace("version:'20260925-v6'","version:'20260926-v12'");
 
 fs.writeFileSync(runtimePath,source);
 try{
+  const check=spawnSync(process.execPath,['--check',runtimePath],{encoding:'utf8'});
+  if(check.status!==0)throw new Error('Generated Northern runtime is invalid: '+String(check.stderr||check.stdout||'').trim());
   const run=spawnSync(process.execPath,[runtimePath],{stdio:'inherit',env:process.env});
   process.exitCode=run.status===null?1:run.status;
 }finally{
