@@ -63,7 +63,7 @@ need(finalRepair.includes('Photo saved. Video is still recording.'),'photo captu
 need(finalRepair.includes('capabilities')||finalRepair.includes('getCapabilities'),'replacement recorder keeps torch capability detection');
 need(finalRepair.includes('automaticApproval:false')&&finalRepair.includes('automaticCustomerSending:false'),'final repair does not add automatic owner/customer actions');
 
-need(nativeGuard.includes("site-visit-final-phone-repair.js?build=20260916-site-visit-final-phone-repair-1"),'final phone repair is loaded from the live Office bootstrap');
+need(nativeGuard.includes('const AUTHORITY_BUILD=')&&nativeGuard.includes("'./site-visit-final-phone-repair.js?build='+AUTHORITY_BUILD"),'final phone repair is loaded from the current live Office authority bootstrap');
 need(nativeGuard.includes('siteVisitFinalPhoneRepairLoaded:true'),'bootstrap contract exposes final repair authority');
 
 need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'optional server context build remains available');
