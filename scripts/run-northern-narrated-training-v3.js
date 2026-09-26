@@ -19,8 +19,8 @@ const matches=source.split(broad).length-1;
 if(matches!==2)throw new Error(`Expected two privacy key matchers, found ${matches}.`);
 source=source.split(broad).join(precise);
 
-const fullShellPrivacy="const root=document.body";
-if((source.split(fullShellPrivacy).length-1)<3)throw new Error('Full-shell training privacy protection is missing or incomplete.');
+const bodyRoots=source.split('root=document.body').length-1;
+if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three guards, found ${bodyRoots}.`);
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
 source=source.replace("version:'20260925-v6'","version:'20260926-v8'");
