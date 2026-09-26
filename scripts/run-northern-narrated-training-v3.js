@@ -20,10 +20,10 @@ const fixturePatch=[
   `const fixtureNew=${JSON.stringify(fixtureNew)};`,
   "if(!source.includes(fixtureOld))throw new Error('Northern fixture source drifted.');",
   "source=source.replace(fixtureOld,fixtureNew);"
-].join('\\n');
+].join('\n');
 const writeNeedle='fs.writeFileSync(runtimePath,source);';
 if(!source.includes(writeNeedle))throw new Error('Northern v2 runtime write source drifted.');
-source=source.replace(writeNeedle,fixturePatch+'\\n'+writeNeedle);
+source=source.replace(writeNeedle,fixturePatch+'\n'+writeNeedle);
 
 const broad="if(!/(name|address|street|email|phone|company|property|customer)/i.test(key))continue;";
 const precise="const normalized=String(key||'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(/\\b(id|type|status|key|code|kind|count|number)\\b/.test(normalized))continue;if(!(/\\b(email|phone|address|street)\\b/.test(normalized)||/\\b(first|last|contact|customer|property|company)\\s+name\\b/.test(normalized)||normalized==='name'))continue;";
