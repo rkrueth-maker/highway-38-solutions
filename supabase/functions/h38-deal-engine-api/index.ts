@@ -492,17 +492,16 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
   const nowIso = new Date().toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const memberIds = ctx.memberIds.length ? ctx.memberIds : [userId];
-  const [hunt, coupon, discoveries, prices, deals, existing] = await Promise.all([
+  const [hunt, coupon, discoveries, prices, deals] = await Promise.all([
     admin.from("reseller_hunt_cache").select("*").eq("active", true).gte("last_seen_at", sevenDaysAgo).limit(2500),
     admin.from("coupon_public_offer_cache").select("*").eq("active", true).gte("observed_at", sevenDaysAgo).or(`expires_at.is.null,expires_at.gt.${nowIso}`).limit(1000),
     admin.from("coupon_watch_discovery_cache").select("*").in("user_id", memberIds).gt("expires_at", nowIso).limit(1000),
     admin.from("coupon_price_observations").select("*").in("user_id", memberIds).gte("observed_at", sevenDaysAgo).order("observed_at", { ascending: false }).limit(1000),
     admin.from("reseller_deals").select("*").in("created_by", memberIds).order("updated_at", { ascending: false }).limit(1000),
-    admin.from("deal_engine_observations").select("*").eq("household_id", ctx.householdId).limit(4000),
   ]);
   const reads = [
     ["hunt", hunt], ["coupon", coupon], ["discoveries", discoveries],
-    ["prices", prices], ["deals", deals], ["existing", existing],
+    ["prices", prices], ["deals", deals],
   ] as const;
   for (const [label, q] of reads) {
     if (q.error) throw dbError("REFRESH_READ_" + label.toUpperCase(), q.error);
@@ -528,7 +527,16 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     if (!old || Date.parse(row.observed_at) > Date.parse(old.observed_at)) byKey.set(row.canonical_key, row);
   }
   const normalized = [...byKey.values()];
-  const oldMap = new Map((existing.data || []).map((x: any) => [String(x.canonical_key), x]));
+  const existingRows: any[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const page = await admin.from("deal_engine_observations").select("*")
+      .eq("household_id", ctx.householdId).eq("active", true)
+      .order("canonical_key", { ascending: true }).range(offset, offset + 499);
+    if (page.error) throw dbError("REFRESH_READ_EXISTING", page.error);
+    existingRows.push(...(page.data || []));
+    if ((page.data || []).length < 500) break;
+  }
+  const oldMap = new Map(existingRows.map((x: any) => [String(x.canonical_key), x]));
 
   const off = await admin.from("deal_engine_observations")
     .update({ active: false })
@@ -542,13 +550,6 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     if (q.error) throw dbError("REFRESH_OBSERVATION_UPSERT", q.error);
   }
 
-  const historyDebug = normalized.filter(row => changedEnough(oldMap.get(row.canonical_key), row)).slice(0, 5)
-    .map(row => ({ key: row.canonical_key, old: Object.fromEntries(
-      ["observed_price","regular_price","expected_resale","discount_percent","estimated_profit","roi_percent"]
-        .map(k => [k, oldMap.get(row.canonical_key)?.[k] ?? null])),
-      next: Object.fromEntries(
-        ["observed_price","regular_price","expected_resale","discount_percent","estimated_profit","roi_percent"]
-          .map(k => [k, row[k] ?? null])) }));
   const history = normalized.filter(row =>
     (row.observed_price !== null || row.expected_resale !== null || row.discount_percent !== null) &&
     changedEnough(oldMap.get(row.canonical_key), row)
@@ -591,7 +592,6 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     refreshed_at: nowIso,
     observation_count: normalized.length,
     history_added: history.length,
-    history_debug: historyDebug,
     source_counts: sourceCounts,
     warnings,
   };
@@ -1026,7 +1026,7 @@ Deno.serve(async (req: Request) => {
         if (!memberIds.length) continue;
         const result = await refreshEngine(admin, { householdId, memberIds }, memberIds[0]);
         refreshed.push({ household_id: householdId, observation_count: result.observation_count,
-          history_added: result.history_added, history_debug: result.history_debug });
+          history_added: result.history_added });
       }
       return json({ ok: true, refreshed, source: "scheduled_watch_refresh_v1" });
     }
