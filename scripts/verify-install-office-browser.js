@@ -35,7 +35,7 @@ function staticChecks(){
   assert.match(runtime,/apple-mobile-web-app-title/);
   assert.match(runtime,/apple-touch-icon/);
   assert.match(runtime,/highway38-logo\.png\?v=20260720-exact-0cbc4514/);
-  assert.match(install,/20260923-install-office-tablet-5-idempotent/);
+  assert.match(install,/20260927-install-office-settings-6/);
   assert.match(install,/beforeinstallprompt/);
   assert.match(install,/appinstalled/);
   assert.match(install,/MacIntel/,'iPadOS desktop identity must be recognized');
@@ -44,7 +44,11 @@ function staticChecks(){
   assert.match(install,/diagnostics/);
   assert.match(install,/max-width:540px/,'tablet install button must not use the old 760px phone cutoff');
   assert.match(install,/h38InstallState/,'More-menu install section must render idempotently');
-  assert.match(authGuard,/20260923-install-office-tablet-5-idempotent/);
+  assert.match(install,/businessOfficeInstallCard/,'Settings must expose an obvious install workspace');
+  assert.match(install,/data-install-settings-link="iphone"/);
+  assert.match(install,/data-install-settings-link="android"/);
+  assert.match(install,/installHelp/,'shareable install links must open the correct help');
+  assert.match(authGuard,/20260927-install-office-settings-6/);
   assert.match(authGuard,/h38RefreshTabletInstallRuntimeOnce/);
   assert.match(authGuard,/cache\.delete\('\.\/install-office\.js'/);
   assert.match(authGuard,/localStorage\.getItem\(H38_TABLET_INSTALL_RESET_KEY\)/);
@@ -94,6 +98,33 @@ async function phoneMore(browser){
   await page.waitForTimeout(150);
   assert.equal(await page.locator('[data-h38-install-group]').count(),1,'installer must keep one stable App group');
   assert.equal(await moreHandle.evaluate(node=>node.isConnected),true,'installer mutations must not detach the primary More control');
+  await context.close();
+}
+
+async function settingsInstallCard(browser){
+  const context=await browser.newContext({viewport:{width:1280,height:800}});
+  const page=await context.newPage();
+  const body='<header class="topbar"><div class="top-actions"></div></header><main id="mainContent"><div class="page-head"><h1>Settings</h1></div><div class="grid"></div></main>';
+  await page.route('https://office.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:html(body)}));
+  await page.goto('https://office.test/?shell=office&businessKey=northern-lakes');
+  await page.evaluate(()=>{window.state={page:'settings',snapshot:{business:{businessKey:'northern-lakes'},user:{owner:true}}};});
+  await page.addScriptTag({path:installPath});
+  window;
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page:'settings'}})));
+  await page.waitForSelector('#businessOfficeInstallCard');
+  assert.match(await page.locator('#businessOfficeInstallCard').innerText(),/Install Office on a phone/);
+  assert.match(await page.locator('#businessOfficeInstallCard').innerText(),/iPhone \/ iPad/);
+  assert.match(await page.locator('#businessOfficeInstallCard').innerText(),/Android/);
+  for(const target of ['iphone','android']){
+    const href=await page.locator(`[data-install-settings-link="${target}"]`).getAttribute('href');
+    const url=new URL(href);
+    assert.equal(url.searchParams.get('businessKey'),'northern-lakes','Settings install link must preserve tenant context');
+    assert.equal(url.searchParams.get('shell'),'office');
+    assert.equal(url.searchParams.get('installHelp'),target);
+    assert.equal(url.searchParams.has('shortcut'),false);
+  }
+  await page.click('[data-install-settings-open]');
+  await page.waitForSelector('#h38InstallOfficeDialog[open]');
   await context.close();
 }
 
@@ -156,9 +187,10 @@ async function shortcutRoute(browser){
   try{
     await desktopPrompt(browser);
     await phoneMore(browser);
+    await settingsInstallCard(browser);
     await androidTablet(browser);
     await ipadDesktopIdentity(browser);
     await shortcutRoute(browser);
-    console.log('H38 install Office desktop/phone/tablet acceptance: PASS');
+    console.log('H38 install Office desktop/phone/tablet/settings acceptance: PASS');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
