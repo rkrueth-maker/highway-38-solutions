@@ -184,7 +184,7 @@ jobs:
           prefix="${location#*/}"
           gcloud storage ls --recursive "gs://$bucket/$prefix/**" > "$report/firebase-result-files.txt" 2>&1 || exit 0
           mkdir -p "$report/firebase-result-details"
-          grep -Ei '(test.?result|instrumentation|logcat|junit|xml$|results.json)' "$report/firebase-result-files.txt" | head -n 24 | while IFS= read -r object; do
+          (grep -Ei '(test.?result|instrumentation|logcat|junit|xml$|results.json)' "$report/firebase-result-files.txt" || true) | head -n 24 | while IFS= read -r object; do
             case "$object" in gs://*) ;; *) continue;; esac
             name=$(printf '%s' "$object" | sha256sum | cut -c1-12)
             base=$(basename "$object")
