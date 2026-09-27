@@ -3,25 +3,25 @@ name: Verify Smart Import Business Migration
 on:
   pull_request:
     paths:
-      - 'commercial-app/index.html'
       - 'commercial-app/smart-import.js'
       - 'commercial-app/smart-import.css'
       - 'commercial-app/smart-upload.js'
       - 'commercial-app/customer-import-intelligence.js'
       - 'supabase/functions/h38-document-photo-analysis/**'
       - 'scripts/verify-smart-import-business-migration.js'
+      - 'scripts/verify-smart-import-business-migration-browser.js'
       - '.github/workflows/verify-smart-import-business-migration.yml'
   push:
     branches:
       - main
     paths:
-      - 'commercial-app/index.html'
       - 'commercial-app/smart-import.js'
       - 'commercial-app/smart-import.css'
       - 'commercial-app/smart-upload.js'
       - 'commercial-app/customer-import-intelligence.js'
       - 'supabase/functions/h38-document-photo-analysis/**'
       - 'scripts/verify-smart-import-business-migration.js'
+      - 'scripts/verify-smart-import-business-migration-browser.js'
       - '.github/workflows/verify-smart-import-business-migration.yml'
 
 permissions:
@@ -35,10 +35,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
       - name: Check Smart Import browser syntax
         run: node --check commercial-app/smart-import.js
       - name: Verify Smart Import migration contract
         run: node scripts/verify-smart-import-business-migration.js
+      - name: Run Smart Import browser acceptance fixtures
+        run: node scripts/verify-smart-import-business-migration-browser.js
       - name: Verify existing document analysis contract
         run: node scripts/verify-document-photo-analysis-repair.js
       - name: Verify existing universal import contract
