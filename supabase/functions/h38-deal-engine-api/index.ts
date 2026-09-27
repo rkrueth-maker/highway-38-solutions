@@ -490,12 +490,13 @@ function countsFor(rows: any[]) {
 
 async function refreshEngine(admin: any, ctx: any, userId: string) {
   const nowIso = new Date().toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const memberIds = ctx.memberIds.length ? ctx.memberIds : [userId];
   const [hunt, coupon, discoveries, prices, deals, existing] = await Promise.all([
-    admin.from("reseller_hunt_cache").select("*").eq("active", true).limit(2500),
-    admin.from("coupon_public_offer_cache").select("*").eq("active", true).or(`expires_at.is.null,expires_at.gt.${nowIso}`).limit(1000),
+    admin.from("reseller_hunt_cache").select("*").eq("active", true).gte("last_seen_at", sevenDaysAgo).limit(2500),
+    admin.from("coupon_public_offer_cache").select("*").eq("active", true).gte("observed_at", sevenDaysAgo).or(`expires_at.is.null,expires_at.gt.${nowIso}`).limit(1000),
     admin.from("coupon_watch_discovery_cache").select("*").in("user_id", memberIds).gt("expires_at", nowIso).limit(1000),
-    admin.from("coupon_price_observations").select("*").in("user_id", memberIds).order("observed_at", { ascending: false }).limit(1000),
+    admin.from("coupon_price_observations").select("*").in("user_id", memberIds).gte("observed_at", sevenDaysAgo).order("observed_at", { ascending: false }).limit(1000),
     admin.from("reseller_deals").select("*").in("created_by", memberIds).order("updated_at", { ascending: false }).limit(1000),
     admin.from("deal_engine_observations").select("*").eq("household_id", ctx.householdId).limit(4000),
   ]);
