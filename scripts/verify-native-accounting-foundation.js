@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('assert');
+const A=require('../commercial-app/accounting-engine.js');
+const businessId='TEST-H38';
+const date='2026-09-27';
+function ok(name,fn){try{fn();console.log('PASS',name);}catch(e){console.error('FAIL',name,e.message);throw e;}}
+
+ok('default chart contains A/R A/P and bank controls',()=>{const ids=new Set(A.chart().map(x=>x.id));for(const id of ['ACCT-1000','ACCT-1100','ACCT-2000','ACCT-4000'])assert(ids.has(id));});
+const invoice=A.invoicePosting({businessId,invoiceId:'INV-TEST-1',date,total:1000,customerId:'C-1',jobId:'J-1'});
+const partial=A.customerPaymentPosting({businessId,paymentId:'PAY-1',date,amount:400,customerId:'C-1',invoiceId:'INV-TEST-1',bankAccountId:'ACCT-1000'});
+const final=A.customerPaymentPosting({businessId,paymentId:'PAY-2',date,amount:600,customerId:'C-1',invoiceId:'INV-TEST-1',bankAccountId:'ACCT-1000'});
+ok('A/R lifecycle posts balanced accounting',()=>{for(const tx of [invoice,partial,final])assert(A.validateTransaction(tx).balanced);const tb=A.trialBalance([invoice,partial,final]);assert(Math.abs(tb.reduce((s,r)=>s+r.debits-r.credits,0))<0.001);const bs=A.balanceSheet([invoice,partial,final]);assert.equal(bs.difference,0);assert.equal(A.profitAndLoss([invoice,partial,final]).netIncome,1000);});
+ok('A/R aging reports partial open balance',()=>{const ar=A.arAging([{'Invoice ID':'I1','Due Date':'2026-08-15','Balance':600,'Status':'Partially Paid'}],date);assert.equal(ar.total,600);assert.equal(ar.buckets['31-60'],600);});
+const bill=A.vendorBillPosting({businessId,billId:'BILL-1832',date,total:742.18,vendorId:'V-ABC',jobId:'J-1',expenseAccountId:'ACCT-5000'});
+const vendorPay=A.vendorPaymentPosting({businessId,paymentId:'VP-1',date,amount:742.18,vendorId:'V-ABC',billIds:['BILL-1832']});
+ok('A/P lifecycle posts bill and payment',()=>{assert(A.validateTransaction(bill).balanced);assert(A.validateTransaction(vendorPay).balanced);const ap=A.apAging([{'Bill ID':'BILL-1832','Due Date':'2026-09-26','Open Balance':742.18,'Status':'Approved'}],date);assert.equal(ap.buckets['1-30'],742.18);const rec=A.billsToPay([{'Bill ID':'BILL-1832','Due Date':'2026-09-26','Open Balance':742.18,'Vendor ID':'V-ABC'}],{asOf:date});assert.equal(rec[0].status,'Overdue');});
+ok('check preparation cannot become a live negotiable payment',()=>{const check=A.prepareCheck({businessId,bankAccountId:'ACCT-1000',checkNumber:'1001',payee:'ABC Supply',amount:742.18,date,billIds:['BILL-1832'],memo:'Materials'});assert.equal(check.Negotiable,false);assert(/Approval Required/.test(check.Status));});
+ok('electronic payment remains a prepared instruction',()=>{const p=A.prepareElectronicPayment({businessId,vendorId:'V-ABC',payee:'ABC Supply',amount:742.18,date,fundingAccountId:'ACCT-1000',billIds:['BILL-1832']});assert.equal(p['External Transfer Occurred'],false);assert(/Approval Required/.test(p.Status));});
+ok('reconciliation explains a difference',()=>{const r=A.reconcile({statementEndingBalance:900,ledgerOpeningBalance:1000,cleared:[{direction:'out',amount:75},{direction:'out',amount:50},{direction:'in',amount:20}]});assert.equal(r.calculatedClearedBalance,895);assert.equal(r.difference,5);assert.equal(r.balanced,false);assert(/statement/.test(r.explanation));});
+ok('credit card missing receipt is surfaced',()=>{const c=A.creditCardReview([{chargeId:'CC1',amount:80},{chargeId:'CC2',amount:50}],[{chargeId:'CC1'}]);assert.equal(c.missingReceiptCount,1);assert.equal(c.missingReceipts[0].chargeId,'CC2');});
+ok('job profitability uses estimated-vs-actual cost components',()=>{const p=A.jobProfitability({invoicedRevenue:2000,collectedRevenue:1500,labor:500,materials:300,equipment:100,mileage:50,expenses:50});assert.equal(p.cost,1000);assert.equal(p.grossProfit,1000);assert.equal(p.grossMargin,.5);});
+ok('cash projection states assumptions and does not authorize money movement',()=>{const c=A.cashProjection({cashOnHand:5000,expectedReceipts:[{amount:1000}],approvedBills:[{amount:1200}],payrollObligations:[{amount:800}]});assert.equal(c.projectedAvailable,4000);assert(c.assumptions.length>=3);});
+ok('month-end gate identifies unresolved accounting work',()=>{const close=A.monthEndChecklist({bankReconciliations:[{balanced:false}],expenses:[{'Receipt Required':'Yes'}],bills:[{'Open Balance':100}],payments:[{'Payment ID':'P1'}],deposits:[{Status:'Prepared'}],duplicates:[{}],inventoryExceptions:[{}],payrollPeriods:[{Status:'Draft'}]});assert.equal(close.readyToClose,false);for(const code of ['BANK_UNRECONCILED','MISSING_RECEIPTS','UNPAID_BILLS','UNAPPLIED_PAYMENTS','OUTSTANDING_DEPOSITS','DUPLICATES','INVENTORY_EXCEPTION','PAYROLL_OPEN'])assert(close.issues.some(i=>i.code===code));});
+ok('reversal creates equal and opposite immutable correction',()=>{const rev=A.reverse(invoice,{businessId,date});assert.equal(rev.reversalOf,invoice.id);assert.equal(rev.lines[0].credit,invoice.lines[0].debit);assert(A.validateTransaction(rev).balanced);});
+ok('duplicate vendor bill detector uses vendor number amount and date',()=>{const d=A.findDuplicates([{vendorId:'V1',billNumber:'123',total:10,billDate:'2026-09-01'},{vendorId:'V1',billNumber:'123',total:10,billDate:'2026-09-01'}],'vendor-bill');assert.equal(d.length,1);});
+ok('QuickBooks is optional and fail-closed when disconnected',()=>{const q=A.quickBooksAdapterState();assert.equal(q.connected,false);assert.equal(q.mode,'external-gate');assert(/H38 Office remains operational/.test(q.sourceOfTruth));});
+console.log('Native accounting foundation acceptance complete.');
