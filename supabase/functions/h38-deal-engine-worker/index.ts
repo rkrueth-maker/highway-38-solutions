@@ -183,6 +183,29 @@ async function refreshCouponSources() {
   }
 }
 
+async function refreshWebDiscovery() {
+  try {
+    const r = await fetch(`${BASE}/functions/v1/h38-coupon-api`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE}`,
+        apikey: SERVICE,
+        "x-h38-nightly-key": (await admin().from("h38_internal_job_secrets")
+          .select("secret_value").eq("name", "penny-nightly").maybeSingle()).data?.secret_value || "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "scheduled_web_discover" }),
+      signal: AbortSignal.timeout(35000),
+    });
+    const body = await r.json().catch(() => ({}));
+    return { ok: r.ok && body?.ok === true, status: r.status,
+      refreshed: body?.refreshed || [], due_count: Number(body?.due_count || 0),
+      error: text(body?.error || body?.detail) };
+  } catch (e) {
+    return { ok: false, status: 598, refreshed: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "POST_REQUIRED" }, 405);
@@ -304,6 +327,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const couponRefresh = await refreshCouponSources();
+    const webDiscovery = await refreshWebDiscovery();
     return json({
       ok: true,
       engine: "H38_DEAL_ENGINE_WORKER_V1",
@@ -321,6 +345,7 @@ Deno.serve(async (req: Request) => {
         household_prices: priceQ.data?.length || 0,
       },
       coupon_refresh: couponRefresh,
+      web_discovery: webDiscovery,
       elapsed_ms: Date.now() - started,
       truth: "Watch hits require current source evidence and all configured thresholds. Profit/ROI watches never pass when sold comps or costs are missing.",
     });
