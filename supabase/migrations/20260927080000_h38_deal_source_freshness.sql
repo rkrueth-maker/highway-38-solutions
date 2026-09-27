@@ -3,8 +3,7 @@
 -- flow back into Deal Engine during a user/manual refresh.
 
 update public.reseller_hunt_cache
-set active = false,
-    updated_at = now()
+set active = false
 where active = true
   and last_seen_at is not null
   and last_seen_at < now() - interval '7 days';
@@ -27,8 +26,7 @@ begin
     '16 * * * *',
     $job$
       update public.reseller_hunt_cache
-      set active = false,
-          updated_at = now()
+      set active = false
       where active = true
         and last_seen_at is not null
         and last_seen_at < now() - interval '7 days';
