@@ -8,6 +8,7 @@ const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
 const TAX_CENTER_BUILD='20260924-tax-center-1';
 const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1';
 const CUSTOMER_SALES_UI_BUILD='20260927-customer-sales-ui-1';
+const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-2';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 function owner(){const user=window.state?.snapshot?.user||{};return user.owner===true||/\bowner\b/i.test(text(user.roleName||user.role));}
@@ -60,6 +61,7 @@ function loadCustomerSales(){
   }
   return loadScript('H38_CUSTOMER_SALES_UI','h38-customer-sales-ui',`./customer-sales-ui.js?build=${CUSTOMER_SALES_UI_BUILD}`);
 }
+function loadCustomerSalesActionOwner(){return loadScript('H38_CUSTOMER_SALES_ACTION_OWNER','h38-customer-sales-action-owner',`./customer-sales-action-owner.js?build=${CUSTOMER_SALES_ACTION_OWNER_BUILD}`);}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply();});}
 window.addEventListener('h38:ai-team-ready',schedule);
 window.addEventListener('h38:ai-owner-command-ready',schedule);
@@ -72,6 +74,7 @@ loadPlatformDeepen();
 loadQuickBooksServerBridge();
 loadTaxCenter();
 loadCustomerSales();
+loadCustomerSalesActionOwner();
 setTimeout(schedule,0);
-window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,previousAcceptedBuild:PREVIOUS_ACCEPTED_BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,taxCenterBuild:TAX_CENTER_BUILD,customerSalesBuild:CUSTOMER_SALES_BUILD,customerSalesUiBuild:CUSTOMER_SALES_UI_BUILD,platformLoader:true,taxCenterLoader:true,customerSalesLoader:true});
+window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,previousAcceptedBuild:PREVIOUS_ACCEPTED_BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,taxCenterBuild:TAX_CENTER_BUILD,customerSalesBuild:CUSTOMER_SALES_BUILD,customerSalesUiBuild:CUSTOMER_SALES_UI_BUILD,customerSalesActionOwnerBuild:CUSTOMER_SALES_ACTION_OWNER_BUILD,platformLoader:true,taxCenterLoader:true,customerSalesLoader:true,customerSalesActionOwnerLoader:true});
 })();
