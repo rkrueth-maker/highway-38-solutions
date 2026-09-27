@@ -1,0 +1,29 @@
+name: Verify quote owner task lifecycle
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260927013000_quote_owner_task_lifecycle.sql'
+      - 'scripts/verify-quote-owner-task-lifecycle.js'
+      - '.github/workflows/verify-quote-owner-task-lifecycle.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260927013000_quote_owner_task_lifecycle.sql'
+      - 'scripts/verify-quote-owner-task-lifecycle.js'
+      - '.github/workflows/verify-quote-owner-task-lifecycle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify shared quote owner-task lifecycle
+        run: node scripts/verify-quote-owner-task-lifecycle.js
