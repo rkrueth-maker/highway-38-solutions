@@ -57,16 +57,17 @@ if(source.split(gateOld).length-1!==1)throw new Error('Expected one Northern pri
 source=source.replace(gateOld,gateNew);
 
 const workingForAnchor="document.querySelectorAll('a[href^=\"mailto:\"],a[href^=\"tel:\"]').forEach(link=>link.removeAttribute('href'));}finally{applying=false;}};";
-const workingForMask="document.querySelectorAll('a[href^=\"mailto:\"],a[href^=\"tel:\"]').forEach(link=>link.removeAttribute('href'));const privacySafe=value=>/\\b(TEST|NARRATED|DEMO|SCENARIO)\\b/i.test(String(value||''))||/Northern Lakes/i.test(String(value||''));for(let i=0;i<nodes.length;i++){const raw=String(nodes[i]?.nodeValue||'').trim();if(!/^working for\\b/i.test(raw))continue;const sameLine=raw.replace(/^working for\\s*[:—-]?\\s*/i,'').trim();if(sameLine&&!privacySafe(sameLine))nodes[i].nodeValue='Working for Private customer / property';let masked=0;for(let j=i+1;j<nodes.length&&masked<2;j++){const next=String(nodes[j]?.nodeValue||'').trim();if(!next)continue;const parent=nodes[j]?.parentElement;if(parent?.closest?.('[data-nl-training-caption]'))continue;if(/^working for\\b/i.test(next))break;if(!privacySafe(next))nodes[j].nodeValue='Private customer / property';masked+=1;}}}finally{applying=false;}};";
+const workingForMask="document.querySelectorAll('a[href^=\"mailto:\"],a[href^=\"tel:\"]').forEach(link=>link.removeAttribute('href'));const privacySafe=value=>{const text=String(value||'').trim();return /\\b(TEST|NARRATED|DEMO|SCENARIO)\\b/i.test(text)||/Northern Lakes/i.test(text)||/^Private customer \\/ property$/i.test(text)||/^Working for Private customer \\/ property$/i.test(text);};for(let i=0;i<nodes.length;i++){const raw=String(nodes[i]?.nodeValue||'').trim();if(!/^working for\\b/i.test(raw))continue;const sameLine=raw.replace(/^working for\\s*[:—-]?\\s*/i,'').trim();if(sameLine&&!privacySafe(sameLine))nodes[i].nodeValue='Working for Private customer / property';let masked=0;for(let j=i+1;j<nodes.length&&masked<2;j++){const next=String(nodes[j]?.nodeValue||'').trim();if(!next)continue;const parent=nodes[j]?.parentElement;if(parent?.closest?.('[data-nl-training-caption]'))continue;if(/^working for\\b/i.test(next))break;if(!privacySafe(next))nodes[j].nodeValue='Private customer / property';masked+=1;}}}finally{applying=false;}};";
 if(source.split(workingForAnchor).length-1!==1)throw new Error('Expected one training privacy anchor for Working for masking.');
 source=source.replace(workingForAnchor,workingForMask);
 if(!source.includes("/^working for\\b/i"))throw new Error('Working for privacy mask is missing from generated recorder runtime.');
+if(!source.includes("/^Private customer \\/ property$/i"))throw new Error('Working for privacy mask must treat its placeholder as stable.');
 
 const bodyRoots=source.split('root=document.body').length-1;
 if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three guards, found ${bodyRoots}.`);
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
-source=source.replace("version:'20260925-v6'","version:'20260927-v15'");
+source=source.replace("version:'20260925-v6'","version:'20260927-v16'");
 
 fs.writeFileSync(runtimePath,source);
 try{
