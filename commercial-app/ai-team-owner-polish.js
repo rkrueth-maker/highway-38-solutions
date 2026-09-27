@@ -6,6 +6,8 @@ const PLATFORM_BUILD='20260923-platform-push-1';
 const PLATFORM_DEEPEN_BUILD='20260924-platform-deepen-1';
 const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
 const TAX_CENTER_BUILD='20260924-tax-center-1';
+const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1';
+const CUSTOMER_SALES_UI_BUILD='20260927-customer-sales-ui-1';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 function owner(){const user=window.state?.snapshot?.user||{};return user.owner===true||/\bowner\b/i.test(text(user.roleName||user.role));}
@@ -52,6 +54,12 @@ function loadPlatformNext(){
 function loadPlatformDeepen(){return loadScript('H38_PLATFORM_DEEPEN','h38-platform-deepen',`./platform-deepen.js?build=${PLATFORM_DEEPEN_BUILD}`);}
 function loadQuickBooksServerBridge(){return loadScript('H38_QUICKBOOKS_SERVER_BRIDGE','h38-quickbooks-server-bridge',`./quickbooks-server-bridge.js?build=${QBO_SERVER_BUILD}`);}
 function loadTaxCenter(){return loadScript('H38_TAX_CENTER','h38-tax-center',`./tax-center.js?build=${TAX_CENTER_BUILD}`);}
+function loadCustomerSales(){
+  if(!window.H38_CUSTOMER_SALES_NEXT&&!document.querySelector('script[data-h38-customer-sales-next]')){
+    const engine=document.createElement('script');engine.src=`./customer-sales-next.js?build=${CUSTOMER_SALES_BUILD}`;engine.async=false;engine.dataset.h38CustomerSalesNext='1';engine.addEventListener('load',()=>loadScript('H38_CUSTOMER_SALES_UI','h38-customer-sales-ui',`./customer-sales-ui.js?build=${CUSTOMER_SALES_UI_BUILD}`),{once:true});document.body.appendChild(engine);return true;
+  }
+  return loadScript('H38_CUSTOMER_SALES_UI','h38-customer-sales-ui',`./customer-sales-ui.js?build=${CUSTOMER_SALES_UI_BUILD}`);
+}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply();});}
 window.addEventListener('h38:ai-team-ready',schedule);
 window.addEventListener('h38:ai-owner-command-ready',schedule);
@@ -63,6 +71,7 @@ loadPlatformNext();
 loadPlatformDeepen();
 loadQuickBooksServerBridge();
 loadTaxCenter();
+loadCustomerSales();
 setTimeout(schedule,0);
-window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,previousAcceptedBuild:PREVIOUS_ACCEPTED_BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,taxCenterBuild:TAX_CENTER_BUILD,platformLoader:true,taxCenterLoader:true});
+window.H38_AI_TEAM_OWNER_POLISH=Object.freeze({enabled:true,build:BUILD,previousAcceptedBuild:PREVIOUS_ACCEPTED_BUILD,apply,ownerCommandPresentationOnly:true,noWritePath:true,noPermissionChanges:true,noEngineChanges:true,platformBuild:PLATFORM_BUILD,platformDeepenBuild:PLATFORM_DEEPEN_BUILD,quickBooksServerBuild:QBO_SERVER_BUILD,taxCenterBuild:TAX_CENTER_BUILD,customerSalesBuild:CUSTOMER_SALES_BUILD,customerSalesUiBuild:CUSTOMER_SALES_UI_BUILD,platformLoader:true,taxCenterLoader:true,customerSalesLoader:true});
 })();
