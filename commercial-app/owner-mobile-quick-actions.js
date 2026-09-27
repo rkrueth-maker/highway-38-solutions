@@ -1,9 +1,12 @@
 (function(){
 'use strict';
-const BUILD='20260926-shared-tool-labels-6';
+const BUILD='20260927-install-links-7';
 const MOBILE='(max-width: 760px)';
-const text=value=>String(value==null?'':value).trim();
+const INSTALL_HELP_PARAM='installHelp';
+const INSTALL_TARGETS=new Set(['iphone','android']);
 let timeDialogMode=false;
+let installHelpAutoOpened=false;
+const text=value=>String(value==null?'':value).trim();
 function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
 function user(){return window.state?.snapshot?.user||{};}
 function role(){const u=user();return text(u.roleName||u.roleId||u.role).toLowerCase();}
@@ -14,11 +17,13 @@ function installStyle(){
   if(!style){style=document.createElement('style');style.id='h38OwnerMobileQuickActionsStyle';document.head.appendChild(style);}
   const css=`#h38TimeClockCard{display:none!important}
 #h38ErpDialog[data-h38-time-only="1"] .h38-erp-body>.h38-erp-section:not(#h38ErpTime){display:none!important}
+.h38-install-platform-links{display:grid;gap:8px;margin-top:10px}.h38-install-platform-links-label{margin:0;font-size:.82rem;font-weight:800;color:var(--muted,#607285)}.h38-install-platform-links-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.h38-install-platform-link{display:flex;align-items:center;justify-content:center;min-height:42px;padding:8px 10px;border:1px solid var(--line,#cad5df);border-radius:10px;background:var(--panel,#fff);color:inherit;text-decoration:none;font-weight:850;text-align:center}.h38-install-platform-link:focus-visible{outline:3px solid rgba(31,111,235,.24);outline-offset:2px}
 @media(max-width:760px){
 #mainNav.h38-five-primary-nav button{box-sizing:border-box!important;border-width:1px!important;margin:0!important;transform:none!important;translate:none!important;scale:1!important;animation:none!important;transition:background-color .12s ease,border-color .12s ease,box-shadow .12s ease!important;contain:layout paint!important}
 #mainNav.h38-five-primary-nav button.active,#mainNav.h38-five-primary-nav button:active,#mainNav.h38-five-primary-nav button:focus-visible{transform:none!important;translate:none!important;scale:1!important}
 #mainNav.h38-five-primary-nav button .nav-icon,#mainNav.h38-five-primary-nav button span{transform:none!important;translate:none!important}
-}`;
+}
+@media(max-width:540px){.h38-install-platform-links-grid{grid-template-columns:1fr}}`;
   if(style.textContent!==css)style.textContent=css;
 }
 function triggerErp(target){
@@ -92,7 +97,7 @@ function patchQuickDialog(){
     const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and operating signals',openOperations);
     grid.appendChild(ops);
   }else if(!mobile()&&existingOps)existingOps.remove();
-  if(dialog.dataset.h38OwnerMobileQuickActions!=='6')dialog.dataset.h38OwnerMobileQuickActions='6';
+  if(dialog.dataset.h38OwnerMobileQuickActions!=='7')dialog.dataset.h38OwnerMobileQuickActions='7';
 }
 function normalizeInstallText(root){
   if(!root)return false;
@@ -106,6 +111,45 @@ function normalizeInstallText(root){
     if(next!==value){node.nodeValue=next;changed=true;}
   }
   return changed;
+}
+function installLink(target){
+  const key=text(target).toLowerCase();
+  if(!INSTALL_TARGETS.has(key))return '';
+  try{
+    const url=new URL(location.href);
+    url.hash='';
+    url.searchParams.set('shell','office');
+    url.searchParams.delete('shortcut');
+    url.searchParams.set(INSTALL_HELP_PARAM,key);
+    return url.toString();
+  }catch(_){return '';}
+}
+function ensureInstallPlatformLinks(root,mode='dialog'){
+  if(!root)return false;
+  let wrap=root.querySelector(':scope > [data-h38-install-platform-links]');
+  if(!wrap){
+    wrap=document.createElement('div');wrap.className='h38-install-platform-links';wrap.dataset.h38InstallPlatformLinks=mode;
+    const label=document.createElement('p');label.className='h38-install-platform-links-label';label.textContent=mode==='dialog'?'Share a phone installation link:':'Phone installation links';
+    const grid=document.createElement('div');grid.className='h38-install-platform-links-grid';
+    for(const [target,labelText] of [['iphone','iPhone install link'],['android','Android install link']]){
+      const link=document.createElement('a');link.className='h38-install-platform-link';link.dataset.h38InstallPlatformLink=target;link.textContent=labelText;link.href=installLink(target);link.setAttribute('aria-label',`${labelText} for this Business Office`);grid.appendChild(link);
+    }
+    wrap.append(label,grid);
+    const actions=mode==='dialog'?root.querySelector('.h38-install-actions'):null;
+    if(actions?.parentElement===root)root.insertBefore(wrap,actions);else root.appendChild(wrap);
+  }
+  for(const target of INSTALL_TARGETS){const link=wrap.querySelector(`[data-h38-install-platform-link="${target}"]`);if(link){const href=installLink(target);if(href&&link.href!==href)link.href=href;}}
+  return true;
+}
+function autoOpenInstallHelp(){
+  if(installHelpAutoOpened)return false;
+  let target='';try{target=text(new URLSearchParams(location.search).get(INSTALL_HELP_PARAM)).toLowerCase();}catch(_){}
+  if(!INSTALL_TARGETS.has(target))return false;
+  const api=window.H38_INSTALL_OFFICE;
+  if(!api?.open)return false;
+  installHelpAutoOpened=true;
+  api.open();
+  return true;
 }
 function normalizeSharedToolLabels(){
   const launcher=document.getElementById('globalAiButton');
@@ -124,8 +168,13 @@ function normalizeSharedToolLabels(){
     if(install.getAttribute('aria-label')!=='Install Business Office app')install.setAttribute('aria-label','Install Business Office app');
     if(install.getAttribute('title')!=='Install Business Office')install.setAttribute('title','Install Business Office');
   }
-  normalizeInstallText(document.querySelector('[data-h38-install-group]'));
-  normalizeInstallText(document.getElementById('h38InstallOfficeDialog'));
+  const group=document.querySelector('[data-h38-install-group]');
+  const dialog=document.getElementById('h38InstallOfficeDialog');
+  normalizeInstallText(group);
+  normalizeInstallText(dialog);
+  ensureInstallPlatformLinks(group,'menu');
+  ensureInstallPlatformLinks(dialog,'dialog');
+  autoOpenInstallHelp();
   return true;
 }
 let applyQueued=false;
@@ -137,5 +186,5 @@ function scheduleApply(){if(applyQueued)return;applyQueued=true;queueMicrotask(a
 const observer=new MutationObserver(scheduleApply);observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
 window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('h38:office-page-rendered',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
 scheduleApply();
-window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,sharedOfficeEngine:true,plusLocationPreserved:true,clockInOutUnderPlus:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,staffTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,aiNavigationLabelTenantNeutral:true,openClock,openOperations,patchQuickDialog,polishTimeDialog,normalizeSharedToolLabels});
+window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,sharedOfficeEngine:true,plusLocationPreserved:true,clockInOutUnderPlus:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,staffTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,installPlatformLinks:true,installLinksTenantAware:true,installLinkAutoOpen:true,aiNavigationLabelTenantNeutral:true,openClock,openOperations,installLink,patchQuickDialog,polishTimeDialog,normalizeSharedToolLabels});
 })();
