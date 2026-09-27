@@ -4,7 +4,7 @@
   if(window.H38_ACCOUNTING_POSTING_BRIDGE?.enabled)return;
   const A=window.H38_ACCOUNTING_ENGINE;
   const baseQueue=window.queueOperation.bind(window);
-  const BUILD='20260927-wave1-accounting-posting-1';
+  const BUILD='20260927-wave1-accounting-posting-2';
   const text=v=>String(v==null?'':v).trim();
   const num=v=>{const n=Number(v||0);return Number.isFinite(n)?n:0;};
   const today=()=>new Date().toISOString().slice(0,10);
@@ -23,5 +23,8 @@
   async function mirrorInvoiceDeletion(recordId,record,bid){if(!(record?.Deleted===true||/DELET|VOID/i.test(text(record?.Status))))return;const originalId=`GL-INVOICE-${recordId}`,original=txById(originalId);if(!original)return;const reversalId=`REV-INVOICE-${recordId}`;if(txById(reversalId))return;const reversal=A.reverse(normalizeStoredTx(original),{transactionId:reversalId,businessId:bid,date:today(),memo:`Reverse deleted invoice ${record?.['Invoice Number']||recordId}`});await saveTx(reversal);}
   async function mirror(action,recordId,payload,bid){if(action==='SAVE_INVOICE')return mirrorInvoice(recordId,payload,bid);if(action==='RECORD_PAYMENT')return mirrorPayment(recordId,payload,bid);if(action==='SAVE_ENTITY'&&text(payload?.entity)==='invoices')return mirrorInvoiceDeletion(recordId,payload?.record,bid);}
   window.queueOperation=async function(action,recordType,recordId,payload,local,autoSync){const bid=businessId({businessId:payload?.businessId});const result=await baseQueue(action,recordType,recordId,payload,local,autoSync);if(!bid)return result;try{await mirror(action,recordId,payload,bid);}catch(error){console.warn('Accounting posting bridge review required:',error);await saveException(action,recordId,error,bid);try{window.toast?.('Business record saved. Accounting mirror needs review.',true);}catch(ignore){}}return result;};
-  window.H38_ACCOUNTING_POSTING_BRIDGE=Object.freeze({enabled:true,build:BUILD,deterministicSourcePosting:true,invoicePosting:true,customerPaymentPosting:true,invoiceDeletionReversal:true,expenseAutopost:false,reasonExpenseAutopostDisabled:'Funding/payment method is required before cash or card accounting can be posted safely.'});
+  function loadScript(src,ready){if(ready())return Promise.resolve();return new Promise((resolve,reject)=>{const prior=[...document.scripts].find(s=>s.src.includes(src.split('?')[0]));if(prior){if(ready())return resolve();prior.addEventListener('load',resolve,{once:true});prior.addEventListener('error',()=>reject(new Error(`Could not load ${src}`)),{once:true});return;}const script=document.createElement('script');script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error(`Could not load ${src}`));document.head.appendChild(script);});}
+  function loadOperations(){return loadScript('./accounting-operations.js?build=20260927-wave1-operations-1',()=>!!window.H38_ACCOUNTING_OPERATIONS).then(()=>loadScript('./accounting-operations-ui.js?build=20260927-wave1-operations-ui-1',()=>!!window.H38_ACCOUNTING_OPERATIONS_UI)).then(()=>{if(window.state?.page==='accounting')window.H38_ACCOUNTING_OPERATIONS_UI?.decorate?.();}).catch(error=>console.warn('Accounting operations loader review required:',error));}
+  window.H38_ACCOUNTING_POSTING_BRIDGE=Object.freeze({enabled:true,build:BUILD,deterministicSourcePosting:true,invoicePosting:true,customerPaymentPosting:true,invoiceDeletionReversal:true,expenseAutopost:false,operationsLoader:true,reasonExpenseAutopostDisabled:'Funding/payment method is required before cash or card accounting can be posted safely.'});
+  loadOperations();
 })();
