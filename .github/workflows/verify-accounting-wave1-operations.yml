@@ -1,0 +1,52 @@
+name: Verify Accounting Wave 1 Operations
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/accounting-operations.js'
+      - 'commercial-app/accounting-operations-ui.js'
+      - 'commercial-app/accounting-posting-bridge.js'
+      - 'scripts/verify-accounting-operations.js'
+      - 'scripts/verify-accounting-operations-browser.js'
+      - '.github/workflows/verify-accounting-wave1-operations.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/accounting-operations.js'
+      - 'commercial-app/accounting-operations-ui.js'
+      - 'commercial-app/accounting-posting-bridge.js'
+      - 'scripts/verify-accounting-operations.js'
+      - 'scripts/verify-accounting-operations-browser.js'
+      - '.github/workflows/verify-accounting-wave1-operations.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  accounting-operations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check accounting operations syntax
+        run: |
+          node --check commercial-app/accounting-operations.js
+          node --check commercial-app/accounting-operations-ui.js
+          node --check commercial-app/accounting-posting-bridge.js
+          node --check scripts/verify-accounting-operations.js
+          node --check scripts/verify-accounting-operations-browser.js
+      - name: Verify accounting operations rules
+        run: node scripts/verify-accounting-operations.js
+      - name: Verify posting bridge loads daily money operations
+        run: |
+          grep -Fq "accounting-operations.js?build=20260927-wave1-operations-1" commercial-app/accounting-posting-bridge.js
+          grep -Fq "accounting-operations-ui.js?build=20260927-wave1-operations-ui-1" commercial-app/accounting-posting-bridge.js
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify owner daily-money browser flows
+        run: node scripts/verify-accounting-operations-browser.js
