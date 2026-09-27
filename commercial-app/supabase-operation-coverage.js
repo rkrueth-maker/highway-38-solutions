@@ -1,6 +1,14 @@
 (function () {
   'use strict';
 
+  if (!window.H38_SHARED_LIFECYCLE_TASK_UI && !document.querySelector('script[data-h38-shared-lifecycle-task-ui]')) {
+    const script=document.createElement('script');
+    script.src='./shared-lifecycle-task-ui.js?build=20260926-shared-lifecycle-task-ui-1';
+    script.async=false;
+    script.dataset.h38SharedLifecycleTaskUi='1';
+    (document.head||document.documentElement).appendChild(script);
+  }
+
   const config = window.H38_BUSINESS_OFFICE_SUPABASE || {};
   const auth = window.H38_SUPABASE_AUTH;
   const Bridge = window.H38Bridge;
