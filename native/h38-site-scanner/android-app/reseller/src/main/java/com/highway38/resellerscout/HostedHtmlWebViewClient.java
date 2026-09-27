@@ -87,29 +87,45 @@ final class HostedHtmlWebViewClient extends WebViewClient {
     @Override public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
         if (!isHostedHtmlPage(url)) return;
+        // WebView can report the previous navigation's completion after a new
+        // hosted page starts loading. Do not reload or replace that new page.
+        view.postDelayed(() -> verifyRenderedPage(view, url, 0), 600);
+    }
+
+    private void verifyRenderedPage(WebView view, String url, int attempt) {
+        if (!url.equals(view.getUrl())) return;
         view.evaluateJavascript(
-                "(function(){var t=(document.body&&document.body.innerText||'').trim().toLowerCase();" +
+                "(function(){if(document.readyState!=='complete')return 'pending';" +
+                        "var t=(document.body&&document.body.innerText||'').trim().toLowerCase();" +
                         "var hasUi=!!document.querySelector('main,section,.wrap,.card');" +
-                        "return document.contentType==='text/html'&&hasUi&&!t.startsWith('<!doctype html')&&!t.startsWith('<html');})()",
+                        "return document.contentType==='text/html'&&hasUi" +
+                        "&&!t.startsWith('<!doctype html')&&!t.startsWith('<html');})()",
                 value -> {
+                    if (!url.equals(view.getUrl())) return;
                     boolean ok = "true".equalsIgnoreCase(String.valueOf(value));
                     if (ok) {
                         synchronized (recoveryAttempted) { recoveryAttempted.remove(url); }
                         Log.i(TAG, "H38_HTML_RENDER_PASS " + url);
                         return;
                     }
+                    // Let the DOM settle before declaring failure. An early
+                    // blank document must never trigger a chain of reloads.
+                    if (attempt < 3) {
+                        view.postDelayed(() -> verifyRenderedPage(view, url, attempt + 1), 750);
+                        return;
+                    }
                     Log.e(TAG, RAW_SOURCE_GUARD + " detected invalid hosted render: " + url);
                     boolean first;
                     synchronized (recoveryAttempted) { first = recoveryAttempted.add(url); }
                     if (first) {
-                        activity.runOnUiThread(view::reload);
+                        view.reload();
                     } else {
-                        activity.runOnUiThread(() -> view.loadDataWithBaseURL(
+                        view.loadDataWithBaseURL(
                                 url,
                                 errorDocument("Hosted page could not be rendered safely. Tap Retry."),
                                 "text/html",
                                 "UTF-8",
-                                url));
+                                url);
                     }
                 });
     }
