@@ -94,7 +94,11 @@
     "privateFiles": true,
     "hostedPaymentAdapter": true,
     "liveChargingEnabled": false,
-    "paymentProvider": "not-configured"
+    "paymentProvider": "paypal-commerce",
+    "paymentProviderConnectionState": "business-account-connection-required",
+    "paymentMethodsPrepared": ["PayPal", "Venmo", "Credit Card", "Debit Card"],
+    "venmoViaPayPalHostedCheckout": true,
+    "currency": "USD"
   },
   "storage": {
     "defaultProvider": "supabase",
@@ -130,8 +134,9 @@
     "externalActionsEnabled": false,
     "automaticCustomerSending": false,
     "automaticFinancialActions": false,
-    "automaticSocialPublishing": false,
     "directPaymentProcessing": false,
+    "directWalletCredentialHandling": false,
+    "automaticSocialPublishing": false,
     "directPayrollFunding": false,
     "directTaxFiling": false,
     "bulkMessagingEnabled": false,

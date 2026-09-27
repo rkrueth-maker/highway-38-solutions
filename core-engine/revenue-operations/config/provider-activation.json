@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "release": "revenue-growth-activation-2.0.0",
+  "release": "revenue-growth-activation-2.1.0",
   "environment": "production",
   "controls": {
     "selectedRecordOnly": true,
@@ -29,14 +29,26 @@
     {
       "slot": "payments",
       "purpose": "Provider-hosted payment links, deposits, progress/final billing, recurring billing, receipts, credits, and refunds",
-      "mode": "manual",
-      "provider": null,
+      "mode": "provider-hosted-prepared",
+      "provider": "paypal-commerce",
       "credentialState": "MISSING",
-      "accountApprovalState": "UNKNOWN",
+      "accountApprovalState": "BUSINESS_ACCOUNT_CONNECTION_REQUIRED",
       "liveExecution": false,
       "sandboxAvailable": true,
+      "merchantRegion": "US",
+      "currency": "USD",
+      "supportedPaymentMethods": ["PayPal", "Venmo", "Credit Card", "Debit Card"],
+      "venmo": {
+        "enabledWhenProviderLive": true,
+        "viaProvider": "paypal-commerce",
+        "providerHostedOnly": true,
+        "requiresPayPalBusinessAccount": true,
+        "requiresUSMerchant": true,
+        "requiresUSCustomer": true,
+        "currency": "USD"
+      },
       "requiredCapabilities": ["createHostedRequest", "readStatus", "recordReceipt", "createRefund", "createCredit", "reconcile", "deduplicate"],
-      "exactConnectionStep": "Choose and approve a provider-hosted payment service, complete the provider business/account review, store test credentials privately, run hosted-link and webhook tests with no raw card data, then separately store production credentials and require owner release for each external payment action."
+      "exactConnectionStep": "Connect a U.S. PayPal Business account, enable PayPal-hosted Checkout or Payment Links with Venmo available, store credentials only in the private runtime secret store when API credentials are needed, run sandbox hosted-link and webhook tests with no raw card data, then separately release production after owner approval."
     },
     {
       "slot": "accounting",
@@ -89,7 +101,9 @@
   ],
   "paymentSecurity": {
     "providerHostedCardEntryRequired": true,
+    "providerHostedWalletEntryRequired": true,
     "rawCardDataAllowed": false,
+    "rawVenmoCredentialsAllowed": false,
     "browserCardFieldsAllowed": false,
     "sheetCardFieldsAllowed": false,
     "logCardFieldsAllowed": false,

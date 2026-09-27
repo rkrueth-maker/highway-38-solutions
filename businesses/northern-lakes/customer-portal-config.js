@@ -20,7 +20,14 @@ window.NL_CUSTOMER_PORTAL_CONFIG=Object.freeze({
   liveChargingEnabled:false,
   testMode:true,
   adapter:'hosted-payment-url',
-  notice:'Online payment setup is prepared but live charging is not active. A Pay Invoice button appears only when Northern Lakes has attached a verified hosted payment link to that invoice.'
+  provider:'paypal-commerce',
+  providerConnectionRequired:true,
+  currency:'USD',
+  methods:Object.freeze(['PayPal','Venmo','Credit Card','Debit Card']),
+  venmoViaPayPalHostedCheckout:true,
+  rawCardDataAllowed:false,
+  rawWalletCredentialsAllowed:false,
+  notice:'PayPal-hosted checkout is prepared for PayPal, Venmo and cards. A Pay Invoice button appears only after Northern Lakes connects and verifies its PayPal Business payment link for that invoice.'
  })
 });
 (function loadHighway38Attribution(){

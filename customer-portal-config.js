@@ -98,5 +98,17 @@ window.H38_CUSTOMER_PORTAL_SUPABASE = Object.freeze({
     'text/csv',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  ]
+  ],
+  payment: Object.freeze({
+    adapter: 'hosted-payment-url',
+    provider: 'paypal-commerce',
+    providerConnectionRequired: true,
+    liveChargingEnabled: false,
+    currency: 'USD',
+    methods: Object.freeze(['PayPal', 'Venmo', 'Credit Card', 'Debit Card']),
+    venmoViaPayPalHostedCheckout: true,
+    rawCardDataAllowed: false,
+    rawWalletCredentialsAllowed: false,
+    notice: 'PayPal-hosted checkout is prepared for PayPal, Venmo and cards. Live payment links remain unavailable until the business account is connected, verified and owner-released.'
+  })
 });
