@@ -1,0 +1,48 @@
+name: Verify Shared Lifecycle Task Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'commercial-app/shared-lifecycle-task-ui.js'
+      - 'commercial-app/supabase-operation-coverage.js'
+      - 'supabase/migrations/20260927021836_quote_owner_task_lifecycle.sql'
+      - 'supabase/migrations/20260927030000_quote_owner_role_task_hardening.sql'
+      - 'supabase/migrations/20260927031000_lifecycle_owner_tasks.sql'
+      - 'supabase/migrations/20260927031100_site_visit_linkage_correction.sql'
+      - 'supabase/migrations/20260927032000_database_fk_indexes.sql'
+      - 'supabase/migrations/20260927032100_redundant_policy_cleanup.sql'
+      - 'supabase/migrations/20260927032200_split_manage_read_policies.sql'
+      - 'scripts/verify-shared-lifecycle-task-hardening.js'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/shared-lifecycle-task-ui.js'
+      - 'commercial-app/supabase-operation-coverage.js'
+      - 'supabase/migrations/**'
+      - 'scripts/verify-shared-lifecycle-task-hardening.js'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --check commercial-app/shared-lifecycle-task-ui.js
+      - run: node --check commercial-app/supabase-operation-coverage.js
+      - run: node --check scripts/verify-shared-lifecycle-task-hardening.js
+      - run: node scripts/verify-shared-lifecycle-task-hardening.js
+      - run: npm audit --omit=dev --audit-level=high
