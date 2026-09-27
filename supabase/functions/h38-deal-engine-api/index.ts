@@ -985,12 +985,47 @@ Deno.serve(async (req: Request) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const body = await req.json().catch(() => ({}));
+    if (body.action === "scheduled_watch_refresh") {
+      const supplied = text(req.headers.get("x-h38-nightly-key"));
+      if (token !== service || !supplied) return json({ error: "WORKER_AUTH_REQUIRED" }, 401);
+      const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+      const key = await admin.from("h38_internal_job_secrets").select("secret_value")
+        .eq("name", "penny-nightly").maybeSingle();
+      if (key.error || !key.data?.secret_value || supplied !== text(key.data.secret_value)) {
+        return json({ error: "WORKER_AUTH_REQUIRED" }, 401);
+      }
+      const ids = [...new Set((Array.isArray(body.watch_ids) ? body.watch_ids : [])
+        .map((x: unknown) => text(x)).filter((x: string) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x)))].slice(0, 20);
+      if (!ids.length) return json({ error: "WATCH_IDS_REQUIRED" }, 400);
+      const watches = await admin.from("coupon_watch_rules").select("id,user_id")
+        .in("id", ids).eq("source", "amazon").eq("enabled", true);
+      if (watches.error) throw watches.error;
+      const userIds = [...new Set((watches.data || []).map((x: any) => text(x.user_id)))];
+      if (!userIds.length) return json({ ok: true, refreshed: [], reason: "no_enabled_amazon_watches" });
+      const memberships = await admin.from("coupon_household_members")
+        .select("household_id,user_id").in("user_id", userIds);
+      if (memberships.error) throw memberships.error;
+      const householdIds = [...new Set((memberships.data || []).map((x: any) => text(x.household_id)))].slice(0, 20);
+      const refreshed = [];
+      for (const householdId of householdIds) {
+        const members = await admin.from("coupon_household_members")
+          .select("user_id").eq("household_id", householdId);
+        if (members.error) throw members.error;
+        const memberIds = (members.data || []).map((x: any) => text(x.user_id)).filter(Boolean);
+        if (!memberIds.length) continue;
+        const result = await refreshEngine(admin, { householdId, memberIds }, memberIds[0]);
+        refreshed.push({ household_id: householdId, observation_count: result.observation_count,
+          history_added: result.history_added });
+      }
+      return json({ ok: true, refreshed, source: "scheduled_watch_refresh_v1" });
+    }
     const sb = createClient(url, anon, { global: { headers: { Authorization: auth } } });
     const userId = await authenticatedUserId(sb, token);
     if (!userId) return json({ error: "AUTH_REQUIRED" }, 401);
     const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     const ctx = await contextFor(sb, admin, userId);
-    const body = await req.json().catch(() => ({}));
     const action = text(body.action || "overview");
 
     if (action === "refresh") {
