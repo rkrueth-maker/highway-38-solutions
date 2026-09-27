@@ -542,6 +542,13 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     if (q.error) throw dbError("REFRESH_OBSERVATION_UPSERT", q.error);
   }
 
+  const historyDebug = normalized.filter(row => changedEnough(oldMap.get(row.canonical_key), row)).slice(0, 5)
+    .map(row => ({ key: row.canonical_key, old: Object.fromEntries(
+      ["observed_price","regular_price","expected_resale","discount_percent","estimated_profit","roi_percent"]
+        .map(k => [k, oldMap.get(row.canonical_key)?.[k] ?? null])),
+      next: Object.fromEntries(
+        ["observed_price","regular_price","expected_resale","discount_percent","estimated_profit","roi_percent"]
+          .map(k => [k, row[k] ?? null])) }));
   const history = normalized.filter(row =>
     (row.observed_price !== null || row.expected_resale !== null || row.discount_percent !== null) &&
     changedEnough(oldMap.get(row.canonical_key), row)
@@ -584,6 +591,7 @@ async function refreshEngine(admin: any, ctx: any, userId: string) {
     refreshed_at: nowIso,
     observation_count: normalized.length,
     history_added: history.length,
+    history_debug: historyDebug,
     source_counts: sourceCounts,
     warnings,
   };
@@ -1018,7 +1026,7 @@ Deno.serve(async (req: Request) => {
         if (!memberIds.length) continue;
         const result = await refreshEngine(admin, { householdId, memberIds }, memberIds[0]);
         refreshed.push({ household_id: householdId, observation_count: result.observation_count,
-          history_added: result.history_added });
+          history_added: result.history_added, history_debug: result.history_debug });
       }
       return json({ ok: true, refreshed, source: "scheduled_watch_refresh_v1" });
     }
