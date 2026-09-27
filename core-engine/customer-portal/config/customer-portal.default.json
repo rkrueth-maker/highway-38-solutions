@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "portal": {
     "id": "customer-portal-core",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "status": "NOT_ACTIVATED",
     "environment": "production"
   },
@@ -65,8 +65,20 @@
   "payments": {
     "hostedProviderOnly": true,
     "rawCardDataAllowed": false,
+    "rawWalletCredentialsAllowed": false,
     "allowedUrlSchemes": ["https:"],
-    "approvedProviders": []
+    "approvedProviders": [],
+    "supportedProviders": ["paypal-commerce"],
+    "supportedPaymentMethods": ["PayPal", "Venmo", "Credit Card", "Debit Card"],
+    "venmo": {
+      "viaProvider": "paypal-commerce",
+      "providerHostedOnly": true,
+      "merchantRegion": "US",
+      "customerRegion": "US",
+      "currency": "USD",
+      "requiresPayPalBusinessAccount": true,
+      "liveByDefault": false
+    }
   },
   "externalActions": {
     "emailSend": false,
