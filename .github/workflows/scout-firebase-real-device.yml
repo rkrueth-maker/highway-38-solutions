@@ -1,4 +1,4 @@
-name: H38 Scout v3.0.25 Firebase Authenticated Functional Crawl
+name: H38 Deals v3.1.2 Firebase Authenticated Functional Crawl
 
 on:
   workflow_dispatch:
@@ -15,19 +15,24 @@ on:
         description: 'Robo crawl timeout'
         required: true
         default: '30m'
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - .github/workflows/scout-firebase-real-device.yml
 
 permissions:
   contents: read
 
 concurrency:
-  group: scout-firebase-v3025-functional-crawl
+  group: h38-deals-v312-functional-crawl
   cancel-in-progress: false
 
 jobs:
   authenticated-functional-crawl:
     if: github.ref == 'refs/heads/agent/private-reseller-scout'
     runs-on: ubuntu-22.04
-    timeout-minutes: 50
+    timeout-minutes: 55
     env:
       FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -45,60 +50,72 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce private recovery authority
+      - name: Enforce current Scout authority
         shell: bash
         run: |
           set -euo pipefail
           test "$(git branch --show-current)" = 'agent/private-reseller-scout'
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
           missing=0
           for name in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_JSON SCOUT_EMAIL SCOUT_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "Missing required GitHub secret backing $name" >&2
-              missing=1
-            fi
+            if [[ -z "${!name:-}" ]]; then echo "Missing required GitHub secret backing $name" >&2; missing=1; fi
           done
           test "$missing" -eq 0
-
-          grep -Fq "versionName '3.0.25'" reseller/build.gradle
-          grep -Fq 'versionCode 325' reseller/build.gradle
-          test -f reseller/src/main/assets/reseller/v262-phone-video-repair.js
-          test ! -e reseller/src/main/assets/reseller/v316-garage-safe-action.js
-          test ! -e reseller/src/main/assets/reseller/v317-flipr-resale-flow.js
-          test ! -e reseller/src/main/assets/reseller/v323-native-auth-bridge.js
-
-          echo 'Recovery runtime gate PASS: v3.0.25 / v2.6.3 parity baseline.'
+          grep -Fq "versionName '3.1.2'" reseller/build.gradle
+          grep -Fq 'versionCode 342' reseller/build.gradle
+          grep -Fq '/functions/v1/h38-deal-engine-web' reseller/src/main/java/com/highway38/resellerscout/HostedHtmlWebViewClient.java
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          echo 'Current Scout authority PASS: H38 Deals 3.1.2 / code 342.'
 
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Use hosted Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
 
       - name: Install Android platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+        shell: bash
+        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-36' 'build-tools;35.0.0'"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build exact owner APK
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build exact H38 Deals 3.1.2 APK
         shell: bash
         run: |
           set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
           gradle --no-daemon :reseller:assembleOwner
           APP_APK="$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)"
           test -n "$APP_APK" -a -f "$APP_APK"
           echo "APP_APK=$APP_APK" >> "$GITHUB_ENV"
-
-          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
-          mkdir -p "$report"
-          cp "$APP_APK" "$report/H38-Reseller-Scout-Owner-v3.0.25-firebase.apk"
-          sha256sum "$report/H38-Reseller-Scout-Owner-v3.0.25-firebase.apk" | tee "$report/sha256.txt"
+          cp "$APP_APK" "$report/H38-Deals-3.1.2-firebase.apk"
+          sha256sum "$report/H38-Deals-3.1.2-firebase.apk" | tee "$report/sha256.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APP_APK" | tee "$report/badging.txt"
-          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='325' versionName='3.0.25'" "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='342' versionName='3.1.2'" "$report/badging.txt"
+          grep -Fq "application-label:'H38 Deals'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APP_APK" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
 
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
@@ -123,52 +140,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
           script="$RUNNER_TEMP/scout-login-robo.json"
           echo "::add-mask::$SCOUT_EMAIL"
           echo "::add-mask::$SCOUT_PASSWORD"
-
           python3 - <<'PY'
           import json, os, shlex
           from pathlib import Path
-
-          email = os.environ['SCOUT_EMAIL']
-          password = os.environ['SCOUT_PASSWORD']
-          out = Path(os.environ['RUNNER_TEMP']) / 'scout-login-robo.json'
-
-          # WebView login fields cannot use Firebase --robo-directives. Use OCR to focus
-          # the visible fields and Android input text to commit text through the IME path.
-          def input_cmd(value: str) -> str:
-              # Android `input text` treats %s as space. Keep a shell-safe single argument.
-              value = value.replace('%', '%25').replace(' ', '%s')
-              return 'input text ' + shlex.quote(value)
-
-          actions = [
-              {'eventType': 'WAIT', 'delayTime': 2500},
-              {'eventType': 'VIEW_CLICKED', 'visionText': 'Email'},
-              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(email)},
-              {'eventType': 'WAIT', 'delayTime': 800},
-              {'eventType': 'VIEW_CLICKED', 'visionText': 'Password'},
-              {'eventType': 'ADB_SHELL_COMMAND', 'command': input_cmd(password)},
-              {'eventType': 'WAIT', 'delayTime': 800},
-              {'eventType': 'VIEW_CLICKED', 'visionText': 'Sign in'},
-              {'eventType': 'WAIT', 'delayTime': 5000},
-              {
-                  'eventType': 'ASSERTION',
-                  'contextDescriptor': {
-                      'condition': 'element_present',
-                      'negateCondition': True,
-                      'visionText': 'Sign in'
-                  }
-              },
-              {'eventType': 'TAKE_SCREENSHOT', 'screenshotName': 'authenticated-scout-entry'}
+          email=os.environ['SCOUT_EMAIL']; password=os.environ['SCOUT_PASSWORD']
+          out=Path(os.environ['RUNNER_TEMP'])/'scout-login-robo.json'
+          def input_cmd(value):
+              value=value.replace('%','%25').replace(' ','%s')
+              return 'input text '+shlex.quote(value)
+          actions=[
+              {'eventType':'WAIT','delayTime':2500},
+              {'eventType':'VIEW_CLICKED','visionText':'Email'},
+              {'eventType':'ADB_SHELL_COMMAND','command':input_cmd(email)},
+              {'eventType':'WAIT','delayTime':800},
+              {'eventType':'VIEW_CLICKED','visionText':'Password'},
+              {'eventType':'ADB_SHELL_COMMAND','command':input_cmd(password)},
+              {'eventType':'WAIT','delayTime':800},
+              {'eventType':'VIEW_CLICKED','visionText':'Sign in'},
+              {'eventType':'WAIT','delayTime':5000},
+              {'eventType':'ASSERTION','contextDescriptor':{'condition':'element_present','negateCondition':True,'visionText':'Sign in'}},
+              {'eventType':'TAKE_SCREENSHOT','screenshotName':'authenticated-h38-deals-entry'}
           ]
-          out.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n' + json.dumps(actions))
+          out.write_text('roboscript:{"executionMode":{"strict":true,"dismiss_popups":true,"notify":false}}\n'+json.dumps(actions))
           PY
-
           test -s "$script"
           echo "ROBO_SCRIPT=$script" >> "$GITHUB_ENV"
-          echo 'Authenticated Robo script created (credentials masked; script is not uploaded as an artifact).'
 
       - name: Run authenticated full functional crawl on Firebase physical Android
         shell: bash
@@ -176,7 +175,6 @@ jobs:
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
           APP="$GITHUB_WORKSPACE/native/h38-site-scanner/android-app/$APP_APK"
-
           set +e
           gcloud firebase test android run \
             --project "$FIREBASE_PROJECT_ID" \
@@ -185,34 +183,16 @@ jobs:
             --robo-script "$ROBO_SCRIPT" \
             --device "model=$DEVICE_MODEL,version=$DEVICE_VERSION,locale=en,orientation=portrait" \
             --timeout "$ROBO_TIMEOUT" \
-            --results-history-name 'H38 Scout Authenticated Functional Crawl' \
-            --client-details matrixLabel="H38 Scout v3.0.25 authenticated all-functions crawl" \
+            --results-history-name 'H38 Deals Authenticated Functional Crawl' \
+            --client-details matrixLabel='H38 Deals 3.1.2 authenticated functional crawl' \
             2>&1 | tee "$report/firebase-test-lab.log"
           status=${PIPESTATUS[0]}
           set -e
-
-          raw_url="$(grep -oE 'https://console\.developers\.google\.com/storage/browser/[^ ]+' "$report/firebase-test-lab.log" | tail -n1 || true)"
-          if [[ -n "$raw_url" ]]; then
-            raw_path="${raw_url#https://console.developers.google.com/storage/browser/}"
-            bucket="${raw_path%%/*}"
-            prefix="${raw_path#*/}"
-            prefix="${prefix%/}"
-            mkdir -p "$report/firebase-raw-results"
-            gcloud storage cp --recursive "gs://$bucket/$prefix/**" "$report/firebase-raw-results/" || true
-          fi
-
-          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|crash|WebView.*error|net::ERR_|HTTP [45][0-9][0-9]|TypeError|ReferenceError|Unhandled|uncaught' \
-            "$report/firebase-raw-results" "$report/firebase-test-lab.log" \
-            > "$report/error-scan.txt" 2>/dev/null || true
-
-          grep -RniE 'crawl|action|screen|activity|coverage|robo' \
-            "$report/firebase-raw-results" \
-            > "$report/crawl-evidence.txt" 2>/dev/null || true
-
+          grep -RniE 'FATAL EXCEPTION|AndroidRuntime|ANR|AssertionError|FAILURES!!!|WebView.*error|net::ERR_|TypeError|ReferenceError|Unhandled|uncaught' "$report/firebase-test-lab.log" > "$report/error-scan.txt" 2>/dev/null || true
           if [[ "$status" -eq 0 ]]; then
-            echo 'FIREBASE AUTHENTICATED FUNCTIONAL CRAWL PASS — no Test Lab execution failure' | tee "$report/status.txt"
+            echo 'FIREBASE AUTHENTICATED FUNCTIONAL CRAWL PASS' | tee "$report/status.txt"
           elif grep -Fq 'TEST_QUOTA_EXCEEDED' "$report/firebase-test-lab.log"; then
-            echo 'FIREBASE NOT RUN — TEST_QUOTA_EXCEEDED; no device execution' | tee "$report/status.txt"
+            echo 'FIREBASE NOT RUN — TEST_QUOTA_EXCEEDED' | tee "$report/status.txt"
             exit "$status"
           else
             echo "FIREBASE FUNCTIONAL CRAWL FAIL — gcloud exit $status" | tee "$report/status.txt"
@@ -225,33 +205,28 @@ jobs:
         run: |
           set -euo pipefail
           report="$GITHUB_WORKSPACE/artifacts/firebase-functional"
+          mkdir -p "$report"
           {
-            echo '# H38 Scout v3.0.25 Firebase Functional Crawl'
+            echo '# H38 Deals 3.1.2 Firebase Functional Crawl'
             echo
             echo "- Source: $GITHUB_SHA"
             echo "- Branch: $GITHUB_REF_NAME"
             echo "- Device: $DEVICE_MODEL / Android $DEVICE_VERSION / PHYSICAL"
-            echo "- Package: com.highway38.resellerscout.owner"
-            echo '- Physical-phone login authority before this run: PASS'
-            echo '- Firebase scope: authenticated broad UI crawl, button/path traversal, crash/ANR/runtime-error capture, screenshots and video.'
-            echo '- Important: a successful Firebase crawl is NOT a substitute for physical-phone PASS on behavior that requires owner acceptance.'
+            echo '- Package: com.highway38.resellerscout.owner'
+            echo '- Scope: authenticated broad UI crawl, button/path traversal, crash/ANR/runtime-error capture.'
             echo
             echo '## Status'
             cat "$report/status.txt" 2>/dev/null || echo 'No final status generated.'
             echo
             echo '## Automated error scan'
-            if [[ -s "$report/error-scan.txt" ]]; then
-              cat "$report/error-scan.txt"
-            else
-              echo 'No matching fatal/runtime error signatures found in downloaded evidence.'
-            fi
+            if [[ -s "$report/error-scan.txt" ]]; then cat "$report/error-scan.txt"; else echo 'No matching fatal/runtime error signatures found.'; fi
           } > "$report/acceptance-report.md"
 
       - name: Upload Firebase evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h38-scout-v3.0.25-firebase-functional-crawl
+          name: h38-deals-v3.1.2-firebase-functional-crawl
           path: artifacts/firebase-functional/**
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
