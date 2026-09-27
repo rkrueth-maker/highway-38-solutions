@@ -4,7 +4,7 @@
   if(root)root.H38_PLATFORM_INTELLIGENCE_WAVE4=Object.freeze(api);
 })(typeof window!=='undefined'?window:null,function(){
 'use strict';
-const VERSION='20260927-platform-intelligence-wave4-1';
+const VERSION='20260927-platform-intelligence-wave4-2';
 const PROVIDERS=Object.freeze(['quickbooks','payments','bank-feed','bouncie','google-calendar','gmail','outlook','sms','maps','payroll','zapier','make','webhooks']);
 const RISKY=/send|message|email|sms|refund|payment|pay bill|check|transfer|bank|pricing|price|schedule customer|delete|payroll|permission|publish|deploy|external/i;
 const text=v=>String(v==null?'':v).trim();
@@ -24,7 +24,7 @@ function invoiceStatus(row){return lower(row?.Status||row?.status);}
 function billStatus(row){return lower(row?.Status||row?.status||row?.['Approval State']);}
 function overdueInvoices(snapshot,businessId,today=new Date()){return businessRows(collection(snapshot,'invoices'),businessId).map(r=>({row:r,balance:openInvoice(r),due:dueDate(r)})).filter(x=>x.balance>0&&x.due&&x.due<today&&!/void|cancel|delete|paid/.test(invoiceStatus(x.row))).sort((a,b)=>a.due-b.due);}
 function billsDue(snapshot,businessId,today=new Date(),days=7){const end=new Date(today.getTime()+days*86400000);return businessRows(collection(snapshot,'vendorBills','bills'),businessId).map(r=>({row:r,balance:openBill(r),due:dueDate(r)})).filter(x=>x.balance>0&&x.due&&x.due<=end&&!/void|cancel|delete|paid|dispute/.test(billStatus(x.row))).sort((a,b)=>a.due-b.due);}
-function unreconciled(snapshot,businessId){return businessRows(collection(snapshot,'bankTransactions','transactions'),businessId).filter(r=>!/reconciled|cleared/.test(lower(r?.['Reconciliation Status']||r?.reconciliationStatus||r?.Status))&&!/void|delete/.test(lower(r?.Status)));}
+function unreconciled(snapshot,businessId){return businessRows(collection(snapshot,'bankTransactions','transactions'),businessId).filter(r=>{const status=lower(r?.['Reconciliation Status']||r?.reconciliationStatus||r?.Status);return !/^(reconciled|cleared)\b/.test(status)&&!/void|delete/.test(lower(r?.Status));});}
 function missingReceipts(snapshot,businessId){return businessRows(collection(snapshot,'expenses'),businessId).filter(r=>{const receipt=r?.['Receipt ID']||r?.receiptId||r?.['Receipt File']||r?.attachmentId||r?.['Document ID'];return !receipt&&!/void|delete/.test(lower(r?.Status));});}
 function unsignedChangeOrders(snapshot,businessId){return businessRows(collection(snapshot,'changeOrders'),businessId).filter(r=>!/approved|signed|accepted|rejected|declined|void|cancel/.test(lower(r?.Status||r?.['Customer Approval'])));}
 function jobsMissingPhotos(snapshot,businessId){const photos=businessRows(collection(snapshot,'jobPhotos','photos','attachments'),businessId),byJob=new Set(photos.map(r=>rid(r,'Job ID','jobId')).filter(Boolean));return businessRows(collection(snapshot,'jobs'),businessId).filter(r=>!/complete|closed|cancel|void/.test(lower(r?.Status))&&!byJob.has(rid(r,'Job ID','jobId')));}
