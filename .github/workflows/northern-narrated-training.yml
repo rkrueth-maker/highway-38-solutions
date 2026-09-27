@@ -37,6 +37,7 @@ jobs:
           node --check scripts/record-northern-narrated-training.js
           node --check scripts/run-northern-narrated-training-v2.js
           node --check scripts/run-northern-narrated-training-v3.js
+          NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY=1 node scripts/run-northern-narrated-training-v3.js
           node --check scripts/verify-northern-training-privacy-contract.js
           node scripts/verify-northern-training-privacy-contract.js
           node --check scripts/build-northern-master-training.js
