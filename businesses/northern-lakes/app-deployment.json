@@ -13,7 +13,10 @@
   "customerPortalIsolation": "business-and-customer-rls",
   "paymentAdapter": "hosted-payment-url",
   "liveChargingEnabled": false,
-  "paymentProvider": "not-configured",
+  "paymentProvider": "paypal-commerce",
+  "paymentProviderConnectionState": "business-account-connection-required",
+  "paymentMethodsPrepared": ["PayPal", "Venmo", "Credit Card", "Debit Card"],
+  "venmoViaPayPalHostedCheckout": true,
   "canonicalLogoPath": "businesses/northern-lakes/assets/diamond-logo.svg",
   "supabaseProjectRef": "jqukmwtsgcsaruucnqja",
   "storageProvider": "supabase",
@@ -28,5 +31,5 @@
   "automaticSocialPublishing": false,
   "googleRecordsImported": false,
   "isolated": true,
-  "updatedAt": "2026-08-05T13:50:00Z"
+  "updatedAt": "2026-09-27T05:00:00Z"
 }
