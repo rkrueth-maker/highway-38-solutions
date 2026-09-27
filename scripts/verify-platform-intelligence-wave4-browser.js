@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('assert');
+const path=require('path');
+const {chromium}=require('playwright');
+const root=path.resolve(__dirname,'..');
+const engine=path.join(root,'commercial-app','platform-intelligence-wave4.js');
+const ui=path.join(root,'commercial-app','platform-intelligence-wave4-ui.js');
+async function seed(page,{businessId='BIZ-H38',owner=true,pageKey='assistant'}={}){
+ await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><section data-h38-ai-team><div class="h38-ai-team-head"><h2>AI Team</h2></div><div class="h38-ai-team-summary">Ready</div></section></main></body></html>');
+ await page.addScriptTag({content:`window.state={page:${JSON.stringify(pageKey)},businessId:${JSON.stringify(businessId)},bridgeReady:false,snapshot:{business:{businessId:${JSON.stringify(businessId)}},user:{owner:${owner?'true':'false'},roleName:${JSON.stringify(owner?'Owner':'Field')}},invoices:[{'Invoice ID':'INV-H','Business ID':'BIZ-H38',Total:1000,'Paid Amount':200,'Due Date':'2026-09-20',Status:'Sent'},{'Invoice ID':'INV-N','Business ID':'BIZ-NORTH',Total:50,'Paid Amount':0,'Due Date':'2026-09-20',Status:'Sent'}],vendorBills:[{'Vendor Bill ID':'B-H','Business ID':'BIZ-H38','Vendor Name':'H38 Vendor',Amount:100,'Due Date':'2026-09-28',Status:'Approved'},{'Vendor Bill ID':'B-N','Business ID':'BIZ-NORTH','Vendor Name':'North Vendor',Amount:25,'Due Date':'2026-09-28',Status:'Approved'}],bankAccounts:[{'Business ID':'BIZ-H38',Type:'Checking','Available Balance':2000},{'Business ID':'BIZ-NORTH',Type:'Checking','Available Balance':500}],expenses:[],payments:[],jobs:[{'Job ID':'J-H','Business ID':'BIZ-H38',Status:'Open'},{'Job ID':'J-N','Business ID':'BIZ-NORTH',Status:'Open'}],quotes:[],customers:[{'Customer ID':'C-H','Business ID':'BIZ-H38'},{'Customer ID':'C-N','Business ID':'BIZ-NORTH'}],integrationStates:[{'Business ID':'BIZ-H38',Provider:'quickbooks',Status:'Connected',Connected:true,AccessToken:'SECRET-H'},{'Business ID':'BIZ-NORTH',Provider:'quickbooks',Status:'Connected',Connected:true,AccessToken:'SECRET-N'}],automationRules:[]}};window.__ops=[];window.queueOperation=async(...args)=>{window.__ops.push(args);return true;};window.sync=async()=>true;`});
+ await page.addScriptTag({path:engine});await page.addScriptTag({path:ui});
+ await page.evaluate(()=>window.dispatchEvent(new Event('h38:office-page-rendered')));await page.waitForTimeout(100);
+}
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ try{
+  const desktop=await browser.newPage({viewport:{width:1280,height:900}});await seed(desktop,{});
+  assert.equal(await desktop.locator('#h38Wave4OwnerBrief').count(),1,'owner command center renders on assistant');
+  assert.equal(await desktop.locator('#h38Wave4Automation').count(),1,'safe automation builder renders');
+  const txt=await desktop.locator('#h38Wave4OwnerBrief').innerText();assert(txt.includes('$800.00'),'H38 AR is derived from H38 only');assert(!txt.includes('$50.00'),'Northern AR does not leak into H38 panel');
+  await desktop.locator('#h38Wave4Ask input').fill('What bills should I pay this week?');await desktop.locator('#h38Wave4Ask button').first().click();await desktop.waitForTimeout(30);const result=await desktop.locator('#h38Wave4Result').innerText();assert(result.includes('PREVIEW_ONLY'));assert(result.includes('External action occurred: No'),'assistant analysis must not pretend to execute payment');
+  await desktop.locator('#h38Wave4Rule input[name="trigger"]').fill('invoice overdue');await desktop.locator('#h38Wave4Rule input[name="action"]').fill('send customer email');await desktop.locator('#h38Wave4Rule select[name="mode"]').selectOption('automatic');await desktop.locator('#h38Wave4Rule button').click();await desktop.waitForTimeout(30);assert((await desktop.locator('#h38Wave4RuleResult').innerText()).includes('Saved as approval'),'high-impact automatic request is forced to approval');assert.equal(await desktop.evaluate(()=>window.__ops.length),1,'rule save uses canonical Office queue');
+  await desktop.evaluate(()=>{window.state.page='settings';window.dispatchEvent(new Event('h38:office-page-rendered'));});await desktop.waitForTimeout(80);assert.equal(await desktop.locator('#h38Wave4Integrations').count(),1);const integrations=await desktop.locator('#h38Wave4Integrations').innerText();assert(integrations.includes('Quickbooks'));assert(integrations.includes('EXTERNAL_GATE'));assert(!integrations.includes('SECRET-H'),'integration UI must never expose credentials');
+  const phone=await browser.newPage({viewport:{width:390,height:844}});await seed(phone,{businessId:'BIZ-NORTH'});const north=await phone.locator('#h38Wave4OwnerBrief').innerText();assert(north.includes('$50.00'),'Northern owner sees Northern AR');assert(!north.includes('$800.00'),'Northern owner does not see H38 AR');const overflow=await phone.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);assert.equal(overflow,false,'Wave 4 owner panels fit phone width');
+  const field=await browser.newPage({viewport:{width:390,height:844}});await seed(field,{owner:false});assert.equal(await field.locator('#h38Wave4OwnerBrief').count(),0,'field role does not receive owner financial intelligence');assert.equal(await field.locator('#h38Wave4Automation').count(),0,'field role does not receive owner automation builder');
+  console.log('Platform Intelligence Wave 4 browser/phone/tenant acceptance complete.');
+ }finally{await browser.close();}
+})().catch(err=>{console.error(err);process.exit(1);});
