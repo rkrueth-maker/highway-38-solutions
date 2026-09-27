@@ -1,0 +1,53 @@
+name: Verify Field Operations Wave 3
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/field-operations-next.js'
+      - 'commercial-app/field-operations-ui.js'
+      - 'commercial-app/ai-team-owner-polish.js'
+      - 'scripts/verify-field-operations-wave3.js'
+      - 'scripts/verify-field-operations-wave3-browser.js'
+      - '.github/workflows/verify-field-operations-wave3.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/field-operations-next.js'
+      - 'commercial-app/field-operations-ui.js'
+      - 'commercial-app/ai-team-owner-polish.js'
+      - 'scripts/verify-field-operations-wave3.js'
+      - 'scripts/verify-field-operations-wave3-browser.js'
+      - '.github/workflows/verify-field-operations-wave3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  field-operations-wave3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax
+        run: |
+          node --check commercial-app/field-operations-next.js
+          node --check commercial-app/field-operations-ui.js
+          node --check commercial-app/ai-team-owner-polish.js
+          node --check scripts/verify-field-operations-wave3.js
+          node --check scripts/verify-field-operations-wave3-browser.js
+      - name: Field operations rules
+        run: node scripts/verify-field-operations-wave3.js
+      - name: Verify runtime loader
+        run: |
+          grep -Fq "const FIELD_OPERATIONS_BUILD='20260927-field-operations-wave3-1'" commercial-app/ai-team-owner-polish.js
+          grep -Fq "const FIELD_OPERATIONS_UI_BUILD='20260927-field-operations-ui-1'" commercial-app/ai-team-owner-polish.js
+          grep -Fq './field-operations-next.js?build=${FIELD_OPERATIONS_BUILD}' commercial-app/ai-team-owner-polish.js
+          grep -Fq './field-operations-ui.js?build=${FIELD_OPERATIONS_UI_BUILD}' commercial-app/ai-team-owner-polish.js
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser, phone and tenant acceptance
+        run: node scripts/verify-field-operations-wave3-browser.js
