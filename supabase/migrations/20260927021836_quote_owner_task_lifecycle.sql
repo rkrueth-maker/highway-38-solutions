@@ -1,6 +1,7 @@
 -- Production migration-history reconciliation marker.
 -- Supabase production recorded quote_owner_task_lifecycle at version 20260927021836.
 -- The original repository filename used an earlier local timestamp, which caused history drift.
--- Full quote/owner lifecycle behavior is intentionally consolidated and made replay-safe by
--- 20260927030000_shared_lifecycle_task_hardening.sql.
+-- Full quote/owner lifecycle behavior is consolidated and made replay-safe by
+-- 20260927030000_quote_owner_role_task_hardening.sql and
+-- 20260927031000_lifecycle_owner_tasks.sql.
 -- No-op by design: production already contains the original quote lifecycle objects.
