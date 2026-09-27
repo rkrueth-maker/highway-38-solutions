@@ -206,6 +206,27 @@ async function refreshWebDiscovery() {
   }
 }
 
+async function normalizeWatchDiscoveries(watchIds: string[]) {
+  if (!watchIds.length) return { skipped: true, reason: "no_new_discoveries" };
+  try {
+    const secret = await admin().from("h38_internal_job_secrets")
+      .select("secret_value").eq("name", "penny-nightly").maybeSingle();
+    if (secret.error || !secret.data?.secret_value) throw new Error("WORKER_SECRET_UNAVAILABLE");
+    const r = await fetch(`${BASE}/functions/v1/h38-deal-engine-api`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE,
+        "x-h38-nightly-key": text(secret.data.secret_value), "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "scheduled_watch_refresh", watch_ids: watchIds.slice(0, 20) }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const body = await r.json().catch(() => ({}));
+    return { ok: r.ok && body?.ok === true, status: r.status, refreshed: body?.refreshed || [],
+      error: text(body?.error || body?.detail) };
+  } catch (e) {
+    return { ok: false, status: 598, refreshed: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "POST_REQUIRED" }, 405);
@@ -309,7 +330,7 @@ Deno.serve(async (req: Request) => {
       checked++;
     }
 
-    const stateQ = await db.from("deal_engine_state").select("household_id,warnings");
+    const stateQ = await db.from("deal_engine_state").select("household_id,warnings,last_refresh_at");
     if (stateQ.error) throw stateQ.error;
     for (const state of stateQ.data || []) {
       const obs = await db.from("deal_engine_observations").select("product_area,retailer", { count: "exact" })
@@ -330,6 +351,14 @@ Deno.serve(async (req: Request) => {
 
     const couponRefresh = await refreshCouponSources();
     const webDiscovery = await refreshWebDiscovery();
+    const pendingDiscoveryIds = (discoveryQ.data || []).filter((row: Any) => {
+      const state = (stateQ.data || []).find((item: Any) =>
+        membersByHousehold.get(text(item.household_id))?.has(text(row.user_id)));
+      return !state?.last_refresh_at || Date.parse(text(row.observed_at)) > Date.parse(text(state.last_refresh_at));
+    }).map((row: Any) => text(row.watch_id));
+    const discoveredNow = (webDiscovery.refreshed || []).map((row: Any) => text(row.id));
+    const normalizeIds = [...new Set([...pendingDiscoveryIds, ...discoveredNow])].filter(Boolean);
+    const normalization = await normalizeWatchDiscoveries(normalizeIds);
     return json({
       ok: true,
       engine: "H38_DEAL_ENGINE_WORKER_V1",
@@ -348,6 +377,7 @@ Deno.serve(async (req: Request) => {
       },
       coupon_refresh: couponRefresh,
       web_discovery: webDiscovery,
+      watch_normalization: normalization,
       elapsed_ms: Date.now() - started,
       truth: "Watch hits require current source evidence and all configured thresholds. Profit/ROI watches never pass when sold comps or costs are missing.",
     });
