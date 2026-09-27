@@ -170,6 +170,27 @@ jobs:
           if grep -E 'FATAL EXCEPTION|AndroidRuntime|ANR|FAILURES!!!|Failed[[:space:]]*\|' "$report/firebase-render-auth.log"; then exit 1; fi
           echo FIREBASE_PHYSICAL_RENDERED_DOM_AND_REAL_SIGNIN_PASS | tee "$report/firebase-render-auth-status.txt"
 
+      - name: Capture Firebase failing assertion evidence
+        if: failure()
+        shell: bash
+        run: |
+          set -u
+          report="$GITHUB_WORKSPACE/artifacts/v311"
+          log="$report/firebase-render-auth.log"
+          test -f "$log" || exit 0
+          location=$(sed -n 's/.*Raw results will be stored in your GCS bucket at \[https:\/\/console.developers.google.com\/storage\/browser\/\([^]]*\)\/\].*/\1/p' "$log" | head -n1)
+          test -n "$location" || exit 0
+          bucket="${location%%/*}"
+          prefix="${location#*/}"
+          gcloud storage ls --recursive "gs://$bucket/$prefix/**" > "$report/firebase-result-files.txt" 2>&1 || exit 0
+          mkdir -p "$report/firebase-result-details"
+          grep -Ei '(test.?result|instrumentation|logcat|junit|xml$|results.json)' "$report/firebase-result-files.txt" | head -n 24 | while IFS= read -r object; do
+            case "$object" in gs://*) ;; *) continue;; esac
+            name=$(printf '%s' "$object" | sha256sum | cut -c1-12)
+            base=$(basename "$object")
+            gcloud storage cp "$object" "$report/firebase-result-details/$name-$base" >/dev/null 2>&1 || true
+          done
+
       - name: Firebase physical install and launch
         shell: bash
         run: |
