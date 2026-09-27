@@ -48,7 +48,7 @@ jobs:
         run: |
           grep -Fq "const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1'" commercial-app/ai-team-owner-polish.js
           grep -Fq "const CUSTOMER_SALES_UI_BUILD='20260927-customer-sales-ui-1'" commercial-app/ai-team-owner-polish.js
-          grep -Fq "const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-2'" commercial-app/ai-team-owner-polish.js
+          grep -Fq "const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-3'" commercial-app/ai-team-owner-polish.js
           grep -Fq './customer-sales-next.js?build=${CUSTOMER_SALES_BUILD}' commercial-app/ai-team-owner-polish.js
           grep -Fq './customer-sales-ui.js?build=${CUSTOMER_SALES_UI_BUILD}' commercial-app/ai-team-owner-polish.js
           grep -Fq './customer-sales-action-owner.js?build=${CUSTOMER_SALES_ACTION_OWNER_BUILD}' commercial-app/ai-team-owner-polish.js
