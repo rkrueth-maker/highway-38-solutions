@@ -1,0 +1,92 @@
+name: Deep Owner + Venmo Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'core-engine/customer-portal/**'
+      - 'customer-portal-config.js'
+      - 'businesses/northern-lakes/customer-portal-config.js'
+      - 'businesses/northern-lakes/app-deployment.json'
+      - 'business-packs/northern-lakes/supabase-business-pack.json'
+      - 'apps-script/core-engine/owner-portal-next/Portal_Adapters.js'
+      - 'scripts/verify-paypal-venmo-hosted-payments.js'
+      - '.github/workflows/verify-deep-owner-venmo-acceptance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'core-engine/revenue-operations/**'
+      - 'core-engine/customer-portal/**'
+      - 'customer-portal-config.js'
+      - 'businesses/northern-lakes/customer-portal-config.js'
+      - 'businesses/northern-lakes/app-deployment.json'
+      - 'business-packs/northern-lakes/supabase-business-pack.json'
+      - 'apps-script/core-engine/owner-portal-next/Portal_Adapters.js'
+      - 'scripts/verify-paypal-venmo-hosted-payments.js'
+      - '.github/workflows/verify-deep-owner-venmo-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deep-owner-venmo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install test runtime
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Static shared-engine and payment acceptance
+        run: |
+          set -euo pipefail
+          node scripts/verify-paypal-venmo-hosted-payments.js
+          node scripts/verify-business-office.js
+          node scripts/verify-owner-standalone-quote-to-payment.js
+          node scripts/verify-customer-portal-core.js
+          node scripts/verify-revenue-operations-core.js
+          node scripts/verify-revenue-growth-launch-readiness.js
+          node scripts/verify-complete-ecosystem.js
+          npm audit --audit-level=high
+      - name: Prepare authorized owner TEST session
+        env:
+          STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
+        run: |
+          if [ -n "$STORAGE_STATE" ]; then
+            printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"
+            chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"
+          fi
+      - name: Run real owner full lifecycle against deployed Office
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: 'true'
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-deep-owner-storage-state.json
+          H38_FULL_TRAINING_DIR: artifacts/deep-owner-lifecycle
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/record-full-office-lifecycle-training.js
+      - name: Run live assistant tenant-action acceptance
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: 'true'
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+        run: node scripts/verify-assistant-tenant-actions-live.js
+      - name: Upload deep acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-owner-venmo-${{ github.run_id }}
+          path: |
+            artifacts/payment-acceptance/
+            artifacts/deep-owner-lifecycle/
+            artifacts/assistant-tenant-actions-live/
+            launch-control/evidence/customer-portal-core-verification.json
+          if-no-files-found: warn
+          retention-days: 30
