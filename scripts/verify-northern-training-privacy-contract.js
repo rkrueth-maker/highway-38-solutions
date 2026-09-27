@@ -20,10 +20,11 @@ assert.match(v3,/Private customer \/ property/,'Working for masking must use a c
 assert.ok(v3.includes('/^working for\\\\b/i')||v3.includes('/^working for\\b/i'),'Working for matching must be explicit rather than a broad text replacement');
 assert.match(v3,/privacySafe/,'training fixtures and tenant branding must remain distinguishable from private customer data');
 assert.match(v3,/Northern Lakes/,'tenant branding must remain visible while customer/property values are masked');
+assert.match(v3,/Working for privacy mask must treat its placeholder as stable/,'Working for masking must be idempotent under its MutationObserver');
 assert.match(v3,/Training privacy gate found/,'per-step privacy gate must remain fail-closed');
 assert.match(v3,/Northern training found H38 assistant branding/,'Northern video gate must reject H38 assistant branding drift');
 assert.match(v3,/root=document\.body/,'privacy scrub must cover the visible shell, not only main content');
-assert.match(v3,/20260927-v15/,'recorder privacy build must be current');
+assert.match(v3,/20260927-v16/,'recorder privacy build must be current');
 assert.match(workflow,/run-northern-narrated-training-v3\.js/,'workflow must use the hardened v3 recorder');
 assert.match(workflow,/externalActionsOccurred!==false/,'workflow must reject any external action during training');
 assert.match(workflow,/recording_authorized/,'recording must remain explicitly controlled');
@@ -32,6 +33,7 @@ console.log(JSON.stringify({
   status:'PASS',
   fullShellPrivacy:true,
   workingForMasked:true,
+  workingForMaskIdempotent:true,
   asyncObserver:true,
   visibleLeakGate:true,
   tenantBrandDriftGate:true,
