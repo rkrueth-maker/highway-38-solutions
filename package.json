@@ -56,6 +56,6 @@
   },
   "homepage": "https://github.com/rkrueth-maker/highway-38-solutions#readme",
   "dependencies": {
-    "playwright": "^1.54.1"
+    "playwright": "^1.63.0"
   }
 }
