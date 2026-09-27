@@ -9,6 +9,7 @@ on:
       - 'commercial-app/index.html'
       - 'scripts/verify-native-accounting-foundation.js'
       - 'scripts/verify-native-accounting-browser.js'
+      - 'scripts/verify-accounting-posting-bridge.js'
       - '.github/workflows/verify-native-accounting-wave1.yml'
   push:
     branches:
@@ -20,6 +21,7 @@ on:
       - 'commercial-app/index.html'
       - 'scripts/verify-native-accounting-foundation.js'
       - 'scripts/verify-native-accounting-browser.js'
+      - 'scripts/verify-accounting-posting-bridge.js'
       - '.github/workflows/verify-native-accounting-wave1.yml'
 
 permissions:
@@ -42,12 +44,15 @@ jobs:
           node --check commercial-app/accounting-posting-bridge.js
           node --check scripts/verify-native-accounting-foundation.js
           node --check scripts/verify-native-accounting-browser.js
+          node --check scripts/verify-accounting-posting-bridge.js
       - name: Verify native accounting business rules
         run: node scripts/verify-native-accounting-foundation.js
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Verify H38 and Northern owner accounting browser flows
         run: node scripts/verify-native-accounting-browser.js
+      - name: Verify deterministic Money-to-ledger posting bridge
+        run: node scripts/verify-accounting-posting-bridge.js
       - name: Verify accounting modules are loaded by Office
         run: |
           grep -Fq './accounting-engine.js?build=20260927-wave1-accounting-core-1' commercial-app/index.html
