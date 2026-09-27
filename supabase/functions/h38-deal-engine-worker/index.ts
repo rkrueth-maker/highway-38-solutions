@@ -241,7 +241,7 @@ Deno.serve(async (req: Request) => {
       .select("canonical_key");
     if (expiredOffers.error) throw expiredOffers.error;
 
-    const [watchQ, memberQ, huntQ, couponQ, discoveryQ, priceQ, savedQ] = await Promise.all([
+    const [watchQ, memberQ, huntQ, couponQ, discoveryQ, priceQ, savedQ, legacyQ] = await Promise.all([
       db.from("deal_engine_watch_rules").select("*").eq("enabled", true),
       db.from("coupon_household_members").select("household_id,user_id"),
       db.from("reseller_hunt_cache").select("canonical_key,retailer,title,upc,sku,deal_type,buy_price,retail_price,last_seen_at,payload").eq("active", true).gte("last_seen_at", sevenDaysAgo).limit(4000),
@@ -249,8 +249,10 @@ Deno.serve(async (req: Request) => {
       db.from("coupon_watch_discovery_cache").select("*").gt("expires_at", now).limit(2000),
       db.from("coupon_price_observations").select("*").gte("observed_at", fourteenDaysAgo).limit(2000),
       db.from("reseller_deals").select("created_by,title,upc,sku,buy_price,expected_resale,estimated_fees,estimated_shipping,other_costs,status,updated_at").limit(2000),
+      db.from("coupon_watch_rules").select("id,source").eq("enabled", true),
     ]);
-    for (const q of [watchQ, memberQ, huntQ, couponQ, discoveryQ, priceQ, savedQ]) if (q.error) throw q.error;
+    for (const q of [watchQ, memberQ, huntQ, couponQ, discoveryQ, priceQ, savedQ, legacyQ]) if (q.error) throw q.error;
+    const amazonDiscoveryIds = new Set((legacyQ.data || []).filter((row: Any) => lower(row.source) === "amazon").map((row: Any) => text(row.id)));
 
     const membersByHousehold = new Map<string, Set<string>>();
     for (const row of memberQ.data || []) {
@@ -299,7 +301,7 @@ Deno.serve(async (req: Request) => {
         updated_at: now,
       }).eq("id", rule.id);
       if (update.error) throw update.error;
-      if (rule.legacy_coupon_watch_id) {
+      if (rule.legacy_coupon_watch_id && !amazonDiscoveryIds.has(text(rule.legacy_coupon_watch_id))) {
         const mirror = await db.from("coupon_watch_rules").update({ last_checked_at: now, last_status: status, updated_at: now })
           .eq("id", rule.legacy_coupon_watch_id);
         if (mirror.error) throw mirror.error;
