@@ -1,0 +1,58 @@
+name: Verify Customer Sales Wave 2
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/customer-sales-next.js'
+      - 'commercial-app/customer-sales-ui.js'
+      - 'commercial-app/customer-sales-action-owner.js'
+      - 'commercial-app/ai-team-owner-polish.js'
+      - 'scripts/verify-customer-sales-wave2.js'
+      - 'scripts/verify-customer-sales-wave2-browser.js'
+      - '.github/workflows/verify-customer-sales-wave2.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-app/customer-sales-next.js'
+      - 'commercial-app/customer-sales-ui.js'
+      - 'commercial-app/customer-sales-action-owner.js'
+      - 'commercial-app/ai-team-owner-polish.js'
+      - 'scripts/verify-customer-sales-wave2.js'
+      - 'scripts/verify-customer-sales-wave2-browser.js'
+      - '.github/workflows/verify-customer-sales-wave2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  customer-sales-wave2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax
+        run: |
+          node --check commercial-app/customer-sales-next.js
+          node --check commercial-app/customer-sales-ui.js
+          node --check commercial-app/customer-sales-action-owner.js
+          node --check commercial-app/ai-team-owner-polish.js
+          node --check scripts/verify-customer-sales-wave2.js
+          node --check scripts/verify-customer-sales-wave2-browser.js
+      - name: Customer and sales rules
+        run: node scripts/verify-customer-sales-wave2.js
+      - name: Verify runtime loader
+        run: |
+          grep -Fq "const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1'" commercial-app/ai-team-owner-polish.js
+          grep -Fq "const CUSTOMER_SALES_UI_BUILD='20260927-customer-sales-ui-1'" commercial-app/ai-team-owner-polish.js
+          grep -Fq "const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-3'" commercial-app/ai-team-owner-polish.js
+          grep -Fq './customer-sales-next.js?build=${CUSTOMER_SALES_BUILD}' commercial-app/ai-team-owner-polish.js
+          grep -Fq './customer-sales-ui.js?build=${CUSTOMER_SALES_UI_BUILD}' commercial-app/ai-team-owner-polish.js
+          grep -Fq './customer-sales-action-owner.js?build=${CUSTOMER_SALES_ACTION_OWNER_BUILD}' commercial-app/ai-team-owner-polish.js
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser and phone acceptance
+        run: node scripts/verify-customer-sales-wave2-browser.js
