@@ -118,26 +118,14 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          # Keep the runner from issuing fragile post-boot animation ADB writes.
-          # The prior fallback reached sys.boot_completed=1, then failed on that
-          # optional animation-setting call before instrumentation could start.
           disable-animations: false
-          # KVM is enabled explicitly above; never silently fall back to the
-          # unstable software-emulated Linux device that dropped framework services.
           disable-linux-hw-accel: false
-          # The API-30 emulator can report sys.boot_completed before Android
-          # framework services are actually responsive. Wait for package/settings
-          # services and a readable SDK level so ddmlib does not classify the
-          # connected emulator as "Unknown API Level".
           script: |
-            # android-emulator-runner executes each script line independently
-            # with /bin/sh. Keep each command self-contained instead of using a
-            # multiline shell loop or Bash-only syntax.
             adb wait-for-device
             timeout 180 sh -c 'until SDK="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d "\\r")"; printf "%s" "$SDK" | grep -Eq "^[0-9]+$" && adb shell service check package 2>/dev/null | grep -q found && adb shell service check settings 2>/dev/null | grep -q found; do sleep 2; done'
             adb shell getprop ro.build.version.sdk
             adb shell input keyevent 82 || true
-            cd native/h38-site-scanner/android-app && gradle --no-daemon --stacktrace connectedDebugAndroidTest
+            cd native/h38-site-scanner/android-app && bash -lc 'set -o pipefail; gradle --no-daemon --stacktrace connectedDebugAndroidTest 2>&1 | tee "$RUNNER_TEMP/h38-connected-test-attempt-1.log"; rc=${PIPESTATUS[0]}; if [ "$rc" -eq 0 ]; then exit 0; fi; if grep -Eq "keyDispatchingTimedOut|device offline|Failed to start Emulator console" "$RUNNER_TEMP/h38-connected-test-attempt-1.log"; then echo "Recognized transient emulator/instrumentation failure; retrying once after framework recovery."; adb wait-for-device; timeout 120 sh -c '\''until adb shell service check package 2>/dev/null | grep -q found && adb shell service check settings 2>/dev/null | grep -q found; do sleep 2; done'\''; sleep 5; gradle --no-daemon --stacktrace connectedDebugAndroidTest; else exit "$rc"; fi'
       - name: Capture fallback diagnostics
         if: always() && steps.firebase.outputs.configured != 'true'
         working-directory: ${{ github.workspace }}
@@ -146,6 +134,7 @@ jobs:
           mkdir -p firebase-test-lab
           printf '%s\n' 'Firebase Test Lab cloud credentials were unavailable for this run.' > firebase-test-lab/fallback.txt
           printf '%s\n' 'The workflow used a GitHub-hosted Android emulator to execute connectedDebugAndroidTest.' >> firebase-test-lab/fallback.txt
+          if [[ -f "$RUNNER_TEMP/h38-connected-test-attempt-1.log" ]]; then cp "$RUNNER_TEMP/h38-connected-test-attempt-1.log" firebase-test-lab/; fi
       - uses: google-github-actions/setup-gcloud@v2
         if: steps.firebase.outputs.configured == 'true'
       - name: Authenticate Google Cloud
