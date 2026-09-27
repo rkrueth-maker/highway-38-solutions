@@ -8,7 +8,7 @@ const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
 const TAX_CENTER_BUILD='20260924-tax-center-1';
 const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1';
 const CUSTOMER_SALES_UI_BUILD='20260927-customer-sales-ui-1';
-const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-2';
+const CUSTOMER_SALES_ACTION_OWNER_BUILD='20260927-customer-sales-action-owner-3';
 let scheduled=false;
 const text=value=>String(value==null?'':value).trim();
 function owner(){const user=window.state?.snapshot?.user||{};return user.owner===true||/\bowner\b/i.test(text(user.roleName||user.role));}
