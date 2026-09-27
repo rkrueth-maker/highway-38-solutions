@@ -7,6 +7,7 @@ on:
       - 'scripts/record-northern-narrated-training.js'
       - 'scripts/run-northern-narrated-training-v2.js'
       - 'scripts/run-northern-narrated-training-v3.js'
+      - 'scripts/verify-northern-training-privacy-contract.js'
       - 'scripts/build-northern-master-training.js'
       - 'scripts/northern-training-scenarios.json'
       - 'scripts/northern-training-scenarios-extra.json'
@@ -31,11 +32,14 @@ jobs:
         with: {node-version: '24'}
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - name: Validate recorder sources
+      - name: Validate recorder sources and privacy contract
         run: |
           node --check scripts/record-northern-narrated-training.js
           node --check scripts/run-northern-narrated-training-v2.js
           node --check scripts/run-northern-narrated-training-v3.js
+          NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY=1 node scripts/run-northern-narrated-training-v3.js
+          node --check scripts/verify-northern-training-privacy-contract.js
+          node scripts/verify-northern-training-privacy-contract.js
           node --check scripts/build-northern-master-training.js
           python -m json.tool scripts/northern-training-scenarios.json >/dev/null
           python -m json.tool scripts/northern-training-scenarios-extra.json >/dev/null
