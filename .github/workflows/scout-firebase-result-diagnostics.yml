@@ -23,6 +23,7 @@ jobs:
           mkdir -p evidence
           source='gs://test-lab-2c7pbqdh4t6ax-yyp3fd4s29th2/2026-09-27_21:32:25.777451_GNjc'
           gcloud storage ls --recursive "$source/**" | tee evidence/files.txt
+          gcloud storage cp "$source/r0q-34-en-portrait/test_cases/0001.mp4" evidence/failing-deal-engine.mp4
           while IFS= read -r object; do
             case "$object" in gs://*) ;; *) continue;; esac
             case "$object" in *test_result*|*test-result*|*instrumentation*|*logcat*|*.xml|*results.json|*test_details*) ;;
