@@ -447,7 +447,7 @@ function changedEnough(old: any, next: any) {
   if (!old) return true;
   const keys = [
     "observed_price", "regular_price", "expected_resale", "discount_percent",
-    "estimated_profit", "roi_percent", "confidence_score", "opportunity_score",
+    "estimated_profit", "roi_percent",
   ];
   return keys.some(k => {
     const a = n(old[k]), b = n(next[k]);
