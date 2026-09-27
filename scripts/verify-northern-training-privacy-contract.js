@@ -23,11 +23,14 @@ assert.match(v3,/Northern Lakes/,'tenant branding must remain visible while cust
 assert.match(v3,/Working for privacy mask must treat its placeholder as stable/,'Working for masking must be idempotent under its MutationObserver');
 assert.match(v3,/lower==='private customer \/ property'/,'placeholder stability must use exact string comparison instead of a generated slash-sensitive regex');
 assert.match(v3,/slice\('working for'\.length\)/,'Working for context parsing must avoid fragile generated whitespace escapes');
+assert.match(v3,/NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY/,'wrapper must support generated-runtime syntax preflight without recording');
+assert.match(v3,/generatedRuntimeSyntax:true/,'generated-runtime preflight must emit explicit proof');
 assert.match(v3,/Training privacy gate found/,'per-step privacy gate must remain fail-closed');
 assert.match(v3,/Northern training found H38 assistant branding/,'Northern video gate must reject H38 assistant branding drift');
 assert.match(v3,/root=document\.body/,'privacy scrub must cover the visible shell, not only main content');
-assert.match(v3,/20260927-v17/,'recorder privacy build must be current');
+assert.match(v3,/20260927-v18/,'recorder privacy build must be current');
 assert.match(workflow,/run-northern-narrated-training-v3\.js/,'workflow must use the hardened v3 recorder');
+assert.match(workflow,/NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY=1/,'workflow must syntax-check the generated recorder runtime before installing recording dependencies');
 assert.match(workflow,/externalActionsOccurred!==false/,'workflow must reject any external action during training');
 assert.match(workflow,/recording_authorized/,'recording must remain explicitly controlled');
 
@@ -37,6 +40,7 @@ console.log(JSON.stringify({
   workingForMasked:true,
   workingForMaskIdempotent:true,
   generatedRuntimeSyntaxSafe:true,
+  generatedRuntimePreflight:true,
   asyncObserver:true,
   visibleLeakGate:true,
   tenantBrandDriftGate:true,
