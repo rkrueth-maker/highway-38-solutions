@@ -16,7 +16,7 @@ window.NL_CUSTOMER_PORTAL_CONFIG=Object.freeze({
  ],
  storageBucket:'customer-portal',
  payment:Object.freeze({
-  mode:'provider-connection-required',
+  mode:'provider-not-configured',
   liveChargingEnabled:false,
   testMode:true,
   adapter:'hosted-payment-url',
