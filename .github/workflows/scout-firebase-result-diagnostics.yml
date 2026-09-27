@@ -1,0 +1,39 @@
+name: Scout Firebase Result Diagnostics
+on:
+  push:
+    branches: [agent/private-reseller-scout]
+    paths: [.github/workflows/scout-firebase-result-diagnostics.yml]
+permissions:
+  contents: read
+jobs:
+  retrieve:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Retrieve previous physical test evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          source='gs://test-lab-2c7pbqdh4t6ax-yyp3fd4s29th2/2026-09-27_21:32:25.777451_GNjc'
+          gcloud storage ls --recursive "$source/**" | tee evidence/files.txt
+          while IFS= read -r object; do
+            case "$object" in gs://*) ;; *) continue;; esac
+            case "$object" in *test_result*|*test-result*|*instrumentation*|*logcat*|*.xml|*results.json|*test_details*) ;;
+              *) continue;;
+            esac
+            name=$(printf '%s' "$object" | sha256sum | cut -c1-12)
+            gcloud storage cp "$object" "evidence/$name-$(basename "$object")" >/dev/null || true
+          done < evidence/files.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scout-previous-firebase-result-diagnostics
+          path: evidence/**
+          retention-days: 7
