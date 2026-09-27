@@ -48,6 +48,11 @@ async function install(page,businessId='B-H38',name='Highway 38 Solutions'){
   await page.evaluate(()=>window.renderAccounting());
 }
 
+async function openOperation(page,kind){
+  assert(await page.locator(`[data-h38-accounting-op="${kind}"]`).count()>0,`${kind} owner action must be rendered`);
+  await page.evaluate(k=>window.H38_ACCOUNTING_OPERATIONS_UI.open(k),kind);
+}
+
 (async()=>{
   const browser=await chromium.launch({headless:true});
   try{
@@ -55,8 +60,9 @@ async function install(page,businessId='B-H38',name='Highway 38 Solutions'){
     await install(page);
     assert.match(await page.locator('#mainContent').innerText(),/Daily money operations/);
     assert.match(await page.locator('#mainContent').innerText(),/1 expense missing required receipts/);
+    assert((await page.locator('[data-h38-accounting-op]').count())>=8,'owner operation buttons must be visible');
 
-    await page.locator('[data-h38-accounting-op="deposit"]').click();
+    await openOperation(page,'deposit');
     await page.locator('#h38OpsDeposit select[name="bank"]').selectOption('ACCT-1000');
     await page.locator('#h38OpsDeposit input[name="payments"]').fill('PAY-1');
     await page.locator('#h38OpsDeposit input[name="gross"]').fill('100');
@@ -65,13 +71,14 @@ async function install(page,businessId='B-H38',name='Highway 38 Solutions'){
     await page.waitForFunction(()=>window.state.snapshot.deposits.length===1);
     assert.equal(await page.evaluate(()=>window.state.snapshot.accountingTransactions.length),0,'prepared deposit must not post before review');
     await page.evaluate(()=>window.renderAccounting());
-    await page.locator('[data-h38-record-deposit]').click();
+    const depositId=await page.evaluate(()=>window.state.snapshot.deposits[0]['Deposit ID']||window.state.snapshot.deposits[0].id);
+    await page.evaluate(id=>window.H38_ACCOUNTING_OPERATIONS_UI.recordDeposit(id),depositId);
     await page.waitForFunction(()=>window.state.snapshot.accountingTransactions.length===1&&/Recorded/.test(window.state.snapshot.deposits[0].Status));
     const depositTx=await page.evaluate(()=>window.state.snapshot.accountingTransactions[0]);
     assert.equal(depositTx['Business ID'],'B-H38');assert.equal(depositTx.Lines.reduce((s,l)=>s+Number(l.debit||0)-Number(l.credit||0),0),0);
 
     await page.evaluate(()=>window.renderAccounting());
-    await page.locator('[data-h38-accounting-op="refund"]').click();
+    await openOperation(page,'refund');
     await page.locator('#h38OpsRefund select[name="customer"]').selectOption('C-1');
     await page.locator('#h38OpsRefund select[name="bank"]').selectOption('ACCT-1000');
     await page.locator('#h38OpsRefund input[name="amount"]').fill('25');
@@ -81,7 +88,7 @@ async function install(page,businessId='B-H38',name='Highway 38 Solutions'){
     assert.equal(refund['External Transfer Occurred'],false);assert.match(refund.Status,/Approval Required/);
 
     await page.evaluate(()=>window.renderAccounting());
-    await page.locator('[data-h38-accounting-op="payroll"]').click();
+    await openOperation(page,'payroll');
     await page.locator('#h38OpsPayroll input[name="start"]').fill('2026-09-21');
     await page.locator('#h38OpsPayroll input[name="end"]').fill('2026-09-27');
     await page.locator('#h38OpsPayroll').evaluate(form=>form.requestSubmit());
@@ -94,7 +101,7 @@ async function install(page,businessId='B-H38',name='Highway 38 Solutions'){
 
     await page.evaluate(({snap})=>{window.state.businessId='B-NORTHERN';window.state.snapshot=snap;window.renderAccounting();},{snap:snapshot('B-NORTHERN','Northern Lakes')});
     const body=await page.locator('#mainContent').innerText();assert.match(body,/Daily money operations/);assert.doesNotMatch(body,/H38 Supply/);
-    await page.locator('[data-h38-accounting-op="customerCredit"]').click();
+    await openOperation(page,'customerCredit');
     await page.locator('#h38OpsCustomerCredit select[name="customer"]').selectOption('C-1');
     await page.locator('#h38OpsCustomerCredit input[name="amount"]').fill('10');
     await page.locator('#h38OpsCustomerCredit input[name="reason"]').fill('Test adjustment');
