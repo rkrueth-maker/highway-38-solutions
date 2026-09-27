@@ -1,0 +1,52 @@
+name: Verify Platform Intelligence Wave 4
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/platform-intelligence-wave4.js'
+      - 'commercial-app/platform-intelligence-wave4-ui.js'
+      - 'commercial-app/ai-team-owner-polish.js'
+      - 'scripts/verify-platform-intelligence-wave4.js'
+      - 'scripts/verify-platform-intelligence-wave4-browser.js'
+      - '.github/workflows/verify-platform-intelligence-wave4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform-intelligence-wave4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax
+        run: |
+          node --check commercial-app/platform-intelligence-wave4.js
+          node --check commercial-app/platform-intelligence-wave4-ui.js
+          node --check commercial-app/ai-team-owner-polish.js
+          node --check scripts/verify-platform-intelligence-wave4.js
+          node --check scripts/verify-platform-intelligence-wave4-browser.js
+      - name: Intelligence, payments, automation and integration rules
+        run: node scripts/verify-platform-intelligence-wave4.js
+      - name: Verify shared runtime loader
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),assert=require('assert');
+          const s=fs.readFileSync('commercial-app/ai-team-owner-polish.js','utf8');
+          assert(s.includes('platform-intelligence-wave4.js'));
+          assert(s.includes('platform-intelligence-wave4-ui.js'));
+          assert(s.includes('H38_PLATFORM_INTELLIGENCE_WAVE4'));
+          assert(s.includes('H38_PLATFORM_INTELLIGENCE_WAVE4_UI'));
+          assert(s.includes('loadPlatformIntelligenceWave4();'));
+          console.log('Wave 4 shared loader contract complete.');
+          NODE
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser, phone and tenant acceptance
+        run: node scripts/verify-platform-intelligence-wave4-browser.js
