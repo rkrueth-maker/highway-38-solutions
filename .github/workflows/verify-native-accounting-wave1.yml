@@ -1,0 +1,51 @@
+name: Verify Native Accounting Wave 1
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/accounting-engine.js'
+      - 'commercial-app/accounting-workspace.js'
+      - 'commercial-app/index.html'
+      - 'scripts/verify-native-accounting-foundation.js'
+      - 'scripts/verify-native-accounting-browser.js'
+      - '.github/workflows/verify-native-accounting-wave1.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/accounting-engine.js'
+      - 'commercial-app/accounting-workspace.js'
+      - 'commercial-app/index.html'
+      - 'scripts/verify-native-accounting-foundation.js'
+      - 'scripts/verify-native-accounting-browser.js'
+      - '.github/workflows/verify-native-accounting-wave1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  accounting-foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check accounting module syntax
+        run: |
+          node --check commercial-app/accounting-engine.js
+          node --check commercial-app/accounting-workspace.js
+          node --check scripts/verify-native-accounting-foundation.js
+          node --check scripts/verify-native-accounting-browser.js
+      - name: Verify native accounting business rules
+        run: node scripts/verify-native-accounting-foundation.js
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify H38 and Northern owner accounting browser flows
+        run: node scripts/verify-native-accounting-browser.js
+      - name: Verify accounting modules are loaded by Office
+        run: |
+          grep -Fq './accounting-engine.js?build=20260927-wave1-accounting-core-1' commercial-app/index.html
+          grep -Fq './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1' commercial-app/index.html
