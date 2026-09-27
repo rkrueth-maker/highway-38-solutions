@@ -1,6 +1,8 @@
 (function(){
 'use strict';
 const BUILD='20260920-final-real-office-1';
+const IMPORT_BUILD='20260927-smart-import-migration-1';
+const ASSET_BASE=new URL('./',document.currentScript?.src||location.href).href;
 const text=value=>String(value==null?'':value).trim();
 const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
 const value=(row,...keys)=>{for(const key of keys)if(row?.[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];return'';};
@@ -48,7 +50,13 @@ function review(file,options={}){return new Promise(resolve=>{void analyze(file,
   document.body.appendChild(dialog);dialog.addEventListener('close',()=>{if(dialog.returnValue!=='confirmed')resolve(null);dialog.remove();},{once:true});dialog.querySelector('form').onsubmit=event=>{event.preventDefault();const data=new FormData(event.currentTarget),customerId=text(data.get('customerId')),jobId=text(data.get('jobId')),quoteId=text(data.get('quoteId')),relatedRecordType=jobId?'Job':quoteId?'Quote':customerId?'Customer':'Business',relatedRecordId=jobId||quoteId||customerId||text(window.state?.businessId);dialog.returnValue='confirmed';dialog.close();resolve({...proposed,documentType:text(data.get('documentType')),customerId,jobId,quoteId,relatedRecordType,relatedRecordId,confirmed:true});};dialog.showModal();
   }).catch(error=>{window.toast?.(`Smart Upload could not inspect this file: ${error?.message||error}`,true);resolve(null);});});}
 async function upload(files,options={}){const handler=window.handleAttachmentFiles;if(typeof handler!=='function')throw Error('Document upload is unavailable.');const results=[];for(const file of Array.from(files||[])){const decision=await review(file,options);if(!decision)continue;await handler([file],decision.relatedRecordType,decision.relatedRecordId,'Internal',{customerId:decision.customerId,jobId:decision.jobId,quoteId:decision.quoteId,documentType:decision.documentType,smartUpload:true,classificationConfidence:decision.confidence,uploadSource:options.source||'Documents'});results.push(decision);}return results;}
+function ensureSmartImportExtension(){
+  if(!document.querySelector('link[data-h38-smart-import-style]')){const style=document.createElement('link');style.rel='stylesheet';style.href=new URL(`smart-import.css?build=${IMPORT_BUILD}`,ASSET_BASE).href;style.dataset.h38SmartImportStyle=IMPORT_BUILD;document.head.appendChild(style);}
+  if(window.H38_SMART_IMPORT||document.querySelector('script[data-h38-smart-import-runtime]'))return;
+  const script=document.createElement('script');script.src=new URL(`smart-import.js?build=${IMPORT_BUILD}`,ASSET_BASE).href;script.async=false;script.dataset.h38SmartImportRuntime=IMPORT_BUILD;document.body.appendChild(script);
+}
 document.addEventListener('click',event=>{const button=event.target?.closest?.('#uploadDocumentButton');if(!button)return;const input=document.getElementById('documentInput');if(!input?.files?.length)return;event.preventDefault();event.stopImmediatePropagation();void upload(input.files,{source:'Documents'}).then(results=>{if(results.length){input.value='';window.toast?.(`${results.length} file${results.length===1?'':'s'} classified and saved privately.`);}}).catch(error=>window.toast?.(error?.message||String(error),true));},true);
-window.H38_SMART_UPLOAD=Object.freeze({build:BUILD,classify,readableContent,analyze,recommendation,review,upload,oneClassificationAuthority:true,contentAwareClassification:true,retainsOriginal:true,confirmationForAmbiguity:true,privateByDefault:true,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchase:false,automaticPayment:false});
+window.H38_SMART_UPLOAD=Object.freeze({build:BUILD,classify,readableContent,analyze,recommendation,review,upload,ensureSmartImportExtension,oneClassificationAuthority:true,contentAwareClassification:true,retainsOriginal:true,confirmationForAmbiguity:true,privateByDefault:true,smartImportExtension:true,automaticCustomerRelease:false,automaticCustomerSending:false,automaticApproval:false,automaticPurchase:false,automaticPayment:false});
 window.dispatchEvent(new CustomEvent('h38:smart-upload-ready',{detail:{build:BUILD}}));
+ensureSmartImportExtension();
 })();
