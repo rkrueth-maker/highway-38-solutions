@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  if (!window.H38_SHARED_LIFECYCLE_TASK_UI && !document.querySelector('script[data-h38-shared-lifecycle-task-ui]')) {
+  if (typeof document !== 'undefined' && !window.H38_SHARED_LIFECYCLE_TASK_UI && !document.querySelector('script[data-h38-shared-lifecycle-task-ui]')) {
     const script=document.createElement('script');
     script.src='./shared-lifecycle-task-ui.js?build=20260926-shared-lifecycle-task-ui-1';
     script.async=false;
