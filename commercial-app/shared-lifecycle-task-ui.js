@@ -82,7 +82,7 @@ async function reconcileQuoteWorkTasks(){
           continue;
         }
         const record={'Task ID':id,'Business ID':stateNow().businessId,'Customer ID':val(quote,'Customer ID'),'Quote ID':qid,'Job ID':jobId,'Task Title':title,'Task Type':'Quote Work','Assigned User ID':'','Assigned Role':'Owner','Priority':'Normal','Status':'Open','Due Time':'','Quantity':Number(val(line,'Quantity','quantity')||1),'Unit':val(line,'Unit','unit')||'each','Quote Checklist Key':key,'Quote Revision':revision,'Instructions':val(quote,'Scope','Deliverables')||'','Notes':`Generated from accepted quote ${val(quote,'Quote Number')||qid}, revision ${revision}. Internal work checklist; no customer action occurred.`,'Created Time':new Date().toISOString(),'Updated Time':new Date().toISOString(),'Record Version':1};
-        await saveTask(record);tasks.unshift(record);
+        await saveTask(record);
       }
       const old=tasks.filter(task=>text(val(task,'Quote ID'))===qid&&text(val(task,'Task Type'))==='Quote Work'&&!expected.has(rid(task,'Task ID','taskId'))&&openStatus(task));
       for(const task of old){await saveTask({...task,'Status':'Completed','Completed Time':new Date().toISOString(),'Completion Reason':`Superseded by quote revision ${revision}`,'Updated Time':new Date().toISOString(),'Record Version':Math.max(1,Number(val(task,'Record Version')||0)+1)});}
