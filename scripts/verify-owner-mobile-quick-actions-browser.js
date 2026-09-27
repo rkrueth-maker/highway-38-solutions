@@ -4,8 +4,9 @@ const assert=require('assert');
 const {chromium}=require('playwright');
 const runtime=path.resolve(__dirname,'../commercial-app/owner-mobile-quick-actions.js');
 const shell=()=>`<!doctype html><html><head></head><body><header class="topbar"><div class="top-actions"><button id="h38InstallOfficeButton" aria-label="Install H38 Office app" title="Install H38 Office">Install H38</button><button id="h38NewActionButton">＋<strong>New</strong></button><button id="globalAiButton" aria-label="Open H38 AI" title="My H38 Assistant"><span class="ai-launcher-label">H38 AI</span><span class="h38-floating-assistant-label">Ask H38</span></button><button id="voiceButton" aria-label="Talk to H38">🎙️</button></div></header><nav id="mainNav" class="h38-five-primary-nav"><button data-h38-primary="today"><span class="nav-icon">⌂</span><span>Today</span></button><button data-h38-primary="customers"><span class="nav-icon">👤</span><span>Customers</span></button><button data-h38-primary="schedule"><span class="nav-icon">🗓</span><span>Schedule</span></button><button data-h38-primary="messages"><span class="nav-icon">💬</span><span>Messages</span></button><button data-h38-primary="more"><span class="nav-icon">•••</span><span>More</span></button><button data-page="ai"><span class="nav-icon">✨</span><span>H38 AI</span></button></nav><main id="mainContent"><section id="h38TimeClockCard">Clock card <button data-h38-erp-open="erp">ERP center</button></section></main><dialog id="globalAiDialog" aria-label="H38 AI assistant"></dialog><section data-h38-install-group><h3>App</h3><button>Install H38 Office</button></section><dialog id="h38InstallOfficeDialog"><h2>Install H38 Office</h2><p>H38 Office keeps the same secure sign-in.</p></dialog><dialog id="h38QuickCreateDialog"><div class="h38-quick-grid"><button type="button" data-h38-quick="meeting"><span>🗣️</span><strong>Meeting</strong><small>Record</small></button><button type="button" data-h38-quick="assistant"><span>✨</span><strong>Ask H38</strong><small>Find anything</small></button></div></dialog></body></html>`;
-async function seed(page){
-  await page.setContent(shell());
+async function seed(page,search='?shell=office&businessKey=northern-lakes'){
+  await page.route('https://office.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:shell()}));
+  await page.goto(`https://office.test/${search}`);
   await page.evaluate(()=>{
     window.PAGE_DEFS={ai:['✨','H38 AI']};
     window.state={page:'today',snapshot:{user:{owner:true,roleName:'Owner',permissions:{all:true}}}};
@@ -18,6 +19,21 @@ async function seed(page){
   });
   await page.addScriptTag({path:runtime});
   await page.waitForTimeout(80);
+}
+async function assertInstallLinks(page){
+  const menuLinks=page.locator('[data-h38-install-group] [data-h38-install-platform-link]');
+  const dialogLinks=page.locator('#h38InstallOfficeDialog [data-h38-install-platform-link]');
+  assert.equal(await menuLinks.count(),2,'More → App must expose iPhone and Android install links.');
+  assert.equal(await dialogLinks.count(),2,'Install dialog must expose iPhone and Android install links.');
+  const iphone=await page.locator('[data-h38-install-group] [data-h38-install-platform-link="iphone"]').getAttribute('href');
+  const android=await page.locator('[data-h38-install-group] [data-h38-install-platform-link="android"]').getAttribute('href');
+  for(const [href,target] of [[iphone,'iphone'],[android,'android']]){
+    const url=new URL(href);
+    assert.equal(url.searchParams.get('businessKey'),'northern-lakes','install links must preserve tenant context');
+    assert.equal(url.searchParams.get('shell'),'office');
+    assert.equal(url.searchParams.get('installHelp'),target);
+    assert.equal(url.searchParams.has('shortcut'),false);
+  }
 }
 async function assertNeutralSharedLabels(page){
   assert.equal((await page.locator('#globalAiButton .ai-launcher-label').textContent()).trim(),'Assistant');
@@ -33,6 +49,18 @@ async function assertNeutralSharedLabels(page){
   assert.equal(await page.locator('#h38InstallOfficeButton').getAttribute('title'),'Install Business Office');
   assert.doesNotMatch(await page.locator('[data-h38-install-group]').innerText(),/H38 Office|Install H38/);
   assert.doesNotMatch(await page.locator('#h38InstallOfficeDialog').innerText(),/H38 Office|Install H38/);
+  await assertInstallLinks(page);
+}
+async function assertInstallLinkAutoOpen(browser){
+  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://office.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:shell()}));
+  await page.goto('https://office.test/?shell=office&businessKey=northern-lakes&installHelp=iphone');
+  await page.evaluate(()=>{window.__installOpened=0;window.H38_INSTALL_OFFICE={open:()=>{window.__installOpened+=1;}};window.state={snapshot:{user:{owner:true,roleName:'Owner',permissions:{all:true}}}};});
+  await page.addScriptTag({path:runtime});
+  await page.waitForFunction(()=>window.__installOpened===1);
+  assert.equal(await page.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.installLinkAutoOpen),true);
+  assert.equal(errors.length,0,errors.join('\n'));
+  await page.close();
 }
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -70,8 +98,12 @@ async function assertNeutralSharedLabels(page){
     assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.sharedToolLabelsNeutral),true);
     assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.assistantLabelTenantNeutral),true);
     assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.installLabelTenantNeutral),true);
+    assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.installPlatformLinks),true);
+    assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.installLinksTenantAware),true);
     assert.equal(await desktop.evaluate(()=>window.H38_OWNER_MOBILE_QUICK_ACTIONS?.aiNavigationLabelTenantNeutral),true);
     assert.equal(desktopErrors.length,0,desktopErrors.join('\n'));
-    console.log(JSON.stringify({status:'PASS',sharedOfficeEngine:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,aiNavigationLabelTenantNeutral:true,operationsIntelligenceUnderPlusOnPhone:true,bottomNavGeometryLocked:true}));
+
+    await assertInstallLinkAutoOpen(browser);
+    console.log(JSON.stringify({status:'PASS',sharedOfficeEngine:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,installPlatformLinks:true,installLinksTenantAware:true,installLinkAutoOpen:true,aiNavigationLabelTenantNeutral:true,operationsIntelligenceUnderPlusOnPhone:true,bottomNavGeometryLocked:true}));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
