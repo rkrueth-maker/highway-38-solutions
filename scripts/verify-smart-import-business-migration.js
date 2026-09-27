@@ -10,10 +10,14 @@ const universal=read('commercial-app/customer-import-intelligence.js');
 const edge=read('supabase/functions/h38-document-photo-analysis/index.ts');
 function must(ok,msg){if(!ok){console.error('FAIL:',msg);process.exit(1);}console.log('PASS:',msg);}
 new Function(smart);
-must(index.includes('smart-import.css?build=20260927-smart-import-migration-1'),'production loads Smart Import styles');
-must(index.includes('smart-import.js?build=20260927-smart-import-migration-1'),'production loads Smart Import runtime');
+new Function(upload);
+must(upload.includes("IMPORT_BUILD='20260927-smart-import-migration-1'"),'existing Smart Upload owns the Smart Import extension loader');
+must(upload.includes('smart-import.css?build=${IMPORT_BUILD}'),'Smart Upload loads Smart Import styles');
+must(upload.includes('smart-import.js?build=${IMPORT_BUILD}'),'Smart Upload loads Smart Import runtime');
+must(upload.includes('smartImportExtension:true'),'Smart Upload exposes migration extension capability');
 must(index.includes('id="authSignOutButton" class="icon-button" type="button" aria-label="Sign out" hidden'),'baseline auth sign-out visibility is preserved');
 must(index.includes('site-visit-photo-quote-runtime-repair.js?build=20260821-site-visit-photo-quote-runtime-repair-3'),'baseline site-visit runtime loader is preserved');
+must(!index.includes('smart-import.js'),'Office shell stays unchanged; Smart Import is loaded through Smart Upload');
 for(const token of ['extendsSmartUpload:true','folderSelection:true','usbSelectionWithUserPermission:true','dragDrop:true','batchDiscovery:true','sourcePreservation:true','checkpointing:true','ownerApprovalRequired:true','tenantIsolation:true','noPreApprovalWrites:true','existingNonblankValuesPreserved:true','executableBlocking:true','pathTraversalBlocking:true'])must(smart.includes(token),`Smart Import exposes ${token}`);
 for(const token of ['business_office_stage_import','business_office_apply_import','handleAttachmentFiles','h38-document-photo-analysis','webkitdirectory','Import Batch ID','business_data_import_runs'])must(smart.includes(token),`Smart Import uses ${token}`);
 must(smart.includes('MAX_FILES=20000'),'large archives have a bounded file ceiling');
