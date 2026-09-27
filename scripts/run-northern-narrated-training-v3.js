@@ -67,14 +67,19 @@ const bodyRoots=source.split('root=document.body').length-1;
 if(bodyRoots<3)throw new Error(`Expected full-shell privacy in at least three guards, found ${bodyRoots}.`);
 if(!source.includes('window.__nlTrainingPrivacyObserver'))throw new Error('Async training privacy observer is missing.');
 if(!source.includes("await scrubEmails(page);await scrubTrainingPrivacy(page);const leaks=await privateLeakCount(page);"))throw new Error('Per-step privacy re-scrub is missing.');
-source=source.replace("version:'20260925-v6'","version:'20260927-v17'");
+source=source.replace("version:'20260925-v6'","version:'20260927-v18'");
 
 fs.writeFileSync(runtimePath,source);
 try{
   const check=spawnSync(process.execPath,['--check',runtimePath],{encoding:'utf8'});
   if(check.status!==0)throw new Error('Generated Northern runtime is invalid: '+String(check.stderr||check.stdout||'').trim());
-  const run=spawnSync(process.execPath,[runtimePath],{stdio:'inherit',env:process.env});
-  process.exitCode=run.status===null?1:run.status;
+  if(process.env.NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY==='1'){
+    console.log(JSON.stringify({status:'PASS',generatedRuntimeSyntax:true,version:'20260927-v18'},null,2));
+    process.exitCode=0;
+  }else{
+    const run=spawnSync(process.execPath,[runtimePath],{stdio:'inherit',env:process.env});
+    process.exitCode=run.status===null?1:run.status;
+  }
 }finally{
   try{fs.unlinkSync(runtimePath);}catch(_){}
 }
