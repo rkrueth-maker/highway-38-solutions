@@ -21,6 +21,30 @@ public final class HostedRenderInstrumentedTest {
     @Test public void dealEngineRendersStyledHtmlInsteadOfSource() throws Exception {
         AtomicReference<String> last = new AtomicReference<>("not-run");
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+            // Start the product navigation only after the shell has rendered.
+            // Loading a second URL during the first WebView navigation can
+            // trigger completion callbacks for a document being replaced.
+            long shellDeadline = SystemClock.elapsedRealtime() + 30000L;
+            boolean shellReady = false;
+            while (SystemClock.elapsedRealtime() < shellDeadline) {
+                CountDownLatch readyLatch = new CountDownLatch(1);
+                AtomicReference<String> ready = new AtomicReference<>("false");
+                scenario.onActivity(activity -> {
+                    try {
+                        Field field = MainActivity.class.getDeclaredField("webView");
+                        field.setAccessible(true);
+                        ((WebView) field.get(activity)).evaluateJavascript(
+                                "document.title==='H38 Deals'&&!!document.getElementById('signin')",
+                                result -> { ready.set(result); readyLatch.countDown(); });
+                    } catch (Throwable error) {
+                        readyLatch.countDown();
+                    }
+                });
+                readyLatch.await(6, TimeUnit.SECONDS);
+                if ("true".equalsIgnoreCase(ready.get())) { shellReady = true; break; }
+                SystemClock.sleep(500L);
+            }
+            Assert.assertTrue("Hosted shell did not load before Deal Engine navigation", shellReady);
             scenario.onActivity(activity -> {
                 try {
                     Field field = MainActivity.class.getDeclaredField("webView");
