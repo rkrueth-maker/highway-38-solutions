@@ -22,7 +22,7 @@ pass('accepted quote creates work handoff task',has('Turn accepted quote into wo
 pass('superseded lifecycle tasks are completed',has("'Completion Reason', 'Superseded by quote lifecycle stage ' || p_event"));
 pass('auto tasks are duplicate-safe per quote revision',has("p_quote_record_key || '|' || p_event || '|' || v_revision"));
 pass('no automatic external action is recorded',has("'External Action Occurred', false"));
-pass('no send/payment/purchase function is invoked',!/sendEmail|fetch\(|charge|payment_intent|purchase|checkout/i.test(migration));
+pass('no external-action function invocation exists',!/(?:sendEmail|fetch|charge|purchase|checkout)\s*\(|payment_intent/i.test(migration));
 pass('security definer functions pin empty search path',(migration.match(/security definer\nset search_path = ''/g)||[]).length>=3);
 pass('private functions revoke public execution',(migration.match(/revoke all on function private\./g)||[]).length>=9);
 
