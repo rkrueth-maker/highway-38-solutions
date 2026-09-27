@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(typeof window==='undefined')return;
-const BUILD='20260927-customer-sales-action-owner-1';
+const BUILD='20260927-customer-sales-action-owner-2';
 let scheduled=false;
 function apply(){
   const ui=window.H38_CUSTOMER_SALES_UI;
@@ -25,6 +25,8 @@ window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
 document.addEventListener('click',event=>{if(event.target?.closest?.('[data-h38-sales-open]'))setTimeout(schedule,0);},true);
+const observer=new MutationObserver(mutations=>{for(const mutation of mutations){for(const node of mutation.addedNodes||[]){if(node?.nodeType===1&&(node.matches?.('[data-h38-sales-open]')||node.querySelector?.('[data-h38-sales-open]'))){schedule();return;}}}});
+observer.observe(document.documentElement,{childList:true,subtree:true});
 setTimeout(schedule,0);
-window.H38_CUSTOMER_SALES_ACTION_OWNER=Object.freeze({enabled:true,build:BUILD,apply,directButtonOwnership:true});
+window.H38_CUSTOMER_SALES_ACTION_OWNER=Object.freeze({enabled:true,build:BUILD,apply,directButtonOwnership:true,mutationOwnership:true});
 })();
