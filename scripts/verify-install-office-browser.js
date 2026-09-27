@@ -109,7 +109,6 @@ async function settingsInstallCard(browser){
   await page.goto('https://office.test/?shell=office&businessKey=northern-lakes');
   await page.evaluate(()=>{window.state={page:'settings',snapshot:{business:{businessKey:'northern-lakes'},user:{owner:true}}};});
   await page.addScriptTag({path:installPath});
-  window;
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page:'settings'}})));
   await page.waitForSelector('#businessOfficeInstallCard');
   assert.match(await page.locator('#businessOfficeInstallCard').innerText(),/Install Office on a phone/);
