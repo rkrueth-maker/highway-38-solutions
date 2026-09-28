@@ -1,0 +1,249 @@
+name: Agent Penny Cache Canonical Dedupe Patch
+
+on:
+  push:
+    branches:
+      - agent/penny-cache-dedupe-20260928
+    paths:
+      - .github/workflows/_agent-penny-cache-dedupe-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/penny-cache-dedupe-20260928
+          fetch-depth: 0
+
+      - name: Patch canonical dedupe and structured errors
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("supabase/functions/h38-penny-cache/index.ts")
+          text = path.read_text()
+
+          marker = "async function persistRows(admin: any, rows: Any[], sourceBucket: string) {"
+          helper = r'''function sourceEvidence(r: Any) {
+            const direct = parseSourceDate(r?.pennied_at);
+            if (direct) return { rank: 3, at: Date.parse(direct) || 0 };
+            const reported = [
+              parseSourceDate(r?.posted_date),
+              parseSourceDate(r?.last_seen),
+              parseSourceDate(r?.signal_observed_at),
+              ...(Array.isArray(r?.signal_sources)
+                ? r.signal_sources.map((s: Any) => parseSourceDate(s?.observed_at))
+                : []),
+            ]
+              .filter((v): v is string => !!v)
+              .sort()
+              .reverse()[0];
+            return {
+              rank: reported ? 2 : 0,
+              at: reported ? Date.parse(reported) || 0 : 0,
+            };
+          }
+          function mergeMissingFields(preferred: Any, fallback: Any) {
+            const merged: Any = { ...(fallback || {}), ...(preferred || {}) };
+            for (const [key, value] of Object.entries(fallback || {})) {
+              const current = merged[key];
+              if (
+                current === null ||
+                current === undefined ||
+                (typeof current === "string" && !current.trim())
+              )
+                merged[key] = value;
+            }
+            return merged;
+          }
+          function dedupeCanonicalRows(
+            rows: { r: Any; key: string; title: string }[],
+          ) {
+            const byKey = new Map<string, { r: Any; key: string; title: string }>();
+            for (const candidate of rows) {
+              const prior = byKey.get(candidate.key);
+              if (!prior) {
+                byKey.set(candidate.key, candidate);
+                continue;
+              }
+              const a = sourceEvidence(prior.r),
+                b = sourceEvidence(candidate.r),
+                priorImage = rawImage(prior.r),
+                candidateImage = rawImage(candidate.r),
+                priorSource = txt(
+                  prior.r?.source_item_url || prior.r?.source_url || prior.r?.url,
+                ),
+                candidateSource = txt(
+                  candidate.r?.source_item_url ||
+                    candidate.r?.source_url ||
+                    candidate.r?.url,
+                ),
+                candidateWins =
+                  b.rank > a.rank ||
+                  (b.rank === a.rank && b.at > a.at) ||
+                  (b.rank === a.rank &&
+                    b.at === a.at &&
+                    !priorImage &&
+                    !!candidateImage) ||
+                  (b.rank === a.rank &&
+                    b.at === a.at &&
+                    !!candidateImage === !!priorImage &&
+                    !priorSource &&
+                    !!candidateSource),
+                preferred = candidateWins ? candidate : prior,
+                fallback = candidateWins ? prior : candidate;
+              byKey.set(candidate.key, {
+                ...preferred,
+                title: preferred.title || fallback.title,
+                r: mergeMissingFields(preferred.r, fallback.r),
+              });
+            }
+            return [...byKey.values()];
+          }
+          function errorDetail(e: unknown) {
+            if (e instanceof Error) return e.message;
+            if (e && typeof e === "object") {
+              const x = e as Any;
+              try {
+                return JSON.stringify({
+                  code: x.code || "",
+                  message: x.message || "",
+                  details: x.details || "",
+                  hint: x.hint || "",
+                });
+              } catch {
+                // Fall through to String below.
+              }
+            }
+            return String(e);
+          }
+          '''
+          helper = "\n".join(line[10:] if line.startswith("          ") else line for line in helper.splitlines()) + "\n"
+          if "function dedupeCanonicalRows(" not in text:
+              if marker not in text:
+                  raise SystemExit("persistRows marker not found")
+              text = text.replace(marker, helper + marker, 1)
+
+          old = r'''  const normalized = rows
+            .map((r) => ({
+              r,
+              key: canonicalKey(r),
+              title: txt(
+                r?.source_identity_title ||
+                  r?.canonical_title ||
+                  r?.title ||
+                  r?.product_name ||
+                  r?.item_name,
+              ),
+            }))
+            .filter((x) => x.key && !junkTitle(x.title));'''
+          old = "\n".join(line[10:] if line.startswith("          ") else line for line in old.splitlines())
+          new = r'''  const canonicalized = rows
+            .map((r) => ({
+              r,
+              key: canonicalKey(r),
+              title: txt(
+                r?.source_identity_title ||
+                  r?.canonical_title ||
+                  r?.title ||
+                  r?.product_name ||
+                  r?.item_name,
+              ),
+            }))
+            .filter((x) => x.key && !junkTitle(x.title)),
+            normalized = dedupeCanonicalRows(canonicalized);'''
+          new = "\n".join(line[10:] if line.startswith("          ") else line for line in new.splitlines())
+          if old not in text:
+              raise SystemExit("normalized block not found or already changed unexpectedly")
+          text = text.replace(old, new, 1)
+
+          old_error = '    const detail = e instanceof Error ? e.message : String(e);'
+          if old_error not in text:
+              raise SystemExit("request error serializer marker not found")
+          text = text.replace(old_error, '    const detail = errorDetail(e);', 1)
+
+          path.write_text(text)
+
+      - name: Add durable regression gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > scripts/verify-penny-cache-canonical-dedupe.mjs <<'EOF'
+          import fs from 'node:fs';
+
+          const path = 'supabase/functions/h38-penny-cache/index.ts';
+          const source = fs.readFileSync(path, 'utf8');
+          const start = source.indexOf('async function persistRows(');
+          const end = source.indexOf('async function updateMeta(', start);
+          if (start < 0 || end < 0) throw new Error('persistRows block not found');
+          const block = source.slice(start, end);
+          const required = [
+            'function dedupeCanonicalRows(',
+            'const byKey = new Map',
+            'byKey.set(candidate.key',
+            'const canonicalized = rows',
+            'normalized = dedupeCanonicalRows(canonicalized)',
+            'upserts = normalized.map',
+            'const detail = errorDetail(e);',
+          ];
+          for (const token of required) {
+            if (!source.includes(token)) throw new Error(`Missing Penny cache dedupe guard: ${token}`);
+          }
+          if (block.includes('upserts = canonicalized.map')) {
+            throw new Error('Canonicalized duplicate rows can still reach the upsert batch');
+          }
+          if (!block.includes('keys = [...new Set(normalized.map((x) => x.key))]')) {
+            throw new Error('Existing-row lookup is not driven by deduped canonical keys');
+          }
+          console.log('PENNY_CACHE_CANONICAL_DEDUPE_SOURCE_GATE_PASS');
+          EOF
+
+          cat > .github/workflows/verify-penny-cache-canonical-dedupe.yml <<'EOF'
+          name: Verify Penny Cache Canonical Dedupe
+
+          on:
+            pull_request:
+              paths:
+                - supabase/functions/h38-penny-cache/index.ts
+                - scripts/verify-penny-cache-canonical-dedupe.mjs
+                - .github/workflows/verify-penny-cache-canonical-dedupe.yml
+            push:
+              branches:
+                - agent/private-reseller-scout
+              paths:
+                - supabase/functions/h38-penny-cache/index.ts
+                - scripts/verify-penny-cache-canonical-dedupe.mjs
+                - .github/workflows/verify-penny-cache-canonical-dedupe.yml
+
+          permissions:
+            contents: read
+
+          jobs:
+            source-contract:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: '22'
+                - run: node scripts/verify-penny-cache-canonical-dedupe.mjs
+          EOF
+
+          node scripts/verify-penny-cache-canonical-dedupe.mjs
+
+      - name: Commit repair and remove temporary patch workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/_agent-penny-cache-dedupe-patch.yml
+          git add supabase/functions/h38-penny-cache/index.ts scripts/verify-penny-cache-canonical-dedupe.mjs .github/workflows/verify-penny-cache-canonical-dedupe.yml
+          git diff --cached --check
+          git commit -m 'Deduplicate Penny cache refresh upserts'
+          git push origin HEAD:agent/penny-cache-dedupe-20260928
