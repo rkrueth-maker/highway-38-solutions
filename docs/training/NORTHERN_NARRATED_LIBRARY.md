@@ -39,3 +39,5 @@ Narration uses a generic deep, calm, warm male system voice generated locally du
 ## Output
 
 The GitHub Actions workflow `Northern Lakes Narrated Training Videos` produces narrated MP4 files, matching caption/audio metadata, a manifest, results JSON, and an artifact README. The workflow hard-fails unless at least 18 narrated videos pass and `externalActionsOccurred` remains false.
+
+The current three master packages contain 39 lessons: 20 operator, 16 owner/accounting/AI, and three reference. The Customer Portal reference shows the access route; it is not a signed-in customer permission test. Authenticated Staff completion is proven by the separate strict complete-training workflow with a TEST Staff membership. Client-owned Google Drive remains gated, so no lesson claims a completed Drive connection. Add a connected-provider recording only after that integration passes tenant-specific acceptance.
