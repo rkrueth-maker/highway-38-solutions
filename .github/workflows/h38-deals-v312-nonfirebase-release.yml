@@ -1,0 +1,126 @@
+name: H38 Deals v3.1.2 Non-Firebase Release Gate
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - .github/workflows/h38-deals-v312-nonfirebase-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-deals-v312-nonfirebase-release
+  cancel-in-progress: false
+
+jobs:
+  build-verify-package:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    env:
+      SB_URL: https://jqukmwtsgcsaruucnqja.supabase.co
+      SB_KEY: sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1
+      SCOUT_EMAIL: ${{ secrets.H38_SCOUT_TEST_EMAIL }}
+      SCOUT_PASSWORD: ${{ secrets.H38_SCOUT_TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Freeze exact private branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = agent/private-reseller-scout
+          git fetch origin agent/private-reseller-scout
+          test "$(git rev-parse origin/agent/private-reseller-scout)" = "$GITHUB_SHA"
+          printf '%s\n' "$GITHUB_SHA" | tee exact-head.txt
+
+      - name: Validate and run live H38 Deals acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n deals-app/acceptance-v311.sh
+          bash deals-app/acceptance-v311.sh
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Use hosted Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
+
+      - name: Install Android platform
+        shell: bash
+        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-36' 'build-tools;35.0.0'"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore persistent Scout signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Build and verify exact H38 Deals 3.1.2 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$GITHUB_WORKSPACE/artifacts/v312-nonfirebase"
+          mkdir -p "$report"
+          test -f "$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          export H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD=android
+          export H38_ANDROID_UPLOAD_KEY_ALIAS=androiddebugkey
+          export H38_ANDROID_UPLOAD_KEY_PASSWORD=android
+          cd "$GITHUB_WORKSPACE/native/h38-site-scanner/android-app"
+          grep -Fq 'versionCode 342' reseller/build.gradle
+          grep -Fq "versionName '3.1.2'" reseller/build.gradle
+          gradle --no-daemon clean :reseller:assembleOwner | tee "$report/compile.log"
+          src=$(find reseller/build/outputs/apk -type f -path '*/owner/*.apk' ! -path '*/androidTest/*' | head -n1)
+          test -n "$src" -a -f "$src"
+          apk="$report/H38-Deals-3.1.2.apk"
+          cp "$src" "$apk"
+          sha256sum "$apk" | tee "$report/sha256.txt"
+          printf '%s\n' "$GITHUB_SHA" | tee "$report/source-sha.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee "$report/badging.txt"
+          grep -Fq "package: name='com.highway38.resellerscout.owner' versionCode='342' versionName='3.1.2'" "$report/badging.txt"
+          grep -Fq "application-label:'H38 Deals'" "$report/badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$report/signing.txt"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report/signing.txt"
+          cert=$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$report/signing.txt" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')
+          test "$cert" = cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk" > "$report/zipalign.txt"
+          unzip -t "$apk" > "$report/zip-test.txt"
+          for dex in $(unzip -Z1 "$apk" | grep -E '^classes([0-9]*)?\.dex$'); do unzip -p "$apk" "$dex"; done | strings > "$report/dex.txt"
+          grep -Fq 'H38_DEALS_THIN_SHELL_V311' "$report/dex.txt"
+          grep -Fq 'H38_HOSTED_HTML_TRANSPORT_V311' "$report/dex.txt"
+          grep -Fq 'H38_RAW_SOURCE_GUARD_V311' "$report/dex.txt"
+          grep -Fq 'H38_HOSTED_CSP_REPAIR_V311' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-deals-shell' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-penny-web' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-resale-web' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-coupon-web' "$report/dex.txt"
+          grep -Fq '/functions/v1/h38-deal-engine-web' "$report/dex.txt"
+          if grep -Fq 'H38_SCOUT_V263_PHYSICAL_BUNDLE_AUTHORITY' "$report/dex.txt"; then exit 1; fi
+          echo NON_FIREBASE_APK_RELEASE_GATE_PASS | tee "$report/status.txt"
+
+      - name: Upload exact APK and verification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-deals-3.1.2-nonfirebase-release
+          path: artifacts/v312-nonfirebase/*
+          if-no-files-found: error
+          retention-days: 30
